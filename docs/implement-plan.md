@@ -56,7 +56,7 @@ Purpose: Show Mitm vulnerability
 Scenario:
 - Two agent exchanging messages
 - Attacker intercepts and modifies
-- No detection mechnism
+- No detection mechanism
 
 4.2 demo/secure-chat
 Purpose: Show SAGE protection
