@@ -23,6 +23,8 @@ func NewKeyRotator(storage sagecrypto.KeyStorage) sagecrypto.KeyRotator {
 	return &keyRotator{
 		storage: storage,
 		config: sagecrypto.KeyRotationConfig{
+			// TODO: Implement auto-rotation based on these settings
+			// Currently only manual rotation is supported
 			RotationInterval: 30 * 24 * time.Hour, // 30 days default
 			MaxKeyAge:        90 * 24 * time.Hour, // 90 days default
 			KeepOldKeys:      false,
@@ -93,7 +95,8 @@ func (r *keyRotator) Rotate(id string) (sagecrypto.KeyPair, error) {
 		NewKeyID:  newKeyPair.ID(),
 		Reason:    "Manual rotation",
 	}
-	r.history[id] = append([]sagecrypto.KeyRotationEvent{event}, r.history[id]...)
+	// Append to the end for better performance
+	r.history[id] = append(r.history[id], event)
 	r.mu.Unlock()
 
 	return newKeyPair, nil
@@ -116,9 +119,11 @@ func (r *keyRotator) GetRotationHistory(id string) ([]sagecrypto.KeyRotationEven
 		return []sagecrypto.KeyRotationEvent{}, nil
 	}
 	
-	// Return a copy to prevent external modification
+	// Return a copy in reverse order (newest first)
 	result := make([]sagecrypto.KeyRotationEvent, len(history))
-	copy(result, history)
+	for i, event := range history {
+		result[len(history)-1-i] = event
+	}
 	
 	return result, nil
 }

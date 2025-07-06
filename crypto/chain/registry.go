@@ -40,7 +40,7 @@ func (r *defaultRegistry) GetProvider(chain ChainType) (ChainProvider, error) {
 
 	provider, exists := r.providers[chain]
 	if !exists {
-		return nil, fmt.Errorf("%w: %s", ErrProviderNotFound, chain)
+		return nil, fmt.Errorf("failed to get provider for %s: %w", chain, ErrProviderNotFound)
 	}
 
 	return provider, nil

@@ -42,14 +42,22 @@ func NewFileKeyStorage(directory string) (sagecrypto.KeyStorage, error) {
 	}, nil
 }
 
+// validateKeyID validates that a key ID is safe for filesystem use
+func validateKeyID(id string) error {
+	if strings.Contains(id, "/") || strings.Contains(id, "\\") || strings.Contains(id, "..") {
+		return fmt.Errorf("invalid key ID: %s", id)
+	}
+	return nil
+}
+
 // Store stores a key pair with the given ID
 func (s *fileKeyStorage) Store(id string, keyPair sagecrypto.KeyPair) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// Validate ID (no path traversal)
-	if strings.Contains(id, "/") || strings.Contains(id, "\\") || strings.Contains(id, "..") {
-		return fmt.Errorf("invalid key ID: %s", id)
+	if err := validateKeyID(id); err != nil {
+		return err
 	}
 
 	// Export key to JWK format
@@ -87,8 +95,8 @@ func (s *fileKeyStorage) Load(id string) (sagecrypto.KeyPair, error) {
 	defer s.mu.RUnlock()
 
 	// Validate ID
-	if strings.Contains(id, "/") || strings.Contains(id, "\\") || strings.Contains(id, "..") {
-		return nil, fmt.Errorf("invalid key ID: %s", id)
+	if err := validateKeyID(id); err != nil {
+		return nil, err
 	}
 
 	filename := filepath.Join(s.directory, id+".key")
@@ -125,8 +133,8 @@ func (s *fileKeyStorage) Delete(id string) error {
 	defer s.mu.Unlock()
 
 	// Validate ID
-	if strings.Contains(id, "/") || strings.Contains(id, "\\") || strings.Contains(id, "..") {
-		return fmt.Errorf("invalid key ID: %s", id)
+	if err := validateKeyID(id); err != nil {
+		return err
 	}
 
 	filename := filepath.Join(s.directory, id+".key")
@@ -172,7 +180,7 @@ func (s *fileKeyStorage) Exists(id string) bool {
 	defer s.mu.RUnlock()
 
 	// Validate ID
-	if strings.Contains(id, "/") || strings.Contains(id, "\\") || strings.Contains(id, "..") {
+	if err := validateKeyID(id); err != nil {
 		return false
 	}
 
