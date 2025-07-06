@@ -426,6 +426,10 @@ FodyWeavers.xsd
 *.ipr
 *.iml
 
+# Go build artifacts
+build/
+sage-crypto
+
 # IntelliJ IDEA
 .idea/
 *.iml

@@ -1,0 +1,23 @@
+{
+  "key_id": "3bd74c505c1f1453",
+  "key_type": "Secp256k1",
+  "private_key": {
+    "kty": "EC",
+    "crv": "secp256k1",
+    "x": "MeR2ZQT29WMLuBUskIZieyuyvrRtDXTJi3htqfMdEss",
+    "y": "nkrVAIjpFPO4gV96Y8Y436NWNtNAoPo2B4miQu-ZRKA",
+    "d": "CXVFrEHobs_re5JMaoLC7mWjHNCPsgeAXLZO1_WCVQ",
+    "kid": "3bd74c505c1f1453",
+    "use": "sig",
+    "alg": "ES256K"
+  },
+  "public_key": {
+    "kty": "EC",
+    "crv": "secp256k1",
+    "x": "MeR2ZQT29WMLuBUskIZieyuyvrRtDXTJi3htqfMdEss",
+    "y": "nkrVAIjpFPO4gV96Y8Y436NWNtNAoPo2B4miQu-ZRKA",
+    "kid": "3bd74c505c1f1453",
+    "use": "sig",
+    "alg": "ES256K"
+  }
+}
