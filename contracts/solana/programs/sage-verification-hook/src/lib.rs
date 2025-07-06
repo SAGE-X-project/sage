@@ -238,14 +238,19 @@ fn verify_ed25519_signature(
 ) -> Result<()> {
     require!(signature.len() == 64, ErrorCode::InvalidSignature);
     
-    // Ed25519 signature verification would use the Ed25519 program
-    // This is a simplified check - in production, you'd construct
-    // and verify the Ed25519 instruction data properly
+    // Construct the Ed25519 program instruction
+    let instruction = Instruction {
+        program_id: ed25519_program::id(),
+        accounts: vec![],
+        data: ed25519_program::create_instruction_data(pubkey, message, signature),
+    };
     
-    // For now, we'll do a basic check
-    if signature.iter().all(|&b| b == 0) {
-        return err!(ErrorCode::InvalidSignature);
+    // Submit the instruction to the Solana runtime
+    let result = solana_program::program::invoke(&instruction, &[]);
+    
+    // Handle the result of the verification
+    match result {
+        Ok(_) => Ok(()),
+        Err(_) => err!(ErrorCode::InvalidSignature),
     }
-    
-    Ok(())
 }
