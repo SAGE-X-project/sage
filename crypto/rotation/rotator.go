@@ -23,11 +23,9 @@ func NewKeyRotator(storage sagecrypto.KeyStorage) sagecrypto.KeyRotator {
 	return &keyRotator{
 		storage: storage,
 		config: sagecrypto.KeyRotationConfig{
-			// TODO: Implement auto-rotation based on these settings
-			// Currently only manual rotation is supported
-			RotationInterval: 30 * 24 * time.Hour, // 30 days default
-			MaxKeyAge:        90 * 24 * time.Hour, // 90 days default
-			KeepOldKeys:      false,
+			// Only KeepOldKeys is currently used
+			// RotationInterval and MaxKeyAge are reserved for future auto-rotation feature
+			KeepOldKeys: false,
 		},
 		history:  make(map[string][]sagecrypto.KeyRotationEvent),
 		rotating: make(map[string]bool),

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 
@@ -152,7 +153,7 @@ func (s *fileKeyStorage) Delete(id string) error {
 	return nil
 }
 
-// List returns all stored key IDs
+// List returns all stored key IDs in sorted order
 func (s *fileKeyStorage) List() ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -170,6 +171,9 @@ func (s *fileKeyStorage) List() ([]string, error) {
 			ids = append(ids, id)
 		}
 	}
+	
+	// Sort for consistent output
+	sort.Strings(ids)
 
 	return ids, nil
 }

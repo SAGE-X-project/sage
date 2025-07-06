@@ -67,8 +67,10 @@ func (e *pemExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 			privKeyBytes = padded
 		}
 		
-		// Create a custom private key structure that includes the curve OID
-		// For now, we'll store the raw private key bytes in PKCS8 format
+		// NOTE: This is a non-standard format due to x509 package limitations.
+		// Standard x509.MarshalPKCS8PrivateKey doesn't support secp256k1 curve.
+		// We store raw 32-byte private key with a custom header to indicate the curve.
+		// For better interoperability, consider using JWK format instead of PEM for secp256k1 keys.
 		block := &pem.Block{
 			Type:  "EC PRIVATE KEY",
 			Bytes: privKeyBytes,

@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"sort"
 	"sync"
 
 	sagecrypto "github.com/sage-x-project/sage/crypto"
@@ -54,7 +55,7 @@ func (s *memoryKeyStorage) Delete(id string) error {
 	return nil
 }
 
-// List returns all stored key IDs
+// List returns all stored key IDs in sorted order
 func (s *memoryKeyStorage) List() ([]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -63,6 +64,9 @@ func (s *memoryKeyStorage) List() ([]string, error) {
 	for id := range s.keys {
 		ids = append(ids, id)
 	}
+	
+	// Sort for consistent output
+	sort.Strings(ids)
 
 	return ids, nil
 }
