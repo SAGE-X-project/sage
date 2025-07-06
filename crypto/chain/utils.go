@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"fmt"
+	"strings"
 
 	sagecrypto "github.com/sage-x-project/sage/crypto"
 )
@@ -50,16 +51,26 @@ func AddressFromKeyPair(keyPair sagecrypto.KeyPair, chains ...ChainType) (map[Ch
 // GetSupportedChainsForKey returns which blockchains support a given key type
 func GetSupportedChainsForKey(keyPair sagecrypto.KeyPair) []ChainType {
 	var supportedChains []ChainType
+	publicKey := keyPair.PublicKey()
 	
-	switch keyPair.Type() {
-	case sagecrypto.KeyTypeEd25519:
-		supportedChains = append(supportedChains, ChainTypeSolana)
-		// Add other Ed25519-based chains here
+	// Query all registered providers to see which ones support this key type
+	for _, chainType := range ListProviders() {
+		provider, err := GetProvider(chainType)
+		if err != nil {
+			continue
+		}
 		
-	case sagecrypto.KeyTypeSecp256k1:
-		supportedChains = append(supportedChains, ChainTypeEthereum)
-		supportedChains = append(supportedChains, ChainTypeBitcoin)
-		// Add other secp256k1-based chains here
+		// Try to generate an address with the first supported network
+		networks := provider.SupportedNetworks()
+		if len(networks) == 0 {
+			continue
+		}
+		
+		// If the provider can generate an address for this key, it's supported
+		_, err = provider.GenerateAddress(publicKey, networks[0])
+		if err == nil {
+			supportedChains = append(supportedChains, chainType)
+		}
 	}
 	
 	return supportedChains
@@ -68,10 +79,13 @@ func GetSupportedChainsForKey(keyPair sagecrypto.KeyPair) []ChainType {
 // GetKeyTypeForChain returns the required key type for a blockchain
 func GetKeyTypeForChain(chain ChainType) (sagecrypto.KeyType, error) {
 	switch chain {
-	case ChainTypeEthereum, ChainTypeBitcoin:
+	case ChainTypeEthereum:
 		return sagecrypto.KeyTypeSecp256k1, nil
 	case ChainTypeSolana:
 		return sagecrypto.KeyTypeEd25519, nil
+	case ChainTypeBitcoin:
+		// Bitcoin uses secp256k1, but we don't have a provider implemented yet
+		return sagecrypto.KeyTypeSecp256k1, nil
 	default:
 		return "", fmt.Errorf("%w: %s", ErrChainNotSupported, chain)
 	}
@@ -103,7 +117,7 @@ func FormatAddress(address *Address) string {
 	switch address.Chain {
 	case ChainTypeEthereum:
 		// Ethereum addresses should have 0x prefix
-		if len(address.Value) > 2 && address.Value[:2] != "0x" {
+		if !strings.HasPrefix(address.Value, "0x") {
 			return "0x" + address.Value
 		}
 		return address.Value
@@ -120,7 +134,7 @@ func FormatAddress(address *Address) string {
 // ParseAddress parses an address string and attempts to determine its chain type
 func ParseAddress(addressStr string) (*Address, error) {
 	// Try Ethereum format
-	if len(addressStr) == 42 && addressStr[:2] == "0x" {
+	if len(addressStr) == 42 && strings.HasPrefix(addressStr, "0x") {
 		provider, err := GetProvider(ChainTypeEthereum)
 		if err == nil {
 			if err := provider.ValidateAddress(addressStr, NetworkEthereumMainnet); err == nil {
