@@ -2,7 +2,7 @@
 
 ## 1. Core Library Components
 ### 1.1 sage-core
-Purpose: RFC-9421 implementation + cryptographic primitieves
+Purpose: RFC-9421 implementation + cryptographic primitives
 Deliverables:
 - HTTP message canonicalization
 - Signature generation/verification
@@ -11,6 +11,7 @@ Deliverables:
 
 ### 1.2 sage-crypto
 Purpose: Key generation and secure storage
+
 Deliverables:
 - Key pair generation (Ed25519, Secp256k1)
 - Key export/import (JWK, PEM formats)
@@ -19,6 +20,7 @@ Deliverables:
 
 ### 1.3 sage-did
 Purpose: agent's did metadata management
+
 Deliverables:
 - DID metadata creation/parsing
 - Public key extraction
@@ -28,6 +30,7 @@ Deliverables:
 ## 2. Blockchain integration
 ### 2.1 sage-provider
 Purpose: Multi-chain DID resolution
+
 Deliverables:
 - Provider interface definition
 - Ethereum provider (Web3)
@@ -36,6 +39,7 @@ Deliverables:
 
 ### 2.2 sage-contracts
 Purpose: On-chain agent registry
+
 Deliverables:
 - AgentRegistry.sol (Ethereum)
 - DID registration functions
@@ -44,6 +48,7 @@ Deliverables:
 
 ## 3. How to use sage example
 Purpose: Minimal working example
+
 Deliverables:
 - MCP tool exposure
 - Request authentication
@@ -53,6 +58,7 @@ Deliverables:
 ## 4. Attack Demonstraction
 ### 4.1 demo/vulnerable-chat
 Purpose: Show Mitm vulnerability
+
 Scenario:
 - Two agent exchanging messages
 - Attacker intercepts and modifies
@@ -60,13 +66,18 @@ Scenario:
 
 ### 4.2 demo/secure-chat
 Purpose: Show SAGE protection
+
 Scenario:
 - Same setup with SAGE
 - Attacker attempts modification
 - Attack detected and rejected
 
 ## 5. Success Criteria
-### 5.1 Security: Pass all attack scenarios in demo
-### 5.2 Performance: < 50ms signature verification
-### 5.3 Compatibility: Work with existing MCP tools
-### 5.4 Usability: < 10 lines to add SAGE to agent
+### 5.1 Security:
+- Pass all attack scenarios in demo
+### 5.2 Performance:
+- < 50ms signature verification
+### 5.3 Compatibility:
+- Work with existing MCP tools
+### 5.4 Usability:
+- < 10 lines to add SAGE to agent
