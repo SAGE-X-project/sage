@@ -40,7 +40,7 @@ Deliverables:
 - AgentRegistry.sol (Ethereum)
 - DID registration functions
 - Public Key update mechanism
-- Event emission formonitoring
+- Event emission for monitoring
 
 3. How to use sage example
 Purpose: Minimal working example
