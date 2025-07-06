@@ -131,15 +131,32 @@ func FormatAddress(address *Address) string {
 	}
 }
 
+// isHexString checks if a string contains only hexadecimal characters
+func isHexString(s string) bool {
+	for _, c := range s {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
 // ParseAddress parses an address string and attempts to determine its chain type
 func ParseAddress(addressStr string) (*Address, error) {
-	// Try Ethereum format
-	if len(addressStr) == 42 && strings.HasPrefix(addressStr, "0x") {
+	// Try Ethereum format (with or without 0x prefix)
+	if (len(addressStr) == 42 && strings.HasPrefix(addressStr, "0x")) || 
+	   (len(addressStr) == 40 && isHexString(addressStr)) {
+		// Normalize address to include 0x prefix
+		normalizedAddress := addressStr
+		if len(addressStr) == 40 {
+			normalizedAddress = "0x" + addressStr
+		}
+		
 		provider, err := GetProvider(ChainTypeEthereum)
 		if err == nil {
-			if err := provider.ValidateAddress(addressStr, NetworkEthereumMainnet); err == nil {
+			if err := provider.ValidateAddress(normalizedAddress, NetworkEthereumMainnet); err == nil {
 				return &Address{
-					Value:   addressStr,
+					Value:   normalizedAddress,
 					Chain:   ChainTypeEthereum,
 					Network: NetworkEthereumMainnet,
 				}, nil
