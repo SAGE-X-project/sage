@@ -50,7 +50,7 @@ Deliverables:
 - Response signing
 - Access control
 
-4. Attack Demonstraction
+4. Attack Demonstration
 4.1 demo/vulnerable-chat
 Purpose: Show Mitm vulnerability
 Scenario:
