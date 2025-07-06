@@ -179,7 +179,12 @@ type ValidationResult struct {
 
 func hasRequiredCapabilities(agentCaps map[string]interface{}, required []string) bool {
 	for _, req := range required {
-		if _, exists := agentCaps[req]; !exists {
+		value, exists := agentCaps[req]
+		if !exists {
+			return false
+		}
+		boolValue, ok := value.(bool)
+		if !ok || !boolValue {
 			return false
 		}
 	}
@@ -189,7 +194,13 @@ func hasRequiredCapabilities(agentCaps map[string]interface{}, required []string
 func findMissingCapabilities(agentCaps map[string]interface{}, required []string) []string {
 	var missing []string
 	for _, req := range required {
-		if _, exists := agentCaps[req]; !exists {
+		value, exists := agentCaps[req]
+		if !exists {
+			missing = append(missing, req)
+			continue
+		}
+		boolValue, ok := value.(bool)
+		if !ok || !boolValue {
 			missing = append(missing, req)
 		}
 	}

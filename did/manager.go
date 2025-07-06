@@ -45,35 +45,41 @@ func (m *Manager) Configure(chain Chain, config *RegistryConfig) error {
 	// Store configuration
 	m.configs[chain] = config
 	
-	// Initialize chain-specific clients
-	// Note: This is commented out to avoid import cycles in tests
-	// In production, you would use a factory pattern or dependency injection
-	// to create the appropriate client based on the chain
-	/*
-	switch chain {
-	case ChainEthereum:
-		ethClient, err := ethereum.NewEthereumClient(config)
-		if err != nil {
-			return fmt.Errorf("failed to create Ethereum client: %w", err)
-		}
-		m.registry.AddRegistry(chain, ethClient, config)
-		m.resolver.AddResolver(chain, ethClient)
-		
-	case ChainSolana:
-		solClient, err := solana.NewSolanaClient(config)
-		if err != nil {
-			return fmt.Errorf("failed to create Solana client: %w", err)
-		}
-		m.registry.AddRegistry(chain, solClient, config)
-		m.resolver.AddResolver(chain, solClient)
-		
-	default:
-		return fmt.Errorf("unsupported chain: %s", chain)
-	}
-	*/
+	// Note: In production, chain-specific clients should be initialized here
+	// using a factory pattern or dependency injection to avoid import cycles.
+	// For now, clients must be added separately using SetClient method.
 	
-	// For now, just return a placeholder error
-	return fmt.Errorf("chain client initialization not implemented in test mode")
+	return nil
+}
+
+// SetClient sets a pre-initialized client for a specific chain
+// This method is used to avoid import cycles in the package structure
+func (m *Manager) SetClient(chain Chain, client interface{}) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	
+	// Verify the client implements required interfaces
+	registry, ok := client.(Registry)
+	if !ok {
+		return fmt.Errorf("client does not implement Registry interface")
+	}
+	
+	resolver, ok := client.(Resolver)
+	if !ok {
+		return fmt.Errorf("client does not implement Resolver interface")
+	}
+	
+	// Get configuration for the chain
+	config, exists := m.configs[chain]
+	if !exists {
+		return fmt.Errorf("configuration not found for chain %s", chain)
+	}
+	
+	// Add to registry and resolver
+	m.registry.AddRegistry(chain, registry, config)
+	m.resolver.AddResolver(chain, resolver)
+	
+	return nil
 }
 
 // RegisterAgent registers a new AI agent on the specified chain

@@ -75,9 +75,9 @@ func TestCore(t *testing.T) {
 			RPCEndpoint:     "http://localhost:8545",
 		}
 		
-		// This will fail without actual RPC but tests the interface
+		// This should succeed now as we only store configuration
 		err := core.ConfigureDID(did.ChainEthereum, config)
-		assert.Error(t, err)
+		assert.NoError(t, err)
 	})
 	
 	t.Run("GetManagers", func(t *testing.T) {

@@ -46,9 +46,9 @@ func TestPackageLevelFunctions(t *testing.T) {
 			RPCEndpoint:     "http://localhost:8545",
 		}
 		
-		// This will fail trying to connect to actual RPC
+		// This should succeed now as we only store configuration
 		err := Configure(ChainEthereum, config)
-		assert.Error(t, err)
+		assert.NoError(t, err)
 	})
 	
 	t.Run("RegisterAgent", func(t *testing.T) {

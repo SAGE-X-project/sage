@@ -33,8 +33,8 @@ func TestManager(t *testing.T) {
 		}
 		
 		err := manager.Configure(ChainEthereum, ethConfig)
-		// Will fail because it tries to connect to actual RPC
-		assert.Error(t, err)
+		// Should succeed now as we only store configuration
+		assert.NoError(t, err)
 		
 		// Invalid configuration - missing contract address
 		invalidConfig := &RegistryConfig{
@@ -56,11 +56,9 @@ func TestManager(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "RPC endpoint is required")
 		
-		// Currently all chains return the test mode error
+		// Unknown chain should still succeed with just config storage
 		err = manager.Configure(Chain("unknown"), ethConfig)
-		assert.Error(t, err)
-		// In test mode, we get the generic error
-		assert.Contains(t, err.Error(), "chain client initialization not implemented in test mode")
+		assert.NoError(t, err)
 	})
 	
 	t.Run("GetSupportedChains", func(t *testing.T) {
