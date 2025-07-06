@@ -328,16 +328,16 @@ func (c *SolanaClient) Update(ctx context.Context, agentDID did.AgentDID, update
 	// TODO: Use ownerPubkey and agentPDA to build the transaction
 	_ = ownerPubkey
 	_ = agentPDA
-	// ... transaction building code ...
+	return fmt.Errorf("Update method not implemented: transaction building code is missing")
 	
-	return nil
+	// return nil (placeholder removed)
 }
 
 // Deactivate deactivates an agent on Solana
 func (c *SolanaClient) Deactivate(ctx context.Context, agentDID did.AgentDID, keyPair sagecrypto.KeyPair) error {
-	// Similar implementation to Update, but with deactivate instruction
-	// ... implementation ...
-	return nil
+	return fmt.Errorf("Deactivate method not implemented: deactivate instruction is missing")
+	
+	// return nil (placeholder removed)
 }
 
 // Helper methods
