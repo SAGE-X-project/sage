@@ -2,8 +2,8 @@ package did
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -208,8 +208,6 @@ func findMissingCapabilities(agentCaps map[string]interface{}, required []string
 }
 
 func compareValues(v1, v2 interface{}) bool {
-	// Simple comparison - can be enhanced for deep object comparison
-	j1, _ := json.Marshal(v1)
-	j2, _ := json.Marshal(v2)
-	return string(j1) == string(j2)
+	// Use reflect.DeepEqual for proper comparison
+	return reflect.DeepEqual(v1, v2)
 }
