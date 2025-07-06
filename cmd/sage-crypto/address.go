@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -209,9 +210,20 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 		fmt.Fprintf(w, "CHAIN\tADDRESS\tNETWORK\n")
 		fmt.Fprintf(w, "-----\t-------\t-------\n")
 		
-		for chainType, address := range addresses {
+		// Sort chain types for consistent output
+		var chainTypes []chain.ChainType
+		for ct := range addresses {
+			chainTypes = append(chainTypes, ct)
+		}
+		sort.Slice(chainTypes, func(i, j int) bool {
+			return chainTypes[i] < chainTypes[j]
+		})
+		
+		// Print addresses in sorted order
+		for _, ct := range chainTypes {
+			address := addresses[ct]
 			fmt.Fprintf(w, "%s\t%s\t%s\n", 
-				chainType, 
+				ct, 
 				address.Value,
 				address.Network)
 		}

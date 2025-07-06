@@ -3,6 +3,7 @@ package chain
 import (
 	"crypto"
 	"fmt"
+	"sort"
 	"sync"
 )
 
@@ -46,7 +47,7 @@ func (r *defaultRegistry) GetProvider(chain ChainType) (ChainProvider, error) {
 	return provider, nil
 }
 
-// ListProviders returns all registered chain types
+// ListProviders returns all registered chain types in sorted order
 func (r *defaultRegistry) ListProviders() []ChainType {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -55,6 +56,11 @@ func (r *defaultRegistry) ListProviders() []ChainType {
 	for chain := range r.providers {
 		chains = append(chains, chain)
 	}
+	
+	// Sort chain types for consistent order
+	sort.Slice(chains, func(i, j int) bool {
+		return chains[i] < chains[j]
+	})
 
 	return chains
 }

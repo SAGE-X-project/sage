@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"fmt"
+	"sort"
 	"strings"
 
 	sagecrypto "github.com/sage-x-project/sage/crypto"
@@ -72,6 +73,11 @@ func GetSupportedChainsForKey(keyPair sagecrypto.KeyPair) []ChainType {
 			supportedChains = append(supportedChains, chainType)
 		}
 	}
+	
+	// Sort for consistent order
+	sort.Slice(supportedChains, func(i, j int) bool {
+		return supportedChains[i] < supportedChains[j]
+	})
 	
 	return supportedChains
 }
