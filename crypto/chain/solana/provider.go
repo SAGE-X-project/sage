@@ -4,9 +4,9 @@ import (
 	"context"
 	"crypto"
 	"crypto/ed25519"
-	"encoding/base64"
 	"fmt"
 
+	"github.com/mr-tron/base58"
 	"github.com/sage-x-project/sage/crypto/chain"
 	sagecrypto "github.com/sage-x-project/sage/crypto"
 )
@@ -138,16 +138,12 @@ func (p *Provider) isNetworkSupported(network chain.Network) bool {
 
 // base58Encode encodes bytes to base58 (Solana format)
 func base58Encode(data []byte) string {
-	// Simplified base58 encoding for demo
-	// In production, use a proper base58 library
-	return base64.RawURLEncoding.EncodeToString(data)
+	return base58.Encode(data)
 }
 
 // base58Decode decodes base58 string to bytes
 func base58Decode(s string) ([]byte, error) {
-	// Simplified base58 decoding for demo
-	// In production, use a proper base58 library
-	return base64.RawURLEncoding.DecodeString(s)
+	return base58.Decode(s)
 }
 
 // init registers the provider

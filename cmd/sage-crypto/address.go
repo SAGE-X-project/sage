@@ -11,6 +11,8 @@ import (
 
 	"github.com/sage-x-project/sage/crypto"
 	"github.com/sage-x-project/sage/crypto/chain"
+	"github.com/sage-x-project/sage/crypto/formats"
+	"github.com/sage-x-project/sage/crypto/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -74,7 +76,7 @@ func init() {
 
 func runAddressGenerate(cmd *cobra.Command, args []string) error {
 	// Load the key
-	keyPair, err := loadKey()
+	keyPair, err := loadKeyForAddress()
 	if err != nil {
 		return err
 	}
@@ -218,5 +220,70 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 	}
 
 	return nil
+}
+
+// loadKeyForAddress loads a key from file or storage
+func loadKeyForAddress() (crypto.KeyPair, error) {
+	// Check if using storage
+	if storageDir != "" && keyID != "" {
+		keyStorage, err := storage.NewFileKeyStorage(storageDir)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create key storage: %w", err)
+		}
+		
+		keyPair, err := keyStorage.Load(keyID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load key from storage: %w", err)
+		}
+		
+		return keyPair, nil
+	}
+
+	// Load from file
+	if keyFile == "" {
+		return nil, fmt.Errorf("either --key or --storage-dir with --key-id must be specified")
+	}
+
+	// Read key file
+	keyData, err := os.ReadFile(keyFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read key file: %w", err)
+	}
+
+	// Import the key
+	var importer crypto.KeyImporter
+	var format crypto.KeyFormat
+
+	switch keyFormat {
+	case "jwk":
+		importer = formats.NewJWKImporter()
+		format = crypto.KeyFormatJWK
+		
+		// Handle the wrapper format from sage-crypto generate
+		var wrapper struct {
+			PrivateKey json.RawMessage `json:"private_key"`
+			PublicKey  json.RawMessage `json:"public_key"`
+			KeyID      string          `json:"key_id"`
+			KeyType    string          `json:"key_type"`
+		}
+		
+		if err := json.Unmarshal(keyData, &wrapper); err == nil && wrapper.PrivateKey != nil {
+			// It's a wrapper format, use the private key
+			keyData = wrapper.PrivateKey
+		}
+		
+	case "pem":
+		importer = formats.NewPEMImporter()
+		format = crypto.KeyFormatPEM
+	default:
+		return nil, fmt.Errorf("unsupported key format: %s", keyFormat)
+	}
+
+	keyPair, err := importer.Import(keyData, format)
+	if err != nil {
+		return nil, fmt.Errorf("failed to import key: %w", err)
+	}
+
+	return keyPair, nil
 }
 

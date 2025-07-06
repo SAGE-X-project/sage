@@ -5,6 +5,10 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	
+	// Import chain providers to register them
+	_ "github.com/sage-x-project/sage/crypto/chain/ethereum"
+	_ "github.com/sage-x-project/sage/crypto/chain/solana"
 )
 
 var rootCmd = &cobra.Command{
