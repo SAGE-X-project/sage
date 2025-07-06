@@ -1,20 +1,26 @@
 package rfc9421
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 )
 
 // Verifier provides RFC-9421 signature verification
-type Verifier struct{}
+type Verifier struct {
+	httpVerifier *HTTPVerifier
+}
 
 // NewVerifier creates a new RFC-9421 verifier
 func NewVerifier() *Verifier {
-	return &Verifier{}
+	return &Verifier{
+		httpVerifier: NewHTTPVerifier(),
+	}
 }
 
 // VerifySignature verifies a signature according to RFC-9421
@@ -163,6 +169,20 @@ func (v *Verifier) verifyMetadataMatch(actual, expected map[string]interface{}) 
 	}
 	
 	return nil
+}
+
+// VerifyHTTPRequest verifies an HTTP request signature according to RFC-9421
+func (v *Verifier) VerifyHTTPRequest(req *http.Request, publicKey interface{}, opts *HTTPVerificationOptions) error {
+	return v.httpVerifier.VerifyRequest(req, publicKey, opts)
+}
+
+// SignHTTPRequest signs an HTTP request according to RFC-9421
+func (v *Verifier) SignHTTPRequest(req *http.Request, sigName string, params *SignatureInputParams, privateKey interface{}) error {
+	signer, ok := privateKey.(crypto.Signer)
+	if !ok {
+		return fmt.Errorf("private key must implement crypto.Signer interface")
+	}
+	return v.httpVerifier.SignRequest(req, sigName, params, signer)
 }
 
 // Helper functions
