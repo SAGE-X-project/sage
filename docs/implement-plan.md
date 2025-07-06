@@ -63,7 +63,7 @@ Purpose: Show SAGE protection
 Scenario:
 - Same setup with SAGE
 - Attacker attempts modification
-- Attack detected and rejectes
+- Attack detected and rejected
 
 5. Success Criteria
 5.1 Security: Pass all attack scenarios in demo
