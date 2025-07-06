@@ -3,7 +3,6 @@
 ## 1. Core Library Components
 ### 1.1 sage-core
 Purpose: RFC-9421 implementation + cryptographic primitives
-
 Deliverables:
 - HTTP message canonicalization
 - Signature generation/verification
