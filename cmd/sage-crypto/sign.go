@@ -120,6 +120,20 @@ func loadKey() (crypto.KeyPair, error) {
 	case "jwk":
 		importer = formats.NewJWKImporter()
 		format = crypto.KeyFormatJWK
+		
+		// Handle the wrapper format from sage-crypto generate
+		var wrapper struct {
+			PrivateKey json.RawMessage `json:"private_key"`
+			PublicKey  json.RawMessage `json:"public_key"`
+			KeyID      string          `json:"key_id"`
+			KeyType    string          `json:"key_type"`
+		}
+		
+		if err := json.Unmarshal(keyData, &wrapper); err == nil && wrapper.PrivateKey != nil {
+			// It's a wrapper format, use the private key
+			keyData = wrapper.PrivateKey
+		}
+		
 	case "pem":
 		importer = formats.NewPEMImporter()
 		format = crypto.KeyFormatPEM

@@ -2,10 +2,13 @@ package main
 
 import (
 	"crypto"
+	"crypto/ecdsa"
+	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 
 	sagecrypto "github.com/sage-x-project/sage/crypto"
@@ -58,7 +61,7 @@ func init() {
 
 func runVerify(cmd *cobra.Command, args []string) error {
 	// Load the public key
-	_, keyPair, err := loadPublicKey()
+	publicKey, keyPair, err := loadPublicKey()
 	if err != nil {
 		return err
 	}
@@ -77,12 +80,25 @@ func runVerify(cmd *cobra.Command, args []string) error {
 
 	// Verify the signature
 	var verifyErr error
+	var keyType string
+	
 	if keyPair != nil {
 		// We have a full key pair, use it for verification
 		verifyErr = keyPair.Verify(messageBytes, signature)
+		keyType = string(keyPair.Type())
 	} else {
-		// We only have a public key, need to create a verifier
-		return fmt.Errorf("public key only verification not yet implemented")
+		// We only have a public key, verify directly
+		verifyErr = verifyWithPublicKey(publicKey, messageBytes, signature)
+		
+		// Determine key type
+		switch publicKey.(type) {
+		case ed25519.PublicKey:
+			keyType = "Ed25519"
+		case *ecdsa.PublicKey:
+			keyType = "Secp256k1"
+		default:
+			keyType = "Unknown"
+		}
 	}
 
 	if verifyErr != nil {
@@ -93,8 +109,8 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	fmt.Println("✅ Signature verification PASSED")
 	
 	// Output additional information
+	fmt.Printf("Key Type: %s\n", keyType)
 	if keyPair != nil {
-		fmt.Printf("Key Type: %s\n", keyPair.Type())
 		fmt.Printf("Key ID: %s\n", keyPair.ID())
 	}
 	
@@ -191,4 +207,38 @@ func getSignature() ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("no signature provided")
+}
+
+// verifyWithPublicKey verifies a signature using only a public key
+func verifyWithPublicKey(publicKey crypto.PublicKey, message, signature []byte) error {
+	switch pk := publicKey.(type) {
+	case ed25519.PublicKey:
+		if !ed25519.Verify(pk, message, signature) {
+			return fmt.Errorf("ed25519 signature verification failed")
+		}
+		return nil
+		
+	case *ecdsa.PublicKey:
+		// For ECDSA, we need to hash the message and parse the signature
+		hash := crypto.SHA256.New()
+		hash.Write(message)
+		hashed := hash.Sum(nil)
+		
+		// ECDSA signature should be 64 bytes (32 bytes for r, 32 bytes for s)
+		if len(signature) != 64 {
+			return fmt.Errorf("invalid ECDSA signature length: expected 64 bytes, got %d", len(signature))
+		}
+		
+		// Split signature into r and s components
+		r := new(big.Int).SetBytes(signature[:32])
+		s := new(big.Int).SetBytes(signature[32:])
+		
+		if !ecdsa.Verify(pk, hashed, r, s) {
+			return fmt.Errorf("ecdsa signature verification failed")
+		}
+		return nil
+		
+	default:
+		return fmt.Errorf("unsupported public key type: %T", publicKey)
+	}
 }
