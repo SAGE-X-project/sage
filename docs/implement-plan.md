@@ -47,7 +47,7 @@ Purpose: Minimal working example
 Deliverables:
 - MCP tool exposure
 - Request authentication
-- Resposen signing
+- Response signing
 - Access control
 
 4. Attack Demonstraction
