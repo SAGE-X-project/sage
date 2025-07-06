@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -32,7 +33,7 @@ func (c *EthereumClient) VerifyMetadata(ctx context.Context, agentDID did.AgentD
 	// Fetch on-chain data
 	onChainData, err := c.Resolve(ctx, agentDID)
 	if err != nil {
-		if err.Error() == did.ErrDIDNotFound.Error() {
+		if errors.Is(err, did.ErrDIDNotFound) {
 			return &did.VerificationResult{
 				Valid:      false,
 				Error:      "DID not found on chain",
