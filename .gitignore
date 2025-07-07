@@ -416,3 +416,125 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+*.iws
+*.ipr
+*.iml
+
+# Go build artifacts
+build/
+sage-crypto
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# Android Studio
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# PyCharm
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+
+# WebStorm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# PhpStorm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Rider
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# CLion
+.idea/
+*.iml
+*.ipr
+*.iws
+cmake-build-*/
+
+# GoLand
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# RubyMine
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# AppCode
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# DataGrip
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# DataSpell
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Fleet
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Gateway
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Common JetBrains
+.idea/
+*.iml
+*.ipr
+*.iws
+*.iws
+*.ipr
+*.iml
