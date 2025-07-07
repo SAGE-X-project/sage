@@ -94,7 +94,7 @@ tidy:
 help:
 	@echo "Available targets:"
 	@echo "  make build       - Build all CLI binaries (sage-crypto and sage-did)"
-	@echo "  make build-crypto- Build sage-crypto binary only"
+	@echo "  make build-crypto  - Build sage-crypto binary only"
 	@echo "  make build-did   - Build sage-did binary only"
 	@echo "  make test        - Run all tests"
 	@echo "  make test-crypto - Run crypto package tests only"
