@@ -4,6 +4,15 @@
 
 set -e
 
+# Cleanup function to remove temporary files and directories
+cleanup() {
+    rm -f test-ed25519.jwk test-secp256k1.pem test-message.txt
+    rm -rf test-storage
+}
+
+# Ensure cleanup is performed on script exit
+trap cleanup EXIT
+
 echo "=== SAGE CLI Integration Tests ==="
 
 # Build CLIs
@@ -92,12 +101,6 @@ else
     echo "FAIL"
     exit 1
 fi
-
-# Clean up
-echo -n "Cleaning up... "
-rm -f test-ed25519.jwk test-secp256k1.pem test-message.txt
-rm -rf test-storage
-echo "DONE"
 
 echo ""
 echo "=== All tests passed! ==="
