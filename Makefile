@@ -1,7 +1,8 @@
 # Sage Project Makefile
 
 # Variables
-BINARY_NAME=sage-crypto
+CRYPTO_BINARY=sage-crypto
+DID_BINARY=sage-did
 BUILD_DIR=build/bin
 CMD_DIR=cmd
 
@@ -14,15 +15,29 @@ LDFLAGS=
 .PHONY: all
 all: build
 
-# Build the sage-crypto binary
+# Build all binaries
 .PHONY: build
-build: $(BUILD_DIR)/$(BINARY_NAME)
+build: build-crypto build-did
 
-$(BUILD_DIR)/$(BINARY_NAME):
-	@echo "Building $(BINARY_NAME)..."
+# Build sage-crypto binary
+.PHONY: build-crypto
+build-crypto: $(BUILD_DIR)/$(CRYPTO_BINARY)
+
+$(BUILD_DIR)/$(CRYPTO_BINARY):
+	@echo "Building $(CRYPTO_BINARY)..."
 	@mkdir -p $(BUILD_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) ./$(CMD_DIR)/$(BINARY_NAME)
-	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(CRYPTO_BINARY) ./$(CMD_DIR)/$(CRYPTO_BINARY)
+	@echo "Build complete: $(BUILD_DIR)/$(CRYPTO_BINARY)"
+
+# Build sage-did binary
+.PHONY: build-did
+build-did: $(BUILD_DIR)/$(DID_BINARY)
+
+$(BUILD_DIR)/$(DID_BINARY):
+	@echo "Building $(DID_BINARY)..."
+	@mkdir -p $(BUILD_DIR)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(DID_BINARY) ./$(CMD_DIR)/$(DID_BINARY)
+	@echo "Build complete: $(BUILD_DIR)/$(DID_BINARY)"
 
 # Run tests
 .PHONY: test
@@ -44,11 +59,13 @@ clean:
 	@rm -f $(BINARY_NAME)
 	@echo "Clean complete"
 
-# Install binary to GOPATH/bin
+# Install binaries to GOPATH/bin
 .PHONY: install
 install: build
-	@echo "Installing $(BINARY_NAME)..."
-	$(GO) install ./$(CMD_DIR)/$(BINARY_NAME)
+	@echo "Installing $(CRYPTO_BINARY)..."
+	$(GO) install ./$(CMD_DIR)/$(CRYPTO_BINARY)
+	@echo "Installing $(DID_BINARY)..."
+	$(GO) install ./$(CMD_DIR)/$(DID_BINARY)
 
 # Run linting
 .PHONY: lint
@@ -76,11 +93,13 @@ tidy:
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  make build       - Build the sage-crypto binary"
+	@echo "  make build       - Build all CLI binaries (sage-crypto and sage-did)"
+	@echo "  make build-crypto  - Build sage-crypto binary only"
+	@echo "  make build-did   - Build sage-did binary only"
 	@echo "  make test        - Run all tests"
 	@echo "  make test-crypto - Run crypto package tests only"
 	@echo "  make clean       - Remove build artifacts"
-	@echo "  make install     - Install binary to GOPATH/bin"
+	@echo "  make install     - Install binaries to GOPATH/bin"
 	@echo "  make lint        - Run linter"
 	@echo "  make fmt         - Format code"
 	@echo "  make tidy        - Run go mod tidy"

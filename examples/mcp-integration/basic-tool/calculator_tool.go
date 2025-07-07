@@ -115,12 +115,7 @@ func (t *CalculatorTool) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		response.Result = result
 	}
 
-	// Step 4: Sign and send the response
-	signer := rfc9421.NewHTTPSigner()
-	if err := signer.SignResponse(w, response); err != nil {
-		http.Error(w, fmt.Sprintf("Failed to sign response: %v", err), http.StatusInternalServerError)
-		return
-	}
+	// Step 4: Send the response (response signing could be added here if needed)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
