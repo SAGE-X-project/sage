@@ -35,4 +35,12 @@ func main() {
 func init() {
 	// Disable default completion command
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
+	
+	// Note: Commands are registered in their respective files
+	// - generate.go: generateCmd
+	// - sign.go: signCmd
+	// - verify.go: verifyCmd
+	// - list.go: listCmd
+	// - rotate.go: rotateCmd
+	// - address.go: addressCmd
 }
