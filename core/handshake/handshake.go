@@ -20,7 +20,7 @@ import (
 type Handshaker interface {
     Invitation(ctx context.Context, jwt string, session Session) (*a2a.SendMessageResponse, error)
     Request(ctx context.Context, reqMsg RequestMessage, edPeerPub crypto.PublicKey)  (*a2a.SendMessageResponse, error)
-    // Response(ctx context.Context, in *a2a.ResponseMessage) (*a2a.Empty, error)
+    Response(ctx context.Context, resMsg ResponseMessage, edPeerPub crypto.PublicKey) (*a2a.SendMessageResponse, error)
     Complete(ctx context.Context, compMsg CompleteMessage)  (*a2a.SendMessageResponse, error)
 }
 
@@ -30,13 +30,14 @@ type Client struct {
     key sagecrypto.KeyPair
 }
 
-
+// Server wraps the generated A2AServiceServer and holds agent metadata for handshake operations.
 type Server struct {
 	a2a.A2AServiceServer
     key sagecrypto.KeyPair
 }
 
-// NewClient creates a new Client backed by the provided gRPC connection.
+// NewClient creates a new Client using the provided gRPC connection
+// and associates it with the given key pair for signing
 func NewClient(conn grpc.ClientConnInterface, key sagecrypto.KeyPair) *Client {
     return &Client{
         A2AServiceClient: a2a.NewA2AServiceClient(conn),
@@ -44,6 +45,8 @@ func NewClient(conn grpc.ClientConnInterface, key sagecrypto.KeyPair) *Client {
     }
 }
 
+// NewServer creates a new Server using the provided A2AServiceServer implementation
+// and associates it with the given key pair for signing
 func NewServer(serviceImpl a2a.A2AServiceServer, key sagecrypto.KeyPair) *Server {
     return &Server{
         A2AServiceServer: serviceImpl,
