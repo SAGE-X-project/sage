@@ -12,6 +12,7 @@ type KeyType string
 const (
 	KeyTypeEd25519   KeyType = "Ed25519"
 	KeyTypeSecp256k1 KeyType = "Secp256k1"
+	KeyTypeX25519 KeyType = "X25591"
 )
 
 // KeyFormat represents the format for key export/import
@@ -136,4 +137,6 @@ var (
 	ErrInvalidKeyFormat = errors.New("invalid key format")
 	ErrKeyExists        = errors.New("key already exists")
 	ErrInvalidSignature = errors.New("invalid signature")
+	ErrSignNotSupported   = errors.New("signing not supported")
+    ErrVerifyNotSupported = errors.New("verification not supported")
 )
