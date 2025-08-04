@@ -338,22 +338,6 @@ func TestManagerWithMockRegistry(t *testing.T) {
 		mockResolver.AssertExpectations(t)
 	})
 	
-	t.Run("GetRegistrationStatus", func(t *testing.T) {
-		txHash := "0xdef456"
-		expectedResult := &RegistrationResult{
-			TransactionHash: txHash,
-			BlockNumber:     67890,
-		}
-		
-		mockRegistry.On("GetRegistrationStatus", ctx, txHash).
-			Return(expectedResult, nil).Once()
-		
-		result, err := manager.GetRegistrationStatus(ctx, ChainEthereum, txHash)
-		require.NoError(t, err)
-		assert.Equal(t, expectedResult, result)
-		
-		mockRegistry.AssertExpectations(t)
-	})
 	
 	t.Run("ValidateAgent", func(t *testing.T) {
 		// Generate test keypair

@@ -84,6 +84,14 @@ func (e DIDError) Error() string {
 	return e.Message
 }
 
+// RegistrationStatus contains the agent registration status
+type RegistrationStatus struct {
+	IsRegistered bool      `json:"is_registered"`
+	IsActive     bool      `json:"is_active"`
+	RegisteredAt time.Time `json:"registered_at,omitempty"`
+	AgentID      string    `json:"agent_id,omitempty"`
+}
+
 // Common DID errors
 var (
 	ErrDIDNotFound       = DIDError{Code: "DID_NOT_FOUND", Message: "DID not found in registry"}

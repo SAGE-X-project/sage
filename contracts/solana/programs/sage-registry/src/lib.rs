@@ -176,6 +176,51 @@ pub mod sage_registry {
         registry.after_register_hook = hook;
         Ok(())
     }
+
+    /// Check if agent is registered by DID
+    pub fn is_agent_registered(ctx: Context<CheckAgent>, did: String) -> Result<bool> {
+        let account_info = ctx.accounts.agent.to_account_info();
+        Ok(!account_info.data_is_empty())
+    }
+
+    /// Get agent registration status by DID
+    pub fn get_agent_registration_status(
+        ctx: Context<CheckAgent>, 
+        did: String
+    ) -> Result<RegistrationStatus> {
+        let account_info = ctx.accounts.agent.to_account_info();
+        
+        // If account doesn't exist, return not registered
+        if account_info.data_is_empty() {
+            return Ok(RegistrationStatus {
+                is_registered: false,
+                is_active: false,
+                registered_at: 0,
+                agent_pubkey: Pubkey::default(),
+            });
+        }
+        
+        // Deserialize the agent account
+        let agent = Account::<Agent>::try_from(&account_info)?;
+        
+        Ok(RegistrationStatus {
+            is_registered: true,
+            is_active: agent.active,
+            registered_at: agent.registered_at,
+            agent_pubkey: agent.key(),
+        })
+    }
+
+    /// Get agents by owner
+    pub fn get_agents_by_owner(
+        ctx: Context<GetAgentsByOwner>,
+        owner: Pubkey,
+    ) -> Result<Vec<Pubkey>> {
+        // This would require an index account or off-chain indexing
+        // For now, return empty vec with a note
+        msg!("Note: Owner-based queries require off-chain indexing");
+        Ok(vec![])
+    }
 }
 
 #[derive(Accounts)]
@@ -244,6 +289,22 @@ pub struct SetHook<'info> {
     )]
     pub registry: Account<'info, Registry>,
     pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(did: String)]
+pub struct CheckAgent<'info> {
+    /// CHECK: Agent account that may or may not exist
+    #[account(
+        seeds = [b"agent", did.as_bytes()],
+        bump,
+    )]
+    pub agent: AccountInfo<'info>,
+}
+
+#[derive(Accounts)]
+pub struct GetAgentsByOwner<'info> {
+    pub registry: Account<'info, Registry>,
 }
 
 #[account]
@@ -343,6 +404,14 @@ pub enum ErrorCode {
     InvalidSignature,
     #[msg("Unauthorized")]
     Unauthorized,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct RegistrationStatus {
+    pub is_registered: bool,
+    pub is_active: bool,
+    pub registered_at: i64,
+    pub agent_pubkey: Pubkey,
 }
 
 /// Verify Ed25519 signature

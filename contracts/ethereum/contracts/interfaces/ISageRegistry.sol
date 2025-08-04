@@ -84,6 +84,10 @@ interface ISageRegistry {
 
     function isAgentActive(bytes32 agentId) external view returns (bool);
 
+    // Registration status functions
+    function isAgentRegistered(string calldata did) external view returns (bool);
+    function getAgentRegistrationStatus(string calldata did) external view returns (bool registered, bool active);
+
     // Hook functions
     function setBeforeRegisterHook(address hook) external;
     function setAfterRegisterHook(address hook) external;

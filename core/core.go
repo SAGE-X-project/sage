@@ -4,9 +4,12 @@ package core
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/sage-x-project/sage/config"
 	"github.com/sage-x-project/sage/core/rfc9421"
 	"github.com/sage-x-project/sage/crypto"
+	cryptostorage "github.com/sage-x-project/sage/crypto/storage"
 	"github.com/sage-x-project/sage/did"
 	
 	// Initialize crypto implementations
@@ -21,6 +24,7 @@ type Core struct {
 	cryptoManager       *crypto.Manager
 	didManager          *did.Manager
 	verificationService *VerificationService
+	config              *config.Config
 }
 
 // New creates a new Core instance
@@ -32,6 +36,67 @@ func New() *Core {
 		didManager:          didManager,
 		verificationService: NewVerificationService(didManager),
 	}
+}
+
+// NewWithConfig creates a new Core instance with configuration
+func NewWithConfig(cfg *config.Config) (*Core, error) {
+	core := New()
+	
+	// Apply configuration
+	if err := core.ApplyConfig(cfg); err != nil {
+		return nil, fmt.Errorf("failed to apply config: %w", err)
+	}
+	
+	core.config = cfg
+	return core, nil
+}
+
+// ApplyConfig applies configuration to the core
+func (c *Core) ApplyConfig(cfg *config.Config) error {
+	if cfg == nil {
+		return fmt.Errorf("config cannot be nil")
+	}
+	
+	// Configure key storage
+	switch cfg.KeyMgmt.Storage.Type {
+	case "file":
+		storage, err := cryptostorage.NewFileKeyStorage(cfg.KeyMgmt.Storage.Path)
+		if err != nil {
+			return fmt.Errorf("failed to create file storage: %w", err)
+		}
+		c.cryptoManager.SetStorage(storage)
+	case "memory":
+		c.cryptoManager.SetStorage(crypto.NewMemoryKeyStorage())
+	default:
+		return fmt.Errorf("unsupported storage type: %s", cfg.KeyMgmt.Storage.Type)
+	}
+	
+	// Configure networks
+	for networkName, network := range cfg.Networks {
+		for chainName, chain := range network.Chains {
+			var didChain did.Chain
+			switch networkName {
+			case "ethereum":
+				didChain = did.ChainEthereum
+			case "solana":
+				didChain = did.ChainSolana
+			default:
+				continue
+			}
+			
+			registryConfig := &did.RegistryConfig{
+				RPCEndpoint:      chain.RPC,
+				ContractAddress:  chain.Contract,
+				Chain:           didChain,
+			}
+			
+			if err := c.didManager.Configure(didChain, registryConfig); err != nil {
+				return fmt.Errorf("failed to configure %s %s: %w", networkName, chainName, err)
+			}
+		}
+	}
+	
+	return nil
 }
 
 // ConfigureDID configures DID support for a specific blockchain
@@ -99,4 +164,14 @@ func (c *Core) GetDIDManager() *did.Manager {
 // GetVerificationService returns the verification service for advanced operations
 func (c *Core) GetVerificationService() *VerificationService {
 	return c.verificationService
+}
+
+// IsAgentRegistered checks if an agent is registered by DID
+func (c *Core) IsAgentRegistered(ctx context.Context, agentDID string) (bool, error) {
+	return c.didManager.IsAgentRegistered(ctx, did.AgentDID(agentDID))
+}
+
+// GetAgentRegistrationStatus gets detailed registration status
+func (c *Core) GetAgentRegistrationStatus(ctx context.Context, agentDID string) (*did.RegistrationStatus, error) {
+	return c.didManager.GetRegistrationStatus(ctx, did.AgentDID(agentDID))
 }

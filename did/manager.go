@@ -138,6 +138,72 @@ func (m *Manager) CheckCapabilities(ctx context.Context, did AgentDID, requiredC
 	return m.verifier.CheckCapabilities(ctx, did, requiredCapabilities)
 }
 
+// IsAgentRegistered checks if an agent is registered by DID
+func (m *Manager) IsAgentRegistered(ctx context.Context, did AgentDID) (bool, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	chain, _, err := ParseDID(did)
+	if err != nil {
+		return false, fmt.Errorf("invalid DID format: %w", err)
+	}
+	
+	// Use resolver to check if agent exists
+	resolver, ok := m.resolver.resolvers[chain]
+	if !ok {
+		return false, fmt.Errorf("resolver for chain %s not configured", chain)
+	}
+	
+	// Check if agent exists
+	_, err = resolver.Resolve(ctx, did)
+	if err != nil {
+		// Check if it's a DID not found error
+		if isDIDNotFoundError(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	
+	return true, nil
+}
+
+// GetRegistrationStatus gets detailed registration status
+func (m *Manager) GetRegistrationStatus(ctx context.Context, did AgentDID) (*RegistrationStatus, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	
+	chain, _, err := ParseDID(did)
+	if err != nil {
+		return nil, fmt.Errorf("invalid DID format: %w", err)
+	}
+	
+	// Use resolver to get agent metadata
+	resolver, ok := m.resolver.resolvers[chain]
+	if !ok {
+		return nil, fmt.Errorf("resolver for chain %s not configured", chain)
+	}
+	
+	// Try to resolve the agent
+	agent, err := resolver.Resolve(ctx, did)
+	if err != nil {
+		// Check if it's a DID not found error
+		if isDIDNotFoundError(err) {
+			return &RegistrationStatus{
+				IsRegistered: false,
+				IsActive:     false,
+			}, nil
+		}
+		return nil, err
+	}
+	
+	return &RegistrationStatus{
+		IsRegistered: true,
+		IsActive:     agent.IsActive,
+		RegisteredAt: agent.CreatedAt,
+		AgentID:      string(agent.DID),
+	}, nil
+}
+
 // ListAgentsByOwner lists all agents owned by a specific address
 func (m *Manager) ListAgentsByOwner(ctx context.Context, ownerAddress string) ([]*AgentMetadata, error) {
 	m.mu.RLock()
@@ -154,13 +220,6 @@ func (m *Manager) SearchAgents(ctx context.Context, criteria SearchCriteria) ([]
 	return m.resolver.Search(ctx, criteria)
 }
 
-// GetRegistrationStatus checks the status of a registration transaction
-func (m *Manager) GetRegistrationStatus(ctx context.Context, chain Chain, txHash string) (*RegistrationResult, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	
-	return m.registry.GetRegistrationStatus(ctx, chain, txHash)
-}
 
 // GetSupportedChains returns the list of configured chains
 func (m *Manager) GetSupportedChains() []Chain {
@@ -172,6 +231,21 @@ func (m *Manager) GetSupportedChains() []Chain {
 		chains = append(chains, chain)
 	}
 	return chains
+}
+
+// isDIDNotFoundError checks if an error indicates that a DID was not found
+func isDIDNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	// Check if it's a DIDError with the right code
+	if didErr, ok := err.(DIDError); ok && didErr.Code == "DID_NOT_FOUND" {
+		return true
+	}
+	
+	// Check by error message for compatibility
+	return err.Error() == ErrDIDNotFound.Error()
 }
 
 // IsChainConfigured checks if a chain is configured

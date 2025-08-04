@@ -221,6 +221,29 @@ contract SageRegistry is ISageRegistry {
     }
     
     /**
+     * @notice Check if agent is registered by DID
+     */
+    function isAgentRegistered(string calldata did) external view returns (bool) {
+        bytes32 agentId = didToAgentId[did];
+        return agentId != bytes32(0);
+    }
+    
+    /**
+     * @notice Get agent registration status by DID
+     */
+    function getAgentRegistrationStatus(string calldata did) 
+        external 
+        view 
+        returns (bool registered, bool active) 
+    {
+        bytes32 agentId = didToAgentId[did];
+        if (agentId == bytes32(0)) {
+            return (false, false);
+        }
+        return (true, agents[agentId].active);
+    }
+    
+    /**
      * @notice Set before register hook
      */
     function setBeforeRegisterHook(address hook) external onlyOwner {

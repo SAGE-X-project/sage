@@ -1,0 +1,83 @@
+# SAGE Configuration Example
+version: "1.0"
+
+# Network configuration
+networks:
+  ethereum:
+    chains:
+      mainnet:
+        rpc: "https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY}"
+        contract: "0x..."
+        chain_id: 1
+      sepolia:
+        rpc: "https://eth-sepolia.alchemyapi.io/v2/${ALCHEMY_API_KEY}"
+        contract: "0x..."
+        chain_id: 11155111
+  
+  solana:
+    chains:
+      mainnet:
+        rpc: "https://api.mainnet-beta.solana.com"
+        program_id: "..."
+      devnet:
+        rpc: "https://api.devnet.solana.com"
+        program_id: "..."
+
+# Key management
+key_management:
+  default_algorithm: "ed25519"
+  storage:
+    type: "file" # file, memory, hsm
+    path: "~/.sage/keys"
+    encryption: true
+  
+  algorithms:
+    ed25519:
+      enabled: true
+    secp256k1:
+      enabled: true
+      address_format: "ethereum" # ethereum, bitcoin
+    rsa:
+      enabled: false
+      key_size: 2048
+
+# Proxy server configuration
+proxy:
+  enabled: false
+  endpoints:
+    - url: "https://api.sage.network/v1/proxy"
+      api_key: "${SAGE_PROXY_API_KEY}"
+    - url: "https://backup.sage.network/v1/proxy"
+      api_key: "${SAGE_PROXY_API_KEY}"
+  
+  gas_policy:
+    max_gas_price: "100 gwei"
+    sponsor_address: "0x..."
+
+# Agent registration
+registration:
+  auto_register: true
+  check_interval: "5m"
+  retry_policy:
+    max_attempts: 3
+    backoff: "exponential"
+    initial_delay: "1s"
+    max_delay: "30s"
+
+# Security
+security:
+  signature_algorithms:
+    - "EdDSA"
+    - "ECDSA"
+    - "RSA-PSS"
+  
+  verification:
+    require_active_agent: true
+    max_clock_skew: "5m"
+    cache_ttl: "10m"
+
+# Logging
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
