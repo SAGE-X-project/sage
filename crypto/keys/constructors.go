@@ -47,8 +47,8 @@ func NewSecp256k1KeyPair(privateKey *secp256k1.PrivateKey, id string) (sagecrypt
 	}, nil
 }
 
-// NewX255191KeyPair creates a new Secp256k1 key pair from an existing private key
-func NewX255191KeyPair(privateKey *ecdh.PrivateKey, id string) (sagecrypto.KeyPair, error) {
+// NewX25519KeyPair creates a new X25519 key pair from an existing private key
+func NewX25519KeyPair(privateKey *ecdh.PrivateKey, id string) (sagecrypto.KeyPair, error) {
 	publicKey := privateKey.PublicKey()
 	
 	// Use provided ID or generate from public key

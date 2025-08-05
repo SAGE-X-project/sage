@@ -297,7 +297,7 @@ func (i *jwkImporter) importX25519(jwk *JWK) (sagecrypto.KeyPair, error) {
         return nil, fmt.Errorf("failed to create X25519 private key: %w", err)
     }
 
-    return keys.NewX255191KeyPair(privateKey, jwk.Kid)
+    return keys.NewX25519KeyPair(privateKey, jwk.Kid)
 }
 
 // ComputeKeyIDRFC9421 generate kid based on RFC-9421/7638 thumbprint
