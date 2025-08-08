@@ -14,222 +14,368 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	sagecrypto "github.com/sage-x-project/sage/crypto"
 	"github.com/sage-x-project/sage/crypto/formats"
-	"golang.org/x/oauth2"
+	"github.com/sage-x-project/sage/oidc"
 )
 
-var (
-    ErrInvalidToken          = errors.New("invalid token")
-    ErrMissingKID            = errors.New("missing kid in token header")
-    ErrNoMatchingJWK         = errors.New("no matching JWK found")
-    ErrInvalidClaimsFormat   = errors.New("invalid claims format")
-    ErrFetchJWKSFailed       = errors.New("failed to fetch JWKS")
-    ErrParseJWKSFailed       = errors.New("failed to parse JWKS")
-    ErrImportPublicKeyFailed = errors.New("failed to import public key")
-    ErrTokenVerification     = errors.New("token verification failed")
-    ErrTokenExchangeFailed   = errors.New("token exchange failed")
-    ErrParseTokenResponse    = errors.New("failed to parse token response")
-)
-
-// jwksCache holds cached JWKS entries with expiration.
-type jwksCache struct {
-    sync.RWMutex
-    keys      []formats.JWK
-    expiresAt time.Time
+// Config holds the settings required by the Agent.
+type Config struct {
+	Domain         string 
+	KeyId		   string
+    ClientID       string // Auth0 Application Client ID
+    ClientSecret   string // Auth0 Application Client Secret
+    PrivateKeyPEM  string // PEM-encoded RSA private key for signing assertions
+    DID            string // Decentralized Identifier to include in the token
+    Resource       string // RFC-8707 resource indicator (e.g. "api://orders")
+    HTTPTimeout    time.Duration // HTTP client timeout
 }
 
-func (c *jwksCache) get() ([]formats.JWK, bool) {
-    c.RLock()
-    defer c.RUnlock()
-    if time.Now().Before(c.expiresAt) {
-        return c.keys, true
-    }
-    return nil, false
+// Agent performs JWT Bearer grant requests to Auth0.
+type Agent struct {
+    cfg    Config
+    http   *http.Client
+    importer  sagecrypto.KeyImporter
 }
 
-func (c *jwksCache) set(keys []formats.JWK, ttl time.Duration) {
-    c.Lock()
-    defer c.Unlock()
-    c.keys = keys
-    c.expiresAt = time.Now().Add(ttl)
-}
-
-// Provider implements RFC-8707 token exchange and JWKS-based ID token verification.
-type Provider struct {
-    BaseURL      string
-    ClientID     string
-    ClientSecret string
-    HTTPClient   *http.Client
-    jwksCache    jwksCache
-    jwksTTL      time.Duration
-}
-
-// NewProvider initializes a new Auth0 OIDC provider with a default HTTP timeout.
-func NewProvider(baseURL, clientID, clientSecret string) *Provider {
-    return &Provider{
-        BaseURL:      strings.TrimRight(baseURL, "/"),
-        ClientID:     clientID,
-        ClientSecret: clientSecret,
-        HTTPClient:   &http.Client{Timeout: 5 * time.Second},
-        jwksTTL:      10 * time.Minute,
+// NewAgent creates a new Agent with the given configuration.
+func NewAgent(cfg Config) *Agent {
+    return &Agent{
+        cfg: cfg,
+        http: &http.Client{Timeout: cfg.HTTPTimeout},
+        importer: formats.NewPEMImporter(),
     }
 }
 
-// ExchangeToken implements RFC-8707 Token Exchange.
-func (p *Provider) ExchangeToken(ctx context.Context, subjectToken, subjectTokenType, audience string) (*oauth2.Token, error) {
-    form := url.Values{
-        "grant_type":         {"urn:ietf:params:oauth:grant-type:token-exchange"},
-        "subject_token":      {subjectToken},
-        "subject_token_type": {subjectTokenType},
-        "audience":           {audience},
-        "client_id":          {p.ClientID},
-        "client_secret":      {p.ClientSecret},
-    }
-
-    endpoint := fmt.Sprintf("%s/oauth/token", p.BaseURL)
-    req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(form.Encode()))
+// RequestToken performs a JWT Bearer grant with RFC-8707 resource and DID.
+// authorizationURL is provided for completeness but not used by JWT Bearer grant.
+// tokenURL is the Auth0 /oauth/token endpoint.
+// Returns the raw access token (JWT).
+func (a *Agent) RequestToken(ctx context.Context, tokenURL string, audience string) (string, error) {
+    keyPair, err := a.importer.Import([]byte(a.cfg.PrivateKeyPEM), sagecrypto.KeyFormatPEM)
     if err != nil {
-        return nil, err
+        return "", fmt.Errorf("import private key: %w", err)
+    }
+    signer := keyPair.PrivateKey().(crypto.Signer)
+
+    now := time.Now().Unix()
+    claims := jwt.MapClaims{
+        "iss": a.cfg.ClientID,
+		"sub": a.cfg.ClientID,
+        "aud": tokenURL,
+        "iat": now,
+        "exp": now + 60,
+		"jti": uuid.NewString(),
+    }
+    token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+    token.Header["kid"] = a.cfg.KeyId
+
+    assertion, err := token.SignedString(signer)
+    if err != nil {
+        return "", fmt.Errorf("sign assertion: %w", err)
+    }
+
+    form := url.Values{
+        "grant_type":            {"client_credentials"},
+		"client_assertion_type": {"urn:ietf:params:oauth:client-assertion-type:jwt-bearer"},
+		"client_assertion":      {assertion},
+		"audience":              {audience}, 
+		"did":                   {a.cfg.DID},  
+        // "scope":         {"openid"},
+    }
+
+    req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
+    if err != nil {
+        return "", fmt.Errorf("new request: %w", err)
     }
     req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-    resp, err := p.HTTPClient.Do(req)
+    resp, err := a.http.Do(req)
     if err != nil {
-        return nil, err
+        return "", fmt.Errorf("do request: %w", err)
     }
     defer resp.Body.Close()
 
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read response body: %w", err)
+	}
+	// fmt.Println(string(bodyBytes))
+
     if resp.StatusCode != http.StatusOK {
-        body, _ := io.ReadAll(resp.Body)
-        return nil, fmt.Errorf("%w: %s", ErrTokenExchangeFailed, string(body))
+        return "", fmt.Errorf("token endpoint returned status %d", resp.StatusCode)
     }
 
-    var token oauth2.Token
-    if err := json.NewDecoder(resp.Body).Decode(&token); err != nil {
-        return nil, fmt.Errorf("%w: %v", ErrParseTokenResponse, err)
-    }
-    return &token, nil
+    var respData struct {
+    	AccessToken string `json:"access_token"`
+		ExpiresIn   int    `json:"expires_in"`
+		TokenType   string `json:"token_type"`
+	}
+
+	if err := json.Unmarshal(bodyBytes, &respData); err != nil {
+		return "", fmt.Errorf("unmarshal token response: %w", err)
+	}
+
+	return respData.AccessToken, nil
 }
 
-// VerifyIDToken validates an ID token using JWKS, with caching and standard claims checks.
-func (p *Provider) VerifyIDToken(ctx context.Context, rawToken string) (map[string]interface{}, error) {
-    parser := new(jwt.Parser)
-    unverified, _, err := parser.ParseUnverified(rawToken, jwt.MapClaims{})
-    if err != nil {
-        return nil, fmt.Errorf("%w: %v", ErrInvalidToken, err)
-    }
 
-    kid, ok := unverified.Header["kid"].(string)
-    if !ok || kid == "" {
-        return nil, ErrMissingKID
-    }
 
-    // Load JWKS (from cache or fetch)
-    var jwks []formats.JWK
-    if cached, ok := p.jwksCache.get(); ok {
-        jwks = cached
-    } else {
-        url := fmt.Sprintf("%s/.well-known/jwks.json", p.BaseURL)
-        resp, err := p.HTTPClient.Get(url)
-        if err != nil {
-            return nil, fmt.Errorf("%w: %v", ErrFetchJWKSFailed, err)
-        }
-        defer resp.Body.Close()
+// VerifierConfig holds settings for token verification.
+type VerifierConfig struct {
+	Identifier  string        // expected 'aud' (API Identifier, e.g. https://<domain>/api/v2/)
+	CacheTTL    time.Duration // e.g. 10 * time.Minute
+	HTTPTimeout time.Duration // e.g. 10 * time.Second
+}
 
-        body, err := io.ReadAll(resp.Body)
-        if err != nil {
-            return nil, fmt.Errorf("%w: %v", ErrFetchJWKSFailed, err)
-        }
-        var doc struct{ Keys []formats.JWK `json:"keys"` }
-        if err := json.Unmarshal(body, &doc); err != nil {
-            return nil, fmt.Errorf("%w: %v", ErrParseJWKSFailed, err)
-        }
-        jwks = doc.Keys
-        p.jwksCache.set(jwks, p.jwksTTL)
-    }
+// verifier caches JWKS and verifies JWTs.
+type verifier struct {
+	cfg       VerifierConfig
+	http      *http.Client
+	cache     []formats.JWK
+	expiresAt time.Time
+	mu        sync.RWMutex
+}
 
-    // Find matching JWK and import public key
-    var publicKey crypto.PublicKey
-    importer := formats.NewJWKImporter()
-    for _, key := range jwks {
-        if key.Kid == kid {
-            data, _ := json.Marshal(key)
-            pub, err := importer.ImportPublic(data, sagecrypto.KeyFormatJWK)
-            if err != nil {
-                return nil, fmt.Errorf("%w: %v", ErrImportPublicKeyFailed, err)
-            }
-            publicKey = pub
-            break
-        }
-    }
-    if publicKey == nil {
-        return nil, ErrNoMatchingJWK
-    }
+// NewVerifier creates a new JWT verifier.
+func NewVerifier(cfg VerifierConfig) *verifier {
+	if cfg.CacheTTL == 0 {
+		cfg.CacheTTL = 10 * time.Minute
+	}
+	httpClient := &http.Client{Timeout: cfg.HTTPTimeout}
+	if cfg.HTTPTimeout == 0 {
+		httpClient.Timeout = 10 * time.Second
+	}
+	return &verifier{
+		cfg:  cfg,
+		http: httpClient,
+	}
+}
 
-    // Verify signature and parse claims
-    token, err := jwt.Parse(rawToken, func(t *jwt.Token) (interface{}, error) {
-        return publicKey, nil
-    })
-    if err != nil || !token.Valid {
-        return nil, fmt.Errorf("%w: %v", ErrTokenVerification, err)
-    }
+// Verify parses and validates the JWT, returning claims map on success.
+func (v *verifier) Verify(ctx context.Context, tokenString string, issuer string) (map[string]interface{}, error) {
+	parser := jwt.NewParser()
+	unverified, _, err := parser.ParseUnverified(tokenString, jwt.MapClaims{})
+	if err != nil {
+		return nil, fmt.Errorf("parse token header: %w", err)
+	}
+	kid, _ := unverified.Header["kid"].(string)
+	if kid == "" {
+		return nil, oidc.ErrMissingKid
+	}
+	if typ, _ := unverified.Header["typ"].(string); typ != "" && typ != "JWT" {
+		return nil, oidc.ErrUnexpectedTyp
+	}
 
-    claims, ok := token.Claims.(jwt.MapClaims)
-    if !ok {
-        return nil, ErrInvalidClaimsFormat
-    }
+	pubKey := v.lookupKeyFromCache(kid)
+	token, err := v.parseAndVerifyWithKey(tokenString, pubKey)
+	if err != nil || token == nil || !token.Valid {
+		keys, ferr := v.getJWKS(ctx, issuer)
+		if ferr != nil {
+			return nil, fmt.Errorf("get jwks: %w", ferr)
+		}
+		pubKey = findKeyByKID(keys, kid)
+		if pubKey == nil {
+			return nil, oidc.ErrNoMatchingJWK
+		}
+		token, err = v.parseAndVerifyWithKey(tokenString, pubKey)
+		if err != nil {
+			return nil, fmt.Errorf("token verification failed: %w", err)
+		}
+		if !token.Valid {
+			return nil, oidc.ErrInvalidToken
+		}
+	}
 
-    // Validate exp
-    expVal, ok := claims["exp"]
-    if !ok {
-        return nil, fmt.Errorf("missing exp claim")
-    }
-    var exp int64
-    switch v := expVal.(type) {
-    case float64:
-        exp = int64(v)
-    case json.Number:
-        exp, _ = v.Int64()
-    default:
-        return nil, fmt.Errorf("invalid exp claim type: %T", expVal)
-    }
-    if time.Now().Unix() > exp {
-        return nil, fmt.Errorf("token expired at %d", exp)
-    }
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, errors.New("invalid token claims")
+	}
 
-    // Validate aud
-    audVal, ok := claims["aud"]
-    if !ok {
-        return nil, fmt.Errorf("missing aud claim")
-    }
-    validAud := false
-    switch v := audVal.(type) {
-    case string:
-        validAud = (v == p.ClientID)
-    case []interface{}:
-        for _, entry := range v {
-            if s, ok := entry.(string); ok && s == p.ClientID {
-                validAud = true
-                break
-            }
-        }
-    default:
-        return nil, fmt.Errorf("invalid aud claim type: %T", audVal)
-    }
-    if !validAud {
-        return nil, fmt.Errorf("audience mismatch: %v", audVal)
-    }
+	if !has(claims, v.cfg.Identifier) {
+		return nil, fmt.Errorf("%w: expected %s, got %v", oidc.ErrInvalidAudience, v.cfg.Identifier, claims["aud"])
+	}
 
-    // Validate iss (allow with/without trailing slash)
-    iss, ok := claims["iss"].(string)
-    if !ok {
-        return nil, fmt.Errorf("missing iss claim")
-    }
-    expectedIss := p.BaseURL
-    if !strings.EqualFold(strings.TrimRight(iss, "/"), strings.TrimRight(expectedIss, "/")) {
-        return nil, fmt.Errorf("issuer mismatch: %s", iss)
-    }
+	now := time.Now().Unix()
+	const leeway = int64(60)
 
-    return claims, nil
+	exp, ok := toInt64(claims["exp"])
+	if !ok || exp <= now-leeway {
+		return nil, oidc.ErrTokenExpired
+	}
+	if nbf, ok := toInt64(claims["nbf"]); ok && nbf > now+leeway {
+		return nil, oidc.ErrTokenNotYetValid
+	}
+	if iat, ok := toInt64(claims["iat"]); ok && iat > now+leeway {
+		return nil, oidc.ErrTokenIssuedInFuture
+	}
+
+	gotIss, _ := claims["iss"].(string)
+	if normalizeIssuer(gotIss) != normalizeIssuer(issuer) {
+		return nil, fmt.Errorf("invalid issuer: expected %s, got %s", issuer, gotIss)
+	}
+
+	if sub, _ := claims["sub"].(string); strings.TrimSpace(sub) == "" {
+		return nil, oidc.ErrMissingSub
+	}
+
+	out := make(map[string]interface{}, len(claims))
+	for k, val := range claims {
+		out[k] = val
+	}
+	return out, nil
+}
+
+
+func (v *verifier) parseAndVerifyWithKey(tokenString string, pubKey crypto.PublicKey) (*jwt.Token, error) {
+	if pubKey == nil {
+		return nil, errors.New("no public key provided")
+	}
+	return jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		alg := t.Method.Alg()
+		// Auth0 기본은 RS256. 필요 시 PS256 허용.
+		if alg != "RS256" && alg != "PS256" {
+			return nil, fmt.Errorf("unexpected signing method: %s", alg)
+		}
+		return pubKey, nil
+	})
+}
+
+func (v *verifier) lookupKeyFromCache(kid string) crypto.PublicKey {
+	v.mu.RLock()
+	defer v.mu.RUnlock()
+	if len(v.cache) == 0 {
+		return nil
+	}
+	for _, jwk := range v.cache {
+		if jwk.Kid != kid {
+			continue
+		}
+		data, _ := json.Marshal(jwk)
+		key, err := formats.NewJWKImporter().ImportPublic(data, sagecrypto.KeyFormatJWK)
+		if err == nil {
+			return key
+		}
+	}
+	return nil
+}
+
+func findKeyByKID(keys []formats.JWK, kid string) crypto.PublicKey {
+	for _, jwk := range keys {
+		if jwk.Kid != kid {
+			continue
+		}
+		data, _ := json.Marshal(jwk)
+		key, err := formats.NewJWKImporter().ImportPublic(data, sagecrypto.KeyFormatJWK)
+		if err == nil {
+			return key
+		}
+	}
+	return nil
+}
+
+// getJWKS returns cached JWKS or fetches fresh set 
+func (v *verifier) getJWKS(ctx context.Context, issuer string) ([]formats.JWK, error) {
+	v.mu.RLock()
+	if time.Now().Before(v.expiresAt) && len(v.cache) > 0 {
+		keys := v.cache
+		v.mu.RUnlock()
+		return keys, nil
+	}
+	v.mu.RUnlock()
+
+	jwksURL := strings.TrimRight(issuer, "/") + "/.well-known/jwks.json"
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, jwksURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create JWKS request: %w", err)
+	}
+	resp, err := v.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch JWKS: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("JWKS endpoint returned status %d", resp.StatusCode)
+	}
+
+	var doc struct{ Keys []formats.JWK `json:"keys"` }
+	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
+		return nil, fmt.Errorf("decode JWKS response: %w", err)
+	}
+	if len(doc.Keys) == 0 {
+		return nil, errors.New("no keys found in JWKS")
+	}
+
+	v.mu.Lock()
+	v.cache = doc.Keys
+	v.expiresAt = time.Now().Add(v.cfg.CacheTTL)
+	v.mu.Unlock()
+
+	return doc.Keys, nil
+}
+
+
+
+func has(claims map[string]interface{}, expected string) bool {
+	v, ok := claims["aud"]
+	if !ok {
+		return false
+	}
+	switch t := v.(type) {
+	case string:
+		return t == expected
+	case []interface{}:
+		for _, x := range t {
+			if s, ok := x.(string); ok && s == expected {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func toInt64(v interface{}) (int64, bool) {
+	switch t := v.(type) {
+	case float64:
+		return int64(t), true
+	case int64:
+		return t, true
+	case int:
+		return int64(t), true
+	case json.Number:
+		i, err := t.Int64()
+		if err != nil {
+			return 0, false
+		}
+		return i, true
+	default:
+		return 0, false
+	}
+}
+
+func normalizeIssuer(s string) string {
+	if s == "" {
+		return s
+	}
+	if strings.HasSuffix(s, "/") {
+		return s[:len(s)-1]
+	}
+	return s
+}
+
+ 
+func containsScope(claims map[string]interface{}, want string) bool {
+	raw, ok := claims["scope"].(string)
+	if !ok || raw == "" {
+		return false
+	}
+	for _, sc := range strings.Split(raw, " ") {
+		if sc == want {
+			return true
+		}
+	}
+	return false
 }
