@@ -9,9 +9,7 @@ import (
 	a2a "github.com/a2aproject/a2a/grpc"
 	"github.com/google/uuid"
 	"github.com/sage-x-project/sage/core/message"
-	"github.com/sage-x-project/sage/crypto"
 	sagecrypto "github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/crypto/formats"
 	"github.com/sage-x-project/sage/crypto/keys"
 	"github.com/sage-x-project/sage/did"
 	"github.com/stretchr/testify/require"
@@ -75,9 +73,13 @@ func setupTest(t *testing.T) (*Client, *Server, chan *a2a.SendMessageRequest, sa
 func TestHandshake(t *testing.T) {
 	alice, bob, recvCh, aliceKeyPair, bobKeyPair := setupTest(t)
 	
-	exporter := formats.NewJWKExporter()
 	contextId := contextIDPrefix + uuid.NewString()
 	sessionId := sessionIDPrefix + uuid.NewString()
+
+	aliceEphemeralKeyPair, err := keys.GenerateX25519KeyPair()
+	bobEphemeralKeyPair, err := keys.GenerateX25519KeyPair()
+
+	var s1, s2 []byte
 
 	t.Run("Alice sends invitation to Bob", func(t *testing.T) {
 		
@@ -128,17 +130,14 @@ func TestHandshake(t *testing.T) {
 
 		// ------------ client ------------
 		aliceDID :=  did.AgentDID("did:sage:ethereum:agent001")
-		aliceEphemeralPubKey, err := keys.GenerateX25519KeyPair()
+		
 		require.NoError(t, err)
-
-		ephemeralPubKeyJWK, err := exporter.ExportPublic(aliceEphemeralPubKey, crypto.KeyFormatJWK)
-		require.NoError(t, err)
-		assert.NotEmpty(t, ephemeralPubKeyJWK)
 
 		reqMsg := &RequestMessage{
 			BaseMessage: message.BaseMessage{
 				ContextID: contextId,
 				SessionID: sessionId,
+				EphemeralPubKey: aliceEphemeralKeyPair.(*keys.X25519KeyPair).PublicBytesKey(),
 				DID: string(aliceDID),
 			},
 			Session: Session{
@@ -168,6 +167,7 @@ func TestHandshake(t *testing.T) {
 		var recvMsg RequestMessage
 		require.NoError(t, fromBytes(decMsg, &recvMsg))
 		assert.Equal(t, reqMsg.SessionID, recvMsg.Session.ID)
+		assert.Equal(t, reqMsg.EphemeralPubKey, recvMsg.EphemeralPubKey)
 		assert.Equal(t, reqMsg.DID, recvMsg.DID)
 
 		// verify sigatrue
@@ -183,6 +183,9 @@ func TestHandshake(t *testing.T) {
 		// verify against the raw proto bytes
 		err = aliceKeyPair.Verify(bytes, sigBytes)
 		require.NoError(t, err)
+
+		s1, err = bobEphemeralKeyPair.(*keys.X25519KeyPair).DeriveSharedSecret(recvMsg.EphemeralPubKey)
+		require.NoError(t, err)
 	})
 
 	t.Run("Alice sends encrypted response to alice", func(t *testing.T) {
@@ -190,17 +193,13 @@ func TestHandshake(t *testing.T) {
 
 		// ------------ client ------------
 		bobID :=  did.AgentDID("did:sage:ethereum:agent001")
-		bobEphemeralPubKey, err := keys.GenerateX25519KeyPair()
 		require.NoError(t, err)
-
-		ephemeralPubKeyJWK, err := exporter.ExportPublic(bobEphemeralPubKey, crypto.KeyFormatJWK)
-		require.NoError(t, err)
-		assert.NotEmpty(t, ephemeralPubKeyJWK)
 
 		resMsg := &ResponseMessage{
 			BaseMessage: message.BaseMessage{
 				ContextID: contextId,
 				SessionID: sessionId,
+				EphemeralPubKey: bobEphemeralKeyPair.(*keys.X25519KeyPair).PublicBytesKey(),
 				DID: string(bobID),
 			},
 			Session: Session{
@@ -230,6 +229,7 @@ func TestHandshake(t *testing.T) {
 		var recvMsg RequestMessage
 		require.NoError(t, fromBytes(decMsg, &recvMsg))
 		assert.Equal(t, resMsg.SessionID, recvMsg.Session.ID)
+		assert.Equal(t, resMsg.EphemeralPubKey, recvMsg.EphemeralPubKey)
 		assert.Equal(t, resMsg.DID, recvMsg.DID)
 
 		// verify sigatrue
@@ -245,9 +245,14 @@ func TestHandshake(t *testing.T) {
 		// verify against the raw proto bytes
 		err = bobKeyPair.Verify(bytes, sigBytes)
 		require.NoError(t, err)
+
+		s2, err = aliceEphemeralKeyPair.(*keys.X25519KeyPair).DeriveSharedSecret(recvMsg.EphemeralPubKey)
+		require.NoError(t, err)
 	})
 
 	t.Run("Alice complete handshake", func(t *testing.T) {
+		// shared secret
+		assert.Equal(t, s1, s2)
 		
 		// ------------ client ------------
 		ctx := context.Background()

@@ -13,9 +13,10 @@ type MessageControlHeader struct{
 }
 
 type BaseMessage struct {
-	ContextID string `json:"-"`
-	SessionID string `json:"id"`
-	DID string 		 `json:"did"`
+	ContextID       string      `json:"-"`
+	SessionID       string      `json:"id"`
+    EphemeralPubKey []byte      `json:"ephemeralPubKey,omitempty"`
+	DID             string 		`json:"did,omitempty"`
 }
 
 type ControlHeader interface {
