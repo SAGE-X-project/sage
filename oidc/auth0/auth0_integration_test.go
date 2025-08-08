@@ -18,7 +18,6 @@ import (
 )
 
 func newAgentFromEnvSuffix(suffix string) (*Agent, error) {
-    // helper: "KEY"+"_"+suffix 으로 ENV 읽기
     env := func(key string) string {
         return os.Getenv(fmt.Sprintf("%s_%s", key, suffix))
     }
@@ -26,7 +25,6 @@ func newAgentFromEnvSuffix(suffix string) (*Agent, error) {
     domain       := env("AUTH0_DOMAIN")
     clientID     := env("AUTH0_CLIENT_ID")
     clientSecret := env("AUTH0_CLIENT_SECRET")
-    // keyPath      := env("PRIVATE_KEY_PEM_PATH")
     did          := env("TEST_DID")
     resource     := env("IDENTIFIER")
     keyId        := env("AUTH0_KEY_ID")
