@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
@@ -80,6 +81,15 @@ func (e *pemExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 		}
 		
 		return pem.EncodeToMemory(block), nil
+		
+	case sagecrypto.KeyTypeRSA:
+        privateKey, ok := keyPair.PrivateKey().(*rsa.PrivateKey)
+        if !ok {
+            return nil, errors.New("invalid RSA private key type")
+        }
+        derBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+        block := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: derBytes}
+        return pem.EncodeToMemory(block), nil
 
 	default:
 		return nil, sagecrypto.ErrInvalidKeyType
@@ -142,7 +152,19 @@ func (e *pemExporter) ExportPublic(keyPair sagecrypto.KeyPair, format sagecrypto
 		}
 		
 		return pem.EncodeToMemory(block), nil
-		
+
+	case sagecrypto.KeyTypeRSA:
+        publicKey, ok := keyPair.PublicKey().(*rsa.PublicKey)
+        if !ok {
+            return nil, errors.New("invalid RSA public key type")
+        }
+        derBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+        if err != nil {
+            return nil, fmt.Errorf("failed to marshal RSA public key: %w", err)
+        }
+        block := &pem.Block{Type: "PUBLIC KEY", Bytes: derBytes}
+        return pem.EncodeToMemory(block), nil
+
 	default:
 		return nil, sagecrypto.ErrInvalidKeyType
 	}
@@ -200,6 +222,12 @@ func (i *pemImporter) Import(data []byte, format sagecrypto.KeyFormat) (sagecryp
 		
 		// Try standard EC private key parsing (won't work for secp256k1)
 		return nil, errors.New("standard EC private key format not supported for secp256k1")
+	case "RSA PRIVATE KEY":
+        priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+        if err != nil {
+            return nil, fmt.Errorf("failed to parse RSA private key: %w", err)
+        }
+        return keys.NewRSAKeyPair(priv, "")
 
 	default:
 		return nil, fmt.Errorf("unsupported PEM block type: %s", block.Type)
@@ -250,6 +278,8 @@ func (i *pemImporter) ImportPublic(data []byte, format sagecrypto.KeyFormat) (cr
 		return key, nil
 	case *ecdsa.PublicKey:
 		return key, nil
+	case *rsa.PublicKey:
+        return key, nil
 	default:
 		return nil, fmt.Errorf("unsupported public key type: %T", publicKey)
 	}
