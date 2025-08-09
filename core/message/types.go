@@ -1,6 +1,8 @@
 package message
 
-import "time"
+import (
+	"time"
+)
 
 
 type MessageControlHeader struct{
@@ -14,7 +16,6 @@ type MessageControlHeader struct{
 
 type BaseMessage struct {
 	ContextID       string      `json:"-"`
-	SessionID       string      `json:"id"`
     EphemeralPubKey []byte      `json:"ephemeralPubKey,omitempty"`
 	DID             string 		`json:"did,omitempty"`
 }

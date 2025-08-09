@@ -1,22 +1,68 @@
 package handshake
 
 import (
+	"context"
+	"crypto"
 	"encoding/json"
 	"time"
 
+	a2a "github.com/a2aproject/a2a/grpc"
 	"github.com/sage-x-project/sage/core/message"
+	"github.com/sage-x-project/sage/core/session"
 )
 
-// HandshakeStep represents a phase in the A2A handshake.
+type Phase int
+
 const (
-    Invitation string = "invitation"
-    Request    string = "request"
-    Response   string = "response"
-    Complete   string = "complete"
+	Invitation Phase = iota + 1
+	Request
+	Response
+	Complete
 )
+
+// Events for agent (session) layer
+// Events defines callbacks for the agent/application layer.
+// The handshake package does not create or store sessions; it only emits events.
+type Events interface {
+	// OnInvitation is called when an Invitation is received.
+	OnInvitation(ctx context.Context, ctxID string, inv InvitationMessage) error
+	// OnRequest is called after the Request is decrypted and parsed.
+	// The agent can derive a shared secret and create/store a session outside.
+	OnRequest(ctx context.Context, ctxID string, req RequestMessage, senderPub crypto.PublicKey) error
+	// OnResponse is called after a Response is received and parsed (if clear/unencrypted).
+	// If your protocol encrypts Response, handle decryption at the agent layer.
+	OnResponse(ctx context.Context, ctxID string, res ResponseMessage, senderPub crypto.PublicKey) error
+	// OnComplete is called when Complete is received.
+	// If a SecureSession has been established during the handshake, it will be provided.
+	OnComplete(ctx context.Context, ctxID string, comp *CompleteMessage) error
+
+}
+
+// NoopEvents is a default no-op implementation.
+type NoopEvents struct{}
+
+func (NoopEvents) OnInvitation(context.Context, string, InvitationMessage) error             { return nil }
+func (NoopEvents) OnRequest(context.Context, string, RequestMessage, crypto.PublicKey) error { return nil }
+func (NoopEvents) OnResponse(context.Context, string, ResponseMessage, crypto.PublicKey) error {
+	return nil
+}
+func (NoopEvents) OnComplete(context.Context, string, *CompleteMessage) error { return nil }
+
+
+// PeerCaller abstracts how to send a message to the peer agent.
+// In simplest form, you can set it to an a2a client bound to the peer's gRPC endpoint.
+type PeerCaller interface {
+	Send(ctx context.Context, req *a2a.SendMessageRequest) (*a2a.SendMessageResponse, error)
+}
+
+// A2AClientWrapper adapts A2AServiceClient to PeerCaller.
+type A2AClientWrapper struct{ cli a2a.A2AServiceClient }
+
+func (w *A2AClientWrapper) Send(ctx context.Context, req *a2a.SendMessageRequest) (*a2a.SendMessageResponse, error) {
+	return w.cli.SendMessage(ctx, req)
+}
 
 const contextIDPrefix = "ctx-handshake"
-const sessionIDPrefix = "session-handshake"
 
 // InvitationMessage represents an invitation packet containing only the Session ID.
 // It is delivered alongside a JWT carrying the agent's DID information.
@@ -43,7 +89,7 @@ func (m *InvitationMessage) GetTimestamp() time.Time {
 type RequestMessage struct {
 	message.BaseMessage
 	message.MessageControlHeader
-	Session Session 			    `json:"session"`
+	EphemeralPubKey   json.RawMessage    `json:"ephemeralPublicKey"` // JWK format
 }
 
 func (m *RequestMessage) GetSequence() uint64 {
@@ -64,7 +110,9 @@ func (m *RequestMessage) GetTimestamp() time.Time {
 type ResponseMessage struct {
 	message.BaseMessage
 	message.MessageControlHeader
-	Session Session 		`json:"session"`
+	EphemeralPubKey   json.RawMessage `json:"ephemeralPublicKey"` // JWK format
+	SessParams   session.Params `json:"SessParams,omitempty"`
+	Ack          bool                 `json:"ack"`
 }
 
 func (m *ResponseMessage) GetSequence() uint64 {
@@ -95,16 +143,6 @@ func (m *CompleteMessage) GetNonce() string {
 
 func (m *CompleteMessage) GetTimestamp() time.Time {
     return m.Timestamp 
-}
-
-// Session contains the parameters required for message exchange before the communication channel is established.
-type Session struct {
-    ID                string 			`json:"id"`
-    EphemeralPubKey   json.RawMessage 	`json:"ephemeralPublicKey"` // JWK format
-    KeyInfo           *KeyInfo 	        `json:"signaturePolicy,omitempty"`
-    Status            string 			`json:"status,omitempty"`
-    CreatedAt         string 			`json:"createdAt,omitempty"`
-    ExpiresAt         string 			`json:"expiresAt,omitempty"`
 }
 
 // KeyInfo contains the information required for RFC‑9421 signature verification.
