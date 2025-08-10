@@ -24,15 +24,18 @@ func TestSecureSessionLifecycle(t *testing.T) {
 
 	sess, err := NewSecureSession("sess1", sharedSecret, config)
 	require.NoError(t, err)
+	covered := []byte("covered-for-tests")
 	t.Run("Encrypt and decrypt with sign roundtrip", func(t *testing.T) {
         require.NoError(t, err)
         require.Equal(t, "sess1", sess.GetID())
         require.False(t, sess.IsExpired())
 
         plaintext := []byte("hello")
-        ct, err := sess.EncryptAndSign(plaintext)
+        ct, mac, err := sess.EncryptAndSign(plaintext, covered)
         require.NoError(t, err)
-        pt, err := sess.DecryptAndVerify(ct)
+
+        // 변경: DecryptAndVerify(cipher, covered, mac)
+        pt, err := sess.DecryptAndVerify(ct, covered, mac)
         require.NoError(t, err)
         require.Equal(t, plaintext, pt)
 
@@ -73,10 +76,10 @@ func TestSecureSessionLifecycle(t *testing.T) {
     t.Run("Message count expiration", func(t *testing.T) {
         sess, _ := NewSecureSession("sess2", sharedSecret, config)
 
-        _, _ = sess.EncryptAndSign([]byte("m1"))
-        _, _ = sess.EncryptAndSign([]byte("m2"))
+        _, _, _ = sess.EncryptAndSign([]byte("m1"), covered)
+        _, _, _ = sess.EncryptAndSign([]byte("m2"), covered)
 
-        _, err := sess.EncryptAndSign([]byte("m3"))
+        _, _, err := sess.EncryptAndSign([]byte("m3"), covered)
         require.Error(t, err)
         require.True(t, sess.IsExpired())
     })
@@ -84,10 +87,10 @@ func TestSecureSessionLifecycle(t *testing.T) {
     t.Run("Idle timeout expiration", func(t *testing.T) {
         sess, _ := NewSecureSession("sess3", sharedSecret, config)
 
-        _, _ = sess.EncryptAndSign([]byte("hi"))
+        _, _, _ = sess.EncryptAndSign([]byte("hi"), covered)
         time.Sleep(config.IdleTimeout + 10*time.Millisecond)
 
-        _, err := sess.EncryptAndSign([]byte("hi2"))
+        _, _, err := sess.EncryptAndSign([]byte("hi2"), covered)
         require.Error(t, err)
         require.True(t, sess.IsExpired())
     })
@@ -95,7 +98,7 @@ func TestSecureSessionLifecycle(t *testing.T) {
     t.Run("Absolute timeout expiration", func(t *testing.T) {
         sess, _ := NewSecureSession("sess4", sharedSecret, config)
         time.Sleep(config.MaxAge + 10*time.Millisecond)
-        _, err := sess.EncryptAndSign([]byte("late"))
+        _, _, err := sess.EncryptAndSign([]byte("late"), covered)
         require.Error(t, err)
         require.True(t, sess.IsExpired())
     })
@@ -104,7 +107,7 @@ func TestSecureSessionLifecycle(t *testing.T) {
         sess, _ := NewSecureSession("sess5", sharedSecret, config)
         _ = sess.Close()
 
-        _, err := sess.EncryptAndSign([]byte("hi"))
+        _, _, err := sess.EncryptAndSign([]byte("hi"), covered)
         require.Error(t, err)
     })
 
@@ -254,19 +257,50 @@ func TestSecureSession_WithParamsSuite(t *testing.T) {
 		s, err := NewSecureSession("idZ", seed, Config{})
 		require.NoError(t, err)
 
-		// 길이 기록
 		encLen, sigLen, seedLen := len(s.encryptKey), len(s.signingKey), len(s.sessionSeed)
+		covered := []byte("covered-for-idZ")
+		pt := []byte("hi")
+		ct, mac, err := s.EncryptAndSign(pt, covered)
+		require.NoError(t, err)
+		require.NotEmpty(t, ct)
+		require.NotEmpty(t, mac)
 
+		// close -> zeroize + expired
 		require.NoError(t, s.Close())
 		require.True(t, s.IsExpired())
 
-		// zeroized
 		require.Equal(t, bytes.Repeat([]byte{0}, encLen), s.encryptKey)
 		require.Equal(t, bytes.Repeat([]byte{0}, sigLen), s.signingKey)
 		require.Equal(t, bytes.Repeat([]byte{0}, seedLen), s.sessionSeed)
 
-		_, err = s.EncryptAndSign([]byte("hi"))
+
+		_, _, err = s.EncryptAndSign([]byte("again"), covered)
 		require.Error(t, err)
+
+		_, err = s.DecryptAndVerify(ct, covered, mac)
+		require.Error(t, err) 
+	})
+
+	t.Run("DecryptAndVerify fails on covered/mac mismatch", func(t *testing.T) {
+		s, err := NewSecureSession("idVerify", b(32), Config{})
+		require.NoError(t, err)
+
+		covered := []byte("covered-ok")
+		pt := []byte("payload")
+		ct, mac, err := s.EncryptAndSign(pt, covered)
+		require.NoError(t, err)
+
+		_, err = s.DecryptAndVerify(ct, []byte("covered-bad"), mac)
+		require.Error(t, err) 
+
+		badMac := append([]byte{}, mac...)
+		badMac[0] ^= 0xFF
+		_, err = s.DecryptAndVerify(ct, covered, badMac)
+		require.Error(t, err)
+
+		out, err := s.DecryptAndVerify(ct, covered, mac)
+		require.NoError(t, err)
+		require.Equal(t, pt, out)
 	})
 
 	t.Run("EncryptAndSign format & roundtrip", func(t *testing.T) {
@@ -274,15 +308,17 @@ func TestSecureSession_WithParamsSuite(t *testing.T) {
 		s, err := NewSecureSession("fmt", b(32), cfg)
 		require.NoError(t, err)
 
+		covered := []byte("covered-for-format")
 		pt := []byte("format-check")
-		ct, err := s.EncryptAndSign(pt)
-		require.NoError(t, err)
+		ct, mac, err := s.EncryptAndSign(pt, covered)
+    	require.NoError(t, err)
 		require.Greater(t, len(ct), chacha20poly1305.NonceSize)
 
 		nonce := ct[:chacha20poly1305.NonceSize]
 		require.Len(t, nonce, chacha20poly1305.NonceSize)
+		require.Len(t, mac, sha256.Size)
 
-		out, err := s.DecryptAndVerify(ct)
+		out, err := s.DecryptAndVerify(ct, covered, mac)
 		require.NoError(t, err)
 		require.Equal(t, pt, out)
 	})

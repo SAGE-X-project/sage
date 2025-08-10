@@ -3,6 +3,7 @@ package session
 import (
 	"bytes"
 	"crypto/cipher"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -290,50 +291,79 @@ func (s *SecureSession) Decrypt(data []byte) ([]byte, error) {
     return plaintext, nil
 }
 
-// EncryptAndSign encrypts plaintext and adds authentication
-func (s *SecureSession) EncryptAndSign(plaintext []byte) ([]byte, error) {
-    if s.IsExpired() {
-        return nil, fmt.Errorf("session expired")
-    }
-    
-    // Generate random nonce
-    nonce := make([]byte, 12) // ChaCha20-Poly1305 nonce size
-    if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-        return nil, fmt.Errorf("failed to generate nonce: %w", err)
-    }
-    
-    // Encrypt with AEAD
-    ciphertext := s.aead.Seal(nil, nonce, plaintext, nil)
-    
-    // Create final payload: nonce || ciphertext
-    result := make([]byte, len(nonce)+len(ciphertext))
-    copy(result, nonce)
-    copy(result[len(nonce):], ciphertext)
-    
-    s.UpdateLastUsed()
-    return result, nil
+// EncryptAndSign encrypts plaintext and returns (cipher, mac) where:
+//   - cipher = nonce || ciphertext (ChaCha20-Poly1305)
+//   - mac    = HMAC-SHA256(signingKey, covered)
+func (s *SecureSession) EncryptAndSign(plaintext []byte, covered []byte) (cipher []byte, mac []byte, err error) {
+	if s.IsExpired() {
+		return nil, nil, fmt.Errorf("session expired")
+	}
+
+	// Encrypt
+	nonce := make([]byte, chacha20poly1305.NonceSize)
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, nil, fmt.Errorf("failed to generate nonce: %w", err)
+	}
+	ct := s.aead.Seal(nil, nonce, plaintext, nil)
+
+	out := make([]byte, len(nonce)+len(ct))
+	copy(out, nonce)
+	copy(out[len(nonce):], ct)
+
+	// HMAC over your covered bytes
+	h := hmac.New(sha256.New, s.signingKey)
+	h.Write(covered)
+	tag := h.Sum(nil)
+
+	s.UpdateLastUsed()
+	return out, tag, nil
 }
 
-// DecryptAndVerify decrypts and verifies ciphertext
-func (s *SecureSession) DecryptAndVerify(ciphertext []byte) ([]byte, error) {
-    if s.IsExpired() {
-        return nil, fmt.Errorf("session expired")
-    }
-    
-    if len(ciphertext) < 12 { // nonce size
-        return nil, fmt.Errorf("ciphertext too short")
-    }
-    
-    // Extract nonce and encrypted data
-    nonce := ciphertext[:12]
-    encrypted := ciphertext[12:]
-    
-    // Decrypt and verify
-    plaintext, err := s.aead.Open(nil, nonce, encrypted, nil)
-    if err != nil {
-        return nil, fmt.Errorf("decryption/verification failed: %w", err)
-    }
-    
+// DecryptAndVerify verifies mac = HMAC-SHA256(signingKey, covered) and then decrypts cipher.
+// cipher = nonce || ciphertext
+func (s *SecureSession) DecryptAndVerify(cipher []byte, covered []byte, mac []byte) ([]byte, error) {
+	if s.IsExpired() {
+		return nil, fmt.Errorf("session expired")
+	}
+
+	// Verify HMAC first
+	h := hmac.New(sha256.New, s.signingKey)
+	h.Write(covered)
+	want := h.Sum(nil)
+	if !hmac.Equal(want, mac) {
+		return nil, fmt.Errorf("signature verify failed")
+	}
+
+	// Then decrypt
+	if len(cipher) < chacha20poly1305.NonceSize {
+		return nil, fmt.Errorf("cipher too short")
+	}
+	nonce := cipher[:chacha20poly1305.NonceSize]
+	ct := cipher[chacha20poly1305.NonceSize:]
+
+	plain, err := s.aead.Open(nil, nonce, ct, nil)
+	if err != nil {
+		return nil, fmt.Errorf("decryption/verification failed: %w", err)
+	}
+
+	s.UpdateLastUsed()
+	return plain, nil
+}
+
+func (s *SecureSession) SignCovered(covered []byte) []byte {
+    m := hmac.New(sha256.New, s.signingKey)
+    m.Write(covered)
     s.UpdateLastUsed()
-    return plaintext, nil
+    return m.Sum(nil)
+}
+
+func (s *SecureSession) VerifyCovered(covered, sig []byte) error {
+    m := hmac.New(sha256.New, s.signingKey)
+    m.Write(covered)
+    exp := m.Sum(nil)
+    if !hmac.Equal(exp, sig) {
+        return fmt.Errorf("bad signature")
+    }
+    s.UpdateLastUsed()
+    return nil
 }

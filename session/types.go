@@ -21,9 +21,10 @@ type Session interface {
     // Cryptographic operations  
     Encrypt(plaintext []byte) ([]byte, error)
     Decrypt(data []byte) ([]byte, error)
-    EncryptAndSign(plaintext []byte) ([]byte, error)
-    DecryptAndVerify(ciphertext []byte) ([]byte, error)
-    
+    EncryptAndSign(plaintext []byte, covered []byte) ([]byte, []byte, error)
+    DecryptAndVerify(cipher []byte, covered []byte, mac []byte) ([]byte, error)
+    SignCovered(covered []byte) []byte
+    VerifyCovered(covered, sig []byte) error
     // Statistics
     GetMessageCount() int
     GetConfig() Config
