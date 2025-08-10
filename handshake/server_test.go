@@ -151,7 +151,6 @@ func TestHandshake(t *testing.T) {
 
 		reqMsg := &handshake.RequestMessage{
 			BaseMessage: message.BaseMessage{
-				ContextID:       contextId,
 				DID:             string(aliceDID),
 			},
 			EphemeralPubKey: json.RawMessage(alicePubKeyJWK),

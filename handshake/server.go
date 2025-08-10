@@ -103,6 +103,9 @@ func NewServer(
 	return s
 }
 
+// SetOutbound allows wiring the peer client after server startup.
+func (s *Server) SetOutbound(c a2a.A2AServiceClient) { s.outbound = c }
+
 // SendMessage is the single entry point for all phases.
 // It validates input, decodes payload, and triggers event callbacks.
 // If outbound is configured, the server may proactively send a Response after Request.
