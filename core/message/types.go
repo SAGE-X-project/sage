@@ -16,7 +16,6 @@ type MessageControlHeader struct{
 
 type BaseMessage struct {
 	ContextID       string      `json:"-"`
-    EphemeralPubKey []byte      `json:"ephemeralPubKey,omitempty"`
 	DID             string 		`json:"did,omitempty"`
 }
 
