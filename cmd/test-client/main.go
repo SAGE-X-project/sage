@@ -124,6 +124,7 @@ func main() {
 	
 	req.Header.Set("Signature", "sig1=:" + base64.RawURLEncoding.EncodeToString(sig) + ":")
 	dump, _ := httputil.DumpRequestOut(req, true) // 클라에서 보낼 때
+	log.Println("---------- valid packet -----------")
 	log.Printf("HTTP OUT:\n%s\n", dump)
 
 	res := must(http.DefaultClient.Do(req))
@@ -131,15 +132,62 @@ func main() {
 	b1, _ := io.ReadAll(res.Body)
 	log.Printf("protected#1 status=%d body=%s\n\n", res.StatusCode, string(b1))
 
-	req2, _ := http.NewRequest("POST", protected, bytes.NewReader([]byte("again")))
-	req2.Header = req.Header.Clone()
-	req2.Header.Set("Signature-Input",
+	reqEmpty, _ := http.NewRequest("POST", protected, bytes.NewReader([]byte("again")))
+	reqEmpty.Header = req.Header.Clone()
+	reqEmpty.Header.Set("Signature-Input",
 		fmt.Sprintf(`sig1=("@method" "@path" "host" "date" "content-digest");alg="hmac-sha256";keyid="%s";nonce="%s"`, kid, "n-"+uuid.NewString()))
-	dump, _ = httputil.DumpRequestOut(req2, true) // 클라에서 보낼 때
+	dump, _ = httputil.DumpRequestOut(reqEmpty, true) 
+	log.Println("---------- invalid packet(empty body) -----------")
 	log.Printf("HTTP OUT:\n%s\n", dump)
-	res2 := must(http.DefaultClient.Do(req2))
+	res2 := must(http.DefaultClient.Do(reqEmpty))
 	defer res2.Body.Close()
-	log.Printf("protected#2 status=%d (expect 401)\n\n", res2.StatusCode)
+	log.Printf("protected#empty body status=%d (expect 401)\n\n", res2.StatusCode)
+
+
+	reqBad, _ := http.NewRequest("POST", protected, bytes.NewReader([]byte(`{"op":"bad"}`)))
+	dump, _ = httputil.DumpRequestOut(reqBad, true) 
+	log.Println("---------- invalid packet(bad Signature-Input) -----------")
+	log.Printf("HTTP OUT:\n%s\n", dump)
+	resBad := must(http.DefaultClient.Do(reqBad))
+	defer resBad.Body.Close()
+	bBad, _ := io.ReadAll(resBad.Body)
+	log.Printf("protected#bad-signature status=%d (expect 400), body=%s", resBad.StatusCode, string(bBad))
+
+	reqReplay, _ := http.NewRequest("POST", protected, bytes.NewReader(cipher))
+	reqReplay.Header = req.Header.Clone() 
+	dump, _ = httputil.DumpRequestOut(reqReplay, true) 
+	log.Println("---------- invalid packet(reuse nonce) -----------")
+	log.Printf("HTTP OUT:\n%s\n", dump)
+	resReplay := must(http.DefaultClient.Do(reqReplay))
+	defer resReplay.Body.Close()
+	bReplay, _ := io.ReadAll(resReplay.Body)
+	log.Printf("protected#replay status=%d (expect 401), body=%s", resReplay.StatusCode, string(bReplay))
+
+	// IdleTimeout 경과 대기 (서버 IdleTimeout 2s 가정)
+	time.Sleep(2500 * time.Millisecond) // IdleTimeout + epsilon
+	body2 := []byte(`{"op":"after-idle","ts":2}`)
+	cipher2 := mustBytes(sess.Encrypt(body2)) // 클라 세션은 안만료여도 OK(서버가 만료 판단)
+
+	nonce2 := "n-" + uuid.NewString()
+	date2  := time.Now().UTC().Format(time.RFC1123)
+	digest2 := "sha-256=:" + b64(sha256Sum(cipher2)) + ":"
+
+	reqIdle, _ := http.NewRequest("POST", protected, bytes.NewReader(cipher2))
+	reqIdle.Header.Set("Content-Type", "application/json")
+	reqIdle.Header.Set("Content-Digest", digest2)
+	reqIdle.Header.Set("Date", date2)
+	reqIdle.Header.Set("Signature-Input",
+		fmt.Sprintf(`sig1=("@method" "@path" "host" "date" "content-digest");alg="hmac-sha256";keyid="%s";nonce="%s"`, kid, nonce2))
+	covered2 := buildCovered(reqIdle, "sig1", kid, nonce2)
+	sig2 := sess.SignCovered(covered2)
+	reqIdle.Header.Set("Signature", "sig1=:"+base64.RawURLEncoding.EncodeToString(sig2)+":")
+
+	log.Println("---------- invalid packet(expired session) -----------")
+	log.Printf("HTTP OUT:\n%s\n", dump)
+	resIdle := must(http.DefaultClient.Do(reqIdle))
+	defer resIdle.Body.Close()
+	bIdle, _ := io.ReadAll(resIdle.Body)
+	log.Printf("protected#idle status=%d (expect 401) body=%s\n", resIdle.StatusCode, string(bIdle))
 }
 
 /* =======================

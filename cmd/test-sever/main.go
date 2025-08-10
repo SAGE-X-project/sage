@@ -102,8 +102,8 @@ func main() {
 	sessMgr := session.NewManager()
 	sessMgr.SetDefaultConfig(session.Config{
 		MaxAge:      time.Hour,
-		IdleTimeout: 10 * time.Minute,
-		MaxMessages: 1,
+		IdleTimeout: 2 * time.Second,
+		MaxMessages: 10,
 	})
 	events := sessioninit.NewCreator(sessMgr)
 
@@ -163,6 +163,7 @@ func main() {
 	// 2) 보호 API: kid/nonce → 세션 복호화(+만료/리플레이 차단)
 	mux.HandleFunc("/protected", func(w http.ResponseWriter, r *http.Request) {
 		dump2, _ := httputil.DumpRequest(r, true)
+		log.Println("----------  received packet -----------")
 		log.Printf("HTTP IN:\n%s", dump2)
 		ts := time.Now()
 		si := r.Header.Get("Signature-Input")
@@ -180,17 +181,19 @@ func main() {
     	if err != nil { http.Error(w, "bad signature", 400); return }
 
 		covered := buildCovered(r, "sig1", kid, nonce)
+
 		if err := sess.VerifyCovered(covered, sig); err != nil {
 			http.Error(w, "signature verify failed", 401); return
 		}
-
+		log.Println("verify signature ✅")
 		cipher, _ := io.ReadAll(r.Body)
     	plain, err := sess.Decrypt(cipher)
+		log.Println("decrypt body ✅")
 		if err != nil { http.Error(w, "decrypt: "+err.Error(), 401); return }
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)
 		w.Write(plain)
-		log.Printf("Decrypt: [/protected] 200 OK kid=%s nonce=%s took=%s body=%s\n\n", kid, nonce, time.Since(ts), string(plain))
+		log.Printf("[/protected] 200 OK kid=%s nonce=%s took=%s body=%s\n\n", kid, nonce, time.Since(ts), string(plain))
 	})
 
 	mux.HandleFunc("/debug/server-pub", func(w http.ResponseWriter, r *http.Request) {
