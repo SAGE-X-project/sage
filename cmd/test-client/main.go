@@ -285,7 +285,6 @@ func startClientRPC() string {
 				pubAny, err := imp.ImportPublic(raw, sagecrypto.KeyFormatJWK)
 				if err != nil {
 					log.Printf("bad server eph JWK: %v", err)
-					// 여기서 바로 에러 응답 내려도 되고 return 해도 됨
 					_ = json.NewEncoder(w).Encode(map[string]any{
 						"jsonrpc": "2.0",
 						"error": map[string]any{"code": -32001, "message": "bad server eph JWK"},

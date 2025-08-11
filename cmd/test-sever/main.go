@@ -32,7 +32,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// ----- 서버가 peer(클라) 쪽으로 푸시할 때 쓰는 JSON-RPC A2A 클라 -----
 type jsonrpcA2AClient struct{ url string }
 
 func (c *jsonrpcA2AClient) SendMessage(ctx context.Context, in *a2a.SendMessageRequest, _ ...grpc.CallOption) (*a2a.SendMessageResponse, error) {
