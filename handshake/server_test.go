@@ -151,7 +151,8 @@ func TestHandshake(t *testing.T) {
 
 		reqMsg := &handshake.RequestMessage{
 			BaseMessage: message.BaseMessage{
-				DID:             string(aliceDID),
+				ContextID: 	contextId,
+				DID:        string(aliceDID),
 			},
 			EphemeralPubKey: json.RawMessage(alicePubKeyJWK),
 		}
@@ -160,7 +161,6 @@ func TestHandshake(t *testing.T) {
 
 		out := <-outboundCh
 		require.NotNil(t, out)
-		assert.Equal(t, contextId, out.Request.GetContextId())
 		assert.Equal(t, handshake.GenerateTaskID(handshake.Response), out.Request.GetTaskId())
 
 		// Decrypt Response envelope (b64) with Alice private key
@@ -213,7 +213,6 @@ func TestHandshake(t *testing.T) {
 
 		out := <-outboundCh
 		require.NotNil(t, out)
-		assert.Equal(t, contextId, out.Request.GetContextId())
 		assert.Equal(t, handshake.GenerateTaskID(handshake.Response), out.Request.GetTaskId())
 
 		// Decrypt Response envelope (b64) with Alice private key
