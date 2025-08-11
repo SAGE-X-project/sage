@@ -103,7 +103,6 @@ func TestJWKExporter(t *testing.T) {
 		assert.NotEmpty(t, jwk["kid"])
 	})
 
-<<<<<<< HEAD
 	t.Run("ExportX25519KeyPair", func(t *testing.T) {
 		keyPair, err := keys.GenerateX25519KeyPair()
 		require.NoError(t, err)
@@ -147,7 +146,6 @@ func TestJWKExporter(t *testing.T) {
 		assert.Empty(t, jwk["d"]) // No private key component
 		assert.NotEmpty(t, jwk["kid"])
 	})
-=======
 	t.Run("ExportRSAKeyPair", func(t *testing.T) {
         keyPair, err := keys.GenerateRSAKeyPair()
         require.NoError(t, err)
@@ -216,7 +214,6 @@ func TestJWKExporter(t *testing.T) {
         assert.Empty(t, jwk["d"])   // no private exponent
         assert.NotEmpty(t, jwk["kid"])
     })
->>>>>>> ca3883be29d9b92744e6e6e3b7308a6e114a5246
 }
 
 func TestJWKImporter(t *testing.T) {
@@ -271,7 +268,6 @@ func TestJWKImporter(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-<<<<<<< HEAD
 	t.Run("ImportX25519KeyPair", func(t *testing.T) {
 		// Generate and export a key pair
 		originalKeyPair, err := keys.GenerateX25519KeyPair()
@@ -286,7 +282,6 @@ func TestJWKImporter(t *testing.T) {
 		assert.NotNil(t, importedKeyPair)
 		assert.Equal(t, crypto.KeyTypeX25519, importedKeyPair.Type())
 	})
-=======
 	t.Run("ImportRSAKeyPair", func(t *testing.T) {
         originalKeyPair, err := keys.GenerateRSAKeyPair()
         require.NoError(t, err)
@@ -307,7 +302,6 @@ func TestJWKImporter(t *testing.T) {
         err = originalKeyPair.Verify(message, signature)
         assert.NoError(t, err)
     })
->>>>>>> ca3883be29d9b92744e6e6e3b7308a6e114a5246
 
 	t.Run("ImportEd25519PublicKey", func(t *testing.T) {
 		// Generate and export a public key
@@ -323,7 +317,6 @@ func TestJWKImporter(t *testing.T) {
 		assert.NotNil(t, importedPublicKey)
 	})
 
-<<<<<<< HEAD
 	t.Run("ImportX25519PublicKey", func(t *testing.T) {
 		// Generate and export a public key
 		originalKeyPair, err := keys.GenerateX25519KeyPair()
@@ -337,7 +330,6 @@ func TestJWKImporter(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, importedPublicKey)
 	})
-=======
 	t.Run("ImportRSAPublicKey", func(t *testing.T) {
         originalKeyPair, err := keys.GenerateRSAKeyPair()
         require.NoError(t, err)
@@ -349,7 +341,6 @@ func TestJWKImporter(t *testing.T) {
         require.NoError(t, err)
 		assert.NotNil(t, importedPublicKey)
     })
->>>>>>> ca3883be29d9b92744e6e6e3b7308a6e114a5246
 
 	t.Run("ImportInvalidJSON", func(t *testing.T) {
 		invalidData := []byte("invalid json")

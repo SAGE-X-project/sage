@@ -5,11 +5,8 @@ import (
 	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/ed25519"
-<<<<<<< HEAD
-	"crypto/sha256"
-=======
 	"crypto/rsa"
->>>>>>> ca3883be29d9b92744e6e6e3b7308a6e114a5246
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
