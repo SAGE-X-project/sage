@@ -3,6 +3,7 @@ package keys
 import (
 	"crypto"
 	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -46,6 +47,21 @@ func NewSecp256k1KeyPair(privateKey *secp256k1.PrivateKey, id string) (sagecrypt
 	}, nil
 }
 
+// NewRSAKeyPair creates a new RSA key pair for RS256 from an existing private key
+func NewRSAKeyPair(privateKey *rsa.PrivateKey, id string) (sagecrypto.KeyPair, error) {
+    publicKey := &privateKey.PublicKey
+    if id == "" {
+        // Derive ID from public key modulus hash
+        hash := sha256.Sum256(publicKey.N.Bytes())
+        id = hex.EncodeToString(hash[:8])
+    }
+    return &rsaKeyPair{
+        privateKey: privateKey,
+        publicKey:  publicKey,
+        id:         id,
+    }, nil
+}
+
 // PublicKeyOnlyEd25519 wraps an Ed25519 public key for verification only
 type publicKeyOnlyEd25519 struct {
 	publicKey ed25519.PublicKey
@@ -77,4 +93,38 @@ func (pk *publicKeyOnlyEd25519) Verify(message, signature []byte) error {
 
 func (pk *publicKeyOnlyEd25519) ID() string {
 	return pk.id
+}
+
+// PublicKeyOnlyRSA wraps an RSA public key for verification only
+type publicKeyOnlyRSA struct {
+    publicKey *rsa.PublicKey
+    id        string
+}
+
+func (pk *publicKeyOnlyRSA) PublicKey() crypto.PublicKey {
+    return pk.publicKey
+}
+
+func (pk *publicKeyOnlyRSA) PrivateKey() crypto.PrivateKey {
+    return nil
+}
+
+func (pk *publicKeyOnlyRSA) Type() sagecrypto.KeyType {
+    return sagecrypto.KeyTypeRSA
+}
+
+func (pk *publicKeyOnlyRSA) Sign(message []byte) ([]byte, error) {
+    return nil, errors.New("cannot sign with public key only")
+}
+
+func (pk *publicKeyOnlyRSA) Verify(message, signature []byte) error {
+    hash := sha256.Sum256(message)
+    if err := rsa.VerifyPKCS1v15(pk.publicKey, crypto.SHA256, hash[:], signature); err != nil {
+        return sagecrypto.ErrInvalidSignature
+    }
+    return nil
+}
+
+func (pk *publicKeyOnlyRSA) ID() string {
+    return pk.id
 }

@@ -102,6 +102,75 @@ func TestJWKExporter(t *testing.T) {
 		assert.Empty(t, jwk["d"]) // No private key component
 		assert.NotEmpty(t, jwk["kid"])
 	})
+
+	t.Run("ExportRSAKeyPair", func(t *testing.T) {
+        keyPair, err := keys.GenerateRSAKeyPair()
+        require.NoError(t, err)
+
+        // Export full RSA key pair
+        exported, err := exporter.Export(keyPair, crypto.KeyFormatJWK)
+        require.NoError(t, err)
+        assert.NotEmpty(t, exported)
+
+        // Verify JSON structure
+        var jwk map[string]interface{}
+        err = json.Unmarshal(exported, &jwk)
+        require.NoError(t, err)
+
+        // Check required fields
+        assert.Equal(t, "RSA", jwk["kty"])
+        assert.Equal(t, "RS256", jwk["alg"])
+        assert.NotEmpty(t, jwk["n"])   // modulus
+        assert.NotEmpty(t, jwk["e"])   // exponent
+        assert.NotEmpty(t, jwk["d"])   // private exponent
+        assert.NotEmpty(t, jwk["kid"])
+    })
+
+	t.Run("ExportRSAKeyPair", func(t *testing.T) {
+        keyPair, err := keys.GenerateRSAKeyPair()
+        require.NoError(t, err)
+
+        // Export full RSA key pair
+        exported, err := exporter.Export(keyPair, crypto.KeyFormatJWK)
+        require.NoError(t, err)
+        assert.NotEmpty(t, exported)
+
+        // Verify JSON structure
+        var jwk map[string]interface{}
+        err = json.Unmarshal(exported, &jwk)
+        require.NoError(t, err)
+
+        // Check required fields
+        assert.Equal(t, "RSA", jwk["kty"])
+        assert.Equal(t, "RS256", jwk["alg"])
+        assert.NotEmpty(t, jwk["n"])   // modulus
+        assert.NotEmpty(t, jwk["e"])   // exponent
+        assert.NotEmpty(t, jwk["d"])   // private exponent
+        assert.NotEmpty(t, jwk["kid"])
+    })
+
+	t.Run("ExportRSAPublicKey", func(t *testing.T) {
+        keyPair, err := keys.GenerateRSAKeyPair()
+        require.NoError(t, err)
+
+        // Export only RSA public key
+        exported, err := exporter.ExportPublic(keyPair, crypto.KeyFormatJWK)
+        require.NoError(t, err)
+        assert.NotEmpty(t, exported)
+
+        // Verify JSON structure
+        var jwk map[string]interface{}
+        err = json.Unmarshal(exported, &jwk)
+        require.NoError(t, err)
+
+        // Check required fields
+        assert.Equal(t, "RSA", jwk["kty"])
+        assert.Equal(t, "RS256", jwk["alg"])
+        assert.NotEmpty(t, jwk["n"])
+        assert.NotEmpty(t, jwk["e"])
+        assert.Empty(t, jwk["d"])   // no private exponent
+        assert.NotEmpty(t, jwk["kid"])
+    })
 }
 
 func TestJWKImporter(t *testing.T) {
@@ -156,6 +225,27 @@ func TestJWKImporter(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("ImportRSAKeyPair", func(t *testing.T) {
+        originalKeyPair, err := keys.GenerateRSAKeyPair()
+        require.NoError(t, err)
+
+        exported, err := exporter.Export(originalKeyPair, crypto.KeyFormatJWK)
+        require.NoError(t, err)
+
+        importedKeyPair, err := importer.Import(exported, crypto.KeyFormatJWK)
+        require.NoError(t, err)
+        assert.NotNil(t, importedKeyPair)
+        assert.Equal(t, crypto.KeyTypeRSA, importedKeyPair.Type())
+
+        // Test signing and verifying
+        message := []byte("test message")
+        signature, err := importedKeyPair.Sign(message)
+        require.NoError(t, err)
+
+        err = originalKeyPair.Verify(message, signature)
+        assert.NoError(t, err)
+    })
+
 	t.Run("ImportEd25519PublicKey", func(t *testing.T) {
 		// Generate and export a public key
 		originalKeyPair, err := keys.GenerateEd25519KeyPair()
@@ -169,6 +259,18 @@ func TestJWKImporter(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, importedPublicKey)
 	})
+
+	t.Run("ImportRSAPublicKey", func(t *testing.T) {
+        originalKeyPair, err := keys.GenerateRSAKeyPair()
+        require.NoError(t, err)
+
+        exported, err := exporter.ExportPublic(originalKeyPair, crypto.KeyFormatJWK)
+        require.NoError(t, err)
+
+        importedPublicKey, err := importer.ImportPublic(exported, crypto.KeyFormatJWK)
+        require.NoError(t, err)
+		assert.NotNil(t, importedPublicKey)
+    })
 
 	t.Run("ImportInvalidJSON", func(t *testing.T) {
 		invalidData := []byte("invalid json")
