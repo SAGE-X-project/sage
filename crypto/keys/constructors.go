@@ -2,6 +2,7 @@ package keys
 
 import (
 	"crypto"
+	"crypto/ecdh"
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -46,6 +47,25 @@ func NewSecp256k1KeyPair(privateKey *secp256k1.PrivateKey, id string) (sagecrypt
 		id:         id,
 	}, nil
 }
+
+// NewX25519KeyPair creates a new X25519 key pair from an existing private key
+func NewX25519KeyPair(privateKey *ecdh.PrivateKey, id string) (sagecrypto.KeyPair, error) {
+	publicKey := privateKey.PublicKey()
+	
+	// Use provided ID or generate from public key
+	if id == "" {
+		pubKeyBytes := publicKey.Bytes()
+		hash := sha256.Sum256(pubKeyBytes)
+		id = hex.EncodeToString(hash[:8])
+	}
+	
+	return &X25519KeyPair{
+		privateKey: privateKey,
+		publicKey:  publicKey,
+		id:         id,
+	}, nil
+}
+
 
 // NewRSAKeyPair creates a new RSA key pair for RS256 from an existing private key
 func NewRSAKeyPair(privateKey *rsa.PrivateKey, id string) (sagecrypto.KeyPair, error) {

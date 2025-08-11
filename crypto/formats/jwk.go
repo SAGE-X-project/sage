@@ -2,14 +2,17 @@ package formats
 
 import (
 	"crypto"
+	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
+	"sort"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	sagecrypto "github.com/sage-x-project/sage/crypto"
@@ -75,6 +78,21 @@ func (e *jwkExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 		jwk.Y = base64.RawURLEncoding.EncodeToString(privateKey.Y.Bytes())
 		jwk.D = base64.RawURLEncoding.EncodeToString(privateKey.D.Bytes())
 		jwk.Alg = "ES256K"
+	
+	case sagecrypto.KeyTypeX25519:
+        // X25519 key agreement keys
+        privKey, ok := keyPair.PrivateKey().(*ecdh.PrivateKey)
+        if !ok {
+            return nil, errors.New("invalid X25519 private key type")
+        }
+        pubKey := privKey.Public().(*ecdh.PublicKey)
+		
+		jwk.Use = "enc"     // key agreement / encryption use
+        jwk.Kty = "OKP"
+        jwk.Crv = "X25519"
+        jwk.X = base64.RawURLEncoding.EncodeToString(pubKey.Bytes())
+        jwk.D = base64.RawURLEncoding.EncodeToString(privKey.Bytes())
+        jwk.Alg = "ECDH-ES" // or other appropriate alg identifier
 
 	case sagecrypto.KeyTypeRSA:
         priv, ok := keyPair.PrivateKey().(*rsa.PrivateKey)
@@ -123,19 +141,32 @@ func (e *jwkExporter) ExportPublic(keyPair sagecrypto.KeyPair, format sagecrypto
 		if !ok {
 			return nil, errors.New("invalid Secp256k1 public key type")
 		}
-
+		
 		jwk.Kty = "EC"
 		jwk.Crv = "secp256k1"
 		jwk.X = base64.RawURLEncoding.EncodeToString(publicKey.X.Bytes())
 		jwk.Y = base64.RawURLEncoding.EncodeToString(publicKey.Y.Bytes())
 		jwk.Alg = "ES256K"
+	
+	case sagecrypto.KeyTypeX25519:
+        pubKey, ok := keyPair.PublicKey().(*ecdh.PublicKey)
+        if !ok {
+            return nil, errors.New("invalid X25519 public key type")
+        }
+
+		jwk.Use = "enc"     // key agreement / encryption use
+        jwk.Kty = "OKP"
+        jwk.Crv = "X25519"
+        jwk.X = base64.RawURLEncoding.EncodeToString(pubKey.Bytes())
+        jwk.Alg = "ECDH-ES"
 		
 	case sagecrypto.KeyTypeRSA:
         pub, ok := keyPair.PublicKey().(*rsa.PublicKey)
         if !ok {
             return nil, errors.New("invalid RSA public key")
         }
-        jwk.Kty, jwk.Alg = "RSA", "RS256"
+        jwk.Kty = "RSA" 
+		jwk.Alg = "RS256"
         nBytes := pub.N.Bytes()
         eBytes := big.NewInt(int64(pub.E)).Bytes()
         jwk.N = base64.RawURLEncoding.EncodeToString(nBytes)
@@ -169,10 +200,14 @@ func (i *jwkImporter) Import(data []byte, format sagecrypto.KeyFormat) (sagecryp
 
 	switch jwk.Kty {
 	case "OKP":
-		if jwk.Crv != "Ed25519" {
+		switch jwk.Crv {
+		case "Ed25519":
+			return i.importEd25519(&jwk)
+		case "X25519":
+			return i.importX25519(&jwk)
+		default:
 			return nil, fmt.Errorf("unsupported OKP curve: %s", jwk.Crv)
 		}
-		return i.importEd25519(&jwk)
 
 	case "EC":
 		if jwk.Crv != "secp256k1" {
@@ -209,14 +244,28 @@ func (i *jwkImporter) ImportPublic(data []byte, format sagecrypto.KeyFormat) (cr
 
 	switch jwk.Kty {
 	case "OKP":
-		if jwk.Crv != "Ed25519" {
-			return nil, fmt.Errorf("unsupported OKP curve: %s", jwk.Crv)
-		}
-		publicKeyBytes, err := base64.RawURLEncoding.DecodeString(jwk.X)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode public key: %w", err)
-		}
-		return ed25519.PublicKey(publicKeyBytes), nil
+		switch jwk.Crv {
+        case "Ed25519":
+            publicKeyBytes, err := base64.RawURLEncoding.DecodeString(jwk.X)
+            if err != nil {
+                return nil, fmt.Errorf("failed to decode public key: %w", err)
+            }
+            return ed25519.PublicKey(publicKeyBytes), nil
+            
+        case "X25519":
+            publicKeyBytes, err := base64.RawURLEncoding.DecodeString(jwk.X)
+            if err != nil {
+                return nil, fmt.Errorf("failed to decode X25519 public key: %w", err)
+            }
+            publicKey, err := ecdh.X25519().NewPublicKey(publicKeyBytes)
+            if err != nil {
+                return nil, fmt.Errorf("failed to create X25519 public key: %w", err)
+            }
+            return publicKey, nil
+
+		default:
+            return nil, fmt.Errorf("unsupported OKP curve: %s", jwk.Crv)
+        }
 
 	case "EC":
 		if jwk.Crv != "secp256k1" {
@@ -237,6 +286,7 @@ func (i *jwkImporter) ImportPublic(data []byte, format sagecrypto.KeyFormat) (cr
 			Y:     new(big.Int).SetBytes(yBytes),
 		}
 		return pubKey, nil
+	
 	case "RSA":
         nBytes, err := base64.RawURLEncoding.DecodeString(jwk.N)
         if err != nil {
@@ -285,6 +335,24 @@ func (i *jwkImporter) importSecp256k1(jwk *JWK) (sagecrypto.KeyPair, error) {
 	return keys.NewSecp256k1KeyPair(privateKey, jwk.Kid)
 }
 
+func (i *jwkImporter) importX25519(jwk *JWK) (sagecrypto.KeyPair, error) {
+    if jwk.D == "" {
+        return nil, errors.New("missing private key component")
+    }
+
+    privateKeyBytes, err := base64.RawURLEncoding.DecodeString(jwk.D)
+    if err != nil {
+        return nil, fmt.Errorf("failed to decode X25519 private key: %w", err)
+    }
+
+    privateKey, err := ecdh.X25519().NewPrivateKey(privateKeyBytes)
+    if err != nil {
+        return nil, fmt.Errorf("failed to create X25519 private key: %w", err)
+    }
+
+    return keys.NewX25519KeyPair(privateKey, jwk.Kid)
+}
+
 func (i *jwkImporter) importRSA(jwk *JWK) (sagecrypto.KeyPair, error) {
     dBytes, err := base64.RawURLEncoding.DecodeString(jwk.D)
     if err != nil {
@@ -308,4 +376,44 @@ func (i *jwkImporter) importRSA(jwk *JWK) (sagecrypto.KeyPair, error) {
         // CRTValues omitted for simplicity; not required for verification
     }
     return keys.NewRSAKeyPair(priv, jwk.Kid)
+}
+
+// ComputeKeyIDRFC9421 generate kid based on RFC-9421/7638 thumbprint
+func(jwk JWK) ComputeKeyIDRFC9421() (string, error) {
+    m := map[string]string{
+        "kty": jwk.Kty,
+    }
+    if jwk.Crv != "" {
+        m["crv"] = jwk.Crv
+    }
+    if jwk.X != "" {
+        m["x"] = jwk.X
+    }
+    if jwk.Y != "" {
+        m["y"] = jwk.Y
+    }
+
+    keys := make([]string, 0, len(m))
+    for k := range m {
+        keys = append(keys, k)
+    }
+    sort.Strings(keys)
+
+    buf := []byte{'{'}
+    for i, k := range keys {
+        if i > 0 {
+            buf = append(buf, ',')
+        }
+        valueJSON, err := json.Marshal(m[k])
+        if err != nil {
+            return "", fmt.Errorf("failed to marshal JWK thumbprint value: %w", err)
+        }
+        buf = append(buf, fmt.Sprintf("%q:%s", k, valueJSON)...)
+    }
+    buf = append(buf, '}')
+
+    sum := sha256.Sum256(buf)
+
+    kid := base64.RawURLEncoding.EncodeToString(sum[:])
+    return kid, nil
 }
