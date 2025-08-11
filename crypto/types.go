@@ -12,7 +12,8 @@ type KeyType string
 const (
 	KeyTypeEd25519   KeyType = "Ed25519"
 	KeyTypeSecp256k1 KeyType = "Secp256k1"
-	KeyTypeX25519 KeyType = "X25519"
+	KeyTypeX25519    KeyType = "X25519"
+	KeyTypeRSA       KeyType = "RSA256"
 )
 
 // KeyFormat represents the format for key export/import

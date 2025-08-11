@@ -5,7 +5,11 @@ import (
 	"crypto/ecdh"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+<<<<<<< HEAD
 	"crypto/sha256"
+=======
+	"crypto/rsa"
+>>>>>>> ca3883be29d9b92744e6e6e3b7308a6e114a5246
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -22,6 +26,8 @@ import (
 type JWK struct {
 	Kty string `json:"kty"`           // Key Type
 	Crv string `json:"crv,omitempty"` // Curve (for EC and OKP)
+	N   string `json:"n,omitempty"`   // Modulus for RSA
+    E   string `json:"e,omitempty"`   // Exponent for RSA
 	X   string `json:"x,omitempty"`   // X coordinate (for EC) or public key (for OKP)
 	Y   string `json:"y,omitempty"`   // Y coordinate (for EC)
 	D   string `json:"d,omitempty"`   // Private key
@@ -91,6 +97,18 @@ func (e *jwkExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
         jwk.D = base64.RawURLEncoding.EncodeToString(privKey.Bytes())
         jwk.Alg = "ECDH-ES" // or other appropriate alg identifier
 
+	case sagecrypto.KeyTypeRSA:
+        priv, ok := keyPair.PrivateKey().(*rsa.PrivateKey)
+        if !ok {
+            return nil, errors.New("invalid RSA private key")
+        }
+        jwk.Kty, jwk.Alg = "RSA", "RS256"
+        nBytes := priv.N.Bytes()
+        eBytes := big.NewInt(int64(priv.E)).Bytes()
+        jwk.N = base64.RawURLEncoding.EncodeToString(nBytes)
+        jwk.E = base64.RawURLEncoding.EncodeToString(eBytes)
+        // include private exponent
+        jwk.D = base64.RawURLEncoding.EncodeToString(priv.D.Bytes())
 	default:
 		return nil, sagecrypto.ErrInvalidKeyType
 	}
@@ -144,6 +162,18 @@ func (e *jwkExporter) ExportPublic(keyPair sagecrypto.KeyPair, format sagecrypto
         jwk.Crv = "X25519"
         jwk.X = base64.RawURLEncoding.EncodeToString(pubKey.Bytes())
         jwk.Alg = "ECDH-ES"
+		
+	case sagecrypto.KeyTypeRSA:
+        pub, ok := keyPair.PublicKey().(*rsa.PublicKey)
+        if !ok {
+            return nil, errors.New("invalid RSA public key")
+        }
+        jwk.Kty = "RSA" 
+		jwk.Alg = "RS256"
+        nBytes := pub.N.Bytes()
+        eBytes := big.NewInt(int64(pub.E)).Bytes()
+        jwk.N = base64.RawURLEncoding.EncodeToString(nBytes)
+        jwk.E = base64.RawURLEncoding.EncodeToString(eBytes)
 
 	default:
 		return nil, sagecrypto.ErrInvalidKeyType
@@ -187,6 +217,17 @@ func (i *jwkImporter) Import(data []byte, format sagecrypto.KeyFormat) (sagecryp
 			return nil, fmt.Errorf("unsupported EC curve: %s", jwk.Crv)
 		}
 		return i.importSecp256k1(&jwk)
+	
+	case "RSA":
+        _, err := base64.RawURLEncoding.DecodeString(jwk.N)
+        if err != nil {
+            return nil, err
+        }
+        _, err = base64.RawURLEncoding.DecodeString(jwk.E)
+        if err != nil {
+            return nil, err
+        }
+        return i.importRSA(&jwk)
 
 	default:
 		return nil, fmt.Errorf("unsupported key type: %s", jwk.Kty)
@@ -249,6 +290,21 @@ func (i *jwkImporter) ImportPublic(data []byte, format sagecrypto.KeyFormat) (cr
 		}
 		return pubKey, nil
 	
+	case "RSA":
+        nBytes, err := base64.RawURLEncoding.DecodeString(jwk.N)
+        if err != nil {
+            return nil, err
+        }
+        eBytes, err := base64.RawURLEncoding.DecodeString(jwk.E)
+        if err != nil {
+            return nil, err
+        }
+        eInt := new(big.Int).SetBytes(eBytes).Int64()
+        return &rsa.PublicKey{
+            N: new(big.Int).SetBytes(nBytes),
+            E: int(eInt),
+        }, nil
+		
 	default:
 		return nil, fmt.Errorf("unsupported key type: %s", jwk.Kty)
 	}
@@ -298,6 +354,31 @@ func (i *jwkImporter) importX25519(jwk *JWK) (sagecrypto.KeyPair, error) {
     }
 
     return keys.NewX25519KeyPair(privateKey, jwk.Kid)
+}
+
+func (i *jwkImporter) importRSA(jwk *JWK) (sagecrypto.KeyPair, error) {
+    dBytes, err := base64.RawURLEncoding.DecodeString(jwk.D)
+    if err != nil {
+        return nil, err
+    }
+    nBytes, err := base64.RawURLEncoding.DecodeString(jwk.N)
+    if err != nil {
+        return nil, err
+    }
+    eBytes, err := base64.RawURLEncoding.DecodeString(jwk.E)
+    if err != nil {
+        return nil, err
+    }
+    eInt := int(new(big.Int).SetBytes(eBytes).Int64())
+    priv := &rsa.PrivateKey{
+        PublicKey: rsa.PublicKey{
+            N: new(big.Int).SetBytes(nBytes),
+            E: eInt,
+        },
+        D: new(big.Int).SetBytes(dBytes),
+        // CRTValues omitted for simplicity; not required for verification
+    }
+    return keys.NewRSAKeyPair(priv, jwk.Kid)
 }
 
 // ComputeKeyIDRFC9421 generate kid based on RFC-9421/7638 thumbprint

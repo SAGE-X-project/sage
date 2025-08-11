@@ -3,7 +3,8 @@
 # Variables
 CRYPTO_BINARY=sage-crypto
 DID_BINARY=sage-did
-BUILD_DIR=build/bin
+BUILD_DIR=build
+BIN_DIR=$(BUILD_DIR)/bin
 CMD_DIR=cmd
 
 # Go build variables
@@ -21,23 +22,23 @@ build: build-crypto build-did
 
 # Build sage-crypto binary
 .PHONY: build-crypto
-build-crypto: $(BUILD_DIR)/$(CRYPTO_BINARY)
+build-crypto: $(BIN_DIR)/$(CRYPTO_BINARY)
 
-$(BUILD_DIR)/$(CRYPTO_BINARY):
+$(BIN_DIR)/$(CRYPTO_BINARY):
 	@echo "Building $(CRYPTO_BINARY)..."
-	@mkdir -p $(BUILD_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(CRYPTO_BINARY) ./$(CMD_DIR)/$(CRYPTO_BINARY)
-	@echo "Build complete: $(BUILD_DIR)/$(CRYPTO_BINARY)"
+	@mkdir -p $(BIN_DIR)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(CRYPTO_BINARY) ./$(CMD_DIR)/$(CRYPTO_BINARY)
+	@echo "Build complete: $(BIN_DIR)/$(CRYPTO_BINARY)"
 
 # Build sage-did binary
 .PHONY: build-did
-build-did: $(BUILD_DIR)/$(DID_BINARY)
+build-did: $(BIN_DIR)/$(DID_BINARY)
 
-$(BUILD_DIR)/$(DID_BINARY):
+$(BIN_DIR)/$(DID_BINARY):
 	@echo "Building $(DID_BINARY)..."
-	@mkdir -p $(BUILD_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(DID_BINARY) ./$(CMD_DIR)/$(DID_BINARY)
-	@echo "Build complete: $(BUILD_DIR)/$(DID_BINARY)"
+	@mkdir -p $(BIN_DIR)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(DID_BINARY) ./$(CMD_DIR)/$(DID_BINARY)
+	@echo "Build complete: $(BIN_DIR)/$(DID_BINARY)"
 
 # Run tests
 .PHONY: test
