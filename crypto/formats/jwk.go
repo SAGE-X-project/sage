@@ -99,7 +99,8 @@ func (e *jwkExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
         if !ok {
             return nil, errors.New("invalid RSA private key")
         }
-        jwk.Kty, jwk.Alg = "RSA", "RS256"
+        jwk.Kty = "RSA" 
+		jwk.Alg = "RS256"
         nBytes := priv.N.Bytes()
         eBytes := big.NewInt(int64(priv.E)).Bytes()
         jwk.N = base64.RawURLEncoding.EncodeToString(nBytes)
