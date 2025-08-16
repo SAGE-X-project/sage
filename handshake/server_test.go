@@ -2,7 +2,6 @@ package handshake_test
 
 import (
 	"context"
-	"crypto"
 	"crypto/ecdh"
 	"encoding/base64"
 	"encoding/json"
@@ -18,16 +17,17 @@ import (
 	"github.com/sage-x-project/sage/crypto/formats"
 	"github.com/sage-x-project/sage/crypto/keys"
 	"github.com/sage-x-project/sage/did"
+	sagedid "github.com/sage-x-project/sage/did"
 	"github.com/sage-x-project/sage/handshake"
 	sessioninit "github.com/sage-x-project/sage/internal"
 	"github.com/sage-x-project/sage/session"
 	"github.com/stretchr/testify/require"
 	"github.com/test-go/testify/assert"
+	"github.com/test-go/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/test/bufconn"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const bufSize = 1024 * 1024
@@ -45,6 +45,50 @@ type mockOutboundClient struct {
 func (m *mockOutboundClient) SendMessage(ctx context.Context, in *a2a.SendMessageRequest, _ ...grpc.CallOption) (*a2a.SendMessageResponse, error) {
 	m.ch <- in
 	return &a2a.SendMessageResponse{}, nil
+}
+
+type mockResolver struct {
+	mock.Mock
+}
+
+func (m *mockResolver) Resolve(ctx context.Context, did sagedid.AgentDID) (*sagedid.AgentMetadata, error) {
+	args := m.Called(ctx, did)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sagedid.AgentMetadata), args.Error(1)
+}
+
+func (m *mockResolver) ResolvePublicKey(ctx context.Context, did sagedid.AgentDID) (interface{}, error) {
+	args := m.Called(ctx, did)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0), args.Error(1)
+}
+
+func (m *mockResolver) VerifyMetadata(ctx context.Context, did sagedid.AgentDID, metadata *sagedid.AgentMetadata) (*sagedid.VerificationResult, error) {
+	args := m.Called(ctx, did, metadata)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sagedid.VerificationResult), args.Error(1)
+}
+
+func (m *mockResolver) ListAgentsByOwner(ctx context.Context, ownerAddress string) ([]*sagedid.AgentMetadata, error) {
+	args := m.Called(ctx, ownerAddress)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*sagedid.AgentMetadata), args.Error(1)
+}
+
+func (m *mockResolver) Search(ctx context.Context, criteria sagedid.SearchCriteria) ([]*sagedid.AgentMetadata, error) {
+	args := m.Called(ctx, criteria)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*sagedid.AgentMetadata), args.Error(1)
 }
 
 // start a bufconn grpc server and register our handshake.Server (system under test)
@@ -74,7 +118,7 @@ func dialBuf(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn {
 	return conn
 }
 
-func setupTest(t *testing.T) (*handshake.Client, *handshake.Server, chan *a2a.SendMessageRequest, sagecrypto.KeyPair, sagecrypto.KeyPair, *session.Manager ) {
+func setupTest(t *testing.T) (*handshake.Client, *handshake.Server, chan *a2a.SendMessageRequest, sagecrypto.KeyPair, sagecrypto.KeyPair, *session.Manager, *mockResolver ) {
 	aliceKeyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 	bobKeyPair, err := keys.GenerateEd25519KeyPair()
@@ -90,12 +134,16 @@ func setupTest(t *testing.T) (*handshake.Client, *handshake.Server, chan *a2a.Se
 	
 
 	// Resolver returns the sender's pubkey (Alice's)
-	resolve := func(ctx context.Context, msg *a2a.Message, meta *structpb.Struct) (crypto.PublicKey, error) {
-		return aliceKeyPair.PublicKey(), nil
-	}
+	// resolve := func(ctx context.Context, msg *a2a.Message, meta *structpb.Struct) (crypto.PublicKey, error) {
+	// 	return aliceKeyPair.PublicKey(), nil
+	// }
 
+	ethResolver := new(mockResolver)
+	multiResolver := sagedid.NewMultiChainResolver()
+	multiResolver.AddResolver(sagedid.ChainEthereum, ethResolver)
+	
 	// Pass nil to use default session config (1h, 10m, 10k msgs)
-	hs := handshake.NewServer(bobKeyPair, events, outboundMock, resolve, nil)
+	hs := handshake.NewServer(bobKeyPair, events, outboundMock, multiResolver, nil)
 
 	// Start SUT gRPC server
 	_, lis := startSUT(t, hs)
@@ -104,11 +152,11 @@ func setupTest(t *testing.T) (*handshake.Client, *handshake.Server, chan *a2a.Se
 	conn := dialBuf(t, lis)
 	alice := handshake.NewClient(conn, aliceKeyPair)
 
-	return alice, hs, outboundCh, aliceKeyPair, bobKeyPair, srvSessManager
+	return alice, hs, outboundCh, aliceKeyPair, bobKeyPair, srvSessManager, ethResolver
 }
 
 func TestHandshake(t *testing.T) {
-	alice, _, outboundCh, aliceKeyPair, bobKeyPair, srvSessManager := setupTest(t)
+	alice, _, outboundCh, aliceKeyPair, bobKeyPair, srvSessManager, ethResolver := setupTest(t)
 
 	ctx := context.Background()
 	contextId := "ctx-" + uuid.NewString()
@@ -126,16 +174,22 @@ func TestHandshake(t *testing.T) {
 	var sessionID string
 	t.Run("Alice → Bob: Invitation", func(t *testing.T) {
 		aliceDID := did.AgentDID("did:sage:ethereum:agent001")
+		aliceMeta := &did.AgentMetadata{
+			DID:       aliceDID,
+			Name:      "Active Agent",
+			IsActive:  true,
+			PublicKey: aliceKeyPair.PublicKey(),
+		}
 
+		ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
 		invMsg := &handshake.InvitationMessage{
 			BaseMessage: message.BaseMessage{
 				ContextID: contextId,
-				DID:       string(aliceDID),
 			},
 		}
 
 		// Client sends Invitation to server (SUT)
-		resp, err := alice.Invitation(ctx, *invMsg)
+		resp, err := alice.Invitation(ctx, *invMsg, string(aliceMeta.DID))
 		require.NoError(t, err)
 
 		// Server ack payload checks
@@ -148,15 +202,20 @@ func TestHandshake(t *testing.T) {
 
 	t.Run("Alice → Bob: Request (encrypted with Bob pubkey)", func(t *testing.T) {
 		aliceDID := did.AgentDID("did:sage:ethereum:agent001")
-
+		aliceMeta := &did.AgentMetadata{
+			DID:       aliceDID,
+			Name:      "Active Agent",
+			IsActive:  true,
+			PublicKey: aliceKeyPair.PublicKey(),
+		}
+		ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
 		reqMsg := &handshake.RequestMessage{
 			BaseMessage: message.BaseMessage{
-				ContextID: 	contextId,
-				DID:        string(aliceDID),
+				ContextID: 	contextId,    
 			},
 			EphemeralPubKey: json.RawMessage(alicePubKeyJWK),
 		}
-		_, err := alice.Request(ctx, *reqMsg, bobKeyPair.PublicKey())
+		_, err := alice.Request(ctx, *reqMsg, bobKeyPair.PublicKey(), string(aliceMeta.DID))
 		require.NoError(t, err)
 
 		out := <-outboundCh
@@ -201,14 +260,21 @@ func TestHandshake(t *testing.T) {
 
 	t.Run("Alice → Bob: Complete", func(t *testing.T) {
 		aliceDID := did.AgentDID("did:sage:ethereum:agent001")
+		aliceMeta := &did.AgentMetadata{
+			DID:       aliceDID,
+			Name:      "Active Agent",
+			IsActive:  true,
+			PublicKey: aliceKeyPair.PublicKey(),
+		}
+
+		ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
 		comMsg := &handshake.CompleteMessage{
 			BaseMessage: message.BaseMessage{
 				ContextID: contextId,
-				DID:       string(aliceDID),
 			},
 		}
 		// Client calls Complete RPC (server will ack)
-		_, err := alice.Complete(ctx, *comMsg)
+		_, err := alice.Complete(ctx, *comMsg, string(aliceMeta.DID))
 		require.NoError(t, err)
 
 		out := <-outboundCh

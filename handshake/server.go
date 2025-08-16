@@ -17,6 +17,7 @@ import (
 	sagecrypto "github.com/sage-x-project/sage/crypto"
 	"github.com/sage-x-project/sage/crypto/formats"
 	"github.com/sage-x-project/sage/crypto/keys"
+	"github.com/sage-x-project/sage/did"
 	"github.com/sage-x-project/sage/session"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -46,7 +47,7 @@ type Server struct {
 
 	// Resolve the sender pubkey from ctx/message/metadata for signature check or decrypt.
 	// Pasrse JWT and get DID field
-	resolveSenderPubKey func(ctx context.Context, msg *a2a.Message, meta *structpb.Struct) (crypto.PublicKey, error)
+	resolver did.Resolver
 	mu      sync.Mutex
 	// pending holds per-context ephemeral handshake state created at Request phase.
 	pending map[string] pendingState
@@ -70,7 +71,7 @@ func NewServer(
 	key sagecrypto.KeyPair,
 	events Events,
 	outbound a2a.A2AServiceClient,
-	resolve func(context.Context, *a2a.Message, *structpb.Struct) (crypto.PublicKey, error),
+	resolver did.Resolver,
 	sessionCfg *session.Config,
 ) *Server {
 	if events == nil {
@@ -92,7 +93,7 @@ func NewServer(
 		key:                 key,
 		events:              events,
 		outbound:            outbound,
-		resolveSenderPubKey: resolve,
+		resolver: 			 resolver,
 		pending:			 make(map[string]pendingState),
 		sessionCfg:          cfg,
 		exporter:            formats.NewJWKExporter(),
@@ -124,10 +125,16 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		return nil, err
 	}
 
-	// Resolve sender public key when needed (kid/JWK/registry/etc.).
+	// Resolve sender public key when needed
 	var senderPub crypto.PublicKey
-	if s.resolveSenderPubKey != nil {
-		senderPub, _ = s.resolveSenderPubKey(ctx, msg, in.Metadata)
+	var senderDID string
+	if s.resolver != nil {
+		v := in.Metadata.GetFields()["did"]
+		if v == nil || v.GetStringValue() == "" {
+			return nil, errors.New("missing did")
+		}
+		senderDID = v.GetStringValue()
+		senderPub, _ = s.resolver.ResolvePublicKey(ctx, did.AgentDID(senderDID))
 		if senderPub == nil {
 			return nil, errors.New("cannot resolve sender pubkey")
 		}
@@ -196,7 +203,7 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 				Ack:       true,
 			}
 			
-			if _, err := s.sendResponseToPeer(ctx, res, msg.ContextId, senderPub); err != nil {
+			if _, err := s.sendResponseToPeer(ctx, res, msg.ContextId, senderPub, senderDID); err != nil {
 				return nil, fmt.Errorf("send response to peer: %w", err)
 			}
 		}
@@ -247,7 +254,7 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 					Ack:   true,
 					KeyID: kid,
 				}
-				if _, err := s.sendResponseToPeer(ctx, res, msg.ContextId, senderPub); err != nil {
+				if _, err := s.sendResponseToPeer(ctx, res, msg.ContextId, senderPub, senderDID); err != nil {
 					return nil, fmt.Errorf("send response to peer: %w", err)
 				}
 			}
@@ -290,7 +297,7 @@ func (s *Server) decryptPacket(st *structpb.Struct) ([]byte, error) {
 
 // sendResponseToPeer builds and sends a Response to the peer over gRPC using outbound client.
 // It encrypts the Response with the peer's public key (bootstrap envelope).
-func (s *Server) sendResponseToPeer(ctx context.Context, res ResponseMessage, ctxId string, peerPub crypto.PublicKey) (*a2a.SendMessageResponse, error) {
+func (s *Server) sendResponseToPeer(ctx context.Context, res ResponseMessage, ctxID string, peerPub crypto.PublicKey, senderDID string) (*a2a.SendMessageResponse, error) {
 	if s.outbound == nil {
 		return nil, errors.New("no outbound client configured")
 	}
@@ -305,21 +312,21 @@ func (s *Server) sendResponseToPeer(ctx context.Context, res ResponseMessage, ct
 	payload, _ := b64ToStructPB(base64.RawURLEncoding.EncodeToString(packet))
 	msg := &a2a.Message{
 		MessageId: uuid.NewString(),
-		ContextId: ctxId,
+		ContextId: ctxID,
 		TaskId:    GenerateTaskID(Response),
 		Role:      a2a.Role_ROLE_AGENT,
 		Content:   []*a2a.Part{{Part: &a2a.Part_Data{Data: &a2a.DataPart{Data: payload}}}},
 	}
-	return s.sendSigned(ctx, msg)
+	return s.sendSigned(ctx, msg, senderDID)
 }
 
 // sendSigned marshals deterministically, signs with server key, and invokes outbound.SendMessage.
-func (s *Server) sendSigned(ctx context.Context, msg *a2a.Message) (*a2a.SendMessageResponse, error) {
+func (s *Server) sendSigned(ctx context.Context, msg *a2a.Message, did string) (*a2a.SendMessageResponse, error) {
 	bytes, err := proto.MarshalOptions{Deterministic: true}.Marshal(msg)
 	if err != nil {
 		return nil, fmt.Errorf("marshal for signing: %w", err)
 	}
-	meta, err := signStruct(s.key, bytes)
+	meta, err := signStruct(s.key, bytes, did)
 	if err != nil {
 		return nil, fmt.Errorf("sign: %w", err)
 	}

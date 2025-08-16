@@ -28,7 +28,7 @@ func NewClient(conn grpc.ClientConnInterface, key sagecrypto.KeyPair) *Client {
 }
 
 // Invitation sends the initial invitation (clear JSON payload).
-func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage) (*a2a.SendMessageResponse, error) {
+func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage, did string) (*a2a.SendMessageResponse, error) {
 	payload, err := toStructPB(invMsg)
 	if err != nil {
 		return nil, fmt.Errorf("marshal invitation: %w", err)
@@ -44,7 +44,7 @@ func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage) (*a2a
 	if err != nil {
 		return nil, fmt.Errorf("marshal for signing: %w", err)
 	}
-	meta, err := signStruct(c.key, bytes)
+	meta, err := signStruct(c.key, bytes, did)
 	if err != nil {
 		return nil, fmt.Errorf("sign: %w", err)
 	}
@@ -52,7 +52,7 @@ func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage) (*a2a
 }
 
 // Request encrypts RequestMessage for the peer using bootstrap envelope.
-func (c *Client) Request(ctx context.Context, reqMsg RequestMessage, edPeerPub crypto.PublicKey) (*a2a.SendMessageResponse, error) {
+func (c *Client) Request(ctx context.Context, reqMsg RequestMessage, edPeerPub crypto.PublicKey, did string) (*a2a.SendMessageResponse, error) {
 	reqBytes, err := json.Marshal(reqMsg)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
@@ -73,7 +73,7 @@ func (c *Client) Request(ctx context.Context, reqMsg RequestMessage, edPeerPub c
 	if err != nil {
 		return nil, fmt.Errorf("marshal for signing: %w", err)
 	}
-	meta, err := signStruct(c.key, bytes)
+	meta, err := signStruct(c.key, bytes, did)
 	if err != nil {
 		return nil, fmt.Errorf("sign: %w", err)
 	}
@@ -81,7 +81,7 @@ func (c *Client) Request(ctx context.Context, reqMsg RequestMessage, edPeerPub c
 }
 
 // Response is sent by the agent back to the initiator (bootstrap envelope).
-func (c *Client) Response(ctx context.Context, resMsg ResponseMessage, edPeerPub crypto.PublicKey) (*a2a.SendMessageResponse, error) {
+func (c *Client) Response(ctx context.Context, resMsg ResponseMessage, edPeerPub crypto.PublicKey, did string) (*a2a.SendMessageResponse, error) {
 	resBytes, err := json.Marshal(resMsg)
 	if err != nil {
 		return nil, fmt.Errorf("marshal response: %w", err)
@@ -102,7 +102,7 @@ func (c *Client) Response(ctx context.Context, resMsg ResponseMessage, edPeerPub
 	if err != nil {
 		return nil, fmt.Errorf("marshal for signing: %w", err)
 	}
-	meta, err := signStruct(c.key, bytes)
+	meta, err := signStruct(c.key, bytes, did)
 	if err != nil {
 		return nil, fmt.Errorf("sign: %w", err)
 	}
@@ -110,7 +110,7 @@ func (c *Client) Response(ctx context.Context, resMsg ResponseMessage, edPeerPub
 }
 
 // Complete notifies completion (clear JSON payload).
-func (c *Client) Complete(ctx context.Context, compMsg CompleteMessage) (*a2a.SendMessageResponse, error) {
+func (c *Client) Complete(ctx context.Context, compMsg CompleteMessage, did string) (*a2a.SendMessageResponse, error) {
 	payload, err := toStructPB(compMsg)
 	if err != nil {
 		return nil, fmt.Errorf("marshal complete: %w", err)
@@ -126,7 +126,7 @@ func (c *Client) Complete(ctx context.Context, compMsg CompleteMessage) (*a2a.Se
 	if err != nil {
 		return nil, fmt.Errorf("marshal for signing: %w", err)
 	}
-	meta, err := signStruct(c.key, bytes)
+	meta, err := signStruct(c.key, bytes, did)
 	if err != nil {
 		return nil, fmt.Errorf("sign: %w", err)
 	}

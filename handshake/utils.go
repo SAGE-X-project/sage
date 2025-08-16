@@ -54,13 +54,14 @@ func structPBToB64(st *structpb.Struct) (string, error) {
 	return v.GetStringValue(), nil
 }
 
-func signStruct(k sagecrypto.KeyPair, msg []byte) (*structpb.Struct, error) {
+func signStruct(k sagecrypto.KeyPair, msg []byte, did string) (*structpb.Struct, error) {
 	sig, err := k.Sign(msg)
 	if err != nil {
 		return nil, err
 	}
 	return structpb.NewStruct(map[string]any{
 		"signature": base64.RawURLEncoding.EncodeToString(sig),
+		"did": did,
 	})
 }
 
