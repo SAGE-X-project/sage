@@ -19,15 +19,15 @@ import (
 
 	a2a "github.com/a2aproject/a2a/grpc"
 	"github.com/google/uuid"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
-
 	sagecrypto "github.com/sage-x-project/sage/crypto"
 	"github.com/sage-x-project/sage/crypto/formats"
 	"github.com/sage-x-project/sage/crypto/keys"
+	sagedid "github.com/sage-x-project/sage/did"
 	"github.com/sage-x-project/sage/handshake"
 	"github.com/sage-x-project/sage/session"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const base = "http://127.0.0.1:8080"
@@ -44,31 +44,39 @@ func main() {
 
 	// 0) 내 DID/서명키 (테스트와 동일하게 ed25519)
 	clientKeypair, _ = keys.GenerateEd25519KeyPair()
-	myDID := "did:agent:A"
+	myDID := sagedid.AgentDID("did:sage:ethereum:agent001")
 	clientPriv = clientKeypair.PrivateKey().(ed25519.PrivateKey) 
 
 	// 1) 서버 ed25519 공개키(부트스트랩 암호화용)
 	var sp struct{ Pub string }
 	getJSON(base+"/debug/server-pub", &sp)
 	serverPub := mustB64(sp.Pub)
-
-	// 2) 서버에 내 DID 등록(서명 검증 위해)
-	pubBytes := clientKeypair.PublicKey().(ed25519.PublicKey) 
-	postJSON(base+"/debug/register-did", map[string]string{
-		"DID":    myDID,
-		"PubB64": base64.RawURLEncoding.EncodeToString(pubBytes),
-	})
  
 	// 3) 콜백 서버 시작 & 서버 outbound 대상 등록
 	rpcURL := startClientRPC()
 	postJSON(base+"/debug/set-outbound", map[string]string{"URL": rpcURL})
+
+	meta := &sagedid.AgentMetadata{
+		DID:       myDID,
+		Name:      "Active Agent",
+		IsActive:  true,
+		PublicKey: clientKeypair.PublicKey(),
+	}
+
+	postJSON(base+"/debug/register-agent", map[string]any{
+		"DID":    string(meta.DID),
+		"Name":   meta.Name,
+		"Active": meta.IsActive,
+		"PubB64": base64.RawURLEncoding.EncodeToString(meta.PublicKey.(ed25519.PublicKey)),
+	})
+
 
 	// 4) 핸드셰이크 3단계 — 테스트의 handshake.Client.* 로직을 HTTP에 맞게 그대로 구현
 	ctxID := "ctx-" + uuid.NewString()
 	log.Printf("----- handshake -----")
 	// 4-1) Invitation (clear JSON) — ROLE_USER
 	log.Printf("Invitation ...")
-	sendInvitationHTTP(ctx, clientPriv, myDID, ctxID, map[string]any{"note": "hi"})
+	sendInvitationHTTP(ctx, clientPriv, string(myDID), ctxID, map[string]any{"note": "hi"})
 
 	// 4-2) Request (암호화 b64) — ROLE_USER
 	// X25519 eph JWK 만들고 → 서버 ed25519로 부트스트랩 암호화 → {"b64": ...}
@@ -81,11 +89,11 @@ func main() {
 	packet := must(keys.EncryptWithEd25519Peer(serverPub, reqPlain))
 	b64Packet := base64.RawURLEncoding.EncodeToString(packet)
 	log.Printf("Request ...")
-	sendRequestHTTP(ctx, clientPriv, myDID, ctxID, b64Packet)
+	sendRequestHTTP(ctx, clientPriv, string(myDID), ctxID, b64Packet)
 
 	// 4-3) Complete (clear JSON) — ROLE_USER
 	log.Printf("Complete ... ✅")
-	sendCompleteHTTP(ctx, clientPriv, myDID, ctxID, map[string]any{})
+	sendCompleteHTTP(ctx, clientPriv, string(myDID), ctxID, map[string]any{})
 	log.Printf("----- handshake -----")
 	// 5) 서버 outbound: server eph / kid 수신 → 세션 생성
 	serverEphRaw := waitServerEph()
@@ -105,7 +113,7 @@ func main() {
 	if err != nil { log.Fatal(err) }
 	log.Printf(`Get session ID %s`, sid)
 	// 6) /protected 호출: 1회 성공 → 2회(다른 nonce) 401 (서버 MaxMessages=1 가정)
-	body := []byte(`{"op":"ping","ts":1}`)
+	body := []byte(`{"op":"ping","ts":1} TEST MESSAGE`)
 	cipher := mustBytes(sess.Encrypt(body))
 
 	nonce := "n-" + uuid.NewString()
@@ -337,6 +345,7 @@ func mustMeta(kp sagecrypto.KeyPair, did string, m *a2a.Message) *structpb.Struc
 	sig, _ := kp.Sign(bin)
 	st,_ := structpb.NewStruct(map[string]any{
 		"signature": base64.RawURLEncoding.EncodeToString(sig),
+		"did": did,
 		"client_pub_b64": base64.RawURLEncoding.EncodeToString(kp.PublicKey().(ed25519.PublicKey) ),
 	})
 	return st
