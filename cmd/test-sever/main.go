@@ -3,11 +3,9 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto"
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -18,14 +16,15 @@ import (
 	"time"
 
 	a2a "github.com/a2aproject/a2a/grpc"
+	"github.com/test-go/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
-	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/sage-x-project/sage/crypto/keys"
+	sagedid "github.com/sage-x-project/sage/did"
 	"github.com/sage-x-project/sage/handshake"
 	sessioninit "github.com/sage-x-project/sage/internal"
 	"github.com/sage-x-project/sage/session"
@@ -106,29 +105,16 @@ func main() {
 	})
 	events := sessioninit.NewCreator(sessMgr)
 
-	reg := map[string]ed25519.PublicKey{}
-	resolve := func(ctx context.Context, msg *a2a.Message, meta *structpb.Struct) (crypto.PublicKey, error) {
-		if meta == nil {
-			return nil, errors.New("missing metadata")
-		}
-		f := meta.GetFields()["client_pub_b64"]
-		if f == nil {
-			return nil, errors.New("missing client_pub_b64")
-		}
-		raw, err := base64.RawURLEncoding.DecodeString(f.GetStringValue())
-		if err != nil {
-			return nil, fmt.Errorf("bad client_pub_b64: %w", err)
-		}
-		if len(raw) != ed25519.PublicKeySize {
-			return nil, fmt.Errorf("bad ed25519 pubkey length: %d", len(raw))
-		}
-		return ed25519.PublicKey(raw), nil
-	}
-	// 3) gRPC 서버 + handshake.Server
+	ethResolver := new(mockResolver)
+	multiResolver := sagedid.NewMultiChainResolver()
+	multiResolver.AddResolver(sagedid.ChainEthereum, ethResolver)
+
+
 	grpcLis, err := net.Listen("tcp", "127.0.0.1:50051")
 	if err != nil { log.Fatal(err) }
 	grpcSrv := grpc.NewServer()
-	srv := handshake.NewServer(serverKeyPair, events, nil, resolve, nil)
+	srv := handshake.NewServer(serverKeyPair, events, nil, multiResolver, nil)
+
 	a2a.RegisterA2AServiceServer(grpcSrv, srv)
 	go func() {
 		log.Println("gRPC :50051")
@@ -202,16 +188,36 @@ func main() {
 		})
 	})
 
-	mux.HandleFunc("/debug/register-did", func(w http.ResponseWriter, r *http.Request) {
-		var in struct{ DID, PubB64 string }
-		_ = json.NewDecoder(r.Body).Decode(&in)
+	mux.HandleFunc("/debug/register-agent", func(w http.ResponseWriter, r *http.Request) {
+		var in struct {
+			DID    string `json:"DID"`
+			Name   string `json:"Name"`
+			Active bool   `json:"Active"`
+			PubB64 string `json:"PubB64"` // ed25519 raw pubkey (base64url)
+		}
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			http.Error(w, "bad json: "+err.Error(), 400); return
+		}
 		b, err := base64.RawURLEncoding.DecodeString(in.PubB64)
 		if err != nil || len(b) != ed25519.PublicKeySize {
 			http.Error(w, "bad pub", 400); return
 		}
-		reg[in.DID] = ed25519.PublicKey(b)
+
+		did := sagedid.AgentDID(in.DID)
+		meta := &sagedid.AgentMetadata{
+			DID:       did,
+			Name:      in.Name,
+			IsActive:  in.Active,
+			PublicKey: ed25519.PublicKey(b),
+		}
+
+		// mock 기대치 주입 (ctx는 뭐가 올지 몰라서 Any)
+		ethResolver.
+			On("Resolve", mock.Anything, did).
+			Return(meta, nil) // 호출 횟수 제한 X (포크라 Maybe 없으니 이대로)
 		w.WriteHeader(204)
 	})
+
 
 	mux.HandleFunc("/debug/set-outbound", func(w http.ResponseWriter, r *http.Request) {
 		var in struct{ URL string }
@@ -254,4 +260,48 @@ func buildCovered(r *http.Request, label, kid, nonce string) []byte {
     fmt.Fprintf(&b, "\"@signature-params\": (\"@method\" \"@path\" \"host\" \"date\" \"content-digest\");alg=\"hmac-sha256\";keyid=\"%s\";nonce=\"%s\"",
         kid, nonce)
     return b.Bytes()
+}
+
+type mockResolver struct {
+	mock.Mock
+}
+
+func (m *mockResolver) Resolve(ctx context.Context, did sagedid.AgentDID) (*sagedid.AgentMetadata, error) {
+	args := m.Called(ctx, did)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sagedid.AgentMetadata), args.Error(1)
+}
+
+func (m *mockResolver) ResolvePublicKey(ctx context.Context, did sagedid.AgentDID) (interface{}, error) {
+	args := m.Called(ctx, did)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0), args.Error(1)
+}
+
+func (m *mockResolver) VerifyMetadata(ctx context.Context, did sagedid.AgentDID, metadata *sagedid.AgentMetadata) (*sagedid.VerificationResult, error) {
+	args := m.Called(ctx, did, metadata)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sagedid.VerificationResult), args.Error(1)
+}
+
+func (m *mockResolver) ListAgentsByOwner(ctx context.Context, ownerAddress string) ([]*sagedid.AgentMetadata, error) {
+	args := m.Called(ctx, ownerAddress)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*sagedid.AgentMetadata), args.Error(1)
+}
+
+func (m *mockResolver) Search(ctx context.Context, criteria sagedid.SearchCriteria) ([]*sagedid.AgentMetadata, error) {
+	args := m.Called(ctx, criteria)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*sagedid.AgentMetadata), args.Error(1)
 }
