@@ -141,10 +141,18 @@ func TestCompareCapabilities(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "Both empty",
-			cap1:     map[string]interface{}{},
-			cap2:     map[string]interface{}{},
+			name: "Both nil",
+			cap1: nil,
+			cap2: nil,
 			expected: true,
+		},
+		{
+			name: "One nil",
+			cap1: map[string]interface{}{
+				"chat": true,
+			},
+			cap2: nil,
+			expected: false,
 		},
 	}
 	
