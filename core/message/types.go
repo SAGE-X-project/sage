@@ -16,7 +16,6 @@ type MessageControlHeader struct{
 
 type BaseMessage struct {
 	ContextID       string      `json:"-"`
-	DID             string 		`json:"did,omitempty"`
 }
 
 type ControlHeader interface {
