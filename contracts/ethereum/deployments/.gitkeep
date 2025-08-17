@@ -1,0 +1,2 @@
+# This file ensures the deployments directory is tracked by git
+# Actual deployment files should be ignored (see .gitignore)

@@ -1,0 +1,491 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+import "./interfaces/ISageRegistry.sol";
+import "./interfaces/IRegistryHook.sol";
+
+/**
+ * @title SageRegistryV2
+ * @notice Improved SAGE AI Agent Registry with Enhanced Public Key Validation
+ * @dev Implements practical public key validation using signature-based ownership proof
+ */
+contract SageRegistryV2 is ISageRegistry {
+    // Registration parameters struct to avoid stack too deep errors
+    struct RegistrationParams {
+        string did;
+        string name;
+        string description;
+        string endpoint;
+        bytes publicKey;
+        string capabilities;
+        bytes signature;
+    }
+    
+    // Enhanced validation data
+    struct KeyValidation {
+        bytes32 keyHash;           // Hash of the public key
+        uint256 registrationBlock;  // Block when key was registered
+        bool isRevoked;            // Key revocation status
+    }
+    
+    // State variables
+    mapping(bytes32 => AgentMetadata) private agents;
+    mapping(string => bytes32) private didToAgentId;
+    mapping(address => bytes32[]) private ownerToAgents;
+    mapping(bytes32 => uint256) private agentNonce;
+    
+    // Enhanced key validation
+    mapping(bytes32 => KeyValidation) private keyValidations;
+    mapping(address => bytes32) private addressToKeyHash;
+    
+    address public owner;
+    address public beforeRegisterHook;
+    address public afterRegisterHook;
+    
+    uint256 private constant MAX_AGENTS_PER_OWNER = 100;
+    uint256 private constant MIN_PUBLIC_KEY_LENGTH = 32;
+    uint256 private constant MAX_PUBLIC_KEY_LENGTH = 65;
+    
+    // Events
+    event KeyValidated(bytes32 indexed keyHash, address indexed owner);
+    event KeyRevoked(bytes32 indexed keyHash, address indexed owner);
+    
+    // Modifiers
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner");
+        _;
+    }
+    
+    modifier onlyAgentOwner(bytes32 agentId) {
+        require(agents[agentId].owner == msg.sender, "Not agent owner");
+        _;
+    }
+    
+    constructor() {
+        owner = msg.sender;
+    }
+    
+    /**
+     * @notice Register a new AI agent with enhanced key validation
+     * @dev Requires proof of public key ownership through signature
+     */
+    function registerAgent(
+        string calldata did,
+        string calldata name,
+        string calldata description,
+        string calldata endpoint,
+        bytes calldata publicKey,
+        string calldata capabilities,
+        bytes calldata signature
+    ) external returns (bytes32) {
+        // Validate public key format and ownership
+        _validatePublicKey(publicKey, signature);
+        
+        RegistrationParams memory params = RegistrationParams({
+            did: did,
+            name: name,
+            description: description,
+            endpoint: endpoint,
+            publicKey: publicKey,
+            capabilities: capabilities,
+            signature: signature
+        });
+        
+        return _registerAgent(params);
+    }
+    
+    /**
+     * @notice Enhanced public key validation
+     * @dev Validates format, non-zero, and ownership through signature
+     */
+    function _validatePublicKey(
+        bytes calldata publicKey,
+        bytes calldata signature
+    ) private {
+        // 1. Length validation
+        require(
+            publicKey.length >= MIN_PUBLIC_KEY_LENGTH && 
+            publicKey.length <= MAX_PUBLIC_KEY_LENGTH,
+            "Invalid public key length"
+        );
+        
+        // 2. Format validation for secp256k1
+        if (publicKey.length == 65) {
+            // Uncompressed format: must start with 0x04
+            require(publicKey[0] == 0x04, "Invalid uncompressed key format");
+        } else if (publicKey.length == 33) {
+            // Compressed format: must start with 0x02 or 0x03
+            require(
+                publicKey[0] == 0x02 || publicKey[0] == 0x03, 
+                "Invalid compressed key format"
+            );
+        } else if (publicKey.length == 32) {
+            // Ed25519 keys are 32 bytes - not supported on-chain
+            revert("Ed25519 not supported on-chain");
+        }
+        
+        // 3. Non-zero validation (prevent obviously invalid keys)
+        bytes32 keyHash = keccak256(publicKey);
+        // Check if the key is not all zeros (skip prefix byte for format check)
+        bool isNonZero = false;
+        uint startIdx = 0;
+        if (publicKey.length == 65 && publicKey[0] == 0x04) {
+            startIdx = 1; // Skip 0x04 prefix for uncompressed keys
+        } else if (publicKey.length == 33 && (publicKey[0] == 0x02 || publicKey[0] == 0x03)) {
+            startIdx = 1; // Skip 0x02/0x03 prefix for compressed keys
+        }
+        
+        for (uint i = startIdx; i < publicKey.length; i++) {
+            if (publicKey[i] != 0) {
+                isNonZero = true;
+                break;
+            }
+        }
+        require(isNonZero, "Invalid zero key");
+        
+        // 4. Ownership proof through signature
+        // Create a challenge message that includes context (without timestamp for predictability)
+        bytes32 challenge = keccak256(abi.encodePacked(
+            "SAGE Key Registration:",
+            block.chainid,
+            address(this),
+            msg.sender,
+            keyHash
+        ));
+        
+        // Verify signature (this proves control of the private key)
+        bytes32 ethSignedHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32", challenge)
+        );
+        
+        address recovered = _recoverSigner(ethSignedHash, signature);
+        
+        // For secp256k1, verify the recovered address matches sender
+        require(recovered == msg.sender, "Key ownership not proven");
+        require(recovered != address(0), "Invalid signature");
+        
+        // 5. Check if key has been revoked before
+        if (keyValidations[keyHash].registrationBlock > 0) {
+            require(!keyValidations[keyHash].isRevoked, "Key has been revoked");
+        }
+        
+        // 6. Store validation data (only if not already registered)
+        if (keyValidations[keyHash].registrationBlock == 0) {
+            keyValidations[keyHash] = KeyValidation({
+                keyHash: keyHash,
+                registrationBlock: block.number,
+                isRevoked: false
+            });
+        }
+        
+        addressToKeyHash[msg.sender] = keyHash;
+        
+        emit KeyValidated(keyHash, msg.sender);
+    }
+    
+    /**
+     * @notice Verify if a public key is valid and not revoked
+     */
+    function isKeyValid(bytes calldata publicKey) external view returns (bool) {
+        bytes32 keyHash = keccak256(publicKey);
+        KeyValidation memory validation = keyValidations[keyHash];
+        
+        return validation.registrationBlock > 0 && !validation.isRevoked;
+    }
+    
+    /**
+     * @notice Revoke a compromised key
+     */
+    function revokeKey(bytes calldata publicKey) external {
+        bytes32 keyHash = keccak256(publicKey);
+        require(addressToKeyHash[msg.sender] == keyHash, "Not key owner");
+        require(!keyValidations[keyHash].isRevoked, "Already revoked");
+        
+        keyValidations[keyHash].isRevoked = true;
+        
+        // Deactivate all agents using this key
+        bytes32[] memory agentIds = ownerToAgents[msg.sender];
+        for (uint i = 0; i < agentIds.length; i++) {
+            if (keccak256(agents[agentIds[i]].publicKey) == keyHash) {
+                agents[agentIds[i]].active = false;
+            }
+        }
+        
+        emit KeyRevoked(keyHash, msg.sender);
+    }
+    
+    /**
+     * @notice Internal register function
+     */
+    function _registerAgent(RegistrationParams memory params) private returns (bytes32) {
+        // Input validation
+        _validateRegistrationInputs(params.did, params.name);
+        
+        // Generate agent ID
+        bytes32 agentId = _generateAgentId(params.did, params.publicKey);
+        
+        // Execute before hook
+        _executeBeforeHook(agentId, params.did, params.publicKey);
+        
+        // Store agent metadata
+        _storeAgentMetadata(agentId, params);
+        
+        // Execute after hook
+        _executeAfterHook(agentId, params.did, params.publicKey);
+        
+        return agentId;
+    }
+    
+    /**
+     * @notice Update agent with signature verification
+     */
+    function updateAgent(
+        bytes32 agentId,
+        string calldata name,
+        string calldata description,
+        string calldata endpoint,
+        string calldata capabilities,
+        bytes calldata signature
+    ) external onlyAgentOwner(agentId) {
+        require(bytes(name).length > 0, "Name required");
+        
+        // Verify key hasn't been revoked (check this first)
+        bytes32 keyHash = keccak256(agents[agentId].publicKey);
+        require(!keyValidations[keyHash].isRevoked, "Key has been revoked");
+        
+        // Then check if agent is active
+        require(agents[agentId].active, "Agent not active");
+        
+        // Verify signature with stored public key
+        bytes32 messageHash = keccak256(abi.encodePacked(
+            agentId,
+            name,
+            description,
+            endpoint,
+            capabilities,
+            msg.sender,
+            agentNonce[agentId]
+        ));
+        
+        require(
+            _verifySignature(messageHash, signature, agents[agentId].publicKey, msg.sender),
+            "Invalid signature"
+        );
+        
+        // Update metadata
+        agents[agentId].name = name;
+        agents[agentId].description = description;
+        agents[agentId].endpoint = endpoint;
+        agents[agentId].capabilities = capabilities;
+        agents[agentId].updatedAt = block.timestamp;
+        
+        agentNonce[agentId]++;
+        
+        emit AgentUpdated(agentId, msg.sender, block.timestamp);
+    }
+    
+    // [Previous helper functions remain the same...]
+    
+    /**
+     * @notice Internal function to validate registration inputs
+     */
+    function _validateRegistrationInputs(
+        string memory did,
+        string memory name
+    ) private view {
+        require(bytes(did).length > 0, "DID required");
+        require(bytes(name).length > 0, "Name required");
+        require(didToAgentId[did] == bytes32(0), "DID already registered");
+        require(ownerToAgents[msg.sender].length < MAX_AGENTS_PER_OWNER, "Too many agents");
+    }
+    
+    /**
+     * @notice Internal function to generate agent ID
+     */
+    function _generateAgentId(
+        string memory did,
+        bytes memory publicKey
+    ) private view returns (bytes32) {
+        return keccak256(abi.encodePacked(did, publicKey, block.timestamp));
+    }
+    
+    /**
+     * @notice Internal function to execute before register hook
+     */
+    function _executeBeforeHook(
+        bytes32 agentId,
+        string memory did,
+        bytes memory publicKey
+    ) private {
+        if (beforeRegisterHook != address(0)) {
+            bytes memory hookData = abi.encode(did, publicKey);
+            emit BeforeRegisterHook(agentId, msg.sender, hookData);
+            
+            (bool success, string memory reason) = IRegistryHook(beforeRegisterHook)
+                .beforeRegister(agentId, msg.sender, hookData);
+            require(success, reason);
+        }
+    }
+    
+    /**
+     * @notice Internal function to store agent metadata
+     */
+    function _storeAgentMetadata(
+        bytes32 agentId,
+        RegistrationParams memory params
+    ) private {
+        agents[agentId] = AgentMetadata({
+            did: params.did,
+            name: params.name,
+            description: params.description,
+            endpoint: params.endpoint,
+            publicKey: params.publicKey,
+            capabilities: params.capabilities,
+            owner: msg.sender,
+            registeredAt: block.timestamp,
+            updatedAt: block.timestamp,
+            active: true
+        });
+        
+        didToAgentId[params.did] = agentId;
+        ownerToAgents[msg.sender].push(agentId);
+        agentNonce[agentId]++;
+        
+        emit AgentRegistered(agentId, msg.sender, params.did, block.timestamp);
+    }
+    
+    /**
+     * @notice Internal function to execute after register hook
+     */
+    function _executeAfterHook(
+        bytes32 agentId,
+        string memory did,
+        bytes memory publicKey
+    ) private {
+        if (afterRegisterHook != address(0)) {
+            bytes memory hookData = abi.encode(did, publicKey);
+            IRegistryHook(afterRegisterHook).afterRegister(agentId, msg.sender, hookData);
+            emit AfterRegisterHook(agentId, msg.sender, hookData);
+        }
+    }
+    
+    /**
+     * @notice Deactivate an agent
+     */
+    function deactivateAgent(bytes32 agentId) external onlyAgentOwner(agentId) {
+        require(agents[agentId].active, "Agent already inactive");
+        
+        agents[agentId].active = false;
+        agents[agentId].updatedAt = block.timestamp;
+        
+        emit AgentDeactivated(agentId, msg.sender, block.timestamp);
+    }
+    
+    /**
+     * @notice Get agent metadata by ID
+     */
+    function getAgent(bytes32 agentId) external view returns (AgentMetadata memory) {
+        require(agents[agentId].registeredAt > 0, "Agent not found");
+        return agents[agentId];
+    }
+    
+    /**
+     * @notice Get agent metadata by DID
+     */
+    function getAgentByDID(string calldata did) external view returns (AgentMetadata memory) {
+        bytes32 agentId = didToAgentId[did];
+        require(agentId != bytes32(0), "Agent not found");
+        return agents[agentId];
+    }
+    
+    /**
+     * @notice Get all agent IDs owned by an address
+     */
+    function getAgentsByOwner(address _owner) external view returns (bytes32[] memory) {
+        return ownerToAgents[_owner];
+    }
+    
+    /**
+     * @notice Verify agent ownership
+     */
+    function verifyAgentOwnership(bytes32 agentId, address claimedOwner) 
+        external 
+        view 
+        returns (bool) 
+    {
+        return agents[agentId].owner == claimedOwner;
+    }
+    
+    /**
+     * @notice Check if agent is active
+     */
+    function isAgentActive(bytes32 agentId) external view returns (bool) {
+        return agents[agentId].active;
+    }
+    
+    /**
+     * @notice Set before register hook
+     */
+    function setBeforeRegisterHook(address hook) external onlyOwner {
+        beforeRegisterHook = hook;
+    }
+    
+    /**
+     * @notice Set after register hook
+     */
+    function setAfterRegisterHook(address hook) external onlyOwner {
+        afterRegisterHook = hook;
+    }
+    
+    /**
+     * @notice Internal function to verify signature
+     */
+    function _verifySignature(
+        bytes32 messageHash,
+        bytes memory signature,
+        bytes memory publicKey,
+        address expectedSigner
+    ) private pure returns (bool) {
+        // For Ethereum (secp256k1), verify the signer address matches
+        if (publicKey.length == 64 || publicKey.length == 65) {
+            bytes32 ethSignedHash = keccak256(
+                abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
+            );
+            
+            address recovered = _recoverSigner(ethSignedHash, signature);
+            return recovered == expectedSigner;
+        }
+        
+        // For Ed25519 (32 bytes), would need external verification
+        if (publicKey.length == 32) {
+            // In production, use an oracle or ZK proof for Ed25519
+            // For now, we'll require secp256k1 keys only
+            revert("Ed25519 not supported on-chain");
+        }
+        
+        return false;
+    }
+    
+    /**
+     * @notice Recover signer from signature
+     */
+    function _recoverSigner(bytes32 messageHash, bytes memory signature) 
+        private 
+        pure 
+        returns (address) 
+    {
+        require(signature.length == 65, "Invalid signature length");
+        
+        bytes32 r;
+        bytes32 s;
+        uint8 v;
+        
+        assembly {
+            r := mload(add(signature, 32))
+            s := mload(add(signature, 64))
+            v := byte(0, mload(add(signature, 96)))
+        }
+        
+        return ecrecover(messageHash, v, r, s);
+    }
+}

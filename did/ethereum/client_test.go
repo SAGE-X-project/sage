@@ -18,26 +18,49 @@ func TestSageRegistryABI(t *testing.T) {
 }
 
 func TestNewEthereumClient(t *testing.T) {
+	// Test with invalid RPC endpoint (guaranteed to fail)
 	config := &did.RegistryConfig{
 		Chain:           did.ChainEthereum,
 		ContractAddress: "0x1234567890123456789012345678901234567890",
-		RPCEndpoint:     "http://localhost:8545",
+		RPCEndpoint:     "http://invalid-endpoint-that-does-not-exist:8545",
 		PrivateKey:      "", // No private key for read-only
 	}
 	
-	// This will fail without actual RPC endpoint
+	// This will fail with invalid RPC endpoint
 	_, err := NewEthereumClient(config)
 	assert.Error(t, err)
 	
-	// Test with invalid contract address
+	// Test with invalid contract address format
 	invalidConfig := &did.RegistryConfig{
 		Chain:           did.ChainEthereum,
 		ContractAddress: "invalid-address",
-		RPCEndpoint:     "http://localhost:8545",
+		RPCEndpoint:     "http://invalid-endpoint-that-does-not-exist:8545",
 	}
 	
 	_, err = NewEthereumClient(invalidConfig)
 	assert.Error(t, err)
+	
+	// Test with valid localhost endpoint if available (skip if not)
+	t.Run("WithLocalNode", func(t *testing.T) {
+		// This test only runs if a local node is actually available
+		config := &did.RegistryConfig{
+			Chain:           did.ChainEthereum,
+			ContractAddress: "0x1234567890123456789012345678901234567890",
+			RPCEndpoint:     "http://localhost:8545",
+			PrivateKey:      "",
+		}
+		
+		client, err := NewEthereumClient(config)
+		if err != nil {
+			t.Skip("Skipping test: local Ethereum node not available")
+		}
+		
+		// If we get here, the client was created successfully
+		assert.NotNil(t, client)
+		assert.NotNil(t, client.client)
+		assert.NotNil(t, client.contract)
+		assert.Equal(t, config.ContractAddress, client.contractAddress.Hex())
+	})
 }
 
 func TestEthereumHelperMethods(t *testing.T) {
@@ -118,10 +141,18 @@ func TestCompareCapabilities(t *testing.T) {
 			expected: false,
 		},
 		{
-			name:     "Both empty",
-			cap1:     map[string]interface{}{},
-			cap2:     map[string]interface{}{},
+			name: "Both nil",
+			cap1: nil,
+			cap2: nil,
 			expected: true,
+		},
+		{
+			name: "One nil",
+			cap1: map[string]interface{}{
+				"chat": true,
+			},
+			cap2: nil,
+			expected: false,
 		},
 	}
 	

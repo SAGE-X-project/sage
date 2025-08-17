@@ -111,16 +111,18 @@ sage-crypto rotate --storage-dir ./keys --key-id mykey
 **Options:**
 - `--storage-dir, -s`: Storage directory (required)
 - `--key-id, -k`: Key ID to rotate (required)
-- `--archive`: Archive old key instead of deleting
+- `--keep-old`: Keep old key instead of deleting
 
-#### address - Generate blockchain addresses
+#### address - Blockchain address operations
+
+##### address generate - Generate blockchain addresses
 
 ```bash
 # Generate Ethereum address from key
-sage-crypto address --key mykey.pem --format pem --chain ethereum
+sage-crypto address generate --key mykey.pem --key-format pem --chain ethereum
 
 # Generate Solana address
-sage-crypto address --storage-dir ./keys --key-id mykey --chain solana
+sage-crypto address generate --storage-dir ./keys --key-id mykey --chain solana
 ```
 
 **Options:**
@@ -129,6 +131,16 @@ sage-crypto address --storage-dir ./keys --key-id mykey --chain solana
 - `--storage-dir, -s`: Storage directory
 - `--key-id, -k`: Key ID in storage
 - `--chain, -c`: Blockchain (ethereum, solana)
+
+##### address parse - Parse and validate blockchain addresses
+
+```bash
+# Parse Ethereum address
+sage-crypto address parse 0x742d35Cc6634C0532925a3b844Bc9e7595f0b0Bb
+
+# Parse Solana address
+sage-crypto address parse 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM
+```
 
 ### Examples
 

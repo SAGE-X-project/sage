@@ -10,6 +10,16 @@ import "./interfaces/IRegistryHook.sol";
  * @dev Implements secure registration and management of AI agents with public key verification
  */
 contract SageRegistry is ISageRegistry {
+    // Registration parameters struct to avoid stack too deep errors
+    struct RegistrationParams {
+        string did;
+        string name;
+        string description;
+        string endpoint;
+        bytes publicKey;
+        string capabilities;
+        bytes signature;
+    }
     // State variables
     mapping(bytes32 => AgentMetadata) private agents;
     mapping(string => bytes32) private didToAgentId;
@@ -61,29 +71,96 @@ contract SageRegistry is ISageRegistry {
         string calldata capabilities,
         bytes calldata signature
     ) external validPublicKey(publicKey) returns (bytes32) {
+        RegistrationParams memory params = RegistrationParams({
+            did: did,
+            name: name,
+            description: description,
+            endpoint: endpoint,
+            publicKey: publicKey,
+            capabilities: capabilities,
+            signature: signature
+        });
+        
+        return _registerAgent(params);
+    }
+    
+    /**
+     * @notice Internal register function using struct to avoid stack too deep
+     */
+    function _registerAgent(RegistrationParams memory params) private returns (bytes32) {
+        // Input validation
+        _validateRegistrationInputs(params.did, params.name);
+        
+        // Generate agent ID
+        bytes32 agentId = _generateAgentId(params.did, params.publicKey);
+        
+        // Verify signature
+        _verifyRegistrationSignature(agentId, params);
+        
+        // Execute before hook
+        _executeBeforeHook(agentId, params.did, params.publicKey);
+        
+        // Store agent metadata
+        _storeAgentMetadata(agentId, params);
+        
+        // Execute after hook
+        _executeAfterHook(agentId, params.did, params.publicKey);
+        
+        return agentId;
+    }
+    
+    /**
+     * @notice Internal function to validate registration inputs
+     */
+    function _validateRegistrationInputs(
+        string memory did,
+        string memory name
+    ) private view {
         require(bytes(did).length > 0, "DID required");
         require(bytes(name).length > 0, "Name required");
         require(didToAgentId[did] == bytes32(0), "DID already registered");
         require(ownerToAgents[msg.sender].length < MAX_AGENTS_PER_OWNER, "Too many agents");
-        
-        // Generate agent ID
-        bytes32 agentId = keccak256(abi.encodePacked(did, publicKey, block.timestamp));
-        
-        // Verify signature
+    }
+    
+    /**
+     * @notice Internal function to generate agent ID
+     */
+    function _generateAgentId(
+        string memory did,
+        bytes memory publicKey
+    ) private view returns (bytes32) {
+        return keccak256(abi.encodePacked(did, publicKey, block.timestamp));
+    }
+    
+    /**
+     * @notice Internal function to verify registration signature
+     */
+    function _verifyRegistrationSignature(
+        bytes32 agentId,
+        RegistrationParams memory params
+    ) private view {
         bytes32 messageHash = keccak256(abi.encodePacked(
-            did,
-            name,
-            description,
-            endpoint,
-            publicKey,
-            capabilities,
+            params.did,
+            params.name,
+            params.description,
+            params.endpoint,
+            params.publicKey,
+            params.capabilities,
             msg.sender,
             agentNonce[agentId]
         ));
         
-        require(_verifySignature(messageHash, signature, publicKey, msg.sender), "Invalid signature");
-        
-        // Execute before hook if set
+        require(_verifySignature(messageHash, params.signature, params.publicKey, msg.sender), "Invalid signature");
+    }
+    
+    /**
+     * @notice Internal function to execute before register hook
+     */
+    function _executeBeforeHook(
+        bytes32 agentId,
+        string memory did,
+        bytes memory publicKey
+    ) private {
         if (beforeRegisterHook != address(0)) {
             bytes memory hookData = abi.encode(did, publicKey);
             emit BeforeRegisterHook(agentId, msg.sender, hookData);
@@ -92,35 +169,48 @@ contract SageRegistry is ISageRegistry {
                 .beforeRegister(agentId, msg.sender, hookData);
             require(success, reason);
         }
-        
-        // Store agent metadata
+    }
+    
+    /**
+     * @notice Internal function to store agent metadata
+     */
+    function _storeAgentMetadata(
+        bytes32 agentId,
+        RegistrationParams memory params
+    ) private {
         agents[agentId] = AgentMetadata({
-            did: did,
-            name: name,
-            description: description,
-            endpoint: endpoint,
-            publicKey: publicKey,
-            capabilities: capabilities,
+            did: params.did,
+            name: params.name,
+            description: params.description,
+            endpoint: params.endpoint,
+            publicKey: params.publicKey,
+            capabilities: params.capabilities,
             owner: msg.sender,
             registeredAt: block.timestamp,
             updatedAt: block.timestamp,
             active: true
         });
         
-        didToAgentId[did] = agentId;
+        didToAgentId[params.did] = agentId;
         ownerToAgents[msg.sender].push(agentId);
         agentNonce[agentId]++;
         
-        emit AgentRegistered(agentId, msg.sender, did, block.timestamp);
-        
-        // Execute after hook if set
+        emit AgentRegistered(agentId, msg.sender, params.did, block.timestamp);
+    }
+    
+    /**
+     * @notice Internal function to execute after register hook
+     */
+    function _executeAfterHook(
+        bytes32 agentId,
+        string memory did,
+        bytes memory publicKey
+    ) private {
         if (afterRegisterHook != address(0)) {
             bytes memory hookData = abi.encode(did, publicKey);
             IRegistryHook(afterRegisterHook).afterRegister(agentId, msg.sender, hookData);
             emit AfterRegisterHook(agentId, msg.sender, hookData);
         }
-        
-        return agentId;
     }
     
     /**

@@ -430,6 +430,18 @@ FodyWeavers.xsd
 build/
 sage-crypto
 
+# Rust build artifacts
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# Claude local files
+CLAUDE.local.md
+*.local.md
+.claude/*.local.*
+.claude/settings.local.json
+
 # IntelliJ IDEA
 .idea/
 *.iml

@@ -35,7 +35,7 @@ contract SageVerificationHook is IRegistryHook {
      * @notice Pre-registration verification
      */
     function beforeRegister(
-        bytes32 agentId,
+        bytes32, // agentId - unused but required by interface
         address agentOwner,
         bytes calldata data
     ) external override returns (bool success, string memory reason) {
@@ -71,9 +71,9 @@ contract SageVerificationHook is IRegistryHook {
      * @notice Post-registration actions
      */
     function afterRegister(
-        bytes32 agentId,
+        bytes32, // agentId - unused but required by interface
         address agentOwner,
-        bytes calldata data
+        bytes calldata // data - unused but required by interface
     ) external override {
         registrationAttempts[agentOwner]++;
         lastRegistrationTime[agentOwner] = block.timestamp;
