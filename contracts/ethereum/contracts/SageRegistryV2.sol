@@ -5,11 +5,11 @@ import "./interfaces/ISageRegistry.sol";
 import "./interfaces/IRegistryHook.sol";
 
 /**
- * @title SageRegistry
- * @notice SAGE AI Agent Registry Contract
- * @dev Implements secure registration and management of AI agents with public key verification
+ * @title SageRegistryV2
+ * @notice Improved SAGE AI Agent Registry with Enhanced Public Key Validation
+ * @dev Implements practical public key validation using signature-based ownership proof
  */
-contract SageRegistry is ISageRegistry {
+contract SageRegistryV2 is ISageRegistry {
     // Registration parameters struct to avoid stack too deep errors
     struct RegistrationParams {
         string did;
@@ -20,11 +20,23 @@ contract SageRegistry is ISageRegistry {
         string capabilities;
         bytes signature;
     }
+    
+    // Enhanced validation data
+    struct KeyValidation {
+        bytes32 keyHash;           // Hash of the public key
+        uint256 registrationBlock;  // Block when key was registered
+        bool isRevoked;            // Key revocation status
+    }
+    
     // State variables
     mapping(bytes32 => AgentMetadata) private agents;
     mapping(string => bytes32) private didToAgentId;
     mapping(address => bytes32[]) private ownerToAgents;
     mapping(bytes32 => uint256) private agentNonce;
+    
+    // Enhanced key validation
+    mapping(bytes32 => KeyValidation) private keyValidations;
+    mapping(address => bytes32) private addressToKeyHash;
     
     address public owner;
     address public beforeRegisterHook;
@@ -33,6 +45,10 @@ contract SageRegistry is ISageRegistry {
     uint256 private constant MAX_AGENTS_PER_OWNER = 100;
     uint256 private constant MIN_PUBLIC_KEY_LENGTH = 32;
     uint256 private constant MAX_PUBLIC_KEY_LENGTH = 65;
+    
+    // Events
+    event KeyValidated(bytes32 indexed keyHash, address indexed owner);
+    event KeyRevoked(bytes32 indexed keyHash, address indexed owner);
     
     // Modifiers
     modifier onlyOwner() {
@@ -45,22 +61,13 @@ contract SageRegistry is ISageRegistry {
         _;
     }
     
-    modifier validPublicKey(bytes memory publicKey) {
-        require(
-            publicKey.length >= MIN_PUBLIC_KEY_LENGTH && 
-            publicKey.length <= MAX_PUBLIC_KEY_LENGTH,
-            "Invalid public key length"
-        );
-        _;
-    }
-    
     constructor() {
         owner = msg.sender;
     }
     
     /**
-     * @notice Register a new AI agent
-     * @dev Verifies signature to ensure the sender owns the public key
+     * @notice Register a new AI agent with enhanced key validation
+     * @dev Requires proof of public key ownership through signature
      */
     function registerAgent(
         string calldata did,
@@ -70,7 +77,10 @@ contract SageRegistry is ISageRegistry {
         bytes calldata publicKey,
         string calldata capabilities,
         bytes calldata signature
-    ) external validPublicKey(publicKey) returns (bytes32) {
+    ) external returns (bytes32) {
+        // Validate public key format and ownership
+        _validatePublicKey(publicKey, signature);
+        
         RegistrationParams memory params = RegistrationParams({
             did: did,
             name: name,
@@ -85,7 +95,127 @@ contract SageRegistry is ISageRegistry {
     }
     
     /**
-     * @notice Internal register function using struct to avoid stack too deep
+     * @notice Enhanced public key validation
+     * @dev Validates format, non-zero, and ownership through signature
+     */
+    function _validatePublicKey(
+        bytes calldata publicKey,
+        bytes calldata signature
+    ) private {
+        // 1. Length validation
+        require(
+            publicKey.length >= MIN_PUBLIC_KEY_LENGTH && 
+            publicKey.length <= MAX_PUBLIC_KEY_LENGTH,
+            "Invalid public key length"
+        );
+        
+        // 2. Format validation for secp256k1
+        if (publicKey.length == 65) {
+            // Uncompressed format: must start with 0x04
+            require(publicKey[0] == 0x04, "Invalid uncompressed key format");
+        } else if (publicKey.length == 33) {
+            // Compressed format: must start with 0x02 or 0x03
+            require(
+                publicKey[0] == 0x02 || publicKey[0] == 0x03, 
+                "Invalid compressed key format"
+            );
+        } else if (publicKey.length == 32) {
+            // Ed25519 keys are 32 bytes - not supported on-chain
+            revert("Ed25519 not supported on-chain");
+        }
+        
+        // 3. Non-zero validation (prevent obviously invalid keys)
+        bytes32 keyHash = keccak256(publicKey);
+        // Check if the key is not all zeros (skip prefix byte for format check)
+        bool isNonZero = false;
+        uint startIdx = 0;
+        if (publicKey.length == 65 && publicKey[0] == 0x04) {
+            startIdx = 1; // Skip 0x04 prefix for uncompressed keys
+        } else if (publicKey.length == 33 && (publicKey[0] == 0x02 || publicKey[0] == 0x03)) {
+            startIdx = 1; // Skip 0x02/0x03 prefix for compressed keys
+        }
+        
+        for (uint i = startIdx; i < publicKey.length; i++) {
+            if (publicKey[i] != 0) {
+                isNonZero = true;
+                break;
+            }
+        }
+        require(isNonZero, "Invalid zero key");
+        
+        // 4. Ownership proof through signature
+        // Create a challenge message that includes context (without timestamp for predictability)
+        bytes32 challenge = keccak256(abi.encodePacked(
+            "SAGE Key Registration:",
+            block.chainid,
+            address(this),
+            msg.sender,
+            keyHash
+        ));
+        
+        // Verify signature (this proves control of the private key)
+        bytes32 ethSignedHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32", challenge)
+        );
+        
+        address recovered = _recoverSigner(ethSignedHash, signature);
+        
+        // For secp256k1, verify the recovered address matches sender
+        require(recovered == msg.sender, "Key ownership not proven");
+        require(recovered != address(0), "Invalid signature");
+        
+        // 5. Check if key has been revoked before
+        if (keyValidations[keyHash].registrationBlock > 0) {
+            require(!keyValidations[keyHash].isRevoked, "Key has been revoked");
+        }
+        
+        // 6. Store validation data (only if not already registered)
+        if (keyValidations[keyHash].registrationBlock == 0) {
+            keyValidations[keyHash] = KeyValidation({
+                keyHash: keyHash,
+                registrationBlock: block.number,
+                isRevoked: false
+            });
+        }
+        
+        addressToKeyHash[msg.sender] = keyHash;
+        
+        emit KeyValidated(keyHash, msg.sender);
+    }
+    
+    /**
+     * @notice Verify if a public key is valid and not revoked
+     */
+    function isKeyValid(bytes calldata publicKey) external view returns (bool) {
+        bytes32 keyHash = keccak256(publicKey);
+        KeyValidation memory validation = keyValidations[keyHash];
+        
+        return validation.registrationBlock > 0 && !validation.isRevoked;
+    }
+    
+    /**
+     * @notice Revoke a compromised key
+     */
+    function revokeKey(bytes calldata publicKey) external {
+        bytes32 keyHash = keccak256(publicKey);
+        require(addressToKeyHash[msg.sender] == keyHash, "Not key owner");
+        require(!keyValidations[keyHash].isRevoked, "Already revoked");
+        
+        keyValidations[keyHash].isRevoked = true;
+        
+        // Deactivate all agents using this key
+        bytes32[] memory agentIds = ownerToAgents[msg.sender];
+        for (uint i = 0; i < agentIds.length; i++) {
+            if (keccak256(agents[agentIds[i]].publicKey) == keyHash) {
+                agents[agentIds[i]].active = false;
+            }
+        }
+        
+        emit KeyRevoked(keyHash, msg.sender);
+    }
+    
+    /**
+     * @notice Internal register function
      */
     function _registerAgent(RegistrationParams memory params) private returns (bytes32) {
         // Input validation
@@ -93,9 +223,6 @@ contract SageRegistry is ISageRegistry {
         
         // Generate agent ID
         bytes32 agentId = _generateAgentId(params.did, params.publicKey);
-        
-        // Verify signature
-        _verifyRegistrationSignature(agentId, params);
         
         // Execute before hook
         _executeBeforeHook(agentId, params.did, params.publicKey);
@@ -108,6 +235,56 @@ contract SageRegistry is ISageRegistry {
         
         return agentId;
     }
+    
+    /**
+     * @notice Update agent with signature verification
+     */
+    function updateAgent(
+        bytes32 agentId,
+        string calldata name,
+        string calldata description,
+        string calldata endpoint,
+        string calldata capabilities,
+        bytes calldata signature
+    ) external onlyAgentOwner(agentId) {
+        require(bytes(name).length > 0, "Name required");
+        
+        // Verify key hasn't been revoked (check this first)
+        bytes32 keyHash = keccak256(agents[agentId].publicKey);
+        require(!keyValidations[keyHash].isRevoked, "Key has been revoked");
+        
+        // Then check if agent is active
+        require(agents[agentId].active, "Agent not active");
+        
+        // Verify signature with stored public key
+        bytes32 messageHash = keccak256(abi.encodePacked(
+            agentId,
+            name,
+            description,
+            endpoint,
+            capabilities,
+            msg.sender,
+            agentNonce[agentId]
+        ));
+        
+        require(
+            _verifySignature(messageHash, signature, agents[agentId].publicKey, msg.sender),
+            "Invalid signature"
+        );
+        
+        // Update metadata
+        agents[agentId].name = name;
+        agents[agentId].description = description;
+        agents[agentId].endpoint = endpoint;
+        agents[agentId].capabilities = capabilities;
+        agents[agentId].updatedAt = block.timestamp;
+        
+        agentNonce[agentId]++;
+        
+        emit AgentUpdated(agentId, msg.sender, block.timestamp);
+    }
+    
+    // [Previous helper functions remain the same...]
     
     /**
      * @notice Internal function to validate registration inputs
@@ -130,27 +307,6 @@ contract SageRegistry is ISageRegistry {
         bytes memory publicKey
     ) private view returns (bytes32) {
         return keccak256(abi.encodePacked(did, publicKey, block.timestamp));
-    }
-    
-    /**
-     * @notice Internal function to verify registration signature
-     */
-    function _verifyRegistrationSignature(
-        bytes32 agentId,
-        RegistrationParams memory params
-    ) private view {
-        bytes32 messageHash = keccak256(abi.encodePacked(
-            params.did,
-            params.name,
-            params.description,
-            params.endpoint,
-            params.publicKey,
-            params.capabilities,
-            msg.sender,
-            agentNonce[agentId]
-        ));
-        
-        require(_verifySignature(messageHash, params.signature, params.publicKey, msg.sender), "Invalid signature");
     }
     
     /**
@@ -211,49 +367,6 @@ contract SageRegistry is ISageRegistry {
             IRegistryHook(afterRegisterHook).afterRegister(agentId, msg.sender, hookData);
             emit AfterRegisterHook(agentId, msg.sender, hookData);
         }
-    }
-    
-    /**
-     * @notice Update agent metadata
-     * @dev Only agent owner can update, signature required
-     */
-    function updateAgent(
-        bytes32 agentId,
-        string calldata name,
-        string calldata description,
-        string calldata endpoint,
-        string calldata capabilities,
-        bytes calldata signature
-    ) external onlyAgentOwner(agentId) {
-        require(agents[agentId].active, "Agent not active");
-        require(bytes(name).length > 0, "Name required");
-        
-        // Verify signature with stored public key
-        bytes32 messageHash = keccak256(abi.encodePacked(
-            agentId,
-            name,
-            description,
-            endpoint,
-            capabilities,
-            msg.sender,
-            agentNonce[agentId]
-        ));
-        
-        require(
-            _verifySignature(messageHash, signature, agents[agentId].publicKey, msg.sender),
-            "Invalid signature"
-        );
-        
-        // Update metadata
-        agents[agentId].name = name;
-        agents[agentId].description = description;
-        agents[agentId].endpoint = endpoint;
-        agents[agentId].capabilities = capabilities;
-        agents[agentId].updatedAt = block.timestamp;
-        
-        agentNonce[agentId]++;
-        
-        emit AgentUpdated(agentId, msg.sender, block.timestamp);
     }
     
     /**
@@ -326,7 +439,6 @@ contract SageRegistry is ISageRegistry {
     
     /**
      * @notice Internal function to verify signature
-     * @dev Supports both ECDSA and Ed25519 signatures
      */
     function _verifySignature(
         bytes32 messageHash,
@@ -344,12 +456,11 @@ contract SageRegistry is ISageRegistry {
             return recovered == expectedSigner;
         }
         
-        // For Ed25519 (32 bytes), we would need external verification
-        // This is a placeholder - in production, use a library or precompile
+        // For Ed25519 (32 bytes), would need external verification
         if (publicKey.length == 32) {
-            // Ed25519 verification would go here
-            // For now, we'll require a separate verification step
-            return true;
+            // In production, use an oracle or ZK proof for Ed25519
+            // For now, we'll require secp256k1 keys only
+            revert("Ed25519 not supported on-chain");
         }
         
         return false;

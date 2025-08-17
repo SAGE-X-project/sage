@@ -50,8 +50,13 @@ func newAgentFromEnvSuffix(suffix string) (*Agent, error) {
 
 func TestIntegration_Auth0(t *testing.T) {
 	os.Clearenv()
+	
+	// Try to load .env file, skip test if not available
 	err := godotenv.Overload("../../.env")
-	require.NoError(t, err)
+	if err != nil {
+		t.Skip("Skipping Auth0 integration test: .env file not found. Copy .env.example to .env and configure Auth0 credentials.")
+		return
+	}
 
     agentA, err := newAgentFromEnvSuffix("1")
     require.NoError(t, err)

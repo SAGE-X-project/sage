@@ -1,0 +1,31 @@
+{
+  "network": "kairos",
+  "chainId": 1001,
+  "deployer": "0x1234567890123456789012345678901234567890",
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "blockNumber": 12345678,
+  "contracts": {
+    "SageRegistry": {
+      "address": "0xabc1234567890123456789012345678901234567",
+      "transactionHash": "0xdef1234567890123456789012345678901234567890123456789012345678901",
+      "blockNumber": 12345678,
+      "gasUsed": "1000000"
+    },
+    "SageVerificationHook": {
+      "address": "0xfed1234567890123456789012345678901234567",
+      "transactionHash": "0xcba1234567890123456789012345678901234567890123456789012345678901",
+      "blockNumber": 12345679,
+      "gasUsed": "800000"
+    }
+  },
+  "configuration": {
+    "beforeRegisterHook": "0xfed1234567890123456789012345678901234567",
+    "setHookTransactionHash": "0xaaa1234567890123456789012345678901234567890123456789012345678901"
+  },
+  "gasUsed": "1800000",
+  "gasUsedETH": "0.45",
+  "explorer": {
+    "registry": "https://kairos.klaytnscope.com/account/0xabc1234567890123456789012345678901234567",
+    "hook": "https://kairos.klaytnscope.com/account/0xfed1234567890123456789012345678901234567"
+  }
+}
