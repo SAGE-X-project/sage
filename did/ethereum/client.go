@@ -150,21 +150,23 @@ func (c *EthereumClient) Register(ctx context.Context, req *did.RegistrationRequ
 
 // Resolve retrieves agent metadata from Ethereum
 func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*did.AgentMetadata, error) {
-	var result struct {
-		Exists       bool
-		Name         string
-		Description  string
-		Endpoint     string
-		PublicKey    []byte
-		Capabilities string
-		Owner        common.Address
-		IsActive     bool
-		CreatedAt    *big.Int
-		UpdatedAt    *big.Int
+	// The contract returns a tuple with these exact field names
+	type AgentMetadata struct {
+		Did          string         `abi:"did"`
+		Name         string         `abi:"name"`
+		Description  string         `abi:"description"`
+		Endpoint     string         `abi:"endpoint"`
+		PublicKey    []byte         `abi:"publicKey"`
+		Capabilities string         `abi:"capabilities"`
+		Owner        common.Address `abi:"owner"`
+		RegisteredAt *big.Int       `abi:"registeredAt"`
+		UpdatedAt    *big.Int       `abi:"updatedAt"`
+		Active       bool           `abi:"active"`
 	}
+	var result AgentMetadata
 	
-	// Prepare call data
-	callData, err := c.contractABI.Pack("getAgent", string(agentDID))
+	// Use getAgentByDID which takes a string DID parameter
+	callData, err := c.contractABI.Pack("getAgentByDID", string(agentDID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack call data: %w", err)
 	}
@@ -178,19 +180,55 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 		return nil, fmt.Errorf("failed to call contract: %w", err)
 	}
 	
-	// Unpack the result
-	err = c.contractABI.UnpackIntoInterface(&result, "getAgent", output)
+	// Unpack the result - getAgentByDID returns a tuple
+	outputs, err := c.contractABI.Unpack("getAgentByDID", output)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get agent: %w", err)
+		return nil, fmt.Errorf("failed to unpack agent data: %w", err)
 	}
 	
-	if !result.Exists {
+	// The output is a single struct, get the first element
+	if len(outputs) == 0 {
+		return nil, fmt.Errorf("no data returned from contract")
+	}
+	
+	// Cast the output to our struct type
+	outputStruct, ok := outputs[0].(struct {
+		Did          string         `json:"did"`
+		Name         string         `json:"name"`
+		Description  string         `json:"description"`
+		Endpoint     string         `json:"endpoint"`
+		PublicKey    []byte         `json:"publicKey"`
+		Capabilities string         `json:"capabilities"`
+		Owner        common.Address `json:"owner"`
+		RegisteredAt *big.Int       `json:"registeredAt"`
+		UpdatedAt    *big.Int       `json:"updatedAt"`
+		Active       bool           `json:"active"`
+	})
+	if !ok {
+		return nil, fmt.Errorf("failed to cast output to AgentMetadata struct")
+	}
+	
+	result = AgentMetadata{
+		Did:          outputStruct.Did,
+		Name:         outputStruct.Name,
+		Description:  outputStruct.Description,
+		Endpoint:     outputStruct.Endpoint,
+		PublicKey:    outputStruct.PublicKey,
+		Capabilities: outputStruct.Capabilities,
+		Owner:        outputStruct.Owner,
+		RegisteredAt: outputStruct.RegisteredAt,
+		UpdatedAt:    outputStruct.UpdatedAt,
+		Active:       outputStruct.Active,
+	}
+	
+	// Check if agent exists (empty DID means not found)
+	if result.Did == "" {
 		return nil, did.ErrDIDNotFound
 	}
 	
-	// Parse public key
-	// TODO: Determine key type from contract or metadata
-	publicKey, err := did.UnmarshalPublicKey(result.PublicKey, "ed25519")
+	// Parse public key - Ethereum uses secp256k1
+	// The public key is in uncompressed format (65 bytes: 0x04 + X + Y)
+	publicKey, err := did.UnmarshalPublicKey(result.PublicKey, "secp256k1")
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal public key: %w", err)
 	}
@@ -212,8 +250,8 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 		PublicKey:    publicKey,
 		Capabilities: capabilities,
 		Owner:        result.Owner.Hex(),
-		IsActive:     result.IsActive,
-		CreatedAt:    time.Unix(result.CreatedAt.Int64(), 0),
+		IsActive:     result.Active,
+		CreatedAt:    time.Unix(result.RegisteredAt.Int64(), 0),
 		UpdatedAt:    time.Unix(result.UpdatedAt.Int64(), 0),
 	}, nil
 }
@@ -250,9 +288,12 @@ func (c *EthereumClient) Update(ctx context.Context, agentDID did.AgentDID, upda
 		capabilitiesJSON = string(capBytes)
 	}
 	
+	// Generate agentId from DID (keccak256 hash)
+	agentId := crypto.Keccak256Hash([]byte(string(agentDID)))
+	
 	// Call the contract
 	tx, err := c.contract.Transact(auth, "updateAgent",
-		string(agentDID),
+		agentId,
 		name,
 		description,
 		endpoint,
@@ -270,24 +311,18 @@ func (c *EthereumClient) Update(ctx context.Context, agentDID did.AgentDID, upda
 
 // Deactivate deactivates an agent on Ethereum
 func (c *EthereumClient) Deactivate(ctx context.Context, agentDID did.AgentDID, keyPair sagecrypto.KeyPair) error {
-	// Prepare deactivation message
-	message := fmt.Sprintf("Deactivate agent: %s", agentDID)
-	messageHash := crypto.Keccak256([]byte(message))
-	
-	// Sign the message
-	signature, err := keyPair.Sign(messageHash)
-	if err != nil {
-		return fmt.Errorf("failed to sign deactivation: %w", err)
-	}
-	
+	// Note: The new contract's deactivateAgent doesn't require a signature
 	// Prepare transaction options
 	auth, err := c.getTransactOpts(ctx)
 	if err != nil {
 		return err
 	}
 	
+	// Generate agentId from DID (keccak256 hash)
+	agentId := crypto.Keccak256Hash([]byte(string(agentDID)))
+	
 	// Call the contract
-	tx, err := c.contract.Transact(auth, "deactivateAgent", string(agentDID), signature)
+	tx, err := c.contract.Transact(auth, "deactivateAgent", agentId)
 	if err != nil {
 		return fmt.Errorf("failed to deactivate agent: %w", err)
 	}
