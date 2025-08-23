@@ -1,55 +1,274 @@
+# ============================================
+# Hardhat & Smart Contract Files
+# ============================================
+
 # Hardhat files
-cache
-artifacts
-typechain
-typechain-types
+cache/
+artifacts/
+typechain/
+typechain-types/
+
+# Hardhat node
+hardhat-node.log
+
+# Contract flattened files (generated for verification)
+flattened/*
+!flattened/VERIFICATION_INSTRUCTIONS.md
+
+# Verification files (keep instructions only)
+verification/*
+!verification/VERIFICATION_GUIDE.md
+
+# ============================================
+# Node.js & Dependencies
+# ============================================
 
 # Node modules
-node_modules
+node_modules/
+package-lock.json.backup
+
+# NPM/Yarn logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ============================================
+# Environment & Configuration
+# ============================================
 
 # Environment variables
 .env
 .env.local
 .env.production
 .env.development
+.env.*.local
 
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-*~
+# Keep example files
+!.env.example
 
-# OS
-.DS_Store
-Thumbs.db
+# ============================================
+# Generated Bindings (keep source scripts)
+# ============================================
 
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Go bindings
+bindings/go/*.go
+bindings/go/go.mod
+bindings/go/go.sum
+bindings/go/vendor/
 
-# Coverage
-coverage
+# Java bindings
+bindings/java/target/
+bindings/java/.gradle/
+bindings/java/build/
+bindings/java/src/main/java/io/sage/contracts/*.java
+*.class
+*.jar
+*.war
+
+# Python bindings
+bindings/python/__pycache__/
+bindings/python/*.pyc
+bindings/python/*.pyo
+bindings/python/*.pyd
+bindings/python/.Python
+bindings/python/build/
+bindings/python/develop-eggs/
+bindings/python/dist/
+bindings/python/downloads/
+bindings/python/eggs/
+bindings/python/.eggs/
+bindings/python/lib/
+bindings/python/lib64/
+bindings/python/parts/
+bindings/python/sdist/
+bindings/python/var/
+bindings/python/wheels/
+bindings/python/*.egg-info/
+bindings/python/.installed.cfg
+bindings/python/*.egg
+bindings/python/MANIFEST
+bindings/python/.venv/
+bindings/python/venv/
+bindings/python/ENV/
+
+# Rust bindings
+bindings/rust/target/
+bindings/rust/Cargo.lock
+bindings/rust/**/*.rs.bk
+bindings/rust/.cargo/
+
+# Keep README files in bindings
+!bindings/**/README.md
+!bindings/**/example.*
+
+# ============================================
+# Testing & Coverage
+# ============================================
+
+# Coverage reports
+coverage/
 coverage.json
 *.lcov
-
-# Deployments (keep only example files)
-deployments/*
-!deployments/.gitkeep
-!deployments/example.json
+.nyc_output/
 
 # Test files
-test-results
+test-results/
 .test-env
+*.test.log
 
-# Build files
-dist
-build
+# Gas reports
+gas-report.txt
+
+# ============================================
+# IDE & Editor Files
+# ============================================
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*.swn
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================
+# Operating System Files
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.directory
+.Trash-*
+.nfs*
+
+# ============================================
+# Build & Distribution
+# ============================================
+
+# Build directories
+dist/
+build/
+out/
+
+# Contract size reports
+contract-sizes.txt
+
+# ============================================
+# Deployment & Production
+# ============================================
+
+# Deployment files (keep examples and latest)
+deployments/*.json
+!deployments/example.json
+!deployments/*-latest.json
+
+# Keep deployment guides
+!deployments/*.md
+
+# ============================================
+# Security & Private Files
+# ============================================
 
 # Private keys and mnemonics
 *.key
 *.pem
+*.p12
+*.pfx
 secrets.json
 mnemonic.txt
+keystore/
+
+# Wallet files
+wallet.json
+accounts.json
+
+# ============================================
+# Temporary Files
+# ============================================
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+tmp/
+temp/
+
+# Lock files (except package-lock.json)
+*.lock
+!package-lock.json
+
+# ============================================
+# Logs
+# ============================================
+
+# All log files
+*.log
+logs/
+
+# ============================================
+# Miscellaneous
+# ============================================
+
+# ABI minified files (keep source)
+abi/*.min.json
+
+# Compiled contracts info
+contracts.json
+
+# OpenZeppelin upgrades
+.openzeppelin/
+
+# Tenderly
+tenderly.yaml
+
+# Debugger
+.debugger/
