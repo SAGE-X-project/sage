@@ -4,8 +4,10 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"strings"
 	"time"
@@ -140,13 +142,28 @@ func (v *Verifier) verifySignatureWithAlgorithm(publicKey interface{}, message, 
 		}
 		
 	case string(AlgorithmES256K), string(AlgorithmECDSA), string(AlgorithmECDSASecp256k1):
-		_, ok := publicKey.(*ecdsa.PublicKey)
+		ecdsaKey, ok := publicKey.(*ecdsa.PublicKey)
 		if !ok {
 			return fmt.Errorf("invalid public key type for ECDSA")
 		}
-		// ECDSA verification would be implemented here
-		// For now, return an error indicating it needs implementation
-		return fmt.Errorf("ECDSA verification not yet implemented")
+		
+		// ECDSA signatures in Ethereum are typically 65 bytes (r + s + v)
+		// But standard ECDSA is just r + s (64 bytes)
+		if len(signature) < 64 {
+			return fmt.Errorf("invalid ECDSA signature length: %d", len(signature))
+		}
+		
+		// Extract r and s from the signature
+		r := new(big.Int).SetBytes(signature[:32])
+		s := new(big.Int).SetBytes(signature[32:64])
+		
+		// Create a hash of the message
+		hash := sha256.Sum256(message)
+		
+		// Verify the signature
+		if !ecdsa.Verify(ecdsaKey, hash[:], r, s) {
+			return fmt.Errorf("ECDSA signature verification failed")
+		}
 		
 	default:
 		return fmt.Errorf("unsupported signature algorithm: %s", algorithm)
