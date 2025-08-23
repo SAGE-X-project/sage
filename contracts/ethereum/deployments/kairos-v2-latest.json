@@ -1,0 +1,17 @@
+{
+  "network": "kairos",
+  "chainId": "1001",
+  "deployedAt": "2025-08-18T17:28:01.236Z",
+  "deployer": "0x9f6D4f5dFAcf340B5Ba0b8768aEf5144bb685Ddc",
+  "contracts": {
+    "SageRegistryV2": "0xF1f53bd1dEc3f91Ffba5E66f4397aF2ec3eAF7fE",
+    "SageVerificationHook": "0xDA0777245c125a7F8a733945d93bAe100F814093"
+  },
+  "blockNumber": "193900519",
+  "gasPrice": "250000000000",
+  "transactions": {
+    "registry": "0xb6d1fa3252608c57780ad9022bda4297a0c9483c851865ccd9bdc5710f85ee77",
+    "hook": "0x3832512a64cc260169177e91caede41ff3462bb221ced4a31b133d7d99c6c6c4",
+    "setHook": "0x979c487f2d223329e2cca8ca314ee35fce42aa58d7dd0ec026715673d3715f7b"
+  }
+}
