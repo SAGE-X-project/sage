@@ -2,8 +2,8 @@ const { ethers } = require("ethers");
 const fs = require("fs");
 
 // Configuration
-const RPC_URL = "http://localhost:8545";
-const REGISTRY_ADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const RPC_URL = process.env.RPC_URL || "http://localhost:8545";
+const REGISTRY_ADDRESS = process.env.CONTRACT_ADDRESS || "0xc5a5C42992dECbae36851359345FE25997F5C42d";
 const ABI_PATH = "./artifacts/contracts/SageRegistryV2.sol/SageRegistryV2.json";
 
 async function main() {
