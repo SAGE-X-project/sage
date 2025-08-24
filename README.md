@@ -312,7 +312,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Issues**: [GitHub Issues](https://github.com/sage-x-project/sage/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/sage-x-project/sage/discussions)
-- **Security**: security@sageproject.io
 
 ## Acknowledgments
 
@@ -324,3 +323,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built by the SAGE Team**
+
