@@ -160,8 +160,9 @@ contract SageRegistryV2 is ISageRegistry {
         
         address recovered = _recoverSigner(ethSignedHash, signature);
         
-        // For secp256k1, verify the recovered address matches sender
-        require(recovered == msg.sender, "Key ownership not proven");
+        // Derive address from the public key and verify it matches the signer
+        address keyAddress = _getAddressFromPublicKey(publicKey);
+        require(recovered == keyAddress, "Key ownership not proven");
         require(recovered != address(0), "Invalid signature");
         
         // 5. Check if key has been revoked before
@@ -178,6 +179,9 @@ contract SageRegistryV2 is ISageRegistry {
             });
         }
         
+        // Store the key hash with the agent's address (derived from public key)
+        addressToKeyHash[keyAddress] = keyHash;
+        // Also store for msg.sender to maintain compatibility
         addressToKeyHash[msg.sender] = keyHash;
         
         emit KeyValidated(keyHash, msg.sender);
@@ -487,5 +491,34 @@ contract SageRegistryV2 is ISageRegistry {
         }
         
         return ecrecover(messageHash, v, r, s);
+    }
+    
+    /**
+     * @notice Derive Ethereum address from public key
+     */
+    function _getAddressFromPublicKey(bytes memory publicKey) 
+        private 
+        pure 
+        returns (address) 
+    {
+        // Handle uncompressed key (65 bytes with 0x04 prefix)
+        if (publicKey.length == 65 && publicKey[0] == 0x04) {
+            // Remove the 0x04 prefix and hash the remaining 64 bytes
+            bytes memory keyWithoutPrefix = new bytes(64);
+            for (uint i = 0; i < 64; i++) {
+                keyWithoutPrefix[i] = publicKey[i + 1];
+            }
+            // Take the last 20 bytes of the keccak256 hash
+            return address(uint160(uint256(keccak256(keyWithoutPrefix))));
+        }
+        
+        // Handle compressed key (33 bytes) - would need elliptic curve decompression
+        if (publicKey.length == 33 && (publicKey[0] == 0x02 || publicKey[0] == 0x03)) {
+            // For now, we don't support compressed keys for address derivation
+            // This would require implementing elliptic curve point decompression
+            revert("Compressed key address derivation not supported");
+        }
+        
+        revert("Invalid public key format for address derivation");
     }
 }

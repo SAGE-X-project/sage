@@ -159,66 +159,86 @@ REPORT_GAS=true npx hardhat test
 
 ## 🚀 Deployment Process
 
-### Step 1: Prepare Environment
-```bash
-# Check prerequisites
-./bin/quick-start.sh
+### Quick Deployment Commands
 
-# Verify configuration
-cat .env | grep -v PRIVATE_KEY
+#### Local Network
+```bash
+# Start local node
+npm run node
+
+# Deploy to local
+npm run deploy:local
 ```
 
-### Step 2: Deploy Contracts
+#### Kairos Testnet
 ```bash
-# Interactive deployment
-./bin/deploy-v2.sh
+# Check balance
+npx hardhat run scripts/check-balance.js --network kairos
 
-# Or direct deployment
-npx hardhat run scripts/deploy-v2.js --network kairos
+# Deploy to Kairos
+npm run deploy:kairos
 ```
 
-### Step 3: Verify Contracts
+#### Kaia Mainnet
 ```bash
-# Verify on block explorer
-npx hardhat verify --network kairos CONTRACT_ADDRESS
+# Deploy to mainnet (use with caution!)
+npm run deploy:kaia
 ```
 
-### Step 4: Test Deployment
-```bash
-# Quick test
-npx hardhat run scripts/test-deployed.js --network kairos
+### Detailed Deployment Guide
 
-# Interactive console
-npx hardhat console --network kairos
-```
+For comprehensive deployment instructions including Sepolia testnet support, see [📚 Deployment Guide](docs/DEPLOYMENT_GUIDE.md).
 
 ## 🔧 Configuration
 
-### Network Configuration
+### Supported Networks
 
-#### Kairos Testnet
-- **Chain ID**: 1001
-- **RPC URL**: https://public-en-kairos.node.kaia.io
-- **Explorer**: https://kairos.kaiascope.com
-- **Faucet**: https://kairos.wallet.kaia.io/faucet
+| Network | Chain ID | Type | RPC URL |
+|---------|----------|------|---------|
+| **Local** | 31337 | Development | http://127.0.0.1:8545 |
+| **Kairos** | 1001 | Testnet | https://public-en-kairos.node.kaia.io |
+| **Kaia** | 8217 | Mainnet | https://public-en.node.kaia.io |
+| **Sepolia** | 11155111 | Testnet | Configure in .env (optional) |
 
-#### Kaia Mainnet
-- **Chain ID**: 8217
-- **RPC URL**: https://public-en-cypress.klaytn.net
-- **Explorer**: https://kaiascope.com
+### Environment Setup
 
-### Environment Variables (.env)
-```env
-# Required
-PRIVATE_KEY=your_private_key_without_0x
-
-# Network RPCs
-KAIROS_RPC_URL=https://public-en-kairos.node.kaia.io
-CYPRESS_RPC_URL=https://public-en-cypress.klaytn.net
-
-# Optional
-KAIASCOPE_API_KEY=your_api_key
+1. **Copy the example environment file:**
+```bash
+cp .env.example .env
 ```
+
+2. **Edit `.env` with your configuration:**
+```env
+# Required for deployment
+PRIVATE_KEY=your_private_key_without_0x
+MAINNET_PRIVATE_KEY=your_mainnet_key_for_production
+
+# Network RPC URLs (optional - defaults provided)
+KAIROS_RPC_URL=https://public-en-kairos.node.kaia.io
+KAIA_RPC_URL=https://public-en.node.kaia.io
+
+# Optional: Sepolia testnet
+# SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_KEY
+# SEPOLIA_PRIVATE_KEY=your_sepolia_test_key
+
+# Gas settings (optional)
+GAS_PRICE_GWEI=250
+GAS_LIMIT=3000000
+```
+
+3. **Get Test Tokens:**
+   - **Kairos KLAY**: https://kairos.wallet.kaia.io/faucet
+   - **Sepolia ETH**: https://sepoliafaucet.com
+
+### Enhanced Configuration Features
+
+The updated `hardhat.config.js` now includes:
+- **Environment variable validation** with helpful warnings
+- **Dynamic network configuration** based on .env settings
+- **Sepolia testnet support** (automatically enabled if configured)
+- **Gas price and limit customization**
+- **Separate mainnet/testnet private keys**
+- **Improved error messages** for missing configurations
 
 ## 🔐 Security Features
 

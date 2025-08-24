@@ -36,7 +36,8 @@ func UnmarshalPublicKey(data []byte, keyType string) (interface{}, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse secp256k1 public key: %w", err)
 		}
-		return pk, nil
+		// Convert to standard ecdsa.PublicKey for compatibility
+		return pk.ToECDSA(), nil
 		
 	default:
 		// Try to unmarshal as generic public key

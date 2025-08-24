@@ -29,9 +29,20 @@ async function main() {
   console.log("👤 Agent2 address:", agent2.address);
   console.log();
 
-  // Get contract addresses from deployment
-  const registryAddress = await prompt("Enter SageRegistryV2 contract address: ");
-  const hookAddress = await prompt("Enter SageVerificationHook contract address (optional): ");
+  // Get contract addresses from deployment or use defaults
+  const DEFAULT_REGISTRY = "0xc5a5C42992dECbae36851359345FE25997F5C42d";
+  const DEFAULT_HOOK = "0x67d269191c92Caf3cD7723F116c85e6E9bf55933";
+  
+  console.log("\n📋 Default contract addresses:");
+  console.log("   Registry:", DEFAULT_REGISTRY);
+  console.log("   Hook:", DEFAULT_HOOK);
+  console.log("   (Press Enter to use defaults or type new address)");
+  
+  const registryInput = await prompt("\nEnter SageRegistryV2 contract address: ");
+  const registryAddress = registryInput || DEFAULT_REGISTRY;
+  
+  const hookInput = await prompt("Enter SageVerificationHook contract address (optional): ");
+  const hookAddress = hookInput || DEFAULT_HOOK;
   
   // Connect to contracts
   const SageRegistryV2 = await hre.ethers.getContractFactory("SageRegistryV2");
@@ -50,17 +61,18 @@ async function main() {
     console.log("\n" + "=" .repeat(60));
     console.log("Choose an action:");
     console.log("1. Register a new agent");
-    console.log("2. View agent details");
-    console.log("3. Update agent");
-    console.log("4. Deactivate agent");
-    console.log("5. Revoke public key");
-    console.log("6. List all agents for an owner");
-    console.log("7. Check hook configuration");
-    console.log("8. Test signature verification");
-    console.log("9. Exit");
+    console.log("2. View agent details (by ID)");
+    console.log("3. View agent details (by DID)");
+    console.log("4. Update agent");
+    console.log("5. Deactivate agent");
+    console.log("6. Revoke public key");
+    console.log("7. List all agents for an owner");
+    console.log("8. Check hook configuration");
+    console.log("9. Test signature verification");
+    console.log("10. Exit");
     console.log();
     
-    const choice = await prompt("Enter your choice (1-9): ");
+    const choice = await prompt("Enter your choice (1-10): ");
     
     switch(choice) {
       case "1":
@@ -70,24 +82,27 @@ async function main() {
         await viewAgent(registry);
         break;
       case "3":
-        await updateAgent(registry, agent1);
+        await viewAgentByDID(registry);
         break;
       case "4":
-        await deactivateAgent(registry, agent1);
+        await updateAgent(registry, agent1);
         break;
       case "5":
-        await revokeKey(registry, agent1);
+        await deactivateAgent(registry, agent1);
         break;
       case "6":
-        await listAgents(registry);
+        await revokeKey(registry, agent1);
         break;
       case "7":
-        await checkHooks(registry);
+        await listAgents(registry);
         break;
       case "8":
-        await testSignature(agent1);
+        await checkHooks(registry);
         break;
       case "9":
+        await testSignature(agent1);
+        break;
+      case "10":
         console.log("👋 Goodbye!");
         rl.close();
         process.exit(0);
@@ -169,7 +184,7 @@ async function registerAgent(registry, signer) {
 }
 
 async function viewAgent(registry) {
-  console.log("\n🔍 View Agent Details");
+  console.log("\n🔍 View Agent Details (by ID)");
   console.log("-" .repeat(40));
   
   const agentId = await prompt("Enter agent ID (0x...): ");
@@ -187,6 +202,36 @@ async function viewAgent(registry) {
     console.log("  Capabilities:", agent.capabilities);
     console.log("  Active:", agent.active);
     console.log("  Created:", new Date(Number(agent.createdAt) * 1000).toLocaleString());
+    console.log("  Updated:", new Date(Number(agent.updatedAt) * 1000).toLocaleString());
+  } catch (error) {
+    console.log("❌ Failed to get agent:", error.message);
+  }
+}
+
+async function viewAgentByDID(registry) {
+  console.log("\n🔍 View Agent Details (by DID)");
+  console.log("-" .repeat(40));
+  
+  console.log("\n📋 Example DIDs:");
+  console.log("  Root: did:sage:ethereum:0x42b831377fe73f90c7790c4CCfA3fAA4f3E127b8");
+  console.log("  Ordering: did:sage:ethereum:0xc657dbce0080dA2Cd17e8Bd796f79A6F338FF327");
+  console.log("  Planning: did:sage:ethereum:0xBCC258aCF7117657D25E8C4E692b06f708a69018");
+  
+  const did = await prompt("\nEnter agent DID: ");
+  
+  try {
+    const agent = await registry.getAgentByDID(did);
+    
+    console.log("\n📋 Agent Information:");
+    console.log("  DID:", agent.did);
+    console.log("  Name:", agent.name);
+    console.log("  Description:", agent.description);
+    console.log("  Owner:", agent.owner);
+    console.log("  Endpoint:", agent.endpoint);
+    console.log("  Public Key:", agent.publicKey.substring(0, 20) + "...");
+    console.log("  Capabilities:", agent.capabilities);
+    console.log("  Active:", agent.active);
+    console.log("  Created:", new Date(Number(agent.registeredAt) * 1000).toLocaleString());
     console.log("  Updated:", new Date(Number(agent.updatedAt) * 1000).toLocaleString());
   } catch (error) {
     console.log("❌ Failed to get agent:", error.message);
