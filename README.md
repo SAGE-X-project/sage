@@ -53,23 +53,27 @@ sage/
 ### Quick Start
 
 1. **Clone the repository**
+
 ```bash
 git clone https://github.com/sage-x-project/sage.git
 cd sage
 ```
 
 2. **Install Go dependencies**
+
 ```bash
 go mod download
 ```
 
 3. **Install smart contract dependencies**
+
 ```bash
 cd contracts/ethereum
 npm install
 ```
 
 4. **Build the project**
+
 ```bash
 # Build CLI tools
 go build -o bin/sage-crypto ./cmd/sage-crypto
@@ -148,6 +152,7 @@ signature, err := signer.Sign(msg)
 ## Testing
 
 ### Run Go Tests
+
 ```bash
 # Run all tests
 go test ./...
@@ -162,6 +167,7 @@ go test ./core/...
 ```
 
 ### Run Smart Contract Tests
+
 ```bash
 cd contracts/ethereum
 
@@ -190,6 +196,7 @@ The latest version includes significant security enhancements:
 ### Key Security Mechanisms
 
 1. **Challenge-Response Authentication**
+
 ```solidity
 bytes32 challenge = keccak256(abi.encodePacked(
     "SAGE Key Registration:",
@@ -201,32 +208,36 @@ bytes32 challenge = keccak256(abi.encodePacked(
 ```
 
 2. **Format Validation**
+
 - Uncompressed keys (65 bytes): `0x04` prefix
 - Compressed keys (33 bytes): `0x02` or `0x03` prefix
 - Ed25519 keys: Not supported on-chain
 
 3. **Revocation System**
+
 - Immediate key deactivation
 - Automatic agent deactivation
 - Prevention of key reuse
 
 ## Gas Usage
 
-| Operation | Gas Used | USD (@ 30 gwei) |
-|-----------|----------|-----------------|
-| Register Agent | ~653,000 | ~$50 |
-| Update Agent | ~85,000 | ~$7 |
-| Revoke Key | ~45,000 | ~$3.5 |
-| Deactivate Agent | ~35,000 | ~$2.7 |
+| Operation        | Gas Used | USD (@ 30 gwei) |
+| ---------------- | -------- | --------------- |
+| Register Agent   | ~653,000 | ~$50            |
+| Update Agent     | ~85,000  | ~$7             |
+| Revoke Key       | ~45,000  | ~$3.5           |
+| Deactivate Agent | ~35,000  | ~$2.7           |
 
 ## Supported Networks
 
 ### Mainnet
+
 - **Ethereum**: Full support with ENS integration
 - **Kaia (Cypress)**: Production deployment
 - **Solana**: In development
 
 ### Testnet
+
 - **Sepolia**: Ethereum testnet
 - **Kairos**: Kaia testnet
 - **Solana Devnet**: Testing environment
@@ -242,6 +253,7 @@ SAGE provides bindings for multiple programming languages:
 - **Java**: Web3j based bindings (coming soon)
 
 Example usage in Python:
+
 ```python
 from sage_contracts import SageRegistry
 
@@ -264,11 +276,13 @@ tx_hash = registry.register_agent(
 ## Security Considerations
 
 1. **Private Key Management**
+
    - Never commit private keys to version control
    - Use hardware wallets for production
    - Implement key rotation policies
 
 2. **Smart Contract Security**
+
    - Contracts are upgradeable through proxy pattern
    - Regular security audits recommended
    - Bug bounty program available
@@ -323,4 +337,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built by the SAGE Team**
-
