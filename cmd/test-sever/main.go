@@ -18,82 +18,29 @@ import (
 	a2a "github.com/a2aproject/a2a/grpc"
 	"github.com/test-go/testify/mock"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/sage-x-project/sage/crypto/keys"
 	sagedid "github.com/sage-x-project/sage/did"
 	"github.com/sage-x-project/sage/handshake"
 	sessioninit "github.com/sage-x-project/sage/internal"
 	"github.com/sage-x-project/sage/session"
-	"google.golang.org/protobuf/encoding/protojson"
 )
-
-type jsonrpcA2AClient struct{ url string }
-
-func (c *jsonrpcA2AClient) SendMessage(ctx context.Context, in *a2a.SendMessageRequest, _ ...grpc.CallOption) (*a2a.SendMessageResponse, error) {
-	params, _ := protojson.MarshalOptions{UseProtoNames: true}.Marshal(in)
-	body, _ := json.Marshal(map[string]any{
-		"jsonrpc": "2.0",
-		"method":  "SendMessage",
-		"params":  json.RawMessage(params),
-		"id":      1,
-	})
-	req, _ := http.NewRequestWithContext(ctx, "POST", c.url, bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	res, err := http.DefaultClient.Do(req)
-	if err != nil { return nil, err }
-	defer res.Body.Close()
-
-	var out struct {
-		Result json.RawMessage `json:"result"`
-		Error  *struct{ Code int; Message string } `json:"error"`
-		ID     any `json:"id"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&out); err != nil {
-		return nil, fmt.Errorf("jsonrpc decode: %w", err)
-	}
-	if out.Error != nil {
-		return nil, fmt.Errorf("jsonrpc error: %d %s", out.Error.Code, out.Error.Message)
-	}
-	var resp a2a.SendMessageResponse
-	if err := json.Unmarshal(out.Result, &resp); err != nil {
-		return nil, fmt.Errorf("result decode: %w", err)
-	}
-	return &resp, nil
+func unaryLog() grpc.UnaryServerInterceptor {
+  return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, h grpc.UnaryHandler) (any, error) {
+    start := time.Now()
+    var ctxID, taskID string
+    if r, ok := req.(*a2a.SendMessageRequest); ok && r.GetRequest() != nil {
+      ctxID = r.GetRequest().GetContextId()
+      taskID = r.GetRequest().GetTaskId()
+    }
+    resp, err := h(ctx, req)
+    log.Printf("[gRPC IN] %s ctx=%s task=%s code=%s dur=%s",
+      info.FullMethod, ctxID, taskID, status.Code(err), time.Since(start))
+    return resp, err
+  }
 }
-
-// 인터페이스 채우기(서버 outbound에서는 안 씀)
-func (c *jsonrpcA2AClient) SendStreamingMessage(context.Context, *a2a.SendMessageRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[a2a.StreamResponse], error) {
-	return nil, status.Errorf(codes.Unimplemented, "SendStreamingMessage not implemented")
-}
-func (c *jsonrpcA2AClient) GetTask(context.Context, *a2a.GetTaskRequest, ...grpc.CallOption) (*a2a.Task, error) {
-	return nil, status.Errorf(codes.Unimplemented, "GetTask not implemented")
-}
-func (c *jsonrpcA2AClient) CancelTask(context.Context, *a2a.CancelTaskRequest, ...grpc.CallOption) (*a2a.Task, error) {
-	return nil, status.Errorf(codes.Unimplemented, "CancelTask not implemented")
-}
-func (c *jsonrpcA2AClient) TaskSubscription(context.Context, *a2a.TaskSubscriptionRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[a2a.StreamResponse], error) {
-	return nil, status.Errorf(codes.Unimplemented, "TaskSubscription not implemented")
-}
-func (c *jsonrpcA2AClient) CreateTaskPushNotificationConfig(context.Context, *a2a.CreateTaskPushNotificationConfigRequest, ...grpc.CallOption) (*a2a.TaskPushNotificationConfig, error) {
-	return nil, status.Errorf(codes.Unimplemented, "CreateTaskPushNotificationConfig not implemented")
-}
-func (c *jsonrpcA2AClient) GetTaskPushNotificationConfig(context.Context, *a2a.GetTaskPushNotificationConfigRequest, ...grpc.CallOption) (*a2a.TaskPushNotificationConfig, error) {
-	return nil, status.Errorf(codes.Unimplemented, "GetTaskPushNotificationConfig not implemented")
-}
-func (c *jsonrpcA2AClient) ListTaskPushNotificationConfig(context.Context, *a2a.ListTaskPushNotificationConfigRequest, ...grpc.CallOption) (*a2a.ListTaskPushNotificationConfigResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "ListTaskPushNotificationConfig not implemented")
-}
-func (c *jsonrpcA2AClient) GetAgentCard(context.Context, *a2a.GetAgentCardRequest, ...grpc.CallOption) (*a2a.AgentCard, error) {
-	return nil, status.Errorf(codes.Unimplemented, "GetAgentCard not implemented")
-}
-func (c *jsonrpcA2AClient) DeleteTaskPushNotificationConfig(context.Context, *a2a.DeleteTaskPushNotificationConfigRequest, ...grpc.CallOption) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "DeleteTaskPushNotificationConfig not implemented")
-}
-
 func main() {
 	serverKeyPair, err := keys.GenerateEd25519KeyPair()
 	if err != nil { log.Fatalf("keygen: %v", err) }
@@ -112,7 +59,7 @@ func main() {
 
 	grpcLis, err := net.Listen("tcp", "127.0.0.1:50051")
 	if err != nil { log.Fatal(err) }
-	grpcSrv := grpc.NewServer()
+	grpcSrv := grpc.NewServer(grpc.ChainUnaryInterceptor(unaryLog()))
 	srv := handshake.NewServer(serverKeyPair, events, nil, multiResolver, nil)
 
 	a2a.RegisterA2AServiceServer(grpcSrv, srv)
@@ -121,29 +68,8 @@ func main() {
 		if err := grpcSrv.Serve(grpcLis); err != nil { log.Fatalf("grpc serve: %v", err) }
 	}()
 
-	conn, err := grpc.NewClient(grpcLis.Addr().String(), grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil { log.Fatalf("grpc self-dial: %v", err) }
-	grpcCli := a2a.NewA2AServiceClient(conn)
-
 	mux := http.NewServeMux()
 
-	// 수동 브리지: /v1/a2a:sendMessage → gRPC SendMessage
-	mux.HandleFunc("/v1/a2a:sendMessage", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost { http.Error(w, "method not allowed", 405); return }
-		defer r.Body.Close()
-    	raw, _ := io.ReadAll(r.Body)
-
-		var req a2a.SendMessageRequest
-		if err := protojson.Unmarshal(raw, &req); err != nil {
-			http.Error(w, "bad json: "+err.Error(), 400); return
-		}
-	
-		resp, err := grpcCli.SendMessage(r.Context(), &req)
-		if err != nil { http.Error(w, "grpc error: "+err.Error(), 500); return }
-		out, _ := protojson.MarshalOptions{UseProtoNames: true}.Marshal(resp)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(out)
-	})
 
 	// 2) 보호 API: kid/nonce → 세션 복호화(+만료/리플레이 차단)
 	mux.HandleFunc("/protected", func(w http.ResponseWriter, r *http.Request) {
@@ -219,12 +145,33 @@ func main() {
 	})
 
 
-	mux.HandleFunc("/debug/set-outbound", func(w http.ResponseWriter, r *http.Request) {
-		var in struct{ URL string }
-		_ = json.NewDecoder(r.Body).Decode(&in)
-		srv.SetOutbound(&jsonrpcA2AClient{url: in.URL})
+	// Allow wiring outbound to a peer's A2A gRPC inbox: POST {"Target":"127.0.0.1:6xxx"}
+	mux.HandleFunc("/debug/set-outbound-grpc", func(w http.ResponseWriter, r *http.Request) {
+		var in struct{ Target string }
+		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+			http.Error(w, "bad json: "+err.Error(), 400); return
+		}
+		if in.Target == "" {
+			http.Error(w, "missing Target", 400); return
+		}
+
+		// Dial peer inbox (gRPC) and set as outbound client.
+		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+		defer cancel()
+		outConn, err := grpc.DialContext(ctx, in.Target,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+			grpc.WithBlock(),
+		)
+		if err != nil {
+			http.Error(w, "dial outbound: "+err.Error(), 500); return
+		}
+
+		// IMPORTANT: keep a reference somewhere to close later if needed.
+		srv.SetOutbound(a2a.NewA2AServiceClient(outConn))
+		log.Printf("[OUTBOUND gRPC] set to %s", in.Target)
 		w.WriteHeader(204)
 	})
+
 
 	httpSrv := &http.Server{Addr: ":8080", Handler: mux}
 	log.Println("HTTP :8080  (POST /v1/a2a:sendMessage, /protected)")

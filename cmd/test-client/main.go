@@ -19,15 +19,15 @@ import (
 
 	a2a "github.com/a2aproject/a2a/grpc"
 	"github.com/google/uuid"
+	"github.com/sage-x-project/sage/core/message"
 	sagecrypto "github.com/sage-x-project/sage/crypto"
 	"github.com/sage-x-project/sage/crypto/formats"
 	"github.com/sage-x-project/sage/crypto/keys"
 	sagedid "github.com/sage-x-project/sage/did"
 	"github.com/sage-x-project/sage/handshake"
 	"github.com/sage-x-project/sage/session"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const base = "http://127.0.0.1:8080"
@@ -38,6 +38,74 @@ var (
 	gotEphCh = make(chan []byte, 1)
 	gotKidCh = make(chan string, 1)
 )
+
+// dialGRPC dials the A2A gRPC server.
+func dialGRPC(addr string) *grpc.ClientConn {
+    conn, err := grpc.NewClient(
+        addr,
+        grpc.WithTransportCredentials(insecure.NewCredentials()),
+    )
+    if err != nil {
+        log.Fatal(err)
+    }
+    return conn
+}
+
+// ---- gRPC inbox (client-side) ----
+// This server receives server's outbound A2A SendMessage calls.
+type peerInboxGRPC struct {
+    a2a.UnimplementedA2AServiceServer
+    clientPriv ed25519.PrivateKey
+    gotEphCh   chan []byte
+    gotKidCh   chan string
+}
+
+func (p *peerInboxGRPC) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*a2a.SendMessageResponse, error) {
+    // 1) Extract first DataPart as base64 bootstrap packet
+    m := in.GetRequest()
+    if m != nil && len(m.GetContent()) > 0 {
+        if dp := m.GetContent()[0].GetData(); dp != nil && dp.GetData() != nil {
+            if f := dp.Data.Fields["b64"]; f != nil {
+                b64s := f.GetStringValue()
+                pkt, _ := base64.RawURLEncoding.DecodeString(b64s)
+                plain, _ := keys.DecryptWithEd25519Peer(p.clientPriv, pkt)
+
+                // 2) Decode ResponseMessage (may include server eph JWK and/or KID)
+                var rm handshake.ResponseMessage
+                _ = json.Unmarshal(plain, &rm)
+
+                // server ephemeral key (optional)
+                if len(rm.EphemeralPubKey) > 0 && string(rm.EphemeralPubKey) != "null" {
+                    pubAny, err := formats.NewJWKImporter().ImportPublic([]byte(rm.EphemeralPubKey), sagecrypto.KeyFormatJWK)
+                    if err == nil {
+                        if pk, ok := pubAny.(*ecdh.PublicKey); ok && pk != nil {
+                            select { case p.gotEphCh <- pk.Bytes(): default: }
+                        }
+                    }
+                }
+                // KID (optional)
+                if rm.KeyID != "" {
+                    select { case p.gotKidCh <- rm.KeyID: default: }
+                }
+            }
+        }
+    }
+    // Simple ACK
+    return &a2a.SendMessageResponse{}, nil
+}
+
+// Start an A2A gRPC inbox server on a random loopback port.
+func startPeerInboxGRPC(priv ed25519.PrivateKey, gotEphCh chan []byte, gotKidCh chan string) (addr string, stop func()) {
+    lis, err := net.Listen("tcp", "127.0.0.1:0")
+    if err != nil { log.Fatalf("inbox listen: %v", err) }
+    gs := grpc.NewServer()
+    a2a.RegisterA2AServiceServer(gs, &peerInboxGRPC{
+        clientPriv: priv, gotEphCh: gotEphCh, gotKidCh: gotKidCh,
+    })
+    go gs.Serve(lis)
+    return lis.Addr().String(), func(){ gs.GracefulStop() }
+}
+
 
 func main() {
 	ctx := context.Background()
@@ -51,10 +119,14 @@ func main() {
 	var sp struct{ Pub string }
 	getJSON(base+"/debug/server-pub", &sp)
 	serverPub := mustB64(sp.Pub)
- 
-	// 3) 콜백 서버 시작 & 서버 outbound 대상 등록
-	rpcURL := startClientRPC()
-	postJSON(base+"/debug/set-outbound", map[string]string{"URL": rpcURL})
+	
+	conn := dialGRPC("127.0.0.1:50051")
+	defer conn.Close()
+	hcli := handshake.NewClient(conn, clientKeypair)
+
+	inboxAddr, stopInbox := startPeerInboxGRPC(clientPriv, gotEphCh, gotKidCh)
+	defer stopInbox()
+	postJSON(base+"/debug/set-outbound-grpc", map[string]string{"Target": inboxAddr})
 
 	meta := &sagedid.AgentMetadata{
 		DID:       myDID,
@@ -69,35 +141,51 @@ func main() {
 		"Active": meta.IsActive,
 		"PubB64": base64.RawURLEncoding.EncodeToString(meta.PublicKey.(ed25519.PublicKey)),
 	})
-
-
-	// 4) 핸드셰이크 3단계 — 테스트의 handshake.Client.* 로직을 HTTP에 맞게 그대로 구현
+	// handshake
 	ctxID := "ctx-" + uuid.NewString()
 	log.Printf("----- handshake -----")
 	// 4-1) Invitation (clear JSON) — ROLE_USER
 	log.Printf("Invitation ...")
-	sendInvitationHTTP(ctx, clientPriv, string(myDID), ctxID, map[string]any{"note": "hi"})
+	inv := handshake.InvitationMessage{
+		BaseMessage: message.BaseMessage{
+			ContextID: ctxID,
+		},
+	}
+	if _, err := hcli.Invitation(ctx, inv, string(myDID)); err != nil {
+		log.Fatalf("Invitation failed: %v", err)
+	}
 
 	// 4-2) Request (암호화 b64) — ROLE_USER
 	// X25519 eph JWK 만들고 → 서버 ed25519로 부트스트랩 암호화 → {"b64": ...}
+	log.Printf("Request ...")
 	eph := mustX25519()
 	jwk := must(formats.NewJWKExporter().ExportPublic(eph, sagecrypto.KeyFormatJWK))
+	
 	reqMsg := handshake.RequestMessage{
+		BaseMessage: message.BaseMessage{
+			ContextID: 	ctxID,    
+		},
 		EphemeralPubKey: json.RawMessage(jwk), 
 	}
-	reqPlain := must(json.Marshal(reqMsg))
-	packet := must(keys.EncryptWithEd25519Peer(serverPub, reqPlain))
-	b64Packet := base64.RawURLEncoding.EncodeToString(packet)
-	log.Printf("Request ...")
-	sendRequestHTTP(ctx, clientPriv, string(myDID), ctxID, b64Packet)
+	if _, err := hcli.Request(ctx, reqMsg, serverPub, string(myDID)); err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}	
 
 	// 4-3) Complete (clear JSON) — ROLE_USER
+	comMsg := handshake.CompleteMessage{
+		BaseMessage: message.BaseMessage{
+			ContextID: ctxID,
+		},
+	}
+	if _, err := hcli.Complete(ctx, comMsg, string(myDID)); err != nil {
+		log.Fatalf("Complete failed: %v", err)
+	}
 	log.Printf("Complete ... ✅")
-	sendCompleteHTTP(ctx, clientPriv, string(myDID), ctxID, map[string]any{})
+
+
 	log.Printf("----- handshake -----")
 	// 5) 서버 outbound: server eph / kid 수신 → 세션 생성
 	serverEphRaw := waitServerEph()
-
 	kid := waitKID()
 	log.Printf(`Get KID %s`, kid)
 	shared := must(eph.DeriveSharedSecret(serverEphRaw))
@@ -198,131 +286,6 @@ func main() {
 	log.Printf("protected#idle status=%d (expect 401) body=%s\n", resIdle.StatusCode, string(bIdle))
 }
 
-/* =======================
-   handshake.Client 동작을 HTTP로 그대로 옮긴 3개 함수
-   ======================= */
-
-func sendInvitationHTTP(ctx context.Context, priv ed25519.PrivateKey, did, ctxID string, payload map[string]any) {
-	data := mapToStruct(payload)
-	msg := &a2a.Message{
-		MessageId: uuid.NewString(),
-		ContextId: ctxID,
-		TaskId:    handshake.GenerateTaskID(handshake.Invitation),
-		Role:      a2a.Role_ROLE_USER,
-		Content:   []*a2a.Part{{Part: &a2a.Part_Data{Data: &a2a.DataPart{Data: data}}}},
-	}
-	meta := mustMeta(clientKeypair, did, msg) // deterministic marshal → ed25519 sign (테스트 동일)
-	sendToHTTP(ctx, msg, meta)
-}
-
-func sendRequestHTTP(ctx context.Context, priv ed25519.PrivateKey, did, ctxID, b64Packet string) {
-	data := structB64(b64Packet) 
-	msg := &a2a.Message{
-		MessageId: uuid.NewString(),
-		ContextId: ctxID,
-		TaskId:    handshake.GenerateTaskID(handshake.Request),
-		Role:      a2a.Role_ROLE_USER, 
-		Content:   []*a2a.Part{{Part: &a2a.Part_Data{Data: &a2a.DataPart{Data: data}}}},
-	}
-	meta := mustMeta(clientKeypair, did, msg)
-	sendToHTTP(ctx, msg, meta)
-}
-
-func sendCompleteHTTP(ctx context.Context, priv ed25519.PrivateKey, did, ctxID string, payload map[string]any) {
-	data := mapToStruct(payload)
-	msg := &a2a.Message{
-		MessageId: uuid.NewString(),
-		ContextId: ctxID,
-		TaskId:    handshake.GenerateTaskID(handshake.Complete),
-		Role:      a2a.Role_ROLE_USER, // 테스트와 동일
-		Content:   []*a2a.Part{{Part: &a2a.Part_Data{Data: &a2a.DataPart{Data: data}}}},
-	}
-	meta := mustMeta(clientKeypair, did, msg)
-	sendToHTTP(ctx, msg, meta)
-}
-
-func sendToHTTP(ctx context.Context, msg *a2a.Message, meta *structpb.Struct) {
-	payload := &a2a.SendMessageRequest{Request: msg, Metadata: meta}
-	b, _ := protojson.MarshalOptions{UseProtoNames: true}.Marshal(payload)
-	req, _ := http.NewRequestWithContext(ctx, "POST", base+"/v1/a2a:sendMessage", bytes.NewReader(b))
-	req.Header.Set("Content-Type", "application/json")
-	res := must(http.DefaultClient.Do(req))
-	defer res.Body.Close()
-	if res.StatusCode != 200 {
-		body, _ := io.ReadAll(res.Body)
-		log.Fatalf("SendMessage failed: %s", string(body))
-	}
-}
-
-/* ==============
-   서버 outbound(JSON-RPC) 수신 (/rpc)
-   ============== */
-
-func startClientRPC() string {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/rpc", func(w http.ResponseWriter, r *http.Request) {
-		var in struct {
-			JsonRPC string          `json:"jsonrpc"`
-			Method  string          `json:"method"`
-			Params  json.RawMessage `json:"params"`
-			ID      any             `json:"id"`
-		}
-		_ = json.NewDecoder(r.Body).Decode(&in)
-		if in.Method != "SendMessage" {
-			_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc":"2.0","error":map[string]any{"code":-32601,"message":"no method"},"id":in.ID})
-			return
-		}
-		var req a2a.SendMessageRequest
-		if err := protojson.Unmarshal(in.Params, &req); err != nil {
-			_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc":"2.0","error":map[string]any{"code":-32602,"message":"bad params: "+err.Error()},"id":in.ID})
-			return
-		}
-
-		// 서버가 보낸 Response(encrypted b64) 복호 → ResponseMessage
-		sb := req.GetRequest().GetContent()[0].GetData().GetData()
-		if sb != nil {
-			b64s := sb.Fields["b64"].GetStringValue()
-			packet, _ := base64.RawURLEncoding.DecodeString(b64s)
-			plain, _ := keys.DecryptWithEd25519Peer(clientPriv, packet)
-
-			var res handshake.ResponseMessage
-			_ = json.Unmarshal(plain, &res)
-			raw := bytes.TrimSpace(res.EphemeralPubKey)
-			if len(raw) > 0 && !bytes.Equal(raw, []byte("null")) {
-				imp := formats.NewJWKImporter()
-				pubAny, err := imp.ImportPublic(raw, sagecrypto.KeyFormatJWK)
-				if err != nil {
-					log.Printf("bad server eph JWK: %v", err)
-					_ = json.NewEncoder(w).Encode(map[string]any{
-						"jsonrpc": "2.0",
-						"error": map[string]any{"code": -32001, "message": "bad server eph JWK"},
-						"id": in.ID,
-					})
-					return
-				}
-				pk, ok := pubAny.(*ecdh.PublicKey)
-				if !ok || pk == nil {
-					log.Printf("unexpected eph key type: %T", pubAny)
-					_ = json.NewEncoder(w).Encode(map[string]any{
-						"jsonrpc": "2.0",
-						"error": map[string]any{"code": -32002, "message": "unexpected eph key type"},
-						"id": in.ID,
-					})
-					return
-				}
-				select { case gotEphCh <- pk.Bytes(): default: }
-			}
-			if res.KeyID != "" {
-				select { case gotKidCh <- res.KeyID: default: }
-			}
-		}
-		_ = json.NewEncoder(w).Encode(map[string]any{"jsonrpc":"2.0","result":map[string]string{"ok":"1"},"id":in.ID})
-	})
-
-	ln := mustListenAny()
-	go (&http.Server{Handler:mux}).Serve(ln)
-	return "http://"+ln.Addr().String()+"/rpc"
-}
 
 func waitServerEph() []byte {
 	select { case b := <-gotEphCh: return b; case <-time.After(5*time.Second): log.Fatal("server eph timeout"); return nil }
@@ -335,21 +298,8 @@ func waitKID() string {
 func getJSON(url string, out any){ res := must(http.Get(url)); defer res.Body.Close(); _=json.NewDecoder(res.Body).Decode(out) }
 func postJSON(url string, v any){ b,_ := json.Marshal(v); req,_ := http.NewRequest("POST", url, bytes.NewReader(b)); req.Header.Set("Content-Type","application/json"); res := must(http.DefaultClient.Do(req)); res.Body.Close() }
 func must[T any](v T, err error) T { if err!=nil { log.Fatal(err) }; return v }
-func mustListenAny() net.Listener { ln,err := net.Listen("tcp","127.0.0.1:0"); if err!=nil{log.Fatal(err)}; return ln }
 func mustB64(s string) ed25519.PublicKey { b,err:=base64.RawURLEncoding.DecodeString(s); if err!=nil { log.Fatal(err) }; return ed25519.PublicKey(b) }
 func mustX25519() *keys.X25519KeyPair { kp,err := keys.GenerateX25519KeyPair(); if err!=nil{log.Fatal(err)}; return kp.(*keys.X25519KeyPair) }
-func mapToStruct(m map[string]any) *structpb.Struct { st,_ := structpb.NewStruct(m); return st }
-func structB64(s string) *structpb.Struct { st,_ := structpb.NewStruct(map[string]any{"b64": s}); return st }
-func mustMeta(kp sagecrypto.KeyPair, did string, m *a2a.Message) *structpb.Struct {
-	bin,_ := proto.MarshalOptions{Deterministic:true}.Marshal(m)
-	sig, _ := kp.Sign(bin)
-	st,_ := structpb.NewStruct(map[string]any{
-		"signature": base64.RawURLEncoding.EncodeToString(sig),
-		"did": did,
-		"client_pub_b64": base64.RawURLEncoding.EncodeToString(kp.PublicKey().(ed25519.PublicKey) ),
-	})
-	return st
-}
 func sha256Sum(b []byte) []byte { h:=sha256.New(); h.Write(b); return h.Sum(nil) }
 func b64(b []byte) string { return base64.RawURLEncoding.EncodeToString(b) }
 func mustBytes(b []byte, err error) []byte {
