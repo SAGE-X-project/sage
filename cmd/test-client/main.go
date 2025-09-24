@@ -25,7 +25,7 @@ import (
 	"github.com/sage-x-project/sage/crypto/keys"
 	sagedid "github.com/sage-x-project/sage/did"
 	"github.com/sage-x-project/sage/handshake"
-	"github.com/sage-x-project/sage/session"
+	"github.com/sage-x-project/sage/handshake/session"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

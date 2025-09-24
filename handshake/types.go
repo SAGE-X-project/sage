@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/sage-x-project/sage/core/message"
-	"github.com/sage-x-project/sage/session"
+	"github.com/sage-x-project/sage/handshake/session"
 )
 
 type Phase int
