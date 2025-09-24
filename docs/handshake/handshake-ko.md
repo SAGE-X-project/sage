@@ -7,6 +7,12 @@ SAGE (Secure Agent Guarantee Engine) 프로젝트에서 Secure 세션 통신을 
 기존 [A2A 프로토콜](https://a2a-protocol.org/latest/topics/what-is-a2a/#a2a-request-lifecycle)의 확장 모듈로 grpc로 핸드쉐이크를 수행합니다.
 ![E2EE request lifecycle Diagram](../assets/SAGE-handshake.png)
 
+- **gRPC 기반 4단계 흐름**: Invitation→Request→Response→Complete 단계가 A2A 메시징과 통합되어 클라이언트·서버 모두 `handshake.Client`/`handshake.Server`로 동일한 파이프라인을 사용합니다.
+- **DID 서명 검증 & 부트스트랩 암호화**: 메타데이터의 DID와 Ed25519 서명을 검증하고, Request/Response 페이로드는 상대 DID 공개키로 암호화해 중간자 공격을 차단합니다.
+- **Ephemeral 키 합의와 세션 파생**: X25519 ephemeral 키를 교환해 HKDF-SHA256으로 공유 비밀을 파생하고, `session.SecureSession`이 ChaCha20-Poly1305 + HMAC-SHA256 채널을 초기화합니다.
+- **세션·논스 관리**: `session.Manager`가 세션 생성/삭제, `NonceCache`가 `kid`·`nonce` 조합을 추적해 재전송 공격을 방지합니다.
+- **이벤트 기반 확장성**: `Events` 인터페이스를 통해 OnInvitation/OnRequest/OnComplete 등 단계별 훅과 KeyID 발급, outbound 응답 자동화를 구현할 수 있습니다.
+
 **핸드쉐이크 4단계**
 
 요청 에이전트는 [A2A의 Agent Discovery](https://a2a-protocol.org/latest/topics/agent-discovery/) 로 DID를 알고 있으며, 두 에이전트의 DID는 모두 블록체인에 등록되어 있다고 가정합니다.
@@ -119,7 +125,7 @@ if _, err := agentA.Complete(ctx, comMsg, string(myDID)); if err != nil {
 
 ## 보안 고려사항
 
-- **DID 서명 검증 유지**: 서버는 `SendMessage`에서 메타데이터의 `did`·`signature` 필드를 요구하고 `verifySenderSignature`로 Ed25519 서명을 검증합니다. 메타데이터를 누락하면 `missing did`, `signature verification failed` 오류가 발생하므로 초대부터 완료까지 모든 메시지에 서명과 DID를 포함해야 합니다.
+- **DID 서명 검증 유지**: 서버는 `SendMessage`에서 메타데이터의 `did`·`signature` 필드를 요구하고 `verifySenderSignature`로 Ed25519 서명을 검증합니다. 메타데이터를 누락하면 `missing did`, `signature verification failed` 오류가 발생하므로 Invitation부터 Complete까지 모든 메시지에 서명과 DID를 포함해야 합니다.
 - **Ephemeral 키 관리**: `Events.AskEphemeral`은 32바이트 X25519 공개키(raw)와 JWK 버전을 반환하지만 개인키는 애플리케이션이 소유합니다. 이벤트 구현에서 개인키를 안전하게 보관하고, 재사용 없이 세션마다 새 키를 생성하세요.
 - **부트스트랩 암호화**: Request/Response 단계는 `keys.EncryptWithEd25519Peer`를 사용해 상대 DID 공개키로 암호화합니다. 상대 DID Document가 최신 상태인지, 회전된 신원 키가 반영되어 있는지 주기적으로 확인해야 합니다.
 - **세션 키 폐기**: `session.SecureSession.Close()`는 AEAD 키·HMAC 키·HKDF 시드를 모두 0으로 덮어씁니다. 세션 만료 시 반드시 `Manager.RemoveSession` 또는 `Close`를 호출해 키가 메모리에 남지 않도록 합니다.
@@ -131,21 +137,27 @@ if _, err := agentA.Complete(ctx, comMsg, string(myDID)); if err != nil {
 ### 일반적인 오류
 
 #### `missing did`
+
 - 메타데이터에 DID 필드가 없을 때 발생합니다. `signStruct` 호출 시 DID를 반드시 전달하고, 중간 프록시가 gRPC 메타데이터를 제거하지 않는지 확인하세요.
 
 #### `signature verification failed`
+
 - DID Document의 공개키와 실제 서명키가 다르거나 메시지가 변조된 경우입니다. DID 해석기 구성과 시계 동기화를 점검하고, 초대/요청 모두 동일한 TaskID와 ContextID를 사용하세요.
 
 #### `request decrypt: ...` / `response decrypt: ...`
+
 - 부트스트랩 암호화 해제 실패입니다. 상대 DID 공개키가 최신인지, Base64URL 인코딩이 손상되지 않았는지, 동일한 키 포맷(Ed25519)을 사용했는지 검토하세요.
 
 #### `invalid peer eph length`
+
 - 32바이트가 아닌 ephemeral 공개키가 전송됐을 때 발생합니다. `AskEphemeral` 구현이 X25519 raw 키를 반환하는지 확인하고, JWK 직렬화 시 여분의 padding 이슈가 없는지 확인합니다.
 
 #### `ask ephemeral: ...`
+
 - 이벤트 레이어에서 새 ephemeral 키 생성에 실패한 경우입니다. 키 관리 서비스 접근 권한을 확인하고, 장애 시 재시도·대체 경로를 마련하세요.
 
 #### `session expired`
+
 - `SecureSession`이 `MaxAge`, `IdleTimeout`, `MaxMessages` 정책을 위반한 상태입니다. 트래픽 패턴에 맞춰 세션 구성을 조정하거나 새 핸드쉐이크를 강제하세요.
 
 ## 고급 기능
