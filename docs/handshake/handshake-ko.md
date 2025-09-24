@@ -5,7 +5,8 @@ SAGE (Secure Agent Guarantee Engine) 프로젝트에서 Secure 세션 통신을 
 ## 주요 기능
 
 기존 [A2A 프로토콜](https://a2a-protocol.org/latest/topics/what-is-a2a/#a2a-request-lifecycle)의 확장 모듈로 grpc로 핸드쉐이크를 수행합니다.
-![E2EE request lifecycle Diagram](../assets/SAGE-handshake.png)
+
+<img src="../assets/SAGE-handshake.png" width="350" height="450"/>
 
 - **gRPC 기반 4단계 흐름**: Invitation→Request→Response→Complete 단계가 A2A 메시징과 통합되어 클라이언트·서버 모두 `handshake.Client`/`handshake.Server`로 동일한 파이프라인을 사용합니다.
 - **DID 서명 검증 & 부트스트랩 암호화**: 메타데이터의 DID와 Ed25519 서명을 검증하고, Request/Response 페이로드는 상대 DID 공개키로 암호화해 중간자 공격을 차단합니다.
@@ -56,6 +57,13 @@ go get github.com/sage-x-project/sage/handshake
 ├── types.go            # 핸드 쉐이크 인터페이스
 └── utils.go
 ```
+
+### 세션 관리 구성요소
+
+- `handshake/session/manager.go`: 세션 생성·조회·만료 처리와 `kid` 매핑을 담당하며, 백그라운드 정리를 위해 주기적 클린업 루프를 운용합니다.
+- `handshake/session/nonce.go`: `kid`별로 사용된 nonce를 TTL 기반으로 저장해 재전송 공격을 탐지합니다.
+- `handshake/session/session.go`: HKDF로 파생한 키를 이용해 ChaCha20-Poly1305 및 HMAC-SHA256 연산을 수행하고, 키 자료를 안전하게 폐기하는 로직을 포함합니다.
+- `handshake/session/metadata.go`: 세션 메타데이터 ID, 생성/만료 시각, 상태를 생성하며, 외부 감사나 관측 시스템과 연동 시 활용할 수 있습니다.
 
 ## 빌드 방법
 
@@ -125,45 +133,67 @@ if _, err := agentA.Complete(ctx, comMsg, string(myDID)); if err != nil {
 
 ## 보안 고려사항
 
-- **DID 서명 검증 유지**: 서버는 `SendMessage`에서 메타데이터의 `did`·`signature` 필드를 요구하고 `verifySenderSignature`로 Ed25519 서명을 검증합니다. 메타데이터를 누락하면 `missing did`, `signature verification failed` 오류가 발생하므로 Invitation부터 Complete까지 모든 메시지에 서명과 DID를 포함해야 합니다.
-- **Ephemeral 키 관리**: `Events.AskEphemeral`은 32바이트 X25519 공개키(raw)와 JWK 버전을 반환하지만 개인키는 애플리케이션이 소유합니다. 이벤트 구현에서 개인키를 안전하게 보관하고, 재사용 없이 세션마다 새 키를 생성하세요.
-- **부트스트랩 암호화**: Request/Response 단계는 `keys.EncryptWithEd25519Peer`를 사용해 상대 DID 공개키로 암호화합니다. 상대 DID Document가 최신 상태인지, 회전된 신원 키가 반영되어 있는지 주기적으로 확인해야 합니다.
-- **세션 키 폐기**: `session.SecureSession.Close()`는 AEAD 키·HMAC 키·HKDF 시드를 모두 0으로 덮어씁니다. 세션 만료 시 반드시 `Manager.RemoveSession` 또는 `Close`를 호출해 키가 메모리에 남지 않도록 합니다.
-- **논스 재사용 방지**: `session.NonceCache`는 `kid`-`nonce` 조합을 TTL 기반으로 추적합니다. HTTP Message Signatures에 nonce를 채우고, 각 메시지 처리 시 `Seen` 결과를 검사하여 재전송 공격을 차단하세요.
-- **미완료 컨텍스트 정리**: 서버는 Request 수신 시 `pending` 맵에 상대 ephemeral 키를 보관합니다. Complete가 도착하지 않으면 `cleanupLoop`가 만료된 컨텍스트를 제거하므로, TTL 및 정리 주기를 서비스 정책에 맞춰 조정하고 모니터링하세요.
+1. **DID 서명 검증 유지**: 서버는 `SendMessage`에서 메타데이터의 `did`·`signature` 필드를 요구하고 `verifySenderSignature`로 Ed25519 서명을 검증합니다. 메타데이터를 누락하면 `missing did`, `signature verification failed` 오류가 발생하므로 Invitation부터 Complete까지 모든 메시지에 서명과 DID를 포함해야 합니다.
+2. **Ephemeral 키 관리**: `Events.AskEphemeral`은 32바이트 X25519 공개키(raw)와 JWK 버전을 반환하지만 개인키는 애플리케이션이 소유합니다. 이벤트 구현에서 개인키를 안전하게 보관하고, 재사용 없이 세션마다 새 키를 생성하세요.
+3. **부트스트랩 암호화**: Request/Response 단계는 `keys.EncryptWithEd25519Peer`를 사용해 상대 DID 공개키로 암호화합니다. 상대 DID Document가 최신 상태인지, 회전된 신원 키가 반영되어 있는지 주기적으로 확인해야 합니다.
+4. **세션 키 폐기**: `session.SecureSession.Close()`는 AEAD 키·HMAC 키·HKDF 시드를 모두 0으로 덮어씁니다. 세션 만료 시 반드시 `Manager.RemoveSession` 또는 `Close`를 호출해 키가 메모리에 남지 않도록 합니다.
+5. **논스 재사용 방지**: `session.NonceCache`는 `kid`-`nonce` 조합을 TTL 기반으로 추적합니다. HTTP Message Signatures에 nonce를 채우고, 각 메시지 처리 시 `Seen` 결과를 검사하여 재전송 공격을 차단하세요.
+6. **미완료 컨텍스트 정리**: 서버는 Request 수신 시 `pending` 맵에 상대 ephemeral 키를 보관합니다. Complete가 도착하지 않으면 `cleanupLoop`가 만료된 컨텍스트를 제거하므로, TTL 및 정리 주기를 서비스 정책에 맞춰 조정하고 모니터링하세요.
 
 ## 오류 처리
 
 ### 일반적인 오류
 
-#### `missing did`
+**DID가 없음**
+
+```bash
+missing did
+```
 
 - 메타데이터에 DID 필드가 없을 때 발생합니다. `signStruct` 호출 시 DID를 반드시 전달하고, 중간 프록시가 gRPC 메타데이터를 제거하지 않는지 확인하세요.
 
-#### `signature verification failed`
+**서명 검증 실패**
 
-- DID Document의 공개키와 실제 서명키가 다르거나 메시지가 변조된 경우입니다. DID 해석기 구성과 시계 동기화를 점검하고, 초대/요청 모두 동일한 TaskID와 ContextID를 사용하세요.
+```bash
+signature verification failed
+```
 
-#### `request decrypt: ...` / `response decrypt: ...`
+- DID Document의 공개키와 실제 서명키가 다르거나 메시지가 변조된 경우입니다. DID resolve 구성과 time 동기화를 점검하고, Invitation/request 모두 동일한 TaskID와 ContextID를 사용하세요.
 
-- 부트스트랩 암호화 해제 실패입니다. 상대 DID 공개키가 최신인지, Base64URL 인코딩이 손상되지 않았는지, 동일한 키 포맷(Ed25519)을 사용했는지 검토하세요.
+**복호화 실패**
 
-#### `invalid peer eph length`
+```bash
+request decrypt: .../ response decrypt: ...
+```
 
-- 32바이트가 아닌 ephemeral 공개키가 전송됐을 때 발생합니다. `AskEphemeral` 구현이 X25519 raw 키를 반환하는지 확인하고, JWK 직렬화 시 여분의 padding 이슈가 없는지 확인합니다.
+- 부트스트랩 복호화 실패입니다. 상대 DID 공개키가 최신인지, Base64URL 인코딩이 손상되지 않았는지, 동일한 키 포맷(Ed25519)을 사용했는지 검토하세요.
 
-#### `ask ephemeral: ...`
+**세션 키 생성 실패**
+
+```bash
+ask ephemeral: ..
+```
 
 - 이벤트 레이어에서 새 ephemeral 키 생성에 실패한 경우입니다. 키 관리 서비스 접근 권한을 확인하고, 장애 시 재시도·대체 경로를 마련하세요.
 
-#### `session expired`
+**세션 만료**
+
+```bash
+session expired
+```
 
 - `SecureSession`이 `MaxAge`, `IdleTimeout`, `MaxMessages` 정책을 위반한 상태입니다. 트래픽 패턴에 맞춰 세션 구성을 조정하거나 새 핸드쉐이크를 강제하세요.
+
+## 정책 및 가시성
+
+- **세션 정책**: `session.Config`를 통해 MaxAge(절대 만료), IdleTimeout(유휴 만료), MaxMessages(허용 메시지 수)를 설정하여 장시간 연결·폭주를 제어합니다.
+- **로그 및 감사**: `handshake.Events`의 OnInvitation/OnRequest/OnComplete 콜백에서 DID 검증 결과, ephemeral 키 메타데이터, 세션 파라미터를 로깅하면 추후 감사 추적이 가능합니다.
+- **모니터링 지표**: 세션 생성/만료율, nonce 재사용 탐지 횟수, 서명 검증 실패율 등을 수집하면 보안 사고 감지와 성능 튜닝에 도움이 됩니다.
 
 ## 고급 기능
 
 - **KeyID 자동 발급**: 이벤트 구현이 `KeyIDBinder`를 함께 구현하면 서버가 Complete 이후 `IssueKeyID`를 호출해 `kid`를 즉시 응답에 포함시킵니다. 이후 HTTP Message Signatures의 `keyId`와 연동해 검증을 단순화할 수 있습니다.
-- **아웃바운드 응답 흐름**: `NewServer`에 outbound gRPC 클라이언트를 주입하면 Request 수신 직후 `sendResponseToPeer`로 Response를 푸시할 수 있습니다. 상대가 NAT 뒤에 있거나 비동기 협상이 필요한 경우 유용합니다.
+- **아웃바운드 응답 흐름**: `NewServer`에 outbound gRPC 클라이언트를 주입하면 Request 수신 직후 `sendRes.ponseToPeer`로 Response를 푸시할 수 있습니다. 상대가 NAT 뒤에 있거나 비동기 협상이 필요한 경우 유용합니다.
 - **세션 파생 단순화**: `session.Manager.EnsureSessionWithParams`는 shared secret과 컨텍스트 정보만으로 양쪽에서 동일한 세션 ID와 키를 생성합니다. 동일 세션 중복 생성을 방지하고 레이스를 줄입니다.
 - **재전송 창 제어**: `session.Config`의 `IdleTimeout`/`MaxMessages`를 업무 패턴에 맞춰 조정하고 `NonceCache` TTL을 메시지 수명보다 짧게 두면 재전송·폭주 공격을 세밀하게 제어할 수 있습니다.
 - **메타데이터/감사 연동**: `Events.OnRequest`와 `OnComplete` 콜백에 DID 검증 결과나 세션 파라미터를 기록해 감사 로그, SIEM, 정책 엔진과 쉽게 연동할 수 있습니다.

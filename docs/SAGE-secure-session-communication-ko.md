@@ -2,7 +2,7 @@
 
 SAGE 프로토콜은 에이전트간 통신에서 종단간 보안을 제공하기 위해 기존 [A2A 프로토콜](https://a2a-protocol.org/latest/topics/what-is-a2a/#a2a-request-lifecycle)에 핸드쉐이크 단계를 추가해 보호된 세션을 생성합니다. 세션이 성립되면 이후 모든 요청/응답은 대칭키 기반 AEAD 암호화로 보호되며, 헤더·메서드·경로 등의 메타데이터는 RFC 9421(HTTP Message Signatures) 스타일의 HMAC으로 무결성과 리플레이 방지를 보장합니다.
 
-![E2EE request lifecycle Diagram](./assets/SAGE-E2EE-request-lifecycle.png)
+<img src="./assets/SAGE-E2EE-request-lifecycle.png" width="350" height="450"/>
 
 ### DID를 이용한 신원보장
 
