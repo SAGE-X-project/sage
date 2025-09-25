@@ -2,7 +2,7 @@
 
 SAGE 프로토콜은 에이전트간 통신에서 종단간 보안을 제공하기 위해 기존 [A2A 프로토콜](https://a2a-protocol.org/latest/topics/what-is-a2a/#a2a-request-lifecycle)에 핸드쉐이크 단계를 추가해 보호된 세션을 생성합니다. 세션이 성립되면 이후 모든 요청/응답은 대칭키 기반 AEAD 암호화로 보호되며, 헤더·메서드·경로 등의 메타데이터는 RFC 9421(HTTP Message Signatures) 스타일의 HMAC으로 무결성과 리플레이 방지를 보장합니다.
 
-<img src="./assets/SAGE-E2EE-request-lifecycle.png" width="350" height="450"/>
+<img src="./assets/SAGE-E2EE-request-lifecycle.png" width="400" height="450"/>
 
 ### DID를 이용한 신원보장
 
@@ -16,15 +16,30 @@ SAGE 프로토콜은 에이전트간 통신에서 종단간 보안을 제공하�
 
 ### End-to-End Encryption
 
-E2EE 구성
+A2A E2EE 구성
 
-- 핸드쉐이크
-  4단계
+1. DID 등록 (DID Registry)  
+   각 체인별로 운영되는 DID Registry에 에이전트의 DID와 메타데이터를 제출합니다.
+   등록되는 메타데이터에는 보통 다음이 포함됩니다:
 
-  1. **Invitation** (agent A -> agent B): 세션 생성 요청
-  2. **Request** (agent A -> agent B): ephemeral 키 전송 (Ed25519 신원 키로 암호화 및 서명)
-  3. **Response** (agent B -> agent A): ephemeral 키 전송 (Ed25519 신원 키로 암호화 및 서명)
-  4. **Complete** (agent A -> agnet B): 세션 생성 후 세션에 해당하는 keyid(kid) 응답
+   - DID 식별자 (예: did:sage:ethereum:agent001)
+   - 공개키 (서명 검증 및 키 교환에 사용)
+
+   이 과정을 통해 에이전트의 신원(Identity) 과 연결 정보가 공개적으로 검증 가능하게 됩니다.
+
+2. DID 조회 및 Resolve (Agent Discovery → Registry)
+   통신을 시작할 때, 상대방 DID로 Registry를 Resolve 하여 다음 정보를 가져옵니다:
+
+   - 상대방 공개키(서명 검증·암호화에 사용)
+     이 과정은 A2A Agent Discovery 레이어가 담당하며, DID → PublicKey/Endpoint 매핑을 보장합니다.
+
+3. 핸드쉐이크
+   4단계
+
+4. **Invitation** (agent A -> agent B): 세션 생성 요청
+5. **Request** (agent A -> agent B): ephemeral 키 전송 (Ed25519 신원 키로 암호화 및 서명)
+6. **Response** (agent B -> agent A): ephemeral 키 전송 (Ed25519 신원 키로 암호화 및 서명)
+7. **Complete** (agent A -> agnet B): 세션 생성 후 세션에 해당하는 keyid(kid) 응답
 
 - 보안 세션 통신
   - 핸드쉐이크 완료 후, agent A와 agent B는 같은 shared secret을 기반으로 동일한 session seed/ID와 세션 키를 가집니다.
@@ -32,6 +47,10 @@ E2EE 구성
   - 각 요청은 리플레이 방지를 위해 고유 nonce를 포함하고, 서버는 (kid, nonce) 캐시로 재사용을 차단합니다.
   - 세션 수명은 정책(MaxAge, IdleTimeout, MaxMessages)으로 관리되며, 만료 시 kid 매핑과 관련 캐시가 정리됩니다.
   - 세션 내 모든 메시지는 세션 키로 암호화 및 서명되어 종단 간 보안이 보장됩니다.
+  - HTTP 메시지는 RFC 9421 서명 규칙에 따라 `Signature-Input`과 `Signature` 헤더로 교환한다.
+    1. 클라이언트는 메서드, 경로, 호스트, 날짜, 콘텐츠 다이제스트를 순서대로 결합해 서명 대상을 만든다.
+    2. 공유된 세션 키로 HMAC을 계산해 서명 값을 만들고, kid와 nonce를 헤더에 넣는다.
+    3. 서버는 동일한 입력을 재생성해 서명을 검증하고, nonce 재사용을 감시한다.
 
 ### Cryptography
 
