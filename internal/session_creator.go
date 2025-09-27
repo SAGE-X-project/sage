@@ -13,7 +13,7 @@ import (
 	"github.com/sage-x-project/sage/crypto/formats"
 	"github.com/sage-x-project/sage/crypto/keys"
 	"github.com/sage-x-project/sage/handshake"
-	"github.com/sage-x-project/sage/handshake/session"
+	"github.com/sage-x-project/sage/session"
 )
 
 // Creator implements handshake.Events and forwards to Manager.

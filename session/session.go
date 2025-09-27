@@ -25,6 +25,11 @@ type SecureSession struct {
     config       Config
     closed       bool
 
+    // Who initiated the HPKE/bootstrap for this session.
+	// The initiator uses C2S keys for outbound and S2C for inbound.
+	// The responder uses S2C for outbound and C2S for inbound.
+	initiator bool
+
     // Cryptographic materials
     // sessionSeed is the HKDF-Extract(PRK) derived from the ECDH shared secret and handshake salt.
     // It is NOT the raw ECDH output. Both peers must compute the same PRK.
@@ -32,6 +37,14 @@ type SecureSession struct {
     encryptKey   []byte
     signingKey   []byte
     aead        cipher.AEAD
+
+    // Direction-separated keys
+	outKey   []byte // AEAD key for outbound (Enc)
+	inKey    []byte // AEAD key for inbound  (Enc)
+	outSign  []byte // HMAC-SHA256 key for outbound signatures
+	inSign   []byte // HMAC-SHA256 key for inbound  signatures
+	aeadOut  cipher.AEAD
+	aeadIn   cipher.AEAD
 }
 
 // Params describes the handshake context required to deterministically
@@ -76,6 +89,61 @@ func NewSecureSession(sid string, sessionSeed []byte, config Config) (*SecureSes
     
     return sess, nil
 }
+
+
+// NewSecureSessionFromExporterWithRole creates a session from an HPKE exporter secret,
+// deriving direction-separated keys. 'initiator' is true for the side that ran HPKE Sender.
+func NewSecureSessionFromExporterWithRole(sid string, exporter []byte, initiator bool, cfg Config) (*SecureSession, error) {
+	if sid == "" || len(exporter) == 0 {
+		return nil, fmt.Errorf("invalid inputs")
+	}
+	now := time.Now()
+	sess := &SecureSession{
+		id:           sid,
+		createdAt:    now,
+		lastUsedAt:   now,
+		messageCount: 0,
+		config:       cfg,
+		sessionSeed:  append([]byte(nil), exporter...),
+		initiator:    initiator,
+	}
+	if err := sess.deriveDirectionalKeys(); err != nil {
+		return nil, fmt.Errorf("derive keys: %w", err)
+	}
+	if err := sess.initAEADs(); err != nil {
+		return nil, err
+	}
+	return sess, nil
+}
+
+// NewSecureSessionFromExporter creates a session directly from an HPKE exporter secret.
+// exporter must be the same 32-byte secret on both peers (e.g., HPKE Export(..., 32)).
+func NewSecureSessionFromExporter(sid string, exporter []byte, cfg Config) (*SecureSession, error) {
+    if sid == "" || len(exporter) == 0 {
+        return nil, fmt.Errorf("invalid inputs")
+    }
+    now := time.Now()
+    sess := &SecureSession{
+        id:           sid,
+        createdAt:    now,
+        lastUsedAt:   now,
+        messageCount: 0,
+        config:       cfg,
+        // We reuse sessionSeed slot to hold the HPKE exporter secret (PRK-like material).
+        // This matches the comment that sessionSeed is a PRK, not raw ECDH.
+        sessionSeed:  append([]byte(nil), exporter...),
+    }
+    if err := sess.deriveKeys(); err != nil {
+        return nil, fmt.Errorf("failed to derive keys: %w", err)
+    }
+    aead, err := chacha20poly1305.New(sess.encryptKey)
+    if err != nil {
+        return nil, fmt.Errorf("failed to create AEAD: %w", err)
+    }
+    sess.aead = aead
+    return sess, nil
+}
+
 
 // NewSecureSessionWithParams derives a sessionSeed (PRK) and a deterministic sessionID,
 // then constructs the SecureSession so both peers get identical id+keys.
@@ -150,6 +218,54 @@ func (s *SecureSession) deriveKeys() error {
     return nil
 }
 
+
+// deriveDirectionalKeys derives c2s/s2c enc+sign keys from sessionSeed using HKDF.
+// Salt = session ID (binds keys to session identity).
+func (s *SecureSession) deriveDirectionalKeys() error {
+	salt := []byte(s.id)
+	expand := func(info string, n int) ([]byte, error) {
+		r := hkdf.New(sha256.New, s.sessionSeed, salt, []byte(info))
+		out := make([]byte, n)
+		if _, err := io.ReadFull(r, out); err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+
+	// 32B for ChaCha20-Poly1305 key, 32B for HMAC-SHA256 key.
+	c2sEnc, err := expand("c2s|enc|v1", 32)
+	if err != nil { return err }
+	c2sSign, err := expand("c2s|sign|v1", 32)
+	if err != nil { return err }
+	s2cEnc, err := expand("s2c|enc|v1", 32)
+	if err != nil { return err }
+	s2cSign, err := expand("s2c|sign|v1", 32)
+	if err != nil { return err }
+
+	if s.initiator {
+		// Client(initiator) sends C2S and receives S2C
+		s.outKey, s.outSign = c2sEnc, c2sSign
+		s.inKey, s.inSign = s2cEnc, s2cSign
+	} else {
+		// Server(responder) sends S2C and receives C2S
+		s.outKey, s.outSign = s2cEnc, s2cSign
+		s.inKey, s.inSign = c2sEnc, c2sSign
+	}
+	return nil
+}
+
+func (s *SecureSession) initAEADs() error {
+	var err error
+	s.aeadOut, err = chacha20poly1305.New(s.outKey)
+	if err != nil {
+		return fmt.Errorf("create outbound AEAD: %w", err)
+	}
+	s.aeadIn, err = chacha20poly1305.New(s.inKey)
+	if err != nil {
+		return fmt.Errorf("create inbound AEAD: %w", err)
+	}
+	return nil
+}
 
 // hkdfExtractSHA256 returns PRK = HKDF-Extract(sha256, ikm, salt).
 func hkdfExtractSHA256(ikm, salt []byte) []byte {
@@ -349,6 +465,38 @@ func (s *SecureSession) DecryptAndVerify(cipher []byte, covered []byte, mac []by
 	s.UpdateLastUsed()
 	return plain, nil
 }
+
+// EncryptWithAAD encrypts plaintext with optional AEAD AAD.
+// Output: nonce || ciphertext
+func (s *SecureSession) EncryptWithAAD(plaintext, aad []byte) ([]byte, error) {
+    nonce := make([]byte, chacha20poly1305.NonceSize)
+    if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+        return nil, fmt.Errorf("failed to generate nonce: %w", err)
+    }
+    ct := s.aead.Seal(nil, nonce, plaintext, aad)
+    out := make([]byte, len(nonce)+len(ct))
+    copy(out, nonce)
+    copy(out[len(nonce):], ct)
+    s.UpdateLastUsed()
+    return out, nil
+}
+
+// DecryptWithAAD decrypts data produced by EncryptWithAAD.
+// Input: nonce || ciphertext
+func (s *SecureSession) DecryptWithAAD(data, aad []byte) ([]byte, error) {
+    if len(data) < chacha20poly1305.NonceSize {
+        return nil, fmt.Errorf("data too short")
+    }
+    nonce := data[:chacha20poly1305.NonceSize]
+    ct := data[chacha20poly1305.NonceSize:]
+    pt, err := s.aead.Open(nil, nonce, ct, aad)
+    if err != nil {
+        return nil, fmt.Errorf("decryption failed: %w", err)
+    }
+    s.UpdateLastUsed()
+    return pt, nil
+}
+
 
 func (s *SecureSession) SignCovered(covered []byte) []byte {
     m := hmac.New(sha256.New, s.signingKey)

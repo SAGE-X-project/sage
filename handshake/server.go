@@ -18,7 +18,7 @@ import (
 	"github.com/sage-x-project/sage/crypto/formats"
 	"github.com/sage-x-project/sage/crypto/keys"
 	"github.com/sage-x-project/sage/did"
-	"github.com/sage-x-project/sage/handshake/session"
+	"github.com/sage-x-project/sage/session"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
