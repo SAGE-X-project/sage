@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
@@ -180,14 +181,227 @@ func compareCapabilities(cap1, cap2 map[string]interface{}) bool {
 	if len(cap1) != len(cap2) {
 		return false
 	}
-	
+
 	// Marshal both to JSON for deep comparison
 	json1, err1 := json.Marshal(cap1)
 	json2, err2 := json.Marshal(cap2)
-	
+
 	if err1 != nil || err2 != nil {
 		return false
 	}
-	
+
 	return strings.EqualFold(string(json1), string(json2))
+}
+
+// DIDDocument represents a DID document on Ethereum (for testing)
+type DIDDocument struct {
+	ID         string    `json:"id"`
+	Controller string    `json:"controller"`
+	PublicKey  string    `json:"publicKey"`
+	Created    time.Time `json:"created"`
+	Updated    time.Time `json:"updated"`
+	Revoked    bool      `json:"revoked"`
+}
+
+// ParsedDID represents a parsed DID
+type ParsedDID struct {
+	Scheme  string // "did"
+	Method  string // "sage"
+	Network string // "ethereum"
+	Address string // Ethereum address
+}
+
+// Resolver handles DID resolution for Ethereum
+type Resolver struct {
+	cache    *DIDCache
+	useCache bool
+}
+
+// DIDCache provides caching for DID resolution
+type DIDCache struct {
+	mu       sync.RWMutex
+	items    map[string]*cacheItem
+	maxItems int
+	ttl      time.Duration
+}
+
+type cacheItem struct {
+	document  *DIDDocument
+	expiresAt time.Time
+}
+
+// NewResolver creates a new DID resolver
+func NewResolver() *Resolver {
+	return &Resolver{
+		useCache: false,
+	}
+}
+
+// NewResolverWithCache creates a new DID resolver with caching
+func NewResolverWithCache(maxItems int, ttl time.Duration) *Resolver {
+	return &Resolver{
+		cache: &DIDCache{
+			items:    make(map[string]*cacheItem),
+			maxItems: maxItems,
+			ttl:      ttl,
+		},
+		useCache: true,
+	}
+}
+
+// ParseDID parses a DID string into its components
+func (r *Resolver) ParseDID(did string) (*ParsedDID, error) {
+	// DID format: did:sage:ethereum:0x...
+	parts := strings.Split(did, ":")
+	if len(parts) != 4 {
+		return nil, fmt.Errorf("invalid DID format: expected 4 parts, got %d", len(parts))
+	}
+
+	if parts[0] != "did" {
+		return nil, fmt.Errorf("invalid DID: scheme must be 'did'")
+	}
+
+	if parts[1] != "sage" {
+		return nil, fmt.Errorf("invalid DID: method must be 'sage'")
+	}
+
+	if parts[2] != "ethereum" && parts[2] != "eth" {
+		return nil, fmt.Errorf("invalid network: must be 'ethereum' or 'eth'")
+	}
+
+	// Validate Ethereum address
+	address := parts[3]
+	if !isValidEthereumAddress(address) {
+		return nil, fmt.Errorf("invalid Ethereum address: %s", address)
+	}
+
+	return &ParsedDID{
+		Scheme:  parts[0],
+		Method:  parts[1],
+		Network: parts[2],
+		Address: address,
+	}, nil
+}
+
+// Resolve resolves a DID to its document
+func (r *Resolver) Resolve(ctx context.Context, did string) (*DIDDocument, error) {
+	// Parse DID first
+	parsedDID, err := r.ParseDID(did)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check cache if enabled
+	if r.useCache && r.cache != nil {
+		if doc := r.cache.Get(did); doc != nil {
+			return doc, nil
+		}
+	}
+
+	// In a real implementation, this would query the blockchain
+	// For now, return a mock document
+	doc := &DIDDocument{
+		ID:         did,
+		Controller: parsedDID.Address,
+		PublicKey:  "mock-public-key", // Would be fetched from blockchain
+		Created:    time.Now(),
+		Updated:    time.Now(),
+		Revoked:    false,
+	}
+
+	// Store in cache if enabled
+	if r.useCache && r.cache != nil {
+		r.cache.Set(did, doc)
+	}
+
+	return doc, nil
+}
+
+// isValidEthereumAddress checks if a string is a valid Ethereum address
+func isValidEthereumAddress(address string) bool {
+	// Remove 0x prefix if present
+	addr := strings.TrimPrefix(address, "0x")
+	addr = strings.TrimPrefix(addr, "0X")
+
+	// Check length (40 hex characters)
+	if len(addr) != 40 {
+		return false
+	}
+
+	// Check if all characters are hex
+	for _, c := range addr {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// DIDCache methods
+
+// Get retrieves a document from cache
+func (c *DIDCache) Get(did string) *DIDDocument {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	item, exists := c.items[did]
+	if !exists {
+		return nil
+	}
+
+	// Check if expired
+	if time.Now().After(item.expiresAt) {
+		// Don't delete here to avoid write lock, let cleanup handle it
+		return nil
+	}
+
+	return item.document
+}
+
+// Set stores a document in cache
+func (c *DIDCache) Set(did string, doc *DIDDocument) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Simple eviction: remove oldest if at capacity
+	if len(c.items) >= c.maxItems {
+		// Find and remove oldest item
+		var oldestDID string
+		var oldestTime time.Time
+		for did, item := range c.items {
+			if oldestTime.IsZero() || item.expiresAt.Before(oldestTime) {
+				oldestDID = did
+				oldestTime = item.expiresAt
+			}
+		}
+		if oldestDID != "" {
+			delete(c.items, oldestDID)
+		}
+	}
+
+	c.items[did] = &cacheItem{
+		document:  doc,
+		expiresAt: time.Now().Add(c.ttl),
+	}
+}
+
+// Clear removes all items from cache
+func (c *DIDCache) Clear() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.items = make(map[string]*cacheItem)
+}
+
+// Cleanup removes expired items from cache
+func (c *DIDCache) Cleanup() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	now := time.Now()
+	for did, item := range c.items {
+		if now.After(item.expiresAt) {
+			delete(c.items, did)
+		}
+	}
 }
