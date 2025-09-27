@@ -6,13 +6,12 @@ SAGE (Secure Agent Guarantee Engine) 프로젝트에서 Secure 세션 통신을 
 
 기존 [A2A 프로토콜](https://a2a-protocol.org/latest/topics/what-is-a2a/#a2a-request-lifecycle)의 확장 모듈로 grpc로 핸드쉐이크를 수행합니다.
 
-<img src="../assets/SAGE-handshake.png" width="350" height="450"/>
+<img src="../assets/SAGE-handshake.png" width="450" height="500"/>
 
-- **gRPC 기반 4단계 흐름**: Invitation→Request→Response→Complete 단계가 A2A 메시징과 통합되어 클라이언트·서버 모두 `handshake.Client`/`handshake.Server`로 동일한 파이프라인을 사용합니다.
 - **DID 서명 검증 & 부트스트랩 암호화**: 메타데이터의 DID와 Ed25519 서명을 검증하고, Request/Response 페이로드는 상대 DID 공개키로 암호화해 중간자 공격을 차단합니다.
-- **Ephemeral 키 합의와 세션 파생**: X25519 ephemeral 키를 교환해 HKDF-SHA256으로 공유 비밀을 파생하고, `session.SecureSession`이 ChaCha20-Poly1305 + HMAC-SHA256 채널을 초기화합니다.
-- **세션·논스 관리**: `session.Manager`가 세션 생성/삭제, `NonceCache`가 `kid`·`nonce` 조합을 추적해 재전송 공격을 방지합니다.
-- **이벤트 기반 확장성**: `Events` 인터페이스를 통해 OnInvitation/OnRequest/OnComplete 등 단계별 훅과 KeyID 발급, outbound 응답 자동화를 구현할 수 있습니다.
+- **Ephemeral 키 합의와 세션 수립**: X25519 임시 교환으로 공유 비밀(shared secret)을 얻고 세션내에서 사용할 서명 키와 암호화 키를 파생합니다. 이 키로 세션 내 메세지를 암호화 및 서명하여 메세지를 보호합니다.
+- **세션·논스 관리**: 생성·조회·만료가 정책에 따라 자동 관리되고, 요청마다 고유 식별 정보(예: 키 ID·논스)를 점검해 재사용(Replay)을 막습니다. 세션이 끝나면 관련 자료는 안전하게 폐기됩니다.
+- **이벤트 기반 확장성**: `Events` 인터페이스를 통해 OnInvitation/OnRequest/OnComplete 등 단계별 훅과 키 식별자 발급, outbound 응답 자동화를 구현할 수 있습니다.
 
 **핸드쉐이크 4단계**
 
@@ -33,9 +32,7 @@ DID Document를 통해 상대의 공개키를 조회(Resolve)하며, 신원 서�
 4. Complete(agent A -> agent B)
    - 두 에이전트는 shared secret 을 갖게 되었으므로, 요청 에이전트 A는 complete를 전송합니다.
    - 두 에이전트는 shared secret을 이용해 만든 의사 난수를 seed로하여 세션 아이디를 계산하며, 요청 에이전트와 상대 에이전트는 동일한 세션 아이디를 갖는 세션을 생성합니다.
-   - 세션은 무작위 문자열 kid에 바인딩되며, 상대 에이전트 B는 complete 응답으로 kid를 요청 에이전트에게 전송합니다. 요청 에이전트 A는 B로부터 수신한 kid를 세션에 바인딩합니다. 이는 이후 HTTP Message Signatures(RFC 9421)의 keyId 필드에 들어가 두 에이전트가 메세지 송수신 시 서명 검증시 세션 조회에 사용됩니다.
-
-핸드쉐이크 과정은 Invitation 단게를 제외하고 전부 암호화되어 이루어지며
+   - 세션은 무작위 문자열 키 식별자 kid에 바인딩되며, 상대 에이전트 B는 complete 응답으로 kid를 요청 에이전트에게 전송합니다. 요청 에이전트 A는 B로부터 수신한 kid를 세션에 바인딩합니다. 이는 이후 HTTP Message Signatures(RFC 9421)의 keyId 필드에 들어가 두 에이전트가 메세지 송수신 시 서명 검증 시 세션 조회에 사용됩니다.
 
 ## 설치
 
@@ -60,8 +57,8 @@ go get github.com/sage-x-project/sage/handshake
 
 ### 세션 관리 구성요소
 
-- `handshake/session/manager.go`: 세션 생성·조회·만료 처리와 `kid` 매핑을 담당하며, 백그라운드 정리를 위해 주기적 클린업 루프를 운용합니다.
-- `handshake/session/nonce.go`: `kid`별로 사용된 nonce를 TTL 기반으로 저장해 재전송 공격을 탐지합니다.
+- `handshake/session/manager.go`: 세션 생성·조회·만료 등 세션 관리 담당하며, 백그라운드 정리를 위해 주기적 클린업 루프를 운용합니다.
+- `handshake/session/nonce.go`: 세션 별로 사용된 nonce를 TTL 기반으로 저장해 재전송 공격을 탐지합니다.
 - `handshake/session/session.go`: HKDF로 파생한 키를 이용해 ChaCha20-Poly1305 및 HMAC-SHA256 연산을 수행하고, 키 자료를 안전하게 폐기하는 로직을 포함합니다.
 - `handshake/session/metadata.go`: 세션 메타데이터 ID, 생성/만료 시각, 상태를 생성하며, 외부 감사나 관측 시스템과 연동 시 활용할 수 있습니다.
 
@@ -133,12 +130,11 @@ if _, err := agentA.Complete(ctx, comMsg, string(myDID)); if err != nil {
 
 ## 보안 고려사항
 
-1. **DID 서명 검증 유지**: 서버는 `SendMessage`에서 메타데이터의 `did`·`signature` 필드를 요구하고 `verifySenderSignature`로 Ed25519 서명을 검증합니다. 메타데이터를 누락하면 `missing did`, `signature verification failed` 오류가 발생하므로 Invitation부터 Complete까지 모든 메시지에 서명과 DID를 포함해야 합니다.
-2. **Ephemeral 키 관리**: `Events.AskEphemeral`은 32바이트 X25519 공개키(raw)와 JWK 버전을 반환하지만 개인키는 애플리케이션이 소유합니다. 이벤트 구현에서 개인키를 안전하게 보관하고, 재사용 없이 세션마다 새 키를 생성하세요.
-3. **부트스트랩 암호화**: Request/Response 단계는 `keys.EncryptWithEd25519Peer`를 사용해 상대 DID 공개키로 암호화합니다. 상대 DID Document가 최신 상태인지, 회전된 신원 키가 반영되어 있는지 주기적으로 확인해야 합니다.
-4. **세션 키 폐기**: `session.SecureSession.Close()`는 AEAD 키·HMAC 키·HKDF 시드를 모두 0으로 덮어씁니다. 세션 만료 시 반드시 `Manager.RemoveSession` 또는 `Close`를 호출해 키가 메모리에 남지 않도록 합니다.
-5. **논스 재사용 방지**: `session.NonceCache`는 `kid`-`nonce` 조합을 TTL 기반으로 추적합니다. HTTP Message Signatures에 nonce를 채우고, 각 메시지 처리 시 `Seen` 결과를 검사하여 재전송 공격을 차단하세요.
-6. **미완료 컨텍스트 정리**: 서버는 Request 수신 시 `pending` 맵에 상대 ephemeral 키를 보관합니다. Complete가 도착하지 않으면 `cleanupLoop`가 만료된 컨텍스트를 제거하므로, TTL 및 정리 주기를 서비스 정책에 맞춰 조정하고 모니터링하세요.
+1. **Ephemeral 키 관리**: `Events.AskEphemeral`은 32바이트 X25519 공개키(raw)와 JWK 버전을 반환하지만 개인키는 애플리케이션이 소유합니다. 이벤트 구현에서 개인키를 안전하게 보관하고, 재사용 없이 세션마다 새 키를 생성하세요.
+2. **부트스트랩 암호화**: Request/Response 단계는 `keys.EncryptWithEd25519Peer`를 사용해 상대 DID 공개키로 암호화합니다. 상대 DID Document가 최신 상태인지, 회전된 신원 키가 반영되어 있는지 주기적으로 확인해야 합니다.
+3. **세션 키 폐기**: `session.SecureSession.Close()`는 AEAD 키·HMAC 키·HKDF 시드를 모두 0으로 덮어씁니다. 세션 만료 시 반드시 `Manager.RemoveSession` 또는 `Close`를 호출해 키가 메모리에 남지 않도록 합니다.
+4. **논스 재사용 방지**: `session.NonceCache`는 `kid`-`nonce` 조합을 TTL 기반으로 추적합니다. HTTP Message Signatures에 nonce를 채우고, 각 메시지 처리 시 `Seen` 결과를 검사하여 재전송 공격을 차단하세요.
+5. **미완료 컨텍스트 정리**: 서버는 Request 수신 시 `pending` 맵에 상대 ephemeral 키를 보관합니다. Complete가 도착하지 않으면 `cleanupLoop`가 만료된 컨텍스트를 제거하므로, TTL 및 정리 주기를 서비스 정책에 맞춰 조정하고 모니터링하세요.
 
 ## 오류 처리
 
