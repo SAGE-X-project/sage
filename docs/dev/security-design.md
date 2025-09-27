@@ -78,26 +78,26 @@ flowchart TB
 
 ```
 ┌────────────────────────────────────────────┐
-│               Application                  │
+│             Application Layer              │
 │  - 입력 검증, 권한/정책, 비즈 로직                │
 ├────────────────────────────────────────────┤
-│        Message Signatures (RFC 9421)       │
+│               Message Layer                │
 │  - 세션키(HMAC-SHA256)로 RFC 9421 서명        │
 │  - 메시지 무결성                              │
 │  - 타임스탬 프검증                             │
 │  - kid + nonce 재사용 방지                    │
 ├────────────────────────────────────────────┤
-│            Session (AEAD/HMAC)             │
+│               Session Layer                │
 │  - HKDF-SHA256로 파생된 세션키                 │
 │  - ChaCha20-Poly1305 암·복호                 │
 │  - kid 매핑, nonce 캐시, 만료정책               │
 ├────────────────────────────────────────────┤
-│           Handshake (A2A 확장)              │
+│               Handshake Layer              │
 │  - 세션 키 교환, 공유비밀 생성                   │
 │  - 부트스트랩 암호화(DID 공개키)                 │
 │  - DID 서명 검증으로 신원 바인딩                 │
 ├────────────────────────────────────────────┤
-│      Identity & Discovery (DID) Layer      │
+│              Identity Layer                │
 │  - DID 기반 인증                             │
 │  - 공개키 관리                                │
 │  - 권한 검증                                  │
@@ -114,7 +114,7 @@ flowchart TB
 | 컴포넌트                  | 역할        | 보안 기능                                  |
 | ------------------------- | ----------- | ------------------------------------------ |
 | DID Resolver              | 신원 확인   | DID Document 검증, 캐시 보안               |
-| Handshake Orchestrator    | 세션 생성   | 장기 신원키, 단기 세션키 분리              |
+| Handshake                 | 세션 생성   | 장기 신원키, 단기 세션키 분리              |
 | Session Manager           | 세션 관리   | 암호화 통신 제공                           |
 | Replay Guard(Nonce Cache) | 재전송 방지 | 단위 사용 이력·TTL 관리, 중복 탐지 시 거부 |
 | Signature Verifier        | 서명 검증   | RFC 9421 검증, 알고리즘 화이트리스트       |

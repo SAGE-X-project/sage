@@ -2,7 +2,7 @@
 
 SAGE 프로토콜은 종단간 보안을 제공하기 위해 기존 [에이전트 간 통신(Agent-to-Agent, A2A) 프로토콜](https://a2a-protocol.org/latest/topics/what-is-a2a/#a2a-request-lifecycle)에 핸드쉐이크 단계를 추가하여 보호된 세션을 생성합니다. 세션이 성립되면 이후 모든 요청/응답은 대칭키 기반 AEAD 암호화로 보호되며, 헤더·메서드·경로 등의 메타데이터는 RFC 9421(HTTP Message Signatures) 스타일의 HMAC으로 무결성과 리플레이 방지를 보장합니다.
 
-<img src="../assets/SAGE-E2EE-request-lifecycle.png" width="450" height="500"/>
+<img src="../assets/SAGE-E2EE-request-lifecycle.png" width="450" height="580"/>
 
 ### DID를 이용한 신원보장
 
@@ -21,30 +21,24 @@ SAGE 프로토콜은 종단간 보안을 제공하기 위해 기존 [에이전�
 
 A2A E2EE 구성
 
-1. DID 등록 (DID Registry)  
-   각 체인별로 운영되는 DID Registry에 에이전트의 DID와 메타데이터를 제출합니다.
-   등록되는 메타데이터에는 보통 다음이 포함됩니다:
+1. **DID 등록 (DID Registry)**
 
-   - DID 식별자 (예: did:sage:ethereum:agent001)
-   - 공개키 (서명 검증 및 키 교환에 사용)
+   - 각 체인별로 운영되는 DID Registry에 에이전트의 DID와 메타데이터를 제출합니다.등록되는 메타데이터는 공개키를 포함합니다.
+   - 이 과정을 통해 에이전트의 신원(Identity) 과 연결 정보가 공개적으로 검증 가능하게 됩니다.
 
-   이 과정을 통해 에이전트의 신원(Identity) 과 연결 정보가 공개적으로 검증 가능하게 됩니다.
+2. **DID 조회 및 Resolve (Agent Discovery → Registry)**
 
-2. DID 조회 및 Resolve (Agent Discovery → Registry)
-   통신을 시작할 때, 상대방 DID로 Registry를 Resolve 하여 다음 정보를 가져옵니다:
+   - 통신을 시작할 때, 상대방 DID로 Registry를 Resolve 하여 상대방 공개키 정보를 가져옵니다.
+   - 이 과정은 A2A Agent Discovery가 담당하며, DID → PublicKey/Endpoint 매핑을 보장합니다.
 
-   - 상대방 공개키(서명 검증·암호화에 사용)
-     이 과정은 A2A Agent Discovery 레이어가 담당하며, DID → PublicKey/Endpoint 매핑을 보장합니다.
-
-3. 핸드쉐이크
-   4단계
+3. **4 way-핸드쉐이크**
 
    1. **Invitation** (agent A -> agent B): 세션 생성 요청
    2. **Request** (agent A -> agent B): ephemeral 키 전송 (Ed25519 신원 키로 암호화 및 서명)
    3. **Response** (agent B -> agent A): ephemeral 키 전송 (Ed25519 신원 키로 암호화 및 서명)
    4. **Complete** (agent A -> agnet B): 세션 생성 후 세션키 식별자 keyid(kid) 응답
 
-4. 보안 세션 통신  
+4. **보안 세션 통신**  
    핸드셰이크가 완료되면 에이전트 A와 B는 동일한 shared secret을 공유하고, 이를 바탕으로 같은 ID를 갖는 세션을 생성 합니다. 이후 모든 요청/응답은 이 세션 키로 보호됩니다.
 
    **RFC 9421 (HTTP Message Signatures)**
