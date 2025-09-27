@@ -370,6 +370,13 @@ func (s *SecureSession) GetConfig() Config {
 // Encrypt encrypts plaintext using ChaCha20-Poly1305.
 // Output format: nonce || ciphertext.
 func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
+    if s.aeadOut != nil { // directional path
+		return s.EncryptOutbound(plaintext)
+	}
+	// legacy single-AEAD path
+	if s.aead == nil {
+		return nil, fmt.Errorf("session not initialized: AEAD is nil")
+	}
     // Generate random 12-byte nonce
     nonce := make([]byte, chacha20poly1305.NonceSize)
     if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
@@ -391,6 +398,13 @@ func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
 // Decrypt decrypts data produced by Encrypt.
 // Expects input format: nonce || ciphertext.
 func (s *SecureSession) Decrypt(data []byte) ([]byte, error) {
+    if s.aeadIn != nil { // directional path
+		return s.DecryptInbound(data)
+	}
+	// legacy single-AEAD path
+	if s.aead == nil {
+		return nil, fmt.Errorf("session not initialized: AEAD is nil")
+	}
     if len(data) < chacha20poly1305.NonceSize {
         return nil, fmt.Errorf("data too short")
     }
@@ -469,6 +483,13 @@ func (s *SecureSession) DecryptAndVerify(cipher []byte, covered []byte, mac []by
 // EncryptWithAAD encrypts plaintext with optional AEAD AAD.
 // Output: nonce || ciphertext
 func (s *SecureSession) EncryptWithAAD(plaintext, aad []byte) ([]byte, error) {
+    if s.aeadOut != nil {
+		return s.EncryptWithAADOutbound(plaintext, aad)
+	}
+	if s.aead == nil {
+		return nil, fmt.Errorf("session not initialized: AEAD is nil")
+	}
+    
     nonce := make([]byte, chacha20poly1305.NonceSize)
     if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
         return nil, fmt.Errorf("failed to generate nonce: %w", err)
@@ -484,6 +505,13 @@ func (s *SecureSession) EncryptWithAAD(plaintext, aad []byte) ([]byte, error) {
 // DecryptWithAAD decrypts data produced by EncryptWithAAD.
 // Input: nonce || ciphertext
 func (s *SecureSession) DecryptWithAAD(data, aad []byte) ([]byte, error) {
+    if s.aeadIn != nil {
+		return s.DecryptWithAADInbound(data, aad)
+	}
+	if s.aead == nil {
+		return nil, fmt.Errorf("session not initialized: AEAD is nil")
+	}
+    
     if len(data) < chacha20poly1305.NonceSize {
         return nil, fmt.Errorf("data too short")
     }
@@ -514,4 +542,83 @@ func (s *SecureSession) VerifyCovered(covered, sig []byte) error {
     }
     s.UpdateLastUsed()
     return nil
+}
+
+
+// EncryptOutbound encrypts plaintext using the *outbound* AEAD.
+// Output: nonce || ciphertext
+func (s *SecureSession) EncryptOutbound(plaintext []byte) ([]byte, error) {
+	if s.aeadOut == nil {
+		return nil, fmt.Errorf("session not initialized: outbound AEAD is nil")
+	}
+	nonce := make([]byte, chacha20poly1305.NonceSize)
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	}
+	ct := s.aeadOut.Seal(nil, nonce, plaintext, nil)
+
+	out := make([]byte, len(nonce)+len(ct))
+	copy(out, nonce)
+	copy(out[len(nonce):], ct)
+
+	s.UpdateLastUsed()
+	return out, nil
+}
+
+// DecryptInbound decrypts data using the *inbound* AEAD.
+// Input: nonce || ciphertext
+func (s *SecureSession) DecryptInbound(data []byte) ([]byte, error) {
+	if s.aeadIn == nil {
+		return nil, fmt.Errorf("session not initialized: inbound AEAD is nil")
+	}
+	if len(data) < chacha20poly1305.NonceSize {
+		return nil, fmt.Errorf("data too short")
+	}
+	nonce := data[:chacha20poly1305.NonceSize]
+	ct := data[chacha20poly1305.NonceSize:]
+
+	pt, err := s.aeadIn.Open(nil, nonce, ct, nil)
+	if err != nil {
+		return nil, fmt.Errorf("decryption failed: %w", err)
+	}
+	s.UpdateLastUsed()
+	return pt, nil
+}
+
+// EncryptWithAADOutbound encrypts with AAD using *outbound* AEAD.
+func (s *SecureSession) EncryptWithAADOutbound(plaintext, aad []byte) ([]byte, error) {
+	if s.aeadOut == nil {
+		return nil, fmt.Errorf("session not initialized: outbound AEAD is nil")
+	}
+	nonce := make([]byte, chacha20poly1305.NonceSize)
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	}
+	ct := s.aeadOut.Seal(nil, nonce, plaintext, aad)
+
+	out := make([]byte, len(nonce)+len(ct))
+	copy(out, nonce)
+	copy(out[len(nonce):], ct)
+
+	s.UpdateLastUsed()
+	return out, nil
+}
+
+// DecryptWithAADInbound decrypts with AAD using *inbound* AEAD.
+func (s *SecureSession) DecryptWithAADInbound(data, aad []byte) ([]byte, error) {
+	if s.aeadIn == nil {
+		return nil, fmt.Errorf("session not initialized: inbound AEAD is nil")
+	}
+	if len(data) < chacha20poly1305.NonceSize {
+		return nil, fmt.Errorf("data too short")
+	}
+	nonce := data[:chacha20poly1305.NonceSize]
+	ct := data[chacha20poly1305.NonceSize:]
+
+	pt, err := s.aeadIn.Open(nil, nonce, ct, aad)
+	if err != nil {
+		return nil, fmt.Errorf("decryption failed: %w", err)
+	}
+	s.UpdateLastUsed()
+	return pt, nil
 }

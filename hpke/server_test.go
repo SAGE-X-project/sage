@@ -87,7 +87,7 @@ func (m *mockResolver) Search(ctx context.Context, criteria sagedid.SearchCriter
 func dialBuf(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn {
 	t.Helper()
 	conn, err := grpc.NewClient(
-		"bufnet",
+		"passthrough:///bufnet",
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
 			return lis.Dial()
@@ -153,11 +153,9 @@ func Test_HPKE_Grpc_EndToEnd(t *testing.T) {
 
 	// gRPC 클라이언트 연결 + A2A stub
 	conn := dialBuf(t, lis)
-	a2aClient := a2a.NewA2AServiceClient(conn)
-
 
 	// HPKE 클라이언트 래퍼
-	cli := NewClient(a2aClient, multiResolver, clientKeypair, clientDID, DefaultInfoBuilder{}, cliMgr)
+	cli := NewClient(conn, multiResolver, clientKeypair, clientDID, DefaultInfoBuilder{}, cliMgr)
 
 	// ---- Run Complete(): HPKE Init + 세션 생성 + kid 바인딩 ----
 	ctxID := "ctx-" + uuid.NewString()

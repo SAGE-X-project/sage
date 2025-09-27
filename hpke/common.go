@@ -152,7 +152,6 @@ func makeAckTag(exporter []byte, ctxID, nonce, kid string) []byte {
 
 // HPKEInitPayload
 type HPKEInitPayload struct {
-	ContextID string
 	InitDID   string
 	RespDID   string
 	Info      []byte
@@ -169,9 +168,6 @@ func ParseHPKEInitPayload(st *structpb.Struct) (HPKEInitPayload, error) {
 	var out HPKEInitPayload
 
 	var err error
-	if out.ContextID, err = getString(st, "contextId"); err != nil {
-		return HPKEInitPayload{}, err
-	}
 	if out.InitDID, err = getString(st, "initDid"); err != nil {
 		return HPKEInitPayload{}, err
 	}

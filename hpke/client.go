@@ -12,6 +12,7 @@ import (
 	"github.com/sage-x-project/sage/crypto/keys"
 	"github.com/sage-x-project/sage/did"
 	"github.com/sage-x-project/sage/session"
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 
 	a2a "github.com/a2aproject/a2a/grpc"
@@ -27,10 +28,10 @@ type Client struct {
 	sessMgr *session.Manager // EnsureSessionWithExporter/BindKeyID 사용
 }
 
-func NewClient(a2aCli a2a.A2AServiceClient, resolver did.Resolver, key sagecrypto.KeyPair, did string, ib InfoBuilder, sessMgr *session.Manager) *Client {
+func NewClient(conn grpc.ClientConnInterface, resolver did.Resolver, key sagecrypto.KeyPair, did string, ib InfoBuilder, sessMgr *session.Manager) *Client {
 	if ib == nil { ib = DefaultInfoBuilder{} }
 	return &Client{ 
-		a2a: a2aCli, 
+		a2a:  a2a.NewA2AServiceClient(conn),
 		key: key,
 		resolver: resolver, 
 		DID: did, 

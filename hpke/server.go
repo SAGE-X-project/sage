@@ -108,16 +108,16 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		return nil, fmt.Errorf("ts out of window") 
 	}
 
-	if !s.nonces.checkAndMark(pl.ContextID + "|" + pl.Nonce) { 
+	if !s.nonces.checkAndMark(msg.GetContextId() + "|" + pl.Nonce) { 
 		return nil, fmt.Errorf("replay detected") 
 	}
 
 	// 3) Canonical info/exportCtx 일치 검사
-	cInfo := s.info.BuildInfo(pl.ContextID, pl.InitDID, pl.RespDID)
+	cInfo := s.info.BuildInfo(msg.GetContextId(), pl.InitDID, pl.RespDID)
 	if string(cInfo) != string(pl.Info) { 
 		return nil, fmt.Errorf("info mismatch") 
 	}
-	cExport := s.info.BuildExportContext(pl.ContextID)
+	cExport := s.info.BuildExportContext(msg.GetContextId())
 	if string(cExport) != string(pl.ExportCtx) { 
 		return nil, fmt.Errorf("exportCtx mismatch") 
 	}
@@ -140,18 +140,18 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 	// 6) kid 발급/바인딩
 	kid := "kid-" + uuid.NewString()
 	if s.binder != nil {
-		if v, ok := s.binder.IssueKeyID(pl.ContextID); ok && v != "" { kid = v }
+		if v, ok := s.binder.IssueKeyID(msg.GetContextId()); ok && v != "" { kid = v }
 	}
 	s.sessMgr.BindKeyID(kid, sid)
 
 	// 7) **키 확인(HMAC 태그)** — SID/seed 미노출
 	// ackTag = HMAC(HKDF(exporter,"ack-key"), "hpke-ack|ctxID|nonce|kid")
-	ackTag := makeAckTag(se, pl.ContextID, pl.Nonce, kid)
+	ackTag := makeAckTag(se, msg.GetContextId(), pl.Nonce, kid)
 
 	// 8) 동기 응답(Task.Metadata): kid + ackTagB64 만
 	meta := map[string]any{
 		"note":     "hpke_session_ready",
-		"context":  pl.ContextID,
+		"context":  msg.GetContextId(),
 		"initDid":  pl.RespDID,
 		"respDid":  pl.RespDID,
 		"kid":      kid,
@@ -160,7 +160,7 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 	}
 	task := &a2a.Task{
 		Id:        msg.TaskId,
-		ContextId: pl.ContextID,
+		ContextId: msg.GetContextId(),
 		Metadata:  toStruct(meta),
 		Status:    &a2a.TaskStatus{ State: a2a.TaskState_TASK_STATE_SUBMITTED, Timestamp: timestamppb.Now() },
 	}
