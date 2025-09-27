@@ -4,11 +4,11 @@
 
 # 개발 목적
 
-현존하는 AI 에이전트 간 통신(Agent-to-Agent, A2A) 프로토콜은 보안 측면의 표준이 부족하여, 중간자 공격(Man-in-the-Middle), 요청 위조, 데이터 변조 등의 위험에 노출되어 있습니다 [solo.io](https://www.solo.io/blog/deep-dive-mcp-and-a2a-attack-vectors-for-ai-agents#:~:text=The%20Model%20Context%20Protocol%20,a%20bumpy%20ride%20so%20far). 본 프로젝트의 목적은 **블록체인 기반 분산신원확인(DID)**과 **RFC 9421 표준에 따른 HTTP 부분 서명 기술**을 도입함으로써, AI 에이전트 간 통신에서 발생할 수 있는 보안 취약점을 해결하는 것입니다. 이를 통해 각 에이전트의 신원을 **암호학적으로 검증**하고, 통신 메시지의 **무결성**과 **신뢰성**을 보장하고자 합니다.
+현존하는 AI 에이전트 간 통신(Agent-to-Agent, A2A) 프로토콜은 보안 측면의 표준이 부족하여, 중간자 공격(Man-in-the-Middle), 요청 위조, 데이터 변조 등의 위험에 노출되어 있습니다 [solo.io](https://www.solo.io/blog/deep-dive-mcp-and-a2a-attack-vectors-for-ai-agents#:~:text=The%20Model%20Context%20Protocol%20,a%20bumpy%20ride%20so%20far). 본 프로젝트의 목적은 **블록체인 기반 분산신원확인(DID)**과 **RFC 9421 표준에 따른 HTTP 부분 서명 기술**을 도입함으로써, 보호된 세션 통신을 통해 AI 에이전트 간 통신에서 발생할 수 있는 보안 취약점을 해결하는 것입니다. 이를 통해 각 에이전트의 신원을 **암호학적으로 검증**하고, 통신 메시지의 **무결성**과 **신뢰성**을 보장하고자 합니다.
 
 # 프로젝트 소개
 
-본 프로젝트는 오픈소스 형태로 개발되며, AI 에이전트들 사이의 안전한 통신을 위한 **A2A 통신 프로토콜 및 보안 모듈**을 구현합니다. 구체적으로 각 에이전트는 블록체인 기반 DID를 부여받아 **고유한 분산 ID와 공개키**를 가지며, 상호 통신 시 **메시지에 디지털 서명**을 포함합니다. 서명 기술은 2024년 표준화된 **RFC 9421 (HTTP Message Signatures)**를 참고하여 구현되며, HTTP 메시지의 일부만으로도 서명이 가능하도록 지원합니다. 부분 서명을 활용하면, 중간 프록시나 게이트웨이를 거치는 동안에도 중요한 메시지 요소의 무결성을 유지할 수 있습니다 [datatracker.ietf.org](https://datatracker.ietf.org/doc/html/rfc9421#section-abstract-1%23:~:text=This%20document%20describes%20a%20mechanism,%C2%B6).
+본 프로젝트는 오픈소스 형태로 개발되며, AI 에이전트들 사이의 안전한 통신을 위한 **A2A 통신 프로토콜 및 보안 모듈**을 구현합니다. 구체적으로 각 에이전트는 블록체인 기반 DID를 부여받아 **고유한 분산 ID와 공개키**를 가지며, 통신 전 핸드쉐이크를 통해 안전한 세션을 생성하고, 세션 내 통신은 암호화 되어 종단간 보안을 보장합니다. 상호 통신 시에는 **메시지에 디지털 서명**을 포함합니다. 서명 기술은 2024년 표준화된 **RFC 9421 (HTTP Message Signatures)**를 참고하여 구현되며, HTTP 메시지의 일부만으로도 서명이 가능하도록 지원합니다. 부분 서명을 활용하면, 중간 프록시나 게이트웨이를 거치는 동안에도 중요한 메시지 요소의 무결성을 유지할 수 있습니다 [datatracker.ietf.org](https://datatracker.ietf.org/doc/html/rfc9421#section-abstract-1%23:~:text=This%20document%20describes%20a%20mechanism,%C2%B6).
 또한 A2A 프로토콜과 함께 **MCP (Model Context Protocol) 서버**를 연동하여, 에이전트가 툴이나 자원에 접근할 때도 동일한 DID 기반 인증과 서명을 사용하도록 확장합니다. 이런 구조를 통해 **요청자가 실제 신뢰할 수 있는 AI 에이전트인지를 검증**하고, **메시지가 전송 중 변조되지 않았음을 확인**할 수 있습니다. 모든 통신은 TLS 등 전송계층 암호화와 병행하여 이루어지며, **서명 검증 실패 시 요청 거부** 등의 정책을 적용하여 보안을 강화합니다.
 
 # 기대효과
@@ -17,6 +17,7 @@
 
 - **에이전트 신원 보장**: 블록체인 DID를 통해 각 에이전트를 고유하게 식별하고 인증함으로써, 악의적인 에이전트의 **신분 위장 및 가장**을 방지합니다 [linkedin.com](https://www.linkedin.com/pulse/blockchain-secret-agentic-ai-success-benjamin-manning-tgmif#:~:text=Blockchain%20enhances%20AI%20security%20by,enabling). 이를 통해 오직 신뢰할 수 있는 에이전트들만이 통신에 참여하도록 제어할 수 있습니다.
 - **메시지 무결성 향상**: RFC 9421 기반의 서명은 메시지가 생성된 이후 도착할 때까지 내용이 변경되지 않았음을 보장하여, 중간자 공격이나 데이터 변조 시도를 무력화합니다. 서명이 검증된 메시지만 처리함으로써 **오작동이나 오남용을 예방**할 수 있습니다.
+- **종단간 보안**: 매 세션마다 새로운 임시 키를 생성하고 이를 기반으로 암호화 통신을 수행하여 메시지 기밀성과 무결성을 보장합니다. 세션 종료 시 키를 즉시 폐기해 키 재사용을 차단하고, **전방향 비밀성(PFS)**을 확보합니다.
 - **보안 표준 선도**: 제안된 방식은 현재 A2A/MCP 표준에서 부족한 보안 요소를 보완하여 업계 표준으로 발전할 가능성이 있습니다 [solo.io](https://www.solo.io/blog/deep-dive-mcp-and-a2a-attack-vectors-for-ai-agents#:~:text=The%20Model%20Context%20Protocol%20,a%20bumpy%20ride%20so%20far). 오픈소스로 공개함으로써 많은 개발자들이 이를 활용하거나 기여하여 **멀티에이전트 시스템 보안 수준**을 전체적으로 끌어올릴 수 있습니다.
 - **투명성과 신뢰성**: 모든 에이전트의 DID와 서명이 블록체인 및 검증 로그에 기록되므로, 에이전트들의 행동을 추적하고 감사할 수 있습니다 [house-of-communication.com](https://www.house-of-communication.com/de/en/brands/plan-net/landingpages/agentic-services/ai-agents-transparency-and-security.html#:~:text=claims%3F%20Serviceplan%20Group%20has%20developed,the%20reliability%20of%20the%20system). 이는 **에이전트 간 상호작용의 투명성**을 높이고, 문제 발생 시 **책임 소재를 규명**하는 데에도 도움을 줍니다 [house-of-communication.com](https://www.house-of-communication.com/de/en/brands/plan-net/landingpages/agentic-services/ai-agents-transparency-and-security.html#:~:text=claims%3F%20Serviceplan%20Group%20has%20developed,the%20reliability%20of%20the%20system). 나아가 기업 환경에서 멀티에이전트 시스템을 도입할 때 신뢰 구축에 기여할 것입니다.
 
@@ -37,7 +38,6 @@
 - **기타**: Cryptography (RSA/ECDSA/EdDSA 서명 알고리즘), Web Backend (Node.js 또는 Python, Golang 기반 서버), REST/HTTP, TLS 보안, GitHub 협업, CI/CD 등
 
 ⠀*(상기 기술 스택은 프로젝트 진행에 따라 유동적으로 조정될 수 있습니다.)*
-
 
 # 참여 방법
 

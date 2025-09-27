@@ -1,10 +1,13 @@
 module github.com/sage-x-project/sage
 
-go 1.23.0
+go 1.24.4
+
+toolchain go1.24.5
 
 require (
 	filippo.io/edwards25519 v1.0.0-rc.1
 	github.com/a2aproject/a2a v0.2.6
+	github.com/cloudflare/circl v1.6.1
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
 	github.com/ethereum/go-ethereum v1.16.1
 	github.com/gagliardetto/solana-go v1.12.0
