@@ -34,7 +34,7 @@ func TestSecureSessionLifecycle(t *testing.T) {
         ct, mac, err := sess.EncryptAndSign(plaintext, covered)
         require.NoError(t, err)
 
-        // 변경: DecryptAndVerify(cipher, covered, mac)
+        // Changed: DecryptAndVerify(cipher, covered, mac)
         pt, err := sess.DecryptAndVerify(ct, covered, mac)
         require.NoError(t, err)
         require.Equal(t, plaintext, pt)
@@ -180,12 +180,12 @@ func TestSecureSession_WithParamsSuite(t *testing.T) {
 		tampered[0] ^= 0xFF
 		require.NotEqual(t, sig1, hmacSHA256(s2.signingKey, tampered))
 
-		// 다른 컨텍스트 → 다른 키
+		// Different context → different key
 		s3, err := NewSecureSessionWithParams(shared, Params{ContextID: "ctx-OTHER", SelfEph: e2, PeerEph: e1, Label: "v1"}, Config{})
 		require.NoError(t, err)
 		require.NotEqual(t, s1.signingKey, s3.signingKey)
 
-		// 라벨만 달라도 다른 키
+		// Even different label results in different key
 		s4, err := NewSecureSessionWithParams(shared, Params{ContextID: "ctx", SelfEph: e2, PeerEph: e1, Label: "v2"}, Config{})
 		require.NoError(t, err)
 		require.NotEqual(t, s1.signingKey, s4.signingKey)

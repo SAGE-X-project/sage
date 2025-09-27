@@ -1,6 +1,8 @@
 module github.com/sage-x-project/sage
 
-go 1.23.0
+go 1.24.4
+
+toolchain go1.24.7
 
 require (
 	filippo.io/edwards25519 v1.0.0-rc.1

@@ -106,7 +106,7 @@ func TestAgent_RequestToken(t *testing.T) {
 	})
 
 	t.Run("expired token", func(t *testing.T) {
-		token := signJWT(t, rsaPriv, jwk.Kid, issuer, audience, sub, -1*time.Minute, nil) // 이미 만료
+		token := signJWT(t, rsaPriv, jwk.Kid, issuer, audience, sub, -1*time.Minute, nil) // already expired
 		_, err := v.Verify(ctx, token, issuer)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "expired")
@@ -148,7 +148,7 @@ func TamperSignatureRS256(tok string) (string, error) {
     if len(sigBytes) == 0 {
         return "", fmt.Errorf("empty sig")
     }
-    sigBytes[0] ^= 0x01 // 첫 바이트 1비트 뒤집기 (확실히 검증 실패)
+    sigBytes[0] ^= 0x01 // flip first byte's bit (ensure verification failure)
     parts[2] = base64.RawURLEncoding.EncodeToString(sigBytes)
     return strings.Join(parts, "."), nil
 }

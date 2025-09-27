@@ -32,7 +32,7 @@ type Session interface {
 
 // Config defines session policies and limits
 type Config struct {
-    MaxAge       time.Duration `json:"maxAge"`       // absolute expiration (ex: 1시간)
+    MaxAge       time.Duration `json:"maxAge"`       // absolute expiration (ex: 1 hour)
     IdleTimeout  time.Duration `json:"idleTimeout"`  // idle timeout (ex: 10munutes) 
     MaxMessages  int           `json:"maxMessages"`
 }

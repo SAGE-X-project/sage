@@ -65,7 +65,7 @@ func (c *jsonrpcA2AClient) SendMessage(ctx context.Context, in *a2a.SendMessageR
 	return &resp, nil
 }
 
-// 인터페이스 채우기(서버 outbound에서는 안 씀)
+// Interface implementation (not used for server outbound)
 func (c *jsonrpcA2AClient) SendStreamingMessage(context.Context, *a2a.SendMessageRequest, ...grpc.CallOption) (grpc.ServerStreamingClient[a2a.StreamResponse], error) {
 	return nil, status.Errorf(codes.Unimplemented, "SendStreamingMessage not implemented")
 }
@@ -127,7 +127,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// 수동 브리지: /v1/a2a:sendMessage → gRPC SendMessage
+	// Manual bridge: /v1/a2a:sendMessage → gRPC SendMessage
 	mux.HandleFunc("/v1/a2a:sendMessage", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost { http.Error(w, "method not allowed", 405); return }
 		defer r.Body.Close()
@@ -145,7 +145,7 @@ func main() {
 		w.Write(out)
 	})
 
-	// 2) 보호 API: kid/nonce → 세션 복호화(+만료/리플레이 차단)
+	// 2) Protected API: kid/nonce → session decryption (+ expiration/replay blocking)
 	mux.HandleFunc("/protected", func(w http.ResponseWriter, r *http.Request) {
 		dump2, _ := httputil.DumpRequest(r, true)
 		log.Println("----------  received packet -----------")
@@ -211,7 +211,7 @@ func main() {
 			PublicKey: ed25519.PublicKey(b),
 		}
 
-		// mock 기대치 주입 (ctx는 뭐가 올지 몰라서 Any)
+		// Inject mock expectations (ctx uses Any since we don't know what will come)
 		ethResolver.
 			On("Resolve", mock.Anything, did).
 			Return(meta, nil) // 호출 횟수 제한 X (포크라 Maybe 없으니 이대로)

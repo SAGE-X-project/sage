@@ -42,17 +42,17 @@ var (
 func main() {
 	ctx := context.Background()
 
-	// 0) 내 DID/서명키 (테스트와 동일하게 ed25519)
+	// 0) My DID/signing key (ed25519, same as test)
 	clientKeypair, _ = keys.GenerateEd25519KeyPair()
 	myDID := sagedid.AgentDID("did:sage:ethereum:agent001")
 	clientPriv = clientKeypair.PrivateKey().(ed25519.PrivateKey) 
 
-	// 1) 서버 ed25519 공개키(부트스트랩 암호화용)
+	// 1) Server ed25519 public key (for bootstrap encryption)
 	var sp struct{ Pub string }
 	getJSON(base+"/debug/server-pub", &sp)
 	serverPub := mustB64(sp.Pub)
  
-	// 3) 콜백 서버 시작 & 서버 outbound 대상 등록
+	// 3) Start callback server & register server outbound target
 	rpcURL := startClientRPC()
 	postJSON(base+"/debug/set-outbound", map[string]string{"URL": rpcURL})
 
@@ -71,15 +71,15 @@ func main() {
 	})
 
 
-	// 4) 핸드셰이크 3단계 — 테스트의 handshake.Client.* 로직을 HTTP에 맞게 그대로 구현
+	// 4) 3-step handshake — implementing handshake.Client.* logic from tests adapted for HTTP
 	ctxID := "ctx-" + uuid.NewString()
 	log.Printf("----- handshake -----")
 	// 4-1) Invitation (clear JSON) — ROLE_USER
 	log.Printf("Invitation ...")
 	sendInvitationHTTP(ctx, clientPriv, string(myDID), ctxID, map[string]any{"note": "hi"})
 
-	// 4-2) Request (암호화 b64) — ROLE_USER
-	// X25519 eph JWK 만들고 → 서버 ed25519로 부트스트랩 암호화 → {"b64": ...}
+	// 4-2) Request (encrypted b64) — ROLE_USER
+	// Create X25519 eph JWK → bootstrap encryption with server ed25519 → {"b64": ...}
 	eph := mustX25519()
 	jwk := must(formats.NewJWKExporter().ExportPublic(eph, sagecrypto.KeyFormatJWK))
 	reqMsg := handshake.RequestMessage{
@@ -95,7 +95,7 @@ func main() {
 	log.Printf("Complete ... ✅")
 	sendCompleteHTTP(ctx, clientPriv, string(myDID), ctxID, map[string]any{})
 	log.Printf("----- handshake -----")
-	// 5) 서버 outbound: server eph / kid 수신 → 세션 생성
+	// 5) Server outbound: receive server eph / kid → create session
 	serverEphRaw := waitServerEph()
 
 	kid := waitKID()
@@ -112,7 +112,7 @@ func main() {
 	sess, sid, _, err := session.NewManager().EnsureSessionWithParams(params, nil)
 	if err != nil { log.Fatal(err) }
 	log.Printf(`Get session ID %s`, sid)
-	// 6) /protected 호출: 1회 성공 → 2회(다른 nonce) 401 (서버 MaxMessages=1 가정)
+	// 6) Call /protected: 1st success → 2nd (different nonce) 401 (assuming server MaxMessages=1)
 	body := []byte(`{"op":"ping","ts":1} TEST MESSAGE`)
 	cipher := mustBytes(sess.Encrypt(body))
 
@@ -171,10 +171,10 @@ func main() {
 	bReplay, _ := io.ReadAll(resReplay.Body)
 	log.Printf("protected#replay status=%d (expect 401), body=%s", resReplay.StatusCode, string(bReplay))
 
-	// IdleTimeout 경과 대기 (서버 IdleTimeout 2s 가정)
+	// Wait for IdleTimeout to pass (assuming server IdleTimeout 2s)
 	time.Sleep(2500 * time.Millisecond) // IdleTimeout + epsilon
 	body2 := []byte(`{"op":"after-idle","ts":2}`)
-	cipher2 := mustBytes(sess.Encrypt(body2)) // 클라 세션은 안만료여도 OK(서버가 만료 판단)
+	cipher2 := mustBytes(sess.Encrypt(body2)) // Client session OK even if not expired (server judges expiration)
 
 	nonce2 := "n-" + uuid.NewString()
 	date2  := time.Now().UTC().Format(time.RFC1123)
@@ -199,7 +199,7 @@ func main() {
 }
 
 /* =======================
-   handshake.Client 동작을 HTTP로 그대로 옮긴 3개 함수
+   3 functions that directly translate handshake.Client behavior to HTTP
    ======================= */
 
 func sendInvitationHTTP(ctx context.Context, priv ed25519.PrivateKey, did, ctxID string, payload map[string]any) {
@@ -234,7 +234,7 @@ func sendCompleteHTTP(ctx context.Context, priv ed25519.PrivateKey, did, ctxID s
 		MessageId: uuid.NewString(),
 		ContextId: ctxID,
 		TaskId:    handshake.GenerateTaskID(handshake.Complete),
-		Role:      a2a.Role_ROLE_USER, // 테스트와 동일
+		Role:      a2a.Role_ROLE_USER, // Same as test
 		Content:   []*a2a.Part{{Part: &a2a.Part_Data{Data: &a2a.DataPart{Data: data}}}},
 	}
 	meta := mustMeta(clientKeypair, did, msg)
@@ -255,7 +255,7 @@ func sendToHTTP(ctx context.Context, msg *a2a.Message, meta *structpb.Struct) {
 }
 
 /* ==============
-   서버 outbound(JSON-RPC) 수신 (/rpc)
+   Server outbound (JSON-RPC) reception (/rpc)
    ============== */
 
 func startClientRPC() string {
@@ -278,7 +278,7 @@ func startClientRPC() string {
 			return
 		}
 
-		// 서버가 보낸 Response(encrypted b64) 복호 → ResponseMessage
+		// Decrypt Response (encrypted b64) sent by server → ResponseMessage
 		sb := req.GetRequest().GetContent()[0].GetData().GetData()
 		if sb != nil {
 			b64s := sb.Fields["b64"].GetStringValue()

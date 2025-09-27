@@ -234,7 +234,7 @@ func (v *verifier) parseAndVerifyWithKey(tokenString string, pubKey crypto.Publi
 	}
 	return jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		alg := t.Method.Alg()
-		// Auth0 기본은 RS256. 필요 시 PS256 허용.
+		// Auth0 default is RS256. Allow PS256 if needed.
 		if alg != "RS256" && alg != "PS256" {
 			return nil, fmt.Errorf("unexpected signing method: %s", alg)
 		}
