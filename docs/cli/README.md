@@ -157,11 +157,11 @@ echo "Signature: $SIGNATURE"
 
 # 3. Verify the signature
 sage-crypto verify --key alice.jwk --message "$MESSAGE" --signature-b64 "$SIGNATURE"
-# Output: ✅ Signature verification PASSED
+# Output: Signature verification PASSED
 
 # 4. Try with wrong message (should fail)
 sage-crypto verify --key alice.jwk --message "Wrong message" --signature-b64 "$SIGNATURE"
-# Output: ❌ Signature verification FAILED
+# Output: Signature verification FAILED
 ```
 
 #### Key Storage Example
