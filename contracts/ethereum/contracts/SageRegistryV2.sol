@@ -101,7 +101,7 @@ contract SageRegistryV2 is ISageRegistry {
     function _validatePublicKey(
         bytes calldata publicKey,
         bytes calldata signature
-    ) private {
+    ) internal virtual {
         // 1. Length validation
         require(
             publicKey.length >= MIN_PUBLIC_KEY_LENGTH && 
