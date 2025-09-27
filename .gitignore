@@ -430,6 +430,10 @@ FodyWeavers.xsd
 build/
 sage-crypto
 
+# Go test binaries
+*.test
+integration.test
+
 # Rust build artifacts
 target/
 Cargo.lock
