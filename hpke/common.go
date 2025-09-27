@@ -19,10 +19,8 @@ import (
 	sagecrypto "github.com/sage-x-project/sage/crypto"
 )
 
-// ===== A2A Task ID =====
 const TaskHPKEComplete = "hpke/complete@v1"
 
-// ===== InfoBuilder =====
 type InfoBuilder interface {
 	BuildInfo(ctxID, initDID, respDID string) []byte
 	BuildExportContext(ctxID string) []byte
@@ -49,7 +47,6 @@ func firstDataPart(m *a2a.Message) (*structpb.Struct, error) {
 	return dpart.Data.Data, nil
 }
 
-
 func signStruct(k sagecrypto.KeyPair, msg []byte, did string) (*structpb.Struct, error) {
 	sig, err := k.Sign(msg)
 	if err != nil {
@@ -57,7 +54,7 @@ func signStruct(k sagecrypto.KeyPair, msg []byte, did string) (*structpb.Struct,
 	}
 	return structpb.NewStruct(map[string]any{
 		"signature": base64.RawURLEncoding.EncodeToString(sig),
-		"did": did,
+		"did":       did,
 	})
 }
 
@@ -98,31 +95,54 @@ func verifySenderSignature(m *a2a.Message, meta *structpb.Struct, senderPub cryp
 	}
 }
 
-// ===== Nonce(재생 방지) =====
-type nonceStore struct{ ttl time.Duration; mu sync.Mutex; entries map[string]time.Time }
-func newNonceStore(ttl time.Duration) *nonceStore { return &nonceStore{ttl: ttl, entries: make(map[string]time.Time)} }
-func (s *nonceStore) checkAndMark(key string) bool {
-	now := time.Now(); exp := now.Add(s.ttl)
-	s.mu.Lock(); defer s.mu.Unlock()
-	for k, v := range s.entries { if now.After(v) { delete(s.entries, k) } }
-	if _, ok := s.entries[key]; ok { return false }
-	s.entries[key] = exp; return true
+// ===== Nonce cache (replay protection) =====
+type nonceStore struct {
+	ttl     time.Duration
+	mu      sync.Mutex
+	entries map[string]time.Time
 }
 
+func newNonceStore(ttl time.Duration) *nonceStore {
+	return &nonceStore{ttl: ttl, entries: make(map[string]time.Time)}
+}
+func (s *nonceStore) checkAndMark(key string) bool {
+	now := time.Now()
+	exp := now.Add(s.ttl)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for k, v := range s.entries {
+		if now.After(v) {
+			delete(s.entries, k)
+		}
+	}
+	if _, ok := s.entries[key]; ok {
+		return false
+	}
+	s.entries[key] = exp
+	return true
+}
 
 // ===== structpb helpers =====
 func toStruct(m map[string]any) *structpb.Struct { st, _ := structpb.NewStruct(m); return st }
 func getString(st *structpb.Struct, key string) (string, error) {
-	v := st.GetFields()[key]; if v == nil { return "", fmt.Errorf("missing %s", key) }
+	v := st.GetFields()[key]
+	if v == nil {
+		return "", fmt.Errorf("missing %s", key)
+	}
 	return v.GetStringValue(), nil
 }
 func getBase64(st *structpb.Struct, key string) ([]byte, error) {
-	s, err := getString(st, key); if err != nil { return nil, err }
+	s, err := getString(st, key)
+	if err != nil {
+		return nil, err
+	}
 	return base64.RawURLEncoding.DecodeString(s)
 }
-func putBase64(m map[string]any, key string, b []byte) { m[key] = base64.RawURLEncoding.EncodeToString(b) }
+func putBase64(m map[string]any, key string, b []byte) {
+	m[key] = base64.RawURLEncoding.EncodeToString(b)
+}
 
-// ===== ACK(HMAC) — 텍스트 암호화 없이 키확인 =====
+// ===== ACK (HMAC) -- key confirmation without ciphertext =====
 func hkdfExpand(key []byte, info string, outLen int) []byte {
 	h := hmac.New(sha256.New, key)
 	var out []byte
@@ -130,7 +150,8 @@ func hkdfExpand(key []byte, info string, outLen int) []byte {
 	for len(out) < outLen {
 		h.Reset()
 		h.Write([]byte(info))
-		var c [4]byte; binary.BigEndian.PutUint32(c[:], counter)
+		var c [4]byte
+		binary.BigEndian.PutUint32(c[:], counter)
 		h.Write(c[:])
 		out = append(out, h.Sum(nil)...)
 		counter++
@@ -143,12 +164,13 @@ func makeAckTag(exporter []byte, ctxID, nonce, kid string) []byte {
 	ackKey := hkdfExpand(exporter, "ack-key", 32)
 	mac := hmac.New(sha256.New, ackKey)
 	mac.Write([]byte("hpke-ack|"))
-	mac.Write([]byte(ctxID)); mac.Write([]byte("|"))
-	mac.Write([]byte(nonce)); mac.Write([]byte("|"))
+	mac.Write([]byte(ctxID))
+	mac.Write([]byte("|"))
+	mac.Write([]byte(nonce))
+	mac.Write([]byte("|"))
 	mac.Write([]byte(kid))
 	return mac.Sum(nil)
 }
-
 
 // HPKEInitPayload
 type HPKEInitPayload struct {

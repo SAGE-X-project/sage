@@ -18,41 +18,50 @@ import (
 	a2a "github.com/a2aproject/a2a/grpc"
 )
 
-
-type KeyIDBinder interface { IssueKeyID(ctxID string) (keyid string, ok bool) }
+type KeyIDBinder interface {
+	IssueKeyID(ctxID string) (keyid string, ok bool)
+}
 
 type Server struct {
 	a2a.UnimplementedA2AServiceServer
 
-	key  	 sagecrypto.KeyPair
-	DID   string
+	key      sagecrypto.KeyPair
+	DID      string
 	resolver did.Resolver
 
-	sessMgr   *session.Manager 
-	info      InfoBuilder
+	sessMgr *session.Manager
+	info    InfoBuilder
 
-	maxSkew   time.Duration
-	nonces    *nonceStore
+	maxSkew time.Duration
+	nonces  *nonceStore
 
-	binder    KeyIDBinder            // (선택) kid 발급 위임
+	binder KeyIDBinder // optional hook to issue a custom kid
 }
 
 type ServerOpts struct {
-	MaxSkew   time.Duration
-	Binder    KeyIDBinder
-	Info      InfoBuilder
+	MaxSkew time.Duration
+	Binder  KeyIDBinder
+	Info    InfoBuilder
 }
 
 func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, did string, resolver did.Resolver, opts *ServerOpts) *Server {
-	if opts == nil { opts = &ServerOpts{} }
-	ib := opts.Info; if ib == nil { ib = DefaultInfoBuilder{} }
-	ms := opts.MaxSkew; if ms == 0 { ms = 2 * time.Minute }
+	if opts == nil {
+		opts = &ServerOpts{}
+	}
+	ib := opts.Info
+	if ib == nil {
+		ib = DefaultInfoBuilder{}
+	}
+	ms := opts.MaxSkew
+	if ms == 0 {
+		ms = 2 * time.Minute
+	}
 	return &Server{
-		key:  	 key,
+		key:      key,
 		resolver: resolver,
 		sessMgr:  sessMgr,
 		info:     ib,
-		DID:  	  did,
+		DID:      did,
 		maxSkew:  ms,
 		nonces:   newNonceStore(10 * time.Minute),
 		binder:   opts.Binder,
@@ -60,13 +69,13 @@ func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, did string, res
 }
 
 func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*a2a.SendMessageResponse, error) {
-	if in == nil || in.Request == nil { 
-		return nil, errors.New("empty request") 
+	if in == nil || in.Request == nil {
+		return nil, errors.New("empty request")
 	}
 	msg := in.Request
 
-	if msg.TaskId != TaskHPKEComplete { 
-		return nil, fmt.Errorf("unsupported task: %s", msg.TaskId) 
+	if msg.TaskId != TaskHPKEComplete {
+		return nil, fmt.Errorf("unsupported task: %s", msg.TaskId)
 	}
 	if len(msg.Content) == 0 || msg.Content[0].GetData() == nil || msg.Content[0].GetData().Data == nil {
 		return nil, errors.New("missing data part")
@@ -104,22 +113,22 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 	}
 
 	now := time.Now()
-	if pl.Timestamp.Before(now.Add(-s.maxSkew)) || pl.Timestamp.After(now.Add(s.maxSkew)) { 
-		return nil, fmt.Errorf("ts out of window") 
+	if pl.Timestamp.Before(now.Add(-s.maxSkew)) || pl.Timestamp.After(now.Add(s.maxSkew)) {
+		return nil, fmt.Errorf("ts out of window")
 	}
 
-	if !s.nonces.checkAndMark(msg.GetContextId() + "|" + pl.Nonce) { 
-		return nil, fmt.Errorf("replay detected") 
+	if !s.nonces.checkAndMark(msg.GetContextId() + "|" + pl.Nonce) {
+		return nil, fmt.Errorf("replay detected")
 	}
 
-	// 3) Canonical info/exportCtx 일치 검사
+	// Step 3: ensure canonical info and exportCtx match what we expect.
 	cInfo := s.info.BuildInfo(msg.GetContextId(), pl.InitDID, pl.RespDID)
-	if string(cInfo) != string(pl.Info) { 
-		return nil, fmt.Errorf("info mismatch") 
+	if string(cInfo) != string(pl.Info) {
+		return nil, fmt.Errorf("info mismatch")
 	}
 	cExport := s.info.BuildExportContext(msg.GetContextId())
-	if string(cExport) != string(pl.ExportCtx) { 
-		return nil, fmt.Errorf("exportCtx mismatch") 
+	if string(cExport) != string(pl.ExportCtx) {
+		return nil, fmt.Errorf("exportCtx mismatch")
 	}
 
 	se, err := keys.HPKEOpenSharedSecretWithPriv(s.key.PrivateKey(), pl.Enc, pl.Info, pl.ExportCtx, 32)
@@ -133,36 +142,38 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		false,
 		nil,
 	)
-	if err != nil { 
-		return nil, fmt.Errorf("fail session create: %w", err) 
+	if err != nil {
+		return nil, fmt.Errorf("fail session create: %w", err)
 	}
 
-	// 6) kid 발급/바인딩
+	// Step 6: issue and bind the key ID.
 	kid := "kid-" + uuid.NewString()
 	if s.binder != nil {
-		if v, ok := s.binder.IssueKeyID(msg.GetContextId()); ok && v != "" { kid = v }
+		if v, ok := s.binder.IssueKeyID(msg.GetContextId()); ok && v != "" {
+			kid = v
+		}
 	}
 	s.sessMgr.BindKeyID(kid, sid)
 
-	// 7) **키 확인(HMAC 태그)** — SID/seed 미노출
+	// Step 7: key confirmation (HMAC tag) keeps SID and seed implicit.
 	// ackTag = HMAC(HKDF(exporter,"ack-key"), "hpke-ack|ctxID|nonce|kid")
 	ackTag := makeAckTag(se, msg.GetContextId(), pl.Nonce, kid)
 
-	// 8) 동기 응답(Task.Metadata): kid + ackTagB64 만
+	// Step 8: synchronous Task metadata only carries kid and ackTagB64.
 	meta := map[string]any{
-		"note":     "hpke_session_ready",
-		"context":  msg.GetContextId(),
-		"initDid":  pl.RespDID,
-		"respDid":  pl.RespDID,
-		"kid":      kid,
+		"note":      "hpke_session_ready",
+		"context":   msg.GetContextId(),
+		"initDid":   pl.RespDID,
+		"respDid":   pl.RespDID,
+		"kid":       kid,
 		"ackTagB64": base64.RawURLEncoding.EncodeToString(ackTag),
-		"ts":       time.Now().UTC().Format(time.RFC3339Nano),
+		"ts":        time.Now().UTC().Format(time.RFC3339Nano),
 	}
 	task := &a2a.Task{
 		Id:        msg.TaskId,
 		ContextId: msg.GetContextId(),
 		Metadata:  toStruct(meta),
-		Status:    &a2a.TaskStatus{ State: a2a.TaskState_TASK_STATE_SUBMITTED, Timestamp: timestamppb.Now() },
+		Status:    &a2a.TaskStatus{State: a2a.TaskState_TASK_STATE_SUBMITTED, Timestamp: timestamppb.Now()},
 	}
-	return &a2a.SendMessageResponse{ Payload: &a2a.SendMessageResponse_Task{ Task: task } }, nil
+	return &a2a.SendMessageResponse{Payload: &a2a.SendMessageResponse_Task{Task: task}}, nil
 }
