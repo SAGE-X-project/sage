@@ -6,7 +6,7 @@ SAGE (Secure Agent Guarantee Engine) 프로젝트에서 Secure 세션 통신을 
 
 기존 [A2A 프로토콜](https://a2a-protocol.org/latest/topics/what-is-a2a/#a2a-request-lifecycle)의 확장 모듈로 grpc로 핸드쉐이크를 수행합니다.
 
-<img src="../assets/SAGE-handshake.png" width="450" height="500"/>
+<img src="../assets/SAGE-handshake.png" width="450" height="550"/>
 
 - **DID 서명 검증 & 부트스트랩 암호화**: 메타데이터의 DID와 Ed25519 서명을 검증하고, Request/Response 페이로드는 상대 DID 공개키로 암호화해 중간자 공격을 차단합니다.
 - **Ephemeral 키 합의와 세션 수립**: X25519 임시 교환으로 공유 비밀(shared secret)을 얻고 세션내에서 사용할 서명 키와 암호화 키를 파생합니다. 이 키로 세션 내 메세지를 암호화 및 서명하여 메세지를 보호합니다.
