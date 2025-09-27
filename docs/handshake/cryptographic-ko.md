@@ -8,9 +8,9 @@
 
 핸드쉐이크에서 교환되는 임시 X25519 공개키 페이로드는:
 
-- **서명**: 송신자가 Ed25519 신원키로 서명하여 출처/무결성을 보장하고,
+- **서명**: 송신자가 Ed25519 신원키로 서명하여 출처/무결성을 보장
 
-- **부트스트랩 암호화**: 수신자의 Ed25519 공개키를 X25519로 변환해 Ephemeral-Static ECDH → HKDF → AEAD(AES-GCM) 로 암호화합니다. (코드: EncryptWithEd25519Peer)
+- **부트스트랩 암호화**: 수신자의 Ed25519 공개키를 X25519로 변환해 Ephemeral-Static ECDH → HKDF → AEAD(AES-GCM) 로 암호화
 
 **보안 성질**
 
@@ -20,10 +20,14 @@
 
 ### 가정(위협 모델과 전제)
 
+---
+
 - **유효한 DID → 올바른 공개키**: 상대 DID Document가 최신이며 변조되지 않았음을 전제(블록체인 앵커·검증 절차로 확보)
 - **정상 난수원**: 임시키 생성, AEAD nonce 생성에 충분한 엔트로피가 제공
 
 ### 유의사항 & 대응
+
+---
 
 1. 중간자 공격 (MitM)
 
@@ -75,6 +79,8 @@
 
 ### HPKE( RFC 9180 ) package 제공
 
+---
+
 SAGE 프로젝트는 블록체인에 앵커된 DID 장기키(Ed25519) 를 신원·부트스트랩 용도로 사용합니다. 이 특성상 잦은 교체를 지양합니다.(온체인 갱신 비용/지연, 레퍼런스 체인 링크 변경, 키 롤오버 전파 등)
 HPKE를 사용하는 경우 다음과 같은 문제가 발생 할 수 있습니다.
 
@@ -110,23 +116,27 @@ DID 레이어의 키 롤오버 UX/정책, 온체인 갱신 지연/비용 문제�
 
 핸드쉐이크의 키 교환에서 얻은 공유 비밀로 부터 세션내에서 사용할 암호화 키와 서명키를 생성합니다.
 
-1. 공유 비밀로 부터 seed 생성  
-   핸드쉐이크에서 얻은 공유 비밀을 입력으로 하여
-   ```go
-    hkdf.Extract(sha256.New, ikm, salt)
-   ```
-   라벨/컨텍스트/임시키(정렬)로 만든 salt를 입력으로하여 PRK(sessionSeed) 를 얻습니다.
-2. session seed로 부터 암호화/서명 키를 생성합니다.
+### 1. 공유 비밀로 부터 seed 생성
 
-   ```go
-   hkdfEnc := hkdf.New(sha256.New, s.sessionSeed, salt, []byte("encryption"))
-   s.encryptKey = make([]byte, 32)
+핸드쉐이크에서 얻은 공유 비밀을 입력으로 하여
 
-   hkdfSign := hkdf.New(sha256.New, s.sessionSeed, salt, []byte("signing"))
-   s.signingKey = make([]byte, 32)
-   ```
+```go
+ hkdf.Extract(sha256.New, ikm, salt)
+```
 
-   salt=세션ID, info="encryption"/"signing" 로 각 키를 생성합니다.
+라벨/컨텍스트/임시키(정렬)로 만든 salt를 입력으로하여 PRK(sessionSeed) 를 얻습니다.
+
+### 2. session seed로 부터 암호화/서명 키를 생성합니다.
+
+```go
+hkdfEnc := hkdf.New(sha256.New, s.sessionSeed, salt, []byte("encryption"))
+s.encryptKey = make([]byte, 32)
+
+hkdfSign := hkdf.New(sha256.New, s.sessionSeed, salt, []byte("signing"))
+s.signingKey = make([]byte, 32)
+```
+
+salt=세션ID, info="encryption"/"signing" 로 각 키를 생성합니다.
 
 **HKDF-Expand**:
 
@@ -157,7 +167,9 @@ DID 레이어의 키 롤오버 UX/정책, 온체인 갱신 지연/비용 문제�
 
 ### 유의사항 & 대응
 
-3. 컨텍스트 바인딩 실패 (Context Binding Failure)
+---
+
+### 1. 컨텍스트 바인딩 실패 (Context Binding Failure)
 
 - **위험/고려**  
   동일한 공유 비밀이 다른 프로토콜/컨텍스트에서 재사용되는 경우 키/세션 충돌이나 교차-프로토콜 공격 위험 존재 (예: ctxID가 같은데 라벨이 다른 두 프로토콜이 같은 seed를 만들거나, 반대로 ctxID가 달라도 salt/label 설계가 부실해 충돌)
@@ -182,21 +194,21 @@ DID 레이어의 키 롤오버 UX/정책, 온체인 갱신 지연/비용 문제�
   - 라벨 값에 프로토콜 버전을 반드시 포함("a2a/handshake v1")해 버전/프로토콜 간 도메인 분리를 강화.
   - 추후 기능이 늘어나는 경우 info(HKDF Expand의 info) 문자열로 purpose label을 세분화(예: "encryption", "signing", "ack-key", "traffic-key/c2s", "traffic-key/s2c" 등).
 
-2. 키 분리 미흡 (Key Separation)
+### 2. 키 분리 미흡 (Key Separation)
 
 - **위험/고려**  
   암호화 키와 서명 키를 동일 OKM에서 구분 없이 뽑는 경우 키 재사용에 따른 보안 경계가 약화
 - **대응**  
   HKDF-Expand 시 info를 "encryption" / "signing"으로 구분해 도메인 분리
 
-3. AEAD Nonce 재사용 (Nonce Misuse)
+### 3. AEAD Nonce 재사용 (Nonce Misuse)
 
 - **위험/고려**  
   ChaCha20-Poly1305는 96비트 nonce 재사용 시 보안 파괴. 랜덤 nonce는 충돌 확률이 낮지만, 고속/장수 세션에서 충돌 확률 누적 문제
 - **대응**  
   `nonce := rand(12B)`로 CSPRNG 기반 랜덤 nonce 생성.
 
-4. 세션 수명·사용량 초과 (Key Lifetime / Usage Limits)
+### 4. 세션 수명·사용량 초과 (Key Lifetime / Usage Limits)
 
 - **위험/고려**  
   하나의 세션 키로 과도한 메시지/장시간 사용 시 누적 위험(통계적 공격 표면 증가)
@@ -246,6 +258,8 @@ DID 레이어의 키 롤오버 UX/정책, 온체인 갱신 지연/비용 문제�
   → 헤더 ↔ 바디의 상호 바인딩이 생겨, 바디/헤더 중 하나만 조작해도 서명이 깨집니다.
 
 - **검증 구현**: hmac.Equal을 사용한 상수시간 비교로 타이밍 기반 서명 유추 공격 방지.
+
+---
 
 ### 실패 시 동작(보안 정책)
 

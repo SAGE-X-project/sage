@@ -18,18 +18,18 @@ SAGE (Secure Agent Guarantee Engine) 프로젝트에서 Secure 세션 통신을 
 요청 에이전트는 [A2A의 Agent Discovery](https://a2a-protocol.org/latest/topics/agent-discovery/) 로 DID를 알고 있으며, 두 에이전트의 DID는 모두 블록체인에 등록되어 있다고 가정합니다.
 DID Document를 통해 상대의 공개키를 조회(Resolve)하며, 신원 서명 검증과 부트스트랩 암호화에 사용합니다.
 
-1. Invitation(agent A -> agent B):
+1. **Invitation(agent A -> agent B)**:
    - 요청 에이전트 A가 자신의 DID와 함께 세션 수립 의사를 전송합니다.
    - 상대 에이전트 B는 A의 DID를 resolve하여 공개키를 얻고, 서명 검증을 통해 유효한 요청임을 확인합니다.
-2. Request(agent A -> agent B):
+2. **Request(agent A -> agent B)**:
    - 요청 에이전트 A는 ephemeral 공개키(X25519)를 생성하여 상대 에이전트 B에게 보냅니다. 데이터는 B의 DID 공개키로 암호화되며, A의 신원키(Ed25519)로 서명됩니다.
    - 상대 에이전트 B는 서명을 검증하고 복호화한 뒤, 요청 에이전트 A의 ephemeral 공개키를 보관합니다
    - 암호화 되어 전송되므로 복호화 키를 가진 상대 에이전트 외에는 데이터를 확인할 수 없습니다.
-3. Response(agent B -> agent A):
+3. **Response(agent B -> agent A)**:
    - 상대 에이전트 B는 ephemeral 공개키(X25519)를 생성하여 요청 에이전트 A에게 보냅니다. 데이터는 A의 DID 공개키로 암호화되며, B의 신원키(Ed25519)로 서명됩니다.
    - 요청 에이전트 A는 서명을 검증하고 복호화한 뒤, 요청 에이전트 B의 ephemeral 공개키를 보관합니다
    - 암호화 되어 전송되므로 복호화 키를 가진 상대 에이전트 외에는 데이터를 확인할 수 없습니다.
-4. Complete(agent A -> agent B)
+4. **Complete(agent A -> agent B)**:
    - 두 에이전트는 shared secret 을 갖게 되었으므로, 요청 에이전트 A는 complete를 전송합니다.
    - 두 에이전트는 shared secret을 이용해 만든 의사 난수를 seed로하여 세션 아이디를 계산하며, 요청 에이전트와 상대 에이전트는 동일한 세션 아이디를 갖는 세션을 생성합니다.
    - 세션은 무작위 문자열 키 식별자 kid에 바인딩되며, 상대 에이전트 B는 complete 응답으로 kid를 요청 에이전트에게 전송합니다. 요청 에이전트 A는 B로부터 수신한 kid를 세션에 바인딩합니다. 이는 이후 HTTP Message Signatures(RFC 9421)의 keyId 필드에 들어가 두 에이전트가 메세지 송수신 시 서명 검증 시 세션 조회에 사용됩니다.
