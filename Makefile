@@ -52,6 +52,42 @@ test-crypto:
 	@echo "Running crypto package tests..."
 	$(GO) test -v ./crypto/...
 
+# Run Phase 1 complete test suite
+.PHONY: test-phase1
+test-phase1:
+	@echo "Running Phase 1 complete test suite..."
+	@bash ./test_phase1.sh
+
+# Run quick tests for Phase 1 components
+.PHONY: test-quick
+test-quick:
+	@echo "Running quick tests for Phase 1 components..."
+	@bash ./run_tests.sh
+
+# Run enhanced provider tests
+.PHONY: test-provider
+test-provider:
+	@echo "Testing Enhanced Provider..."
+	$(GO) test -v ./crypto/chain/ethereum -count=1
+
+# Run vault tests
+.PHONY: test-vault
+test-vault:
+	@echo "Testing SecureVault..."
+	$(GO) test -v ./crypto/vault -count=1
+
+# Run logger tests
+.PHONY: test-logger
+test-logger:
+	@echo "Testing Logger..."
+	$(GO) test -v ./internal/logger -count=1
+
+# Run health checker tests
+.PHONY: test-health
+test-health:
+	@echo "Testing Health Checker..."
+	$(GO) test -v ./health -count=1
+
 # Clean build artifacts
 .PHONY: clean
 clean:
@@ -94,14 +130,20 @@ tidy:
 .PHONY: help
 help:
 	@echo "Available targets:"
-	@echo "  make build       - Build all CLI binaries (sage-crypto and sage-did)"
+	@echo "  make build         - Build all CLI binaries (sage-crypto and sage-did)"
 	@echo "  make build-crypto  - Build sage-crypto binary only"
-	@echo "  make build-did   - Build sage-did binary only"
-	@echo "  make test        - Run all tests"
-	@echo "  make test-crypto - Run crypto package tests only"
-	@echo "  make clean       - Remove build artifacts"
-	@echo "  make install     - Install binaries to GOPATH/bin"
-	@echo "  make lint        - Run linter"
-	@echo "  make fmt         - Format code"
-	@echo "  make tidy        - Run go mod tidy"
-	@echo "  make help        - Show this help message"
+	@echo "  make build-did     - Build sage-did binary only"
+	@echo "  make test          - Run all tests"
+	@echo "  make test-crypto   - Run crypto package tests only"
+	@echo "  make test-phase1   - Run Phase 1 complete test suite"
+	@echo "  make test-quick    - Run quick tests for Phase 1 components"
+	@echo "  make test-provider - Run enhanced provider tests"
+	@echo "  make test-vault    - Run SecureVault tests"
+	@echo "  make test-logger   - Run logger tests"
+	@echo "  make test-health   - Run health checker tests"
+	@echo "  make clean         - Remove build artifacts"
+	@echo "  make install       - Install binaries to GOPATH/bin"
+	@echo "  make lint          - Run linter"
+	@echo "  make fmt           - Format code"
+	@echo "  make tidy          - Run go mod tidy"
+	@echo "  make help          - Show this help message"

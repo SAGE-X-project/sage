@@ -15,9 +15,21 @@ import (
 	"github.com/sage-x-project/sage/config"
 )
 
+// EthClient defines the interface we need from ethereum client
+type EthClient interface {
+	NetworkID(ctx context.Context) (*big.Int, error)
+	BlockNumber(ctx context.Context) (uint64, error)
+	EstimateGas(ctx context.Context, msg ethereum.CallMsg) (uint64, error)
+	SuggestGasPrice(ctx context.Context) (*big.Int, error)
+	PendingNonceAt(ctx context.Context, account common.Address) (uint64, error)
+	TransactionReceipt(ctx context.Context, txHash common.Hash) (*types.Receipt, error)
+	HeaderByNumber(ctx context.Context, number *big.Int) (*types.Header, error)
+	Close()
+}
+
 // EnhancedProvider wraps the standard ethereum provider with retry logic and gas optimization
 type EnhancedProvider struct {
-	client *ethclient.Client
+	client EthClient
 	config *config.BlockchainConfig
 }
 
@@ -56,6 +68,18 @@ func NewEnhancedProvider(cfg *config.BlockchainConfig) (*EnhancedProvider, error
 
 	if err != nil {
 		return nil, err
+	}
+
+	return &EnhancedProvider{
+		client: client,
+		config: cfg,
+	}, nil
+}
+
+// NewEnhancedProviderWithClient creates a new enhanced provider with an existing client (for testing)
+func NewEnhancedProviderWithClient(client EthClient, cfg *config.BlockchainConfig) (*EnhancedProvider, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
 	return &EnhancedProvider{
@@ -229,7 +253,7 @@ func (p *EnhancedProvider) WaitForTransaction(
 }
 
 // GetClient returns the underlying ethereum client for direct access
-func (p *EnhancedProvider) GetClient() *ethclient.Client {
+func (p *EnhancedProvider) GetClient() EthClient {
 	return p.client
 }
 
