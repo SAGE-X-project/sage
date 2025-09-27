@@ -77,17 +77,25 @@
 
 핸드쉐이크의 키 교환에서 얻은 공유 비밀로 부터 세션내에서 사용할 암호화 키와 서명키를 생성합니다.
 
-1. 공유 비밀로 부터 seed 생성
+### 1. X25519 ECDH → 공유 비밀(dh)
 
-핸드쉐이크에서 얻은 공유 비밀을 입력으로 하여
+- X25519는 RFC 7748에 정의된 Montgomery 곡선 기반 ECDH로, 잘 알려진 수학적 난이도(이산로그 문제)에 의존합니다.
+- 구현 수칙: 파생된 dh가 올-제로(32바이트 0) 가 되면 즉시 거부(MUST reject)하여 저차점 공격을 차단합니다.
+  (코드에서 길이·상수시간 비교로 검사)
+
+### 2. 공유 비밀로 부터 seed 생성
+
+핸드쉐이크에서 얻은 공유 비밀을 입력으로 하여 HKDF-Extract(SHA-256) → PRK(sessionSeed) 이용하여 seed를 생성합니다.
 
 ```go
  hkdf.Extract(sha256.New, ikm, salt)
 ```
 
-라벨/컨텍스트/임시키(정렬)로 만든 salt를 입력으로하여 PRK(sessionSeed) 를 얻습니다.
+- HKDF(Extract/Expand)는 PRF 성질을 가지며, 입력 dh가 부분적으로 편향되어도 Extract가 균등한 PRK로 “정규화”해 줍니다.
+- 컨텍스트 바인딩: salt = H(label || contextID || sort(ephA,ephB)) 처럼 라벨/세션 컨텍스트/두 당사자의 임시 공개키(정렬)를 섞어 만듭니다.  
+  → 세션 특이성(다른 세션·다른 프로토콜 라벨이면 PRK가 달라짐), 반사/교차-프로토콜 공격 완화.
 
-2. session seed로 부터 암호화/서명 키를 생성
+### 3. HKDF-Expand로 키 분리
 
 ```go
 hkdfEnc := hkdf.New(sha256.New, s.sessionSeed, salt, []byte("encryption"))
@@ -98,33 +106,9 @@ s.signingKey = make([]byte, 32)
 ```
 
 salt=세션ID, info="encryption"/"signing" 로 각 키를 생성합니다.
+서로 다른 info(“encryption”, “signing”)를 사용하므로 암호화 키와 HMAC 키가 독립입니다. 한쪽이 노출돼도 다른 쪽 안전성에 영향을 주지 않습니다.
 
-**HKDF-Expand**:
-
-- 암호화 키(32B) → ChaCha20-Poly1305 AEAD
-
-  ```go
-      // Initialize AEAD cipher
-          aead, err := chacha20poly1305.New(sess.encryptKey)
-          if err != nil {
-              return nil, fmt.Errorf("failed to create AEAD: %w", err)
-          }
-          sess.aead = aead
-
-          ...
-
-          ciphertext := sess.aead.Seal(nil, nonce, plaintext, nil)
-  ```
-
-- 서명 키(32B) → HMAC-SHA256 (RFC 9421 스타일의 covered components 서명)
-  ```go
-  func (s *SecureSession) SignCovered(covered []byte) []byte {
-      m := hmac.New(sha256.New, s.signingKey)
-      m.Write(covered)
-      s.UpdateLastUsed()
-      return m.Sum(nil)
-  }
-  ```
+**추가 격리**: salt = sessionID를 다시 사용해 동일 PRK에서 파생되는 여러 키들 간 충돌 위험을 더 낮춥니다.
 
 ### 유의사항 & 대응
 
@@ -187,10 +171,25 @@ salt=세션ID, info="encryption"/"signing" 로 각 키를 생성합니다.
 
 - 세션 키는 `sessionSeed = HKDF‐Extract(SHA-256, shared_secret, salt)` 에서 나옵니다. shared_secret(핸드셰이크 결과)와 세션 바인딩 salt(컨텍스트/라벨/임시키 정렬 등)를 쓰므로, 세션 간 키 분리(key separation) 가 성립합니다.
 
-- 이후 HKDF‐Expand(…, “encryption”) / HKDF‐Expand(…, “signing”) 로 서로 다른 목적의 키를 파생합니다.  
-  → 암호화 키와 서명 키는 독립이며, 한쪽이 노출되어도 다른 쪽의 보안성에 영향을 주지 않는 도메인 분리가 성립합니다.
+- 각 세션마다 새 임시 X25519 키로 dh를 만들고, 그때그때 새로운 PRK/세션 키를 파생하여, 과거 세션 키는 키가 파기되는 즉시 복구 불가합니다. 따라서 장기 Ed25519 신원키가 노출돼도 과거 세션 본문을 얻을 수 없습니다.  
+  -> 전방향 비밀성(PFS at session granularity) 보장
 
-### 본문 보호: ChaCha20-Poly1305 (Encrypt / Decrypt)
+### 본문 보호: ChaCha20-Poly1305 (AEAD)
+
+- 암호화 키(32B) → ChaCha20-Poly1305 AEAD
+
+  ```go
+      // Initialize AEAD cipher
+          aead, err := chacha20poly1305.New(sess.encryptKey)
+          if err != nil {
+              return nil, fmt.Errorf("failed to create AEAD: %w", err)
+          }
+          sess.aead = aead
+
+          ...
+
+          ciphertext := sess.aead.Seal(nil, nonce, plaintext, nil)
+  ```
 
 - **기밀성(Confidentiality)**: 256-bit 키, 96-bit 난수(Nonce), 스트림 + Poly1305 인증으로 IND-CPA 수준의 기밀성 보장.
 
@@ -205,9 +204,20 @@ salt=세션ID, info="encryption"/"signing" 로 각 키를 생성합니다.
 - 방향 분리(옵션): EncryptOutbound/DecryptInbound를 쓰면 클라→서버, 서버→클라 키를 분리 운용합니다.  
   → 한 방향 키가 노출돼도 반대 방향에는 영향이 없고, nonce 공간 충돌 가능성도 추가로 줄어듭니다.
 
-### 메타 데이터 무결성: HMAC-SHA256 (SignCovered / VerifyCovered)
+### 메타 데이터 무결성: HMAC-SHA256
 
-- **EUF-CMA 보안**: HMAC는 PRF로 모델링되며, SHA-256 기반의 HMAC는 알려진 실용적 공격이 없습니다.  
+RFC 9421 스타일의 covered components 서명
+
+```go
+func (s *SecureSession) SignCovered(covered []byte) []byte {
+    m := hmac.New(sha256.New, s.signingKey)
+    m.Write(covered)
+    s.UpdateLastUsed()
+    return m.Sum(nil)
+}
+```
+
+- **EUF-CMA 보안**: HMAC-SHA256은 PRF로 모델링되며, SHA-256 기반의 HMAC는 알려진 실용적 공격이 없습니다.  
   → 선택-메시지 공격 하에서도 위조 불가능(키가 노출되지 않는 한).
 
 - **covered 구성**: @method, @path, host, date, content-digest, @signature-params를 정규화된 순서/형식으로 직렬화해 서명합니다.  
@@ -216,7 +226,7 @@ salt=세션ID, info="encryption"/"signing" 로 각 키를 생성합니다.
 - **Content-Digest 바인딩**: content-digest는 전송되는 바디 그대로(여기서는 cipher)를 해시해 헤더로 올리고, HMAC가 그 헤더를 다시 덮습니다.  
   → 헤더 ↔ 바디의 상호 바인딩이 생겨, 바디/헤더 중 하나만 조작해도 서명이 깨집니다.
 
-- **검증 구현**: hmac.Equal을 사용한 상수시간 비교로 타이밍 기반 서명 유추 공격 방지.
+- **검증 구현**: hmac.Equal을 사용한 상수시간 비교로 타이밍 기반 서명 유추 공격 방지
 
 ### 실패 시 동작(보안 정책)
 
