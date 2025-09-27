@@ -149,11 +149,11 @@ echo "서명: $SIGNATURE"
 
 # 3. 서명 검증
 sage-crypto verify --key alice.jwk --message "$MESSAGE" --signature-b64 "$SIGNATURE"
-# 출력: ✅ Signature verification PASSED
+# 출력: Signature verification PASSED
 
 # 4. 잘못된 메시지로 시도 (실패해야 함)
 sage-crypto verify --key alice.jwk --message "잘못된 메시지" --signature-b64 "$SIGNATURE"
-# 출력: ❌ Signature verification FAILED
+# 출력: Signature verification FAILED
 ```
 
 #### 키 저장소 예제

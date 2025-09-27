@@ -7,12 +7,12 @@
 
 | 컴포넌트 | 상태 | 설명 |
 |---------|------|------|
-| **Core Modules** | ✅ 구현 완료 | crypto, did, rfc9421 모듈 |
-| **CLI Tools** | ✅ 구현 완료 | sage-crypto, sage-did |
-| **Agent SDK (Go)** | 📋 계획됨 | 별도 프로젝트로 구현 예정 |
-| **Agent SDK (TypeScript)** | 📋 계획됨 | 별도 프로젝트로 구현 예정 |
-| **Gateway REST API** | 📋 계획됨 | 향후 구현 예정 |
-| **HTTP Server Integration** | 📋 계획됨 | 향후 구현 예정 |
+| **Core Modules** | 구현 완료 | crypto, did, rfc9421 모듈 |
+| **CLI Tools** | 구현 완료 | sage-crypto, sage-did |
+| **Agent SDK (Go)** | 계획됨 | 별도 프로젝트로 구현 예정 |
+| **Agent SDK (TypeScript)** | 계획됨 | 별도 프로젝트로 구현 예정 |
+| **Gateway REST API** | 계획됨 | 향후 구현 예정 |
+| **HTTP Server Integration** | 계획됨 | 향후 구현 예정 |
 
 ## 목차
 

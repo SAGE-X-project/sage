@@ -53,15 +53,15 @@ flowchart LR
 
 | 컴포넌트 | 역할 | 구현 언어 | 상태 |
 |----------|------|-----------|------|
-| **Crypto Module** | 키 관리, 서명/검증 | Go | ✅ 구현 완료 |
-| **DID Module** | DID 관리 및 조회 | Go | ✅ 구현 완료 |
-| **RFC9421 Core** | HTTP 메시지 서명 | Go | ✅ 구현 완료 |
-| **CLI Tools** | sage-crypto, sage-did | Go | ✅ 구현 완료 |
-| **Agent SDK** | 메시지 서명/검증, DID 관리 | Go, TypeScript | 📋 별도 프로젝트 계획 |
-| **libsage_crypto** | RFC 9421 서명 엔진 | Rust | 🚀 별도 프로젝트 진행 중 |
-| **Gateway** | 라우팅, 정책, 감사 | Go | 📋 향후 계획 |
-| **Policy Engine** | 접근 제어, Rate Limiting | Go | 📋 향후 계획 |
-| **HTTP Server Integration** | HTTP 서버 통합 | Go | 📋 향후 계획 |
+| **Crypto Module** | 키 관리, 서명/검증 | Go | 구현 완료 |
+| **DID Module** | DID 관리 및 조회 | Go | 구현 완료 |
+| **RFC9421 Core** | HTTP 메시지 서명 | Go | 구현 완료 |
+| **CLI Tools** | sage-crypto, sage-did | Go | 구현 완료 |
+| **Agent SDK** | 메시지 서명/검증, DID 관리 | Go, TypeScript | 별도 프로젝트 계획 |
+| **libsage_crypto** | RFC 9421 서명 엔진 | Rust | 별도 프로젝트 진행 중 |
+| **Gateway** | 라우팅, 정책, 감사 | Go | 향후 계획 |
+| **Policy Engine** | 접근 제어, Rate Limiting | Go | 향후 계획 |
+| **HTTP Server Integration** | HTTP 서버 통합 | Go | 향후 계획 |
 
 ### 계층 구조
 

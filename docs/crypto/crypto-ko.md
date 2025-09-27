@@ -249,8 +249,8 @@ echo "Message to sign" | ./sage-crypto sign --key mykey.jwk --base64
 
 | 블록체인 | 필요한 키 타입 | 주소 형식 | 공개키 복구 |
 |---------|--------------|----------|------------|
-| Ethereum | Secp256k1 | 0x로 시작하는 40자 hex | ❌ |
-| Solana | Ed25519 | Base58 인코딩 | ✅ |
+| Ethereum | Secp256k1 | 0x로 시작하는 40자 hex | 아니오 |
+| Solana | Ed25519 | Base58 인코딩 | 예 |
 
 ### 프로그래밍 방식으로 블록체인 주소 사용
 
@@ -428,7 +428,7 @@ Error: key not found
 
 ### 잘못된 서명
 ```
-❌ Signature verification FAILED
+Signature verification FAILED
 ```
 올바른 키와 메시지를 사용하고 있는지 확인하세요.
 

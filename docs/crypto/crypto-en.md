@@ -249,8 +249,8 @@ echo "Message to sign" | ./sage-crypto sign --key mykey.jwk --base64
 
 | Blockchain | Required Key Type | Address Format | Public Key Recovery |
 |------------|------------------|----------------|---------------------|
-| Ethereum | Secp256k1 | 40-char hex starting with 0x | ❌ |
-| Solana | Ed25519 | Base58 encoded | ✅ |
+| Ethereum | Secp256k1 | 40-char hex starting with 0x | No |
+| Solana | Ed25519 | Base58 encoded | Yes |
 
 ### Programmatic Blockchain Address Usage
 
@@ -428,7 +428,7 @@ Check the storage directory and key ID.
 
 ### Invalid Signature
 ```
-❌ Signature verification FAILED
+Signature verification FAILED
 ```
 Ensure you're using the correct key and message.
 
