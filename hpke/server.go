@@ -109,7 +109,9 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 	}
 
 	if senderDID != "" && senderDID != pl.InitDID {
-		return nil, fmt.Errorf("initDID mismatch (meta=%s payload=%s)", senderDID, pl.InitDID)
+		// Log detailed error for debugging (consider using proper logging framework)
+		// log.Debugf("initDID mismatch: meta=%s payload=%s", senderDID, pl.InitDID)
+		return nil, fmt.Errorf("authentication failed")
 	}
 
 	now := time.Now()
@@ -133,7 +135,9 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 
 	se, err := keys.HPKEOpenSharedSecretWithPriv(s.key.PrivateKey(), pl.Enc, pl.Info, pl.ExportCtx, 32)
 	if err != nil {
-		return nil, fmt.Errorf("HPKE open derive: %v", err)
+		// Log detailed error for debugging (consider using proper logging framework)
+		// log.Debugf("HPKE open derive failed: %v", err)
+		return nil, fmt.Errorf("key exchange failed")
 	}
 
 	_, sid, _, err := s.sessMgr.EnsureSessionFromExporterWithRole(

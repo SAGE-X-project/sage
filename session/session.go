@@ -336,7 +336,7 @@ func (s *SecureSession) UpdateLastUsed() {
 // Close marks the session as closed
 func (s *SecureSession) Close() error {
     s.closed = true
-    
+
     // Clear sensitive key material
     if s.encryptKey != nil {
         for i := range s.encryptKey {
@@ -353,7 +353,29 @@ func (s *SecureSession) Close() error {
             s.sessionSeed[i] = 0
         }
     }
-    
+
+    // Clear directional keys
+    if s.outKey != nil {
+        for i := range s.outKey {
+            s.outKey[i] = 0
+        }
+    }
+    if s.inKey != nil {
+        for i := range s.inKey {
+            s.inKey[i] = 0
+        }
+    }
+    if s.outSign != nil {
+        for i := range s.outSign {
+            s.outSign[i] = 0
+        }
+    }
+    if s.inSign != nil {
+        for i := range s.inSign {
+            s.inSign[i] = 0
+        }
+    }
+
     return nil
 }
 
