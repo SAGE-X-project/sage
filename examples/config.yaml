@@ -1,0 +1,55 @@
+# SAGE Configuration Example
+
+environment: development
+
+# Blockchain configuration
+blockchain:
+  network_rpc: "http://localhost:8545"
+  chain_id: 31337
+  gas_limit: 3000000
+  max_gas_price: 20000000000  # 20 Gwei
+  max_retries: 3
+  retry_delay: 1s
+  request_timeout: 30s
+
+  # Contract addresses
+  contracts:
+    did_registry: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    sage_protocol: "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512"
+
+# DID configuration
+did:
+  registry_address: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+  method: sage
+  network: ethereum
+  cache_size: 100
+  cache_ttl: 300s  # 5 minutes
+
+# Key storage configuration
+keystore:
+  type: encrypted-file  # file, encrypted-file, vault
+  directory: ".sage/keys"
+  passphrase_env: "SAGE_KEY_PASSPHRASE"  # Environment variable for passphrase
+
+# Logging configuration
+logging:
+  level: info  # debug, info, warn, error
+  format: json  # json, text
+  output: stdout  # stdout, file
+  file_path: ".sage/logs/sage.log"
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 9090
+  path: "/metrics"
+
+# Health check configuration
+health:
+  enabled: true
+  port: 8080
+  path: "/health"
+  checks:
+    - blockchain
+    - keystore
+    - did_resolver

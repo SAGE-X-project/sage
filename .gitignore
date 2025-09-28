@@ -430,6 +430,10 @@ FodyWeavers.xsd
 build/
 sage-crypto
 
+# Go test binaries
+*.test
+integration.test
+
 # Rust build artifacts
 target/
 Cargo.lock
@@ -550,3 +554,7 @@ cmake-build-*/
 *.iws
 *.ipr
 *.iml
+
+# Integration test files
+*.integration.test.*
+integration.test.*

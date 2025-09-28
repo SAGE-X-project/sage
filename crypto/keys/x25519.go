@@ -18,6 +18,8 @@ import (
 	"filippo.io/edwards25519"
 	sagecrypto "github.com/sage-x-project/sage/crypto"
 	"golang.org/x/crypto/hkdf"
+
+	"github.com/cloudflare/circl/hpke"
 )
 
 // X25519KeyPair holds an X25519 private key and its corresponding public key bytes.
@@ -327,4 +329,203 @@ func sharedSecret(dh []byte, err error) ([]byte, error) {
 // appendPrefix concatenates multiple byte slices into one.
 func appendPrefix(parts ...[]byte) []byte {
 	return bytes.Join(parts, nil)
+}
+
+// HPKEDeriveSharedSecretToX25519Peer establishes an HPKE Base context to the recipient's
+// X25519 public key and returns (enc, exporterSecret). The exporterSecret is suitable
+// to feed into your session layer as a sessionSeed or shared secret.
+// Both parties MUST use identical 'info' and 'exportCtx' to derive the same bytes.
+func HPKEDeriveSharedSecretToX25519Peer(
+    peer *ecdh.PublicKey,
+    info []byte,
+    exportCtx []byte,
+    exportLen int,
+) (enc []byte, exporterSecret []byte, err error) {
+    suite := hpke.NewSuite(
+        hpke.KEM_X25519_HKDF_SHA256,
+        hpke.KDF_HKDF_SHA256,
+        hpke.AEAD_ChaCha20Poly1305,
+    )
+
+    kem := hpke.KEM_X25519_HKDF_SHA256.Scheme()
+    rp, err := kem.UnmarshalBinaryPublicKey(peer.Bytes())
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke unmarshal pub: %w", err)
+    }
+
+    sender, err := suite.NewSender(rp, info)
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke new sender: %w", err)
+    }
+
+    enc, sealer, err := sender.Setup(rand.Reader)
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke setup: %w", err)
+    }
+
+    // Export a shared secret without necessarily encrypting application data.
+    secret := sealer.Export(exportCtx, uint(exportLen))
+    return enc, secret, nil
+}
+
+// HPKEOpenSharedSecretWithX25519Priv takes the recipient's X25519 private key and the 'enc'
+// (encapsulated key) from the sender, and reproduces the same exporterSecret.
+// 'info' and 'exportCtx' MUST match the sender's values.
+func HPKEOpenSharedSecretWithX25519Priv(
+    priv *ecdh.PrivateKey,
+    enc []byte,
+    info []byte,
+    exportCtx []byte,
+    exportLen int,
+) (exporterSecret []byte, err error) {
+    suite := hpke.NewSuite(
+        hpke.KEM_X25519_HKDF_SHA256,
+        hpke.KDF_HKDF_SHA256,
+        hpke.AEAD_ChaCha20Poly1305,
+    )
+
+    kem := hpke.KEM_X25519_HKDF_SHA256.Scheme()
+    skR, err := kem.UnmarshalBinaryPrivateKey(priv.Bytes())
+    if err != nil {
+        return nil, fmt.Errorf("hpke unmarshal priv: %w", err)
+    }
+
+    receiver, err := suite.NewReceiver(skR, info)
+    if err != nil {
+        return nil, fmt.Errorf("hpke new receiver: %w", err)
+    }
+
+    opener, err := receiver.Setup(enc)
+    if err != nil {
+        return nil, fmt.Errorf("hpke receiver setup: %w", err)
+    }
+
+    secret := opener.Export(exportCtx, uint(exportLen))
+    return secret, nil
+}
+
+// Convenience wrappers that accept crypto.PublicKey / crypto.PrivateKey
+// and do type assertions to *ecdh.PublicKey / *ecdh.PrivateKey.
+
+func HPKEDeriveSharedSecretToPeer(
+    pub crypto.PublicKey,
+    info []byte,
+    exportCtx []byte,
+    exportLen int,
+) (enc []byte, exporterSecret []byte, err error) {
+    p, ok := pub.(*ecdh.PublicKey)
+    if !ok {
+        return nil, nil, fmt.Errorf("expected *ecdh.PublicKey, got %T", pub)
+    }
+    return HPKEDeriveSharedSecretToX25519Peer(p, info, exportCtx, exportLen)
+}
+
+func HPKEOpenSharedSecretWithPriv(
+    priv crypto.PrivateKey,
+    enc []byte,
+    info []byte,
+    exportCtx []byte,
+    exportLen int,
+) (exporterSecret []byte, err error) {
+    p, ok := priv.(*ecdh.PrivateKey)
+    if !ok {
+        return nil, fmt.Errorf("expected *ecdh.PrivateKey, got %T", priv)
+    }
+    return HPKEOpenSharedSecretWithX25519Priv(p, enc, info, exportCtx, exportLen)
+}
+
+// OPTIONAL: If you still want to encrypt a handshake payload while also deriving the shared secret,
+// you can use the seal/open helpers below. They output (packet = enc||ct) and exporterSecret.
+
+func HPKESealAndExportToX25519Peer(
+    peer crypto.PublicKey,
+    plaintext []byte,
+    info []byte,
+    exportCtx []byte,
+    exportLen int,
+) (packet []byte, exporterSecret []byte, err error) {
+
+	pubKey, ok := peer.(*ecdh.PublicKey)
+	if !ok {
+		return nil, nil, fmt.Errorf("hpke: invalid key type, expected ECDH but got %T", peer)
+	}
+    suite := hpke.NewSuite(
+        hpke.KEM_X25519_HKDF_SHA256,
+        hpke.KDF_HKDF_SHA256,
+        hpke.AEAD_ChaCha20Poly1305,
+    )
+
+    kem := hpke.KEM_X25519_HKDF_SHA256.Scheme()
+    rp, err := kem.UnmarshalBinaryPublicKey(pubKey.Bytes())
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke unmarshal pub: %w", err)
+    }
+
+    sender, err := suite.NewSender(rp, info)
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke new sender: %w", err)
+    }
+
+    enc, sealer, err := sender.Setup(rand.Reader)
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke setup: %w", err)
+    }
+
+    ct, err := sealer.Seal(plaintext, info) // aad = info
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke seal: %w", err)
+    }
+
+    secret := sealer.Export(exportCtx, uint(exportLen))
+    return append(append([]byte{}, enc...), ct...), secret, nil
+}
+
+func HPKEOpenAndExportWithX25519Priv(
+    priv crypto.PrivateKey,
+    packet []byte,
+    info []byte,
+    exportCtx []byte,
+    exportLen int,
+) (plaintext []byte, exporterSecret []byte, err error) {
+	privKey, ok := priv.(*ecdh.PrivateKey)
+	if !ok {
+		return nil, nil, fmt.Errorf("hpke: invalid key type, expected ECDH but got %T", priv)
+	}
+
+    const encLen = 32 // X25519 KEM enc length
+    if len(packet) < encLen {
+        return nil, nil, fmt.Errorf("packet too short: %d", len(packet))
+    }
+    enc := packet[:encLen]
+    ct := packet[encLen:]
+
+    suite := hpke.NewSuite(
+        hpke.KEM_X25519_HKDF_SHA256,
+        hpke.KDF_HKDF_SHA256,
+        hpke.AEAD_ChaCha20Poly1305,
+    )
+
+    kem := hpke.KEM_X25519_HKDF_SHA256.Scheme()
+    skR, err := kem.UnmarshalBinaryPrivateKey(privKey.Bytes())
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke unmarshal priv: %w", err)
+    }
+
+    receiver, err := suite.NewReceiver(skR, info)
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke new receiver: %w", err)
+    }
+
+    opener, err := receiver.Setup(enc)
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke receiver setup: %w", err)
+    }
+
+    pt, err := opener.Open(ct, info) // aad = info
+    if err != nil {
+        return nil, nil, fmt.Errorf("hpke open: %w", err)
+    }
+
+    secret := opener.Export(exportCtx, uint(exportLen))
+    return pt, secret, nil
 }
