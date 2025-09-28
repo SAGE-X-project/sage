@@ -42,8 +42,6 @@ type Server struct {
 
 	key      sagecrypto.KeyPair
 	events   Events
-	// Outbound lets the server proactively send messages to peer (e.g., Response after Request).
-	outbound a2a.A2AServiceClient
 
 	// Resolve the sender pubkey from ctx/message/metadata for signature check or decrypt.
 	// Pasrse JWT and get DID field
@@ -66,11 +64,9 @@ type Server struct {
 
 // NewServer creates a server with required dependencies.
 // - events: application-level hooks (can be NoopEvents{})
-// - outbound: optional, used when this server should call the peer proactively (B->A Response).
 func NewServer(
 	key sagecrypto.KeyPair,
 	events Events,
-	outbound a2a.A2AServiceClient,
 	resolver did.Resolver,
 	sessionCfg *session.Config,
 ) *Server {
@@ -92,7 +88,6 @@ func NewServer(
 	s :=  &Server{
 		key:                 key,
 		events:              events,
-		outbound:            outbound,
 		resolver: 			 resolver,
 		pending:			 make(map[string]pendingState),
 		sessionCfg:          cfg,
@@ -104,12 +99,8 @@ func NewServer(
 	return s
 }
 
-// SetOutbound allows wiring the peer client after server startup.
-func (s *Server) SetOutbound(c a2a.A2AServiceClient) { s.outbound = c }
-
 // SendMessage is the single entry point for all phases.
 // It validates input, decodes payload, and triggers event callbacks.
-// If outbound is configured, the server may proactively send a Response after Request.
 func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*a2a.SendMessageResponse, error) {
 	if in == nil || in.Request == nil {
 		return nil, errors.New("empty request")
@@ -197,17 +188,12 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		_ = s.events.OnRequest(ctx, msg.ContextId, req, senderPub)
 
 		// Optionally respond immediately to the peer.
-		if s.outbound != nil {
-			res := ResponseMessage{
-				EphemeralPubKey: json.RawMessage(serverEphJWK),  
-				Ack:       true,
-			}
-			
-			if _, err := s.sendResponseToPeer(ctx, res, msg.ContextId, senderPub, senderDID); err != nil {
-				return nil, fmt.Errorf("send response to peer: %w", err)
-			}
+		res := ResponseMessage{
+			EphemeralPubKey: json.RawMessage(serverEphJWK),  
+			Ack:       true,
 		}
-		return s.ack(msg, "request_processed")
+
+		return s.sendResponseToPeer(res, msg.ContextId, senderPub, senderDID)
 
 	case Response:
 		var res ResponseMessage
@@ -248,15 +234,13 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 
 		_ = s.events.OnComplete(ctx, msg.ContextId, comp, sessParams)
 
-		if binder, ok := any(s.events).(KeyIDBinder); ok && s.outbound != nil && senderPub != nil {
+		if binder, ok := any(s.events).(KeyIDBinder); ok && senderPub != nil {
 			if kid, ok2 := binder.IssueKeyID(msg.ContextId); ok2 && kid != "" {
 				res := ResponseMessage{
 					Ack:   true,
 					KeyID: kid,
 				}
-				if _, err := s.sendResponseToPeer(ctx, res, msg.ContextId, senderPub, senderDID); err != nil {
-					return nil, fmt.Errorf("send response to peer: %w", err)
-				}
+				return s.sendResponseToPeer(res, msg.ContextId, senderPub, senderDID)
 			}
 		}
 		return s.ack(msg, "complete_received_session_ready")
@@ -297,10 +281,7 @@ func (s *Server) decryptPacket(st *structpb.Struct) ([]byte, error) {
 
 // sendResponseToPeer builds and sends a Response to the peer over gRPC using outbound client.
 // It encrypts the Response with the peer's public key (bootstrap envelope).
-func (s *Server) sendResponseToPeer(ctx context.Context, res ResponseMessage, ctxID string, peerPub crypto.PublicKey, senderDID string) (*a2a.SendMessageResponse, error) {
-	if s.outbound == nil {
-		return nil, errors.New("no outbound client configured")
-	}
+func (s *Server) sendResponseToPeer(res ResponseMessage, ctxID string, peerPub crypto.PublicKey, senderDID string) (*a2a.SendMessageResponse, error) {
 	plain, err := json.Marshal(res)
 	if err != nil {
 		return nil, fmt.Errorf("marshal response: %w", err)
@@ -317,11 +298,11 @@ func (s *Server) sendResponseToPeer(ctx context.Context, res ResponseMessage, ct
 		Role:      a2a.Role_ROLE_AGENT,
 		Content:   []*a2a.Part{{Part: &a2a.Part_Data{Data: &a2a.DataPart{Data: payload}}}},
 	}
-	return s.sendSigned(ctx, msg, senderDID)
+	return s.sendSigned(msg, senderDID)
 }
 
 // sendSigned marshals deterministically, signs with server key, and invokes outbound.SendMessage.
-func (s *Server) sendSigned(ctx context.Context, msg *a2a.Message, did string) (*a2a.SendMessageResponse, error) {
+func (s *Server) sendSigned(msg *a2a.Message, did string) (*a2a.SendMessageResponse, error) {
 	bytes, err := proto.MarshalOptions{Deterministic: true}.Marshal(msg)
 	if err != nil {
 		return nil, fmt.Errorf("marshal for signing: %w", err)
@@ -330,7 +311,11 @@ func (s *Server) sendSigned(ctx context.Context, msg *a2a.Message, did string) (
 	if err != nil {
 		return nil, fmt.Errorf("sign: %w", err)
 	}
-	return s.outbound.SendMessage(ctx, &a2a.SendMessageRequest{Request: msg, Metadata: meta})
+	msg.Metadata = meta
+	
+	return &a2a.SendMessageResponse{
+		Payload: &a2a.SendMessageResponse_Msg{Msg: msg},
+	}, nil
 }
 
 // verifySenderSignature checks metadata.signature against deterministic-marshaled message bytes.

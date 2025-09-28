@@ -118,15 +118,12 @@ func dialBuf(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn {
 	return conn
 }
 
-func setupTest(t *testing.T) (*handshake.Client, *handshake.Server, chan *a2a.SendMessageRequest, sagecrypto.KeyPair, sagecrypto.KeyPair, *session.Manager, *mockResolver ) {
+func setupTest(t *testing.T) (*handshake.Client, *handshake.Server,  sagecrypto.KeyPair, sagecrypto.KeyPair, *session.Manager, *mockResolver ) {
 	aliceKeyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 	bobKeyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
-	// Outbound capture channel (server pushes Response here)
-	outboundCh := make(chan *a2a.SendMessageRequest, 8)
-	outboundMock := &mockOutboundClient{ch: outboundCh}
 
 	// Events (upper-layer) – no-op for this test
 	srvSessManager := session.NewManager()
@@ -143,7 +140,7 @@ func setupTest(t *testing.T) (*handshake.Client, *handshake.Server, chan *a2a.Se
 	multiResolver.AddResolver(sagedid.ChainEthereum, ethResolver)
 	
 	// Pass nil to use default session config (1h, 10m, 10k msgs)
-	hs := handshake.NewServer(bobKeyPair, events, outboundMock, multiResolver, nil)
+	hs := handshake.NewServer(bobKeyPair, events, multiResolver, nil)
 
 	// Start SUT gRPC server
 	_, lis := startSUT(t, hs)
@@ -152,11 +149,11 @@ func setupTest(t *testing.T) (*handshake.Client, *handshake.Server, chan *a2a.Se
 	conn := dialBuf(t, lis)
 	alice := handshake.NewClient(conn, aliceKeyPair)
 
-	return alice, hs, outboundCh, aliceKeyPair, bobKeyPair, srvSessManager, ethResolver
+	return alice, hs, aliceKeyPair, bobKeyPair, srvSessManager, ethResolver
 }
 
 func TestHandshake(t *testing.T) {
-	alice, _, outboundCh, aliceKeyPair, bobKeyPair, srvSessManager, ethResolver := setupTest(t)
+	alice, _, aliceKeyPair, bobKeyPair, srvSessManager, ethResolver := setupTest(t)
 
 	ctx := context.Background()
 	contextId := "ctx-" + uuid.NewString()
@@ -215,16 +212,23 @@ func TestHandshake(t *testing.T) {
 			},
 			EphemeralPubKey: json.RawMessage(alicePubKeyJWK),
 		}
-		_, err := alice.Request(ctx, *reqMsg, bobKeyPair.PublicKey(), string(aliceMeta.DID))
+		resp, err := alice.Request(ctx, *reqMsg, bobKeyPair.PublicKey(), string(aliceMeta.DID))
 		require.NoError(t, err)
+		require.NotNil(t, resp)
+		
+		msg := resp.GetMsg()
+		require.NotNil(t, msg)
 
-		out := <-outboundCh
-		require.NotNil(t, out)
-		assert.Equal(t, handshake.GenerateTaskID(handshake.Response), out.Request.GetTaskId())
+		assert.Equal(t, handshake.GenerateTaskID(handshake.Response), msg.GetTaskId())
 
 		// Decrypt Response envelope (b64) with Alice private key
-		sb := out.Request.Content[0].GetData().GetData()
+		parts := msg.GetContent()
+		require.GreaterOrEqual(t, len(parts), 1)
+		dp := parts[0].GetData()
+		require.NotNil(t, dp)
+		sb := dp.GetData()
 		require.NotNil(t, sb)
+
 		b64 := sb.Fields["b64"].GetStringValue()
 		packet, err := base64.RawURLEncoding.DecodeString(b64)
 		require.NoError(t, err)
@@ -237,7 +241,7 @@ func TestHandshake(t *testing.T) {
 		assert.True(t, res.Ack)
 		require.NotNil(t, res.EphemeralPubKey)
 
-		exported, err := importer.ImportPublic([]byte(res.EphemeralPubKey), sagecrypto.KeyFormatJWK)
+		exported, _ := importer.ImportPublic([]byte(res.EphemeralPubKey), sagecrypto.KeyFormatJWK)
 		peerEph, _ := exported.(*ecdh.PublicKey)
 
 		// Initiator (Alice) derives shared secret using its X25519 private and peer (server) ephemeral pub from Response
@@ -274,16 +278,23 @@ func TestHandshake(t *testing.T) {
 			},
 		}
 		// Client calls Complete RPC (server will ack)
-		_, err := alice.Complete(ctx, *comMsg, string(aliceMeta.DID))
+		resp, err := alice.Complete(ctx, *comMsg, string(aliceMeta.DID))
 		require.NoError(t, err)
+		require.NotNil(t, resp)
 
-		out := <-outboundCh
-		require.NotNil(t, out)
-		assert.Equal(t, handshake.GenerateTaskID(handshake.Response), out.Request.GetTaskId())
+		msg := resp.GetMsg()
+		require.NotNil(t, msg)
+
+		assert.Equal(t, handshake.GenerateTaskID(handshake.Response), msg.GetTaskId())
 
 		// Decrypt Response envelope (b64) with Alice private key
-		sb := out.Request.Content[0].GetData().GetData()
+		parts := msg.GetContent()
+		require.GreaterOrEqual(t, len(parts), 1)
+		dp := parts[0].GetData()
+		require.NotNil(t, dp)
+		sb := dp.GetData()
 		require.NotNil(t, sb)
+
 		b64 := sb.Fields["b64"].GetStringValue()
 		packet, err := base64.RawURLEncoding.DecodeString(b64)
 		require.NoError(t, err)
