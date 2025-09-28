@@ -397,13 +397,13 @@ func (m *Manager) cleanupExpiredSessions() {
 
 func withDefaults(c Config) Config {
     if c.MaxAge == 0 {
-        c.MaxAge = time.Hour // 기본 1시간
+        c.MaxAge = time.Hour // default 1 hour
     }
     if c.IdleTimeout == 0 {
-        c.IdleTimeout = 10 * time.Minute // 기본 10분
+        c.IdleTimeout = 10 * time.Minute // default 10 minutes
     }
     if c.MaxMessages == 0 {
-        c.MaxMessages = 1000 // 기본 최대 메시지 수
+        c.MaxMessages = 1000 // default max message count
     }
     return c
 }
