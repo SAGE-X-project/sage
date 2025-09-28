@@ -45,6 +45,7 @@ func TestBlockchainConnection(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
+	RequireBlockchain(t) // Skip if blockchain not available
 	cfg := getTestConfig()
 
 	t.Run("Connect to local blockchain", func(t *testing.T) {
@@ -73,6 +74,7 @@ func TestEnhancedProviderIntegration(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
+	RequireBlockchain(t) // Skip if blockchain not available
 	cfg := getTestConfig()
 
 	t.Run("Create enhanced provider", func(t *testing.T) {
@@ -150,6 +152,7 @@ func TestAccountBalance(t *testing.T) {
 		t.Skip("Skipping integration test in short mode")
 	}
 
+	RequireBlockchain(t) // Skip if blockchain not available
 	cfg := getTestConfig()
 	client, err := ethclient.Dial(cfg.NetworkRPC)
 	require.NoError(t, err)

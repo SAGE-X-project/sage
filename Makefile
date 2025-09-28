@@ -140,6 +140,18 @@ clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BUILD_DIR)
 	@rm -f $(BINARY_NAME)
+	@rm -f sage-crypto sage-did sage-verify
+	@rm -f test_output.tmp
+	@rm -f coverage.out coverage.html
+	@rm -f *.test
+	@rm -rf test-storage
+	@rm -f test-*.jwk test-*.pem test-message.txt
+	@rm -f test_accounts.json
+	@rm -f .blockchain.pid
+	@find . -name "*.test" -type f -delete
+	@find . -name "*.out" -type f -delete
+	@find . -name "*.log" -type f -delete
+	@find . -type d -name "__debug_bin*" -exec rm -rf {} + 2>/dev/null || true
 	@echo "Clean complete"
 
 # Install binaries to GOPATH/bin

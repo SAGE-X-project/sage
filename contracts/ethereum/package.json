@@ -9,6 +9,8 @@
     "test": "hardhat test",
     "test:v1": "hardhat test test/SageRegistry.test.fixed.js",
     "test:v2": "hardhat test test/SageRegistryV2.test.js",
+    "test:integration:v1": "hardhat test test/integration-v1.test.js",
+    "test:integration:v2": "hardhat test test/integration-v2.test.js",
     "test:integration": "hardhat test test/integration-v2.test.js",
     "test:kairos": "hardhat test --network kairos",
     "deploy:local": "hardhat run scripts/deploy-v2.js --network localhost",

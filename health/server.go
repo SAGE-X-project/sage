@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/sage-x-project/sage/internal/logger"
@@ -208,7 +209,7 @@ func StartHealthServer(port int, checks map[string]HealthCheck) (*Server, error)
 	}
 
 	// Create logger
-	log := logger.New(logger.InfoLevel)
+	log := logger.NewLogger(os.Stdout, logger.InfoLevel)
 
 	// Create and start server
 	server := NewServer(checker, log, port)

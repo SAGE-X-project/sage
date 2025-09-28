@@ -554,3 +554,7 @@ cmake-build-*/
 *.iws
 *.ipr
 *.iml
+
+# Integration test files
+*.integration.test.*
+integration.test.*

@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 	
-	"sage/config"
+	"github.com/sage-x-project/sage/config"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
