@@ -170,10 +170,10 @@ func main() {
 		if err := sess.VerifyCovered(covered, sig); err != nil {
 			http.Error(w, "signature verify failed", 401); return
 		}
-		log.Println("verify signature ✅")
+		log.Println("verify signature ")
 		cipher, _ := io.ReadAll(r.Body)
     	plain, err := sess.Decrypt(cipher)
-		log.Println("decrypt body ✅")
+		log.Println("decrypt body ")
 		if err != nil { http.Error(w, "decrypt: "+err.Error(), 401); return }
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(200)

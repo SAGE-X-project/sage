@@ -1,6 +1,6 @@
 # 공개키 검증 개선 가이드
 
-## 📋 개선 사항 요약
+##  개선 사항 요약
 
 ### 1. **5단계 검증 프로세스**
 
@@ -25,7 +25,7 @@ function _validatePublicKey(bytes calldata publicKey, bytes calldata signature) 
 
 ### 2. **주요 개선점**
 
-#### ✅ **형식 검증**
+####  **형식 검증**
 ```solidity
 if (publicKey.length == 65) {
     // 비압축 형식: 0x04로 시작해야 함
@@ -36,14 +36,14 @@ if (publicKey.length == 65) {
 }
 ```
 
-#### ✅ **제로키 방지**
+####  **제로키 방지**
 ```solidity
 // 모든 바이트가 0인 무효한 키 거부
 bytes32 keyHash = keccak256(publicKey);
 require(keyHash != keccak256(new bytes(publicKey.length)), "Invalid zero key");
 ```
 
-#### ✅ **소유권 증명 (핵심!)**
+####  **소유권 증명 (핵심!)**
 ```solidity
 // 챌린지 메시지 생성
 bytes32 challenge = keccak256(abi.encodePacked(
@@ -62,21 +62,21 @@ require(recovered == msg.sender, "Key ownership not proven");
 
 ### 3. **추가 보안 기능**
 
-#### 🔐 **키 폐기 기능**
+####  **키 폐기 기능**
 ```solidity
 function revokeKey(bytes calldata publicKey) external {
     // 손상된 키를 폐기하고 관련 에이전트 비활성화
 }
 ```
 
-#### 🔐 **키 유효성 확인**
+####  **키 유효성 확인**
 ```solidity
 function isKeyValid(bytes calldata publicKey) external view returns (bool) {
     // 키가 유효하고 폐기되지 않았는지 확인
 }
 ```
 
-## 🚀 마이그레이션 가이드
+##  마이그레이션 가이드
 
 ### Option 1: 완전 교체 (권장)
 ```bash
@@ -109,18 +109,18 @@ function registerAgent(...) {
 }
 ```
 
-## 📊 비교표
+##  비교표
 
 | 검증 항목 | 현재 (v1) | 개선 (v2) | 중요도 |
 |---------|-----------|-----------|--------|
-| 길이 검증 | ✅ | ✅ | ⭐⭐ |
-| 형식 검증 | ❌ | ✅ | ⭐⭐⭐ |
-| 제로키 방지 | ❌ | ✅ | ⭐⭐⭐ |
-| 소유권 증명 | ❌ | ✅ | ⭐⭐⭐⭐⭐ |
-| 키 폐기 | ❌ | ✅ | ⭐⭐⭐⭐ |
+| 길이 검증 |  |  | ⭐⭐ |
+| 형식 검증 |  |  | ⭐⭐⭐ |
+| 제로키 방지 |  |  | ⭐⭐⭐ |
+| 소유권 증명 |  |  | ⭐⭐⭐⭐⭐ |
+| 키 폐기 |  |  | ⭐⭐⭐⭐ |
 | 가스 비용 | ~500 | ~3,500 | - |
 
-## 💡 구현 시 주의사항
+##  구현 시 주의사항
 
 ### 1. **서명 생성 (클라이언트)**
 ```javascript
@@ -154,16 +154,16 @@ async function registerWithKeyProof(publicKey) {
 - 검증 데이터 최소화
 - 이벤트로 오프체인 인덱싱
 
-## 🎯 결론
+##  결론
 
 **최소 권장사항**:
-1. ✅ 형식 검증 (0x04, 0x02, 0x03)
-2. ✅ 제로키 체크
-3. ✅ 서명으로 소유권 증명
+1.  형식 검증 (0x04, 0x02, 0x03)
+2.  제로키 체크
+3.  서명으로 소유권 증명
 
 **추가 권장사항**:
-4. ✅ 키 폐기 기능
-5. ✅ 유효성 상태 추적
+4.  키 폐기 기능
+5.  유효성 상태 추적
 
 이 정도면 **실용적이면서도 안전한** 공개키 검증이 가능합니다!
 

@@ -68,12 +68,12 @@ func (c *Calculator) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	// 1. Verify SAGE signature
 	if err := c.VerifyRequest(r); err != nil {
 		http.Error(w, fmt.Sprintf("Unauthorized: %v", err), http.StatusUnauthorized)
-		fmt.Printf("❌ Rejected request: %v\n", err)
+		fmt.Printf(" Rejected request: %v\n", err)
 		return
 	}
 
 	agentDID := r.Header.Get("X-Agent-DID")
-	fmt.Printf("✅ Verified request from: %s\n", agentDID)
+	fmt.Printf(" Verified request from: %s\n", agentDID)
 
 	// 2. Parse request
 	var req ToolRequest
@@ -226,9 +226,9 @@ func (a *DemoAgent) CallTool(url string, operation string, args map[string]inter
 	json.Unmarshal(body, &result)
 	
 	if result.Error != "" {
-		fmt.Printf("  ❌ Error: %s\n", result.Error)
+		fmt.Printf("   Error: %s\n", result.Error)
 	} else {
-		fmt.Printf("  ✅ Result: %v\n", result.Result)
+		fmt.Printf("   Result: %v\n", result.Result)
 	}
 
 	return nil
@@ -276,7 +276,7 @@ Untrusted agents:
 	})
 
 	// Start server
-	fmt.Println("🔐 SAGE-Secured Calculator Tool")
+	fmt.Println(" SAGE-Secured Calculator Tool")
 	fmt.Println("📍 Listening on http://localhost:8080")
 	fmt.Println("")
 	fmt.Printf("Trusted agents:\n")
@@ -310,7 +310,7 @@ Untrusted agents:
 			"a": 50, "b": 2,
 		})
 		if err != nil {
-			fmt.Printf("  ❌ Failed as expected: %v\n", err)
+			fmt.Printf("   Failed as expected: %v\n", err)
 		}
 
 		// Invalid request (no signature)
@@ -318,7 +318,7 @@ Untrusted agents:
 		resp, _ := http.Post("http://localhost:8080/calculator", "application/json",
 			strings.NewReader(`{"tool":"calculator","operation":"add","arguments":{"a":1,"b":1}}`))
 		if resp.StatusCode == http.StatusUnauthorized {
-			fmt.Printf("  ❌ Rejected as expected: %s\n", resp.Status)
+			fmt.Printf("   Rejected as expected: %s\n", resp.Status)
 		}
 		resp.Body.Close()
 

@@ -34,7 +34,7 @@ async function generateJavaBindings() {
     try {
       execSync('which web3j', { stdio: 'ignore' });
     } catch (error) {
-      log("\n❌ web3j not found!", "red");
+      log("\n web3j not found!", "red");
       log("\nPlease install web3j first:", "yellow");
       log("  macOS: brew tap web3j/web3j && brew install web3j", "cyan");
       log("  Linux/Windows: curl -L https://get.web3j.io | sh", "cyan");
@@ -48,7 +48,7 @@ async function generateJavaBindings() {
     
     if (!fs.existsSync(srcDir)) {
       fs.mkdirSync(srcDir, { recursive: true });
-      log("✅ Created bindings/java directory structure", "green");
+      log(" Created bindings/java directory structure", "green");
     }
 
     // Contracts to generate bindings for
@@ -67,14 +67,14 @@ async function generateJavaBindings() {
 
     // Generate Java bindings
     for (const contract of contracts) {
-      log(`\n📦 Processing ${contract.name}...`, "blue");
+      log(`\n Processing ${contract.name}...`, "blue");
 
       const abiPath = path.join(__dirname, '..', contract.abi);
       const binPath = path.join(__dirname, '..', contract.bin);
 
       // Check if files exist
       if (!fs.existsSync(abiPath)) {
-        log(`  ⚠️  ABI not found: ${contract.abi}`, "yellow");
+        log(`    ABI not found: ${contract.abi}`, "yellow");
         log(`  Run 'npm run extract-abi' first`, "yellow");
         continue;
       }
@@ -95,7 +95,7 @@ async function generateJavaBindings() {
       
       try {
         execSync(cmd, { stdio: 'pipe' });
-        log(`  ✅ Generated ${contract.name}.java`, "green");
+        log(`   Generated ${contract.name}.java`, "green");
         
         // Clean up temp file
         fs.unlinkSync(tempBinPath);
@@ -105,10 +105,10 @@ async function generateJavaBindings() {
         if (fs.existsSync(javaFile)) {
           const stats = fs.statSync(javaFile);
           log(`  📄 ${javaFile}`, "cyan");
-          log(`  📊 Size: ${(stats.size / 1024).toFixed(2)} KB`, "cyan");
+          log(`   Size: ${(stats.size / 1024).toFixed(2)} KB`, "cyan");
         }
       } catch (error) {
-        log(`  ❌ Failed to generate binding for ${contract.name}`, "red");
+        log(`   Failed to generate binding for ${contract.name}`, "red");
         console.error(error.message);
         // Clean up temp file if exists
         if (fs.existsSync(tempBinPath)) {
@@ -152,7 +152,7 @@ async function generateJavaBindings() {
 </project>`;
 
     fs.writeFileSync(path.join(javaDir, 'pom.xml'), pomContent);
-    log("\n✅ Created pom.xml", "green");
+    log("\n Created pom.xml", "green");
 
     // Create build.gradle for Gradle
     const gradleContent = `plugins {
@@ -173,7 +173,7 @@ dependencies {
 }`;
 
     fs.writeFileSync(path.join(javaDir, 'build.gradle'), gradleContent);
-    log("✅ Created build.gradle", "green");
+    log(" Created build.gradle", "green");
 
     // Create example usage file
     const exampleContent = `package io.sage.example;
@@ -220,7 +220,7 @@ public class Example {
       fs.mkdirSync(exampleDir, { recursive: true });
     }
     fs.writeFileSync(path.join(exampleDir, 'Example.java'), exampleContent);
-    log("✅ Created Example.java", "green");
+    log(" Created Example.java", "green");
 
     // Create README
     const readmeContent = `# Java Bindings for SAGE Contracts
@@ -279,10 +279,10 @@ npm run generate:java
 `;
 
     fs.writeFileSync(path.join(javaDir, 'README.md'), readmeContent);
-    log("✅ Created README.md", "green");
+    log(" Created README.md", "green");
 
     log("\n" + "=".repeat(50), "bright");
-    log("✨ Java binding generation complete!", "green");
+    log(" Java binding generation complete!", "green");
     log("\nGenerated files:", "yellow");
     log(`  📁 ${javaDir}/`, "cyan");
     log("  📄 SageRegistryV2.java", "cyan");
@@ -292,7 +292,7 @@ npm run generate:java
     log("  📄 Example.java - Usage example", "cyan");
 
   } catch (error) {
-    log("\n❌ Error generating Java bindings:", "red");
+    log("\n Error generating Java bindings:", "red");
     console.error(error);
     process.exit(1);
   }

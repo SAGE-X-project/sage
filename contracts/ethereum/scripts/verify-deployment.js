@@ -5,7 +5,7 @@ const path = require("path");
 async function verifyDeployment() {
   const network = hre.network.name;
   
-  console.log("\n🔍 SAGE Deployment Verification Script");
+  console.log("\n SAGE Deployment Verification Script");
   console.log("=" .repeat(60));
   console.log(`📍 Network: ${network}`);
   
@@ -13,24 +13,24 @@ async function verifyDeployment() {
     // 1. Load deployment information
     const deploymentFile = path.join(__dirname, "..", "deployments", `${network}.json`);
     if (!fs.existsSync(deploymentFile)) {
-      console.error(`❌ Deployment information file not found: ${deploymentFile}`);
-      console.log("💡 Please run npm run deploy:unified first");
+      console.error(` Deployment information file not found: ${deploymentFile}`);
+      console.log(" Please run npm run deploy:unified first");
       return false;
     }
     
     const deployment = JSON.parse(fs.readFileSync(deploymentFile, "utf8"));
-    console.log(`✅ Deployment information loaded: ${deploymentFile}`);
+    console.log(` Deployment information loaded: ${deploymentFile}`);
     
     // 2. Check contract addresses
     const registryAddress = deployment.contracts.SageRegistryV2?.address;
     const hookAddress = deployment.contracts.SageVerificationHook?.address;
     
     if (!registryAddress || !hookAddress) {
-      console.error("❌ Contract addresses not found");
+      console.error(" Contract addresses not found");
       return false;
     }
     
-    console.log("\n📋 Contract Addresses:");
+    console.log("\n Contract Addresses:");
     console.log(`  Registry: ${registryAddress}`);
     console.log(`  Hook: ${hookAddress}`);
     
@@ -44,7 +44,7 @@ async function verifyDeployment() {
     const hook = SageVerificationHook.attach(hookAddress);
     
     // 4. Check basic information
-    console.log("\n🔧 Contract Status Check:");
+    console.log("\n Contract Status Check:");
     
     // Check Owner
     const owner = await registry.owner();
@@ -62,7 +62,7 @@ async function verifyDeployment() {
     
     // 5. Check agent information
     if (deployment.agents && deployment.agents.length > 0) {
-      console.log("\n🤖 Registered Agents Check:");
+      console.log("\n Registered Agents Check:");
       
       for (const agentInfo of deployment.agents) {
         try {
@@ -76,29 +76,29 @@ async function verifyDeployment() {
           
           // Public key information
           const keyInfo = await registry.getAgentPublicKey(agentInfo.id);
-          console.log(`    Public key exists: ${keyInfo.length > 0 ? "✅" : "❌"}`);
+          console.log(`    Public key exists: ${keyInfo.length > 0 ? "" : ""}`);
         } catch (error) {
-          console.log(`    ⚠️ Agent query failed: ${error.message}`);
+          console.log(`     Agent query failed: ${error.message}`);
         }
       }
     }
     
     // 6. Function tests
-    console.log("\n🧪 Function Tests:");
+    console.log("\n Function Tests:");
     
     // Query agent by DID
     if (deployment.agents && deployment.agents.length > 0) {
       const testDid = deployment.agents[0].did;
       try {
         const agentId = await registry.getAgentByDID(testDid);
-        console.log(`  ✅ DID query successful: ${testDid}`);
+        console.log(`   DID query successful: ${testDid}`);
       } catch (error) {
-        console.log(`  ❌ DID query failed: ${error.message}`);
+        console.log(`   DID query failed: ${error.message}`);
       }
     }
     
     // 7. Check events
-    console.log("\n📊 Recent Events:");
+    console.log("\n Recent Events:");
     
     // Query events from recent blocks
     const currentBlock = await hre.ethers.provider.getBlockNumber();
@@ -121,13 +121,13 @@ async function verifyDeployment() {
     }
     
     console.log("\n" + "=" .repeat(60));
-    console.log("✅ Verification Complete!");
+    console.log(" Verification Complete!");
     console.log("=" .repeat(60));
     
     return true;
     
   } catch (error) {
-    console.error("\n❌ Verification Failed:", error);
+    console.error("\n Verification Failed:", error);
     return false;
   }
 }
@@ -138,7 +138,7 @@ async function testAgentQuery(registryAddress, agentId) {
   const SageRegistry = await hre.ethers.getContractFactory("SageRegistryV2");
   const registry = SageRegistry.attach(registryAddress);
   
-  console.log(`\n🔍 Agent Details Query: ${agentId}`);
+  console.log(`\n Agent Details Query: ${agentId}`);
   
   try {
     const agent = await registry.getAgent(agentId);
@@ -157,13 +157,13 @@ async function testAgentQuery(registryAddress, agentId) {
     
     return true;
   } catch (error) {
-    console.error(`  ❌ Query failed: ${error.message}`);
+    console.error(`   Query failed: ${error.message}`);
     return false;
   }
 }
 
 async function testSignatureVerification(registryAddress) {
-  console.log("\n🔐 Signature Verification Test");
+  console.log("\n Signature Verification Test");
   
   const [signer] = await hre.ethers.getSigners();
   
@@ -183,7 +183,7 @@ async function testSignatureVerification(registryAddress) {
   const isValid = recoveredAddress === signer.address;
   
   console.log(`  Recovered address: ${recoveredAddress}`);
-  console.log(`  Verification result: ${isValid ? "✅ Valid" : "❌ Invalid"}`);
+  console.log(`  Verification result: ${isValid ? " Valid" : " Invalid"}`);
   
   return isValid;
 }

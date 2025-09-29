@@ -93,7 +93,7 @@ func runResolve(cmd *cobra.Command, args []string) error {
 		if err := os.WriteFile(resolveOutput, []byte(output), 0644); err != nil {
 			return fmt.Errorf("failed to write output: %w", err)
 		}
-		fmt.Printf("✅ Metadata saved to %s\n", resolveOutput)
+		fmt.Printf(" Metadata saved to %s\n", resolveOutput)
 	} else {
 		fmt.Println("\n" + output)
 	}

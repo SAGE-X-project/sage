@@ -102,11 +102,11 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	}
 
 	if verifyErr != nil {
-		fmt.Println("❌ Signature verification FAILED")
+		fmt.Println(" Signature verification FAILED")
 		return fmt.Errorf("invalid signature: %w", verifyErr)
 	}
 
-	fmt.Println("✅ Signature verification PASSED")
+	fmt.Println(" Signature verification PASSED")
 	
 	// Output additional information
 	fmt.Printf("Key Type: %s\n", keyType)

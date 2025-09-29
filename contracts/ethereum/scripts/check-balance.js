@@ -5,7 +5,7 @@ async function main() {
   const network = await hre.ethers.provider.getNetwork();
   
   console.log("=" .repeat(50));
-  console.log("🔍 Account Balance Check");
+  console.log(" Account Balance Check");
   console.log("=" .repeat(50));
   console.log("Network:", network.name);
   console.log("Chain ID:", network.chainId);
@@ -16,12 +16,12 @@ async function main() {
   console.log("=" .repeat(50));
   
   if (balance === 0n) {
-    console.log("⚠️  Your account has no KLAY!");
+    console.log("  Your account has no KLAY!");
     console.log("Get test KLAY from: https://kairos.wallet.kaia.io/faucet");
   } else if (balance < hre.ethers.parseEther("0.1")) {
-    console.log("⚠️  Low balance! Consider getting more test KLAY.");
+    console.log("  Low balance! Consider getting more test KLAY.");
   } else {
-    console.log("✅ Sufficient balance for deployment and testing.");
+    console.log(" Sufficient balance for deployment and testing.");
   }
 }
 

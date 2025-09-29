@@ -20,10 +20,10 @@ The demo will:
 2. Create three demo agents (Alice, Bob, and Eve)
 3. Register Alice and Bob as trusted (Eve remains untrusted)
 4. Run automatic test requests showing:
-   - ✅ Alice's request succeeds (trusted)
-   - ✅ Bob's request succeeds (trusted)
-   - ❌ Eve's request fails (untrusted)
-   - ❌ Anonymous request fails (no signature)
+   -  Alice's request succeeds (trusted)
+   -  Bob's request succeeds (trusted)
+   -  Eve's request fails (untrusted)
+   -  Anonymous request fails (no signature)
 
 ## Key Security Features
 

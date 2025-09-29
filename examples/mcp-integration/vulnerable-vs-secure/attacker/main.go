@@ -77,14 +77,14 @@ func attackSecureServer() {
 	
 	sendRequest("http://localhost:8083/chat", msg, true)
 
-	fmt.Println("\n🛡️ All attacks failed! SAGE protection works!")
+	fmt.Println("\n All attacks failed! SAGE protection works!")
 }
 
 func sendRequest(url string, msg ChatMessage, expectFailure bool) {
 	body, _ := json.Marshal(msg)
 	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
 	if err != nil {
-		fmt.Printf("   ❌ Failed to create request: %v\n", err)
+		fmt.Printf("    Failed to create request: %v\n", err)
 		return
 	}
 	
@@ -96,7 +96,7 @@ func sendRequest(url string, msg ChatMessage, expectFailure bool) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Printf("   ❌ Request failed: %v\n", err)
+		fmt.Printf("    Request failed: %v\n", err)
 		return
 	}
 	defer resp.Body.Close()
@@ -107,15 +107,15 @@ func sendRequest(url string, msg ChatMessage, expectFailure bool) {
 		if expectFailure {
 			fmt.Printf("   🚨 UNEXPECTED: Attack succeeded on secure server!\n")
 		} else {
-			fmt.Printf("   ✅ Attack succeeded on vulnerable server (this is bad!)\n")
-			fmt.Printf("   📝 Response: %s\n", string(respBody))
+			fmt.Printf("    Attack succeeded on vulnerable server (this is bad!)\n")
+			fmt.Printf("    Response: %s\n", string(respBody))
 		}
 	} else {
 		if expectFailure {
-			fmt.Printf("   ✅ Attack blocked by SAGE! Status: %s\n", resp.Status)
-			fmt.Printf("   📝 Error: %s\n", string(respBody))
+			fmt.Printf("    Attack blocked by SAGE! Status: %s\n", resp.Status)
+			fmt.Printf("    Error: %s\n", string(respBody))
 		} else {
-			fmt.Printf("   ❌ Attack failed unexpectedly: %s\n", resp.Status)
+			fmt.Printf("    Attack failed unexpectedly: %s\n", resp.Status)
 		}
 	}
 }
@@ -133,7 +133,7 @@ func main() {
 	} else {
 		attackVulnerableServer()
 		
-		fmt.Println("\n\n💡 To see how SAGE blocks these attacks, run:")
+		fmt.Println("\n\n To see how SAGE blocks these attacks, run:")
 		fmt.Println("   go run . --secure")
 	}
 }

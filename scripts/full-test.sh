@@ -333,7 +333,7 @@ echo "  • Structured logging ✓"
 # Final exit code based on test results
 if [ ${FAILED_PACKAGES} -eq 0 ]; then
     echo ""
-    echo -e "${GREEN}🎉 All tests PASSED successfully!${NC}"
+    echo -e "${GREEN} All tests PASSED successfully!${NC}"
     exit 0
 else
     echo ""

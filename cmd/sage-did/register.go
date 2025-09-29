@@ -136,7 +136,7 @@ func runRegister(cmd *cobra.Command, args []string) error {
 	}
 
 	// Display result
-	fmt.Println("\n✅ Agent registered successfully!")
+	fmt.Println("\n Agent registered successfully!")
 	fmt.Printf("DID: %s\n", agentDID)
 	fmt.Printf("Transaction: %s\n", result.TransactionHash)
 	if result.BlockNumber > 0 {

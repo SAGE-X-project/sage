@@ -32,7 +32,7 @@ async function extractABIs() {
     const abiDir = path.join(__dirname, '..', 'abi');
     if (!fs.existsSync(abiDir)) {
       fs.mkdirSync(abiDir, { recursive: true });
-      log("✅ Created abi directory", "green");
+      log(" Created abi directory", "green");
     }
 
     // Contracts to extract
@@ -60,7 +60,7 @@ async function extractABIs() {
       const artifactPath = path.join(__dirname, '..', 'artifacts', contract.path);
       
       if (!fs.existsSync(artifactPath)) {
-        log(`⚠️  Artifact not found for ${contract.name}`, "yellow");
+        log(`  Artifact not found for ${contract.name}`, "yellow");
         log(`   Please run 'npm run compile' first`, "yellow");
         continue;
       }
@@ -79,14 +79,14 @@ async function extractABIs() {
       const abiMinPath = path.join(abiDir, `${contract.name}.abi.min.json`);
       fs.writeFileSync(abiMinPath, JSON.stringify(abi));
       
-      log(`✅ Extracted ${contract.name}`, "green");
+      log(` Extracted ${contract.name}`, "green");
       log(`   📄 ${abiPath}`, "blue");
       log(`   📄 ${abiMinPath} (minified)`, "blue");
       
       // Show stats
       const functionCount = abi.filter(item => item.type === 'function').length;
       const eventCount = abi.filter(item => item.type === 'event').length;
-      log(`   📊 ${functionCount} functions, ${eventCount} events`, "cyan");
+      log(`    ${functionCount} functions, ${eventCount} events`, "cyan");
     }
 
     // Create index file for easy imports
@@ -102,7 +102,7 @@ module.exports = {
 `;
 
     fs.writeFileSync(path.join(abiDir, 'index.js'), indexContent);
-    log("\n✅ Created index.js for easy imports", "green");
+    log("\n Created index.js for easy imports", "green");
 
     // Create TypeScript definitions
     const tsContent = `// Auto-generated TypeScript definitions
@@ -115,17 +115,17 @@ export const IRegistryHook: any[];
 `;
 
     fs.writeFileSync(path.join(abiDir, 'index.d.ts'), tsContent);
-    log("✅ Created TypeScript definitions", "green");
+    log(" Created TypeScript definitions", "green");
 
     log("\n" + "=".repeat(50), "bright");
-    log("✨ ABI extraction complete!", "green");
+    log(" ABI extraction complete!", "green");
     log("\nUsage example:", "yellow");
     log("  const { SageRegistryV2 } = require('./abi');", "cyan");
     log("  // or", "cyan");
     log("  import SageRegistryV2ABI from './abi/SageRegistryV2.abi.json';", "cyan");
 
   } catch (error) {
-    log("\n❌ Error extracting ABIs:", "red");
+    log("\n Error extracting ABIs:", "red");
     console.error(error);
     process.exit(1);
   }

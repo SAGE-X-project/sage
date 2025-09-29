@@ -27,14 +27,14 @@ function log(message, color = "reset") {
 
 async function generateGoBindings() {
   try {
-    log("\n🔧 Generating Go Bindings for Smart Contracts", "cyan");
+    log("\n Generating Go Bindings for Smart Contracts", "cyan");
     log("=" .repeat(50), "bright");
 
     // Check if abigen is installed
     try {
       execSync('which abigen', { stdio: 'ignore' });
     } catch (error) {
-      log("\n❌ abigen not found!", "red");
+      log("\n abigen not found!", "red");
       log("\nPlease install abigen first:", "yellow");
       log("  go install github.com/ethereum/go-ethereum/cmd/abigen@latest", "cyan");
       log("\nOr on macOS with Homebrew:", "yellow");
@@ -46,7 +46,7 @@ async function generateGoBindings() {
     const goDir = path.join(__dirname, '..', 'bindings', 'go');
     if (!fs.existsSync(goDir)) {
       fs.mkdirSync(goDir, { recursive: true });
-      log("✅ Created bindings/go directory", "green");
+      log(" Created bindings/go directory", "green");
     }
 
     // Contracts to generate bindings for
@@ -69,7 +69,7 @@ async function generateGoBindings() {
 
     // Generate Go bindings
     for (const contract of contracts) {
-      log(`\n📦 Processing ${contract.name}...`, "blue");
+      log(`\n Processing ${contract.name}...`, "blue");
 
       const abiPath = path.join(__dirname, '..', contract.abi);
       const binPath = path.join(__dirname, '..', contract.bin);
@@ -77,7 +77,7 @@ async function generateGoBindings() {
 
       // Check if files exist
       if (!fs.existsSync(abiPath)) {
-        log(`  ⚠️  ABI not found: ${contract.abi}`, "yellow");
+        log(`    ABI not found: ${contract.abi}`, "yellow");
         log(`  Run 'npm run extract-abi' first`, "yellow");
         continue;
       }
@@ -98,7 +98,7 @@ async function generateGoBindings() {
       
       try {
         execSync(cmd, { stdio: 'pipe' });
-        log(`  ✅ Generated ${contract.pkg}.go`, "green");
+        log(`   Generated ${contract.pkg}.go`, "green");
         
         // Clean up temp file
         fs.unlinkSync(tempBinPath);
@@ -106,9 +106,9 @@ async function generateGoBindings() {
         // Show file info
         const stats = fs.statSync(outputPath);
         log(`  📄 ${outputPath}`, "cyan");
-        log(`  📊 Size: ${(stats.size / 1024).toFixed(2)} KB`, "cyan");
+        log(`   Size: ${(stats.size / 1024).toFixed(2)} KB`, "cyan");
       } catch (error) {
-        log(`  ❌ Failed to generate binding for ${contract.name}`, "red");
+        log(`   Failed to generate binding for ${contract.name}`, "red");
         console.error(error.message);
         // Clean up temp file if exists
         if (fs.existsSync(tempBinPath)) {
@@ -129,7 +129,7 @@ require (
 
     const goModPath = path.join(goDir, 'go.mod');
     fs.writeFileSync(goModPath, goModContent);
-    log("\n✅ Created go.mod file", "green");
+    log("\n Created go.mod file", "green");
 
     // Create example usage file
     const exampleContent = `package main
@@ -184,7 +184,7 @@ func main() {
 
     const examplePath = path.join(goDir, 'example.go');
     fs.writeFileSync(examplePath, exampleContent);
-    log("✅ Created example.go", "green");
+    log(" Created example.go", "green");
 
     // Create README for Go bindings
     const readmeContent = `# Go Bindings for SAGE Contracts
@@ -226,10 +226,10 @@ npm run generate:go
 
     const readmePath = path.join(goDir, 'README.md');
     fs.writeFileSync(readmePath, readmeContent);
-    log("✅ Created README.md", "green");
+    log(" Created README.md", "green");
 
     log("\n" + "=".repeat(50), "bright");
-    log("✨ Go binding generation complete!", "green");
+    log(" Go binding generation complete!", "green");
     log("\nGenerated files:", "yellow");
     log(`  📁 ${goDir}/`, "cyan");
     log("  📄 registry.go - SageRegistryV2 binding", "cyan");
@@ -239,7 +239,7 @@ npm run generate:go
     log("  📄 README.md - Documentation", "cyan");
 
   } catch (error) {
-    log("\n❌ Error generating Go bindings:", "red");
+    log("\n Error generating Go bindings:", "red");
     console.error(error);
     process.exit(1);
   }

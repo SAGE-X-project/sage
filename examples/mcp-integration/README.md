@@ -11,10 +11,10 @@ Without SAGE, MCP tools are vulnerable to:
 - 🚨 **Unauthorized access** - No verification of agent capabilities
 
 SAGE solves these problems by adding:
-- ✅ **Cryptographic signatures** on every request
-- ✅ **Blockchain-verified agent identities** (DIDs)
-- ✅ **Capability-based access control**
-- ✅ **Replay attack protection**
+-  **Cryptographic signatures** on every request
+-  **Blockchain-verified agent identities** (DIDs)
+-  **Capability-based access control**
+-  **Replay attack protection**
 
 ## Examples
 
@@ -131,7 +131,7 @@ Make secure tool calls - see the [client example](./client/) for a complete impl
 └─────────────┘ ◄──────────────── └─────────────┘
                  Signed Response
 
-                  🔐 SAGE Layer 🔐
+                   SAGE Layer 
          ┌─────────────────────────────┐
          │ • Verify signatures         │
          │ • Resolve DIDs              │
@@ -186,10 +186,10 @@ json.NewEncoder(w).Encode(result)
 
 | Attack Vector | Without SAGE | With SAGE |
 |--------------|--------------|-----------|
-| Identity Spoofing | ❌ Any agent can claim any identity | ✅ Cryptographically verified |
-| Message Tampering | ❌ Requests can be modified | ✅ Signature verification |
-| Replay Attacks | ❌ Old requests can be resent | ✅ Timestamp validation |
-| Unauthorized Access | ❌ No capability checking | ✅ Blockchain-verified permissions |
+| Identity Spoofing |  Any agent can claim any identity |  Cryptographically verified |
+| Message Tampering |  Requests can be modified |  Signature verification |
+| Replay Attacks |  Old requests can be resent |  Timestamp validation |
+| Unauthorized Access |  No capability checking |  Blockchain-verified permissions |
 
 ## Next Steps
 

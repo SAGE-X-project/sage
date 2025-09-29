@@ -25,7 +25,7 @@ type ChatResponse struct {
 // Simulated message processing
 func processMessage(msg ChatMessage) ChatResponse {
 	// In a real system, this could execute commands, access databases, etc.
-	fmt.Printf("⚠️  Received message from: %s\n", msg.AgentID)
+	fmt.Printf("  Received message from: %s\n", msg.AgentID)
 	fmt.Printf("💬 Message: %s\n", msg.Message)
 	
 	// Simulate some processing
@@ -56,7 +56,7 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 	// NO REPLAY PROTECTION! Old messages can be resent!
 	
 	response := processMessage(msg)
-	fmt.Println("✅ Processed successfully (THIS IS BAD!)")
+	fmt.Println(" Processed successfully (THIS IS BAD!)")
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
@@ -64,14 +64,14 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	fmt.Println("🚨 VULNERABLE Chat Server (NO SECURITY)")
-	fmt.Println("⚠️  DO NOT USE IN PRODUCTION!")
+	fmt.Println("  DO NOT USE IN PRODUCTION!")
 	fmt.Println("📍 Listening on http://localhost:8082")
 	fmt.Println("")
 	fmt.Println("Problems with this server:")
-	fmt.Println("  ❌ No identity verification")
-	fmt.Println("  ❌ No message integrity checks")
-	fmt.Println("  ❌ No replay attack protection")
-	fmt.Println("  ❌ Anyone can impersonate any agent")
+	fmt.Println("   No identity verification")
+	fmt.Println("   No message integrity checks")
+	fmt.Println("   No replay attack protection")
+	fmt.Println("   Anyone can impersonate any agent")
 	fmt.Println("")
 	
 	http.HandleFunc("/chat", handleChat)

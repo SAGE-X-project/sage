@@ -10,7 +10,7 @@ Comprehensive security audit of the SAGE Registry smart contracts for AI agent m
 
 ## Security Findings
 
-### ✅ Strengths
+###  Strengths
 
 1. **Signature Verification**
    - Proper ECDSA signature verification for all operations
@@ -37,7 +37,7 @@ Comprehensive security audit of the SAGE Registry smart contracts for AI agent m
    - Efficient storage patterns
    - Event emissions for off-chain indexing
 
-### ⚠️ Medium Risk Issues
+###  Medium Risk Issues
 
 1. **Centralization Risk**
    - Single owner can change hooks without timelock
@@ -67,32 +67,32 @@ Comprehensive security audit of the SAGE Registry smart contracts for AI agent m
 
 ## Attack Vector Analysis
 
-### 1. Replay Attack Protection ✅
+### 1. Replay Attack Protection 
 - **Status**: Protected
 - **Mechanism**: Nonce increments on each operation
 - **Test Result**: Cannot replay old signatures
 
-### 2. Signature Forgery ✅
+### 2. Signature Forgery 
 - **Status**: Protected
 - **Mechanism**: ECDSA signature verification
 - **Test Result**: Invalid signatures rejected
 
-### 3. DID Squatting ✅
+### 3. DID Squatting 
 - **Status**: Protected
 - **Mechanism**: First-come-first-served with signature proof
 - **Test Result**: Duplicate DIDs rejected
 
-### 4. Denial of Service ✅
+### 4. Denial of Service 
 - **Status**: Mitigated
 - **Mechanism**: Rate limiting and gas limits
 - **Test Result**: Spam registrations blocked
 
-### 5. Front-Running ⚠️
+### 5. Front-Running 
 - **Status**: Partially vulnerable
 - **Risk**: MEV bots could front-run registrations
 - **Mitigation**: Use commit-reveal or private mempool
 
-### 6. Reentrancy ✅
+### 6. Reentrancy 
 - **Status**: Protected
 - **Mechanism**: No external calls in critical sections
 - **Test Result**: State changes before external calls
@@ -112,14 +112,14 @@ Comprehensive security audit of the SAGE Registry smart contracts for AI agent m
 
 ## Best Practices Compliance
 
-### ✅ Followed
+###  Followed
 - CEI (Checks-Effects-Interactions) pattern
 - Explicit visibility modifiers
 - Event emissions for state changes
 - Error messages for all requires
 - No use of deprecated functions
 
-### ⚠️ Consider Implementing
+###  Consider Implementing
 - Upgradability pattern (if needed)
 - Emergency pause mechanism
 - Formal verification
@@ -128,14 +128,14 @@ Comprehensive security audit of the SAGE Registry smart contracts for AI agent m
 ## Testing Coverage
 
 ### Unit Tests Written
-- ✅ Deployment and initialization
-- ✅ Agent registration with signature
-- ✅ Agent updates and deactivation
-- ✅ Query functions
-- ✅ Access control
-- ✅ Hook integration
-- ✅ Rate limiting
-- ✅ Blacklist functionality
+-  Deployment and initialization
+-  Agent registration with signature
+-  Agent updates and deactivation
+-  Query functions
+-  Access control
+-  Hook integration
+-  Rate limiting
+-  Blacklist functionality
 
 ### Test Results
 ```

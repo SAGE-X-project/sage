@@ -28,7 +28,7 @@ async function main() {
     }
 
     log(`\n${"=".repeat(50)}`, "bright");
-    log(`🚀 SAGE Registry Deployment to ${network.toUpperCase()}`, "cyan");
+    log(` SAGE Registry Deployment to ${network.toUpperCase()}`, "cyan");
     log(`${"=".repeat(50)}`, "bright");
     
     // Get deployer account
@@ -56,7 +56,7 @@ async function main() {
     }
     
     log(`\n${"=".repeat(50)}`, "bright");
-    log("📦 Starting Contract Deployment...", "cyan");
+    log(" Starting Contract Deployment...", "cyan");
     log(`${"=".repeat(50)}`, "bright");
 
     // Deploy SageRegistry
@@ -65,14 +65,14 @@ async function main() {
     const registry = await SageRegistry.deploy();
     await registry.deployed();
     
-    log(`✅ SageRegistry deployed!`, "green");
+    log(` SageRegistry deployed!`, "green");
     console.log(`   Address: ${registry.address}`);
     console.log(`   Transaction: ${registry.deployTransaction.hash}`);
     
     // Wait for confirmation
     log("   ⏳ Waiting for confirmations...", "yellow");
     await registry.deployTransaction.wait(2);
-    log("   ✅ Confirmed!", "green");
+    log("    Confirmed!", "green");
 
     // Deploy SageVerificationHook
     log("\n[2/3] Deploying SageVerificationHook...", "blue");
@@ -80,14 +80,14 @@ async function main() {
     const verificationHook = await SageVerificationHook.deploy();
     await verificationHook.deployed();
     
-    log(`✅ SageVerificationHook deployed!`, "green");
+    log(` SageVerificationHook deployed!`, "green");
     console.log(`   Address: ${verificationHook.address}`);
     console.log(`   Transaction: ${verificationHook.deployTransaction.hash}`);
     
     // Wait for confirmation
     log("   ⏳ Waiting for confirmations...", "yellow");
     await verificationHook.deployTransaction.wait(2);
-    log("   ✅ Confirmed!", "green");
+    log("    Confirmed!", "green");
 
     // Configure hook
     log("\n[3/3] Configuring verification hook...", "blue");
@@ -96,10 +96,10 @@ async function main() {
     
     log("   ⏳ Waiting for confirmation...", "yellow");
     await setHookTx.wait(2);
-    log("✅ Verification hook configured!", "green");
+    log(" Verification hook configured!", "green");
 
     // Verify configuration
-    log("\n🔍 Verifying deployment...", "yellow");
+    log("\n Verifying deployment...", "yellow");
     const registryOwner = await registry.owner();
     const beforeHook = await registry.beforeRegisterHook();
     
@@ -107,10 +107,10 @@ async function main() {
     console.log(`   Before Register Hook: ${beforeHook}`);
     
     if (registryOwner !== deployer.address) {
-      log("⚠️  Warning: Registry owner doesn't match deployer!", "red");
+      log("  Warning: Registry owner doesn't match deployer!", "red");
     }
     if (beforeHook !== verificationHook.address) {
-      log("⚠️  Warning: Hook not properly set!", "red");
+      log("  Warning: Hook not properly set!", "red");
     }
 
     // Calculate gas used
@@ -175,15 +175,15 @@ async function main() {
 
     // Summary
     log(`\n${"=".repeat(50)}`, "bright");
-    log("🎉 DEPLOYMENT SUCCESSFUL!", "green");
+    log(" DEPLOYMENT SUCCESSFUL!", "green");
     log(`${"=".repeat(50)}`, "bright");
     
-    log("\n📋 Contract Addresses:", "cyan");
+    log("\n Contract Addresses:", "cyan");
     console.log(`   SageRegistry: ${registry.address}`);
     console.log(`   SageVerificationHook: ${verificationHook.address}`);
     
     if (deploymentInfo.explorer) {
-      log("\n🔍 View on Explorer:", "cyan");
+      log("\n View on Explorer:", "cyan");
       console.log(`   Registry: ${deploymentInfo.explorer.registry}`);
       console.log(`   Hook: ${deploymentInfo.explorer.hook}`);
     }
@@ -195,7 +195,7 @@ async function main() {
     log("\n⛽ Gas Usage:", "cyan");
     console.log(`   Total: ${hre.ethers.utils.formatEther(gasUsed)} KLAY`);
     
-    log("\n✨ Next Steps:", "yellow");
+    log("\n Next Steps:", "yellow");
     console.log("   1. Verify contracts on Klaytnscope (run: npm run verify:kairos)");
     console.log("   2. Test the deployment (run: npm run test:kairos)");
     console.log("   3. Register your first agent!");
@@ -204,14 +204,14 @@ async function main() {
 
   } catch (error) {
     log(`\n${"=".repeat(50)}`, "bright");
-    log("❌ DEPLOYMENT FAILED", "red");
+    log(" DEPLOYMENT FAILED", "red");
     log(`${"=".repeat(50)}`, "bright");
     console.error("\nError details:", error.message);
     
     if (error.code === "INSUFFICIENT_FUNDS") {
-      log("\n💡 Solution: Get test KLAY from https://faucet.kairos.kaia.io/", "yellow");
+      log("\n Solution: Get test KLAY from https://faucet.kairos.kaia.io/", "yellow");
     } else if (error.code === "NETWORK_ERROR") {
-      log("\n💡 Solution: Check your internet connection and RPC endpoint", "yellow");
+      log("\n Solution: Check your internet connection and RPC endpoint", "yellow");
     }
     
     process.exit(1);

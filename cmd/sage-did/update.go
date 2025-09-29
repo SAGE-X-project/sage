@@ -119,7 +119,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("update failed: %w", err)
 	}
 
-	fmt.Println("✅ Agent updated successfully!")
+	fmt.Println(" Agent updated successfully!")
 	
 	// Show what was updated
 	fmt.Println("\nUpdated fields:")
