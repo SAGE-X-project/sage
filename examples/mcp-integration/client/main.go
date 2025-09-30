@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	fmt.Println("🤖 AI Agent with SAGE Security")
+	fmt.Println("AI Agent with SAGE Security")
 	fmt.Println("================================")
 	
 	// Create SAGE client - just one line!
@@ -17,7 +17,7 @@ func main() {
 	}
 
 	// Example 1: Addition
-	fmt.Println("\n📊 Calling Calculator Tool - Addition")
+	fmt.Println("\nCalling Calculator Tool - Addition")
 	result, err := client.CallTool("http://localhost:8080/tools/calculator/execute", map[string]interface{}{
 		"tool":      "calculator",
 		"operation": "add",
@@ -28,13 +28,13 @@ func main() {
 	})
 	
 	if err != nil {
-		fmt.Printf("❌ Error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("✅ Result: %v\n", result)
+		fmt.Printf("Result: %v\n", result)
 	}
 
 	// Example 2: Division
-	fmt.Println("\n📊 Calling Calculator Tool - Division")
+	fmt.Println("\nCalling Calculator Tool - Division")
 	result, err = client.CallTool("http://localhost:8080/tools/calculator/execute", map[string]interface{}{
 		"tool":      "calculator",
 		"operation": "divide",
@@ -45,13 +45,13 @@ func main() {
 	})
 	
 	if err != nil {
-		fmt.Printf("❌ Error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("✅ Result: %v\n", result)
+		fmt.Printf("Result: %v\n", result)
 	}
 
 	// Example 3: Multiplication
-	fmt.Println("\n📊 Calling Calculator Tool - Multiplication")
+	fmt.Println("\nCalling Calculator Tool - Multiplication")
 	result, err = client.CallTool("http://localhost:8080/tools/calculator/execute", map[string]interface{}{
 		"tool":      "calculator",
 		"operation": "multiply",
@@ -62,10 +62,10 @@ func main() {
 	})
 	
 	if err != nil {
-		fmt.Printf("❌ Error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("✅ Result: %v\n", result)
+		fmt.Printf("Result: %v\n", result)
 	}
 
-	fmt.Println("\n✨ All tool calls were cryptographically signed and verified!")
+	fmt.Println("\nAll tool calls were cryptographically signed and verified!")
 }

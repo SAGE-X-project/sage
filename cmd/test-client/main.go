@@ -92,7 +92,7 @@ func main() {
 	sendRequestHTTP(ctx, clientPriv, string(myDID), ctxID, b64Packet)
 
 	// 4-3) Complete (clear JSON) — ROLE_USER
-	log.Printf("Complete ... ✅")
+	log.Printf("Complete ... ")
 	sendCompleteHTTP(ctx, clientPriv, string(myDID), ctxID, map[string]any{})
 	log.Printf("----- handshake -----")
 	// 5) Server outbound: receive server eph / kid → create session

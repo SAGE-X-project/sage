@@ -1,7 +1,7 @@
 const hre = require("hardhat");
 
 async function main() {
-  console.log("\n🚀 Deploying SAGE Contracts to Local Network");
+  console.log("\n Deploying SAGE Contracts to Local Network");
   console.log("=" .repeat(60));
   
   // Get signers
@@ -17,35 +17,35 @@ async function main() {
   console.log();
 
   // Deploy SageRegistryV2
-  console.log("📝 Deploying SageRegistryV2...");
+  console.log(" Deploying SageRegistryV2...");
   const SageRegistryV2 = await hre.ethers.getContractFactory("SageRegistryV2");
   const sageRegistry = await SageRegistryV2.deploy();
   await sageRegistry.waitForDeployment();
   
   const registryAddress = await sageRegistry.getAddress();
-  console.log("✅ SageRegistryV2 deployed to:", registryAddress);
+  console.log(" SageRegistryV2 deployed to:", registryAddress);
 
   // Deploy SageVerificationHook
-  console.log("\n📝 Deploying SageVerificationHook...");
+  console.log("\n Deploying SageVerificationHook...");
   const SageVerificationHook = await hre.ethers.getContractFactory("SageVerificationHook");
   const verificationHook = await SageVerificationHook.deploy();
   await verificationHook.waitForDeployment();
   
   const hookAddress = await verificationHook.getAddress();
-  console.log("✅ SageVerificationHook deployed to:", hookAddress);
+  console.log(" SageVerificationHook deployed to:", hookAddress);
 
   // Configure hooks
-  console.log("\n🔧 Configuring hooks...");
+  console.log("\n Configuring hooks...");
   let tx = await sageRegistry.setBeforeRegisterHook(hookAddress);
   await tx.wait();
-  console.log("✅ BeforeRegisterHook configured");
+  console.log(" BeforeRegisterHook configured");
   
   tx = await sageRegistry.setAfterRegisterHook(hookAddress);
   await tx.wait();
-  console.log("✅ AfterRegisterHook configured");
+  console.log(" AfterRegisterHook configured");
 
   // Test registration
-  console.log("\n🧪 Testing registration...");
+  console.log("\n Testing registration...");
   
   // Prepare test data
   // V2 requires proper public key format (0x04 prefix for uncompressed)
@@ -90,7 +90,7 @@ async function main() {
   );
   
   const receipt = await tx.wait();
-  console.log("  ✅ Test agent registered!");
+  console.log("   Test agent registered!");
   console.log("  Gas used:", receipt.gasUsed.toString());
   
   // Get agent ID from event
@@ -106,7 +106,7 @@ async function main() {
     
     // Verify agent data
     const agent = await sageRegistry.getAgent(agentId);
-    console.log("\n📋 Registered Agent Details:");
+    console.log("\n Registered Agent Details:");
     console.log("  Name:", agent.name);
     console.log("  Owner:", agent.owner);
     console.log("  Active:", agent.active);
@@ -115,12 +115,12 @@ async function main() {
 
   // Print summary
   console.log("\n" + "=" .repeat(60));
-  console.log("🎉 Deployment Complete!");
+  console.log(" Deployment Complete!");
   console.log("=" .repeat(60));
   console.log("\n📍 Contract Addresses:");
   console.log("  SageRegistryV2:", registryAddress);
   console.log("  SageVerificationHook:", hookAddress);
-  console.log("\n💡 Next Steps:");
+  console.log("\n Next Steps:");
   console.log("  1. Keep this terminal running");
   console.log("  2. In a new terminal, run:");
   console.log("     npx hardhat run scripts/interact-local.js --network localhost");
@@ -132,6 +132,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("❌ Deployment failed:", error);
+  console.error(" Deployment failed:", error);
   process.exit(1);
 });

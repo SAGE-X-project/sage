@@ -44,7 +44,7 @@ func verifySAGERequest(r *http.Request) error {
 	}
 	
 	// In a real app, verify the signature here
-	fmt.Printf("✅ Request from agent: %s\n", agentDID)
+	fmt.Printf(" Request from agent: %s\n", agentDID)
 	return nil
 }
 
@@ -168,9 +168,9 @@ func makeSAGERequest() {
 	json.NewDecoder(resp.Body).Decode(&result)
 	
 	if resp.StatusCode == http.StatusOK {
-		fmt.Printf("✅ Secure request succeeded! Weather: %v\n", result.Result)
+		fmt.Printf(" Secure request succeeded! Weather: %v\n", result.Result)
 	} else {
-		fmt.Printf("❌ Request failed with status %d\n", resp.StatusCode)
+		fmt.Printf(" Request failed with status %d\n", resp.StatusCode)
 	}
 }
 
@@ -202,7 +202,7 @@ curl -X POST http://localhost:8082/weather-secure \
 `)
 	})
 	
-	fmt.Println("🔐 SAGE Integration Demo Server")
+	fmt.Println(" SAGE Integration Demo Server")
 	fmt.Println("📍 Listening on http://localhost:8082")
 	fmt.Println("")
 	fmt.Println("Endpoints:")

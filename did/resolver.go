@@ -54,7 +54,13 @@ func (m *MultiChainResolver) Resolve(ctx context.Context, did AgentDID) (*AgentM
 	chain, err := extractChainFromDID(did)
 	if err != nil {
 		// Try all chains if chain cannot be determined from DID
-		for _, resolver := range m.resolvers {
+		// Try in deterministic order: ethereum first, then others alphabetically
+		chains := []Chain{ChainEthereum, ChainSolana}
+		for _, c := range chains {
+			resolver, exists := m.resolvers[c]
+			if !exists {
+				continue
+			}
 			metadata, err := resolver.Resolve(ctx, did)
 			if err == nil {
 				return metadata, nil
@@ -62,12 +68,12 @@ func (m *MultiChainResolver) Resolve(ctx context.Context, did AgentDID) (*AgentM
 		}
 		return nil, fmt.Errorf("DID not found on any chain: %s", did)
 	}
-	
+
 	resolver, exists := m.resolvers[chain]
 	if !exists {
 		return nil, fmt.Errorf("no resolver for chain %s", chain)
 	}
-	
+
 	return resolver.Resolve(ctx, did)
 }
 

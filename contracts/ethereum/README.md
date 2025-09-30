@@ -10,7 +10,7 @@ SAGE Registry smart contracts for managing AI agent identities on Kaia blockchai
 - **Ownership Proof**: Signature-based key ownership verification
 - **Ed25519 Rejection**: Explicit rejection of unsupported key types
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Install Dependencies
 ```bash
@@ -119,7 +119,7 @@ Runs comprehensive tests for SageRegistryV2.
 - `npm run console` - Open Hardhat console
 - `npm run quick-test` - Run quick test script
 
-## 📝 Testing Guide
+##  Testing Guide
 
 ### Local Testing
 ```bash
@@ -157,7 +157,7 @@ npx hardhat test test/integration-v2.test.js
 REPORT_GAS=true npx hardhat test
 ```
 
-## 🚀 Deployment Process
+##  Deployment Process
 
 ### Quick Deployment Commands
 
@@ -189,7 +189,7 @@ npm run deploy:kaia
 
 For comprehensive deployment instructions including Sepolia testnet support, see [📚 Deployment Guide](docs/DEPLOYMENT_GUIDE.md).
 
-## 🔧 Configuration
+##  Configuration
 
 ### Supported Networks
 
@@ -240,7 +240,7 @@ The updated `hardhat.config.js` now includes:
 - **Separate mainnet/testnet private keys**
 - **Improved error messages** for missing configurations
 
-## 🔐 Security Features
+##  Security Features
 
 ### SageRegistryV2 Enhancements
 1. **Public Key Validation**
@@ -268,7 +268,7 @@ The updated `hardhat.config.js` now includes:
 ### Common Issues
 
 #### Compilation Warnings
-✅ Fixed in latest version - no warnings
+ Fixed in latest version - no warnings
 
 #### "Insufficient funds" Error
 ```bash
@@ -306,7 +306,7 @@ curl -X POST -H "Content-Type: application/json" \
 - [Code Review](CODE_REVIEW_V2.md) - Security analysis
 - [Key Validation](KEY_VALIDATION_IMPROVEMENTS.md) - Technical improvements
 
-## 🌐 Resources
+##  Resources
 
 - [Kaia Documentation](https://docs.kaia.io)
 - [Kaia Explorer](https://kaiascope.com)

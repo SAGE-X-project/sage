@@ -28,7 +28,7 @@ async function main() {
     }
 
     log(`\n${"=".repeat(50)}`, "bright");
-    log(`🚀 SAGE Registry V2 Deployment to ${network.toUpperCase()}`, "cyan");
+    log(` SAGE Registry V2 Deployment to ${network.toUpperCase()}`, "cyan");
     log(`${"=".repeat(50)}`, "bright");
     
     // Get deployer account
@@ -56,7 +56,7 @@ async function main() {
     }
     
     log(`\n${"=".repeat(50)}`, "bright");
-    log("📦 Starting Contract Deployment...", "cyan");
+    log(" Starting Contract Deployment...", "cyan");
     log(`${"=".repeat(50)}`, "bright");
 
     // Deploy SageRegistryV2
@@ -66,7 +66,7 @@ async function main() {
     await registry.waitForDeployment();
     const registryAddress = await registry.getAddress();
     
-    log(`✅ SageRegistryV2 deployed!`, "green");
+    log(` SageRegistryV2 deployed!`, "green");
     console.log(`   Address: ${registryAddress}`);
     const deployTx = registry.deploymentTransaction();
     console.log(`   Transaction: ${deployTx.hash}`);
@@ -74,7 +74,7 @@ async function main() {
     // Wait for confirmation
     log("   ⏳ Waiting for confirmations...", "yellow");
     await deployTx.wait(2);
-    log("   ✅ Confirmed!", "green");
+    log("    Confirmed!", "green");
 
     // Deploy SageVerificationHook
     log("\n[2/2] Deploying SageVerificationHook...", "blue");
@@ -83,7 +83,7 @@ async function main() {
     await verificationHook.waitForDeployment();
     const hookAddress = await verificationHook.getAddress();
     
-    log(`✅ SageVerificationHook deployed!`, "green");
+    log(` SageVerificationHook deployed!`, "green");
     console.log(`   Address: ${hookAddress}`);
     const hookTx = verificationHook.deploymentTransaction();
     console.log(`   Transaction: ${hookTx.hash}`);
@@ -91,13 +91,13 @@ async function main() {
     // Wait for confirmation
     log("   ⏳ Waiting for confirmations...", "yellow");
     await hookTx.wait(2);
-    log("   ✅ Confirmed!", "green");
+    log("    Confirmed!", "green");
 
     // Configure hooks
-    log("\n🔧 Configuring hooks...", "blue");
+    log("\n Configuring hooks...", "blue");
     const setHookTx = await registry.setBeforeRegisterHook(hookAddress);
     await setHookTx.wait();
-    log(`✅ BeforeRegisterHook set to: ${hookAddress}`, "green");
+    log(` BeforeRegisterHook set to: ${hookAddress}`, "green");
 
     // Save deployment info (convert BigInt to string for JSON serialization)
     const deploymentInfo = {
@@ -118,33 +118,33 @@ async function main() {
     fs.writeFileSync(deploymentPath, JSON.stringify(deploymentInfo, null, 2));
 
     log(`\n${"=".repeat(50)}`, "bright");
-    log("🎉 Deployment Complete!", "green");
+    log(" Deployment Complete!", "green");
     log(`${"=".repeat(50)}`, "bright");
     
-    log("\n📋 Summary:", "cyan");
+    log("\n Summary:", "cyan");
     console.log(`   SageRegistryV2: ${registryAddress}`);
     console.log(`   SageVerificationHook: ${hookAddress}`);
     console.log(`   Network: ${network}`);
     console.log(`   Chain ID: ${chainId}`);
     
-    log("\n📝 Deployment info saved to:", "yellow");
+    log("\n Deployment info saved to:", "yellow");
     console.log(`   ${deploymentPath}`);
     
     // Verification instructions
     if (network === "kairos" || network === "kaia") {
-      log("\n🔍 To verify contracts on explorer:", "yellow");
+      log("\n To verify contracts on explorer:", "yellow");
       console.log(`   Visit: https://${network === "kairos" ? "kairos" : "www"}.klaytnscope.com`);
       console.log(`   Search for: ${registryAddress}`);
       console.log(`   Use the web interface to verify the contract`);
     }
 
-    log("\n✨ Next Steps:", "cyan");
+    log("\n Next Steps:", "cyan");
     log("   1. Save the contract addresses", "reset");
     log("   2. Update your .env file with the new addresses", "reset");
     log("   3. Register your production agents", "reset");
     
   } catch (error) {
-    log(`\n❌ Deployment failed: ${error.message}`, "red");
+    log(`\n Deployment failed: ${error.message}`, "red");
     console.error(error);
     process.exit(1);
   }

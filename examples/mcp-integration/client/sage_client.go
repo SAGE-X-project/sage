@@ -111,7 +111,7 @@ func (c *SAGEClient) CallTool(toolURL string, request interface{}) (interface{},
 	if resp.Header.Get("Signature") != "" {
 		// In a real implementation, we would resolve the tool's public key
 		// and verify the response signature
-		fmt.Println("✅ Response signature present (verification would happen here)")
+		fmt.Println(" Response signature present (verification would happen here)")
 	}
 
 	// Parse response

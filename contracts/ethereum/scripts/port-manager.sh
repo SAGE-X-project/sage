@@ -26,10 +26,10 @@ check_port() {
     local pids=$(lsof -ti:$port 2>/dev/null)
     
     if [ -z "$pids" ]; then
-        echo -e "${GREEN}✅ Port $port: Available${NC}"
+        echo -e "${GREEN} Port $port: Available${NC}"
         return 0
     else
-        echo -e "${YELLOW}⚠️  Port $port: In use${NC}"
+        echo -e "${YELLOW}  Port $port: In use${NC}"
         for pid in $pids; do
             local process=$(ps -p $pid -o comm= 2>/dev/null || echo "Unknown")
             echo "     PID: $pid (Process: $process)"
@@ -64,10 +64,10 @@ kill_port() {
     
     # Verification
     if lsof -i:$port &>/dev/null; then
-        echo -e "${RED}❌ Failed to clean port $port${NC}"
+        echo -e "${RED} Failed to clean port $port${NC}"
         return 1
     else
-        echo -e "${GREEN}✅ Port $port cleaned successfully${NC}"
+        echo -e "${GREEN} Port $port cleaned successfully${NC}"
         return 0
     fi
 }
@@ -147,11 +147,11 @@ case "$1" in
         sleep 3
         
         if kill -0 $HARDHAT_PID 2>/dev/null; then
-            echo -e "${GREEN}✅ Hardhat node started successfully (PID: $HARDHAT_PID)${NC}"
+            echo -e "${GREEN} Hardhat node started successfully (PID: $HARDHAT_PID)${NC}"
             echo ""
             echo "To stop the node: $0 clean --hardhat"
         else
-            echo -e "${RED}❌ Failed to start Hardhat node${NC}"
+            echo -e "${RED} Failed to start Hardhat node${NC}"
         fi
         ;;
         

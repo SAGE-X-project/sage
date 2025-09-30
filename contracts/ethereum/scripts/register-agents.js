@@ -106,10 +106,10 @@ async function registerAgents(options = {}) {
   const registryAddress = options.registryAddress;
   const agentConfigs = options.agents || AGENT_CONFIGS[network] || AGENT_CONFIGS.local;
   
-  console.log("\n🤖 Agent Registration Script");
+  console.log("\n Agent Registration Script");
   console.log("=" .repeat(60));
   console.log(`📍 Network: ${network}`);
-  console.log(`📝 Registry: ${registryAddress || "Will load from deployment"}`);
+  console.log(` Registry: ${registryAddress || "Will load from deployment"}`);
   console.log(`👥 Agents to register: ${agentConfigs.length}`);
   console.log("=" .repeat(60));
   
@@ -120,10 +120,10 @@ async function registerAgents(options = {}) {
       const deploymentFile = path.join(__dirname, "..", "deployments", `${network}.json`);
       const deploymentData = JSON.parse(fs.readFileSync(deploymentFile, "utf8"));
       contractAddress = deploymentData.contracts.SageRegistryV2.address;
-      console.log(`✅ Loaded registry address from deployment: ${contractAddress}`);
+      console.log(` Loaded registry address from deployment: ${contractAddress}`);
     } catch (error) {
-      console.error("❌ Failed to load deployment info:", error.message);
-      console.log("💡 Please provide registry address or deploy contracts first");
+      console.error(" Failed to load deployment info:", error.message);
+      console.log(" Please provide registry address or deploy contracts first");
       process.exit(1);
     }
   }
@@ -149,7 +149,7 @@ async function registerAgents(options = {}) {
   };
   
   // Register each agent
-  console.log("\n🚀 Starting agent registration...\n");
+  console.log("\n Starting agent registration...\n");
   
   for (let i = 0; i < agentConfigs.length; i++) {
     const agentConfig = agentConfigs[i];
@@ -203,7 +203,7 @@ async function registerAgents(options = {}) {
       
       console.log(`  Transaction sent: ${tx.hash}`);
       const receipt = await tx.wait();
-      console.log(`  ✅ Confirmed in block ${receipt.blockNumber}`);
+      console.log(`   Confirmed in block ${receipt.blockNumber}`);
       
       // Get agent ID from event
       const logs = await registry.queryFilter(
@@ -237,7 +237,7 @@ async function registerAgents(options = {}) {
       console.log(`  Gas used: ${receipt.gasUsed.toString()}\n`);
       
     } catch (error) {
-      console.error(`  ❌ Failed to register ${agentConfig.name}:`, error.message);
+      console.error(`   Failed to register ${agentConfig.name}:`, error.message);
       results.agents.push({
         did: agentConfig.did,
         name: agentConfig.name,
@@ -272,24 +272,24 @@ async function registerAgents(options = {}) {
       }, {});
     
     fs.writeFileSync(credentialsFile, JSON.stringify(credentials, null, 2));
-    console.log(`🔑 Agent credentials saved to: ${credentialsFile}`);
-    console.log("⚠️  Keep this file secure and never commit to version control!");
+    console.log(` Agent credentials saved to: ${credentialsFile}`);
+    console.log("  Keep this file secure and never commit to version control!");
   }
   
   // Print summary
   console.log("\n" + "=" .repeat(60));
-  console.log("📊 Registration Summary");
+  console.log(" Registration Summary");
   console.log("=" .repeat(60));
   
   const successful = results.agents.filter(a => !a.error);
   const failed = results.agents.filter(a => a.error);
   
-  console.log(`✅ Successful: ${successful.length}`);
-  console.log(`❌ Failed: ${failed.length}`);
+  console.log(` Successful: ${successful.length}`);
+  console.log(` Failed: ${failed.length}`);
   console.log(`⛽ Total gas used: ${results.totalGasUsed.toString()}`);
   
   if (successful.length > 0) {
-    console.log("\n🤖 Registered Agents:");
+    console.log("\n Registered Agents:");
     successful.forEach(agent => {
       console.log(`  - ${agent.name} (${agent.did})`);
       console.log(`    ID: ${agent.id}`);
@@ -298,7 +298,7 @@ async function registerAgents(options = {}) {
   }
   
   if (failed.length > 0) {
-    console.log("\n⚠️  Failed Registrations:");
+    console.log("\n  Failed Registrations:");
     failed.forEach(agent => {
       console.log(`  - ${agent.name}: ${agent.error}`);
     });
@@ -306,13 +306,13 @@ async function registerAgents(options = {}) {
   
   // Verify registrations
   if (successful.length > 0 && options.verify !== false) {
-    console.log("\n🔍 Verifying registrations...");
+    console.log("\n Verifying registrations...");
     for (const agent of successful) {
       try {
         const agentData = await registry.getAgent(agent.id);
-        console.log(`  ✅ ${agent.name}: Active=${agentData.active}`);
+        console.log(`   ${agent.name}: Active=${agentData.active}`);
       } catch (error) {
-        console.log(`  ❌ ${agent.name}: Failed to verify`);
+        console.log(`   ${agent.name}: Failed to verify`);
       }
     }
   }
@@ -335,7 +335,7 @@ if (require.main === module) {
   registerAgents(options)
     .then(() => process.exit(0))
     .catch((error) => {
-      console.error("❌ Registration failed:", error);
+      console.error(" Registration failed:", error);
       process.exit(1);
     });
 }

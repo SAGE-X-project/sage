@@ -1,10 +1,10 @@
 # SAGE Contract Deployment Guide
 
-## 📋 Overview
+##  Overview
 
 This guide explains how to deploy and manage SAGE smart contracts across different networks.
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Local Development
 
@@ -61,7 +61,7 @@ contracts/
 │       └── latest.json             # Most recent deployment
 ```
 
-## 🔧 Configuration
+##  Configuration
 
 ### Environment Variables
 
@@ -94,7 +94,7 @@ Networks are pre-configured in `hardhat.config.js`:
 - **kairos**: Kaia testnet (Chain ID: 1001)
 - **kaia/cypress**: Kaia mainnet (Chain ID: 8217)
 
-## 📝 Deployment Process
+##  Deployment Process
 
 ### Unified Deployment Script
 
@@ -131,7 +131,7 @@ deployments/
     └── {network}-agents-*.json  # Registered agent details
 ```
 
-## 🤖 Agent Management
+##  Agent Management
 
 ### Register Agents Separately
 
@@ -161,7 +161,7 @@ const AGENT_CONFIGS = {
 }
 ```
 
-## 🔍 Verification
+##  Verification
 
 ### Verify Deployment
 
@@ -183,7 +183,7 @@ npm run verify:kairos
 npm run verify:kaia
 ```
 
-## 🔐 Security Considerations
+##  Security Considerations
 
 ### Local Development
 - Uses SageRegistryTest with simplified validation
@@ -224,7 +224,7 @@ npm run verify:kaia
   - Testnet: 5,000,000
   - Mainnet: 8,000,000
 
-## 📊 Integration with Go Applications
+##  Integration with Go Applications
 
 ### Load Deployment Info
 

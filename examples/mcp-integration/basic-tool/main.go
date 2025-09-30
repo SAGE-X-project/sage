@@ -34,7 +34,7 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	fmt.Println("🔐 SAGE-secured MCP Calculator Tool Server")
+	fmt.Println(" SAGE-secured MCP Calculator Tool Server")
 	fmt.Println("📍 Listening on http://localhost:8080")
 	fmt.Println("")
 	fmt.Println("Available endpoints:")
@@ -43,10 +43,10 @@ func main() {
 	fmt.Println("  GET  /health                   - Health check")
 	fmt.Println("")
 	fmt.Println("Security features:")
-	fmt.Println("  ✅ All requests must be signed with SAGE")
-	fmt.Println("  ✅ Agent identity verified via blockchain DID")
-	fmt.Println("  ✅ Agent capabilities checked before execution")
-	fmt.Println("  ✅ Responses are signed for authenticity")
+	fmt.Println("   All requests must be signed with SAGE")
+	fmt.Println("   Agent identity verified via blockchain DID")
+	fmt.Println("   Agent capabilities checked before execution")
+	fmt.Println("   Responses are signed for authenticity")
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

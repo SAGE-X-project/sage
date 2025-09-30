@@ -1,4 +1,4 @@
-# 📋 로컬 배포 컨트랙트 정보
+#  로컬 배포 컨트랙트 정보
 
 ## 🔗 Network Information
 
@@ -22,7 +22,7 @@
 | **SageRegistryV2** | `/Users/0xtopaz/work/github/sage-x-project/sage/contracts/ethereum/artifacts/contracts/SageRegistryV2.sol/SageRegistryV2.json` |
 | **SageVerificationHook** | `/Users/0xtopaz/work/github/sage-x-project/sage/contracts/ethereum/artifacts/contracts/SageVerificationHook.sol/SageVerificationHook.json` |
 
-## 🔑 Test Accounts (with Private Keys)
+##  Test Accounts (with Private Keys)
 
 로컬 Hardhat 노드의 기본 테스트 계정들:
 
@@ -124,7 +124,7 @@ private_key = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690
 account = w3.eth.account.from_key(private_key)
 ```
 
-## 🔧 Example: Using curl
+##  Example: Using curl
 
 ```bash
 # Get block number
@@ -148,7 +148,7 @@ curl -X POST http://localhost:8545 \
   }'
 ```
 
-## 📝 Important Notes
+##  Important Notes
 
 1. **Signature Requirements for V2**:
    - V2 requires a special challenge signature for public key ownership proof
@@ -171,7 +171,7 @@ curl -X POST http://localhost:8545 \
    - Agent Update: ~80,000 gas
    - Key Revocation: ~66,000 gas
 
-## 🚀 Quick Test Script
+##  Quick Test Script
 
 Save as `test-registration.js`:
 
@@ -229,7 +229,7 @@ async function main() {
   );
   
   const receipt = await tx.wait();
-  console.log("✅ Success! TX:", receipt.hash);
+  console.log(" Success! TX:", receipt.hash);
   
   // Get agent ID from event
   const logs = await registry.queryFilter(

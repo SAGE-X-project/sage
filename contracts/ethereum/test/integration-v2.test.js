@@ -80,7 +80,7 @@ describe("SageRegistryV2 Integration Tests", function () {
         }
       });
       const agentId = agentRegisteredEvent.args[0];
-      console.log("      ✅ Agent registered with ID:", agentId);
+      console.log("       Agent registered with ID:", agentId);
       
       // Verify registration
       const agent = await sageRegistry.getAgent(agentId);
@@ -108,7 +108,7 @@ describe("SageRegistryV2 Integration Tests", function () {
         JSON.stringify(["chat", "code", "analyze"]),
         updateSig
       );
-      console.log("      ✅ Agent updated");
+      console.log("       Agent updated");
       
       // Verify update
       const updatedAgent = await sageRegistry.getAgent(agentId);
@@ -117,7 +117,7 @@ describe("SageRegistryV2 Integration Tests", function () {
       // 3. Revoke key
       console.log("      3️⃣  Revoking key...");
       await sageRegistry.connect(agent1).revokeKey(publicKey);
-      console.log("      ✅ Key revoked");
+      console.log("       Key revoked");
       
       // Verify revocation
       expect(await sageRegistry.isKeyValid(publicKey)).to.be.false;
@@ -125,7 +125,7 @@ describe("SageRegistryV2 Integration Tests", function () {
       // Agent should be deactivated
       const revokedAgent = await sageRegistry.getAgent(agentId);
       expect(revokedAgent.active).to.be.false;
-      console.log("      ✅ Agent automatically deactivated");
+      console.log("       Agent automatically deactivated");
     });
 
     it("Should handle multiple agents with different keys", async function () {

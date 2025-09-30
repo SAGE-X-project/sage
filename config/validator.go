@@ -227,7 +227,7 @@ func ValidateFile(path string) ([]ValidationError, error) {
 // PrintValidationErrors prints validation errors in a formatted way
 func PrintValidationErrors(errors []ValidationError) {
 	if len(errors) == 0 {
-		fmt.Println("✅ Configuration is valid")
+		fmt.Println(" Configuration is valid")
 		return
 	}
 
@@ -250,14 +250,14 @@ func PrintValidationErrors(errors []ValidationError) {
 	// Print errors first
 	for _, e := range errors {
 		if e.Level == "error" {
-			fmt.Printf("❌ ERROR: %s - %s\n", e.Field, e.Message)
+			fmt.Printf(" ERROR: %s - %s\n", e.Field, e.Message)
 		}
 	}
 
 	// Then warnings
 	for _, e := range errors {
 		if e.Level == "warning" {
-			fmt.Printf("⚠️  WARNING: %s - %s\n", e.Field, e.Message)
+			fmt.Printf("  WARNING: %s - %s\n", e.Field, e.Message)
 		}
 	}
 

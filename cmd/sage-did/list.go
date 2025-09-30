@@ -102,7 +102,7 @@ func runList(cmd *cobra.Command, args []string) error {
 		if err := os.WriteFile(listOutput, []byte(output), 0644); err != nil {
 			return fmt.Errorf("failed to write output: %w", err)
 		}
-		fmt.Printf("✅ Agent list saved to %s\n", listOutput)
+		fmt.Printf(" Agent list saved to %s\n", listOutput)
 	} else {
 		fmt.Println("\n" + output)
 	}

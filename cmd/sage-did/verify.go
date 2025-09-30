@@ -120,10 +120,10 @@ func runVerify(cmd *cobra.Command, args []string) error {
 
 	// Display result
 	if result.Valid {
-		fmt.Println("\n✅ Metadata verification PASSED")
+		fmt.Println("\n Metadata verification PASSED")
 		fmt.Println("The provided metadata matches the on-chain record.")
 	} else {
-		fmt.Println("\n❌ Metadata verification FAILED")
+		fmt.Println("\n Metadata verification FAILED")
 		fmt.Printf("Error: %s\n", result.Error)
 	}
 

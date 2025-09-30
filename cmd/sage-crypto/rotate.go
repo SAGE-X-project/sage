@@ -69,7 +69,7 @@ func runRotate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to rotate key: %w", err)
 	}
 
-	fmt.Println("✅ Key rotation successful!")
+	fmt.Println(" Key rotation successful!")
 	fmt.Printf("\nRotation details:\n")
 	fmt.Printf("  Key ID: %s\n", keyID)
 	fmt.Printf("  Key Type: %s\n", newKeyPair.Type())

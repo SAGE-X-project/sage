@@ -1,10 +1,10 @@
-# 🌐 Multi-Language Contract Bindings for SAGE
+#  Multi-Language Contract Bindings for SAGE
 
 This directory contains auto-generated contract bindings for multiple programming languages, enabling seamless integration with SAGE smart contracts across different platforms.
 
-## 📦 Available Bindings
+##  Available Bindings
 
-### 🔧 Go
+###  Go
 - **Location**: `./go/`
 - **Requirements**: Go 1.21+, abigen tool
 - **Install abigen**: `go install github.com/ethereum/go-ethereum/cmd/abigen@latest`
@@ -29,7 +29,7 @@ This directory contains auto-generated contract bindings for multiple programmin
 - **Build**: `cargo build`
 - **Usage**: Type-safe Rust structs with ethers-rs
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Generate All Bindings
 ```bash
@@ -75,7 +75,7 @@ pip install web3 eth-account
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-## 📝 Usage Examples
+##  Usage Examples
 
 ### Go
 ```go

@@ -9,7 +9,7 @@ require("dotenv").config();
 function getEnvVariable(key, defaultValue) {
   const value = process.env[key];
   if (!value && !defaultValue) {
-    console.warn(`⚠️  Warning: ${key} is not set in environment variables`);
+    console.warn(`  Warning: ${key} is not set in environment variables`);
   }
   return value || defaultValue;
 }
@@ -229,7 +229,7 @@ module.exports = {
 
 // Validate critical configuration on startup
 if (!process.env.PRIVATE_KEY && !process.env.TEST_MNEMONIC) {
-  console.log("\n📋 Configuration Status:");
+  console.log("\n Configuration Status:");
   console.log("   No private key configured - using Hardhat default accounts");
   console.log("   Set PRIVATE_KEY in .env for testnet/mainnet deployment\n");
 }
@@ -237,7 +237,7 @@ if (!process.env.PRIVATE_KEY && !process.env.TEST_MNEMONIC) {
 // Display active network configuration
 const activeNetwork = process.env.HARDHAT_NETWORK || "hardhat";
 if (activeNetwork !== "hardhat") {
-  console.log(`\n🌐 Active Network: ${activeNetwork}`);
+  console.log(`\n Active Network: ${activeNetwork}`);
   if (networks[activeNetwork]) {
     console.log(`   Chain ID: ${networks[activeNetwork].chainId}`);
     console.log(`   RPC URL: ${networks[activeNetwork].url}\n`);

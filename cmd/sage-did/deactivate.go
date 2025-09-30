@@ -60,7 +60,7 @@ func runDeactivate(cmd *cobra.Command, args []string) error {
 
 	// Confirm deactivation
 	if !deactivateConfirm {
-		fmt.Printf("⚠️  Are you sure you want to deactivate agent %s? (y/N): ", agentDID)
+		fmt.Printf("  Are you sure you want to deactivate agent %s? (y/N): ", agentDID)
 		var response string
 		fmt.Scanln(&response)
 		if response != "y" && response != "Y" {
@@ -101,7 +101,7 @@ func runDeactivate(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("deactivation failed: %w", err)
 	}
 
-	fmt.Println("✅ Agent deactivated successfully!")
+	fmt.Println(" Agent deactivated successfully!")
 	fmt.Println("\nThe agent is now inactive and cannot be used for operations.")
 	fmt.Println("The agent data remains on-chain but is marked as deactivated.")
 

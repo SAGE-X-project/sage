@@ -51,20 +51,20 @@ func init() {
 }
 
 func runDebug(cmd *cobra.Command, args []string) error {
-	fmt.Printf("🔍 Debugging DID: %s\n\n", didString)
+	fmt.Printf(" Debugging DID: %s\n\n", didString)
 
 	// Create resolver
 	resolver := ethereum.NewResolverWithCache(100, 5*time.Minute)
 
 	// Parse DID
-	fmt.Println("📝 Parsing DID...")
+	fmt.Println(" Parsing DID...")
 	parsedDID, err := resolver.ParseDID(didString)
 	if err != nil {
-		fmt.Printf("❌ Failed to parse DID: %v\n", err)
+		fmt.Printf(" Failed to parse DID: %v\n", err)
 		return err
 	}
 
-	fmt.Println("✅ DID parsed successfully:")
+	fmt.Println(" DID parsed successfully:")
 	fmt.Printf("  Scheme:  %s\n", parsedDID.Scheme)
 	fmt.Printf("  Method:  %s\n", parsedDID.Method)
 	fmt.Printf("  Network: %s\n", parsedDID.Network)
@@ -72,7 +72,7 @@ func runDebug(cmd *cobra.Command, args []string) error {
 
 	// Validate Ethereum address
 	if !common.IsHexAddress(parsedDID.Address) {
-		fmt.Printf("\n⚠️  Warning: Address is not a valid Ethereum address\n")
+		fmt.Printf("\n  Warning: Address is not a valid Ethereum address\n")
 	} else {
 		addr := common.HexToAddress(parsedDID.Address)
 		fmt.Printf("\n📍 Ethereum Address (checksummed): %s\n", addr.Hex())
@@ -84,17 +84,17 @@ func runDebug(cmd *cobra.Command, args []string) error {
 
 	// Resolve DID if requested
 	if resolveFlag {
-		fmt.Println("\n🌐 Resolving DID document...")
+		fmt.Println("\n Resolving DID document...")
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
 		doc, err := resolver.Resolve(ctx, didString)
 		if err != nil {
-			fmt.Printf("❌ Failed to resolve DID: %v\n", err)
+			fmt.Printf(" Failed to resolve DID: %v\n", err)
 			return err
 		}
 
-		fmt.Println("✅ DID document resolved:")
+		fmt.Println(" DID document resolved:")
 
 		if verbose {
 			// Pretty print JSON
@@ -125,10 +125,10 @@ func runDebug(cmd *cobra.Command, args []string) error {
 		duration := time.Since(start)
 
 		if err != nil {
-			fmt.Printf("❌ Cache check failed: %v\n", err)
+			fmt.Printf(" Cache check failed: %v\n", err)
 		} else {
 			if duration < 1*time.Millisecond {
-				fmt.Printf("✅ DID is cached (resolution time: %v)\n", duration)
+				fmt.Printf(" DID is cached (resolution time: %v)\n", duration)
 			} else {
 				fmt.Printf("ℹ️  DID not in cache (resolution time: %v)\n", duration)
 			}
@@ -137,17 +137,17 @@ func runDebug(cmd *cobra.Command, args []string) error {
 
 	// Verify signature if requested
 	if verifySignature && message != "" && signature != "" {
-		fmt.Println("\n🔐 Verifying signature...")
+		fmt.Println("\n Verifying signature...")
 		fmt.Printf("  Message:   %s\n", message)
 		fmt.Printf("  Signature: %s...\n", signature[:20])
 
 		// This would need the actual implementation
-		fmt.Println("⚠️  Signature verification not fully implemented in debug mode")
+		fmt.Println("  Signature verification not fully implemented in debug mode")
 	}
 
 	// Print summary
 	if verbose {
-		fmt.Println("\n📊 Debug Summary:")
+		fmt.Println("\n Debug Summary:")
 		fmt.Printf("  DID Valid:     %v\n", err == nil)
 		fmt.Printf("  Network:       %s\n", parsedDID.Network)
 		fmt.Printf("  Address Valid: %v\n", common.IsHexAddress(parsedDID.Address))

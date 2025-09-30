@@ -154,7 +154,7 @@ func runAddressParse(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Address: %s\n", address.Value)
 	fmt.Printf("Chain: %s\n", address.Chain)
 	fmt.Printf("Network: %s\n", address.Network)
-	fmt.Printf("Valid: ✅\n")
+	fmt.Printf("Valid: \n")
 	
 	if canRecoverPubKey && pubKey != nil {
 		fmt.Printf("Public Key Recoverable: Yes\n")

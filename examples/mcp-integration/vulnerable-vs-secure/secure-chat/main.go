@@ -45,7 +45,7 @@ func verifyRequest(r *http.Request) error {
 
 // Same message processing logic
 func processMessage(msg ChatMessage, verifiedAgentDID string) ChatResponse {
-	fmt.Printf("✅ Verified message from: %s\n", verifiedAgentDID)
+	fmt.Printf(" Verified message from: %s\n", verifiedAgentDID)
 	fmt.Printf("💬 Message: %s\n", msg.Message)
 	
 	// Now we KNOW this is really from the claimed agent!
@@ -67,17 +67,17 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 
 	// SAGE VERIFICATION - Just 3 lines to add complete security!
 	if err := verifyRequest(r); err != nil {
-		fmt.Printf("❌ Request rejected: %v\n", err)
-		fmt.Println("🛡️  Attack blocked!")
+		fmt.Printf(" Request rejected: %v\n", err)
+		fmt.Println("  Attack blocked!")
 		http.Error(w, fmt.Sprintf("Unauthorized: %v", err), http.StatusUnauthorized)
 		return
 	}
 
 	// Now we KNOW:
-	// ✅ The agent's identity is verified via blockchain
-	// ✅ The message hasn't been tampered with
-	// ✅ This isn't a replay attack
-	// ✅ The agent has the required capabilities
+	//  The agent's identity is verified via blockchain
+	//  The message hasn't been tampered with
+	//  This isn't a replay attack
+	//  The agent has the required capabilities
 
 	var msg ChatMessage
 	if err := json.NewDecoder(r.Body).Decode(&msg); err != nil {
@@ -89,21 +89,21 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 	verifiedAgentDID := r.Header.Get("X-Agent-DID")
 	
 	response := processMessage(msg, verifiedAgentDID)
-	fmt.Println("🔐 Processed securely")
+	fmt.Println(" Processed securely")
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
 func main() {
-	fmt.Println("🔐 SECURE Chat Server (SAGE PROTECTED)")
+	fmt.Println(" SECURE Chat Server (SAGE PROTECTED)")
 	fmt.Println("📍 Listening on http://localhost:8083")
 	fmt.Println("")
 	fmt.Println("Security features:")
-	fmt.Println("  ✅ Agent identity verified via blockchain DID")
-	fmt.Println("  ✅ Message integrity protected by signatures")
-	fmt.Println("  ✅ Replay attacks prevented")
-	fmt.Println("  ✅ Agent capabilities verified")
+	fmt.Println("   Agent identity verified via blockchain DID")
+	fmt.Println("   Message integrity protected by signatures")
+	fmt.Println("   Replay attacks prevented")
+	fmt.Println("   Agent capabilities verified")
 	fmt.Println("")
 	fmt.Println("(This is a demo - in production, full SAGE verification would be used)")
 	fmt.Println("")
