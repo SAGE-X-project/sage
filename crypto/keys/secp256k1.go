@@ -3,12 +3,12 @@ package keys
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"math/big"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	sagecrypto "github.com/sage-x-project/sage/crypto"
 )
 
@@ -55,38 +55,45 @@ func (kp *secp256k1KeyPair) Type() sagecrypto.KeyType {
 	return sagecrypto.KeyTypeSecp256k1
 }
 
-// Sign signs the given message
+// Sign signs the given message (Ethereum-compatible signature)
 func (kp *secp256k1KeyPair) Sign(message []byte) ([]byte, error) {
-	// Hash the message using SHA256
-	hash := sha256.Sum256(message)
-	
-	// Sign the hash
-	r, s, err := ecdsa.Sign(rand.Reader, kp.privateKey.ToECDSA(), hash[:])
+	// For Ethereum compatibility, use Keccak256 hash
+	hash := ethcrypto.Keccak256(message)
+
+	privateKey := kp.privateKey.ToECDSA()
+
+	// Sign using Ethereum's method which includes recovery byte
+	signature, err := ethcrypto.Sign(hash, privateKey)
 	if err != nil {
 		return nil, err
 	}
-	
-	// Serialize the signature
-	return serializeSignature(r, s), nil
+
+	return signature, nil
 }
 
-// Verify verifies the signature
+// Verify verifies the signature (Ethereum-compatible)
 func (kp *secp256k1KeyPair) Verify(message, signature []byte) error {
-	// Hash the message using SHA256
-	hash := sha256.Sum256(message)
-	
+	// For Ethereum compatibility, use Keccak256 hash
+	hash := ethcrypto.Keccak256(message)
+
+	// Handle both 64-byte and 65-byte signatures
+	if len(signature) == 65 {
+		// Remove recovery byte for verification
+		signature = signature[:64]
+	}
+
 	// Deserialize the signature
 	r, s, err := deserializeSignature(signature)
 	if err != nil {
 		return sagecrypto.ErrInvalidSignature
 	}
-	
+
 	// Verify the signature
-	verified := ecdsa.Verify(kp.publicKey.ToECDSA(), hash[:], r, s)
+	verified := ecdsa.Verify(kp.publicKey.ToECDSA(), hash, r, s)
 	if !verified {
 		return sagecrypto.ErrInvalidSignature
 	}
-	
+
 	return nil
 }
 

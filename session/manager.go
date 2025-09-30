@@ -43,6 +43,82 @@ func (m *Manager) CreateSession(sessionID string, sharedSecret []byte) (Session,
     return m.CreateSessionWithConfig(sessionID, sharedSecret, m.defaultConfig)
 }
 
+
+// Add to: package session
+
+// EnsureSessionFromExporterWithRole creates or returns a session derived from an HPKE
+// exporter secret. 'initiator' must be true on the HPKE Sender side and false on
+// the Receiver side so that outbound/inbound keys are assigned correctly.
+// Returns (session, sid, existed, error).
+func (m *Manager) EnsureSessionFromExporterWithRole(
+	exporter []byte,
+	label string,
+	initiator bool,
+	cfg *Config,
+) (Session, string, bool, error) {
+	if len(exporter) == 0 {
+		return nil, "", false, fmt.Errorf("empty exporter")
+	}
+	if label == "" {
+		label = "sage/hpke v1"
+	}
+	sid, err := ComputeSessionIDFromSeed(exporter, label)
+	if err != nil {
+		return nil, "", false, fmt.Errorf("compute id: %w", err)
+	}
+
+	// Fast path: already exists
+	m.mu.RLock()
+	if s, ok := m.sessions[sid]; ok {
+		m.mu.RUnlock()
+		return s, sid, true, nil
+	}
+	m.mu.RUnlock()
+
+	newCfg := m.defaultConfig
+	if cfg != nil {
+		newCfg = withDefaults(*cfg)
+	}
+
+	s, err := NewSecureSessionFromExporterWithRole(sid, exporter, initiator, newCfg)
+	if err != nil {
+		return nil, "", false, fmt.Errorf("new secure session: %w", err)
+	}
+
+	// Double-checked put
+	m.mu.Lock()
+	if exist, ok := m.sessions[sid]; ok {
+		m.mu.Unlock()
+		_ = s.Close()
+		return exist, sid, true, nil
+	}
+	m.sessions[sid] = s
+	m.mu.Unlock()
+
+	return s, sid, false, nil
+}
+
+// EnsureAndBindFromExporterWithRole is a convenience that ensures the session from an
+// HPKE exporter and (optionally) binds 'kid' to the resulting SID for lookup later.
+// Returns (session, sid, existed, error).
+func (m *Manager) EnsureAndBindFromExporterWithRole(
+	exporter []byte,
+	label string,
+	initiator bool,
+	kid string,
+	cfg *Config,
+) (Session, string, bool, error) {
+	s, sid, existed, err := m.EnsureSessionFromExporterWithRole(exporter, label, initiator, cfg)
+	if err != nil {
+		return nil, "", false, err
+	}
+	if kid != "" {
+		m.BindKeyID(kid, sid)
+	}
+	return s, sid, existed, nil
+}
+
+
 // EnsureSessionWithParams computes a deterministic sessionID and creates the session.
 func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, string, bool, error) {
 	seed, err := DeriveSessionSeed(p.SharedSecret, p)
@@ -321,13 +397,13 @@ func (m *Manager) cleanupExpiredSessions() {
 
 func withDefaults(c Config) Config {
     if c.MaxAge == 0 {
-        c.MaxAge = time.Hour // 기본 1시간
+        c.MaxAge = time.Hour // default 1 hour
     }
     if c.IdleTimeout == 0 {
-        c.IdleTimeout = 10 * time.Minute // 기본 10분
+        c.IdleTimeout = 10 * time.Minute // default 10 minutes
     }
     if c.MaxMessages == 0 {
-        c.MaxMessages = 1000 // 기본 최대 메시지 수
+        c.MaxMessages = 1000 // default max message count
     }
     return c
 }
