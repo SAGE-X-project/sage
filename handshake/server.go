@@ -32,34 +32,41 @@ type pendingState struct {
 	expires   time.Time // TTL for cleanup if Complete never arrives
 }
 
-
 // Server is A2AServiceServer implementation
-//  - Does not create/store sessions.
-//  - Emits Events so the application layer can manage sessions separately.
-//  - Can send Response to the peer via outbound client if configured.
+//   - Does not create/store sessions.
+//   - Emits Events so the application layer can manage sessions separately.
+//   - Can send Response to the peer via outbound client if configured.
 type Server struct {
 	a2a.UnimplementedA2AServiceServer // MUST be embedded by value
 
-	key      sagecrypto.KeyPair
-	events   Events
+	key    sagecrypto.KeyPair
+	events Events
 
 	// Resolve the sender pubkey from ctx/message/metadata for signature check or decrypt.
 	// Pasrse JWT and get DID field
 	resolver did.Resolver
-	mu      sync.Mutex
+	mu       sync.Mutex
 	// pending holds per-context ephemeral handshake state created at Request phase.
-	pending map[string] pendingState
+	pending map[string]pendingState
 
 	// sessionCfg defines default session policies for SecureSession instances.
 	sessionCfg session.Config
 
+	peers map[string]cachedPeer
 	// TTL and cleaner
 	pendingTTL    time.Duration
 	cleanupTicker *time.Ticker
 	stopCleanup   chan struct{}
+	cleanupDone   chan struct{}
 
 	exporter sagecrypto.KeyExporter
 	importer sagecrypto.KeyImporter
+}
+
+type cachedPeer struct {
+	pub     crypto.PublicKey
+	did     string
+	expires time.Time
 }
 
 // NewServer creates a server with required dependencies.
@@ -69,6 +76,7 @@ func NewServer(
 	events Events,
 	resolver did.Resolver,
 	sessionCfg *session.Config,
+	cleanupInterval time.Duration,
 ) *Server {
 	if events == nil {
 		events = NoopEvents{}
@@ -85,16 +93,27 @@ func NewServer(
 	} else {
 		cfg = *sessionCfg
 	}
-	s :=  &Server{
-		key:                 key,
-		events:              events,
-		resolver: 			 resolver,
-		pending:			 make(map[string]pendingState),
-		sessionCfg:          cfg,
-		exporter:            formats.NewJWKExporter(),
-		importer:            formats.NewJWKImporter(),
+	s := &Server{
+		key:         key,
+		events:      events,
+		resolver:    resolver,
+		pending:     make(map[string]pendingState),
+		peers:       make(map[string]cachedPeer),
+		sessionCfg:  cfg,
+		exporter:    formats.NewJWKExporter(),
+		importer:    formats.NewJWKImporter(),
+		stopCleanup: make(chan struct{}),
+		cleanupDone: make(chan struct{}),
 	}
-	s.cleanupTicker = time.NewTicker(10 * time.Minute)
+
+	if s.pendingTTL == 0 {
+		s.pendingTTL = 15 * time.Minute
+	}
+	interval := cleanupInterval
+	if interval <= 0 {
+		interval = 10 * time.Minute
+	}
+	s.cleanupTicker = time.NewTicker(interval)
 	go s.cleanupLoop()
 	return s
 }
@@ -116,31 +135,31 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		return nil, err
 	}
 
-	// Resolve sender public key when needed
-	var senderPub crypto.PublicKey
-	var senderDID string
-	if s.resolver != nil {
-		v := in.Metadata.GetFields()["did"]
-		if v == nil || v.GetStringValue() == "" {
-			return nil, errors.New("missing did")
-		}
-		senderDID = v.GetStringValue()
-		senderPub, _ = s.resolver.ResolvePublicKey(ctx, did.AgentDID(senderDID))
-		if senderPub == nil {
-			return nil, errors.New("cannot resolve sender pubkey")
-		}
-	}
-
-	// Verify sender signature if metadata is present.
-	if in.Metadata != nil {
-		if err := s.verifySenderSignature(msg, in.Metadata, senderPub); err != nil {
-			return nil, fmt.Errorf("signature verification failed: %w", err)
-		}
-	}
-
 	switch phase {
 
 	case Invitation:
+		if in.Metadata == nil || in.Metadata.GetFields()["did"] == nil || in.Metadata.GetFields()["did"].GetStringValue() == "" {
+			return nil, errors.New("missing did in invitation")
+		}
+		senderDID := in.Metadata.GetFields()["did"].GetStringValue()
+
+		var senderPub crypto.PublicKey
+		if s.resolver != nil {
+			var err error
+			senderPub, err = s.resolver.ResolvePublicKey(ctx, did.AgentDID(senderDID))
+			if err != nil || senderPub == nil {
+				return nil, errors.New("cannot resolve sender pubkey")
+			}
+		}
+
+		// Verify sender signature if metadata is present.
+		if in.Metadata != nil {
+			if err := s.verifySenderSignature(msg, in.Metadata, senderPub); err != nil {
+				return nil, fmt.Errorf("signature verification failed: %w", err)
+			}
+		}
+		s.savePeer(msg.ContextId, senderPub, senderDID)
+
 		var inv InvitationMessage
 		if err := fromStructPB(payload, &inv); err != nil {
 			return nil, fmt.Errorf("invitation decode: %w", err)
@@ -149,6 +168,18 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		return s.ack(msg, "invitation_received")
 
 	case Request:
+		cache, ok := s.getPeer(msg.ContextId)
+		if !ok {
+			return nil, errors.New("no cached peer for context; invitation required first")
+		}
+
+		if in.Metadata == nil {
+			return nil, errors.New("missing signature metadata")
+		}
+		if err := s.verifySenderSignature(msg, in.Metadata, cache.pub); err != nil {
+			return nil, fmt.Errorf("request signature verification failed: %w", err)
+		}
+
 		plain, err := s.decryptPacket(payload)
 		if err != nil {
 			return nil, fmt.Errorf("request decrypt: %w", err)
@@ -157,15 +188,15 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		if err := json.Unmarshal(plain, &req); err != nil {
 			return nil, fmt.Errorf("request json: %w", err)
 		}
-		
+
 		if len(req.EphemeralPubKey) == 0 {
 			return nil, fmt.Errorf("empty peer ephemeral: %w", err)
 		}
 
 		exported, err := s.importer.ImportPublic([]byte(req.EphemeralPubKey), sagecrypto.KeyFormatJWK)
 		peerPub, ok := exported.(*ecdh.PublicKey)
-		if !ok { 
-			return nil, fmt.Errorf("unexpected peer eph key type: %T", peerPub) 
+		if !ok {
+			return nil, fmt.Errorf("unexpected peer eph key type: %T", peerPub)
 		}
 		peerEphRaw := peerPub.Bytes()
 		if len(peerEphRaw) != 32 {
@@ -173,8 +204,8 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		}
 
 		serverEphRaw, serverEphJWK, err := s.events.AskEphemeral(ctx, msg.ContextId)
-		if err != nil { 
-			return nil, fmt.Errorf("ask ephemeral: %w", err) 
+		if err != nil {
+			return nil, fmt.Errorf("ask ephemeral: %w", err)
 		}
 		if len(serverEphRaw) != 32 {
 			return nil, fmt.Errorf("invalid server eph length: %d", len(serverEphRaw))
@@ -183,39 +214,31 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		s.savePending(msg.ContextId, pendingState{
 			peerEph:   append([]byte(nil), peerEphRaw...),
 			serverEph: append([]byte(nil), serverEphRaw...),
-			// expires: time.Now().Add(time.Hour), 
+			// expires: time.Now().Add(time.Hour),
 		})
-		_ = s.events.OnRequest(ctx, msg.ContextId, req, senderPub)
+		_ = s.events.OnRequest(ctx, msg.ContextId, req, cache.pub)
 
 		// Optionally respond immediately to the peer.
 		res := ResponseMessage{
-			EphemeralPubKey: json.RawMessage(serverEphJWK),  
-			Ack:       true,
+			EphemeralPubKey: json.RawMessage(serverEphJWK),
+			Ack:             true,
 		}
 
-		return s.sendResponseToPeer(res, msg.ContextId, senderPub, senderDID)
-
-	case Response:
-		var res ResponseMessage
-		// Prefer encrypted envelope; fall back to clear JSON if not present.
-		if b64, err := structPBToB64(payload); err == nil {
-			plain, err := s.decryptPacket(payload)
-			if err != nil {
-				return nil, fmt.Errorf("response decrypt: %w", err)
-			}
-			if err := json.Unmarshal(plain, &res); err != nil {
-				return nil, fmt.Errorf("response json: %w", err)
-			}
-			_ = b64 // silence if unused in your linter
-		} else {
-			if err := fromStructPB(payload, &res); err != nil {
-				return nil, fmt.Errorf("response decode: %w", err)
-			}
-		}
-		_ = s.events.OnResponse(ctx, msg.ContextId, res, senderPub)
-		return s.ack(msg, "response_received")
+		return s.sendResponseToPeer(res, msg.ContextId, cache.pub, cache.did)
 
 	case Complete:
+		cache, ok := s.getPeer(msg.ContextId)
+		if !ok {
+			return nil, errors.New("no cached peer for context; invitation required first")
+		}
+
+		if in.Metadata == nil {
+			return nil, errors.New("missing signature metadata")
+		}
+		if err := s.verifySenderSignature(msg, in.Metadata, cache.pub); err != nil {
+			return nil, fmt.Errorf("request signature verification failed: %w", err)
+		}
+
 		var comp CompleteMessage
 		_ = fromStructPB(payload, &comp) // best-effort
 
@@ -225,22 +248,22 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 			return s.ack(msg, "complete_received_no_pending")
 		}
 
-		sessParams := session.Params {
-				ContextID: msg.ContextId,
-				SelfEph: st.serverEph,
-				PeerEph: st.peerEph,
-				Label:  "a2a/handshake v1",
+		sessParams := session.Params{
+			ContextID: msg.ContextId,
+			SelfEph:   st.serverEph,
+			PeerEph:   st.peerEph,
+			Label:     "a2a/handshake v1",
 		}
 
 		_ = s.events.OnComplete(ctx, msg.ContextId, comp, sessParams)
 
-		if binder, ok := any(s.events).(KeyIDBinder); ok && senderPub != nil {
+		if binder, ok := any(s.events).(KeyIDBinder); ok && cache.pub != nil {
 			if kid, ok2 := binder.IssueKeyID(msg.ContextId); ok2 && kid != "" {
 				res := ResponseMessage{
 					Ack:   true,
 					KeyID: kid,
 				}
-				return s.sendResponseToPeer(res, msg.ContextId, senderPub, senderDID)
+				return s.sendResponseToPeer(res, msg.ContextId, cache.pub, cache.did)
 			}
 		}
 		return s.ack(msg, "complete_received_session_ready")
@@ -312,7 +335,7 @@ func (s *Server) sendSigned(msg *a2a.Message, did string) (*a2a.SendMessageRespo
 		return nil, fmt.Errorf("sign: %w", err)
 	}
 	msg.Metadata = meta
-	
+
 	return &a2a.SendMessageResponse{
 		Payload: &a2a.SendMessageResponse_Msg{Msg: msg},
 	}, nil
@@ -373,8 +396,8 @@ func (s *Server) ack(in *a2a.Message, note string) (*a2a.SendMessageResponse, er
 		ContextId: in.ContextId,
 		Metadata:  ackPB,
 		Status: &a2a.TaskStatus{
-			State:     a2a.TaskState_TASK_STATE_SUBMITTED,
-			Update:    &a2a.Message{
+			State: a2a.TaskState_TASK_STATE_SUBMITTED,
+			Update: &a2a.Message{
 				Content: []*a2a.Part{
 					{Part: &a2a.Part_Text{Text: note}},
 				},
@@ -391,22 +414,60 @@ func (s *Server) ack(in *a2a.Message, note string) (*a2a.SendMessageResponse, er
 	}, nil
 }
 
+// peer cache helpers
+func (s *Server) savePeer(ctxID string, pub crypto.PublicKey, did string) {
+	s.mu.Lock()
+	s.peers[ctxID] = cachedPeer{
+		pub:     pub,
+		did:     did,
+		expires: time.Now().Add(s.pendingTTL),
+	}
+	s.mu.Unlock()
+}
+
+func (s *Server) getPeer(ctxID string) (cachedPeer, bool) {
+	s.mu.Lock()
+	cp, ok := s.peers[ctxID]
+	s.mu.Unlock()
+	return cp, ok
+}
+
+func (s *Server) delPeer(ctxID string) {
+	s.mu.Lock()
+	delete(s.peers, ctxID)
+	s.mu.Unlock()
+}
 
 func (s *Server) cleanupLoop() {
+	ticker := s.cleanupTicker
 	for {
 		select {
-		case <-s.cleanupTicker.C:
-			now := time.Now()
+		case <-ticker.C:
+			s.cleanupExpired(time.Now())
+		case <-s.stopCleanup:
+			ticker.Stop()
 			s.mu.Lock()
-			for ctxID, st := range s.pending {
-				if now.After(st.expires) {
-					delete(s.pending, ctxID)
-				}
+			if s.cleanupDone != nil {
+				close(s.cleanupDone)
 			}
 			s.mu.Unlock()
-		case <-s.stopCleanup:
-			s.cleanupTicker.Stop()
 			return
+		}
+	}
+}
+
+func (s *Server) cleanupExpired(now time.Time) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for ctxID, st := range s.pending {
+		if now.After(st.expires) {
+			delete(s.pending, ctxID)
+		}
+	}
+	for ctxID, cp := range s.peers {
+		if now.After(cp.expires) {
+			delete(s.peers, ctxID)
 		}
 	}
 }
