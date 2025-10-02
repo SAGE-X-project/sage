@@ -314,4 +314,22 @@ curl -X POST -H "Content-Type: application/json" \
 - [Ethers.js Documentation](https://docs.ethers.org)
 
 ## 📄 License
-MIT
+
+This directory contains SAGE smart contracts licensed under the **MIT License**.
+
+**Note**: The main SAGE Go backend (parent directory) is licensed under LGPL-3.0. Smart contracts are separately licensed as MIT to align with blockchain ecosystem standards and OpenZeppelin compatibility.
+
+See [LICENSE](LICENSE) for the full MIT license text.
+
+### Why MIT for Smart Contracts?
+
+- **Industry Standard**: Most DeFi and blockchain projects use MIT
+- **OpenZeppelin Compatible**: Our contracts use OpenZeppelin (MIT)
+- **Audit Friendly**: Standard license for security auditors
+- **On-Chain Transparency**: Smart contracts are publicly verifiable on-chain
+
+### Dependencies
+
+- OpenZeppelin Contracts: MIT License
+- Hardhat: MIT License
+- Ethers.js: MIT License
