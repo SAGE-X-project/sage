@@ -38,13 +38,13 @@ func banner(prefix, title string) {
 }
 
 func dumpHeaders(prefix string, r *http.Request) {
-	// 헤더/요청라인만 덤프 (바디는 따로 읽어서 출력)
+	// Dump only headers/request line (body printed separately)
 	dump, _ := httputil.DumpRequest(r, false)
 	log.Printf("%s HEADERS:\n%s", prefix, dump)
 }
 
 func dumpCipherRaw(prefix string, b []byte) {
-	// 요청 원문을 UTF-8로 그대로 출력(깨져 보일 수 있음)
+	// Print raw request body as UTF-8 (may look garbled)
 	log.Printf("%s CIPHER (raw/utf8) len=%d:\n%s", prefix, len(b), string(b))
 }
 
@@ -218,31 +218,31 @@ func main() {
 		_, _ = w.Write(out)
 	})
 
-	// protected endpoint: 패킷 로깅 + 검증 + 복호화
+	// protected endpoint: packet logging + verification + decryption
 	mux.HandleFunc("/protected", func(w http.ResponseWriter, r *http.Request) {
 		id := atomic.AddUint64(&seq, 1)
 		prefix := fmt.Sprintf("[req#%03d]", id)
 		banner(prefix, "INCOMING /protected")
 
-		// 1) 암호문 먼저 확보
+		// 1) capture ciphertext first
 		cipherBody, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, "read body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 		_ = r.Body.Close()
-		// 검증 라이브러리가 바디를 쓰지 않더라도 안전하게 원복
+		// Safely restore body even if verification library ignores it
 		r.Body = io.NopCloser(bytes.NewReader(cipherBody))
 
-		// 2) 요청라인/헤더
+		// 2) request line and headers
 		dumpHeaders(prefix, r)
 
-		// 3) 암호문: raw → base64 → hex
+		// 3) ciphertext: raw -> base64 -> hex
 		dumpCipherRaw(prefix, cipherBody)
 		dumpCipherB64(prefix, cipherBody)
 		dumpCipherHexPreview(prefix, cipherBody, 64)
 
-		// ===== 검증/복호화 =====
+		// ===== verification/decryption =====
 		sigInputs, err := rfc9421.ParseSignatureInput(r.Header.Get("Signature-Input"))
 		if err != nil {
 			http.Error(w, "invalid Signature-Input", http.StatusBadRequest)
@@ -291,7 +291,7 @@ func main() {
 			return
 		}
 
-		// 4) 복호화 + 출력
+		// 4) decrypt and print
 		plain, err := sess.Decrypt(cipherBody)
 		if err != nil {
 			http.Error(w, "decrypt: "+err.Error(), http.StatusUnauthorized)
@@ -299,7 +299,7 @@ func main() {
 		}
 		dumpPlainPretty(prefix, plain)
 
-		// 5) 응답
+		// 5) response
 		responsePayload := []byte(fmt.Sprintf("{\"ok\":true,\"echo\":%s}", plain))
 		cipherOut, err := sess.Encrypt(responsePayload)
 		if err != nil {
@@ -316,11 +316,11 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(resp)
 
-		// 테스트 자동 종료(원하면 끄세요)
+		// Automatic test shutdown (disable if desired)
 		// scheduleShutdown(3 * time.Second)
 	})
 
-	// ✅ 항상 {"pub":"<base64url>"} 형태로 응답 (클라가 문자열로 파싱 가능)
+	// Always respond with {"pub":"<base64url>"} so the client can parse it as a string
 	mux.HandleFunc("/debug/server-pub", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		pub := serverKeyPair.PublicKey().(ed25519.PublicKey)

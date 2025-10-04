@@ -50,10 +50,10 @@ func main() {
 	clientPriv := clientKeyPair.PrivateKey().(ed25519.PrivateKey)
 	clientDID := sagedid.GenerateDID(sagedid.ChainEthereum, uuid.NewString())
 
-	// ✅ 서버 공개키 얻기 (방어적 파서)
+	// Get server public key (defensive parser)
 	serverPub := fetchServerPub()
 
-	// 에이전트 등록
+	// Register agent
 	registerPayload := map[string]any{
 		"DID":    string(clientDID),
 		"Name":   "Handshake Test Agent",
@@ -90,7 +90,7 @@ func main() {
 		log.Fatalf("EnsureSession: %v", err)
 	}
 
-	// 정상 패킷
+	// Valid packet
 	body := []byte(`{"op":"ping","ts":1}`)
 	cipher := mustBytes(clientSess.Encrypt(body))
 	req := newProtectedRequest(cipher, string(clientDID), sessionKey, clientPriv)
