@@ -20,20 +20,20 @@ function log(message, color = "reset") {
 async function main() {
   try {
     log(`\n${"=".repeat(50)}`, "bright");
-    log(`📋 Generating Verification Information`, "cyan");
+    log(` Generating Verification Information`, "cyan");
     log(`${"=".repeat(50)}`, "bright");
     
     // Get compiler settings from hardhat config
     const compilerSettings = hre.config.solidity;
     
-    log("\n🔧 Compiler Settings:", "yellow");
+    log("\n Compiler Settings:", "yellow");
     console.log("   Solidity Version: 0.8.19");
     console.log("   Optimization: Enabled");
     console.log("   Optimization Runs: 200");
     console.log("   Via IR: true (IMPORTANT!)");
     console.log("   EVM Version: paris (default)");
     
-    log("\n⚠️  IMPORTANT for Klaytnscope Verification:", "red");
+    log("\n  IMPORTANT for Klaytnscope Verification:", "red");
     console.log("   1. Use EXACT compiler version: v0.8.19+commit.7dd6d404");
     console.log("   2. Enable 'Via IR' compilation");
     console.log("   3. Set optimization runs to 200");
@@ -110,7 +110,7 @@ async function main() {
 **Optimization Settings:**
 - Optimization: Yes
 - Runs: 200
-- Via IR: YES ✅ (This is critical!)
+- Via IR: YES  (This is critical!)
 
 **Advanced Settings (if available):**
 - EVM Version: paris
@@ -186,7 +186,7 @@ If the web interface fails, try using Standard JSON Input:
       instructions
     );
     
-    log("\n📝 Verification Instructions:", "cyan");
+    log("\n Verification Instructions:", "cyan");
     console.log("   verification/VERIFICATION_GUIDE.md");
     
     // Try to compile locally to get exact bytecode
@@ -198,22 +198,22 @@ If the web interface fails, try using Standard JSON Input:
     const buildFiles = fs.readdirSync(buildInfoDir);
     if (buildFiles.length > 0) {
       const latestBuild = buildFiles[buildFiles.length - 1];
-      log(`\n✅ Build info available: ${latestBuild}`, "green");
+      log(`\n Build info available: ${latestBuild}`, "green");
       console.log("   This contains exact compiler settings used");
     }
     
-    log("\n✨ Next Steps:", "yellow");
+    log("\n Next Steps:", "yellow");
     log("1. Try web verification with Via IR enabled", "reset");
     log("2. If that fails, use Standard JSON Input method", "reset");
     log("3. As last resort, use Remix IDE for verification", "reset");
     
-    log("\n🔑 Key Points:", "red");
+    log("\n Key Points:", "red");
     log("   - Via IR MUST be enabled", "reset");
     log("   - Use exact compiler v0.8.19+commit.7dd6d404", "reset");
     log("   - Optimization must be 200 runs", "reset");
     
   } catch (error) {
-    log(`\n❌ Error: ${error.message}`, "red");
+    log(`\n Error: ${error.message}`, "red");
     console.error(error);
     process.exit(1);
   }

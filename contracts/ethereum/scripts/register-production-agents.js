@@ -51,7 +51,7 @@ async function fetchAgentPublicKey(agent) {
   try {
     // If running locally, use predefined keys for testing
     if (agent.endpoint.includes("localhost")) {
-      log(`⚠️  Using test key for ${agent.name} (localhost detected)`, "yellow");
+      log(`  Using test key for ${agent.name} (localhost detected)`, "yellow");
       
       // Generate deterministic test keys based on agent name
       const seed = hre.ethers.keccak256(hre.ethers.toUtf8Bytes(agent.name));
@@ -91,10 +91,10 @@ async function fetchAgentPublicKey(agent) {
     };
     
   } catch (error) {
-    log(`❌ Failed to fetch public key for ${agent.name}: ${error.message}`, "red");
+    log(` Failed to fetch public key for ${agent.name}: ${error.message}`, "red");
     
     // Fallback to generating a test key
-    log(`⚠️  Generating fallback test key for ${agent.name}`, "yellow");
+    log(`  Generating fallback test key for ${agent.name}`, "yellow");
     const seed = hre.ethers.keccak256(hre.ethers.toUtf8Bytes(agent.name + Date.now()));
     const randomBytes = hre.ethers.getBytes(seed);
     
@@ -133,7 +133,7 @@ async function main() {
     const network = hre.network.name;
     
     log(`\n${"=".repeat(50)}`, "bright");
-    log(`🚀 Production Agent Registration on ${network.toUpperCase()}`, "cyan");
+    log(` Production Agent Registration on ${network.toUpperCase()}`, "cyan");
     log(`${"=".repeat(50)}`, "bright");
     
     // Get deployer account
@@ -154,7 +154,7 @@ async function main() {
       if (fs.existsSync(deploymentPath)) {
         const deployment = JSON.parse(fs.readFileSync(deploymentPath, 'utf8'));
         registryAddress = deployment.contracts.SageRegistryV2;
-        log(`\n📋 Loaded registry address from deployment: ${registryAddress}`, "green");
+        log(`\n Loaded registry address from deployment: ${registryAddress}`, "green");
       }
     }
     
@@ -166,11 +166,11 @@ async function main() {
     const SageRegistryV2 = await hre.ethers.getContractFactory("SageRegistryV2");
     const registry = SageRegistryV2.attach(registryAddress);
     
-    log(`\n✅ Connected to SageRegistryV2 at: ${registryAddress}`, "green");
+    log(`\n Connected to SageRegistryV2 at: ${registryAddress}`, "green");
     
     // Register each production agent
     log(`\n${"=".repeat(50)}`, "bright");
-    log("📦 Registering Production Agents", "cyan");
+    log(" Registering Production Agents", "cyan");
     log(`${"=".repeat(50)}`, "bright");
     
     const registeredAgents = [];
@@ -201,7 +201,7 @@ async function main() {
           signature: signature
         };
         
-        log(`   📋 Agent Details:`, "yellow");
+        log(`    Agent Details:`, "yellow");
         console.log(`      DID: ${agentData.did}`);
         console.log(`      Name: ${agentData.name}`);
         console.log(`      Endpoint: ${agentData.endpoint}`);
@@ -239,7 +239,7 @@ async function main() {
           agentId = logs[0].args[0];
         }
         
-        log(`   ✅ ${agent.name} registered successfully!`, "green");
+        log(`    ${agent.name} registered successfully!`, "green");
         console.log(`      Transaction: ${receipt.hash}`);
         console.log(`      Agent ID: ${agentId}`);
         console.log(`      Gas Used: ${receipt.gasUsed.toString()}`);
@@ -251,7 +251,7 @@ async function main() {
         });
         
       } catch (error) {
-        log(`   ❌ Failed to register ${agent.name}: ${error.message}`, "red");
+        log(`    Failed to register ${agent.name}: ${error.message}`, "red");
         
         if (error.message.includes("already registered")) {
           log(`   ℹ️  Agent may already be registered. Skipping...`, "yellow");
@@ -275,10 +275,10 @@ async function main() {
       fs.writeFileSync(resultPath, JSON.stringify(resultData, null, 2));
       
       log(`\n${"=".repeat(50)}`, "bright");
-      log("🎉 Registration Complete!", "green");
+      log(" Registration Complete!", "green");
       log(`${"=".repeat(50)}`, "bright");
       
-      log("\n📋 Summary:", "cyan");
+      log("\n Summary:", "cyan");
       console.log(`   Network: ${network}`);
       console.log(`   Registry: ${registryAddress}`);
       console.log(`   Agents Registered: ${registeredAgents.length}/${PRODUCTION_AGENTS.length}`);
@@ -287,7 +287,7 @@ async function main() {
       console.log(`   ${resultPath}`);
       
       if (network === "kairos" || network === "kaia") {
-        log("\n🔍 View on Explorer:", "cyan");
+        log("\n View on Explorer:", "cyan");
         const explorerBase = network === "kairos" ? "https://kairos.klaytnscope.com" : "https://klaytnscope.com";
         console.log(`   Registry: ${explorerBase}/account/${registryAddress}`);
         registeredAgents.forEach(agent => {
@@ -296,13 +296,13 @@ async function main() {
       }
     }
     
-    log("\n✨ Next Steps:", "yellow");
+    log("\n Next Steps:", "yellow");
     log("   1. Verify agents are correctly registered", "reset");
     log("   2. Test agent interactions", "reset");
     log("   3. Configure agent servers with contract addresses", "reset");
     
   } catch (error) {
-    log(`\n❌ Registration failed: ${error.message}`, "red");
+    log(`\n Registration failed: ${error.message}`, "red");
     console.error(error);
     process.exit(1);
   }

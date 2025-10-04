@@ -2,7 +2,7 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.21%2B-blue.svg)](https://golang.org/dl/)
 [![Solidity Version](https://img.shields.io/badge/Solidity-0.8.19-red.svg)](https://soliditylang.org/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
 
 ## Overview
@@ -313,7 +313,35 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU Lesser General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
+
+### What This Means for Users
+
+**You CAN:**
+- ✅ Use SAGE in commercial applications
+- ✅ Use SAGE in proprietary software
+- ✅ Modify SAGE for your needs
+- ✅ Distribute SAGE
+
+**You MUST:**
+- ❗ Provide SAGE source code if you distribute it (modified or not)
+- ❗ Allow users to replace/relink the SAGE library
+- ❗ Maintain LGPL-3.0 license notices
+- ❗ Provide installation/build instructions (see [INSTALL.md](INSTALL.md))
+
+**You DON'T Need To:**
+- ⭕ Open-source your application that uses SAGE
+- ⭕ Release your application under LGPL-3.0
+
+### Smart Contracts - Separate License
+
+**Note**: Smart contracts in `contracts/ethereum/` are separately licensed under **MIT License** to align with blockchain ecosystem standards. See [contracts/ethereum/LICENSE](contracts/ethereum/LICENSE) for details.
+
+### Additional Resources
+
+- **LGPL-3.0 Full Text**: https://www.gnu.org/licenses/lgpl-3.0.html
+- **Installation Guide**: [INSTALL.md](INSTALL.md)
+- **Third-Party Notices**: [NOTICE](NOTICE)
 
 ## Resources
 

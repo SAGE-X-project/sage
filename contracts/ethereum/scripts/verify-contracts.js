@@ -19,7 +19,7 @@ function log(message, color = "reset") {
 
 async function verifyContract(contractName, address, constructorArgs = []) {
   try {
-    log(`\n📝 Verifying ${contractName}...`, "blue");
+    log(`\n Verifying ${contractName}...`, "blue");
     console.log(`   Address: ${address}`);
     console.log(`   Network: ${hre.network.name}`);
     
@@ -28,17 +28,17 @@ async function verifyContract(contractName, address, constructorArgs = []) {
       constructorArguments: constructorArgs,
     });
     
-    log(`✅ ${contractName} verified successfully!`, "green");
+    log(` ${contractName} verified successfully!`, "green");
     return true;
   } catch (error) {
     if (error.message.includes("Already Verified")) {
       log(`ℹ️  ${contractName} is already verified`, "yellow");
       return true;
     } else if (error.message.includes("does not have bytecode")) {
-      log(`❌ ${contractName} not found at address ${address}`, "red");
+      log(` ${contractName} not found at address ${address}`, "red");
       return false;
     } else {
-      log(`❌ Failed to verify ${contractName}: ${error.message}`, "red");
+      log(` Failed to verify ${contractName}: ${error.message}`, "red");
       return false;
     }
   }
@@ -49,7 +49,7 @@ async function main() {
     const network = hre.network.name;
     
     log(`\n${"=".repeat(50)}`, "bright");
-    log(`🔍 Contract Verification on ${network.toUpperCase()}`, "cyan");
+    log(` Contract Verification on ${network.toUpperCase()}`, "cyan");
     log(`${"=".repeat(50)}`, "bright");
     
     // Check network
@@ -68,17 +68,17 @@ async function main() {
       deploymentInfo = JSON.parse(fs.readFileSync(latestPath, 'utf8'));
       registryAddress = deploymentInfo.contracts.SageRegistryV2;
       hookAddress = deploymentInfo.contracts.SageVerificationHook;
-      log("\n📋 Loaded deployment info from file", "green");
+      log("\n Loaded deployment info from file", "green");
     }
     
     // Override with environment variables if set
     if (process.env.SAGE_REGISTRY_ADDRESS) {
       registryAddress = process.env.SAGE_REGISTRY_ADDRESS;
-      log("📋 Using registry address from environment", "yellow");
+      log(" Using registry address from environment", "yellow");
     }
     if (process.env.SAGE_VERIFICATION_HOOK_ADDRESS) {
       hookAddress = process.env.SAGE_VERIFICATION_HOOK_ADDRESS;
-      log("📋 Using hook address from environment", "yellow");
+      log(" Using hook address from environment", "yellow");
     }
     
     // Validate addresses
@@ -95,14 +95,14 @@ async function main() {
     const explorerBase = network === "kairos" ? "https://kairos.klaytnscope.com" : 
                         network === "kaia" || network === "cypress" ? "https://klaytnscope.com" : "";
     
-    log("\n🌐 Network Info:", "yellow");
+    log("\n Network Info:", "yellow");
     console.log(`   Network: ${network}`);
     console.log(`   Chain ID: ${chainId}`);
     console.log(`   Explorer: ${explorerBase}`);
     
     // Verify contracts
     log(`\n${"=".repeat(50)}`, "bright");
-    log("🚀 Starting Verification Process", "cyan");
+    log(" Starting Verification Process", "cyan");
     log(`${"=".repeat(50)}`, "bright");
     
     const results = [];
@@ -125,24 +125,24 @@ async function main() {
     
     // Summary
     log(`\n${"=".repeat(50)}`, "bright");
-    log("📊 Verification Summary", "cyan");
+    log(" Verification Summary", "cyan");
     log(`${"=".repeat(50)}`, "bright");
     
     const successCount = results.filter(r => r.verified).length;
     const failCount = results.filter(r => !r.verified).length;
     
-    console.log(`\n✅ Successfully verified: ${successCount}/${results.length}`);
+    console.log(`\n Successfully verified: ${successCount}/${results.length}`);
     if (failCount > 0) {
-      console.log(`❌ Failed to verify: ${failCount}/${results.length}`);
+      console.log(` Failed to verify: ${failCount}/${results.length}`);
     }
     
     results.forEach(result => {
-      const status = result.verified ? "✅" : "❌";
+      const status = result.verified ? "" : "";
       console.log(`   ${status} ${result.name}: ${result.address}`);
     });
     
     if (explorerBase) {
-      log("\n🔍 View on Explorer:", "cyan");
+      log("\n View on Explorer:", "cyan");
       results.forEach(result => {
         if (result.verified) {
           console.log(`   ${result.name}: ${explorerBase}/account/${result.address}?tab=code`);
@@ -152,7 +152,7 @@ async function main() {
     
     // Alternative verification methods for Kaia
     if (network === "kairos" || network === "kaia" || network === "cypress") {
-      log("\n💡 Alternative Verification Methods:", "yellow");
+      log("\n Alternative Verification Methods:", "yellow");
       log("\n1. Manual verification on Klaytnscope:", "reset");
       console.log(`   - Visit ${explorerBase}`);
       console.log("   - Search for your contract address");
@@ -172,10 +172,10 @@ async function main() {
       console.log("   Then upload the flattened files to Klaytnscope");
     }
     
-    log("\n✨ Verification process complete!", "green");
+    log("\n Verification process complete!", "green");
     
   } catch (error) {
-    log(`\n❌ Verification failed: ${error.message}`, "red");
+    log(`\n Verification failed: ${error.message}`, "red");
     console.error(error);
     process.exit(1);
   }

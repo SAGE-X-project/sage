@@ -33,7 +33,7 @@ async function main() {
   const network = hre.network.name;
   const config = CONFIG[network] || CONFIG.local;
   
-  console.log("\n🚀 SAGE Unified Deployment Script");
+  console.log("\n SAGE Unified Deployment Script");
   console.log("=" .repeat(60));
   console.log(`📍 Network: ${config.name} (${network})`);
   console.log(`🔗 Chain ID: ${hre.network.config.chainId || 31337}`);
@@ -42,10 +42,10 @@ async function main() {
   // Check network connection
   try {
     const blockNumber = await hre.ethers.provider.getBlockNumber();
-    console.log(`📦 Current block: ${blockNumber}`);
+    console.log(` Current block: ${blockNumber}`);
   } catch (error) {
-    console.error("\n❌ Network connection failed:", error.message);
-    console.log("\n💡 Solutions:");
+    console.error("\n Network connection failed:", error.message);
+    console.log("\n Solutions:");
     console.log("  1. Check if Hardhat node is running: npx hardhat node");
     console.log("  2. Check if port 8545 is open: lsof -i:8545");
     console.log("  3. Check network settings: hardhat.config.js");
@@ -78,7 +78,7 @@ async function main() {
     const isLocal = network === "local" || network === "localhost" || network === "hardhat";
     const contractName = isLocal ? "SageRegistryTest" : "SageRegistryV2";
     
-    console.log(`\n📝 Step 1: Deploying ${contractName}...`);
+    console.log(`\n Step 1: Deploying ${contractName}...`);
     const RegistryContract = await hre.ethers.getContractFactory(contractName);
     const sageRegistry = await RegistryContract.deploy();
     await sageRegistry.waitForDeployment();
@@ -94,12 +94,12 @@ async function main() {
     };
     deploymentInfo.gasUsed += registryDeployTx.gasUsed || BigInt(0);
     
-    console.log("✅ SageRegistryV2 deployed to:", registryAddress);
+    console.log(" SageRegistryV2 deployed to:", registryAddress);
 
     // ==========================================
     // 2. Deploy SageVerificationHook
     // ==========================================
-    console.log("\n📝 Step 2: Deploying SageVerificationHook...");
+    console.log("\n Step 2: Deploying SageVerificationHook...");
     const SageVerificationHook = await hre.ethers.getContractFactory("SageVerificationHook");
     const verificationHook = await SageVerificationHook.deploy();
     await verificationHook.waitForDeployment();
@@ -115,12 +115,12 @@ async function main() {
     };
     deploymentInfo.gasUsed += hookDeployTx.gasUsed || BigInt(0);
     
-    console.log("✅ SageVerificationHook deployed to:", hookAddress);
+    console.log(" SageVerificationHook deployed to:", hookAddress);
 
     // ==========================================
     // 3. Configure Hooks
     // ==========================================
-    console.log("\n🔧 Step 3: Configuring hooks...");
+    console.log("\n Step 3: Configuring hooks...");
     
     let tx = await sageRegistry.setBeforeRegisterHook(hookAddress);
     let receipt = await tx.wait();
@@ -130,7 +130,7 @@ async function main() {
       gasUsed: receipt.gasUsed.toString()
     };
     deploymentInfo.gasUsed += receipt.gasUsed;
-    console.log("✅ BeforeRegisterHook configured");
+    console.log(" BeforeRegisterHook configured");
     
     tx = await sageRegistry.setAfterRegisterHook(hookAddress);
     receipt = await tx.wait();
@@ -140,13 +140,13 @@ async function main() {
       gasUsed: receipt.gasUsed.toString()
     };
     deploymentInfo.gasUsed += receipt.gasUsed;
-    console.log("✅ AfterRegisterHook configured");
+    console.log(" AfterRegisterHook configured");
 
     // ==========================================
     // 4. Register Test Agents (if applicable)
     // ==========================================
     if (config.testAgents) {
-      console.log("\n🤖 Step 4: Registering test agents...");
+      console.log("\n Step 4: Registering test agents...");
       
       const agents = [
         {
@@ -240,7 +240,7 @@ async function main() {
             transactionHash: tx.hash,
             gasUsed: receipt.gasUsed.toString()
           });
-          console.log(`  ✅ ${agent.name} registered with ID: ${agentId}`);
+          console.log(`   ${agent.name} registered with ID: ${agentId}`);
         }
       }
     }
@@ -279,7 +279,7 @@ async function main() {
       }
       return value;
     }, 2));
-    console.log(`✅ Deployment info saved to: deployments/${network}.json`);
+    console.log(` Deployment info saved to: deployments/${network}.json`);
     
     // Save latest deployment for easy access
     const latestFile = path.join(deploymentsDir, "latest.json");
@@ -293,7 +293,7 @@ async function main() {
     // ==========================================
     // 6. Generate Environment Variables
     // ==========================================
-    console.log("\n🔐 Step 6: Generating environment variables...");
+    console.log("\n Step 6: Generating environment variables...");
     
     const envContent = `# SAGE Deployment - ${config.name}
 # Generated: ${deploymentInfo.timestamp}
@@ -314,22 +314,22 @@ DEPLOYED_CONTRACT_ADDRESS=${registryAddress}
     
     const envFile = path.join(deploymentsDir, `${network}.env`);
     fs.writeFileSync(envFile, envContent);
-    console.log(`✅ Environment variables saved to: deployments/${network}.env`);
+    console.log(` Environment variables saved to: deployments/${network}.env`);
     
     // ==========================================
     // 7. Verify Contracts (if applicable)
     // ==========================================
     if (config.verifyContracts && network !== "local" && network !== "hardhat") {
-      console.log("\n🔍 Step 7: Verifying contracts on explorer...");
+      console.log("\n Step 7: Verifying contracts on explorer...");
       
       try {
         await hre.run("verify:verify", {
           address: registryAddress,
           constructorArguments: [],
         });
-        console.log("✅ SageRegistryV2 verified");
+        console.log(" SageRegistryV2 verified");
       } catch (error) {
-        console.log("⚠️  SageRegistryV2 verification failed:", error.message);
+        console.log("  SageRegistryV2 verification failed:", error.message);
       }
       
       try {
@@ -337,9 +337,9 @@ DEPLOYED_CONTRACT_ADDRESS=${registryAddress}
           address: hookAddress,
           constructorArguments: [],
         });
-        console.log("✅ SageVerificationHook verified");
+        console.log(" SageVerificationHook verified");
       } catch (error) {
-        console.log("⚠️  SageVerificationHook verification failed:", error.message);
+        console.log("  SageVerificationHook verification failed:", error.message);
       }
     }
 
@@ -347,9 +347,9 @@ DEPLOYED_CONTRACT_ADDRESS=${registryAddress}
     // 8. Print Summary
     // ==========================================
     console.log("\n" + "=" .repeat(60));
-    console.log("🎉 DEPLOYMENT SUCCESSFUL!");
+    console.log(" DEPLOYMENT SUCCESSFUL!");
     console.log("=" .repeat(60));
-    console.log("\n📊 Deployment Summary:");
+    console.log("\n Deployment Summary:");
     console.log(`  Network: ${config.name} (${network})`);
     console.log(`  Chain ID: ${deploymentInfo.chainId}`);
     console.log(`  Deployer: ${deployer.address}`);
@@ -361,7 +361,7 @@ DEPLOYED_CONTRACT_ADDRESS=${registryAddress}
     console.log(`  SageVerificationHook: ${hookAddress}`);
     
     if (deploymentInfo.agents.length > 0) {
-      console.log("\n🤖 Registered Agents:");
+      console.log("\n Registered Agents:");
       deploymentInfo.agents.forEach(agent => {
         console.log(`  - ${agent.name} (ID: ${agent.id})`);
       });
@@ -373,7 +373,7 @@ DEPLOYED_CONTRACT_ADDRESS=${registryAddress}
       console.log(`  Hook: ${deploymentInfo.explorer.hook}`);
     }
     
-    console.log("\n💡 Next Steps:");
+    console.log("\n Next Steps:");
     console.log("  1. Copy environment variables:");
     console.log(`     cp deployments/${network}.env ../../.env`);
     console.log("  2. Update Go applications to use new addresses");
@@ -383,7 +383,7 @@ DEPLOYED_CONTRACT_ADDRESS=${registryAddress}
     return deploymentInfo;
     
   } catch (error) {
-    console.error("\n❌ Deployment failed:", error);
+    console.error("\n Deployment failed:", error);
     
     // Save partial deployment info if available
     if (Object.keys(deploymentInfo.contracts).length > 0) {
@@ -394,7 +394,7 @@ DEPLOYED_CONTRACT_ADDRESS=${registryAddress}
         }
         return value;
       }, 2));
-      console.log(`\n📝 Partial deployment info saved to: ${failedFile}`);
+      console.log(`\n Partial deployment info saved to: ${failedFile}`);
     }
     
     process.exit(1);

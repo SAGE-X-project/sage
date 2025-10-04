@@ -17,7 +17,7 @@ function prompt(question) {
 }
 
 async function main() {
-  console.log("🚀 SageRegistryV2 Local Interaction Script");
+  console.log(" SageRegistryV2 Local Interaction Script");
   console.log("=" .repeat(60));
   
   // Get signers
@@ -33,7 +33,7 @@ async function main() {
   const DEFAULT_REGISTRY = "0xc5a5C42992dECbae36851359345FE25997F5C42d";
   const DEFAULT_HOOK = "0x67d269191c92Caf3cD7723F116c85e6E9bf55933";
   
-  console.log("\n📋 Default contract addresses:");
+  console.log("\n Default contract addresses:");
   console.log("   Registry:", DEFAULT_REGISTRY);
   console.log("   Hook:", DEFAULT_HOOK);
   console.log("   (Press Enter to use defaults or type new address)");
@@ -48,12 +48,12 @@ async function main() {
   const SageRegistryV2 = await hre.ethers.getContractFactory("SageRegistryV2");
   const registry = SageRegistryV2.attach(registryAddress);
   
-  console.log("\n✅ Connected to SageRegistryV2 at:", registryAddress);
+  console.log("\n Connected to SageRegistryV2 at:", registryAddress);
   
   if (hookAddress) {
     const SageVerificationHook = await hre.ethers.getContractFactory("SageVerificationHook");
     const hook = SageVerificationHook.attach(hookAddress);
-    console.log("✅ Connected to SageVerificationHook at:", hookAddress);
+    console.log(" Connected to SageVerificationHook at:", hookAddress);
   }
   
   // Main interaction loop
@@ -107,13 +107,13 @@ async function main() {
         rl.close();
         process.exit(0);
       default:
-        console.log("❌ Invalid choice");
+        console.log(" Invalid choice");
     }
   }
 }
 
 async function registerAgent(registry, signer) {
-  console.log("\n📝 Register New Agent");
+  console.log("\n Register New Agent");
   console.log("-" .repeat(40));
   
   const did = `did:sage:test:${signer.address}_${Date.now()}`;
@@ -126,7 +126,7 @@ async function registerAgent(registry, signer) {
   const publicKey = hre.ethers.concat(["0x04", randomKey]);
   const capabilities = JSON.stringify(["chat", "code", "analysis"]);
   
-  console.log("\n📋 Agent Details:");
+  console.log("\n Agent Details:");
   console.log("  DID:", did);
   console.log("  Name:", name);
   console.log("  Description:", description);
@@ -150,7 +150,7 @@ async function registerAgent(registry, signer) {
   // Sign the challenge to prove key ownership
   const signature = await signer.signMessage(hre.ethers.getBytes(challenge));
   
-  console.log("\n🔐 Signature generated");
+  console.log("\n Signature generated");
   console.log("\n⏳ Registering agent...");
   
   try {
@@ -165,7 +165,7 @@ async function registerAgent(registry, signer) {
     );
     
     const receipt = await tx.wait();
-    console.log("✅ Agent registered successfully!");
+    console.log(" Agent registered successfully!");
     console.log("  Transaction hash:", receipt.hash);
     
     // Get the agent ID from events
@@ -179,12 +179,12 @@ async function registerAgent(registry, signer) {
       console.log("  Agent ID:", logs[0].args[0]);
     }
   } catch (error) {
-    console.log("❌ Registration failed:", error.message);
+    console.log(" Registration failed:", error.message);
   }
 }
 
 async function viewAgent(registry) {
-  console.log("\n🔍 View Agent Details (by ID)");
+  console.log("\n View Agent Details (by ID)");
   console.log("-" .repeat(40));
   
   const agentId = await prompt("Enter agent ID (0x...): ");
@@ -192,7 +192,7 @@ async function viewAgent(registry) {
   try {
     const agent = await registry.getAgent(agentId);
     
-    console.log("\n📋 Agent Information:");
+    console.log("\n Agent Information:");
     console.log("  DID:", agent.did);
     console.log("  Name:", agent.name);
     console.log("  Description:", agent.description);
@@ -204,15 +204,15 @@ async function viewAgent(registry) {
     console.log("  Created:", new Date(Number(agent.createdAt) * 1000).toLocaleString());
     console.log("  Updated:", new Date(Number(agent.updatedAt) * 1000).toLocaleString());
   } catch (error) {
-    console.log("❌ Failed to get agent:", error.message);
+    console.log(" Failed to get agent:", error.message);
   }
 }
 
 async function viewAgentByDID(registry) {
-  console.log("\n🔍 View Agent Details (by DID)");
+  console.log("\n View Agent Details (by DID)");
   console.log("-" .repeat(40));
   
-  console.log("\n📋 Example DIDs:");
+  console.log("\n Example DIDs:");
   console.log("  Root: did:sage:ethereum:0x42b831377fe73f90c7790c4CCfA3fAA4f3E127b8");
   console.log("  Ordering: did:sage:ethereum:0xc657dbce0080dA2Cd17e8Bd796f79A6F338FF327");
   console.log("  Planning: did:sage:ethereum:0xBCC258aCF7117657D25E8C4E692b06f708a69018");
@@ -222,7 +222,7 @@ async function viewAgentByDID(registry) {
   try {
     const agent = await registry.getAgentByDID(did);
     
-    console.log("\n📋 Agent Information:");
+    console.log("\n Agent Information:");
     console.log("  DID:", agent.did);
     console.log("  Name:", agent.name);
     console.log("  Description:", agent.description);
@@ -234,7 +234,7 @@ async function viewAgentByDID(registry) {
     console.log("  Created:", new Date(Number(agent.registeredAt) * 1000).toLocaleString());
     console.log("  Updated:", new Date(Number(agent.updatedAt) * 1000).toLocaleString());
   } catch (error) {
-    console.log("❌ Failed to get agent:", error.message);
+    console.log(" Failed to get agent:", error.message);
   }
 }
 
@@ -253,7 +253,7 @@ async function updateAgent(registry, signer) {
     const agent = await registry.getAgent(agentId);
     
     if (agent.owner.toLowerCase() !== signer.address.toLowerCase()) {
-      console.log("❌ You are not the owner of this agent");
+      console.log(" You are not the owner of this agent");
       return;
     }
     
@@ -279,9 +279,9 @@ async function updateAgent(registry, signer) {
     );
     
     await tx.wait();
-    console.log("✅ Agent updated successfully!");
+    console.log(" Agent updated successfully!");
   } catch (error) {
-    console.log("❌ Update failed:", error.message);
+    console.log(" Update failed:", error.message);
   }
 }
 
@@ -297,14 +297,14 @@ async function deactivateAgent(registry, signer) {
     const tx = await registry.connect(signer).deactivateAgent(agentId);
     await tx.wait();
     
-    console.log("✅ Agent deactivated successfully!");
+    console.log(" Agent deactivated successfully!");
   } catch (error) {
-    console.log("❌ Deactivation failed:", error.message);
+    console.log(" Deactivation failed:", error.message);
   }
 }
 
 async function revokeKey(registry, signer) {
-  console.log("\n🔑 Revoke Public Key");
+  console.log("\n Revoke Public Key");
   console.log("-" .repeat(40));
   
   const publicKey = await prompt("Enter public key to revoke (0x...): ");
@@ -315,15 +315,15 @@ async function revokeKey(registry, signer) {
     const tx = await registry.connect(signer).revokeKey(publicKey);
     await tx.wait();
     
-    console.log("✅ Key revoked successfully!");
-    console.log("⚠️  All agents using this key are now deactivated");
+    console.log(" Key revoked successfully!");
+    console.log("  All agents using this key are now deactivated");
   } catch (error) {
-    console.log("❌ Revocation failed:", error.message);
+    console.log(" Revocation failed:", error.message);
   }
 }
 
 async function listAgents(registry) {
-  console.log("\n📋 List Agents by Owner");
+  console.log("\n List Agents by Owner");
   console.log("-" .repeat(40));
   
   const ownerAddress = await prompt("Enter owner address: ");
@@ -331,7 +331,7 @@ async function listAgents(registry) {
   try {
     const agentIds = await registry.getAgentsByOwner(ownerAddress);
     
-    console.log(`\n📊 Found ${agentIds.length} agent(s) for ${ownerAddress}:`);
+    console.log(`\n Found ${agentIds.length} agent(s) for ${ownerAddress}:`);
     
     for (let i = 0; i < agentIds.length; i++) {
       const agent = await registry.getAgent(agentIds[i]);
@@ -341,12 +341,12 @@ async function listAgents(registry) {
       console.log(`     DID: ${agent.did}`);
     }
   } catch (error) {
-    console.log("❌ Failed to list agents:", error.message);
+    console.log(" Failed to list agents:", error.message);
   }
 }
 
 async function checkHooks(registry) {
-  console.log("\n🔧 Hook Configuration");
+  console.log("\n Hook Configuration");
   console.log("-" .repeat(40));
   
   try {
@@ -357,12 +357,12 @@ async function checkHooks(registry) {
     console.log("  Before Register Hook:", beforeHook || "Not set");
     console.log("  After Register Hook:", afterHook || "Not set");
   } catch (error) {
-    console.log("❌ Failed to check hooks:", error.message);
+    console.log(" Failed to check hooks:", error.message);
   }
 }
 
 async function testSignature(signer) {
-  console.log("\n🔐 Test Signature Generation");
+  console.log("\n Test Signature Generation");
   console.log("-" .repeat(40));
   
   const message = await prompt("Enter message to sign: ");
@@ -370,7 +370,7 @@ async function testSignature(signer) {
   const messageHash = hre.ethers.keccak256(hre.ethers.toUtf8Bytes(message));
   const signature = await signer.signMessage(hre.ethers.getBytes(messageHash));
   
-  console.log("\n📝 Signature Details:");
+  console.log("\n Signature Details:");
   console.log("  Message:", message);
   console.log("  Message Hash:", messageHash);
   console.log("  Signature:", signature);
@@ -379,6 +379,6 @@ async function testSignature(signer) {
 
 // Error handling
 main().catch((error) => {
-  console.error("❌ Error:", error);
+  console.error(" Error:", error);
   process.exit(1);
 });

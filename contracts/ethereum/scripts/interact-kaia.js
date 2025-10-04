@@ -16,7 +16,7 @@ async function main() {
     }
     
     const deployment = JSON.parse(fs.readFileSync(deploymentPath, 'utf8'));
-    console.log(`\n📋 Using deployment from: ${deployment.timestamp}`);
+    console.log(`\n Using deployment from: ${deployment.timestamp}`);
     
     // Get signer
     const [signer] = await hre.ethers.getSigners();
@@ -34,7 +34,7 @@ async function main() {
     console.log(`   Hook: ${verificationHook.address}`);
     
     // Check contract state
-    console.log(`\n🔍 Checking contract state...`);
+    console.log(`\n Checking contract state...`);
     
     const owner = await registry.owner();
     console.log(`   Registry Owner: ${owner}`);
@@ -47,10 +47,10 @@ async function main() {
     
     // Check if signer has any agents
     const agentIds = await registry.getAgentsByOwner(signer.address);
-    console.log(`\n📊 Your Agents: ${agentIds.length} registered`);
+    console.log(`\n Your Agents: ${agentIds.length} registered`);
     
     if (agentIds.length > 0) {
-      console.log("\n📝 Agent Details:");
+      console.log("\n Agent Details:");
       for (const agentId of agentIds) {
         const agent = await registry.getAgent(agentId);
         console.log(`\n   Agent ID: ${agentId}`);
@@ -62,7 +62,7 @@ async function main() {
     }
     
     // Sample agent registration (commented out to avoid actual transaction)
-    console.log("\n💡 To register an agent, uncomment the code below:");
+    console.log("\n To register an agent, uncomment the code below:");
     console.log(`
     // Generate a keypair (you should use proper key generation)
     const wallet = hre.ethers.Wallet.createRandom();
@@ -96,10 +96,10 @@ async function main() {
     console.log("Agent registered successfully!");
     `);
     
-    console.log("\n✅ Interaction complete!\n");
+    console.log("\n Interaction complete!\n");
     
   } catch (error) {
-    console.error("\n❌ Error:", error.message);
+    console.error("\n Error:", error.message);
     process.exit(1);
   }
 }

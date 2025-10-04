@@ -1,3 +1,21 @@
+// Copyright (C) 2025 sage-x-project
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+
 package did
 
 import (
@@ -54,7 +72,13 @@ func (m *MultiChainResolver) Resolve(ctx context.Context, did AgentDID) (*AgentM
 	chain, err := extractChainFromDID(did)
 	if err != nil {
 		// Try all chains if chain cannot be determined from DID
-		for _, resolver := range m.resolvers {
+		// Try in deterministic order: ethereum first, then others alphabetically
+		chains := []Chain{ChainEthereum, ChainSolana}
+		for _, c := range chains {
+			resolver, exists := m.resolvers[c]
+			if !exists {
+				continue
+			}
 			metadata, err := resolver.Resolve(ctx, did)
 			if err == nil {
 				return metadata, nil
@@ -62,12 +86,12 @@ func (m *MultiChainResolver) Resolve(ctx context.Context, did AgentDID) (*AgentM
 		}
 		return nil, fmt.Errorf("DID not found on any chain: %s", did)
 	}
-	
+
 	resolver, exists := m.resolvers[chain]
 	if !exists {
 		return nil, fmt.Errorf("no resolver for chain %s", chain)
 	}
-	
+
 	return resolver.Resolve(ctx, did)
 }
 

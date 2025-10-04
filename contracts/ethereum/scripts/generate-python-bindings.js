@@ -34,7 +34,7 @@ async function generatePythonBindings() {
     
     if (!fs.existsSync(sageDir)) {
       fs.mkdirSync(sageDir, { recursive: true });
-      log("✅ Created bindings/python directory structure", "green");
+      log(" Created bindings/python directory structure", "green");
     }
 
     // Contracts to generate bindings for
@@ -158,18 +158,18 @@ class ContractBase:
 `;
 
     fs.writeFileSync(path.join(sageDir, 'base.py'), baseContent);
-    log("✅ Created base.py", "green");
+    log(" Created base.py", "green");
 
     // Generate Python bindings for each contract
     for (const contract of contracts) {
-      log(`\n📦 Processing ${contract.name}...`, "blue");
+      log(`\n Processing ${contract.name}...`, "blue");
 
       const abiPath = path.join(__dirname, '..', contract.abi);
       const binPath = path.join(__dirname, '..', contract.bin);
 
       // Check if files exist
       if (!fs.existsSync(abiPath)) {
-        log(`  ⚠️  ABI not found: ${contract.abi}`, "yellow");
+        log(`    ABI not found: ${contract.abi}`, "yellow");
         log(`  Run 'npm run extract-abi' first`, "yellow");
         continue;
       }
@@ -189,7 +189,7 @@ class ContractBase:
       const pythonContent = generatePythonClass(contract, abi, bytecode);
       
       fs.writeFileSync(path.join(sageDir, fileName), pythonContent);
-      log(`  ✅ Generated ${fileName}`, "green");
+      log(`   Generated ${fileName}`, "green");
     }
 
     // Create example script
@@ -255,7 +255,7 @@ if __name__ == "__main__":
 `;
 
     fs.writeFileSync(path.join(pythonDir, 'example.py'), exampleContent);
-    log("✅ Created example.py", "green");
+    log(" Created example.py", "green");
 
     // Create requirements.txt
     const requirementsContent = `web3>=6.11.0
@@ -265,7 +265,7 @@ hexbytes>=0.3.0
 `;
 
     fs.writeFileSync(path.join(pythonDir, 'requirements.txt'), requirementsContent);
-    log("✅ Created requirements.txt", "green");
+    log(" Created requirements.txt", "green");
 
     // Create setup.py
     const setupContent = `from setuptools import setup, find_packages
@@ -297,7 +297,7 @@ setup(
 `;
 
     fs.writeFileSync(path.join(pythonDir, 'setup.py'), setupContent);
-    log("✅ Created setup.py", "green");
+    log(" Created setup.py", "green");
 
     // Create README
     const readmeContent = `# Python Bindings for SAGE Contracts
@@ -355,10 +355,10 @@ npm run generate:python
 `;
 
     fs.writeFileSync(path.join(pythonDir, 'README.md'), readmeContent);
-    log("✅ Created README.md", "green");
+    log(" Created README.md", "green");
 
     log("\n" + "=".repeat(50), "bright");
-    log("✨ Python binding generation complete!", "green");
+    log(" Python binding generation complete!", "green");
     log("\nGenerated files:", "yellow");
     log(`  📁 ${pythonDir}/`, "cyan");
     log("  📄 sage_contracts/registry.py - SageRegistryV2 binding", "cyan");
@@ -369,7 +369,7 @@ npm run generate:python
     log("  📄 setup.py - Package setup", "cyan");
 
   } catch (error) {
-    log("\n❌ Error generating Python bindings:", "red");
+    log("\n Error generating Python bindings:", "red");
     console.error(error);
     process.exit(1);
   }

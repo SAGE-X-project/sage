@@ -1,6 +1,6 @@
-# 🚀 SAGE Registry V2 배포 가이드
+#  SAGE Registry V2 배포 가이드
 
-## 📋 목차
+##  목차
 - [개요](#개요)
 - [지원 네트워크](#지원-네트워크)
 - [환경 설정](#환경-설정)
@@ -237,7 +237,7 @@ npx hardhat verify --network kairos YOUR_CONTRACT_ADDRESS
 
 ### 3. Cypress Mainnet 배포
 
-⚠️ **주의사항**: 메인넷 배포 전 체크리스트
+ **주의사항**: 메인넷 배포 전 체크리스트
 - [ ] 테스트넷에서 충분한 테스트 완료
 - [ ] 보안 감사 통과
 - [ ] 가스 최적화 확인
@@ -321,7 +321,7 @@ async function testDeployed() {
   );
   
   const receipt = await tx.wait();
-  console.log("✅ Agent registered! Gas used:", receipt.gasUsed.toString());
+  console.log(" Agent registered! Gas used:", receipt.gasUsed.toString());
 }
 
 testDeployed().catch(console.error);
@@ -351,13 +351,13 @@ async function monitor() {
   
   // 이벤트 리스너 설정
   registry.on("AgentRegistered", (agentId, owner, did) => {
-    console.log(`✅ New Agent: ${did}`);
+    console.log(` New Agent: ${did}`);
     console.log(`   ID: ${agentId}`);
     console.log(`   Owner: ${owner}`);
   });
   
   registry.on("AgentDeactivated", (agentId) => {
-    console.log(`❌ Agent Deactivated: ${agentId}`);
+    console.log(` Agent Deactivated: ${agentId}`);
   });
   
   console.log("Monitoring events... Press Ctrl+C to stop");
@@ -449,7 +449,7 @@ npx hardhat clean
 
 ---
 
-📌 **중요**: 
+ **중요**: 
 - 프라이빗 키는 절대 공개 저장소에 커밋하지 마세요
 - 메인넷 배포 전 반드시 테스트넷에서 충분히 테스트하세요
 - 배포 후 컨트랙트 주소를 안전하게 백업하세요

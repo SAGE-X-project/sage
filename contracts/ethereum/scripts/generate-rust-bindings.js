@@ -34,7 +34,7 @@ async function generateRustBindings() {
     
     if (!fs.existsSync(srcDir)) {
       fs.mkdirSync(srcDir, { recursive: true });
-      log("✅ Created bindings/rust directory structure", "green");
+      log(" Created bindings/rust directory structure", "green");
     }
 
     // Contracts to generate bindings for
@@ -64,7 +64,7 @@ async function generateRustBindings() {
       if (fs.existsSync(abiPath)) {
         const targetPath = path.join(abiDir, `${contract.name}.json`);
         fs.copyFileSync(abiPath, targetPath);
-        log(`✅ Copied ${contract.name} ABI`, "green");
+        log(` Copied ${contract.name} ABI`, "green");
       }
     }
 
@@ -163,7 +163,7 @@ mod tests {
 `;
 
     fs.writeFileSync(path.join(srcDir, 'lib.rs'), libContent);
-    log("✅ Created lib.rs", "green");
+    log(" Created lib.rs", "green");
 
     // Create Cargo.toml
     const cargoContent = `[package]
@@ -198,7 +198,7 @@ path = "examples/client.rs"
 `;
 
     fs.writeFileSync(path.join(rustDir, 'Cargo.toml'), cargoContent);
-    log("✅ Created Cargo.toml", "green");
+    log(" Created Cargo.toml", "green");
 
     // Create example
     const exampleDir = path.join(rustDir, 'examples');
@@ -278,7 +278,7 @@ async fn main() -> Result<()> {
 `;
 
     fs.writeFileSync(path.join(exampleDir, 'client.rs'), exampleContent);
-    log("✅ Created client.rs example", "green");
+    log(" Created client.rs example", "green");
 
     // Create build.rs for automatic binding generation
     const buildContent = `use std::env;
@@ -296,7 +296,7 @@ fn main() {
 `;
 
     fs.writeFileSync(path.join(rustDir, 'build.rs'), buildContent);
-    log("✅ Created build.rs", "green");
+    log(" Created build.rs", "green");
 
     // Create .gitignore
     const gitignoreContent = `/target
@@ -305,7 +305,7 @@ Cargo.lock
 `;
 
     fs.writeFileSync(path.join(rustDir, '.gitignore'), gitignoreContent);
-    log("✅ Created .gitignore", "green");
+    log(" Created .gitignore", "green");
 
     // Create README
     const readmeContent = `# Rust Bindings for SAGE Contracts
@@ -370,10 +370,10 @@ npm run generate:rust
 `;
 
     fs.writeFileSync(path.join(rustDir, 'README.md'), readmeContent);
-    log("✅ Created README.md", "green");
+    log(" Created README.md", "green");
 
     log("\n" + "=".repeat(50), "bright");
-    log("✨ Rust binding generation complete!", "green");
+    log(" Rust binding generation complete!", "green");
     log("\nGenerated files:", "yellow");
     log(`  📁 ${rustDir}/`, "cyan");
     log("  📄 src/lib.rs - Main library with contract bindings", "cyan");
@@ -382,13 +382,13 @@ npm run generate:rust
     log("  📄 build.rs - Build script", "cyan");
     log("  📄 abi/ - Contract ABI files", "cyan");
 
-    log("\n📦 To use the Rust bindings:", "yellow");
+    log("\n To use the Rust bindings:", "yellow");
     log("  cd bindings/rust", "cyan");
     log("  cargo build", "cyan");
     log("  cargo run --example client", "cyan");
 
   } catch (error) {
-    log("\n❌ Error generating Rust bindings:", "red");
+    log("\n Error generating Rust bindings:", "red");
     console.error(error);
     process.exit(1);
   }

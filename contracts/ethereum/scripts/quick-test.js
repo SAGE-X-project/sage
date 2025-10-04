@@ -26,7 +26,7 @@ async function createRegistrationSignature(signer, publicKey, contractAddress) {
 }
 
 async function main() {
-  console.log("🚀 Quick Test for SageRegistryV2");
+  console.log(" Quick Test for SageRegistryV2");
   console.log("=" .repeat(50));
   
   const [deployer] = await hre.ethers.getSigners();
@@ -37,27 +37,27 @@ async function main() {
   console.log();
   
   // Deploy contracts
-  console.log("📦 Deploying contracts...");
+  console.log(" Deploying contracts...");
   
   const SageRegistryV2 = await hre.ethers.getContractFactory("SageRegistryV2");
   const registry = await SageRegistryV2.deploy();
   await registry.waitForDeployment();
   const registryAddress = await registry.getAddress();
-  console.log("✅ Registry deployed to:", registryAddress);
+  console.log(" Registry deployed to:", registryAddress);
   
   const SageVerificationHook = await hre.ethers.getContractFactory("SageVerificationHook");
   const hook = await SageVerificationHook.deploy();
   await hook.waitForDeployment();
   const hookAddress = await hook.getAddress();
-  console.log("✅ Hook deployed to:", hookAddress);
+  console.log(" Hook deployed to:", hookAddress);
   
   // Configure hook
   await registry.setBeforeRegisterHook(hookAddress);
-  console.log("✅ Hook configured");
+  console.log(" Hook configured");
   console.log();
   
   // Test registration
-  console.log("🧪 Testing registration...");
+  console.log(" Testing registration...");
   
   const publicKey = createValidPublicKey();
   const did = `did:sage:test:${deployer.address}`;
@@ -74,22 +74,22 @@ async function main() {
   );
   
   const receipt = await tx.wait();
-  console.log("✅ Agent registered!");
+  console.log(" Agent registered!");
   console.log("   Gas used:", receipt.gasUsed.toString());
   
   // Verify registration
   const agent = await registry.getAgentByDID(did);
-  console.log("✅ Agent retrieved:");
+  console.log(" Agent retrieved:");
   console.log("   Name:", agent.name);
   console.log("   Active:", agent.active);
   
   // Test key validation
   const isValid = await registry.isKeyValid(publicKey);
-  console.log("✅ Key validation:", isValid ? "Valid" : "Invalid");
+  console.log(" Key validation:", isValid ? "Valid" : "Invalid");
   
   // Test zero key rejection
   console.log();
-  console.log("🧪 Testing security features...");
+  console.log(" Testing security features...");
   
   const zeroKey = "0x04" + "00".repeat(64);
   const zeroSig = await createRegistrationSignature(deployer, zeroKey, registryAddress);
@@ -104,36 +104,36 @@ async function main() {
       "{}",
       zeroSig
     );
-    console.log("❌ FAILED: Zero key was accepted!");
+    console.log(" FAILED: Zero key was accepted!");
   } catch (error) {
     if (error.message.includes("Invalid zero key")) {
-      console.log("✅ Zero key correctly rejected");
+      console.log(" Zero key correctly rejected");
     } else {
-      console.log("❌ Unexpected error:", error.message);
+      console.log(" Unexpected error:", error.message);
     }
   }
   
   // Test key revocation
   console.log();
-  console.log("🧪 Testing key revocation...");
+  console.log(" Testing key revocation...");
   
   await registry.revokeKey(publicKey);
-  console.log("✅ Key revoked");
+  console.log(" Key revoked");
   
   const isValidAfter = await registry.isKeyValid(publicKey);
-  console.log("✅ Key status after revocation:", isValidAfter ? "Valid" : "Invalid");
+  console.log(" Key status after revocation:", isValidAfter ? "Valid" : "Invalid");
   
   const agentAfter = await registry.getAgentByDID(did);
-  console.log("✅ Agent status after revocation:", agentAfter.active ? "Active" : "Inactive");
+  console.log(" Agent status after revocation:", agentAfter.active ? "Active" : "Inactive");
   
   console.log();
   console.log("=" .repeat(50));
-  console.log("🎉 All tests passed!");
+  console.log(" All tests passed!");
   console.log("=" .repeat(50));
   
   if (network.name !== "localhost" && network.name !== "hardhat") {
     console.log();
-    console.log("📝 Deployed contracts:");
+    console.log(" Deployed contracts:");
     console.log("   Registry:", registryAddress);
     console.log("   Hook:", hookAddress);
     console.log();

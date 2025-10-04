@@ -4,7 +4,7 @@
 - SageRegistryV2: 0xF1f53bd1dEc3f91Ffba5E66f4397aF2ec3eAF7fE  
 - SageVerificationHook: 0xDA0777245c125a7F8a733945d93bAe100F814093
 
-## ⚠️ CRITICAL: Via IR Compilation Required
+##  CRITICAL: Via IR Compilation Required
 
 The error "Cannot generate bytecode and ABI" occurs because of special compiler settings. Our contracts use **Via IR** compilation mode.
 
@@ -29,7 +29,7 @@ The error "Cannot generate bytecode and ABI" occurs because of special compiler 
 
 **🔴 CRITICAL - Advanced Compiler Settings:**
 - Click "Show Advanced Options" (if available)
-- **Via IR**: `YES` ✅ (MUST BE ENABLED!)
+- **Via IR**: `YES`  (MUST BE ENABLED!)
 - EVM Version: `paris` or `default`
 - Enable Details: `Yes`
 
@@ -56,7 +56,7 @@ Since Klaytnscope might not support Via IR properly, use Remix:
 2. Compiler: `0.8.19+commit.7dd6d404`
 3. Click "Advanced Configurations"
 4. **Enable optimization**: `200` runs
-5. **Via IR**: ✅ Check this box!
+5. **Via IR**:  Check this box!
 6. EVM Version: `paris`
 
 ### Step 3: Compile

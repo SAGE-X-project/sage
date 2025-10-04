@@ -3,9 +3,11 @@
 # Variables
 CRYPTO_BINARY=sage-crypto
 DID_BINARY=sage-did
+RANDOM_TEST_BINARY=random-test
 BUILD_DIR=build
 BIN_DIR=$(BUILD_DIR)/bin
 CMD_DIR=cmd
+REPORTS_DIR=reports
 
 # Go build variables
 GO=go
@@ -189,6 +191,69 @@ tidy:
 	@echo "Running go mod tidy..."
 	$(GO) mod tidy
 
+# Build random-test binary
+.PHONY: build-random-test
+build-random-test: $(BIN_DIR)/$(RANDOM_TEST_BINARY)
+
+$(BIN_DIR)/$(RANDOM_TEST_BINARY):
+	@echo "Building $(RANDOM_TEST_BINARY)..."
+	@mkdir -p $(BIN_DIR)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(RANDOM_TEST_BINARY) ./$(CMD_DIR)/$(RANDOM_TEST_BINARY)
+	@echo "Build complete: $(BIN_DIR)/$(RANDOM_TEST_BINARY)"
+
+# Run random tests with default settings (100 iterations)
+.PHONY: random-test
+random-test: build-random-test
+	@echo "Running random tests (100 iterations)..."
+	@mkdir -p $(REPORTS_DIR)
+	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=100 -parallel=4
+
+# Run quick random tests (10 iterations for validation)
+.PHONY: random-test-quick
+random-test-quick: build-random-test
+	@echo "Running quick random tests (10 iterations)..."
+	@mkdir -p $(REPORTS_DIR)
+	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=10 -parallel=2 -verbose
+
+# Run full random tests (1000 iterations for evaluation)
+.PHONY: random-test-full
+random-test-full: build-random-test
+	@echo "Running full random tests (1000 iterations)..."
+	@mkdir -p $(REPORTS_DIR)
+	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=1000 -parallel=10 -report=$(REPORTS_DIR)/random-test-full.html
+
+# Run evaluation random tests (10000 iterations for maximum score)
+.PHONY: random-test-eval
+random-test-eval: build-random-test
+	@echo "Running evaluation random tests (10000 iterations)..."
+	@mkdir -p $(REPORTS_DIR)
+	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=10000 -parallel=20 -report=$(REPORTS_DIR)/random-test-evaluation.html
+
+# Run random tests for specific category
+.PHONY: random-test-rfc9421
+random-test-rfc9421: build-random-test
+	@echo "Running RFC 9421 random tests..."
+	@mkdir -p $(REPORTS_DIR)
+	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=500 -categories=rfc9421 -parallel=5
+
+.PHONY: random-test-crypto
+random-test-crypto: build-random-test
+	@echo "Running crypto random tests..."
+	@mkdir -p $(REPORTS_DIR)
+	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=500 -categories=crypto -parallel=5
+
+.PHONY: random-test-did
+random-test-did: build-random-test
+	@echo "Running DID random tests..."
+	@mkdir -p $(REPORTS_DIR)
+	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=500 -categories=did -parallel=5
+
+# Clean test reports
+.PHONY: clean-reports
+clean-reports:
+	@echo "Cleaning test reports..."
+	rm -rf $(REPORTS_DIR)
+
 # Help
 .PHONY: help
 help:
@@ -219,6 +284,15 @@ help:
 	@echo "Benchmark targets:"
 	@echo "  make bench            - Run all benchmarks"
 	@echo "  make bench-integration - Run integration benchmarks"
+	@echo ""
+	@echo "Random Test targets:"
+	@echo "  make random-test       - Run random tests (100 iterations)"
+	@echo "  make random-test-quick - Run quick validation (10 iterations)"
+	@echo "  make random-test-full  - Run full tests (1000 iterations)"
+	@echo "  make random-test-eval  - Run evaluation tests (10000 iterations)"
+	@echo "  make random-test-rfc9421 - Test RFC 9421 only"
+	@echo "  make random-test-crypto  - Test crypto only"
+	@echo "  make random-test-did     - Test DID only"
 	@echo ""
 	@echo "Utility targets:"
 	@echo "  make clean         - Remove build artifacts"

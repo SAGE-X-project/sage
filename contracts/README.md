@@ -16,15 +16,15 @@ The SAGE contracts provide a decentralized registry for AI agents with enhanced 
 - **Multi-chain Support**: Implementations for both Ethereum and Solana
 
 ### V2 Enhancements (Ethereum)
-- ✅ **5-Step Public Key Validation**
+-  **5-Step Public Key Validation**
   - Length validation (33, 64, or 65 bytes)
   - Format validation (0x04 for uncompressed, 0x02/0x03 for compressed)
   - Zero-key prevention
   - Ownership proof via signature challenge
   - Revocation status check
-- ✅ **Key Revocation System**: Revoke compromised keys and auto-deactivate affected agents
-- ✅ **Improved Gas Efficiency**: Optimized storage and validation logic
-- ✅ **Enhanced Security**: Prevention of key reuse attacks and zero-key exploits
+-  **Key Revocation System**: Revoke compromised keys and auto-deactivate affected agents
+-  **Improved Gas Efficiency**: Optimized storage and validation logic
+-  **Enhanced Security**: Prevention of key reuse attacks and zero-key exploits
 
 ## Architecture
 
@@ -296,12 +296,12 @@ npx hardhat coverage
 ```
 
 #### Test Coverage
-- ✅ V2 Public Key Validation (5-step process)
-- ✅ Key Revocation & Auto-deactivation
-- ✅ Hook Integration (DID validation, rate limiting)
-- ✅ Signature Verification (challenge-response)
-- ✅ Access Control & Ownership
-- ✅ Gas Usage Optimization
+-  V2 Public Key Validation (5-step process)
+-  Key Revocation & Auto-deactivation
+-  Hook Integration (DID validation, rate limiting)
+-  Signature Verification (challenge-response)
+-  Access Control & Ownership
+-  Gas Usage Optimization
 
 ### Solana
 ```bash

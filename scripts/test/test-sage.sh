@@ -19,15 +19,15 @@ print_step() {
 }
 
 print_success() {
-    echo -e "${GREEN}✅ $1${NC}"
+    echo -e "${GREEN} $1${NC}"
 }
 
 print_error() {
-    echo -e "${RED}❌ $1${NC}"
+    echo -e "${RED} $1${NC}"
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
+    echo -e "${YELLOW}  $1${NC}"
 }
 
 # PID storage
@@ -293,13 +293,13 @@ echo "  - Hook: $HOOK_ADDR"
 echo ""
 
 # Next steps guide
-echo "💡 Next Steps:"
+echo " Next Steps:"
 echo "  1. Frontend test: cd ../../../sage-fe && npm run dev"
 echo "  2. Copy environment variables: cp ../../contracts/ethereum/deployments/localhost.env ../../../.env"
 echo "  3. Check logs: tail -f ../../contracts/ethereum/hardhat.log"
 echo ""
 
-echo "📝 Log Files:"
+echo " Log Files:"
 echo "  - Hardhat: ../../contracts/ethereum/hardhat.log"
 echo "  - Deployment: ../../contracts/ethereum/deploy.log"
 echo "  - Tests: ../../contracts/ethereum/test-results.log"

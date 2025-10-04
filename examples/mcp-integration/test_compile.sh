@@ -51,4 +51,4 @@ cd vulnerable-vs-secure/attacker
 go build -o /dev/null .
 cd ../..
 
-echo "✅ All examples compile successfully!"
+echo " All examples compile successfully!"
