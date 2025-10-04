@@ -105,6 +105,11 @@ test-integration-only:
 	@echo "Running integration tests (environment should be ready)..."
 	$(GO) test -v ./tests/integration/... -tags=integration -count=1
 
+.PHONY: test-handshake
+test-handshake:
+	@echo "Running handshake scenario..."
+	@bash ./tests/handshake/run_handshake.sh
+
 # Start local blockchain for testing
 .PHONY: blockchain-start
 blockchain-start:
