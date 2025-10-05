@@ -31,7 +31,7 @@ import (
 )
 
 const base = "http://127.0.0.1:8080"
-const verbose = false
+const verbose = true
 
 func vprintf(format string, args ...any) {
 	if verbose {
@@ -110,9 +110,9 @@ func main() {
 	vprintf("protected#1 status=%d decrypted=%s\n", resp.StatusCode, string(serverPlain))
 
 	// Invalid: empty body
-	reqEmpty, _ := http.NewRequest("POST", base+"/protected", bytes.NewReader([]byte("again")))
+	reqEmpty, _ := http.NewRequest("POST", base+"/protected", bytes.NewReader([]byte("")))
 	reqEmpty.Header = req.Header.Clone()
-	digestEmpty := sha256.Sum256([]byte("again"))
+	digestEmpty := sha256.Sum256([]byte(""))
 	reqEmpty.Header.Set("Content-Digest", fmt.Sprintf("sha-256=:%s:", base64.StdEncoding.EncodeToString(digestEmpty[:])))
 	dump, _ = httputil.DumpRequestOut(reqEmpty, true)
 	log.Println("2) invalid packet(empty body)")

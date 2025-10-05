@@ -1,6 +1,8 @@
 package handshake
 
-import "time"
+import (
+	"time"
+)
 
 // HasPeer reports whether the peer cache contains the provided context identifier.
 func HasPeer(s *Server, ctxID string) bool {

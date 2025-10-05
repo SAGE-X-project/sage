@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package handshake
 
 import (
@@ -37,6 +36,7 @@ import (
 	"github.com/sage-x-project/sage/crypto/keys"
 	"github.com/sage-x-project/sage/did"
 	"github.com/sage-x-project/sage/session"
+	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -64,6 +64,7 @@ type Server struct {
 	// Pasrse JWT and get DID field
 	resolver did.Resolver
 	mu       sync.Mutex
+	sf singleflight.Group
 	// pending holds per-context ephemeral handshake state created at Request phase.
 	pending map[string]pendingState
 
@@ -162,21 +163,33 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		senderDID := in.Metadata.GetFields()["did"].GetStringValue()
 
 		var senderPub crypto.PublicKey
-		if s.resolver != nil {
-			var err error
-			senderPub, err = s.resolver.ResolvePublicKey(ctx, did.AgentDID(senderDID))
-			if err != nil || senderPub == nil {
+		if cache, ok := s.getPeer(msg.ContextId); ok && cache.did == senderDID && time.Now().Before(cache.expires) {
+			senderPub = cache.pub
+		} else {
+			if s.resolver == nil {
+				return nil, errors.New("cannot resolve sender pubkey: resolver not set")
+			}
+			v, err, _ := s.sf.Do("resolve:"+senderDID, func() (any, error) {
+				return s.resolver.ResolvePublicKey(ctx, did.AgentDID(senderDID))
+			})
+			if err != nil || v == nil {
 				return nil, errors.New("cannot resolve sender pubkey")
+			}
+			var okType bool
+			senderPub, okType = v.(crypto.PublicKey)
+			if !okType {
+				return nil, fmt.Errorf("resolver returned unexpected key type: %T", v)
 			}
 		}
 
 		// Verify sender signature if metadata is present.
-		if in.Metadata != nil {
-			if err := s.verifySenderSignature(msg, in.Metadata, senderPub); err != nil {
-				return nil, fmt.Errorf("signature verification failed: %w", err)
-			}
+		if err := s.verifySenderSignature(msg, in.Metadata, senderPub); err != nil {
+			return nil, fmt.Errorf("signature verification failed: %w", err)
 		}
-		s.savePeer(msg.ContextId, senderPub, senderDID)
+
+		if _, ok := s.getPeer(msg.ContextId); !ok {
+			s.savePeer(msg.ContextId, senderPub, senderDID)
+		}
 
 		var inv InvitationMessage
 		if err := fromStructPB(payload, &inv); err != nil {
@@ -208,7 +221,7 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		}
 
 		if len(req.EphemeralPubKey) == 0 {
-			return nil, fmt.Errorf("empty peer ephemeral: %w", err)
+			return nil, fmt.Errorf("empty peer ephemeral public key")
 		}
 
 		exported, err := s.importer.ImportPublic([]byte(req.EphemeralPubKey), sagecrypto.KeyFormatJWK)
