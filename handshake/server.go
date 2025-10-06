@@ -180,15 +180,13 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 			if !okType {
 				return nil, fmt.Errorf("resolver returned unexpected key type: %T", v)
 			}
+			// Cache the resolved public key for future requests
+			s.savePeer(msg.ContextId, senderPub, senderDID)
 		}
 
 		// Verify sender signature if metadata is present.
 		if err := s.verifySenderSignature(msg, in.Metadata, senderPub); err != nil {
 			return nil, fmt.Errorf("signature verification failed: %w", err)
-		}
-
-		if _, ok := s.getPeer(msg.ContextId); !ok {
-			s.savePeer(msg.ContextId, senderPub, senderDID)
 		}
 
 		var inv InvitationMessage

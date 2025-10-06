@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -40,9 +41,9 @@ import (
 	"github.com/sage-x-project/sage/handshake"
 	sessioninit "github.com/sage-x-project/sage/internal"
 	"github.com/sage-x-project/sage/session"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"github.com/test-go/testify/assert"
-	"github.com/test-go/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/resolver"
@@ -423,7 +424,10 @@ func TestInvitation_ResolverSingleflight(t *testing.T) {
 			IsActive:  true,
 			PublicKey: aliceKeyPair.PublicKey(),
 		}
-		ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
+		var callCount atomic.Int32
+		ethResolver.On("Resolve", mock.Anything, aliceDID).Run(func(args mock.Arguments) {
+			callCount.Add(1)
+		}).Return(aliceMeta, nil)
 
 		invMsg := &handshake.InvitationMessage{
 			BaseMessage: message.BaseMessage{ContextID: contextId},
@@ -448,7 +452,8 @@ func TestInvitation_ResolverSingleflight(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		require.True(t, handshake.HasPeer(hs, contextId), "peer should be cached after invitation(s)") 
+		require.True(t, handshake.HasPeer(hs, contextId), "peer should be cached after invitation(s)")
+		require.Equal(t, int32(1), callCount.Load(), "resolver should be called exactly once despite 10 concurrent invitations") 
 	})
 
 	t.Run("avoids second resolve", func(t *testing.T) {
@@ -476,7 +481,7 @@ func TestInvitation_ResolverSingleflight(t *testing.T) {
 		ethResolver.AssertExpectations(t)
 	})
 
-	t.Run("avoids second resolve", func(t *testing.T) {
+	t.Run("full handshake uses cached peer", func(t *testing.T) {
 		ctx := context.Background()
     	contextId := "ctx-" + uuid.NewString()
 
