@@ -33,11 +33,13 @@ contract SageRegistryV2 is ISageRegistry, Ownable2Step {
     mapping(bytes32 => AgentMetadata) private agents;
     mapping(string => bytes32) private didToAgentId;
     mapping(address => bytes32[]) private ownerToAgents;
-    mapping(bytes32 => uint256) private agentNonce;
+    mapping(address => uint256) private registrationNonce; // User-specific nonce for agent ID generation
+    mapping(bytes32 => uint256) private agentNonce; // Agent-specific nonce for updates
     
     // Enhanced key validation
     mapping(bytes32 => KeyValidation) private keyValidations;
     mapping(address => bytes32) private addressToKeyHash;
+    mapping(bytes32 => bytes32[]) private keyHashToAgentIds; // keyHash => agentIds
 
     address public beforeRegisterHook;
     address public afterRegisterHook;
@@ -201,17 +203,16 @@ contract SageRegistryV2 is ISageRegistry, Ownable2Step {
         bytes32 keyHash = keccak256(publicKey);
         require(addressToKeyHash[msg.sender] == keyHash, "Not key owner");
         require(!keyValidations[keyHash].isRevoked, "Already revoked");
-        
+
         keyValidations[keyHash].isRevoked = true;
-        
-        // Deactivate all agents using this key
-        bytes32[] memory agentIds = ownerToAgents[msg.sender];
+
+        // Deactivate all agents using this key - O(n) where n is agents with this key
+        // (not all agents of owner)
+        bytes32[] memory agentIds = keyHashToAgentIds[keyHash];
         for (uint i = 0; i < agentIds.length; i++) {
-            if (keccak256(agents[agentIds[i]].publicKey) == keyHash) {
-                agents[agentIds[i]].active = false;
-            }
+            agents[agentIds[i]].active = false;
         }
-        
+
         emit KeyRevoked(keyHash, msg.sender);
     }
     
@@ -302,12 +303,22 @@ contract SageRegistryV2 is ISageRegistry, Ownable2Step {
     
     /**
      * @notice Internal function to generate agent ID
+     * @dev Uses block.number instead of block.timestamp to prevent miner manipulation
      */
     function _generateAgentId(
         string memory did,
         bytes memory publicKey
-    ) private view returns (bytes32) {
-        return keccak256(abi.encodePacked(did, publicKey, block.timestamp));
+    ) private returns (bytes32) {
+        uint256 nonce = registrationNonce[msg.sender];
+        registrationNonce[msg.sender]++;
+
+        return keccak256(abi.encodePacked(
+            did,
+            publicKey,
+            msg.sender,
+            block.number,
+            nonce
+        ));
     }
     
     /**
@@ -365,7 +376,11 @@ contract SageRegistryV2 is ISageRegistry, Ownable2Step {
         didToAgentId[params.did] = agentId;
         ownerToAgents[msg.sender].push(agentId);
         agentNonce[agentId]++;
-        
+
+        // Track agent by key hash for O(1) revocation
+        bytes32 keyHash = keccak256(params.publicKey);
+        keyHashToAgentIds[keyHash].push(agentId);
+
         emit AgentRegistered(agentId, msg.sender, params.did, block.timestamp);
     }
     

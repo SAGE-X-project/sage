@@ -64,6 +64,10 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     uint256 public minValidatorsRequired = 1;
     uint256 public consensusThreshold = 66; // 66% agreement required
 
+    // Precision constants to prevent rounding errors
+    uint256 private constant PRECISION_MULTIPLIER = 1e18;
+    uint256 private constant PERCENTAGE_BASE = 100;
+
     // Trusted TEE keys (for production, use a more sophisticated verification system)
     mapping(bytes32 => bool) private trustedTEEKeys;
 
@@ -432,6 +436,8 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
 
         require(honestValidatorCount > 0, "No honest validators");
         uint256 rewardPerValidator = totalReward / honestValidatorCount;
+        uint256 rewardRemainder = totalReward - (rewardPerValidator * honestValidatorCount);
+        bool remainderDistributed = false;
 
         // Distribute rewards and slash dishonest validators
         for (uint256 i = 0; i < responses.length; i++) {
@@ -439,29 +445,43 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
 
             if (response.success == expectedSuccess) {
                 // Honest validator - reward
+                uint256 reward = rewardPerValidator;
+
+                // Add remainder to first honest validator to avoid precision loss
+                if (!remainderDistributed && rewardRemainder > 0) {
+                    reward += rewardRemainder;
+                    remainderDistributed = true;
+                }
+
                 if (response.validatorStake > 0) {
-                    uint256 totalPayout = response.validatorStake + rewardPerValidator;
+                    uint256 totalPayout = response.validatorStake + reward;
                     validatorStakes[response.validator] -= response.validatorStake;
                     pendingWithdrawals[response.validator] += totalPayout;
 
                     validatorStats[response.validator].successfulValidations++;
-                    validatorStats[response.validator].totalRewards += rewardPerValidator;
+                    validatorStats[response.validator].totalRewards += reward;
 
-                    emit ValidatorRewarded(response.validator, requestId, rewardPerValidator);
+                    emit ValidatorRewarded(response.validator, requestId, reward);
                 } else {
                     // TEE validator - small reward
-                    pendingWithdrawals[response.validator] += rewardPerValidator;
-                    validatorStats[response.validator].totalRewards += rewardPerValidator;
-                    emit ValidatorRewarded(response.validator, requestId, rewardPerValidator);
+                    pendingWithdrawals[response.validator] += reward;
+                    validatorStats[response.validator].totalRewards += reward;
+                    emit ValidatorRewarded(response.validator, requestId, reward);
                 }
             } else {
                 // Dishonest validator - slash
                 if (response.validatorStake > 0) {
-                    uint256 slashAmount = (response.validatorStake * slashingPercentage) / 100;
+                    uint256 slashAmount = (response.validatorStake * slashingPercentage) / PERCENTAGE_BASE;
+                    uint256 slashRemainder = response.validatorStake - slashAmount;
                     validatorStakes[response.validator] -= response.validatorStake;
 
                     // Add slashed amount to requester's pending withdrawals
                     pendingWithdrawals[request.requester] += slashAmount;
+
+                    // Return remainder (if slashing < 100%) to validator
+                    if (slashRemainder > 0) {
+                        pendingWithdrawals[response.validator] += slashRemainder;
+                    }
 
                     validatorStats[response.validator].failedValidations++;
                     validatorStats[response.validator].totalSlashed += slashAmount;
@@ -571,9 +591,60 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     }
 
     /**
+     * @notice Finalize an expired validation request
+     * @dev Can be called by anyone after deadline passes
+     *      Returns all stakes to participants via pull payment pattern
+     * @param requestId The validation request ID
+     */
+    function finalizeExpiredValidation(bytes32 requestId) external nonReentrant {
+        ValidationRequest storage request = validationRequests[requestId];
+
+        require(request.status == ValidationStatus.PENDING, "Not pending");
+        require(block.timestamp > request.deadline, "Not expired");
+        require(!validationComplete[requestId], "Already finalized");
+
+        // Mark as expired
+        request.status = ValidationStatus.EXPIRED;
+        validationComplete[requestId] = true;
+
+        // Return requester's stake
+        pendingWithdrawals[request.requester] += request.stake;
+
+        // Return validator stakes
+        ValidationResponse[] storage responses = validationResponses[requestId];
+        for (uint256 i = 0; i < responses.length; i++) {
+            if (responses[i].validatorStake > 0) {
+                validatorStakes[responses[i].validator] -= responses[i].validatorStake;
+                pendingWithdrawals[responses[i].validator] += responses[i].validatorStake;
+            }
+        }
+
+        emit ValidationExpired(requestId, responses.length, request.stake);
+    }
+
+    /**
+     * @notice Get expired validations that need finalization
+     * @dev View function to help off-chain systems identify expired validations
+     * @return count Number of expired validations found (limited to first 100)
+     */
+    function getExpiredValidationsCount() external view returns (uint256 count) {
+        // Note: This is a helper function. In production, use events/indexing
+        // for better performance. Limited iteration to prevent gas issues.
+        return 0; // Placeholder - implement with proper indexing in production
+    }
+
+    /**
      * @notice Withdrawal processed event
      * @param account Address that withdrew funds
      * @param amount Amount withdrawn
      */
     event WithdrawalProcessed(address indexed account, uint256 amount);
+
+    /**
+     * @notice Validation expired event
+     * @param requestId The validation request ID
+     * @param responseCount Number of responses received
+     * @param stakeReturned Amount of stake returned to requester
+     */
+    event ValidationExpired(bytes32 indexed requestId, uint256 responseCount, uint256 stakeReturned);
 }
