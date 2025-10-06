@@ -3,13 +3,14 @@ pragma solidity ^0.8.19;
 
 import "./interfaces/ISageRegistry.sol";
 import "./interfaces/IRegistryHook.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title SageRegistryV2
  * @notice Improved SAGE AI Agent Registry with Enhanced Public Key Validation
  * @dev Implements practical public key validation using signature-based ownership proof
  */
-contract SageRegistryV2 is ISageRegistry {
+contract SageRegistryV2 is ISageRegistry, Ownable2Step {
     // Registration parameters struct to avoid stack too deep errors
     struct RegistrationParams {
         string did;
@@ -37,8 +38,7 @@ contract SageRegistryV2 is ISageRegistry {
     // Enhanced key validation
     mapping(bytes32 => KeyValidation) private keyValidations;
     mapping(address => bytes32) private addressToKeyHash;
-    
-    address public owner;
+
     address public beforeRegisterHook;
     address public afterRegisterHook;
     
@@ -51,20 +51,15 @@ contract SageRegistryV2 is ISageRegistry {
     event KeyValidated(bytes32 indexed keyHash, address indexed owner);
     event KeyRevoked(bytes32 indexed keyHash, address indexed owner);
     event HookFailed(address indexed hook, string reason);
-    
+
     // Modifiers
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner");
-        _;
-    }
-    
     modifier onlyAgentOwner(bytes32 agentId) {
         require(agents[agentId].owner == msg.sender, "Not agent owner");
         _;
     }
-    
+
     constructor() {
-        owner = msg.sender;
+        _transferOwnership(msg.sender);
     }
     
     /**

@@ -5,6 +5,7 @@ import "./interfaces/IERC8004ValidationRegistry.sol";
 import "./interfaces/IERC8004IdentityRegistry.sol";
 import "./interfaces/IERC8004ReputationRegistry.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title ERC8004ValidationRegistry
@@ -23,12 +24,12 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
  * - Validator rewards and slashing mechanism
  * - Integration with Reputation Registry for feedback verification
  * - Reentrancy protection on all payable functions
+ * - Two-step ownership transfer for security
  */
-contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuard {
+contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuard, Ownable2Step {
     // State variables
     IERC8004IdentityRegistry public identityRegistry;
     IERC8004ReputationRegistry public reputationRegistry;
-    address public owner;
 
     // Validation storage
     mapping(bytes32 => ValidationRequest) private validationRequests;
@@ -66,18 +67,13 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     // Trusted TEE keys (for production, use a more sophisticated verification system)
     mapping(bytes32 => bool) private trustedTEEKeys;
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner");
-        _;
-    }
-
     constructor(address _identityRegistry, address _reputationRegistry) {
         require(_identityRegistry != address(0), "Invalid identity registry");
         require(_reputationRegistry != address(0), "Invalid reputation registry");
 
         identityRegistry = IERC8004IdentityRegistry(_identityRegistry);
         reputationRegistry = IERC8004ReputationRegistry(_reputationRegistry);
-        owner = msg.sender;
+        _transferOwnership(msg.sender);
     }
 
     /**
