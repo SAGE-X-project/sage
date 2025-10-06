@@ -39,6 +39,9 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     mapping(address => uint256) private validatorStakes;
     mapping(address => ValidatorStats) private validatorStats;
 
+    // Pull payment pattern - pending withdrawals
+    mapping(address => uint256) public pendingWithdrawals;
+
     // Response tracking
     mapping(bytes32 => mapping(address => bool)) private hasValidatorResponded;
     uint256 private requestCounter;
@@ -408,14 +411,15 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
 
         if (finalStatus == ValidationStatus.DISPUTED) {
             // In disputed cases, return stakes without rewards/slashing
+            // Update pending withdrawals instead of direct transfer
             for (uint256 i = 0; i < responses.length; i++) {
                 if (responses[i].validatorStake > 0) {
                     validatorStakes[responses[i].validator] -= responses[i].validatorStake;
-                    payable(responses[i].validator).transfer(responses[i].validatorStake);
+                    pendingWithdrawals[responses[i].validator] += responses[i].validatorStake;
                 }
             }
             // Return requester stake
-            payable(request.requester).transfer(request.stake);
+            pendingWithdrawals[request.requester] += request.stake;
             return;
         }
 
@@ -442,7 +446,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
                 if (response.validatorStake > 0) {
                     uint256 totalPayout = response.validatorStake + rewardPerValidator;
                     validatorStakes[response.validator] -= response.validatorStake;
-                    payable(response.validator).transfer(totalPayout);
+                    pendingWithdrawals[response.validator] += totalPayout;
 
                     validatorStats[response.validator].successfulValidations++;
                     validatorStats[response.validator].totalRewards += rewardPerValidator;
@@ -450,7 +454,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
                     emit ValidatorRewarded(response.validator, requestId, rewardPerValidator);
                 } else {
                     // TEE validator - small reward
-                    payable(response.validator).transfer(rewardPerValidator);
+                    pendingWithdrawals[response.validator] += rewardPerValidator;
                     validatorStats[response.validator].totalRewards += rewardPerValidator;
                     emit ValidatorRewarded(response.validator, requestId, rewardPerValidator);
                 }
@@ -460,8 +464,8 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
                     uint256 slashAmount = (response.validatorStake * slashingPercentage) / 100;
                     validatorStakes[response.validator] -= response.validatorStake;
 
-                    // Transfer slashed amount to requester as compensation
-                    payable(request.requester).transfer(slashAmount);
+                    // Add slashed amount to requester's pending withdrawals
+                    pendingWithdrawals[request.requester] += slashAmount;
 
                     validatorStats[response.validator].failedValidations++;
                     validatorStats[response.validator].totalSlashed += slashAmount;
@@ -474,7 +478,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         // Return remaining stake to requester
         uint256 remainingStake = request.stake - totalReward;
         if (remainingStake > 0) {
-            payable(request.requester).transfer(remainingStake);
+            pendingWithdrawals[request.requester] += remainingStake;
         }
     }
 
@@ -539,4 +543,41 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         require(_minValidators > 0, "Invalid minimum");
         minValidatorsRequired = _minValidators;
     }
+
+    /**
+     * @notice Withdraw pending funds (pull payment pattern)
+     * @dev Implements pull payment to prevent reentrancy attacks
+     *      Users must call this to withdraw their rewards/refunds
+     * @return amount The amount withdrawn
+     */
+    function withdraw() external nonReentrant returns (uint256 amount) {
+        amount = pendingWithdrawals[msg.sender];
+        require(amount > 0, "No funds to withdraw");
+
+        // Update state before transfer (checks-effects-interactions)
+        pendingWithdrawals[msg.sender] = 0;
+
+        // Transfer funds
+        (bool success, ) = msg.sender.call{value: amount}("");
+        require(success, "Transfer failed");
+
+        emit WithdrawalProcessed(msg.sender, amount);
+        return amount;
+    }
+
+    /**
+     * @notice Get withdrawable amount for an address
+     * @param account The address to check
+     * @return amount The withdrawable amount
+     */
+    function getWithdrawableAmount(address account) external view returns (uint256) {
+        return pendingWithdrawals[account];
+    }
+
+    /**
+     * @notice Withdrawal processed event
+     * @param account Address that withdrew funds
+     * @param amount Amount withdrawn
+     */
+    event WithdrawalProcessed(address indexed account, uint256 amount);
 }
