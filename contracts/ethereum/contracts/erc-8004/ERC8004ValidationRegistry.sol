@@ -4,6 +4,7 @@ pragma solidity ^0.8.19;
 import "./interfaces/IERC8004ValidationRegistry.sol";
 import "./interfaces/IERC8004IdentityRegistry.sol";
 import "./interfaces/IERC8004ReputationRegistry.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
  * @title ERC8004ValidationRegistry
@@ -21,8 +22,9 @@ import "./interfaces/IERC8004ReputationRegistry.sol";
  * - TEE attestation support for cryptographic verification
  * - Validator rewards and slashing mechanism
  * - Integration with Reputation Registry for feedback verification
+ * - Reentrancy protection on all payable functions
  */
-contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
+contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuard {
     // State variables
     IERC8004IdentityRegistry public identityRegistry;
     IERC8004ReputationRegistry public reputationRegistry;
@@ -91,7 +93,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         bytes32 dataHash,
         ValidationType validationType,
         uint256 deadline
-    ) external payable override returns (bytes32 requestId) {
+    ) external payable override nonReentrant returns (bytes32 requestId) {
         require(taskId != bytes32(0), "Invalid task ID");
         require(serverAgent != address(0), "Invalid server agent");
         require(dataHash != bytes32(0), "Invalid data hash");
@@ -157,7 +159,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
     function submitStakeValidation(
         bytes32 requestId,
         bytes32 computedHash
-    ) external payable override returns (bool success) {
+    ) external payable override nonReentrant returns (bool success) {
         ValidationRequest storage request = validationRequests[requestId];
         require(request.timestamp > 0, "Request not found");
         require(request.status == ValidationStatus.PENDING, "Request not pending");
@@ -229,7 +231,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         bytes32 requestId,
         bytes calldata attestation,
         bytes calldata proof
-    ) external override returns (bool success) {
+    ) external override nonReentrant returns (bool success) {
         ValidationRequest storage request = validationRequests[requestId];
         require(request.timestamp > 0, "Request not found");
         require(request.status == ValidationStatus.PENDING, "Request not pending");
