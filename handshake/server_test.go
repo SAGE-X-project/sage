@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package handshake_test
 
 import (
@@ -24,7 +23,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	a2a "github.com/a2aproject/a2a/grpc"
 	"github.com/google/uuid"
@@ -39,9 +41,9 @@ import (
 	"github.com/sage-x-project/sage/handshake"
 	sessioninit "github.com/sage-x-project/sage/internal"
 	"github.com/sage-x-project/sage/session"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"github.com/test-go/testify/assert"
-	"github.com/test-go/testify/mock"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/resolver"
@@ -136,32 +138,27 @@ func dialBuf(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn {
 	return conn
 }
 
-func setupTest(t *testing.T) (*handshake.Client, *handshake.Server, chan *a2a.SendMessageRequest, sagecrypto.KeyPair, sagecrypto.KeyPair, *session.Manager, *mockResolver ) {
+
+func setupTest(t *testing.T, cleanupInterval time.Duration) (*handshake.Client, *handshake.Server, sagecrypto.KeyPair, sagecrypto.KeyPair, *session.Manager, *mockResolver) {
 	aliceKeyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 	bobKeyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
-	// Outbound capture channel (server pushes Response here)
-	outboundCh := make(chan *a2a.SendMessageRequest, 8)
-	outboundMock := &mockOutboundClient{ch: outboundCh}
-
 	// Events (upper-layer) – no-op for this test
 	srvSessManager := session.NewManager()
 	events := sessioninit.NewCreator(srvSessManager)
-	
-
-	// Resolver returns the sender's pubkey (Alice's)
-	// resolve := func(ctx context.Context, msg *a2a.Message, meta *structpb.Struct) (crypto.PublicKey, error) {
-	// 	return aliceKeyPair.PublicKey(), nil
-	// }
 
 	ethResolver := new(mockResolver)
 	multiResolver := sagedid.NewMultiChainResolver()
 	multiResolver.AddResolver(sagedid.ChainEthereum, ethResolver)
-	
+
 	// Pass nil to use default session config (1h, 10m, 10k msgs)
-	hs := handshake.NewServer(bobKeyPair, events, outboundMock, multiResolver, nil)
+	hs := handshake.NewServer(bobKeyPair, events, multiResolver, nil, cleanupInterval)
+	t.Cleanup(func() {
+		handshake.StopCleanupLoop(hs)
+		ethResolver.AssertExpectations(t)
+	})
 
 	// Start SUT gRPC server
 	_, lis := startSUT(t, hs)
@@ -170,11 +167,11 @@ func setupTest(t *testing.T) (*handshake.Client, *handshake.Server, chan *a2a.Se
 	conn := dialBuf(t, lis)
 	alice := handshake.NewClient(conn, aliceKeyPair)
 
-	return alice, hs, outboundCh, aliceKeyPair, bobKeyPair, srvSessManager, ethResolver
+	return alice, hs, aliceKeyPair, bobKeyPair, srvSessManager, ethResolver
 }
 
 func TestHandshake(t *testing.T) {
-	alice, _, outboundCh, aliceKeyPair, bobKeyPair, srvSessManager, ethResolver := setupTest(t)
+	alice, _, aliceKeyPair, bobKeyPair, srvSessManager, ethResolver := setupTest(t, 0)
 
 	ctx := context.Background()
 	contextId := "ctx-" + uuid.NewString()
@@ -184,144 +181,344 @@ func TestHandshake(t *testing.T) {
 	aliceEphemeralKeyPair, err := keys.GenerateX25519KeyPair()
 	require.NoError(t, err)
 
-	// alice's session key 
+	// alice's session key
 	alicePubKeyJWK, err := exporter.ExportPublic(aliceEphemeralKeyPair, sagecrypto.KeyFormatJWK)
 	require.NoError(t, err)
 	require.NotEmpty(t, alicePubKeyJWK)
-	
+
 	var sessionID string
-	t.Run("Alice → Bob: Invitation", func(t *testing.T) {
-		aliceDID := did.AgentDID("did:sage:ethereum:agent001")
+	// Alice → Bob: Invitation
+	aliceDID := did.AgentDID("did:sage:ethereum:agent001")
+	aliceMeta := &did.AgentMetadata{
+		DID:       aliceDID,
+		Name:      "Active Agent",
+		IsActive:  true,
+		PublicKey: aliceKeyPair.PublicKey(),
+	}
+	
+	// blockchain call once
+	ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
+	invMsg := &handshake.InvitationMessage{
+		BaseMessage: message.BaseMessage{
+			ContextID: contextId,
+		},
+	}
+
+	// Client sends Invitation to server (SUT)
+	resp, err := alice.Invitation(ctx, *invMsg, string(aliceMeta.DID))
+	require.NoError(t, err)
+
+	// Server ack payload checks
+	payload := resp.GetTask()
+	require.NotNil(t, payload)
+	assert.Equal(t, contextId, payload.GetContextId())
+	assert.NotEmpty(t, payload.GetId())
+
+	// Alice → Bob: Request
+	reqMsg := &handshake.RequestMessage{
+		BaseMessage: message.BaseMessage{
+			ContextID: contextId,
+		},
+		EphemeralPubKey: json.RawMessage(alicePubKeyJWK),
+	}
+	resp, err = alice.Request(ctx, *reqMsg, bobKeyPair.PublicKey(), string(aliceMeta.DID))
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	msg := resp.GetMsg()
+	require.NotNil(t, msg)
+
+	assert.Equal(t, handshake.GenerateTaskID(handshake.Response), msg.GetTaskId())
+
+	// Decrypt Response envelope (b64) with Alice private key
+	parts := msg.GetContent()
+	require.GreaterOrEqual(t, len(parts), 1)
+	dp := parts[0].GetData()
+	require.NotNil(t, dp)
+	sb := dp.GetData()
+	require.NotNil(t, sb)
+
+	b64 := sb.Fields["b64"].GetStringValue()
+	packet, err := base64.RawURLEncoding.DecodeString(b64)
+	require.NoError(t, err)
+
+	decBytes, err := keys.DecryptWithEd25519Peer(aliceKeyPair.PrivateKey(), packet)
+	require.NoError(t, err)
+
+	var res handshake.ResponseMessage
+	require.NoError(t, fromBytes(decBytes, &res))
+	assert.True(t, res.Ack)
+	require.NotNil(t, res.EphemeralPubKey)
+
+	exported, _ := importer.ImportPublic([]byte(res.EphemeralPubKey), sagecrypto.KeyFormatJWK)
+	peerEph, _ := exported.(*ecdh.PublicKey)
+
+	// Initiator (Alice) derives shared secret using its X25519 private and peer (server) ephemeral pub from Response
+	s2, err := aliceEphemeralKeyPair.(*keys.X25519KeyPair).DeriveSharedSecret(peerEph.Bytes())
+	require.NoError(t, err)
+	require.NotEmpty(t, s2)
+	aliceRaw := aliceEphemeralKeyPair.(*keys.X25519KeyPair).PublicBytesKey()
+	_, sid, ok, err := session.NewManager().EnsureSessionWithParams(
+		session.Params{
+			ContextID:    contextId,
+			SelfEph:      aliceRaw,
+			PeerEph:      peerEph.Bytes(),
+			Label:        "a2a/handshake v1",
+			SharedSecret: s2,
+		}, nil)
+	require.NoError(t, err)
+	assert.False(t, ok)
+	sessionID = sid
+
+	// Alice → Bob: Complete
+	comMsg := &handshake.CompleteMessage{
+		BaseMessage: message.BaseMessage{
+			ContextID: contextId,
+		},
+		}
+	// Client calls Complete RPC (server will ack)
+	resp, err = alice.Complete(ctx, *comMsg, string(aliceMeta.DID))
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	msg = resp.GetMsg()
+	require.NotNil(t, msg)
+
+	assert.Equal(t, handshake.GenerateTaskID(handshake.Response), msg.GetTaskId())
+
+	// Decrypt Response envelope (b64) with Alice private key
+	parts = msg.GetContent()
+	require.GreaterOrEqual(t, len(parts), 1)
+	dp = parts[0].GetData()
+	require.NotNil(t, dp)
+	sb = dp.GetData()
+	require.NotNil(t, sb)
+
+	b64 = sb.Fields["b64"].GetStringValue()
+	packet, err = base64.RawURLEncoding.DecodeString(b64)
+	require.NoError(t, err)
+
+	decBytes, err = keys.DecryptWithEd25519Peer(aliceKeyPair.PrivateKey(), packet)
+	require.NoError(t, err)
+
+	require.NoError(t, fromBytes(decBytes, &res))
+	assert.True(t, res.Ack)
+
+	session, ok := srvSessManager.GetByKeyID(res.KeyID)
+	assert.True(t, ok)
+
+	// If the shared secret is the same, the session ID will also be the same.
+	assert.Equal(t, sessionID, session.GetID(), "shared secrets should match across phases")
+
+}
+
+func TestHandshake_cache(t *testing.T) {
+	alice, hs, aliceKeyPair, bobKeyPair, _, ethResolver := setupTest(t, 10*time.Millisecond)
+
+	ctx := context.Background()
+	exporter := formats.NewJWKExporter()
+	aliceEphemeralKeyPair, err := keys.GenerateX25519KeyPair()
+	require.NoError(t, err)
+	alicePubKeyJWK, err := exporter.ExportPublic(aliceEphemeralKeyPair, sagecrypto.KeyFormatJWK)
+	require.NoError(t, err)
+	require.NotEmpty(t, alicePubKeyJWK)
+
+	t.Run("cache clean", func(t *testing.T) {
+		cacheCtxID := "ctx-" + uuid.NewString()
+		aliceDID := did.AgentDID("did:sage:ethereum:agent-cache-clean")
 		aliceMeta := &did.AgentMetadata{
 			DID:       aliceDID,
-			Name:      "Active Agent",
+			Name:      "Cache Clean Agent",
 			IsActive:  true,
 			PublicKey: aliceKeyPair.PublicKey(),
 		}
+
+		handshake.OverridePendingTTL(hs, 50*time.Millisecond)
 
 		ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
 		invMsg := &handshake.InvitationMessage{
-			BaseMessage: message.BaseMessage{
-				ContextID: contextId,
-			},
+			BaseMessage: message.BaseMessage{ContextID: cacheCtxID},
 		}
-
-		// Client sends Invitation to server (SUT)
-		resp, err := alice.Invitation(ctx, *invMsg, string(aliceMeta.DID))
+		_, err := alice.Invitation(ctx, *invMsg, string(aliceMeta.DID))
 		require.NoError(t, err)
+		require.True(t, handshake.HasPeer(hs, cacheCtxID))
 
-		// Server ack payload checks
-		payload := resp.GetTask()
-		require.NotNil(t, payload)
-		assert.Equal(t, contextId, payload.GetContextId())
-		assert.NotEmpty(t, payload.GetId())
+		require.Eventually(t, func() bool {
+			return !handshake.HasPeer(hs, cacheCtxID)
+		}, time.Second, 10*time.Millisecond)
 
-	})
-
-	t.Run("Alice → Bob: Request (encrypted with Bob pubkey)", func(t *testing.T) {
-		aliceDID := did.AgentDID("did:sage:ethereum:agent001")
-		aliceMeta := &did.AgentMetadata{
-			DID:       aliceDID,
-			Name:      "Active Agent",
-			IsActive:  true,
-			PublicKey: aliceKeyPair.PublicKey(),
-		}
-		ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
 		reqMsg := &handshake.RequestMessage{
-			BaseMessage: message.BaseMessage{
-				ContextID: 	contextId,    
-			},
+			BaseMessage:     message.BaseMessage{ContextID: cacheCtxID},
 			EphemeralPubKey: json.RawMessage(alicePubKeyJWK),
 		}
-		_, err := alice.Request(ctx, *reqMsg, bobKeyPair.PublicKey(), string(aliceMeta.DID))
-		require.NoError(t, err)
-
-		out := <-outboundCh
-		require.NotNil(t, out)
-		assert.Equal(t, handshake.GenerateTaskID(handshake.Response), out.Request.GetTaskId())
-
-		// Decrypt Response envelope (b64) with Alice private key
-		sb := out.Request.Content[0].GetData().GetData()
-		require.NotNil(t, sb)
-		b64 := sb.Fields["b64"].GetStringValue()
-		packet, err := base64.RawURLEncoding.DecodeString(b64)
-		require.NoError(t, err)
-
-		decBytes, err := keys.DecryptWithEd25519Peer(aliceKeyPair.PrivateKey(), packet)
-		require.NoError(t, err)
-
-		var res handshake.ResponseMessage
-		require.NoError(t, fromBytes(decBytes, &res))
-		assert.True(t, res.Ack)
-		require.NotNil(t, res.EphemeralPubKey)
-
-		exported, err := importer.ImportPublic([]byte(res.EphemeralPubKey), sagecrypto.KeyFormatJWK)
-		peerEph, _ := exported.(*ecdh.PublicKey)
-
-		// Initiator (Alice) derives shared secret using its X25519 private and peer (server) ephemeral pub from Response
-		s2, err := aliceEphemeralKeyPair.(*keys.X25519KeyPair).DeriveSharedSecret(peerEph.Bytes())
-		require.NoError(t, err)
-		require.NotEmpty(t, s2)
-		aliceRaw := aliceEphemeralKeyPair.(*keys.X25519KeyPair).PublicBytesKey()
-		_, sid, ok, err := session.NewManager().EnsureSessionWithParams(
-						session.Params{
-							ContextID: contextId,
-							SelfEph: aliceRaw,
-							PeerEph: peerEph.Bytes(),
-							Label: "a2a/handshake v1",
-							SharedSecret:s2,
-						}, nil)
-		require.NoError(t, err)
-		assert.False(t, ok)
-		sessionID = sid
+		_, err = alice.Request(ctx, *reqMsg, bobKeyPair.PublicKey(), string(aliceMeta.DID))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no cached peer")
 	})
 
-	t.Run("Alice → Bob: Complete", func(t *testing.T) {
-		aliceDID := did.AgentDID("did:sage:ethereum:agent001")
-		aliceMeta := &did.AgentMetadata{
-			DID:       aliceDID,
+	t.Run("cache clean retains active peers", func(t *testing.T) {
+		expiredCtxID := "ctx-" + uuid.NewString()
+		activeCtxID := "ctx-" + uuid.NewString()
+
+		handshake.OverridePendingTTL(hs, time.Hour)
+
+		expiredDID := did.AgentDID("did:sage:ethereum:agent-expired")
+		expiredMeta := &did.AgentMetadata{
+			DID:       expiredDID,
+			Name:      "Expired Agent",
+			IsActive:  true,
+			PublicKey: aliceKeyPair.PublicKey(),
+		}
+		ethResolver.On("Resolve", mock.Anything, expiredDID).Return(expiredMeta, nil).Once()
+		expiredInv := &handshake.InvitationMessage{
+			BaseMessage: message.BaseMessage{ContextID: expiredCtxID},
+		}
+		_, err := alice.Invitation(ctx, *expiredInv, string(expiredMeta.DID))
+		require.NoError(t, err)
+
+		activeDID := did.AgentDID("did:sage:ethereum:agent-active")
+		activeMeta := &did.AgentMetadata{
+			DID:       activeDID,
 			Name:      "Active Agent",
 			IsActive:  true,
 			PublicKey: aliceKeyPair.PublicKey(),
 		}
 
-		ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
-		comMsg := &handshake.CompleteMessage{
-			BaseMessage: message.BaseMessage{
-				ContextID: contextId,
-			},
+		ethResolver.On("Resolve", mock.Anything, activeDID).Return(expiredMeta, nil).Once()
+		activeInv := &handshake.InvitationMessage{
+			BaseMessage: message.BaseMessage{ContextID: activeCtxID},
 		}
-		// Client calls Complete RPC (server will ack)
-		_, err := alice.Complete(ctx, *comMsg, string(aliceMeta.DID))
+		_, err = alice.Invitation(ctx, *activeInv, string(activeMeta.DID))
 		require.NoError(t, err)
 
-		out := <-outboundCh
-		require.NotNil(t, out)
-		assert.Equal(t, handshake.GenerateTaskID(handshake.Response), out.Request.GetTaskId())
+		require.True(t, handshake.HasPeer(hs, expiredCtxID))
+		require.True(t, handshake.HasPeer(hs, activeCtxID))
 
-		// Decrypt Response envelope (b64) with Alice private key
-		sb := out.Request.Content[0].GetData().GetData()
-		require.NotNil(t, sb)
-		b64 := sb.Fields["b64"].GetStringValue()
-		packet, err := base64.RawURLEncoding.DecodeString(b64)
-		require.NoError(t, err)
+		handshake.SetPeerExpiry(hs, expiredCtxID, time.Now().Add(-time.Minute))
+		handshake.SetPeerExpiry(hs, activeCtxID, time.Now().Add(time.Hour))
 
-		decBytes, err := keys.DecryptWithEd25519Peer(aliceKeyPair.PrivateKey(), packet)
-		require.NoError(t, err)
-
-		var res handshake.ResponseMessage
-		require.NoError(t, fromBytes(decBytes, &res))
-		assert.True(t, res.Ack)
-		
-		
-		session, ok := srvSessManager.GetByKeyID(res.KeyID)
-		assert.True(t, ok)
-		
-		// If the shared secret is the same, the session ID will also be the same.
-		assert.Equal(t, sessionID, session.GetID(), "shared secrets should match across phases")
+		require.Eventually(t, func() bool {
+			return !handshake.HasPeer(hs, expiredCtxID)
+		}, time.Second, 10*time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
+		assert.True(t, handshake.HasPeer(hs, activeCtxID))
 	})
 }
 
 func fromBytes(data []byte, v any) error {
-    return json.Unmarshal(data, v)
+	return json.Unmarshal(data, v)
+}
+
+
+func TestInvitation_ResolverSingleflight(t *testing.T) {
+    alice, hs, aliceKeyPair, bobKeyPair, _, ethResolver := setupTest(t, 0)
+
+	t.Run("dedups concurrent resolve", func(t *testing.T) {
+		ctx := context.Background()
+		contextId := "ctx-" + uuid.NewString()
+
+		aliceDID := did.AgentDID("did:sage:ethereum:agent-concurrent")
+		aliceMeta := &did.AgentMetadata{
+			DID:       aliceDID,
+			Name:      "Concurrent Agent",
+			IsActive:  true,
+			PublicKey: aliceKeyPair.PublicKey(),
+		}
+		var callCount atomic.Int32
+		ethResolver.On("Resolve", mock.Anything, aliceDID).Run(func(args mock.Arguments) {
+			callCount.Add(1)
+		}).Return(aliceMeta, nil)
+
+		invMsg := &handshake.InvitationMessage{
+			BaseMessage: message.BaseMessage{ContextID: contextId},
+		}
+
+		const N = 10
+		var wg sync.WaitGroup
+		wg.Add(N)
+
+		errs := make(chan error, N)
+		for i := 0; i < N; i++ {
+			go func() {
+				defer wg.Done()
+				_, err := alice.Invitation(ctx, *invMsg, string(aliceDID))
+				errs <- err
+			}()
+		}
+		wg.Wait()
+		close(errs)
+
+		for err := range errs {
+			require.NoError(t, err)
+		}
+
+		require.True(t, handshake.HasPeer(hs, contextId), "peer should be cached after invitation(s)")
+		require.Equal(t, int32(1), callCount.Load(), "resolver should be called exactly once despite 10 concurrent invitations") 
+	})
+
+	t.Run("avoids second resolve", func(t *testing.T) {
+		ctx := context.Background()
+		contextId := "ctx-" + uuid.NewString()
+		aliceDID := did.AgentDID("did:sage:ethereum:agent-cache-fast")
+		aliceMeta := &did.AgentMetadata{
+			DID:       aliceDID,
+			Name:      "Cache Fast Agent",
+			IsActive:  true,
+			PublicKey: aliceKeyPair.PublicKey(),
+		}
+		ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
+
+		inv := &handshake.InvitationMessage{
+			BaseMessage: message.BaseMessage{ContextID: contextId},
+		}
+
+		_, err := alice.Invitation(ctx, *inv, string(aliceDID))
+		require.NoError(t, err)
+
+		_, err = alice.Invitation(ctx, *inv, string(aliceDID))
+		require.NoError(t, err)
+
+		ethResolver.AssertExpectations(t)
+	})
+
+	t.Run("full handshake uses cached peer", func(t *testing.T) {
+		ctx := context.Background()
+    	contextId := "ctx-" + uuid.NewString()
+
+		aliceDID := did.AgentDID("did:sage:ethereum:agent-rcache")
+		aliceMeta := &did.AgentMetadata{
+			DID:       aliceDID,
+			Name:      "Cache Agent",
+			IsActive:  true,
+			PublicKey: aliceKeyPair.PublicKey(),
+		}
+		ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
+
+		inv := &handshake.InvitationMessage{
+			BaseMessage: message.BaseMessage{ContextID: contextId},
+		}
+		_, err := alice.Invitation(ctx, *inv, string(aliceDID))
+		require.NoError(t, err)
+
+		exporter := formats.NewJWKExporter()
+		eph, err := keys.GenerateX25519KeyPair()
+		require.NoError(t, err)
+		jwk, err := exporter.ExportPublic(eph, sagecrypto.KeyFormatJWK)
+		require.NoError(t, err)
+
+		req := &handshake.RequestMessage{
+			BaseMessage:     message.BaseMessage{ContextID: contextId},
+			EphemeralPubKey: json.RawMessage(jwk),
+		}
+		_, err = alice.Request(ctx, *req, bobKeyPair.PublicKey(), string(aliceDID))
+		require.NoError(t, err)
+
+		comp := &handshake.CompleteMessage{
+			BaseMessage: message.BaseMessage{ContextID: contextId},
+		}
+		_, err = alice.Complete(ctx, *comp, string(aliceDID))
+		require.NoError(t, err)
+
+		ethResolver.AssertExpectations(t)
+	})
 }
