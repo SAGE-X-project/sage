@@ -39,18 +39,26 @@ Get testnet ETH from these faucets:
 
 ## 📜 Deployed Contracts
 
-### Contract Addresses
+### SAGE Core Infrastructure
 
 ```
-SageRegistryV2:            0xb25D5f59cA52532862dA92901a2A550A09d5b4c0
+SageRegistryV2:          0xb25D5f59cA52532862dA92901a2A550A09d5b4c0
+SageVerificationHook:    0x407C2f1268F09c263424f3393ea41E02Dd18E1a3
+```
+
+**Etherscan Links:**
+- [SageRegistryV2](https://sepolia.etherscan.io/address/0xb25D5f59cA52532862dA92901a2A550A09d5b4c0)
+- [SageVerificationHook](https://sepolia.etherscan.io/address/0x407C2f1268F09c263424f3393ea41E02Dd18E1a3)
+
+### ERC-8004 Contracts
+
+```
 ERC8004IdentityRegistry:   0xffEE59C558544f5d62CaAb9cF9b5Cb134F8808a6
 ERC8004ReputationRegistry: 0xb8a3Fd16eEbB27BE8Aa6baB176C6AEED77fABE5f
 ERC8004ValidationRegistry: 0xF1f53bd1dEc3f91Ffba5E66f4397aF2ec3eAF7fE
 ```
 
-### Etherscan Links
-
-- [SageRegistryV2](https://sepolia.etherscan.io/address/0xb25D5f59cA52532862dA92901a2A550A09d5b4c0)
+**Etherscan Links:**
 - [ERC8004IdentityRegistry](https://sepolia.etherscan.io/address/0xffEE59C558544f5d62CaAb9cF9b5Cb134F8808a6)
 - [ERC8004ReputationRegistry](https://sepolia.etherscan.io/address/0xb8a3Fd16eEbB27BE8Aa6baB176C6AEED77fABE5f)
 - [ERC8004ValidationRegistry](https://sepolia.etherscan.io/address/0xF1f53bd1dEc3f91Ffba5E66f4397aF2ec3eAF7fE)

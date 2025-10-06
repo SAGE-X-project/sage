@@ -11,9 +11,17 @@
 
 ### Deployed Contracts
 
+#### SAGE Core Infrastructure
+
 | Contract | Address | Etherscan Link |
 |----------|---------|----------------|
 | **SageRegistryV2** | `0xb25D5f59cA52532862dA92901a2A550A09d5b4c0` | [View on Etherscan](https://sepolia.etherscan.io/address/0xb25D5f59cA52532862dA92901a2A550A09d5b4c0) |
+| **SageVerificationHook** | `0x407C2f1268F09c263424f3393ea41E02Dd18E1a3` | [View on Etherscan](https://sepolia.etherscan.io/address/0x407C2f1268F09c263424f3393ea41E02Dd18E1a3) |
+
+#### ERC-8004 Contracts
+
+| Contract | Address | Etherscan Link |
+|----------|---------|----------------|
 | **ERC8004IdentityRegistry** | `0xffEE59C558544f5d62CaAb9cF9b5Cb134F8808a6` | [View on Etherscan](https://sepolia.etherscan.io/address/0xffEE59C558544f5d62CaAb9cF9b5Cb134F8808a6) |
 | **ERC8004ReputationRegistry** | `0xb8a3Fd16eEbB27BE8Aa6baB176C6AEED77fABE5f` | [View on Etherscan](https://sepolia.etherscan.io/address/0xb8a3Fd16eEbB27BE8Aa6baB176C6AEED77fABE5f) |
 | **ERC8004ValidationRegistry** | `0xF1f53bd1dEc3f91Ffba5E66f4397aF2ec3eAF7fE` | [View on Etherscan](https://sepolia.etherscan.io/address/0xF1f53bd1dEc3f91Ffba5E66f4397aF2ec3eAF7fE) |
@@ -30,26 +38,37 @@
 
 ## 🔗 Transaction Hashes
 
-### Contract Deployments
+### SAGE Core Deployment
 
 1. **SageRegistryV2**
    - TX: [`0x232920b9f47a333784f0828e39bf59736859ca15d505bb6d3d321cc966ec7018`](https://sepolia.etherscan.io/tx/0x232920b9f47a333784f0828e39bf59736859ca15d505bb6d3d321cc966ec7018)
 
-2. **ERC8004IdentityRegistry**
+2. **SageVerificationHook**
+   - TX: [`0x50307e52fdcac86a262ab4541ddaffc0f7d4ef187e60cc9c0d2218837e49ba66`](https://sepolia.etherscan.io/tx/0x50307e52fdcac86a262ab4541ddaffc0f7d4ef187e60cc9c0d2218837e49ba66)
+
+3. **Configure BeforeRegisterHook**
+   - TX: [`0x221662d10de09015f3f6840e3712e9f251b47dc4e9d05f36b9d4e96aa8d7f746`](https://sepolia.etherscan.io/tx/0x221662d10de09015f3f6840e3712e9f251b47dc4e9d05f36b9d4e96aa8d7f746)
+   - Gas Used: 46,638
+
+4. **Configure AfterRegisterHook**
+   - TX: [`0xc0a1f3cbf914f98b86c5aead2f4667a0b57a5240ac6fc6a358c325cdf4270cef`](https://sepolia.etherscan.io/tx/0xc0a1f3cbf914f98b86c5aead2f4667a0b57a5240ac6fc6a358c325cdf4270cef)
+   - Gas Used: 46,792
+
+### ERC-8004 Contract Deployments
+
+5. **ERC8004IdentityRegistry**
    - TX: [`0x88f9c46fb0e9d918252d12901f1bd4f57df4312c955badd652663b0ce781a3d6`](https://sepolia.etherscan.io/tx/0x88f9c46fb0e9d918252d12901f1bd4f57df4312c955badd652663b0ce781a3d6)
    - Constructor Args: `["0xb25D5f59cA52532862dA92901a2A550A09d5b4c0"]`
 
-3. **ERC8004ReputationRegistry**
+6. **ERC8004ReputationRegistry**
    - TX: [`0x878e754977f63e62e4d0fef6f1954e0e32206f45f978976616485985c9f911a9`](https://sepolia.etherscan.io/tx/0x878e754977f63e62e4d0fef6f1954e0e32206f45f978976616485985c9f911a9)
    - Constructor Args: `["0xffEE59C558544f5d62CaAb9cF9b5Cb134F8808a6"]`
 
-4. **ERC8004ValidationRegistry**
+7. **ERC8004ValidationRegistry**
    - TX: [`0xa3946144a0ce4dd9e532f2bdb015c820e717f42f2893331f8196db22d2d4103b`](https://sepolia.etherscan.io/tx/0xa3946144a0ce4dd9e532f2bdb015c820e717f42f2893331f8196db22d2d4103b)
    - Constructor Args: `["0xffEE59C558544f5d62CaAb9cF9b5Cb134F8808a6", "0xb8a3Fd16eEbB27BE8Aa6baB176C6AEED77fABE5f"]`
 
-### Configuration Transactions
-
-5. **Set Validation Registry in Reputation Registry**
+8. **Set Validation Registry in Reputation Registry**
    - TX: [`0x5fa9f9ef6c0da34834e8d4b76502773bfaf4f0f8064506ded24239e1496065b7`](https://sepolia.etherscan.io/tx/0x5fa9f9ef6c0da34834e8d4b76502773bfaf4f0f8064506ded24239e1496065b7)
    - Gas Used: 47,131
 
@@ -57,24 +76,45 @@
 
 ## 🏗️ Architecture
 
+### SAGE Core Infrastructure
+
 ```
-┌────────────────────────────────────────────────────────┐
-│             ERC-8004 Contract Architecture             │
-├────────────────────────────────────────────────────────┤
-│                                                        │
-│  SageRegistryV2 (Base Identity System)                │
-│  └─ 0xb25D5f59cA52532862dA92901a2A550A09d5b4c0       │
-│         │                                              │
-│         ├──► ERC8004IdentityRegistry (Adapter)        │
-│         │    └─ 0xffEE59C558544f5d62CaAb9cF9b5Cb134F8808a6
-│         │                                              │
-│         └──► ERC8004ReputationRegistry                │
-│              └─ 0xb8a3Fd16eEbB27BE8Aa6baB176C6AEED77fABE5f
-│                   │                                    │
-│                   └──► ERC8004ValidationRegistry      │
-│                        └─ 0xF1f53bd1dEc3f91Ffba5E66f4397aF2ec3eAF7fE
-│                                                        │
-└────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│           SAGE Core Contracts                   │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  SageRegistryV2                                 │
+│  └─ 0xb25D5f59cA52532862dA92901a2A550A09d5b4c0 │
+│      ↓ (configured with hooks)                  │
+│                                                 │
+│  SageVerificationHook                           │
+│  └─ 0x407C2f1268F09c263424f3393ea41E02Dd18E1a3 │
+│                                                 │
+└─────────────────────────────────────────────────┘
+```
+
+### ERC-8004 Contracts (Independent System)
+
+```
+┌─────────────────────────────────────────────────┐
+│         ERC-8004 Contract Architecture          │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  ERC8004IdentityRegistry                        │
+│  └─ 0xffEE59C558544f5d62CaAb9cF9b5Cb134F8808a6 │
+│      ↓ (references SageRegistryV2)              │
+│                                                 │
+│  ERC8004ReputationRegistry                      │
+│  └─ 0xb8a3Fd16eEbB27BE8Aa6baB176C6AEED77fABE5f │
+│      ↓                                          │
+│                                                 │
+│  ERC8004ValidationRegistry                      │
+│  └─ 0xF1f53bd1dEc3f91Ffba5E66f4397aF2ec3eAF7fE │
+│                                                 │
+└─────────────────────────────────────────────────┘
+
+Note: ERC-8004 contracts reference SageRegistryV2 for
+      identity data, but are independently deployable.
 ```
 
 ---
