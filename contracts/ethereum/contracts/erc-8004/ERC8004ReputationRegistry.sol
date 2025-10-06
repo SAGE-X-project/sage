@@ -43,6 +43,9 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
     uint256 private constant MAX_RATING = 100;
     uint256 private constant MAX_FEEDBACK_PER_QUERY = 100;
 
+    // Events
+    event ValidationRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
+
     modifier onlyValidationRegistry() {
         require(msg.sender == validationRegistry, "Only validation registry");
         _;
@@ -62,7 +65,9 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
     function setValidationRegistry(address _validationRegistry) external onlyOwner {
         require(_validationRegistry != address(0), "Invalid validation registry");
         require(validationRegistry == address(0), "Already set");
+        address oldRegistry = validationRegistry;
         validationRegistry = _validationRegistry;
+        emit ValidationRegistryUpdated(oldRegistry, _validationRegistry);
     }
 
     /**

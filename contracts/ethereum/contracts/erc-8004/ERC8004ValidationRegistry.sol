@@ -5,6 +5,7 @@ import "./interfaces/IERC8004ValidationRegistry.sol";
 import "./interfaces/IERC8004IdentityRegistry.sol";
 import "./interfaces/IERC8004ReputationRegistry.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
@@ -25,8 +26,9 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  * - Integration with Reputation Registry for feedback verification
  * - Reentrancy protection on all payable functions
  * - Two-step ownership transfer for security
+ * - Emergency pause mechanism for critical situations
  */
-contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuard, Ownable2Step {
+contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuard, Pausable, Ownable2Step {
     // State variables
     IERC8004IdentityRegistry public identityRegistry;
     IERC8004ReputationRegistry public reputationRegistry;
@@ -68,6 +70,10 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     uint256 private constant PRECISION_MULTIPLIER = 1e18;
     uint256 private constant PERCENTAGE_BASE = 100;
 
+    // Deadline validation bounds
+    uint256 private constant MIN_DEADLINE_DURATION = 1 hours;  // At least 1 hour in future
+    uint256 private constant MAX_DEADLINE_DURATION = 30 days;  // At most 30 days in future
+
     // Trusted TEE keys (for production, use a more sophisticated verification system)
     mapping(bytes32 => bool) private trustedTEEKeys;
 
@@ -96,11 +102,12 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         bytes32 dataHash,
         ValidationType validationType,
         uint256 deadline
-    ) external payable override nonReentrant returns (bytes32 requestId) {
+    ) external payable override nonReentrant whenNotPaused returns (bytes32 requestId) {
         require(taskId != bytes32(0), "Invalid task ID");
         require(serverAgent != address(0), "Invalid server agent");
         require(dataHash != bytes32(0), "Invalid data hash");
-        require(deadline > block.timestamp, "Invalid deadline");
+        require(deadline > block.timestamp + MIN_DEADLINE_DURATION, "Deadline too soon");
+        require(deadline <= block.timestamp + MAX_DEADLINE_DURATION, "Deadline too far");
         require(msg.value >= minStake, "Insufficient stake");
         require(validationType != ValidationType.NONE, "Invalid validation type");
 
@@ -162,7 +169,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     function submitStakeValidation(
         bytes32 requestId,
         bytes32 computedHash
-    ) external payable override nonReentrant returns (bool success) {
+    ) external payable override nonReentrant whenNotPaused returns (bool success) {
         ValidationRequest storage request = validationRequests[requestId];
         require(request.timestamp > 0, "Request not found");
         require(request.status == ValidationStatus.PENDING, "Request not pending");
@@ -238,7 +245,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         bytes32 requestId,
         bytes calldata attestation,
         bytes calldata proof
-    ) external override nonReentrant returns (bool success) {
+    ) external override nonReentrant whenNotPaused returns (bool success) {
         ValidationRequest storage request = validationRequests[requestId];
         require(request.timestamp > 0, "Request not found");
         require(request.status == ValidationStatus.PENDING, "Request not pending");
@@ -564,6 +571,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
      */
     function addTrustedTEEKey(bytes32 teeKeyHash) external onlyOwner {
         trustedTEEKeys[teeKeyHash] = true;
+        emit TEEKeyAdded(teeKeyHash);
     }
 
     /**
@@ -573,37 +581,50 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
      */
     function removeTrustedTEEKey(bytes32 teeKeyHash) external onlyOwner {
         trustedTEEKeys[teeKeyHash] = false;
+        emit TEEKeyRemoved(teeKeyHash);
     }
 
     /**
      * @notice Update configuration parameters
      */
     function setMinStake(uint256 _minStake) external onlyOwner {
+        uint256 oldValue = minStake;
         minStake = _minStake;
+        emit MinStakeUpdated(oldValue, _minStake);
     }
 
     function setMinValidatorStake(uint256 _minValidatorStake) external onlyOwner {
+        uint256 oldValue = minValidatorStake;
         minValidatorStake = _minValidatorStake;
+        emit MinValidatorStakeUpdated(oldValue, _minValidatorStake);
     }
 
     function setValidatorRewardPercentage(uint256 _percentage) external onlyOwner {
         require(_percentage <= 100, "Invalid percentage");
+        uint256 oldValue = validatorRewardPercentage;
         validatorRewardPercentage = _percentage;
+        emit ValidatorRewardPercentageUpdated(oldValue, _percentage);
     }
 
     function setSlashingPercentage(uint256 _percentage) external onlyOwner {
         require(_percentage <= 100, "Invalid percentage");
+        uint256 oldValue = slashingPercentage;
         slashingPercentage = _percentage;
+        emit SlashingPercentageUpdated(oldValue, _percentage);
     }
 
     function setConsensusThreshold(uint256 _threshold) external onlyOwner {
         require(_threshold > 50 && _threshold <= 100, "Invalid threshold");
+        uint256 oldValue = consensusThreshold;
         consensusThreshold = _threshold;
+        emit ConsensusThresholdUpdated(oldValue, _threshold);
     }
 
     function setMinValidatorsRequired(uint256 _minValidators) external onlyOwner {
         require(_minValidators > 0, "Invalid minimum");
+        uint256 oldValue = minValidatorsRequired;
         minValidatorsRequired = _minValidators;
+        emit MinValidatorsRequiredUpdated(oldValue, _minValidators);
     }
 
     /**
@@ -625,6 +646,22 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
 
         emit WithdrawalProcessed(msg.sender, amount);
         return amount;
+    }
+
+    /**
+     * @notice Emergency pause - stops all validation operations
+     * @dev Only callable by owner during critical situations
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Unpause - resumes normal operations
+     * @dev Only callable by owner after emergency is resolved
+     */
+    function unpause() external onlyOwner {
+        _unpause();
     }
 
     /**
@@ -693,4 +730,16 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
      * @param stakeReturned Amount of stake returned to requester
      */
     event ValidationExpired(bytes32 indexed requestId, uint256 responseCount, uint256 stakeReturned);
+
+    /**
+     * @notice Parameter updated events
+     */
+    event MinStakeUpdated(uint256 oldValue, uint256 newValue);
+    event MinValidatorStakeUpdated(uint256 oldValue, uint256 newValue);
+    event ValidatorRewardPercentageUpdated(uint256 oldValue, uint256 newValue);
+    event SlashingPercentageUpdated(uint256 oldValue, uint256 newValue);
+    event ConsensusThresholdUpdated(uint256 oldValue, uint256 newValue);
+    event MinValidatorsRequiredUpdated(uint256 oldValue, uint256 newValue);
+    event TEEKeyAdded(bytes32 indexed keyHash);
+    event TEEKeyRemoved(bytes32 indexed keyHash);
 }

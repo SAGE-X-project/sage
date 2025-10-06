@@ -3,14 +3,16 @@ pragma solidity ^0.8.19;
 
 import "./interfaces/ISageRegistry.sol";
 import "./interfaces/IRegistryHook.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title SageRegistryV2
  * @notice Improved SAGE AI Agent Registry with Enhanced Public Key Validation
  * @dev Implements practical public key validation using signature-based ownership proof
+ *      Includes emergency pause mechanism for critical situations
  */
-contract SageRegistryV2 is ISageRegistry, Ownable2Step {
+contract SageRegistryV2 is ISageRegistry, Pausable, Ownable2Step {
     // Registration parameters struct to avoid stack too deep errors
     struct RegistrationParams {
         string did;
@@ -53,6 +55,8 @@ contract SageRegistryV2 is ISageRegistry, Ownable2Step {
     event KeyValidated(bytes32 indexed keyHash, address indexed owner);
     event KeyRevoked(bytes32 indexed keyHash, address indexed owner);
     event HookFailed(address indexed hook, string reason);
+    event BeforeRegisterHookUpdated(address indexed oldHook, address indexed newHook);
+    event AfterRegisterHookUpdated(address indexed oldHook, address indexed newHook);
 
     // Modifiers
     modifier onlyAgentOwner(bytes32 agentId) {
@@ -76,7 +80,7 @@ contract SageRegistryV2 is ISageRegistry, Ownable2Step {
         bytes calldata publicKey,
         string calldata capabilities,
         bytes calldata signature
-    ) external returns (bytes32) {
+    ) external whenNotPaused returns (bytes32) {
         // Validate public key format and ownership
         _validatePublicKey(publicKey, signature);
         
@@ -296,9 +300,60 @@ contract SageRegistryV2 is ISageRegistry, Ownable2Step {
         string memory name
     ) private view {
         require(bytes(did).length > 0, "DID required");
+        require(_isValidDID(did), "Invalid DID format");
         require(bytes(name).length > 0, "Name required");
         require(didToAgentId[did] == bytes32(0), "DID already registered");
         require(ownerToAgents[msg.sender].length < MAX_AGENTS_PER_OWNER, "Too many agents");
+    }
+
+    /**
+     * @notice Validate DID format according to W3C DID spec
+     * @dev DIDs must follow the format: did:method:identifier
+     *      - Must start with "did:"
+     *      - Method must be lowercase alphanumeric
+     *      - Identifier must be non-empty
+     * @param did The DID string to validate
+     * @return bool True if DID format is valid
+     */
+    function _isValidDID(string memory did) private pure returns (bool) {
+        bytes memory didBytes = bytes(did);
+        uint256 len = didBytes.length;
+
+        // Minimum valid DID: "did:m:i" = 7 characters
+        if (len < 7) return false;
+
+        // Must start with "did:"
+        if (didBytes[0] != 'd' || didBytes[1] != 'i' || didBytes[2] != 'd' || didBytes[3] != ':') {
+            return false;
+        }
+
+        // Find second colon (after method)
+        uint256 secondColonIndex = 0;
+        for (uint256 i = 4; i < len; i++) {
+            if (didBytes[i] == ':') {
+                secondColonIndex = i;
+                break;
+            }
+        }
+
+        // Must have a second colon and identifier after it
+        if (secondColonIndex == 0 || secondColonIndex == len - 1) {
+            return false;
+        }
+
+        // Validate method (between first and second colon) - lowercase alphanumeric
+        for (uint256 i = 4; i < secondColonIndex; i++) {
+            bytes1 char = didBytes[i];
+            // Allow a-z, 0-9
+            if (!((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9'))) {
+                return false;
+            }
+        }
+
+        // Identifier exists (after second colon)
+        // We don't validate identifier format as it's method-specific
+
+        return true;
     }
     
     /**
@@ -485,17 +540,37 @@ contract SageRegistryV2 is ISageRegistry, Ownable2Step {
     }
     
     /**
+     * @notice Emergency pause - stops all agent registrations
+     * @dev Only callable by owner during critical situations
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Unpause - resumes normal operations
+     * @dev Only callable by owner after emergency is resolved
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /**
      * @notice Set before register hook
      */
     function setBeforeRegisterHook(address hook) external onlyOwner {
+        address oldHook = beforeRegisterHook;
         beforeRegisterHook = hook;
+        emit BeforeRegisterHookUpdated(oldHook, hook);
     }
-    
+
     /**
      * @notice Set after register hook
      */
     function setAfterRegisterHook(address hook) external onlyOwner {
+        address oldHook = afterRegisterHook;
         afterRegisterHook = hook;
+        emit AfterRegisterHookUpdated(oldHook, hook);
     }
     
     /**
