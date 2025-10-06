@@ -9,29 +9,31 @@ describe("SageRegistryV2 Integration Tests", function () {
   let agent2;
 
   // Helper to create registration signature
-  async function createRegistrationSignature(signer, publicKey, registry) {
-    const contractAddress = await registry.getAddress();
+  async function createRegistrationSignature(wallet, publicKey) {
+    const contractAddress = await sageRegistry.getAddress();
     const chainId = (await ethers.provider.getNetwork()).chainId;
     const keyHash = ethers.keccak256(publicKey);
-    
+
     const packedData = ethers.solidityPacked(
       ["string", "uint256", "address", "address", "bytes32"],
       [
         "SAGE Key Registration:",
         chainId,
         contractAddress,
-        signer.address,
+        wallet.address,
         keyHash
       ]
     );
-    
+
     const challenge = ethers.keccak256(packedData);
-    return await signer.signMessage(ethers.getBytes(challenge));
+    return await wallet.signMessage(ethers.getBytes(challenge));
   }
 
-  // Helper to create valid public key
-  function createValidPublicKey() {
-    return "0x04" + ethers.hexlify(ethers.randomBytes(64)).slice(2);
+  // Helper to create test wallet with actual public key
+  function createTestWallet() {
+    const wallet = ethers.Wallet.createRandom();
+    const publicKey = wallet.signingKey.publicKey;
+    return { wallet, publicKey };
   }
 
   beforeEach(async function () {
@@ -52,14 +54,22 @@ describe("SageRegistryV2 Integration Tests", function () {
 
   describe("End-to-End Agent Lifecycle", function () {
     it("Should complete full agent lifecycle: register → update → revoke", async function () {
-      const publicKey = createValidPublicKey();
-      const did = `did:sage:test:${agent1.address}`;
-      
+      // Create wallet with actual private key
+      const { wallet: testWallet, publicKey } = createTestWallet();
+      const connectedWallet = testWallet.connect(ethers.provider);
+      const did = `did:sage:test:${testWallet.address}`;
+
+      // Fund the wallet for gas
+      await owner.sendTransaction({
+        to: testWallet.address,
+        value: ethers.parseEther("1.0")
+      });
+
       // 1. Register agent
       console.log("      1️⃣  Registering agent...");
-      const registerSig = await createRegistrationSignature(agent1, publicKey, sageRegistry);
-      
-      const registerTx = await sageRegistry.connect(agent1).registerAgent(
+      const registerSig = await createRegistrationSignature(connectedWallet, publicKey);
+
+      const registerTx = await sageRegistry.connect(connectedWallet).registerAgent(
         did,
         "Test Agent",
         "AI Assistant",
@@ -68,7 +78,7 @@ describe("SageRegistryV2 Integration Tests", function () {
         JSON.stringify(["chat", "code"]),
         registerSig
       );
-      
+
       const receipt = await registerTx.wait();
       // Get agent ID from the event properly
       const agentRegisteredEvent = receipt.logs.find(log => {
@@ -81,26 +91,25 @@ describe("SageRegistryV2 Integration Tests", function () {
       });
       const agentId = agentRegisteredEvent.args[0];
       console.log("       Agent registered with ID:", agentId);
-      
+
       // Verify registration
       const agent = await sageRegistry.getAgent(agentId);
       expect(agent.name).to.equal("Test Agent");
       expect(agent.active).to.be.true;
-      
+
       // 2. Update agent
       console.log("      2️⃣  Updating agent...");
-      // Note: After registration, nonce is incremented to 1
       const updateMessage = ethers.keccak256(
         ethers.solidityPacked(
           ["bytes32", "string", "string", "string", "string", "address", "uint256"],
-          [agentId, "Updated Agent", "Enhanced AI", "https://new.example.com", 
-           JSON.stringify(["chat", "code", "analyze"]), agent1.address, 1]
+          [agentId, "Updated Agent", "Enhanced AI", "https://new.example.com",
+           JSON.stringify(["chat", "code", "analyze"]), testWallet.address, 1]
         )
       );
-      
-      const updateSig = await agent1.signMessage(ethers.getBytes(updateMessage));
-      
-      await sageRegistry.connect(agent1).updateAgent(
+
+      const updateSig = await connectedWallet.signMessage(ethers.getBytes(updateMessage));
+
+      await sageRegistry.connect(connectedWallet).updateAgent(
         agentId,
         "Updated Agent",
         "Enhanced AI",
@@ -109,19 +118,19 @@ describe("SageRegistryV2 Integration Tests", function () {
         updateSig
       );
       console.log("       Agent updated");
-      
+
       // Verify update
       const updatedAgent = await sageRegistry.getAgent(agentId);
       expect(updatedAgent.name).to.equal("Updated Agent");
-      
+
       // 3. Revoke key
       console.log("      3️⃣  Revoking key...");
-      await sageRegistry.connect(agent1).revokeKey(publicKey);
+      await sageRegistry.connect(connectedWallet).revokeKey(publicKey);
       console.log("       Key revoked");
-      
+
       // Verify revocation
       expect(await sageRegistry.isKeyValid(publicKey)).to.be.false;
-      
+
       // Agent should be deactivated
       const revokedAgent = await sageRegistry.getAgent(agentId);
       expect(revokedAgent.active).to.be.false;
@@ -129,49 +138,69 @@ describe("SageRegistryV2 Integration Tests", function () {
     });
 
     it("Should handle multiple agents with different keys", async function () {
-      const key1 = createValidPublicKey();
-      const key2 = createValidPublicKey();
-      
+      // Create two different wallets with different keys
+      const { wallet: wallet1, publicKey: key1 } = createTestWallet();
+      const { wallet: wallet2, publicKey: key2 } = createTestWallet();
+      const connected1 = wallet1.connect(ethers.provider);
+      const connected2 = wallet2.connect(ethers.provider);
+
+      // Fund both wallets
+      await owner.sendTransaction({
+        to: wallet1.address,
+        value: ethers.parseEther("1.0")
+      });
+      await owner.sendTransaction({
+        to: wallet2.address,
+        value: ethers.parseEther("1.0")
+      });
+
       // Register first agent
-      const did1 = `did:sage:test:${agent1.address}_1`;
-      const sig1 = await createRegistrationSignature(agent1, key1, sageRegistry);
-      
-      await sageRegistry.connect(agent1).registerAgent(
+      const did1 = `did:sage:test:${wallet1.address}`;
+      const sig1 = await createRegistrationSignature(connected1, key1);
+
+      const tx1 = await sageRegistry.connect(connected1).registerAgent(
         did1, "Agent 1", "Description 1", "https://agent1.com",
         key1, JSON.stringify(["chat"]), sig1
       );
-      
-      // Register second agent with different key
-      const did2 = `did:sage:test:${agent1.address}_2`;
-      const sig2 = await createRegistrationSignature(agent1, key2, sageRegistry);
-      
-      await sageRegistry.connect(agent1).registerAgent(
+      const receipt1 = await tx1.wait();
+      const event1 = receipt1.logs.find(log => {
+        try {
+          return sageRegistry.interface.parseLog(log).name === 'AgentRegistered';
+        } catch { return false; }
+      });
+      const agentId1 = event1.args[0];
+
+      // Register second agent with different wallet
+      const did2 = `did:sage:test:${wallet2.address}`;
+      const sig2 = await createRegistrationSignature(connected2, key2);
+
+      const tx2 = await sageRegistry.connect(connected2).registerAgent(
         did2, "Agent 2", "Description 2", "https://agent2.com",
         key2, JSON.stringify(["code"]), sig2
       );
-      
+      const receipt2 = await tx2.wait();
+      const event2 = receipt2.logs.find(log => {
+        try {
+          return sageRegistry.interface.parseLog(log).name === 'AgentRegistered';
+        } catch { return false; }
+      });
+      const agentId2 = event2.args[0];
+
       // Verify both agents exist
-      const agents = await sageRegistry.getAgentsByOwner(agent1.address);
-      expect(agents.length).to.equal(2);
-      
-      // Revoke first key - but we need to make sure key1 is actually owned by agent1
-      // The issue is that addressToKeyHash mapping only stores one key per address
-      // So we can only revoke the last registered key
-      // Let's check which key is currently mapped to agent1
-      const canRevokeKey1 = await sageRegistry.isKeyValid(key1);
-      const canRevokeKey2 = await sageRegistry.isKeyValid(key2);
-      
-      // Since addressToKeyHash maps only the last registered key to an address,
-      // revoking key2 will only affect the second agent
-      await sageRegistry.connect(agent1).revokeKey(key2);
-      
-      // First agent should still be active, second should be inactive
-      const agent1Data = await sageRegistry.getAgent(agents[0]);
-      const agent2Data = await sageRegistry.getAgent(agents[1]);
-      
-      // First agent uses key1 and should still be active
+      const agents1 = await sageRegistry.getAgentsByOwner(wallet1.address);
+      const agents2 = await sageRegistry.getAgentsByOwner(wallet2.address);
+      expect(agents1.length).to.equal(1);
+      expect(agents2.length).to.equal(1);
+
+      // Revoke second key
+      await sageRegistry.connect(connected2).revokeKey(key2);
+
+      // First agent should still be active
+      const agent1Data = await sageRegistry.getAgent(agentId1);
       expect(agent1Data.active).to.be.true;
-      // Second agent uses key2 which was revoked, so should be inactive
+
+      // Second agent should be inactive
+      const agent2Data = await sageRegistry.getAgent(agentId2);
       expect(agent2Data.active).to.be.false;
     });
   });
@@ -180,8 +209,8 @@ describe("SageRegistryV2 Integration Tests", function () {
     it("Should prevent registration with malicious zero key", async function () {
       const zeroKey = "0x04" + "00".repeat(64);
       const did = `did:sage:test:${agent1.address}`;
-      const sig = await createRegistrationSignature(agent1, zeroKey, sageRegistry);
-      
+      const sig = await createRegistrationSignature(agent1, zeroKey);
+
       await expect(
         sageRegistry.connect(agent1).registerAgent(
           did, "Malicious", "Bad", "https://bad.com",
@@ -191,24 +220,31 @@ describe("SageRegistryV2 Integration Tests", function () {
     });
 
     it("Should prevent key reuse after revocation", async function () {
-      const publicKey = createValidPublicKey();
-      const did1 = `did:sage:test:${agent1.address}_1`;
-      
+      const { wallet: testWallet, publicKey } = createTestWallet();
+      const connected = testWallet.connect(ethers.provider);
+      const did1 = `did:sage:test:${testWallet.address}_1`;
+
+      // Fund wallet
+      await owner.sendTransaction({
+        to: testWallet.address,
+        value: ethers.parseEther("1.0")
+      });
+
       // Register and revoke
-      const sig1 = await createRegistrationSignature(agent1, publicKey, sageRegistry);
-      await sageRegistry.connect(agent1).registerAgent(
+      const sig1 = await createRegistrationSignature(connected, publicKey);
+      await sageRegistry.connect(connected).registerAgent(
         did1, "Agent", "Desc", "https://agent.com",
         publicKey, "{}", sig1
       );
-      
-      await sageRegistry.connect(agent1).revokeKey(publicKey);
-      
+
+      await sageRegistry.connect(connected).revokeKey(publicKey);
+
       // Try to register with revoked key
-      const did2 = `did:sage:test:${agent1.address}_2`;
-      const sig2 = await createRegistrationSignature(agent1, publicKey, sageRegistry);
-      
+      const did2 = `did:sage:test:${testWallet.address}_2`;
+      const sig2 = await createRegistrationSignature(connected, publicKey);
+
       await expect(
-        sageRegistry.connect(agent1).registerAgent(
+        sageRegistry.connect(connected).registerAgent(
           did2, "New Agent", "Desc", "https://new.com",
           publicKey, "{}", sig2
         )
@@ -216,17 +252,24 @@ describe("SageRegistryV2 Integration Tests", function () {
     });
 
     it("Should enforce proper access control", async function () {
-      const publicKey = createValidPublicKey();
-      const did = `did:sage:test:${agent1.address}`;
-      
-      // Agent1 registers
-      const sig = await createRegistrationSignature(agent1, publicKey, sageRegistry);
-      await sageRegistry.connect(agent1).registerAgent(
+      const { wallet: testWallet, publicKey } = createTestWallet();
+      const connected = testWallet.connect(ethers.provider);
+      const did = `did:sage:test:${testWallet.address}`;
+
+      // Fund wallet
+      await owner.sendTransaction({
+        to: testWallet.address,
+        value: ethers.parseEther("1.0")
+      });
+
+      // testWallet registers
+      const sig = await createRegistrationSignature(connected, publicKey);
+      await sageRegistry.connect(connected).registerAgent(
         did, "Agent", "Desc", "https://agent.com",
         publicKey, "{}", sig
       );
-      
-      // Agent2 tries to revoke agent1's key
+
+      // agent2 (different address) tries to revoke testWallet's key
       await expect(
         sageRegistry.connect(agent2).revokeKey(publicKey)
       ).to.be.revertedWith("Not key owner");
@@ -235,24 +278,38 @@ describe("SageRegistryV2 Integration Tests", function () {
 
   describe("Hook Integration", function () {
     it("Should work seamlessly with verification hooks", async function () {
-      const publicKey = createValidPublicKey();
-      const validDid = `did:sage:test:${agent1.address}`;
+      const { wallet: testWallet, publicKey } = createTestWallet();
+      const connected = testWallet.connect(ethers.provider);
+      const validDid = `did:sage:test:${testWallet.address}`;
       const invalidDid = "not-a-did";
-      
+
+      // Fund wallet
+      await owner.sendTransaction({
+        to: testWallet.address,
+        value: ethers.parseEther("1.0")
+      });
+
       // Valid DID should pass
-      const sig1 = await createRegistrationSignature(agent1, publicKey, sageRegistry);
+      const sig1 = await createRegistrationSignature(connected, publicKey);
       await expect(
-        sageRegistry.connect(agent1).registerAgent(
+        sageRegistry.connect(connected).registerAgent(
           validDid, "Agent", "Desc", "https://agent.com",
           publicKey, "{}", sig1
         )
       ).to.emit(sageRegistry, "BeforeRegisterHook");
-      
+
       // Invalid DID should fail at hook
-      const key2 = createValidPublicKey();
-      const sig2 = await createRegistrationSignature(agent1, key2, sageRegistry);
+      const { wallet: testWallet2, publicKey: key2 } = createTestWallet();
+      const connected2 = testWallet2.connect(ethers.provider);
+
+      await owner.sendTransaction({
+        to: testWallet2.address,
+        value: ethers.parseEther("1.0")
+      });
+
+      const sig2 = await createRegistrationSignature(connected2, key2);
       await expect(
-        sageRegistry.connect(agent1).registerAgent(
+        sageRegistry.connect(connected2).registerAgent(
           invalidDid, "Agent", "Desc", "https://agent.com",
           key2, "{}", sig2
         )
@@ -263,26 +320,33 @@ describe("SageRegistryV2 Integration Tests", function () {
   describe("Gas Optimization Check", function () {
     it("Should maintain reasonable gas costs for batch operations", async function () {
       const results = [];
-      
+
       for (let i = 0; i < 3; i++) {
-        const key = createValidPublicKey();
-        const did = `did:sage:test:${agent1.address}_${i}`;
-        const sig = await createRegistrationSignature(agent1, key, sageRegistry);
-        
-        const tx = await sageRegistry.connect(agent1).registerAgent(
+        const { wallet, publicKey } = createTestWallet();
+        const connected = wallet.connect(ethers.provider);
+        const did = `did:sage:test:${wallet.address}`;
+
+        await owner.sendTransaction({
+          to: wallet.address,
+          value: ethers.parseEther("1.0")
+        });
+
+        const sig = await createRegistrationSignature(connected, publicKey);
+
+        const tx = await sageRegistry.connect(connected).registerAgent(
           did, `Agent ${i}`, `Desc ${i}`, `https://agent${i}.com`,
-          key, JSON.stringify([`capability${i}`]), sig
+          publicKey, JSON.stringify([`capability${i}`]), sig
         );
-        
+
         const receipt = await tx.wait();
         results.push(receipt.gasUsed);
       }
-      
+
       console.log("      Gas usage for 3 registrations:");
       results.forEach((gas, i) => {
         console.log(`        Agent ${i}: ${gas.toString()} gas`);
       });
-      
+
       // Average should be under 650K
       const avgGas = results.reduce((a, b) => a + b, 0n) / 3n;
       expect(avgGas).to.be.lt(650000n);

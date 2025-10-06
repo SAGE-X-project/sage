@@ -42,7 +42,7 @@ build: build-binaries build-examples
 
 # Build core binaries
 .PHONY: build-binaries
-build-binaries: build-crypto build-did build-verify build-test-utils
+build-binaries: build-crypto build-did build-verify
 
 # Build libraries
 .PHONY: build-lib
@@ -98,21 +98,21 @@ $(BIN_DIR)/$(VERIFY_BINARY):
 	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(VERIFY_BINARY) ./$(CMD_DIR)/$(VERIFY_BINARY)
 	@echo "Build complete: $(BIN_DIR)/$(VERIFY_BINARY)"
 
-# Build test utilities (test-client, test-server)
-.PHONY: build-test-utils
-build-test-utils: $(BIN_DIR)/$(TEST_CLIENT_BINARY) $(BIN_DIR)/$(TEST_SERVER_BINARY)
+# Build test utilities (deprecated - moved to tests/handshake/)
+# .PHONY: build-test-utils
+# build-test-utils: $(BIN_DIR)/$(TEST_CLIENT_BINARY) $(BIN_DIR)/$(TEST_SERVER_BINARY)
 
-$(BIN_DIR)/$(TEST_CLIENT_BINARY):
-	@echo "Building $(TEST_CLIENT_BINARY)..."
-	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(TEST_CLIENT_BINARY) ./$(CMD_DIR)/$(TEST_CLIENT_BINARY)
-	@echo "Build complete: $(BIN_DIR)/$(TEST_CLIENT_BINARY)"
+# $(BIN_DIR)/$(TEST_CLIENT_BINARY):
+# 	@echo "Building $(TEST_CLIENT_BINARY)..."
+# 	@mkdir -p $(BIN_DIR)
+# 	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(TEST_CLIENT_BINARY) ./$(CMD_DIR)/$(TEST_CLIENT_BINARY)
+# 	@echo "Build complete: $(BIN_DIR)/$(TEST_CLIENT_BINARY)"
 
-$(BIN_DIR)/$(TEST_SERVER_BINARY):
-	@echo "Building $(TEST_SERVER_BINARY)..."
-	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(TEST_SERVER_BINARY) ./$(CMD_DIR)/$(TEST_SERVER_BINARY)
-	@echo "Build complete: $(BIN_DIR)/$(TEST_SERVER_BINARY)"
+# $(BIN_DIR)/$(TEST_SERVER_BINARY):
+# 	@echo "Building $(TEST_SERVER_BINARY)..."
+# 	@mkdir -p $(BIN_DIR)
+# 	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(TEST_SERVER_BINARY) ./$(CMD_DIR)/$(TEST_SERVER_BINARY)
+# 	@echo "Build complete: $(BIN_DIR)/$(TEST_SERVER_BINARY)"
 
 # Build all examples
 .PHONY: build-examples
