@@ -168,7 +168,11 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         require(request.status == ValidationStatus.PENDING, "Request not pending");
         require(block.timestamp <= request.deadline, "Request expired");
         require(!hasValidatorResponded[requestId][msg.sender], "Already responded");
-        require(msg.value >= minValidatorStake, "Insufficient validator stake");
+
+        // Calculate minimum stake based on validator reputation
+        uint256 requiredStake = _calculateRequiredStake(msg.sender);
+        require(msg.value >= requiredStake, "Insufficient validator stake");
+
         require(
             request.validationType == ValidationType.STAKE ||
             request.validationType == ValidationType.HYBRID,
@@ -496,6 +500,48 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         if (remainingStake > 0) {
             pendingWithdrawals[request.requester] += remainingStake;
         }
+    }
+
+    /**
+     * @notice Calculate required stake based on validator reputation
+     * @dev New validators require higher stake, experienced validators require less
+     * @param validator The validator address
+     * @return requiredStake The minimum stake required
+     */
+    function _calculateRequiredStake(address validator) private view returns (uint256 requiredStake) {
+        ValidatorStats memory stats = validatorStats[validator];
+
+        // New validators (no history) must use base minimum stake
+        if (stats.totalValidations == 0) {
+            return minValidatorStake;
+        }
+
+        // Calculate success rate (with precision)
+        uint256 successRate = (stats.successfulValidations * PERCENTAGE_BASE * PRECISION_MULTIPLIER)
+            / stats.totalValidations;
+
+        // High reputation validators (>90% success) can stake 50% less
+        if (successRate >= 90 * PRECISION_MULTIPLIER) {
+            return minValidatorStake / 2;
+        }
+        // Medium reputation validators (70-90% success) use base stake
+        else if (successRate >= 70 * PRECISION_MULTIPLIER) {
+            return minValidatorStake;
+        }
+        // Low reputation validators (<70% success) must stake 2x
+        else {
+            return minValidatorStake * 2;
+        }
+    }
+
+    /**
+     * @notice Get required stake for a validator (public view function)
+     * @dev Allows validators to check their required stake before submitting
+     * @param validator The validator address
+     * @return requiredStake The minimum stake required
+     */
+    function getRequiredStake(address validator) external view returns (uint256) {
+        return _calculateRequiredStake(validator);
     }
 
     /**

@@ -415,14 +415,30 @@ contract SageRegistryV2 is ISageRegistry, Ownable2Step {
     }
     
     /**
-     * @notice Deactivate an agent
+     * @notice Deactivate an agent by agent ID
      */
     function deactivateAgent(bytes32 agentId) external onlyAgentOwner(agentId) {
         require(agents[agentId].active, "Agent already inactive");
-        
+
         agents[agentId].active = false;
         agents[agentId].updatedAt = block.timestamp;
-        
+
+        emit AgentDeactivated(agentId, msg.sender, block.timestamp);
+    }
+
+    /**
+     * @notice Deactivate an agent by DID (more efficient)
+     * @dev Uses O(1) DID lookup instead of iterating through agents
+     */
+    function deactivateAgentByDID(string calldata did) external {
+        bytes32 agentId = didToAgentId[did];
+        require(agentId != bytes32(0), "Agent not found");
+        require(agents[agentId].owner == msg.sender, "Not agent owner");
+        require(agents[agentId].active, "Agent already inactive");
+
+        agents[agentId].active = false;
+        agents[agentId].updatedAt = block.timestamp;
+
         emit AgentDeactivated(agentId, msg.sender, block.timestamp);
     }
     
