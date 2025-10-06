@@ -1,3 +1,21 @@
+// Copyright (C) 2025 sage-x-project
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+
 // MCP Calculator Tool Server with SAGE Security
 package main
 
@@ -34,7 +52,7 @@ func main() {
 		w.Write([]byte("OK"))
 	})
 
-	fmt.Println("🔐 SAGE-secured MCP Calculator Tool Server")
+	fmt.Println(" SAGE-secured MCP Calculator Tool Server")
 	fmt.Println("📍 Listening on http://localhost:8080")
 	fmt.Println("")
 	fmt.Println("Available endpoints:")
@@ -43,10 +61,10 @@ func main() {
 	fmt.Println("  GET  /health                   - Health check")
 	fmt.Println("")
 	fmt.Println("Security features:")
-	fmt.Println("  ✅ All requests must be signed with SAGE")
-	fmt.Println("  ✅ Agent identity verified via blockchain DID")
-	fmt.Println("  ✅ Agent capabilities checked before execution")
-	fmt.Println("  ✅ Responses are signed for authenticity")
+	fmt.Println("   All requests must be signed with SAGE")
+	fmt.Println("   Agent identity verified via blockchain DID")
+	fmt.Println("   Agent capabilities checked before execution")
+	fmt.Println("   Responses are signed for authenticity")
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }

@@ -1,3 +1,21 @@
+// Copyright (C) 2025 sage-x-project
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+
 // AI Agent Client with SAGE Security
 package main
 
@@ -7,7 +25,7 @@ import (
 )
 
 func main() {
-	fmt.Println("🤖 AI Agent with SAGE Security")
+	fmt.Println("AI Agent with SAGE Security")
 	fmt.Println("================================")
 	
 	// Create SAGE client - just one line!
@@ -17,7 +35,7 @@ func main() {
 	}
 
 	// Example 1: Addition
-	fmt.Println("\n📊 Calling Calculator Tool - Addition")
+	fmt.Println("\nCalling Calculator Tool - Addition")
 	result, err := client.CallTool("http://localhost:8080/tools/calculator/execute", map[string]interface{}{
 		"tool":      "calculator",
 		"operation": "add",
@@ -28,13 +46,13 @@ func main() {
 	})
 	
 	if err != nil {
-		fmt.Printf("❌ Error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("✅ Result: %v\n", result)
+		fmt.Printf("Result: %v\n", result)
 	}
 
 	// Example 2: Division
-	fmt.Println("\n📊 Calling Calculator Tool - Division")
+	fmt.Println("\nCalling Calculator Tool - Division")
 	result, err = client.CallTool("http://localhost:8080/tools/calculator/execute", map[string]interface{}{
 		"tool":      "calculator",
 		"operation": "divide",
@@ -45,13 +63,13 @@ func main() {
 	})
 	
 	if err != nil {
-		fmt.Printf("❌ Error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("✅ Result: %v\n", result)
+		fmt.Printf("Result: %v\n", result)
 	}
 
 	// Example 3: Multiplication
-	fmt.Println("\n📊 Calling Calculator Tool - Multiplication")
+	fmt.Println("\nCalling Calculator Tool - Multiplication")
 	result, err = client.CallTool("http://localhost:8080/tools/calculator/execute", map[string]interface{}{
 		"tool":      "calculator",
 		"operation": "multiply",
@@ -62,10 +80,10 @@ func main() {
 	})
 	
 	if err != nil {
-		fmt.Printf("❌ Error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 	} else {
-		fmt.Printf("✅ Result: %v\n", result)
+		fmt.Printf("Result: %v\n", result)
 	}
 
-	fmt.Println("\n✨ All tool calls were cryptographically signed and verified!")
+	fmt.Println("\nAll tool calls were cryptographically signed and verified!")
 }

@@ -1,3 +1,20 @@
+// Copyright (C) 2025 sage-x-project
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 package main
 
 import (
@@ -5,14 +22,14 @@ import (
 	"fmt"
 	"log"
 	"os"
-	
-	"github.com/sage-x-project/sage/config"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/sage-x-project/sage/config"
 )
 
 func main() {
-	fmt.Println("\n🔍 SAGE Deployment Verification (Go)")
+	fmt.Println("\n SAGE Deployment Verification (Go)")
 	fmt.Println("=" + string(make([]byte, 60)))
 	
 	// 1. Determine network environment
@@ -25,10 +42,10 @@ func main() {
 	// 2. Load configuration
 	cfg, err := config.LoadConfig(network)
 	if err != nil {
-		log.Fatalf("❌ Failed to load config: %v", err)
+		log.Fatalf(" Failed to load config: %v", err)
 	}
 	
-	fmt.Println("\n📋 Blockchain Configuration:")
+	fmt.Println("\n Blockchain Configuration:")
 	fmt.Printf("  RPC URL: %s\n", cfg.NetworkRPC)
 	fmt.Printf("  Chain ID: %s\n", cfg.ChainID)
 	fmt.Printf("  Contract Address: %s\n", cfg.ContractAddr)
@@ -36,9 +53,9 @@ func main() {
 	// 3. Load deployment info
 	deployInfo, err := config.LoadDeploymentInfo(network)
 	if err != nil {
-		fmt.Printf("⚠️  Failed to load deployment info: %v\n", err)
+		fmt.Printf("  Failed to load deployment info: %v\n", err)
 	} else {
-		fmt.Println("\n📊 Deployment Info:")
+		fmt.Println("\n Deployment Info:")
 		fmt.Printf("  Deployer: %s\n", deployInfo.Deployer)
 		fmt.Printf("  Timestamp: %s\n", deployInfo.Timestamp)
 		fmt.Printf("  Registry: %s\n", deployInfo.Contracts.SageRegistryV2.Address)
@@ -46,7 +63,7 @@ func main() {
 		fmt.Printf("  Registered Agents: %d\n", len(deployInfo.Agents))
 		
 		if len(deployInfo.Agents) > 0 {
-			fmt.Println("\n🤖 Agent List:")
+			fmt.Println("\nAgent List:")
 			for _, agent := range deployInfo.Agents {
 				fmt.Printf("  - %s (%s)\n", agent.Name, agent.DID)
 			}
@@ -57,24 +74,24 @@ func main() {
 	fmt.Println("\n🔗 Blockchain Connection Test:")
 	client, err := ethclient.Dial(cfg.NetworkRPC)
 	if err != nil {
-		log.Fatalf("❌ Connection failed: %v", err)
+		log.Fatalf(" Connection failed: %v", err)
 	}
 	defer client.Close()
 	
 	// Check chain ID
 	chainID, err := client.ChainID(nil)
 	if err != nil {
-		fmt.Printf("❌ Failed to get Chain ID: %v\n", err)
+		fmt.Printf(" Failed to get Chain ID: %v\n", err)
 	} else {
-		fmt.Printf("  ✅ Chain ID: %s\n", chainID)
+		fmt.Printf("   Chain ID: %s\n", chainID)
 	}
 	
 	// Check latest block
 	block, err := client.BlockNumber(nil)
 	if err != nil {
-		fmt.Printf("❌ Failed to get block number: %v\n", err)
+		fmt.Printf(" Failed to get block number: %v\n", err)
 	} else {
-		fmt.Printf("  ✅ Latest Block: %d\n", block)
+		fmt.Printf("   Latest Block: %d\n", block)
 	}
 	
 	// 5. Check contract code
@@ -82,16 +99,16 @@ func main() {
 		addr := common.HexToAddress(cfg.ContractAddr)
 		code, err := client.CodeAt(nil, addr, nil)
 		if err != nil {
-			fmt.Printf("❌ Failed to get contract code: %v\n", err)
+			fmt.Printf(" Failed to get contract code: %v\n", err)
 		} else if len(code) == 0 {
-			fmt.Printf("⚠️  Contract not deployed or invalid address\n")
+			fmt.Printf("  Contract not deployed or invalid address\n")
 		} else {
-			fmt.Printf("  ✅ Contract Code Size: %d bytes\n", len(code))
+			fmt.Printf("   Contract Code Size: %d bytes\n", len(code))
 		}
 	}
 	
 	// 6. Check environment variables
-	fmt.Println("\n🔐 Environment Variables Status:")
+	fmt.Println("\n Environment Variables Status:")
 	envVars := []string{
 		"SAGE_REGISTRY_ADDRESS",
 		"SAGE_CONTRACT_ADDRESS",
@@ -103,9 +120,9 @@ func main() {
 	for _, envVar := range envVars {
 		value := os.Getenv(envVar)
 		if value != "" {
-			fmt.Printf("  ✅ %s = %s\n", envVar, value)
+			fmt.Printf("   %s = %s\n", envVar, value)
 		} else {
-			fmt.Printf("  ❌ %s (not set)\n", envVar)
+			fmt.Printf("   %s (not set)\n", envVar)
 		}
 	}
 	
@@ -113,14 +130,14 @@ func main() {
 	fmt.Println("\n" + string(make([]byte, 60)) + "=")
 	
 	if cfg.ContractAddr != "" && err == nil {
-		fmt.Println("✅ Verification Successful!")
-		fmt.Println("\n💡 Next Steps:")
+		fmt.Println(" Verification Successful!")
+		fmt.Println("\n Next Steps:")
 		fmt.Println("  1. Test sage-multi-agent")
 		fmt.Println("  2. Test frontend integration")
 		fmt.Println("  3. Run scenario tests")
 	} else {
-		fmt.Println("⚠️  Partial verification failure")
-		fmt.Println("\n💡 Things to Check:")
+		fmt.Println("  Partial verification failure")
+		fmt.Println("\n Things to Check:")
 		fmt.Println("  1. Check if contracts are deployed")
 		fmt.Println("  2. Check if environment variables are set")
 		fmt.Println("  3. Check if network is running")

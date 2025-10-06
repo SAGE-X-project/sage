@@ -1,6 +1,6 @@
 # Quick Start Guide - MCP + SAGE Integration
 
-## 🚀 Fastest Way to See SAGE in Action
+##  Fastest Way to See SAGE in Action
 
 ### 1. Run the Basic Demo (Recommended)
 This demo runs completely standalone with no external dependencies:
@@ -14,9 +14,9 @@ You'll see:
 - A calculator tool secured with SAGE
 - Three demo agents (Alice, Bob, Eve) 
 - Automatic test scenarios showing:
-  - ✅ Trusted agents succeed
-  - ❌ Untrusted agents fail
-  - ❌ Anonymous requests fail
+  -  Trusted agents succeed
+  -  Untrusted agents fail
+  -  Anonymous requests fail
 
 ### 2. Try the Simple Standalone Example
 Shows the difference between insecure and secure endpoints:
@@ -63,7 +63,7 @@ cd ../attacker
 go run . --secure
 ```
 
-## 🔧 Integration Guide
+##  Integration Guide
 
 ### Adding SAGE to Your Tool (3 lines)
 
@@ -85,7 +85,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-## 🎯 Key Concepts
+##  Key Concepts
 
 1. **DIDs** - Every agent has a decentralized identifier
 2. **Signatures** - All requests are cryptographically signed

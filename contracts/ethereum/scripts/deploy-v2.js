@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 async function main() {
-  console.log("🚀 Deploying SageRegistryV2 with Enhanced Public Key Validation...");
+  console.log(" Deploying SageRegistryV2 with Enhanced Public Key Validation...");
   console.log("=" .repeat(60));
   
   // Get the deployer account
@@ -18,30 +18,30 @@ async function main() {
   console.log();
 
   // Deploy SageRegistryV2
-  console.log("📝 Deploying SageRegistryV2...");
+  console.log(" Deploying SageRegistryV2...");
   const SageRegistryV2 = await hre.ethers.getContractFactory("SageRegistryV2");
   const sageRegistry = await SageRegistryV2.deploy();
   await sageRegistry.waitForDeployment();
   
   const registryAddress = await sageRegistry.getAddress();
-  console.log("✅ SageRegistryV2 deployed to:", registryAddress);
+  console.log(" SageRegistryV2 deployed to:", registryAddress);
   console.log();
 
   // Deploy SageVerificationHook
-  console.log("📝 Deploying SageVerificationHook...");
+  console.log(" Deploying SageVerificationHook...");
   const SageVerificationHook = await hre.ethers.getContractFactory("SageVerificationHook");
   const verificationHook = await SageVerificationHook.deploy();
   await verificationHook.waitForDeployment();
   
   const hookAddress = await verificationHook.getAddress();
-  console.log("✅ SageVerificationHook deployed to:", hookAddress);
+  console.log(" SageVerificationHook deployed to:", hookAddress);
   console.log();
 
   // Configure hooks
-  console.log("🔧 Configuring hooks...");
+  console.log(" Configuring hooks...");
   const tx = await sageRegistry.setBeforeRegisterHook(hookAddress);
   await tx.wait();
-  console.log("✅ BeforeRegisterHook set to:", hookAddress);
+  console.log(" BeforeRegisterHook set to:", hookAddress);
   console.log();
 
   // Save deployment info
@@ -87,28 +87,28 @@ async function main() {
   );
 
   console.log("=" .repeat(60));
-  console.log("🎉 Deployment Complete!");
+  console.log(" Deployment Complete!");
   console.log("=" .repeat(60));
   console.log();
-  console.log("📋 Summary:");
+  console.log(" Summary:");
   console.log("  • SageRegistryV2:", registryAddress);
   console.log("  • SageVerificationHook:", hookAddress);
   console.log("  • Network:", network.name);
   console.log("  • Chain ID:", network.chainId);
   console.log();
-  console.log("✨ Key Improvements:");
-  console.log("  ✅ Public key format validation (0x04, 0x02, 0x03)");
-  console.log("  ✅ Zero key prevention");
-  console.log("  ✅ Key ownership proof via signature");
-  console.log("  ✅ Key revocation functionality");
-  console.log("  ✅ Ed25519 rejection (on-chain limitation)");
+  console.log(" Key Improvements:");
+  console.log("   Public key format validation (0x04, 0x02, 0x03)");
+  console.log("   Zero key prevention");
+  console.log("   Key ownership proof via signature");
+  console.log("   Key revocation functionality");
+  console.log("   Ed25519 rejection (on-chain limitation)");
   console.log();
-  console.log("📝 Deployment info saved to:", path.join(deploymentPath, fileName));
+  console.log(" Deployment info saved to:", path.join(deploymentPath, fileName));
   
   // Verify contracts if on testnet/mainnet
   if (network.name !== "localhost" && network.name !== "hardhat") {
     console.log();
-    console.log("🔍 Preparing for contract verification...");
+    console.log(" Preparing for contract verification...");
     console.log("Run the following commands to verify:");
     console.log();
     console.log(`npx hardhat verify --network ${network.name} ${registryAddress}`);

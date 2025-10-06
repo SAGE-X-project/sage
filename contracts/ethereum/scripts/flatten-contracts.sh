@@ -7,7 +7,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔧 Flattening Smart Contracts for Verification${NC}"
+echo -e "${BLUE} Flattening Smart Contracts for Verification${NC}"
 echo "================================================"
 
 # Create flattened directory if it doesn't exist
@@ -23,7 +23,7 @@ sed -i.bak '/SPDX-License-Identifier/d' flattened/SageRegistryV2_flat.sol
 sed -i.bak '1s/^/\/\/ SPDX-License-Identifier: MIT\n/' flattened/SageRegistryV2_flat.sol
 rm flattened/SageRegistryV2_flat.sol.bak
 
-echo -e "${GREEN}✅ SageRegistryV2 flattened${NC}"
+echo -e "${GREEN} SageRegistryV2 flattened${NC}"
 
 # Flatten SageVerificationHook
 echo -e "\n${YELLOW}📄 Flattening SageVerificationHook.sol...${NC}"
@@ -35,7 +35,7 @@ sed -i.bak '/SPDX-License-Identifier/d' flattened/SageVerificationHook_flat.sol
 sed -i.bak '1s/^/\/\/ SPDX-License-Identifier: MIT\n/' flattened/SageVerificationHook_flat.sol
 rm flattened/SageVerificationHook_flat.sol.bak
 
-echo -e "${GREEN}✅ SageVerificationHook flattened${NC}"
+echo -e "${GREEN} SageVerificationHook flattened${NC}"
 
 # Create verification instructions
 cat > flattened/VERIFICATION_INSTRUCTIONS.md << 'EOF'
@@ -111,13 +111,13 @@ npx hardhat run scripts/verify-contracts.js --network kairos
 - Alternatively, use the Hardhat verify plugin
 EOF
 
-echo -e "\n${GREEN}✅ All contracts flattened successfully!${NC}"
+echo -e "\n${GREEN} All contracts flattened successfully!${NC}"
 echo -e "\n${BLUE}📁 Flattened contracts saved in:${NC}"
 echo "   - flattened/SageRegistryV2_flat.sol"
 echo "   - flattened/SageVerificationHook_flat.sol"
 echo "   - flattened/VERIFICATION_INSTRUCTIONS.md"
 
-echo -e "\n${YELLOW}📝 Next Steps:${NC}"
+echo -e "\n${YELLOW} Next Steps:${NC}"
 echo "1. Review the flattened contracts"
 echo "2. Follow instructions in VERIFICATION_INSTRUCTIONS.md"
 echo "3. Or run: npx hardhat run scripts/verify-contracts.js --network kairos"

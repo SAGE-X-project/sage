@@ -1,4 +1,4 @@
-# 🔍 Agent 조회 명령어 모음
+#  Agent 조회 명령어 모음
 
 ## 1️⃣ 직접 JavaScript 실행 (Node.js)
 

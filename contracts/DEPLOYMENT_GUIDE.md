@@ -1,10 +1,10 @@
 # SAGE Contract Deployment Guide
 
-## 📋 Overview
+## Overview
 
 This guide explains how to deploy and manage SAGE smart contracts across different networks.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Local Development
 
@@ -61,7 +61,7 @@ contracts/
 │       └── latest.json             # Most recent deployment
 ```
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -94,23 +94,26 @@ Networks are pre-configured in `hardhat.config.js`:
 - **kairos**: Kaia testnet (Chain ID: 1001)
 - **kaia/cypress**: Kaia mainnet (Chain ID: 8217)
 
-## 📝 Deployment Process
+## Deployment Process
 
 ### Unified Deployment Script
 
 The `deploy-unified.js` script handles:
 
 1. **Contract Deployment**
+
    - Deploys SageRegistryV2 (or SageRegistryTest for local)
    - Deploys SageVerificationHook
    - Configures hooks
 
 2. **Agent Registration** (for test networks)
+
    - Registers Root Agent
    - Registers Ordering Agent
    - Registers Planning Agent
 
 3. **Information Management**
+
    - Saves deployment info to JSON
    - Generates environment variables
    - Creates verification data
@@ -131,7 +134,7 @@ deployments/
     └── {network}-agents-*.json  # Registered agent details
 ```
 
-## 🤖 Agent Management
+## Agent Management
 
 ### Register Agents Separately
 
@@ -151,17 +154,17 @@ Agents are configured in `scripts/register-agents.js`:
 const AGENT_CONFIGS = {
   local: [
     {
-      did: "did:sage:local:root",
-      name: "Root Agent",
-      endpoint: "http://localhost:3001",
-      capabilities: ["routing", "management"]
-    }
+      did: 'did:sage:local:root',
+      name: 'Root Agent',
+      endpoint: 'http://localhost:3001',
+      capabilities: ['routing', 'management'],
+    },
     // ...
-  ]
-}
+  ],
+};
 ```
 
-## 🔍 Verification
+## Verification
 
 ### Verify Deployment
 
@@ -183,14 +186,16 @@ npm run verify:kairos
 npm run verify:kaia
 ```
 
-## 🔐 Security Considerations
+## Security Considerations
 
 ### Local Development
+
 - Uses SageRegistryTest with simplified validation
 - Test mode allows easy agent registration
 - NOT FOR PRODUCTION USE
 
 ### Production
+
 - Uses full SageRegistryV2 with cryptographic validation
 - Requires proper key ownership proof
 - Implements registration cooldown
@@ -201,14 +206,17 @@ npm run verify:kaia
 ### Common Issues
 
 1. **"Key ownership not proven"**
+
    - Ensure signature matches the public key owner
    - Check you're using correct contract version
 
 2. **"Registration cooldown active"**
+
    - Wait for cooldown period (default: 1 block)
    - Use different addresses for multiple agents
 
 3. **"Maximum agents reached"**
+
    - Each address can register limited agents
    - Use multiple addresses if needed
 
@@ -224,7 +232,7 @@ npm run verify:kaia
   - Testnet: 5,000,000
   - Mainnet: 8,000,000
 
-## 📊 Integration with Go Applications
+## Integration with Go Applications
 
 ### Load Deployment Info
 
@@ -259,6 +267,7 @@ export SAGE_REGISTRY_ADDRESS=0x...
 ## 🆘 Support
 
 For issues or questions:
+
 1. Check deployment logs in `deployments/`
 2. Review error messages in console
 3. Verify network connectivity

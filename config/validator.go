@@ -1,3 +1,20 @@
+// Copyright (C) 2025 sage-x-project
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
 package config
 
 import (
@@ -227,7 +244,7 @@ func ValidateFile(path string) ([]ValidationError, error) {
 // PrintValidationErrors prints validation errors in a formatted way
 func PrintValidationErrors(errors []ValidationError) {
 	if len(errors) == 0 {
-		fmt.Println("✅ Configuration is valid")
+		fmt.Println(" Configuration is valid")
 		return
 	}
 
@@ -250,14 +267,14 @@ func PrintValidationErrors(errors []ValidationError) {
 	// Print errors first
 	for _, e := range errors {
 		if e.Level == "error" {
-			fmt.Printf("❌ ERROR: %s - %s\n", e.Field, e.Message)
+			fmt.Printf(" ERROR: %s - %s\n", e.Field, e.Message)
 		}
 	}
 
 	// Then warnings
 	for _, e := range errors {
 		if e.Level == "warning" {
-			fmt.Printf("⚠️  WARNING: %s - %s\n", e.Field, e.Message)
+			fmt.Printf("  WARNING: %s - %s\n", e.Field, e.Message)
 		}
 	}
 

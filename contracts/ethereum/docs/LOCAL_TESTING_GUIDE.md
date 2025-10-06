@@ -2,7 +2,7 @@
 
 로컬 환경에서 SAGE 컨트랙트를 배포하고 테스트하는 방법입니다.
 
-## 🚀 Quick Start
+##  Quick Start
 
 가장 빠르게 시작하는 방법:
 
@@ -16,13 +16,13 @@
 # 옵션 3 선택
 ```
 
-## 📋 Prerequisites
+##  Prerequisites
 
 - Node.js v18+ 
 - npm or yarn
 - 의존성 설치: `npm install`
 
-## 🔧 Step-by-Step Guide
+##  Step-by-Step Guide
 
 ### 1️⃣ Hardhat 로컬 노드 시작
 
@@ -92,7 +92,7 @@ npx hardhat run scripts/interact-local.js --network localhost
 
 이렇게 하면 전체 통합 테스트가 실행됩니다.
 
-## 📝 Example: Agent Registration
+##  Example: Agent Registration
 
 ```javascript
 // 1. 에이전트 데이터 준비
@@ -121,7 +121,7 @@ await registry.registerAgent(
 );
 ```
 
-## 🧪 Testing Features
+##  Testing Features
 
 ### V2 향상된 기능들:
 
@@ -171,7 +171,7 @@ npx hardhat node
 lsof -ti:8545 | xargs kill -9
 ```
 
-## 📊 Gas Usage
+##  Gas Usage
 
 대략적인 가스 사용량:
 - Agent Registration: ~620,000 gas
@@ -179,7 +179,7 @@ lsof -ti:8545 | xargs kill -9
 - Key Revocation: ~66,000 gas
 - Agent Deactivation: ~50,000 gas
 
-## 🔍 Monitoring
+##  Monitoring
 
 로그 확인:
 ```bash
@@ -230,7 +230,7 @@ npx hardhat console --network localhost
 > await registry.owner()
 ```
 
-## 🎯 Next Steps
+##  Next Steps
 
 1. 로컬 테스트 완료 후 테스트넷 배포
 2. Frontend 애플리케이션 연동

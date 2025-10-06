@@ -1,3 +1,21 @@
+// Copyright (C) 2025 sage-x-project
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+
 // VULNERABLE Chat Server - DO NOT USE IN PRODUCTION!
 // This example shows what NOT to do
 package main
@@ -25,7 +43,7 @@ type ChatResponse struct {
 // Simulated message processing
 func processMessage(msg ChatMessage) ChatResponse {
 	// In a real system, this could execute commands, access databases, etc.
-	fmt.Printf("⚠️  Received message from: %s\n", msg.AgentID)
+	fmt.Printf("  Received message from: %s\n", msg.AgentID)
 	fmt.Printf("💬 Message: %s\n", msg.Message)
 	
 	// Simulate some processing
@@ -56,7 +74,7 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 	// NO REPLAY PROTECTION! Old messages can be resent!
 	
 	response := processMessage(msg)
-	fmt.Println("✅ Processed successfully (THIS IS BAD!)")
+	fmt.Println(" Processed successfully (THIS IS BAD!)")
 	
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
@@ -64,14 +82,14 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	fmt.Println("🚨 VULNERABLE Chat Server (NO SECURITY)")
-	fmt.Println("⚠️  DO NOT USE IN PRODUCTION!")
+	fmt.Println("  DO NOT USE IN PRODUCTION!")
 	fmt.Println("📍 Listening on http://localhost:8082")
 	fmt.Println("")
 	fmt.Println("Problems with this server:")
-	fmt.Println("  ❌ No identity verification")
-	fmt.Println("  ❌ No message integrity checks")
-	fmt.Println("  ❌ No replay attack protection")
-	fmt.Println("  ❌ Anyone can impersonate any agent")
+	fmt.Println("   No identity verification")
+	fmt.Println("   No message integrity checks")
+	fmt.Println("   No replay attack protection")
+	fmt.Println("   Anyone can impersonate any agent")
 	fmt.Println("")
 	
 	http.HandleFunc("/chat", handleChat)

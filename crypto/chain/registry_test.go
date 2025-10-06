@@ -1,3 +1,21 @@
+// Copyright (C) 2025 sage-x-project
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+// SPDX-License-Identifier: LGPL-3.0-or-later
+
+
 package chain
 
 import (
@@ -75,17 +93,97 @@ func TestChainRegistry(t *testing.T) {
 }
 
 func TestGlobalRegistry(t *testing.T) {
-	// Skip this test as it requires importing the provider packages
-	// which creates an import cycle. The global registry is tested
-	// via integration tests in cmd/sage-crypto
-	t.Skip("Skipping global registry test to avoid import cycle")
+	// Create a new registry for testing to avoid import cycle
+	// We test the global registry functions by creating a new registry
+
+	// Create fresh registry
+	testRegistry := NewRegistry()
+
+	// Register mock providers
+	mockEth := &mockProvider{chainType: ChainTypeEthereum}
+	mockSol := &mockProvider{chainType: ChainTypeSolana}
+
+	err := testRegistry.RegisterProvider(mockEth)
+	assert.NoError(t, err, "Should register Ethereum provider")
+
+	err = testRegistry.RegisterProvider(mockSol)
+	assert.NoError(t, err, "Should register Solana provider")
+
+	// Test GetProvider
+	provider, err := testRegistry.GetProvider(ChainTypeEthereum)
+	assert.NoError(t, err, "Should get Ethereum provider without error")
+	assert.NotNil(t, provider, "Should get Ethereum provider")
+	assert.Equal(t, ChainTypeEthereum, provider.ChainType())
+
+	provider, err = testRegistry.GetProvider(ChainTypeSolana)
+	assert.NoError(t, err, "Should get Solana provider without error")
+	assert.NotNil(t, provider, "Should get Solana provider")
+	assert.Equal(t, ChainTypeSolana, provider.ChainType())
+
+	// Test ListProviders
+	providers := testRegistry.ListProviders()
+	assert.Len(t, providers, 2, "Should have 2 providers")
+	assert.Contains(t, providers, ChainTypeEthereum)
+	assert.Contains(t, providers, ChainTypeSolana)
+
+	// Test duplicate registration
+	err = testRegistry.RegisterProvider(mockEth)
+	assert.Error(t, err, "Should error on duplicate registration")
+
+	// Test getting non-existent provider
+	provider, err = testRegistry.GetProvider(ChainType("unknown"))
+	assert.Error(t, err, "Should error for unknown chain")
+	assert.Nil(t, provider, "Should return nil provider for unknown chain")
 }
 
 func TestAddressGeneration(t *testing.T) {
-	// Skip this test as it requires the global registry to have providers registered
-	// which creates an import cycle. The address generation is tested
-	// via integration tests in cmd/sage-crypto
-	t.Skip("Skipping address generation test to avoid import cycle")
+	// Test using mock provider to avoid import cycle
+	// Create a new registry instance for testing
+
+	testRegistry := NewRegistry()
+
+	// Register mock provider
+	mockEth := &mockProvider{chainType: ChainTypeEthereum}
+	err := testRegistry.RegisterProvider(mockEth)
+	assert.NoError(t, err, "Should register mock provider")
+
+	// Generate a test key (using ed25519 for simplicity)
+	publicKey := []byte("test-public-key-32-bytes-padding")
+
+	// Test GenerateAddresses (multiple chains)
+	addresses, err := testRegistry.GenerateAddresses(publicKey)
+	assert.NoError(t, err, "Should generate addresses")
+	assert.NotNil(t, addresses, "Addresses map should not be nil")
+	assert.Len(t, addresses, 1, "Should have one address for registered chain")
+
+	ethAddress, exists := addresses[ChainTypeEthereum]
+	assert.True(t, exists, "Should have Ethereum address")
+	assert.Equal(t, "mock-address", ethAddress.Value)
+	assert.Equal(t, ChainTypeEthereum, ethAddress.Chain)
+	assert.Equal(t, NetworkEthereumMainnet, ethAddress.Network)
+
+	// Test with additional provider
+	mockSol := &mockProvider{chainType: ChainTypeSolana}
+	err = testRegistry.RegisterProvider(mockSol)
+	assert.NoError(t, err, "Should register Solana provider")
+
+	addresses, err = testRegistry.GenerateAddresses(publicKey)
+	assert.NoError(t, err, "Should generate addresses for multiple chains")
+	assert.Len(t, addresses, 2, "Should have addresses for both chains")
+
+	// Test individual provider address generation
+	provider, err := testRegistry.GetProvider(ChainTypeEthereum)
+	assert.NoError(t, err, "Should get provider")
+
+	address, err := provider.GenerateAddress(publicKey, NetworkEthereumMainnet)
+	assert.NoError(t, err, "Should generate address")
+	assert.NotNil(t, address, "Address should not be nil")
+	assert.Equal(t, "mock-address", address.Value)
+
+	// Test with nil public key
+	address, err = provider.GenerateAddress(nil, NetworkEthereumMainnet)
+	assert.NoError(t, err, "Mock provider accepts nil key")
+	assert.NotNil(t, address, "Address should not be nil")
 }
 
 // mockProvider is a mock implementation for testing
