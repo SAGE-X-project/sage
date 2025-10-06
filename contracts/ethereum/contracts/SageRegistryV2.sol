@@ -45,10 +45,12 @@ contract SageRegistryV2 is ISageRegistry {
     uint256 private constant MAX_AGENTS_PER_OWNER = 100;
     uint256 private constant MIN_PUBLIC_KEY_LENGTH = 32;
     uint256 private constant MAX_PUBLIC_KEY_LENGTH = 65;
+    uint256 private constant HOOK_GAS_LIMIT = 50000; // Gas limit for hook calls
     
     // Events
     event KeyValidated(bytes32 indexed keyHash, address indexed owner);
     event KeyRevoked(bytes32 indexed keyHash, address indexed owner);
+    event HookFailed(address indexed hook, string reason);
     
     // Modifiers
     modifier onlyOwner() {
@@ -314,7 +316,7 @@ contract SageRegistryV2 is ISageRegistry {
     }
     
     /**
-     * @notice Internal function to execute before register hook
+     * @notice Internal function to execute before register hook with gas limits and error handling
      */
     function _executeBeforeHook(
         bytes32 agentId,
@@ -324,10 +326,24 @@ contract SageRegistryV2 is ISageRegistry {
         if (beforeRegisterHook != address(0)) {
             bytes memory hookData = abi.encode(did, publicKey);
             emit BeforeRegisterHook(agentId, msg.sender, hookData);
-            
-            (bool success, string memory reason) = IRegistryHook(beforeRegisterHook)
-                .beforeRegister(agentId, msg.sender, hookData);
-            require(success, reason);
+
+            // Use try-catch with gas limit to prevent DoS and handle failures
+            try IRegistryHook(beforeRegisterHook).beforeRegister{gas: HOOK_GAS_LIMIT}(
+                agentId,
+                msg.sender,
+                hookData
+            ) returns (bool success, string memory reason) {
+                // If hook returns false, revert with the reason
+                require(success, reason);
+            } catch Error(string memory reason) {
+                // Catch revert with reason
+                emit HookFailed(beforeRegisterHook, reason);
+                revert(reason);
+            } catch (bytes memory /* lowLevelData */) {
+                // Catch other errors (out of gas, etc.)
+                emit HookFailed(beforeRegisterHook, "Hook call failed");
+                revert("Hook call failed");
+            }
         }
     }
     
@@ -359,7 +375,8 @@ contract SageRegistryV2 is ISageRegistry {
     }
     
     /**
-     * @notice Internal function to execute after register hook
+     * @notice Internal function to execute after register hook with gas limits and error handling
+     * @dev After hooks are non-critical, so failures are logged but don't revert the transaction
      */
     function _executeAfterHook(
         bytes32 agentId,
@@ -368,8 +385,22 @@ contract SageRegistryV2 is ISageRegistry {
     ) private {
         if (afterRegisterHook != address(0)) {
             bytes memory hookData = abi.encode(did, publicKey);
-            IRegistryHook(afterRegisterHook).afterRegister(agentId, msg.sender, hookData);
-            emit AfterRegisterHook(agentId, msg.sender, hookData);
+
+            // Use try-catch with gas limit - after hooks should not block registration
+            try IRegistryHook(afterRegisterHook).afterRegister{gas: HOOK_GAS_LIMIT}(
+                agentId,
+                msg.sender,
+                hookData
+            ) {
+                // Hook executed successfully
+                emit AfterRegisterHook(agentId, msg.sender, hookData);
+            } catch Error(string memory reason) {
+                // Log failure but don't revert - after hooks are non-critical
+                emit HookFailed(afterRegisterHook, reason);
+            } catch (bytes memory) {
+                // Log failure for out of gas or other errors
+                emit HookFailed(afterRegisterHook, "Hook call failed");
+            }
         }
     }
     
