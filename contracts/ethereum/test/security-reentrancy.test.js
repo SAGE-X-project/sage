@@ -15,7 +15,7 @@ describe("Security: Reentrancy Protection", function () {
     let identityRegistry;
     let reputationRegistry;
     let validationRegistry;
-    let reentrancyAttacker;
+    let clientWallet, val1Wallet, val2Wallet; // Actual registered wallets
     let owner;
     let agent, agentWallet;
     let validator1, validator2;
@@ -107,13 +107,60 @@ describe("Security: Reentrancy Protection", function () {
             agentCapabilities,
             signature
         );
+
+        // Register client as agent (using actual signer's key)
+        clientWallet = ethers.Wallet.createRandom().connect(ethers.provider);
+        const clientPubKey = ethers.getBytes(clientWallet.signingKey.publicKey);
+        await owner.sendTransaction({ to: clientWallet.address, value: ethers.parseEther("10") });
+        const clientSig = await createRegistrationSignature(clientWallet, clientPubKey);
+
+        await sageRegistry.connect(clientWallet).registerAgent(
+            "did:sage:client123",
+            "Client Agent",
+            "Client test agent",
+            "https://example.com/client",
+            clientPubKey,
+            "client",
+            clientSig
+        );
+
+        // Register validators as agents (using actual signer's keys)
+        val1Wallet = ethers.Wallet.createRandom().connect(ethers.provider);
+        const val1PubKey = ethers.getBytes(val1Wallet.signingKey.publicKey);
+        await owner.sendTransaction({ to: val1Wallet.address, value: ethers.parseEther("10") });
+        const val1Sig = await createRegistrationSignature(val1Wallet, val1PubKey);
+
+        await sageRegistry.connect(val1Wallet).registerAgent(
+            "did:sage:validator1",
+            "Validator 1",
+            "Validator test agent 1",
+            "https://example.com/val1",
+            val1PubKey,
+            "validation",
+            val1Sig
+        );
+
+        val2Wallet = ethers.Wallet.createRandom().connect(ethers.provider);
+        const val2PubKey = ethers.getBytes(val2Wallet.signingKey.publicKey);
+        await owner.sendTransaction({ to: val2Wallet.address, value: ethers.parseEther("10") });
+        const val2Sig = await createRegistrationSignature(val2Wallet, val2PubKey);
+
+        await sageRegistry.connect(val2Wallet).registerAgent(
+            "did:sage:validator2",
+            "Validator 2",
+            "Validator test agent 2",
+            "https://example.com/val2",
+            val2PubKey,
+            "validation",
+            val2Sig
+        );
     });
 
     describe("CRITICAL-1: Reentrancy in requestValidation", function () {
         it("Should prevent reentrancy attack during validation request", async function () {
             const taskId = ethers.id("test-task-1");
             const dataHash = ethers.id("test-data");
-            const deadline = Math.floor(Date.now() / 1000) + 3600;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
 
             // Fund attacker
             await owner.sendTransaction({
@@ -141,10 +188,10 @@ describe("Security: Reentrancy Protection", function () {
         it("Should allow normal validation request", async function () {
             const taskId = ethers.id("test-task-2");
             const dataHash = ethers.id("test-data");
-            const deadline = Math.floor(Date.now() / 1000) + 3600;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
 
             await expect(
-                validationRegistry.connect(client).requestValidation(
+                validationRegistry.connect(clientWallet).requestValidation(
                     taskId,
                     agentWallet.address,
                     dataHash,
@@ -164,9 +211,9 @@ describe("Security: Reentrancy Protection", function () {
             // Create a validation request
             const taskId = ethers.id("test-task-3");
             dataHash = ethers.id("test-data");
-            const deadline = Math.floor(Date.now() / 1000) + 3600;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
 
-            requestId = await validationRegistry.connect(client).requestValidation.staticCall(
+            requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -175,7 +222,7 @@ describe("Security: Reentrancy Protection", function () {
                 { value: ethers.parseEther("0.1") }
             );
 
-            await validationRegistry.connect(client).requestValidation(
+            await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -208,7 +255,7 @@ describe("Security: Reentrancy Protection", function () {
 
         it("Should allow normal stake validation submission", async function () {
             await expect(
-                validationRegistry.connect(validator1).submitStakeValidation(
+                validationRegistry.connect(val1Wallet).submitStakeValidation(
                     requestId,
                     dataHash,
                     { value: ethers.parseEther("0.1") }
@@ -218,7 +265,7 @@ describe("Security: Reentrancy Protection", function () {
 
         it("Should prevent multiple submissions from same validator", async function () {
             // First submission should succeed
-            await validationRegistry.connect(validator1).submitStakeValidation(
+            await validationRegistry.connect(val1Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
@@ -226,7 +273,7 @@ describe("Security: Reentrancy Protection", function () {
 
             // Second submission should fail
             await expect(
-                validationRegistry.connect(validator1).submitStakeValidation(
+                validationRegistry.connect(val1Wallet).submitStakeValidation(
                     requestId,
                     dataHash,
                     { value: ethers.parseEther("0.1") }
@@ -239,10 +286,10 @@ describe("Security: Reentrancy Protection", function () {
         it("Should handle complete validation flow without reentrancy issues", async function () {
             const taskId = ethers.id("test-task-complete");
             const dataHash = ethers.id("test-data-complete");
-            const deadline = Math.floor(Date.now() / 1000) + 3600;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
 
             // Step 1: Request validation
-            const requestId = await validationRegistry.connect(client).requestValidation.staticCall(
+            const requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -251,7 +298,7 @@ describe("Security: Reentrancy Protection", function () {
                 { value: ethers.parseEther("0.1") }
             );
 
-            await validationRegistry.connect(client).requestValidation(
+            await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -261,14 +308,14 @@ describe("Security: Reentrancy Protection", function () {
             );
 
             // Step 2: Validator 1 submits (correct)
-            await validationRegistry.connect(validator1).submitStakeValidation(
+            await validationRegistry.connect(val1Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
             );
 
             // Step 3: Validator 2 submits (correct)
-            await validationRegistry.connect(validator2).submitStakeValidation(
+            await validationRegistry.connect(val2Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
@@ -279,7 +326,7 @@ describe("Security: Reentrancy Protection", function () {
             expect(isComplete).to.be.true;
 
             // Step 5: Get validator stats (protected from reentrancy)
-            const stats1 = await validationRegistry.getValidatorStats(validator1.address);
+            const stats1 = await validationRegistry.getValidatorStats(val1Wallet.address);
             expect(stats1.totalValidations).to.be.gt(0);
         });
     });
@@ -288,10 +335,10 @@ describe("Security: Reentrancy Protection", function () {
         it("Should measure gas cost increase from ReentrancyGuard", async function () {
             const taskId = ethers.id("test-task-gas");
             const dataHash = ethers.id("test-data-gas");
-            const deadline = Math.floor(Date.now() / 1000) + 3600;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
 
             // Measure gas for requestValidation
-            const tx1 = await validationRegistry.connect(client).requestValidation(
+            const tx1 = await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -303,7 +350,7 @@ describe("Security: Reentrancy Protection", function () {
             console.log(`      Gas for requestValidation: ${receipt1.gasUsed.toString()}`);
 
             // Get requestId
-            const requestId = await validationRegistry.connect(client).requestValidation.staticCall(
+            const requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -313,7 +360,7 @@ describe("Security: Reentrancy Protection", function () {
             );
 
             // Measure gas for submitStakeValidation
-            const tx2 = await validationRegistry.connect(validator1).submitStakeValidation(
+            const tx2 = await validationRegistry.connect(val1Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }

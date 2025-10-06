@@ -221,7 +221,9 @@ describe("ERC-8004 Trustless Agents Standard", function () {
 
         describe("Task Authorization", function () {
             it("Should authorize a task", async function () {
-                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                // Use 2 hours (7200s) to meet MIN_DEADLINE_DURATION requirement (1 hour)
+                const currentBlock = await ethers.provider.getBlock('latest');
+                const deadline = currentBlock.timestamp + 7200;
 
                 await expect(
                     reputationRegistry.connect(clientWallet).authorizeTask(
@@ -237,7 +239,8 @@ describe("ERC-8004 Trustless Agents Standard", function () {
             });
 
             it("Should reject duplicate task authorization", async function () {
-                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                const currentBlock = await ethers.provider.getBlock('latest');
+                const deadline = currentBlock.timestamp + 7200;
 
                 await reputationRegistry.connect(clientWallet).authorizeTask(
                     taskId,
@@ -255,7 +258,8 @@ describe("ERC-8004 Trustless Agents Standard", function () {
             });
 
             it("Should reject authorization with expired deadline", async function () {
-                const deadline = Math.floor(Date.now() / 1000) - 3600; // Past deadline
+                const currentBlock = await ethers.provider.getBlock('latest');
+                const deadline = currentBlock.timestamp - 3600; // Past deadline
 
                 await expect(
                     reputationRegistry.connect(clientWallet).authorizeTask(
@@ -272,7 +276,8 @@ describe("ERC-8004 Trustless Agents Standard", function () {
 
             beforeEach(async function () {
                 dataHash = ethers.id("task-output-data");
-                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                const currentBlock = await ethers.provider.getBlock('latest');
+                const deadline = currentBlock.timestamp + 7200;
 
                 await reputationRegistry.connect(clientWallet).authorizeTask(
                     taskId,
@@ -346,7 +351,8 @@ describe("ERC-8004 Trustless Agents Standard", function () {
                 for (let i = 0; i < 3; i++) {
                     const taskId = ethers.id(`task-${i}`);
                     const dataHash = ethers.id(`output-${i}`);
-                    const deadline = Math.floor(Date.now() / 1000) + 3600;
+                    const currentBlock = await ethers.provider.getBlock('latest');
+                    const deadline = currentBlock.timestamp + 7200;
 
                     await reputationRegistry.connect(clientWallet).authorizeTask(
                         taskId,
@@ -405,7 +411,8 @@ describe("ERC-8004 Trustless Agents Standard", function () {
 
         describe("Validation Request", function () {
             it("Should create stake-based validation request", async function () {
-                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                const currentBlock = await ethers.provider.getBlock('latest');
+                const deadline = currentBlock.timestamp + 7200;
                 const stake = ethers.parseEther("0.1");
 
                 await expect(
@@ -421,7 +428,8 @@ describe("ERC-8004 Trustless Agents Standard", function () {
             });
 
             it("Should reject validation request with insufficient stake", async function () {
-                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                const currentBlock = await ethers.provider.getBlock('latest');
+                const deadline = currentBlock.timestamp + 7200;
                 const stake = ethers.parseEther("0.001"); // Too low
 
                 await expect(
@@ -441,7 +449,8 @@ describe("ERC-8004 Trustless Agents Standard", function () {
             let requestId;
 
             beforeEach(async function () {
-                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                const currentBlock = await ethers.provider.getBlock('latest');
+                const deadline = currentBlock.timestamp + 7200;
                 const stake = ethers.parseEther("0.1");
 
                 const tx = await validationRegistry.connect(clientWallet).requestValidation(
@@ -530,7 +539,8 @@ describe("ERC-8004 Trustless Agents Standard", function () {
 
         describe("Validator Statistics", function () {
             it("Should track validator stats after validation", async function () {
-                const deadline = Math.floor(Date.now() / 1000) + 3600;
+                const currentBlock = await ethers.provider.getBlock('latest');
+                const deadline = currentBlock.timestamp + 7200;
                 const stake = ethers.parseEther("0.1");
 
                 const tx = await validationRegistry.connect(clientWallet).requestValidation(
@@ -581,7 +591,8 @@ describe("ERC-8004 Trustless Agents Standard", function () {
 
             // 3. Authorize task
             const taskId = ethers.id("full-lifecycle-task");
-            const deadline = Math.floor(Date.now() / 1000) + 3600;
+            const currentBlock = await ethers.provider.getBlock('latest');
+            const deadline = currentBlock.timestamp + 7200;
 
             await reputationRegistry.connect(clientWallet).authorizeTask(
                 taskId,

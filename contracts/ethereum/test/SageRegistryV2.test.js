@@ -484,10 +484,10 @@ describe("SageRegistryV2 - Enhanced Public Key Validation", function () {
       
       const receipt = await tx.wait();
       console.log(`      Gas used for enhanced registration: ${receipt.gasUsed.toString()}`);
-      
-      // Should be reasonable (under 700k due to enhanced validation)
-      // The additional validation adds significant gas cost but improves security
-      expect(receipt.gasUsed).to.be.lt(700000);
+
+      // Should be reasonable (under 750k due to enhanced validation + DID validation + Pausable)
+      // Phase 3 security features (DID validation, Pausable) add ~30k gas overhead
+      expect(receipt.gasUsed).to.be.lt(750000);
     });
   });
 

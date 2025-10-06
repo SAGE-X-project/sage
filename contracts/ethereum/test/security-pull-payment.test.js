@@ -18,6 +18,7 @@ describe("Security: Pull Payment Pattern", function () {
     let agent, agentWallet;
     let validator1, validator2;
     let client;
+    let clientWallet, val1Wallet, val2Wallet; // Actual registered wallets
 
     // Helper function to create a test wallet with proper key format
     function createTestWallet() {
@@ -100,16 +101,63 @@ describe("Security: Pull Payment Pattern", function () {
             agentCapabilities,
             signature
         );
+
+        // Register client as agent (using actual signer's key)
+        clientWallet = ethers.Wallet.createRandom().connect(ethers.provider);
+        const clientPubKey = ethers.getBytes(clientWallet.signingKey.publicKey);
+        await owner.sendTransaction({ to: clientWallet.address, value: ethers.parseEther("10") });
+        const clientSig = await createRegistrationSignature(clientWallet, clientPubKey);
+
+        await sageRegistry.connect(clientWallet).registerAgent(
+            "did:sage:client123",
+            "Client Agent",
+            "Client test agent",
+            "https://example.com/client",
+            clientPubKey,
+            "client",
+            clientSig
+        );
+
+        // Register validators as agents (using actual signer's keys)
+        val1Wallet = ethers.Wallet.createRandom().connect(ethers.provider);
+        const val1PubKey = ethers.getBytes(val1Wallet.signingKey.publicKey);
+        await owner.sendTransaction({ to: val1Wallet.address, value: ethers.parseEther("10") });
+        const val1Sig = await createRegistrationSignature(val1Wallet, val1PubKey);
+
+        await sageRegistry.connect(val1Wallet).registerAgent(
+            "did:sage:validator1",
+            "Validator 1",
+            "Validator test agent 1",
+            "https://example.com/val1",
+            val1PubKey,
+            "validation",
+            val1Sig
+        );
+
+        val2Wallet = ethers.Wallet.createRandom().connect(ethers.provider);
+        const val2PubKey = ethers.getBytes(val2Wallet.signingKey.publicKey);
+        await owner.sendTransaction({ to: val2Wallet.address, value: ethers.parseEther("10") });
+        const val2Sig = await createRegistrationSignature(val2Wallet, val2PubKey);
+
+        await sageRegistry.connect(val2Wallet).registerAgent(
+            "did:sage:validator2",
+            "Validator 2",
+            "Validator test agent 2",
+            "https://example.com/val2",
+            val2PubKey,
+            "validation",
+            val2Sig
+        );
     });
 
     describe("Pull Payment - Withdraw Function", function () {
         it("Should allow users to withdraw their pending balance", async function () {
             const taskId = ethers.id("test-task-withdraw");
             const dataHash = ethers.id("test-data");
-            const deadline = Math.floor(Date.now() / 1000) + 3600;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
 
             // Create validation request
-            const requestId = await validationRegistry.connect(client).requestValidation.staticCall(
+            const requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -118,7 +166,7 @@ describe("Security: Pull Payment Pattern", function () {
                 { value: ethers.parseEther("0.1") }
             );
 
-            await validationRegistry.connect(client).requestValidation(
+            await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -128,53 +176,53 @@ describe("Security: Pull Payment Pattern", function () {
             );
 
             // Validator submits correct validation
-            await validationRegistry.connect(validator1).submitStakeValidation(
+            await validationRegistry.connect(val1Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
             );
 
             // Second validator submits correct validation to complete
-            await validationRegistry.connect(validator2).submitStakeValidation(
+            await validationRegistry.connect(val2Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
             );
 
             // Check validator has pending withdrawal
-            const pendingAmount = await validationRegistry.getWithdrawableAmount(validator1.address);
+            const pendingAmount = await validationRegistry.getWithdrawableAmount(val1Wallet.address);
             expect(pendingAmount).to.be.gt(0);
 
             // Get initial balance
-            const initialBalance = await ethers.provider.getBalance(validator1.address);
+            const initialBalance = await ethers.provider.getBalance(val1Wallet.address);
 
             // Withdraw funds
-            const tx = await validationRegistry.connect(validator1).withdraw();
+            const tx = await validationRegistry.connect(val1Wallet).withdraw();
             const receipt = await tx.wait();
             const gasUsed = receipt.gasUsed * receipt.gasPrice;
 
             // Check new balance
-            const finalBalance = await ethers.provider.getBalance(validator1.address);
+            const finalBalance = await ethers.provider.getBalance(val1Wallet.address);
             expect(finalBalance).to.equal(initialBalance + pendingAmount - gasUsed);
 
             // Check pending withdrawal is now zero
-            const newPending = await validationRegistry.getWithdrawableAmount(validator1.address);
+            const newPending = await validationRegistry.getWithdrawableAmount(val1Wallet.address);
             expect(newPending).to.equal(0);
         });
 
         it("Should revert when withdrawing with zero balance", async function () {
             await expect(
-                validationRegistry.connect(validator1).withdraw()
+                validationRegistry.connect(val1Wallet).withdraw()
             ).to.be.revertedWith("No funds to withdraw");
         });
 
         it("Should handle multiple validators withdrawing independently", async function () {
             const taskId = ethers.id("test-task-multi-withdraw");
             const dataHash = ethers.id("test-data");
-            const deadline = Math.floor(Date.now() / 1000) + 3600;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
 
             // Create validation request
-            await validationRegistry.connect(client).requestValidation(
+            await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -183,7 +231,7 @@ describe("Security: Pull Payment Pattern", function () {
                 { value: ethers.parseEther("0.2") }
             );
 
-            const requestId = await validationRegistry.connect(client).requestValidation.staticCall(
+            const requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -193,51 +241,51 @@ describe("Security: Pull Payment Pattern", function () {
             );
 
             // Both validators submit
-            await validationRegistry.connect(validator1).submitStakeValidation(
+            await validationRegistry.connect(val1Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
             );
 
-            await validationRegistry.connect(validator2).submitStakeValidation(
+            await validationRegistry.connect(val2Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
             );
 
             // Check both have pending withdrawals
-            const pending1 = await validationRegistry.getWithdrawableAmount(validator1.address);
-            const pending2 = await validationRegistry.getWithdrawableAmount(validator2.address);
+            const pending1 = await validationRegistry.getWithdrawableAmount(val1Wallet.address);
+            const pending2 = await validationRegistry.getWithdrawableAmount(val2Wallet.address);
 
             expect(pending1).to.be.gt(0);
             expect(pending2).to.be.gt(0);
 
             // Validator1 withdraws
-            await validationRegistry.connect(validator1).withdraw();
+            await validationRegistry.connect(val1Wallet).withdraw();
 
             // Validator1 should have 0 pending
-            const newPending1 = await validationRegistry.getWithdrawableAmount(validator1.address);
+            const newPending1 = await validationRegistry.getWithdrawableAmount(val1Wallet.address);
             expect(newPending1).to.equal(0);
 
             // Validator2 should still have pending amount
-            const stillPending2 = await validationRegistry.getWithdrawableAmount(validator2.address);
+            const stillPending2 = await validationRegistry.getWithdrawableAmount(val2Wallet.address);
             expect(stillPending2).to.equal(pending2);
 
             // Validator2 withdraws
-            await validationRegistry.connect(validator2).withdraw();
+            await validationRegistry.connect(val2Wallet).withdraw();
 
             // Both should now have 0 pending
-            const finalPending2 = await validationRegistry.getWithdrawableAmount(validator2.address);
+            const finalPending2 = await validationRegistry.getWithdrawableAmount(val2Wallet.address);
             expect(finalPending2).to.equal(0);
         });
 
         it("Should emit WithdrawalProcessed event", async function () {
             const taskId = ethers.id("test-task-event");
             const dataHash = ethers.id("test-data");
-            const deadline = Math.floor(Date.now() / 1000) + 3600;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
 
             // Create and complete validation
-            await validationRegistry.connect(client).requestValidation(
+            await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -246,7 +294,7 @@ describe("Security: Pull Payment Pattern", function () {
                 { value: ethers.parseEther("0.1") }
             );
 
-            const requestId = await validationRegistry.connect(client).requestValidation.staticCall(
+            const requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -255,24 +303,24 @@ describe("Security: Pull Payment Pattern", function () {
                 { value: ethers.parseEther("0.1") }
             );
 
-            await validationRegistry.connect(validator1).submitStakeValidation(
+            await validationRegistry.connect(val1Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
             );
 
-            await validationRegistry.connect(validator2).submitStakeValidation(
+            await validationRegistry.connect(val2Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
             );
 
             // Withdraw and check event
-            const pendingAmount = await validationRegistry.getWithdrawableAmount(validator1.address);
+            const pendingAmount = await validationRegistry.getWithdrawableAmount(val1Wallet.address);
 
-            await expect(validationRegistry.connect(validator1).withdraw())
+            await expect(validationRegistry.connect(val1Wallet).withdraw())
                 .to.emit(validationRegistry, "WithdrawalProcessed")
-                .withArgs(validator1.address, pendingAmount);
+                .withArgs(val1Wallet.address, pendingAmount);
         });
     });
 
@@ -280,13 +328,13 @@ describe("Security: Pull Payment Pattern", function () {
         it("Should not send funds directly during validation completion", async function () {
             const taskId = ethers.id("test-task-no-direct");
             const dataHash = ethers.id("test-data");
-            const deadline = Math.floor(Date.now() / 1000) + 3600;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
 
             // Get initial balance
-            const initialBalance = await ethers.provider.getBalance(validator1.address);
+            const initialBalance = await ethers.provider.getBalance(val1Wallet.address);
 
             // Create validation request
-            await validationRegistry.connect(client).requestValidation(
+            await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -295,7 +343,7 @@ describe("Security: Pull Payment Pattern", function () {
                 { value: ethers.parseEther("0.1") }
             );
 
-            const requestId = await validationRegistry.connect(client).requestValidation.staticCall(
+            const requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -305,7 +353,7 @@ describe("Security: Pull Payment Pattern", function () {
             );
 
             // Validator1 submits
-            const tx1 = await validationRegistry.connect(validator1).submitStakeValidation(
+            const tx1 = await validationRegistry.connect(val1Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
@@ -314,18 +362,18 @@ describe("Security: Pull Payment Pattern", function () {
             const gas1 = receipt1.gasUsed * receipt1.gasPrice;
 
             // Validator2 completes validation
-            await validationRegistry.connect(validator2).submitStakeValidation(
+            await validationRegistry.connect(val2Wallet).submitStakeValidation(
                 requestId,
                 dataHash,
                 { value: ethers.parseEther("0.1") }
             );
 
             // Validator1 balance should only reflect gas costs (no direct transfer)
-            const balanceAfterValidation = await ethers.provider.getBalance(validator1.address);
+            const balanceAfterValidation = await ethers.provider.getBalance(val1Wallet.address);
             expect(balanceAfterValidation).to.equal(initialBalance - ethers.parseEther("0.1") - gas1);
 
             // Funds should be in pending withdrawals
-            const pending = await validationRegistry.getWithdrawableAmount(validator1.address);
+            const pending = await validationRegistry.getWithdrawableAmount(val1Wallet.address);
             expect(pending).to.be.gt(0);
         });
     });
