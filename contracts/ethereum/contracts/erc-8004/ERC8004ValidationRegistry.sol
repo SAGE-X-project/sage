@@ -29,6 +29,33 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  * - Emergency pause mechanism for critical situations
  */
 contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuard, Pausable, Ownable2Step {
+    // Custom Errors (more gas efficient than require strings)
+    error InvalidTaskId();
+    error InvalidServerAgent();
+    error InvalidDataHash();
+    error DeadlineTooSoon(uint256 deadline, uint256 minRequired);
+    error DeadlineTooFar(uint256 deadline, uint256 maxAllowed);
+    error InsufficientStake(uint256 provided, uint256 required);
+    error InvalidValidationType();
+    error RequesterNotActive(address requester);
+    error ServerNotActive(address server);
+    error RequestNotFound(bytes32 requestId);
+    error RequestNotPending(bytes32 requestId);
+    error RequestExpired(bytes32 requestId);
+    error ValidatorAlreadyResponded(address validator);
+    error InsufficientValidatorStake(uint256 provided, uint256 required);
+    error ValidationTypeNotSupported(ValidationType validationType, ValidationType required);
+    error EmptyAttestation();
+    error EmptyProof();
+    error UntrustedTEEKey(bytes32 keyHash);
+    error RequestNotExpired(bytes32 requestId, uint256 currentTime, uint256 deadline);
+    error AlreadyFinalized(bytes32 requestId);
+    error NoFundsToWithdraw();
+    error TransferFailed();
+    error InvalidPercentage(uint256 percentage);
+    error InvalidThreshold(uint256 threshold);
+    error InvalidMinimum(uint256 minimum);
+
     // State variables
     IERC8004IdentityRegistry public identityRegistry;
     IERC8004ReputationRegistry public reputationRegistry;
@@ -103,23 +130,27 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         ValidationType validationType,
         uint256 deadline
     ) external payable override nonReentrant whenNotPaused returns (bytes32 requestId) {
-        require(taskId != bytes32(0), "Invalid task ID");
-        require(serverAgent != address(0), "Invalid server agent");
-        require(dataHash != bytes32(0), "Invalid data hash");
-        require(deadline > block.timestamp + MIN_DEADLINE_DURATION, "Deadline too soon");
-        require(deadline <= block.timestamp + MAX_DEADLINE_DURATION, "Deadline too far");
-        require(msg.value >= minStake, "Insufficient stake");
-        require(validationType != ValidationType.NONE, "Invalid validation type");
+        if (taskId == bytes32(0)) revert InvalidTaskId();
+        if (serverAgent == address(0)) revert InvalidServerAgent();
+        if (dataHash == bytes32(0)) revert InvalidDataHash();
+        if (deadline <= block.timestamp + MIN_DEADLINE_DURATION) {
+            revert DeadlineTooSoon(deadline, block.timestamp + MIN_DEADLINE_DURATION);
+        }
+        if (deadline > block.timestamp + MAX_DEADLINE_DURATION) {
+            revert DeadlineTooFar(deadline, block.timestamp + MAX_DEADLINE_DURATION);
+        }
+        if (msg.value < minStake) revert InsufficientStake(msg.value, minStake);
+        if (validationType == ValidationType.NONE) revert InvalidValidationType();
 
         // Verify requester is a registered agent
         IERC8004IdentityRegistry.AgentInfo memory requesterInfo =
             identityRegistry.resolveAgentByAddress(msg.sender);
-        require(requesterInfo.isActive, "Requester not active");
+        if (!requesterInfo.isActive) revert RequesterNotActive(msg.sender);
 
         // Verify server agent is registered
         IERC8004IdentityRegistry.AgentInfo memory serverInfo =
             identityRegistry.resolveAgentByAddress(serverAgent);
-        require(serverInfo.isActive, "Server not active");
+        if (!serverInfo.isActive) revert ServerNotActive(serverAgent);
 
         // Generate unique request ID
         requestCounter++;
@@ -600,28 +631,28 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     }
 
     function setValidatorRewardPercentage(uint256 _percentage) external onlyOwner {
-        require(_percentage <= 100, "Invalid percentage");
+        if (_percentage > 100) revert InvalidPercentage(_percentage);
         uint256 oldValue = validatorRewardPercentage;
         validatorRewardPercentage = _percentage;
         emit ValidatorRewardPercentageUpdated(oldValue, _percentage);
     }
 
     function setSlashingPercentage(uint256 _percentage) external onlyOwner {
-        require(_percentage <= 100, "Invalid percentage");
+        if (_percentage > 100) revert InvalidPercentage(_percentage);
         uint256 oldValue = slashingPercentage;
         slashingPercentage = _percentage;
         emit SlashingPercentageUpdated(oldValue, _percentage);
     }
 
     function setConsensusThreshold(uint256 _threshold) external onlyOwner {
-        require(_threshold > 50 && _threshold <= 100, "Invalid threshold");
+        if (_threshold <= 50 || _threshold > 100) revert InvalidThreshold(_threshold);
         uint256 oldValue = consensusThreshold;
         consensusThreshold = _threshold;
         emit ConsensusThresholdUpdated(oldValue, _threshold);
     }
 
     function setMinValidatorsRequired(uint256 _minValidators) external onlyOwner {
-        require(_minValidators > 0, "Invalid minimum");
+        if (_minValidators == 0) revert InvalidMinimum(_minValidators);
         uint256 oldValue = minValidatorsRequired;
         minValidatorsRequired = _minValidators;
         emit MinValidatorsRequiredUpdated(oldValue, _minValidators);
@@ -635,14 +666,14 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
      */
     function withdraw() external nonReentrant returns (uint256 amount) {
         amount = pendingWithdrawals[msg.sender];
-        require(amount > 0, "No funds to withdraw");
+        if (amount == 0) revert NoFundsToWithdraw();
 
         // Update state before transfer (checks-effects-interactions)
         pendingWithdrawals[msg.sender] = 0;
 
         // Transfer funds
         (bool success, ) = msg.sender.call{value: amount}("");
-        require(success, "Transfer failed");
+        if (!success) revert TransferFailed();
 
         emit WithdrawalProcessed(msg.sender, amount);
         return amount;
