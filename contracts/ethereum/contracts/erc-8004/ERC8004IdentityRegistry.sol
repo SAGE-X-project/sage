@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./interfaces/IERC8004IdentityRegistry.sol";
 import "../SageRegistryV2.sol";

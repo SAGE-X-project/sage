@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "../erc-8004/interfaces/IERC8004ValidationRegistry.sol";
 
