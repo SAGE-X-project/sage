@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package ethereum
 
 import (
@@ -29,7 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	
+
 	"github.com/sage-x-project/sage/config"
 )
 

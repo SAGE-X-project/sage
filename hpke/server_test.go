@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 // filename: hpke_grpc_integration_test.go
 package hpke
 
