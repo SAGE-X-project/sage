@@ -48,6 +48,10 @@ contract ERC8004ReputationRegistryV2 is IERC8004ReputationRegistry, Ownable2Step
     uint256 private constant MIN_COMMIT_REVEAL_DELAY = 30 seconds;  // Shorter for task auth
     uint256 private constant MAX_COMMIT_REVEAL_DELAY = 10 minutes;
 
+    // Deadline validation
+    uint256 private constant MIN_DEADLINE_DURATION = 1 hours;   // Minimum 1 hour for task completion
+    uint256 private constant MAX_DEADLINE_DURATION = 30 days;   // Maximum 30 days
+
     // Events
     event ValidationRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
 
@@ -71,6 +75,8 @@ contract ERC8004ReputationRegistryV2 is IERC8004ReputationRegistry, Ownable2Step
     error RevealTooSoon(uint256 currentTime, uint256 minTime);
     error RevealTooLate(uint256 currentTime, uint256 maxTime);
     error CommitmentAlreadyRevealed();
+    error DeadlineTooSoon(uint256 deadline, uint256 minRequired);
+    error DeadlineTooFar(uint256 deadline, uint256 maxAllowed);
 
     modifier onlyValidationRegistry() {
         require(msg.sender == validationRegistry, "Only validation registry");
@@ -212,7 +218,15 @@ contract ERC8004ReputationRegistryV2 is IERC8004ReputationRegistry, Ownable2Step
     ) private returns (bool success) {
         require(taskId != bytes32(0), "Invalid task ID");
         require(serverAgent != address(0), "Invalid server agent");
-        require(deadline > block.timestamp, "Invalid deadline");
+
+        // Enhanced deadline validation
+        if (deadline <= block.timestamp + MIN_DEADLINE_DURATION) {
+            revert DeadlineTooSoon(deadline, block.timestamp + MIN_DEADLINE_DURATION);
+        }
+        if (deadline > block.timestamp + MAX_DEADLINE_DURATION) {
+            revert DeadlineTooFar(deadline, block.timestamp + MAX_DEADLINE_DURATION);
+        }
+
         require(taskAuthorizations[taskId].client == address(0), "Task already authorized");
 
         // Verify both client and server are registered agents
