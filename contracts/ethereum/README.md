@@ -1,14 +1,29 @@
-# SAGE Smart Contracts for Kaia Network
+# SAGE Smart Contracts
 
 ## Overview
-SAGE Registry smart contracts for managing AI agent identities on Kaia blockchain.
+SAGE Registry smart contracts for managing AI agent identities and ERC-8004 Trustless Agents implementation.
 
-### 🆕 Version 2 Features
-- **Enhanced Public Key Validation**: 5-step verification process
+### 🌐 Live Deployments
+
+**Sepolia Testnet** (LIVE ✅):
+- SageRegistryV2: [`0x487d45a678eb947bbF9d8f38a67721b13a0209BF`](https://sepolia.etherscan.io/address/0x487d45a678eb947bbF9d8f38a67721b13a0209BF)
+- ERC8004ValidationRegistry: [`0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440`](https://sepolia.etherscan.io/address/0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440)
+- [See all deployed contracts →](./docs/PHASE7-SEPOLIA-DEPLOYMENT-COMPLETE.md)
+
+### ⚡ Key Features
+
+**SAGE Core System**:
+- **Enhanced Security**: ReentrancyGuard, Ownable2Step, Pausable, Pull Payment
+- **Public Key Validation**: 5-step secp256k1 verification process
 - **Key Revocation**: Ability to revoke compromised keys
-- **Zero-Key Prevention**: Protection against invalid keys
-- **Ownership Proof**: Signature-based key ownership verification
-- **Ed25519 Rejection**: Explicit rejection of unsupported key types
+- **Hook System**: Extensible verification hooks with gas limits
+- **Front-running Protection**: Commit-reveal pattern in V3
+
+**ERC-8004 Implementation**:
+- **Validation Registry**: Stake-based and TEE attestation validation
+- **Reputation System**: Task authorization with commit-reveal
+- **Identity Registry**: Decentralized agent identity management
+- **Consensus Mechanism**: Configurable validator thresholds
 
 ##  Quick Start
 

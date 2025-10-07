@@ -9,6 +9,16 @@
 
 SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based security framework for AI agent communication. It provides end-to-end encrypted, authenticated communication channels between AI agents using decentralized identity (DID) management, HPKE-based key agreement, and RFC 9421 HTTP Message Signatures.
 
+### 🌐 Live Deployments
+
+**Sepolia Testnet** (LIVE ✅):
+- **SAGE Core System**:
+  - SageRegistryV2: [`0x487d45a678eb947bbF9d8f38a67721b13a0209BF`](https://sepolia.etherscan.io/address/0x487d45a678eb947bbF9d8f38a67721b13a0209BF)
+  - ERC8004ValidationRegistry: [`0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440`](https://sepolia.etherscan.io/address/0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440)
+- **ERC-8004 Standalone**:
+  - ERC8004IdentityRegistry: [`0x02439d8DA11517603d0DE1424B33139A90969517`](https://sepolia.etherscan.io/address/0x02439d8DA11517603d0DE1424B33139A90969517)
+  - [See all deployed contracts →](contracts/ethereum/docs/PHASE7-SEPOLIA-DEPLOYMENT-COMPLETE.md)
+
 ### Key Features
 
 - **End-to-End Encrypted Handshake**: HPKE (RFC 9180) based secure session establishment with X25519 key agreement
