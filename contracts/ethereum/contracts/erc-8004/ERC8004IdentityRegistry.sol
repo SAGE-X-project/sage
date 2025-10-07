@@ -136,7 +136,7 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
 
     /**
      * @notice Deactivate an agent
-     * @dev Delegates to SageRegistryV2's deactivateAgent function
+     * @dev Delegates to SageRegistryV2's deactivateAgentByDID function (O(1) lookup)
      * @param agentId The agent identifier (DID)
      * @return success True if deactivation successful
      */
@@ -145,26 +145,9 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
         override
         returns (bool success)
     {
-        // Get agent by DID to find the bytes32 agentId
-        ISageRegistry.AgentMetadata memory metadata = sageRegistry.getAgentByDID(agentId);
-        require(metadata.owner == msg.sender, "Not agent owner");
-
-        // Get the bytes32 agent ID
-        bytes32[] memory agentIds = sageRegistry.getAgentsByOwner(msg.sender);
-        bytes32 targetAgentId;
-
-        for (uint i = 0; i < agentIds.length; i++) {
-            ISageRegistry.AgentMetadata memory agent = sageRegistry.getAgent(agentIds[i]);
-            if (keccak256(bytes(agent.did)) == keccak256(bytes(agentId))) {
-                targetAgentId = agentIds[i];
-                break;
-            }
-        }
-
-        require(targetAgentId != bytes32(0), "Agent not found");
-
-        // Deactivate via SageRegistryV2
-        sageRegistry.deactivateAgent(targetAgentId);
+        // Use O(1) DID-based deactivation instead of iterating through all agents
+        // This delegates to SageRegistryV2.deactivateAgentByDID which uses didToAgentId mapping
+        sageRegistry.deactivateAgentByDID(agentId);
 
         emit AgentDeactivated(agentId, msg.sender);
 

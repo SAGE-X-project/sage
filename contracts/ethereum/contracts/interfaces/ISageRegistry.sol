@@ -74,6 +74,8 @@ interface ISageRegistry {
 
     function deactivateAgent(bytes32 agentId) external;
 
+    function deactivateAgentByDID(string calldata did) external;
+
     function getAgent(bytes32 agentId) external view returns (AgentMetadata memory);
 
     function getAgentByDID(string calldata did) external view returns (AgentMetadata memory);

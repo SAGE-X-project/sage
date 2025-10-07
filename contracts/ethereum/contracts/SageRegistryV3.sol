@@ -111,6 +111,7 @@ contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
     error RevealTooSoon(uint256 currentTime, uint256 minTime);
     error RevealTooLate(uint256 currentTime, uint256 maxTime);
     error CommitmentAlreadyRevealed();
+    error InvalidCommitHash();
 
     // ============================================
     // MODIFIERS
@@ -175,6 +176,9 @@ contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
      * ```
      */
     function commitRegistration(bytes32 commitHash) external whenNotPaused {
+        // Input validation
+        if (commitHash == bytes32(0)) revert InvalidCommitHash();
+
         RegistrationCommitment storage commitment = registrationCommitments[msg.sender];
 
         // Check if already committed and not expired
