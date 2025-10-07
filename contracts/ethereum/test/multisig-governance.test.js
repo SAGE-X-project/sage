@@ -118,10 +118,10 @@ describe("Multi-Sig Governance Integration Tests", function () {
         const transactionId = proposedEvent.args[0];
 
         // Step 2: Confirm by signer2 (reaches threshold with auto-confirm from signer1)
-        await multiSig.connect(signer2).confirmTransaction(transactionId);
+        await multiSig.connect(signer2).confirmTransaction(transactionId, { gasLimit: 5000000 });
 
         // Step 3: Confirm by signer3 (reaches 3/5 threshold, auto-executes)
-        await multiSig.connect(signer3).confirmTransaction(transactionId);
+        await multiSig.connect(signer3).confirmTransaction(transactionId, { gasLimit: 5000000 });
 
         // Step 4: Wait for timelock delay
         await time.increase(delay + 1);
@@ -152,8 +152,8 @@ describe("Multi-Sig Governance Integration Tests", function () {
         });
         const transactionId2 = proposedEvent2.args[0];
 
-        await multiSig.connect(signer2).confirmTransaction(transactionId2);
-        await multiSig.connect(signer3).confirmTransaction(transactionId2);
+        await multiSig.connect(signer2).confirmTransaction(transactionId2, { gasLimit: 5000000 });
+        await multiSig.connect(signer3).confirmTransaction(transactionId2, { gasLimit: 5000000 });
     }
 
     describe("Multi-Sig Wallet Tests", function () {
@@ -452,14 +452,14 @@ describe("Multi-Sig Governance Integration Tests", function () {
         it("should prevent direct parameter updates by non-owner", async function () {
             await expect(
                 sageRegistry.connect(attacker).setBeforeRegisterHook(attacker.address)
-            ).to.be.revertedWithCustomError(sageRegistry, "OwnableUnauthorizedAccount");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
         });
 
         it("should prevent timelock bypass", async function () {
             // Attacker tries to call contract directly
             await expect(
                 sageRegistry.connect(attacker).setAfterRegisterHook(attacker.address)
-            ).to.be.revertedWithCustomError(sageRegistry, "OwnableUnauthorizedAccount");
+            ).to.be.revertedWith("Ownable: caller is not the owner");
 
             // Attacker tries to call timelock directly
             const data = sageRegistry.interface.encodeFunctionData(
@@ -526,7 +526,7 @@ describe("Multi-Sig Governance Integration Tests", function () {
             // Try to accept with wrong address
             await expect(
                 sageRegistry.connect(signer1).acceptOwnership()
-            ).to.be.revertedWithCustomError(sageRegistry, "OwnableUnauthorizedAccount");
+            ).to.be.revertedWith("Ownable2Step: caller is not the new owner");
         });
     });
 
