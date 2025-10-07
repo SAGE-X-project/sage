@@ -94,19 +94,23 @@ endif
 .PHONY: build-lib-all
 build-lib-all:
 	@echo "Building libraries for all platforms and architectures..."
-	@$(MAKE) build-lib-linux-amd64
-	@$(MAKE) build-lib-linux-arm64
-	@$(MAKE) build-lib-darwin-amd64
-	@$(MAKE) build-lib-darwin-arm64
-	@$(MAKE) build-lib-windows-amd64
-	@echo "All library builds complete!"
+	@echo "Note: Cross-platform library builds require platform-specific C toolchains."
+	@echo "Some builds may fail if cross-compilation toolchains are not installed."
+	@echo ""
+	@$(MAKE) build-lib-linux-amd64 || echo "Warning: Linux amd64 build failed (may need cross-compiler)"
+	@$(MAKE) build-lib-linux-arm64 || echo "Warning: Linux arm64 build failed (may need cross-compiler)"
+	@$(MAKE) build-lib-darwin-amd64 || echo "Warning: macOS amd64 build failed (may need cross-compiler)"
+	@$(MAKE) build-lib-darwin-arm64 || echo "Warning: macOS arm64 build failed (may need cross-compiler)"
+	@$(MAKE) build-lib-windows-amd64 || echo "Warning: Windows amd64 build failed (may need cross-compiler)"
+	@echo ""
+	@echo "Library builds complete! (check for warnings above)"
 
 # Build Linux static library (amd64)
 .PHONY: build-lib-linux-amd64
 build-lib-linux-amd64:
 	@echo "Building Linux amd64 static library..."
 	@mkdir -p $(LIB_DIR)/linux-amd64
-	GOOS=linux GOARCH=amd64 $(GO) build -buildmode=c-archive \
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GO) build -buildmode=c-archive \
 		-o $(LIB_DIR)/linux-amd64/libsage.a ./lib
 	@echo "Build complete: $(LIB_DIR)/linux-amd64/libsage.a"
 
@@ -115,7 +119,7 @@ build-lib-linux-amd64:
 build-lib-linux-arm64:
 	@echo "Building Linux arm64 static library..."
 	@mkdir -p $(LIB_DIR)/linux-arm64
-	GOOS=linux GOARCH=arm64 $(GO) build -buildmode=c-archive \
+	CGO_ENABLED=1 GOOS=linux GOARCH=arm64 $(GO) build -buildmode=c-archive \
 		-o $(LIB_DIR)/linux-arm64/libsage.a ./lib
 	@echo "Build complete: $(LIB_DIR)/linux-arm64/libsage.a"
 
@@ -124,7 +128,7 @@ build-lib-linux-arm64:
 build-lib-darwin-amd64:
 	@echo "Building macOS amd64 static library..."
 	@mkdir -p $(LIB_DIR)/darwin-amd64
-	GOOS=darwin GOARCH=amd64 $(GO) build -buildmode=c-archive \
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build -buildmode=c-archive \
 		-o $(LIB_DIR)/darwin-amd64/libsage.a ./lib
 	@echo "Build complete: $(LIB_DIR)/darwin-amd64/libsage.a"
 
@@ -133,7 +137,7 @@ build-lib-darwin-amd64:
 build-lib-darwin-arm64:
 	@echo "Building macOS arm64 static library..."
 	@mkdir -p $(LIB_DIR)/darwin-arm64
-	GOOS=darwin GOARCH=arm64 $(GO) build -buildmode=c-archive \
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build -buildmode=c-archive \
 		-o $(LIB_DIR)/darwin-arm64/libsage.a ./lib
 	@echo "Build complete: $(LIB_DIR)/darwin-arm64/libsage.a"
 
@@ -142,7 +146,7 @@ build-lib-darwin-arm64:
 build-lib-windows-amd64:
 	@echo "Building Windows amd64 static library..."
 	@mkdir -p $(LIB_DIR)/windows-amd64
-	GOOS=windows GOARCH=amd64 $(GO) build -buildmode=c-archive \
+	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 $(GO) build -buildmode=c-archive \
 		-o $(LIB_DIR)/windows-amd64/libsage.a ./lib
 	@echo "Build complete: $(LIB_DIR)/windows-amd64/libsage.a"
 
@@ -151,7 +155,7 @@ build-lib-windows-amd64:
 build-lib-linux-amd64-shared:
 	@echo "Building Linux amd64 shared library..."
 	@mkdir -p $(LIB_DIR)/linux-amd64
-	GOOS=linux GOARCH=amd64 $(GO) build -buildmode=c-shared \
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GO) build -buildmode=c-shared \
 		-o $(LIB_DIR)/linux-amd64/libsage.so ./lib
 	@echo "Build complete: $(LIB_DIR)/linux-amd64/libsage.so"
 
@@ -160,7 +164,7 @@ build-lib-linux-amd64-shared:
 build-lib-linux-arm64-shared:
 	@echo "Building Linux arm64 shared library..."
 	@mkdir -p $(LIB_DIR)/linux-arm64
-	GOOS=linux GOARCH=arm64 $(GO) build -buildmode=c-shared \
+	CGO_ENABLED=1 GOOS=linux GOARCH=arm64 $(GO) build -buildmode=c-shared \
 		-o $(LIB_DIR)/linux-arm64/libsage.so ./lib
 	@echo "Build complete: $(LIB_DIR)/linux-arm64/libsage.so"
 
@@ -169,7 +173,7 @@ build-lib-linux-arm64-shared:
 build-lib-darwin-amd64-shared:
 	@echo "Building macOS amd64 shared library..."
 	@mkdir -p $(LIB_DIR)/darwin-amd64
-	GOOS=darwin GOARCH=amd64 $(GO) build -buildmode=c-shared \
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build -buildmode=c-shared \
 		-o $(LIB_DIR)/darwin-amd64/libsage.dylib ./lib
 	@echo "Build complete: $(LIB_DIR)/darwin-amd64/libsage.dylib"
 
@@ -178,7 +182,7 @@ build-lib-darwin-amd64-shared:
 build-lib-darwin-arm64-shared:
 	@echo "Building macOS arm64 shared library..."
 	@mkdir -p $(LIB_DIR)/darwin-arm64
-	GOOS=darwin GOARCH=arm64 $(GO) build -buildmode=c-shared \
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build -buildmode=c-shared \
 		-o $(LIB_DIR)/darwin-arm64/libsage.dylib ./lib
 	@echo "Build complete: $(LIB_DIR)/darwin-arm64/libsage.dylib"
 

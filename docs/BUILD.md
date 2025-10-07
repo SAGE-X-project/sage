@@ -45,7 +45,12 @@ make release
 
 ### Optional (for cross-compilation)
 
-- **MinGW-w64** - For Windows DLL compilation on Linux/macOS
+**Note:** Cross-platform library compilation requires platform-specific C toolchains and is complex to set up. For production use, we recommend:
+1. Building libraries natively on each target platform, or
+2. Using Docker containers for cross-platform builds (see CI/CD section)
+
+For binary cross-compilation (which works without additional toolchains):
+- **MinGW-w64** - For Windows binary compilation on Linux/macOS
   ```bash
   # Ubuntu/Debian
   sudo apt-get install mingw-w64
@@ -119,12 +124,25 @@ build/lib/
 
 ### Build for All Platforms
 
+**Important:** Cross-platform library builds require platform-specific C toolchains. The `build-lib-all` target attempts to build for all platforms, but will likely only succeed for the current platform when run locally.
+
+For reliable cross-platform library builds, use one of these approaches:
+1. **Native builds:** Build on each target platform
+2. **Docker:** Use Docker containers with appropriate toolchains (recommended for CI/CD)
+3. **Cross-compilation toolchains:** Install platform-specific cross-compilers (advanced)
+
 ```bash
-# Build all libraries (static)
+# Attempt to build all libraries (static)
+# Note: May only succeed for current platform
 make build-lib-all
+
+# Build for specific platform (requires cross-compiler)
+make build-lib-linux-amd64
+make build-lib-darwin-arm64
+make build-lib-windows-amd64
 ```
 
-**Output:**
+**Expected output (when cross-compilation is properly configured):**
 ```
 build/lib/
 ├── linux-amd64/
