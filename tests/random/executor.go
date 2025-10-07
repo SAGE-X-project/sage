@@ -227,14 +227,16 @@ func (e *TestExecutor) executeDIDTest(ctx context.Context, testCase TestCase) Te
 		Output:   make(map[string]interface{}),
 	}
 
-	// TODO: Implement actual DID testing
-	// This would involve:
-	// 1. Creating DID documents
-	// 2. Registering DIDs on blockchain
-	// 3. Resolving DIDs
-	// 4. Updating and deactivating DIDs
+	// NOTE: Currently simulating DID operations for testing purposes.
+	// For production integration with real blockchain:
+	// 1. Use did.Client to create and register DID documents
+	// 2. Call blockchain-specific Register() methods (Ethereum/Solana)
+	// 3. Use did.Resolver to resolve DIDs from blockchain
+	// 4. Implement Update() and Deactivate() operations as needed
+	//
+	// See: did/client.go, did/ethereum/client.go, did/solana/client.go
 
-	// Simulate DID operations
+	// Simulate DID operations for random testing
 	didID := testCase.Input.DIDDocument["id"].(string)
 	result.Output["did"] = didID
 	result.Output["registered"] = true
@@ -252,12 +254,14 @@ func (e *TestExecutor) executeBlockchainTest(ctx context.Context, testCase TestC
 		Output:   make(map[string]interface{}),
 	}
 
-	// TODO: Implement actual blockchain testing
-	// This would involve:
-	// 1. Connecting to blockchain network
-	// 2. Deploying or interacting with contracts
-	// 3. Sending transactions
-	// 4. Monitoring events
+	// NOTE: Currently simulating blockchain operations for testing purposes.
+	// For production integration with real blockchain:
+	// 1. Use blockchain.Client to connect to Ethereum/Solana networks
+	// 2. Deploy contracts using deployment scripts (contracts/ethereum/scripts/)
+	// 3. Send transactions with proper gas/fee configuration
+	// 4. Monitor events using blockchain event listeners
+	//
+	// See: blockchain/client.go, contracts/ethereum/hardhat.config.js
 
 	params := testCase.Input.Parameters
 	result.Output["transaction_hash"] = "0x" + GenerateRandomString(64)
@@ -286,12 +290,14 @@ func (e *TestExecutor) executeSessionTest(ctx context.Context, testCase TestCase
 		Output:   make(map[string]interface{}),
 	}
 
-	// TODO: Implement actual session testing
-	// This would involve:
-	// 1. Creating sessions
-	// 2. Validating session data
-	// 3. Managing nonces
-	// 4. Testing expiration
+	// NOTE: Currently simulating session management for testing purposes.
+	// For production integration with real session system:
+	// 1. Use session.Manager to create and manage sessions
+	// 2. Validate session tokens and data integrity
+	// 3. Implement nonce tracking for replay protection
+	// 4. Handle session expiration and renewal
+	//
+	// See: session/manager.go (if implemented)
 
 	result.Output["session_id"] = testCase.Input.SessionID
 	result.Output["session_valid"] = true
@@ -310,12 +316,14 @@ func (e *TestExecutor) executeHPKETest(ctx context.Context, testCase TestCase) T
 		Output:   make(map[string]interface{}),
 	}
 
-	// TODO: Implement actual HPKE testing
-	// This would involve:
-	// 1. Generating HPKE keys
-	// 2. Encrypting plaintext
-	// 3. Decrypting ciphertext
-	// 4. Verifying AEAD
+	// NOTE: Currently simulating HPKE operations for testing purposes.
+	// For production integration with real HPKE encryption:
+	// 1. Use crypto.HPKE package to generate key pairs
+	// 2. Encrypt data using HPKE.Seal() with recipient public key
+	// 3. Decrypt data using HPKE.Open() with recipient private key
+	// 4. Verify AEAD authenticity during decryption
+	//
+	// See: crypto/hpke.go, crypto/sage-crypto/src/hpke.rs
 
 	result.Output["ciphertext_length"] = len(testCase.Input.PlainText) + 16 // AEAD tag
 	result.Output["decrypted_match"] = true
@@ -333,11 +341,14 @@ func (e *TestExecutor) executeIntegrationTest(ctx context.Context, testCase Test
 		Output:   make(map[string]interface{}),
 	}
 
-	// TODO: Implement actual integration testing
-	// This would involve:
-	// 1. Executing complete workflows
-	// 2. Testing cross-component interactions
-	// 3. Validating end-to-end scenarios
+	// NOTE: Currently simulating integration workflows for testing purposes.
+	// For production end-to-end testing:
+	// 1. Execute complete agent registration and validation workflows
+	// 2. Test DID → Blockchain → MCP integration chains
+	// 3. Validate multi-step scenarios (register → validate → authorize)
+	// 4. Test cross-chain operations (Ethereum ↔ Solana)
+	//
+	// See: examples/mcp-integration/, tests/integration/
 
 	workflow := testCase.Input.Parameters["workflow"].(string)
 
