@@ -40,8 +40,8 @@ describe("Security Features Integration Tests", function () {
         sageRegistryV3 = await SageRegistryV3.deploy();
         await sageRegistryV3.waitForDeployment();
 
-        // Deploy ERC8004IdentityRegistry
-        const IdentityRegistry = await ethers.getContractFactory("ERC8004IdentityRegistry");
+        // Deploy ERC8004IdentityRegistry (adapter version)
+        const IdentityRegistry = await ethers.getContractFactory("contracts/erc-8004/ERC8004IdentityRegistry.sol:ERC8004IdentityRegistry");
         const identityRegistry = await IdentityRegistry.deploy(await sageRegistryV3.getAddress());
         await identityRegistry.waitForDeployment();
 
@@ -49,8 +49,8 @@ describe("Security Features Integration Tests", function () {
         reputationRegistryV2 = await ReputationRegistryV2.deploy(await identityRegistry.getAddress());
         await reputationRegistryV2.waitForDeployment();
 
-        // Deploy ValidationRegistry
-        const ValidationRegistry = await ethers.getContractFactory("ERC8004ValidationRegistry");
+        // Deploy ValidationRegistry (adapter version)
+        const ValidationRegistry = await ethers.getContractFactory("contracts/erc-8004/ERC8004ValidationRegistry.sol:ERC8004ValidationRegistry");
         validationRegistry = await ValidationRegistry.deploy(
             await identityRegistry.getAddress(),
             await reputationRegistryV2.getAddress()
@@ -372,47 +372,308 @@ describe("Security Features Integration Tests", function () {
     });
 
     describe("Array Bounds Checking (DoS Prevention)", function () {
-        it.skip("should limit maximum validators per request", async function () {
-            // Create validation request
+        it("should reject submissions when max validators reached", async function () {
+            // Prevent auto-finalization by setting high minValidatorsRequired
+            await validationRegistry.connect(owner).setMinValidatorsRequired(10);
+
+            // Register alice as agent first
+            const alicePublicKey = ethers.getBytes(aliceWallet.signingKey.publicKey);
+            const aliceSig = await signRegistration(
+                aliceWallet,
+                "did:sage:alice",
+                "Alice",
+                "Test",
+                "https://alice.com",
+                alicePublicKey,
+                "{}",
+                0
+            );
+
+            await sageRegistryV3.connect(aliceWallet).registerAgent(
+                "did:sage:alice",
+                "Alice",
+                "Test",
+                "https://alice.com",
+                alicePublicKey,
+                "{}",
+                aliceSig
+            );
+
+            // Register bob as agent
+            const bobPublicKey = ethers.getBytes(bobWallet.signingKey.publicKey);
+            const bobSig = await signRegistration(
+                bobWallet,
+                "did:sage:bob",
+                "Bob",
+                "Test",
+                "https://bob.com",
+                bobPublicKey,
+                "{}",
+                0
+            );
+
+            await sageRegistryV3.connect(bobWallet).registerAgent(
+                "did:sage:bob",
+                "Bob",
+                "Test",
+                "https://bob.com",
+                bobPublicKey,
+                "{}",
+                bobSig
+            );
+
+            // Create validation request (serverAgent is bob's address)
             const taskId = ethers.randomBytes(32);
             const dataHash = ethers.randomBytes(32);
             const deadline = (await time.latest()) + 3600 + 60;
 
-            await validationRegistry.connect(alice).requestValidation(
+            const tx = await validationRegistry.connect(aliceWallet).requestValidation(
                 taskId,
-                bob.address,
+                bobWallet.address, // serverAgent address
                 dataHash,
                 1, // STAKE validation
                 deadline,
                 { value: ethers.parseEther("1") }
             );
+            const receipt = await tx.wait();
 
-            const requestId = await validationRegistry.requestCounter() - 1n;
+            // Get requestId from event
+            const event = receipt.logs.find(log => {
+                try {
+                    return validationRegistry.interface.parseLog(log)?.name === 'ValidationRequested';
+                } catch { return false; }
+            });
+            const requestId = validationRegistry.interface.parseLog(event).args.requestId;
 
-            // Try to add 101 validators (should hit limit at 100)
-            // Note: This would require MAX_VALIDATORS_PER_REQUEST to be implemented
-            // For now, we test that the mechanism exists
+            // Set a low limit for testing (5 validators)
+            await validationRegistry.connect(owner).setMaxValidatorsPerRequest(5);
 
-            // Add multiple validators
-            for (let i = 0; i < 10; i++) {
-                await validationRegistry.connect(validators[i]).submitStakeValidation(
+            // Register 5 validators as agents
+            const validatorWallets = [];
+            for (let i = 0; i < 5; i++) {
+                const wallet = ethers.Wallet.createRandom().connect(ethers.provider);
+                validatorWallets.push(wallet);
+                await owner.sendTransaction({ to: wallet.address, value: ethers.parseEther("10") });
+
+                const validatorPubKey = ethers.getBytes(wallet.signingKey.publicKey);
+                const validatorSig = await signRegistration(
+                    wallet,
+                    `did:sage:validator${i}`,
+                    `Validator ${i}`,
+                    "Test",
+                    `https://validator${i}.com`,
+                    validatorPubKey,
+                    "{}",
+                    0
+                );
+
+                await sageRegistryV3.connect(wallet).registerAgent(
+                    `did:sage:validator${i}`,
+                    `Validator ${i}`,
+                    "Test",
+                    `https://validator${i}.com`,
+                    validatorPubKey,
+                    "{}",
+                    validatorSig
+                );
+            }
+
+            // Submit 5 validators (reach the limit)
+            for (let i = 0; i < 5; i++) {
+                await validationRegistry.connect(validatorWallets[i]).submitStakeValidation(
                     requestId,
                     dataHash,
                     { value: ethers.parseEther("0.1") }
                 );
             }
 
-            // Verify responses recorded
+            // Verify we reached the limit
+            const responses = await validationRegistry.getValidationResponses(requestId);
+            expect(responses.length).to.equal(5);
+
+            // Register attacker as agent
+            const attackerPubKey = ethers.getBytes(attackerWallet.signingKey.publicKey);
+            const attackerSig = await signRegistration(
+                attackerWallet,
+                `did:sage:attacker`,
+                `Attacker`,
+                "Test",
+                `https://attacker.com`,
+                attackerPubKey,
+                "{}",
+                0
+            );
+
+            await sageRegistryV3.connect(attackerWallet).registerAgent(
+                `did:sage:attacker`,
+                `Attacker`,
+                "Test",
+                `https://attacker.com`,
+                attackerPubKey,
+                "{}",
+                attackerSig
+            );
+
+            // Try to add 6th validator (should fail)
+            await expect(
+                validationRegistry.connect(attackerWallet).submitStakeValidation(
+                    requestId,
+                    dataHash,
+                    { value: ethers.parseEther("0.1") }
+                )
+            ).to.be.revertedWith("Maximum validators reached");
+        });
+
+        it("should allow owner to adjust max validators", async function () {
+            const initialMax = await validationRegistry.maxValidatorsPerRequest();
+            expect(initialMax).to.equal(100n);
+
+            // Owner adjusts limit
+            await expect(
+                validationRegistry.connect(owner).setMaxValidatorsPerRequest(50)
+            ).to.emit(validationRegistry, "MaxValidatorsPerRequestUpdated")
+                .withArgs(100, 50);
+
+            const newMax = await validationRegistry.maxValidatorsPerRequest();
+            expect(newMax).to.equal(50n);
+        });
+
+        it("should reject zero max validators", async function () {
+            await expect(
+                validationRegistry.connect(owner).setMaxValidatorsPerRequest(0)
+            ).to.be.revertedWithCustomError(validationRegistry, "InvalidMinimum");
+        });
+
+        it("should allow non-owner to call setMaxValidatorsPerRequest", async function () {
+            // Note: This assumes the function doesn't have access control
+            // If onlyOwner is implemented, this test should verify the revert
+            await expect(
+                validationRegistry.connect(attacker).setMaxValidatorsPerRequest(10)
+            ).to.be.reverted; // Will fail with onlyOwner
+        });
+
+        it("should finalize validation with maximum validators without DoS", async function () {
+            // Prevent auto-finalization by setting high minValidatorsRequired
+            await validationRegistry.connect(owner).setMinValidatorsRequired(10);
+
+            // Register alice as agent
+            const alicePublicKey = ethers.getBytes(aliceWallet.signingKey.publicKey);
+            const aliceSig = await signRegistration(
+                aliceWallet,
+                "did:sage:alice2",
+                "Alice",
+                "Test",
+                "https://alice.com",
+                alicePublicKey,
+                "{}",
+                0
+            );
+
+            await sageRegistryV3.connect(aliceWallet).registerAgent(
+                "did:sage:alice2",
+                "Alice",
+                "Test",
+                "https://alice.com",
+                alicePublicKey,
+                "{}",
+                aliceSig
+            );
+
+            // Register bob as agent
+            const bobPublicKey = ethers.getBytes(bobWallet.signingKey.publicKey);
+            const bobSig = await signRegistration(
+                bobWallet,
+                "did:sage:bob2",
+                "Bob",
+                "Test",
+                "https://bob.com",
+                bobPublicKey,
+                "{}",
+                0
+            );
+
+            await sageRegistryV3.connect(bobWallet).registerAgent(
+                "did:sage:bob2",
+                "Bob",
+                "Test",
+                "https://bob.com",
+                bobPublicKey,
+                "{}",
+                bobSig
+            );
+
+            // Create validation request (serverAgent is bob's address)
+            const taskId = ethers.randomBytes(32);
+            const dataHash = ethers.randomBytes(32);
+            const deadline = (await time.latest()) + 3600 + 60;
+
+            const tx = await validationRegistry.connect(aliceWallet).requestValidation(
+                taskId,
+                bobWallet.address, // serverAgent address
+                dataHash,
+                1, // STAKE validation
+                deadline,
+                { value: ethers.parseEther("1") }
+            );
+            const receipt = await tx.wait();
+
+            // Get requestId from event
+            const event = receipt.logs.find(log => {
+                try {
+                    return validationRegistry.interface.parseLog(log)?.name === 'ValidationRequested';
+                } catch { return false; }
+            });
+            const requestId = validationRegistry.interface.parseLog(event).args.requestId;
+
+            // Set low limit for testing (10 validators to match minValidators)
+            await validationRegistry.connect(owner).setMaxValidatorsPerRequest(10);
+
+            // Register 10 validators as agents
+            const validatorWallets = [];
+            for (let i = 0; i < 10; i++) {
+                const wallet = ethers.Wallet.createRandom().connect(ethers.provider);
+                validatorWallets.push(wallet);
+                await owner.sendTransaction({ to: wallet.address, value: ethers.parseEther("10") });
+
+                const validatorPubKey = ethers.getBytes(wallet.signingKey.publicKey);
+                const validatorSig = await signRegistration(
+                    wallet,
+                    `did:sage:val${i}`,
+                    `Val ${i}`,
+                    "Test",
+                    `https://val${i}.com`,
+                    validatorPubKey,
+                    "{}",
+                    0
+                );
+
+                await sageRegistryV3.connect(wallet).registerAgent(
+                    `did:sage:val${i}`,
+                    `Val ${i}`,
+                    "Test",
+                    `https://val${i}.com`,
+                    validatorPubKey,
+                    "{}",
+                    validatorSig
+                );
+            }
+
+            // Submit 10 validators with correct hash (will trigger auto-finalization)
+            for (let i = 0; i < 10; i++) {
+                await validationRegistry.connect(validatorWallets[i]).submitStakeValidation(
+                    requestId,
+                    dataHash,
+                    { value: ethers.parseEther("0.1") }
+                );
+            }
+
+            // Verify all validators submitted
             const responses = await validationRegistry.getValidationResponses(requestId);
             expect(responses.length).to.equal(10);
 
-            // If MAX_VALIDATORS_PER_REQUEST is 100, the 101st should fail
-            // See ARRAY-BOUNDS-CHECKING.md for implementation
-        });
-
-        it("should support paginated response queries", async function () {
-            // This test would verify pagination if implemented
-            // See ARRAY-BOUNDS-CHECKING.md for getValidationResponsesPaginated()
+            // Verification should have auto-finalized (10 validators, 100% consensus)
+            const finalRequest = await validationRegistry.getValidationRequest(requestId);
+            expect(finalRequest.status).to.not.equal(0); // Not PENDING (finalized)
         });
     });
 

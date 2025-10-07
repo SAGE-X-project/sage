@@ -49,6 +49,9 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
     /// @dev Consensus threshold (percentage, 0-100)
     uint256 public consensusThreshold;
 
+    /// @dev Maximum validators per request for DoS prevention
+    uint256 public maxValidatorsPerRequest = 100;
+
     /// @dev TEE public keys for attestation verification
     mapping(bytes32 => bool) public trustedTeeKeys;
 
@@ -62,6 +65,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
     error ValidationAlreadyComplete(bytes32 requestId);
     error ValidationExpired(bytes32 requestId);
     error ValidatorAlreadyResponded(address validator);
+    error MaximumValidatorsReached(bytes32 requestId);
     error InvalidValidationType();
     error InvalidServerAgent();
     error InvalidProof();
@@ -181,6 +185,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         returns (bool success)
     {
         ValidationRequest storage request = validationRequests[requestId];
+        ValidationResponse[] storage responses = validationResponses[requestId];
 
         // Validate request exists and is active
         if (request.timestamp == 0) {
@@ -191,6 +196,11 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         }
         if (block.timestamp > request.deadline) {
             revert ValidationExpired(requestId);
+        }
+
+        // Array bounds check for DoS prevention
+        if (responses.length >= maxValidatorsPerRequest) {
+            revert MaximumValidatorsReached(requestId);
         }
         if (hasValidatorResponded[requestId][msg.sender]) {
             revert ValidatorAlreadyResponded(msg.sender);
@@ -557,5 +567,13 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
             revert InvalidConsensusThreshold(newThreshold);
         }
         consensusThreshold = newThreshold;
+    }
+
+    /**
+     * @notice Update maximum validators per request
+     * @param newMaxValidators New maximum validator count for DoS prevention
+     */
+    function setMaxValidatorsPerRequest(uint256 newMaxValidators) external {
+        maxValidatorsPerRequest = newMaxValidators;
     }
 }

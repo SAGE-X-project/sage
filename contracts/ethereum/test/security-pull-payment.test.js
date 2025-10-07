@@ -63,18 +63,18 @@ describe("Security: Pull Payment Pattern", function () {
         sageRegistry = await SageRegistryV2.deploy();
         await sageRegistry.waitForDeployment();
 
-        // Deploy ERC8004IdentityRegistry
-        const ERC8004IdentityRegistry = await ethers.getContractFactory("ERC8004IdentityRegistry");
+        // Deploy ERC8004IdentityRegistry (adapter version)
+        const ERC8004IdentityRegistry = await ethers.getContractFactory("contracts/erc-8004/ERC8004IdentityRegistry.sol:ERC8004IdentityRegistry");
         identityRegistry = await ERC8004IdentityRegistry.deploy(await sageRegistry.getAddress());
         await identityRegistry.waitForDeployment();
 
-        // Deploy ERC8004ReputationRegistry
-        const ERC8004ReputationRegistry = await ethers.getContractFactory("ERC8004ReputationRegistry");
+        // Deploy ERC8004ReputationRegistry (adapter version)
+        const ERC8004ReputationRegistry = await ethers.getContractFactory("contracts/erc-8004/ERC8004ReputationRegistry.sol:ERC8004ReputationRegistry");
         reputationRegistry = await ERC8004ReputationRegistry.deploy(await identityRegistry.getAddress());
         await reputationRegistry.waitForDeployment();
 
-        // Deploy ERC8004ValidationRegistry
-        const ERC8004ValidationRegistry = await ethers.getContractFactory("ERC8004ValidationRegistry");
+        // Deploy ERC8004ValidationRegistry (adapter version)
+        const ERC8004ValidationRegistry = await ethers.getContractFactory("contracts/erc-8004/ERC8004ValidationRegistry.sol:ERC8004ValidationRegistry");
         validationRegistry = await ERC8004ValidationRegistry.deploy(
             await identityRegistry.getAddress(),
             await reputationRegistry.getAddress()
