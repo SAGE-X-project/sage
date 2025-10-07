@@ -29,9 +29,9 @@ describe("Security Features Integration Tests", function () {
         sageRegistryV3 = await SageRegistryV3.deploy();
         await sageRegistryV3.waitForDeployment();
 
-        // Deploy ERC8004ReputationRegistryV2
-        const IdentityRegistry = await ethers.getContractFactory("SageIdentityRegistry");
-        const identityRegistry = await IdentityRegistry.deploy();
+        // Deploy ERC8004IdentityRegistry
+        const IdentityRegistry = await ethers.getContractFactory("ERC8004IdentityRegistry");
+        const identityRegistry = await IdentityRegistry.deploy(await sageRegistryV3.getAddress());
         await identityRegistry.waitForDeployment();
 
         const ReputationRegistryV2 = await ethers.getContractFactory("ERC8004ReputationRegistryV2");
