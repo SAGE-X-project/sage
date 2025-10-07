@@ -28,6 +28,7 @@ const networks = {
   // Local Development Networks
   hardhat: {
     chainId: 31337,
+    blockGasLimit: 30000000, // 30M gas limit for complex governance operations
     mining: {
       auto: true,
       interval: 0
