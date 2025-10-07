@@ -8,19 +8,84 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title SageRegistryV3
+ * @author SAGE Development Team
  * @notice SAGE AI Agent Registry with Front-Running Protection
- * @dev Adds commit-reveal scheme to prevent front-running of agent registration
+ * @dev Version 3 of the SAGE Registry implementing commit-reveal pattern for secure agent registration
  *
- * Key Features:
- * - Commit-reveal pattern for DID registration
- * - Enhanced public key validation
- * - Emergency pause mechanism
- * - Two-step ownership transfer
- * - Front-running protection
+ * ## Overview
  *
- * Security Improvements from V2:
- * - MEDIUM-1: Front-running protection via commit-reveal
- * - MEDIUM-2: Cross-chain replay protection (chainId in signatures)
+ * SageRegistryV3 is the core registry for AI agents in the SAGE ecosystem. It provides:
+ * - Decentralized Identifier (DID) registration and management
+ * - Public key validation and association
+ * - Front-running protection via commit-reveal scheme
+ * - Cross-chain replay attack protection
+ * - Emergency pause capabilities
+ *
+ * ## Architecture
+ *
+ * The contract uses a two-phase registration process:
+ * 1. **Commit Phase**: User commits a hash of their registration intent
+ * 2. **Reveal Phase**: User reveals the actual registration data (after 1 min, before 1 hour)
+ *
+ * This prevents front-running attacks where adversaries could observe pending transactions
+ * and submit competing registrations with higher gas prices.
+ *
+ * ## Key Features
+ *
+ * ### 1. Front-Running Protection
+ * - Commit-reveal pattern prevents DID hijacking
+ * - Timing constraints enforce minimum/maximum delays
+ * - Salt ensures commitment privacy
+ * - ChainId prevents cross-chain replay
+ *
+ * ### 2. Public Key Management
+ * - Validates key ownership through signature verification
+ * - Supports key revocation and rotation
+ * - Links addresses to public keys
+ * - Prevents duplicate key usage
+ *
+ * ### 3. Security Features
+ * - Emergency pause by owner
+ * - Two-step ownership transfer (Ownable2Step)
+ * - Reentrancy protection
+ * - Gas limit controls for hooks
+ *
+ * ### 4. Agent Limits
+ * - Maximum 100 agents per owner (DoS prevention)
+ * - Public key length validation (32-65 bytes)
+ * - DID uniqueness enforcement
+ *
+ * ## Security Model
+ *
+ * **Assumptions:**
+ * - Block timestamps are reasonably accurate (±15 seconds)
+ * - Users keep their salt values secret until reveal
+ * - Owner is trusted for emergency pauses
+ *
+ * **Invariants:**
+ * - Each DID can only be registered once
+ * - Public keys must be validated before use
+ * - Commitments expire after MAX_COMMIT_REVEAL_DELAY
+ * - No agent can be registered while paused
+ *
+ * ## Economic Model
+ *
+ * Registration is currently free. Future versions may introduce:
+ * - Registration fees to prevent spam
+ * - Stake requirements for agent operators
+ * - Renewal fees for DID maintenance
+ *
+ * ## Gas Costs (Approximate)
+ *
+ * - `commitRegistration()`: ~50,000 gas
+ * - `registerAgentWithReveal()`: ~250,000 gas (first registration)
+ * - `registerAgentWithReveal()`: ~150,000 gas (subsequent registrations)
+ * - `updateAgent()`: ~80,000 gas
+ * - `revokeKey()`: ~40,000 gas
+ *
+ * @custom:security-contact security@sage.com
+ * @custom:audit-status Phase 7.5 - Security enhancements implemented, pending external audit
+ * @custom:version 3.0.0
  */
 contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
     // ============================================
@@ -203,17 +268,97 @@ contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
 
     /**
      * @notice Register agent with reveal (Step 2 of 2)
-     * @dev Verifies commitment and completes registration
+     * @dev Verifies commitment and completes registration with front-running protection
      *
-     * @param did Decentralized Identifier
-     * @param name Agent name
-     * @param description Agent description
-     * @param endpoint Agent API endpoint
-     * @param publicKey Agent's public key
-     * @param capabilities Agent capabilities
-     * @param signature Ownership proof signature
-     * @param salt Random salt used in commitment
-     * @return agentId Unique identifier for the registered agent
+     * This function completes the commit-reveal registration process. It verifies:
+     * 1. A valid commitment exists for the sender
+     * 2. Timing constraints are satisfied (1 min < elapsed < 1 hour)
+     * 3. Revealed parameters match the committed hash
+     * 4. DID is not already registered
+     * 5. Public key ownership is proven via signature
+     *
+     * @param did Decentralized Identifier (e.g., "did:sage:alice")
+     * @param name Human-readable agent name
+     * @param description Agent description and capabilities
+     * @param endpoint Agent API endpoint URL
+     * @param publicKey Agent's secp256k1 public key (33 or 65 bytes)
+     * @param capabilities JSON string of agent capabilities
+     * @param signature ECDSA signature proving key ownership
+     * @param salt Random 32-byte salt used in commitment (must match commit phase)
+     * @return agentId Unique identifier (keccak256(did)) for the registered agent
+     *
+     * ## Process Flow
+     *
+     * 1. **Commitment Verification**: Checks commitment exists and not yet revealed
+     * 2. **Timing Validation**:
+     *    - Must wait ≥1 minute after commit (prevents instant reveal)
+     *    - Must reveal within 1 hour (prevents indefinite squatting)
+     * 3. **Hash Verification**: Reconstructs hash and compares with commitment
+     * 4. **Registration**: Proceeds with standard agent registration
+     * 5. **State Update**: Marks commitment as revealed
+     *
+     * ## Timing Constraints
+     *
+     * - **MIN_COMMIT_REVEAL_DELAY**: 60 seconds (prevents MEV front-running)
+     * - **MAX_COMMIT_REVEAL_DELAY**: 3600 seconds (prevents commitment hoarding)
+     *
+     * ## Security Model
+     *
+     * **Protection Against**:
+     * - Front-running attacks (attacker can't see DID before commitment)
+     * - Cross-chain replay (chainId included in commitment hash)
+     * - MEV exploitation (minimum delay prevents instant reveals)
+     * - Commitment squatting (maximum delay forces timely reveals)
+     *
+     * **Attack Scenarios Prevented**:
+     * ```
+     * SCENARIO: DID Front-Running
+     * 1. Alice wants "did:sage:valuable-name"
+     * 2. WITHOUT protection: Attacker sees tx, submits with higher gas, steals DID
+     * 3. WITH protection: Attacker sees only commit hash, cannot predict DID
+     * 4. Alice reveals after delay, gets her DID safely
+     * ```
+     *
+     * ## Usage Example
+     *
+     * ```javascript
+     * // Step 1: Commit (done earlier via commitRegistration)
+     * const salt = ethers.randomBytes(32);
+     * const commitHash = ethers.keccak256(
+     *   ethers.solidityPacked(
+     *     ["string", "bytes", "address", "bytes32", "uint256"],
+     *     [did, publicKey, userAddress, salt, chainId]
+     *   )
+     * );
+     * await registry.commitRegistration(commitHash);
+     *
+     * // Step 2: Wait minimum delay
+     * await new Promise(r => setTimeout(r, 61000)); // 61 seconds
+     *
+     * // Step 3: Reveal and register
+     * const signature = await wallet.signMessage(challengeHash);
+     * const tx = await registry.registerAgentWithReveal(
+     *   "did:sage:alice",
+     *   "Alice AI Agent",
+     *   "An intelligent assistant",
+     *   "https://alice.example.com",
+     *   publicKeyBytes,
+     *   '{"chat": true, "vision": true}',
+     *   signature,
+     *   salt  // Same salt used in commit
+     * );
+     * const receipt = await tx.wait();
+     * const agentId = receipt.events.find(e => e.event === 'AgentRegistered').args.agentId;
+     * ```
+     *
+     * @custom:security-warning Users MUST keep their salt secret until reveal phase
+     * @custom:security-warning Do NOT reuse salts across different registrations
+     * @custom:gas-cost ~250,000 gas (first registration), ~150,000 gas (subsequent)
+     * @custom:throws NoCommitmentFound if sender has not committed
+     * @custom:throws CommitmentAlreadyRevealed if commitment already used
+     * @custom:throws RevealTooSoon if minimum delay not elapsed
+     * @custom:throws RevealTooLate if maximum delay exceeded
+     * @custom:throws InvalidReveal if hash doesn't match commitment
      */
     function registerAgentWithReveal(
         string calldata did,
@@ -595,6 +740,114 @@ contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
         emit AgentDeactivated(agentId, msg.sender, block.timestamp);
     }
 
+    /**
+     * @notice Revoke a public key and deactivate all associated agents
+     * @dev Permanently revokes the key and disables all agents using it
+     *
+     * This is a critical security function that allows key owners to immediately
+     * revoke compromised keys. Once revoked, a key cannot be un-revoked.
+     *
+     * @param publicKey The public key to revoke (must match caller's registered key)
+     *
+     * ## Process Flow
+     *
+     * 1. **Hash Calculation**: Computes keccak256(publicKey)
+     * 2. **Ownership Verification**: Confirms caller owns this key
+     * 3. **Revocation Status Check**: Ensures key not already revoked
+     * 4. **Key Revocation**: Marks key as permanently revoked
+     * 5. **Agent Deactivation**: Deactivates ALL agents using this key
+     * 6. **Event Emission**: Emits KeyRevoked event
+     *
+     * ## Security Implications
+     *
+     * **CRITICAL - Irreversible Action**:
+     * - Once revoked, a key CANNOT be re-validated
+     * - ALL agents associated with this key will be deactivated
+     * - Deactivated agents cannot participate in the network
+     * - This action should only be taken if:
+     *   - Private key is compromised or suspected compromised
+     *   - Key is lost and needs to be replaced
+     *   - Agent operator is shutting down operations
+     *
+     * **Impact on Agents**:
+     * - All agents using this key become inactive immediately
+     * - Inactive agents cannot:
+     *   - Accept new tasks
+     *   - Receive reputation updates
+     *   - Participate in validations
+     * - Agent metadata remains on-chain (for historical records)
+     *
+     * **Recovery Process**:
+     * If you revoke a key by mistake or need to continue operations:
+     * 1. Generate a new key pair
+     * 2. Re-register all agents with the new key
+     * 3. Previous reputation and history will NOT transfer automatically
+     *
+     * ## Usage Examples
+     *
+     * ### Example 1: Key Compromise Response
+     * ```javascript
+     * // EMERGENCY: Private key compromised!
+     * const publicKey = "0x04..."; // The compromised key
+     *
+     * // Immediately revoke to prevent attacker from using it
+     * const tx = await registry.revokeKey(publicKey);
+     * await tx.wait();
+     *
+     * console.log("Key revoked. Generate new key and re-register agents.");
+     * ```
+     *
+     * ### Example 2: Planned Key Rotation
+     * ```javascript
+     * // Step 1: Generate new key pair
+     * const newWallet = ethers.Wallet.createRandom();
+     * const newPublicKey = newWallet.publicKey;
+     *
+     * // Step 2: Register agents with new key
+     * for (const agent of myAgents) {
+     *   await registry.registerAgent(
+     *     agent.did + "-v2",  // New DID version
+     *     agent.name,
+     *     // ... other params
+     *     newPublicKey,
+     *     newSignature,
+     *     newSalt
+     *   );
+     * }
+     *
+     * // Step 3: Only after new agents are active, revoke old key
+     * await registry.revokeKey(oldPublicKey);
+     * ```
+     *
+     * ### Example 3: Check Before Revoking
+     * ```javascript
+     * // Check how many agents will be affected
+     * const keyHash = ethers.keccak256(publicKey);
+     * const affectedAgents = await registry.getAgentsByKey(keyHash);
+     *
+     * console.log(`WARNING: Revoking this key will deactivate ${affectedAgents.length} agents`);
+     *
+     * // User confirms
+     * const confirmed = await getUserConfirmation();
+     * if (confirmed) {
+     *   await registry.revokeKey(publicKey);
+     * }
+     * ```
+     *
+     * ## Gas Costs
+     *
+     * - Base revocation: ~45,000 gas
+     * - Per agent deactivated: +~5,000 gas
+     * - Example with 10 agents: ~95,000 gas
+     * - Example with 100 agents (max): ~545,000 gas
+     *
+     * @custom:security-warning IRREVERSIBLE - Key cannot be un-revoked after this call
+     * @custom:security-warning ALL agents using this key will be immediately deactivated
+     * @custom:security-warning Ensure you have a recovery plan before revoking
+     * @custom:gas-cost ~45,000 base + ~5,000 per associated agent (max 100 agents = ~545k gas)
+     * @custom:throws "Not key owner" if caller doesn't own the specified key
+     * @custom:throws "Already revoked" if key was previously revoked
+     */
     function revokeKey(bytes calldata publicKey) external {
         bytes32 keyHash = keccak256(publicKey);
         require(addressToKeyHash[msg.sender] == keyHash, "Not key owner");

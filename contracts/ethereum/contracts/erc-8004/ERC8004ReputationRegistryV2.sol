@@ -7,12 +7,133 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title ERC8004ReputationRegistryV2
- * @notice ERC-8004 Reputation Registry with Front-Running Protection
- * @dev Adds commit-reveal scheme to prevent front-running of task authorization
+ * @author SAGE Development Team
+ * @notice ERC-8004 Reputation Registry with front-running protection for task authorization
+ * @dev Version 2 implementing commit-reveal pattern for secure task delegation
  *
- * Security Improvements from V1:
- * - MEDIUM-4: Task authorization front-running protection
- * - MEDIUM-2: Cross-chain replay protection (chainId in authorization)
+ * ## Overview
+ *
+ * The Reputation Registry manages AI agent reputation scores and task authorizations
+ * in the SAGE ecosystem. It serves two primary functions:
+ *
+ * 1. **Task Authorization**: Secure commit-reveal scheme for delegating tasks to agents
+ * 2. **Reputation Management**: Recording and querying feedback for agent performance
+ *
+ * This contract prevents task authorization front-running attacks where adversaries
+ * could intercept task delegation and route work to malicious agents instead.
+ *
+ * ## Architecture
+ *
+ * ### Component Integration
+ * ```
+ * Client → ReputationRegistry → {
+ *   ├─ IdentityRegistry (verify agents)
+ *   └─ ValidationRegistry (validate results)
+ * }
+ *
+ * Validator → ValidationRegistry → ReputationRegistry (update feedback)
+ * ```
+ *
+ * ### Task Authorization Flow
+ * 1. **Commit**: Client commits hash of (taskId, serverAgent, deadline, salt)
+ * 2. **Wait**: Minimum 30 seconds to prevent MEV front-running
+ * 3. **Reveal**: Client reveals actual parameters within 10 minutes
+ * 4. **Verification**: Contract validates hash matches commitment
+ * 5. **Authorization**: Task officially assigned to specified agent
+ *
+ * ## Key Features
+ *
+ * ### 1. Front-Running Protection
+ * - Commit-reveal pattern hides task delegation intent
+ * - Salt prevents hash prediction
+ * - ChainId prevents cross-chain replay attacks
+ * - Timing constraints prevent abuse
+ *
+ * ### 2. Reputation Management
+ * - Stores feedback from validation results
+ * - Links feedback to tasks and agents
+ * - Enables reputation querying by client or validator
+ * - Integrates with validation outcomes
+ *
+ * ### 3. Access Control
+ * - Only ValidationRegistry can submit feedback
+ * - Prevents unauthorized reputation manipulation
+ * - Owner can update ValidationRegistry address (one-time)
+ * - Two-step ownership transfer for security
+ *
+ * ## Security Model
+ *
+ * ### Assumptions
+ * - Clients keep salt secret until reveal
+ * - ValidationRegistry is trusted (properly vetted before setting)
+ * - Block timestamps accurate within ±15 seconds
+ * - Owner is trusted for initial configuration
+ *
+ * ### Invariants
+ * - Feedback can only be created by ValidationRegistry
+ * - Each authorization requires a valid commitment
+ * - Commitments expire after MAX_COMMIT_REVEAL_DELAY
+ * - Ratings are bounded 0-100
+ *
+ * ### Attack Prevention
+ * ```
+ * ATTACK: Task Authorization Front-Running
+ *
+ * WITHOUT PROTECTION:
+ * 1. Alice broadcasts authorizeTask(taskX, agentBob)
+ * 2. Attacker sees transaction in mempool
+ * 3. Attacker front-runs with authorizeTask(taskX, maliciousAgent)
+ * 4. Attacker gets task, Alice's intended agent loses work ❌
+ *
+ * WITH PROTECTION:
+ * 1. Alice commits hash (taskX + agentBob hidden)
+ * 2. Attacker sees hash but can't decode
+ * 3. Alice reveals after 30 seconds
+ * 4. Alice's intended agent gets task ✅
+ * ```
+ *
+ * ## Economic Model
+ *
+ * This contract has no direct economic incentives (no staking or fees).
+ * However, it supports the broader ecosystem economics:
+ *
+ * - **Reputation Value**: High reputation agents earn more task assignments
+ * - **Quality Incentive**: Good performance increases reputation
+ * - **Accountability**: Poor performance decreases reputation
+ * - **Trust Building**: Verifiable track record attracts clients
+ *
+ * ### Reputation Calculation
+ * ```
+ * Current implementation: Simple average of all ratings (0-100)
+ * Future versions may implement:
+ * - Time-weighted reputation (recent performance matters more)
+ * - Stake-weighted reputation (validators with more stake count more)
+ * - Task-weighted reputation (complex tasks count more)
+ * ```
+ *
+ * ## Gas Costs (Approximate)
+ *
+ * - `commitTaskAuthorization()`: ~50,000 gas
+ * - `authorizeTaskWithReveal()`: ~120,000 gas
+ * - `submitFeedback()`: ~150,000 gas (ValidationRegistry only)
+ * - `getAgentReputation()`: ~10,000 gas (view)
+ * - `queryFeedback()`: ~5,000 + (2,000 × feedback_count) gas (view)
+ *
+ * ## Integration Points
+ *
+ * ### With IdentityRegistry
+ * - Verifies agents are registered and active
+ * - Resolves agent addresses to DIDs
+ *
+ * ### With ValidationRegistry
+ * - Receives feedback after validation completion
+ * - Updates agent reputation based on validation outcomes
+ * - Authorizations reference validation requests
+ *
+ * @custom:security-contact security@sage.com
+ * @custom:audit-status Phase 7.5 - Front-running protection implemented, pending external audit
+ * @custom:version 2.0.0 (with commit-reveal)
+ * @custom:erc ERC-8004 compliant
  */
 contract ERC8004ReputationRegistryV2 is IERC8004ReputationRegistry, Ownable2Step {
     // State variables

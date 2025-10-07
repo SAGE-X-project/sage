@@ -7,25 +7,235 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
  * @title TEEKeyRegistry
- * @notice Decentralized registry for trusted TEE (Trusted Execution Environment) keys
- * @dev Community governance for TEE key approval to prevent centralization
+ * @author SAGE Development Team
+ * @notice Decentralized governance registry for trusted TEE (Trusted Execution Environment) keys
+ * @dev Community-driven approval system preventing centralization of cryptographic validation trust
  *
- * Problem:
- * In ERC8004ValidationRegistry, only the owner can add trusted TEE keys.
- * This creates centralization risk - owner controls which TEE providers are trusted.
+ * ## Overview
  *
- * Solution:
- * Community-governed registry where:
- * - Anyone can propose a TEE key with stake
- * - Community votes on proposals
- * - Approved keys become trusted
- * - Malicious proposals lose stake
+ * The TEEKeyRegistry solves a critical decentralization problem in the SAGE ecosystem:
+ * **Who decides which TEE (Trusted Execution Environment) providers are trusted?**
  *
- * Supported TEE Types:
- * - Intel SGX
- * - AMD SEV
- * - ARM TrustZone
- * - AWS Nitro Enclaves
+ * Without this contract, a single owner controls the list of trusted TEE keys, creating
+ * a centralization risk. This registry implements community governance where stakeholders
+ * vote on TEE key approval proposals, distributing trust across the ecosystem.
+ *
+ * ## Problem Statement
+ *
+ * In ERC8004ValidationRegistry, validators can submit cryptographic proofs (attestations)
+ * from TEE providers. But who decides which TEE keys to trust?
+ *
+ * **Centralized Approach (V1)**:
+ * ```
+ * function addTrustedTEEKey(bytes32 keyHash) external onlyOwner {
+ *     trustedTEEKeys[keyHash] = true;
+ * }
+ * ```
+ * ❌ Single point of failure
+ * ❌ Owner can add malicious keys
+ * ❌ No community input
+ *
+ * **Decentralized Approach (V2 - This Contract)**:
+ * ```
+ * Anyone → propose(keyHash, attestation) + stake
+ *   ↓
+ * Community → vote(proposalId, support)
+ *   ↓
+ * 66% approval → Key trusted ✅
+ * <66% approval → Stake slashed ❌
+ * ```
+ *
+ * ## Architecture
+ *
+ * ### Governance Flow
+ * ```
+ * 1. PROPOSAL
+ *    ├─ Proposer stakes 1 ETH
+ *    ├─ Submits TEE key + attestation report
+ *    └─ 7-day voting period begins
+ *
+ * 2. VOTING
+ *    ├─ Registered voters cast weighted votes
+ *    ├─ Minimum 10% participation required
+ *    └─ Votes tracked: FOR vs AGAINST
+ *
+ * 3. EXECUTION
+ *    ├─ After 7 days, anyone can execute
+ *    ├─ Check: ≥66% approval + ≥10% participation
+ *    ├─ APPROVED: Key trusted, stake returned
+ *    └─ REJECTED: 50% stake slashed, key rejected
+ * ```
+ *
+ * ## Key Features
+ *
+ * ### 1. Stake-Based Proposals
+ * - Proposers must stake 1 ETH (configurable)
+ * - Prevents spam proposals
+ * - Slashed if community rejects
+ * - Returned if community approves
+ *
+ * ### 2. Weighted Voting System
+ * - Voters registered by owner initially
+ * - Voting weight based on reputation/stake
+ * - Each voter can vote once per proposal
+ * - Votes weighted to reflect expertise
+ *
+ * ### 3. Byzantine Fault Tolerance
+ * - 66% approval threshold (⅔ majority)
+ * - Tolerates up to 33% malicious/dishonest voters
+ * - Minimum participation prevents small groups deciding
+ *
+ * ### 4. Supported TEE Types
+ * - **Intel SGX**: Software Guard Extensions
+ * - **AMD SEV**: Secure Encrypted Virtualization
+ * - **ARM TrustZone**: ARM's secure world
+ * - **AWS Nitro Enclaves**: Amazon's isolated compute
+ *
+ * ### 5. Emergency Controls
+ * - Owner can revoke compromised keys immediately
+ * - Owner can pause contract in crisis
+ * - Two-step ownership transfer for security
+ *
+ * ## Security Model
+ *
+ * ### Assumptions
+ * - Majority of voters are honest and technically competent
+ * - Attestation reports are publicly verifiable
+ * - Owner is trusted for emergency interventions only
+ * - TEE providers maintain security of their infrastructure
+ *
+ * ### Invariants
+ * - Only approved keys can be used for TEE validation
+ * - Proposals require minimum participation (≥10%)
+ * - Approval requires supermajority (≥66%)
+ * - Slashing is partial (50%) to allow for honest mistakes
+ *
+ * ### Attack Prevention
+ * - **Spam Proposals**: Prevented by 1 ETH stake requirement
+ * - **Sybil Voting**: Prevented by registered voter system
+ * - **Rushed Decisions**: 7-day voting period enforces deliberation
+ * - **Minority Takeover**: 66% threshold prevents <⅔ control
+ * - **Low Participation**: 10% minimum prevents small group decisions
+ * - **Malicious Keys**: Community review + attestation verification
+ *
+ * ## Economic Model
+ *
+ * ### Proposal Costs
+ * - **Stake Required**: 1 ETH (adjustable)
+ * - **If Approved**: Stake returned 100%
+ * - **If Rejected**: 50% slashed, 50% returned
+ * - **If Cancelled**: 10% fee, 90% returned
+ *
+ * ### Voting Incentives
+ * ```
+ * Current: No direct rewards (reputation-based)
+ * Future: Could implement:
+ * - Rewards for voters from slashed funds
+ * - Token-based voting weights
+ * - Delegation mechanisms
+ * ```
+ *
+ * ### Slashed Funds Treasury
+ * - Accumulated from rejected proposals
+ * - Can be withdrawn by owner for:
+ *   - Voter rewards
+ *   - Ecosystem development
+ *   - Security audits
+ *
+ * ## Governance Parameters
+ *
+ * All parameters are adjustable by owner (via updateParameters):
+ *
+ * | Parameter | Default | Range | Purpose |
+ * |-----------|---------|-------|---------|
+ * | proposalStake | 1 ETH | Any | Spam prevention |
+ * | votingPeriod | 7 days | Any | Deliberation time |
+ * | approvalThreshold | 66% | 50-100% | Supermajority |
+ * | minVoterParticipation | 10% | 0-100% | Prevent small groups |
+ * | slashingPercentage | 50% | 0-100% | Penalty for bad proposals |
+ *
+ * ## Gas Costs (Approximate)
+ *
+ * - `proposeTEEKey()`: ~180,000 gas
+ * - `vote()`: ~85,000 gas (per voter)
+ * - `executeProposal()`: ~150,000 + (5,000 × voters) gas
+ * - `registerVoter()`: ~80,000 gas
+ * - `revokeTEEKey()`: ~45,000 gas (emergency)
+ *
+ * ## Integration with ValidationRegistry
+ *
+ * ```solidity
+ * // ValidationRegistry checks this contract
+ * function submitTEEAttestation(bytes32 keyHash, bytes proof) external {
+ *     require(
+ *         TEEKeyRegistry(teeRegistry).isTrustedTEEKey(keyHash),
+ *         "TEE key not trusted"
+ *     );
+ *     // Process attestation...
+ * }
+ * ```
+ *
+ * ## Usage Example
+ *
+ * ### Proposing a New TEE Key
+ * ```javascript
+ * // 1. Prepare attestation documentation
+ * const attestationReport = "https://sgx-attestation.example.com/report123";
+ * const teeType = "SGX";
+ * const keyHash = ethers.keccak256(sgxPublicKey);
+ *
+ * // 2. Submit proposal with stake
+ * const stake = ethers.parseEther("1.0"); // 1 ETH
+ * const tx = await teeRegistry.proposeTEEKey(
+ *   keyHash,
+ *   attestationReport,
+ *   teeType,
+ *   { value: stake }
+ * );
+ * const receipt = await tx.wait();
+ * const proposalId = receipt.events.find(e => e.event === 'TEEKeyProposed').args.proposalId;
+ *
+ * console.log(`Proposal ${proposalId} created. Voting open for 7 days.`);
+ * ```
+ *
+ * ### Voting on a Proposal
+ * ```javascript
+ * // 1. Review attestation report (off-chain)
+ * const proposal = await teeRegistry.getProposal(proposalId);
+ * console.log("Attestation:", proposal.attestationReport);
+ *
+ * // 2. Verify TEE attestation manually
+ * const isValid = await verifyTEEAttestation(proposal.attestationReport);
+ *
+ * // 3. Cast vote
+ * if (isValid) {
+ *   await teeRegistry.vote(proposalId, true); // Support
+ * } else {
+ *   await teeRegistry.vote(proposalId, false); // Reject
+ * }
+ * ```
+ *
+ * ### Executing After Voting
+ * ```javascript
+ * // Wait 7 days...
+ * await new Promise(r => setTimeout(r, 7 * 24 * 60 * 60 * 1000));
+ *
+ * // Anyone can execute
+ * const tx = await teeRegistry.executeProposal(proposalId);
+ * const receipt = await tx.wait();
+ *
+ * const approved = receipt.events.find(e => e.event === 'ProposalExecuted').args.approved;
+ * if (approved) {
+ *   console.log("TEE key approved! Now trusted for validations.");
+ * } else {
+ *   console.log("Proposal rejected. 50% of stake slashed.");
+ * }
+ * ```
+ *
+ * @custom:security-contact security@sage.com
+ * @custom:audit-status Phase 7.5 - Governance implementation complete, pending external audit
+ * @custom:version 1.0.0
+ * @custom:governance Community-driven with emergency controls
  */
 contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
     // ============================================
