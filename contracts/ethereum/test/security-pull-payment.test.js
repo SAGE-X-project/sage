@@ -84,6 +84,9 @@ describe("Security: Pull Payment Pattern", function () {
         // Link reputation registry to validation registry
         await reputationRegistry.setValidationRegistry(await validationRegistry.getAddress());
 
+        // Set minimum validators required to 2 for testing multiple validator scenarios
+        await validationRegistry.setMinValidatorsRequired(2);
+
         // Register agent
         const agentDid = "did:sage:test123";
         const agentName = "Test Agent";
@@ -154,10 +157,10 @@ describe("Security: Pull Payment Pattern", function () {
         it("Should allow users to withdraw their pending balance", async function () {
             const taskId = ethers.id("test-task-withdraw");
             const dataHash = ethers.id("test-data");
-            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 3600 + 60;
 
-            // Create validation request
-            const requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
+            // Create validation request and get requestId from event
+            const txRequest = await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -165,15 +168,13 @@ describe("Security: Pull Payment Pattern", function () {
                 deadline,
                 { value: ethers.parseEther("0.1") }
             );
-
-            await validationRegistry.connect(clientWallet).requestValidation(
-                taskId,
-                agentWallet.address,
-                dataHash,
-                1, // STAKE
-                deadline,
-                { value: ethers.parseEther("0.1") }
-            );
+            const receiptRequest = await txRequest.wait();
+            const eventRequest = receiptRequest.logs.find(log => {
+                try {
+                    return validationRegistry.interface.parseLog(log)?.name === 'ValidationRequested';
+                } catch { return false; }
+            });
+            const requestId = validationRegistry.interface.parseLog(eventRequest).args.requestId;
 
             // Validator submits correct validation
             await validationRegistry.connect(val1Wallet).submitStakeValidation(
@@ -197,9 +198,9 @@ describe("Security: Pull Payment Pattern", function () {
             const initialBalance = await ethers.provider.getBalance(val1Wallet.address);
 
             // Withdraw funds
-            const tx = await validationRegistry.connect(val1Wallet).withdraw();
-            const receipt = await tx.wait();
-            const gasUsed = receipt.gasUsed * receipt.gasPrice;
+            const txWithdraw = await validationRegistry.connect(val1Wallet).withdraw();
+            const receiptWithdraw = await txWithdraw.wait();
+            const gasUsed = receiptWithdraw.gasUsed * receiptWithdraw.gasPrice;
 
             // Check new balance
             const finalBalance = await ethers.provider.getBalance(val1Wallet.address);
@@ -213,16 +214,16 @@ describe("Security: Pull Payment Pattern", function () {
         it("Should revert when withdrawing with zero balance", async function () {
             await expect(
                 validationRegistry.connect(val1Wallet).withdraw()
-            ).to.be.revertedWith("No funds to withdraw");
+            ).to.be.revertedWithCustomError(validationRegistry, "NoFundsToWithdraw");
         });
 
         it("Should handle multiple validators withdrawing independently", async function () {
             const taskId = ethers.id("test-task-multi-withdraw");
             const dataHash = ethers.id("test-data");
-            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 3600 + 60;
 
-            // Create validation request
-            await validationRegistry.connect(clientWallet).requestValidation(
+            // Create validation request and get requestId from event
+            const tx = await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -230,15 +231,13 @@ describe("Security: Pull Payment Pattern", function () {
                 deadline,
                 { value: ethers.parseEther("0.2") }
             );
-
-            const requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
-                taskId,
-                agentWallet.address,
-                dataHash,
-                1, // STAKE
-                deadline,
-                { value: ethers.parseEther("0.2") }
-            );
+            const receipt = await tx.wait();
+            const event = receipt.logs.find(log => {
+                try {
+                    return validationRegistry.interface.parseLog(log)?.name === 'ValidationRequested';
+                } catch { return false; }
+            });
+            const requestId = validationRegistry.interface.parseLog(event).args.requestId;
 
             // Both validators submit
             await validationRegistry.connect(val1Wallet).submitStakeValidation(
@@ -282,10 +281,10 @@ describe("Security: Pull Payment Pattern", function () {
         it("Should emit WithdrawalProcessed event", async function () {
             const taskId = ethers.id("test-task-event");
             const dataHash = ethers.id("test-data");
-            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 3600 + 60;
 
-            // Create and complete validation
-            await validationRegistry.connect(clientWallet).requestValidation(
+            // Create and complete validation - get requestId from event
+            const tx = await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -293,15 +292,13 @@ describe("Security: Pull Payment Pattern", function () {
                 deadline,
                 { value: ethers.parseEther("0.1") }
             );
-
-            const requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
-                taskId,
-                agentWallet.address,
-                dataHash,
-                1, // STAKE
-                deadline,
-                { value: ethers.parseEther("0.1") }
-            );
+            const receipt = await tx.wait();
+            const event = receipt.logs.find(log => {
+                try {
+                    return validationRegistry.interface.parseLog(log)?.name === 'ValidationRequested';
+                } catch { return false; }
+            });
+            const requestId = validationRegistry.interface.parseLog(event).args.requestId;
 
             await validationRegistry.connect(val1Wallet).submitStakeValidation(
                 requestId,
@@ -328,13 +325,13 @@ describe("Security: Pull Payment Pattern", function () {
         it("Should not send funds directly during validation completion", async function () {
             const taskId = ethers.id("test-task-no-direct");
             const dataHash = ethers.id("test-data");
-            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 7200;
+            const currentBlock = await ethers.provider.getBlock('latest'); const deadline = currentBlock.timestamp + 3600 + 60;
 
             // Get initial balance
             const initialBalance = await ethers.provider.getBalance(val1Wallet.address);
 
-            // Create validation request
-            await validationRegistry.connect(clientWallet).requestValidation(
+            // Create validation request and get requestId from event
+            const txReq = await validationRegistry.connect(clientWallet).requestValidation(
                 taskId,
                 agentWallet.address,
                 dataHash,
@@ -342,15 +339,13 @@ describe("Security: Pull Payment Pattern", function () {
                 deadline,
                 { value: ethers.parseEther("0.1") }
             );
-
-            const requestId = await validationRegistry.connect(clientWallet).requestValidation.staticCall(
-                taskId,
-                agentWallet.address,
-                dataHash,
-                1, // STAKE
-                deadline,
-                { value: ethers.parseEther("0.1") }
-            );
+            const receiptReq = await txReq.wait();
+            const eventReq = receiptReq.logs.find(log => {
+                try {
+                    return validationRegistry.interface.parseLog(log)?.name === 'ValidationRequested';
+                } catch { return false; }
+            });
+            const requestId = validationRegistry.interface.parseLog(eventReq).args.requestId;
 
             // Validator1 submits
             const tx1 = await validationRegistry.connect(val1Wallet).submitStakeValidation(

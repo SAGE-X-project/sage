@@ -429,8 +429,8 @@ describe("ERC-8004 Trustless Agents Standard", function () {
 
             it("Should reject validation request with insufficient stake", async function () {
                 const currentBlock = await ethers.provider.getBlock('latest');
-                const deadline = currentBlock.timestamp + 7200;
-                const stake = ethers.parseEther("0.001"); // Too low
+                const deadline = currentBlock.timestamp + 3600 + 60; // 1 hour + buffer for MIN_DEADLINE_DURATION
+                const stake = ethers.parseEther("0.001"); // Too low (min is 0.01)
 
                 await expect(
                     validationRegistry.connect(clientWallet).requestValidation(
@@ -441,7 +441,7 @@ describe("ERC-8004 Trustless Agents Standard", function () {
                         deadline,
                         { value: stake }
                     )
-                ).to.be.revertedWith("Insufficient stake");
+                ).to.be.revertedWithCustomError(validationRegistry, "InsufficientStake");
             });
         });
 
