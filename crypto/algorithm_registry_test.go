@@ -125,6 +125,30 @@ func TestAlgorithmRegistry(t *testing.T) {
 		assert.True(t, SupportsKeyGeneration(KeyTypeX25519))
 	})
 
+	t.Run("Check if algorithm supports signature", func(t *testing.T) {
+		// Ed25519, Secp256k1, and RSA support signatures
+		assert.True(t, SupportsSignature(KeyTypeEd25519))
+		assert.True(t, SupportsSignature(KeyTypeSecp256k1))
+		assert.True(t, SupportsSignature(KeyTypeRSA))
+
+		// X25519 does NOT support signatures (key exchange only)
+		assert.False(t, SupportsSignature(KeyTypeX25519))
+
+		// Unknown key type should return false
+		assert.False(t, SupportsSignature(KeyType("unknown")))
+	})
+
+	t.Run("Check if algorithm is supported", func(t *testing.T) {
+		// Registered algorithms should return true
+		assert.True(t, IsAlgorithmSupported(KeyTypeEd25519))
+		assert.True(t, IsAlgorithmSupported(KeyTypeSecp256k1))
+		assert.True(t, IsAlgorithmSupported(KeyTypeRSA))
+		assert.True(t, IsAlgorithmSupported(KeyTypeX25519))
+
+		// Unknown algorithm should return false
+		assert.False(t, IsAlgorithmSupported(KeyType("unknown")))
+	})
+
 	t.Run("Validate algorithm capabilities", func(t *testing.T) {
 		// Test that X25519 is registered but doesn't support RFC 9421
 		info, err := GetAlgorithmInfo(KeyTypeX25519)
