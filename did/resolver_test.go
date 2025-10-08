@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package did
 
 import (
@@ -43,6 +42,14 @@ func (m *MockResolver) Resolve(ctx context.Context, did AgentDID) (*AgentMetadat
 }
 
 func (m *MockResolver) ResolvePublicKey(ctx context.Context, did AgentDID) (interface{}, error) {
+	args := m.Called(ctx, did)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0), args.Error(1)
+}
+
+func (m *MockResolver) ResolveKEMKey(ctx context.Context, did AgentDID) (interface{}, error) {
 	args := m.Called(ctx, did)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

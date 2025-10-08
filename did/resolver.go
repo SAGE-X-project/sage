@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package did
 
 import (
@@ -30,6 +29,8 @@ type Resolver interface {
 	
 	// ResolvePublicKey retrieves only the public key for an agent
 	ResolvePublicKey(ctx context.Context, did AgentDID) (interface{}, error)
+
+	ResolveKEMKey(ctx context.Context, did AgentDID) (interface{}, error)
 	
 	// VerifyMetadata checks if the provided metadata matches the on-chain data
 	VerifyMetadata(ctx context.Context, did AgentDID, metadata *AgentMetadata) (*VerificationResult, error)
@@ -107,6 +108,20 @@ func (m *MultiChainResolver) ResolvePublicKey(ctx context.Context, did AgentDID)
 	}
 	
 	return metadata.PublicKey, nil
+}
+
+// ResolvePublicKey retrieves the KEM key for an agent from any chain (for RFC 9180)
+func (m *MultiChainResolver) ResolveKEMKey(ctx context.Context, did AgentDID) (interface{}, error) {
+	metadata, err := m.Resolve(ctx, did)
+	if err != nil {
+		return nil, err
+	}
+	
+	if !metadata.IsActive {
+		return nil, ErrInactiveAgent
+	}
+	
+	return metadata.PublicKEMKey, nil
 }
 
 // VerifyMetadata verifies metadata against on-chain data

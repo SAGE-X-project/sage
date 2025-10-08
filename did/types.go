@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package did
 
 import (
@@ -34,6 +33,7 @@ type AgentMetadata struct {
 	Description  string                 `json:"description"`
 	Endpoint     string                 `json:"endpoint"`
 	PublicKey    interface{}            `json:"public_key"` // crypto.PublicKey type
+	PublicKEMKey    interface{}            `json:"public_key"` // crypto.PublicKey type
 	Capabilities map[string]interface{} `json:"capabilities"`
 	Owner        string                 `json:"owner"`        // Blockchain address of the owner
 	IsActive     bool                   `json:"is_active"`
