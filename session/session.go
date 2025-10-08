@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package session
 
 import (
@@ -410,6 +409,10 @@ func (s *SecureSession) GetConfig() Config {
 // Encrypt encrypts plaintext using ChaCha20-Poly1305.
 // Output format: nonce || ciphertext.
 func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
+	if s.IsExpired() {
+		return nil, fmt.Errorf("session expired")
+	}
+
     if s.aeadOut != nil { // directional path
 		return s.EncryptOutbound(plaintext)
 	}
@@ -438,6 +441,10 @@ func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
 // Decrypt decrypts data produced by Encrypt.
 // Expects input format: nonce || ciphertext.
 func (s *SecureSession) Decrypt(data []byte) ([]byte, error) {
+	if s.IsExpired() {
+		return nil, fmt.Errorf("session expired")
+	}
+	
     if s.aeadIn != nil { // directional path
 		return s.DecryptInbound(data)
 	}
