@@ -35,16 +35,16 @@ func TestSecureSessionLifecycle(t *testing.T) {
     config := Config{
         MaxAge:      100 * time.Millisecond,
         IdleTimeout: 50 * time.Millisecond,
-        MaxMessages: 2,
+        MaxMessages: 10, // Increased to accommodate multiple operations per test
     }
     sharedSecret := make([]byte, chacha20poly1305.KeySize)
     _, err := rand.Read(sharedSecret)
     require.NoError(t, err)
 
-	sess, err := NewSecureSession("sess1", sharedSecret, config)
-	require.NoError(t, err)
 	covered := []byte("covered-for-tests")
+
 	t.Run("Encrypt and decrypt with sign roundtrip", func(t *testing.T) {
+        sess, err := NewSecureSession("sess1", sharedSecret, config)
         require.NoError(t, err)
         require.Equal(t, "sess1", sess.GetID())
         require.False(t, sess.IsExpired())
@@ -62,6 +62,9 @@ func TestSecureSessionLifecycle(t *testing.T) {
     })
 
     t.Run("Encrypt and decrypt roundtrip", func(t *testing.T) {
+        sess, err := NewSecureSession("sess1a", sharedSecret, config)
+        require.NoError(t, err)
+
         plaintext := []byte("test payload")
         ct, err := sess.Encrypt(plaintext)
         require.NoError(t, err)
@@ -71,10 +74,13 @@ func TestSecureSessionLifecycle(t *testing.T) {
         require.NoError(t, err)
         require.Equal(t, plaintext, pt)
 
-		require.Equal(t, 4, sess.GetMessageCount())
+		require.Equal(t, 2, sess.GetMessageCount())
     })
 
     t.Run("Decrypt with tampered data fails", func(t *testing.T) {
+        sess, err := NewSecureSession("sess1b", sharedSecret, config)
+        require.NoError(t, err)
+
         plaintext := []byte("another test")
         ct, err := sess.Encrypt(plaintext)
         require.NoError(t, err)
@@ -87,13 +93,21 @@ func TestSecureSessionLifecycle(t *testing.T) {
     })
 
     t.Run("Decrypt with too-short data fails", func(t *testing.T) {
+        sess, err := NewSecureSession("sess1c", sharedSecret, config)
+        require.NoError(t, err)
+
         // Data shorter than nonce size
-        _, err := sess.Decrypt([]byte("short"))
+        _, err = sess.Decrypt([]byte("short"))
         require.Error(t, err)
     })
 
     t.Run("Message count expiration", func(t *testing.T) {
-        sess, _ := NewSecureSession("sess2", sharedSecret, config)
+        configLimited := Config{
+            MaxAge:      100 * time.Millisecond,
+            IdleTimeout: 50 * time.Millisecond,
+            MaxMessages: 2, // Limited for this specific expiration test
+        }
+        sess, _ := NewSecureSession("sess2", sharedSecret, configLimited)
 
         _, _, _ = sess.EncryptAndSign([]byte("m1"), covered)
         _, _, _ = sess.EncryptAndSign([]byte("m2"), covered)

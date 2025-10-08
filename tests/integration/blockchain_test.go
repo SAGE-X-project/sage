@@ -22,7 +22,6 @@ package integration
 import (
 	"context"
 	"math/big"
-	"os"
 	"testing"
 	"time"
 
@@ -46,13 +45,6 @@ func getTestConfig() *config.BlockchainConfig {
 		RetryDelay:     time.Second,
 		RequestTimeout: 30 * time.Second,
 	}
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }
 
 // TestBlockchainConnection tests basic connection to local blockchain
