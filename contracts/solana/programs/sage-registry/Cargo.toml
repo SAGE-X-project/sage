@@ -1,7 +1,7 @@
 [package]
-name = "sage-verification-hook"
+name = "sage-registry"
 version = "0.1.0"
-description = "Verification hook for SAGE Registry"
+description = "SAGE AI Agent Registry for Solana"
 edition = "2021"
 license = "MIT"
 authors = ["SAGE-X-project"]
@@ -9,7 +9,7 @@ repository = "https://github.com/SAGE-X-project/sage"
 
 [lib]
 crate-type = ["cdylib", "lib"]
-name = "sage_verification_hook"
+name = "sage_registry"
 
 [features]
 no-entrypoint = []
