@@ -223,6 +223,7 @@ import (
 client := hpke.NewClient(conn, myKeyPair)
 
 // Initialize session
+// Receive kid from Server (Agent B)
 ctxID := "ctx-" + uuid.NewString()
 kid, _ := client.Initialize(ctx, ctxID, clientDID, serverDID)
 
