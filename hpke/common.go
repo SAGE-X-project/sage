@@ -26,6 +26,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"sync"
 	"time"
 
@@ -36,32 +37,38 @@ import (
 	sagecrypto "github.com/sage-x-project/sage/crypto"
 )
 
-const TaskHPKEComplete = "hpke/complete@v1"
-
-type InfoBuilder interface {
-	BuildInfo(ctxID, initDID, respDID string) []byte
-	BuildExportContext(ctxID string) []byte
-}
-
-type DefaultInfoBuilder struct{}
-
+// info is the RFC9180 "info" input and explicitly encodes suite/combiner/context data.
+// The order and delimiters are fixed so both sides produce identical byte sequences.
 func (DefaultInfoBuilder) BuildInfo(ctxID, initDID, respDID string) []byte {
-	return []byte("sage/hpke v1|ctx=" + ctxID + "|init=" + initDID + "|resp=" + respDID)
-}
-func (DefaultInfoBuilder) BuildExportContext(ctxID string) []byte {
-	return []byte("exporter:" + ctxID)
+	return []byte(
+		infoLabel +
+			"|suite=" + hpkeSuiteID +
+			"|combiner=" + combinerID +
+			"|ctx=" + ctxID +
+			"|init=" + initDID +
+			"|resp=" + respDID,
+	)
 }
 
-// firstDataPart extracts the first DataPart struct payload.
-func firstDataPart(m *a2a.Message) (*structpb.Struct, error) {
-	if m == nil || len(m.Content) == 0 {
-		return nil, errors.New("empty content")
-	}
-	dpart, ok := m.Content[0].GetPart().(*a2a.Part_Data)
-	if !ok || dpart.Data == nil || dpart.Data.Data == nil {
-		return nil, errors.New("missing data part")
-	}
-	return dpart.Data.Data, nil
+// exportCtx is used as the HKDF salt / "export context" value.
+// It repeats the domain label, suite, combiner, and context in a fixed order.
+func (DefaultInfoBuilder) BuildExportContext(ctxID string) []byte {
+	return []byte(
+		exportCtxLabel +
+			"|suite=" + hpkeSuiteID +
+			"|combiner=" + combinerID +
+			"|ctx=" + ctxID,
+	)
+}
+
+// DefaultInfo returns the canonical HPKE transcript info bytes used by SAGE.
+func DefaultInfo(ctxID, initDID, respDID string) []byte {
+	return DefaultInfoBuilder{}.BuildInfo(ctxID, initDID, respDID)
+}
+
+// DefaultExportContext returns the canonical export context bytes used by SAGE.
+func DefaultExportContext(ctxID string) []byte {
+	return DefaultInfoBuilder{}.BuildExportContext(ctxID)
 }
 
 func signStruct(k sagecrypto.KeyPair, msg []byte, did string) (*structpb.Struct, error) {
@@ -73,6 +80,12 @@ func signStruct(k sagecrypto.KeyPair, msg []byte, did string) (*structpb.Struct,
 		"signature": base64.RawURLEncoding.EncodeToString(sig),
 		"did":       did,
 	})
+}
+
+func marshalForSig(msg *a2a.Message) ([]byte, error) {
+    cp := proto.Clone(msg).(*a2a.Message)
+    cp.Metadata = nil
+    return proto.MarshalOptions{Deterministic: true}.Marshal(cp)
 }
 
 // verifySenderSignature checks metadata.signature against deterministic-marshaled message bytes.
@@ -112,7 +125,6 @@ func verifySenderSignature(m *a2a.Message, meta *structpb.Struct, senderPub cryp
 	}
 }
 
-// ===== Nonce cache (replay protection) =====
 type nonceStore struct {
 	ttl     time.Duration
 	mu      sync.Mutex
@@ -139,7 +151,6 @@ func (s *nonceStore) checkAndMark(key string) bool {
 	return true
 }
 
-// ===== structpb helpers =====
 func toStruct(m map[string]any) *structpb.Struct { st, _ := structpb.NewStruct(m); return st }
 func getString(st *structpb.Struct, key string) (string, error) {
 	v := st.GetFields()[key]
@@ -159,7 +170,7 @@ func putBase64(m map[string]any, key string, b []byte) {
 	m[key] = base64.RawURLEncoding.EncodeToString(b)
 }
 
-// ===== ACK (HMAC) -- key confirmation without ciphertext =====
+//  ACK (HMAC) - key confirmation without ciphertext
 func hkdfExpand(key []byte, info string, outLen int) []byte {
 	h := hmac.New(sha256.New, key)
 	var out []byte
@@ -176,68 +187,147 @@ func hkdfExpand(key []byte, info string, outLen int) []byte {
 	return out[:outLen]
 }
 
-// ackKey = HKDF(exporter, "ack-key"), ackTag = HMAC(ackKey, "hpke-ack|"+ctxID+"|"+nonce+"|"+kid)
-func makeAckTag(exporter []byte, ctxID, nonce, kid string) []byte {
-	ackKey := hkdfExpand(exporter, "ack-key", 32)
+// ackKey = HKDF-Expand(seed, "SAGE-ack-key-v1", 32)
+// ackMsg = "SAGE-ack-msg|v1|" || len(ctxID)||ctxID || len(nonce)||nonce || len(kid)||kid || SHA256(transcript...)
+// ackTag = HMAC(ackKey, ackMsg)
+func MakeAckTag(seed []byte, ctxID, nonce, kid string, binds ...[]byte) []byte {
+	ackKey := hkdfExpand(seed, "SAGE-ack-key-v1", 32)
+
+	// length-prefix helper (big-endian 2 bytes)
+	writeStr := func(h io.Writer, s string) {
+		l := len(s)
+		_, _ = h.Write([]byte{byte(l >> 8), byte(l)})
+		_, _ = h.Write([]byte(s))
+	}
+
+	// transcript hash
+	th := sha256.New()
+	for _, b := range binds {
+		// Add a single-byte delimiter (or length prefix) to avoid ambiguity between segments.
+		th.Write([]byte{0})
+		th.Write(b)
+	}
+	transcriptHash := th.Sum(nil)
+
 	mac := hmac.New(sha256.New, ackKey)
-	mac.Write([]byte("hpke-ack|"))
-	mac.Write([]byte(ctxID))
-	mac.Write([]byte("|"))
-	mac.Write([]byte(nonce))
-	mac.Write([]byte("|"))
-	mac.Write([]byte(kid))
+	mac.Write([]byte("SAGE-ack-msg|v1|"))
+	writeStr(mac, ctxID)
+	writeStr(mac, nonce)
+	writeStr(mac, kid)
+	mac.Write(transcriptHash)
 	return mac.Sum(nil)
 }
 
-// HPKEInitPayload
 type HPKEInitPayload struct {
 	InitDID   string
 	RespDID   string
 	Info      []byte
 	ExportCtx []byte
-	Enc       []byte // HPKE enc (sender ephemeral KEM pub) - raw bytes
+	Enc       []byte // HPKE enc (sender eph KEM pub) - raw
+	EphC      []byte // Client ephemeral X25519 pub - raw (32B)
 	Nonce     string
 	Timestamp time.Time
 }
 
-// ParseHPKEInitPayload parses the required fields from a2a DataPart Struct.
-// Expects base64url-encoded "enc". All other fields are strings.
-// Returns strongly-typed payload with timestamp parsed.
-func ParseHPKEInitPayload(st *structpb.Struct) (HPKEInitPayload, error) {
+// Parse: enc and ephC arrive as base64url strings and are converted to raw bytes.
+func ParseHPKEInitPayloadWithEphC(st *structpb.Struct) (HPKEInitPayload, error) {
 	var out HPKEInitPayload
-
 	var err error
+
 	if out.InitDID, err = getString(st, "initDid"); err != nil {
-		return HPKEInitPayload{}, err
+		return out, err
 	}
 	if out.RespDID, err = getString(st, "respDid"); err != nil {
-		return HPKEInitPayload{}, err
+		return out, err
 	}
 	var infoStr string
 	if infoStr, err = getString(st, "info"); err != nil {
-		return HPKEInitPayload{}, err
+		return out, err
 	}
 	out.Info = []byte(infoStr)
 
 	var exportCtxStr string
 	if exportCtxStr, err = getString(st, "exportCtx"); err != nil {
-		return HPKEInitPayload{}, err
+		return out, err
 	}
 	out.ExportCtx = []byte(exportCtxStr)
 
 	if out.Enc, err = getBase64(st, "enc"); err != nil {
-		return HPKEInitPayload{}, err
+		return out, err
 	}
 	if out.Nonce, err = getString(st, "nonce"); err != nil {
-		return HPKEInitPayload{}, err
+		return out, err
 	}
 	tsStr, err := getString(st, "ts")
 	if err != nil {
-		return HPKEInitPayload{}, err
+		return out, err
 	}
 	out.Timestamp, err = time.Parse(time.RFC3339Nano, tsStr)
 	if err != nil {
-		return HPKEInitPayload{}, fmt.Errorf("bad ts: %w", err)
+		return out, fmt.Errorf("bad ts: %w", err)
+	}
+
+	// ephC is required to provide PFS.
+	if out.EphC, err = getBase64(st, "ephC"); err != nil {
+		return out, fmt.Errorf("missing ephC: %w", err)
+	}
+	if l := len(out.EphC); l != 32 {
+		return out, fmt.Errorf("bad ephC length: %d", l)
+	}
+	if l := len(out.Enc); l != 32 {
+		return out, fmt.Errorf("bad enc length: %d", l)
+	}
+	return out, nil
+}
+
+type HPKEBaseInitPayload struct {
+	InitDID   string
+	RespDID   string
+	Info      []byte
+	ExportCtx []byte
+	Enc       []byte // HPKE enc (X25519 KEM encapsulated pub) - raw 32B
+	Nonce     string
+	Timestamp time.Time
+}
+
+func ParseHPKEBaseInitPayload(st *structpb.Struct) (HPKEBaseInitPayload, error) {
+	var out HPKEBaseInitPayload
+	var err error
+
+	if out.InitDID, err = getString(st, "initDid"); err != nil || out.InitDID == "" {
+		return HPKEBaseInitPayload{}, fmt.Errorf("initDid missing: %w", err)
+	}
+	if out.RespDID, err = getString(st, "respDid"); err != nil || out.RespDID == "" {
+		return HPKEBaseInitPayload{}, fmt.Errorf("respDid missing: %w", err)
+	}
+	var infoStr string
+	if infoStr, err = getString(st, "info"); err != nil || infoStr == "" {
+		return HPKEBaseInitPayload{}, fmt.Errorf("info missing: %w", err)
+	}
+	out.Info = []byte(infoStr)
+
+	var exportCtxStr string
+	if exportCtxStr, err = getString(st, "exportCtx"); err != nil || exportCtxStr == "" {
+		return HPKEBaseInitPayload{}, fmt.Errorf("exportCtx missing: %w", err)
+	}
+	out.ExportCtx = []byte(exportCtxStr)
+
+	if out.Enc, err = getBase64(st, "enc"); err != nil {
+		return HPKEBaseInitPayload{}, err
+	}
+	if len(out.Enc) != 32 {
+		return HPKEBaseInitPayload{}, fmt.Errorf("enc length must be 32, got %d", len(out.Enc))
+	}
+
+	if out.Nonce, err = getString(st, "nonce"); err != nil || out.Nonce == "" {
+		return HPKEBaseInitPayload{}, fmt.Errorf("nonce missing: %w", err)
+	}
+	tsStr, err := getString(st, "ts")
+	if err != nil {
+		return HPKEBaseInitPayload{}, err
+	}
+	if out.Timestamp, err = time.Parse(time.RFC3339Nano, tsStr); err != nil {
+		return HPKEBaseInitPayload{}, fmt.Errorf("bad ts: %w", err)
 	}
 	return out, nil
 }
