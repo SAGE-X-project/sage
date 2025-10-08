@@ -65,6 +65,110 @@ The X25519 ephemeral public key payload exchanged during the handshake is:
 - **Operational notes**  
   Apply TTL, refresh, and revocation policies to the DID resolver, verify blockchain anchors, and protect cache integrity (for example, signed caches).
 
+## Protecting the X25519 handshake with DID identity keys & HPKE
+
+This section describes the recommended way SAGE combines the **DID identity layer** with **HPKE (RFC 9180)** to safeguard the handshake-time X25519 key exchange. The highlights are:
+
+- **Identity & integrity**: guaranteed by **DID signatures (Ed25519)**.
+- **Session seed agreement**: secured by **HPKE (Base mode)**.
+- **Mitigating static KEM key leakage**: **Ephemeral–ephemeral reinforcement (PFS add-on)** removes the long-term key exposure window.
+
+### Payload recap
+
+**Client → Server (Init)**
+
+- `enc`: HPKE encapsulation (32 B, sent in the clear)
+- `info`, `exportCtx`: context-binding strings (for example, `sage/hpke v1|ctx=...|init=...|resp=...`, `exporter:ctx`)
+- `nonce`, `ts`: replay and freshness checks
+- `ephC` _(optional, PFS add-on)_: client ephemeral X25519 public key (32 B)
+
+> A2A metadata includes the **sender DID** and its **Ed25519 signature**, providing origin and integrity for the message.
+
+**Server → Client (Ack)**
+
+- `kid`: session key identifier
+- `ackTagB64`: key-confirmation tag
+  `ackKey = HKDF(seed, "ack-key", 32)`  
+  `ackTag = HMAC(ackKey, "hpke-ack|" + ctxID + "|" + nonce + "|" + kid)`
+- `ephS` _(optional, PFS add-on)_: server ephemeral X25519 public key (32 B)
+
+### Seed derivation (HPKE Base + PFS add-on)
+
+1. **HPKE Base** – both ends reproduce `exporterHPKE` using the recipient’s static X25519 KEM public key.
+2. **PFS add-on (recommended)** – mix `ssE2E = X25519(ephC, ephS)` into the final seed.
+
+```
+Base only:
+    seed = exporterHPKE
+
+Base + PFS add-on:
+    seed = HKDF-Extract( salt = exportCtx,
+                         IKM  = exporterHPKE || ssE2E )
+           → HKDF-Expand(info = "SAGE-HPKE+E2E-Combiner", L=32)
+```
+
+The client mirrors the same procedure, validates `ackTag`, and binds the resulting session to `kid`.
+
+### Security properties
+
+- **Confidentiality (post-handshake)**: derive session keys from `seed` via HKDF and protect application data with **AEAD** (e.g., ChaCha20-Poly1305).
+- **Integrity / origin (handshake messages)**: Init/Ack messages are verified with **Ed25519 DID signatures**.
+- **Key confirmation**: `ackTag` proves both sides derived the **same seed**.
+- **Context binding**: embedding `ctxID`, `initDID`, and `respDID` inside `info/exportCtx` prevents **cross-context reuse or downgrades**.
+- **Replay resistance**: Init `nonce` plus RFC 9421 request nonce checks through **ReplayGuard**.
+- **Freshness**: `ts` is validated within the configured `±maxSkew` window.
+
+### Threat model and assumptions
+
+- **Valid DID → correct public key** – DID Documents are assumed current and authentic (enforced through blockchain anchoring and verification procedures).
+- **Strong randomness** – X25519 ephemeral keys, AEAD nonces, and HPKE internals come from a secure CSPRNG.
+
+### Key threats & mitigations
+
+#### 1. MitM / downgrade
+
+- **Risk**  
+  Manipulating `ctxID`, peer DID, or `info` to force the exporter into a different context.
+- **Mitigations**
+  - Verify the full A2A message with **DID signatures** to block spoofed senders.
+  - Check **`info/exportCtx` consistency** (both sides must use the same builder).
+  - Validate **`ackTag`** to confirm the actual key agreement.
+
+#### 2. Replay
+
+- **Risk**  
+  Re-sending Init or HTTP requests to disturb state.
+- **Mitigations**
+  - Init: record `nonce` and enforce **freshness (`ts`)**.
+  - Session phase: RFC 9421 nonces go through **ReplayGuardSeenOnce(kid, nonce)**.
+
+#### 3. ECDH all-zero (RFC 7748)
+
+- **Risk**: crafted public keys yield `0x00…00` as the X25519 shared secret.
+- **Mitigation**: reject any all-zero result immediately after length and constant-time checks; log only fingerprints.
+
+#### 4. Recipient static KEM private key leakage
+
+- **Risk**: Base mode alone lets attackers reconstruct past **exporter** values from captured `enc`, exposing historical traffic.
+- **Mitigations**
+  - Prefer the **PFS add-on** so the seed depends on `exporterHPKE || ssE2E`, which cannot be reproduced with the static key alone.
+  - Operational safeguards: shorten KEM key lifetimes, automate rotation, store secrets in HSMs, and, if possible, hide `enc` inside an additional encrypted channel.
+
+#### 5. Insufficient request integrity / coverage
+
+- **Mitigation**:  
+  After the session is established, protect HTTP requests with **RFC 9421** (covering `@method`, `@path`, `@authority`, `content-digest`, `date`, etc.) to ensure header/body integrity and non-repudiation.
+
+---
+
+### Operational tips
+
+- Keep **InfoBuilder** consistent between client and server with a service-specific but fixed format.
+- Set **`maxSkew`** and nonce TTLs according to network latency.
+- Session policy: adjust `MaxAge`, `IdleTimeout`, and `MaxMessages` to control lifetime and throughput; securely wipe keys when expiring sessions.
+- Logging: record only DID, context, and key fingerprints—never plaintext, seeds, or key material.
+- When strong forward secrecy is required, treat **Base + PFS add-on** as the default deployment mode.
+
 ## From X25519 shared secret → HKDF-SHA256 → session keys (AEAD/HMAC)
 
 The shared secret obtained during the handshake produces the session encryption and signing keys.
