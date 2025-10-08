@@ -1,0 +1,160 @@
+version: '3.8'
+
+services:
+  # SAGE Backend Service
+  sage-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - BUILD_DATE=${BUILD_DATE:-}
+        - VERSION=${VERSION:-dev}
+    image: sage-backend:${VERSION:-latest}
+    container_name: sage-backend
+    restart: unless-stopped
+    ports:
+      - "${SAGE_PORT:-8080}:8080"
+      - "${SAGE_METRICS_PORT:-9090}:9090"
+    environment:
+      # Blockchain Configuration
+      - ETHEREUM_RPC_URL=${ETHEREUM_RPC_URL:-http://blockchain:8545}
+      - SEPOLIA_RPC_URL=${SEPOLIA_RPC_URL:-}
+      - KAIA_RPC_URL=${KAIA_RPC_URL:-}
+
+      # Contract Addresses
+      - SAGE_REGISTRY_ADDRESS=${SAGE_REGISTRY_ADDRESS:-}
+      - ERC8004_REGISTRY_ADDRESS=${ERC8004_REGISTRY_ADDRESS:-}
+
+      # Network Configuration
+      - SAGE_NETWORK=${SAGE_NETWORK:-local}
+      - SAGE_CHAIN_ID=${SAGE_CHAIN_ID:-1337}
+
+      # Session Configuration
+      - SESSION_MAX_AGE=${SESSION_MAX_AGE:-1h}
+      - SESSION_IDLE_TIMEOUT=${SESSION_IDLE_TIMEOUT:-10m}
+      - SESSION_CLEANUP_INTERVAL=${SESSION_CLEANUP_INTERVAL:-30s}
+
+      # Security
+      - NONCE_TTL=${NONCE_TTL:-5m}
+      - MAX_CLOCK_SKEW=${MAX_CLOCK_SKEW:-5m}
+
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+    volumes:
+      - sage-keys:/home/sage/.sage/keys
+      - sage-data:/home/sage/.sage/data
+      - ./config.yaml:/home/sage/config.yaml:ro
+    networks:
+      - sage-network
+    depends_on:
+      - blockchain
+      - redis
+    healthcheck:
+      test: ["CMD", "sh", "-c", "sage-crypto help >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Local Blockchain (Hardhat Node)
+  blockchain:
+    image: ethereum/client-go:stable
+    container_name: sage-blockchain
+    command: |
+      --dev
+      --dev.period 1
+      --http
+      --http.addr 0.0.0.0
+      --http.port 8545
+      --http.api eth,net,web3,debug
+      --http.corsdomain "*"
+      --ws
+      --ws.addr 0.0.0.0
+      --ws.port 8546
+      --ws.api eth,net,web3
+      --ws.origins "*"
+      --allow-insecure-unlock
+    ports:
+      - "${BLOCKCHAIN_RPC_PORT:-8545}:8545"
+      - "${BLOCKCHAIN_WS_PORT:-8546}:8546"
+    networks:
+      - sage-network
+    volumes:
+      - blockchain-data:/root/.ethereum
+
+  # Redis for Session Cache (Optional)
+  redis:
+    image: redis:7-alpine
+    container_name: sage-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - sage-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # Prometheus (Monitoring)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: sage-prometheus
+    restart: unless-stopped
+    ports:
+      - "${PROMETHEUS_PORT:-9091}:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - sage-network
+    profiles:
+      - monitoring
+
+  # Grafana (Visualization)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: sage-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=redis-datasource
+    volumes:
+      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - sage-network
+    depends_on:
+      - prometheus
+    profiles:
+      - monitoring
+
+networks:
+  sage-network:
+    driver: bridge
+
+volumes:
+  sage-keys:
+    driver: local
+  sage-data:
+    driver: local
+  blockchain-data:
+    driver: local
+  redis-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
