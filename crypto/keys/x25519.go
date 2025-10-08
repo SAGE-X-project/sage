@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package keys
 
 import (
@@ -435,6 +434,10 @@ func HPKEDeriveSharedSecretToPeer(
     if !ok {
         return nil, nil, fmt.Errorf("expected *ecdh.PublicKey, got %T", pub)
     }
+
+	if p.Curve() != ecdh.X25519() {
+		return nil, nil, fmt.Errorf("unsupported KEM curve: want X25519")
+	}
     return HPKEDeriveSharedSecretToX25519Peer(p, info, exportCtx, exportLen)
 }
 
@@ -449,6 +452,10 @@ func HPKEOpenSharedSecretWithPriv(
     if !ok {
         return nil, fmt.Errorf("expected *ecdh.PrivateKey, got %T", priv)
     }
+
+	if p.Curve() != ecdh.X25519() {
+		return nil, fmt.Errorf("unsupported KEM curve: want X25519")
+	}
     return HPKEOpenSharedSecretWithX25519Priv(p, enc, info, exportCtx, exportLen)
 }
 
