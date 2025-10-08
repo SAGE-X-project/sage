@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/sage-x-project/sage/crypto"
+	"github.com/sage-x-project/sage/crypto/formats"
+	"github.com/sage-x-project/sage/crypto/keys"
 )
 
 // BenchmarkKeyGeneration benchmarks key pair generation
@@ -12,7 +14,7 @@ func BenchmarkKeyGeneration(b *testing.B) {
 	b.Run("Ed25519", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := crypto.GenerateKeyPair(crypto.KeyTypeEd25519)
+			_, err := keys.GenerateEd25519KeyPair()
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -22,7 +24,7 @@ func BenchmarkKeyGeneration(b *testing.B) {
 	b.Run("Secp256k1", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := crypto.GenerateKeyPair(crypto.KeyTypeSecp256k1)
+			_, err := keys.GenerateSecp256k1KeyPair()
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -32,7 +34,7 @@ func BenchmarkKeyGeneration(b *testing.B) {
 	b.Run("X25519", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
+			_, err := keys.GenerateX25519KeyPair()
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -46,7 +48,7 @@ func BenchmarkSigning(b *testing.B) {
 	rand.Read(message)
 
 	b.Run("Ed25519", func(b *testing.B) {
-		keyPair, _ := crypto.GenerateKeyPair(crypto.KeyTypeEd25519)
+		keyPair, _ := keys.GenerateEd25519KeyPair()
 		b.ResetTimer()
 		b.ReportAllocs()
 
@@ -59,7 +61,7 @@ func BenchmarkSigning(b *testing.B) {
 	})
 
 	b.Run("Secp256k1", func(b *testing.B) {
-		keyPair, _ := crypto.GenerateKeyPair(crypto.KeyTypeSecp256k1)
+		keyPair, _ := keys.GenerateSecp256k1KeyPair()
 		b.ResetTimer()
 		b.ReportAllocs()
 
@@ -78,7 +80,7 @@ func BenchmarkVerification(b *testing.B) {
 	rand.Read(message)
 
 	b.Run("Ed25519", func(b *testing.B) {
-		keyPair, _ := crypto.GenerateKeyPair(crypto.KeyTypeEd25519)
+		keyPair, _ := keys.GenerateEd25519KeyPair()
 		signature, _ := keyPair.Sign(message)
 		b.ResetTimer()
 		b.ReportAllocs()
@@ -92,7 +94,7 @@ func BenchmarkVerification(b *testing.B) {
 	})
 
 	b.Run("Secp256k1", func(b *testing.B) {
-		keyPair, _ := crypto.GenerateKeyPair(crypto.KeyTypeSecp256k1)
+		keyPair, _ := keys.GenerateSecp256k1KeyPair()
 		signature, _ := keyPair.Sign(message)
 		b.ResetTimer()
 		b.ReportAllocs()
@@ -108,12 +110,14 @@ func BenchmarkVerification(b *testing.B) {
 
 // BenchmarkKeyExport benchmarks key export to different formats
 func BenchmarkKeyExport(b *testing.B) {
-	keyPair, _ := crypto.GenerateKeyPair(crypto.KeyTypeEd25519)
+	keyPair, _ := keys.GenerateEd25519KeyPair()
 
 	b.Run("JWK", func(b *testing.B) {
+		exporter := formats.NewJWKExporter()
+		b.ResetTimer()
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := keyPair.ExportJWK()
+			_, err := exporter.Export(keyPair, crypto.KeyFormatJWK)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -121,9 +125,11 @@ func BenchmarkKeyExport(b *testing.B) {
 	})
 
 	b.Run("PEM", func(b *testing.B) {
+		exporter := formats.NewPEMExporter()
+		b.ResetTimer()
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := keyPair.ExportPEM()
+			_, err := exporter.Export(keyPair, crypto.KeyFormatPEM)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -133,15 +139,18 @@ func BenchmarkKeyExport(b *testing.B) {
 
 // BenchmarkKeyImport benchmarks key import from different formats
 func BenchmarkKeyImport(b *testing.B) {
-	keyPair, _ := crypto.GenerateKeyPair(crypto.KeyTypeEd25519)
+	keyPair, _ := keys.GenerateEd25519KeyPair()
 
 	b.Run("JWK", func(b *testing.B) {
-		jwk, _ := keyPair.ExportJWK()
+		exporter := formats.NewJWKExporter()
+		jwkData, _ := exporter.Export(keyPair, crypto.KeyFormatJWK)
+
+		importer := formats.NewJWKImporter()
 		b.ResetTimer()
 		b.ReportAllocs()
 
 		for i := 0; i < b.N; i++ {
-			_, err := crypto.ImportJWK(jwk)
+			_, err := importer.Import(jwkData, crypto.KeyFormatJWK)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -149,12 +158,15 @@ func BenchmarkKeyImport(b *testing.B) {
 	})
 
 	b.Run("PEM", func(b *testing.B) {
-		pem, _ := keyPair.ExportPEM()
+		exporter := formats.NewPEMExporter()
+		pemData, _ := exporter.Export(keyPair, crypto.KeyFormatPEM)
+
+		importer := formats.NewPEMImporter()
 		b.ResetTimer()
 		b.ReportAllocs()
 
 		for i := 0; i < b.N; i++ {
-			_, err := crypto.ImportPEM(pem)
+			_, err := importer.Import(pemData, crypto.KeyFormatPEM)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -164,7 +176,7 @@ func BenchmarkKeyImport(b *testing.B) {
 
 // BenchmarkMessageSizes benchmarks signing with different message sizes
 func BenchmarkMessageSizes(b *testing.B) {
-	keyPair, _ := crypto.GenerateKeyPair(crypto.KeyTypeEd25519)
+	keyPair, _ := keys.GenerateEd25519KeyPair()
 
 	sizes := []int{64, 256, 1024, 4096, 16384, 65536}
 
@@ -186,11 +198,4 @@ func BenchmarkMessageSizes(b *testing.B) {
 	}
 }
 
-func formatBytes(size int) string {
-	if size < 1024 {
-		return string(rune(size)) + "B"
-	} else if size < 1024*1024 {
-		return string(rune(size/1024)) + "KB"
-	}
-	return string(rune(size/(1024*1024))) + "MB"
-}
+// formatBytes moved to comparison_bench_test.go to avoid duplication

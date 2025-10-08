@@ -4,11 +4,10 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
 	"testing"
 	"time"
 
-	"github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/handshake"
 	"github.com/sage-x-project/sage/session"
 )
 
@@ -39,13 +38,12 @@ func BenchmarkBaseline_vs_SAGE(b *testing.B) {
 	})
 
 	b.Run("SAGE_FullSecure", func(b *testing.B) {
-		clientKey, _ := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
-		serverKey, _ := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
-		sess, _ := session.CreateSession(
-			clientKey.PublicKey(),
-			serverKey.PublicKey(),
-			clientKey,
-		)
+		// Create session with shared secret
+		sharedSecret := make([]byte, 32)
+		rand.Read(sharedSecret)
+
+		manager := session.NewManager()
+		sess, _ := manager.CreateSession("bench-session", sharedSecret)
 
 		b.ResetTimer()
 		b.ReportAllocs()
@@ -93,13 +91,12 @@ func BenchmarkThroughput(b *testing.B) {
 		})
 
 		b.Run("SAGE_"+formatBytes(size), func(b *testing.B) {
-			clientKey, _ := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
-			serverKey, _ := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
-			sess, _ := session.CreateSession(
-				clientKey.PublicKey(),
-				serverKey.PublicKey(),
-				clientKey,
-			)
+			// Create session with shared secret
+			sharedSecret := make([]byte, 32)
+			rand.Read(sharedSecret)
+
+			manager := session.NewManager()
+			sess, _ := manager.CreateSession("throughput-bench", sharedSecret)
 
 			b.SetBytes(int64(size))
 			b.ReportAllocs()
@@ -156,13 +153,12 @@ func BenchmarkLatency(b *testing.B) {
 	})
 
 	b.Run("SAGE_RoundTrip", func(b *testing.B) {
-		clientKey, _ := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
-		serverKey, _ := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
-		sess, _ := session.CreateSession(
-			clientKey.PublicKey(),
-			serverKey.PublicKey(),
-			clientKey,
-		)
+		// Create session with shared secret
+		sharedSecret := make([]byte, 32)
+		rand.Read(sharedSecret)
+
+		manager := session.NewManager()
+		sess, _ := manager.CreateSession("latency-bench", sharedSecret)
 
 		b.ReportAllocs()
 
@@ -189,35 +185,9 @@ func BenchmarkLatency(b *testing.B) {
 		b.ReportMetric(calculateP99(latencies).Seconds()*1000, "p99_ms")
 	})
 
-	b.Run("SAGE_FullHandshake", func(b *testing.B) {
-		b.ReportAllocs()
-
-		latencies := make([]time.Duration, b.N)
-
-		for i := 0; i < b.N; i++ {
-			start := time.Now()
-
-			// Full handshake process
-			clientDID, _ := crypto.GenerateKeyPair(crypto.KeyTypeEd25519)
-			clientEphemeral, _ := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
-			serverDID, _ := crypto.GenerateKeyPair(crypto.KeyTypeEd25519)
-			serverEphemeral, _ := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
-
-			clientHandshake := handshake.NewClient(clientDID, clientEphemeral)
-			initMsg, _ := clientHandshake.InitiateHandshake(serverDID.PublicKey())
-
-			serverHandshake := handshake.NewServer(serverDID, serverEphemeral)
-			responseMsg, _ := serverHandshake.ProcessInitiation(initMsg)
-
-			_, _ = clientHandshake.FinalizeHandshake(responseMsg)
-
-			latencies[i] = time.Since(start)
-		}
-
-		b.ReportMetric(calculateP50(latencies).Seconds()*1000, "p50_ms")
-		b.ReportMetric(calculateP95(latencies).Seconds()*1000, "p95_ms")
-		b.ReportMetric(calculateP99(latencies).Seconds()*1000, "p99_ms")
-	})
+	// Note: SAGE_FullHandshake benchmark removed
+	// The handshake API now requires gRPC connections and is tested separately
+	// in handshake/handshake_test.go
 }
 
 // BenchmarkMemoryUsage measures memory usage
@@ -239,11 +209,11 @@ func BenchmarkMemoryUsage(b *testing.B) {
 	})
 
 	b.Run("SAGE_1000Sessions", func(b *testing.B) {
-		manager := session.NewManager(session.ManagerConfig{
-			MaxSessions:        10000,
-			SessionMaxAge:      1 * time.Hour,
-			SessionIdleTimeout: 10 * time.Minute,
-			CleanupInterval:    30 * time.Second,
+		manager := session.NewManager()
+		manager.SetDefaultConfig(session.Config{
+			MaxAge:      1 * time.Hour,
+			IdleTimeout: 10 * time.Minute,
+			MaxMessages: 10000,
 		})
 
 		b.ReportAllocs()
@@ -251,9 +221,11 @@ func BenchmarkMemoryUsage(b *testing.B) {
 
 		for i := 0; i < b.N; i++ {
 			for j := 0; j < 1000; j++ {
-				clientKey, _ := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
-				serverKey, _ := crypto.GenerateKeyPair(crypto.KeyTypeX25519)
-				_, _ = manager.Create(clientKey.PublicKey(), serverKey.PublicKey(), clientKey)
+				sharedSecret := make([]byte, 32)
+				rand.Read(sharedSecret)
+				sessionID := string(make([]byte, 16))
+				rand.Read([]byte(sessionID))
+				_, _ = manager.CreateSession(sessionID, sharedSecret)
 			}
 		}
 	})
@@ -284,4 +256,13 @@ func calculatePercentile(latencies []time.Duration, percentile float64) time.Dur
 	}
 
 	return latencies[index]
+}
+
+func formatBytes(size int) string {
+	if size < 1024 {
+		return fmt.Sprintf("%dB", size)
+	} else if size < 1024*1024 {
+		return fmt.Sprintf("%dKB", size/1024)
+	}
+	return fmt.Sprintf("%dMB", size/(1024*1024))
 }

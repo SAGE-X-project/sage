@@ -32,6 +32,8 @@ type Config struct {
 	Blockchain  *BlockchainConfig  `yaml:"blockchain" json:"blockchain"`
 	DID         *DIDConfig         `yaml:"did" json:"did"`
 	KeyStore    *KeyStoreConfig    `yaml:"keystore" json:"keystore"`
+	Session     *SessionConfig     `yaml:"session" json:"session"`
+	Handshake   *HandshakeConfig   `yaml:"handshake" json:"handshake"`
 	Logging     *LoggingConfig     `yaml:"logging" json:"logging"`
 	Metrics     *MetricsConfig     `yaml:"metrics" json:"metrics"`
 	Health      *HealthConfig      `yaml:"health" json:"health"`
@@ -53,6 +55,22 @@ type KeyStoreConfig struct {
 	Type          string `yaml:"type" json:"type"`
 	Directory     string `yaml:"directory" json:"directory"`
 	PassphraseEnv string `yaml:"passphrase_env" json:"passphrase_env"`
+}
+
+// SessionConfig represents session configuration
+type SessionConfig struct {
+	MaxIdleTime     time.Duration `yaml:"max_idle_time" json:"max_idle_time"`
+	CleanupInterval time.Duration `yaml:"cleanup_interval" json:"cleanup_interval"`
+	MaxSessions     int           `yaml:"max_sessions" json:"max_sessions"`
+	EnableMetrics   bool          `yaml:"enable_metrics" json:"enable_metrics"`
+}
+
+// HandshakeConfig represents handshake configuration
+type HandshakeConfig struct {
+	Timeout         time.Duration `yaml:"timeout" json:"timeout"`
+	MaxRetries      int           `yaml:"max_retries" json:"max_retries"`
+	RetryBackoff    time.Duration `yaml:"retry_backoff" json:"retry_backoff"`
+	EnableMetrics   bool          `yaml:"enable_metrics" json:"enable_metrics"`
 }
 
 // LoggingConfig represents logging configuration
@@ -178,6 +196,30 @@ func setDefaults(cfg *Config) {
 		}
 		if cfg.Logging.Output == "" {
 			cfg.Logging.Output = "stdout"
+		}
+	}
+
+	if cfg.Session != nil {
+		if cfg.Session.MaxIdleTime == 0 {
+			cfg.Session.MaxIdleTime = 30 * time.Minute
+		}
+		if cfg.Session.CleanupInterval == 0 {
+			cfg.Session.CleanupInterval = 5 * time.Minute
+		}
+		if cfg.Session.MaxSessions == 0 {
+			cfg.Session.MaxSessions = 10000
+		}
+	}
+
+	if cfg.Handshake != nil {
+		if cfg.Handshake.Timeout == 0 {
+			cfg.Handshake.Timeout = 30 * time.Second
+		}
+		if cfg.Handshake.MaxRetries == 0 {
+			cfg.Handshake.MaxRetries = 3
+		}
+		if cfg.Handshake.RetryBackoff == 0 {
+			cfg.Handshake.RetryBackoff = 1 * time.Second
 		}
 	}
 }

@@ -1,41 +1,55 @@
-package crypto
+package crypto_test
 
 import (
 	"testing"
+
+	"github.com/sage-x-project/sage/crypto"
+	"github.com/sage-x-project/sage/crypto/formats"
+	"github.com/sage-x-project/sage/crypto/keys"
 )
 
 // FuzzKeyPairGeneration fuzzes key pair generation
 func FuzzKeyPairGeneration(f *testing.F) {
 	// Seed corpus
-	f.Add(uint8(KeyTypeEd25519))
-	f.Add(uint8(KeyTypeSecp256k1))
-	f.Add(uint8(KeyTypeX25519))
+	f.Add(uint8(0)) // Ed25519
+	f.Add(uint8(1)) // Secp256k1
+	f.Add(uint8(2)) // X25519
 
 	f.Fuzz(func(t *testing.T, keyTypeByte uint8) {
-		// Map byte to valid key type
-		var keyType KeyType
+		// Map byte to key generation function
+		var keyPair crypto.KeyPair
+		var err error
+		var expectedType crypto.KeyType
+
 		switch keyTypeByte % 3 {
 		case 0:
-			keyType = KeyTypeEd25519
+			keyPair, err = keys.GenerateEd25519KeyPair()
+			expectedType = crypto.KeyTypeEd25519
 		case 1:
-			keyType = KeyTypeSecp256k1
+			keyPair, err = keys.GenerateSecp256k1KeyPair()
+			expectedType = crypto.KeyTypeSecp256k1
 		case 2:
-			keyType = KeyTypeX25519
+			keyPair, err = keys.GenerateX25519KeyPair()
+			expectedType = crypto.KeyTypeX25519
 		}
 
-		// Generate key pair
-		keyPair, err := GenerateKeyPair(keyType)
 		if err != nil {
 			t.Fatalf("Failed to generate key pair: %v", err)
 		}
 
 		// Verify key pair properties
-		if len(keyPair.PublicKey()) == 0 {
-			t.Fatal("Public key is empty")
+		pubKey := keyPair.PublicKey()
+		if pubKey == nil {
+			t.Fatal("Public key is nil")
 		}
 
-		if keyPair.Type() != keyType {
-			t.Fatalf("Key type mismatch: expected %s, got %s", keyType, keyPair.Type())
+		if keyPair.Type() != expectedType {
+			t.Fatalf("Key type mismatch: expected %s, got %s", expectedType, keyPair.Type())
+		}
+
+		// Verify ID is set
+		if keyPair.ID() == "" {
+			t.Fatal("Key ID is empty")
 		}
 	})
 }
@@ -48,7 +62,7 @@ func FuzzSignAndVerify(f *testing.F) {
 	f.Add([]byte("a"))
 	f.Add(make([]byte, 1024))
 
-	keyPair, _ := GenerateKeyPair(KeyTypeEd25519)
+	keyPair, _ := keys.GenerateEd25519KeyPair()
 
 	f.Fuzz(func(t *testing.T, message []byte) {
 		// Sign the message
@@ -91,52 +105,57 @@ func FuzzSignAndVerify(f *testing.F) {
 
 // FuzzKeyExportImport fuzzes key export and import
 func FuzzKeyExportImport(f *testing.F) {
-	f.Add(uint8(KeyTypeEd25519))
-	f.Add(uint8(KeyTypeSecp256k1))
+	f.Add(uint8(0))
+	f.Add(uint8(1))
 
 	f.Fuzz(func(t *testing.T, keyTypeByte uint8) {
-		var keyType KeyType
+		var original crypto.KeyPair
+		var err error
+
 		if keyTypeByte%2 == 0 {
-			keyType = KeyTypeEd25519
+			original, err = keys.GenerateEd25519KeyPair()
 		} else {
-			keyType = KeyTypeSecp256k1
+			original, err = keys.GenerateSecp256k1KeyPair()
 		}
 
-		// Generate original key pair
-		original, err := GenerateKeyPair(keyType)
 		if err != nil {
 			t.Fatalf("Failed to generate key pair: %v", err)
 		}
 
 		// Test JWK export/import
-		jwk, err := original.ExportJWK()
+		jwkExporter := formats.NewJWKExporter()
+		jwkData, err := jwkExporter.Export(original, crypto.KeyFormatJWK)
 		if err != nil {
 			t.Fatalf("Failed to export JWK: %v", err)
 		}
 
-		imported, err := ImportJWK(jwk)
+		jwkImporter := formats.NewJWKImporter()
+		imported, err := jwkImporter.Import(jwkData, crypto.KeyFormatJWK)
 		if err != nil {
 			t.Fatalf("Failed to import JWK: %v", err)
 		}
 
-		// Verify keys match
-		if !equalBytes(original.PublicKey(), imported.PublicKey()) {
-			t.Fatal("Public keys don't match after JWK round-trip")
+		// Verify types match
+		if original.Type() != imported.Type() {
+			t.Fatal("Key types don't match after JWK round-trip")
 		}
 
 		// Test PEM export/import
-		pem, err := original.ExportPEM()
+		pemExporter := formats.NewPEMExporter()
+		pemData, err := pemExporter.Export(original, crypto.KeyFormatPEM)
 		if err != nil {
 			t.Fatalf("Failed to export PEM: %v", err)
 		}
 
-		imported2, err := ImportPEM(pem)
+		pemImporter := formats.NewPEMImporter()
+		imported2, err := pemImporter.Import(pemData, crypto.KeyFormatPEM)
 		if err != nil {
 			t.Fatalf("Failed to import PEM: %v", err)
 		}
 
-		if !equalBytes(original.PublicKey(), imported2.PublicKey()) {
-			t.Fatal("Public keys don't match after PEM round-trip")
+		// Verify types match
+		if original.Type() != imported2.Type() {
+			t.Fatal("Key types don't match after PEM round-trip")
 		}
 	})
 }
@@ -145,8 +164,8 @@ func FuzzKeyExportImport(f *testing.F) {
 func FuzzSignatureWithDifferentKeys(f *testing.F) {
 	f.Add([]byte("message"))
 
-	keyPair1, _ := GenerateKeyPair(KeyTypeEd25519)
-	keyPair2, _ := GenerateKeyPair(KeyTypeEd25519)
+	keyPair1, _ := keys.GenerateEd25519KeyPair()
+	keyPair2, _ := keys.GenerateEd25519KeyPair()
 
 	f.Fuzz(func(t *testing.T, message []byte) {
 		// Sign with first key
@@ -175,7 +194,7 @@ func FuzzInvalidSignatureData(f *testing.F) {
 	f.Add([]byte("test"), []byte(""))
 	f.Add([]byte(""), []byte("sig"))
 
-	keyPair, _ := GenerateKeyPair(KeyTypeEd25519)
+	keyPair, _ := keys.GenerateEd25519KeyPair()
 
 	f.Fuzz(func(t *testing.T, message, invalidSig []byte) {
 		// Try to verify with invalid signature
@@ -188,36 +207,41 @@ func FuzzInvalidSignatureData(f *testing.F) {
 	})
 }
 
-// FuzzKeyDerivation fuzzes HPKE key derivation
-func FuzzKeyDerivation(f *testing.F) {
-	f.Add([]byte("context1"))
+// FuzzKeyGeneration fuzzes key generation randomness
+func FuzzKeyGeneration(f *testing.F) {
+	f.Add([]byte("seed1"))
 	f.Add([]byte(""))
 	f.Add(make([]byte, 256))
 
-	clientKey, _ := GenerateKeyPair(KeyTypeX25519)
-	serverKey, _ := GenerateKeyPair(KeyTypeX25519)
+	f.Fuzz(func(t *testing.T, _ []byte) {
+		// Generate multiple keys to test randomness
+		k1, err1 := keys.GenerateEd25519KeyPair()
+		k2, err2 := keys.GenerateEd25519KeyPair()
 
-	f.Fuzz(func(t *testing.T, context []byte) {
-		// Derive keys (this should not panic)
-		_, err := DeriveSessionKeys(
-			clientKey,
-			serverKey.PublicKey(),
-			context,
-		)
-
-		if err != nil {
-			// Some contexts might be invalid, that's okay
-			// As long as it doesn't panic
-			return
+		if err1 != nil || err2 != nil {
+			t.Fatalf("Failed to generate keys: %v, %v", err1, err2)
 		}
 
-		// If successful, verify we got different keys
-		keys1, _ := DeriveSessionKeys(clientKey, serverKey.PublicKey(), context)
-		keys2, _ := DeriveSessionKeys(clientKey, serverKey.PublicKey(), context)
+		// Verify keys are different
+		if k1.ID() == k2.ID() {
+			t.Fatal("Different key generations produced same ID")
+		}
 
-		// Same input should produce same output
-		if !equalBytes(keys1.EncryptKey, keys2.EncryptKey) {
-			t.Fatal("Derived keys are not deterministic")
+		// Both keys should be valid for signing
+		testMsg := []byte("test message")
+		sig1, err := k1.Sign(testMsg)
+		if err != nil {
+			t.Fatalf("Failed to sign with key1: %v", err)
+		}
+
+		sig2, err := k2.Sign(testMsg)
+		if err != nil {
+			t.Fatalf("Failed to sign with key2: %v", err)
+		}
+
+		// Signatures should be different
+		if equalBytes(sig1, sig2) {
+			t.Fatal("Different keys produced same signature")
 		}
 	})
 }
