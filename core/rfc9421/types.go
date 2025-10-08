@@ -21,6 +21,9 @@ package rfc9421
 
 import (
 	"time"
+
+	sagecrypto "github.com/sage-x-project/sage/crypto"
+	_ "github.com/sage-x-project/sage/crypto/keys" // Import to register algorithms
 )
 
 // Message represents a message with RFC-9421 metadata for signature verification
@@ -85,3 +88,15 @@ const (
 	AlgorithmECDSA         SignatureAlgorithm = "ECDSA"
 	AlgorithmECDSASecp256k1 SignatureAlgorithm = "ECDSA-secp256k1"
 )
+
+// GetSupportedAlgorithms returns a list of RFC 9421 supported algorithms
+// This dynamically fetches from the centralized algorithm registry
+func GetSupportedAlgorithms() []string {
+	return sagecrypto.ListRFC9421SupportedAlgorithms()
+}
+
+// IsAlgorithmSupported checks if an RFC 9421 algorithm is supported
+func IsAlgorithmSupported(algorithm string) bool {
+	_, err := sagecrypto.GetKeyTypeFromRFC9421Algorithm(algorithm)
+	return err == nil
+}

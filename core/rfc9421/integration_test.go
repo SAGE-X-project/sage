@@ -84,7 +84,7 @@ func TestIntegration(t *testing.T) {
 		params := &SignatureInputParams{
 			CoveredComponents: []string{`"date"`, `"content-digest"`},
 			KeyID:             "test-key-ecdsa",
-			Algorithm:         "ecdsa-p256",
+			Algorithm:         "", // Empty algorithm - will be inferred from key type
 			Created:           time.Now().Unix(),
 		}
 		

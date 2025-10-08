@@ -558,3 +558,7 @@ cmake-build-*/
 # Integration test files
 *.integration.test.*
 integration.test.*
+
+# Test reports and coverage
+reports/
+*.out

@@ -32,6 +32,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	sagecrypto "github.com/sage-x-project/sage/crypto"
+	_ "github.com/sage-x-project/sage/crypto/keys" // Import to register algorithms
 )
 
 // HTTPVerifier provides RFC-9421 HTTP message signature verification
@@ -180,50 +183,44 @@ func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicK
 
 // verifySignature verifies the actual cryptographic signature
 func (v *HTTPVerifier) verifySignature(publicKey crypto.PublicKey, message, signature []byte, algorithm string) error {
+	// Validate algorithm compatibility with public key using the registry
+	if err := sagecrypto.ValidateAlgorithmForPublicKey(publicKey, algorithm); err != nil {
+		return fmt.Errorf("algorithm validation failed: %w", err)
+	}
+
 	// Hash the message
 	h := sha256.New()
 	h.Write(message)
 	digest := h.Sum(nil)
-	
+
 	switch key := publicKey.(type) {
 	case ed25519.PublicKey:
-		if algorithm != "" && algorithm != "ed25519" {
-			return fmt.Errorf("algorithm mismatch: key is ed25519 but algorithm is %s", algorithm)
-		}
 		if !ed25519.Verify(key, message, signature) {
 			return fmt.Errorf("ed25519 signature verification failed")
 		}
-		
+
 	case *ecdsa.PublicKey:
-		if algorithm != "" && algorithm != "ecdsa-p256" && algorithm != "ecdsa-p384" {
-			return fmt.Errorf("algorithm mismatch: key is ECDSA but algorithm is %s", algorithm)
-		}
-		
 		// ECDSA signatures should be ASN.1 DER encoded
 		var r, s *big.Int
 		r, s, err := parseECDSASignature(signature)
 		if err != nil {
 			return fmt.Errorf("failed to parse ECDSA signature: %w", err)
 		}
-		
+
 		if !ecdsa.Verify(key, digest, r, s) {
 			return fmt.Errorf("ECDSA signature verification failed")
 		}
-		
+
 	case *rsa.PublicKey:
-		if algorithm != "" && algorithm != "rsa-pss-sha256" && algorithm != "rsa-v1_5-sha256" {
-			return fmt.Errorf("algorithm mismatch: key is RSA but algorithm is %s", algorithm)
-		}
-		
 		err := rsa.VerifyPKCS1v15(key, crypto.SHA256, digest, signature)
 		if err != nil {
 			return fmt.Errorf("RSA signature verification failed: %w", err)
 		}
-		
+
 	default:
 		return fmt.Errorf("unsupported key type: %T", publicKey)
 	}
-	
+
 	return nil
 }
 
