@@ -456,7 +456,12 @@ test-integration-only:
 .PHONY: test-handshake
 test-handshake:
 	@echo "Running handshake scenario..."
-	@bash ./tests/handshake/run_handshake.sh
+	@bash ./tests/session/handshake/run_handshake.sh
+
+.PHONY: test-hpke
+test-hpke:
+	@echo "Running HPKE based handshake scenario..."
+	@bash ./tests/session/hpke/run_hpke_handshake.sh
 
 # Start local blockchain for testing
 .PHONY: blockchain-start
