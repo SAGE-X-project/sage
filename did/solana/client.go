@@ -57,6 +57,13 @@ type AgentAccount struct {
 	UpdatedAt    int64                  `json:"updated_at"`
 }
 
+// init registers the Solana client creator with the factory
+func init() {
+	did.RegisterSolanaClientCreator(func(config *did.RegistryConfig) (did.Client, error) {
+		return NewSolanaClient(config)
+	})
+}
+
 // NewSolanaClient creates a new Solana DID client
 func NewSolanaClient(config *did.RegistryConfig) (*SolanaClient, error) {
 	client := rpc.New(config.RPCEndpoint)

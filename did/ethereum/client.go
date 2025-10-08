@@ -52,6 +52,13 @@ type EthereumClient struct {
 	config          *did.RegistryConfig
 }
 
+// init registers the Ethereum client creator with the factory
+func init() {
+	did.RegisterEthereumClientCreator(func(config *did.RegistryConfig) (did.Client, error) {
+		return NewEthereumClient(config)
+	})
+}
+
 // NewEthereumClient creates a new Ethereum DID client
 func NewEthereumClient(config *did.RegistryConfig) (*EthereumClient, error) {
 	client, err := ethclient.Dial(config.RPCEndpoint)
