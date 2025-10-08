@@ -453,6 +453,34 @@ test-integration-only:
 	@echo "Running integration tests (environment should be ready)..."
 	$(GO) test -v ./tests/integration/... -tags=integration -count=1
 
+# Run E2E tests (requires external services like Sepolia)
+.PHONY: test-e2e
+test-e2e:
+	@echo "Running E2E tests..."
+	@echo "Note: Requires SEPOLIA_RPC_URL and SEPOLIA_PRIVATE_KEY environment variables"
+	$(GO) test -v -tags=e2e ./tests/integration/... -timeout 10m
+
+# Run E2E tests on Sepolia testnet
+.PHONY: test-e2e-sepolia
+test-e2e-sepolia:
+	@echo "Running Sepolia E2E tests..."
+	$(GO) test -v -tags=e2e ./tests/integration/... -run Sepolia -timeout 10m
+
+# Run E2E tests without external blockchain (local only)
+.PHONY: test-e2e-local
+test-e2e-local:
+	@echo "Running local E2E tests (RFC 9421, key management, cross-chain)..."
+	$(GO) test -v -tags=e2e ./tests/integration/... -run "RFC9421|KeyType|CrossChain|KeyRotation|MultiChain|Performance" -timeout 5m
+
+# Run E2E tests with coverage
+.PHONY: test-e2e-coverage
+test-e2e-coverage:
+	@echo "Running E2E tests with coverage..."
+	@mkdir -p $(REPORTS_DIR)
+	$(GO) test -v -tags=e2e -coverprofile=$(REPORTS_DIR)/e2e-coverage.out ./tests/integration/... -timeout 10m
+	$(GO) tool cover -html=$(REPORTS_DIR)/e2e-coverage.out -o $(REPORTS_DIR)/e2e-coverage.html
+	@echo "Coverage report: $(REPORTS_DIR)/e2e-coverage.html"
+
 .PHONY: test-handshake
 test-handshake:
 	@echo "Running handshake scenario..."
@@ -736,6 +764,12 @@ help:
 	@echo "  make blockchain-start      - Start local blockchain"
 	@echo "  make blockchain-stop       - Stop local blockchain"
 	@echo "  make blockchain-status     - Check blockchain status"
+	@echo ""
+	@echo "E2E test targets:"
+	@echo "  make test-e2e              - Run all E2E tests"
+	@echo "  make test-e2e-sepolia      - Run Sepolia E2E tests only"
+	@echo "  make test-e2e-local        - Run local E2E tests (no blockchain)"
+	@echo "  make test-e2e-coverage     - Run E2E tests with coverage report"
 	@echo ""
 	@echo "Benchmark targets:"
 	@echo "  make bench            - Run all benchmarks"
