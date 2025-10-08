@@ -37,7 +37,7 @@ func main() {
 	if network == "" {
 		network = "local"
 	}
-	fmt.Printf("📍 Network: %s\n", network)
+	fmt.Printf("Network: %s\n", network)
 	
 	// 2. Load configuration
 	cfg, err := config.LoadConfig(network)
@@ -71,7 +71,7 @@ func main() {
 	}
 	
 	// 4. Test blockchain connection
-	fmt.Println("\n🔗 Blockchain Connection Test:")
+	fmt.Println("\nBlockchain Connection Test:")
 	client, err := ethclient.Dial(cfg.NetworkRPC)
 	if err != nil {
 		log.Fatalf(" Connection failed: %v", err)
@@ -152,7 +152,7 @@ func main() {
 			"connected": err == nil,
 		}
 		jsonData, _ := json.MarshalIndent(output, "", "  ")
-		fmt.Println("\n📄 JSON Output:")
+		fmt.Println("\nJSON Output:")
 		fmt.Println(string(jsonData))
 	}
 }
