@@ -1,7 +1,29 @@
 # 모니터링 및 관찰성 작업 검토
 
-**검토일:** 2025-10-08
+**최초 검토일:** 2025-10-08
+**업데이트:** 2025-10-10 (실제 코드 검증 완료)
 **문서:** `docs/REMAINING-TASKS-DETAILED.md` - Task 7 분석
+
+---
+
+## ⚠️ 중요 업데이트 (2025-10-10)
+
+**검증 결과:** 문서 작성 이후 또는 발견하지 못한 구현이 존재합니다.
+
+### 이미 구현된 사항:
+- ✅ **Prometheus 메트릭 완전 구현** (`internal/metrics/` 패키지)
+- ✅ **메트릭 서버 구현** (`/metrics` 엔드포인트)
+- ✅ **Grafana 대시보드** (`docker/grafana/dashboards/sage-overview.json`)
+- ✅ **Docker Compose 설정** (Prometheus, Grafana, Redis)
+- ✅ **Zap 의존성 설치** (`go.uber.org/zap v1.21.0`)
+
+### 실제 필요 작업:
+- ❌ Prometheus 설정 수정 (엔드포인트 불일치)
+- ❌ 메트릭을 실제 코드에 통합 (handshake, session, crypto)
+- ❌ Zap 로거 적용 (설치되었지만 미사용)
+- ❌ OpenTelemetry/Jaeger 추적 추가
+
+**예상 작업 시간:** 3일 → **1-2일로 단축 가능** (인프라 70% 완성)
 
 ---
 
@@ -11,8 +33,9 @@
 
 #### 로깅 현황
 - **비구조화된 로깅 사용**: 코드베이스 전체에서 `log.Print*`, `fmt.Print*` 사용
-  - `log.*`: 74회 사용 (11개 파일)
-  - `fmt.*`: 822회 사용 (73개 파일)
+  - `log.*`: 32회 사용 (실제 측정값)
+  - `fmt.*`: 304회 사용 (실제 측정값)
+- **Zap 설치 완료**: `go.uber.org/zap v1.21.0` 의존성 존재, 하지만 미활용
 - **문제점**:
   - 로그 파싱이 어려움 (텍스트 기반)
   - 문맥 정보 부족 (request ID, session ID 등)
@@ -21,14 +44,28 @@
   - 로그 집계 및 검색 불가능
 
 #### 메트릭 현황
-- **Prometheus 설정 존재**: `docker/prometheus/prometheus.yml`
-  - SAGE 전용 스크랩 설정 있음 (sessions, handshakes, crypto)
-  - 메트릭 엔드포인트 정의됨: `/metrics/sessions`, `/metrics/handshakes`, `/metrics/crypto`
+- **Prometheus 메트릭 구현 완료**: `internal/metrics/` 패키지 (9개 파일)
+  - ✅ `handshake.go` - 핸드셰이크 메트릭 (Initiated, Completed, Failed, Duration)
+  - ✅ `session.go` - 세션 메트릭 (Created, Active, Expired, Duration)
+  - ✅ `crypto.go` - 암호화 메트릭 (Operations, Errors, Duration)
+  - ✅ `message.go` - 메시지 메트릭 (Processed, ReplayAttacks, Nonce)
+  - ✅ `collector.go` - 메트릭 수집기 (Snapshot, Statistics)
+  - ✅ `server.go` - HTTP 핸들러 (`/metrics` 엔드포인트)
+  - ✅ `registry.go` - Prometheus 레지스트리
+
+- **Grafana 대시보드 구현**: `docker/grafana/dashboards/sage-overview.json`
+  - 7개 패널: Active Sessions, Handshake Success Rate, Signature Latency 등
+
+- **Docker Compose 설정**: Prometheus, Grafana 서비스 구성 완료
+  - Prometheus: `docker/prometheus/prometheus.yml`
+  - Grafana: `docker/grafana/` (datasources, dashboards)
+
 - **문제점**:
-  - **실제 메트릭 구현 없음**: 코드베이스에 Prometheus 메트릭이 구현되지 않음
-  - 정의된 엔드포인트가 존재하지 않음
-  - SAGE 고유 작업(handshake, encryption, signature) 측정 불가
-  - 성능 저하나 오류율 감지 불가능
+  - ⚠️ **Prometheus 설정과 코드 불일치**:
+    - 설정: `/metrics/sessions`, `/metrics/handshakes`, `/metrics/crypto` (3개 개별 엔드포인트)
+    - 실제: `/metrics` (단일 표준 엔드포인트만 구현)
+  - ⚠️ **메트릭 코드 통합 부족**: 정의된 메트릭이 실제 비즈니스 로직에서 호출되지 않음
+  - ⚠️ **health/server.go**만 메트릭 사용, 핵심 모듈(handshake, session)에서 미사용
 
 #### 추적(Tracing) 현황
 - **분산 추적 없음**: OpenTelemetry나 Jaeger 통합 없음
@@ -641,36 +678,38 @@ func (m *Middleware) Handle(next http.Handler) http.Handler {
 3. 환경별 설정 관리
 4. 보안 관련 알림 강화
 
-### 4.2 우선순위 조정 제안
+### 4.2 우선순위 재조정 (실제 구현 반영)
 
-**원래 제안:** 2-3일
-**조정된 계획:**
+**원래 예상:** 3일 (0일부터 시작 가정)
+**실제 상황:** 인프라 70% 구현 완료
+**수정된 예상:** 1-2일
 
-#### Phase 1 (1일): 기본 인프라
-- [ ] Zap 로거 구현 (`pkg/logging/`)
+#### ✅ Phase 1: 기본 인프라 - **이미 완료**
+- ✅ Prometheus 메트릭 정의 (`internal/metrics/*.go`)
+- ✅ 메트릭 서버 구현 (`internal/metrics/server.go`)
+- ✅ Grafana 대시보드 (`docker/grafana/dashboards/sage-overview.json`)
+- ✅ Docker Compose 설정 (Prometheus, Grafana)
+- ✅ Zap 의존성 설치
+
+#### 🔴 Phase 2 (즉시): 설정 수정 및 통합 - **0.5일**
+- [ ] **즉시 조치 1**: Prometheus 설정 수정 (엔드포인트 통합)
+- [ ] **즉시 조치 2**: 핸드셰이크 코드에 메트릭 통합
+- [ ] **즉시 조치 3**: 세션 매니저에 메트릭 통합
+- [ ] 메트릭 동작 검증 (Grafana 확인)
+
+#### 🟡 Phase 3 (단기): 로깅 개선 - **0.5-1일**
+- [ ] Zap 로거 래퍼 구현 (`pkg/logging/`)
 - [ ] 표준 필드 정의 (`pkg/logging/fields.go`)
-- [ ] HTTP 미들웨어 (`pkg/logging/middleware.go`)
-- [ ] 기본 Prometheus 메트릭 (`pkg/metrics/metrics.go`)
-- [ ] `/metrics` 엔드포인트 추가
+- [ ] HTTP 미들웨어 추가
+- [ ] 핵심 모듈에 Zap 적용 (점진적)
 
-#### Phase 2 (1일): 핵심 통합
-- [ ] 핸드셰이크 로깅/메트릭 통합
-- [ ] 세션 관리 로깅/메트릭 통합
-- [ ] RFC 9421 서명 로깅/메트릭 통합
-- [ ] DID 해결 로깅/메트릭 통합
-
-#### Phase 3 (0.5일): 추적 추가
+#### 🟢 Phase 4 (중기): 추적 및 알림 - **0.5-1일**
 - [ ] OpenTelemetry 설정
-- [ ] Jaeger Docker 추가
+- [ ] Jaeger를 Docker Compose에 추가
 - [ ] HTTP 추적 미들웨어
-- [ ] 핵심 작업 스팬 추가
+- [ ] Prometheus 알림 규칙 추가
 
-#### Phase 4 (0.5일): 알림 및 문서
-- [ ] Prometheus 알림 규칙 (`monitoring/prometheus/rules.yml`)
-- [ ] Grafana 대시보드 업데이트
-- [ ] 모니터링 문서 (`docs/MONITORING.md`)
-
-**총 예상 시간:** 3일 (원래 계획과 동일)
+**총 예상 시간:** 1.5-2.5일 (인프라 재사용으로 단축)
 
 ### 4.3 즉시 적용 가능한 Quick Wins
 
@@ -716,3 +755,316 @@ func (m *Middleware) Handle(next http.Handler) http.Handler {
 ---
 
 **결론:** 제안된 모니터링 및 관찰성 작업은 SAGE의 프로덕션 준비에 **절대적으로 필요**하며, 설계 방향은 **적절**합니다. 다만 SAGE 특화 메트릭과 보안 알림을 강화하고, 관찰성 도구 간 상관관계를 명확히 하면 더욱 효과적일 것입니다.
+
+---
+
+## 5. 🔴 즉시 조치 사항 (Immediate Actions Required)
+
+> **업데이트:** 2025-10-10
+> **우선순위:** Critical - 설정 불일치 해소 및 메트릭 활성화
+
+### 5.1 즉시 조치 1: Prometheus 설정 수정 ⏱️ 15분
+
+**문제:** Prometheus가 존재하지 않는 엔드포인트를 스크랩하려고 시도
+
+**현재 설정** (`docker/prometheus/prometheus.yml:72-100`):
+```yaml
+- job_name: 'sage-sessions'
+  metrics_path: '/metrics/sessions'  # ❌ 미구현
+
+- job_name: 'sage-handshakes'
+  metrics_path: '/metrics/handshakes'  # ❌ 미구현
+
+- job_name: 'sage-crypto'
+  metrics_path: '/metrics/crypto'  # ❌ 미구현
+```
+
+**해결 방법:**
+```yaml
+# 위 3개 job 삭제, 아래 job만 유지 (라인 26-39 유지)
+- job_name: 'sage-backend'
+  scrape_interval: 10s
+  metrics_path: '/metrics'  # ✅ 실제 구현됨
+  static_configs:
+    - targets:
+        - 'sage-backend:9090'
+      labels:
+        service: 'sage-backend'
+```
+
+**액션:**
+```bash
+# docker/prometheus/prometheus.yml 편집
+# 라인 72-100 삭제 (sage-sessions, sage-handshakes, sage-crypto jobs)
+# Prometheus 재시작
+docker-compose restart prometheus
+```
+
+---
+
+### 5.2 즉시 조치 2: 핸드셰이크 메트릭 통합 ⏱️ 30분
+
+**문제:** 메트릭이 정의되어 있지만 실제 코드에서 호출되지 않음
+
+**통합 위치:**
+- `handshake/client.go` - 클라이언트 핸드셰이크
+- `handshake/server.go` - 서버 핸드셰이크
+- `hpke/client.go`, `hpke/server.go` - HPKE 핸드셰이크
+
+**예시 코드 추가:**
+```go
+// handshake/client.go
+import "github.com/sage-x-project/sage/internal/metrics"
+
+func (c *Client) InitiateHandshake() error {
+    start := time.Now()
+    defer func() {
+        metrics.HandshakeDuration.WithLabelValues("init").Observe(
+            time.Since(start).Seconds(),
+        )
+    }()
+
+    metrics.HandshakesInitiated.WithLabelValues("client").Inc()
+
+    // 기존 로직...
+
+    if err != nil {
+        metrics.HandshakesFailed.WithLabelValues("network_error").Inc()
+        return err
+    }
+
+    metrics.HandshakesCompleted.WithLabelValues("success").Inc()
+    return nil
+}
+```
+
+**통합 체크리스트:**
+- [ ] `handshake/client.go` - InitiateHandshake()
+- [ ] `handshake/server.go` - AcceptHandshake()
+- [ ] `hpke/client.go` - Initialize()
+- [ ] `hpke/server.go` - ProcessInitialize()
+
+---
+
+### 5.3 즉시 조치 3: 세션 메트릭 통합 ⏱️ 30분
+
+**문제:** 세션 생성/만료 메트릭이 기록되지 않음
+
+**통합 위치:** `session/manager.go`
+
+**예시 코드:**
+```go
+// session/manager.go
+import "github.com/sage-x-project/sage/internal/metrics"
+
+func (m *Manager) CreateSession(id string, sharedSecret []byte) (*Session, error) {
+    start := time.Now()
+    defer metrics.SessionDuration.WithLabelValues("create").Observe(
+        time.Since(start).Seconds(),
+    )
+
+    sess, err := m.createSession(id, sharedSecret)
+    if err != nil {
+        metrics.SessionsCreated.WithLabelValues("failure").Inc()
+        return nil, err
+    }
+
+    metrics.SessionsCreated.WithLabelValues("success").Inc()
+    metrics.SessionsActive.Inc()
+    return sess, nil
+}
+
+func (m *Manager) cleanup() {
+    expired := m.removeExpiredSessions()
+    if expired > 0 {
+        metrics.SessionsExpired.Add(float64(expired))
+        metrics.SessionsActive.Sub(float64(expired))
+    }
+}
+
+func (s *Session) Encrypt(plaintext []byte) ([]byte, error) {
+    start := time.Now()
+    defer metrics.SessionDuration.WithLabelValues("encrypt").Observe(
+        time.Since(start).Seconds(),
+    )
+
+    metrics.SessionMessageSize.WithLabelValues("outbound").Observe(
+        float64(len(plaintext)),
+    )
+
+    // 기존 암호화 로직...
+}
+```
+
+**통합 체크리스트:**
+- [ ] `session/manager.go` - CreateSession()
+- [ ] `session/manager.go` - cleanup()
+- [ ] `session/session.go` - Encrypt()
+- [ ] `session/session.go` - Decrypt()
+
+---
+
+### 5.4 즉시 조치 4: 메트릭 검증 ⏱️ 15분
+
+**액션:**
+```bash
+# 1. Docker Compose 시작
+docker-compose up -d prometheus grafana sage-backend
+
+# 2. Prometheus 타겟 확인
+open http://localhost:9091/targets
+# sage-backend가 UP 상태인지 확인
+
+# 3. 메트릭 조회 테스트
+curl http://localhost:9090/metrics | grep sage_
+
+# 4. Grafana 대시보드 확인
+open http://localhost:3000
+# 로그인: admin / admin
+# Dashboards → SAGE System Overview
+```
+
+**예상 메트릭:**
+```
+sage_handshakes_initiated_total{role="client"} 5
+sage_handshakes_completed_total{status="success"} 4
+sage_sessions_active 2
+sage_crypto_operations_total{operation="sign",algorithm="ed25519"} 10
+```
+
+---
+
+### 5.5 작업 우선순위 및 예상 시간
+
+| 번호 | 작업 | 우선순위 | 예상 시간 | 종속성 |
+|------|------|----------|-----------|--------|
+| 5.1 | Prometheus 설정 수정 | 🔴 Critical | 15분 | 없음 |
+| 5.2 | 핸드셰이크 메트릭 통합 | 🔴 Critical | 30분 | 5.1 |
+| 5.3 | 세션 메트릭 통합 | 🔴 Critical | 30분 | 5.1 |
+| 5.4 | 메트릭 검증 | 🔴 Critical | 15분 | 5.2, 5.3 |
+| **합계** | | | **90분 (1.5시간)** | |
+
+---
+
+### 5.6 후속 조치 (단기 - 이번 주)
+
+#### RFC 9421 서명 메트릭 추가 ⏱️ 20분
+```go
+// core/rfc9421/verifier_http.go
+func (v *HTTPVerifier) VerifyRequest(r *http.Request, ...) error {
+    start := time.Now()
+    defer metrics.CryptoOperationDuration.WithLabelValues(
+        "verify", "ed25519",
+    ).Observe(time.Since(start).Seconds())
+
+    metrics.CryptoOperations.WithLabelValues("verify", "ed25519").Inc()
+
+    // 기존 검증 로직...
+
+    if err != nil {
+        metrics.CryptoErrors.WithLabelValues("verify").Inc()
+        return err
+    }
+    return nil
+}
+```
+
+#### DID 해결 메트릭 추가 ⏱️ 20분
+```go
+// did/resolver.go
+func (r *MultiChainResolver) Resolve(did string) (*Document, error) {
+    start := time.Now()
+    chain := extractChain(did) // ethereum, solana
+
+    defer metrics.GetGlobalCollector().RecordDIDResolution(
+        false, // cached 여부
+        time.Since(start),
+    )
+
+    // 기존 해결 로직...
+}
+```
+
+#### Nonce/Replay 공격 메트릭 추가 ⏱️ 15분
+```go
+// core/rfc9421/nonce.go
+func (nc *NonceCache) ValidateNonce(nonce string) bool {
+    if nc.IsSeen(nonce) {
+        metrics.ReplayAttacksDetected.Inc()
+        metrics.NonceValidations.WithLabelValues("replay_detected").Inc()
+        return false
+    }
+
+    metrics.NonceValidations.WithLabelValues("valid").Inc()
+    return true
+}
+```
+
+---
+
+### 5.7 체크리스트 (Copy & Paste)
+
+```markdown
+## 즉시 조치 체크리스트
+
+### Phase 1: 설정 수정 (15분)
+- [ ] Prometheus 설정 편집 (`docker/prometheus/prometheus.yml`)
+  - [ ] 라인 72-100 삭제 (sage-sessions, sage-handshakes, sage-crypto)
+  - [ ] 라인 26-39 확인 (sage-backend job 유지)
+- [ ] Prometheus 재시작: `docker-compose restart prometheus`
+- [ ] 타겟 확인: http://localhost:9091/targets
+
+### Phase 2: 핸드셰이크 메트릭 (30분)
+- [ ] `handshake/client.go` 수정
+  - [ ] metrics import 추가
+  - [ ] HandshakesInitiated.Inc() 추가
+  - [ ] HandshakeDuration.Observe() 추가
+- [ ] `handshake/server.go` 수정
+  - [ ] 동일 패턴 적용
+- [ ] 테스트: `go test ./handshake/...`
+
+### Phase 3: 세션 메트릭 (30분)
+- [ ] `session/manager.go` 수정
+  - [ ] CreateSession() - SessionsCreated, SessionsActive
+  - [ ] cleanup() - SessionsExpired
+- [ ] `session/session.go` 수정
+  - [ ] Encrypt() - SessionDuration, MessageSize
+  - [ ] Decrypt() - 동일 패턴
+- [ ] 테스트: `go test ./session/...`
+
+### Phase 4: 검증 (15분)
+- [ ] 서비스 시작: `docker-compose up -d`
+- [ ] 메트릭 확인: `curl localhost:9090/metrics | grep sage_`
+- [ ] Grafana 확인: http://localhost:3000
+- [ ] 대시보드 데이터 표시 확인
+```
+
+---
+
+## 6. 📋 작업 완료 기준
+
+### 성공 지표:
+1. ✅ Prometheus가 `/metrics` 엔드포인트에서 메트릭 수집
+2. ✅ Grafana 대시보드에 실시간 데이터 표시
+3. ✅ 핸드셰이크 카운터 증가 확인
+4. ✅ 세션 활성 게이지 변화 확인
+5. ✅ 에러 없이 모든 테스트 통과
+
+### 검증 명령어:
+```bash
+# 메트릭 존재 확인
+curl -s localhost:9090/metrics | grep -E "sage_(handshakes|sessions|crypto)" | head -20
+
+# Prometheus 쿼리 테스트
+curl -G 'http://localhost:9091/api/v1/query' \
+  --data-urlencode 'query=sage_sessions_active' | jq
+
+# 핸드셰이크 테스트 실행 후 메트릭 확인
+go test ./handshake/... -v
+curl -s localhost:9090/metrics | grep handshakes_completed_total
+```
+
+---
+
+**최종 업데이트:** 2025-10-10
+**다음 리뷰:** 메트릭 통합 완료 후 (예상: 2025-10-11)
