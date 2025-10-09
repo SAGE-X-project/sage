@@ -22,6 +22,22 @@ global:
 
 # Scrape configurations
 scrape_configs:
+  # SAGE Metrics Demo (Local)
+  - job_name: 'sage-demo'
+    scrape_interval: 10s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
+          - 'host.docker.internal:9090'
+        labels:
+          service: 'sage-demo'
+          component: 'local'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}'
+
   # SAGE Backend Metrics
   - job_name: 'sage-backend'
     scrape_interval: 10s
@@ -67,42 +83,3 @@ scrape_configs:
   #       labels:
   #         service: 'blockchain'
   #         component: 'ethereum'
-
-  # SAGE Custom Metrics
-  - job_name: 'sage-sessions'
-    scrape_interval: 5s
-    metrics_path: '/metrics/sessions'
-    static_configs:
-      - targets:
-          - 'sage-backend:9090'
-        labels:
-          service: 'sage-sessions'
-          component: 'sessions'
-
-  - job_name: 'sage-handshakes'
-    scrape_interval: 5s
-    metrics_path: '/metrics/handshakes'
-    static_configs:
-      - targets:
-          - 'sage-backend:9090'
-        labels:
-          service: 'sage-handshakes'
-          component: 'handshakes'
-
-  - job_name: 'sage-crypto'
-    scrape_interval: 10s
-    metrics_path: '/metrics/crypto'
-    static_configs:
-      - targets:
-          - 'sage-backend:9090'
-        labels:
-          service: 'sage-crypto'
-          component: 'cryptography'
-
-# Storage configuration
-storage:
-  tsdb:
-    path: /prometheus
-    retention:
-      time: 15d
-      size: 10GB
