@@ -14,21 +14,35 @@ This benchmark suite measures and compares the performance of SAGE's security fe
    - Key import/export (JWK, PEM)
    - Performance across different message sizes
 
-2. **Session Management** (`session_bench_test.go`)
+2. **HPKE Operations** (`pkg/agent/hpke/hpke_bench_test.go`)
+   - HPKE sender/receiver derivation
+   - HPKE seal/open operations
+   - Export secret derivation
+   - Key derivation with various parameters
+   - X25519 key generation
+
+3. **Handshake Protocol** (`pkg/agent/handshake/handshake_bench_test.go`)
+   - Key pair generation for handshake
+   - Signature generation and verification
+   - Session encryption/decryption
+   - Complete handshake roundtrip
+   - Message size scaling
+
+4. **Session Management** (`session_bench_test.go`)
    - Session creation and lifecycle
    - Message encryption/decryption
    - Handshake protocol performance
    - Concurrent session operations
    - Nonce validation
 
-3. **RFC 9421 HTTP Signatures** (`rfc9421_bench_test.go`)
+5. **RFC 9421 HTTP Signatures** (`rfc9421_bench_test.go`)
    - HTTP message signing
    - Signature verification
    - Different signature components
    - HMAC-based signatures
    - Payload size variations
 
-4. **Baseline Comparisons** (`comparison_bench_test.go`)
+6. **Baseline Comparisons** (`comparison_bench_test.go`)
    - SAGE vs. no security
    - SAGE vs. simple hash-based integrity
    - Throughput measurements
@@ -171,6 +185,94 @@ go test -bench=BenchmarkMessageSizes -benchmem ./benchmark
 **What it measures:**
 - Signing performance: 64B, 256B, 1KB, 4KB, 16KB, 64KB
 - Shows how performance scales with message size
+
+### HPKE Operations
+
+#### HPKE Sender/Receiver Derivation
+```bash
+go test -bench=BenchmarkHPKEDeriveSharedSecret -benchmem ./pkg/agent/hpke
+go test -bench=BenchmarkHPKEOpenSharedSecret -benchmem ./pkg/agent/hpke
+```
+
+**What it measures:**
+- HPKE Base sender-side key derivation
+- HPKE Base receiver-side key derivation
+- X25519 ECDH operations
+- HKDF key derivation
+
+**Typical Results:**
+- Sender derivation: ~60-80 μs
+- Receiver derivation: ~60-80 μs
+
+#### HPKE Full Roundtrip
+```bash
+go test -bench=BenchmarkHPKEFullRoundtrip -benchmem ./pkg/agent/hpke
+```
+
+**What it measures:**
+- Complete HPKE handshake (sender + receiver)
+- Secret agreement verification
+- End-to-end latency
+
+**Typical Results:**
+- Full roundtrip: ~120-160 μs
+
+#### HPKE Export Lengths
+```bash
+go test -bench=BenchmarkHPKEExportLengths -benchmem ./pkg/agent/hpke
+```
+
+**What it measures:**
+- Export secret derivation (16B, 32B, 64B, 128B, 256B)
+- HKDF expansion performance
+
+**Typical Results:**
+- 32B export: ~60-80 μs
+
+### Handshake Protocol
+
+#### Key Generation
+```bash
+go test -bench=BenchmarkKeyGeneration -benchmem ./pkg/agent/handshake
+```
+
+**What it measures:**
+- Ed25519 key pair generation for signing
+- X25519 key pair generation for HPKE
+
+**Typical Results:**
+- Ed25519: ~25-30 μs per key pair
+- X25519: ~40-50 μs per key pair
+
+#### Signature Operations
+```bash
+go test -bench="BenchmarkSignature.*" -benchmem ./pkg/agent/handshake
+```
+
+**What it measures:**
+- Ed25519 and Secp256k1 signing
+- Ed25519 and Secp256k1 verification
+- Performance with test messages
+
+**Typical Results:**
+- Ed25519 signing: ~40-50 μs
+- Ed25519 verification: ~80-100 μs
+
+#### Session Encryption/Decryption
+```bash
+go test -bench="BenchmarkSession.*" -benchmem ./pkg/agent/handshake
+```
+
+**What it measures:**
+- AES-GCM session encryption
+- AES-GCM session decryption
+- Full roundtrip performance
+- Scaling across message sizes (64B to 16KB)
+
+**Typical Results:**
+- Encryption (1KB): ~5-8 μs
+- Decryption (1KB): ~5-8 μs
+- Roundtrip (1KB): ~10-16 μs
 
 ### Session Management
 
