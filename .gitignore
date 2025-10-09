@@ -562,3 +562,33 @@ integration.test.*
 # Test reports and coverage
 reports/
 *.out
+
+# Python build artifacts
+*.egg-info/
+*.egg
+dist/
+.eggs/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Java build artifacts
+*.class
+*.jar
+!gradle-wrapper.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+target/
+.mvn/
+mvnw
+mvnw.cmd
