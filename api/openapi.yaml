@@ -1,0 +1,351 @@
+openapi: 3.0.3
+info:
+  title: SAGE API
+  version: 1.0.0
+  description: |
+    Secure Agent Guarantee Engine (SAGE) API
+
+    SAGE provides secure, decentralized identity and communication for AI agents using:
+    - DID-based authentication
+    - HPKE (Hybrid Public Key Encryption) for secure sessions
+    - RFC 9421 HTTP Message Signatures
+    - Replay attack prevention
+
+  contact:
+    name: SAGE-X Project
+    url: https://github.com/sage-x-project/sage
+  license:
+    name: LGPL-3.0
+    url: https://www.gnu.org/licenses/lgpl-3.0.html
+
+servers:
+  - url: https://api.sage.example.com/v1
+    description: Production
+  - url: https://staging-api.sage.example.com/v1
+    description: Staging
+  - url: http://localhost:8080/v1
+    description: Development
+
+tags:
+  - name: A2A
+    description: Agent-to-Agent messaging
+  - name: Protected
+    description: Protected endpoints (require authentication)
+  - name: Debug
+    description: Debug and development endpoints
+  - name: Health
+    description: Health check endpoints
+
+paths:
+  /a2a:sendMessage:
+    post:
+      summary: Send Agent-to-Agent message
+      description: |
+        Sends an encrypted message from one agent to another using HPKE protocol.
+        This endpoint handles the complete HPKE handshake and message encryption.
+      tags:
+        - A2A
+      operationId: sendMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/A2AMessageRequest'
+            examples:
+              handshakeRequest:
+                summary: Initial handshake request
+                value:
+                  sender_did: "did:sage:ethereum:0x123..."
+                  receiver_did: "did:sage:ethereum:0x456..."
+                  message: "eyJhbGciOiJIUEtFIn0..."
+                  timestamp: 1234567890
+                  signature: "base64-encoded-signature"
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A2AMessageResponse'
+        '400':
+          description: Bad request - Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized - Invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /protected:
+    post:
+      summary: Protected endpoint
+      description: |
+        Demonstration of a protected endpoint that requires RFC 9421 HTTP signature authentication.
+        The request must include Signature and Signature-Input headers.
+      tags:
+        - Protected
+      operationId: protectedEndpoint
+      parameters:
+        - name: Signature
+          in: header
+          required: true
+          schema:
+            type: string
+          description: RFC 9421 HTTP Message Signature
+        - name: Signature-Input
+          in: header
+          required: true
+          schema:
+            type: string
+          description: Signature input parameters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                session_id:
+                  type: string
+                  format: uuid
+                encrypted_data:
+                  type: string
+                  format: base64
+      responses:
+        '200':
+          description: Request processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  decrypted_data:
+                    type: object
+        '401':
+          description: Signature verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /debug/kem-pub:
+    get:
+      summary: Get server KEM public key
+      description: Returns the server's public Key Encapsulation Mechanism (KEM) key for HPKE
+      tags:
+        - Debug
+      operationId: getKemPublicKey
+      responses:
+        '200':
+          description: Server KEM public key
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  kem_public_key:
+                    type: string
+                    format: base64
+                    description: X25519 public key (32 bytes, base64-encoded)
+
+  /debug/server-did:
+    get:
+      summary: Get server DID
+      description: Returns the server's Decentralized Identifier
+      tags:
+        - Debug
+      operationId: getServerDID
+      responses:
+        '200':
+          description: Server DID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  did:
+                    type: string
+                    example: "did:sage:ethereum:0xABC..."
+
+  /debug/register-agent:
+    post:
+      summary: Register agent metadata
+      description: |
+        Registers an agent's metadata (DID, public keys) with the server.
+        This is for development/testing only. In production, agents are resolved from blockchain.
+      tags:
+        - Debug
+      operationId: registerAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentMetadata'
+      responses:
+        '200':
+          description: Agent registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "agent registered"
+        '400':
+          description: Invalid agent metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /debug/health:
+    get:
+      summary: Health check
+      description: Returns server health status
+      tags:
+        - Health
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                  timestamp:
+                    type: string
+                    format: date-time
+                  sessions:
+                    type: object
+                    properties:
+                      active:
+                        type: integer
+                      total:
+                        type: integer
+
+components:
+  schemas:
+    A2AMessageRequest:
+      type: object
+      required:
+        - sender_did
+        - receiver_did
+        - message
+        - timestamp
+        - signature
+      properties:
+        sender_did:
+          type: string
+          description: Sender's Decentralized Identifier
+          example: "did:sage:ethereum:0x123..."
+        receiver_did:
+          type: string
+          description: Receiver's Decentralized Identifier
+          example: "did:sage:ethereum:0x456..."
+        message:
+          type: string
+          format: base64
+          description: Encrypted message payload
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix timestamp (seconds)
+        signature:
+          type: string
+          format: base64
+          description: Message signature (Ed25519)
+
+    A2AMessageResponse:
+      type: object
+      properties:
+        response:
+          type: string
+          format: base64
+          description: Encrypted response message
+        session_id:
+          type: string
+          format: uuid
+          description: Session ID (for subsequent messages)
+
+    AgentMetadata:
+      type: object
+      required:
+        - did
+        - public_key
+        - public_kem_key
+      properties:
+        did:
+          type: string
+          description: Agent's Decentralized Identifier
+          example: "did:sage:ethereum:0xABC..."
+        name:
+          type: string
+          description: Agent's display name
+        is_active:
+          type: boolean
+          default: true
+        public_key:
+          type: string
+          format: base64
+          description: Ed25519 public key for signature verification (32 bytes)
+        public_kem_key:
+          type: string
+          format: base64
+          description: X25519 public key for HPKE (32 bytes)
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+
+  securitySchemes:
+    HTTPSignature:
+      type: apiKey
+      in: header
+      name: Signature
+      description: |
+        RFC 9421 HTTP Message Signatures
+
+        The signature must be computed over the request headers and body,
+        using the agent's Ed25519 private key.
+
+        Required headers:
+        - Signature: The signature value
+        - Signature-Input: Signature parameters (algorithm, covered components, etc.)
+
+security:
+  - {}  # Most endpoints don't require auth
+  - HTTPSignature: []  # /protected requires signature
+
+externalDocs:
+  description: SAGE Documentation
+  url: https://github.com/sage-x-project/sage
