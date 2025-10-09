@@ -27,10 +27,10 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/crypto/keys"
-	"github.com/sage-x-project/sage/crypto/storage"
-	"github.com/sage-x-project/sage/did"
+	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
+	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
 var registerCmd = &cobra.Command{

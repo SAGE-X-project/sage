@@ -30,8 +30,8 @@ import (
 	"math/big"
 	"os"
 
-	sagecrypto "github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/crypto/formats"
+	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
 	"github.com/spf13/cobra"
 )
 

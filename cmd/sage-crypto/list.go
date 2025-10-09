@@ -24,7 +24,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/sage-x-project/sage/crypto/storage"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 	"github.com/spf13/cobra"
 )
 

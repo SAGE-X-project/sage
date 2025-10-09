@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/sage-x-project/sage/core"
-	"github.com/sage-x-project/sage/core/rfc9421"
-	"github.com/sage-x-project/sage/did"
+	"github.com/sage-x-project/sage/pkg/agent/core"
+	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
+	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
 // CalculatorTool represents a simple MCP tool that performs calculations

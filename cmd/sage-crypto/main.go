@@ -26,8 +26,8 @@ import (
 	"github.com/spf13/cobra"
 	
 	// Import chain providers to register them
-	_ "github.com/sage-x-project/sage/crypto/chain/ethereum"
-	_ "github.com/sage-x-project/sage/crypto/chain/solana"
+	_ "github.com/sage-x-project/sage/pkg/agent/crypto/chain/ethereum"
+	_ "github.com/sage-x-project/sage/pkg/agent/crypto/chain/solana"
 )
 
 var rootCmd = &cobra.Command{

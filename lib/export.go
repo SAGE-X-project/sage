@@ -22,9 +22,9 @@ package main
 import "C"
 
 import (
-	"github.com/sage-x-project/sage/core"
-	"github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/did"
+	"github.com/sage-x-project/sage/pkg/agent/core"
+	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
 // Version returns the library version

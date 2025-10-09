@@ -20,10 +20,10 @@
 package cryptoinit
 
 import (
-	"github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/crypto/formats"
-	"github.com/sage-x-project/sage/crypto/keys"
-	"github.com/sage-x-project/sage/crypto/storage"
+	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 )
 
 func init() {

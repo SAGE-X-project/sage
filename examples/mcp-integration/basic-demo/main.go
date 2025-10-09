@@ -29,8 +29,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sage-x-project/sage/core/rfc9421"
-	"github.com/sage-x-project/sage/crypto/keys"
+	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 )
 
 // === MCP Tool Types ===

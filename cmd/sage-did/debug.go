@@ -26,7 +26,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/sage-x-project/sage/did/ethereum"
+	"github.com/sage-x-project/sage/pkg/agent/did/ethereum"
 	"github.com/spf13/cobra"
 )
 

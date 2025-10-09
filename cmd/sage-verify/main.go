@@ -27,7 +27,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/sage-x-project/sage/config"
+	"github.com/sage-x-project/sage/deployments/config"
 )
 
 func main() {

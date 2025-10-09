@@ -592,3 +592,8 @@ target/
 .mvn/
 mvnw
 mvnw.cmd
+
+# Runtime key storage
+keys/
+*.key
+*.pem
