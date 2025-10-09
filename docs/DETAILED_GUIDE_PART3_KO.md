@@ -8,6 +8,7 @@
 ---
 
 ## 목차
+
 1. [DID (Decentralized Identifier) 심층 분석](#1-did-decentralized-identifier-심층-분석)
 2. [블록체인 선택과 다중 체인 전략](#2-블록체인-선택과-다중-체인-전략)
 3. [Ethereum 통합](#3-ethereum-통합)
@@ -122,20 +123,22 @@ did:sage:ethereum:0x742d35Cc6634C0532925a3b844Bc454e4438f44e
   ],
   "id": "did:sage:ethereum:0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
   "controller": "did:sage:ethereum:0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
-  "verificationMethod": [{
-    "id": "did:sage:ethereum:0x742d35Cc...#keys-1",
-    "type": "Ed25519VerificationKey2020",
-    "controller": "did:sage:ethereum:0x742d35Cc...",
-    "publicKeyMultibase": "zH3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV"
-  }],
-  "authentication": [
-    "did:sage:ethereum:0x742d35Cc...#keys-1"
+  "verificationMethod": [
+    {
+      "id": "did:sage:ethereum:0x742d35Cc...#keys-1",
+      "type": "Ed25519VerificationKey2020",
+      "controller": "did:sage:ethereum:0x742d35Cc...",
+      "publicKeyMultibase": "zH3C2AVvLMv6gmMNam3uVAjZpfkcJCwDwnZn6z3wXmqPV"
+    }
   ],
-  "service": [{
-    "id": "did:sage:ethereum:0x742d35Cc...#agent-endpoint",
-    "type": "AgentService",
-    "serviceEndpoint": "https://agent.example.com/api"
-  }]
+  "authentication": ["did:sage:ethereum:0x742d35Cc...#keys-1"],
+  "service": [
+    {
+      "id": "did:sage:ethereum:0x742d35Cc...#agent-endpoint",
+      "type": "AgentService",
+      "serviceEndpoint": "https://agent.example.com/api"
+    }
+  ]
 }
 ```
 
@@ -299,22 +302,23 @@ contract SageRegistryV2 {
 
 ### 2.1 지원 블록체인 비교
 
-| 특성 | Ethereum | Kaia | Solana |
-|-----|----------|------|--------|
-| **합의 알고리즘** | PoS (Proof of Stake) | PoS | PoH + PoS |
-| **블록 시간** | ~12초 | ~1초 | ~400ms |
-| **TPS** | ~30 | ~4,000 | ~65,000 |
-| **완결성** | 2 epochs (~13분) | 즉시 | ~1초 |
-| **가스 비용** | 높음 ($5-50) | 매우 낮음 ($0.001-0.01) | 낮음 ($0.00001-0.001) |
-| **스마트 컨트랙트** | Solidity | Solidity | Rust/C |
-| **에코시스템** | 가장 큼 | 중간 (한국 중심) | 빠르게 성장 |
-| **개발 도구** | Hardhat, Foundry | Hardhat, Foundry | Anchor |
-| **지갑 지원** | MetaMask 등 많음 | Kaikas, MetaMask | Phantom, Solflare |
-| **SAGE 상태** | ✅ 완전 지원 | ✅ 완전 지원 | 🚧 개발 중 |
+| 특성                | Ethereum             | Kaia                    | Solana                |
+| ------------------- | -------------------- | ----------------------- | --------------------- |
+| **합의 알고리즘**   | PoS (Proof of Stake) | PoS                     | PoH + PoS             |
+| **블록 시간**       | ~12초                | ~1초                    | ~400ms                |
+| **TPS**             | ~30                  | ~4,000                  | ~65,000               |
+| **완결성**          | 2 epochs (~13분)     | 즉시                    | ~1초                  |
+| **가스 비용**       | 높음 ($5-50)         | 매우 낮음 ($0.001-0.01) | 낮음 ($0.00001-0.001) |
+| **스마트 컨트랙트** | Solidity             | Solidity                | Rust/C                |
+| **에코시스템**      | 가장 큼              | 중간 (한국 중심)        | 빠르게 성장           |
+| **개발 도구**       | Hardhat, Foundry     | Hardhat, Foundry        | Anchor                |
+| **지갑 지원**       | MetaMask 등 많음     | Kaikas, MetaMask        | Phantom, Solflare     |
+| **SAGE 상태**       | ✅ 완전 지원         | ✅ 완전 지원            | 🚧 개발 중            |
 
 ### 2.2 Ethereum 선택 이유
 
 **장점**:
+
 ```
 1. 보안성 및 탈중앙화
    - 수천 개의 검증자 노드
@@ -338,6 +342,7 @@ contract SageRegistryV2 {
 ```
 
 **단점 및 대응**:
+
 ```
 1. 높은 가스 비용
    대응: Layer 2 솔루션 계획 (Arbitrum, Optimism)
@@ -352,6 +357,7 @@ contract SageRegistryV2 {
 ### 2.3 Kaia 추가 이유
 
 **Kaia (구 Klaytn)의 특징**:
+
 ```
 1. 한국 시장 특화
    - Kakao, LG 등 대기업 참여
@@ -375,6 +381,7 @@ contract SageRegistryV2 {
 ```
 
 **SAGE의 Kaia 활용**:
+
 ```
 시나리오 1: 프로덕션 배포
 - 메인 DID 레지스트리: Ethereum
@@ -1495,10 +1502,10 @@ func (r *MultiChainResolver) ResolveBatch(
 # subgraph/schema.graphql
 
 type Agent @entity {
-  id: ID!                      # agentId
-  did: String!                 # DID 문자열
-  owner: Bytes!                # 소유자 주소
-  publicKey: Bytes!            # 공개키
+  id: ID! # agentId
+  did: String! # DID 문자열
+  owner: Bytes! # 소유자 주소
+  publicKey: Bytes! # 공개키
   name: String!
   description: String
   endpoint: String!
@@ -1512,9 +1519,9 @@ type Agent @entity {
 }
 
 type AgentUpdate @entity {
-  id: ID!                      # txHash-logIndex
+  id: ID! # txHash-logIndex
   agent: Agent!
-  field: String!               # 변경된 필드
+  field: String! # 변경된 필드
   oldValue: String
   newValue: String!
   timestamp: BigInt!
@@ -2634,9 +2641,8 @@ Part 3에서 다룬 내용:
 **다음 파트 예고**:
 
 **Part 4: 핸드셰이크 프로토콜 및 세션 관리**에서는:
-- 4단계 핸드셰이크 상세 분석
+
+- HPKE 기반 핸드셰이크 상세 분석
 - 클라이언트/서버 구현
 - 세션 생성 및 관리
 - 이벤트 기반 아키텍처
-
-계속해서 Part 4를 작성하시겠습니까?

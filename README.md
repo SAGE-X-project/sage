@@ -240,43 +240,41 @@ The handshake establishes an end-to-end encrypted session between two agents:
 
 ```go
 import (
-    "github.com/sage-x-project/sage/handshake"
+    "github.com/sage-x-project/sage/hpke"
     "github.com/sage-x-project/sage/session"
     "github.com/sage-x-project/sage/did"
 )
 
 // Client side (Agent A)
-client := handshake.NewClient(conn, myKeyPair)
+client := hpke.NewClient(conn, myKeyPair)
 
-// 1. Send invitation
-inv := &handshake.InvitationMessage{
-    BaseMessage: message.BaseMessage{ContextID: contextID},
-}
-resp, err := client.Invitation(ctx, *inv, myDID)
+// Initialize session
+// Receive kid from Server (Agent B)
+ctxID := "ctx-" + uuid.NewString()
+kid, _ := client.Initialize(ctx, ctxID, clientDID, serverDID)
 
-// 2. Send ephemeral key request
-req := &handshake.RequestMessage{
-    BaseMessage:     message.BaseMessage{ContextID: contextID},
-    EphemeralPubKey: myEphemeralKey,
-}
-resp, err = client.Request(ctx, *req, peerPublicKey, myDID)
-
-// 3. Complete handshake
-comp := &handshake.CompleteMessage{
-    BaseMessage: message.BaseMessage{ContextID: contextID},
-}
-resp, err = client.Complete(ctx, *comp, myDID)
-
-// Server side (Agent B) - Event-driven
-events := &MyEventHandler{
-    sessionManager: session.NewManager(),
-}
-server := handshake.NewServer(keyPair, events, resolver, nil, cleanupInterval)
-
-// Sessions are created automatically via OnComplete event
 ```
 
-### 4. Create RFC 9421 Signed Messages
+### 4. HPKE Encryption/Decryption
+
+```go
+import (
+    "github.com/sage-x-project/sage/hpke"
+    "github.com/sage-x-project/sage/session"
+)
+
+// Get session from manager
+sess, ok := sessionManager.GetByKeyID(keyID)
+
+// encryption
+cipher, _ := sess.Encrypt(body)
+
+// decryption
+plain, _:= sess.Decrypt(cipher)
+
+```
+
+### 5. Create RFC 9421 Signed Messages
 
 ```go
 import (
@@ -284,8 +282,6 @@ import (
     "github.com/sage-x-project/sage/session"
 )
 
-// Get session from manager
-sess, ok := sessionManager.GetByKeyID(keyID)
 
 // Create HTTP message builder
 builder := rfc9421.NewMessageBuilder()
@@ -294,38 +290,19 @@ msg := builder.
     Authority("api.example.com").
     Path("/api/v1/chat").
     Header("Content-Type", "application/json").
-    Body([]byte(requestBody)).
+    Body([]byte(cipherRequestBody)).
     Build()
 
 // Create verifier with session
 verifier := rfc9421.NewHTTPVerifier(sess, sessionManager)
 
 // Sign the message
-signature, err := verifier.SignHTTPMessage(msg, keyID, []string{
-    "@method", "@authority", "@path", "content-type", "content-digest",
+signature, err := verifier.SignRequest(msg, sigName, []string{
+    "@method", "@authority", "@path", "content-type", "content-digest", privKey
 })
 
 // Verify signature
-err = verifier.VerifyHTTPSignature(msg, signature, keyID)
-```
-
-### 5. HPKE Encryption
-
-```go
-import (
-    "github.com/sage-x-project/sage/hpke"
-)
-
-// Sender (Agent A)
-client, err := hpke.NewClient(peerPublicKey)
-ciphertext, encapsulated, err := client.Seal(plaintext, associatedData)
-
-// Receiver (Agent B)
-server, err := hpke.NewServer(myPrivateKey)
-plaintext, err := server.Open(encapsulated, ciphertext, associatedData)
-
-// Export session key for derived channels
-exportedKey := server.Export(context, length)
+err = verifier.VerifyRequest(req, pubKey, HTTPVerificationOptions)
 ```
 
 ## Testing
@@ -352,8 +329,8 @@ go test ./session/...
 # Run integration tests
 make test-integration
 
-# Run handshake integration test
-make test-handshake
+# Run hpke based handshake integration test
+make test-hpke
 
 # Run quick tests (excluding slow integration tests)
 make test-quick
