@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/sage-x-project/sage/internal/metrics"
 )
 
 // Manager handles session lifecycle, storage, and cleanup
@@ -101,6 +103,7 @@ func (m *Manager) EnsureSessionFromExporterWithRole(
 
 	s, err := NewSecureSessionFromExporterWithRole(sid, exporter, initiator, newCfg)
 	if err != nil {
+		metrics.SessionsCreated.WithLabelValues("failure").Inc()
 		return nil, "", false, fmt.Errorf("new secure session: %w", err)
 	}
 
@@ -112,6 +115,8 @@ func (m *Manager) EnsureSessionFromExporterWithRole(
 		return exist, sid, true, nil
 	}
 	m.sessions[sid] = s
+	metrics.SessionsCreated.WithLabelValues("success").Inc()
+	metrics.SessionsActive.Inc()
 	m.mu.Unlock()
 
 	return s, sid, false, nil
@@ -163,6 +168,7 @@ func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, strin
 	}
 	s, err := NewSecureSession(sid, seed, newCfg)
 	if err != nil {
+		metrics.SessionsCreated.WithLabelValues("failure").Inc()
 		return nil, "", false, fmt.Errorf("new secure session: %w", err)
 	}
 
@@ -174,6 +180,8 @@ func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, strin
 		return exist, sid, true, nil
 	}
 	m.sessions[sid] = s
+	metrics.SessionsCreated.WithLabelValues("success").Inc()
+	metrics.SessionsActive.Inc()
 	m.mu.Unlock()
 
 	return s, sid, false, nil
@@ -183,21 +191,25 @@ func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, strin
 func (m *Manager) CreateSessionWithConfig(sessionID string, sharedSecret []byte, config Config) (Session, error) {
     m.mu.Lock()
     defer m.mu.Unlock()
-    
+
     // Check if session already exists
     if _, exists := m.sessions[sessionID]; exists {
+        metrics.SessionsCreated.WithLabelValues("failure").Inc()
         return nil, fmt.Errorf("session %s already exists", sessionID)
     }
-    
+
     // Create new crypto session
     sess, err := NewSecureSession(sessionID, sharedSecret, config)
     if err != nil {
+        metrics.SessionsCreated.WithLabelValues("failure").Inc()
         return nil, fmt.Errorf("failed to create session: %w", err)
     }
-    
+
     // Store in manager
     m.sessions[sessionID] = sess
-    
+    metrics.SessionsCreated.WithLabelValues("success").Inc()
+    metrics.SessionsActive.Inc()
+
     return sess, nil
 }
 
@@ -280,6 +292,7 @@ func (m *Manager) RemoveSession(sessionID string) {
 	if sess, exists := m.sessions[sessionID]; exists {
 		sess.Close()
 		delete(m.sessions, sessionID)
+		metrics.SessionsActive.Dec()
 	}
 	// Unbind all keyids mapped to this sessionID
 	if set, ok := m.keyIDsBySID[sessionID]; ok {
@@ -397,6 +410,8 @@ func (m *Manager) cleanupExpiredSessions() {
 		if sess, exists := m.sessions[id]; exists {
 			sess.Close()
 			delete(m.sessions, id)
+			metrics.SessionsExpired.Inc()
+			metrics.SessionsActive.Dec()
 		}
 		// Unbind all keyids for this session
 		if set, ok := m.keyIDsBySID[id]; ok {

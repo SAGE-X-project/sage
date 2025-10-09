@@ -31,6 +31,7 @@ import (
 
 	"io"
 
+	"github.com/sage-x-project/sage/internal/metrics"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 )
@@ -412,6 +413,7 @@ func (s *SecureSession) GetConfig() Config {
 // Output format: nonce || ciphertext.
 func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
 	if s.IsExpired() {
+		metrics.CryptoOperations.WithLabelValues("encrypt", "expired").Inc()
 		return nil, fmt.Errorf("session expired")
 	}
 
@@ -420,11 +422,13 @@ func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
 	}
 	// legacy single-AEAD path
 	if s.aead == nil {
+		metrics.CryptoOperations.WithLabelValues("encrypt", "not_initialized").Inc()
 		return nil, fmt.Errorf("session not initialized: AEAD is nil")
 	}
     // Generate random 12-byte nonce
     nonce := make([]byte, chacha20poly1305.NonceSize)
     if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		metrics.CryptoOperations.WithLabelValues("encrypt", "nonce_error").Inc()
         return nil, fmt.Errorf("failed to generate nonce: %w", err)
     }
 
@@ -437,6 +441,8 @@ func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
     copy(out[len(nonce):], ciphertext)
 
 	s.UpdateLastUsed()
+	metrics.CryptoOperations.WithLabelValues("encrypt", "success").Inc()
+	metrics.SessionMessageSize.WithLabelValues("encrypted").Observe(float64(len(out)))
     return out, nil
 }
 
@@ -444,17 +450,20 @@ func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
 // Expects input format: nonce || ciphertext.
 func (s *SecureSession) Decrypt(data []byte) ([]byte, error) {
 	if s.IsExpired() {
+		metrics.CryptoOperations.WithLabelValues("decrypt", "expired").Inc()
 		return nil, fmt.Errorf("session expired")
 	}
-	
+
     if s.aeadIn != nil { // directional path
 		return s.DecryptInbound(data)
 	}
 	// legacy single-AEAD path
 	if s.aead == nil {
+		metrics.CryptoOperations.WithLabelValues("decrypt", "not_initialized").Inc()
 		return nil, fmt.Errorf("session not initialized: AEAD is nil")
 	}
     if len(data) < chacha20poly1305.NonceSize {
+		metrics.CryptoOperations.WithLabelValues("decrypt", "invalid_data").Inc()
         return nil, fmt.Errorf("data too short")
     }
 
@@ -464,9 +473,12 @@ func (s *SecureSession) Decrypt(data []byte) ([]byte, error) {
     // Open verifies authenticity and decrypts
     plaintext, err := s.aead.Open(nil, nonce, ciphertext, nil)
     if err != nil {
+		metrics.CryptoOperations.WithLabelValues("decrypt", "failure").Inc()
         return nil, fmt.Errorf("decryption failed: %w", err)
     }
 	s.UpdateLastUsed()
+	metrics.CryptoOperations.WithLabelValues("decrypt", "success").Inc()
+	metrics.SessionMessageSize.WithLabelValues("decrypted").Observe(float64(len(plaintext)))
     return plaintext, nil
 }
 
