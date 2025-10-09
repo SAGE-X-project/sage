@@ -41,7 +41,9 @@ did/
 └── resolver.go      # DID → (identity / HPKE KEM) public key resolution
 ```
 
-### Info / Export Context (Recommended Format)
+### Info / Export Context (Actual Implementation)
+
+The `InfoBuilder` interface generates context-binding strings that prevent cross-context attacks and key reuse:
 
 ```go
 type InfoBuilder interface {
@@ -52,15 +54,37 @@ type InfoBuilder interface {
 type DefaultInfoBuilder struct{}
 
 func (DefaultInfoBuilder) BuildInfo(ctxID, initDID, respDID string) []byte {
-    return []byte("sage/hpke v1|ctx=" + ctxID + "|init=" + initDID + "|resp=" + respDID)
+    return []byte(
+        "sage/hpke-info|v1" +
+            "|suite=hpke-base+x25519+hkdf-sha256" +
+            "|combiner=e2e-x25519-hkdf-v1" +
+            "|ctx=" + ctxID +
+            "|init=" + initDID +
+            "|resp=" + respDID,
+    )
 }
 func (DefaultInfoBuilder) BuildExportContext(ctxID string) []byte {
-    return []byte("exporter:" + ctxID)
+    return []byte(
+        "sage/hpke-export|v1" +
+            "|suite=hpke-base+x25519+hkdf-sha256" +
+            "|combiner=e2e-x25519-hkdf-v1" +
+            "|ctx=" + ctxID,
+    )
 }
 ```
 
-- `info` embeds the **session context** (ctxID and both DIDs) with a canonical prefix, preventing **key reuse / cross-context confusion**.
-- `exportCtx` is used as the exporter’s HKDF **label (salt/context)**, separating sessions and limiting the blast radius of key disclosure.
+**Example output**:
+```
+info: "sage/hpke-info|v1|suite=hpke-base+x25519+hkdf-sha256|combiner=e2e-x25519-hkdf-v1|ctx=abc123|init=did:sage:A|resp=did:sage:B"
+exportCtx: "sage/hpke-export|v1|suite=hpke-base+x25519+hkdf-sha256|combiner=e2e-x25519-hkdf-v1|ctx=abc123"
+```
+
+**Security properties**:
+- `suite`: Binds to specific cryptographic algorithms (HPKE Base mode + X25519 + HKDF-SHA256)
+- `combiner`: Separates Base-only mode from Base+E2E mode (prevents downgrade attacks)
+- `v1`: Version tag for protocol upgrades
+- `info` embeds the **session context** (ctxID and both DIDs), preventing **key reuse / cross-context confusion**
+- `exportCtx` is used as the exporter's HKDF **salt/context**, separating sessions and limiting the blast radius of key disclosure
 
 ## Handshake Flow
 
@@ -107,16 +131,41 @@ Base + PFS add-on:
 
 Therefore, as long as **ephemeral keys are wiped immediately after use**, the session remains secure.
 
-5. Creates the session, binds `kid`, and generates **ackTag**:
+5. Creates the session, binds `kid`, and generates **ackTag** (transcript-binding authentication):
 
 ```
-ackKey = HKDF-Expand(PRK=seed, info="ack-key", L=32)
-ackTag = HMAC-SHA256(ackKey, "hpke-ack|"+ctxID+"|"+nonce+"|"+kid)
+ackKey = HKDF-Expand(PRK=seed, info="SAGE-ack-key-v1", L=32)
+
+// Build transcript hash from all handshake parameters
+transcriptHash = SHA256(
+    0x00 || info ||
+    0x00 || exportCtx ||
+    0x00 || enc ||
+    0x00 || ephC ||
+    0x00 || ephS ||
+    0x00 || initDID ||
+    0x00 || respDID
+)
+
+// Create length-prefixed ackMsg (binary-safe encoding)
+ackMsg = "SAGE-ack-msg|v1|" ||
+         len(ctxID) || ctxID ||
+         len(nonce) || nonce ||
+         len(kid) || kid ||
+         transcriptHash
+
+ackTag = HMAC-SHA256(ackKey, ackMsg)
 ```
+
+**Security properties**:
+- **Length-prefixed encoding**: Prevents length-extension attacks
+- **Transcript binding**: Includes all handshake parameters (info, exportCtx, enc, ephC, ephS, DIDs)
+- **Version tag**: `SAGE-ack-key-v1` and `SAGE-ack-msg|v1|` for protocol upgrades
+- **Constant-time comparison**: `hmac.Equal()` prevents timing attacks
 
 6. Returns **`kid`**, **`ackTagB64`**, and optionally **`ephS`** in the response metadata.
 
-The client mirrors the same steps to compute the seed, validates `ackTag`, and creates/binds the session under `kid`.
+The client mirrors the same steps to compute the seed, validates `ackTag` using constant-time comparison, and creates/binds the session under `kid`.
 
 > **Round trips**: both the Base mode and the PFS add-on complete in **1RTT (Init/Ack)**.
 

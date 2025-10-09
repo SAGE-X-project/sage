@@ -45,7 +45,9 @@ did/
 └── resolver.go             # DID → (신원/HPKE KEM) 공개키 조회
 ```
 
-### Info / Export Context (권장 규격)
+### Info / Export Context (실제 구현)
+
+`InfoBuilder` 인터페이스는 크로스-컨텍스트 공격과 키 재사용을 방지하는 컨텍스트 바인딩 문자열을 생성합니다:
 
 ```go
 type InfoBuilder interface {
@@ -56,15 +58,37 @@ type InfoBuilder interface {
 type DefaultInfoBuilder struct{}
 
 func (DefaultInfoBuilder) BuildInfo(ctxID, initDID, respDID string) []byte {
-    return []byte("sage/hpke v1|ctx=" + ctxID + "|init=" + initDID + "|resp=" + respDID)
+    return []byte(
+        "sage/hpke-info|v1" +
+            "|suite=hpke-base+x25519+hkdf-sha256" +
+            "|combiner=e2e-x25519-hkdf-v1" +
+            "|ctx=" + ctxID +
+            "|init=" + initDID +
+            "|resp=" + respDID,
+    )
 }
 func (DefaultInfoBuilder) BuildExportContext(ctxID string) []byte {
-    return []byte("exporter:" + ctxID)
+    return []byte(
+        "sage/hpke-export|v1" +
+            "|suite=hpke-base+x25519+hkdf-sha256" +
+            "|combiner=e2e-x25519-hkdf-v1" +
+            "|ctx=" + ctxID,
+    )
 }
 ```
 
-- `info`는 **세션 문맥**(ctxID, 양측 DID)을 고정 문자열과 함께 포함해 **키 재사용/교차-문맥**을 방지합니다.
-- `exportCtx`는 exporter의 **HKDF label(salt/ctx)** 로 쓰여, **세션 구분**과 **키 유출 영향 범위를 축소** 합니다.
+**출력 예시**:
+```
+info: "sage/hpke-info|v1|suite=hpke-base+x25519+hkdf-sha256|combiner=e2e-x25519-hkdf-v1|ctx=abc123|init=did:sage:A|resp=did:sage:B"
+exportCtx: "sage/hpke-export|v1|suite=hpke-base+x25519+hkdf-sha256|combiner=e2e-x25519-hkdf-v1|ctx=abc123"
+```
+
+**보안 속성**:
+- `suite`: 특정 암호화 알고리즘에 바인딩 (HPKE Base 모드 + X25519 + HKDF-SHA256)
+- `combiner`: Base 전용 모드와 Base+E2E 모드를 분리 (다운그레이드 공격 방지)
+- `v1`: 프로토콜 업그레이드를 위한 버전 태그
+- `info`는 **세션 문맥**(ctxID, 양측 DID)을 포함하여 **키 재사용/교차-문맥 혼동** 방지
+- `exportCtx`는 exporter의 **HKDF salt/context**로 사용되어 **세션 구분** 및 **키 유출 영향 범위 축소**
 
 ## 핸드셰이크 흐름
 
@@ -111,16 +135,41 @@ Base + PFS add-on:
 
 따라서 **서버와 클라이언트의 임시 세션키는 생성 즉시 사용 후 메모리에서 파기**한다면 안전한 세션 통신을 할 수 있습니다.
 
-5. 세션 생성 및 `kid` 바인딩, **ackTag** 생성:
+5. 세션 생성 및 `kid` 바인딩, **ackTag** 생성 (트랜스크립트 바인딩 인증):
 
 ```
-ackKey = HKDF-Expand(PRK=seed, info="ack-key", L=32)
-ackTag = HMAC-SHA256(ackKey, "hpke-ack|"+ctxID+"|"+nonce+"|"+kid)
+ackKey = HKDF-Expand(PRK=seed, info="SAGE-ack-key-v1", L=32)
+
+// 모든 핸드셰이크 파라미터로 트랜스크립트 해시 생성
+transcriptHash = SHA256(
+    0x00 || info ||
+    0x00 || exportCtx ||
+    0x00 || enc ||
+    0x00 || ephC ||
+    0x00 || ephS ||
+    0x00 || initDID ||
+    0x00 || respDID
+)
+
+// 길이 프리픽스 ackMsg 생성 (바이너리 안전 인코딩)
+ackMsg = "SAGE-ack-msg|v1|" ||
+         len(ctxID) || ctxID ||
+         len(nonce) || nonce ||
+         len(kid) || kid ||
+         transcriptHash
+
+ackTag = HMAC-SHA256(ackKey, ackMsg)
 ```
+
+**보안 속성**:
+- **길이 프리픽스 인코딩**: 길이 확장 공격 방지
+- **트랜스크립트 바인딩**: 모든 핸드셰이크 파라미터 포함 (info, exportCtx, enc, ephC, ephS, DIDs)
+- **버전 태그**: `SAGE-ack-key-v1` 및 `SAGE-ack-msg|v1|`로 프로토콜 업그레이드 대비
+- **상수 시간 비교**: `hmac.Equal()`로 타이밍 공격 방지
 
 6. 응답 메타데이터로 **`kid`**, **`ackTagB64`**, _(선택)_ **`ephS`** 를 반환
 
-클라이언트는 동일 절차로 `seed`를 계산해 `ackTag`를 검증하고, 세션을 생성·`kid`에 바인딩합니다.
+클라이언트는 동일 절차로 `seed`를 계산해 상수 시간 비교로 `ackTag`를 검증하고, 세션을 생성·`kid`에 바인딩합니다.
 
 > **왕복 수**: Base/추가 PFS 모두 **1RTT(Init/Ack)** 로 유지됩니다.
 
