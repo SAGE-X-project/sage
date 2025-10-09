@@ -93,20 +93,19 @@ func (s *SessionStore) Create(ctx context.Context, session *storage.Session) err
 	}
 
 	// Deep copy to avoid external modifications
-	copy := *session
+	sessionCopy := *session
 	if session.SessionKey != nil {
-		copy.SessionKey = make([]byte, len(session.SessionKey))
-		copyBytes := copy(copy.SessionKey, session.SessionKey)
-		_ = copyBytes
+		sessionCopy.SessionKey = make([]byte, len(session.SessionKey))
+		copy(sessionCopy.SessionKey, session.SessionKey)
 	}
 	if session.Metadata != nil {
-		copy.Metadata = make(map[string]interface{})
+		sessionCopy.Metadata = make(map[string]interface{})
 		for k, v := range session.Metadata {
-			copy.Metadata[k] = v
+			sessionCopy.Metadata[k] = v
 		}
 	}
 
-	s.store.sessions[session.ID] = &copy
+	s.store.sessions[session.ID] = &sessionCopy
 	return nil
 }
 
@@ -125,8 +124,8 @@ func (s *SessionStore) Get(ctx context.Context, id string) (*storage.Session, er
 	}
 
 	// Return copy
-	copy := *session
-	return &copy, nil
+	sessionCopy := *session
+	return &sessionCopy, nil
 }
 
 func (s *SessionStore) Update(ctx context.Context, session *storage.Session) error {
@@ -137,8 +136,8 @@ func (s *SessionStore) Update(ctx context.Context, session *storage.Session) err
 		return fmt.Errorf("session not found: %s", session.ID)
 	}
 
-	copy := *session
-	s.store.sessions[session.ID] = &copy
+	sessionCopy := *session
+	s.store.sessions[session.ID] = &sessionCopy
 	return nil
 }
 
@@ -180,8 +179,8 @@ func (s *SessionStore) List(ctx context.Context, clientDID string, limit, offset
 
 	for _, session := range s.store.sessions {
 		if session.ClientDID == clientDID && now.Before(session.ExpiresAt) {
-			copy := *session
-			sessions = append(sessions, &copy)
+			sessionCopy := *session
+			sessions = append(sessions, &sessionCopy)
 		}
 	}
 

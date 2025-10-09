@@ -21,14 +21,13 @@ func (d *DIDStore) Create(ctx context.Context, did *storage.DID) error {
 	}
 
 	// Deep copy
-	copy := *did
+	didCopy := *did
 	if did.PublicKey != nil {
-		copy.PublicKey = make([]byte, len(did.PublicKey))
-		copyBytes := copy(copy.PublicKey, did.PublicKey)
-		_ = copyBytes
+		didCopy.PublicKey = make([]byte, len(did.PublicKey))
+		copy(didCopy.PublicKey, did.PublicKey)
 	}
 
-	d.store.dids[did.DID] = &copy
+	d.store.dids[did.DID] = &didCopy
 	return nil
 }
 
@@ -42,8 +41,8 @@ func (d *DIDStore) Get(ctx context.Context, did string) (*storage.DID, error) {
 	}
 
 	// Return copy
-	copy := *didData
-	return &copy, nil
+	didCopy := *didData
+	return &didCopy, nil
 }
 
 func (d *DIDStore) Update(ctx context.Context, did *storage.DID) error {
@@ -54,8 +53,8 @@ func (d *DIDStore) Update(ctx context.Context, did *storage.DID) error {
 		return fmt.Errorf("DID not found: %s", did.DID)
 	}
 
-	copy := *did
-	d.store.dids[did.DID] = &copy
+	didCopy := *did
+	d.store.dids[did.DID] = &didCopy
 	return nil
 }
 
@@ -79,8 +78,8 @@ func (d *DIDStore) ListByOwner(ctx context.Context, ownerAddress string) ([]*sto
 
 	for _, did := range d.store.dids {
 		if did.OwnerAddress == ownerAddress {
-			copy := *did
-			dids = append(dids, &copy)
+			didCopy := *did
+			dids = append(dids, &didCopy)
 		}
 	}
 
