@@ -117,102 +117,54 @@ go test -race ./...
 
 ## Key Security Features to Audit
 
-### 1. Public Key Validation (Smart Contract)
-```solidity
-// Location: SageRegistryV2.sol::_validatePublicKey()
-✓ 5-step validation process
-✓ Challenge-response ownership proof
-✓ Revocation check
-```
+This section highlights critical security features. For detailed analysis and code examples, see [SECURITY-CONSIDERATIONS.md](./SECURITY-CONSIDERATIONS.md#1-critical-security-features).
 
-**Questions for Auditors**:
-- Can validation be bypassed?
-- Is ownership proof secure?
-- Can revoked keys be re-registered?
+### 1. Public Key Validation (Smart Contract)
+- **Location**: `SageRegistryV2.sol::_validatePublicKey()`
+- 5-step validation process
+- Challenge-response ownership proof
+- Revocation check
 
 ### 2. Session Key Derivation (Go)
-```go
-// Location: session/manager.go::CreateSession()
-✓ HPKE key agreement (X25519)
-✓ HKDF-based key derivation
-✓ Directional keys (client→server, server→client)
-```
-
-**Questions for Auditors**:
-- Is HKDF usage correct?
-- Are ephemeral keys properly deleted?
-- Can session keys collide?
+- **Location**: `session/manager.go::EnsureSessionFromExporterWithRole()`
+- HPKE key agreement (X25519)
+- HKDF-based key derivation
+- Directional keys (client→server, server→client)
 
 ### 3. Replay Attack Prevention (Go)
-```go
-// Location: session/nonce.go
-✓ Nonce cache with TTL
-✓ Timestamp validation
-✓ Thread-safe concurrent access
-```
-
-**Questions for Auditors**:
-- Is nonce generation secure?
-- Can nonce cache overflow?
-- Race conditions possible?
+- **Location**: `session/nonce.go::Seen()`
+- Per-keyid nonce cache with TTL
+- Lock-free sync.Map implementation
+- Background garbage collection
 
 ### 4. Message Signatures (Go)
-```go
-// Location: core/rfc9421/verifier.go
-✓ RFC 9421 compliant
-✓ HMAC-SHA256 signatures
-✓ Constant-time comparison
-```
+- **Location**: `core/rfc9421/verifier.go`
+- RFC 9421 compliant
+- HMAC-SHA256 signatures
+- Constant-time comparison
 
-**Questions for Auditors**:
-- Is canonicalization correct?
-- Timing attacks possible?
-- Can signatures be forged?
+### 5. Vault Encryption (Go)
+- **Location**: `crypto/vault/secure_storage.go`
+- AES-256-GCM encryption
+- PBKDF2 key derivation (100K iterations)
+- Passphrase-based security
 
 ---
 
 ## Critical Attack Scenarios
 
-### Scenario 1: Agent Impersonation
-```
-Attacker Goal: Send messages as legitimate agent
-Required: Agent's private key
-Mitigations:
-✓ DID-based authentication
-✓ On-chain public key verification
-✓ Challenge-response ownership proof
-```
+For detailed attack vectors, mitigations, and threat analysis, see:
+- [SECURITY-CONSIDERATIONS.md](./SECURITY-CONSIDERATIONS.md#2-attack-vectors--mitigations)
+- [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md#5-threat-model)
 
-### Scenario 2: Man-in-the-Middle
-```
-Attacker Goal: Intercept and modify messages
-Required: Network access
-Mitigations:
-✓ TLS for transport
-✓ HPKE for ephemeral keys
-✓ Message signatures (HMAC)
-✓ DID signatures on handshake
-```
-
-### Scenario 3: Replay Attack
-```
-Attacker Goal: Replay captured messages
-Required: Captured message
-Mitigations:
-✓ Nonce cache
-✓ Timestamp validation
-✓ Session expiration
-```
-
-### Scenario 4: Key Compromise
-```
-Attacker Goal: Use stolen private key
-Required: Access to agent's key storage
-Mitigations:
-✓ Key revocation mechanism
-✓ Session invalidation
-✓ New key registration with proof
-```
+**Key Scenarios**:
+1. **Agent Impersonation**: DID-based authentication, on-chain verification
+2. **Man-in-the-Middle**: TLS + HPKE + message signatures
+3. **Replay Attack**: Nonce cache + timestamp validation
+4. **Key Compromise**: Key revocation mechanism
+5. **Session Hijacking**: Opaque Key IDs, session expiration
+6. **Smart Contract Exploits**: Access control, reentrancy guards
+7. **DoS Attacks**: Rate limiting, TTL-based cleanup
 
 ---
 
@@ -225,46 +177,30 @@ ERC8004ValidationRegistry:   92% coverage
 SageVerificationHook:        88% coverage
 ```
 
-**Test Types**:
-- Unit tests (Hardhat)
-- Integration tests
-- Gas optimization tests
-- Sepolia deployment tests
-
 ### Go Backend
 ```
-crypto/:      85% coverage
-session/:     78% coverage
+crypto/:      93.7% coverage (recently increased)
+crypto/keys:  95%+ coverage
+crypto/vault: 92% coverage
+session/:     85% coverage
 handshake/:   82% coverage
 core/rfc9421: 88% coverage
 hpke/:        90% coverage
 ```
 
-**Test Types**:
-- Unit tests
-- Integration tests
-- Random fuzzing
-- Race detection
-- Benchmark tests
+**Note**: See [AUDIT-SCOPE.md](./AUDIT-SCOPE.md#4-testing-coverage) for detailed test types and methodology.
 
 ---
 
-## Known Issues
+## Known Issues and Limitations
 
-### 1. Cross-Platform Library Builds
-**Severity**: Low
-**Impact**: Build-time only
-**Workaround**: Use Docker or native builds
+For complete details, see [SECURITY-CONSIDERATIONS.md](./SECURITY-CONSIDERATIONS.md#3-known-limitations) and [AUDIT-SCOPE.md](./AUDIT-SCOPE.md#5-known-issues--limitations).
 
-### 2. Nonce Cache Memory Growth
-**Severity**: Medium
-**Impact**: Potential DoS
-**Mitigation**: TTL-based cleanup, size limits
-
-### 3. Admin Centralization
-**Severity**: Medium
-**Impact**: Upgrade risk
-**Planned**: Multi-sig, timelock
+**Summary**:
+1. **Cross-Platform Builds**: Low severity, build-time only
+2. **Nonce Cache Memory**: TTL-based cleanup mitigates DoS risk
+3. **Admin Centralization**: Multi-sig and timelock planned
+4. **Clock Synchronization**: ±5 minute tolerance for timestamps
 
 ---
 

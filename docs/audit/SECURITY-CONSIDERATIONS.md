@@ -108,34 +108,49 @@ keyServerToClient := HKDF(
 **Mechanism**:
 ```go
 type NonceCache struct {
-    used      map[string]time.Time  // nonce → timestamp
-    ttl       time.Duration         // How long to keep nonces
-    mutex     sync.RWMutex          // Thread-safe access
+    ttl  time.Duration
+    data sync.Map        // keyid -> *sync.Map (nonce -> expiryUnix)
+    tick *time.Ticker    // Background GC ticker
+    stop chan struct{}   // Stop signal
 }
 
-func (nc *NonceCache) MarkUsed(nonce string) error {
-    nc.mutex.Lock()
-    defer nc.mutex.Unlock()
-
-    // Check if nonce already used
-    if _, exists := nc.used[nonce]; exists {
-        return ErrNonceReused
+// Seen returns true if (keyid, nonce) was seen before (replay attack)
+func (n *NonceCache) Seen(keyid, nonce string) bool {
+    if keyid == "" || nonce == "" {
+        return false
     }
+    exp := time.Now().Add(n.ttl).Unix()
 
-    // Store nonce with timestamp
-    nc.used[nonce] = time.Now()
-    return nil
+    v, _ := n.data.LoadOrStore(keyid, &sync.Map{})
+    m := v.(*sync.Map)
+
+    if old, ok := m.Load(nonce); ok {
+        if prevExp, _ := old.(int64); prevExp >= time.Now().Unix() {
+            return true // Replay detected!
+        }
+    }
+    m.Store(nonce, exp)
+    return false
 }
 
-// Cleanup expired nonces
-func (nc *NonceCache) Cleanup() {
-    nc.mutex.Lock()
-    defer nc.mutex.Unlock()
-
-    cutoff := time.Now().Add(-nc.ttl)
-    for nonce, timestamp := range nc.used {
-        if timestamp.Before(cutoff) {
-            delete(nc.used, nonce)
+// Background GC removes expired nonces
+func (n *NonceCache) gcLoop() {
+    for {
+        select {
+        case <-n.tick.C:
+            now := time.Now().Unix()
+            n.data.Range(func(k, v any) bool {
+                m := v.(*sync.Map)
+                m.Range(func(nk, nv any) bool {
+                    if exp, _ := nv.(int64); exp < now {
+                        m.Delete(nk)
+                    }
+                    return true
+                })
+                return true
+            })
+        case <-n.stop:
+            return
         }
     }
 }
@@ -149,8 +164,9 @@ func (nc *NonceCache) Cleanup() {
 **Potential Issues**:
 - [ ] Is nonce generation cryptographically secure?
 - [ ] Can nonce cache overflow (DoS)?
-- [ ] Is cleanup interval appropriate?
-- [ ] Race conditions in concurrent access?
+- [ ] Is cleanup interval appropriate? (Currently: 1 minute)
+- [ ] Lock-free sync.Map: Are there subtle race conditions?
+- [ ] Per-keyid nonce maps: Memory overhead acceptable?
 
 ### 1.4 Message Signature Verification (RFC 9421)
 
@@ -627,17 +643,33 @@ Future Improvements:
    - No known attacks on signature scheme
    - Private key cannot be derived from public key
 
-2. X25519 is secure
+2. Secp256k1 is secure
+   - Used by Bitcoin and Ethereum
+   - ECDSA signature scheme is sound
+
+3. X25519 is secure
    - ECDH key agreement is secure
    - Shared secret cannot be derived without private key
 
-3. SHA-256 is collision-resistant
+4. RSA-PSS-SHA256 (RS256) is secure
+   - 2048-bit key provides adequate security
+   - PSS padding prevents attacks
+
+5. SHA-256 is collision-resistant
    - No known practical collisions
    - HMAC-SHA256 is unforgeable
 
-4. ChaCha20-Poly1305 is secure
+6. ChaCha20-Poly1305 is secure
    - AEAD provides confidentiality and authenticity
    - No known attacks on algorithm
+
+7. AES-256-GCM is secure
+   - Used for vault encryption
+   - Provides authenticated encryption
+
+8. PBKDF2 with 100K iterations is sufficient
+   - SHA-256 hash function
+   - Resists brute-force attacks on passphrases
 ```
 
 ### 4.2 Network Assumptions

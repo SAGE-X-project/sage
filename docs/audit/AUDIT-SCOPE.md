@@ -103,9 +103,10 @@ function revokeValidator(address validator) external
 
 **Critical Components**:
 1. **Key Management** (`crypto/keys/`)
-   - Ed25519 implementation
-   - Secp256k1 implementation
-   - X25519 HPKE keys
+   - Ed25519 implementation (digital signatures)
+   - Secp256k1 implementation (Ethereum compatibility)
+   - X25519 implementation (ECDH key exchange + HPKE)
+   - RS256 implementation (RSA-PSS-SHA256, 2048-bit)
    - Key generation, storage, rotation
 
 2. **Blockchain Providers** (`crypto/chain/`)
@@ -115,9 +116,10 @@ function revokeValidator(address validator) external
    - Contract interaction
 
 3. **Secure Storage** (`crypto/vault/`)
-   - OS keychain integration
-   - Hardware-backed storage
-   - Key encryption at rest
+   - AES-256-GCM encrypted file storage
+   - PBKDF2 key derivation (100,000 iterations, SHA-256)
+   - Passphrase-based encryption
+   - Secure permissions (0600 for key files)
 
 **Security Focus**:
 - Proper entropy sources for key generation
@@ -317,8 +319,10 @@ SageVerificationHook:        88% coverage
 
 **Go Backend**:
 ```
-crypto/:      85% coverage
-session/:     78% coverage
+crypto/:      93.7% coverage  (recently increased)
+crypto/keys:  95%+ coverage
+crypto/vault: 92% coverage
+session/:     85% coverage
 handshake/:   82% coverage
 core/rfc9421: 88% coverage
 hpke/:        90% coverage
@@ -355,9 +359,10 @@ hpke/:        90% coverage
    - Block confirmations are sufficient
 
 2. **Cryptographic Assumptions**:
-   - Standard algorithms (Ed25519, Secp256k1) are secure
+   - Standard algorithms (Ed25519, Secp256k1, X25519, RS256) are secure
    - Go crypto library is trusted
-   - OS keychain is secure
+   - File-based encrypted storage with strong passphrases is secure
+   - PBKDF2 with 100K iterations provides sufficient key derivation
 
 3. **Operational Assumptions**:
    - Agents act in good faith after registration

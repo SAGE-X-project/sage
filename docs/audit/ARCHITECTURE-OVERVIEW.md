@@ -509,9 +509,12 @@ Verification:
 | Agent Identity         | Ed25519           | 256-bit  | DID signatures           |
 | Ethereum Signing       | Secp256k1         | 256-bit  | Blockchain transactions  |
 | Key Agreement          | X25519            | 256-bit  | HPKE ephemeral keys      |
+| RSA Signing            | RS256             | 2048-bit | RSA-PSS-SHA256           |
 | Session Encryption     | ChaCha20-Poly1305 | 256-bit  | AEAD for messages        |
 | Message Authentication | HMAC-SHA256       | 256-bit  | RFC 9421 signatures      |
 | Key Derivation         | HKDF-SHA256       | 256-bit  | Session key derivation   |
+| Vault Encryption       | AES-256-GCM       | 256-bit  | File-based key storage   |
+| Vault Key Derivation   | PBKDF2-SHA256     | 256-bit  | 100K iterations          |
 
 ### 6.2 Cryptographic Flow
 
@@ -646,7 +649,8 @@ Verification:
    └─ No predictable seeds
 
 2. Storage
-   ├─ Encrypted at rest (OS keychain)
+   ├─ AES-256-GCM encrypted files (crypto/vault)
+   ├─ PBKDF2 passphrase-based encryption (100K iterations)
    ├─ Never in plaintext on disk
    └─ File permissions: 0600
 
