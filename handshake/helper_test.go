@@ -55,13 +55,17 @@ func StopCleanupLoop(s *Server) {
 		}
 		return
 	}
-	s.stopCleanup = nil
 	s.mu.Unlock()
+
+	// Close channel first, then cleanup loop will exit
 	close(stop)
 	if done != nil {
 		<-done
 	}
+
+	// Now safely set to nil after loop has exited
 	s.mu.Lock()
+	s.stopCleanup = nil
 	s.cleanupDone = nil
 	s.mu.Unlock()
 }

@@ -37,6 +37,7 @@ import (
 	"github.com/sage-x-project/sage/crypto/formats"
 	"github.com/sage-x-project/sage/crypto/keys"
 	"github.com/sage-x-project/sage/did"
+	"github.com/sage-x-project/sage/internal/metrics"
 	"github.com/sage-x-project/sage/session"
 	"golang.org/x/sync/singleflight"
 	"google.golang.org/protobuf/proto"
@@ -142,6 +143,8 @@ func NewServer(
 // SendMessage is the single entry point for all phases.
 // It validates input, decodes payload, and triggers event callbacks.
 func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*a2a.SendMessageResponse, error) {
+	start := time.Now()
+
 	if in == nil || in.Request == nil {
 		return nil, errors.New("empty request")
 	}
@@ -151,6 +154,15 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 	if err != nil {
 		return nil, err
 	}
+
+	// Track handshake initiation and duration
+	metrics.HandshakesInitiated.WithLabelValues("server").Inc()
+	defer func() {
+		metrics.HandshakeDuration.WithLabelValues(phase.String()).Observe(
+			time.Since(start).Seconds(),
+		)
+	}()
+
 	payload, err := firstDataPart(msg)
 	if err != nil {
 		return nil, err
@@ -188,57 +200,70 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 
 		// Verify sender signature if metadata is present.
 		if err := s.verifySenderSignature(msg, in.Metadata, senderPub); err != nil {
+			metrics.HandshakesFailed.WithLabelValues("signature_error").Inc()
 			return nil, fmt.Errorf("signature verification failed: %w", err)
 		}
 
 		var inv InvitationMessage
 		if err := fromStructPB(payload, &inv); err != nil {
+			metrics.HandshakesFailed.WithLabelValues("decode_error").Inc()
 			return nil, fmt.Errorf("invitation decode: %w", err)
 		}
 		_ = s.events.OnInvitation(ctx, msg.ContextId, inv)
+		metrics.HandshakesCompleted.WithLabelValues("success").Inc()
 		return s.ack(msg, "invitation_received")
 
 	case Request:
 		cache, ok := s.getPeer(msg.ContextId)
 		if !ok {
+			metrics.HandshakesFailed.WithLabelValues("missing_context").Inc()
 			return nil, errors.New("no cached peer for context; invitation required first")
 		}
 
 		if in.Metadata == nil {
+			metrics.HandshakesFailed.WithLabelValues("missing_metadata").Inc()
 			return nil, errors.New("missing signature metadata")
 		}
 		if err := s.verifySenderSignature(msg, in.Metadata, cache.pub); err != nil {
+			metrics.HandshakesFailed.WithLabelValues("signature_error").Inc()
 			return nil, fmt.Errorf("request signature verification failed: %w", err)
 		}
 
 		plain, err := s.decryptPacket(payload)
 		if err != nil {
+			metrics.HandshakesFailed.WithLabelValues("decrypt_error").Inc()
 			return nil, fmt.Errorf("request decrypt: %w", err)
 		}
 		var req RequestMessage
 		if err := json.Unmarshal(plain, &req); err != nil {
+			metrics.HandshakesFailed.WithLabelValues("decode_error").Inc()
 			return nil, fmt.Errorf("request json: %w", err)
 		}
 
 		if len(req.EphemeralPubKey) == 0 {
+			metrics.HandshakesFailed.WithLabelValues("invalid_key").Inc()
 			return nil, fmt.Errorf("empty peer ephemeral public key")
 		}
 
 		exported, err := s.importer.ImportPublic([]byte(req.EphemeralPubKey), sagecrypto.KeyFormatJWK)
 		peerPub, ok := exported.(*ecdh.PublicKey)
 		if !ok {
+			metrics.HandshakesFailed.WithLabelValues("invalid_key").Inc()
 			return nil, fmt.Errorf("unexpected peer eph key type: %T", peerPub)
 		}
 		peerEphRaw := peerPub.Bytes()
 		if len(peerEphRaw) != 32 {
+			metrics.HandshakesFailed.WithLabelValues("invalid_key").Inc()
 			return nil, fmt.Errorf("invalid peer eph length: %d", len(peerEphRaw))
 		}
 
 		serverEphRaw, serverEphJWK, err := s.events.AskEphemeral(ctx, msg.ContextId)
 		if err != nil {
+			metrics.HandshakesFailed.WithLabelValues("ephemeral_error").Inc()
 			return nil, fmt.Errorf("ask ephemeral: %w", err)
 		}
 		if len(serverEphRaw) != 32 {
+			metrics.HandshakesFailed.WithLabelValues("ephemeral_error").Inc()
 			return nil, fmt.Errorf("invalid server eph length: %d", len(serverEphRaw))
 		}
 
@@ -255,18 +280,22 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 			Ack:             true,
 		}
 
+		metrics.HandshakesCompleted.WithLabelValues("success").Inc()
 		return s.sendResponseToPeer(res, msg.ContextId, cache.pub, cache.did)
 
 	case Complete:
 		cache, ok := s.getPeer(msg.ContextId)
 		if !ok {
+			metrics.HandshakesFailed.WithLabelValues("missing_context").Inc()
 			return nil, errors.New("no cached peer for context; invitation required first")
 		}
 
 		if in.Metadata == nil {
+			metrics.HandshakesFailed.WithLabelValues("missing_metadata").Inc()
 			return nil, errors.New("missing signature metadata")
 		}
 		if err := s.verifySenderSignature(msg, in.Metadata, cache.pub); err != nil {
+			metrics.HandshakesFailed.WithLabelValues("signature_error").Inc()
 			return nil, fmt.Errorf("request signature verification failed: %w", err)
 		}
 
@@ -276,6 +305,7 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		st, ok := s.takePending(msg.ContextId)
 		if !ok {
 			_ = s.events.OnComplete(ctx, msg.ContextId, comp, session.Params{})
+			metrics.HandshakesCompleted.WithLabelValues("success").Inc()
 			return s.ack(msg, "complete_received_no_pending")
 		}
 
@@ -294,9 +324,11 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 					Ack:   true,
 					KeyID: kid,
 				}
+				metrics.HandshakesCompleted.WithLabelValues("success").Inc()
 				return s.sendResponseToPeer(res, msg.ContextId, cache.pub, cache.did)
 			}
 		}
+		metrics.HandshakesCompleted.WithLabelValues("success").Inc()
 		return s.ack(msg, "complete_received_session_ready")
 
 	default:

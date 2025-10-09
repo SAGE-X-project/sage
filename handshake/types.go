@@ -38,6 +38,22 @@ const (
 	Complete
 )
 
+// String implements the Stringer interface for Phase
+func (p Phase) String() string {
+	switch p {
+	case Invitation:
+		return "invitation"
+	case Request:
+		return "request"
+	case Response:
+		return "response"
+	case Complete:
+		return "complete"
+	default:
+		return "unknown"
+	}
+}
+
 // Events for agent (session) layer
 // Events defines callbacks for the agent/application layer.
 // The handshake package does not create or store sessions; it only emits events.
