@@ -4,11 +4,11 @@
 > **최종 업데이트**: 2025-10-09
 > **목적**: SAGE의 HPKE 기반 핸드셰이크를 실제 코드를 통해 이해하기 쉽게 설명
 
-> **⚠️ 중요**: 이 문서는 **HPKE 기반 핸드셰이크** (`/hpke` 패키지)를 설명합니다.
+> **중요**: 이 문서는 **HPKE 기반 핸드셰이크** (`/hpke` 패키지)를 설명합니다.
 > **전통적 4단계 핸드셰이크** (`/handshake` 패키지)와는 다른 프로토콜입니다.
 > 전통적 방식은 [handshake-ko.md](./handshake-ko.md)를 참조하세요.
 
-> **📝 문서 상태**: 이 문서는 현재 업데이트 중입니다. 일부 코드 예제가 `/handshake` 패키지와 `/hpke` 패키지를 혼용하고 있습니다.
+> **문서 상태**: 이 문서는 현재 업데이트 중입니다. 일부 코드 예제가 `/handshake` 패키지와 `/hpke` 패키지를 혼용하고 있습니다.
 > 정확한 HPKE 구현은 [hpke-based-handshake-ko.md](./hpke-based-handshake-ko.md)를 참조하세요.
 
 ## 목차
@@ -36,11 +36,11 @@ HPKE 핸드셰이크를 이해하기 위해 필요한 핵심 용어들을 정리
 
 | 용어 | 크기 | 설명 | 전송 여부 |
 |------|------|------|----------|
-| **enc** | 32 bytes | HPKE에서 생성되는 임시 공개키 (encapsulated key) | ✅ 전송 |
-| **exporter** | 32 bytes | 양쪽 에이전트가 동일하게 계산하는 공유 비밀값 | ❌ 절대 전송 안함 |
-| **ackTag** | 32 bytes | HMAC 기반 키 확인 태그 (상대방이 같은 키를 가졌는지 증명) | ✅ 전송 |
-| **kid** | variable | Key ID - 세션을 식별하는 ID (예: `"session:abc123"`) | ✅ 전송 |
-| **nonce** | variable | 재전송 공격 방지를 위한 일회용 난수 | ✅ 전송 |
+| **enc** | 32 bytes | HPKE에서 생성되는 임시 공개키 (encapsulated key) | Yes (전송) |
+| **exporter** | 32 bytes | 양쪽 에이전트가 동일하게 계산하는 공유 비밀값 | No (절대 전송 안함) |
+| **ackTag** | 32 bytes | HMAC 기반 키 확인 태그 (상대방이 같은 키를 가졌는지 증명) | Yes (전송) |
+| **kid** | variable | Key ID - 세션을 식별하는 ID (예: `"session:abc123"`) | Yes (전송) |
+| **nonce** | variable | 재전송 공격 방지를 위한 일회용 난수 | Yes (전송) |
 
 ### 암호화 알고리즘
 
@@ -83,7 +83,7 @@ HPKE 기반 핸드셰이크는 **2단계 (1-RTT)** 프로토콜입니다:
      ├─ ephS로 E2E DH 완료                    │
      └─ 세션 시작                             │
      │                                        │
-     │ 🔒 암호화된 세션 수립 완료              │
+     │ [암호화된 세션 수립 완료]              │
 ```
 
 각 단계를 실제 코드와 함께 살펴봅니다.
@@ -106,8 +106,8 @@ func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage, did s
 
     // 2. A2A 메시지 구성
     msg := &a2a.Message{
-        TaskId:    "handshake/invitation@v1",  // ✅ Phase 식별자
-        ContextId: invMsg.ContextID,           // ✅ 이 핸드셰이크의 고유 ID
+        TaskId:    "handshake/invitation@v1",  // Phase 식별자
+        ContextId: invMsg.ContextID,           // 이 핸드셰이크의 고유 ID
         Content: []*a2a.Part{{
             Part: &a2a.Part_Data{
                 Data: &a2a.DataPart{Data: payload}
@@ -162,13 +162,13 @@ Agent A                                    Agent B
 
 ```go
 func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string) (kid string, err error) {
-    // 1️⃣ 블록체인에서 Agent B의 공개키 조회
+    // 1. 블록체인에서 Agent B의 공개키 조회
     peerPub, err := c.resolver.ResolvePublicKey(ctx, did.AgentDID(peerDID))
     if err != nil {
         return "", fmt.Errorf("resolve peer public key: %w", err)
     }
 
-    // 2️⃣ HPKE 프로토콜 정보 구성
+    // 2. HPKE 프로토콜 정보 구성
     // info: 프로토콜 바인딩 정보 (양쪽이 동일한 값 사용)
     info := c.info.BuildInfo(ctxID, initDID, peerDID)
     // 실제 값: "sage/hpke v1|ctx=abc123|init=did:sage:A|resp=did:sage:B"
@@ -177,7 +177,7 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
     exportCtx := c.info.BuildExportContext(ctxID)
     // 실제 값: "exporter:abc123"
 
-    // 3️⃣ HPKE 키 합의 수행 (가장 중요한 부분!)
+    // 3. HPKE 키 합의 수행 (가장 중요한 부분!)
     enc, exporter, err := keys.HPKEDeriveSharedSecretToPeer(peerPub, info, exportCtx, 32)
     if err != nil {
         return "", fmt.Errorf("HPKE derive: %w", err)
@@ -185,7 +185,7 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
     // enc: 32바이트 임시 공개키 → Agent B에게 전송
     // exporter: 32바이트 공유 비밀 → 절대 전송하지 않음!
 
-    // 4️⃣ 공유 비밀(exporter)로 세션 생성
+    // 4. 공유 비밀(exporter)로 세션 생성
     _, sid, _, err := c.sessMgr.EnsureSessionFromExporterWithRole(
         exporter,
         "sage/hpke v1", // 세션 ID 생성에 사용되는 레이블
@@ -196,21 +196,21 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
         return "", fmt.Errorf("create session: %w", err)
     }
 
-    // 5️⃣ 재전송 공격 방지를 위한 nonce 생성
+    // 5. 재전송 공격 방지를 위한 nonce 생성
     nonce := uuid.NewString()
 
-    // 6️⃣ Agent B에게 전송할 페이로드 구성
+    // 6. Agent B에게 전송할 페이로드 구성
     payload := map[string]any{
         "initDid":   initDID,                                          // Agent A의 DID
         "respDid":   peerDID,                                          // Agent B의 DID
         "info":      string(info),                                     // 프로토콜 바인딩 정보
         "exportCtx": string(exportCtx),                                // 키 확장 컨텍스트
-        "enc":       base64.RawURLEncoding.EncodeToString(enc),        // ✅ 임시 공개키 (전송)
+        "enc":       base64.RawURLEncoding.EncodeToString(enc),        // 임시 공개키 (전송)
         "nonce":     nonce,                                            // 재전송 공격 방지
         "ts":        time.Now().Format(time.RFC3339Nano),             // 타임스탬프
     }
 
-    // 7️⃣ gRPC로 전송 (코드 생략)
+    // 7. gRPC로 전송 (코드 생략)
     // ...
 }
 ```
@@ -268,7 +268,7 @@ Agent A                                                Agent B
 
 ```go
 func (s *Server) OnHandleTask(ctx context.Context, in *a2a.TaskRequest) (*a2a.TaskResponse, error) {
-    // 1️⃣ Agent A가 보낸 페이로드 파싱
+    // 1. Agent A가 보낸 페이로드 파싱
     st, err := firstDataPart(in.Message)
     if err != nil {
         return nil, err
@@ -283,7 +283,7 @@ func (s *Server) OnHandleTask(ctx context.Context, in *a2a.TaskRequest) (*a2a.Ta
     // pl.ExportCtx: "exporter:..."
     // pl.Nonce: UUID 문자열
 
-    // 2️⃣ Agent A의 서명 검증 (DID로 공개키 조회)
+    // 2. Agent A의 서명 검증 (DID로 공개키 조회)
     senderPub, err := s.resolver.ResolvePublicKey(ctx, did.AgentDID(pl.InitDID))
     if err != nil {
         return nil, fmt.Errorf("resolve sender: %w", err)
@@ -293,17 +293,17 @@ func (s *Server) OnHandleTask(ctx context.Context, in *a2a.TaskRequest) (*a2a.Ta
         return nil, fmt.Errorf("signature verification failed: %w", err)
     }
 
-    // 3️⃣ 재전송 공격 방지 (nonce 중복 체크)
+    // 3. 재전송 공격 방지 (nonce 중복 체크)
     if !s.nonces.checkAndMark(in.Message.ContextId + "|" + pl.Nonce) {
         return nil, errors.New("nonce reused - replay attack detected")
     }
 
-    // 4️⃣ 타임스탬프 검증 (5분 이내 메시지만 허용)
+    // 4. 타임스탬프 검증 (5분 이내 메시지만 허용)
     if time.Since(pl.Timestamp) > 5*time.Minute {
         return nil, errors.New("message too old")
     }
 
-    // 5️⃣ 동일한 exporter 계산 (HPKE 키 합의)
+    // 5. 동일한 exporter 계산 (HPKE 키 합의)
     exporter, err := keys.HPKEDeriveSharedSecretFromPeer(
         s.key,          // Agent B의 개인키
         pl.Enc,         // Agent A가 보낸 임시 공개키
@@ -314,9 +314,9 @@ func (s *Server) OnHandleTask(ctx context.Context, in *a2a.TaskRequest) (*a2a.Ta
     if err != nil {
         return nil, fmt.Errorf("derive shared secret: %w", err)
     }
-    // ✅ Agent A와 동일한 32바이트 exporter 획득!
+    // Agent A와 동일한 32바이트 exporter 획득!
 
-    // 6️⃣ 세션 생성
+    // 6. 세션 생성
     _, sid, _, err := s.sessMgr.EnsureSessionFromExporterWithRole(
         exporter,
         "sage/hpke v1",
@@ -327,15 +327,15 @@ func (s *Server) OnHandleTask(ctx context.Context, in *a2a.TaskRequest) (*a2a.Ta
         return nil, fmt.Errorf("create session: %w", err)
     }
 
-    // 7️⃣ Key ID 생성 및 바인딩
+    // 7. Key ID 생성 및 바인딩
     kid := "session:" + randBase64URL(12)  // 예: "session:xY3kL9mP2qR8"
     s.sessMgr.BindKeyID(kid, sid)
 
-    // 8️⃣ ackTag 생성 (키 확인 증명)
+    // 8. ackTag 생성 (키 확인 증명)
     ackTag := makeAckTag(exporter, in.Message.ContextId, pl.Nonce, kid)
     // ackTag = HMAC(HKDF(exporter, "ack-key"), "hpke-ack|ctxID|nonce|kid")
 
-    // 9️⃣ Agent A에게 응답
+    // 9. Agent A에게 응답
     return &a2a.TaskResponse{
         Metadata: map[string]string{
             "kid":       kid,
@@ -418,7 +418,7 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
         return "", errors.New("no task in response")
     }
 
-    // 1️⃣ kid 및 ackTag 추출
+    // 1. kid 및 ackTag 추출
     kid = task.Metadata["kid"]
     ackTagB64 := task.Metadata["ackTagB64"]
     if kid == "" || ackTagB64 == "" {
@@ -430,17 +430,17 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
         return "", fmt.Errorf("decode ackTag: %w", err)
     }
 
-    // 2️⃣ 동일한 방식으로 ackTag 계산
+    // 2. 동일한 방식으로 ackTag 계산
     expectedAckTag := makeAckTag(exporter, ctxID, nonce, kid)
     // 내부: HMAC(HKDF(exporter, "ack-key"), "hpke-ack|ctxID|nonce|kid")
 
-    // 3️⃣ 시간 일정 비교 (타이밍 공격 방지)
+    // 3. 시간 일정 비교 (타이밍 공격 방지)
     if !hmac.Equal(expectedAckTag, receivedAckTag) {
         return "", fmt.Errorf("ack tag mismatch - Agent B has different key")
     }
-    // ✅ 검증 성공! Agent B도 동일한 exporter를 가짐
+    // 검증 성공! Agent B도 동일한 exporter를 가짐
 
-    // 4️⃣ kid를 세션에 바인딩
+    // 4. kid를 세션에 바인딩
     c.sessMgr.BindKeyID(kid, sid)
     // 이제 kid로 메시지를 암호화/복호화 가능
 
@@ -458,12 +458,12 @@ Agent A                                                Agent B
    │  HMAC(HKDF(exporter, "ack-key"), "...|kid")        │
    │                                                      │
    ├─ hmac.Equal(expected, received)                     │
-   │  ✅ 일치: Agent B도 같은 exporter 보유 확인          │
-   │  ❌ 불일치: 키 합의 실패                              │
+   │  일치: Agent B도 같은 exporter 보유 확인              │
+   │  불일치: 키 합의 실패                                 │
    │                                                      │
    ├─ BindKeyID(kid, sessionID)                          │
    │                                                      │
-   │  🎉 핸드셰이크 완료! 암호화 통신 시작                  │
+   │  [핸드셰이크 완료! 암호화 통신 시작]                   │
 ```
 
 **핵심 포인트**:
@@ -505,9 +505,9 @@ func (a *Creator) OnComplete(ctx context.Context, ctxID string, comp CompleteMes
         return fmt.Errorf("ensure session: %w", err)
     }
 
-    // 3. ✅ 임시 개인키 즉시 삭제 (메모리에서 완전 제거)
+    // 3. 임시 개인키 즉시 삭제 (메모리에서 완전 제거)
     a.mu.Lock()
-    delete(a.ephPrivByCtx, ctxID)  // 🔥 영구 삭제
+    delete(a.ephPrivByCtx, ctxID)  // 영구 삭제
     a.mu.Unlock()
 
     return nil
@@ -524,19 +524,19 @@ func (a *Creator) OnComplete(ctx context.Context, ctxID string, comp CompleteMes
   → 핸드셰이크 완료
   → exporter1 생성
   → 암호화 통신
-  → ephPriv1 삭제 🔥
+  → ephPriv1 삭제
 
 [세션 2]
   ephPriv2, ephPub2 생성  (새로운 키!)
   → 핸드셰이크 완료
   → exporter2 생성
   → 암호화 통신
-  → ephPriv2 삭제 🔥
+  → ephPriv2 삭제
 
-[미래에 장기 개인키 탈취됨 🚨]
-  ❌ ephPriv1, ephPriv2는 이미 삭제되어 복구 불가능
-  ❌ 과거 세션의 exporter1, exporter2 계산 불가능
-  ❌ 과거 통신 내용 복호화 불가능
+[미래에 장기 개인키 탈취됨]
+  X ephPriv1, ephPriv2는 이미 삭제되어 복구 불가능
+  X 과거 세션의 exporter1, exporter2 계산 불가능
+  X 과거 통신 내용 복호화 불가능
 ```
 
 **핵심**:
@@ -627,7 +627,7 @@ Agent A                                    Agent B
    │                                          │
    │ ─── HPKE 핸드셰이크 (4단계) ───────────> │
    │                                          │
-   │ ✅ 동일한 exporter 공유                   │
+   │ [동일한 exporter 공유]                    │
    │                                          │
    ├─ deriveSessionKeys(exporter, true)      ├─ deriveSessionKeys(exporter, false)
    │  sendKey = c2sKey                       │  sendKey = s2cKey
