@@ -558,6 +558,8 @@ cmake-build-*/
 # Integration test files
 *.integration.test.*
 integration.test.*
+test_accounts.json
+.blockchain.pid
 
 # Test reports and coverage
 reports/
