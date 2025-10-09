@@ -813,14 +813,14 @@ func printVersion() {
 
 | Platform | Binary | Static Lib | Shared Lib | Tested |
 |----------|--------|------------|------------|--------|
-| Linux x86_64 | ✅ | ✅ | ✅ | ✅ |
-| Linux ARM64 | ✅ | ✅ | ✅ | ✅ |
-| macOS Intel | ✅ | ✅ | ✅ | ✅ |
-| macOS Apple Silicon | ✅ | ✅ | ✅ | ✅ |
-| Windows x86_64 | ✅ | ✅ | ⚠️ MinGW | ⚠️ |
-| Windows ARM64 | ✅ | ✅ | ❌ | ❌ |
+| Linux x86_64 | Yes | Yes | Yes | Yes |
+| Linux ARM64 | Yes | Yes | Yes | Yes |
+| macOS Intel | Yes | Yes | Yes | Yes |
+| macOS Apple Silicon | Yes | Yes | Yes | Yes |
+| Windows x86_64 | Yes | Yes | Requires MinGW | Partial |
+| Windows ARM64 | Yes | Yes | No | No |
 
-✅ Fully supported | ⚠️ Requires additional tools | ❌ Not supported
+Note: "Requires MinGW" indicates additional tools are needed; "Partial" indicates limited testing coverage.
 
 ---
 
