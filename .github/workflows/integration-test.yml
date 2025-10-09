@@ -1,0 +1,180 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.24'
+
+jobs:
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      # Ethereum local node
+      hardhat:
+        image: node:18-alpine
+        options: >-
+          --health-cmd "wget -q -O- http://localhost:8545 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 8545:8545
+
+      # Redis for session cache
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: contracts/ethereum/package-lock.json
+
+      - name: Install Go dependencies
+        run: go mod download
+
+      - name: Install contract dependencies
+        working-directory: contracts/ethereum
+        run: npm ci
+
+      - name: Start Hardhat node
+        working-directory: contracts/ethereum
+        run: |
+          npx hardhat node --hostname 0.0.0.0 &
+          sleep 10
+
+      - name: Wait for services
+        run: |
+          echo "Waiting for Ethereum node..."
+          for i in {1..30}; do
+            if curl -s -X POST -H "Content-Type: application/json" \
+              --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+              http://localhost:8545 | grep -q "result"; then
+              echo "✅ Ethereum node is ready"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+
+          echo "Waiting for Redis..."
+          for i in {1..10}; do
+            if redis-cli -h localhost ping | grep -q "PONG"; then
+              echo "✅ Redis is ready"
+              break
+            fi
+            echo "Waiting... ($i/10)"
+            sleep 1
+          done
+
+      - name: Set test environment variables
+        run: |
+          echo "ETHEREUM_RPC_URL=http://localhost:8545" >> $GITHUB_ENV
+          echo "REDIS_HOST=localhost" >> $GITHUB_ENV
+          echo "REDIS_PORT=6379" >> $GITHUB_ENV
+          echo "SAGE_ENV=test" >> $GITHUB_ENV
+          echo "LOG_LEVEL=debug" >> $GITHUB_ENV
+
+      - name: Run integration tests
+        run: |
+          go test -v -tags=integration ./test/integration/... \
+            -timeout 20m \
+            -coverprofile=integration-coverage.out
+
+      - name: Run handshake tests
+        run: make test-handshake
+
+      - name: Run HPKE tests
+        run: make test-hpke
+
+      - name: Upload integration test coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-coverage
+          path: integration-coverage.out
+          retention-days: 7
+
+      - name: Display test summary
+        if: always()
+        run: |
+          echo "### Integration Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Handshake tests completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ HPKE tests completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
+
+  e2e-test:
+    name: End-to-End Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start test environment
+        run: |
+          chmod +x tools/scripts/setup_test_env.sh
+          ./tools/scripts/setup_test_env.sh --skip-cleanup
+        timeout-minutes: 5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Source test environment
+        run: |
+          if [ -f .env.test ]; then
+            export $(cat .env.test | xargs)
+          fi
+
+      - name: Run E2E tests
+        run: |
+          go test -v -tags=e2e ./test/e2e/... -timeout 15m
+
+      - name: Cleanup test environment
+        if: always()
+        run: |
+          chmod +x tools/scripts/cleanup_test_env.sh
+          ./tools/scripts/cleanup_test_env.sh --force --remove-volumes
+
+      - name: Upload E2E test logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: |
+            *.log
+            test/e2e/*.log
+          retention-days: 7

@@ -122,6 +122,12 @@ jobs:
             exit 1
           fi
 
+      - name: Run Solidity linting
+        working-directory: contracts/ethereum
+        run: |
+          npm install -g solhint
+          solhint 'contracts/**/*.sol'
+
   # Build verification
   build:
     name: Build

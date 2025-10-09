@@ -39,6 +39,7 @@ SAGE uses GitHub Actions for automated testing, security scanning, Docker builds
 - golangci-lint for Go code
 - go vet for static analysis
 - gofmt for formatting checks
+- solhint for Solidity code
 
 #### Build Verification
 - Matrix build on Linux, macOS, Windows
@@ -53,7 +54,45 @@ go test -race ./...
 go test -coverprofile=coverage.out ./...
 ```
 
-### 2. Docker Workflow (`.github/workflows/docker.yml`)
+### 2. Integration Test Workflow (`.github/workflows/integration-test.yml`)
+
+**Triggers:**
+- Push to `main` or `dev` branches
+- Pull requests to `main` or `dev`
+- Manual workflow dispatch
+
+**Jobs:**
+
+#### Integration Tests
+- Automated test environment setup
+- Services:
+  - Ethereum local node (Hardhat)
+  - Redis for session cache
+- Test execution:
+  - Integration tests with coverage
+  - Handshake tests
+  - HPKE tests
+- Uploads integration coverage reports
+
+#### End-to-End Tests
+- Full Docker-based test environment
+- Uses automated setup scripts:
+  - `tools/scripts/setup_test_env.sh`
+  - `tools/scripts/cleanup_test_env.sh`
+- Tests complete user workflows
+- Uploads logs on failure
+
+**Example:**
+```bash
+# Local equivalent
+./tools/scripts/setup_test_env.sh
+make test-integration
+make test-handshake
+make test-hpke
+./tools/scripts/cleanup_test_env.sh -v
+```
+
+### 3. Docker Workflow (`.github/workflows/docker.yml`)
 
 **Triggers:**
 - Push to `main` or `dev`
@@ -85,7 +124,7 @@ go test -coverprofile=coverage.out ./...
 docker scout quickview
 ```
 
-### 3. Security Workflow (`.github/workflows/security.yml`)
+### 4. Security Workflow (`.github/workflows/security.yml`)
 
 **Triggers:**
 - Push to `main` or `dev`
@@ -138,7 +177,7 @@ slither contracts/ethereum/contracts/
 gitleaks detect
 ```
 
-### 4. Release Workflow (`.github/workflows/release.yml`)
+### 5. Release Workflow (`.github/workflows/release.yml`)
 
 **Triggers:**
 - Version tags (`v*.*.*`)
@@ -176,7 +215,7 @@ curl -LO https://github.com/sage-x-project/sage/releases/download/v1.0.0/sage-v1
 sha256sum -c SHA256SUMS
 ```
 
-### 5. Dependabot (`.github/dependabot.yml`)
+### 6. Dependabot (`.github/dependabot.yml`)
 
 **Automated Dependency Updates:**
 

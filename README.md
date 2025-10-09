@@ -3,7 +3,11 @@
 [![Go Version](https://img.shields.io/badge/Go-1.24%2B-blue.svg)](https://golang.org/dl/)
 [![Solidity Version](https://img.shields.io/badge/Solidity-0.8.19-red.svg)](https://soliditylang.org/)
 [![License](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+
+[![Tests](https://github.com/sage-x-project/sage/workflows/Test/badge.svg)](https://github.com/sage-x-project/sage/actions/workflows/test.yml)
+[![Integration Tests](https://github.com/sage-x-project/sage/workflows/Integration%20Tests/badge.svg)](https://github.com/sage-x-project/sage/actions/workflows/integration-test.yml)
+[![Security](https://github.com/sage-x-project/sage/workflows/Security/badge.svg)](https://github.com/sage-x-project/sage/actions/workflows/security.yml)
+[![codecov](https://codecov.io/gh/sage-x-project/sage/branch/main/graph/badge.svg)](https://codecov.io/gh/sage-x-project/sage)
 
 ## Overview
 
