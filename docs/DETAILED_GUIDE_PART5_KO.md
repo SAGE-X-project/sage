@@ -2920,7 +2920,7 @@ class SageMonitor:
 
         registrations = self.get_recent_registrations()
 
-        print(f"\n📊 Recent Registrations ({len(registrations)}):\n")
+        print(f"\n[Chart] Recent Registrations ({len(registrations)}):\n")
 
         for i, reg in enumerate(registrations, 1):
             print(f"{i}. {reg['did']}")

@@ -1983,7 +1983,7 @@ T=0ms
   ↓
 T=210ms
   │
-  │  [Network] Timeout! ⏱
+  │  [Network] Timeout! [Timer]
   │  (Agent B 응답 없음)
   │
   ↓

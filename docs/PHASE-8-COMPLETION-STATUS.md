@@ -269,7 +269,7 @@ sdk/
 
 ---
 
-## 📊 Summary Statistics
+## [Chart] Summary Statistics
 
 ### Completed (Tier 1)
 - **Tasks:** 6/12 (50%)

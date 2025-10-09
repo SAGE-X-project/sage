@@ -16,7 +16,7 @@ Google의 Agent-to-Agent (A2A) 프로토콜을 확장하여, **사전 신뢰 관
 
 ---
 
-## 🏗 아키텍처 구조
+## [Infrastructure] 아키텍처 구조
 
 ### 1. Agent-to-Agent (A2A) 프로토콜 (기반 기술)
 
