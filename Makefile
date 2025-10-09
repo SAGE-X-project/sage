@@ -398,31 +398,33 @@ test:
 .PHONY: test-crypto
 test-crypto:
 	@echo "Running crypto package tests..."
-	$(GO) test -v ./crypto/...
+	$(GO) test -v ./pkg/agent/crypto/...
 
 # Run Phase 1 complete test suite
 .PHONY: test-phase1
 test-phase1:
 	@echo "Running Phase 1 complete test suite..."
-	@bash ./test_phase1.sh
+	@echo "Note: test_phase1.sh script not found - running standard tests instead"
+	$(GO) test -v ./pkg/agent/...
 
 # Run quick tests for Phase 1 components
 .PHONY: test-quick
 test-quick:
 	@echo "Running quick tests for Phase 1 components..."
-	@bash ./run_tests.sh
+	@echo "Note: run_tests.sh script not found - running standard tests instead"
+	$(GO) test -v ./pkg/agent/crypto/... ./pkg/agent/did/... ./pkg/agent/core/...
 
 # Run enhanced provider tests
 .PHONY: test-provider
 test-provider:
 	@echo "Testing Enhanced Provider..."
-	$(GO) test -v ./crypto/chain/ethereum -count=1
+	$(GO) test -v ./pkg/agent/crypto/chain/ethereum -count=1
 
 # Run vault tests
 .PHONY: test-vault
 test-vault:
 	@echo "Testing SecureVault..."
-	$(GO) test -v ./crypto/vault -count=1
+	$(GO) test -v ./pkg/agent/crypto/vault -count=1
 
 # Run logger tests
 .PHONY: test-logger
@@ -434,7 +436,7 @@ test-logger:
 .PHONY: test-health
 test-health:
 	@echo "Testing Health Checker..."
-	$(GO) test -v ./health -count=1
+	$(GO) test -v ./pkg/health -count=1
 
 # Run integration tests
 .PHONY: test-integration
