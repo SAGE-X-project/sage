@@ -107,14 +107,19 @@ impl SessionManager {
 
     /// Get session by ID
     pub fn get_session(&mut self, session_id: &str) -> Option<&mut Session> {
-        if let Some(session) = self.sessions.get_mut(session_id) {
-            if session.is_expired() {
-                self.sessions.remove(session_id);
-                return None;
-            }
-            return Some(session);
+        // Check if expired first
+        let is_expired = self
+            .sessions
+            .get(session_id)
+            .map(|s| s.is_expired())
+            .unwrap_or(false);
+
+        if is_expired {
+            self.sessions.remove(session_id);
+            return None;
         }
-        None
+
+        self.sessions.get_mut(session_id)
     }
 
     /// Remove session

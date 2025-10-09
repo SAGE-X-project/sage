@@ -3,11 +3,11 @@
 use crate::error::{Error, Result};
 use crate::types::{KeyPair, KeyType};
 use aes_gcm::{
-    aead::{Aead, KeyInit, Payload},
+    aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
 };
 use base64::{engine::general_purpose, Engine as _};
-use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use ed25519_dalek::{Keypair, PublicKey as Ed25519PublicKey, Signature, Verifier};
 use hkdf::Hkdf;
 use rand::rngs::OsRng;
 use sha2::{Digest, Sha256};
@@ -19,19 +19,18 @@ pub struct Crypto;
 impl Crypto {
     /// Generate Ed25519 keypair for signing
     pub fn generate_ed25519_keypair() -> Result<KeyPair> {
-        let signing_key = SigningKey::generate(&mut OsRng);
-        let verifying_key = signing_key.verifying_key();
+        let keypair = Keypair::generate(&mut OsRng);
 
         Ok(KeyPair {
-            private_key: signing_key.to_bytes().to_vec(),
-            public_key: verifying_key.to_bytes().to_vec(),
+            private_key: keypair.secret.to_bytes().to_vec(),
+            public_key: keypair.public.to_bytes().to_vec(),
             key_type: KeyType::Ed25519,
         })
     }
 
     /// Generate X25519 keypair for key exchange
     pub fn generate_x25519_keypair() -> Result<KeyPair> {
-        let secret = StaticSecret::random_from_rng(OsRng);
+        let secret = StaticSecret::new(OsRng);
         let public = PublicKey::from(&secret);
 
         Ok(KeyPair {
@@ -47,8 +46,12 @@ impl Crypto {
             .try_into()
             .map_err(|_| Error::Crypto("Invalid private key length".to_string()))?;
 
-        let signing_key = SigningKey::from_bytes(&key_bytes);
-        let signature = signing_key.sign(message);
+        use ed25519_dalek::{SecretKey, ExpandedSecretKey};
+        let secret = SecretKey::from_bytes(&key_bytes)
+            .map_err(|e| Error::Crypto(format!("Invalid secret key: {}", e)))?;
+        let expanded = ExpandedSecretKey::from(&secret);
+        let public = Ed25519PublicKey::from(&secret);
+        let signature = expanded.sign(message, &public);
 
         Ok(signature.to_bytes().to_vec())
     }
@@ -59,16 +62,16 @@ impl Crypto {
             .try_into()
             .map_err(|_| Error::Crypto("Invalid public key length".to_string()))?;
 
-        let verifying_key = VerifyingKey::from_bytes(&key_bytes)
+        let public = Ed25519PublicKey::from_bytes(&key_bytes)
             .map_err(|e| Error::Crypto(format!("Invalid public key: {}", e)))?;
 
         let sig_bytes: [u8; 64] = signature
             .try_into()
             .map_err(|_| Error::Crypto("Invalid signature length".to_string()))?;
 
-        let signature = Signature::from_bytes(&sig_bytes);
+        let signature = Signature::from(sig_bytes);
 
-        verifying_key
+        public
             .verify(message, &signature)
             .map(|_| true)
             .map_err(|_| Error::SignatureVerification)
@@ -211,7 +214,7 @@ impl HpkeContext {
 /// Setup HPKE as sender (encapsulation)
 pub fn setup_hpke_sender(receiver_public_key: &[u8]) -> Result<(HpkeContext, Vec<u8>)> {
     // Generate ephemeral keypair
-    let ephemeral = EphemeralSecret::random_from_rng(OsRng);
+    let ephemeral = EphemeralSecret::new(OsRng);
     let ephemeral_public = PublicKey::from(&ephemeral);
 
     let receiver_pk_bytes: [u8; 32] = receiver_public_key

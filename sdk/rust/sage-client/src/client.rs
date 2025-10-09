@@ -1,7 +1,6 @@
 //! SAGE client API
 
 use crate::crypto::{setup_hpke_sender, Crypto};
-use crate::did::Did;
 use crate::error::{Error, Result};
 use crate::session::{Session, SessionManager};
 use crate::types::*;
