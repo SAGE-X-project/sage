@@ -1,31 +1,31 @@
 # SAGE vs ERC-8004: 핵심 차이점 분석
 
-## 📌 핵심 발견사항
+## 핵심 발견사항
 
 **ERC-8004는 Agent Management에 집중하고, SAGE는 Message Integrity까지 보장합니다.**
 
 ---
 
-## 🔍 상세 비교
+## 상세 비교
 
 ### 1. 보안 범위 (Security Scope)
 
 | 항목 | ERC-8004 + A2A | SAGE |
 |------|---------------|------|
-| **Agent Identity** | ✅ Identity Registry | ✅ SageRegistryV2 (DID) |
-| **Agent Reputation** | ✅ Reputation Registry | ❌ (향후 구현 예정) |
-| **Agent Validation** | ✅ Validation Registry | ⚠️ Public Key Ownership Proof |
-| **Message Signing** | ⚠️ A2A Layer (선택적) | ✅ **RFC 9421 HTTP Signatures (필수)** |
-| **Message Integrity** | ❌ **애플리케이션 레이어** | ✅ **프로토콜 레벨 보장** |
-| **Real-time Verification** | ⚠️ Push Notification JWT만 | ✅ **모든 메시지** |
-| **Replay Attack Prevention** | ⚠️ Push Notification만 | ✅ **Nonce 관리** |
-| **Message Ordering** | ❌ | ✅ **Sequence 기반** |
+| **Agent Identity** | Yes Identity Registry | Yes SageRegistryV2 (DID) |
+| **Agent Reputation** | Yes Reputation Registry | No (향후 구현 예정) |
+| **Agent Validation** | Yes Validation Registry | Warning Public Key Ownership Proof |
+| **Message Signing** | Warning A2A Layer (선택적) | Yes **RFC 9421 HTTP Signatures (필수)** |
+| **Message Integrity** | No **애플리케이션 레이어** | Yes **프로토콜 레벨 보장** |
+| **Real-time Verification** | Warning Push Notification JWT만 | Yes **모든 메시지** |
+| **Replay Attack Prevention** | Warning Push Notification만 | Yes **Nonce 관리** |
+| **Message Ordering** | No | Yes **Sequence 기반** |
 
 ---
 
-## 🎯 ERC-8004의 범위
+## ERC-8004의 범위
 
-### What ERC-8004 Provides ✅
+### What ERC-8004 Provides Yes
 
 #### 1. Agent-Level Trust (에이전트 신뢰)
 ```
@@ -54,34 +54,34 @@
   - Dispute resolution
 ```
 
-### What ERC-8004 Does NOT Provide ❌
+### What ERC-8004 Does NOT Provide No
 
 #### 1. Real-time Message Integrity (실시간 메시지 무결성)
 ```
 문제: "지금 받은 메시지가 변조되지 않았는가?"
-ERC-8004: ❌ 보장 안함
-A2A Protocol: ⚠️ TLS에 의존 (전송 계층)
+ERC-8004: No 보장 안함
+A2A Protocol: Warning TLS에 의존 (전송 계층)
 ```
 
 #### 2. Message Authentication (메시지 인증)
 ```
 문제: "이 메시지가 정말 해당 에이전트가 보낸 것인가?"
-ERC-8004: ❌ 직접 다루지 않음
-A2A Protocol: ⚠️ HTTP 인증 (Bearer Token, API Key)
+ERC-8004: No 직접 다루지 않음
+A2A Protocol: Warning HTTP 인증 (Bearer Token, API Key)
 ```
 
 #### 3. Message-level Cryptographic Proof (메시지 레벨 암호학적 증명)
 ```
 문제: "메시지 내용을 부인할 수 없는 증거가 있는가?"
-ERC-8004: ❌ DataHash만 (작업 결과에 대해)
-A2A Protocol: ⚠️ Push Notification JWT만
+ERC-8004: No DataHash만 (작업 결과에 대해)
+A2A Protocol: Warning Push Notification JWT만
 ```
 
 ---
 
-## 🔐 SAGE의 추가 보안 계층
+## SAGE의 추가 보안 계층
 
-### What SAGE Provides (Beyond ERC-8004) ✅
+### What SAGE Provides (Beyond ERC-8004) Yes
 
 #### 1. RFC 9421 HTTP Message Signatures (메시지 서명)
 
@@ -99,10 +99,10 @@ Signature: sig1=:K2qGT5srn2OGbOIDzQ6kYT+ruaycnDAAUpKv+ePFfD0RAxn/1BUeZx/Kdrq32Dr
 ```
 
 **핵심 보장:**
-- ✅ **메시지 무결성**: Content-Digest로 본문 변조 방지
-- ✅ **발신자 인증**: KeyID + Signature로 신원 증명
-- ✅ **Replay 방지**: Nonce + Created timestamp
-- ✅ **부인 방지 (Non-repudiation)**: 암호학적 서명으로 부인 불가
+- Yes **메시지 무결성**: Content-Digest로 본문 변조 방지
+- Yes **발신자 인증**: KeyID + Signature로 신원 증명
+- Yes **Replay 방지**: Nonce + Created timestamp
+- Yes **부인 방지 (Non-repudiation)**: 암호학적 서명으로 부인 불가
 
 #### 2. Session-based Encryption (세션 기반 암호화)
 
@@ -121,9 +121,9 @@ Session Established: HKDF로 암호화/서명 키 생성
 ```
 
 **보안 속성:**
-- ✅ **Forward Secrecy**: Ephemeral key 사용
-- ✅ **Mutual Authentication**: 양방향 신원 확인
-- ✅ **End-to-End Encryption**: 메시지 본문 암호화
+- Yes **Forward Secrecy**: Ephemeral key 사용
+- Yes **Mutual Authentication**: 양방향 신원 확인
+- Yes **End-to-End Encryption**: 메시지 본문 암호화
 
 #### 3. Real-time Message Validation (실시간 메시지 검증)
 
@@ -185,30 +185,30 @@ Layer 5: Application Logic
 #### ERC-8004 + A2A 방어
 ```
 1. TLS 연결 (암호화된 전송)
-   ✅ 네트워크 레벨 보호
-   ❌ TLS 종료 지점(Proxy) 이후 취약
+   Yes 네트워크 레벨 보호
+   No TLS 종료 지점(Proxy) 이후 취약
 
 2. Application-level 검증 없음
-   ❌ 메시지 본문 무결성 검증 X
-   ❌ 서명 검증 선택적
+   No 메시지 본문 무결성 검증 X
+   No 서명 검증 선택적
 
-결과: ⚠️ TLS 신뢰 필수, 종단간 보장 부족
+결과: Warning TLS 신뢰 필수, 종단간 보장 부족
 ```
 
 #### SAGE 방어
 ```
 1. TLS 연결 (암호화된 전송)
-   ✅ 네트워크 레벨 보호
+   Yes 네트워크 레벨 보호
 
 2. HTTP Message Signature
-   ✅ Content-Digest로 본문 해시 검증
-   ✅ Signature로 발신자 인증
-   ✅ Proxy를 거쳐도 무결성 보장
+   Yes Content-Digest로 본문 해시 검증
+   Yes Signature로 발신자 인증
+   Yes Proxy를 거쳐도 무결성 보장
 
 3. Session Encryption
-   ✅ 본문 자체도 세션키로 재암호화
+   Yes 본문 자체도 세션키로 재암호화
 
-결과: ✅ 종단간(End-to-End) 무결성 보장
+결과: Yes 종단간(End-to-End) 무결성 보장
 ```
 
 ---
@@ -220,29 +220,29 @@ Layer 5: Application Logic
 #### ERC-8004 + A2A 방어
 ```
 1. Push Notification만 JWT + Nonce 검증
-   ✅ 푸시 알림은 보호됨
-   ❌ 일반 메시지는 보호 안됨
+   Yes 푸시 알림은 보호됨
+   No 일반 메시지는 보호 안됨
 
 2. 애플리케이션이 직접 구현 필요
-   ⚠️ 개발자 책임
+   Warning 개발자 책임
 
-결과: ⚠️ 표준에서 보장하지 않음
+결과: Warning 표준에서 보장하지 않음
 ```
 
 #### SAGE 방어
 ```
 1. 모든 메시지에 Nonce 필수
-   ✅ Signature-Input의 nonce 파라미터
+   Yes Signature-Input의 nonce 파라미터
 
 2. Nonce Cache로 중복 검사
-   ✅ core/message/nonce 패키지
-   ✅ 자동으로 만료된 Nonce 정리
+   Yes core/message/nonce 패키지
+   Yes 자동으로 만료된 Nonce 정리
 
 3. Timestamp 검증
-   ✅ Clock skew 허용 범위 설정
-   ✅ 오래된 메시지 거부
+   Yes Clock skew 허용 범위 설정
+   Yes 오래된 메시지 거부
 
-결과: ✅ 프로토콜 레벨에서 자동 방어
+결과: Yes 프로토콜 레벨에서 자동 방어
 ```
 
 ---
@@ -254,33 +254,33 @@ Layer 5: Application Logic
 #### ERC-8004 + A2A 방어
 ```
 1. 메시지 순서 보장 없음
-   ❌ A2A Protocol에 sequence 개념 없음
+   No A2A Protocol에 sequence 개념 없음
 
 2. Task ID로만 연관성 추적
-   ⚠️ 작업 단위 추적만 가능
-   ❌ 메시지 순서 보장 X
+   Warning 작업 단위 추적만 가능
+   No 메시지 순서 보장 X
 
-결과: ❌ 순서 보장 안됨
+결과: No 순서 보장 안됨
 ```
 
 #### SAGE 방어
 ```
 1. Sequence Number 기반 순서 관리
-   ✅ core/message/order 패키지
+   Yes core/message/order 패키지
 
 2. Timestamp와 Sequence 조합 검증
-   ✅ 단조증가(Monotonic) 검증
-   ✅ 시간 역행 감지
+   Yes 단조증가(Monotonic) 검증
+   Yes 시간 역행 감지
 
 3. Session 별 격리
-   ✅ 세션마다 독립적인 Sequence
+   Yes 세션마다 독립적인 Sequence
 
-결과: ✅ 엄격한 메시지 순서 보장
+결과: Yes 엄격한 메시지 순서 보장
 ```
 
 ---
 
-## 🎭 역할 구분
+## 역할 구분
 
 ### ERC-8004의 역할: "Agent Marketplace & Reputation"
 
@@ -307,7 +307,7 @@ Layer 5: Application Logic
 
 ---
 
-## 🔗 상호 보완성
+## 상호 보완성
 
 ERC-8004와 SAGE는 **경쟁 관계가 아니라 상호 보완 관계**입니다:
 
@@ -360,7 +360,7 @@ ERC-8004와 SAGE는 **경쟁 관계가 아니라 상호 보완 관계**입니다
 
 ---
 
-## 💡 완전한 보안 스택 구축
+## 완전한 보안 스택 구축
 
 ### SAGE + ERC-8004 통합 시나리오
 
@@ -416,7 +416,7 @@ await reputationRegistry.submitFeedback(
 
 ---
 
-## 📈 SAGE의 차별화 가치
+## SAGE의 차별화 가치
 
 ### 1. 즉시 사용 가능한 보안 (Out-of-the-box Security)
 
@@ -424,9 +424,9 @@ await reputationRegistry.submitFeedback(
 ```javascript
 // 개발자가 직접 구현 필요
 app.post('/message', async (req, res) => {
-  // ⚠️ 메시지 검증 로직을 직접 작성해야 함
-  // ⚠️ Nonce 관리를 직접 구현해야 함
-  // ⚠️ Signature 검증을 직접 구현해야 함
+  // Warning 메시지 검증 로직을 직접 작성해야 함
+  // Warning Nonce 관리를 직접 구현해야 함
+  // Warning Signature 검증을 직접 구현해야 함
 
   // ... 비즈니스 로직
 });
@@ -436,10 +436,10 @@ app.post('/message', async (req, res) => {
 ```javascript
 // 프레임워크가 자동으로 처리
 app.post('/message', sageMiddleware.verify, async (req, res) => {
-  // ✅ 이미 검증된 메시지만 도달
-  // ✅ Signature 자동 검증 완료
-  // ✅ Nonce 자동 검사 완료
-  // ✅ Sequence 자동 확인 완료
+  // Yes 이미 검증된 메시지만 도달
+  // Yes Signature 자동 검증 완료
+  // Yes Nonce 자동 검사 완료
+  // Yes Sequence 자동 확인 완료
 
   // ... 비즈니스 로직만 작성
 });
@@ -448,14 +448,14 @@ app.post('/message', sageMiddleware.verify, async (req, res) => {
 ### 2. 표준 준수 (Standards Compliance)
 
 **ERC-8004:**
-- ✅ Ethereum ERC 표준
-- ⚠️ 메시지 보안은 별도 표준 필요
+- Yes Ethereum ERC 표준
+- Warning 메시지 보안은 별도 표준 필요
 
 **SAGE:**
-- ✅ RFC 9421 (HTTP Message Signatures) - **IETF 표준**
-- ✅ HPKE (RFC 9180) - 하이브리드 공개키 암호화
-- ✅ HKDF (RFC 5869) - 키 도출 함수
-- ✅ Ed25519 (RFC 8032) - 디지털 서명
+- Yes RFC 9421 (HTTP Message Signatures) - **IETF 표준**
+- Yes HPKE (RFC 9180) - 하이브리드 공개키 암호화
+- Yes HKDF (RFC 5869) - 키 도출 함수
+- Yes Ed25519 (RFC 8032) - 디지털 서명
 
 ### 3. 감사 가능성 (Auditability)
 
@@ -478,7 +478,7 @@ app.post('/message', sageMiddleware.verify, async (req, res) => {
 
 ---
 
-## 🎯 결론
+## 결론
 
 ### 핵심 차이점 요약
 
@@ -498,10 +498,10 @@ ERC-8004: "누구와 통신할 것인가?" (WHO)
 SAGE: "어떻게 안전하게 통신할 것인가?" (HOW)
 
 함께 사용 시:
-✅ 신뢰할 수 있는 에이전트 선택 (ERC-8004)
-✅ 안전한 실시간 통신 (SAGE)
-✅ 작업 결과 검증 (ERC-8004)
-✅ 완전한 감사 추적 (Both)
+Yes 신뢰할 수 있는 에이전트 선택 (ERC-8004)
+Yes 안전한 실시간 통신 (SAGE)
+Yes 작업 결과 검증 (ERC-8004)
+Yes 완전한 감사 추적 (Both)
 ```
 
 ### SAGE의 독자적 가치
@@ -514,10 +514,10 @@ SAGE: "어떻게 안전하게 통신할 것인가?" (HOW)
 ### 권장 사항
 
 **SAGE 프로젝트는:**
-1. ✅ ERC-8004 Identity Registry 구현 (이미 완료)
-2. ✅ ERC-8004 Reputation Registry 추가 (향후)
-3. ✅ **메시지 보안을 핵심 차별화 요소로 강조**
-4. ✅ "ERC-8004 호환 + 메시지 무결성 보장" 마케팅
+1. Yes ERC-8004 Identity Registry 구현 (이미 완료)
+2. Yes ERC-8004 Reputation Registry 추가 (향후)
+3. Yes **메시지 보안을 핵심 차별화 요소로 강조**
+4. Yes "ERC-8004 호환 + 메시지 무결성 보장" 마케팅
 
 **왜냐하면:**
 - ERC-8004는 Agent Management에 집중
