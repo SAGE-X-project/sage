@@ -1,0 +1,336 @@
+name: Load Tests
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'pkg/**'
+      - 'cmd/**'
+      - 'internal/**'
+      - 'loadtest/**'
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM UTC
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: 'Test scenario to run'
+        required: true
+        default: 'baseline'
+        type: choice
+        options:
+          - baseline
+          - stress
+          - spike
+          - all
+
+jobs:
+  baseline:
+    name: Baseline Test
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name != 'workflow_dispatch' ||
+      github.event.inputs.scenario == 'baseline' ||
+      github.event.inputs.scenario == 'all'
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: sage_test
+          POSTGRES_USER: sage
+          POSTGRES_PASSWORD: sage
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build SAGE server
+        run: |
+          make build
+          ls -la build/bin/
+
+      - name: Run database migrations
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: sage
+          DB_PASSWORD: sage
+          DB_NAME: sage_test
+        run: |
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          migrate -path ./migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
+
+      - name: Start SAGE server
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: sage
+          DB_PASSWORD: sage
+          DB_NAME: sage_test
+          DB_SSLMODE: disable
+          SAGE_PORT: 8080
+        run: |
+          go run tests/session/handshake/server/main.go &
+          echo $! > server.pid
+
+          # Wait for server to be ready
+          echo "Waiting for server to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/debug/health | grep -q "healthy"; then
+              echo "Server is ready"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run baseline load test
+        env:
+          SAGE_BASE_URL: http://localhost:8080
+          SAGE_ENV: ci
+        run: |
+          k6 run \
+            --out json=loadtest/reports/baseline-results.json \
+            --summary-export=loadtest/reports/baseline-summary.json \
+            loadtest/scenarios/baseline.js
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-test-results
+          path: loadtest/reports/baseline-*.json
+          retention-days: 30
+
+      - name: Check test status
+        if: always()
+        run: |
+          # Parse summary and check if thresholds passed
+          if jq -e '.metrics | to_entries | map(select(.value.thresholds)) | map(.value.thresholds | to_entries | map(.value.ok)) | flatten | all' loadtest/reports/baseline-summary.json > /dev/null 2>&1; then
+            echo "✅ Baseline test passed"
+            exit 0
+          else
+            echo "❌ Baseline test failed"
+            exit 1
+          fi
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+          fi
+
+  stress:
+    name: Stress Test
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.scenario == 'stress' || github.event.inputs.scenario == 'all')
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: sage_test
+          POSTGRES_USER: sage
+          POSTGRES_PASSWORD: sage
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build and start server
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: sage
+          DB_PASSWORD: sage
+          DB_NAME: sage_test
+          DB_SSLMODE: disable
+        run: |
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          migrate -path ./migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
+          go run tests/session/handshake/server/main.go &
+          echo $! > server.pid
+
+          # Wait for server
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/debug/health | grep -q "healthy"; then
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run stress test
+        env:
+          SAGE_BASE_URL: http://localhost:8080
+          SAGE_ENV: ci
+        run: |
+          k6 run \
+            --out json=loadtest/reports/stress-results.json \
+            --summary-export=loadtest/reports/stress-summary.json \
+            loadtest/scenarios/stress.js
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-test-results
+          path: loadtest/reports/stress-*.json
+          retention-days: 30
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+          fi
+
+  spike:
+    name: Spike Test
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.scenario == 'spike' || github.event.inputs.scenario == 'all')
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_DB: sage_test
+          POSTGRES_USER: sage
+          POSTGRES_PASSWORD: sage
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Setup and run test
+        env:
+          DB_HOST: localhost
+          SAGE_BASE_URL: http://localhost:8080
+          SAGE_ENV: ci
+        run: |
+          go mod download
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          migrate -path ./migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
+          go run tests/session/handshake/server/main.go &
+          echo $! > server.pid
+
+          for i in {1..30}; do
+            if curl -s http://localhost:8080/debug/health | grep -q "healthy"; then
+              break
+            fi
+            sleep 2
+          done
+
+      - name: Setup k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Run spike test
+        env:
+          SAGE_BASE_URL: http://localhost:8080
+          SAGE_ENV: ci
+        run: |
+          k6 run \
+            --out json=loadtest/reports/spike-results.json \
+            --summary-export=loadtest/reports/spike-summary.json \
+            loadtest/scenarios/spike.js
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spike-test-results
+          path: loadtest/reports/spike-*.json
+          retention-days: 30
+
+      - name: Stop server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+          fi
+
+  notify:
+    name: Notify Results
+    runs-on: ubuntu-latest
+    needs: [baseline, stress, spike]
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          echo "Load test workflow completed"
+          echo "Baseline: ${{ needs.baseline.result }}"
+          echo "Stress: ${{ needs.stress.result }}"
+          echo "Spike: ${{ needs.spike.result }}"
