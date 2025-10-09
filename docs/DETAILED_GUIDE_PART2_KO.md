@@ -130,9 +130,9 @@
    데이터 → ChaCha20-Poly1305 → 암호문
 
 결과:
-✅ 안전한 키 교환 (비대칭키)
-✅ 빠른 암호화 (대칭키)
-✅ 최고의 보안 + 성능
+Yes 안전한 키 교환 (비대칭키)
+Yes 빠른 암호화 (대칭키)
+Yes 최고의 보안 + 성능
 ```
 
 ### 1.2 디지털 서명 (Digital Signature)
@@ -164,8 +164,8 @@
 
 3. 비교
    해시값' == 해시값"?
-   ✅ 같으면: 유효한 서명
-   ❌ 다르면: 변조되었거나 위조된 서명
+   Yes 같으면: 유효한 서명
+   No 다르면: 변조되었거나 위조된 서명
 ```
 
 **실생활 비유**:
@@ -295,7 +295,7 @@ shared, err := keyPair.DeriveSharedSecret(peerPublicKey)
 2. ⚡ 검증: 0.03ms
 3. 🔒 높은 보안성
 4. 🐛 구현 버그에 강함 (트위스트 공격 방지)
-5. 🎯 사이드 채널 공격 저항성
+5.  사이드 채널 공격 저항성
 
 ### 2.2 수학적 원리 (간단히)
 
@@ -442,9 +442,9 @@ func main() {
     err := agentB.Verify(message, signature)
 
     if err == nil {
-        fmt.Println("✅ 서명 유효! Agent A가 보낸 것이 확실함")
+        fmt.Println("Yes 서명 유효! Agent A가 보낸 것이 확실함")
     } else {
-        fmt.Println("❌ 서명 무효! 변조되었거나 위조됨")
+        fmt.Println("No 서명 무효! 변조되었거나 위조됨")
     }
 
     // 5. 변조 테스트
@@ -459,7 +459,7 @@ func main() {
 ```
 Agent A ID: a1b2c3d4e5f6g7h8
 서명: 8f3a2b1c9d4e5f6a...
-✅ 서명 유효! Agent A가 보낸 것이 확실함
+Yes 서명 유효! Agent A가 보낸 것이 확실함
 변조된 메시지 검증: invalid signature
 ```
 
@@ -1063,7 +1063,7 @@ AEAD (Authenticated Encryption with Associated Data):
 1. Base Mode (0)
    - 단방향: 송신자 → 수신자
    - 수신자 인증 없음
-   - SAGE 사용 ✅
+   - SAGE 사용 Yes
 
 2. PSK Mode (1)
    - Pre-Shared Key 사용
@@ -1829,10 +1829,10 @@ Level 4: 버전
 "s2c|sign|v1"
 
 장점:
-✅ 각 키가 완전히 독립적
-✅ 버전 업그레이드 용이
-✅ 방향 혼동 방지
-✅ 크로스 프로토콜 공격 방지
+Yes 각 키가 완전히 독립적
+Yes 버전 업그레이드 용이
+Yes 방향 혼동 방지
+Yes 크로스 프로토콜 공격 방지
 ```
 
 ---
@@ -2124,7 +2124,7 @@ func main() {
     // 4. 검증
     err := kp.Verify(message, signature)
     if err == nil {
-        fmt.Println("✅ Signature valid!")
+        fmt.Println("Yes Signature valid!")
     }
 }
 ```
@@ -2178,7 +2178,7 @@ func main() {
 
     fmt.Printf("   Agent A shared: %x...\n", sharedA[:8])
     fmt.Printf("   Agent B shared: %x...\n", sharedB[:8])
-    fmt.Printf("   ✅ 같은 공유 비밀!\n")
+    fmt.Printf("   Yes 같은 공유 비밀!\n")
 
     // 5. 세션 생성
     fmt.Println("\n4. 세션 생성")
@@ -2228,7 +2228,7 @@ func main() {
     fmt.Println("\n6. Agent B: 복호화")
     decrypted, _ := sessB.DecryptInbound(encrypted)
     fmt.Printf("   복호문: %s\n", decrypted)
-    fmt.Printf("   ✅ 복호화 성공!\n")
+    fmt.Printf("   Yes 복호화 성공!\n")
 
     // 8. Agent B → A: 응답
     fmt.Println("\n7. Agent B → A: 응답")
@@ -2242,14 +2242,14 @@ func main() {
     encrypted[50] ^= 0xFF  // 한 바이트 변조
     _, err := sessB.DecryptInbound(encrypted)
     if err != nil {
-        fmt.Printf("   ❌ 변조 감지: %v\n", err)
+        fmt.Printf("   No 변조 감지: %v\n", err)
     }
 
     // 10. 세션 정리
     fmt.Println("\n9. 세션 정리")
     sessA.Close()
     sessB.Close()
-    fmt.Println("   ✅ 모든 키 안전하게 삭제됨")
+    fmt.Println("   Yes 모든 키 안전하게 삭제됨")
 }
 ```
 
@@ -2267,7 +2267,7 @@ func main() {
 3. 공유 비밀 계산
    Agent A shared: ef12cd34ab56...
    Agent B shared: ef12cd34ab56...
-   ✅ 같은 공유 비밀!
+   Yes 같은 공유 비밀!
 
 4. 세션 생성
    Session ID: xK9mP2qR7sT3uV
@@ -2279,16 +2279,16 @@ func main() {
 
 6. Agent B: 복호화
    복호문: Transfer 100 tokens to Agent B
-   ✅ 복호화 성공!
+   Yes 복호화 성공!
 
 7. Agent B → A: 응답
    응답: Acknowledged: 100 tokens received
 
 8. 변조 테스트
-   ❌ 변조 감지: decryption/authentication failed
+   No 변조 감지: decryption/authentication failed
 
 9. 세션 정리
-   ✅ 모든 키 안전하게 삭제됨
+   Yes 모든 키 안전하게 삭제됨
 ```
 
 ### 9.2 성능 테스트

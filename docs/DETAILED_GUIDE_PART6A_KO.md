@@ -608,7 +608,7 @@ Go 클라이언트 측
 │  CLI 출력                                                │
 ├─────────────────────────────────────────────────────────┤
 │                                                         │
-│  ✅ Agent registered successfully!                      │
+│  Yes Agent registered successfully!                      │
 │  DID: did:sage:kaia:5HueCGU8rMjxEXxiPuD5BDku           │
 │  Transaction: 0x7f8a9b...                               │
 │  Block: 12,345,678                                      │
@@ -1638,7 +1638,7 @@ class SecureAIAgent:
                 msg.sender_did,
                 msg.plaintext
             )
-            print(f"✅ Response sent: {response['message_id']}")
+            print(f"Yes Response sent: {response['message_id']}")
 
         # 세션 이벤트 핸들러
         @self.sage.on_session_created
@@ -1956,7 +1956,7 @@ T=422ms (+30ms - 네트워크)
   ↓
 T=423ms
   │
-  │  ✅ 완료!
+  │  Yes 완료!
   │  Total: 423ms (첫 번째 메시지)
   │
   ↓
@@ -2009,7 +2009,7 @@ T=1240ms (+30ms)
   ↓
 T=1270ms
   │
-  │  ✅ 복구 완료
+  │  Yes 복구 완료
   │  Total delay: 1270ms (원래 210ms + retry 1060ms)
   │
 ```

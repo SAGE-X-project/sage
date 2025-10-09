@@ -69,10 +69,10 @@ AI Agent A와 Agent B가 처음 만났을 때:
 │   → KeyID 발급 및 바인딩                            │
 └─────────────────────────────────────────────────────┘
 결과:
-✅ 상호 인증 완료 (Mutual Authentication)
-✅ 안전한 세션 키 공유 (Secure Key Exchange)
-✅ Forward Secrecy 보장
-✅ 재생 공격 방지 (Nonce)
+Yes 상호 인증 완료 (Mutual Authentication)
+Yes 안전한 세션 키 공유 (Secure Key Exchange)
+Yes Forward Secrecy 보장
+Yes 재생 공격 방지 (Nonce)
 ```
 
 ### 1.2 TLS 1.3과 무엇이 다른가요?
@@ -127,8 +127,8 @@ SAGE 핸드셰이크 (HPKE 기반):
 | 키 합의 | ECDHE | X25519 (HPKE Base) |
 | 세션 암호화 | AES-GCM | ChaCha20-Poly1305 (session.Manager) |
 | 메시지 서명 | Finished MAC | RFC 9421 + HMAC-SHA256 |
-| Forward Secrecy | ✅ | ✅ |
-| 블록체인 통합 | ❌ | ✅ DID Resolver 기반 |
+| Forward Secrecy | Yes | Yes |
+| 블록체인 통합 | No | Yes DID Resolver 기반 |
 
 ### 1.3 A2A 프로토콜과의 연결
 
@@ -514,10 +514,10 @@ initiator=false (Server):
     in:  c2sEnc, c2sSign
 
 장점:
-✅ 방향별 독립 키 (크로스 공격 방지)
-✅ 암호화/서명 분리 (도메인 분리)
-✅ 버전 관리 가능 (v1, v2...)
-✅ 확장 용이 (새 키 타입 추가 가능)
+Yes 방향별 독립 키 (크로스 공격 방지)
+Yes 암호화/서명 분리 (도메인 분리)
+Yes 버전 관리 가능 (v1, v2...)
+Yes 확장 용이 (새 키 타입 추가 가능)
 ```
 
 ### 5.5 AEAD 초기화

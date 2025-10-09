@@ -17,7 +17,7 @@
 #### 문제 1: "Key file not found"
 
 ```
-❌ Error: failed to load key: open ./sage/keys/abc123.jwk: no such file or directory
+No Error: failed to load key: open ./sage/keys/abc123.jwk: no such file or directory
 ```
 
 **원인:**
@@ -43,7 +43,7 @@ sage-crypto list --dir ./sage/keys
 #### 문제 2: "Invalid key format"
 
 ```
-❌ Error: failed to parse JWK: invalid character 'x' looking for beginning of value
+No Error: failed to parse JWK: invalid character 'x' looking for beginning of value
 ```
 
 **원인:**
@@ -70,13 +70,13 @@ cp ./sage/keys/backup/abc123.jwk ./sage/keys/
 # 3. 백업이 없다면 새 키 생성
 sage-crypto generate --type ed25519 --name new-agent --output ./sage/keys
 
-# ⚠️ 주의: 새 키를 생성하면 블록체인에 다시 등록해야 함
+# Warning 주의: 새 키를 생성하면 블록체인에 다시 등록해야 함
 ```
 
 #### 문제 3: "Permission denied"
 
 ```
-❌ Error: open ./sage/keys/abc123.jwk: permission denied
+No Error: open ./sage/keys/abc123.jwk: permission denied
 ```
 
 **원인:**
@@ -100,7 +100,7 @@ chmod 700 ./sage/keys
 #### 문제 4: "Connection timeout"
 
 ```
-❌ Error: Post "https://public-en-kairos.node.kaia.io": context deadline exceeded
+No Error: Post "https://public-en-kairos.node.kaia.io": context deadline exceeded
 ```
 
 **원인:**
@@ -138,7 +138,7 @@ client, err := ethclient.DialContext(
 #### 문제 5: "Insufficient funds for gas"
 
 ```
-❌ Error: insufficient funds for gas * price + value
+No Error: insufficient funds for gas * price + value
 ```
 
 **원인:**
@@ -164,7 +164,7 @@ sage-crypto address --key ./sage/keys/blockchain.jwk
 #### 문제 6: "Transaction underpriced"
 
 ```
-❌ Error: replacement transaction underpriced
+No Error: replacement transaction underpriced
 ```
 
 **원인:**
@@ -199,7 +199,7 @@ auth.GasFeeCap = new(big.Int).Mul(gasPrice, big.NewInt(2))
 #### 문제 7: "DID not found"
 
 ```
-❌ Error: DID not found: did:sage:kaia:5HueCGU8rMjxEXxiPuD5BDku
+No Error: DID not found: did:sage:kaia:5HueCGU8rMjxEXxiPuD5BDku
 ```
 
 **원인:**
@@ -234,7 +234,7 @@ sage-did register \
 #### 문제 8: "Cache poisoning suspected"
 
 ```
-⚠️ Warning: DID resolution returned different results
+Warning Warning: DID resolution returned different results
 ```
 
 **원인:**
@@ -264,7 +264,7 @@ config := &did.ResolverConfig{
 #### 문제 9: "Handshake timeout"
 
 ```
-❌ Error: handshake timeout after 30s
+No Error: handshake timeout after 30s
 ```
 
 **원인:**
@@ -307,7 +307,7 @@ if err != nil {
 #### 문제 10: "Invalid signature"
 
 ```
-❌ Error: signature verification failed
+No Error: signature verification failed
 ```
 
 **원인:**
@@ -340,7 +340,7 @@ log.Printf("Signature length: %d", len(signature))
 #### 문제 11: "Nonce reuse detected"
 
 ```
-❌ Error: nonce has already been used
+No Error: nonce has already been used
 ```
 
 **원인:**
@@ -369,7 +369,7 @@ nonceCache.Add(nonce, 5*time.Minute)  // 5분 동안 유효
 #### 문제 12: "Session expired"
 
 ```
-❌ Error: session not found or expired
+No Error: session not found or expired
 ```
 
 **원인:**
@@ -407,7 +407,7 @@ if err != nil {
 #### 문제 13: "Sequence number out of order"
 
 ```
-❌ Error: received sequence number 5, expected 3
+No Error: received sequence number 5, expected 3
 ```
 
 **원인:**
@@ -771,13 +771,13 @@ func processMessage(msg []byte) error {
 #### 메모리 누수 방지
 
 ```go
-// ❌ 메모리 누수 예시
+// No 메모리 누수 예시
 type SessionManager struct {
     sessions map[string]*SecureSession
     // cleanup 루틴이 없으면 세션이 계속 쌓임!
 }
 
-// ✅ 올바른 구현
+// Yes 올바른 구현
 type SessionManager struct {
     sessions map[string]*SecureSession
     mu       sync.RWMutex
@@ -812,7 +812,7 @@ func (m *SessionManager) cleanupExpiredSessions() {
 
 ### 3.1 키 관리 Best Practices
 
-#### ✅ DO: 하드웨어 키 저장소 사용
+#### Yes DO: 하드웨어 키 저장소 사용
 
 ```go
 // macOS Keychain 사용
@@ -845,19 +845,19 @@ func loadKeyFromKeychain(keyID string) ([]byte, error) {
 }
 ```
 
-#### ❌ DON'T: 키를 평문으로 저장
+#### No DON'T: 키를 평문으로 저장
 
 ```go
-// ❌ 절대 하지 마세요!
+// No 절대 하지 마세요!
 ioutil.WriteFile("private_key.txt", privateKey, 0644)
 
-// ❌ 환경 변수에 직접 저장도 피하세요
+// No 환경 변수에 직접 저장도 피하세요
 os.Setenv("PRIVATE_KEY", "0x1234...")
 
-// ✅ 대신 암호화하거나 비밀 관리자 사용
+// Yes 대신 암호화하거나 비밀 관리자 사용
 ```
 
-#### ✅ DO: 키 회전 (Key Rotation)
+#### Yes DO: 키 회전 (Key Rotation)
 
 ```go
 func rotateKey(agent *SAGEAgent) error {
@@ -884,7 +884,7 @@ func rotateKey(agent *SAGEAgent) error {
     // 5. 모든 활성 세션 무효화 (재협상 필요)
     agent.sessionManager.InvalidateAllSessions()
 
-    log.Println("✅ Key rotation completed")
+    log.Println("Yes Key rotation completed")
     return nil
 }
 
@@ -894,7 +894,7 @@ func scheduleKeyRotation(agent *SAGEAgent) {
     go func() {
         for range ticker.C {
             if err := rotateKey(agent); err != nil {
-                log.Printf("❌ Key rotation failed: %v", err)
+                log.Printf("No Key rotation failed: %v", err)
             }
         }
     }()
@@ -1416,11 +1416,11 @@ agent.SendMessage(ctx, peerDID, message)
 **A:** 가능하지만 고려사항이 있습니다:
 
 ```
-✅ 장점:
+Yes 장점:
 - Go Mobile로 iOS/Android 바인딩 가능
 - 경량 암호화 라이브러리
 
-⚠️ 주의사항:
+Warning 주의사항:
 - 블록체인 조회 시 데이터 사용량
 - 키 저장소 보안 (Keychain/Keystore 필수)
 - 백그라운드 세션 관리

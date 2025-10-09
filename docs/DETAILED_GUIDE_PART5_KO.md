@@ -340,7 +340,7 @@ function registerAgent(
 Solidity의 EVM은 함수 내에서 사용할 수 있는 로컬 변수 개수에 제한이 있습니다 (Stack depth 제한). 파라미터가 7개 이상일 때 "Stack too deep" 에러가 발생할 수 있습니다.
 
 ```
-❌ 에러 발생 예시:
+No 에러 발생 예시:
 function manyParams(
     string a, string b, string c,
     string d, string e, string f,
@@ -349,7 +349,7 @@ function manyParams(
     // Stack too deep!
 }
 
-✅ 해결 방법:
+Yes 해결 방법:
 struct Params { ... }
 function betterParams(Params memory params) {
     // 구조체 하나만 스택에 올라감
@@ -508,8 +508,8 @@ function _verifyRegistrationSignature(
 │  3. 복원된 주소가 msg.sender와 일치하는지 확인             │
 │     require(signer == msg.sender)                       │
 │                                                         │
-│  ✅ 검증 성공 → 개인키 소유자임을 증명                     │
-│  ❌ 검증 실패 → 거래 취소 (revert)                        │
+│  Yes 검증 성공 → 개인키 소유자임을 증명                     │
+│  No 검증 실패 → 거래 취소 (revert)                        │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -789,7 +789,7 @@ function deactivateAgent(bytes32 agentId)
 **삭제 vs 비활성화**
 
 ```
-❌ 왜 삭제하지 않나?
+No 왜 삭제하지 않나?
 
 1. 블록체인의 불변성
    - 한번 저장된 데이터는 영구 보존
@@ -803,7 +803,7 @@ function deactivateAgent(bytes32 agentId)
    - 과거 에이전트 활동 이력 보존
    - 보안 조사 시 필요
 
-✅ 비활성화의 장점:
+Yes 비활성화의 장점:
 • 데이터 보존
 • 필요시 재활성화 가능
 • 역사적 기록 유지
@@ -891,7 +891,7 @@ function getAgentsByOwner(address _owner)
 **배열 반환의 가스 비용**
 
 ```
-⚠️ 주의사항:
+Warning 주의사항:
 
 ownerToAgents[address]가 100개 에이전트를 포함하면
 모든 agentId를 한번에 반환
@@ -1217,12 +1217,12 @@ contract FeeCollectionHook is IRegistryHook {
 #### 1. calldata vs memory
 
 ```solidity
-// ❌ 비효율적
+// No 비효율적
 function register(string memory did) external {
     // memory: 메모리에 복사 (비용 발생)
 }
 
-// ✅ 효율적
+// Yes 효율적
 function register(string calldata did) external {
     // calldata: 복사 없이 직접 읽기
 }
@@ -1247,7 +1247,7 @@ gas 절약: 약 3,000-5,000 gas per string
 #### 2. 구조체 패킹
 
 ```solidity
-// ❌ 비효율적 (3 slots)
+// No 비효율적 (3 slots)
 struct Agent {
     bool active;        // 1 byte → 32 bytes slot
     address owner;      // 20 bytes → 32 bytes slot
@@ -1255,7 +1255,7 @@ struct Agent {
 }
 // Total: 96 bytes (3 storage slots)
 
-// ✅ 효율적 (2 slots)
+// Yes 효율적 (2 slots)
 struct Agent {
     address owner;      // 20 bytes ┐
     bool active;        // 1 byte   │ → 32 bytes slot
@@ -1283,10 +1283,10 @@ EVM Storage:
 #### 3. 상수 사용 (constant, immutable)
 
 ```solidity
-// ❌ 비효율적
+// No 비효율적
 uint256 public maxAgents = 100;  // Storage에 저장 (SLOAD 필요)
 
-// ✅ 효율적
+// Yes 효율적
 uint256 public constant MAX_AGENTS = 100;  // 바이트코드에 직접 삽입
 ```
 
@@ -1314,13 +1314,13 @@ immutable:
 #### 4. 이벤트 활용
 
 ```solidity
-// ❌ 비효율적: Storage에 모든 변경 기록 저장
+// No 비효율적: Storage에 모든 변경 기록 저장
 struct Agent {
     ...
     uint256[] updateHistory;  // 매우 비쌈!
 }
 
-// ✅ 효율적: 이벤트로 기록
+// Yes 효율적: 이벤트로 기록
 event AgentUpdated(bytes32 indexed agentId, uint256 timestamp);
 emit AgentUpdated(agentId, block.timestamp);
 ```
@@ -1345,11 +1345,11 @@ Event:
 #### 5. 짧은 에러 메시지
 
 ```solidity
-// ❌ 비효율적
+// No 비효율적
 require(condition, "This is a very long error message that costs more gas");
 // 긴 문자열은 더 많은 gas 소비
 
-// ✅ 효율적
+// Yes 효율적
 require(condition, "Invalid input");
 // 짧고 명확한 메시지
 ```
@@ -1370,12 +1370,12 @@ function _validate(...) internal {  // 상속 컨트랙트 호출 가능
 #### 7. 배열 길이 캐싱
 
 ```solidity
-// ❌ 비효율적
+// No 비효율적
 for (uint i = 0; i < arr.length; i++) {  // 매번 length 읽기
     ...
 }
 
-// ✅ 효율적
+// Yes 효율적
 uint len = arr.length;  // 한 번만 읽기
 for (uint i = 0; i < len; i++) {
     ...
@@ -2353,7 +2353,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #### 공격 원리
 
 ```solidity
-// ❌ 취약한 컨트랙트
+// No 취약한 컨트랙트
 contract Vulnerable {
     mapping(address => uint256) public balances;
 
@@ -2406,7 +2406,7 @@ contract Attacker {
 **1. Checks-Effects-Interactions 패턴**
 
 ```solidity
-// ✅ 안전한 패턴
+// Yes 안전한 패턴
 function withdraw() external {
     uint256 amount = balances[msg.sender];
 
@@ -2470,7 +2470,7 @@ Solidity 0.8.0 이상은 자동으로 오버플로우를 체크합니다.
 ```solidity
 // Solidity 0.8.0+
 uint256 a = type(uint256).max;  // 2^256 - 1
-uint256 b = a + 1;  // ❌ Panic! Overflow
+uint256 b = a + 1;  // No Panic! Overflow
 
 // 이전 버전 (0.7.6 이하)
 uint256 a = type(uint256).max;
@@ -2481,7 +2481,7 @@ uint256 b = a + 1;  // b = 0 (오버플로우, 버그!)
 
 ```solidity
 // contracts/SageRegistry.sol:2
-pragma solidity ^0.8.19;  // ✅ 자동 오버플로우 체크
+pragma solidity ^0.8.19;  // Yes 자동 오버플로우 체크
 ```
 
 ### 8.3 서명 재사용 공격 방지
@@ -2520,7 +2520,7 @@ agentNonce[agentId]++;  // contracts/SageRegistry.sol:254
 ├─ nonce: 1 (이미 증가함)
 ├─ 서명: sign(data + nonce=0, privateKey)  ← 이전 서명
 ├─ 컨트랙트: nonce 불일치 (0 ≠ 1)
-└─ 결과: ❌ 검증 실패
+└─ 결과: No 검증 실패
 
 → 오래된 서명으로 재공격 불가능
 ```
@@ -2632,7 +2632,7 @@ contract SageRegistryV3 is AccessControl {
 #### 배열 순회 제한
 
 ```solidity
-// ❌ 위험: 무제한 배열
+// No 위험: 무제한 배열
 function getAllAgents(address owner) external view returns (AgentMetadata[] memory) {
     bytes32[] memory agentIds = ownerToAgents[owner];
     AgentMetadata[] memory agents = new AgentMetadata[](agentIds.length);
@@ -2646,7 +2646,7 @@ function getAllAgents(address owner) external view returns (AgentMetadata[] memo
     return agents;
 }
 
-// ✅ 안전: 최대 개수 제한
+// Yes 안전: 최대 개수 제한
 uint256 private constant MAX_AGENTS_PER_OWNER = 100;
 
 require(
@@ -2683,16 +2683,16 @@ function getAgentsPaginated(
 ### 8.6 타임스탬프 의존성
 
 ```solidity
-// ⚠️ 주의: block.timestamp는 조작 가능
+// Warning 주의: block.timestamp는 조작 가능
 // 마이너가 ~15초 범위 내에서 조작 가능
 
-// ❌ 위험한 사용
+// No 위험한 사용
 function lottery() external {
     uint256 winner = uint256(keccak256(abi.encodePacked(block.timestamp))) % players.length;
     // 마이너가 우승자 조작 가능!
 }
 
-// ✅ 안전한 사용 (SAGE)
+// Yes 안전한 사용 (SAGE)
 function _storeAgentMetadata(...) private {
     agents[agentId].registeredAt = block.timestamp;  // 정확한 시각 불필요
     agents[agentId].updatedAt = block.timestamp;     // 대략적 순서만 중요
@@ -2703,17 +2703,17 @@ function _storeAgentMetadata(...) private {
 
 ```
 1. 15초 이상의 시간 간격 사용
-   ✅ 일일 제한 (86400초)
-   ✅ 쿨다운 (60초)
-   ❌ 정밀한 타이밍 (1초 이하)
+   Yes 일일 제한 (86400초)
+   Yes 쿨다운 (60초)
+   No 정밀한 타이밍 (1초 이하)
 
 2. 순서 보장용으로만 사용
-   ✅ "이 거래가 저 거래보다 나중"
-   ❌ "정확히 10:30:00에 실행"
+   Yes "이 거래가 저 거래보다 나중"
+   No "정확히 10:30:00에 실행"
 
 3. 난수 생성에 단독 사용 금지
-   ❌ random = hash(timestamp)
-   ✅ random = VRF (Chainlink VRF 등)
+   No random = hash(timestamp)
+   Yes random = VRF (Chainlink VRF 등)
 ```
 
 ---
@@ -2781,7 +2781,7 @@ func main() {
         log.Fatal(err)
     }
 
-    fmt.Printf("✅ Registration successful!\n")
+    fmt.Printf("Yes Registration successful!\n")
     fmt.Printf("   Agent ID: %s\n", result.AgentID)
     fmt.Printf("   Tx Hash: %s\n", result.TransactionHash)
     fmt.Printf("   Block: %d\n", result.BlockNumber)
@@ -2793,7 +2793,7 @@ func main() {
         log.Fatal(err)
     }
 
-    fmt.Printf("\n📋 Agent Details:\n")
+    fmt.Printf("\n Agent Details:\n")
     fmt.Printf("   Name: %s\n", agent.Name)
     fmt.Printf("   Endpoint: %s\n", agent.Endpoint)
     fmt.Printf("   Active: %v\n", agent.Active)
@@ -2822,7 +2822,7 @@ func updateAgentEndpoint(
         return fmt.Errorf("update failed: %w", err)
     }
 
-    fmt.Printf("✅ Agent endpoint updated to: %s\n", newEndpoint)
+    fmt.Printf("Yes Agent endpoint updated to: %s\n", newEndpoint)
     return nil
 }
 ```

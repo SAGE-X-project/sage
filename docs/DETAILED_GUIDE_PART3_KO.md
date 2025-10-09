@@ -70,19 +70,19 @@
 └──────────────┬──────────────────────┘
                │
         장점들:
-        ✅ 자기 주권 신원 (Self-Sovereign Identity)
+        Yes 자기 주권 신원 (Self-Sovereign Identity)
            개인키 소유자만 신원 통제
 
-        ✅ 영구성 (Permanence)
+        Yes 영구성 (Permanence)
            블록체인에 영구 기록
 
-        ✅ 상호 운용성 (Interoperability)
+        Yes 상호 운용성 (Interoperability)
            모든 플랫폼에서 동일 DID 사용
 
-        ✅ 프라이버시 보호
+        Yes 프라이버시 보호
            필요한 정보만 선택적 공개
 
-        ✅ 검증 가능 (Verifiable)
+        Yes 검증 가능 (Verifiable)
            누구나 독립적으로 검증 가능
                ↓
         [앱 1] [앱 2] [앱 3] ...
@@ -313,7 +313,7 @@ contract SageRegistryV2 {
 | **에코시스템**      | 가장 큼              | 중간 (한국 중심)        | 빠르게 성장           |
 | **개발 도구**       | Hardhat, Foundry     | Hardhat, Foundry        | Anchor                |
 | **지갑 지원**       | MetaMask 등 많음     | Kaikas, MetaMask        | Phantom, Solflare     |
-| **SAGE 상태**       | ✅ 완전 지원         | ✅ 완전 지원            | 🚧 개발 중            |
+| **SAGE 상태**       | Yes 완전 지원         | Yes 완전 지원            | 🚧 개발 중            |
 
 ### 2.2 Ethereum 선택 이유
 
@@ -991,7 +991,7 @@ func runRegister(cmd *cobra.Command, args []string) error {
     }
 
     // 7. 결과 출력
-    fmt.Printf("\n✅ Registration successful!\n")
+    fmt.Printf("\nYes Registration successful!\n")
     fmt.Printf("   Transaction: %s\n", result.TxHash)
     fmt.Printf("   Agent ID: %s\n", result.AgentID)
     fmt.Printf("   Block: %d\n", result.BlockNumber)
@@ -1657,16 +1657,16 @@ func (c *GraphClient) QueryAgent(did string) (*AgentMetadata, error) {
 
 ```
 변경 가능:
-✅ name: 에이전트 이름
-✅ description: 설명
-✅ endpoint: API 엔드포인트
-✅ capabilities: 기능 목록
+Yes name: 에이전트 이름
+Yes description: 설명
+Yes endpoint: API 엔드포인트
+Yes capabilities: 기능 목록
 
 변경 불가:
-❌ did: DID는 불변
-❌ owner: 소유권 이전 불가 (보안상)
-❌ publicKey: 키 변경 불가 (새로 등록 필요)
-❌ createdAt: 생성 시간 불변
+No did: DID는 불변
+No owner: 소유권 이전 불가 (보안상)
+No publicKey: 키 변경 불가 (새로 등록 필요)
+No createdAt: 생성 시간 불변
 ```
 
 **업데이트 코드**:
@@ -1716,7 +1716,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
         return fmt.Errorf("update failed: %w", err)
     }
 
-    fmt.Printf("✅ Agent updated successfully\n")
+    fmt.Printf("Yes Agent updated successfully\n")
     return nil
 }
 ```
@@ -1790,7 +1790,7 @@ func runDeactivate(cmd *cobra.Command, args []string) error {
     }
 
     // 확인 메시지
-    fmt.Printf("⚠️  Warning: This will deactivate the agent:\n")
+    fmt.Printf("Warning  Warning: This will deactivate the agent:\n")
     fmt.Printf("   DID: %s\n", did)
     fmt.Printf("   This action can be reverted later.\n")
     fmt.Printf("\nContinue? (yes/no): ")
@@ -1815,7 +1815,7 @@ func runDeactivate(cmd *cobra.Command, args []string) error {
         return fmt.Errorf("deactivation failed: %w", err)
     }
 
-    fmt.Printf("✅ Agent deactivated\n")
+    fmt.Printf("Yes Agent deactivated\n")
     return nil
 }
 ```
@@ -2372,7 +2372,7 @@ func main() {
     }
 
     agentDID := req.DID
-    fmt.Printf("   ✅ 등록 완료\n")
+    fmt.Printf("   Yes 등록 완료\n")
     fmt.Printf("   DID: %s\n", agentDID)
     fmt.Printf("   Tx: %s\n", result.TxHash)
     fmt.Printf("   Block: %d\n", result.BlockNumber)
@@ -2416,7 +2416,7 @@ func main() {
     if err != nil {
         panic(err)
     }
-    fmt.Printf("   ✅ 업데이트 완료\n")
+    fmt.Printf("   Yes 업데이트 완료\n")
 
     // 6. 업데이트 확인
     fmt.Println("\n6. 업데이트 확인")
@@ -2464,7 +2464,7 @@ func main() {
 
     // 9. 비활성화
     fmt.Println("\n9. 비활성화")
-    fmt.Printf("   ⚠️  에이전트를 비활성화하시겠습니까? (yes/no): ")
+    fmt.Printf("   Warning  에이전트를 비활성화하시겠습니까? (yes/no): ")
 
     var confirm string
     fmt.Scanln(&confirm)
@@ -2478,7 +2478,7 @@ func main() {
         if err != nil {
             panic(err)
         }
-        fmt.Printf("   ✅ 비활성화 완료\n")
+        fmt.Printf("   Yes 비활성화 완료\n")
 
         // 10. 비활성화 확인
         fmt.Println("\n10. 비활성화 확인")
@@ -2579,7 +2579,7 @@ func main() {
             }
 
             results <- result
-            fmt.Printf("✅ %s: %s\n", c, result.TxHash)
+            fmt.Printf("Yes %s: %s\n", c, result.TxHash)
         }(chain)
     }
 
@@ -2598,7 +2598,7 @@ func main() {
 
     // 에러 확인
     for err := range errors {
-        fmt.Printf("❌ Error: %v\n", err)
+        fmt.Printf("No Error: %v\n", err)
     }
 
     // 크로스 체인 검증
@@ -2615,9 +2615,9 @@ func main() {
     if err != nil {
         fmt.Printf("검증 실패: %v\n", err)
     } else if valid {
-        fmt.Println("✅ 모든 체인에서 일관된 데이터 확인")
+        fmt.Println("Yes 모든 체인에서 일관된 데이터 확인")
     } else {
-        fmt.Println("❌ 체인 간 데이터 불일치")
+        fmt.Println("No 체인 간 데이터 불일치")
     }
 }
 ```

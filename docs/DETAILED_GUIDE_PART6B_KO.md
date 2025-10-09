@@ -69,7 +69,7 @@ SAGE를 통합할 때 권장하는 디렉토리 구조:
 ```
 your-project/
 ├── sage/                    # SAGE 관련 설정
-│   ├── keys/               # 암호화 키 저장 (⚠️ .gitignore에 추가!)
+│   ├── keys/               # 암호화 키 저장 (Warning .gitignore에 추가!)
 │   │   ├── agent.jwk       # Ed25519 서명 키
 │   │   └── ethereum.jwk    # Secp256k1 블록체인 키
 │   ├── config.yaml         # SAGE 설정 파일
@@ -79,7 +79,7 @@ your-project/
 │   ├── main.go             # (Go 예시)
 │   └── agent.go
 │
-├── .env                    # 환경 변수 (⚠️ .gitignore에 추가!)
+├── .env                    # 환경 변수 (Warning .gitignore에 추가!)
 ├── .gitignore
 └── README.md
 ```
@@ -132,7 +132,7 @@ sage-crypto generate \
   --output ./sage/keys
 
 # 출력:
-# ✅ Key generated successfully!
+# Yes Key generated successfully!
 # Key ID: abc123def456
 # Type: Ed25519
 # Location: ./sage/keys/abc123def456.jwk
@@ -164,7 +164,7 @@ sage-crypto generate \
   --name "blockchain-key" \
   --output ./sage/keys
 
-# ✅ Key generated successfully!
+# Yes Key generated successfully!
 # Key ID: xyz789abc012
 # Type: Secp256k1
 # Ethereum Address: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb9
@@ -176,7 +176,7 @@ sage-crypto generate \
 sage-crypto list --dir ./sage/keys
 
 # 출력:
-# 📋 Keys in ./sage/keys:
+#  Keys in ./sage/keys:
 #
 # 1. abc123def456
 #    Type: Ed25519
@@ -208,7 +208,7 @@ sage-crypto sign \
   --message "Hello, SAGE!" \
   --output signature.bin
 
-# ✅ Message signed
+# Yes Message signed
 # Signature: 0x3f7a9e2b...
 ```
 
@@ -220,7 +220,7 @@ sage-crypto verify \
   --message "Hello, SAGE!" \
   --signature signature.bin
 
-# ✅ Signature valid!
+# Yes Signature valid!
 ```
 
 ### 2.3 sage-did: DID 관리
@@ -238,7 +238,7 @@ KAIA_CHAIN_ID=1001
 SAGE_REGISTRY_ADDRESS=0x1234567890123456789012345678901234567890
 
 # Gas Payer Private Key
-# ⚠️ 테스트넷용만! 메인넷에서는 절대 평문 저장 금지
+# Warning 테스트넷용만! 메인넷에서는 절대 평문 저장 금지
 PRIVATE_KEY=0xYOUR_PRIVATE_KEY_HERE
 EOF
 
@@ -264,7 +264,7 @@ sage-did register \
 # 출력:
 # Registering agent did:sage:kaia:5HueCGU8rMjxEXxiPuD5BDku on kaia...
 #
-# ✅ Agent registered successfully!
+# Yes Agent registered successfully!
 # DID: did:sage:kaia:5HueCGU8rMjxEXxiPuD5BDku
 # Transaction: 0x7f8a9b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0
 # Block: 12,345,678
@@ -326,7 +326,7 @@ sage-did update \
   --contract $SAGE_REGISTRY_ADDRESS \
   --private-key $PRIVATE_KEY
 
-# ✅ Agent updated successfully!
+# Yes Agent updated successfully!
 # Transaction: 0x9a8b7c...
 ```
 
@@ -341,7 +341,7 @@ sage-did deactivate \
   --contract $SAGE_REGISTRY_ADDRESS \
   --private-key $PRIVATE_KEY
 
-# ✅ Agent deactivated successfully!
+# Yes Agent deactivated successfully!
 ```
 
 ---
@@ -430,7 +430,7 @@ func main() {
         log.Printf("Communication failed: %v", err)
     }
 
-    fmt.Println("✅ Agent initialized successfully!")
+    fmt.Println("Yes Agent initialized successfully!")
 }
 
 func communicateWithPeer(
@@ -584,7 +584,7 @@ func (s *Server) Start() {
         w.Write([]byte("OK"))
     })
 
-    fmt.Println("🚀 Server starting on :8080")
+    fmt.Println(" Server starting on :8080")
     http.ListenAndServe(":8080", nil)
 }
 ```
@@ -671,7 +671,7 @@ func (a *SAGEAgent) Start(ctx context.Context) error {
     // 메시지 수신 루프 (실제로는 gRPC 서버 등)
     go a.messageReceiveLoop(ctx)
 
-    log.Println("✅ Agent started successfully")
+    log.Println("Yes Agent started successfully")
     return nil
 }
 
@@ -851,7 +851,7 @@ class SAGEClient {
         // DID Document 검증
         await this.resolveDID(this.config.did);
 
-        console.log('✅ SAGE client initialized');
+        console.log('Yes SAGE client initialized');
     }
 
     async resolveDID(did: string): Promise<any> {
@@ -1030,7 +1030,7 @@ app.post('/api/secure-chat', sageAuth, async (req, res) => {
 });
 
 app.listen(3000, () => {
-    console.log('🚀 Server running on http://localhost:3000');
+    console.log(' Server running on http://localhost:3000');
 });
 ```
 
@@ -1450,7 +1450,7 @@ func hasCapability(didDoc *did.DIDDocument, capability string) bool {
 **프로덕션 .env 예시:**
 
 ```bash
-# .env.production (⚠️ 절대 Git에 커밋 금지!)
+# .env.production (Warning 절대 Git에 커밋 금지!)
 
 # Application
 NODE_ENV=production
