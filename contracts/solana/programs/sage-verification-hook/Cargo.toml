@@ -3,6 +3,9 @@ name = "sage-verification-hook"
 version = "0.1.0"
 description = "Verification hook for SAGE Registry"
 edition = "2021"
+license = "MIT"
+authors = ["SAGE-X-project"]
+repository = "https://github.com/SAGE-X-project/sage"
 
 [lib]
 crate-type = ["cdylib", "lib"]

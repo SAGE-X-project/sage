@@ -1,19 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 
 package session
@@ -410,6 +411,10 @@ func (s *SecureSession) GetConfig() Config {
 // Encrypt encrypts plaintext using ChaCha20-Poly1305.
 // Output format: nonce || ciphertext.
 func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
+	if s.IsExpired() {
+		return nil, fmt.Errorf("session expired")
+	}
+
     if s.aeadOut != nil { // directional path
 		return s.EncryptOutbound(plaintext)
 	}
@@ -438,6 +443,10 @@ func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
 // Decrypt decrypts data produced by Encrypt.
 // Expects input format: nonce || ciphertext.
 func (s *SecureSession) Decrypt(data []byte) ([]byte, error) {
+	if s.IsExpired() {
+		return nil, fmt.Errorf("session expired")
+	}
+	
     if s.aeadIn != nil { // directional path
 		return s.DecryptInbound(data)
 	}

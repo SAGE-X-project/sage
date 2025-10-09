@@ -1,0 +1,66 @@
+# SAGE Production Configuration
+environment: production
+
+# Blockchain configuration for production
+blockchain:
+  network_rpc: "${SAGE_BLOCKCHAIN_RPC}"
+  contract_addr: "${SAGE_CONTRACT_ADDRESS}"
+  chain_id: 8217  # Klaytn Cypress mainnet
+  gas_limit: 3000000
+  max_gas_price: "750000000000"  # 750 Gwei (production safety limit)
+  max_retries: 5
+  retry_delay: 3s
+  request_timeout: 90s
+
+# DID configuration
+did:
+  registry_address: "${SAGE_DID_REGISTRY}"
+  method: "sage"
+  network: "ethereum"
+  cache_size: 10000
+  cache_ttl: 30m
+
+# Key storage configuration
+keystore:
+  type: "encrypted-file"
+  directory: "${SAGE_KEYSTORE_DIR:/var/lib/sage/keys}"
+  passphrase_env: "SAGE_KEYSTORE_PASSPHRASE"
+
+# Session management
+session:
+  max_idle_time: 2h
+  cleanup_interval: 15m
+  max_sessions: 50000
+  enable_metrics: true
+
+# Handshake configuration
+handshake:
+  timeout: 60s
+  max_retries: 5
+  retry_backoff: 3s
+  enable_metrics: true
+
+# Logging configuration
+logging:
+  level: "warn"  # Only warnings and errors in production
+  format: "json"
+  output: "file"
+  file_path: "/var/log/sage/app.log"
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 9090
+  path: "/metrics"
+
+# Health check configuration
+health:
+  enabled: true
+  port: 8080
+  path: "/health"
+  checks:
+    - "blockchain"
+    - "did"
+    - "keystore"
+    - "sessions"
+    - "metrics"

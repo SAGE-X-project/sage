@@ -1,19 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 
 package did
@@ -21,7 +22,11 @@ package did
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -80,9 +85,14 @@ func (v *MetadataVerifier) ValidateAgent(ctx context.Context, did AgentDID, opts
 			return nil, fmt.Errorf("agent missing required capabilities")
 		}
 	}
-	
-	// TODO: Add endpoint validation if opts.ValidateEndpoint is true
-	
+
+	// Validate endpoint if requested
+	if opts.ValidateEndpoint {
+		if err := v.validateEndpoint(ctx, agent.Endpoint); err != nil {
+			return nil, fmt.Errorf("endpoint validation failed: %w", err)
+		}
+	}
+
 	return agent, nil
 }
 
@@ -228,4 +238,68 @@ func findMissingCapabilities(agentCaps map[string]interface{}, required []string
 func compareValues(v1, v2 interface{}) bool {
 	// Use reflect.DeepEqual for proper comparison
 	return reflect.DeepEqual(v1, v2)
+}
+
+// validateEndpoint validates that an agent's endpoint is properly formatted and reachable
+func (v *MetadataVerifier) validateEndpoint(ctx context.Context, endpoint string) error {
+	if endpoint == "" {
+		return fmt.Errorf("endpoint cannot be empty")
+	}
+
+	// Parse URL
+	parsedURL, err := url.Parse(endpoint)
+	if err != nil {
+		return fmt.Errorf("invalid endpoint URL: %w", err)
+	}
+
+	// Validate scheme (must be http or https)
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("endpoint must use http or https scheme, got: %s", parsedURL.Scheme)
+	}
+
+	// Validate host is not empty
+	if parsedURL.Host == "" {
+		return fmt.Errorf("endpoint host cannot be empty")
+	}
+
+	// Check DNS resolution (optional but recommended)
+	host := parsedURL.Hostname()
+	if host != "" {
+		// Try to resolve the hostname
+		if _, err := net.LookupHost(host); err != nil {
+			// DNS lookup failed, but this might be acceptable for local development
+			// Log warning but don't fail validation
+			// In production, you might want to make this stricter
+		}
+	}
+
+	// Make a simple health check (with timeout)
+	client := &http.Client{
+		Timeout: 5 * time.Second,
+	}
+
+	healthURL := strings.TrimSuffix(endpoint, "/") + "/health"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create health check request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		// Endpoint not reachable, but this might be temporary
+		// Consider this a warning rather than a hard failure
+		return fmt.Errorf("endpoint health check failed (may be temporary): %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Accept any 2xx or 404 status (404 means server is up but no /health endpoint)
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		return nil // Healthy
+	}
+	if resp.StatusCode == 404 {
+		// Server is up but doesn't have /health endpoint - acceptable
+		return nil
+	}
+
+	return fmt.Errorf("endpoint health check returned unexpected status: %d", resp.StatusCode)
 }

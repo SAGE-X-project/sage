@@ -1,25 +1,29 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 
 package rfc9421
 
 import (
 	"time"
+
+	sagecrypto "github.com/sage-x-project/sage/crypto"
+	_ "github.com/sage-x-project/sage/crypto/keys" // Import to register algorithms
 )
 
 // Message represents a message with RFC-9421 metadata for signature verification
@@ -84,3 +88,15 @@ const (
 	AlgorithmECDSA         SignatureAlgorithm = "ECDSA"
 	AlgorithmECDSASecp256k1 SignatureAlgorithm = "ECDSA-secp256k1"
 )
+
+// GetSupportedAlgorithms returns a list of RFC 9421 supported algorithms
+// This dynamically fetches from the centralized algorithm registry
+func GetSupportedAlgorithms() []string {
+	return sagecrypto.ListRFC9421SupportedAlgorithms()
+}
+
+// IsAlgorithmSupported checks if an RFC 9421 algorithm is supported
+func IsAlgorithmSupported(algorithm string) bool {
+	_, err := sagecrypto.GetKeyTypeFromRFC9421Algorithm(algorithm)
+	return err == nil
+}

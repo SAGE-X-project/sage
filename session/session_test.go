@@ -1,19 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 
 package session
@@ -34,16 +35,16 @@ func TestSecureSessionLifecycle(t *testing.T) {
     config := Config{
         MaxAge:      100 * time.Millisecond,
         IdleTimeout: 50 * time.Millisecond,
-        MaxMessages: 2,
+        MaxMessages: 10, // Increased to accommodate multiple operations per test
     }
     sharedSecret := make([]byte, chacha20poly1305.KeySize)
     _, err := rand.Read(sharedSecret)
     require.NoError(t, err)
 
-	sess, err := NewSecureSession("sess1", sharedSecret, config)
-	require.NoError(t, err)
 	covered := []byte("covered-for-tests")
+
 	t.Run("Encrypt and decrypt with sign roundtrip", func(t *testing.T) {
+        sess, err := NewSecureSession("sess1", sharedSecret, config)
         require.NoError(t, err)
         require.Equal(t, "sess1", sess.GetID())
         require.False(t, sess.IsExpired())
@@ -61,6 +62,9 @@ func TestSecureSessionLifecycle(t *testing.T) {
     })
 
     t.Run("Encrypt and decrypt roundtrip", func(t *testing.T) {
+        sess, err := NewSecureSession("sess1a", sharedSecret, config)
+        require.NoError(t, err)
+
         plaintext := []byte("test payload")
         ct, err := sess.Encrypt(plaintext)
         require.NoError(t, err)
@@ -70,10 +74,13 @@ func TestSecureSessionLifecycle(t *testing.T) {
         require.NoError(t, err)
         require.Equal(t, plaintext, pt)
 
-		require.Equal(t, 4, sess.GetMessageCount())
+		require.Equal(t, 2, sess.GetMessageCount())
     })
 
     t.Run("Decrypt with tampered data fails", func(t *testing.T) {
+        sess, err := NewSecureSession("sess1b", sharedSecret, config)
+        require.NoError(t, err)
+
         plaintext := []byte("another test")
         ct, err := sess.Encrypt(plaintext)
         require.NoError(t, err)
@@ -86,13 +93,21 @@ func TestSecureSessionLifecycle(t *testing.T) {
     })
 
     t.Run("Decrypt with too-short data fails", func(t *testing.T) {
+        sess, err := NewSecureSession("sess1c", sharedSecret, config)
+        require.NoError(t, err)
+
         // Data shorter than nonce size
-        _, err := sess.Decrypt([]byte("short"))
+        _, err = sess.Decrypt([]byte("short"))
         require.Error(t, err)
     })
 
     t.Run("Message count expiration", func(t *testing.T) {
-        sess, _ := NewSecureSession("sess2", sharedSecret, config)
+        configLimited := Config{
+            MaxAge:      100 * time.Millisecond,
+            IdleTimeout: 50 * time.Millisecond,
+            MaxMessages: 2, // Limited for this specific expiration test
+        }
+        sess, _ := NewSecureSession("sess2", sharedSecret, configLimited)
 
         _, _, _ = sess.EncryptAndSign([]byte("m1"), covered)
         _, _, _ = sess.EncryptAndSign([]byte("m2"), covered)

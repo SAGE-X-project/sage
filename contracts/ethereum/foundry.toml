@@ -1,0 +1,38 @@
+# Foundry Configuration for SAGE Smart Contracts
+
+[profile.default]
+src = "contracts"
+out = "out"
+libs = ["node_modules"]
+test = "test/foundry"
+cache_path = "cache_foundry"
+
+# Solidity compiler settings
+solc_version = "0.8.20"
+optimizer = true
+optimizer_runs = 200
+via_ir = false
+
+# EVM version
+evm_version = "paris"
+
+# Testing
+fuzz = { runs = 256 }
+invariant = { runs = 256, depth = 15 }
+
+# Gas reporting
+gas_reports = ["*"]
+
+# Formatter
+fmt = { line_length = 120, tab_width = 4, bracket_spacing = true }
+
+# RPC endpoints
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+mainnet = "${MAINNET_RPC_URL}"
+local = "http://localhost:8545"
+
+# Etherscan verification
+[etherscan]
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
+mainnet = { key = "${ETHERSCAN_API_KEY}" }

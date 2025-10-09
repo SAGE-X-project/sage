@@ -1,19 +1,21 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: LGPL-3.0-or-later
 
 package main
 
@@ -37,7 +39,7 @@ func main() {
 	if network == "" {
 		network = "local"
 	}
-	fmt.Printf("📍 Network: %s\n", network)
+	fmt.Printf("Network: %s\n", network)
 	
 	// 2. Load configuration
 	cfg, err := config.LoadConfig(network)
@@ -71,7 +73,7 @@ func main() {
 	}
 	
 	// 4. Test blockchain connection
-	fmt.Println("\n🔗 Blockchain Connection Test:")
+	fmt.Println("\nBlockchain Connection Test:")
 	client, err := ethclient.Dial(cfg.NetworkRPC)
 	if err != nil {
 		log.Fatalf(" Connection failed: %v", err)
@@ -152,7 +154,7 @@ func main() {
 			"connected": err == nil,
 		}
 		jsonData, _ := json.MarshalIndent(output, "", "  ")
-		fmt.Println("\n📄 JSON Output:")
+		fmt.Println("\nJSON Output:")
 		fmt.Println(string(jsonData))
 	}
 }

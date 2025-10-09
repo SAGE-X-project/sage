@@ -1,19 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 
 package did
@@ -30,6 +31,8 @@ type Resolver interface {
 	
 	// ResolvePublicKey retrieves only the public key for an agent
 	ResolvePublicKey(ctx context.Context, did AgentDID) (interface{}, error)
+
+	ResolveKEMKey(ctx context.Context, did AgentDID) (interface{}, error)
 	
 	// VerifyMetadata checks if the provided metadata matches the on-chain data
 	VerifyMetadata(ctx context.Context, did AgentDID, metadata *AgentMetadata) (*VerificationResult, error)
@@ -107,6 +110,20 @@ func (m *MultiChainResolver) ResolvePublicKey(ctx context.Context, did AgentDID)
 	}
 	
 	return metadata.PublicKey, nil
+}
+
+// ResolvePublicKey retrieves the KEM key for an agent from any chain (for RFC 9180)
+func (m *MultiChainResolver) ResolveKEMKey(ctx context.Context, did AgentDID) (interface{}, error) {
+	metadata, err := m.Resolve(ctx, did)
+	if err != nil {
+		return nil, err
+	}
+	
+	if !metadata.IsActive {
+		return nil, ErrInactiveAgent
+	}
+	
+	return metadata.PublicKEMKey, nil
 }
 
 // VerifyMetadata verifies metadata against on-chain data

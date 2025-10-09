@@ -9,6 +9,16 @@
 
 SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based security framework for AI agent communication. It provides end-to-end encrypted, authenticated communication channels between AI agents using decentralized identity (DID) management, HPKE-based key agreement, and RFC 9421 HTTP Message Signatures.
 
+### 🌐 Live Deployments
+
+**Sepolia Testnet** (LIVE ✅):
+- **SAGE Core System**:
+  - SageRegistryV2: [`0x487d45a678eb947bbF9d8f38a67721b13a0209BF`](https://sepolia.etherscan.io/address/0x487d45a678eb947bbF9d8f38a67721b13a0209BF)
+  - ERC8004ValidationRegistry: [`0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440`](https://sepolia.etherscan.io/address/0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440)
+- **ERC-8004 Standalone**:
+  - ERC8004IdentityRegistry: [`0x02439d8DA11517603d0DE1424B33139A90969517`](https://sepolia.etherscan.io/address/0x02439d8DA11517603d0DE1424B33139A90969517)
+  - [See all deployed contracts →](contracts/ethereum/docs/PHASE7-SEPOLIA-DEPLOYMENT-COMPLETE.md)
+
 ### Key Features
 
 - **End-to-End Encrypted Handshake**: HPKE (RFC 9180) based secure session establishment with X25519 key agreement
@@ -112,8 +122,18 @@ npm install
 4. **Build the project**
 
 ```bash
-# Build all CLI tools using Makefile
+# Build all CLI tools for current platform
 make build
+
+# Build for all platforms (Linux, macOS, Windows on x86_64 and ARM64)
+make build-all-platforms
+
+# Build as C-compatible library
+make build-lib              # Build for current platform
+make build-lib-all          # Build for all platforms
+
+# Create release packages with checksums
+make release
 
 # Or build individually
 go build -o build/bin/sage-crypto ./cmd/sage-crypto
@@ -124,6 +144,12 @@ go build -o build/bin/sage-verify ./cmd/sage-verify
 cd contracts/ethereum
 npm run compile
 ```
+
+**See [docs/BUILD.md](docs/BUILD.md) for detailed build instructions including:**
+- Cross-platform compilation (Linux, macOS, Windows)
+- Multi-architecture support (x86_64, ARM64)
+- Library builds (static `.a`, shared `.so`/`.dylib`/`.dll`)
+- C/C++, Python, and Rust integration examples
 
 ## Configuration
 
@@ -432,12 +458,13 @@ See [docs/handshake/handshake-en.md](docs/handshake/handshake-en.md) for detaile
 SAGE provides bindings for multiple programming languages:
 
 - **Go**: Native implementation
-- **Python**: Web3.py based bindings
-- **Rust**: Ethers-rs based bindings (planned)
+- **C/C++**: Static and shared library bindings
+- **Python**: Web3.py based bindings + ctypes library integration
+- **Rust**: FFI bindings via static library
 - **JavaScript/TypeScript**: Ethers.js bindings
-- **Java**: Web3j based bindings (planned)
+- **Java**: JNI bindings (planned)
 
-Example usage in Python:
+### Smart Contract Bindings (Python Example)
 
 ```python
 from sage_contracts import SageRegistry
@@ -457,6 +484,72 @@ tx_hash = registry.register_agent(
     capabilities=["chat", "analysis"]
 )
 ```
+
+### C Library Integration
+
+SAGE can be built as a C-compatible library for integration with other languages:
+
+```c
+#include "libsage.h"
+
+int main() {
+    // Initialize SAGE library
+    sage_init();
+
+    // Generate Ed25519 key pair
+    char public_key[128];
+    char private_key[128];
+    sage_generate_keypair(public_key, private_key);
+
+    printf("Public Key: %s\n", public_key);
+
+    // Cleanup
+    sage_cleanup();
+    return 0;
+}
+```
+
+**Compile with static library:**
+```bash
+# Linux
+gcc -o myapp myapp.c build/lib/linux-amd64/libsage.a
+
+# macOS
+clang -o myapp myapp.c build/lib/darwin-arm64/libsage.a
+
+# Windows (MinGW)
+x86_64-w64-mingw32-gcc -o myapp.exe myapp.c build/lib/windows-amd64/libsage.a
+```
+
+### Python Library Integration (ctypes)
+
+```python
+import ctypes
+import os
+
+# Load SAGE library
+if os.name == 'nt':
+    lib = ctypes.CDLL('libsage.dll')
+elif os.uname().sysname == 'Darwin':
+    lib = ctypes.CDLL('libsage.dylib')
+else:
+    lib = ctypes.CDLL('libsage.so')
+
+# Initialize
+lib.sage_init()
+
+# Generate key pair
+public_key = ctypes.create_string_buffer(128)
+private_key = ctypes.create_string_buffer(128)
+lib.sage_generate_keypair(public_key, private_key)
+
+print(f"Public Key: {public_key.value.decode()}")
+
+# Cleanup
+lib.sage_cleanup()
+```
+
+**See [docs/BUILD.md](docs/BUILD.md) for complete integration examples with C/C++, Python, Rust, and other languages.**
 
 ## Security Considerations
 

@@ -4,7 +4,7 @@ SAGE (Secure Agent Guarantee Engine) 프로젝트에서 Secure 세션 통신을 
 
 ## 주요 기능
 
-기존 [A2A 프로토콜](https://a2a-protocol.org/latest/topics/what-is-a2a/#a2a-request-lifecycle)의 확장 모듈로 grpc로 핸드쉐이크를 수행합니다.
+기존 [A2A 프로토콜](https://a2a-protocol.org/latest/topics/what-is-a2a/#a2a-request-lifecycle)의 확장 모듈로 grpc로 핸드쉐이크를 수행되며, , 세션 수립 이후의 애플리케이션 메시지는 **세션 암호화 + HTTP Message Signatures (RFC 9421)** 로 보호됩니다.
 
 <img src="../assets/SAGE-handshake.png" width="450" height="550"/>
 

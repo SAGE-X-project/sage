@@ -1,19 +1,21 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: LGPL-3.0-or-later
 
 package config
 
@@ -32,6 +34,8 @@ type Config struct {
 	Blockchain  *BlockchainConfig  `yaml:"blockchain" json:"blockchain"`
 	DID         *DIDConfig         `yaml:"did" json:"did"`
 	KeyStore    *KeyStoreConfig    `yaml:"keystore" json:"keystore"`
+	Session     *SessionConfig     `yaml:"session" json:"session"`
+	Handshake   *HandshakeConfig   `yaml:"handshake" json:"handshake"`
 	Logging     *LoggingConfig     `yaml:"logging" json:"logging"`
 	Metrics     *MetricsConfig     `yaml:"metrics" json:"metrics"`
 	Health      *HealthConfig      `yaml:"health" json:"health"`
@@ -53,6 +57,22 @@ type KeyStoreConfig struct {
 	Type          string `yaml:"type" json:"type"`
 	Directory     string `yaml:"directory" json:"directory"`
 	PassphraseEnv string `yaml:"passphrase_env" json:"passphrase_env"`
+}
+
+// SessionConfig represents session configuration
+type SessionConfig struct {
+	MaxIdleTime     time.Duration `yaml:"max_idle_time" json:"max_idle_time"`
+	CleanupInterval time.Duration `yaml:"cleanup_interval" json:"cleanup_interval"`
+	MaxSessions     int           `yaml:"max_sessions" json:"max_sessions"`
+	EnableMetrics   bool          `yaml:"enable_metrics" json:"enable_metrics"`
+}
+
+// HandshakeConfig represents handshake configuration
+type HandshakeConfig struct {
+	Timeout         time.Duration `yaml:"timeout" json:"timeout"`
+	MaxRetries      int           `yaml:"max_retries" json:"max_retries"`
+	RetryBackoff    time.Duration `yaml:"retry_backoff" json:"retry_backoff"`
+	EnableMetrics   bool          `yaml:"enable_metrics" json:"enable_metrics"`
 }
 
 // LoggingConfig represents logging configuration
@@ -178,6 +198,30 @@ func setDefaults(cfg *Config) {
 		}
 		if cfg.Logging.Output == "" {
 			cfg.Logging.Output = "stdout"
+		}
+	}
+
+	if cfg.Session != nil {
+		if cfg.Session.MaxIdleTime == 0 {
+			cfg.Session.MaxIdleTime = 30 * time.Minute
+		}
+		if cfg.Session.CleanupInterval == 0 {
+			cfg.Session.CleanupInterval = 5 * time.Minute
+		}
+		if cfg.Session.MaxSessions == 0 {
+			cfg.Session.MaxSessions = 10000
+		}
+	}
+
+	if cfg.Handshake != nil {
+		if cfg.Handshake.Timeout == 0 {
+			cfg.Handshake.Timeout = 30 * time.Second
+		}
+		if cfg.Handshake.MaxRetries == 0 {
+			cfg.Handshake.MaxRetries = 3
+		}
+		if cfg.Handshake.RetryBackoff == 0 {
+			cfg.Handshake.RetryBackoff = 1 * time.Second
 		}
 	}
 }

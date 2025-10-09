@@ -1,54 +1,78 @@
 #!/bin/bash
-# Test that all MCP integration examples compile
+
+# SAGE MCP Examples - Compilation Test Script
+# Tests that all examples compile successfully
 
 set -e
 
-echo "Testing MCP integration examples compilation..."
-
-# Get the directory where this script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Test basic demo
-echo "Testing basic-demo..."
-cd basic-demo
-go build -o /dev/null .
-cd ..
+echo "======================================"
+echo "SAGE MCP Examples - Compilation Test"
+echo "======================================"
+echo ""
 
-# Test simple standalone
-echo "Testing simple-standalone..."
-cd simple-standalone
-go build -o /dev/null .
-cd ..
+# Colors for output
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
 
-# Test client
-echo "Testing client..."
-cd client  
-go build -o /dev/null .
-cd ..
+EXAMPLES=(
+    "basic-demo"
+    "basic-tool"
+    "client"
+    "simple-standalone"
+    "vulnerable-vs-secure/vulnerable-chat"
+    "vulnerable-vs-secure/secure-chat"
+    "vulnerable-vs-secure/attacker"
+)
 
-# Test basic tool (requires imports)
-echo "Testing basic-tool..."
-cd basic-tool
-go build -o /dev/null .
-cd ..
+PASSED=0
+FAILED=0
+TOTAL=${#EXAMPLES[@]}
 
-# Test vulnerable chat
-echo "Testing vulnerable chat..."
-cd vulnerable-vs-secure/vulnerable-chat
-go build -o /dev/null .
-cd ../..
+for example in "${EXAMPLES[@]}"; do
+    echo -n "Testing $example... "
 
-# Test secure chat
-echo "Testing secure chat..."
-cd vulnerable-vs-secure/secure-chat
-go build -o /dev/null .
-cd ../..
+    if [ ! -d "$example" ]; then
+        echo -e "${RED}[SKIP - Directory not found]${NC}"
+        ((FAILED++))
+        continue
+    fi
 
-# Test attacker
-echo "Testing attacker demo..."
-cd vulnerable-vs-secure/attacker
-go build -o /dev/null .
-cd ../..
+    cd "$example"
 
-echo " All examples compile successfully!"
+    # Try to build
+    if go build -o /tmp/sage-test-build . > /dev/null 2>&1; then
+        echo -e "${GREEN}[PASS]${NC}"
+        ((PASSED++))
+        rm -f /tmp/sage-test-build
+    else
+        echo -e "${RED}[FAIL]${NC}"
+        ((FAILED++))
+        echo "  Error output:"
+        go build . 2>&1 | head -5 | sed 's/^/    /'
+    fi
+
+    cd "$SCRIPT_DIR"
+done
+
+echo ""
+echo "======================================"
+echo "Test Results:"
+echo "  Total:  $TOTAL"
+echo -e "  ${GREEN}Passed: $PASSED${NC}"
+if [ $FAILED -gt 0 ]; then
+    echo -e "  ${RED}Failed: $FAILED${NC}"
+else
+    echo "  Failed: 0"
+fi
+echo "======================================"
+
+if [ $FAILED -gt 0 ]; then
+    exit 1
+fi
+
+exit 0
