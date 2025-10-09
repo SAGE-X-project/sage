@@ -1,6 +1,6 @@
 # SAGE API 명세서
 
-> ⚠️ **WARNING**: This document contains BOTH implemented and planned features.
+> ️ **WARNING**: This document contains BOTH implemented and planned features.
 >
 > - **Section 1**: Currently implemented APIs (handshake, session, hpke, rfc9421, crypto, did)
 > - **Section 2-4**: **NOT IMPLEMENTED** - Future planning only (Agent SDK, Gateway API)

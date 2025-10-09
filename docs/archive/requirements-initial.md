@@ -23,7 +23,7 @@
 - AC-02: 지원하지 않는 Path 요청 시 404 JSON 오류 반환
 - AC-03: RFC 9421 검증 성공 후에만 다음 단계(Policy)로 전달
 
-**우선순위**: 필수 (★★★★★)
+**우선순위**: 필수 ()
 
 ### FR-02: RFC 9421 Partial Signature
 **목적**: HTTP 헤더 일부만 선택 서명·검증하여 전송 구간 변조 방지
@@ -37,7 +37,7 @@
 - AC-01: 서명·검증 실패 시 401 `invalid_signature` 코드 반환
 - AC-02: 성공 시 Gateway Context에 `X-Sig-Verified: true` 주입
 
-**우선순위**: 필수 (★★★★★)
+**우선순위**: 필수 ()
 
 ### FR-03: 블록체인 DID 해석
 **목적**: 에이전트가 제시한 DID → PublicKey·메타데이터 조회
@@ -51,7 +51,7 @@
 - AC-01: DID 문서 404 → Gateway 401 반환
 - AC-02: 키 파싱 오류 → `invalid_did_doc` 로그
 
-**우선순위**: 필수 (★★★★☆)
+**우선순위**: 필수 ()
 
 ### FR-04: Rust Crypto 핵심 모듈화
 **목적**: 서명 Canonicalization·Verify/Sign 로직을 memory-safe Rust로 통합
@@ -65,7 +65,7 @@
 - AC-01: 벤치마크 `verify` 50 µs 이하
 - AC-02: 패닉 발생 시 FFI error code 반환
 
-**우선순위**: 필수 (★★★★☆)
+**우선순위**: 필수 ()
 
 ### FR-05: Policy Engine (Access Control)
 **목적**: `allowed_agents`, Rate-Limit, RBAC 정책으로 호출권 제한
@@ -79,7 +79,7 @@
 - AC-01: 정책 위반 시 403 `policy_denied` 반환
 - AC-02: Rate-Limit 초과 시 429 반환
 
-**우선순위**: 중요 (★★★☆☆)
+**우선순위**: 중요 ()
 
 ### FR-06: Audit Logging & Event Sourcing
 **목적**: 모든 인증·정책 판정·도구 호출을 불변 로그로 기록
@@ -93,7 +93,7 @@
 - AC-01: 로그 레코드 누락률 0%
 - AC-02: SHA-256 체인 무결성 주기적 검증(1h)
 
-**우선순위**: 중요 (★★★☆☆)
+**우선순위**: 중요 ()
 
 ## 2. 비기능 요구사항
 
@@ -245,9 +245,9 @@
 
 | 등급 | 정의 | 항목 |
 |------|------|------|
-| ★★★★★ | MVP 필수 | FR-01, FR-02 |
-| ★★★★☆ | MVP 범위 | FR-03, FR-04 |
-| ★★★☆☆ | 후속 릴리즈 | FR-05, FR-06 |
+|  | MVP 필수 | FR-01, FR-02 |
+|  | MVP 범위 | FR-03, FR-04 |
+|  | 후속 릴리즈 | FR-05, FR-06 |
 
 ## 적용 방법
 

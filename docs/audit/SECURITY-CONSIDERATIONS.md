@@ -241,10 +241,10 @@ if abs(msg.Timestamp - now()) > MAX_CLOCK_SKEW {
 
 **Mitigations**:
 ```
-✓ DID is unique per agent (Ethereum address-based)
-✓ Public key must be proven via ownership proof
-✓ Agent names stored on-chain (immutable)
-✓ Users should verify DID, not just name
+ DID is unique per agent (Ethereum address-based)
+ Public key must be proven via ownership proof
+ Agent names stored on-chain (immutable)
+ Users should verify DID, not just name
 
 Future:
 - Name similarity detection
@@ -270,9 +270,9 @@ Future:
 
 **Mitigations**:
 ```
-✓ Every message MUST be signed with DID's private key
-✓ Signature verified against on-chain public key
-✓ Cannot forge signature without private key
+ Every message MUST be signed with DID's private key
+ Signature verified against on-chain public key
+ Cannot forge signature without private key
 
 Edge Cases:
 - Compromised private key → key revocation needed
@@ -300,9 +300,9 @@ Edge Cases:
 
 **Mitigations**:
 ```
-✓ Use crypto/rand for key generation
-✓ 32 bytes minimum entropy
-✓ Ed25519 keys from secure random source
+ Use crypto/rand for key generation
+ 32 bytes minimum entropy
+ Ed25519 keys from secure random source
 
 Code Review Needed:
 func GenerateEd25519() (*KeyPair, error) {
@@ -329,8 +329,8 @@ func GenerateEd25519() (*KeyPair, error) {
 
 **Mitigations**:
 ```
-✓ Use constant-time comparison (subtle.ConstantTimeCompare)
-✓ Ed25519 library uses constant-time operations
+ Use constant-time comparison (subtle.ConstantTimeCompare)
+ Ed25519 library uses constant-time operations
 ? Need to verify: All signature operations constant-time
 
 Audit Focus:
@@ -359,11 +359,11 @@ Audit Focus:
 
 **Mitigations**:
 ```
-✓ Key ID is opaque (random 16 bytes)
-✓ Session key never transmitted
-✓ Cannot derive session key from Key ID
-✓ Messages signed with HMAC (needs session key)
-✓ Sessions expire (MaxAge, IdleTimeout)
+ Key ID is opaque (random 16 bytes)
+ Session key never transmitted
+ Cannot derive session key from Key ID
+ Messages signed with HMAC (needs session key)
+ Sessions expire (MaxAge, IdleTimeout)
 
 Attack fails because:
 - Attacker doesn't have session key
@@ -388,10 +388,10 @@ Attack fails because:
 
 **Mitigations**:
 ```
-✓ Session ID derived from BOTH ephemeral keys
-✓ Ephemeral keys generated independently
-✓ Cannot force specific Session ID
-✓ Handshake protocol prevents fixation
+ Session ID derived from BOTH ephemeral keys
+ Ephemeral keys generated independently
+ Cannot force specific Session ID
+ Handshake protocol prevents fixation
 
 Why it fails:
 SessionID = HKDF(X25519(myEphemeral, peerEphemeral))
@@ -423,9 +423,9 @@ contract Attacker {
 
 **Mitigations**:
 ```
-✓ No external calls before state changes (CEI pattern)
-✓ ReentrancyGuard on sensitive functions
-✓ Checks-Effects-Interactions pattern
+ No external calls before state changes (CEI pattern)
+ ReentrancyGuard on sensitive functions
+ Checks-Effects-Interactions pattern
 
 Audit Checklist:
 - [ ] All state changes before external calls?
@@ -449,9 +449,9 @@ count++; // Wraps to 0
 
 **Mitigations**:
 ```
-✓ Solidity 0.8+ has built-in overflow checks
-✓ All arithmetic operations revert on overflow
-✓ No unchecked blocks in critical logic
+ Solidity 0.8+ has built-in overflow checks
+ All arithmetic operations revert on overflow
+ No unchecked blocks in critical logic
 
 Audit Checklist:
 - [ ] Any unchecked{} blocks?
@@ -508,9 +508,9 @@ for i := 0; i < 1000000; i++ {
 
 **Mitigations**:
 ```
-✓ TTL-based nonce expiration (e.g., 5 minutes)
-✓ Periodic cleanup (e.g., every 30 seconds)
-✓ Maximum nonce cache size limit
+ TTL-based nonce expiration (e.g., 5 minutes)
+ Periodic cleanup (e.g., every 30 seconds)
+ Maximum nonce cache size limit
 
 Calculations:
 - 16 bytes per nonce + 8 bytes timestamp = 24 bytes
@@ -541,9 +541,9 @@ while true {
 
 **Mitigations**:
 ```
-✓ Session expiration (MaxAge, IdleTimeout)
-✓ Automatic cleanup of expired sessions
-✓ Rate limiting (future)
+ Session expiration (MaxAge, IdleTimeout)
+ Automatic cleanup of expired sessions
+ Rate limiting (future)
 
 Current Limits:
 - MaxAge: 1 hour (default)

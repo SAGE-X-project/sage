@@ -1,4 +1,4 @@
-# 🔴 모니터링 즉시 조치 사항
+#  모니터링 즉시 조치 사항
 
 > **작성일:** 2025-10-10
 > **우선순위:** Critical
@@ -7,25 +7,25 @@
 
 ---
 
-## 📊 현황 요약
+##  현황 요약
 
-### ✅ 이미 구현된 사항 (70%)
+###  이미 구현된 사항 (70%)
 - Prometheus 메트릭 정의 완료 (`internal/metrics/`)
 - 메트릭 서버 구현 (`/metrics` 엔드포인트)
 - Grafana 대시보드 (`docker/grafana/dashboards/sage-overview.json`)
 - Docker Compose 설정 (Prometheus, Grafana)
 
-### ❌ 즉시 해결 필요 (30%)
+###  즉시 해결 필요 (30%)
 1. **Prometheus 설정 불일치** - 존재하지 않는 엔드포인트 스크랩 시도
 2. **메트릭 미통합** - 정의된 메트릭이 실제 코드에서 호출되지 않음
 3. **검증 부재** - 메트릭 동작 확인 필요
 
 ---
 
-## 🎯 즉시 조치 1: Prometheus 설정 수정
+##  즉시 조치 1: Prometheus 설정 수정
 
 **예상 시간:** 15분
-**우선순위:** 🔴 Critical
+**우선순위:**  Critical
 **종속성:** 없음
 
 ### 문제점
@@ -35,13 +35,13 @@ Prometheus가 미구현된 엔드포인트를 스크랩하려고 시도:
 ```yaml
 # docker/prometheus/prometheus.yml (라인 72-100)
 - job_name: 'sage-sessions'
-  metrics_path: '/metrics/sessions'  # ❌ 미구현
+  metrics_path: '/metrics/sessions'  #  미구현
 
 - job_name: 'sage-handshakes'
-  metrics_path: '/metrics/handshakes'  # ❌ 미구현
+  metrics_path: '/metrics/handshakes'  #  미구현
 
 - job_name: 'sage-crypto'
-  metrics_path: '/metrics/crypto'  # ❌ 미구현
+  metrics_path: '/metrics/crypto'  #  미구현
 ```
 
 **실제 구현:** `/metrics` 엔드포인트만 존재 (`internal/metrics/server.go:38`)
@@ -66,7 +66,7 @@ vim docker/prometheus/prometheus.yml
 ```yaml
 - job_name: 'sage-backend'
   scrape_interval: 10s
-  metrics_path: '/metrics'  # ✅ 실제 구현됨
+  metrics_path: '/metrics'  #  실제 구현됨
   static_configs:
     - targets:
         - 'sage-backend:9090'
@@ -98,10 +98,10 @@ docker-compose logs prometheus | grep -i error
 
 ---
 
-## 🎯 즉시 조치 2: 핸드셰이크 메트릭 통합
+##  즉시 조치 2: 핸드셰이크 메트릭 통합
 
 **예상 시간:** 30분
-**우선순위:** 🔴 Critical
+**우선순위:**  Critical
 **종속성:** 조치 1 완료 후
 
 ### 통합 위치
@@ -200,10 +200,10 @@ curl -s localhost:9090/metrics | grep handshakes
 
 ---
 
-## 🎯 즉시 조치 3: 세션 메트릭 통합
+##  즉시 조치 3: 세션 메트릭 통합
 
 **예상 시간:** 30분
-**우선순위:** 🔴 Critical
+**우선순위:**  Critical
 **종속성:** 조치 1 완료 후
 
 ### 통합 위치
@@ -334,10 +334,10 @@ curl -s localhost:9090/metrics | grep sessions
 
 ---
 
-## 🎯 즉시 조치 4: 통합 검증
+##  즉시 조치 4: 통합 검증
 
 **예상 시간:** 15분
-**우선순위:** 🔴 Critical
+**우선순위:**  Critical
 **종속성:** 조치 2, 3 완료 후
 
 ### 검증 단계
@@ -426,7 +426,7 @@ curl -s localhost:9090/metrics | grep sessions_created_total
 
 ### 성공 기준
 
-✅ 다음 조건이 모두 충족되어야 함:
+ 다음 조건이 모두 충족되어야 함:
 
 1. Prometheus `/targets` 페이지에서 sage-backend가 UP 상태
 2. `/metrics` 엔드포인트에서 `sage_*` 메트릭 출력
@@ -444,7 +444,7 @@ curl -s localhost:9090/metrics | grep sessions_created_total
 
 ---
 
-## 📋 전체 체크리스트 (Copy & Paste)
+##  전체 체크리스트 (Copy & Paste)
 
 ```markdown
 ## 모니터링 즉시 조치 체크리스트
@@ -496,7 +496,7 @@ curl -s localhost:9090/metrics | grep sessions_created_total
 
 ---
 
-## 🚀 후속 작업 (선택적)
+##  후속 작업 (선택적)
 
 ### RFC 9421 서명 메트릭 추가 (20분)
 
@@ -558,7 +558,7 @@ func (nc *NonceCache) ValidateNonce(nonce string) bool {
 
 ---
 
-## 📊 예상 결과
+##  예상 결과
 
 ### 완료 후 Grafana 대시보드
 
@@ -644,7 +644,7 @@ go test ./handshake/... -v
 
 ---
 
-## 📞 지원
+##  지원
 
 **문제 발생 시:**
 1. 체크리스트의 각 항목을 순서대로 확인

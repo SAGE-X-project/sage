@@ -2837,7 +2837,7 @@ func monitorRegistrations(ctx context.Context, registry *EthereumRegistry) {
         log.Fatal(err)
     }
 
-    fmt.Println("👀 Monitoring new agent registrations...")
+    fmt.Println(" Monitoring new agent registrations...")
 
     // 실시간 처리
     for event := range events {

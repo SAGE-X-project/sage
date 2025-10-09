@@ -440,7 +440,7 @@ func communicateWithPeer(
     sessionMgr *session.Manager,
 ) error {
     // 1. 핸드셰이크 수행
-    fmt.Printf("🤝 Starting handshake with %s...\n", peerDID)
+    fmt.Printf(" Starting handshake with %s...\n", peerDID)
 
     // Invitation
     invMsg := handshake.InvitationMessage{
@@ -470,7 +470,7 @@ func communicateWithPeer(
         return fmt.Errorf("encryption failed: %w", err)
     }
 
-    fmt.Printf("📤 Sent encrypted message: %d bytes\n", len(encrypted))
+    fmt.Printf(" Sent encrypted message: %d bytes\n", len(encrypted))
 
     return nil
 }
@@ -663,7 +663,7 @@ func NewSAGEAgent(keyStoragePath, myDID string, registryConfig *did.RegistryConf
 }
 
 func (a *SAGEAgent) Start(ctx context.Context) error {
-    log.Printf("🤖 Starting SAGE Agent: %s", a.myDID)
+    log.Printf(" Starting SAGE Agent: %s", a.myDID)
 
     // 세션 정리 루틴 시작
     a.sessionManager.StartCleanupRoutine(10 * time.Minute)
@@ -689,7 +689,7 @@ func (a *SAGEAgent) SendMessage(ctx context.Context, peerDID string, message []b
     }
 
     // 3. 전송 (실제 구현 필요)
-    log.Printf("📤 Sending %d bytes to %s", len(encrypted), peerDID)
+    log.Printf(" Sending %d bytes to %s", len(encrypted), peerDID)
 
     return nil
 }
@@ -702,7 +702,7 @@ func (a *SAGEAgent) getOrCreateSession(ctx context.Context, peerDID string) (*se
     }
 
     // 2. 새 핸드셰이크 시작
-    log.Printf("🤝 Starting handshake with %s", peerDID)
+    log.Printf(" Starting handshake with %s", peerDID)
 
     // (핸드셰이크 4단계 수행 - Part 4 참조)
     // ...
@@ -735,7 +735,7 @@ func main() {
 
     go func() {
         <-sigChan
-        log.Println("\n📛 Shutting down...")
+        log.Println("\n Shutting down...")
         cancel()
     }()
 
@@ -765,7 +765,7 @@ func main() {
 
     // 종료 대기
     <-ctx.Done()
-    log.Println("👋 Goodbye!")
+    log.Println(" Goodbye!")
 }
 ```
 
@@ -846,7 +846,7 @@ class SAGEClient {
     }
 
     async initialize(): Promise<void> {
-        console.log('🔧 Initializing SAGE client...');
+        console.log(' Initializing SAGE client...');
 
         // DID Document 검증
         await this.resolveDID(this.config.did);
@@ -878,7 +878,7 @@ class SAGEClient {
         }
 
         // 새 세션 생성
-        console.log(`🤝 Creating session with ${peerDID}`);
+        console.log(` Creating session with ${peerDID}`);
 
         // 1. DID Resolution
         const peerInfo = await this.resolveDID(peerDID);
@@ -911,7 +911,7 @@ class SAGEClient {
             encryptionKey: new Uint8Array(32),
             authKey: new Uint8Array(32),
             sendMessage: async (message: string) => {
-                console.log(`📤 Sending: ${message}`);
+                console.log(` Sending: ${message}`);
                 // 암호화 및 전송 구현
             },
             close: () => {
@@ -946,7 +946,7 @@ async function main() {
 
     // 메시지 수신 핸들러
     sage.on('message', async (msg: any) => {
-        console.log(`📨 Received: ${msg.plaintext}`);
+        console.log(` Received: ${msg.plaintext}`);
 
         // 응답 전송
         const session = await sage.getOrCreateSession(msg.senderDID);
@@ -1018,7 +1018,7 @@ app.post('/api/secure-chat', sageAuth, async (req, res) => {
     const session = await sage.getOrCreateSession(agentDID);
 
     // 메시지 처리
-    console.log(`📨 Message from ${agentDID}: ${message}`);
+    console.log(` Message from ${agentDID}: ${message}`);
 
     // AI 모델 호출 등...
     const response = `Echo: ${message}`;
@@ -1112,7 +1112,7 @@ class SAGEAgent:
         if peer_did in self.sessions:
             return self.sessions[peer_did]
 
-        print(f"🤝 Creating session with {peer_did}")
+        print(f" Creating session with {peer_did}")
 
         # DID Resolution
         peer_info = self.resolve_did(peer_did)
@@ -1145,7 +1145,7 @@ class SAGEAgent:
         # 암호화
         encrypted = session.encrypt(message.encode())
 
-        print(f"📤 Sending {len(encrypted)} bytes to {peer_did}")
+        print(f" Sending {len(encrypted)} bytes to {peer_did}")
 
         # 전송 (실제 네트워크 구현 필요)
         # ...
@@ -1249,7 +1249,7 @@ func weatherHandler(w http.ResponseWriter, r *http.Request) {
     var req ToolRequest
     json.NewDecoder(r.Body).Decode(&req)
 
-    // 누구나 호출 가능! 😱
+    // 누구나 호출 가능! 
     location := req.Arguments["location"].(string)
 
     weather := getWeather(location)
@@ -1389,7 +1389,7 @@ func (c *CalculatorTool) Start() {
         w.Write([]byte("OK"))
     })
 
-    fmt.Println("🔐 Secure Calculator Tool running on :8080")
+    fmt.Println(" Secure Calculator Tool running on :8080")
     http.ListenAndServe(":8080", nil)
 }
 

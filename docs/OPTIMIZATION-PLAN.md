@@ -20,14 +20,14 @@
 
 ### 1.2 Root Causes
 
-1. **Repeated Hash Instances** ✋
+1. **Repeated Hash Instances** 
    ```go
    // Current: Creates new hash each time
    hkdfEnc := hkdf.New(sha256.New, ...)   // sha256.New() allocates
    hkdfSign := hkdf.New(sha256.New, ...)  // sha256.New() allocates again
    ```
 
-2. **Multiple Key Buffer Allocations** ✋
+2. **Multiple Key Buffer Allocations** 
    ```go
    // Current: Separate allocation for each key
    s.encryptKey = make([]byte, 32)  // Allocation 1
@@ -35,7 +35,7 @@
    // + 4 more in directional keys
    ```
 
-3. **No Buffer Reuse** ✋
+3. **No Buffer Reuse** 
    - Each session creates fresh buffers
    - No pooling mechanism
    - Temporary buffers not reused

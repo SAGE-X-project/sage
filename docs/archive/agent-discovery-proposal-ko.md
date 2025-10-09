@@ -25,7 +25,7 @@
 Agent A (여행 계획):
   ├─ 항공권 검색 (자체 기능)
   ├─ 호텔 검색 (자체 기능)
-  └─ 결제 필요 ❓ → Agent B (결제 처리)에게 위임
+  └─ 결제 필요  → Agent B (결제 처리)에게 위임
 ```
 
 ### Agent A가 Agent B를 사용하기 위해 필요한 것
@@ -119,7 +119,7 @@ func (a *TravelAgent) BookTrip(destination string) error {
 
 #### 단점
 
-1. **🚨 중복 코드 (Code Duplication)**
+1. ** 중복 코드 (Code Duplication)**
    ```go
    // 모든 Agent가 동일한 코드를 작성해야 함
    func (a *TravelAgent) connectToAgent(...)   // 여행 Agent
@@ -128,12 +128,12 @@ func (a *TravelAgent) BookTrip(destination string) error {
    // ... 수백 개 Agent가 동일한 핸드셰이크 코드 중복
    ```
 
-2. **🚨 보안 위험 (Security Risks)**
+2. ** 보안 위험 (Security Risks)**
    - **잘못된 구현**: Agent 개발자가 HPKE, 서명 검증, nonce 관리를 잘못 구현할 가능성
    - **취약점 패치 어려움**: 보안 버그 발견 시 모든 Agent 업데이트 필요
    - **검증 부담**: 각 Agent의 보안 코드를 개별적으로 감사해야 함
 
-3. **🚨 일관성 부족 (Inconsistent UX)**
+3. ** 일관성 부족 (Inconsistent UX)**
    ```
    Agent A의 동의 화면: "Payment Agent를 사용하시겠습니까?"
    Agent B의 동의 화면: "다음 권한을 부여하시겠습니까?"
@@ -142,12 +142,12 @@ func (a *TravelAgent) BookTrip(destination string) error {
    → 사용자 혼란, 신뢰도 하락
    ```
 
-4. **🚨 감사 불가능 (No Auditing)**
+4. ** 감사 불가능 (No Auditing)**
    - Agent 간 호출 추적 어려움
    - 보안 사고 발생 시 원인 분석 어려움
    - Compliance 요구사항 충족 어려움 (예: GDPR, SOC2)
 
-5. **🚨 유지보수 악몽**
+5. ** 유지보수 악몽**
    - SAGE 프로토콜 변경 시 모든 Agent 수정 필요
    - 버전 불일치 문제 (Agent A는 v1, Agent B는 v2 프로토콜 사용)
 
@@ -163,12 +163,12 @@ package main
 
 type TravelAgent struct {
     name string
-    sage *sage.Client  // ✅ SAGE가 제공하는 클라이언트
+    sage *sage.Client  //  SAGE가 제공하는 클라이언트
     did  string
 }
 
 func (a *TravelAgent) BookTrip(destination string) error {
-    // 1. ✅ SAGE API로 Agent 검색
+    // 1.  SAGE API로 Agent 검색
     consent, err := a.sage.RequestAgentConnection(context.Background(), sage.ConnectionRequest{
         CallerAgent:  a.did,
         TargetAgent:  "did:sage:payment-processor",  // 또는 Capability 기반 검색
@@ -184,10 +184,10 @@ func (a *TravelAgent) BookTrip(destination string) error {
         return errors.New("user denied")
     }
 
-    // 2. ✅ SAGE가 자동으로 핸드셰이크 수행 및 세션 반환
+    // 2.  SAGE가 자동으로 핸드셰이크 수행 및 세션 반환
     session := consent.Session
 
-    // 3. ✅ Agent는 비즈니스 로직에만 집중
+    // 3.  Agent는 비즈니스 로직에만 집중
     return a.callPaymentAPI(session, PaymentRequest{
         Amount:      totalCost,
         Description: "Jeju Trip Payment",
@@ -232,29 +232,29 @@ type ConnectionResult struct {
 
 #### 장점
 
-1. **✅ 보안성 (Security by Default)**
+1. ** 보안성 (Security by Default)**
    - **검증된 구현**: SAGE 팀이 HPKE, 서명, nonce 관리를 안전하게 구현
    - **중앙화된 패치**: 보안 버그 발견 시 SAGE만 업데이트하면 모든 Agent 자동 적용
    - **Secure by Default**: Agent 개발자가 보안을 신경 쓰지 않아도 안전
 
-2. **✅ 재사용성 (Code Reuse)**
+2. ** 재사용성 (Code Reuse)**
    - 모든 Agent가 동일한 SAGE API 사용
    - DRY (Don't Repeat Yourself) 원칙 준수
    - 개발 속도 향상 (핸드셰이크 코드 작성 불필요)
 
-3. **✅ 일관된 사용자 경험 (Consistent UX)**
+3. ** 일관된 사용자 경험 (Consistent UX)**
    ```
    표준화된 동의 화면:
 
    ┌─────────────────────────────────────────────┐
-   │ 🔐 Agent 연결 요청                           │
+   │  Agent 연결 요청                           │
    │                                             │
    │ 여행 Agent가 Payment Agent를 사용하려 합니다 │
    │                                             │
    │ 목적: 여행 결제 처리                         │
    │                                             │
    │ 요청 권한:                                   │
-   │  ✓ 결제 생성 (create_payment)               │
+   │   결제 생성 (create_payment)               │
    │                                             │
    │ 유효 기간: 1시간                             │
    │                                             │
@@ -264,7 +264,7 @@ type ConnectionResult struct {
    → 모든 Agent에서 동일한 UI → 사용자 신뢰 증가
    ```
 
-4. **✅ 감사 가능성 (Auditability)**
+4. ** 감사 가능성 (Auditability)**
    ```go
    // SAGE가 모든 inter-agent 호출을 자동 로깅
    type AuditLog struct {
@@ -282,7 +282,7 @@ type ConnectionResult struct {
    - 보안 사고 시 추적 가능
    - 비정상 패턴 탐지 가능
 
-5. **✅ 정책 적용 (Policy Enforcement)**
+5. ** 정책 적용 (Policy Enforcement)**
    ```go
    // Organization-wide policies
    type OrganizationPolicy struct {
@@ -305,7 +305,7 @@ type ConnectionResult struct {
    }
    ```
 
-6. **✅ Rate Limiting & Quota 관리**
+6. ** Rate Limiting & Quota 관리**
    ```go
    // SAGE가 자동으로 호출 제한 관리
    type QuotaPolicy struct {
@@ -317,11 +317,11 @@ type ConnectionResult struct {
 
 #### 단점
 
-1. **❌ Lock-in (종속성)**
+1. ** Lock-in (종속성)**
    - SAGE 플랫폼에 강하게 종속
    - 다른 플랫폼으로 이식 시 코드 수정 필요
 
-2. **❌ 유연성 제한**
+2. ** 유연성 제한**
    - 특수한 discovery 요구사항 충족 어려움 (예: private registry)
    - 표준화된 UI만 사용 가능
 
@@ -369,7 +369,7 @@ type AgentService struct {
     policy     *PolicyEngine
 }
 
-// 🎯 핵심 API: Agent 연결 요청 (Discovery + Consent + Handshake 통합)
+//  핵심 API: Agent 연결 요청 (Discovery + Consent + Handshake 통합)
 func (s *AgentService) RequestAgentConnection(ctx context.Context, req ConnectionRequest) (*ConnectionResult, error) {
     // 1️⃣ Agent 검색 (DID 또는 Capability 기반)
     target, err := s.registry.Resolve(ctx, req.TargetAgent)
@@ -439,7 +439,7 @@ func (s *AgentService) RequestAgentConnection(ctx context.Context, req Connectio
     }, nil
 }
 
-// 🎯 표준화된 동의 UI
+//  표준화된 동의 UI
 func (s *AgentService) showConsentDialog(ctx context.Context, req ConsentRequest) (*ConsentResult, error) {
     // UI 렌더링 (Web/CLI/Mobile 지원)
     return s.uiRenderer.ShowConsentScreen(ConsentScreenData{
@@ -479,7 +479,7 @@ func (a *TravelAgent) BookTrip(ctx context.Context, req BookingRequest) error {
 
     totalCost := flights.Price + hotels.Price
 
-    // 3. ✅ 결제를 위해 Payment Agent 호출 (SAGE API 사용)
+    // 3.  결제를 위해 Payment Agent 호출 (SAGE API 사용)
     result, err := a.sage.RequestAgentConnection(ctx, client.ConnectionRequest{
         CallerAgent:  a.did,
         TargetAgent:  "did:sage:payment-processor",
@@ -495,7 +495,7 @@ func (a *TravelAgent) BookTrip(ctx context.Context, req BookingRequest) error {
         return errors.New("user denied payment authorization")
     }
 
-    // 4. ✅ SAGE가 제공한 세션으로 메시지 전송
+    // 4.  SAGE가 제공한 세션으로 메시지 전송
     paymentResp, err := result.Session.SendMessage(ctx, PaymentRequest{
         Amount:      totalCost,
         Description: "Jeju Trip Payment",
@@ -650,7 +650,7 @@ func (a *TravelAgent) callPaymentAgent(ctx context.Context, amount float64) erro
     a.tokenCache.mu.RUnlock()
 
     if token != nil && !token.IsExpired() {
-        // ✅ 기존 토큰 재사용 (사용자에게 다시 묻지 않음)
+        //  기존 토큰 재사용 (사용자에게 다시 묻지 않음)
         return a.sendPaymentRequest(token, amount)
     }
 
@@ -685,27 +685,27 @@ func (a *TravelAgent) callPaymentAgent(ctx context.Context, amount float64) erro
 
 **이유**:
 
-1. **🔒 보안이 최우선**
+1. ** 보안이 최우선**
    - 암호화 프로토콜은 전문가가 구현해야 함
    - Agent 개발자에게 맡기면 취약점 발생 확률 높음
    - **"Secure by Default"** 원칙 준수
 
-2. **👥 일관된 사용자 경험**
+2. ** 일관된 사용자 경험**
    - 모든 Agent에서 동일한 동의 화면
    - 사용자 신뢰 증가
    - 학습 곡선 감소
 
-3. **📊 감사 및 Compliance**
+3. ** 감사 및 Compliance**
    - 모든 inter-agent 호출 추적
    - GDPR, SOC2, HIPAA 등 규정 준수
    - 보안 사고 시 빠른 대응
 
-4. **🌐 산업 표준 준수**
+4. ** 산업 표준 준수**
    - OAuth 2.0, Capability-based Security 모델
    - Service Mesh 패턴 (Istio, Linkerd)
    - Zero-Trust 아키텍처
 
-5. **⚡ 개발 속도 향상**
+5. ** 개발 속도 향상**
    - Agent 개발자는 비즈니스 로직에만 집중
    - 인프라 코드 작성 불필요
    - Time-to-Market 단축

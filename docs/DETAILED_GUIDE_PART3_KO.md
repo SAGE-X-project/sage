@@ -313,7 +313,7 @@ contract SageRegistryV2 {
 | **에코시스템**      | 가장 큼              | 중간 (한국 중심)        | 빠르게 성장           |
 | **개발 도구**       | Hardhat, Foundry     | Hardhat, Foundry        | Anchor                |
 | **지갑 지원**       | MetaMask 등 많음     | Kaikas, MetaMask        | Phantom, Solflare     |
-| **SAGE 상태**       | Yes 완전 지원         | Yes 완전 지원            | 🚧 개발 중            |
+| **SAGE 상태**       | Yes 완전 지원         | Yes 완전 지원            |  개발 중            |
 
 ### 2.2 Ethereum 선택 이유
 

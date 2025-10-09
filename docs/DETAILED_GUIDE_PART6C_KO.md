@@ -1698,6 +1698,6 @@ Part 6C에서는 SAGE 사용 시 겪을 수 있는 문제들과 해결 방법을
 - Part: 6C/6C (최종)
 - 이전: [Part 6B - Practical Integration Guide](DETAILED_GUIDE_PART6B_KO.md)
 
-**🎉 전체 시리즈 완성! 🎉**
+** 전체 시리즈 완성! **
 
 프로그래밍을 모르는 초급자도 SAGE를 완전히 이해하고 사용할 수 있는 완전한 가이드입니다.

@@ -1633,7 +1633,7 @@ class SecureAIAgent:
         # 메시지 수신 핸들러 등록
         @self.sage.on_message
         async def on_message(msg):
-            print(f"📨 Message from {msg.sender_did}")
+            print(f" Message from {msg.sender_did}")
             response = await self.handle_user_request(
                 msg.sender_did,
                 msg.plaintext
@@ -1643,11 +1643,11 @@ class SecureAIAgent:
         # 세션 이벤트 핸들러
         @self.sage.on_session_created
         async def on_session_created(session):
-            print(f"🔐 Secure session created with {session.peer_did}")
+            print(f" Secure session created with {session.peer_did}")
 
         # 시작
         self.sage.start()
-        print("🤖 AI Agent is running...")
+        print(" AI Agent is running...")
 
 # 실행
 if __name__ == '__main__':
@@ -1918,7 +1918,7 @@ T=354ms (+30ms - 네트워크)
   ↓
 T=358ms
   │
-  │  [Agent A & B] 세션 확립 완료! 🎉
+  │  [Agent A & B] 세션 확립 완료! 
   │  Session ID: "7vH3Jq9KmN2p..."
   │
   ↓

@@ -259,7 +259,7 @@ ERC-8004는 **자율적인 AI 에이전트들이 조직 간 경계를 넘어 거
 
 ---
 
-## 🔗 관련 기술 스택
+##  관련 기술 스택
 
 ### 1. Model Context Protocol (MCP) vs A2A vs ERC-8004
 
@@ -582,7 +582,7 @@ contract SageValidationRegistry {
 
 ---
 
-## 📚 참고 자료
+##  참고 자료
 
 ### 공식 문서
 - [EIP-8004 사양](https://eips.ethereum.org/EIPS/eip-8004)

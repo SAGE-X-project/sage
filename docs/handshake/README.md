@@ -27,7 +27,7 @@ SAGE supports two handshake protocols. Choose based on your requirements:
 | **Packages** | `handshake/` | `hpke/` |
 | **Round Trips** | 2 RTT (4 messages) | 1 RTT (2 messages) |
 | **Key Exchange** | X25519 ECDH | HPKE Base + E2E X25519 |
-| **Forward Secrecy** | ✅ (ephemeral keys) | ✅ (HPKE + E2E add-on) |
+| **Forward Secrecy** |  (ephemeral keys) |  (HPKE + E2E add-on) |
 | **Maturity** | Stable | Stable |
 | **Recommended For** | Existing integrations | New projects |
 
@@ -50,7 +50,7 @@ Client                                    Server
   │  4. Complete (final acknowledgment)      │
   │ ──────────────────────────────────────>  │
   │                                          │
-  │ 🔒 Encrypted session established         │
+  │  Encrypted session established         │
 ```
 
 **Use when**: Compatibility with existing A2A protocol integrations
@@ -70,7 +70,7 @@ Client                                    Server
   │  2. Ack (kid + ackTag + ephS)           │
   │ <──────────────────────────────────────  │
   │                                          │
-  │ 🔒 Encrypted session established         │
+  │  Encrypted session established         │
 ```
 
 **Use when**: Starting new projects, need lower latency
@@ -152,11 +152,11 @@ Once established, sessions use:
 
 Both handshake protocols provide:
 
-- ✅ **Mutual Authentication**: Both agents verify each other's DIDs
-- ✅ **Forward Secrecy**: Past sessions remain secure even if long-term keys compromised
-- ✅ **Replay Protection**: Nonces and timestamps prevent message replay
-- ✅ **MitM Resistance**: DID signatures prevent man-in-the-middle attacks
-- ✅ **End-to-End Encryption**: Only communicating agents can decrypt messages
+-  **Mutual Authentication**: Both agents verify each other's DIDs
+-  **Forward Secrecy**: Past sessions remain secure even if long-term keys compromised
+-  **Replay Protection**: Nonces and timestamps prevent message replay
+-  **MitM Resistance**: DID signatures prevent man-in-the-middle attacks
+-  **End-to-End Encryption**: Only communicating agents can decrypt messages
 
 ---
 

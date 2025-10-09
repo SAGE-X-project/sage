@@ -6,22 +6,22 @@
 
 ---
 
-## ⚠️ 중요 업데이트 (2025-10-10)
+## ️ 중요 업데이트 (2025-10-10)
 
 **검증 결과:** 문서 작성 이후 또는 발견하지 못한 구현이 존재합니다.
 
 ### 이미 구현된 사항:
-- ✅ **Prometheus 메트릭 완전 구현** (`internal/metrics/` 패키지)
-- ✅ **메트릭 서버 구현** (`/metrics` 엔드포인트)
-- ✅ **Grafana 대시보드** (`docker/grafana/dashboards/sage-overview.json`)
-- ✅ **Docker Compose 설정** (Prometheus, Grafana, Redis)
-- ✅ **Zap 의존성 설치** (`go.uber.org/zap v1.21.0`)
+-  **Prometheus 메트릭 완전 구현** (`internal/metrics/` 패키지)
+-  **메트릭 서버 구현** (`/metrics` 엔드포인트)
+-  **Grafana 대시보드** (`docker/grafana/dashboards/sage-overview.json`)
+-  **Docker Compose 설정** (Prometheus, Grafana, Redis)
+-  **Zap 의존성 설치** (`go.uber.org/zap v1.21.0`)
 
 ### 실제 필요 작업:
-- ❌ Prometheus 설정 수정 (엔드포인트 불일치)
-- ❌ 메트릭을 실제 코드에 통합 (handshake, session, crypto)
-- ❌ Zap 로거 적용 (설치되었지만 미사용)
-- ❌ OpenTelemetry/Jaeger 추적 추가
+-  Prometheus 설정 수정 (엔드포인트 불일치)
+-  메트릭을 실제 코드에 통합 (handshake, session, crypto)
+-  Zap 로거 적용 (설치되었지만 미사용)
+-  OpenTelemetry/Jaeger 추적 추가
 
 **예상 작업 시간:** 3일 → **1-2일로 단축 가능** (인프라 70% 완성)
 
@@ -45,13 +45,13 @@
 
 #### 메트릭 현황
 - **Prometheus 메트릭 구현 완료**: `internal/metrics/` 패키지 (9개 파일)
-  - ✅ `handshake.go` - 핸드셰이크 메트릭 (Initiated, Completed, Failed, Duration)
-  - ✅ `session.go` - 세션 메트릭 (Created, Active, Expired, Duration)
-  - ✅ `crypto.go` - 암호화 메트릭 (Operations, Errors, Duration)
-  - ✅ `message.go` - 메시지 메트릭 (Processed, ReplayAttacks, Nonce)
-  - ✅ `collector.go` - 메트릭 수집기 (Snapshot, Statistics)
-  - ✅ `server.go` - HTTP 핸들러 (`/metrics` 엔드포인트)
-  - ✅ `registry.go` - Prometheus 레지스트리
+  -  `handshake.go` - 핸드셰이크 메트릭 (Initiated, Completed, Failed, Duration)
+  -  `session.go` - 세션 메트릭 (Created, Active, Expired, Duration)
+  -  `crypto.go` - 암호화 메트릭 (Operations, Errors, Duration)
+  -  `message.go` - 메시지 메트릭 (Processed, ReplayAttacks, Nonce)
+  -  `collector.go` - 메트릭 수집기 (Snapshot, Statistics)
+  -  `server.go` - HTTP 핸들러 (`/metrics` 엔드포인트)
+  -  `registry.go` - Prometheus 레지스트리
 
 - **Grafana 대시보드 구현**: `docker/grafana/dashboards/sage-overview.json`
   - 7개 패널: Active Sessions, Handshake Success Rate, Signature Latency 등
@@ -61,11 +61,11 @@
   - Grafana: `docker/grafana/` (datasources, dashboards)
 
 - **문제점**:
-  - ⚠️ **Prometheus 설정과 코드 불일치**:
+  - ️ **Prometheus 설정과 코드 불일치**:
     - 설정: `/metrics/sessions`, `/metrics/handshakes`, `/metrics/crypto` (3개 개별 엔드포인트)
     - 실제: `/metrics` (단일 표준 엔드포인트만 구현)
-  - ⚠️ **메트릭 코드 통합 부족**: 정의된 메트릭이 실제 비즈니스 로직에서 호출되지 않음
-  - ⚠️ **health/server.go**만 메트릭 사용, 핵심 모듈(handshake, session)에서 미사용
+  - ️ **메트릭 코드 통합 부족**: 정의된 메트릭이 실제 비즈니스 로직에서 호출되지 않음
+  - ️ **health/server.go**만 메트릭 사용, 핵심 모듈(handshake, session)에서 미사용
 
 #### 추적(Tracing) 현황
 - **분산 추적 없음**: OpenTelemetry나 Jaeger 통합 없음
@@ -684,26 +684,26 @@ func (m *Middleware) Handle(next http.Handler) http.Handler {
 **실제 상황:** 인프라 70% 구현 완료
 **수정된 예상:** 1-2일
 
-#### ✅ Phase 1: 기본 인프라 - **이미 완료**
-- ✅ Prometheus 메트릭 정의 (`internal/metrics/*.go`)
-- ✅ 메트릭 서버 구현 (`internal/metrics/server.go`)
-- ✅ Grafana 대시보드 (`docker/grafana/dashboards/sage-overview.json`)
-- ✅ Docker Compose 설정 (Prometheus, Grafana)
-- ✅ Zap 의존성 설치
+####  Phase 1: 기본 인프라 - **이미 완료**
+-  Prometheus 메트릭 정의 (`internal/metrics/*.go`)
+-  메트릭 서버 구현 (`internal/metrics/server.go`)
+-  Grafana 대시보드 (`docker/grafana/dashboards/sage-overview.json`)
+-  Docker Compose 설정 (Prometheus, Grafana)
+-  Zap 의존성 설치
 
-#### 🔴 Phase 2 (즉시): 설정 수정 및 통합 - **0.5일**
+####  Phase 2 (즉시): 설정 수정 및 통합 - **0.5일**
 - [ ] **즉시 조치 1**: Prometheus 설정 수정 (엔드포인트 통합)
 - [ ] **즉시 조치 2**: 핸드셰이크 코드에 메트릭 통합
 - [ ] **즉시 조치 3**: 세션 매니저에 메트릭 통합
 - [ ] 메트릭 동작 검증 (Grafana 확인)
 
-#### 🟡 Phase 3 (단기): 로깅 개선 - **0.5-1일**
+####  Phase 3 (단기): 로깅 개선 - **0.5-1일**
 - [ ] Zap 로거 래퍼 구현 (`pkg/logging/`)
 - [ ] 표준 필드 정의 (`pkg/logging/fields.go`)
 - [ ] HTTP 미들웨어 추가
 - [ ] 핵심 모듈에 Zap 적용 (점진적)
 
-#### 🟢 Phase 4 (중기): 추적 및 알림 - **0.5-1일**
+####  Phase 4 (중기): 추적 및 알림 - **0.5-1일**
 - [ ] OpenTelemetry 설정
 - [ ] Jaeger를 Docker Compose에 추가
 - [ ] HTTP 추적 미들웨어
@@ -758,7 +758,7 @@ func (m *Middleware) Handle(next http.Handler) http.Handler {
 
 ---
 
-## 5. 🔴 즉시 조치 사항 (Immediate Actions Required)
+## 5.  즉시 조치 사항 (Immediate Actions Required)
 
 > **업데이트:** 2025-10-10
 > **우선순위:** Critical - 설정 불일치 해소 및 메트릭 활성화
@@ -770,13 +770,13 @@ func (m *Middleware) Handle(next http.Handler) http.Handler {
 **현재 설정** (`docker/prometheus/prometheus.yml:72-100`):
 ```yaml
 - job_name: 'sage-sessions'
-  metrics_path: '/metrics/sessions'  # ❌ 미구현
+  metrics_path: '/metrics/sessions'  #  미구현
 
 - job_name: 'sage-handshakes'
-  metrics_path: '/metrics/handshakes'  # ❌ 미구현
+  metrics_path: '/metrics/handshakes'  #  미구현
 
 - job_name: 'sage-crypto'
-  metrics_path: '/metrics/crypto'  # ❌ 미구현
+  metrics_path: '/metrics/crypto'  #  미구현
 ```
 
 **해결 방법:**
@@ -784,7 +784,7 @@ func (m *Middleware) Handle(next http.Handler) http.Handler {
 # 위 3개 job 삭제, 아래 job만 유지 (라인 26-39 유지)
 - job_name: 'sage-backend'
   scrape_interval: 10s
-  metrics_path: '/metrics'  # ✅ 실제 구현됨
+  metrics_path: '/metrics'  #  실제 구현됨
   static_configs:
     - targets:
         - 'sage-backend:9090'
@@ -938,10 +938,10 @@ sage_crypto_operations_total{operation="sign",algorithm="ed25519"} 10
 
 | 번호 | 작업 | 우선순위 | 예상 시간 | 종속성 |
 |------|------|----------|-----------|--------|
-| 5.1 | Prometheus 설정 수정 | 🔴 Critical | 15분 | 없음 |
-| 5.2 | 핸드셰이크 메트릭 통합 | 🔴 Critical | 30분 | 5.1 |
-| 5.3 | 세션 메트릭 통합 | 🔴 Critical | 30분 | 5.1 |
-| 5.4 | 메트릭 검증 | 🔴 Critical | 15분 | 5.2, 5.3 |
+| 5.1 | Prometheus 설정 수정 |  Critical | 15분 | 없음 |
+| 5.2 | 핸드셰이크 메트릭 통합 |  Critical | 30분 | 5.1 |
+| 5.3 | 세션 메트릭 통합 |  Critical | 30분 | 5.1 |
+| 5.4 | 메트릭 검증 |  Critical | 15분 | 5.2, 5.3 |
 | **합계** | | | **90분 (1.5시간)** | |
 
 ---
@@ -1041,14 +1041,14 @@ func (nc *NonceCache) ValidateNonce(nonce string) bool {
 
 ---
 
-## 6. 📋 작업 완료 기준
+## 6.  작업 완료 기준
 
 ### 성공 지표:
-1. ✅ Prometheus가 `/metrics` 엔드포인트에서 메트릭 수집
-2. ✅ Grafana 대시보드에 실시간 데이터 표시
-3. ✅ 핸드셰이크 카운터 증가 확인
-4. ✅ 세션 활성 게이지 변화 확인
-5. ✅ 에러 없이 모든 테스트 통과
+1.  Prometheus가 `/metrics` 엔드포인트에서 메트릭 수집
+2.  Grafana 대시보드에 실시간 데이터 표시
+3.  핸드셰이크 카운터 증가 확인
+4.  세션 활성 게이지 변화 확인
+5.  에러 없이 모든 테스트 통과
 
 ### 검증 명령어:
 ```bash

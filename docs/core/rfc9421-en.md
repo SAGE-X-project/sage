@@ -378,32 +378,32 @@ go test -cover ./core/rfc9421/...
 The implementation has **100% coverage** of the documented test plan in `rfc-9421-test.md`:
 
 #### Unit Tests
-- ✅ **Parser tests** (6/6 tests passing)
+-  **Parser tests** (6/6 tests passing)
   - Basic parsing, multiple signatures, whitespace handling
   - Error cases: malformed headers, invalid Base64
-- ✅ **Canonicalizer tests** (10/10 tests passing)
+-  **Canonicalizer tests** (10/10 tests passing)
   - HTTP components (`@method`, `@path`, `@query`, etc.)
   - Header normalization and whitespace handling
   - Query parameter protection (`@query-param`)
-- ✅ **Message Builder tests** (3/3 tests passing)
+-  **Message Builder tests** (3/3 tests passing)
   - Fluent API construction, header parsing
 
 #### Integration Tests
-- ✅ **End-to-end tests** (2/2 tests passing)
+-  **End-to-end tests** (2/2 tests passing)
   - Ed25519 signing and verification
   - ECDSA P-256 signing and verification
-- ✅ **Negative tests** (5/5 tests passing)
+-  **Negative tests** (5/5 tests passing)
   - Signature tampering detection
   - Signed header modification detection
   - Unsigned header modification (should pass)
   - Expiry validation (`created` + `MaxAge`, `expires`)
 
 #### Advanced Tests
-- ✅ **Query parameter tests** (5/5 tests passing)
+-  **Query parameter tests** (5/5 tests passing)
   - Selective parameter signing and protection
   - Parameter case sensitivity
   - Non-existent parameter handling
-- ✅ **Edge case tests** (3/3 tests passing)
+-  **Edge case tests** (3/3 tests passing)
   - Empty paths, special characters, proxy requests
 
 **Total: 26/26 tests passing (100% coverage)**
@@ -426,22 +426,22 @@ This implementation follows:
 
 | Algorithm | Status | RFC-9421 Name | Notes |
 |-----------|--------|---------------|-------|
-| Ed25519 | ✅ Fully Supported | `ed25519` | Recommended for new implementations |
-| ES256K (Secp256k1) | ✅ Fully Supported | `es256k` | Ethereum-compatible |
-| RSA-PSS-SHA256 | ✅ Fully Supported | `rsa-pss-sha256` | RSA with PSS padding |
-| ECDSA P-256 | ⚠️ Crypto Only | N/A | Cryptographic operations work, not registered as distinct algorithm |
-| RSA-PKCS#1 v1.5 | ❌ Not Supported | `rsa-v1_5-sha256` | Legacy RSA (planned) |
+| Ed25519 |  Fully Supported | `ed25519` | Recommended for new implementations |
+| ES256K (Secp256k1) |  Fully Supported | `es256k` | Ethereum-compatible |
+| RSA-PSS-SHA256 |  Fully Supported | `rsa-pss-sha256` | RSA with PSS padding |
+| ECDSA P-256 | ️ Crypto Only | N/A | Cryptographic operations work, not registered as distinct algorithm |
+| RSA-PKCS#1 v1.5 |  Not Supported | `rsa-v1_5-sha256` | Legacy RSA (planned) |
 
 ## Implementation Status & Roadmap
 
 ### Completed Features
-- ✅ **RSA-PSS-SHA256 support** - Fully implemented and registered in algorithm registry
-- ✅ **Core RFC-9421 compliance** - HTTP request signing with Ed25519, ES256K, RSA-PSS-SHA256
-- ✅ **Comprehensive test coverage** - 100% coverage of documented test plan (26/26 tests passing)
+-  **RSA-PSS-SHA256 support** - Fully implemented and registered in algorithm registry
+-  **Core RFC-9421 compliance** - HTTP request signing with Ed25519, ES256K, RSA-PSS-SHA256
+-  **Comprehensive test coverage** - 100% coverage of documented test plan (26/26 tests passing)
 
 ### Partially Implemented
-- ⚠️ **Response signature support** - `@status` component detection implemented, signing/verification methods pending
-- ⚠️ **ECDSA P-256 support** - Cryptographic operations fully functional and tested, algorithm registration as distinct identifier pending
+- ️ **Response signature support** - `@status` component detection implemented, signing/verification methods pending
+- ️ **ECDSA P-256 support** - Cryptographic operations fully functional and tested, algorithm registration as distinct identifier pending
 
 ### Planned Enhancements
 - **RSA-PKCS#1 v1.5 support** - Legacy RSA algorithm (`rsa-v1_5-sha256`)
