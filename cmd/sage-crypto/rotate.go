@@ -22,9 +22,9 @@ package main
 import (
 	"fmt"
 
-	sagecrypto "github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/crypto/rotation"
-	"github.com/sage-x-project/sage/crypto/storage"
+	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/rotation"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 	"github.com/spf13/cobra"
 )
 

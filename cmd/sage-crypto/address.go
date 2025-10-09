@@ -29,10 +29,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/crypto/chain"
-	"github.com/sage-x-project/sage/crypto/formats"
-	"github.com/sage-x-project/sage/crypto/storage"
+	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 	"github.com/spf13/cobra"
 )
 

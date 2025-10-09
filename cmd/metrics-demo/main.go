@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/sage-x-project/sage/internal/metrics"
-	"github.com/sage-x-project/sage/session"
+	"github.com/sage-x-project/sage/pkg/agent/session"
 )
 
 func main() {

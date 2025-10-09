@@ -26,7 +26,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/sage-x-project/sage/did"
+	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
 var resolveCmd = &cobra.Command{

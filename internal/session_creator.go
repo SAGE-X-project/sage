@@ -28,11 +28,11 @@ import (
 	"fmt"
 	"sync"
 
-	sagecrypto "github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/crypto/formats"
-	"github.com/sage-x-project/sage/crypto/keys"
-	"github.com/sage-x-project/sage/handshake"
-	"github.com/sage-x-project/sage/session"
+	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
+	"github.com/sage-x-project/sage/pkg/agent/handshake"
+	"github.com/sage-x-project/sage/pkg/agent/session"
 )
 
 // Creator implements handshake.Events and forwards to Manager.
