@@ -139,7 +139,7 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
 }
 
 // Resolve KEM public key of the peer by DID.
-func (c *Client) resolvePeerKEM(ctx context.Context, peerDID string) (interface{}, error) {
+func (c *Client) resolvePeerKEM(ctx context.Context, peerDID string) (*ecdh.PublicKey, error) {
 	if c.resolver == nil {
 		return nil, fmt.Errorf("nil Resolver")
 	}
@@ -147,11 +147,18 @@ func (c *Client) resolvePeerKEM(ctx context.Context, peerDID string) (interface{
 	if err != nil || peerPub == nil {
 		return nil, fmt.Errorf("cannot resolve receiver KEM pubkey: %w", err)
 	}
-	return peerPub, nil
+
+	// Type assert to *ecdh.PublicKey
+	kemPub, ok := peerPub.(*ecdh.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("expected *ecdh.PublicKey, got %T", peerPub)
+	}
+
+	return kemPub, nil
 }
 
 // HPKE sender-side derivation: returns enc and exporter.
-func (c *Client) deriveHPKESenderSecrets(peerKEM interface{}, info, exportCtx []byte) (enc, exporter []byte, err error) {
+func (c *Client) deriveHPKESenderSecrets(peerKEM *ecdh.PublicKey, info, exportCtx []byte) (enc, exporter []byte, err error) {
 	enc, exporter, err = keys.HPKEDeriveSharedSecretToPeer(peerKEM, info, exportCtx, 32)
 	if err != nil {
 		return nil, nil, fmt.Errorf("HPKE sender derive: %v", err)

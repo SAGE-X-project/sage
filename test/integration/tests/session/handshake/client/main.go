@@ -173,15 +173,16 @@ func (r *httpResolver) Resolve(ctx context.Context, did sagedid.AgentDID) (*sage
 		return nil, fmt.Errorf("unknown DID: %s", did)
 	}
 	kem := mustFetchServerKEMPub()
+	sign := mustFetchServerSignPub()
 	return &sagedid.AgentMetadata{
 		DID:          did,
 		IsActive:     true,
-		PublicKey:    kem, // return the same value for convenience
+		PublicKey:    sign,
 		PublicKEMKey: kem,
 	}, nil
 }
 func (r *httpResolver) ResolvePublicKey(ctx context.Context, did sagedid.AgentDID) (interface{}, error) {
-	return mustFetchServerKEMPub(), nil
+	return mustFetchServerSignPub(), nil
 }
 func (r *httpResolver) ResolveKEMKey(ctx context.Context, did sagedid.AgentDID) (interface{}, error) {
 	return mustFetchServerKEMPub(), nil
@@ -261,6 +262,14 @@ func mustFetchServerKEMPub() *ecdh.PublicKey {
 	b, _ := base64.RawURLEncoding.DecodeString(m["kem"])
 	pub, _ := ecdh.X25519().NewPublicKey(b)
 	return pub
+}
+func mustFetchServerSignPub() ed25519.PublicKey {
+	resp := must(http.Get(baseURL + "/debug/sign-pub"))
+	defer resp.Body.Close()
+	var m map[string]string
+	_ = json.NewDecoder(resp.Body).Decode(&m)
+	b, _ := base64.RawURLEncoding.DecodeString(m["sign"])
+	return ed25519.PublicKey(b)
 }
 func fetchServerDID() string {
 	resp := must(http.Get(baseURL + "/debug/server-did"))

@@ -327,6 +327,10 @@ func main() {
 		pub := serverKEMKP.PublicKey().(*ecdh.PublicKey).Bytes()
 		_ = json.NewEncoder(w).Encode(map[string]string{"kem": base64.RawURLEncoding.EncodeToString(pub)})
 	})
+	mux.HandleFunc("/debug/sign-pub", func(w http.ResponseWriter, r *http.Request) {
+		pub := serverSignKP.PublicKey().(ed25519.PublicKey)
+		_ = json.NewEncoder(w).Encode(map[string]string{"sign": base64.RawURLEncoding.EncodeToString(pub)})
+	})
 	mux.HandleFunc("/debug/server-did", func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewEncoder(w).Encode(map[string]string{"did": serverDID})
 	})
