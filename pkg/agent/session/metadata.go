@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package session
 
 import (
@@ -30,11 +29,11 @@ import (
 
 // Metadata contains the parameters required for message exchange before the communication channel is established.
 type Metadata struct {
-    ID                string 					`json:"id"`
-   
-    Status            string 					`json:"status,omitempty"`
-    CreatedAt         string 					`json:"createdAt,omitempty"`
-    ExpiresAt         string 					`json:"expiresAt,omitempty"`
+	ID string `json:"id"`
+
+	Status    string `json:"status,omitempty"`
+	CreatedAt string `json:"createdAt,omitempty"`
+	ExpiresAt string `json:"expiresAt,omitempty"`
 }
 
 // MetadataBuilder constructs metadata instances with a fluent API.
@@ -84,14 +83,14 @@ func (b *MetadataBuilder) Build() *Metadata {
 
 // GenerateSalt generates a cryptographically secure 32-byte salt
 func GenerateSalt() (string, error) {
-    const saltSize = 32 // 256 bits
-    saltBytes := make([]byte, saltSize)
-    
-    // crypto/rand.Read uses the system's CSPRNG
-    if _, err := rand.Read(saltBytes); err != nil {
-        return "", fmt.Errorf("failed to generate salt: %w", err)
-    }
-    
-    // Encode to Base64URL without padding
-    return base64.RawURLEncoding.EncodeToString(saltBytes), nil
+	const saltSize = 32 // 256 bits
+	saltBytes := make([]byte, saltSize)
+
+	// crypto/rand.Read uses the system's CSPRNG
+	if _, err := rand.Read(saltBytes); err != nil {
+		return "", fmt.Errorf("failed to generate salt: %w", err)
+	}
+
+	// Encode to Base64URL without padding
+	return base64.RawURLEncoding.EncodeToString(saltBytes), nil
 }

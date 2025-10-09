@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package validator
 
 import (
@@ -36,7 +35,7 @@ type mockHeader struct {
 	timestamp time.Time
 }
 
-func (m *mockHeader) GetSequence() uint64    { return m.seq }
+func (m *mockHeader) GetSequence() uint64     { return m.seq }
 func (m *mockHeader) GetNonce() string        { return m.nonce }
 func (m *mockHeader) GetTimestamp() time.Time { return m.timestamp }
 
@@ -58,7 +57,7 @@ func TestValidateMessage(t *testing.T) {
 		require.False(t, res.IsReplay)
 		require.False(t, res.IsDuplicate)
 		require.False(t, res.IsOutOfOrder)
-		
+
 		stats := mv.GetStats()
 		require.EqualValues(t, 1, stats["tracked_nonces"], "one nonce marked")
 		require.EqualValues(t, 1, stats["tracked_packets"], "one packet tracked")
@@ -73,7 +72,7 @@ func TestValidateMessage(t *testing.T) {
 			CleanupInterval:     time.Hour,
 		}
 		mv := NewMessageValidator(cfg)
-		
+
 		old := time.Now().Add(-time.Second)
 		head := &mockHeader{seq: 1, nonce: uuid.NewString(), timestamp: old}
 		res := mv.ValidateMessage(head, "sess", uuid.NewString())

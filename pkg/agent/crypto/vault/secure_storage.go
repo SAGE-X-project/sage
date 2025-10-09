@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package vault
 
 import (
@@ -38,11 +37,11 @@ import (
 )
 
 var (
-	ErrKeyNotFound      = errors.New("key not found")
+	ErrKeyNotFound       = errors.New("key not found")
 	ErrInvalidPassphrase = errors.New("invalid passphrase")
-	ErrInvalidKeyID     = errors.New("invalid key ID")
-	ErrEncryptionFailed = errors.New("encryption failed")
-	ErrDecryptionFailed = errors.New("decryption failed")
+	ErrInvalidKeyID      = errors.New("invalid key ID")
+	ErrEncryptionFailed  = errors.New("encryption failed")
+	ErrDecryptionFailed  = errors.New("decryption failed")
 )
 
 // SecureVault defines the interface for secure key storage

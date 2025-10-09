@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -26,11 +25,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	"github.com/spf13/cobra"
 )
 
 var registerCmd = &cobra.Command{
@@ -43,18 +42,18 @@ This command creates a new agent identity on the specified blockchain network.`,
 
 var (
 	// Register flags
-	registerChain         string
-	registerName          string
-	registerDescription   string
-	registerEndpoint      string
-	registerCapabilities  string
-	registerKeyFile       string
-	registerKeyFormat     string
-	registerStorageDir    string
-	registerKeyID         string
-	registerRPCEndpoint   string
-	registerContractAddr  string
-	registerPrivateKey    string
+	registerChain        string
+	registerName         string
+	registerDescription  string
+	registerEndpoint     string
+	registerCapabilities string
+	registerKeyFile      string
+	registerKeyFormat    string
+	registerStorageDir   string
+	registerKeyID        string
+	registerRPCEndpoint  string
+	registerContractAddr string
+	registerPrivateKey   string
 )
 
 func init() {
@@ -64,17 +63,17 @@ func init() {
 	registerCmd.Flags().StringVarP(&registerChain, "chain", "c", "", "Blockchain network (ethereum, solana)")
 	registerCmd.Flags().StringVarP(&registerName, "name", "n", "", "Agent name")
 	registerCmd.Flags().StringVar(&registerEndpoint, "endpoint", "", "Agent API endpoint URL")
-	
+
 	// Optional flags
 	registerCmd.Flags().StringVarP(&registerDescription, "description", "d", "", "Agent description")
 	registerCmd.Flags().StringVar(&registerCapabilities, "capabilities", "", "Agent capabilities (JSON format)")
-	
+
 	// Key source flags
 	registerCmd.Flags().StringVarP(&registerKeyFile, "key", "k", "", "Key file path (JWK or PEM format)")
 	registerCmd.Flags().StringVar(&registerKeyFormat, "key-format", "jwk", "Key file format (jwk, pem)")
 	registerCmd.Flags().StringVar(&registerStorageDir, "storage-dir", "", "Key storage directory")
 	registerCmd.Flags().StringVar(&registerKeyID, "key-id", "", "Key ID in storage")
-	
+
 	// Blockchain connection flags
 	registerCmd.Flags().StringVar(&registerRPCEndpoint, "rpc", "", "Blockchain RPC endpoint")
 	registerCmd.Flags().StringVar(&registerContractAddr, "contract", "", "DID registry contract address")
@@ -271,12 +270,12 @@ func getDefaultContractAddress(chain did.Chain) string {
 
 func saveRegistrationInfo(storageDir, agentDID string, result *did.RegistrationResult) {
 	info := map[string]interface{}{
-		"did":              agentDID,
-		"transactionHash":  result.TransactionHash,
-		"blockNumber":      result.BlockNumber,
-		"slot":             result.Slot,
-		"timestamp":        result.Timestamp,
-		"gasUsed":          result.GasUsed,
+		"did":             agentDID,
+		"transactionHash": result.TransactionHash,
+		"blockNumber":     result.BlockNumber,
+		"slot":            result.Slot,
+		"timestamp":       result.Timestamp,
+		"gasUsed":         result.GasUsed,
 	}
 
 	data, _ := json.MarshalIndent(info, "", "  ")

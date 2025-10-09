@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package rfc9421
 
 import (
@@ -40,90 +39,90 @@ type SignatureInputParams struct {
 // ParseSignatureInput parses the Signature-Input header according to RFC 9421
 func ParseSignatureInput(input string) (map[string]*SignatureInputParams, error) {
 	result := make(map[string]*SignatureInputParams)
-	
+
 	// Split by comma to handle multiple signatures
 	signatures := splitSignatures(input)
-	
+
 	for _, sig := range signatures {
 		sig = strings.TrimSpace(sig)
 		if sig == "" {
 			continue
 		}
-		
+
 		// Parse signature name and value
 		parts := strings.SplitN(sig, "=", 2)
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid signature format: %s", sig)
 		}
-		
+
 		sigName := strings.TrimSpace(parts[0])
 		sigValue := strings.TrimSpace(parts[1])
-		
+
 		params, err := parseSignatureValue(sigValue)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse signature '%s': %w", sigName, err)
 		}
-		
+
 		result[sigName] = params
 	}
-	
+
 	return result, nil
 }
 
 // ParseSignature parses the Signature header containing base64-encoded signatures
 func ParseSignature(input string) (map[string][]byte, error) {
 	result := make(map[string][]byte)
-	
+
 	// Split by comma to handle multiple signatures
 	signatures := splitSignatures(input)
-	
+
 	for _, sig := range signatures {
 		sig = strings.TrimSpace(sig)
 		if sig == "" {
 			continue
 		}
-		
+
 		// Parse signature name and value
 		parts := strings.SplitN(sig, "=", 2)
 		if len(parts) != 2 {
 			return nil, fmt.Errorf("invalid signature format: %s", sig)
 		}
-		
+
 		sigName := strings.TrimSpace(parts[0])
 		sigValue := strings.TrimSpace(parts[1])
-		
+
 		// RFC 8941 byte sequence format: :base64:
 		if !strings.HasPrefix(sigValue, ":") || !strings.HasSuffix(sigValue, ":") {
 			return nil, fmt.Errorf("invalid byte sequence format for signature '%s'", sigName)
 		}
-		
+
 		// Extract base64 content
 		b64Content := sigValue[1 : len(sigValue)-1]
-		
+
 		// Decode base64
 		decoded, err := base64.StdEncoding.DecodeString(b64Content)
 		if err != nil {
 			return nil, fmt.Errorf("failed to decode base64 for signature '%s': %w", sigName, err)
 		}
-		
+
 		result[sigName] = decoded
 	}
-	
+
 	return result, nil
 }
 
 // parseSignatureValue parses the value part of a signature input
 func parseSignatureValue(value string) (*SignatureInputParams, error) {
 	params := &SignatureInputParams{}
-	
+
 	// Find the components list in parentheses
 	compStart := strings.Index(value, "(")
 	compEnd := strings.Index(value, ")")
-	
+
 	if compStart == -1 || compEnd == -1 || compEnd < compStart {
 		return nil, fmt.Errorf("invalid component list format")
 	}
-	
+
 	// Parse components
 	componentStr := value[compStart+1 : compEnd]
 	components, err := parseComponents(componentStr)
@@ -131,7 +130,7 @@ func parseSignatureValue(value string) (*SignatureInputParams, error) {
 		return nil, fmt.Errorf("failed to parse components: %w", err)
 	}
 	params.CoveredComponents = components
-	
+
 	// Parse parameters after the closing parenthesis
 	if compEnd+1 < len(value) {
 		paramStr := value[compEnd+1:]
@@ -139,7 +138,7 @@ func parseSignatureValue(value string) (*SignatureInputParams, error) {
 			return nil, fmt.Errorf("failed to parse parameters: %w", err)
 		}
 	}
-	
+
 	return params, nil
 }
 
@@ -149,7 +148,7 @@ func parseComponents(componentStr string) ([]string, error) {
 	current := ""
 	inQuote := false
 	depth := 0
-	
+
 	for _, ch := range componentStr {
 		switch ch {
 		case '"':
@@ -170,16 +169,16 @@ func parseComponents(componentStr string) ([]string, error) {
 			current += string(ch)
 		}
 	}
-	
+
 	// Handle any remaining component
 	if current != "" {
 		components = append(components, current)
 	}
-	
+
 	if inQuote {
 		return nil, fmt.Errorf("unclosed quote in component list")
 	}
-	
+
 	// Validate components
 	for _, comp := range components {
 		comp = strings.TrimSpace(comp)
@@ -188,7 +187,7 @@ func parseComponents(componentStr string) ([]string, error) {
 			return nil, fmt.Errorf("invalid component format: %s", comp)
 		}
 	}
-	
+
 	return components, nil
 }
 
@@ -196,27 +195,27 @@ func parseComponents(componentStr string) ([]string, error) {
 func parseParameters(paramStr string, params *SignatureInputParams) error {
 	// Split by semicolon
 	parts := strings.Split(paramStr, ";")
-	
+
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		if part == "" {
 			continue
 		}
-		
+
 		// Split key=value
 		kv := strings.SplitN(part, "=", 2)
 		if len(kv) != 2 {
 			continue
 		}
-		
+
 		key := strings.TrimSpace(strings.ToLower(kv[0]))
 		value := strings.TrimSpace(kv[1])
-		
+
 		// Remove quotes if present
 		if strings.HasPrefix(value, "\"") && strings.HasSuffix(value, "\"") {
 			value = value[1 : len(value)-1]
 		}
-		
+
 		switch key {
 		case "keyid":
 			params.KeyID = value
@@ -238,7 +237,7 @@ func parseParameters(paramStr string, params *SignatureInputParams) error {
 			params.Nonce = value
 		}
 	}
-	
+
 	return nil
 }
 
@@ -248,7 +247,7 @@ func splitSignatures(input string) []string {
 	current := ""
 	depth := 0
 	inQuote := false
-	
+
 	for _, ch := range input {
 		switch ch {
 		case '"':
@@ -275,11 +274,11 @@ func splitSignatures(input string) []string {
 			current += string(ch)
 		}
 	}
-	
+
 	if current != "" {
 		signatures = append(signatures, current)
 	}
-	
+
 	return signatures
 }
 
@@ -287,18 +286,18 @@ func splitSignatures(input string) []string {
 func parseQueryParam(component string) (string, error) {
 	// Remove quotes and trim
 	component = strings.TrimSpace(component)
-	
+
 	// Check if it starts with "@query-param"
 	if !strings.Contains(component, "@query-param") {
 		return "", fmt.Errorf("not a query-param component")
 	}
-	
+
 	// Find the name parameter
 	re := regexp.MustCompile(`name\s*=\s*"([^"]+)"`)
 	matches := re.FindStringSubmatch(component)
 	if len(matches) < 2 {
 		return "", fmt.Errorf("missing name parameter in @query-param")
 	}
-	
+
 	return matches[1], nil
 }

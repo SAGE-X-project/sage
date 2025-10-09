@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package handshake
 
 import (
@@ -80,7 +79,7 @@ func signStruct(k sagecrypto.KeyPair, msg []byte, did string) (*structpb.Struct,
 	}
 	return structpb.NewStruct(map[string]any{
 		"signature": base64.RawURLEncoding.EncodeToString(sig),
-		"did": did,
+		"did":       did,
 	})
 }
 

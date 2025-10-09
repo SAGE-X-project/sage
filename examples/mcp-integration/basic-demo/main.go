@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -102,7 +101,7 @@ func (c *Calculator) HandleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Perform calculation
 	result, err := c.Calculate(req.Operation, req.Arguments)
-	
+
 	// 4. Send response
 	resp := ToolResponse{}
 	if err != nil {
@@ -235,14 +234,14 @@ func (a *DemoAgent) CallTool(url string, operation string, args map[string]inter
 
 	// Read response
 	body, _ := io.ReadAll(resp.Body)
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("request failed (%d): %s", resp.StatusCode, string(body))
 	}
 
 	var result ToolResponse
 	json.Unmarshal(body, &result)
-	
+
 	if result.Error != "" {
 		fmt.Printf("   Error: %s\n", result.Error)
 	} else {
@@ -269,7 +268,7 @@ func main() {
 
 	// Set up HTTP handler
 	http.HandleFunc("/calculator", calc.HandleRequest)
-	
+
 	// Info endpoint
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `SAGE-Secured Calculator Tool
@@ -307,9 +306,9 @@ Untrusted agents:
 	// Run demo requests after server starts
 	go func() {
 		time.Sleep(2 * time.Second)
-		
+
 		fmt.Println("\n=== Running Demo Requests ===")
-		
+
 		// Alice's request (trusted)
 		fmt.Printf("\n1. Alice (trusted) requests: 10 + 20\n")
 		alice.CallTool("http://localhost:8080/calculator", "add", map[string]interface{}{

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -74,7 +73,7 @@ func init() {
 	verifyCmd.Flags().StringVar(&messageFile, "message-file", "", "File containing message to verify")
 	verifyCmd.Flags().StringVar(&signatureFile, "signature-file", "", "Signature file (JSON or raw)")
 	verifyCmd.Flags().StringVar(&signatureB64, "signature-b64", "", "Base64 encoded signature")
-	
+
 	verifyCmd.MarkFlagRequired("key")
 }
 
@@ -100,7 +99,7 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	// Verify the signature
 	var verifyErr error
 	var keyType string
-	
+
 	if keyPair != nil {
 		// We have a full key pair, use it for verification
 		verifyErr = keyPair.Verify(messageBytes, signature)
@@ -108,7 +107,7 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	} else {
 		// We only have a public key, verify directly
 		verifyErr = verifyWithPublicKey(publicKey, messageBytes, signature)
-		
+
 		// Determine key type
 		switch publicKey.(type) {
 		case ed25519.PublicKey:
@@ -126,13 +125,13 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println(" Signature verification PASSED")
-	
+
 	// Output additional information
 	fmt.Printf("Key Type: %s\n", keyType)
 	if keyPair != nil {
 		fmt.Printf("Key ID: %s\n", keyPair.ID())
 	}
-	
+
 	return nil
 }
 
@@ -151,7 +150,7 @@ func loadPublicKey() (crypto.PublicKey, sagecrypto.KeyPair, error) {
 	case "jwk":
 		importer = formats.NewJWKImporter()
 		format = sagecrypto.KeyFormatJWK
-		
+
 		// Handle the wrapper format from sage-crypto generate
 		var wrapper struct {
 			PrivateKey json.RawMessage `json:"private_key"`
@@ -159,7 +158,7 @@ func loadPublicKey() (crypto.PublicKey, sagecrypto.KeyPair, error) {
 			KeyID      string          `json:"key_id"`
 			KeyType    string          `json:"key_type"`
 		}
-		
+
 		if err := json.Unmarshal(keyData, &wrapper); err == nil && (wrapper.PrivateKey != nil || wrapper.PublicKey != nil) {
 			// It's a wrapper format
 			if wrapper.PrivateKey != nil {
@@ -170,7 +169,7 @@ func loadPublicKey() (crypto.PublicKey, sagecrypto.KeyPair, error) {
 				keyData = wrapper.PublicKey
 			}
 		}
-		
+
 	case "pem":
 		importer = formats.NewPEMImporter()
 		format = sagecrypto.KeyFormatPEM
@@ -234,7 +233,7 @@ func getSignature() ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to read signature from stdin: %w", err)
 		}
-		
+
 		if len(data) > 0 {
 			// Try base64 decode
 			if signature, err := base64.StdEncoding.DecodeString(string(data)); err == nil {
@@ -256,27 +255,27 @@ func verifyWithPublicKey(publicKey crypto.PublicKey, message, signature []byte) 
 			return fmt.Errorf("ed25519 signature verification failed")
 		}
 		return nil
-		
+
 	case *ecdsa.PublicKey:
 		// For ECDSA, we need to hash the message and parse the signature
 		hash := crypto.SHA256.New()
 		hash.Write(message)
 		hashed := hash.Sum(nil)
-		
+
 		// ECDSA signature should be 64 bytes (32 bytes for r, 32 bytes for s)
 		if len(signature) != 64 {
 			return fmt.Errorf("invalid ECDSA signature length: expected 64 bytes, got %d", len(signature))
 		}
-		
+
 		// Split signature into r and s components
 		r := new(big.Int).SetBytes(signature[:32])
 		s := new(big.Int).SetBytes(signature[32:])
-		
+
 		if !ecdsa.Verify(pk, hashed, r, s) {
 			return fmt.Errorf("ecdsa signature verification failed")
 		}
 		return nil
-		
+
 	default:
 		return fmt.Errorf("unsupported public key type: %T", publicKey)
 	}

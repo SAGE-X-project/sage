@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -65,7 +64,7 @@ func NewCalculatorTool() (*CalculatorTool, error) {
 	// In production, use real contract address and RPC endpoint
 	config := &did.RegistryConfig{
 		ContractAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f7F1a", // Example address
-		RPCEndpoint:     "https://eth-mainnet.example.com",              // Example endpoint
+		RPCEndpoint:     "https://eth-mainnet.example.com",           // Example endpoint
 	}
 	didManager.Configure(did.ChainEthereum, config)
 

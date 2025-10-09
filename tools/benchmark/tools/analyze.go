@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -30,12 +29,12 @@ import (
 
 // BenchmarkResult represents a single benchmark result
 type BenchmarkResult struct {
-	Name         string  `json:"name"`
-	Iterations   int     `json:"iterations"`
-	NsPerOp      float64 `json:"ns_per_op"`
-	MBPerSec     float64 `json:"mb_per_sec,omitempty"`
-	AllocsPerOp  int     `json:"allocs_per_op"`
-	BytesPerOp   int     `json:"bytes_per_op"`
+	Name        string  `json:"name"`
+	Iterations  int     `json:"iterations"`
+	NsPerOp     float64 `json:"ns_per_op"`
+	MBPerSec    float64 `json:"mb_per_sec,omitempty"`
+	AllocsPerOp int     `json:"allocs_per_op"`
+	BytesPerOp  int     `json:"bytes_per_op"`
 }
 
 // BenchmarkReport represents the full benchmark report

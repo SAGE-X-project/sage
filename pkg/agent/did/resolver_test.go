@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package did
 
 import (
@@ -85,16 +84,16 @@ func (m *MockResolver) Search(ctx context.Context, criteria SearchCriteria) ([]*
 
 func TestMultiChainResolver(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Create mock resolvers for different chains
 	ethResolver := new(MockResolver)
 	solResolver := new(MockResolver)
-	
+
 	// Create multi-chain resolver
 	multiResolver := NewMultiChainResolver()
 	multiResolver.AddResolver(ChainEthereum, ethResolver)
 	multiResolver.AddResolver(ChainSolana, solResolver)
-	
+
 	t.Run("Resolve with chain prefix", func(t *testing.T) {
 		did := AgentDID("did:sage:eth:agent001")
 		expectedMetadata := &AgentMetadata{
@@ -102,16 +101,16 @@ func TestMultiChainResolver(t *testing.T) {
 			Name:     "Test Agent",
 			IsActive: true,
 		}
-		
+
 		ethResolver.On("Resolve", ctx, did).Return(expectedMetadata, nil).Once()
-		
+
 		metadata, err := multiResolver.Resolve(ctx, did)
 		require.NoError(t, err)
 		assert.Equal(t, expectedMetadata, metadata)
-		
+
 		ethResolver.AssertExpectations(t)
 	})
-	
+
 	t.Run("Resolve without chain prefix tries all chains", func(t *testing.T) {
 		did := AgentDID("did:invalid:format")
 		expectedMetadata := &AgentMetadata{
@@ -119,20 +118,20 @@ func TestMultiChainResolver(t *testing.T) {
 			Name:     "Solana Agent",
 			IsActive: true,
 		}
-		
+
 		// Ethereum resolver fails
 		ethResolver.On("Resolve", ctx, did).Return(nil, errors.New("not found")).Once()
 		// Solana resolver succeeds
 		solResolver.On("Resolve", ctx, did).Return(expectedMetadata, nil).Once()
-		
+
 		metadata, err := multiResolver.Resolve(ctx, did)
 		require.NoError(t, err)
 		assert.Equal(t, expectedMetadata, metadata)
-		
+
 		ethResolver.AssertExpectations(t)
 		solResolver.AssertExpectations(t)
 	})
-	
+
 	t.Run("ResolvePublicKey with inactive agent", func(t *testing.T) {
 		did := AgentDID("did:sage:eth:agent002")
 		inactiveMetadata := &AgentMetadata{
@@ -141,16 +140,16 @@ func TestMultiChainResolver(t *testing.T) {
 			IsActive:  false,
 			PublicKey: ed25519.PublicKey(make([]byte, 32)),
 		}
-		
+
 		ethResolver.On("Resolve", ctx, did).Return(inactiveMetadata, nil).Once()
-		
+
 		_, err := multiResolver.ResolvePublicKey(ctx, did)
 		assert.Error(t, err)
 		assert.Equal(t, ErrInactiveAgent, err)
-		
+
 		ethResolver.AssertExpectations(t)
 	})
-	
+
 	t.Run("ResolvePublicKey with active agent", func(t *testing.T) {
 		did := AgentDID("did:sage:sol:agent003")
 		publicKey := ed25519.PublicKey(make([]byte, 32))
@@ -160,62 +159,62 @@ func TestMultiChainResolver(t *testing.T) {
 			IsActive:  true,
 			PublicKey: publicKey,
 		}
-		
+
 		solResolver.On("Resolve", ctx, did).Return(activeMetadata, nil).Once()
-		
+
 		pk, err := multiResolver.ResolvePublicKey(ctx, did)
 		require.NoError(t, err)
 		assert.Equal(t, publicKey, pk)
-		
+
 		solResolver.AssertExpectations(t)
 	})
-	
+
 	t.Run("ListAgentsByOwner aggregates from all chains", func(t *testing.T) {
 		ownerAddress := "0x1234567890abcdef"
-		
+
 		ethAgents := []*AgentMetadata{
 			{DID: "did:sage:eth:agent1", Name: "ETH Agent 1"},
 			{DID: "did:sage:eth:agent2", Name: "ETH Agent 2"},
 		}
-		
+
 		solAgents := []*AgentMetadata{
 			{DID: "did:sage:sol:agent1", Name: "SOL Agent 1"},
 		}
-		
+
 		ethResolver.On("ListAgentsByOwner", ctx, ownerAddress).Return(ethAgents, nil).Once()
 		solResolver.On("ListAgentsByOwner", ctx, ownerAddress).Return(solAgents, nil).Once()
-		
+
 		allAgents, err := multiResolver.ListAgentsByOwner(ctx, ownerAddress)
 		require.NoError(t, err)
 		assert.Len(t, allAgents, 3)
-		
+
 		ethResolver.AssertExpectations(t)
 		solResolver.AssertExpectations(t)
 	})
-	
+
 	t.Run("Search with limit", func(t *testing.T) {
 		criteria := SearchCriteria{
 			Name:       "Test",
 			ActiveOnly: true,
 			Limit:      2,
 		}
-		
+
 		ethAgents := []*AgentMetadata{
 			{DID: "did:sage:eth:agent1", Name: "Test Agent 1"},
 			{DID: "did:sage:eth:agent2", Name: "Test Agent 2"},
 		}
-		
+
 		solAgents := []*AgentMetadata{
 			{DID: "did:sage:sol:agent1", Name: "Test Agent 3"},
 		}
-		
+
 		ethResolver.On("Search", ctx, criteria).Return(ethAgents, nil).Once()
 		solResolver.On("Search", ctx, criteria).Return(solAgents, nil).Once()
-		
+
 		results, err := multiResolver.Search(ctx, criteria)
 		require.NoError(t, err)
 		assert.Len(t, results, 2) // Limited to 2
-		
+
 		ethResolver.AssertExpectations(t)
 		solResolver.AssertExpectations(t)
 	})
@@ -259,11 +258,11 @@ func TestExtractChainFromDID(t *testing.T) {
 			expectError:   true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			chain, err := extractChainFromDID(tt.did)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Empty(t, chain)
@@ -286,7 +285,7 @@ func TestSearchCriteria(t *testing.T) {
 		Limit:      10,
 		Offset:     5,
 	}
-	
+
 	assert.Equal(t, "Test Agent", criteria.Name)
 	assert.True(t, criteria.ActiveOnly)
 	assert.Equal(t, 10, criteria.Limit)

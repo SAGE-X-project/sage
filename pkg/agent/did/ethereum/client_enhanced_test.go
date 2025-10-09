@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package ethereum
 
 import (
@@ -141,12 +140,12 @@ func TestEthereumClientWithoutSkip(t *testing.T) {
 		// Simulate resolution
 		mockDID := "did:sage:ethereum:mock001"
 		mockMetadata := &did.AgentMetadata{
-			DID:        did.AgentDID(mockDID),
-			Name:       "Mock Agent",
-			Endpoint:   "https://api.mock.com",
-			PublicKey:  []byte("mock-public-key"),
-			IsActive:   true,
-			Owner:      "0x742d35Cc6634C0532925a3b844Bc9e7595f0aEbb",
+			DID:       did.AgentDID(mockDID),
+			Name:      "Mock Agent",
+			Endpoint:  "https://api.mock.com",
+			PublicKey: []byte("mock-public-key"),
+			IsActive:  true,
+			Owner:     "0x742d35Cc6634C0532925a3b844Bc9e7595f0aEbb",
 		}
 
 		// Verify mock resolution works

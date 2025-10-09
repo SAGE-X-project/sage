@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package did
 
 import (
@@ -42,34 +41,34 @@ func TestGetDefaultManager(t *testing.T) {
 
 func TestPackageLevelFunctions(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Save original default manager
 	originalManager := defaultManager
 	defer func() {
 		defaultManager = originalManager
 	}()
-	
+
 	// Create a new manager with mocks
 	defaultManager = NewManager()
 	mockRegistry := new(MockRegistry)
 	mockResolver := new(MockResolver)
-	
+
 	// Add mocks to the default manager
 	defaultManager.registry.registries[ChainEthereum] = mockRegistry
 	defaultManager.resolver.resolvers[ChainEthereum] = mockResolver
-	
+
 	t.Run("Configure", func(t *testing.T) {
 		config := &RegistryConfig{
 			Chain:           ChainEthereum,
 			ContractAddress: "0x1234567890abcdef",
 			RPCEndpoint:     "http://localhost:8545",
 		}
-		
+
 		// This should succeed now as we only store configuration
 		err := Configure(ChainEthereum, config)
 		assert.NoError(t, err)
 	})
-	
+
 	t.Run("RegisterAgent", func(t *testing.T) {
 		mockKeyPair := new(MockKeyPair)
 		req := &RegistrationRequest{
@@ -78,23 +77,23 @@ func TestPackageLevelFunctions(t *testing.T) {
 			Endpoint: "https://api.example.com",
 			KeyPair:  mockKeyPair,
 		}
-		
+
 		expectedResult := &RegistrationResult{
 			TransactionHash: "0xabc123",
 			BlockNumber:     12345,
 		}
-		
+
 		mockRegistry.On("Register", ctx, mock.MatchedBy(func(r *RegistrationRequest) bool {
 			return true
 		})).Return(expectedResult, nil).Once()
-		
+
 		result, err := RegisterAgent(ctx, ChainEthereum, req)
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
-		
+
 		mockRegistry.AssertExpectations(t)
 	})
-	
+
 	t.Run("ResolveAgent", func(t *testing.T) {
 		did := AgentDID("did:sage:ethereum:agent001")
 		expectedMetadata := &AgentMetadata{
@@ -102,23 +101,23 @@ func TestPackageLevelFunctions(t *testing.T) {
 			Name:     "Test Agent",
 			IsActive: true,
 		}
-		
+
 		mockResolver.On("Resolve", ctx, did).Return(expectedMetadata, nil).Once()
-		
+
 		metadata, err := ResolveAgent(ctx, did)
 		require.NoError(t, err)
 		assert.Equal(t, expectedMetadata, metadata)
-		
+
 		mockResolver.AssertExpectations(t)
 	})
-	
+
 	t.Run("ValidateAgent", func(t *testing.T) {
 		// Generate test keypair
 		publicKey, _, err := ed25519.GenerateKey(rand.Reader)
 		require.NoError(t, err)
-		
+
 		did := AgentDID("did:sage:ethereum:agent001")
-		
+
 		agent := &AgentMetadata{
 			DID:       did,
 			Name:      "Test Agent",
@@ -128,35 +127,35 @@ func TestPackageLevelFunctions(t *testing.T) {
 				"messaging": true,
 			},
 		}
-		
+
 		mockResolver.On("Resolve", ctx, did).Return(agent, nil).Once()
-		
+
 		result, err := ValidateAgent(ctx, did, nil)
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, agent.Name, result.Name)
-		
+
 		mockResolver.AssertExpectations(t)
 	})
 }
 
 func TestCheckCapabilities(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Save original default manager
 	originalManager := defaultManager
 	defer func() {
 		defaultManager = originalManager
 	}()
-	
+
 	// Create a new manager with mocks
 	defaultManager = NewManager()
 	mockResolver := new(MockResolver)
 	defaultManager.resolver.resolvers[ChainEthereum] = mockResolver
-	
+
 	t.Run("CheckCapabilities with all capabilities present", func(t *testing.T) {
 		did := AgentDID("did:sage:ethereum:agent001")
-		
+
 		agent := &AgentMetadata{
 			DID:      did,
 			IsActive: true,
@@ -166,19 +165,19 @@ func TestCheckCapabilities(t *testing.T) {
 				"storage":   true,
 			},
 		}
-		
+
 		mockResolver.On("Resolve", ctx, did).Return(agent, nil).Once()
-		
+
 		hasCapabilities, err := CheckCapabilities(ctx, did, []string{"messaging", "compute"})
 		assert.NoError(t, err)
 		assert.True(t, hasCapabilities)
-		
+
 		mockResolver.AssertExpectations(t)
 	})
-	
+
 	t.Run("CheckCapabilities with missing capabilities", func(t *testing.T) {
 		did := AgentDID("did:sage:ethereum:agent002")
-		
+
 		agent := &AgentMetadata{
 			DID:      did,
 			IsActive: true,
@@ -186,19 +185,19 @@ func TestCheckCapabilities(t *testing.T) {
 				"messaging": true,
 			},
 		}
-		
+
 		mockResolver.On("Resolve", ctx, did).Return(agent, nil).Once()
-		
+
 		hasCapabilities, err := CheckCapabilities(ctx, did, []string{"messaging", "compute"})
 		assert.NoError(t, err)
 		assert.False(t, hasCapabilities)
-		
+
 		mockResolver.AssertExpectations(t)
 	})
-	
+
 	t.Run("CheckCapabilities with inactive agent", func(t *testing.T) {
 		did := AgentDID("did:sage:ethereum:agent003")
-		
+
 		agent := &AgentMetadata{
 			DID:      did,
 			IsActive: false,
@@ -206,28 +205,28 @@ func TestCheckCapabilities(t *testing.T) {
 				"messaging": true,
 			},
 		}
-		
+
 		mockResolver.On("Resolve", ctx, did).Return(agent, nil).Once()
-		
+
 		hasCapabilities, err := CheckCapabilities(ctx, did, []string{"messaging"})
 		assert.Error(t, err)
 		assert.Equal(t, ErrInactiveAgent, err)
 		assert.False(t, hasCapabilities)
-		
+
 		mockResolver.AssertExpectations(t)
 	})
-	
+
 	t.Run("CheckCapabilities with resolve error", func(t *testing.T) {
 		did := AgentDID("did:sage:ethereum:agent004")
-		
+
 		mockResolver.On("Resolve", ctx, did).
 			Return(nil, ErrDIDNotFound).Once()
-		
+
 		hasCapabilities, err := CheckCapabilities(ctx, did, []string{"messaging"})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to resolve agent DID")
 		assert.False(t, hasCapabilities)
-		
+
 		mockResolver.AssertExpectations(t)
 	})
 }
@@ -279,11 +278,11 @@ func TestValidateDID(t *testing.T) {
 			errorMsg:    "unknown chain",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateDID(tt.did)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {

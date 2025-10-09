@@ -19,7 +19,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package integration
 
 import (
@@ -672,10 +671,10 @@ func TestCrossChainMessaging(t *testing.T) {
 
 		// Ethereum agent sends message
 		message := map[string]interface{}{
-			"from":        string(ethDID),
-			"to":          string(solDID),
-			"content":     "Cross-chain message from Ethereum to Solana",
-			"timestamp":   time.Now().Unix(),
+			"from":         string(ethDID),
+			"to":           string(solDID),
+			"content":      "Cross-chain message from Ethereum to Solana",
+			"timestamp":    time.Now().Unix(),
 			"source_chain": "ethereum",
 			"target_chain": "solana",
 		}

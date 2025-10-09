@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package storage
 
 import (
@@ -120,7 +119,7 @@ func (s *fileKeyStorage) Load(id string) (sagecrypto.KeyPair, error) {
 	}
 
 	filename := filepath.Join(s.directory, id+".key")
-	
+
 	// Check if file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return nil, sagecrypto.ErrKeyNotFound
@@ -158,7 +157,7 @@ func (s *fileKeyStorage) Delete(id string) error {
 	}
 
 	filename := filepath.Join(s.directory, id+".key")
-	
+
 	// Check if file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return sagecrypto.ErrKeyNotFound
@@ -190,7 +189,7 @@ func (s *fileKeyStorage) List() ([]string, error) {
 			ids = append(ids, id)
 		}
 	}
-	
+
 	// Sort for consistent output
 	sort.Strings(ids)
 

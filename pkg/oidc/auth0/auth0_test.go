@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package auth0
 
 import (
@@ -70,7 +69,7 @@ func TestAgent_RequestToken(t *testing.T) {
 	}))
 	t.Cleanup(ts.Close)
 
-	issuer := ts.URL + "/" 
+	issuer := ts.URL + "/"
 	audience := "https://api.example.test"
 	sub := "client-123@clients"
 
@@ -105,8 +104,8 @@ func TestAgent_RequestToken(t *testing.T) {
 		require.Error(t, err)
 		assert.True(t,
 			strings.Contains(err.Error(), "verification") ||
-			strings.Contains(err.Error(), "invalid") ||
-			strings.Contains(err.Error(), "signature"),
+				strings.Contains(err.Error(), "invalid") ||
+				strings.Contains(err.Error(), "signature"),
 			"unexpected error: %v", err)
 	})
 
@@ -154,22 +153,21 @@ func TestAgent_RequestToken(t *testing.T) {
 
 }
 
-
 func TamperSignatureRS256(tok string) (string, error) {
-    parts := strings.Split(tok, ".")
-    if len(parts) != 3 {
-        return "", fmt.Errorf("not a JWT: segments=%d", len(parts))
-    }
-    sigBytes, err := base64.RawURLEncoding.DecodeString(parts[2])
-    if err != nil {
-        return "", fmt.Errorf("decode sig: %w", err)
-    }
-    if len(sigBytes) == 0 {
-        return "", fmt.Errorf("empty sig")
-    }
-    sigBytes[0] ^= 0x01 // flip first byte's bit (ensure verification failure)
-    parts[2] = base64.RawURLEncoding.EncodeToString(sigBytes)
-    return strings.Join(parts, "."), nil
+	parts := strings.Split(tok, ".")
+	if len(parts) != 3 {
+		return "", fmt.Errorf("not a JWT: segments=%d", len(parts))
+	}
+	sigBytes, err := base64.RawURLEncoding.DecodeString(parts[2])
+	if err != nil {
+		return "", fmt.Errorf("decode sig: %w", err)
+	}
+	if len(sigBytes) == 0 {
+		return "", fmt.Errorf("empty sig")
+	}
+	sigBytes[0] ^= 0x01 // flip first byte's bit (ensure verification failure)
+	parts[2] = base64.RawURLEncoding.EncodeToString(sigBytes)
+	return strings.Join(parts, "."), nil
 }
 
 func signJWT(t *testing.T, priv *rsa.PrivateKey, kid, iss, aud, sub string, lifetime time.Duration, extra map[string]any) string {

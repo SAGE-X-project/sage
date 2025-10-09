@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package rfc9421
 
 import (
@@ -29,36 +28,36 @@ import (
 // Message represents a message with RFC-9421 metadata for signature verification
 type Message struct {
 	// Message metadata
-	AgentDID     string                 `json:"agent_did"`
-	MessageID    string                 `json:"message_id"`
-	Timestamp    time.Time              `json:"timestamp"`
-	Nonce        string                 `json:"nonce"`
-	
+	AgentDID  string    `json:"agent_did"`
+	MessageID string    `json:"message_id"`
+	Timestamp time.Time `json:"timestamp"`
+	Nonce     string    `json:"nonce"`
+
 	// Message content
-	Headers      map[string]string      `json:"headers"`
-	Body         []byte                 `json:"body"`
-	
+	Headers map[string]string `json:"headers"`
+	Body    []byte            `json:"body"`
+
 	// Signature metadata
-	Algorithm    string                 `json:"algorithm"`
-	KeyID        string                 `json:"key_id"`
-	Signature    []byte                 `json:"signature"`
-	SignedFields []string               `json:"signed_fields"` // Which fields were included in signature
-	
+	Algorithm    string   `json:"algorithm"`
+	KeyID        string   `json:"key_id"`
+	Signature    []byte   `json:"signature"`
+	SignedFields []string `json:"signed_fields"` // Which fields were included in signature
+
 	// Additional metadata
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // VerificationOptions contains options for signature verification
 type VerificationOptions struct {
 	// RequireActiveAgent ensures the agent is active
 	RequireActiveAgent bool
-	
+
 	// MaxClockSkew is the maximum allowed time difference
 	MaxClockSkew time.Duration
-	
+
 	// RequiredCapabilities are capabilities the agent must have
 	RequiredCapabilities []string
-	
+
 	// VerifyMetadata ensures message metadata matches expected values
 	VerifyMetadata bool
 }
@@ -83,9 +82,9 @@ type VerificationResult struct {
 type SignatureAlgorithm string
 
 const (
-	AlgorithmEdDSA         SignatureAlgorithm = "EdDSA"
-	AlgorithmES256K        SignatureAlgorithm = "ES256K"
-	AlgorithmECDSA         SignatureAlgorithm = "ECDSA"
+	AlgorithmEdDSA          SignatureAlgorithm = "EdDSA"
+	AlgorithmES256K         SignatureAlgorithm = "ES256K"
+	AlgorithmECDSA          SignatureAlgorithm = "ECDSA"
 	AlgorithmECDSASecp256k1 SignatureAlgorithm = "ECDSA-secp256k1"
 )
 

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package session
 
 import (
@@ -29,41 +28,40 @@ import (
 
 // Manager handles session lifecycle, storage, and cleanup
 type Manager struct {
-    sessions       map[string]Session
-    byKeyID        map[string]string 
-    keyIDsBySID    map[string]map[string]struct{}
-    mu             sync.RWMutex
-    cleanupTicker  *time.Ticker
-    stopCleanup    chan struct{}
-    defaultConfig  Config
-    nonceCache     *NonceCache // replay guard
+	sessions      map[string]Session
+	byKeyID       map[string]string
+	keyIDsBySID   map[string]map[string]struct{}
+	mu            sync.RWMutex
+	cleanupTicker *time.Ticker
+	stopCleanup   chan struct{}
+	defaultConfig Config
+	nonceCache    *NonceCache // replay guard
 }
 
 // NewManager creates a new session manager with default configuration
 func NewManager() *Manager {
-    m := &Manager{
-        sessions:     make(map[string]Session),
-        stopCleanup:  make(chan struct{}),
-        defaultConfig: Config{
-            MaxAge:      time.Hour,        // 1-hour absolute expiration
-            IdleTimeout: 10 * time.Minute, // 10-minute idle timeout
-            MaxMessages: 1000,            
-        },
-        nonceCache:  NewNonceCache(10 * time.Minute), // replay TTL
-    }
-    
-    // Start background cleanup every 30 seconds
-    m.cleanupTicker = time.NewTicker(30 * time.Second)
-    go m.runCleanup()
-    
-    return m
+	m := &Manager{
+		sessions:    make(map[string]Session),
+		stopCleanup: make(chan struct{}),
+		defaultConfig: Config{
+			MaxAge:      time.Hour,        // 1-hour absolute expiration
+			IdleTimeout: 10 * time.Minute, // 10-minute idle timeout
+			MaxMessages: 1000,
+		},
+		nonceCache: NewNonceCache(10 * time.Minute), // replay TTL
+	}
+
+	// Start background cleanup every 30 seconds
+	m.cleanupTicker = time.NewTicker(30 * time.Second)
+	go m.runCleanup()
+
+	return m
 }
 
 // CreateSession creates a new session with the given shared secret
 func (m *Manager) CreateSession(sessionID string, sharedSecret []byte) (Session, error) {
-    return m.CreateSessionWithConfig(sessionID, sharedSecret, m.defaultConfig)
+	return m.CreateSessionWithConfig(sessionID, sharedSecret, m.defaultConfig)
 }
-
 
 // Add to: package session
 
@@ -142,7 +140,6 @@ func (m *Manager) EnsureAndBindFromExporterWithRole(
 	return s, sid, existed, nil
 }
 
-
 // EnsureSessionWithParams computes a deterministic sessionID and creates the session.
 func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, string, bool, error) {
 	seed, err := DeriveSessionSeed(p.SharedSecret, p)
@@ -189,28 +186,28 @@ func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, strin
 
 // CreateSessionWithConfig creates a new session with custom configuration
 func (m *Manager) CreateSessionWithConfig(sessionID string, sharedSecret []byte, config Config) (Session, error) {
-    m.mu.Lock()
-    defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
-    // Check if session already exists
-    if _, exists := m.sessions[sessionID]; exists {
-        metrics.SessionsCreated.WithLabelValues("failure").Inc()
-        return nil, fmt.Errorf("session %s already exists", sessionID)
-    }
+	// Check if session already exists
+	if _, exists := m.sessions[sessionID]; exists {
+		metrics.SessionsCreated.WithLabelValues("failure").Inc()
+		return nil, fmt.Errorf("session %s already exists", sessionID)
+	}
 
-    // Create new crypto session
-    sess, err := NewSecureSession(sessionID, sharedSecret, config)
-    if err != nil {
-        metrics.SessionsCreated.WithLabelValues("failure").Inc()
-        return nil, fmt.Errorf("failed to create session: %w", err)
-    }
+	// Create new crypto session
+	sess, err := NewSecureSession(sessionID, sharedSecret, config)
+	if err != nil {
+		metrics.SessionsCreated.WithLabelValues("failure").Inc()
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
 
-    // Store in manager
-    m.sessions[sessionID] = sess
-    metrics.SessionsCreated.WithLabelValues("success").Inc()
-    metrics.SessionsActive.Inc()
+	// Store in manager
+	m.sessions[sessionID] = sess
+	metrics.SessionsCreated.WithLabelValues("success").Inc()
+	metrics.SessionsActive.Inc()
 
-    return sess, nil
+	return sess, nil
 }
 
 // BindKeyID associates an opaque keyid with an existing session ID and tracks reverse mapping.
@@ -267,21 +264,21 @@ func (m *Manager) GetByKeyID(keyid string) (Session, bool) {
 
 // GetSession retrieves a session by ID, returns nil if not found or expired
 func (m *Manager) GetSession(sessionID string) (Session, bool) {
-    m.mu.RLock()
-    sess, exists := m.sessions[sessionID]
-    m.mu.RUnlock()
-    
-    if !exists {
-        return nil, false
-    }
-    
-    if sess.IsExpired() {
-        // Remove expired session
-        m.RemoveSession(sessionID)
-        return nil, false
-    }
-    
-    return sess, true
+	m.mu.RLock()
+	sess, exists := m.sessions[sessionID]
+	m.mu.RUnlock()
+
+	if !exists {
+		return nil, false
+	}
+
+	if sess.IsExpired() {
+		// Remove expired session
+		m.RemoveSession(sessionID)
+		return nil, false
+	}
+
+	return sess, true
 }
 
 // RemoveSession removes a session and unbinds all associated keyids.
@@ -308,15 +305,15 @@ func (m *Manager) RemoveSession(sessionID string) {
 
 // ListSessions returns all active session IDs
 func (m *Manager) ListSessions() []string {
-    m.mu.RLock()
-    defer m.mu.RUnlock()
-    
-    var sessionIDs []string
-    for id := range m.sessions {
-        sessionIDs = append(sessionIDs, id)
-    }
-    
-    return sessionIDs
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var sessionIDs []string
+	for id := range m.sessions {
+		sessionIDs = append(sessionIDs, id)
+	}
+
+	return sessionIDs
 }
 
 // ReplayGuardSeenOnce should be called per incoming request after parsing RFC-9421 `nonce`.
@@ -330,36 +327,36 @@ func (m *Manager) ReplayGuardSeenOnce(keyid, nonce string) bool {
 
 // GetSessionCount returns the number of active sessions
 func (m *Manager) GetSessionCount() int {
-    m.mu.RLock()
-    defer m.mu.RUnlock()
-    return len(m.sessions)
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return len(m.sessions)
 }
 
 // GetSessionStats returns statistics about sessions
 func (m *Manager) GetSessionStats() Status {
-    m.mu.RLock()
-    defer m.mu.RUnlock()
-    
-    stats := Status{
-        TotalSessions: len(m.sessions),
-        ActiveSessions: 0,
-        ExpiredSessions: 0,
-    }
-    
-    for _, sess := range m.sessions {
-        if sess.IsExpired() {
-            stats.ExpiredSessions++
-        } else {
-            stats.ActiveSessions++
-        }
-    }
-    
-    return stats
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	stats := Status{
+		TotalSessions:   len(m.sessions),
+		ActiveSessions:  0,
+		ExpiredSessions: 0,
+	}
+
+	for _, sess := range m.sessions {
+		if sess.IsExpired() {
+			stats.ExpiredSessions++
+		} else {
+			stats.ActiveSessions++
+		}
+	}
+
+	return stats
 }
 
 // SetDefaultConfig updates the default session configuration
 func (m *Manager) SetDefaultConfig(config Config) {
-    m.defaultConfig = config
+	m.defaultConfig = config
 }
 
 // Close stops the manager and cleans up all sessions and caches.
@@ -385,14 +382,14 @@ func (m *Manager) Close() error {
 
 // runCleanup runs in background to remove expired sessions
 func (m *Manager) runCleanup() {
-    for {
-        select {
-        case <-m.cleanupTicker.C:
-            m.cleanupExpiredSessions()
-        case <-m.stopCleanup:
-            return
-        }
-    }
+	for {
+		select {
+		case <-m.cleanupTicker.C:
+			m.cleanupExpiredSessions()
+		case <-m.stopCleanup:
+			return
+		}
+	}
 }
 
 // cleanupExpiredSessions removes expired sessions and unbinds their keyids.
@@ -430,15 +427,14 @@ func (m *Manager) cleanupExpiredSessions() {
 }
 
 func withDefaults(c Config) Config {
-    if c.MaxAge == 0 {
-        c.MaxAge = time.Hour // default 1 hour
-    }
-    if c.IdleTimeout == 0 {
-        c.IdleTimeout = 10 * time.Minute // default 10 minutes
-    }
-    if c.MaxMessages == 0 {
-        c.MaxMessages = 1000 // default max message count
-    }
-    return c
+	if c.MaxAge == 0 {
+		c.MaxAge = time.Hour // default 1 hour
+	}
+	if c.IdleTimeout == 0 {
+		c.IdleTimeout = 10 * time.Minute // default 10 minutes
+	}
+	if c.MaxMessages == 0 {
+		c.MaxMessages = 1000 // default max message count
+	}
+	return c
 }
-

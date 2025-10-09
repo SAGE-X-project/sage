@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package did
 
 import (
@@ -46,10 +45,10 @@ func NewMetadataVerifier(resolver Resolver) *MetadataVerifier {
 type ValidationOptions struct {
 	// RequireActiveAgent ensures the agent is active
 	RequireActiveAgent bool
-	
+
 	// RequiredCapabilities are capabilities the agent must have
 	RequiredCapabilities []string
-	
+
 	// ValidateEndpoint ensures the endpoint is reachable (future enhancement)
 	ValidateEndpoint bool
 }
@@ -67,18 +66,18 @@ func (v *MetadataVerifier) ValidateAgent(ctx context.Context, did AgentDID, opts
 	if opts == nil {
 		opts = DefaultValidationOptions()
 	}
-	
+
 	// Resolve agent metadata
 	agent, err := v.resolver.Resolve(ctx, did)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve agent DID: %w", err)
 	}
-	
+
 	// Check if agent is active
 	if opts.RequireActiveAgent && !agent.IsActive {
 		return nil, ErrInactiveAgent
 	}
-	
+
 	// Check required capabilities
 	if len(opts.RequiredCapabilities) > 0 {
 		if !hasRequiredCapabilities(agent.Capabilities, opts.RequiredCapabilities) {
@@ -108,11 +107,11 @@ func (v *MetadataVerifier) CheckCapabilities(ctx context.Context, did AgentDID, 
 	if err != nil {
 		return false, fmt.Errorf("failed to resolve agent DID: %w", err)
 	}
-	
+
 	if !agent.IsActive {
 		return false, ErrInactiveAgent
 	}
-	
+
 	return hasRequiredCapabilities(agent.Capabilities, requiredCapabilities), nil
 }
 
@@ -129,14 +128,14 @@ func (v *MetadataVerifier) MatchMetadata(agentMetadata *AgentMetadata, expectedV
 			return fmt.Errorf("endpoint mismatch: expected %s, got %s", endpoint, agentMetadata.Endpoint)
 		}
 	}
-	
+
 	// Check name match
 	if name, ok := expectedValues["name"].(string); ok {
 		if name != agentMetadata.Name {
 			return fmt.Errorf("name mismatch: expected %s, got %s", name, agentMetadata.Name)
 		}
 	}
-	
+
 	// Check capabilities match
 	if capabilities, ok := expectedValues["capabilities"].(map[string]interface{}); ok {
 		for key, expectedValue := range capabilities {
@@ -144,14 +143,14 @@ func (v *MetadataVerifier) MatchMetadata(agentMetadata *AgentMetadata, expectedV
 			if !exists {
 				return fmt.Errorf("capability %s not found in agent", key)
 			}
-			
+
 			// Deep comparison
 			if !compareValues(expectedValue, agentValue) {
 				return fmt.Errorf("capability %s value mismatch", key)
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -161,7 +160,7 @@ func (v *MetadataVerifier) ValidateAgentForOperation(ctx context.Context, did Ag
 		OperationType: operation,
 		Timestamp:     time.Now(),
 	}
-	
+
 	// Resolve agent
 	agent, err := v.resolver.Resolve(ctx, did)
 	if err != nil {
@@ -169,16 +168,16 @@ func (v *MetadataVerifier) ValidateAgentForOperation(ctx context.Context, did Ag
 		result.Error = fmt.Sprintf("failed to resolve DID: %v", err)
 		return result, nil
 	}
-	
+
 	result.Agent = agent
-	
+
 	// Check if agent is active
 	if !agent.IsActive {
 		result.Valid = false
 		result.Error = "agent is not active"
 		return result, nil
 	}
-	
+
 	// Check capabilities
 	if len(requiredCapabilities) > 0 {
 		if !hasRequiredCapabilities(agent.Capabilities, requiredCapabilities) {
@@ -188,7 +187,7 @@ func (v *MetadataVerifier) ValidateAgentForOperation(ctx context.Context, did Ag
 			return result, nil
 		}
 	}
-	
+
 	result.Valid = true
 	return result, nil
 }

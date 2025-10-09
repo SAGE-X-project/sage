@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package did
 
 import (
@@ -69,11 +68,11 @@ func ValidateDID(did string) error {
 	if len(did) < 10 {
 		return fmt.Errorf("DID too short")
 	}
-	
+
 	if did[:4] != "did:" {
 		return fmt.Errorf("DID must start with 'did:'")
 	}
-	
+
 	_, _, err := ParseDID(AgentDID(did))
 	return err
 }

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package crypto
 
 // This file provides wrapper functions that will be implemented by a separate
@@ -25,22 +24,22 @@ package crypto
 var (
 	// generateEd25519KeyPair is the implementation function for Ed25519 key generation
 	generateEd25519KeyPair func() (KeyPair, error)
-	
+
 	// generateSecp256k1KeyPair is the implementation function for Secp256k1 key generation
 	generateSecp256k1KeyPair func() (KeyPair, error)
-	
+
 	// newMemoryKeyStorage is the implementation function for memory storage creation
 	newMemoryKeyStorage func() KeyStorage
-	
+
 	// newJWKExporter is the implementation function for JWK exporter creation
 	newJWKExporter func() KeyExporter
-	
+
 	// newPEMExporter is the implementation function for PEM exporter creation
 	newPEMExporter func() KeyExporter
-	
+
 	// newJWKImporter is the implementation function for JWK importer creation
 	newJWKImporter func() KeyImporter
-	
+
 	// newPEMImporter is the implementation function for PEM importer creation
 	newPEMImporter func() KeyImporter
 )

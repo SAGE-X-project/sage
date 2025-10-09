@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package ethereum
 
 import (
@@ -86,8 +85,8 @@ func TestEthereumProvider(t *testing.T) {
 		invalidAddresses := []string{
 			"0x742d35Cc6634C0532925a3b844Bc9e7595f2bd8",   // too short
 			"0x742d35Cc6634C0532925a3b844Bc9e7595f2bd800", // too long
-			"0xGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",   // invalid hex
-			"",                                             // empty
+			"0xGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG",  // invalid hex
+			"", // empty
 		}
 
 		for _, addr := range invalidAddresses {
@@ -120,7 +119,7 @@ func TestEthereumProvider(t *testing.T) {
 	t.Run("KnownAddressGeneration", func(t *testing.T) {
 		// Test with a known public key to verify correct address generation
 		// This is a test vector to ensure our implementation is correct
-		
+
 		// Note: This test would require a specific test key with known address
 		// For now, we just verify the format is correct
 		keyPair, err := keys.GenerateSecp256k1KeyPair()

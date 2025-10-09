@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package session
 
 import (
@@ -73,7 +72,7 @@ func TestMetadataBuilder(t *testing.T) {
 		s := NewMetadataBuilder().
 			WithCreatedAt(custom).
 			WithStatus("active").
-			WithExpiresAfter(30*time.Minute).
+			WithExpiresAfter(30 * time.Minute).
 			Build()
 
 		require.Equal(t, custom.Format(time.RFC3339), s.CreatedAt)

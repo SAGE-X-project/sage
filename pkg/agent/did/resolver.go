@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package did
 
 import (
@@ -28,18 +27,18 @@ import (
 type Resolver interface {
 	// Resolve retrieves agent metadata by DID
 	Resolve(ctx context.Context, did AgentDID) (*AgentMetadata, error)
-	
+
 	// ResolvePublicKey retrieves only the public key for an agent
 	ResolvePublicKey(ctx context.Context, did AgentDID) (interface{}, error)
 
 	ResolveKEMKey(ctx context.Context, did AgentDID) (interface{}, error)
-	
+
 	// VerifyMetadata checks if the provided metadata matches the on-chain data
 	VerifyMetadata(ctx context.Context, did AgentDID, metadata *AgentMetadata) (*VerificationResult, error)
-	
+
 	// ListAgentsByOwner retrieves all agents owned by a specific address
 	ListAgentsByOwner(ctx context.Context, ownerAddress string) ([]*AgentMetadata, error)
-	
+
 	// Search finds agents matching the given criteria
 	Search(ctx context.Context, criteria SearchCriteria) ([]*AgentMetadata, error)
 }
@@ -104,11 +103,11 @@ func (m *MultiChainResolver) ResolvePublicKey(ctx context.Context, did AgentDID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if !metadata.IsActive {
 		return nil, ErrInactiveAgent
 	}
-	
+
 	return metadata.PublicKey, nil
 }
 
@@ -118,11 +117,11 @@ func (m *MultiChainResolver) ResolveKEMKey(ctx context.Context, did AgentDID) (i
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if !metadata.IsActive {
 		return nil, ErrInactiveAgent
 	}
-	
+
 	return metadata.PublicKEMKey, nil
 }
 
@@ -132,19 +131,19 @@ func (m *MultiChainResolver) VerifyMetadata(ctx context.Context, did AgentDID, m
 	if err != nil {
 		return nil, err
 	}
-	
+
 	resolver, exists := m.resolvers[chain]
 	if !exists {
 		return nil, fmt.Errorf("no resolver for chain %s", chain)
 	}
-	
+
 	return resolver.VerifyMetadata(ctx, did, metadata)
 }
 
 // ListAgentsByOwner lists agents across all chains
 func (m *MultiChainResolver) ListAgentsByOwner(ctx context.Context, ownerAddress string) ([]*AgentMetadata, error) {
 	var allAgents []*AgentMetadata
-	
+
 	for _, resolver := range m.resolvers {
 		agents, err := resolver.ListAgentsByOwner(ctx, ownerAddress)
 		if err != nil {
@@ -153,14 +152,14 @@ func (m *MultiChainResolver) ListAgentsByOwner(ctx context.Context, ownerAddress
 		}
 		allAgents = append(allAgents, agents...)
 	}
-	
+
 	return allAgents, nil
 }
 
 // Search searches for agents across all chains
 func (m *MultiChainResolver) Search(ctx context.Context, criteria SearchCriteria) ([]*AgentMetadata, error) {
 	var allAgents []*AgentMetadata
-	
+
 	for _, resolver := range m.resolvers {
 		agents, err := resolver.Search(ctx, criteria)
 		if err != nil {
@@ -168,12 +167,12 @@ func (m *MultiChainResolver) Search(ctx context.Context, criteria SearchCriteria
 		}
 		allAgents = append(allAgents, agents...)
 	}
-	
+
 	// Apply limit after aggregating results
 	if criteria.Limit > 0 && len(allAgents) > criteria.Limit {
 		allAgents = allAgents[:criteria.Limit]
 	}
-	
+
 	return allAgents, nil
 }
 
@@ -184,7 +183,7 @@ func extractChainFromDID(did AgentDID) (Chain, error) {
 	if len(didStr) < 10 || didStr[:4] != "did:" {
 		return "", fmt.Errorf("invalid DID format")
 	}
-	
+
 	// Simple extraction - can be enhanced based on actual DID format
 	if len(didStr) > 14 && didStr[4:9] == "sage:" {
 		parts := didStr[9:]
@@ -197,6 +196,6 @@ func extractChainFromDID(did AgentDID) (Chain, error) {
 			}
 		}
 	}
-	
+
 	return "", fmt.Errorf("cannot determine chain from DID")
 }

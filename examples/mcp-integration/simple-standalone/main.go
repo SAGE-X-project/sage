@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -49,18 +48,18 @@ func verifySAGERequest(r *http.Request) error {
 	// 1. Get the agent DID from header
 	// 2. Resolve the public key from blockchain
 	// 3. Verify the signature
-	
+
 	// For this demo, we'll do basic signature verification
 	signature := r.Header.Get("Signature")
 	if signature == "" {
 		return fmt.Errorf("missing signature header")
 	}
-	
+
 	agentDID := r.Header.Get("X-Agent-DID")
 	if agentDID == "" {
 		return fmt.Errorf("missing X-Agent-DID header")
 	}
-	
+
 	// In a real app, verify the signature here
 	fmt.Printf(" Request from agent: %s\n", agentDID)
 	return nil
@@ -73,13 +72,13 @@ func insecureWeatherHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-	
+
 	location, ok := req.Arguments["location"].(string)
 	if !ok {
 		http.Error(w, "Missing location", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Simulate weather data
 	result := map[string]interface{}{
 		"location":    location,
@@ -87,7 +86,7 @@ func insecureWeatherHandler(w http.ResponseWriter, r *http.Request) {
 		"humidity":    65,
 		"conditions":  "partly cloudy",
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ToolResponse{Result: result})
 }
@@ -99,20 +98,20 @@ func secureWeatherHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Unauthorized: %v", err), http.StatusUnauthorized)
 		return
 	}
-	
+
 	// Rest of the code is exactly the same
 	var req ToolRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-	
+
 	location, ok := req.Arguments["location"].(string)
 	if !ok {
 		http.Error(w, "Missing location", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Simulate weather data
 	result := map[string]interface{}{
 		"location":    location,
@@ -120,7 +119,7 @@ func secureWeatherHandler(w http.ResponseWriter, r *http.Request) {
 		"humidity":    65,
 		"conditions":  "partly cloudy",
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ToolResponse{Result: result})
 }
@@ -133,9 +132,9 @@ func makeSAGERequest() {
 		log.Printf("Failed to generate key: %v", err)
 		return
 	}
-	
+
 	privateKey, _ := keyPair.PrivateKey().(ed25519.PrivateKey)
-	
+
 	// Create request
 	reqBody := ToolRequest{
 		Tool: "weather",
@@ -143,15 +142,15 @@ func makeSAGERequest() {
 			"location": "San Francisco",
 		},
 	}
-	
+
 	bodyBytes, _ := json.Marshal(reqBody)
 	req, _ := http.NewRequest("POST", "http://localhost:8082/weather-secure", strings.NewReader(string(bodyBytes)))
-	
+
 	// Add headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Agent-DID", "did:sage:demo:agent123")
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
-	
+
 	// Create signature (simplified for demo)
 	verifier := rfc9421.NewHTTPVerifier()
 	params := &rfc9421.SignatureInputParams{
@@ -165,14 +164,14 @@ func makeSAGERequest() {
 		Algorithm: "ed25519",
 		Created:   time.Now().Unix(),
 	}
-	
+
 	// Sign the request
 	err = verifier.SignRequest(req, "sig1", params, privateKey)
 	if err != nil {
 		log.Printf("Failed to sign request: %v", err)
 		return
 	}
-	
+
 	// Make the request
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -181,10 +180,10 @@ func makeSAGERequest() {
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	var result ToolResponse
 	json.NewDecoder(resp.Body).Decode(&result)
-	
+
 	if resp.StatusCode == http.StatusOK {
 		fmt.Printf(" Secure request succeeded! Weather: %v\n", result.Result)
 	} else {
@@ -195,10 +194,10 @@ func makeSAGERequest() {
 func main() {
 	// Insecure endpoint (vulnerable)
 	http.HandleFunc("/weather-insecure", insecureWeatherHandler)
-	
+
 	// Secure endpoint (protected by SAGE)
 	http.HandleFunc("/weather-secure", secureWeatherHandler)
-	
+
 	// Demo info endpoint
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `SAGE Integration Demo
@@ -219,7 +218,7 @@ curl -X POST http://localhost:8082/weather-secure \
   -d '{"tool":"weather","arguments":{"location":"NYC"}}'
 `)
 	})
-	
+
 	fmt.Println(" SAGE Integration Demo Server")
 	fmt.Println("📍 Listening on http://localhost:8082")
 	fmt.Println("")
@@ -227,13 +226,13 @@ curl -X POST http://localhost:8082/weather-secure \
 	fmt.Println("  POST /weather-insecure - No security (anyone can call)")
 	fmt.Println("  POST /weather-secure   - SAGE protected (requires signature)")
 	fmt.Println("")
-	
+
 	// Start a goroutine to make a demo request after 2 seconds
 	go func() {
 		time.Sleep(2 * time.Second)
 		fmt.Println("\n📡 Making a signed request...")
 		makeSAGERequest()
 	}()
-	
+
 	log.Fatal(http.ListenAndServe(":8082", nil))
 }

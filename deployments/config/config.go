@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package config
 
 import (
@@ -30,15 +29,15 @@ import (
 
 // Config represents the main configuration structure
 type Config struct {
-	Environment string             `yaml:"environment" json:"environment"`
-	Blockchain  *BlockchainConfig  `yaml:"blockchain" json:"blockchain"`
-	DID         *DIDConfig         `yaml:"did" json:"did"`
-	KeyStore    *KeyStoreConfig    `yaml:"keystore" json:"keystore"`
-	Session     *SessionConfig     `yaml:"session" json:"session"`
-	Handshake   *HandshakeConfig   `yaml:"handshake" json:"handshake"`
-	Logging     *LoggingConfig     `yaml:"logging" json:"logging"`
-	Metrics     *MetricsConfig     `yaml:"metrics" json:"metrics"`
-	Health      *HealthConfig      `yaml:"health" json:"health"`
+	Environment string            `yaml:"environment" json:"environment"`
+	Blockchain  *BlockchainConfig `yaml:"blockchain" json:"blockchain"`
+	DID         *DIDConfig        `yaml:"did" json:"did"`
+	KeyStore    *KeyStoreConfig   `yaml:"keystore" json:"keystore"`
+	Session     *SessionConfig    `yaml:"session" json:"session"`
+	Handshake   *HandshakeConfig  `yaml:"handshake" json:"handshake"`
+	Logging     *LoggingConfig    `yaml:"logging" json:"logging"`
+	Metrics     *MetricsConfig    `yaml:"metrics" json:"metrics"`
+	Health      *HealthConfig     `yaml:"health" json:"health"`
 }
 
 // BlockchainConfig is already defined in blockchain.go
@@ -69,10 +68,10 @@ type SessionConfig struct {
 
 // HandshakeConfig represents handshake configuration
 type HandshakeConfig struct {
-	Timeout         time.Duration `yaml:"timeout" json:"timeout"`
-	MaxRetries      int           `yaml:"max_retries" json:"max_retries"`
-	RetryBackoff    time.Duration `yaml:"retry_backoff" json:"retry_backoff"`
-	EnableMetrics   bool          `yaml:"enable_metrics" json:"enable_metrics"`
+	Timeout       time.Duration `yaml:"timeout" json:"timeout"`
+	MaxRetries    int           `yaml:"max_retries" json:"max_retries"`
+	RetryBackoff  time.Duration `yaml:"retry_backoff" json:"retry_backoff"`
+	EnableMetrics bool          `yaml:"enable_metrics" json:"enable_metrics"`
 }
 
 // LoggingConfig represents logging configuration

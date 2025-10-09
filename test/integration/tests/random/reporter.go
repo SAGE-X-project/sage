@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package random
 
 import (
@@ -32,19 +31,19 @@ import (
 
 // FuzzReport represents a complete fuzzing test report
 type FuzzReport struct {
-	StartTime     time.Time               `json:"start_time"`
-	EndTime       time.Time               `json:"end_time"`
-	Duration      time.Duration           `json:"duration"`
-	TotalTests    int64                   `json:"total_tests"`
-	PassedTests   int64                   `json:"passed_tests"`
-	FailedTests   int64                   `json:"failed_tests"`
-	SkippedTests  int64                   `json:"skipped_tests"`
-	SuccessRate   float64                 `json:"success_rate"`
-	Configuration *FuzzerConfig           `json:"configuration"`
-	Results       []TestResult            `json:"results"`
-	Statistics    Statistics              `json:"statistics"`
-	Defects       []Defect                `json:"defects,omitempty"`
-	Summary       string                  `json:"summary"`
+	StartTime     time.Time     `json:"start_time"`
+	EndTime       time.Time     `json:"end_time"`
+	Duration      time.Duration `json:"duration"`
+	TotalTests    int64         `json:"total_tests"`
+	PassedTests   int64         `json:"passed_tests"`
+	FailedTests   int64         `json:"failed_tests"`
+	SkippedTests  int64         `json:"skipped_tests"`
+	SuccessRate   float64       `json:"success_rate"`
+	Configuration *FuzzerConfig `json:"configuration"`
+	Results       []TestResult  `json:"results"`
+	Statistics    Statistics    `json:"statistics"`
+	Defects       []Defect      `json:"defects,omitempty"`
+	Summary       string        `json:"summary"`
 }
 
 // Statistics contains statistical analysis of test results
@@ -452,9 +451,9 @@ func (r *ResultReporter) generateSummary(report *FuzzReport) string {
 
 	summary := fmt.Sprintf(
 		"Random testing completed with status: %s. "+
-		"Executed %d tests in %v with %.2f%% success rate. "+
-		"Found %d defects (%d critical). "+
-		"Performance: %.2f tests/second.",
+			"Executed %d tests in %v with %.2f%% success rate. "+
+			"Found %d defects (%d critical). "+
+			"Performance: %.2f tests/second.",
 		status, report.TotalTests, report.Duration,
 		report.SuccessRate, defectCount, criticalCount,
 		report.Statistics.TestsPerSecond,

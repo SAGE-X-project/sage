@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package sessioninit
 
 import (
@@ -37,21 +36,21 @@ import (
 
 // Creator implements handshake.Events and forwards to Manager.
 type Creator struct {
-	sessionMgr  	*session.Manager
+	sessionMgr *session.Manager
 
-	mu          	sync.RWMutex
-	ephPrivByCtx 	map[string]*keys.X25519KeyPair
-	sidByCtx      	map[string]string 
-	exporter 		sagecrypto.KeyExporter
+	mu           sync.RWMutex
+	ephPrivByCtx map[string]*keys.X25519KeyPair
+	sidByCtx     map[string]string
+	exporter     sagecrypto.KeyExporter
 }
 
 // New creates a handshake integration Creator.
 func NewCreator(sm *session.Manager) *Creator {
 	return &Creator{
-		sessionMgr:   	sm,
-		ephPrivByCtx: 	make(map[string]*keys.X25519KeyPair),
+		sessionMgr:   sm,
+		ephPrivByCtx: make(map[string]*keys.X25519KeyPair),
 		sidByCtx:     make(map[string]string),
-		exporter: 		formats.NewJWKExporter(),
+		exporter:     formats.NewJWKExporter(),
 	}
 }
 
@@ -113,7 +112,7 @@ func (a *Creator) AskEphemeral(ctx context.Context, ctxID string) ([]byte, json.
 	a.mu.Unlock()
 
 	raw := x.PublicBytesKey()
-	
+
 	jwkBytes, err := a.exporter.ExportPublic(kp, sagecrypto.KeyFormatJWK)
 	if err != nil {
 		return nil, nil, fmt.Errorf("export jwk: %w", err)
@@ -124,27 +123,27 @@ func (a *Creator) AskEphemeral(ctx context.Context, ctxID string) ([]byte, json.
 // IssueKeyID generates a new opaque key ID for the given context ID,
 // binds it to the existing session, and returns it to be sent to the peer.
 func (a *Creator) IssueKeyID(ctxID string) (string, bool) {
-    a.mu.Lock()
-    sid, ok := a.sidByCtx[ctxID] 
-    if ok {
-        delete(a.sidByCtx, ctxID) 
-    }
-    a.mu.Unlock()
-    if !ok {
-        return "", false
-    }
+	a.mu.Lock()
+	sid, ok := a.sidByCtx[ctxID]
+	if ok {
+		delete(a.sidByCtx, ctxID)
+	}
+	a.mu.Unlock()
+	if !ok {
+		return "", false
+	}
 
-    keyid := "session:" + randBase64URL(12) 
-    a.sessionMgr.BindKeyID(keyid, sid)  
-    return keyid, true
+	keyid := "session:" + randBase64URL(12)
+	a.sessionMgr.BindKeyID(keyid, sid)
+	return keyid, true
 }
 
 func randBase64URL(length int) string {
-    buf := make([]byte, length)
-    if _, err := rand.Read(buf); err != nil {
-        // If the system's CSPRNG fails, it's a critical error
-        panic(fmt.Errorf("crypto/rand read failed: %w", err))
-    }
-    // Encode to base64 URL without padding
-    return base64.RawURLEncoding.EncodeToString(buf)
+	buf := make([]byte, length)
+	if _, err := rand.Read(buf); err != nil {
+		// If the system's CSPRNG fails, it's a critical error
+		panic(fmt.Errorf("crypto/rand read failed: %w", err))
+	}
+	// Encode to base64 URL without padding
+	return base64.RawURLEncoding.EncodeToString(buf)
 }

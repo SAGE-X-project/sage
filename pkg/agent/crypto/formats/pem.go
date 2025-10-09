@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package formats
 
 import (
@@ -55,18 +54,18 @@ func (e *pemExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 		if !ok {
 			return nil, errors.New("invalid Ed25519 private key type")
 		}
-		
+
 		// Use PKCS8 format for Ed25519
 		derBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal Ed25519 private key: %w", err)
 		}
-		
+
 		block := &pem.Block{
 			Type:  "PRIVATE KEY",
 			Bytes: derBytes,
 		}
-		
+
 		return pem.EncodeToMemory(block), nil
 
 	case sagecrypto.KeyTypeSecp256k1:
@@ -74,11 +73,11 @@ func (e *pemExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 		if !ok {
 			return nil, errors.New("invalid Secp256k1 private key type")
 		}
-		
+
 		// For secp256k1, we'll use PKCS8 format with custom OID
 		// First convert to a generic private key structure
 		privKeyBytes := privateKey.D.Bytes()
-		
+
 		// Ensure the private key is 32 bytes
 		if len(privKeyBytes) < 32 {
 			// Pad with zeros at the beginning
@@ -86,7 +85,7 @@ func (e *pemExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 			copy(padded[32-len(privKeyBytes):], privKeyBytes)
 			privKeyBytes = padded
 		}
-		
+
 		// NOTE: This is a non-standard format due to x509 package limitations.
 		// Standard x509.MarshalPKCS8PrivateKey doesn't support secp256k1 curve.
 		// We store raw 32-byte private key with a custom header to indicate the curve.
@@ -98,17 +97,17 @@ func (e *pemExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 				"Curve": "secp256k1",
 			},
 		}
-		
+
 		return pem.EncodeToMemory(block), nil
-		
+
 	case sagecrypto.KeyTypeRSA:
-        privateKey, ok := keyPair.PrivateKey().(*rsa.PrivateKey)
-        if !ok {
-            return nil, errors.New("invalid RSA private key type")
-        }
-        derBytes := x509.MarshalPKCS1PrivateKey(privateKey)
-        block := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: derBytes}
-        return pem.EncodeToMemory(block), nil
+		privateKey, ok := keyPair.PrivateKey().(*rsa.PrivateKey)
+		if !ok {
+			return nil, errors.New("invalid RSA private key type")
+		}
+		derBytes := x509.MarshalPKCS1PrivateKey(privateKey)
+		block := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: derBytes}
+		return pem.EncodeToMemory(block), nil
 
 	default:
 		return nil, sagecrypto.ErrInvalidKeyType
@@ -129,25 +128,25 @@ func (e *pemExporter) ExportPublic(keyPair sagecrypto.KeyPair, format sagecrypto
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal Ed25519 public key: %w", err)
 		}
-		
+
 		block := &pem.Block{
 			Type:  "PUBLIC KEY",
 			Bytes: derBytes,
 		}
-		
+
 		return pem.EncodeToMemory(block), nil
-		
+
 	case sagecrypto.KeyTypeSecp256k1:
 		publicKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
 		if !ok {
 			return nil, errors.New("invalid Secp256k1 public key type")
 		}
-		
+
 		// For secp256k1, we'll store the raw public key bytes
 		// X and Y coordinates, 32 bytes each
 		xBytes := publicKey.X.Bytes()
 		yBytes := publicKey.Y.Bytes()
-		
+
 		// Ensure each coordinate is 32 bytes
 		if len(xBytes) < 32 {
 			padded := make([]byte, 32)
@@ -159,9 +158,9 @@ func (e *pemExporter) ExportPublic(keyPair sagecrypto.KeyPair, format sagecrypto
 			copy(padded[32-len(yBytes):], yBytes)
 			yBytes = padded
 		}
-		
+
 		pubKeyBytes := append(xBytes, yBytes...)
-		
+
 		block := &pem.Block{
 			Type:  "PUBLIC KEY",
 			Bytes: pubKeyBytes,
@@ -169,20 +168,20 @@ func (e *pemExporter) ExportPublic(keyPair sagecrypto.KeyPair, format sagecrypto
 				"Curve": "secp256k1",
 			},
 		}
-		
+
 		return pem.EncodeToMemory(block), nil
 
 	case sagecrypto.KeyTypeRSA:
-        publicKey, ok := keyPair.PublicKey().(*rsa.PublicKey)
-        if !ok {
-            return nil, errors.New("invalid RSA public key type")
-        }
-        derBytes, err := x509.MarshalPKIXPublicKey(publicKey)
-        if err != nil {
-            return nil, fmt.Errorf("failed to marshal RSA public key: %w", err)
-        }
-        block := &pem.Block{Type: "PUBLIC KEY", Bytes: derBytes}
-        return pem.EncodeToMemory(block), nil
+		publicKey, ok := keyPair.PublicKey().(*rsa.PublicKey)
+		if !ok {
+			return nil, errors.New("invalid RSA public key type")
+		}
+		derBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal RSA public key: %w", err)
+		}
+		block := &pem.Block{Type: "PUBLIC KEY", Bytes: derBytes}
+		return pem.EncodeToMemory(block), nil
 
 	default:
 		return nil, sagecrypto.ErrInvalidKeyType
@@ -215,7 +214,7 @@ func (i *pemImporter) Import(data []byte, format sagecrypto.KeyFormat) (sagecryp
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse PKCS8 private key: %w", err)
 		}
-		
+
 		switch privateKey := key.(type) {
 		case ed25519.PrivateKey:
 			return keys.NewEd25519KeyPair(privateKey, "")
@@ -238,15 +237,15 @@ func (i *pemImporter) Import(data []byte, format sagecrypto.KeyFormat) (sagecryp
 			secp256k1PrivKey := secp256k1.PrivKeyFromBytes(block.Bytes)
 			return keys.NewSecp256k1KeyPair(secp256k1PrivKey, "")
 		}
-		
+
 		// Try standard EC private key parsing (won't work for secp256k1)
 		return nil, errors.New("standard EC private key format not supported for secp256k1")
 	case "RSA PRIVATE KEY":
-        priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
-        if err != nil {
-            return nil, fmt.Errorf("failed to parse RSA private key: %w", err)
-        }
-        return keys.NewRSAKeyPair(priv, "")
+		priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse RSA private key: %w", err)
+		}
+		return keys.NewRSAKeyPair(priv, "")
 
 	default:
 		return nil, fmt.Errorf("unsupported PEM block type: %s", block.Type)
@@ -274,10 +273,10 @@ func (i *pemImporter) ImportPublic(data []byte, format sagecrypto.KeyFormat) (cr
 		if len(block.Bytes) != 64 {
 			return nil, fmt.Errorf("invalid secp256k1 public key length: %d", len(block.Bytes))
 		}
-		
+
 		xBytes := block.Bytes[:32]
 		yBytes := block.Bytes[32:]
-		
+
 		pubKey := &ecdsa.PublicKey{
 			Curve: secp256k1.S256(),
 			X:     new(big.Int).SetBytes(xBytes),
@@ -298,7 +297,7 @@ func (i *pemImporter) ImportPublic(data []byte, format sagecrypto.KeyFormat) (cr
 	case *ecdsa.PublicKey:
 		return key, nil
 	case *rsa.PublicKey:
-        return key, nil
+		return key, nil
 	default:
 		return nil, fmt.Errorf("unsupported public key type: %T", publicKey)
 	}

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package solana
 
 import (
@@ -100,9 +99,9 @@ func TestSolanaProvider(t *testing.T) {
 
 		// Invalid addresses
 		invalidAddresses := []string{
-			"",                          // empty
-			"invalid-base58!@#",         // invalid characters
-			"shortaddr",                 // too short
+			"",                  // empty
+			"invalid-base58!@#", // invalid characters
+			"shortaddr",         // too short
 			"verylongaddressthatiswaytoolongtobevalidsolanaaddress", // wrong length after decode
 		}
 

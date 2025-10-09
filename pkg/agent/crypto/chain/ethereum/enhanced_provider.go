@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package ethereum
 
 import (
@@ -130,7 +129,7 @@ func (p *EnhancedProvider) EstimateGas(
 
 		// Add 20% buffer for safety
 		gasEstimate = estimate + (estimate / 5)
-		
+
 		// Cap at configured limit
 		if gasEstimate > p.config.GasLimit {
 			gasEstimate = p.config.GasLimit

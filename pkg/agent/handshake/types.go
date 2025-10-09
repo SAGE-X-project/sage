@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package handshake
 
 import (
@@ -68,7 +67,7 @@ type Events interface {
 	OnResponse(ctx context.Context, ctxID string, res ResponseMessage, senderPub crypto.PublicKey) error
 	// OnComplete is called when Complete is received.
 	// If a SecureSession has been established during the handshake, it will be provided.
-	OnComplete(ctx context.Context, ctxID string, comp CompleteMessage , sessParams session.Params) error
+	OnComplete(ctx context.Context, ctxID string, comp CompleteMessage, sessParams session.Params) error
 
 	// AskEphemeral asks the app-layer to mint an X25519 ephemeral keypair for this ctxID.
 	// The implementation MUST keep the private key internally and return:
@@ -80,22 +79,26 @@ type Events interface {
 // NoopEvents is a default no-op implementation.
 type NoopEvents struct{}
 
-func (NoopEvents) OnInvitation(context.Context, string, InvitationMessage) error             { return nil }
-func (NoopEvents) OnRequest(context.Context, string, RequestMessage, crypto.PublicKey) error { return nil }
+func (NoopEvents) OnInvitation(context.Context, string, InvitationMessage) error { return nil }
+func (NoopEvents) OnRequest(context.Context, string, RequestMessage, crypto.PublicKey) error {
+	return nil
+}
 func (NoopEvents) OnResponse(context.Context, string, ResponseMessage, crypto.PublicKey) error {
 	return nil
 }
-func (NoopEvents) OnComplete(context.Context, string, CompleteMessage, session.Params) error { return nil }
-func (NoopEvents) AskEphemeral(context.Context, string) ([]byte,  json.RawMessage, error) { return nil, nil, nil }
-
-
+func (NoopEvents) OnComplete(context.Context, string, CompleteMessage, session.Params) error {
+	return nil
+}
+func (NoopEvents) AskEphemeral(context.Context, string) ([]byte, json.RawMessage, error) {
+	return nil, nil, nil
+}
 
 // 1) Optional extension: let the application issue and bind a keyid after session is ensured.
 // If implemented, the server will embed the issued keyid into the Complete ACK response.
 type KeyIDBinder interface {
-    // IssueKeyID returns an opaque keyid bound to the negotiated session for the given context.
-    // ok=false means no keyid is available (server will omit it).
-    IssueKeyID(ctxID string) (keyid string, ok bool)
+	// IssueKeyID returns an opaque keyid bound to the negotiated session for the given context.
+	// ok=false means no keyid is available (server will omit it).
+	IssueKeyID(ctxID string) (keyid string, ok bool)
 }
 
 const contextIDPrefix = "ctx-handshake"
@@ -109,84 +112,82 @@ type InvitationMessage struct {
 }
 
 func (m *InvitationMessage) GetSequence() uint64 {
-    return m.Sequence
+	return m.Sequence
 }
 
 func (m *InvitationMessage) GetNonce() string {
-    return m.Nonce
+	return m.Nonce
 }
 
 func (m *InvitationMessage) GetTimestamp() time.Time {
-    return m.Timestamp 
+	return m.Timestamp
 }
-
 
 // RequestMessage represents a request packet in the A2A handshake,
 // including on-chain signature authentication fields.
 type RequestMessage struct {
 	message.BaseMessage
 	message.MessageControlHeader
-	EphemeralPubKey   json.RawMessage    `json:"ephemeralPublicKey"` // JWK format
+	EphemeralPubKey json.RawMessage `json:"ephemeralPublicKey"` // JWK format
 }
 
 func (m *RequestMessage) GetSequence() uint64 {
-    return m.Sequence
+	return m.Sequence
 }
 
 func (m *RequestMessage) GetNonce() string {
-    return m.Nonce
+	return m.Nonce
 }
 
 func (m *RequestMessage) GetTimestamp() time.Time {
-    return m.Timestamp 
+	return m.Timestamp
 }
-
 
 // ResponseMessage defines the payload sent by the server in reply to a client's Request.
 // It confirms the agreed session parameters and attaches the server's signature.
 type ResponseMessage struct {
 	message.BaseMessage
 	message.MessageControlHeader
-	EphemeralPubKey  	json.RawMessage `json:"ephemeralPublicKey"` // JWK format
-	KeyID           	string          `json:"keyid,omitempty"`
-	Ack         	 	bool            `json:"ack"`
+	EphemeralPubKey json.RawMessage `json:"ephemeralPublicKey"` // JWK format
+	KeyID           string          `json:"keyid,omitempty"`
+	Ack             bool            `json:"ack"`
 }
 
 func (m *ResponseMessage) GetSequence() uint64 {
-    return m.Sequence
+	return m.Sequence
 }
 
 func (m *ResponseMessage) GetNonce() string {
-    return m.Nonce
+	return m.Nonce
 }
 
 func (m *ResponseMessage) GetTimestamp() time.Time {
-    return m.Timestamp 
+	return m.Timestamp
 }
 
 // CompleteMessage signals the end of the handshake with only the session identifier.
 type CompleteMessage struct {
-    message.BaseMessage
-    message.MessageControlHeader
+	message.BaseMessage
+	message.MessageControlHeader
 }
 
 func (m *CompleteMessage) GetSequence() uint64 {
-    return m.Sequence
+	return m.Sequence
 }
 
 func (m *CompleteMessage) GetNonce() string {
-    return m.Nonce
+	return m.Nonce
 }
 
 func (m *CompleteMessage) GetTimestamp() time.Time {
-    return m.Timestamp 
+	return m.Timestamp
 }
 
 // KeyInfo contains the information required for RFC‑9421 signature verification.
 type KeyInfo struct {
-    KeyID               string   `json:"keyid"`             // (RFC‑9421) identifier of the public key to be used for signing
-    Salt                string   `json:"salt"`              // a random value (32 bytes) to uniquely identify the signer, encoded in Base64URL
-    SignatureSpec       string   `json:"signatureSpec"`     // the signature format understood by the implementation (e.g., “RFC-9421”)
-    FieldsToSign        []string `json:"fieldsToSign"`      // an array of JSONPath expressions indicating which fields to include (e.g., @header, @payload.id)
-    TimestampTolerance  string   `json:"timestampTolerance"`// an RFC 3339 duration string specifying the allowed clock skew (e.g., “5s”, “2m”, “1h”)
+	KeyID              string   `json:"keyid"`              // (RFC‑9421) identifier of the public key to be used for signing
+	Salt               string   `json:"salt"`               // a random value (32 bytes) to uniquely identify the signer, encoded in Base64URL
+	SignatureSpec      string   `json:"signatureSpec"`      // the signature format understood by the implementation (e.g., “RFC-9421”)
+	FieldsToSign       []string `json:"fieldsToSign"`       // an array of JSONPath expressions indicating which fields to include (e.g., @header, @payload.id)
+	TimestampTolerance string   `json:"timestampTolerance"` // an RFC 3339 duration string specifying the allowed clock skew (e.g., “5s”, “2m”, “1h”)
 }

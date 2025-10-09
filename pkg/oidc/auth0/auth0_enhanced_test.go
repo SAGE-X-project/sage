@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package auth0
 
 import (
@@ -96,19 +95,19 @@ func SetupMockAuth0Environment(t *testing.T, mockURL string) {
 	t.Helper()
 
 	envVars := map[string]string{
-		"AUTH0_DOMAIN_1":       mockURL,
-		"AUTH0_CLIENT_ID_1":    "mock-client-id-1",
+		"AUTH0_DOMAIN_1":        mockURL,
+		"AUTH0_CLIENT_ID_1":     "mock-client-id-1",
 		"AUTH0_CLIENT_SECRET_1": "mock-secret-1",
-		"TEST_DID_1":          "did:sage:mock:agent1",
-		"IDENTIFIER_1":        "https://api.mock.com/agent1",
-		"AUTH0_KEY_ID_1":      "mock-key-1",
+		"TEST_DID_1":            "did:sage:mock:agent1",
+		"IDENTIFIER_1":          "https://api.mock.com/agent1",
+		"AUTH0_KEY_ID_1":        "mock-key-1",
 
-		"AUTH0_DOMAIN_2":       mockURL,
-		"AUTH0_CLIENT_ID_2":    "mock-client-id-2",
+		"AUTH0_DOMAIN_2":        mockURL,
+		"AUTH0_CLIENT_ID_2":     "mock-client-id-2",
 		"AUTH0_CLIENT_SECRET_2": "mock-secret-2",
-		"TEST_DID_2":          "did:sage:mock:agent2",
-		"IDENTIFIER_2":        "https://api.mock.com/agent2",
-		"AUTH0_KEY_ID_2":      "mock-key-2",
+		"TEST_DID_2":            "did:sage:mock:agent2",
+		"IDENTIFIER_2":          "https://api.mock.com/agent2",
+		"AUTH0_KEY_ID_2":        "mock-key-2",
 	}
 
 	for key, value := range envVars {
@@ -139,8 +138,8 @@ func TestAuth0WithoutSkip(t *testing.T) {
 			Domain:       os.Getenv("AUTH0_DOMAIN_1"),
 			ClientID:     os.Getenv("AUTH0_CLIENT_ID_1"),
 			ClientSecret: os.Getenv("AUTH0_CLIENT_SECRET_1"),
-			DID:         os.Getenv("TEST_DID_1"),
-			Resource:    os.Getenv("IDENTIFIER_1"),
+			DID:          os.Getenv("TEST_DID_1"),
+			Resource:     os.Getenv("IDENTIFIER_1"),
 		}
 
 		// This will work with either real or mock Auth0
@@ -169,7 +168,7 @@ func TestAuth0WithoutSkip(t *testing.T) {
 	t.Run("Token verification with mock or real Auth0", func(t *testing.T) {
 		// Setup verifier
 		verifierCfg := VerifierConfig{
-			Identifier:   os.Getenv("IDENTIFIER_2"),
+			Identifier:  os.Getenv("IDENTIFIER_2"),
 			CacheTTL:    5 * time.Minute,
 			HTTPTimeout: 5 * time.Second,
 		}
@@ -247,8 +246,8 @@ func TestAuth0Integration(t *testing.T) {
 			Domain:       os.Getenv("AUTH0_DOMAIN_1"),
 			ClientID:     os.Getenv("AUTH0_CLIENT_ID_1"),
 			ClientSecret: os.Getenv("AUTH0_CLIENT_SECRET_1"),
-			DID:         os.Getenv("TEST_DID_1"),
-			Resource:    os.Getenv("IDENTIFIER_1"),
+			DID:          os.Getenv("TEST_DID_1"),
+			Resource:     os.Getenv("IDENTIFIER_1"),
 		}
 
 		require.NotEmpty(t, agentCfg.Domain)

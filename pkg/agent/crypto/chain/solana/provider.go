@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package solana
 
 import (
@@ -26,8 +25,8 @@ import (
 	"fmt"
 
 	"github.com/mr-tron/base58"
-	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 )
 
 // Provider implements ChainProvider for Solana

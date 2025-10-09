@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -59,7 +58,7 @@ func (s *VerificationService) VerifyAgentMessage(
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve agent DID: %w", err)
 	}
-	
+
 	// Check if agent is active
 	if opts.RequireActiveAgent && !agentMetadata.IsActive {
 		return &VerificationResult{
@@ -68,19 +67,19 @@ func (s *VerificationService) VerifyAgentMessage(
 			AgentID: message.AgentDID,
 		}, nil
 	}
-	
+
 	// Prepare metadata for verification
 	expectedMetadata := map[string]interface{}{
 		"endpoint": agentMetadata.Endpoint,
 		"name":     agentMetadata.Name,
 	}
-	
+
 	// Add agent capabilities to message metadata if not present
 	if message.Metadata == nil {
 		message.Metadata = make(map[string]interface{})
 	}
 	message.Metadata["capabilities"] = agentMetadata.Capabilities
-	
+
 	// Verify signature with metadata
 	verifyResult, err := s.verifier.VerifyWithMetadata(
 		agentMetadata.PublicKey,
@@ -92,7 +91,7 @@ func (s *VerificationService) VerifyAgentMessage(
 	if err != nil {
 		return nil, fmt.Errorf("verification failed: %w", err)
 	}
-	
+
 	return &VerificationResult{
 		Valid:        verifyResult.Valid,
 		Error:        verifyResult.Error,
@@ -116,10 +115,10 @@ func (s *VerificationService) VerifyMessageFromHeaders(
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse message: %w", err)
 	}
-	
+
 	// Set signature
 	message.Signature = signature
-	
+
 	// Parse metadata from headers
 	if message.Metadata == nil {
 		message.Metadata = make(map[string]interface{})
@@ -130,10 +129,10 @@ func (s *VerificationService) VerifyMessageFromHeaders(
 	if name, ok := headers["X-Metadata-Name"]; ok {
 		message.Metadata["name"] = name
 	}
-	
+
 	// Use default options
 	opts := rfc9421.DefaultVerificationOptions()
-	
+
 	return s.VerifyAgentMessage(ctx, message, opts)
 }
 
@@ -149,13 +148,13 @@ func (s *VerificationService) QuickVerify(
 	if err != nil {
 		return fmt.Errorf("failed to resolve public key: %w", err)
 	}
-	
+
 	// Determine algorithm based on DID chain
 	chain, _, err := did.ParseDID(did.AgentDID(agentDID))
 	if err != nil {
 		return fmt.Errorf("failed to parse DID: %w", err)
 	}
-	
+
 	var algorithm string
 	switch chain {
 	case did.ChainEthereum:
@@ -165,7 +164,7 @@ func (s *VerificationService) QuickVerify(
 	default:
 		algorithm = string(rfc9421.AlgorithmEdDSA)
 	}
-	
+
 	// Create a minimal message for verification
 	msg := &rfc9421.Message{
 		Body:         message,
@@ -174,12 +173,12 @@ func (s *VerificationService) QuickVerify(
 		SignedFields: []string{"body"},
 		Timestamp:    time.Now(), // Set current time to avoid zero value
 	}
-	
+
 	// Use options that skip timestamp verification
 	opts := &rfc9421.VerificationOptions{
 		MaxClockSkew: 0, // Disable timestamp verification
 	}
-	
+
 	return s.verifier.VerifySignature(publicKey, msg, opts)
 }
 

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package logger
 
 import (
@@ -341,17 +340,17 @@ func NewSageError(code, message string, cause error) *SageError {
 
 // Common error codes
 const (
-	ErrCodeInternal          = "INTERNAL_ERROR"
-	ErrCodeInvalidInput      = "INVALID_INPUT"
-	ErrCodeNotFound          = "NOT_FOUND"
-	ErrCodeUnauthorized      = "UNAUTHORIZED"
-	ErrCodeForbidden         = "FORBIDDEN"
-	ErrCodeConflict          = "CONFLICT"
-	ErrCodeTimeout           = "TIMEOUT"
-	ErrCodeNetworkError      = "NETWORK_ERROR"
-	ErrCodeBlockchainError   = "BLOCKCHAIN_ERROR"
-	ErrCodeCryptoError       = "CRYPTO_ERROR"
-	ErrCodeValidationError   = "VALIDATION_ERROR"
+	ErrCodeInternal           = "INTERNAL_ERROR"
+	ErrCodeInvalidInput       = "INVALID_INPUT"
+	ErrCodeNotFound           = "NOT_FOUND"
+	ErrCodeUnauthorized       = "UNAUTHORIZED"
+	ErrCodeForbidden          = "FORBIDDEN"
+	ErrCodeConflict           = "CONFLICT"
+	ErrCodeTimeout            = "TIMEOUT"
+	ErrCodeNetworkError       = "NETWORK_ERROR"
+	ErrCodeBlockchainError    = "BLOCKCHAIN_ERROR"
+	ErrCodeCryptoError        = "CRYPTO_ERROR"
+	ErrCodeValidationError    = "VALIDATION_ERROR"
 	ErrCodeConfigurationError = "CONFIGURATION_ERROR"
 )
 

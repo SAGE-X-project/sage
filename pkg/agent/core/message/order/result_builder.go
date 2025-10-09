@@ -16,17 +16,16 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package order
 
 import "github.com/sage-x-project/sage/pkg/agent/core/message"
 
 // Result holds the outcome of ordering logic for a message.
 type Result struct {
-	IsProcessed   bool                     // true if message was processed immediately
-	IsDuplicate   bool                     // true if message ID was already seen
-	IsWaiting     bool                     // true if message was buffered for later
-	ReadyMessages []message.ControlHeader  // any previously buffered messages now ready
+	IsProcessed   bool                    // true if message was processed immediately
+	IsDuplicate   bool                    // true if message ID was already seen
+	IsWaiting     bool                    // true if message was buffered for later
+	ReadyMessages []message.ControlHeader // any previously buffered messages now ready
 }
 
 // ResultBuilder builds an Result via chained setters.

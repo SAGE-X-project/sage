@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package health
 
 import (
@@ -187,15 +186,15 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 		"timestamp": snapshot.Timestamp.UTC().Format(time.RFC3339),
 		"uptime":    snapshot.Uptime.String(),
 		"counters": map[string]int64{
-			"signatures":         snapshot.SignatureCount,
-			"verifications":      snapshot.VerificationCount,
+			"signatures":          snapshot.SignatureCount,
+			"verifications":       snapshot.VerificationCount,
 			"successful_verifies": snapshot.SuccessfulVerifies,
-			"failed_verifies":    snapshot.FailedVerifies,
-			"did_resolutions":    snapshot.DIDResolutions,
-			"cache_hits":         snapshot.CacheHits,
-			"cache_misses":       snapshot.CacheMisses,
-			"blockchain_calls":   snapshot.BlockchainCalls,
-			"blockchain_errors":  snapshot.BlockchainErrors,
+			"failed_verifies":     snapshot.FailedVerifies,
+			"did_resolutions":     snapshot.DIDResolutions,
+			"cache_hits":          snapshot.CacheHits,
+			"cache_misses":        snapshot.CacheMisses,
+			"blockchain_calls":    snapshot.BlockchainCalls,
+			"blockchain_errors":   snapshot.BlockchainErrors,
 		},
 		"timings": map[string]interface{}{
 			"avg_signature_time_us":      snapshot.AvgSignatureTime,
@@ -208,7 +207,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 			"p95_did_resolution_time_us": snapshot.P95DIDResolutionTime,
 		},
 		"rates": map[string]float64{
-			"cache_hit_rate":           snapshot.GetCacheHitRate(),
+			"cache_hit_rate":            snapshot.GetCacheHitRate(),
 			"verification_success_rate": snapshot.GetVerificationSuccessRate(),
 			"blockchain_error_rate":     snapshot.GetBlockchainErrorRate(),
 		},
@@ -222,7 +221,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 // StartHealthServer is a convenience function to start a health server
 func StartHealthServer(port int, checks map[string]HealthCheck) (*Server, error) {
 	// Create health checker
-	checker := NewHealthChecker(5*time.Second)
+	checker := NewHealthChecker(5 * time.Second)
 	for name, check := range checks {
 		checker.RegisterCheck(name, check)
 	}

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -44,14 +43,14 @@ This command provides debugging utilities for:
 }
 
 var (
-	didString      string
-	resolveFlag    bool
-	parseOnly      bool
-	checkCache     bool
+	didString       string
+	resolveFlag     bool
+	parseOnly       bool
+	checkCache      bool
 	verifySignature bool
-	message        string
-	signature      string
-	verbose        bool
+	message         string
+	signature       string
+	verbose         bool
 )
 
 func init() {

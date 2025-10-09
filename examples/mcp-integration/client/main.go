@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -27,7 +26,7 @@ import (
 func main() {
 	fmt.Println("AI Agent with SAGE Security")
 	fmt.Println("================================")
-	
+
 	// Create SAGE client - just one line!
 	client, err := NewSAGEClient("did:sage:ethereum:0x742d35Cc6634C0532925a3b844Bc9e7595f7F1a")
 	if err != nil {
@@ -44,7 +43,7 @@ func main() {
 			"b": 20,
 		},
 	})
-	
+
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {
@@ -61,7 +60,7 @@ func main() {
 			"b": 5,
 		},
 	})
-	
+
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {
@@ -78,7 +77,7 @@ func main() {
 			"b": 8,
 		},
 	})
-	
+
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {

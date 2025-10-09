@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package config
 
 import (
@@ -67,9 +66,9 @@ func TestLoadConfig(t *testing.T) {
 			name: "Override with environment variables",
 			env:  "local",
 			envVars: map[string]string{
-				"SAGE_RPC_URL":  "http://custom-rpc:8545",
-				"SAGE_CHAIN_ID": "999",
-				"SAGE_GAS_LIMIT": "5000000",
+				"SAGE_RPC_URL":     "http://custom-rpc:8545",
+				"SAGE_CHAIN_ID":    "999",
+				"SAGE_GAS_LIMIT":   "5000000",
 				"SAGE_MAX_RETRIES": "5",
 			},
 			verify: func(t *testing.T, cfg *BlockchainConfig) {

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package crypto
 
 import (
@@ -83,7 +82,7 @@ func (m *Manager) ExportKeyPair(keyPair KeyPair, format KeyFormat) ([]byte, erro
 	default:
 		return nil, fmt.Errorf("unsupported key format: %s", format)
 	}
-	
+
 	return exporter.Export(keyPair, format)
 }
 
@@ -98,6 +97,6 @@ func (m *Manager) ImportKeyPair(data []byte, format KeyFormat) (KeyPair, error) 
 	default:
 		return nil, fmt.Errorf("unsupported key format: %s", format)
 	}
-	
+
 	return importer.Import(data, format)
 }

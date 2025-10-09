@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package hpke
 
 import (
@@ -315,7 +314,7 @@ func Test_Session_Lifecycle_IdleExpiry(t *testing.T) {
 	// 3) Sleep past idle timeout => expect decrypt to fail
 	time.Sleep(1400 * time.Millisecond)
 	_, err = sCli.Encrypt([]byte("m3"))
-	require.Error(t, err, "decrypt after idle timeout should fail")	
+	require.Error(t, err, "decrypt after idle timeout should fail")
 }
 
 // MaxMessages enforcement (absolute counter per session)
@@ -397,10 +396,10 @@ func Test_Session_MaxMessages_Enforced(t *testing.T) {
 
 	// 3rd should exceed MaxMessages on decrypt side
 	_, err = sCli.Encrypt([]byte("three"))
-	require.Error(t, err, "should fail after MaxMessages is exceeded")	
+	require.Error(t, err, "should fail after MaxMessages is exceeded")
 }
 
-//  AEAD integrity (tag tamper should fail)
+// AEAD integrity (tag tamper should fail)
 func Test_AEAD_TagIntegrity_TamperFails(t *testing.T) {
 	ctx := context.Background()
 
@@ -515,7 +514,6 @@ func Test_Session_KeyID_Uniqueness(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, kid2)
 
-
 	require.NotEqual(t, kid1, kid2, "KeyIDs should be unique per session")
 
 	srvSession, _ := srvMgr.GetByKeyID(kid1)
@@ -526,5 +524,5 @@ func Test_Session_KeyID_Uniqueness(t *testing.T) {
 	srvSession, _ = srvMgr.GetByKeyID(kid2)
 	cliSession, _ = cliMgr.GetByKeyID(kid2)
 	require.Equal(t, srvSession.GetID(), cliSession.GetID(), "shared secrets should match across phases")
-	
+
 }

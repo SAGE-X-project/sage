@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -112,18 +111,18 @@ func runAddressGenerate(cmd *cobra.Command, args []string) error {
 	} else if chainType != "" {
 		// Generate for specific chain
 		ct := chain.ChainType(strings.ToLower(chainType))
-		
+
 		// Validate chain is supported
 		provider, err := chain.GetProvider(ct)
 		if err != nil {
 			return fmt.Errorf("unsupported chain: %s", chainType)
 		}
-		
+
 		// Validate key type is compatible
 		if err := chain.ValidateKeyForChain(keyPair.PublicKey(), ct); err != nil {
 			return err
 		}
-		
+
 		chains = []chain.ChainType{ct}
 		_ = provider // provider is used for validation
 	} else {
@@ -174,10 +173,10 @@ func runAddressParse(cmd *cobra.Command, args []string) error {
 	fmt.Printf("Chain: %s\n", address.Chain)
 	fmt.Printf("Network: %s\n", address.Network)
 	fmt.Printf("Valid: \n")
-	
+
 	if canRecoverPubKey && pubKey != nil {
 		fmt.Printf("Public Key Recoverable: Yes\n")
-		
+
 		// Show public key type
 		switch pubKey.(type) {
 		case ed25519.PublicKey:
@@ -195,8 +194,8 @@ func runAddressParse(cmd *cobra.Command, args []string) error {
 func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypto.KeyPair) error {
 	// Prepare output data
 	output := map[string]interface{}{
-		"key_id":   keyPair.ID(),
-		"key_type": string(keyPair.Type()),
+		"key_id":    keyPair.ID(),
+		"key_type":  string(keyPair.Type()),
 		"addresses": make(map[string]string),
 	}
 
@@ -212,11 +211,11 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 		if err != nil {
 			return fmt.Errorf("failed to marshal output: %w", err)
 		}
-		
+
 		if err := os.WriteFile(outputFile, jsonData, 0644); err != nil {
 			return fmt.Errorf("failed to write output file: %w", err)
 		}
-		
+
 		fmt.Printf("Addresses saved to: %s\n", outputFile)
 	} else {
 		// Table output to stdout
@@ -224,11 +223,11 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 		fmt.Printf("  ID: %s\n", keyPair.ID())
 		fmt.Printf("  Type: %s\n", keyPair.Type())
 		fmt.Printf("\nGenerated Addresses:\n\n")
-		
+
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 		fmt.Fprintf(w, "CHAIN\tADDRESS\tNETWORK\n")
 		fmt.Fprintf(w, "-----\t-------\t-------\n")
-		
+
 		// Sort chain types for consistent output
 		var chainTypes []chain.ChainType
 		for ct := range addresses {
@@ -237,16 +236,16 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 		sort.Slice(chainTypes, func(i, j int) bool {
 			return chainTypes[i] < chainTypes[j]
 		})
-		
+
 		// Print addresses in sorted order
 		for _, ct := range chainTypes {
 			address := addresses[ct]
-			fmt.Fprintf(w, "%s\t%s\t%s\n", 
-				ct, 
+			fmt.Fprintf(w, "%s\t%s\t%s\n",
+				ct,
 				address.Value,
 				address.Network)
 		}
-		
+
 		w.Flush()
 	}
 
@@ -261,12 +260,12 @@ func loadKeyForAddress() (crypto.KeyPair, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create key storage: %w", err)
 		}
-		
+
 		keyPair, err := keyStorage.Load(keyID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load key from storage: %w", err)
 		}
-		
+
 		return keyPair, nil
 	}
 
@@ -289,7 +288,7 @@ func loadKeyForAddress() (crypto.KeyPair, error) {
 	case "jwk":
 		importer = formats.NewJWKImporter()
 		format = crypto.KeyFormatJWK
-		
+
 		// Handle the wrapper format from sage-crypto generate
 		var wrapper struct {
 			PrivateKey json.RawMessage `json:"private_key"`
@@ -297,12 +296,12 @@ func loadKeyForAddress() (crypto.KeyPair, error) {
 			KeyID      string          `json:"key_id"`
 			KeyType    string          `json:"key_type"`
 		}
-		
+
 		if err := json.Unmarshal(keyData, &wrapper); err == nil && wrapper.PrivateKey != nil {
 			// It's a wrapper format, use the private key
 			keyData = wrapper.PrivateKey
 		}
-		
+
 	case "pem":
 		importer = formats.NewPEMImporter()
 		format = crypto.KeyFormatPEM
@@ -317,4 +316,3 @@ func loadKeyForAddress() (crypto.KeyPair, error) {
 
 	return keyPair, nil
 }
-

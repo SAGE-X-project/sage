@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package rfc9421
 
 import (
@@ -49,7 +48,7 @@ func (v *Verifier) VerifySignature(publicKey interface{}, message *Message, opts
 	if opts == nil {
 		opts = DefaultVerificationOptions()
 	}
-	
+
 	// Verify timestamp is within acceptable range
 	if opts.MaxClockSkew > 0 {
 		now := time.Now()
@@ -58,15 +57,15 @@ func (v *Verifier) VerifySignature(publicKey interface{}, message *Message, opts
 			return fmt.Errorf("message timestamp outside acceptable range: %v", diff)
 		}
 	}
-	
+
 	// Construct the message to verify based on RFC-9421 partial signing
 	signatureBase := v.ConstructSignatureBase(message)
-	
+
 	// Verify the signature
 	if err := v.verifySignatureWithAlgorithm(publicKey, []byte(signatureBase), message.Signature, message.Algorithm); err != nil {
 		return fmt.Errorf("signature verification failed: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -81,14 +80,14 @@ func (v *Verifier) VerifyWithMetadata(
 	result := &VerificationResult{
 		VerifiedAt: time.Now(),
 	}
-	
+
 	// Basic signature verification
 	if err := v.VerifySignature(publicKey, message, opts); err != nil {
 		result.Valid = false
 		result.Error = err.Error()
 		return result, nil
 	}
-	
+
 	// Verify metadata if requested
 	if opts != nil && opts.VerifyMetadata && expectedMetadata != nil {
 		if err := v.verifyMetadataMatch(message.Metadata, expectedMetadata); err != nil {
@@ -97,7 +96,7 @@ func (v *Verifier) VerifyWithMetadata(
 			return result, nil
 		}
 	}
-	
+
 	// Check required capabilities
 	if len(requiredCapabilities) > 0 && message.Metadata != nil {
 		if capabilities, ok := message.Metadata["capabilities"].(map[string]interface{}); ok {
@@ -112,7 +111,7 @@ func (v *Verifier) VerifyWithMetadata(
 			return result, nil
 		}
 	}
-	
+
 	result.Valid = true
 	return result, nil
 }
@@ -121,7 +120,7 @@ func (v *Verifier) VerifyWithMetadata(
 func (v *Verifier) ConstructSignatureBase(msg *Message) string {
 	// RFC-9421 allows partial signing of message components
 	var parts []string
-	
+
 	for _, field := range msg.SignedFields {
 		switch field {
 		case "agent_did":
@@ -144,7 +143,7 @@ func (v *Verifier) ConstructSignatureBase(msg *Message) string {
 			}
 		}
 	}
-	
+
 	return strings.Join(parts, "\n")
 }
 
@@ -159,35 +158,35 @@ func (v *Verifier) verifySignatureWithAlgorithm(publicKey interface{}, message, 
 		if !ed25519.Verify(pk, message, signature) {
 			return fmt.Errorf("EdDSA signature verification failed")
 		}
-		
+
 	case string(AlgorithmES256K), string(AlgorithmECDSA), string(AlgorithmECDSASecp256k1):
 		ecdsaKey, ok := publicKey.(*ecdsa.PublicKey)
 		if !ok {
 			return fmt.Errorf("invalid public key type for ECDSA")
 		}
-		
+
 		// ECDSA signatures in Ethereum are typically 65 bytes (r + s + v)
 		// But standard ECDSA is just r + s (64 bytes)
 		if len(signature) < 64 {
 			return fmt.Errorf("invalid ECDSA signature length: %d", len(signature))
 		}
-		
+
 		// Extract r and s from the signature
 		r := new(big.Int).SetBytes(signature[:32])
 		s := new(big.Int).SetBytes(signature[32:64])
-		
+
 		// Create a hash of the message
 		hash := sha256.Sum256(message)
-		
+
 		// Verify the signature
 		if !ecdsa.Verify(ecdsaKey, hash[:], r, s) {
 			return fmt.Errorf("ECDSA signature verification failed")
 		}
-		
+
 	default:
 		return fmt.Errorf("unsupported signature algorithm: %s", algorithm)
 	}
-	
+
 	return nil
 }
 
@@ -198,12 +197,12 @@ func (v *Verifier) verifyMetadataMatch(actual, expected map[string]interface{}) 
 		if !exists {
 			return fmt.Errorf("missing expected metadata field: %s", key)
 		}
-		
+
 		if !compareValues(expectedValue, actualValue) {
 			return fmt.Errorf("metadata field %s mismatch", key)
 		}
 	}
-	
+
 	return nil
 }
 

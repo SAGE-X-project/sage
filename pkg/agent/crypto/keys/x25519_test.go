@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package keys
 
 import (
@@ -82,7 +81,7 @@ func TestX25519KeyPair(t *testing.T) {
 		_, err = wrongKey.DecryptWithX25519(receiverKey.PublicBytesKey(), nonce, ct)
 		assert.Error(t, err)
 	})
-	
+
 	t.Run("ConvertEd25519ToX25519", func(t *testing.T) {
 		keyPair, err := GenerateEd25519KeyPair()
 		require.NoError(t, err)
@@ -127,7 +126,7 @@ func TestX25519KeyPair(t *testing.T) {
 		assert.Error(t, err, "tampered packet should fail")
 
 		// too-short packet
-		short := []byte{1,2,3}
+		short := []byte{1, 2, 3}
 		_, err = DecryptWithEd25519Peer(peerkeyPair.PrivateKey(), short)
 		assert.Error(t, err, "short packet should error")
 	})

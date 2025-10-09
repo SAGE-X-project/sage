@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -107,7 +106,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 
 func outputJWK(keyPair crypto.KeyPair) error {
 	exporter := formats.NewJWKExporter()
-	
+
 	// Export private key
 	privateJWK, err := exporter.Export(keyPair, crypto.KeyFormatJWK)
 	if err != nil {
@@ -139,7 +138,7 @@ func outputJWK(keyPair crypto.KeyPair) error {
 
 func outputPEM(keyPair crypto.KeyPair) error {
 	exporter := formats.NewPEMExporter()
-	
+
 	// Export private key
 	privatePEM, err := exporter.Export(keyPair, crypto.KeyFormatPEM)
 	if err != nil {
@@ -154,7 +153,7 @@ func outputPEM(keyPair crypto.KeyPair) error {
 
 	// Combine PEM blocks
 	output := append(privatePEM, publicPEM...)
-	
+
 	// Add metadata as comments
 	metadata := fmt.Sprintf("# Key ID: %s\n# Key Type: %s\n", keyPair.ID(), keyPair.Type())
 	output = append([]byte(metadata), output...)

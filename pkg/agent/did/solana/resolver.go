@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package solana
 
 import (
@@ -38,11 +37,11 @@ func (c *SolanaClient) ResolvePublicKey(ctx context.Context, agentDID did.AgentD
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if !metadata.IsActive {
 		return nil, did.ErrInactiveAgent
 	}
-	
+
 	return metadata.PublicKey, nil
 }
 
@@ -60,16 +59,16 @@ func (c *SolanaClient) VerifyMetadata(ctx context.Context, agentDID did.AgentDID
 		}
 		return nil, err
 	}
-	
+
 	// Compare metadata
 	valid := true
 	var errorMsg string
-	
+
 	if metadata.Name != onChainData.Name {
 		valid = false
 		errorMsg = fmt.Sprintf("name mismatch: expected %s, got %s", onChainData.Name, metadata.Name)
 	}
-	
+
 	if metadata.Description != onChainData.Description {
 		valid = false
 		if errorMsg != "" {
@@ -77,7 +76,7 @@ func (c *SolanaClient) VerifyMetadata(ctx context.Context, agentDID did.AgentDID
 		}
 		errorMsg += fmt.Sprintf("description mismatch")
 	}
-	
+
 	if metadata.Endpoint != onChainData.Endpoint {
 		valid = false
 		if errorMsg != "" {
@@ -85,7 +84,7 @@ func (c *SolanaClient) VerifyMetadata(ctx context.Context, agentDID did.AgentDID
 		}
 		errorMsg += fmt.Sprintf("endpoint mismatch: expected %s, got %s", onChainData.Endpoint, metadata.Endpoint)
 	}
-	
+
 	// Compare capabilities
 	capJSON1, _ := json.Marshal(metadata.Capabilities)
 	capJSON2, _ := json.Marshal(onChainData.Capabilities)
@@ -96,17 +95,17 @@ func (c *SolanaClient) VerifyMetadata(ctx context.Context, agentDID did.AgentDID
 		}
 		errorMsg += "capabilities mismatch"
 	}
-	
+
 	result := &did.VerificationResult{
 		Valid:      valid,
 		Agent:      onChainData,
 		VerifiedAt: time.Now(),
 	}
-	
+
 	if !valid {
 		result.Error = errorMsg
 	}
-	
+
 	return result, nil
 }
 
@@ -117,13 +116,13 @@ func (c *SolanaClient) ListAgentsByOwner(ctx context.Context, ownerAddress strin
 	if err != nil {
 		return nil, fmt.Errorf("invalid Solana address: %s", ownerAddress)
 	}
-	
+
 	// Get program accounts filtered by owner
 	// This is a simplified approach - in production, you would:
 	// 1. Use getProgramAccounts with proper filters
 	// 2. Implement pagination for large datasets
 	// 3. Use an indexer for better performance
-	
+
 	accounts, err := c.client.GetProgramAccountsWithOpts(
 		ctx,
 		c.programID,
@@ -142,7 +141,7 @@ func (c *SolanaClient) ListAgentsByOwner(ctx context.Context, ownerAddress strin
 	if err != nil {
 		return nil, fmt.Errorf("failed to get program accounts: %w", err)
 	}
-	
+
 	agents := make([]*did.AgentMetadata, 0, len(accounts))
 	for _, account := range accounts {
 		var agentAccount AgentAccount
@@ -150,7 +149,7 @@ func (c *SolanaClient) ListAgentsByOwner(ctx context.Context, ownerAddress strin
 		if err != nil {
 			continue
 		}
-		
+
 		agents = append(agents, &did.AgentMetadata{
 			DID:          did.AgentDID(agentAccount.DID),
 			Name:         agentAccount.Name,
@@ -164,7 +163,7 @@ func (c *SolanaClient) ListAgentsByOwner(ctx context.Context, ownerAddress strin
 			UpdatedAt:    time.Unix(agentAccount.UpdatedAt, 0),
 		})
 	}
-	
+
 	return agents, nil
 }
 
@@ -175,7 +174,7 @@ func (c *SolanaClient) Search(ctx context.Context, criteria did.SearchCriteria) 
 	// 1. Using a GraphQL API (Solana has several indexing services)
 	// 2. Building a custom indexer using Geyser plugins
 	// 3. Maintaining an off-chain database synced with on-chain data
-	
+
 	return nil, fmt.Errorf("search functionality requires off-chain indexing")
 }
 
@@ -185,22 +184,22 @@ func (c *SolanaClient) GetRegistrationStatus(ctx context.Context, txHash string)
 	if err != nil {
 		return nil, fmt.Errorf("invalid transaction hash: %w", err)
 	}
-	
+
 	// Get transaction status
 	status, err := c.client.GetSignatureStatuses(ctx, false, sig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get signature status: %w", err)
 	}
-	
+
 	if status == nil || status.Value == nil || len(status.Value) == 0 {
 		return nil, fmt.Errorf("transaction not found")
 	}
-	
+
 	txStatus := status.Value[0]
 	if txStatus.Err != nil {
 		return nil, fmt.Errorf("transaction failed: %v", txStatus.Err)
 	}
-	
+
 	// Get transaction details for more info
 	tx, err := c.client.GetTransaction(
 		ctx,
@@ -212,14 +211,14 @@ func (c *SolanaClient) GetRegistrationStatus(ctx context.Context, txHash string)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get transaction: %w", err)
 	}
-	
+
 	var timestamp time.Time
 	if tx.BlockTime != nil {
 		timestamp = tx.BlockTime.Time()
 	} else {
 		timestamp = time.Now()
 	}
-	
+
 	return &did.RegistrationResult{
 		TransactionHash: txHash,
 		Slot:            txStatus.Slot,

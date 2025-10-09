@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package ethereum
 
 import (
@@ -331,7 +330,7 @@ func TestCapabilitiesJSON(t *testing.T) {
 			capabilities: map[string]interface{}{
 				"chat": true,
 				"advanced": map[string]interface{}{
-					"translation": true,
+					"translation":   true,
 					"summarization": true,
 				},
 			},
@@ -368,12 +367,12 @@ func TestCapabilitiesJSON(t *testing.T) {
 // TestUpdateExtractsFields tests that Update correctly extracts update fields
 func TestUpdateExtractsFields(t *testing.T) {
 	tests := []struct {
-		name        string
-		updates     map[string]interface{}
-		expectName  string
-		expectDesc  string
-		expectEnd   string
-		expectCaps  bool
+		name       string
+		updates    map[string]interface{}
+		expectName string
+		expectDesc string
+		expectEnd  string
+		expectCaps bool
 	}{
 		{
 			name: "All fields present",
@@ -399,12 +398,12 @@ func TestUpdateExtractsFields(t *testing.T) {
 			expectCaps: false,
 		},
 		{
-			name:        "Empty updates",
-			updates:     map[string]interface{}{},
-			expectName:  "",
-			expectDesc:  "",
-			expectEnd:   "",
-			expectCaps:  false,
+			name:       "Empty updates",
+			updates:    map[string]interface{}{},
+			expectName: "",
+			expectDesc: "",
+			expectEnd:  "",
+			expectCaps: false,
 		},
 	}
 

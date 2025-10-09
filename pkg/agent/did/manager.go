@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package did
 
 import (
@@ -30,11 +29,11 @@ import (
 
 // Manager provides a unified interface for DID operations across multiple chains
 type Manager struct {
-	registry  *MultiChainRegistry
-	resolver  *MultiChainResolver
-	verifier  *MetadataVerifier
-	configs   map[Chain]*RegistryConfig
-	mu        sync.RWMutex
+	registry *MultiChainRegistry
+	resolver *MultiChainResolver
+	verifier *MetadataVerifier
+	configs  map[Chain]*RegistryConfig
+	mu       sync.RWMutex
 }
 
 // NewManager creates a new DID manager
@@ -52,7 +51,7 @@ func NewManager() *Manager {
 func (m *Manager) Configure(chain Chain, config *RegistryConfig) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	// Validate configuration
 	if config.ContractAddress == "" {
 		return fmt.Errorf("contract address is required")
@@ -60,14 +59,14 @@ func (m *Manager) Configure(chain Chain, config *RegistryConfig) error {
 	if config.RPCEndpoint == "" {
 		return fmt.Errorf("RPC endpoint is required")
 	}
-	
+
 	// Store configuration
 	m.configs[chain] = config
-	
+
 	// Note: In production, chain-specific clients should be initialized here
 	// using a factory pattern or dependency injection to avoid import cycles.
 	// For now, clients must be added separately using SetClient method.
-	
+
 	return nil
 }
 
@@ -76,28 +75,28 @@ func (m *Manager) Configure(chain Chain, config *RegistryConfig) error {
 func (m *Manager) SetClient(chain Chain, client interface{}) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	// Verify the client implements required interfaces
 	registry, ok := client.(Registry)
 	if !ok {
 		return fmt.Errorf("client does not implement Registry interface")
 	}
-	
+
 	resolver, ok := client.(Resolver)
 	if !ok {
 		return fmt.Errorf("client does not implement Resolver interface")
 	}
-	
+
 	// Get configuration for the chain
 	config, exists := m.configs[chain]
 	if !exists {
 		return fmt.Errorf("configuration not found for chain %s", chain)
 	}
-	
+
 	// Add to registry and resolver
 	m.registry.AddRegistry(chain, registry, config)
 	m.resolver.AddResolver(chain, resolver)
-	
+
 	return nil
 }
 
@@ -105,7 +104,7 @@ func (m *Manager) SetClient(chain Chain, client interface{}) error {
 func (m *Manager) RegisterAgent(ctx context.Context, chain Chain, req *RegistrationRequest) (*RegistrationResult, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.registry.Register(ctx, chain, req)
 }
 
@@ -113,7 +112,7 @@ func (m *Manager) RegisterAgent(ctx context.Context, chain Chain, req *Registrat
 func (m *Manager) ResolveAgent(ctx context.Context, did AgentDID) (*AgentMetadata, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.resolver.Resolve(ctx, did)
 }
 
@@ -121,7 +120,7 @@ func (m *Manager) ResolveAgent(ctx context.Context, did AgentDID) (*AgentMetadat
 func (m *Manager) ResolvePublicKey(ctx context.Context, did AgentDID) (interface{}, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.resolver.ResolvePublicKey(ctx, did)
 }
 
@@ -129,7 +128,7 @@ func (m *Manager) ResolvePublicKey(ctx context.Context, did AgentDID) (interface
 func (m *Manager) UpdateAgent(ctx context.Context, did AgentDID, updates map[string]interface{}, keyPair crypto.KeyPair) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.registry.Update(ctx, did, updates, keyPair)
 }
 
@@ -137,7 +136,7 @@ func (m *Manager) UpdateAgent(ctx context.Context, did AgentDID, updates map[str
 func (m *Manager) DeactivateAgent(ctx context.Context, did AgentDID, keyPair crypto.KeyPair) error {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.registry.Deactivate(ctx, did, keyPair)
 }
 
@@ -145,7 +144,7 @@ func (m *Manager) DeactivateAgent(ctx context.Context, did AgentDID, keyPair cry
 func (m *Manager) ValidateAgent(ctx context.Context, did AgentDID, opts *ValidationOptions) (*AgentMetadata, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.verifier.ValidateAgent(ctx, did, opts)
 }
 
@@ -153,7 +152,7 @@ func (m *Manager) ValidateAgent(ctx context.Context, did AgentDID, opts *Validat
 func (m *Manager) CheckCapabilities(ctx context.Context, did AgentDID, requiredCapabilities []string) (bool, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.verifier.CheckCapabilities(ctx, did, requiredCapabilities)
 }
 
@@ -161,7 +160,7 @@ func (m *Manager) CheckCapabilities(ctx context.Context, did AgentDID, requiredC
 func (m *Manager) ListAgentsByOwner(ctx context.Context, ownerAddress string) ([]*AgentMetadata, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.resolver.ListAgentsByOwner(ctx, ownerAddress)
 }
 
@@ -169,7 +168,7 @@ func (m *Manager) ListAgentsByOwner(ctx context.Context, ownerAddress string) ([
 func (m *Manager) SearchAgents(ctx context.Context, criteria SearchCriteria) ([]*AgentMetadata, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.resolver.Search(ctx, criteria)
 }
 
@@ -177,7 +176,7 @@ func (m *Manager) SearchAgents(ctx context.Context, criteria SearchCriteria) ([]
 func (m *Manager) GetRegistrationStatus(ctx context.Context, chain Chain, txHash string) (*RegistrationResult, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return m.registry.GetRegistrationStatus(ctx, chain, txHash)
 }
 
@@ -185,7 +184,7 @@ func (m *Manager) GetRegistrationStatus(ctx context.Context, chain Chain, txHash
 func (m *Manager) GetSupportedChains() []Chain {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	chains := make([]Chain, 0, len(m.configs))
 	for chain := range m.configs {
 		chains = append(chains, chain)
@@ -197,7 +196,7 @@ func (m *Manager) GetSupportedChains() []Chain {
 func (m *Manager) IsChainConfigured(chain Chain) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	_, exists := m.configs[chain]
 	return exists
 }
@@ -213,7 +212,7 @@ func ParseDID(did AgentDID) (chain Chain, identifier string, err error) {
 	if len(parts) < 4 || parts[0] != "did" || parts[1] != "sage" {
 		return "", "", fmt.Errorf("invalid DID format")
 	}
-	
+
 	switch parts[2] {
 	case "ethereum", "eth":
 		chain = ChainEthereum
@@ -222,7 +221,7 @@ func ParseDID(did AgentDID) (chain Chain, identifier string, err error) {
 	default:
 		return "", "", fmt.Errorf("unknown chain: %s", parts[2])
 	}
-	
+
 	identifier = strings.Join(parts[3:], ":")
 	return chain, identifier, nil
 }

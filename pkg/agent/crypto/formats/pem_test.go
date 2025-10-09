@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package formats
 
 import (
@@ -92,31 +91,31 @@ func TestPEMExporter(t *testing.T) {
 		assert.Contains(t, pemStr, "-----END PUBLIC KEY-----")
 	})
 
-	 t.Run("ExportRSAKeyPair", func(t *testing.T) {
-        keyPair, err := keys.GenerateRSAKeyPair()
-        require.NoError(t, err)
+	t.Run("ExportRSAKeyPair", func(t *testing.T) {
+		keyPair, err := keys.GenerateRSAKeyPair()
+		require.NoError(t, err)
 
-        exported, err := exporter.Export(keyPair, crypto.KeyFormatPEM)
-        require.NoError(t, err)
-        assert.NotEmpty(t, exported)
+		exported, err := exporter.Export(keyPair, crypto.KeyFormatPEM)
+		require.NoError(t, err)
+		assert.NotEmpty(t, exported)
 
-        pemStr := string(exported)
-        assert.Contains(t, pemStr, "-----BEGIN RSA PRIVATE KEY-----")
-        assert.Contains(t, pemStr, "-----END RSA PRIVATE KEY-----")
-    })
+		pemStr := string(exported)
+		assert.Contains(t, pemStr, "-----BEGIN RSA PRIVATE KEY-----")
+		assert.Contains(t, pemStr, "-----END RSA PRIVATE KEY-----")
+	})
 
-    t.Run("ExportRSAPublicKey", func(t *testing.T) {
-        keyPair, err := keys.GenerateRSAKeyPair()
-        require.NoError(t, err)
+	t.Run("ExportRSAPublicKey", func(t *testing.T) {
+		keyPair, err := keys.GenerateRSAKeyPair()
+		require.NoError(t, err)
 
-        exported, err := exporter.ExportPublic(keyPair, crypto.KeyFormatPEM)
-        require.NoError(t, err)
-        assert.NotEmpty(t, exported)
+		exported, err := exporter.ExportPublic(keyPair, crypto.KeyFormatPEM)
+		require.NoError(t, err)
+		assert.NotEmpty(t, exported)
 
-        pemStr := string(exported)
-        assert.Contains(t, pemStr, "-----BEGIN PUBLIC KEY-----")
-        assert.Contains(t, pemStr, "-----END PUBLIC KEY-----")
-    })
+		pemStr := string(exported)
+		assert.Contains(t, pemStr, "-----BEGIN PUBLIC KEY-----")
+		assert.Contains(t, pemStr, "-----END PUBLIC KEY-----")
+	})
 }
 
 func TestPEMImporter(t *testing.T) {
@@ -186,24 +185,24 @@ func TestPEMImporter(t *testing.T) {
 	})
 
 	t.Run("ImportRSAKeyPair", func(t *testing.T) {
-        originalKeyPair, err := keys.GenerateRSAKeyPair()
-        require.NoError(t, err)
+		originalKeyPair, err := keys.GenerateRSAKeyPair()
+		require.NoError(t, err)
 
-        exported, err := exporter.Export(originalKeyPair, crypto.KeyFormatPEM)
-        require.NoError(t, err)
+		exported, err := exporter.Export(originalKeyPair, crypto.KeyFormatPEM)
+		require.NoError(t, err)
 
-        importedKeyPair, err := importer.Import(exported, crypto.KeyFormatPEM)
-        require.NoError(t, err)
-        assert.NotNil(t, importedKeyPair)
-        assert.Equal(t, crypto.KeyTypeRSA, importedKeyPair.Type())
+		importedKeyPair, err := importer.Import(exported, crypto.KeyFormatPEM)
+		require.NoError(t, err)
+		assert.NotNil(t, importedKeyPair)
+		assert.Equal(t, crypto.KeyTypeRSA, importedKeyPair.Type())
 
-        message := []byte("test message")
-        signature, err := importedKeyPair.Sign(message)
-        require.NoError(t, err)
+		message := []byte("test message")
+		signature, err := importedKeyPair.Sign(message)
+		require.NoError(t, err)
 
-        err = originalKeyPair.Verify(message, signature)
-        assert.NoError(t, err)
-    })
+		err = originalKeyPair.Verify(message, signature)
+		assert.NoError(t, err)
+	})
 
 	t.Run("ImportSecp256k1PublicKey", func(t *testing.T) {
 		// Generate and export a public key
@@ -220,16 +219,16 @@ func TestPEMImporter(t *testing.T) {
 	})
 
 	t.Run("ImportRSAPublicKey", func(t *testing.T) {
-        originalKeyPair, err := keys.GenerateRSAKeyPair()
-        require.NoError(t, err)
+		originalKeyPair, err := keys.GenerateRSAKeyPair()
+		require.NoError(t, err)
 
-        exported, err := exporter.ExportPublic(originalKeyPair, crypto.KeyFormatPEM)
-        require.NoError(t, err)
+		exported, err := exporter.ExportPublic(originalKeyPair, crypto.KeyFormatPEM)
+		require.NoError(t, err)
 
-        importedPublicKey, err := importer.ImportPublic(exported, crypto.KeyFormatPEM)
-        require.NoError(t, err)
+		importedPublicKey, err := importer.ImportPublic(exported, crypto.KeyFormatPEM)
+		require.NoError(t, err)
 		assert.NotNil(t, importedPublicKey)
-    })
+	})
 
 	t.Run("ImportInvalidPEM", func(t *testing.T) {
 		invalidData := []byte("invalid pem data")

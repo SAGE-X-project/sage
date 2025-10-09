@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package config
 
 import (
@@ -30,14 +29,14 @@ import (
 
 // BlockchainConfig holds blockchain connection and contract configuration
 type BlockchainConfig struct {
-	NetworkRPC      string        `json:"network_rpc"`
-	ContractAddr    string        `json:"contract_address"`
-	ChainID         *big.Int      `json:"chain_id"`
-	GasLimit        uint64        `json:"gas_limit"`
-	MaxGasPrice     *big.Int      `json:"max_gas_price"`
-	MaxRetries      int           `json:"max_retries"`
-	RetryDelay      time.Duration `json:"retry_delay"`
-	RequestTimeout  time.Duration `json:"request_timeout"`
+	NetworkRPC     string        `json:"network_rpc"`
+	ContractAddr   string        `json:"contract_address"`
+	ChainID        *big.Int      `json:"chain_id"`
+	GasLimit       uint64        `json:"gas_limit"`
+	MaxGasPrice    *big.Int      `json:"max_gas_price"`
+	MaxRetries     int           `json:"max_retries"`
+	RetryDelay     time.Duration `json:"retry_delay"`
+	RequestTimeout time.Duration `json:"request_timeout"`
 }
 
 // NetworkPresets defines preset configurations for different networks

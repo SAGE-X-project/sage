@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package keys
 
 import (
@@ -126,13 +125,13 @@ func serializeSignature(r, s *big.Int) []byte {
 	// Ensure r and s are 32 bytes each
 	rBytes := r.Bytes()
 	sBytes := s.Bytes()
-	
+
 	signature := make([]byte, 64)
-	
+
 	// Pad with zeros if necessary
 	copy(signature[32-len(rBytes):32], rBytes)
 	copy(signature[64-len(sBytes):64], sBytes)
-	
+
 	return signature
 }
 
@@ -141,9 +140,9 @@ func deserializeSignature(data []byte) (*big.Int, *big.Int, error) {
 	if len(data) != 64 {
 		return nil, nil, sagecrypto.ErrInvalidSignature
 	}
-	
+
 	r := new(big.Int).SetBytes(data[:32])
 	s := new(big.Int).SetBytes(data[32:])
-	
+
 	return r, s, nil
 }

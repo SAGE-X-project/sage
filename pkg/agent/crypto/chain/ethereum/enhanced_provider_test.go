@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package ethereum
 
 import (
@@ -36,16 +35,16 @@ import (
 
 // MockEthClient is a mock implementation of ethereum client for testing
 type MockEthClient struct {
-	networkID      *big.Int
-	blockNumber    uint64
-	gasEstimate    uint64
-	gasPrice       *big.Int
-	nonce          uint64
-	receipt        *types.Receipt
-	failCount      int
-	maxFails       int
-	shouldFail     bool
-	failPermanent  bool
+	networkID     *big.Int
+	blockNumber   uint64
+	gasEstimate   uint64
+	gasPrice      *big.Int
+	nonce         uint64
+	receipt       *types.Receipt
+	failCount     int
+	maxFails      int
+	shouldFail    bool
+	failPermanent bool
 }
 
 func (m *MockEthClient) NetworkID(ctx context.Context) (*big.Int, error) {
@@ -242,7 +241,7 @@ func TestEstimateGas(t *testing.T) {
 
 	t.Run("Successful gas estimation with buffer", func(t *testing.T) {
 		mockClient := &MockEthClient{
-				gasEstimate: 100000,
+			gasEstimate: 100000,
 		}
 		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
 		require.NoError(t, err)
@@ -261,7 +260,7 @@ func TestEstimateGas(t *testing.T) {
 
 	t.Run("Gas limit capping", func(t *testing.T) {
 		mockClient := &MockEthClient{
-				gasEstimate: 3000000, // Will exceed limit with buffer
+			gasEstimate: 3000000, // Will exceed limit with buffer
 		}
 		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
 		require.NoError(t, err)
@@ -311,7 +310,7 @@ func TestSuggestGasPrice(t *testing.T) {
 	t.Run("Normal gas price", func(t *testing.T) {
 		suggestedPrice := big.NewInt(30000000000) // 30 Gwei
 		mockClient := &MockEthClient{
-				gasPrice: suggestedPrice,
+			gasPrice: suggestedPrice,
 		}
 		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
 		require.NoError(t, err)
@@ -326,7 +325,7 @@ func TestSuggestGasPrice(t *testing.T) {
 	t.Run("Gas price capping", func(t *testing.T) {
 		suggestedPrice := big.NewInt(100000000000) // 100 Gwei - exceeds max
 		mockClient := &MockEthClient{
-				gasPrice: suggestedPrice,
+			gasPrice: suggestedPrice,
 		}
 		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
 		require.NoError(t, err)
@@ -353,7 +352,7 @@ func TestHealthCheck(t *testing.T) {
 
 	t.Run("Successful health check", func(t *testing.T) {
 		mockClient := &MockEthClient{
-				blockNumber: 12345,
+			blockNumber: 12345,
 		}
 		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
 		require.NoError(t, err)
@@ -383,8 +382,8 @@ func TestHealthCheck(t *testing.T) {
 
 	t.Run("Health check failure", func(t *testing.T) {
 		mockClient := &MockEthClient{
-				shouldFail:    true,
-				failPermanent: true,
+			shouldFail:    true,
+			failPermanent: true,
 		}
 		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
 		require.NoError(t, err)
@@ -416,8 +415,8 @@ func TestWaitForTransaction(t *testing.T) {
 		}
 
 		mockClient := &MockEthClient{
-				receipt:     receipt,
-				blockNumber: 105,
+			receipt:     receipt,
+			blockNumber: 105,
 		}
 		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
 		require.NoError(t, err)
@@ -457,7 +456,7 @@ func TestWaitForTransaction(t *testing.T) {
 
 	t.Run("Transaction not found timeout", func(t *testing.T) {
 		mockClient := &MockEthClient{
-				receipt: nil, // Transaction not mined
+			receipt: nil, // Transaction not mined
 		}
 		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
 		require.NoError(t, err)

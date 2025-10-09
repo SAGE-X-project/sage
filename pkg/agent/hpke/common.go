@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package hpke
 
 import (
@@ -85,9 +84,9 @@ func signStruct(k sagecrypto.KeyPair, msg []byte, did string) (*structpb.Struct,
 }
 
 func marshalForSig(msg *a2a.Message) ([]byte, error) {
-    cp := proto.Clone(msg).(*a2a.Message)
-    cp.Metadata = nil
-    return proto.MarshalOptions{Deterministic: true}.Marshal(cp)
+	cp := proto.Clone(msg).(*a2a.Message)
+	cp.Metadata = nil
+	return proto.MarshalOptions{Deterministic: true}.Marshal(cp)
 }
 
 // verifySenderSignature checks metadata.signature against deterministic-marshaled message bytes.
@@ -172,7 +171,7 @@ func putBase64(m map[string]any, key string, b []byte) {
 	m[key] = base64.RawURLEncoding.EncodeToString(b)
 }
 
-//  ACK (HMAC) - key confirmation without ciphertext
+// ACK (HMAC) - key confirmation without ciphertext
 func hkdfExpand(key []byte, info string, outLen int) []byte {
 	h := hmac.New(sha256.New, key)
 	var out []byte

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package ethereum
 
 import (
@@ -35,7 +34,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	
+
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 	"github.com/sage-x-project/sage/pkg/agent/did"
@@ -65,12 +64,12 @@ func NewEthereumClient(config *did.RegistryConfig) (*EthereumClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to Ethereum node: %w", err)
 	}
-	
+
 	chainID, err := client.NetworkID(context.Background())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get network ID: %w", err)
 	}
-	
+
 	var privateKey *ecdsa.PrivateKey
 	if config.PrivateKey != "" {
 		privateKey, err = crypto.HexToECDSA(config.PrivateKey)
@@ -78,17 +77,17 @@ func NewEthereumClient(config *did.RegistryConfig) (*EthereumClient, error) {
 			return nil, fmt.Errorf("invalid private key: %w", err)
 		}
 	}
-	
+
 	contractAddress := common.HexToAddress(config.ContractAddress)
-	
+
 	// Parse the contract ABI
 	contractABI, err := abi.JSON(strings.NewReader(SageRegistryABI))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse contract ABI: %w", err)
 	}
-	
+
 	contract := bind.NewBoundContract(contractAddress, contractABI, client, client, client)
-	
+
 	return &EthereumClient{
 		client:          client,
 		contract:        contract,
@@ -106,46 +105,46 @@ func (c *EthereumClient) Register(ctx context.Context, req *did.RegistrationRequ
 	if req.KeyPair.Type() != sagecrypto.KeyTypeSecp256k1 {
 		return nil, fmt.Errorf("Ethereum requires Secp256k1 keys")
 	}
-	
+
 	// Get the Ethereum address for the public key
 	provider, err := chain.GetProvider(chain.ChainTypeEthereum)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	address, err := provider.GenerateAddress(req.KeyPair.PublicKey(), chain.NetworkEthereumMainnet)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Prepare the message to sign
 	message := c.prepareRegistrationMessage(req, address.Value)
 	messageHash := crypto.Keccak256([]byte(message))
-	
+
 	// Sign the message
 	signature, err := req.KeyPair.Sign(messageHash)
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign registration: %w", err)
 	}
-	
+
 	// Prepare capabilities as JSON string
 	capabilitiesJSON, err := json.Marshal(req.Capabilities)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal capabilities: %w", err)
 	}
-	
+
 	// Get public key bytes
 	publicKeyBytes, err := did.MarshalPublicKey(req.KeyPair.PublicKey())
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Prepare transaction options
 	auth, err := c.getTransactOpts(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Call the contract
 	tx, err := c.contract.Transact(auth, "registerAgent",
 		string(req.DID),
@@ -159,13 +158,13 @@ func (c *EthereumClient) Register(ctx context.Context, req *did.RegistrationRequ
 	if err != nil {
 		return nil, fmt.Errorf("failed to register agent: %w", err)
 	}
-	
+
 	// Wait for transaction confirmation
 	receipt, err := c.waitForTransaction(ctx, tx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &did.RegistrationResult{
 		TransactionHash: tx.Hash().Hex(),
 		BlockNumber:     receipt.BlockNumber.Uint64(),
@@ -190,13 +189,13 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 		Active       bool           `abi:"active"`
 	}
 	var result AgentMetadata
-	
+
 	// Use getAgentByDID which takes a string DID parameter
 	callData, err := c.contractABI.Pack("getAgentByDID", string(agentDID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to pack call data: %w", err)
 	}
-	
+
 	// Make the call
 	output, err := c.client.CallContract(ctx, ethereum.CallMsg{
 		To:   &c.contractAddress,
@@ -205,18 +204,18 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 	if err != nil {
 		return nil, fmt.Errorf("failed to call contract: %w", err)
 	}
-	
+
 	// Unpack the result - getAgentByDID returns a tuple
 	outputs, err := c.contractABI.Unpack("getAgentByDID", output)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unpack agent data: %w", err)
 	}
-	
+
 	// The output is a single struct, get the first element
 	if len(outputs) == 0 {
 		return nil, fmt.Errorf("no data returned from contract")
 	}
-	
+
 	// Cast the output to our struct type
 	outputStruct, ok := outputs[0].(struct {
 		Did          string         `json:"did"`
@@ -233,7 +232,7 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 	if !ok {
 		return nil, fmt.Errorf("failed to cast output to AgentMetadata struct")
 	}
-	
+
 	result = AgentMetadata{
 		Did:          outputStruct.Did,
 		Name:         outputStruct.Name,
@@ -246,19 +245,19 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 		UpdatedAt:    outputStruct.UpdatedAt,
 		Active:       outputStruct.Active,
 	}
-	
+
 	// Check if agent exists (empty DID means not found)
 	if result.Did == "" {
 		return nil, did.ErrDIDNotFound
 	}
-	
+
 	// Parse public key - Ethereum uses secp256k1
 	// The public key is in uncompressed format (65 bytes: 0x04 + X + Y)
 	publicKey, err := did.UnmarshalPublicKey(result.PublicKey, "secp256k1")
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal public key: %w", err)
 	}
-	
+
 	// Parse capabilities
 	var capabilities map[string]interface{}
 	if result.Capabilities != "" {
@@ -267,7 +266,7 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 			return nil, fmt.Errorf("failed to unmarshal capabilities: %w", err)
 		}
 	}
-	
+
 	return &did.AgentMetadata{
 		DID:          agentDID,
 		Name:         result.Name,
@@ -287,24 +286,24 @@ func (c *EthereumClient) Update(ctx context.Context, agentDID did.AgentDID, upda
 	// Prepare update message
 	message := c.prepareUpdateMessage(agentDID, updates)
 	messageHash := crypto.Keccak256([]byte(message))
-	
+
 	// Sign the message
 	signature, err := keyPair.Sign(messageHash)
 	if err != nil {
 		return fmt.Errorf("failed to sign update: %w", err)
 	}
-	
+
 	// Prepare transaction options
 	auth, err := c.getTransactOpts(ctx)
 	if err != nil {
 		return err
 	}
-	
+
 	// Extract update fields
 	name, _ := updates["name"].(string)
 	description, _ := updates["description"].(string)
 	endpoint, _ := updates["endpoint"].(string)
-	
+
 	capabilitiesJSON := ""
 	if capabilities, ok := updates["capabilities"]; ok {
 		capBytes, err := json.Marshal(capabilities)
@@ -313,10 +312,10 @@ func (c *EthereumClient) Update(ctx context.Context, agentDID did.AgentDID, upda
 		}
 		capabilitiesJSON = string(capBytes)
 	}
-	
+
 	// Generate agentId from DID (keccak256 hash)
 	agentId := crypto.Keccak256Hash([]byte(string(agentDID)))
-	
+
 	// Call the contract
 	tx, err := c.contract.Transact(auth, "updateAgent",
 		agentId,
@@ -329,7 +328,7 @@ func (c *EthereumClient) Update(ctx context.Context, agentDID did.AgentDID, upda
 	if err != nil {
 		return fmt.Errorf("failed to update agent: %w", err)
 	}
-	
+
 	// Wait for confirmation
 	_, err = c.waitForTransaction(ctx, tx)
 	return err
@@ -343,16 +342,16 @@ func (c *EthereumClient) Deactivate(ctx context.Context, agentDID did.AgentDID, 
 	if err != nil {
 		return err
 	}
-	
+
 	// Generate agentId from DID (keccak256 hash)
 	agentId := crypto.Keccak256Hash([]byte(string(agentDID)))
-	
+
 	// Call the contract
 	tx, err := c.contract.Transact(auth, "deactivateAgent", agentId)
 	if err != nil {
 		return fmt.Errorf("failed to deactivate agent: %w", err)
 	}
-	
+
 	// Wait for confirmation
 	_, err = c.waitForTransaction(ctx, tx)
 	return err
@@ -364,19 +363,19 @@ func (c *EthereumClient) getTransactOpts(ctx context.Context) (*bind.TransactOpt
 	if c.privateKey == nil {
 		return nil, fmt.Errorf("private key required for transactions")
 	}
-	
+
 	auth, err := bind.NewKeyedTransactorWithChainID(c.privateKey, c.chainID)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	auth.Context = ctx
-	
+
 	// Set gas price if configured
 	if c.config.GasPrice > 0 {
 		auth.GasPrice = big.NewInt(int64(c.config.GasPrice))
 	}
-	
+
 	return auth, nil
 }
 
@@ -388,27 +387,27 @@ func (c *EthereumClient) waitForTransaction(ctx context.Context, tx *types.Trans
 			if receipt.Status == types.ReceiptStatusFailed {
 				return nil, fmt.Errorf("transaction failed")
 			}
-			
+
 			// Wait for confirmations
 			if c.config.ConfirmationBlocks > 0 {
 				currentBlock, err := c.client.BlockNumber(ctx)
 				if err != nil {
 					return nil, err
 				}
-				
+
 				confirmations := currentBlock - receipt.BlockNumber.Uint64()
 				if confirmations < uint64(c.config.ConfirmationBlocks) {
 					time.Sleep(5 * time.Second)
 					continue
 				}
 			}
-			
+
 			return receipt, nil
 		}
-		
+
 		time.Sleep(5 * time.Second)
 	}
-	
+
 	return nil, fmt.Errorf("transaction timeout")
 }
 

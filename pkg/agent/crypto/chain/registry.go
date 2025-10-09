@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package chain
 
 import (
@@ -75,7 +74,7 @@ func (r *defaultRegistry) ListProviders() []ChainType {
 	for chain := range r.providers {
 		chains = append(chains, chain)
 	}
-	
+
 	// Sort chain types for consistent order
 	sort.Slice(chains, func(i, j int) bool {
 		return chains[i] < chains[j]
@@ -90,7 +89,7 @@ func (r *defaultRegistry) GenerateAddresses(publicKey crypto.PublicKey) (map[Cha
 	defer r.mu.RUnlock()
 
 	addresses := make(map[ChainType]*Address)
-	
+
 	for chainType, provider := range r.providers {
 		// Get the first supported network as default
 		networks := provider.SupportedNetworks()

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -26,8 +25,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/spf13/cobra"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	"github.com/spf13/cobra"
 )
 
 var verifyCmd = &cobra.Command{
@@ -41,9 +40,9 @@ This command compares provided metadata with the blockchain record.`,
 
 var (
 	// Verify flags
-	verifyMetadataFile   string
-	verifyRPCEndpoint    string
-	verifyContractAddr   string
+	verifyMetadataFile string
+	verifyRPCEndpoint  string
+	verifyContractAddr string
 )
 
 func init() {
@@ -103,7 +102,7 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	// For now, we'll just resolve and compare
 	// In a full implementation, we'd add a VerifyMetadata method to the manager
 	fmt.Printf("Verifying metadata for %s...\n", agentDID)
-	
+
 	// Resolve current on-chain metadata
 	onChainMetadata, err := manager.ResolveAgent(ctx, agentDID)
 	if err != nil {
@@ -113,12 +112,12 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	// Compare metadata
 	valid := true
 	errorMsg := ""
-	
+
 	if metadata.Name != onChainMetadata.Name {
 		valid = false
 		errorMsg = fmt.Sprintf("name mismatch: expected %s, got %s", onChainMetadata.Name, metadata.Name)
 	}
-	
+
 	if metadata.Endpoint != onChainMetadata.Endpoint {
 		valid = false
 		if errorMsg != "" {

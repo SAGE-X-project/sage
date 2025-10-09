@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package crypto
 
 import (
@@ -57,9 +56,9 @@ type AlgorithmInfo struct {
 
 // algorithmRegistry stores all registered algorithms
 var (
-	registry             = make(map[KeyType]*AlgorithmInfo)
-	rfc9421ToKeyType     = make(map[string]KeyType)
-	registryMutex        sync.RWMutex
+	registry                 = make(map[KeyType]*AlgorithmInfo)
+	rfc9421ToKeyType         = make(map[string]KeyType)
+	registryMutex            sync.RWMutex
 	ErrAlgorithmNotSupported = errors.New("algorithm not supported")
 	ErrAlgorithmExists       = errors.New("algorithm already registered")
 )

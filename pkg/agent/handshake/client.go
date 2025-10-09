@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package handshake
 
 import (
@@ -29,9 +28,9 @@ import (
 
 	a2a "github.com/a2aproject/a2a/grpc"
 	"github.com/google/uuid"
+	"github.com/sage-x-project/sage/internal/metrics"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"github.com/sage-x-project/sage/internal/metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 )

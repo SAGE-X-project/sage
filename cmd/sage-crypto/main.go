@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -24,7 +23,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	
+
 	// Import chain providers to register them
 	_ "github.com/sage-x-project/sage/pkg/agent/crypto/chain/ethereum"
 	_ "github.com/sage-x-project/sage/pkg/agent/crypto/chain/solana"
@@ -54,7 +53,7 @@ func main() {
 func init() {
 	// Disable default completion command
 	rootCmd.CompletionOptions.DisableDefaultCmd = true
-	
+
 	// Note: Commands are registered in their respective files
 	// - generate.go: generateCmd
 	// - sign.go: signCmd

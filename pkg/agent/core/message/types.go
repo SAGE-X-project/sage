@@ -16,29 +16,27 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package message
 
 import (
 	"time"
 )
 
-
-type MessageControlHeader struct{
+type MessageControlHeader struct {
 	// Sequence is an ever‑increasing packet counter
-    Sequence uint64 	`json:"sequence"`
-    // Nonce is a one‑time random value to prevent replay
-    Nonce string 		`json:"nonce"`
-    // Timestamp records when this packet was generated
-    Timestamp time.Time `json:"timestamp"`
+	Sequence uint64 `json:"sequence"`
+	// Nonce is a one‑time random value to prevent replay
+	Nonce string `json:"nonce"`
+	// Timestamp records when this packet was generated
+	Timestamp time.Time `json:"timestamp"`
 }
 
 type BaseMessage struct {
-	ContextID       string      `json:"-"`
+	ContextID string `json:"-"`
 }
 
 type ControlHeader interface {
-    GetNonce() string  
-    GetTimestamp() time.Time
+	GetNonce() string
+	GetTimestamp() time.Time
 	GetSequence() uint64
 }

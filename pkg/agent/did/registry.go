@@ -16,13 +16,12 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package did
 
 import (
 	"context"
 	"fmt"
-	
+
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 )
 
@@ -30,26 +29,26 @@ import (
 type Registry interface {
 	// Register registers a new agent on the blockchain
 	Register(ctx context.Context, req *RegistrationRequest) (*RegistrationResult, error)
-	
+
 	// Update updates agent metadata
 	Update(ctx context.Context, did AgentDID, updates map[string]interface{}, keyPair crypto.KeyPair) error
-	
+
 	// Deactivate deactivates an agent
 	Deactivate(ctx context.Context, did AgentDID, keyPair crypto.KeyPair) error
-	
+
 	// GetRegistrationStatus checks the status of a registration transaction
 	GetRegistrationStatus(ctx context.Context, txHash string) (*RegistrationResult, error)
 }
 
 // RegistryConfig contains configuration for a DID registry
 type RegistryConfig struct {
-	Chain            Chain
-	Network          Network
-	ContractAddress  string
-	RPCEndpoint      string
-	PrivateKey       string // For paying gas fees
-	GasPrice         uint64
-	MaxRetries       int
+	Chain              Chain
+	Network            Network
+	ContractAddress    string
+	RPCEndpoint        string
+	PrivateKey         string // For paying gas fees
+	GasPrice           uint64
+	MaxRetries         int
 	ConfirmationBlocks int
 }
 
@@ -79,17 +78,17 @@ func (m *MultiChainRegistry) Register(ctx context.Context, chain Chain, req *Reg
 	if !exists {
 		return nil, fmt.Errorf("no registry for chain %s", chain)
 	}
-	
+
 	// Validate the registration request
 	if err := validateRegistrationRequest(req); err != nil {
 		return nil, err
 	}
-	
+
 	// Add chain prefix to DID if not present
 	if !hasChainPrefix(req.DID, chain) {
 		req.DID = addChainPrefix(req.DID, chain)
 	}
-	
+
 	return registry.Register(ctx, req)
 }
 
@@ -99,12 +98,12 @@ func (m *MultiChainRegistry) Update(ctx context.Context, did AgentDID, updates m
 	if err != nil {
 		return err
 	}
-	
+
 	registry, exists := m.registries[chain]
 	if !exists {
 		return fmt.Errorf("no registry for chain %s", chain)
 	}
-	
+
 	return registry.Update(ctx, did, updates, keyPair)
 }
 
@@ -114,12 +113,12 @@ func (m *MultiChainRegistry) Deactivate(ctx context.Context, did AgentDID, keyPa
 	if err != nil {
 		return err
 	}
-	
+
 	registry, exists := m.registries[chain]
 	if !exists {
 		return fmt.Errorf("no registry for chain %s", chain)
 	}
-	
+
 	return registry.Deactivate(ctx, did, keyPair)
 }
 
@@ -129,7 +128,7 @@ func (m *MultiChainRegistry) GetRegistrationStatus(ctx context.Context, chain Ch
 	if !exists {
 		return nil, fmt.Errorf("no registry for chain %s", chain)
 	}
-	
+
 	return registry.GetRegistrationStatus(ctx, txHash)
 }
 
@@ -138,19 +137,19 @@ func validateRegistrationRequest(req *RegistrationRequest) error {
 	if req.DID == "" {
 		return fmt.Errorf("DID is required")
 	}
-	
+
 	if req.Name == "" {
 		return fmt.Errorf("name is required")
 	}
-	
+
 	if req.Endpoint == "" {
 		return fmt.Errorf("endpoint is required")
 	}
-	
+
 	if req.KeyPair == nil {
 		return fmt.Errorf("key pair is required for signing")
 	}
-	
+
 	return nil
 }
 

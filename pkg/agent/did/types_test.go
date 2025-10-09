@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package did
 
 import (
@@ -34,18 +33,18 @@ func TestDIDError(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "DID not found error",
-			err:  ErrDIDNotFound,
+			name:     "DID not found error",
+			err:      ErrDIDNotFound,
 			expected: "DID not found in registry",
 		},
 		{
-			name: "DID already exists error",
-			err:  ErrDIDAlreadyExists,
+			name:     "DID already exists error",
+			err:      ErrDIDAlreadyExists,
 			expected: "DID already registered",
 		},
 		{
-			name: "Invalid signature error",
-			err:  ErrInvalidSignature,
+			name:     "Invalid signature error",
+			err:      ErrInvalidSignature,
 			expected: "signature verification failed",
 		},
 		{
@@ -79,7 +78,7 @@ func TestNetworkConstants(t *testing.T) {
 	assert.Equal(t, Network("ethereum-mainnet"), NetworkEthereumMainnet)
 	assert.Equal(t, Network("ethereum-sepolia"), NetworkEthereumSepolia)
 	assert.Equal(t, Network("ethereum-goerli"), NetworkEthereumGoerli)
-	
+
 	// Test Solana networks
 	assert.Equal(t, Network("solana-mainnet"), NetworkSolanaMainnet)
 	assert.Equal(t, Network("solana-devnet"), NetworkSolanaDevnet)
@@ -113,7 +112,7 @@ func TestAgentMetadata(t *testing.T) {
 	assert.Equal(t, "0x1234567890abcdef", metadata.Owner)
 	assert.Equal(t, now, metadata.CreatedAt)
 	assert.Equal(t, now, metadata.UpdatedAt)
-	
+
 	// Test capabilities
 	require.NotNil(t, metadata.Capabilities)
 	assert.Equal(t, true, metadata.Capabilities["chat"])
@@ -127,7 +126,7 @@ func TestRegistrationRequest(t *testing.T) {
 		Description: "A test AI agent",
 		Endpoint:    "https://api.example.com",
 		Capabilities: map[string]interface{}{
-			"version": "1.0",
+			"version":  "1.0",
 			"features": []string{"chat", "code"},
 		},
 		KeyPair: nil, // Would be set with actual keypair
@@ -137,7 +136,7 @@ func TestRegistrationRequest(t *testing.T) {
 	assert.Equal(t, "Test Agent", req.Name)
 	assert.Equal(t, "A test AI agent", req.Description)
 	assert.Equal(t, "https://api.example.com", req.Endpoint)
-	
+
 	// Test nested capabilities
 	assert.Equal(t, "1.0", req.Capabilities["version"])
 	features, ok := req.Capabilities["features"].([]string)
@@ -147,7 +146,7 @@ func TestRegistrationRequest(t *testing.T) {
 
 func TestRegistrationResult(t *testing.T) {
 	now := time.Now()
-	
+
 	// Test Ethereum result
 	ethResult := &RegistrationResult{
 		TransactionHash: "0x123abc",
@@ -155,20 +154,20 @@ func TestRegistrationResult(t *testing.T) {
 		Timestamp:       now,
 		GasUsed:         21000,
 	}
-	
+
 	assert.Equal(t, "0x123abc", ethResult.TransactionHash)
 	assert.Equal(t, uint64(12345), ethResult.BlockNumber)
 	assert.Equal(t, now, ethResult.Timestamp)
 	assert.Equal(t, uint64(21000), ethResult.GasUsed)
 	assert.Equal(t, uint64(0), ethResult.Slot) // Should be zero for Ethereum
-	
+
 	// Test Solana result
 	solResult := &RegistrationResult{
 		TransactionHash: "5xyzdef",
 		Slot:            98765,
 		Timestamp:       now,
 	}
-	
+
 	assert.Equal(t, "5xyzdef", solResult.TransactionHash)
 	assert.Equal(t, uint64(98765), solResult.Slot)
 	assert.Equal(t, now, solResult.Timestamp)
@@ -182,26 +181,26 @@ func TestVerificationResult(t *testing.T) {
 		Name:     "Test Agent",
 		IsActive: true,
 	}
-	
+
 	// Test successful verification
 	successResult := &VerificationResult{
 		Valid:      true,
 		Agent:      agent,
 		VerifiedAt: now,
 	}
-	
+
 	assert.True(t, successResult.Valid)
 	assert.Equal(t, agent, successResult.Agent)
 	assert.Equal(t, "", successResult.Error)
 	assert.Equal(t, now, successResult.VerifiedAt)
-	
+
 	// Test failed verification
 	failResult := &VerificationResult{
 		Valid:      false,
 		Error:      "metadata mismatch",
 		VerifiedAt: now,
 	}
-	
+
 	assert.False(t, failResult.Valid)
 	assert.Nil(t, failResult.Agent)
 	assert.Equal(t, "metadata mismatch", failResult.Error)

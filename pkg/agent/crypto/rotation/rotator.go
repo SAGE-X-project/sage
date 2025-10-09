@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package rotation
 
 import (
@@ -54,7 +53,7 @@ func NewKeyRotator(storage sagecrypto.KeyStorage) sagecrypto.KeyRotator {
 // Rotate rotates the key for the given ID
 func (r *keyRotator) Rotate(id string) (sagecrypto.KeyPair, error) {
 	r.mu.Lock()
-	
+
 	// Check if key is already being rotated
 	if r.rotating[id] {
 		r.mu.Unlock()
@@ -86,7 +85,7 @@ func (r *keyRotator) Rotate(id string) (sagecrypto.KeyPair, error) {
 	default:
 		return nil, fmt.Errorf("unsupported key type for rotation: %s", oldKeyPair.Type())
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate new key: %w", err)
 	}
@@ -130,17 +129,17 @@ func (r *keyRotator) SetRotationConfig(config sagecrypto.KeyRotationConfig) {
 func (r *keyRotator) GetRotationHistory(id string) ([]sagecrypto.KeyRotationEvent, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	history, exists := r.history[id]
 	if !exists {
 		return []sagecrypto.KeyRotationEvent{}, nil
 	}
-	
+
 	// Return a copy in reverse order (newest first)
 	result := make([]sagecrypto.KeyRotationEvent, len(history))
 	for i, event := range history {
 		result[len(history)-1-i] = event
 	}
-	
+
 	return result, nil
 }

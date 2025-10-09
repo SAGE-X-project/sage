@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -24,8 +23,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	"github.com/spf13/cobra"
 )
 
 var updateCmd = &cobra.Command{
@@ -39,17 +38,17 @@ Only the agent owner can update the metadata.`,
 
 var (
 	// Update flags
-	updateName           string
-	updateDescription    string
-	updateEndpoint       string
-	updateCapabilities   string
-	updateKeyFile        string
-	updateKeyFormat      string
-	updateStorageDir     string
-	updateKeyID          string
-	updateRPCEndpoint    string
-	updateContractAddr   string
-	updatePrivateKey     string
+	updateName         string
+	updateDescription  string
+	updateEndpoint     string
+	updateCapabilities string
+	updateKeyFile      string
+	updateKeyFormat    string
+	updateStorageDir   string
+	updateKeyID        string
+	updateRPCEndpoint  string
+	updateContractAddr string
+	updatePrivateKey   string
 )
 
 func init() {
@@ -139,7 +138,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println(" Agent updated successfully!")
-	
+
 	// Show what was updated
 	fmt.Println("\nUpdated fields:")
 	for key, value := range updates {

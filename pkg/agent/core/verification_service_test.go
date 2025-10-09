@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -29,7 +28,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	
+
 	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
@@ -114,17 +113,17 @@ func (m *MockDIDManager) IsChainConfigured(chain did.Chain) bool {
 
 func TestVerificationService(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Generate test keypair
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
-	
+
 	mockDIDManager := new(MockDIDManager)
 	service := NewVerificationService(mockDIDManager)
-	
+
 	t.Run("VerifyAgentMessage with active agent", func(t *testing.T) {
 		agentDID := "did:sage:ethereum:agent001"
-		
+
 		// Create message
 		message := &rfc9421.Message{
 			AgentDID:     agentDID,
@@ -139,12 +138,12 @@ func TestVerificationService(t *testing.T) {
 				"name":     "Test Agent",
 			},
 		}
-		
+
 		// Sign the message
 		verifier := rfc9421.NewVerifier()
 		signatureBase := verifier.ConstructSignatureBase(message)
 		message.Signature = ed25519.Sign(privateKey, []byte(signatureBase))
-		
+
 		// Mock agent metadata
 		agentMetadata := &did.AgentMetadata{
 			DID:       did.AgentDID(agentDID),
@@ -158,12 +157,12 @@ func TestVerificationService(t *testing.T) {
 				"code": true,
 			},
 		}
-		
+
 		mockDIDManager.On("ResolveAgent", ctx, did.AgentDID(agentDID)).Return(agentMetadata, nil).Once()
-		
+
 		opts := rfc9421.DefaultVerificationOptions()
 		result, err := service.VerifyAgentMessage(ctx, message, opts)
-		
+
 		require.NoError(t, err)
 		assert.True(t, result.Valid)
 		assert.Empty(t, result.Error)
@@ -171,19 +170,19 @@ func TestVerificationService(t *testing.T) {
 		assert.Equal(t, "Test Agent", result.AgentName)
 		assert.Equal(t, "0x1234567890abcdef", result.AgentOwner)
 		assert.NotNil(t, result.Capabilities)
-		
+
 		mockDIDManager.AssertExpectations(t)
 	})
-	
+
 	t.Run("VerifyAgentMessage with inactive agent", func(t *testing.T) {
 		agentDID := "did:sage:ethereum:agent002"
-		
+
 		message := &rfc9421.Message{
 			AgentDID:  agentDID,
 			MessageID: "msg-002",
 			Timestamp: time.Now(),
 		}
-		
+
 		// Mock inactive agent
 		agentMetadata := &did.AgentMetadata{
 			DID:       did.AgentDID(agentDID),
@@ -191,25 +190,25 @@ func TestVerificationService(t *testing.T) {
 			IsActive:  false,
 			PublicKey: publicKey,
 		}
-		
+
 		mockDIDManager.On("ResolveAgent", ctx, did.AgentDID(agentDID)).Return(agentMetadata, nil).Once()
-		
+
 		opts := &rfc9421.VerificationOptions{
 			RequireActiveAgent: true,
 		}
-		
+
 		result, err := service.VerifyAgentMessage(ctx, message, opts)
-		
+
 		require.NoError(t, err)
 		assert.False(t, result.Valid)
 		assert.Equal(t, "agent is deactivated", result.Error)
-		
+
 		mockDIDManager.AssertExpectations(t)
 	})
-	
+
 	t.Run("VerifyMessageFromHeaders", func(t *testing.T) {
 		agentDID := "did:sage:ethereum:agent003"
-		
+
 		headers := map[string]string{
 			"X-Agent-DID":           agentDID,
 			"X-Message-ID":          "msg-003",
@@ -220,9 +219,9 @@ func TestVerificationService(t *testing.T) {
 			"X-Metadata-Endpoint":   "https://api.example.com",
 			"X-Metadata-Name":       "Test Agent",
 		}
-		
+
 		body := []byte("test message")
-		
+
 		// Create expected message and sign it
 		message, _ := rfc9421.ParseMessageFromHeaders(headers, body)
 		message.Metadata = map[string]interface{}{
@@ -232,7 +231,7 @@ func TestVerificationService(t *testing.T) {
 		verifier := rfc9421.NewVerifier()
 		signatureBase := verifier.ConstructSignatureBase(message)
 		signature := ed25519.Sign(privateKey, []byte(signatureBase))
-		
+
 		// Mock agent metadata
 		agentMetadata := &did.AgentMetadata{
 			DID:       did.AgentDID(agentDID),
@@ -241,38 +240,38 @@ func TestVerificationService(t *testing.T) {
 			PublicKey: publicKey,
 			Endpoint:  "https://api.example.com",
 		}
-		
+
 		mockDIDManager.On("ResolveAgent", ctx, did.AgentDID(agentDID)).Return(agentMetadata, nil).Once()
-		
+
 		result, err := service.VerifyMessageFromHeaders(ctx, headers, body, signature)
-		
+
 		require.NoError(t, err)
 		assert.True(t, result.Valid)
 		assert.Empty(t, result.Error)
-		
+
 		mockDIDManager.AssertExpectations(t)
 	})
-	
+
 	t.Run("QuickVerify", func(t *testing.T) {
 		agentDID := "did:sage:solana:agent004"
 		message := []byte("test message")
-		
+
 		// Create minimal RFC9421 message for signing
 		msg := &rfc9421.Message{
 			Body:         message,
 			Algorithm:    string(rfc9421.AlgorithmEdDSA),
 			SignedFields: []string{"body"},
 		}
-		
+
 		verifier := rfc9421.NewVerifier()
 		signatureBase := verifier.ConstructSignatureBase(msg)
 		signature := ed25519.Sign(privateKey, []byte(signatureBase))
-		
+
 		mockDIDManager.On("ResolvePublicKey", ctx, did.AgentDID(agentDID)).Return(publicKey, nil).Once()
-		
+
 		err := service.QuickVerify(ctx, agentDID, message, signature)
 		assert.NoError(t, err)
-		
+
 		mockDIDManager.AssertExpectations(t)
 	})
 }

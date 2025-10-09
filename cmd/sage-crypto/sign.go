@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -111,12 +110,12 @@ func loadKey() (crypto.KeyPair, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create key storage: %w", err)
 		}
-		
+
 		keyPair, err := keyStorage.Load(keyID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load key from storage: %w", err)
 		}
-		
+
 		return keyPair, nil
 	}
 
@@ -139,7 +138,7 @@ func loadKey() (crypto.KeyPair, error) {
 	case "jwk":
 		importer = formats.NewJWKImporter()
 		format = crypto.KeyFormatJWK
-		
+
 		// Handle the wrapper format from sage-crypto generate
 		var wrapper struct {
 			PrivateKey json.RawMessage `json:"private_key"`
@@ -147,12 +146,12 @@ func loadKey() (crypto.KeyPair, error) {
 			KeyID      string          `json:"key_id"`
 			KeyType    string          `json:"key_type"`
 		}
-		
+
 		if err := json.Unmarshal(keyData, &wrapper); err == nil && wrapper.PrivateKey != nil {
 			// It's a wrapper format, use the private key
 			keyData = wrapper.PrivateKey
 		}
-		
+
 	case "pem":
 		importer = formats.NewPEMImporter()
 		format = crypto.KeyFormatPEM
@@ -209,7 +208,7 @@ func outputSignature(signature []byte, keyPair crypto.KeyPair) error {
 			"key_type":  string(keyPair.Type()),
 			"algorithm": getSignatureAlgorithm(keyPair.Type()),
 		}
-		
+
 		jsonOutput, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal output: %w", err)

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -44,10 +43,10 @@ func processMessage(msg ChatMessage) ChatResponse {
 	// In a real system, this could execute commands, access databases, etc.
 	fmt.Printf("  Received message from: %s\n", msg.AgentID)
 	fmt.Printf("💬 Message: %s\n", msg.Message)
-	
+
 	// Simulate some processing
 	time.Sleep(100 * time.Millisecond)
-	
+
 	return ChatResponse{
 		Status:  "success",
 		Reply:   fmt.Sprintf("Processed message from %s", msg.AgentID),
@@ -71,10 +70,10 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 	// NO VERIFICATION! Anyone can claim to be any agent!
 	// NO SIGNATURE CHECK! Messages can be tampered with!
 	// NO REPLAY PROTECTION! Old messages can be resent!
-	
+
 	response := processMessage(msg)
 	fmt.Println(" Processed successfully (THIS IS BAD!)")
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -90,7 +89,7 @@ func main() {
 	fmt.Println("   No replay attack protection")
 	fmt.Println("   Anyone can impersonate any agent")
 	fmt.Println("")
-	
+
 	http.HandleFunc("/chat", handleChat)
 	log.Fatal(http.ListenAndServe(":8082", nil))
 }

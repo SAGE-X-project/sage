@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -76,7 +75,7 @@ func runRotate(cmd *cobra.Command, args []string) error {
 
 	// Create rotator
 	rotator := rotation.NewKeyRotator(keyStorage)
-	
+
 	// Configure rotation
 	rotator.SetRotationConfig(sagecrypto.KeyRotationConfig{
 		KeepOldKeys: keepOldKeys,
@@ -94,7 +93,7 @@ func runRotate(cmd *cobra.Command, args []string) error {
 	fmt.Printf("  Key Type: %s\n", newKeyPair.Type())
 	fmt.Printf("  Old Key Fingerprint: %s\n", oldKeyPair.ID())
 	fmt.Printf("  New Key Fingerprint: %s\n", newKeyPair.ID())
-	
+
 	if keepOldKeys {
 		fmt.Printf("  Old Key Stored As: %s.old.%s\n", keyID, oldKeyPair.ID())
 	}

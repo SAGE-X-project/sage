@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package rfc9421
 
 import (
@@ -113,41 +112,41 @@ func (b *MessageBuilder) Build() *Message {
 	if len(b.message.SignedFields) == 0 {
 		b.message.SignedFields = []string{"agent_did", "message_id", "timestamp", "nonce", "body"}
 	}
-	
+
 	return b.message
 }
 
 // ParseMessageFromHeaders creates a Message from HTTP-style headers
 func ParseMessageFromHeaders(headers map[string]string, body []byte) (*Message, error) {
 	builder := NewMessageBuilder()
-	
+
 	// Extract standard headers
 	if did, ok := headers["X-Agent-DID"]; ok {
 		builder.WithAgentDID(did)
 	}
-	
+
 	if messageID, ok := headers["X-Message-ID"]; ok {
 		builder.WithMessageID(messageID)
 	}
-	
+
 	if timestamp, ok := headers["X-Timestamp"]; ok {
 		if ts, err := time.Parse(time.RFC3339, timestamp); err == nil {
 			builder.WithTimestamp(ts)
 		}
 	}
-	
+
 	if nonce, ok := headers["X-Nonce"]; ok {
 		builder.WithNonce(nonce)
 	}
-	
+
 	if algorithm, ok := headers["X-Signature-Algorithm"]; ok {
 		builder.WithAlgorithm(SignatureAlgorithm(algorithm))
 	}
-	
+
 	if keyID, ok := headers["X-Key-ID"]; ok {
 		builder.WithKeyID(keyID)
 	}
-	
+
 	if signedFields, ok := headers["X-Signed-Fields"]; ok {
 		fields := strings.Split(signedFields, ",")
 		for i := range fields {
@@ -155,14 +154,14 @@ func ParseMessageFromHeaders(headers map[string]string, body []byte) (*Message, 
 		}
 		builder.WithSignedFields(fields...)
 	}
-	
+
 	// Add all headers
 	for k, v := range headers {
 		builder.AddHeader(k, v)
 	}
-	
+
 	// Set body
 	builder.WithBody(body)
-	
+
 	return builder.Build(), nil
 }

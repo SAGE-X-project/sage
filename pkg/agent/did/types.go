@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package did
 
 import (
@@ -35,9 +34,9 @@ type AgentMetadata struct {
 	Description  string                 `json:"description"`
 	Endpoint     string                 `json:"endpoint"`
 	PublicKey    interface{}            `json:"public_key"` // crypto.PublicKey type
-	PublicKEMKey    interface{}            `json:"public_key"` // crypto.PublicKey type
+	PublicKEMKey interface{}            `json:"public_key"` // crypto.PublicKey type
 	Capabilities map[string]interface{} `json:"capabilities"`
-	Owner        string                 `json:"owner"`        // Blockchain address of the owner
+	Owner        string                 `json:"owner"` // Blockchain address of the owner
 	IsActive     bool                   `json:"is_active"`
 	CreatedAt    time.Time              `json:"created_at"`
 	UpdatedAt    time.Time              `json:"updated_at"`
@@ -64,10 +63,10 @@ type RegistrationResult struct {
 
 // VerificationResult contains the result of DID verification
 type VerificationResult struct {
-	Valid        bool          `json:"valid"`
-	Agent        *AgentMetadata `json:"agent,omitempty"`
-	Error        string        `json:"error,omitempty"`
-	VerifiedAt   time.Time     `json:"verified_at"`
+	Valid      bool           `json:"valid"`
+	Agent      *AgentMetadata `json:"agent,omitempty"`
+	Error      string         `json:"error,omitempty"`
+	VerifiedAt time.Time      `json:"verified_at"`
 }
 
 // Chain represents the blockchain where the DID is registered
@@ -86,7 +85,7 @@ const (
 	NetworkEthereumMainnet Network = "ethereum-mainnet"
 	NetworkEthereumSepolia Network = "ethereum-sepolia"
 	NetworkEthereumGoerli  Network = "ethereum-goerli"
-	
+
 	// Solana networks
 	NetworkSolanaMainnet Network = "solana-mainnet"
 	NetworkSolanaDevnet  Network = "solana-devnet"

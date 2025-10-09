@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package chain
 
 import (
@@ -33,7 +32,7 @@ import (
 // AddressFromKeyPair generates blockchain addresses for a key pair
 func AddressFromKeyPair(keyPair sagecrypto.KeyPair, chains ...ChainType) (map[ChainType]*Address, error) {
 	publicKey := keyPair.PublicKey()
-	
+
 	// If no chains specified, generate for all supported chains
 	if len(chains) == 0 {
 		return GenerateAddresses(publicKey)
@@ -72,32 +71,32 @@ func AddressFromKeyPair(keyPair sagecrypto.KeyPair, chains ...ChainType) (map[Ch
 func GetSupportedChainsForKey(keyPair sagecrypto.KeyPair) []ChainType {
 	var supportedChains []ChainType
 	publicKey := keyPair.PublicKey()
-	
+
 	// Query all registered providers to see which ones support this key type
 	for _, chainType := range ListProviders() {
 		provider, err := GetProvider(chainType)
 		if err != nil {
 			continue
 		}
-		
+
 		// Try to generate an address with the first supported network
 		networks := provider.SupportedNetworks()
 		if len(networks) == 0 {
 			continue
 		}
-		
+
 		// If the provider can generate an address for this key, it's supported
 		_, err = provider.GenerateAddress(publicKey, networks[0])
 		if err == nil {
 			supportedChains = append(supportedChains, chainType)
 		}
 	}
-	
+
 	// Sort for consistent order
 	sort.Slice(supportedChains, func(i, j int) bool {
 		return supportedChains[i] < supportedChains[j]
 	})
-	
+
 	return supportedChains
 }
 
@@ -146,11 +145,11 @@ func FormatAddress(address *Address) string {
 			return "0x" + address.Value
 		}
 		return address.Value
-		
+
 	case ChainTypeSolana:
 		// Solana addresses are base58 encoded, no prefix
 		return address.Value
-		
+
 	default:
 		return address.Value
 	}
@@ -169,14 +168,14 @@ func isHexString(s string) bool {
 // ParseAddress parses an address string and attempts to determine its chain type
 func ParseAddress(addressStr string) (*Address, error) {
 	// Try Ethereum format (with or without 0x prefix)
-	if (len(addressStr) == 42 && strings.HasPrefix(addressStr, "0x")) || 
-	   (len(addressStr) == 40 && isHexString(addressStr)) {
+	if (len(addressStr) == 42 && strings.HasPrefix(addressStr, "0x")) ||
+		(len(addressStr) == 40 && isHexString(addressStr)) {
 		// Normalize address to include 0x prefix
 		normalizedAddress := addressStr
 		if len(addressStr) == 40 {
 			normalizedAddress = "0x" + addressStr
 		}
-		
+
 		provider, err := GetProvider(ChainTypeEthereum)
 		if err == nil {
 			if err := provider.ValidateAddress(normalizedAddress, NetworkEthereumMainnet); err == nil {

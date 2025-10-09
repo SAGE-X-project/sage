@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package did
 
 import (
@@ -24,7 +23,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	
+
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
@@ -49,7 +48,7 @@ func UnmarshalPublicKey(data []byte, keyType string) (interface{}, error) {
 			return nil, fmt.Errorf("invalid Ed25519 public key size: %d", len(data))
 		}
 		return ed25519.PublicKey(data), nil
-		
+
 	case "secp256k1":
 		pk, err := secp256k1.ParsePubKey(data)
 		if err != nil {
@@ -57,7 +56,7 @@ func UnmarshalPublicKey(data []byte, keyType string) (interface{}, error) {
 		}
 		// Convert to standard ecdsa.PublicKey for compatibility
 		return pk.ToECDSA(), nil
-		
+
 	default:
 		// Try to unmarshal as generic public key
 		block, _ := pem.Decode(data)

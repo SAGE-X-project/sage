@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package chain
 
 import (
@@ -243,10 +242,10 @@ func TestGetRFC9421Algorithm(t *testing.T) {
 	mapper := NewChainKeyTypeMapper()
 
 	tests := []struct {
-		name      string
-		keyType   sagecrypto.KeyType
-		expected  string
-		wantErr   bool
+		name     string
+		keyType  sagecrypto.KeyType
+		expected string
+		wantErr  bool
 	}{
 		{
 			name:     "Secp256k1 maps to es256k",
@@ -267,9 +266,9 @@ func TestGetRFC9421Algorithm(t *testing.T) {
 			wantErr:  false,
 		},
 		{
-			name:     "X25519 has no RFC 9421 mapping",
-			keyType:  sagecrypto.KeyTypeX25519,
-			wantErr:  true,
+			name:    "X25519 has no RFC 9421 mapping",
+			keyType: sagecrypto.KeyTypeX25519,
+			wantErr: true,
 		},
 	}
 

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package crypto_test
 
 import (
@@ -27,11 +26,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	_ "github.com/sage-x-project/sage/internal/cryptoinit" // Initialize wrappers
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
-	_ "github.com/sage-x-project/sage/internal/cryptoinit" // Initialize wrappers
 )
 
 // Mock implementations for testing
@@ -42,12 +41,12 @@ type mockKeyPair struct {
 	privateKey crypto.PrivateKey
 }
 
-func (m *mockKeyPair) ID() string                                       { return m.id }
-func (m *mockKeyPair) Type() sagecrypto.KeyType                         { return m.keyType }
-func (m *mockKeyPair) PublicKey() crypto.PublicKey                      { return m.publicKey }
-func (m *mockKeyPair) PrivateKey() crypto.PrivateKey                    { return m.privateKey }
-func (m *mockKeyPair) Sign(message []byte) ([]byte, error)              { return nil, nil }
-func (m *mockKeyPair) Verify(message, signature []byte) error           { return nil }
+func (m *mockKeyPair) ID() string                             { return m.id }
+func (m *mockKeyPair) Type() sagecrypto.KeyType               { return m.keyType }
+func (m *mockKeyPair) PublicKey() crypto.PublicKey            { return m.publicKey }
+func (m *mockKeyPair) PrivateKey() crypto.PrivateKey          { return m.privateKey }
+func (m *mockKeyPair) Sign(message []byte) ([]byte, error)    { return nil, nil }
+func (m *mockKeyPair) Verify(message, signature []byte) error { return nil }
 
 type mockKeyStorage struct {
 	data map[string]sagecrypto.KeyPair

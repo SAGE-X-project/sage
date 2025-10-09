@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package keys
 
 import (
@@ -35,13 +34,13 @@ import (
 // NewEd25519KeyPair creates a new Ed25519 key pair from an existing private key
 func NewEd25519KeyPair(privateKey ed25519.PrivateKey, id string) (sagecrypto.KeyPair, error) {
 	publicKey := privateKey.Public().(ed25519.PublicKey)
-	
+
 	// Use provided ID or generate from public key
 	if id == "" {
 		hash := sha256.Sum256(publicKey)
 		id = hex.EncodeToString(hash[:8])
 	}
-	
+
 	return &ed25519KeyPair{
 		privateKey: privateKey,
 		publicKey:  publicKey,
@@ -52,14 +51,14 @@ func NewEd25519KeyPair(privateKey ed25519.PrivateKey, id string) (sagecrypto.Key
 // NewSecp256k1KeyPair creates a new Secp256k1 key pair from an existing private key
 func NewSecp256k1KeyPair(privateKey *secp256k1.PrivateKey, id string) (sagecrypto.KeyPair, error) {
 	publicKey := privateKey.PubKey()
-	
+
 	// Use provided ID or generate from public key
 	if id == "" {
 		pubKeyBytes := publicKey.SerializeCompressed()
 		hash := sha256.Sum256(pubKeyBytes)
 		id = hex.EncodeToString(hash[:8])
 	}
-	
+
 	return &secp256k1KeyPair{
 		privateKey: privateKey,
 		publicKey:  publicKey,
@@ -70,14 +69,14 @@ func NewSecp256k1KeyPair(privateKey *secp256k1.PrivateKey, id string) (sagecrypt
 // NewX25519KeyPair creates a new X25519 key pair from an existing private key
 func NewX25519KeyPair(privateKey *ecdh.PrivateKey, id string) (sagecrypto.KeyPair, error) {
 	publicKey := privateKey.PublicKey()
-	
+
 	// Use provided ID or generate from public key
 	if id == "" {
 		pubKeyBytes := publicKey.Bytes()
 		hash := sha256.Sum256(pubKeyBytes)
 		id = hex.EncodeToString(hash[:8])
 	}
-	
+
 	return &X25519KeyPair{
 		privateKey: privateKey,
 		publicKey:  publicKey,
@@ -85,20 +84,19 @@ func NewX25519KeyPair(privateKey *ecdh.PrivateKey, id string) (sagecrypto.KeyPai
 	}, nil
 }
 
-
 // NewRSAKeyPair creates a new RSA key pair for RS256 from an existing private key
 func NewRSAKeyPair(privateKey *rsa.PrivateKey, id string) (sagecrypto.KeyPair, error) {
-    publicKey := &privateKey.PublicKey
-    if id == "" {
-        // Derive ID from public key modulus hash
-        hash := sha256.Sum256(publicKey.N.Bytes())
-        id = hex.EncodeToString(hash[:8])
-    }
-    return &rsaKeyPair{
-        privateKey: privateKey,
-        publicKey:  publicKey,
-        id:         id,
-    }, nil
+	publicKey := &privateKey.PublicKey
+	if id == "" {
+		// Derive ID from public key modulus hash
+		hash := sha256.Sum256(publicKey.N.Bytes())
+		id = hex.EncodeToString(hash[:8])
+	}
+	return &rsaKeyPair{
+		privateKey: privateKey,
+		publicKey:  publicKey,
+		id:         id,
+	}, nil
 }
 
 // PublicKeyOnlyEd25519 wraps an Ed25519 public key for verification only
@@ -136,34 +134,34 @@ func (pk *publicKeyOnlyEd25519) ID() string {
 
 // PublicKeyOnlyRSA wraps an RSA public key for verification only
 type publicKeyOnlyRSA struct {
-    publicKey *rsa.PublicKey
-    id        string
+	publicKey *rsa.PublicKey
+	id        string
 }
 
 func (pk *publicKeyOnlyRSA) PublicKey() crypto.PublicKey {
-    return pk.publicKey
+	return pk.publicKey
 }
 
 func (pk *publicKeyOnlyRSA) PrivateKey() crypto.PrivateKey {
-    return nil
+	return nil
 }
 
 func (pk *publicKeyOnlyRSA) Type() sagecrypto.KeyType {
-    return sagecrypto.KeyTypeRSA
+	return sagecrypto.KeyTypeRSA
 }
 
 func (pk *publicKeyOnlyRSA) Sign(message []byte) ([]byte, error) {
-    return nil, errors.New("cannot sign with public key only")
+	return nil, errors.New("cannot sign with public key only")
 }
 
 func (pk *publicKeyOnlyRSA) Verify(message, signature []byte) error {
-    hash := sha256.Sum256(message)
-    if err := rsa.VerifyPKCS1v15(pk.publicKey, crypto.SHA256, hash[:], signature); err != nil {
-        return sagecrypto.ErrInvalidSignature
-    }
-    return nil
+	hash := sha256.Sum256(message)
+	if err := rsa.VerifyPKCS1v15(pk.publicKey, crypto.SHA256, hash[:], signature); err != nil {
+		return sagecrypto.ErrInvalidSignature
+	}
+	return nil
 }
 
 func (pk *publicKeyOnlyRSA) ID() string {
-    return pk.id
+	return pk.id
 }

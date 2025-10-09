@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package keys
 
 import (
@@ -43,22 +42,22 @@ func TestEd25519KeyPair(t *testing.T) {
 		require.NoError(t, err)
 
 		message := []byte("test message")
-		
+
 		// Sign message
 		signature, err := keyPair.Sign(message)
 		require.NoError(t, err)
 		assert.NotEmpty(t, signature)
-		
+
 		// Verify signature
 		err = keyPair.Verify(message, signature)
 		assert.NoError(t, err)
-		
+
 		// Verify with wrong message should fail
 		wrongMessage := []byte("wrong message")
 		err = keyPair.Verify(wrongMessage, signature)
 		assert.Error(t, err)
 		assert.Equal(t, crypto.ErrInvalidSignature, err)
-		
+
 		// Verify with wrong signature should fail
 		wrongSignature := make([]byte, len(signature))
 		copy(wrongSignature, signature)
@@ -71,10 +70,10 @@ func TestEd25519KeyPair(t *testing.T) {
 	t.Run("MultipleKeyPairsHaveDifferentIDs", func(t *testing.T) {
 		keyPair1, err := GenerateEd25519KeyPair()
 		require.NoError(t, err)
-		
+
 		keyPair2, err := GenerateEd25519KeyPair()
 		require.NoError(t, err)
-		
+
 		assert.NotEqual(t, keyPair1.ID(), keyPair2.ID())
 	})
 
@@ -83,11 +82,11 @@ func TestEd25519KeyPair(t *testing.T) {
 		require.NoError(t, err)
 
 		message := []byte{}
-		
+
 		signature, err := keyPair.Sign(message)
 		require.NoError(t, err)
 		assert.NotEmpty(t, signature)
-		
+
 		err = keyPair.Verify(message, signature)
 		assert.NoError(t, err)
 	})
@@ -101,11 +100,11 @@ func TestEd25519KeyPair(t *testing.T) {
 		for i := range message {
 			message[i] = byte(i % 256)
 		}
-		
+
 		signature, err := keyPair.Sign(message)
 		require.NoError(t, err)
 		assert.NotEmpty(t, signature)
-		
+
 		err = keyPair.Verify(message, signature)
 		assert.NoError(t, err)
 	})

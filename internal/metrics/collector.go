@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package metrics
 
 import (
@@ -29,15 +28,15 @@ type MetricsCollector struct {
 	mu sync.RWMutex
 
 	// Counters
-	SignatureCount      int64
-	VerificationCount   int64
-	SuccessfulVerifies  int64
-	FailedVerifies      int64
-	DIDResolutions      int64
-	CacheHits           int64
-	CacheMisses         int64
-	BlockchainCalls     int64
-	BlockchainErrors    int64
+	SignatureCount     int64
+	VerificationCount  int64
+	SuccessfulVerifies int64
+	FailedVerifies     int64
+	DIDResolutions     int64
+	CacheHits          int64
+	CacheMisses        int64
+	BlockchainCalls    int64
+	BlockchainErrors   int64
 
 	// Timing metrics (in microseconds)
 	SignatureTimes      []int64
@@ -126,24 +125,24 @@ func (mc *MetricsCollector) GetSnapshot() *MetricsSnapshot {
 	defer mc.mu.RUnlock()
 
 	return &MetricsSnapshot{
-		Timestamp:           time.Now(),
-		Uptime:              time.Since(mc.startTime),
-		SignatureCount:      mc.SignatureCount,
-		VerificationCount:   mc.VerificationCount,
-		SuccessfulVerifies:  mc.SuccessfulVerifies,
-		FailedVerifies:      mc.FailedVerifies,
-		DIDResolutions:      mc.DIDResolutions,
-		CacheHits:           mc.CacheHits,
-		CacheMisses:         mc.CacheMisses,
-		BlockchainCalls:     mc.BlockchainCalls,
-		BlockchainErrors:    mc.BlockchainErrors,
-		AvgSignatureTime:    calculateAverage(mc.SignatureTimes),
-		AvgVerificationTime: calculateAverage(mc.VerificationTimes),
-		AvgBlockchainTime:   calculateAverage(mc.BlockchainLatencies),
+		Timestamp:            time.Now(),
+		Uptime:               time.Since(mc.startTime),
+		SignatureCount:       mc.SignatureCount,
+		VerificationCount:    mc.VerificationCount,
+		SuccessfulVerifies:   mc.SuccessfulVerifies,
+		FailedVerifies:       mc.FailedVerifies,
+		DIDResolutions:       mc.DIDResolutions,
+		CacheHits:            mc.CacheHits,
+		CacheMisses:          mc.CacheMisses,
+		BlockchainCalls:      mc.BlockchainCalls,
+		BlockchainErrors:     mc.BlockchainErrors,
+		AvgSignatureTime:     calculateAverage(mc.SignatureTimes),
+		AvgVerificationTime:  calculateAverage(mc.VerificationTimes),
+		AvgBlockchainTime:    calculateAverage(mc.BlockchainLatencies),
 		AvgDIDResolutionTime: calculateAverage(mc.DIDResolutionTimes),
-		P95SignatureTime:    calculatePercentile(mc.SignatureTimes, 95),
-		P95VerificationTime: calculatePercentile(mc.VerificationTimes, 95),
-		P95BlockchainTime:   calculatePercentile(mc.BlockchainLatencies, 95),
+		P95SignatureTime:     calculatePercentile(mc.SignatureTimes, 95),
+		P95VerificationTime:  calculatePercentile(mc.VerificationTimes, 95),
+		P95BlockchainTime:    calculatePercentile(mc.BlockchainLatencies, 95),
 		P95DIDResolutionTime: calculatePercentile(mc.DIDResolutionTimes, 95),
 	}
 }
@@ -177,15 +176,15 @@ type MetricsSnapshot struct {
 	Uptime    time.Duration
 
 	// Counters
-	SignatureCount      int64
-	VerificationCount   int64
-	SuccessfulVerifies  int64
-	FailedVerifies      int64
-	DIDResolutions      int64
-	CacheHits           int64
-	CacheMisses         int64
-	BlockchainCalls     int64
-	BlockchainErrors    int64
+	SignatureCount     int64
+	VerificationCount  int64
+	SuccessfulVerifies int64
+	FailedVerifies     int64
+	DIDResolutions     int64
+	CacheHits          int64
+	CacheMisses        int64
+	BlockchainCalls    int64
+	BlockchainErrors   int64
 
 	// Timing averages (microseconds)
 	AvgSignatureTime     float64

@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package auth0
 
 import (
@@ -41,30 +40,30 @@ import (
 
 // Config holds the settings required by the Agent.
 type Config struct {
-	Domain         string 
-	KeyId		   string
-    ClientID       string // Auth0 Application Client ID
-    ClientSecret   string // Auth0 Application Client Secret
-    PrivateKeyPEM  string // PEM-encoded RSA private key for signing assertions
-    DID            string // Decentralized Identifier to include in the token
-    Resource       string // RFC-8707 resource indicator (e.g. "api://orders")
-    HTTPTimeout    time.Duration // HTTP client timeout
+	Domain        string
+	KeyId         string
+	ClientID      string        // Auth0 Application Client ID
+	ClientSecret  string        // Auth0 Application Client Secret
+	PrivateKeyPEM string        // PEM-encoded RSA private key for signing assertions
+	DID           string        // Decentralized Identifier to include in the token
+	Resource      string        // RFC-8707 resource indicator (e.g. "api://orders")
+	HTTPTimeout   time.Duration // HTTP client timeout
 }
 
 // Agent performs JWT Bearer grant requests to Auth0.
 type Agent struct {
-    cfg    Config
-    http   *http.Client
-    importer  sagecrypto.KeyImporter
+	cfg      Config
+	http     *http.Client
+	importer sagecrypto.KeyImporter
 }
 
 // NewAgent creates a new Agent with the given configuration.
 func NewAgent(cfg Config) *Agent {
-    return &Agent{
-        cfg: cfg,
-        http: &http.Client{Timeout: cfg.HTTPTimeout},
-        importer: formats.NewPEMImporter(),
-    }
+	return &Agent{
+		cfg:      cfg,
+		http:     &http.Client{Timeout: cfg.HTTPTimeout},
+		importer: formats.NewPEMImporter(),
+	}
 }
 
 // RequestToken performs a JWT Bearer grant with RFC-8707 resource and DID.
@@ -72,49 +71,49 @@ func NewAgent(cfg Config) *Agent {
 // tokenURL is the Auth0 /oauth/token endpoint.
 // Returns the raw access token (JWT).
 func (a *Agent) RequestToken(ctx context.Context, tokenURL string, audience string) (string, error) {
-    keyPair, err := a.importer.Import([]byte(a.cfg.PrivateKeyPEM), sagecrypto.KeyFormatPEM)
-    if err != nil {
-        return "", fmt.Errorf("import private key: %w", err)
-    }
-    signer := keyPair.PrivateKey().(crypto.Signer)
+	keyPair, err := a.importer.Import([]byte(a.cfg.PrivateKeyPEM), sagecrypto.KeyFormatPEM)
+	if err != nil {
+		return "", fmt.Errorf("import private key: %w", err)
+	}
+	signer := keyPair.PrivateKey().(crypto.Signer)
 
-    now := time.Now().Unix()
-    claims := jwt.MapClaims{
-        "iss": a.cfg.ClientID,
+	now := time.Now().Unix()
+	claims := jwt.MapClaims{
+		"iss": a.cfg.ClientID,
 		"sub": a.cfg.ClientID,
-        "aud": tokenURL,
-        "iat": now,
-        "exp": now + 60,
+		"aud": tokenURL,
+		"iat": now,
+		"exp": now + 60,
 		"jti": uuid.NewString(),
-    }
-    token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-    token.Header["kid"] = a.cfg.KeyId
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	token.Header["kid"] = a.cfg.KeyId
 
-    assertion, err := token.SignedString(signer)
-    if err != nil {
-        return "", fmt.Errorf("sign assertion: %w", err)
-    }
+	assertion, err := token.SignedString(signer)
+	if err != nil {
+		return "", fmt.Errorf("sign assertion: %w", err)
+	}
 
-    form := url.Values{
-        "grant_type":            {"client_credentials"},
+	form := url.Values{
+		"grant_type":            {"client_credentials"},
 		"client_assertion_type": {"urn:ietf:params:oauth:client-assertion-type:jwt-bearer"},
 		"client_assertion":      {assertion},
-		"audience":              {audience}, 
-		"did":                   {a.cfg.DID},  
-        // "scope":         {"openid"},
-    }
+		"audience":              {audience},
+		"did":                   {a.cfg.DID},
+		// "scope":         {"openid"},
+	}
 
-    req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
-    if err != nil {
-        return "", fmt.Errorf("new request: %w", err)
-    }
-    req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return "", fmt.Errorf("new request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-    resp, err := a.http.Do(req)
-    if err != nil {
-        return "", fmt.Errorf("do request: %w", err)
-    }
-    defer resp.Body.Close()
+	resp, err := a.http.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("do request: %w", err)
+	}
+	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -122,12 +121,12 @@ func (a *Agent) RequestToken(ctx context.Context, tokenURL string, audience stri
 	}
 	// fmt.Println(string(bodyBytes))
 
-    if resp.StatusCode != http.StatusOK {
-        return "", fmt.Errorf("token endpoint returned status %d", resp.StatusCode)
-    }
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("token endpoint returned status %d", resp.StatusCode)
+	}
 
-    var respData struct {
-    	AccessToken string `json:"access_token"`
+	var respData struct {
+		AccessToken string `json:"access_token"`
 		ExpiresIn   int    `json:"expires_in"`
 		TokenType   string `json:"token_type"`
 	}
@@ -138,8 +137,6 @@ func (a *Agent) RequestToken(ctx context.Context, tokenURL string, audience stri
 
 	return respData.AccessToken, nil
 }
-
-
 
 // VerifierConfig holds settings for token verification.
 type VerifierConfig struct {
@@ -246,7 +243,6 @@ func (v *verifier) Verify(ctx context.Context, tokenString string, issuer string
 	return out, nil
 }
 
-
 func (v *verifier) parseAndVerifyWithKey(tokenString string, pubKey crypto.PublicKey) (*jwt.Token, error) {
 	if pubKey == nil {
 		return nil, errors.New("no public key provided")
@@ -294,7 +290,7 @@ func findKeyByKID(keys []formats.JWK, kid string) crypto.PublicKey {
 	return nil
 }
 
-// getJWKS returns cached JWKS or fetches fresh set 
+// getJWKS returns cached JWKS or fetches fresh set
 func (v *verifier) getJWKS(ctx context.Context, issuer string) ([]formats.JWK, error) {
 	v.mu.RLock()
 	if time.Now().Before(v.expiresAt) && len(v.cache) > 0 {
@@ -320,7 +316,9 @@ func (v *verifier) getJWKS(ctx context.Context, issuer string) ([]formats.JWK, e
 		return nil, fmt.Errorf("JWKS endpoint returned status %d", resp.StatusCode)
 	}
 
-	var doc struct{ Keys []formats.JWK `json:"keys"` }
+	var doc struct {
+		Keys []formats.JWK `json:"keys"`
+	}
 	if err := json.NewDecoder(resp.Body).Decode(&doc); err != nil {
 		return nil, fmt.Errorf("decode JWKS response: %w", err)
 	}
@@ -335,8 +333,6 @@ func (v *verifier) getJWKS(ctx context.Context, issuer string) ([]formats.JWK, e
 
 	return doc.Keys, nil
 }
-
-
 
 func has(claims map[string]interface{}, expected string) bool {
 	v, ok := claims["aud"]
@@ -385,7 +381,6 @@ func normalizeIssuer(s string) string {
 	return s
 }
 
- 
 func containsScope(claims map[string]interface{}, want string) bool {
 	raw, ok := claims["scope"].(string)
 	if !ok || raw == "" {

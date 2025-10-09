@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -74,12 +73,12 @@ func runList(cmd *cobra.Command, args []string) error {
 			fmt.Fprintf(w, "%s\t<error>\t%v\n", id, err)
 			continue
 		}
-		
+
 		fmt.Fprintf(w, "%s\t%s\t%s\n", id, keyPair.Type(), keyPair.ID())
 	}
 
 	w.Flush()
-	
+
 	fmt.Printf("\nTotal keys: %d\n", len(keyIDs))
 	fmt.Printf("Storage location: %s\n", storageDir)
 

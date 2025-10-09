@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package order
 
 import (
@@ -35,7 +34,7 @@ type mockHeader struct {
 	timestamp time.Time
 }
 
-func (m *mockHeader) GetSequence() uint64    { return m.seq }
+func (m *mockHeader) GetSequence() uint64     { return m.seq }
 func (m *mockHeader) GetNonce() string        { return m.nonce }
 func (m *mockHeader) GetTimestamp() time.Time { return m.timestamp }
 
@@ -66,7 +65,7 @@ func TestOrderManager(t *testing.T) {
 		require.Contains(t, err2.Error(), "invalid sequence")
 
 		// higher sequence 2 => ok
-		err3 := mgr.ProcessMessage(&mockHeader{seq: 2, timestamp: ts.Add(2*time.Millisecond)}, "sess2")
+		err3 := mgr.ProcessMessage(&mockHeader{seq: 2, timestamp: ts.Add(2 * time.Millisecond)}, "sess2")
 		require.NoError(t, err3)
 	})
 
@@ -100,7 +99,7 @@ func TestOrderManager(t *testing.T) {
 		errB1 := mgr.ProcessMessage(&mockHeader{timestamp: tsA}, "B")
 		require.NoError(t, errB1)
 
-		errB2 := mgr.ProcessMessage(&mockHeader{seq: 1,timestamp: tsA.Add(100 * time.Millisecond)}, "B")
+		errB2 := mgr.ProcessMessage(&mockHeader{seq: 1, timestamp: tsA.Add(100 * time.Millisecond)}, "B")
 		require.NoError(t, errB2)
 	})
 }

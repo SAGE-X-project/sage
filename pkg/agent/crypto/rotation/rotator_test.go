@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package rotation
 
 import (
@@ -45,7 +44,7 @@ func TestKeyRotator(t *testing.T) {
 		// Create and store initial key
 		oldKeyPair, err := keys.GenerateEd25519KeyPair()
 		require.NoError(t, err)
-		
+
 		err = keyStorage.Store("rotate-test", oldKeyPair)
 		require.NoError(t, err)
 
@@ -53,7 +52,7 @@ func TestKeyRotator(t *testing.T) {
 		newKeyPair, err := rotator.Rotate("rotate-test")
 		require.NoError(t, err)
 		assert.NotNil(t, newKeyPair)
-		
+
 		// Verify it's a different key
 		assert.NotEqual(t, oldKeyPair.ID(), newKeyPair.ID())
 		assert.Equal(t, oldKeyPair.Type(), newKeyPair.Type())
@@ -76,7 +75,7 @@ func TestKeyRotator(t *testing.T) {
 		// Create and store initial key
 		keyPair, err := keys.GenerateSecp256k1KeyPair()
 		require.NoError(t, err)
-		
+
 		err = keyStorage.Store("multi-rotate", keyPair)
 		require.NoError(t, err)
 
@@ -112,7 +111,7 @@ func TestKeyRotator(t *testing.T) {
 		// Create and store initial key
 		oldKeyPair, err := keys.GenerateEd25519KeyPair()
 		require.NoError(t, err)
-		
+
 		err = keyStorage.Store("keep-old-test", oldKeyPair)
 		require.NoError(t, err)
 
@@ -139,7 +138,7 @@ func TestKeyRotator(t *testing.T) {
 
 	t.Run("RotationConfigPersistence", func(t *testing.T) {
 		rotator := NewKeyRotator(keyStorage)
-		
+
 		// Set custom config
 		config := crypto.KeyRotationConfig{
 			RotationInterval: 24 * time.Hour,

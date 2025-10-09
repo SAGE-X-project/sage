@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -25,8 +24,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	"github.com/spf13/cobra"
 )
 
 var resolveCmd = &cobra.Command{
@@ -131,13 +130,13 @@ func formatMetadataText(metadata *did.AgentMetadata) string {
 	output += fmt.Sprintf("Active: %v\n", metadata.IsActive)
 	output += fmt.Sprintf("Created: %s\n", metadata.CreatedAt.Format("2006-01-02 15:04:05"))
 	output += fmt.Sprintf("Updated: %s\n", metadata.UpdatedAt.Format("2006-01-02 15:04:05"))
-	
+
 	if len(metadata.Capabilities) > 0 {
 		output += "Capabilities:\n"
 		for key, value := range metadata.Capabilities {
 			output += fmt.Sprintf("  %s: %v\n", key, value)
 		}
 	}
-	
+
 	return output
 }

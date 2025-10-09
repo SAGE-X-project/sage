@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package core
 
 import (
@@ -25,7 +24,7 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
-	
+
 	// Initialize crypto implementations
 	_ "github.com/sage-x-project/sage/internal/cryptoinit"
 )
@@ -43,7 +42,7 @@ type Core struct {
 // New creates a new Core instance
 func New() *Core {
 	didManager := did.NewManager()
-	
+
 	return &Core{
 		cryptoManager:       crypto.NewManager(),
 		didManager:          didManager,

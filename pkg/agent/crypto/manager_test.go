@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package crypto_test
 
 import (
@@ -25,8 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	_ "github.com/sage-x-project/sage/internal/cryptoinit" // Initialize wrappers
+	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 )
 
 func TestNewManager(t *testing.T) {

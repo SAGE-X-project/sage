@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -267,17 +266,17 @@ func mustFetchServerKEMPub() *ecdh.PublicKey {
 	return pub
 }
 func mustFetchServerSignPub() ed25519.PublicKey {
-    resp := must(http.Get(baseURL + "/debug/server-pub"))
-    defer resp.Body.Close()
-    var m map[string]string
-    if err := json.NewDecoder(resp.Body).Decode(&m); err != nil {
-        log.Fatalf("decode server-pub: %v", err)
-    }
-    b, err := base64.RawURLEncoding.DecodeString(m["pub"])
-    if err != nil || len(b) != ed25519.PublicKeySize {
-        log.Fatalf("bad server ed25519 pub: %v len=%d", err, len(b))
-    }
-    return ed25519.PublicKey(b)
+	resp := must(http.Get(baseURL + "/debug/server-pub"))
+	defer resp.Body.Close()
+	var m map[string]string
+	if err := json.NewDecoder(resp.Body).Decode(&m); err != nil {
+		log.Fatalf("decode server-pub: %v", err)
+	}
+	b, err := base64.RawURLEncoding.DecodeString(m["pub"])
+	if err != nil || len(b) != ed25519.PublicKeySize {
+		log.Fatalf("bad server ed25519 pub: %v len=%d", err, len(b))
+	}
+	return ed25519.PublicKey(b)
 }
 func fetchServerDID() string {
 	resp := must(http.Get(baseURL + "/debug/server-did"))

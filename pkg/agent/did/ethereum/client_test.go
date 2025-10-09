@@ -16,14 +16,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package ethereum
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	
+
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
@@ -44,21 +43,21 @@ func TestNewEthereumClient(t *testing.T) {
 		RPCEndpoint:     "http://invalid-endpoint-that-does-not-exist:8545",
 		PrivateKey:      "", // No private key for read-only
 	}
-	
+
 	// This will fail with invalid RPC endpoint
 	_, err := NewEthereumClient(config)
 	assert.Error(t, err)
-	
+
 	// Test with invalid contract address format
 	invalidConfig := &did.RegistryConfig{
 		Chain:           did.ChainEthereum,
 		ContractAddress: "invalid-address",
 		RPCEndpoint:     "http://invalid-endpoint-that-does-not-exist:8545",
 	}
-	
+
 	_, err = NewEthereumClient(invalidConfig)
 	assert.Error(t, err)
-	
+
 	// Test with valid localhost endpoint if available (skip if not)
 	t.Run("WithLocalNode", func(t *testing.T) {
 		// This test only runs if a local node is actually available
@@ -68,12 +67,12 @@ func TestNewEthereumClient(t *testing.T) {
 			RPCEndpoint:     "http://localhost:8545",
 			PrivateKey:      "",
 		}
-		
+
 		client, err := NewEthereumClient(config)
 		if err != nil {
 			t.Skip("Skipping test: local Ethereum node not available")
 		}
-		
+
 		// If we get here, the client was created successfully
 		assert.NotNil(t, client)
 		assert.NotNil(t, client.client)
@@ -89,28 +88,28 @@ func TestEthereumHelperMethods(t *testing.T) {
 			ConfirmationBlocks: 3,
 		},
 	}
-	
+
 	// Test prepareRegistrationMessage
 	req := &did.RegistrationRequest{
 		DID:      "did:sage:ethereum:agent001",
 		Name:     "Test Agent",
 		Endpoint: "https://api.example.com",
 	}
-	
+
 	message := client.prepareRegistrationMessage(req, "0x1234567890abcdef")
 	assert.Contains(t, message, "Register agent:")
 	assert.Contains(t, message, string(req.DID))
 	assert.Contains(t, message, req.Name)
 	assert.Contains(t, message, req.Endpoint)
 	assert.Contains(t, message, "0x1234567890abcdef")
-	
+
 	// Test prepareUpdateMessage
 	agentDID := did.AgentDID("did:sage:ethereum:agent001")
 	updates := map[string]interface{}{
 		"name":        "Updated Agent",
 		"description": "New description",
 	}
-	
+
 	updateMessage := client.prepareUpdateMessage(agentDID, updates)
 	assert.Contains(t, updateMessage, "Update agent:")
 	assert.Contains(t, updateMessage, string(agentDID))
@@ -160,9 +159,9 @@ func TestCompareCapabilities(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "Both nil",
-			cap1: nil,
-			cap2: nil,
+			name:     "Both nil",
+			cap1:     nil,
+			cap2:     nil,
 			expected: true,
 		},
 		{
@@ -170,11 +169,11 @@ func TestCompareCapabilities(t *testing.T) {
 			cap1: map[string]interface{}{
 				"chat": true,
 			},
-			cap2: nil,
+			cap2:     nil,
 			expected: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := compareCapabilities(tt.cap1, tt.cap2)

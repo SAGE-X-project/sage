@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package cryptoinit
 
 import (
@@ -32,12 +31,12 @@ func init() {
 		func() (crypto.KeyPair, error) { return keys.GenerateEd25519KeyPair() },
 		func() (crypto.KeyPair, error) { return keys.GenerateSecp256k1KeyPair() },
 	)
-	
+
 	// Register storage constructors
 	crypto.SetStorageConstructors(
 		func() crypto.KeyStorage { return storage.NewMemoryKeyStorage() },
 	)
-	
+
 	// Register format constructors
 	crypto.SetFormatConstructors(
 		func() crypto.KeyExporter { return formats.NewJWKExporter() },

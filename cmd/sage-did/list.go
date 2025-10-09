@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
@@ -26,8 +25,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	"github.com/spf13/cobra"
 )
 
 var listCmd = &cobra.Command{
@@ -40,12 +39,12 @@ This command retrieves all DIDs associated with the given owner address.`,
 
 var (
 	// List flags
-	listChain         string
-	listOwner         string
-	listRPCEndpoint   string
-	listContractAddr  string
-	listOutput        string
-	listFormat        string
+	listChain        string
+	listOwner        string
+	listRPCEndpoint  string
+	listContractAddr string
+	listOutput       string
+	listFormat       string
 )
 
 func init() {
@@ -146,24 +145,24 @@ func formatAgentsTable(agents []*did.AgentMetadata) string {
 		if !agent.IsActive {
 			status = "Inactive"
 		}
-		
+
 		// Truncate long values
 		didStr := string(agent.DID)
 		if len(didStr) > 40 {
 			didStr = didStr[:37] + "..."
 		}
-		
+
 		nameStr := agent.Name
 		if len(nameStr) > 20 {
 			nameStr = nameStr[:17] + "..."
 		}
-		
+
 		endpointStr := agent.Endpoint
 		if len(endpointStr) > 30 {
 			endpointStr = endpointStr[:27] + "..."
 		}
 
-		output += fmt.Sprintf("%-40s | %-20s | %-8s | %s\n", 
+		output += fmt.Sprintf("%-40s | %-20s | %-8s | %s\n",
 			didStr, nameStr, status, endpointStr)
 	}
 

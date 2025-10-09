@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package solana
 
 import (
@@ -28,7 +27,7 @@ import (
 
 	"github.com/gagliardetto/solana-go"
 	"github.com/gagliardetto/solana-go/rpc"
-	
+
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 	"github.com/sage-x-project/sage/pkg/agent/did"
@@ -36,11 +35,11 @@ import (
 
 // SolanaClient implements DID registry operations for Solana
 type SolanaClient struct {
-	client          *rpc.Client
-	programID       solana.PublicKey
-	registryPDA     solana.PublicKey
-	feePayer        solana.PrivateKey
-	config          *did.RegistryConfig
+	client      *rpc.Client
+	programID   solana.PublicKey
+	registryPDA solana.PublicKey
+	feePayer    solana.PrivateKey
+	config      *did.RegistryConfig
 }
 
 // AgentAccount represents the on-chain agent data structure
@@ -67,12 +66,12 @@ func init() {
 // NewSolanaClient creates a new Solana DID client
 func NewSolanaClient(config *did.RegistryConfig) (*SolanaClient, error) {
 	client := rpc.New(config.RPCEndpoint)
-	
+
 	programID, err := solana.PublicKeyFromBase58(config.ContractAddress)
 	if err != nil {
 		return nil, fmt.Errorf("invalid program ID: %w", err)
 	}
-	
+
 	// Derive registry PDA
 	registryPDA, _, err := solana.FindProgramAddress(
 		[][]byte{[]byte("registry")},
@@ -81,7 +80,7 @@ func NewSolanaClient(config *did.RegistryConfig) (*SolanaClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to derive registry PDA: %w", err)
 	}
-	
+
 	var feePayer solana.PrivateKey
 	if config.PrivateKey != "" {
 		feePayer, err = solana.PrivateKeyFromBase58(config.PrivateKey)
@@ -89,7 +88,7 @@ func NewSolanaClient(config *did.RegistryConfig) (*SolanaClient, error) {
 			return nil, fmt.Errorf("invalid fee payer private key: %w", err)
 		}
 	}
-	
+
 	return &SolanaClient{
 		client:      client,
 		programID:   programID,
@@ -105,23 +104,23 @@ func (c *SolanaClient) Register(ctx context.Context, req *did.RegistrationReques
 	if req.KeyPair.Type() != sagecrypto.KeyTypeEd25519 {
 		return nil, fmt.Errorf("Solana requires Ed25519 keys")
 	}
-	
+
 	// Get the Solana address for the public key
 	provider, err := chain.GetProvider(chain.ChainTypeSolana)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	address, err := provider.GenerateAddress(req.KeyPair.PublicKey(), chain.NetworkSolanaMainnet)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	ownerPubkey, err := solana.PublicKeyFromBase58(address.Value)
 	if err != nil {
 		return nil, fmt.Errorf("invalid owner address: %w", err)
 	}
-	
+
 	// Derive agent PDA
 	agentPDA, _, err := solana.FindProgramAddress(
 		[][]byte{
@@ -133,34 +132,34 @@ func (c *SolanaClient) Register(ctx context.Context, req *did.RegistrationReques
 	if err != nil {
 		return nil, fmt.Errorf("failed to derive agent PDA: %w", err)
 	}
-	
+
 	// Prepare the message to sign
 	message := c.prepareRegistrationMessage(req, address.Value)
-	
+
 	// Sign the message
 	signature, err := req.KeyPair.Sign([]byte(message))
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign registration: %w", err)
 	}
-	
+
 	// Prepare capabilities as JSON string
 	capabilitiesJSON, err := json.Marshal(req.Capabilities)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal capabilities: %w", err)
 	}
-	
+
 	// Get public key bytes
 	publicKeyBytes, err := did.MarshalPublicKey(req.KeyPair.PublicKey())
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Build the transaction
 	recentBlockhash, err := c.client.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recent blockhash: %w", err)
 	}
-	
+
 	// Create instruction data
 	instructionData := struct {
 		Instruction  uint8
@@ -181,7 +180,7 @@ func (c *SolanaClient) Register(ctx context.Context, req *did.RegistrationReques
 		Capabilities: string(capabilitiesJSON),
 	}
 	copy(instructionData.Signature[:], signature)
-	
+
 	// Create the instruction
 	instruction := &solana.GenericInstruction{
 		ProgID: c.programID,
@@ -194,7 +193,7 @@ func (c *SolanaClient) Register(ctx context.Context, req *did.RegistrationReques
 		},
 		DataBytes: serializeInstruction(instructionData),
 	}
-	
+
 	// Build and send transaction
 	tx, err := solana.NewTransaction(
 		[]solana.Instruction{instruction},
@@ -204,7 +203,7 @@ func (c *SolanaClient) Register(ctx context.Context, req *did.RegistrationReques
 	if err != nil {
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
 	}
-	
+
 	// Sign the transaction
 	_, err = tx.Sign(func(key solana.PublicKey) *solana.PrivateKey {
 		if key.Equals(c.feePayer.PublicKey()) {
@@ -216,19 +215,19 @@ func (c *SolanaClient) Register(ctx context.Context, req *did.RegistrationReques
 	if err != nil {
 		return nil, fmt.Errorf("failed to sign transaction: %w", err)
 	}
-	
+
 	// Send transaction
 	sig, err := c.client.SendTransaction(ctx, tx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send transaction: %w", err)
 	}
-	
+
 	// Wait for confirmation
 	result, err := c.waitForConfirmation(ctx, sig)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return result, nil
 }
 
@@ -245,27 +244,27 @@ func (c *SolanaClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*did
 	if err != nil {
 		return nil, fmt.Errorf("failed to derive agent PDA: %w", err)
 	}
-	
+
 	// Fetch account data
 	accountInfo, err := c.client.GetAccountInfo(ctx, agentPDA)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get account info: %w", err)
 	}
-	
+
 	if accountInfo == nil || accountInfo.Value == nil {
 		return nil, did.ErrDIDNotFound
 	}
-	
+
 	// Deserialize account data
 	var agentAccount AgentAccount
 	err = deserializeAccount(accountInfo.Value.Data.GetBinary(), &agentAccount)
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize account: %w", err)
 	}
-	
+
 	// Convert public key
 	publicKey := ed25519.PublicKey(agentAccount.PublicKey[:])
-	
+
 	return &did.AgentMetadata{
 		DID:          agentDID,
 		Name:         agentAccount.Name,
@@ -284,29 +283,29 @@ func (c *SolanaClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*did
 func (c *SolanaClient) Update(ctx context.Context, agentDID did.AgentDID, updates map[string]interface{}, keyPair sagecrypto.KeyPair) error {
 	// Prepare update message
 	message := c.prepareUpdateMessage(agentDID, updates)
-	
+
 	// Sign the message
 	signature, err := keyPair.Sign([]byte(message))
 	if err != nil {
 		return fmt.Errorf("failed to sign update: %w", err)
 	}
-	
+
 	// Get owner address
 	provider, err := chain.GetProvider(chain.ChainTypeSolana)
 	if err != nil {
 		return err
 	}
-	
+
 	address, err := provider.GenerateAddress(keyPair.PublicKey(), chain.NetworkSolanaMainnet)
 	if err != nil {
 		return err
 	}
-	
+
 	ownerPubkey, err := solana.PublicKeyFromBase58(address.Value)
 	if err != nil {
 		return fmt.Errorf("invalid owner address: %w", err)
 	}
-	
+
 	// Derive agent PDA
 	agentPDA, _, err := solana.FindProgramAddress(
 		[][]byte{
@@ -318,12 +317,12 @@ func (c *SolanaClient) Update(ctx context.Context, agentDID did.AgentDID, update
 	if err != nil {
 		return fmt.Errorf("failed to derive agent PDA: %w", err)
 	}
-	
+
 	// Extract update fields
 	name, _ := updates["name"].(string)
 	description, _ := updates["description"].(string)
 	endpoint, _ := updates["endpoint"].(string)
-	
+
 	capabilitiesJSON := ""
 	if capabilities, ok := updates["capabilities"]; ok {
 		capBytes, err := json.Marshal(capabilities)
@@ -332,7 +331,7 @@ func (c *SolanaClient) Update(ctx context.Context, agentDID did.AgentDID, update
 		}
 		capabilitiesJSON = string(capBytes)
 	}
-	
+
 	// Create instruction data
 	instructionData := struct {
 		Instruction  uint8
@@ -519,14 +518,14 @@ func (c *SolanaClient) waitForConfirmation(ctx context.Context, sig solana.Signa
 	if maxRetries == 0 {
 		maxRetries = 30
 	}
-	
+
 	for i := 0; i < maxRetries; i++ {
 		status, err := c.client.GetSignatureStatuses(ctx, false, sig)
 		if err != nil {
 			time.Sleep(2 * time.Second)
 			continue
 		}
-		
+
 		if status != nil && status.Value != nil && len(status.Value) > 0 {
 			txStatus := status.Value[0]
 			if txStatus.ConfirmationStatus == rpc.ConfirmationStatusFinalized {
@@ -537,10 +536,10 @@ func (c *SolanaClient) waitForConfirmation(ctx context.Context, sig solana.Signa
 				}, nil
 			}
 		}
-		
+
 		time.Sleep(2 * time.Second)
 	}
-	
+
 	return nil, fmt.Errorf("transaction confirmation timeout")
 }
 

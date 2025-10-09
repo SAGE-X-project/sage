@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package hpke
 
 import (
@@ -172,7 +171,6 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 	return s.signedMsgResponse(msg, out)
 }
 
-
 // Validate request and extract the first data part as a struct.
 func validateAndExtract(in *a2a.SendMessageRequest) (*a2a.Message, *structpb.Struct, error) {
 	if in == nil || in.Request == nil {
@@ -318,7 +316,6 @@ func (s *Server) signedMsgResponse(req *a2a.Message, outData map[string]any) (*a
 		Payload: &a2a.SendMessageResponse_Msg{Msg: msgOut},
 	}, nil
 }
-
 
 // Combine exporterHPKE || ssE2E using HKDF-Extract(salt=exportCtx) then
 // HKDF-Expand("SAGE-HPKE+E2E-Combiner") to 32 bytes.

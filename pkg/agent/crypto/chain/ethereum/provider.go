@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package ethereum
 
 import (
@@ -27,8 +26,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -100,7 +99,7 @@ func (p *Provider) GetPublicKeyFromAddress(ctx context.Context, address string, 
 func (p *Provider) ValidateAddress(address string, network chain.Network) error {
 	// Remove 0x prefix if present
 	address = strings.TrimPrefix(address, "0x")
-	
+
 	// Check length (20 bytes = 40 hex chars)
 	if len(address) != 40 {
 		return fmt.Errorf("%w: invalid length", chain.ErrInvalidAddress)
@@ -149,7 +148,7 @@ func (p *Provider) VerifySignature(publicKey crypto.PublicKey, message []byte, s
 	// This is a placeholder
 	_ = ecdsaPubKey
 	_ = messageHash
-	
+
 	return fmt.Errorf("signature verification not yet implemented")
 }
 

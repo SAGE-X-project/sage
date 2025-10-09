@@ -16,14 +16,13 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package solana
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	
+
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
@@ -34,20 +33,20 @@ func TestNewSolanaClient(t *testing.T) {
 		RPCEndpoint:     "http://localhost:8899",
 		PrivateKey:      "", // No private key for read-only
 	}
-	
+
 	// This will succeed but won't connect to actual RPC
 	client, err := NewSolanaClient(config)
 	assert.NoError(t, err)
 	assert.NotNil(t, client)
 	assert.Equal(t, config.RPCEndpoint, client.config.RPCEndpoint)
-	
+
 	// Test with invalid program ID
 	invalidConfig := &did.RegistryConfig{
 		Chain:           did.ChainSolana,
 		ContractAddress: "invalid-address",
 		RPCEndpoint:     "http://localhost:8899",
 	}
-	
+
 	_, err = NewSolanaClient(invalidConfig)
 	assert.Error(t, err)
 }
@@ -58,28 +57,28 @@ func TestSolanaHelperMethods(t *testing.T) {
 			MaxRetries: 30,
 		},
 	}
-	
+
 	// Test prepareRegistrationMessage
 	req := &did.RegistrationRequest{
 		DID:      "did:sage:solana:agent001",
 		Name:     "Test Agent",
 		Endpoint: "https://api.example.com",
 	}
-	
+
 	message := client.prepareRegistrationMessage(req, "11111111111111111111111111111111")
 	assert.Contains(t, message, "Register agent:")
 	assert.Contains(t, message, string(req.DID))
 	assert.Contains(t, message, req.Name)
 	assert.Contains(t, message, req.Endpoint)
 	assert.Contains(t, message, "11111111111111111111111111111111")
-	
+
 	// Test prepareUpdateMessage
 	agentDID := did.AgentDID("did:sage:solana:agent001")
 	updates := map[string]interface{}{
 		"name":        "Updated Agent",
 		"description": "New description",
 	}
-	
+
 	updateMessage := client.prepareUpdateMessage(agentDID, updates)
 	assert.Contains(t, updateMessage, "Update agent:")
 	assert.Contains(t, updateMessage, string(agentDID))
@@ -94,16 +93,16 @@ func TestSerializeDeserialize(t *testing.T) {
 		Name:  "test",
 		Value: 42,
 	}
-	
+
 	serialized := serializeInstruction(data)
 	assert.NotEmpty(t, serialized)
-	
+
 	// Test deserialization
 	var result struct {
 		Name  string
 		Value int
 	}
-	
+
 	err := deserializeAccount(serialized, &result)
 	assert.NoError(t, err)
 	assert.Equal(t, data.Name, result.Name)
@@ -125,7 +124,7 @@ func TestAgentAccount(t *testing.T) {
 		CreatedAt: 1234567890,
 		UpdatedAt: 1234567890,
 	}
-	
+
 	assert.Equal(t, "did:sage:solana:agent001", account.DID)
 	assert.Equal(t, "Test Agent", account.Name)
 	assert.True(t, account.IsActive)

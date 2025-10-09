@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package dedupe
 
 import (
@@ -35,7 +34,7 @@ type mockHeader struct {
 	timestamp time.Time
 }
 
-func (f *mockHeader) GetSequence() uint64    { return f.seq }
+func (f *mockHeader) GetSequence() uint64     { return f.seq }
 func (f *mockHeader) GetNonce() string        { return f.nonce }
 func (f *mockHeader) GetTimestamp() time.Time { return f.timestamp }
 

@@ -196,7 +196,7 @@ func TestCompareCapabilitiesEdgeCases(t *testing.T) {
 				"advanced": map[string]interface{}{
 					"translation": true,
 					"summarization": map[string]interface{}{
-						"enabled": true,
+						"enabled":   true,
 						"maxLength": 1000,
 					},
 				},
@@ -206,7 +206,7 @@ func TestCompareCapabilitiesEdgeCases(t *testing.T) {
 				"advanced": map[string]interface{}{
 					"translation": true,
 					"summarization": map[string]interface{}{
-						"enabled": true,
+						"enabled":   true,
 						"maxLength": 1000,
 					},
 				},

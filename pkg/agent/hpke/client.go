@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package hpke
 
 import (
@@ -138,7 +137,6 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
 	}
 	return kid, nil
 }
-
 
 // Resolve KEM public key of the peer by DID.
 func (c *Client) resolvePeerKEM(ctx context.Context, peerDID string) (interface{}, error) {
@@ -313,4 +311,3 @@ func (c *Client) createAndBindSession(combined []byte, kid string) error {
 	}
 	return nil
 }
-

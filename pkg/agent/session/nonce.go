@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package session
 
 import (
@@ -27,7 +26,7 @@ import (
 // NonceCache stores seen (keyid, nonce) pairs with a TTL to prevent replays.
 type NonceCache struct {
 	ttl  time.Duration
-	data sync.Map        // keyid -> *sync.Map (nonce -> expiryUnix)
+	data sync.Map // keyid -> *sync.Map (nonce -> expiryUnix)
 	tick *time.Ticker
 	stop chan struct{}
 }

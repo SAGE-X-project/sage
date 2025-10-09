@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package config
 
 import (
@@ -29,18 +28,18 @@ import (
 
 // DeploymentInfo represents the deployment information saved after contract deployment
 type DeploymentInfo struct {
-	Network    string    `json:"network"`
-	ChainID    int64     `json:"chainId"`
-	Deployer   string    `json:"deployer"`
-	Timestamp  string    `json:"timestamp"`
-	Contracts  Contracts `json:"contracts"`
-	Agents     []Agent   `json:"agents"`
-	GasUsed    string    `json:"gasUsed"`
+	Network   string    `json:"network"`
+	ChainID   int64     `json:"chainId"`
+	Deployer  string    `json:"deployer"`
+	Timestamp string    `json:"timestamp"`
+	Contracts Contracts `json:"contracts"`
+	Agents    []Agent   `json:"agents"`
+	GasUsed   string    `json:"gasUsed"`
 }
 
 // Contracts contains deployed contract addresses
 type Contracts struct {
-	SageRegistryV2 ContractInfo `json:"SageRegistryV2"`
+	SageRegistryV2       ContractInfo `json:"SageRegistryV2"`
 	SageVerificationHook ContractInfo `json:"SageVerificationHook"`
 }
 

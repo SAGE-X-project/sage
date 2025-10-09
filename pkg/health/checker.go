@@ -16,7 +16,6 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package health
 
 import (
@@ -268,10 +267,10 @@ func (h *HealthChecker) ClearCache() {
 
 // SystemHealth represents the overall system health
 type SystemHealth struct {
-	Status    Status                    `json:"status"`
-	Timestamp time.Time                 `json:"timestamp"`
-	Checks    map[string]*CheckResult   `json:"checks"`
-	Details   map[string]interface{}    `json:"details,omitempty"`
+	Status    Status                  `json:"status"`
+	Timestamp time.Time               `json:"timestamp"`
+	Checks    map[string]*CheckResult `json:"checks"`
+	Details   map[string]interface{}  `json:"details,omitempty"`
 }
 
 // GetSystemHealth returns comprehensive system health information

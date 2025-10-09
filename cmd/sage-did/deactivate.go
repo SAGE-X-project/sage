@@ -16,16 +16,15 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-
 package main
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/spf13/cobra"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	"github.com/spf13/cobra"
 )
 
 var deactivateCmd = &cobra.Command{
