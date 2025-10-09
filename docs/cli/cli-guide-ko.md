@@ -133,6 +133,7 @@ sage-crypto address parse 0x742d35Cc6634C0532925a3b844Bc9e7595f7F1a
 - `--key-id, -k`: 저장소의 키 ID
 - `--chain, -c`: 블록체인 (ethereum, solana)
 - `--all`: 모든 호환 체인의 주소 생성
+- `--output, -o`: 출력 파일 경로 (JSON 형식)
 
 ### 예제
 
@@ -274,6 +275,8 @@ sage-did list --chain solana --owner AgentOwnerPubkey... \
 - `--owner`: 소유자 주소 [필수]
 - `--rpc`: 블록체인 RPC 엔드포인트
 - `--contract`: 레지스트리 컨트랙트 주소
+- `--output, -o`: 출력 파일 경로
+- `--format`: 출력 형식 (table, json)
 
 #### update - 에이전트 메타데이터 업데이트
 
@@ -314,21 +317,49 @@ sage-did deactivate did:sage:ethereum:agent_12345 \
 - `--key-id`: 저장소의 키 ID
 - `--rpc`: 블록체인 RPC 엔드포인트
 - `--contract`: 레지스트리 컨트랙트 주소
+- `--yes, -y`: 확인 프롬프트 건너뛰기
 
 #### verify - 에이전트 메타데이터 검증
 
 ```bash
-# 에이전트 활성 상태 및 엔드포인트 접근성 확인
-sage-did verify did:sage:ethereum:agent_12345
+# 에이전트 메타데이터를 블록체인과 비교하여 검증
+sage-did verify did:sage:ethereum:agent_12345 --metadata agent-metadata.json
 
-# 엔드포인트 검사 건너뛰기
-sage-did verify did:sage:solana:bot_abc --skip-endpoint
+# 사용자 정의 RPC 엔드포인트 사용
+sage-did verify did:sage:solana:bot_abc --metadata local-metadata.json \
+  --rpc https://api.devnet.solana.com
 ```
 
 **옵션:**
+- `--metadata, -m`: 검증할 메타데이터 파일 (JSON) [필수]
 - `--rpc`: 블록체인 RPC 엔드포인트
 - `--contract`: 레지스트리 컨트랙트 주소
-- `--skip-endpoint`: 엔드포인트 접근성 검사 건너뛰기
+
+#### debug - DID 작업 디버깅
+
+```bash
+# DID 파싱 및 유효성 검사
+sage-did debug --did did:sage:ethereum:agent_12345 --parse
+
+# DID 문서 조회
+sage-did debug --did did:sage:ethereum:agent_12345 --resolve
+
+# 캐시 상태 확인
+sage-did debug --did did:sage:ethereum:agent_12345 --cache
+
+# 상세 출력으로 전체 DID 문서 보기
+sage-did debug --did did:sage:ethereum:agent_12345 --resolve --verbose
+```
+
+**옵션:**
+- `--did`: 디버그할 DID [필수]
+- `--parse`: DID 파싱만 수행
+- `--resolve`: DID 문서 조회
+- `--cache`: 캐시 상태 확인
+- `--verify`: 서명 검증
+- `--message`: 서명 검증용 메시지
+- `--signature`: 검증할 서명
+- `--verbose, -v`: 상세 출력
 
 ### 예제
 

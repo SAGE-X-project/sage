@@ -131,6 +131,8 @@ sage-crypto address generate --storage-dir ./keys --key-id mykey --chain solana
 - `--storage-dir, -s`: Storage directory
 - `--key-id, -k`: Key ID in storage
 - `--chain, -c`: Blockchain (ethereum, solana)
+- `--all`: Generate addresses for all compatible chains
+- `--output, -o`: Output file path (JSON format)
 
 ##### address parse - Parse and validate blockchain addresses
 
@@ -256,6 +258,8 @@ sage-did list --chain solana --owner AgentOwnerPubkey... \
 - `--owner`: Owner address [required]
 - `--rpc`: Blockchain RPC endpoint
 - `--contract`: Registry contract address
+- `--output, -o`: Output file path
+- `--format`: Output format (table, json)
 
 #### update - Update agent metadata
 
@@ -296,21 +300,49 @@ sage-did deactivate did:sage:ethereum:agent_12345 \
 - `--key-id`: Key ID in storage
 - `--rpc`: Blockchain RPC endpoint
 - `--contract`: Registry contract address
+- `--yes, -y`: Skip confirmation prompt
 
 #### verify - Verify agent metadata
 
 ```bash
-# Verify agent is active and endpoint is reachable
-sage-did verify did:sage:ethereum:agent_12345
+# Verify agent metadata against blockchain
+sage-did verify did:sage:ethereum:agent_12345 --metadata agent-metadata.json
 
-# Skip endpoint check
-sage-did verify did:sage:solana:bot_abc --skip-endpoint
+# With custom RPC endpoint
+sage-did verify did:sage:solana:bot_abc --metadata local-metadata.json \
+  --rpc https://api.devnet.solana.com
 ```
 
 **Options:**
+- `--metadata, -m`: Metadata file to verify (JSON) [required]
 - `--rpc`: Blockchain RPC endpoint
 - `--contract`: Registry contract address
-- `--skip-endpoint`: Skip endpoint reachability check
+
+#### debug - Debug DID operations
+
+```bash
+# Parse and validate a DID
+sage-did debug --did did:sage:ethereum:agent_12345 --parse
+
+# Resolve DID document
+sage-did debug --did did:sage:ethereum:agent_12345 --resolve
+
+# Check cache status
+sage-did debug --did did:sage:ethereum:agent_12345 --cache
+
+# Verbose output with full DID document
+sage-did debug --did did:sage:ethereum:agent_12345 --resolve --verbose
+```
+
+**Options:**
+- `--did`: DID to debug [required]
+- `--parse`: Only parse the DID
+- `--resolve`: Resolve the DID document
+- `--cache`: Check cache status
+- `--verify`: Verify a signature
+- `--message`: Message for signature verification
+- `--signature`: Signature to verify
+- `--verbose, -v`: Verbose output
 
 ### Examples
 
