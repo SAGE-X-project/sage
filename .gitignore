@@ -597,3 +597,6 @@ mvnw.cmd
 keys/
 *.key
 *.pem
+
+# Test script temporary files
+/tmp/make_test_*.log

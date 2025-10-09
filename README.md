@@ -353,6 +353,18 @@ go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 ```
 
+### Development Scripts
+
+```bash
+# Verify all Makefile targets
+./tools/scripts/verify_makefile.sh
+
+# This script tests all major Makefile targets and reports:
+# - PASS: Target executed successfully
+# - FAIL: Target failed with error details
+# - SKIP: Target skipped (e.g., requires external services)
+```
+
 ### Run Smart Contract Tests
 
 ```bash
