@@ -505,10 +505,10 @@ echo "Document content" > document.txt
 
 | 알고리즘 | 타입 | 용도 | RFC 9421 | 서명 | 암호화 | 키 교환 |
 |---------|------|------|----------|------|--------|---------|
-| **Ed25519** | EdDSA | 디지털 서명 | ✅ ed25519 | ✅ | ❌ | ❌ |
-| **Secp256k1** | ECDSA | 서명, 블록체인 | ✅ es256k | ✅ | ❌ | ❌ |
-| **X25519** | ECDH | 키 교환, 암호화 | ❌ | ❌ | ✅ | ✅ |
-| **RS256** | RSA | 서명, 암호화 | ✅ rsa-pss-sha256 | ✅ | ✅ | ❌ |
+| **Ed25519** | EdDSA | 디지털 서명 | Yes (ed25519) | Yes | No | No |
+| **Secp256k1** | ECDSA | 서명, 블록체인 | Yes (es256k) | Yes | No | No |
+| **X25519** | ECDH | 키 교환, 암호화 | No | No | Yes | Yes |
+| **RS256** | RSA | 서명, 암호화 | Yes (rsa-pss-sha256) | Yes | Yes | No |
 
 ### 알고리즘 특징
 

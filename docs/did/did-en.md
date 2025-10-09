@@ -298,7 +298,7 @@ if result.Valid {
 | Network | RPC Endpoint | SageRegistryV2 Address | Status |
 |---------|-------------|------------------------|--------|
 | Mainnet | https://eth-mainnet.g.alchemy.com/v2/{key} | TBD | Planned |
-| Sepolia | https://eth-sepolia.g.alchemy.com/v2/{key} | `0x487d45a678eb947bbF9d8f38a67721b13a0209BF` | **✅ Deployed** |
+| Sepolia | https://eth-sepolia.g.alchemy.com/v2/{key} | `0x487d45a678eb947bbF9d8f38a67721b13a0209BF` | **Deployed** |
 | Holesky | https://eth-holesky.g.alchemy.com/v2/{key} | TBD | Planned |
 
 **Note**: Sepolia testnet is currently recommended for testing.
@@ -511,7 +511,7 @@ For better performance with large-scale queries:
 
 ## Implementation Status & Roadmap
 
-### ✅ Completed
+### Completed
 - Ethereum Sepolia integration (SageRegistryV2 deployed)
 - Multi-chain architecture with factory pattern
 - DID resolution and verification
@@ -519,13 +519,13 @@ For better performance with large-scale queries:
 - Integration with crypto package (Ed25519, Secp256k1, X25519)
 - RFC-9421 algorithm mapping
 
-### 🚧 In Progress
+### In Progress
 - Solana on-chain program development
 - HPKE/KEM key integration for handshake protocol
 - Off-chain indexing for efficient queries
 - Enhanced search capabilities
 
-### 📋 Planned
+### Planned
 - Ethereum Mainnet deployment
 - Kaia blockchain integration
 - Multi-signature agent ownership

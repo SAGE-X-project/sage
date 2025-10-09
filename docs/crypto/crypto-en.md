@@ -505,10 +505,10 @@ echo "Document content" > document.txt
 
 | Algorithm | Type | Purpose | RFC 9421 | Signing | Encryption | Key Exchange |
 |-----------|------|---------|----------|---------|------------|--------------|
-| **Ed25519** | EdDSA | Digital signatures | ✅ ed25519 | ✅ | ❌ | ❌ |
-| **Secp256k1** | ECDSA | Signing, blockchain | ✅ es256k | ✅ | ❌ | ❌ |
-| **X25519** | ECDH | Key exchange, encryption | ❌ | ❌ | ✅ | ✅ |
-| **RS256** | RSA | Signing, encryption | ✅ rsa-pss-sha256 | ✅ | ✅ | ❌ |
+| **Ed25519** | EdDSA | Digital signatures | Yes (ed25519) | Yes | No | No |
+| **Secp256k1** | ECDSA | Signing, blockchain | Yes (es256k) | Yes | No | No |
+| **X25519** | ECDH | Key exchange, encryption | No | No | Yes | Yes |
+| **RS256** | RSA | Signing, encryption | Yes (rsa-pss-sha256) | Yes | Yes | No |
 
 ### Algorithm Features
 

@@ -298,7 +298,7 @@ if result.Valid {
 | 네트워크 | RPC 엔드포인트 | SageRegistryV2 주소 | 상태 |
 |---------|---------------|-------------------|------|
 | Mainnet | https://eth-mainnet.g.alchemy.com/v2/{key} | TBD | 계획됨 |
-| Sepolia | https://eth-sepolia.g.alchemy.com/v2/{key} | `0x487d45a678eb947bbF9d8f38a67721b13a0209BF` | **✅ 배포 완료** |
+| Sepolia | https://eth-sepolia.g.alchemy.com/v2/{key} | `0x487d45a678eb947bbF9d8f38a67721b13a0209BF` | **배포 완료** |
 | Holesky | https://eth-holesky.g.alchemy.com/v2/{key} | TBD | 계획됨 |
 
 **참고**: 현재 테스트는 Sepolia 테스트넷 사용을 권장합니다.
@@ -511,7 +511,7 @@ Error: only agent owner can update metadata
 
 ## 구현 상태 및 로드맵
 
-### ✅ 완료
+### 완료
 - Ethereum Sepolia 통합 (SageRegistryV2 배포됨)
 - 팩토리 패턴을 활용한 멀티체인 아키텍처
 - DID 조회 및 검증
@@ -519,13 +519,13 @@ Error: only agent owner can update metadata
 - crypto 패키지 통합 (Ed25519, Secp256k1, X25519)
 - RFC-9421 알고리즘 매핑
 
-### 🚧 진행중
+### 진행중
 - Solana 온체인 프로그램 개발
 - 핸드셰이크 프로토콜을 위한 HPKE/KEM 키 통합
 - 효율적인 쿼리를 위한 오프체인 인덱싱
 - 향상된 검색 기능
 
-### 📋 계획됨
+### 계획됨
 - Ethereum 메인넷 배포
 - Kaia 블록체인 통합
 - 다중 서명 에이전트 소유권
