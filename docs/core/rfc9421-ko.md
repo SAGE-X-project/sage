@@ -11,10 +11,12 @@ RFC-9421은 HTTP 메시지 서명을 생성, 인코딩 및 검증하는 메커�
 - **HTTP 요청 서명**: 다양한 서명 알고리즘으로 HTTP 요청 서명
 - **서명 검증**: 수신된 HTTP 요청의 서명 검증
 - **선택적 필드 서명**: 서명에 포함할 HTTP 구성 요소 선택
-- **다중 알고리즘 지원**: Ed25519, ECDSA P-256, RSA (예정)
+- **다중 알고리즘 지원**: Ed25519, ES256K (Secp256k1), RSA-PSS-SHA256
+- **동적 알고리즘 레지스트리**: 중앙집중식 암호화 알고리즘 관리
 - **쿼리 매개변수 보호**: 쿼리 매개변수의 선택적 서명
 - **타임스탬프 검증**: 재전송 공격 방지
 - **메타데이터 통합**: DID 에이전트 메타데이터와의 통합
+- **메시지 빌더**: 메시지 구성을 위한 플루언트 API
 
 ## 아키텍처
 
@@ -23,12 +25,34 @@ RFC-9421은 HTTP 메시지 서명을 생성, 인코딩 및 검증하는 메커�
 ```
 core/rfc9421/
 ├── types.go              # 핵심 타입 정의
-├── message.go            # 메시지 구조 및 빌더
+├── message_builder.go    # 플루언트 API를 사용한 메시지 빌더
 ├── parser.go             # Signature-Input 및 Signature 헤더 파서
 ├── canonicalizer.go      # HTTP 메시지 정규화
 ├── verifier.go           # 메시지 서명 검증
 └── verifier_http.go      # HTTP 전용 검증
 ```
+
+### 알고리즘 레지스트리 통합
+
+RFC-9421 구현은 SAGE의 중앙집중식 암호화 알고리즘 레지스트리(`crypto` 패키지)와 통합됩니다. 지원되는 알고리즘은 동적으로 등록되고 검증됩니다:
+
+```go
+// 지원되는 알고리즘 목록 조회
+algorithms := rfc9421.GetSupportedAlgorithms()
+// 반환값: ["ed25519", "es256k", "rsa-pss-sha256"]
+
+// 알고리즘 지원 여부 확인
+if rfc9421.IsAlgorithmSupported("ed25519") {
+    // 알고리즘이 지원됩니다
+}
+```
+
+**현재 지원되는 알고리즘**:
+- **ed25519**: Edwards-curve 디지털 서명 알고리즘
+- **es256k**: secp256k1 곡선을 사용하는 ECDSA (이더리움 호환)
+- **rsa-pss-sha256**: PSS 패딩과 SHA-256을 사용하는 RSA
+
+**참고**: ECDSA P-256은 secp256k1과 별도로 구현될 예정이지만 아직 구현되지 않았습니다.
 
 ### 핵심 구성 요소
 
@@ -36,17 +60,34 @@ core/rfc9421/
 RFC-8941 구조화된 필드에 따라 RFC-9421 서명 헤더를 파싱:
 - `ParseSignatureInput`: Signature-Input 헤더 파싱
 - `ParseSignature`: base64 인코딩된 서명이 포함된 Signature 헤더 파싱
+- 잘못된 헤더 및 유효하지 않은 Base64 인코딩에 대한 오류 처리
 
 #### 2. 정규화기 (`canonicalizer.go`)
 HTTP 요청에서 서명 베이스 문자열 생성:
 - HTTP 서명 구성 요소 지원: `@method`, `@target-uri`, `@authority`, `@scheme`, `@request-target`, `@path`, `@query`
 - 적절한 정규화와 함께 일반 HTTP 헤더 처리
 - 선택적 쿼리 매개변수 서명을 위한 `@query-param` 구현
+- 구성 요소 정규화 및 순서 지정
 
 #### 3. HTTP 검증기 (`verifier_http.go`)
 HTTP 요청 서명 및 검증 제공:
 - `SignRequest`: 개인 키로 HTTP 요청 서명
-- `VerifyRequest`: HTTP 요청 서명 검증
+- `VerifyRequest`: 알고리즘 검증을 통한 HTTP 요청 서명 검증
+- 검증을 위한 중앙집중식 알고리즘 레지스트리와의 통합
+
+#### 4. 메시지 빌더 (`message_builder.go`)
+RFC-9421 메시지 구성을 위한 플루언트 API 제공:
+- `NewMessageBuilder()`: 새 메시지 빌더 생성
+- 빌더 메서드: `WithAgentDID()`, `WithMessageID()`, `WithTimestamp()` 등
+- `Build()`: 기본 서명 필드로 최종 메시지 구성
+- `ParseMessageFromHeaders()`: HTTP 스타일 헤더에서 메시지 파싱
+
+#### 5. 검증기 (`verifier.go`)
+핵심 검증 로직:
+- `VerifyWithMetadata()`: 메타데이터 제약 조건을 사용한 서명 검증
+- `ConstructSignatureBase()`: 디버깅을 위한 서명 베이스 문자열 구성
+- `VerifyHTTPRequest()`: HTTP 검증을 위한 래퍼
+- 레지스트리를 통한 다중 서명 알고리즘 지원
 
 ## 사용 예제
 
@@ -59,23 +100,24 @@ import (
     "crypto/ed25519"
     "crypto/rand"
     "net/http"
+    "strings"
     "time"
-    
+
     "github.com/sage-x-project/sage/core/rfc9421"
 )
 
 func main() {
     // 키 쌍 생성
     publicKey, privateKey, _ := ed25519.GenerateKey(rand.Reader)
-    
+
     // HTTP 요청 생성
-    req, _ := http.NewRequest("POST", "https://api.example.com/agent/action", 
+    req, _ := http.NewRequest("POST", "https://api.example.com/agent/action",
         strings.NewReader(`{"action": "process"}`))
-    
+
     req.Header.Set("Content-Type", "application/json")
     req.Header.Set("Date", time.Now().Format(http.TimeFormat))
-    
-    // 서명 매개변수 정의
+
+    // 서명 매개변수 정의 (레지스트리 알고리즘 이름 사용)
     params := &rfc9421.SignatureInputParams{
         CoveredComponents: []string{
             `"@method"`,
@@ -84,17 +126,17 @@ func main() {
             `"date"`,
         },
         KeyID:     "agent-key-1",
-        Algorithm: "ed25519",
+        Algorithm: "ed25519",  // 레지스트리 알고리즘 이름 사용
         Created:   time.Now().Unix(),
     }
-    
+
     // 요청 서명
     verifier := rfc9421.NewHTTPVerifier()
     err := verifier.SignRequest(req, "sig1", params, privateKey)
     if err != nil {
         panic(err)
     }
-    
+
     // 이제 요청에 Signature-Input 및 Signature 헤더가 포함됨
     fmt.Println("Signature-Input:", req.Header.Get("Signature-Input"))
     fmt.Println("Signature:", req.Header.Get("Signature"))
@@ -106,13 +148,13 @@ func main() {
 ```go
 func verifyRequest(req *http.Request, publicKey ed25519.PublicKey) error {
     verifier := rfc9421.NewHTTPVerifier()
-    
+
     // 기본 옵션으로 검증 (최대 5분 유효)
     err := verifier.VerifyRequest(req, publicKey, nil)
     if err != nil {
         return fmt.Errorf("서명 검증 실패: %w", err)
     }
-    
+
     return nil
 }
 ```
@@ -134,6 +176,41 @@ params := &rfc9421.SignatureInputParams{
 // 다른 쿼리 매개변수는 서명을 무효화하지 않고 수정 가능
 ```
 
+### MessageBuilder로 메시지 구성하기
+
+```go
+// 빌더를 사용하여 메시지 생성
+builder := rfc9421.NewMessageBuilder()
+message := builder.
+    WithAgentDID("did:sage:ethereum:0x123...").
+    WithMessageID("msg-001").
+    WithTimestamp(time.Now()).
+    WithNonce("random-nonce-123").
+    WithBody([]byte(`{"action": "process"}`)).
+    WithAlgorithm(rfc9421.AlgorithmEdDSA).
+    WithKeyID("agent-key-1").
+    WithSignedFields("agent_did", "message_id", "timestamp", "nonce", "body").
+    AddHeader("Content-Type", "application/json").
+    AddMetadata("capability", "signing").
+    Build()
+
+// HTTP 헤더에서 메시지 파싱
+headers := map[string]string{
+    "X-Agent-DID":            "did:sage:ethereum:0x123...",
+    "X-Message-ID":           "msg-001",
+    "X-Timestamp":            time.Now().Format(time.RFC3339),
+    "X-Nonce":                "random-nonce-123",
+    "X-Signature-Algorithm":  "ed25519",
+    "X-Key-ID":               "agent-key-1",
+    "X-Signed-Fields":        "agent_did,message_id,timestamp",
+}
+body := []byte(`{"action": "process"}`)
+message, err := rfc9421.ParseMessageFromHeaders(headers, body)
+if err != nil {
+    panic(err)
+}
+```
+
 ### DID와의 통합
 
 ```go
@@ -149,7 +226,7 @@ message := &rfc9421.Message{
 }
 
 result, err := verificationService.VerifyAgentMessage(
-    ctx, 
+    ctx,
     message,
     &rfc9421.VerificationOptions{
         RequireActiveAgent: true,
@@ -160,6 +237,60 @@ result, err := verificationService.VerifyAgentMessage(
 if result.Valid {
     fmt.Printf("에이전트로부터 메시지 검증됨: %s\n", result.AgentName)
 }
+```
+
+## 고급 기능
+
+### 메타데이터 검증
+
+검증기는 고급 메타데이터 유효성 검사를 지원합니다:
+
+```go
+verifier := rfc9421.NewVerifier()
+
+// 예상 메타데이터 정의
+expectedMetadata := map[string]interface{}{
+    "version": "1.0",
+    "environment": "production",
+}
+
+// 필수 기능 정의
+requiredCapabilities := []string{"signing", "verification"}
+
+// 메타데이터와 함께 검증
+result, err := verifier.VerifyWithMetadata(
+    publicKey,
+    message,
+    expectedMetadata,
+    requiredCapabilities,
+    &rfc9421.VerificationOptions{
+        RequireActiveAgent: true,
+        VerifyMetadata:     true,
+    },
+)
+
+if result.Valid {
+    fmt.Println("메타데이터 제약 조건과 함께 메시지가 검증되었습니다")
+}
+```
+
+### 서명 베이스 구성
+
+디버깅 또는 사용자 정의 검증 흐름을 위해:
+
+```go
+verifier := rfc9421.NewVerifier()
+
+// 서명 베이스 문자열 가져오기
+signatureBase := verifier.ConstructSignatureBase(message)
+fmt.Println("서명 베이스:", signatureBase)
+
+// 출력 형식:
+// agent_did: did:sage:ethereum:0x123...
+// message_id: msg-001
+// timestamp: 2025-01-15T10:30:00Z
+// nonce: random-nonce-123
+// body: {"action": "process"}
 ```
 
 ## 지원되는 HTTP 구성 요소
@@ -173,7 +304,7 @@ if result.Valid {
 - `@path`: URI 경로
 - `@query`: 전체 쿼리 문자열
 - `@query-param`: 선택적 쿼리 매개변수
-- `@status`: 응답 상태 (응답 전용)
+- `@status`: 응답 상태 (응답 전용 - 계획됨, 아직 구현되지 않음)
 
 ### 헤더 구성 요소
 소문자 이름을 사용하여 모든 HTTP 헤더 포함 가능:
@@ -188,8 +319,9 @@ if result.Valid {
 1. **타임스탬프 검증**: 항상 `created` 및 `expires` 타임스탬프 검증
 2. **재전송 방지**: 중요한 작업에는 nonce 사용
 3. **키 관리**: rotation 패키지를 사용하여 정기적으로 키 교체
-4. **알고리즘 선택**: 새 구현에는 Ed25519 사용
+4. **알고리즘 선택**: 새 구현에는 Ed25519 사용, 이더리움 호환성을 위해 ES256K 사용
 5. **구성 요소 선택**: 중요한 구성 요소를 서명에 포함
+6. **알고리즘 검증**: 구현은 공개 키와 알고리즘의 호환성을 자동으로 검증합니다
 
 ## 구성 옵션
 
@@ -199,10 +331,10 @@ if result.Valid {
 opts := &rfc9421.HTTPVerificationOptions{
     // 서명 최대 유효 기간 (기본값: 5분)
     MaxAge: 10 * time.Minute,
-    
+
     // 필수 서명 이름 (여러 서명이 존재하는 경우)
     SignatureName: "sig1",
-    
+
     // 서명에 반드시 포함되어야 하는 구성 요소
     RequiredComponents: []string{`"@method"`, `"@path"`},
 }
@@ -214,13 +346,13 @@ opts := &rfc9421.HTTPVerificationOptions{
 opts := &rfc9421.VerificationOptions{
     // 허용되는 최대 클럭 스큐
     MaxClockSkew: 5 * time.Minute,
-    
+
     // 에이전트가 활성 상태여야 함
     RequireActiveAgent: true,
-    
+
     // 메타데이터 필드 검증
     VerifyMetadata: true,
-    
+
     // 필수 기능
     RequiredCapabilities: []string{"signing", "verification"},
 }
@@ -248,10 +380,22 @@ go test -cover ./core/rfc9421/...
 - [RFC-8941](https://datatracker.ietf.org/doc/rfc8941/): HTTP용 구조화된 필드 값
 - [RFC-9110](https://datatracker.ietf.org/doc/rfc9110/): HTTP 의미론
 
+## 알고리즘 지원 상태
+
+| 알고리즘 | 상태 | RFC-9421 이름 | 참고 |
+|---------|------|--------------|------|
+| Ed25519 | ✅ 구현됨 | `ed25519` | 새 구현에 권장 |
+| ES256K (Secp256k1) | ✅ 구현됨 | `es256k` | 이더리움 호환 |
+| RSA-PSS-SHA256 | ✅ 구현됨 | `rsa-pss-sha256` | PSS 패딩을 사용하는 RSA |
+| ECDSA P-256 | ⏳ 계획됨 | `ecdsa-p256-sha256` | secp256k1과 별도 |
+| RSA-PKCS#1 v1.5 | ⏳ 계획됨 | `rsa-v1_5-sha256` | 레거시 RSA |
+
 ## 향후 개선 사항
 
 - [ ] 응답 서명 지원
-- [ ] RSA-PSS 및 RSA-PKCS#1 v1.5 지원
+- [x] RSA-PSS-SHA256 지원 (구현됨)
+- [ ] RSA-PKCS#1 v1.5 지원
+- [ ] Secp256k1과 구분되는 ECDSA P-256
 - [ ] 서명 협상
 - [ ] 성능 최적화
 - [ ] 서명 검증을 위한 캐싱

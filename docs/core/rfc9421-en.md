@@ -11,10 +11,12 @@ RFC-9421 defines a mechanism for creating, encoding, and verifying HTTP message 
 - **HTTP Request Signing**: Sign HTTP requests with various signature algorithms
 - **Signature Verification**: Verify signatures on incoming HTTP requests
 - **Selective Field Signing**: Choose which HTTP components to include in signatures
-- **Multiple Algorithm Support**: Ed25519, ECDSA P-256, RSA (planned)
+- **Multiple Algorithm Support**: Ed25519, ES256K (Secp256k1), RSA-PSS-SHA256
+- **Dynamic Algorithm Registry**: Centralized crypto algorithm management
 - **Query Parameter Protection**: Selective signing of query parameters
 - **Timestamp Validation**: Protection against replay attacks
 - **Metadata Integration**: Integration with DID agent metadata
+- **Message Builder**: Fluent API for message construction
 
 ## Architecture
 
@@ -23,12 +25,34 @@ RFC-9421 defines a mechanism for creating, encoding, and verifying HTTP message 
 ```
 core/rfc9421/
 ├── types.go              # Core type definitions
-├── message.go            # Message structure and builder
+├── message_builder.go    # Message builder with fluent API
 ├── parser.go             # Signature-Input and Signature header parsers
 ├── canonicalizer.go      # HTTP message canonicalization
 ├── verifier.go           # Message signature verification
 └── verifier_http.go      # HTTP-specific verification
 ```
+
+### Algorithm Registry Integration
+
+The RFC-9421 implementation integrates with SAGE's centralized cryptographic algorithm registry (`crypto` package). Supported algorithms are dynamically registered and validated:
+
+```go
+// Get list of supported algorithms
+algorithms := rfc9421.GetSupportedAlgorithms()
+// Returns: ["ed25519", "es256k", "rsa-pss-sha256"]
+
+// Check if algorithm is supported
+if rfc9421.IsAlgorithmSupported("ed25519") {
+    // Algorithm is supported
+}
+```
+
+**Currently Supported Algorithms**:
+- **ed25519**: Edwards-curve Digital Signature Algorithm
+- **es256k**: ECDSA with secp256k1 curve (Ethereum-compatible)
+- **rsa-pss-sha256**: RSA with PSS padding and SHA-256
+
+**Note**: ECDSA P-256 support is planned but not yet implemented separately from secp256k1.
 
 ### Core Components
 
@@ -36,17 +60,34 @@ core/rfc9421/
 Parses RFC-9421 signature headers according to RFC-8941 structured fields:
 - `ParseSignatureInput`: Parses Signature-Input headers
 - `ParseSignature`: Parses Signature headers with base64-encoded signatures
+- Error handling for malformed headers and invalid Base64 encoding
 
 #### 2. Canonicalizer (`canonicalizer.go`)
 Creates signature base strings from HTTP requests:
 - Supports HTTP signature components: `@method`, `@target-uri`, `@authority`, `@scheme`, `@request-target`, `@path`, `@query`
 - Handles regular HTTP headers with proper canonicalization
 - Implements `@query-param` for selective query parameter signing
+- Component normalization and ordering
 
 #### 3. HTTP Verifier (`verifier_http.go`)
 Provides HTTP request signing and verification:
 - `SignRequest`: Signs HTTP requests with private keys
-- `VerifyRequest`: Verifies HTTP request signatures
+- `VerifyRequest`: Verifies HTTP request signatures with algorithm validation
+- Integration with centralized algorithm registry for validation
+
+#### 4. Message Builder (`message_builder.go`)
+Provides fluent API for constructing RFC-9421 messages:
+- `NewMessageBuilder()`: Creates new message builder
+- Builder methods: `WithAgentDID()`, `WithMessageID()`, `WithTimestamp()`, etc.
+- `Build()`: Constructs final message with default signed fields
+- `ParseMessageFromHeaders()`: Parses messages from HTTP-style headers
+
+#### 5. Verifier (`verifier.go`)
+Core verification logic:
+- `VerifyWithMetadata()`: Verifies signature with metadata constraints
+- `ConstructSignatureBase()`: Builds signature base string for debugging
+- `VerifyHTTPRequest()`: Wrapper for HTTP verification
+- Support for multiple signature algorithms via registry
 
 ## Usage Examples
 
@@ -59,23 +100,24 @@ import (
     "crypto/ed25519"
     "crypto/rand"
     "net/http"
+    "strings"
     "time"
-    
+
     "github.com/sage-x-project/sage/core/rfc9421"
 )
 
 func main() {
     // Generate key pair
     publicKey, privateKey, _ := ed25519.GenerateKey(rand.Reader)
-    
+
     // Create HTTP request
-    req, _ := http.NewRequest("POST", "https://api.example.com/agent/action", 
+    req, _ := http.NewRequest("POST", "https://api.example.com/agent/action",
         strings.NewReader(`{"action": "process"}`))
-    
+
     req.Header.Set("Content-Type", "application/json")
     req.Header.Set("Date", time.Now().Format(http.TimeFormat))
-    
-    // Define signature parameters
+
+    // Define signature parameters (use registry algorithm names)
     params := &rfc9421.SignatureInputParams{
         CoveredComponents: []string{
             `"@method"`,
@@ -84,17 +126,17 @@ func main() {
             `"date"`,
         },
         KeyID:     "agent-key-1",
-        Algorithm: "ed25519",
+        Algorithm: "ed25519",  // Use registry algorithm names
         Created:   time.Now().Unix(),
     }
-    
+
     // Sign the request
     verifier := rfc9421.NewHTTPVerifier()
     err := verifier.SignRequest(req, "sig1", params, privateKey)
     if err != nil {
         panic(err)
     }
-    
+
     // Request now has Signature-Input and Signature headers
     fmt.Println("Signature-Input:", req.Header.Get("Signature-Input"))
     fmt.Println("Signature:", req.Header.Get("Signature"))
@@ -106,13 +148,13 @@ func main() {
 ```go
 func verifyRequest(req *http.Request, publicKey ed25519.PublicKey) error {
     verifier := rfc9421.NewHTTPVerifier()
-    
+
     // Verify with default options (5 minute max age)
     err := verifier.VerifyRequest(req, publicKey, nil)
     if err != nil {
         return fmt.Errorf("signature verification failed: %w", err)
     }
-    
+
     return nil
 }
 ```
@@ -134,6 +176,41 @@ params := &rfc9421.SignatureInputParams{
 // Other query parameters can be modified without invalidating the signature
 ```
 
+### Building Messages with MessageBuilder
+
+```go
+// Create a message using the builder
+builder := rfc9421.NewMessageBuilder()
+message := builder.
+    WithAgentDID("did:sage:ethereum:0x123...").
+    WithMessageID("msg-001").
+    WithTimestamp(time.Now()).
+    WithNonce("random-nonce-123").
+    WithBody([]byte(`{"action": "process"}`)).
+    WithAlgorithm(rfc9421.AlgorithmEdDSA).
+    WithKeyID("agent-key-1").
+    WithSignedFields("agent_did", "message_id", "timestamp", "nonce", "body").
+    AddHeader("Content-Type", "application/json").
+    AddMetadata("capability", "signing").
+    Build()
+
+// Parse message from HTTP headers
+headers := map[string]string{
+    "X-Agent-DID":            "did:sage:ethereum:0x123...",
+    "X-Message-ID":           "msg-001",
+    "X-Timestamp":            time.Now().Format(time.RFC3339),
+    "X-Nonce":                "random-nonce-123",
+    "X-Signature-Algorithm":  "ed25519",
+    "X-Key-ID":               "agent-key-1",
+    "X-Signed-Fields":        "agent_did,message_id,timestamp",
+}
+body := []byte(`{"action": "process"}`)
+message, err := rfc9421.ParseMessageFromHeaders(headers, body)
+if err != nil {
+    panic(err)
+}
+```
+
 ### Integration with DID
 
 ```go
@@ -149,7 +226,7 @@ message := &rfc9421.Message{
 }
 
 result, err := verificationService.VerifyAgentMessage(
-    ctx, 
+    ctx,
     message,
     &rfc9421.VerificationOptions{
         RequireActiveAgent: true,
@@ -160,6 +237,60 @@ result, err := verificationService.VerifyAgentMessage(
 if result.Valid {
     fmt.Printf("Message verified from agent: %s\n", result.AgentName)
 }
+```
+
+## Advanced Features
+
+### Metadata Verification
+
+The verifier supports advanced metadata validation:
+
+```go
+verifier := rfc9421.NewVerifier()
+
+// Define expected metadata
+expectedMetadata := map[string]interface{}{
+    "version": "1.0",
+    "environment": "production",
+}
+
+// Define required capabilities
+requiredCapabilities := []string{"signing", "verification"}
+
+// Verify with metadata
+result, err := verifier.VerifyWithMetadata(
+    publicKey,
+    message,
+    expectedMetadata,
+    requiredCapabilities,
+    &rfc9421.VerificationOptions{
+        RequireActiveAgent: true,
+        VerifyMetadata:     true,
+    },
+)
+
+if result.Valid {
+    fmt.Println("Message verified with metadata constraints")
+}
+```
+
+### Signature Base Construction
+
+For debugging or custom verification flows:
+
+```go
+verifier := rfc9421.NewVerifier()
+
+// Get the signature base string
+signatureBase := verifier.ConstructSignatureBase(message)
+fmt.Println("Signature base:", signatureBase)
+
+// Output format:
+// agent_did: did:sage:ethereum:0x123...
+// message_id: msg-001
+// timestamp: 2025-01-15T10:30:00Z
+// nonce: random-nonce-123
+// body: {"action": "process"}
 ```
 
 ## Supported HTTP Components
@@ -173,7 +304,7 @@ if result.Valid {
 - `@path`: URI path
 - `@query`: Full query string
 - `@query-param`: Selective query parameters
-- `@status`: Response status (responses only)
+- `@status`: Response status (responses only - planned, not yet implemented)
 
 ### Header Components
 Any HTTP header can be included by using its lowercase name:
@@ -188,8 +319,9 @@ Any HTTP header can be included by using its lowercase name:
 1. **Timestamp Validation**: Always verify `created` and `expires` timestamps
 2. **Replay Protection**: Use nonces for critical operations
 3. **Key Management**: Rotate keys regularly using the rotation package
-4. **Algorithm Selection**: Use Ed25519 for new implementations
+4. **Algorithm Selection**: Use Ed25519 for new implementations, ES256K for Ethereum compatibility
 5. **Component Selection**: Include critical components in signatures
+6. **Algorithm Validation**: The implementation automatically validates algorithm compatibility with public keys
 
 ## Configuration Options
 
@@ -199,10 +331,10 @@ Any HTTP header can be included by using its lowercase name:
 opts := &rfc9421.HTTPVerificationOptions{
     // Maximum age for signatures (default: 5 minutes)
     MaxAge: 10 * time.Minute,
-    
+
     // Required signature name (if multiple signatures exist)
     SignatureName: "sig1",
-    
+
     // Required components that must be in the signature
     RequiredComponents: []string{`"@method"`, `"@path"`},
 }
@@ -214,13 +346,13 @@ opts := &rfc9421.HTTPVerificationOptions{
 opts := &rfc9421.VerificationOptions{
     // Maximum clock skew allowed
     MaxClockSkew: 5 * time.Minute,
-    
+
     // Require agent to be active
     RequireActiveAgent: true,
-    
+
     // Verify metadata fields
     VerifyMetadata: true,
-    
+
     // Required capabilities
     RequiredCapabilities: []string{"signing", "verification"},
 }
@@ -248,10 +380,22 @@ This implementation follows:
 - [RFC-8941](https://datatracker.ietf.org/doc/rfc8941/): Structured Field Values for HTTP
 - [RFC-9110](https://datatracker.ietf.org/doc/rfc9110/): HTTP Semantics
 
+## Algorithm Support Status
+
+| Algorithm | Status | RFC-9421 Name | Notes |
+|-----------|--------|---------------|-------|
+| Ed25519 | ✅ Implemented | `ed25519` | Recommended for new implementations |
+| ES256K (Secp256k1) | ✅ Implemented | `es256k` | Ethereum-compatible |
+| RSA-PSS-SHA256 | ✅ Implemented | `rsa-pss-sha256` | RSA with PSS padding |
+| ECDSA P-256 | ⏳ Planned | `ecdsa-p256-sha256` | Distinct from secp256k1 |
+| RSA-PKCS#1 v1.5 | ⏳ Planned | `rsa-v1_5-sha256` | Legacy RSA |
+
 ## Future Enhancements
 
 - [ ] Response signature support
-- [ ] RSA-PSS and RSA-PKCS#1 v1.5 support
+- [x] RSA-PSS-SHA256 support (implemented)
+- [ ] RSA-PKCS#1 v1.5 support
+- [ ] ECDSA P-256 distinct from Secp256k1
 - [ ] Signature negotiation
 - [ ] Performance optimizations
 - [ ] Caching for signature verification
