@@ -686,9 +686,26 @@ This project is licensed under the **GNU Lesser General Public License v3.0** - 
 
 **Built by the SAGE Team**
 
-For detailed documentation on specific components:
+## Documentation
 
-- [Handshake Protocol](docs/handshake/handshake-en.md)
-- [Smart Contracts](contracts/README.md)
-- [Security Design](docs/dev/security-design.md)
-- [Testing Guide](docs/TEST_EXECUTION_GUIDE.md)
+### Core Documentation
+
+- **[Documentation Index](docs/INDEX.md)** - Complete documentation catalog
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - System architecture and design patterns
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to SAGE
+- **[API Reference](docs/API.md)** - HTTP and gRPC API documentation
+
+### Component Documentation
+
+- **[Handshake Protocol](docs/handshake/handshake-en.md)** - HPKE handshake details
+- **[Smart Contracts](contracts/README.md)** - Ethereum and Solana contracts
+- **[Security Design](docs/dev/security-design.md)** - Security architecture
+- **[Testing Guide](docs/TESTING.md)** - Testing strategies and best practices
+- **[Benchmark Guide](tools/benchmark/README.md)** - Performance benchmarking
+
+### Development
+
+- **[Build Instructions](docs/BUILD.md)** - Compilation and installation
+- **[CI/CD Pipeline](docs/CI-CD.md)** - Continuous integration workflows
+- **[Coding Guidelines](docs/CODING_GUIDELINES.md)** - Code quality standards
+- **[Code Review Checklist](docs/CODE_REVIEW_CHECKLIST.md)** - PR review guidelines
