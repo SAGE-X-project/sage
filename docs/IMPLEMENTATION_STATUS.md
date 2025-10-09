@@ -184,39 +184,39 @@ sage/
 ## 로드맵
 
 ### Phase 1: Core Implementation (완료 - 2025년 10월)
-- ✓ 핵심 암호화 기능 (Ed25519, Secp256k1, X25519, RS256)
-- ✓ DID 관리 기능 (Multi-chain, Factory 패턴)
-- ✓ RFC 9421 구현 (서명/검증)
-- ✓ CLI 도구 (sage-crypto, sage-did, sage-verify)
-- ✓ HPKE 핸드셰이크 (2-RTT)
-- ✓ Ethereum Sepolia 배포
-- ✓ 세션 암호화 (ChaCha20-Poly1305)
+- [Completed] 핵심 암호화 기능 (Ed25519, Secp256k1, X25519, RS256)
+- [Completed] DID 관리 기능 (Multi-chain, Factory 패턴)
+- [Completed] RFC 9421 구현 (서명/검증)
+- [Completed] CLI 도구 (sage-crypto, sage-did, sage-verify)
+- [Completed] HPKE 핸드셰이크 (2-RTT)
+- [Completed] Ethereum Sepolia 배포
+- [Completed] 세션 암호화 (ChaCha20-Poly1305)
 
 ### Phase 2: SDK Development (진행 중)
-- ○ Go Agent SDK (기본 구조 구현)
-- □ TypeScript Agent SDK
-- □ SDK 문서화
-- ✓ 예제 애플리케이션 (MCP 통합)
+- [In Progress] Go Agent SDK (기본 구조 구현)
+- [Pending] TypeScript Agent SDK
+- [Pending] SDK 문서화
+- [Completed] 예제 애플리케이션 (MCP 통합)
 
 ### Phase 3: Network & Discovery (계획)
-- □ Agent Discovery Protocol
-- □ P2P 통신 모듈
-- □ DHT 기반 Service Discovery
-- □ Load Balancing
+- [Pending] Agent Discovery Protocol
+- [Pending] P2P 통신 모듈
+- [Pending] DHT 기반 Service Discovery
+- [Pending] Load Balancing
 
 ### Phase 4: Gateway Implementation (계획)
-- □ Gateway 서버 구현
-- □ 메시지 라우팅
-- □ 정책 엔진
-- □ 모니터링 및 로깅
+- [Pending] Gateway 서버 구현
+- [Pending] 메시지 라우팅
+- [Pending] 정책 엔진
+- [Pending] 모니터링 및 로깅
 
 ### Phase 5: Integration (계획)
-- □ HTTP 서버 통합
-- ✓ MCP (Model Context Protocol) 통합 (예제 완료)
-- □ 클라우드 배포 지원
-- □ 엔터프라이즈 기능
+- [Pending] HTTP 서버 통합
+- [Completed] MCP (Model Context Protocol) 통합 (예제 완료)
+- [Pending] 클라우드 배포 지원
+- [Pending] 엔터프라이즈 기능
 
-**범례**: ✓ 완료 | ○ 진행 중 | □ 계획
+**범례**: [Completed] 완료 | [In Progress] 진행 중 | [Pending] 계획
 
 ## 관련 프로젝트
 

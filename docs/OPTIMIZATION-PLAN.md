@@ -240,9 +240,9 @@ go test ./benchmark -bench=. -benchmem
 
 | Metric | Current | Phase 1 | Phase 2 | Phase 3 | Target |
 |--------|---------|---------|---------|---------|--------|
-| **Session Creation Allocs** | 38 | 22 | 12 | 8 | <10 ✅ |
-| **Encryption Allocs** | 3 | 3 | 1 | 1 | 1 ✅ |
-| **Memory per Session** | 2.9KB | 2.5KB | 2.0KB | 1.8KB | <2KB ✅ |
+| **Session Creation Allocs** | 38 | 22 | 12 | 8 | <10 Yes |
+| **Encryption Allocs** | 3 | 3 | 1 | 1 | 1 Yes |
+| **Memory per Session** | 2.9KB | 2.5KB | 2.0KB | 1.8KB | <2KB Yes |
 
 ### 4.2 Performance Improvement
 
@@ -305,13 +305,13 @@ go tool pprof -base=mem_before.prof mem_after.prof
 
 ## 6. Risk Assessment
 
-### 6.1 Low Risk Changes ✅
+### 6.1 Low Risk Changes Yes
 
 - Pre-allocating key material buffer
 - Reducing HKDF instances
 - These are internal optimizations, no API changes
 
-### 6.2 Medium Risk Changes ⚠️
+### 6.2 Medium Risk Changes Warning
 
 - Buffer pooling
   - Risk: Incorrect buffer reuse could leak data
@@ -349,7 +349,7 @@ go tool pprof -base=mem_before.prof mem_after.prof
 
 ## 7. Success Criteria
 
-### 7.1 Must Have ✅
+### 7.1 Must Have Yes
 
 - [ ] Session creation: <10 allocations/op
 - [ ] All existing tests pass
@@ -357,14 +357,14 @@ go tool pprof -base=mem_before.prof mem_after.prof
 - [ ] No race conditions (`-race` clean)
 - [ ] Memory usage: <2KB per session
 
-### 7.2 Should Have 🎯
+### 7.2 Should Have Target
 
 - [ ] Encryption: 1 allocation/op
 - [ ] 30%+ performance improvement
 - [ ] Throughput: >1GB/s for 16KB messages
 - [ ] Documented optimization techniques
 
-### 7.3 Nice to Have 🌟
+### 7.3 Nice to Have Star
 
 - [ ] Zero-allocation encryption for small messages
 - [ ] Adaptive buffer pooling
@@ -437,9 +437,9 @@ If optimization introduces bugs:
 | **Phase 3** | Advanced opts | 2 hours | Phase 2 verified |
 
 **Milestones:**
-- Hour 2: <20 allocations/op ✅
-- Hour 5: <12 allocations/op ✅
-- Hour 7: <10 allocations/op, documentation complete ✅
+- Hour 2: <20 allocations/op Yes
+- Hour 5: <12 allocations/op Yes
+- Hour 7: <10 allocations/op, documentation complete Yes
 
 ---
 
@@ -462,7 +462,7 @@ If optimization introduces bugs:
 
 ---
 
-**Status:** 📋 READY TO IMPLEMENT
+**Status:** List READY TO IMPLEMENT
 **Owner:** Development Team
 **Priority:** HIGH (blocks production optimization)
 **Next Action:** Begin Phase 1 implementation

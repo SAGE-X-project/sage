@@ -64,7 +64,7 @@ func (l *Logger) WithContext(ctx context.Context) *Logger
 func (l *Logger) WithFields(fields map[string]interface{}) *Logger
 ```
 
-#### 평가: ✅ **적절함**
+#### 평가: Yes **적절함**
 
 **장점:**
 1. **성능**: Zap은 Go에서 가장 빠른 로거 (zero allocation)
@@ -113,7 +113,7 @@ func SpanEncryption(ctx context.Context, sessionID string) (context.Context, tra
 func SpanSignature(ctx context.Context, keyType string) (context.Context, trace.Span)
 ```
 
-#### 평가: ✅ **적절하며 필수적**
+#### 평가: Yes **적절하며 필수적**
 
 **장점:**
 1. **표준 기술**: OpenTelemetry는 CNCF 표준, 벤더 중립적
@@ -219,22 +219,22 @@ var (
 )
 ```
 
-#### 평가: ✅ **적절하나 확장 필요**
+#### 평가: Yes **적절하나 확장 필요**
 
 **현재 문제:**
 - Prometheus 설정은 있으나 실제 메트릭 코드 없음
 - 엔드포인트 `/metrics/sessions`, `/metrics/handshakes` 구현 필요
 
 **제안된 메트릭의 적절성:**
-1. **HandshakesTotal (Counter)**: ✅ 필수
+1. **HandshakesTotal (Counter)**: Yes 필수
    - 레이블: `status` (success/error), `key_type` (ed25519/secp256k1)
    - 용도: 핸드셰이크 성공률, 에러율 추적
 
-2. **SessionsActive (Gauge)**: ✅ 필수
+2. **SessionsActive (Gauge)**: Yes 필수
    - 용도: 현재 활성 세션 수 모니터링
    - 메모리 사용량 예측에 중요
 
-3. **HandshakeDuration (Histogram)**: ✅ 필수
+3. **HandshakeDuration (Histogram)**: Yes 필수
    - 용도: 성능 SLA 측정 (p50, p95, p99)
    - 레이턴시 문제 감지
 
@@ -346,11 +346,11 @@ func (m *Manager) cleanup() {
 3. **SlowHandshakes**: p95 > 1초
 4. **HighMemoryUsage**: > 1GB
 
-#### 평가: ⚠️ **기본적이나 SAGE 특화 알림 추가 필요**
+#### 평가: Warning **기본적이나 SAGE 특화 알림 추가 필요**
 
 **적절한 알림:**
-- ✅ HighHandshakeErrorRate: 보안 공격 감지에 중요
-- ✅ SlowHandshakes: 성능 SLA 모니터링
+- Yes HighHandshakeErrorRate: 보안 공격 감지에 중요
+- Yes SlowHandshakes: 성능 SLA 모니터링
 
 **부족한 부분:**
 
@@ -630,12 +630,12 @@ func (m *Middleware) Handle(next http.Handler) http.Handler {
 
 ### 4.1 설계의 전반적 평가
 
-**✅ 적절한 기술 선택:**
+**Yes 적절한 기술 선택:**
 - Zap (로깅): 성능, 구조화, 에코시스템
 - OpenTelemetry (추적): 표준, 벤더 중립, 미래 지향
 - Prometheus (메트릭): 클라우드 네이티브 표준, Grafana 통합
 
-**⚠️ 개선 필요 영역:**
+**Warning 개선 필요 영역:**
 1. SAGE 특화 메트릭 확장 (DID, 블록체인, 보안)
 2. 로깅-추적-메트릭 상관관계 강화
 3. 환경별 설정 관리
@@ -696,18 +696,18 @@ func (m *Middleware) Handle(next http.Handler) http.Handler {
 
 ### 4.4 최종 권장사항
 
-**✅ 진행 승인:**
+**Yes 진행 승인:**
 - 제안된 모니터링 및 관찰성 작업은 프로덕션에 **필수적**
 - 기술 선택과 설계 방향은 **적절함**
 - 제시된 타임라인(2-3일)은 **달성 가능**
 
-**⚠️ 주의사항:**
+**Warning 주의사항:**
 1. **점진적 마이그레이션**: 모든 로그를 한번에 변경하지 말고 모듈별 진행
 2. **성능 오버헤드 모니터링**: 추적 샘플링 비율 조정 (프로덕션: 10%, 개발: 100%)
 3. **알림 피로도 방지**: 초기에는 critical 알림만, 점진적 확장
 4. **문서화 우선**: 다른 개발자가 메트릭/로그를 쉽게 추가할 수 있도록 가이드 작성
 
-**📝 다음 단계:**
+**Note 다음 단계:**
 1. `pkg/logging/`, `pkg/metrics/`, `pkg/tracing/` 패키지 구현
 2. 핵심 모듈(`handshake`, `session`, `rfc9421`)에 통합
 3. 기존 예제 코드 업데이트 (best practice 시연)

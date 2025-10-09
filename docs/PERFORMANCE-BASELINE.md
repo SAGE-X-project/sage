@@ -12,11 +12,11 @@
 This document establishes the performance baseline for the SAGE (Secure Agent Guarantee Engine) project after fixing API mismatches in the test suite. All 45 benchmarks executed successfully, providing comprehensive performance metrics across cryptography, session management, and security features.
 
 **Key Findings:**
-- ✅ SAGE encryption adds ~3.5µs overhead vs baseline (26x slower for 1KB messages)
-- ✅ Session creation: 2.4µs with 2.9KB memory allocation
-- ✅ Ed25519 key generation: 17.7µs per key pair
-- ✅ Encryption throughput: 400-800 MB/s for large messages (16KB+)
-- ✅ Decryption throughput: 634-851 MB/s
+- Yes SAGE encryption adds ~3.5µs overhead vs baseline (26x slower for 1KB messages)
+- Yes Session creation: 2.4µs with 2.9KB memory allocation
+- Yes Ed25519 key generation: 17.7µs per key pair
+- Yes Encryption throughput: 400-800 MB/s for large messages (16KB+)
+- Yes Decryption throughput: 634-851 MB/s
 
 ---
 
@@ -353,25 +353,25 @@ This document establishes the performance baseline for the SAGE (Secure Agent Gu
 
 | Aspect | Rating | Notes |
 |--------|--------|-------|
-| **Throughput** | ✅ Good | 400-800 MB/s for large messages |
-| **Latency** | ✅ Good | <5µs for typical operations |
-| **Memory** | ✅ Good | ~3KB per active session |
-| **Scalability** | ✅ Good | Can handle 100K+ sessions |
-| **Crypto Speed** | ⚠️ Fair | 12-20% slower than native libs |
+| **Throughput** | Yes Good | 400-800 MB/s for large messages |
+| **Latency** | Yes Good | <5µs for typical operations |
+| **Memory** | Yes Good | ~3KB per active session |
+| **Scalability** | Yes Good | Can handle 100K+ sessions |
+| **Crypto Speed** | Warning Fair | 12-20% slower than native libs |
 
-**Overall:** ✅ **Production-ready** with identified optimization opportunities
+**Overall:** Yes **Production-ready** with identified optimization opportunities
 
 ---
 
 ### 8.2 Recommended Use Cases
 
-**✅ Well-suited for:**
+**Yes Well-suited for:**
 - Agent-to-agent communication (low to medium throughput)
 - API request signing (1-10K req/sec)
 - Message encryption (file sizes 1KB-1MB)
 - Session management (10K-100K concurrent sessions)
 
-**⚠️ May require optimization for:**
+**Warning May require optimization for:**
 - High-frequency trading (microsecond latency required)
 - Real-time video streaming (GB/s throughput)
 - IoT devices with very small messages (<100 bytes)
@@ -392,17 +392,17 @@ This document establishes the performance baseline for the SAGE (Secure Agent Gu
 ### 9.2 Benchmark Scope
 
 **Covered:**
-- ✅ Cryptographic operations (key gen, sign, verify)
-- ✅ Session management (create, encrypt, decrypt)
-- ✅ Key export/import (JWK, PEM)
-- ✅ Various message sizes (64B - 64KB)
-- ✅ Memory allocations and throughput
+- Yes Cryptographic operations (key gen, sign, verify)
+- Yes Session management (create, encrypt, decrypt)
+- Yes Key export/import (JWK, PEM)
+- Yes Various message sizes (64B - 64KB)
+- Yes Memory allocations and throughput
 
 **Not Covered:**
-- ❌ Network I/O (benchmarked in isolation)
-- ❌ Concurrent session access (tested separately)
-- ❌ Full handshake protocol (gRPC-dependent)
-- ❌ DID resolution (blockchain-dependent)
+- No Network I/O (benchmarked in isolation)
+- No Concurrent session access (tested separately)
+- No Full handshake protocol (gRPC-dependent)
+- No DID resolution (blockchain-dependent)
 
 ---
 

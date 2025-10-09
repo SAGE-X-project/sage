@@ -1649,22 +1649,22 @@ Plaintext → ChaCha20-Poly1305 → Ciphertext + Auth Tag
 SAGE를 학습하고 통합했다면:
 
 ```
-1️⃣ 커뮤니티 참여
+1. 커뮤니티 참여
    - GitHub Discussions
    - Discord/Telegram
    - 이슈 리포팅
 
-2️⃣ 기여하기
+2. 기여하기
    - 문서 개선
    - 버그 수정
    - 새 기능 제안
 
-3️⃣ 프로덕션 사용
+3. 프로덕션 사용
    - 실전 프로젝트에 적용
    - 성능 데이터 공유
    - Best Practices 공유
 
-4️⃣ 확장하기
+4. 확장하기
    - 새 블록체인 지원 추가
    - SDK 다른 언어로 포팅
    - MCP Tool 생태계 구축
