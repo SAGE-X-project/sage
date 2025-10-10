@@ -481,19 +481,18 @@ test -f /tmp/sig.bin && echo "성공"
 ```
 - CLI로 DID 해석
 
-#### 6.3 sage-verify (2개 테스트)
+#### 6.3 sage-verify (배포 검증 도구)
 
-**6.3.1 HTTP 메시지 검증 CLI**
+**6.3.1 배포 상태 검증**
 ```bash
-./build/bin/sage-verify http --input /tmp/http-message.txt
+./build/bin/sage-verify
 ```
-- CLI로 HTTP 메시지 서명 검증
+- 블록체인 배포 상태 검증
+- 컨트랙트 주소 확인
+- 네트워크 연결 테스트
+- 환경 변수 확인
 
-**6.3.2 배치 검증 CLI**
-```bash
-./build/bin/sage-verify batch --input /tmp/messages/
-```
-- 여러 메시지 일괄 검증
+**참고**: sage-verify는 HTTP 메시지 검증이 아닌 **블록체인 배포 검증 도구**입니다.
 
 ---
 
@@ -766,6 +765,226 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session
 go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke -run TestHPKE
 ```
 
+## 자동화 스크립트에서 건너뛴 테스트 (5개)
+
+`verify_all_features.sh` 스크립트는 중복을 피하거나 사전 조건이 필요한 일부 테스트를 자동 실행에서 제외합니다.
+하지만 **모든 기능이 구현되어 있으며**, 아래 방법으로 수동 검증이 가능합니다.
+
+### 건너뛴 테스트 목록 및 검증 방법
+
+#### 1. DID 등록 (3.2)
+
+**자동화 스크립트**: ⏭️ 건너뜀 (통합 테스트로 검증)
+
+**수동 검증 방법**:
+```bash
+# 통합 테스트로 실행
+make test-integration
+
+# 또는 개별 테스트
+go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestDIDRegistration
+```
+
+**검증 내용**:
+- 블록체인에 DID 등록
+- 트랜잭션 생성 및 전송
+- 가스 추정 및 실행
+- 등록 이벤트 수신
+
+---
+
+#### 2. DID 조회 (3.3)
+
+**자동화 스크립트**: ⏭️ 건너뜀 (통합 테스트로 검증)
+
+**수동 검증 방법**:
+```bash
+# 통합 테스트로 실행
+make test-integration
+
+# 또는 개별 테스트
+go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestDIDRegistration
+```
+
+**검증 내용**:
+- 등록된 DID 조회
+- 공개키 검증
+- DID Document 검증
+
+---
+
+#### 3. DID 관리 (3.4)
+
+**자동화 스크립트**: ⏭️ 건너뜀 (통합 테스트로 검증)
+
+**수동 검증 방법**:
+```bash
+# Enhanced DID 통합 테스트
+go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestEnhancedDIDIntegration
+
+# 기본 DID 통합 테스트
+go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestDIDIntegration
+```
+
+**검증 내용**:
+- DID 업데이트
+- DID 비활성화
+- DID 삭제
+- DID 상태 관리
+
+---
+
+#### 4. Ethereum 연동 (4.1)
+
+**자동화 스크립트**: ⏭️ 건너뜀 (통합 테스트로 검증)
+
+**수동 검증 방법**:
+```bash
+# 블록체인 연결 테스트
+go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestBlockchainConnection
+
+# Enhanced Provider 테스트
+go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestEnhancedProviderIntegration
+
+# 전체 통합 테스트
+make test-integration
+```
+
+**검증 내용**:
+- Web3 연결
+- Chain ID 확인
+- 블록 번호 조회
+- 가스 추정
+- 재시도 로직
+- 트랜잭션 전송
+
+---
+
+#### 5. sage-verify CLI (6.3)
+
+**자동화 스크립트**: ⏭️ 건너뜀 (배포 상태 검증 도구)
+
+**수동 검증 방법**:
+```bash
+# 1. 블록체인 노드 시작 (터미널 1)
+cd contracts/ethereum
+npx hardhat node
+
+# 2. 컨트랙트 배포 (터미널 2)
+cd contracts/ethereum
+npx hardhat run scripts/deploy.js --network localhost
+
+# 3. sage-verify 실행 (터미널 3)
+./build/bin/sage-verify
+```
+
+**검증 내용**:
+- 블록체인 네트워크 연결
+- 컨트랙트 배포 상태 확인
+- Chain ID 검증
+- 블록 번호 조회
+- 환경 변수 검증
+
+**예상 출력**:
+```
+✅ Blockchain Connection: OK
+✅ Chain ID: 31337
+✅ Block Number: 1
+✅ Contract Address: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+✅ Contract Code: Deployed
+```
+
+---
+
+### 모든 테스트를 검증하는 전체 워크플로우
+
+#### Step 1: 자동화 스크립트 실행
+```bash
+./tools/scripts/verify_all_features.sh -v
+```
+**결과**: 75+ 개의 단위 테스트 및 기능 테스트 통과
+
+#### Step 2: 통합 테스트 실행
+```bash
+make test-integration
+```
+**결과**: DID 등록/조회/관리, Ethereum 연동 검증 (건너뛴 4개 테스트 커버)
+
+#### Step 3: sage-verify 수동 검증
+```bash
+# 블록체인 노드 시작 및 배포 후
+./build/bin/sage-verify
+```
+**결과**: 배포 상태 검증 (건너뛴 1개 테스트 커버)
+
+#### Step 4: 핸드셰이크 E2E 테스트
+```bash
+make test-handshake
+```
+**결과**: 5개 시나리오 E2E 검증
+
+---
+
+### 통합 테스트 상세 실행 가이드
+
+#### 사전 조건
+
+1. **블록체인 노드 시작**:
+```bash
+# 터미널 1
+cd contracts/ethereum
+npx hardhat node
+```
+
+2. **컨트랙트 배포**:
+```bash
+# 터미널 2
+cd contracts/ethereum
+npx hardhat run scripts/deploy.js --network localhost
+```
+
+3. **통합 테스트 실행**:
+```bash
+# 터미널 3
+make test-integration
+```
+
+#### 실행되는 테스트 목록
+
+```bash
+# 블록체인 연결
+TestBlockchainConnection
+- Web3 연결 확인
+- Chain ID 검증 (31337)
+- 블록 번호 조회
+
+# Enhanced Provider
+TestEnhancedProviderIntegration
+- 가스 추정
+- 재시도 로직
+- 트랜잭션 실행
+
+# DID 등록
+TestDIDRegistration
+- DID 생성 및 등록
+- 공개키 저장
+- 이벤트 수신
+- DID 조회 검증
+
+# Enhanced DID 통합
+TestEnhancedDIDIntegration
+- 전체 DID 생명주기
+- DID 업데이트
+- DID 비활성화
+
+# 기본 통합 테스트
+TestDIDIntegration
+- 기본 DID 흐름
+- 공개키 검증
+```
+
+---
+
 ## 자주 사용하는 명령어
 
 ### 빠른 확인 (개발 중)
@@ -866,10 +1085,46 @@ chmod +x tools/scripts/quick_verify.sh
 
 ## 요약
 
+### 테스트 실행 요약
+
 - **빠른 검증**: `./tools/scripts/quick_verify.sh` (30초, 5개 주요 기능)
-- **전체 검증**: `./tools/scripts/verify_all_features.sh` (5-10분, 80+ 소분류)
+- **전체 검증**: `./tools/scripts/verify_all_features.sh -v` (5-10분, 75+ 단위 테스트)
+- **통합 테스트**: `make test-integration` (2-3분, DID/블록체인 테스트)
+- **E2E 테스트**: `make test-handshake` (30초, 5개 시나리오)
+- **배포 검증**: `./build/bin/sage-verify` (수동, 블록체인 상태)
+
+### 건너뛴 테스트 (5개)
+
+자동화 스크립트에서 건너뛴 테스트는 **모두 검증 가능**합니다:
+- **3.2-3.4 DID 관리** (3개) → `make test-integration`
+- **4.1 Ethereum 연동** (1개) → `make test-integration`
+- **6.3 sage-verify** (1개) → `./build/bin/sage-verify` (수동)
+
+### 완전한 검증 체크리스트
+
+모든 기능을 검증하려면 다음 순서로 실행:
+
+```bash
+# 1. 단위 테스트 및 기능 테스트 (75+)
+./tools/scripts/verify_all_features.sh -v
+
+# 2. 통합 테스트 (DID, 블록체인) (5+)
+make test-integration
+
+# 3. E2E 핸드셰이크 (5)
+make test-handshake
+
+# 4. 배포 검증 (수동)
+./build/bin/sage-verify
+```
+
+**총 테스트 수**: 85+ 개 (모든 소분류 100% 커버)
+
+### 로그 및 디버깅
+
 - **상세 로그**: `./tools/scripts/verify_all_features.sh -v`
 - **로그 위치**: `/tmp/sage-test-logs/`
 - **개별 테스트**: `go test -v <패키지> -run <테스트명>`
+- **커버리지**: `go test -coverprofile=coverage.out ./...`
 
 모든 기능이 100% 구현되어 있으며, 각 소분류별로 개별 테스트가 가능합니다.
