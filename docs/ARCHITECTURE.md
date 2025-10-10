@@ -207,6 +207,133 @@ core/rfc9421/
 - Request/response bodies
 - Signature parameters (created, expires, nonce)
 
+#### 7. Transport Layer (`transport/`)
+
+The transport layer provides a protocol-agnostic abstraction for secure message transmission, decoupling security protocols (HPKE, handshake) from wire protocols (gRPC, HTTP, WebSocket).
+
+```
+transport/
+├── interface.go       # MessageTransport interface definition
+├── mock.go            # MockTransport for testing
+├── selector.go        # Automatic transport selection by URL scheme
+├── a2a/               # A2A/gRPC adapter (optional with build tag)
+│   ├── client.go      # A2A client transport
+│   ├── server.go      # A2A server adapter
+│   └── register.go    # Auto-registration with selector
+├── http/              # HTTP/REST transport
+│   ├── client.go      # HTTP client transport
+│   ├── server.go      # HTTP server adapter
+│   ├── register.go    # Auto-registration with selector
+│   └── README.md      # HTTP transport documentation
+└── websocket/         # WebSocket transport
+    ├── client.go      # WebSocket client transport
+    ├── server.go      # WebSocket server adapter
+    ├── register.go    # Auto-registration with selector
+    └── README.md      # WebSocket transport documentation
+```
+
+**Core Interface:**
+
+```go
+type MessageTransport interface {
+    Send(ctx context.Context, msg *SecureMessage) (*Response, error)
+    Close() error
+}
+
+type SecureMessage struct {
+    ID        string
+    ContextID string
+    TaskID    string
+    Payload   []byte
+    DID       string
+    Signature []byte
+    Metadata  map[string]string
+    Role      string
+}
+
+type Response struct {
+    Success   bool
+    MessageID string
+    TaskID    string
+    Data      []byte
+    Error     string
+}
+```
+
+**Available Transports:**
+
+1. **A2A/gRPC Transport** (`transport/a2a/`)
+   - Wire protocol: gRPC with Protocol Buffers
+   - Build tag: `//go:build a2a` (optional dependency)
+   - Features: Bidirectional streaming, efficient binary protocol
+   - Use case: High-performance agent-to-agent communication
+   - Auto-registration: Registers for `grpc://` and `a2a://` URL schemes
+
+2. **HTTP/REST Transport** (`transport/http/`)
+   - Wire protocol: HTTP/1.1 or HTTP/2 with JSON
+   - Features: Firewall-friendly, REST-compatible, simple integration
+   - Use case: Web-based integrations, public APIs
+   - Auto-registration: Registers for `http://` and `https://` URL schemes
+   - Endpoint: `POST /messages` for message transmission
+
+3. **WebSocket Transport** (`transport/websocket/`)
+   - Wire protocol: WebSocket (RFC 6455) with JSON frames
+   - Features: Persistent bidirectional connections, real-time communication
+   - Use case: Interactive agents, streaming data, browser clients
+   - Auto-registration: Registers for `ws://` and `wss://` URL schemes
+   - Lifecycle: Automatic reconnection, heartbeat/ping-pong
+
+4. **MockTransport** (`transport/mock.go`)
+   - In-memory transport for unit testing
+   - Thread-safe with mutex protection
+   - Captures sent messages for verification
+   - No network dependencies
+
+**Transport Selector:**
+
+Automatic transport selection based on URL scheme:
+
+```go
+import (
+    "github.com/sage-x-project/sage/pkg/agent/transport"
+    _ "github.com/sage-x-project/sage/pkg/agent/transport/http"    // Auto-register HTTP
+    _ "github.com/sage-x-project/sage/pkg/agent/transport/websocket" // Auto-register WS
+)
+
+// Automatic selection by URL
+transport, err := transport.SelectByURL("https://agent.example.com")
+
+// Manual selection
+transport, err := transport.Select(transport.TransportHTTPS, "https://agent.example.com")
+
+// Check available transports
+types := transport.DefaultSelector.AvailableTransports()
+```
+
+**Design Principles:**
+
+1. **Protocol Independence**: Security layers (HPKE, handshake, session) are decoupled from transport protocols
+2. **Pluggable Architecture**: New transports can be added without modifying security code
+3. **Auto-Registration**: Import-triggered registration using `init()` functions
+4. **Build Tags**: Optional dependencies (A2A) use build tags to avoid forcing requirements
+5. **Testability**: MockTransport enables fast, deterministic unit testing
+
+**Transport Selection Guide:**
+
+| Transport | Best For | Latency | Throughput | Firewall-Friendly | Complexity |
+|-----------|----------|---------|------------|-------------------|------------|
+| **A2A/gRPC** | Agent-to-agent, high performance | Low | High | Moderate | High |
+| **HTTP** | REST APIs, web integrations | Moderate | Moderate | High | Low |
+| **WebSocket** | Real-time, browser clients | Low | Moderate | High | Moderate |
+| **Mock** | Unit testing, development | N/A | N/A | N/A | Very Low |
+
+**Security Considerations:**
+
+- All transports carry pre-encrypted payloads (HPKE + AEAD)
+- Transport security (TLS) is independent of SAGE encryption
+- DID signatures are verified at the handshake layer, not transport layer
+- Each transport supports custom metadata via headers/fields
+
 ### Smart Contract Architecture
 
 #### Ethereum Contracts (`contracts/ethereum/`)

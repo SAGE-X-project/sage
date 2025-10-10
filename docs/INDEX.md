@@ -33,6 +33,13 @@ Welcome to the SAGE (Secure Agent Guarantee Engine) documentation. This index pr
 - **[CI/CD Pipeline](CI-CD.md)** - Continuous integration and deployment
 - **[Docker Deployment](../docker/README.md)** - Docker and Kubernetes deployment
 
+### Project Management
+
+- **[Go Version Requirements](GO_VERSION_REQUIREMENT.md)** - Go version compatibility and requirements
+- **[Version Management](../pkg/version/README.md)** - Software version tracking and release management
+- **[Architecture Refactoring Proposal](ARCHITECTURE_REFACTORING_PROPOSAL.md)** - Major refactoring plan and rationale
+- **[Migration Guides](EXAMPLES_MIGRATION_PLAN.md)** - Guide for migrating examples and code
+
 ## Module Documentation
 
 ### Cryptography (`pkg/agent/crypto/`)
@@ -55,6 +62,14 @@ Welcome to the SAGE (Secure Agent Guarantee Engine) documentation. This index pr
 
 - **[Session Lifecycle](../README.md#session-management)** - Session creation, encryption, expiration
 - **[Nonce Management](../README.md#replay-protection)** - Replay attack prevention
+
+### Transport Layer (`pkg/agent/transport/`)
+
+- **[Transport Overview](../pkg/agent/transport/README.md)** - Protocol-agnostic message transport abstraction
+- **[HTTP Transport](../pkg/agent/transport/http/README.md)** - REST/HTTP transport implementation
+- **[WebSocket Transport](../pkg/agent/transport/websocket/README.md)** - WebSocket transport implementation
+- **[Transport Refactoring](TRANSPORT_REFACTORING.md)** - Architecture refactoring details
+- **[Build Tags Implementation](BUILD_TAGS_SUCCESS.md)** - Optional dependency strategy
 
 ## Smart Contracts
 
@@ -168,6 +183,17 @@ Comprehensive guides in Korean for in-depth understanding:
   - Advanced cryptographic operations
   - Multi-chain integration
   - Performance optimization
+
+## Project History and Progress
+
+### Implementation Progress Reports
+
+- **[HTTP Transport Complete](OPTION2_HTTP_TRANSPORT_COMPLETE.md)** - HTTP/REST transport implementation summary
+- **[WebSocket Transport Complete](OPTION3_WEBSOCKET_TRANSPORT_COMPLETE.md)** - WebSocket transport implementation summary
+- **[Final Summary (Korean)](FINAL_SUMMARY_KO.md)** - Complete refactoring summary (Korean)
+- **[Dependency Removal Plan](DEPENDENCY_REMOVAL_PLAN.md)** - a2a dependency removal strategy
+- **[Optional Dependency Strategy](OPTIONAL_DEPENDENCY_STRATEGY.md)** - Build tags approach
+- **[Next Tasks Priority](NEXT_TASKS_PRIORITY.md)** - Future development priorities
 
 ## Archive
 

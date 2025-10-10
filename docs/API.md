@@ -61,6 +61,312 @@ The SAGE (Secure Agent Guarantee Engine) API provides secure, decentralized comm
 
 ---
 
+## Transport Layer API
+
+SAGE provides a pluggable transport layer that decouples security protocols (HPKE, handshake) from wire protocols (gRPC, HTTP, WebSocket). This allows applications to choose the most appropriate transport based on their deployment requirements.
+
+### Transport Interface
+
+All transports implement the `MessageTransport` interface:
+
+```go
+type MessageTransport interface {
+    Send(ctx context.Context, msg *SecureMessage) (*Response, error)
+    Close() error
+}
+
+type SecureMessage struct {
+    ID        string              // Unique message identifier
+    ContextID string              // Context identifier for message grouping
+    TaskID    string              // Task identifier
+    Payload   []byte              // Encrypted payload (HPKE + AEAD)
+    DID       string              // Sender DID
+    Signature []byte              // Ed25519 signature
+    Metadata  map[string]string   // Custom metadata
+    Role      string              // Message role (user/assistant)
+}
+
+type Response struct {
+    Success   bool    // Operation success status
+    MessageID string  // Message identifier
+    TaskID    string  // Task identifier
+    Data      []byte  // Response payload
+    Error     string  // Error message (if any)
+}
+```
+
+### Available Transports
+
+#### 1. A2A/gRPC Transport
+
+High-performance transport using gRPC with Protocol Buffers.
+
+**Import:**
+```go
+import (
+    "github.com/sage-x-project/sage/pkg/agent/transport/a2a"
+    "google.golang.org/grpc"
+)
+```
+
+**Usage:**
+```go
+// Connect to gRPC server
+conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
+if err != nil {
+    log.Fatal(err)
+}
+defer conn.Close()
+
+// Create A2A transport
+transport := a2a.NewA2ATransport(conn)
+
+// Send message
+msg := &transport.SecureMessage{
+    ID:        "msg-123",
+    ContextID: "ctx-456",
+    Payload:   encryptedData,
+    DID:       "did:sage:ethereum:0xAlice",
+    Signature: signature,
+}
+
+resp, err := transport.Send(ctx, msg)
+```
+
+**Build Tag:** `//go:build a2a`
+
+**Features:**
+- Bidirectional streaming
+- Binary protocol (efficient)
+- HTTP/2 multiplexing
+- Built-in flow control
+
+**Best For:** High-performance agent-to-agent communication
+
+#### 2. HTTP/REST Transport
+
+RESTful transport using HTTP/HTTPS with JSON encoding.
+
+**Import:**
+```go
+import "github.com/sage-x-project/sage/pkg/agent/transport/http"
+```
+
+**Client Usage:**
+```go
+// Create HTTP transport
+transport := http.NewHTTPTransport("https://agent.example.com")
+
+// Configure custom HTTP client (optional)
+httpClient := &http.Client{
+    Timeout: 30 * time.Second,
+    Transport: &http.Transport{
+        TLSClientConfig: &tls.Config{
+            MinVersion: tls.VersionTLS13,
+        },
+    },
+}
+transport := http.NewHTTPTransportWithClient("https://agent.example.com", httpClient)
+
+// Send message
+msg := &transport.SecureMessage{
+    ID:      "msg-123",
+    Payload: encryptedData,
+    DID:     "did:sage:ethereum:0xAlice",
+}
+
+resp, err := transport.Send(ctx, msg)
+```
+
+**Server Usage:**
+```go
+import (
+    "net/http"
+    httpTransport "github.com/sage-x-project/sage/pkg/agent/transport/http"
+)
+
+// Create HTTP server
+server := httpTransport.NewHTTPServer(messageHandler)
+
+// Start HTTP server
+http.ListenAndServe(":8080", server.MessagesHandler())
+```
+
+**Endpoint:** `POST /messages`
+
+**Request Format:**
+```json
+{
+  "id": "msg-123",
+  "context_id": "ctx-456",
+  "task_id": "task-789",
+  "payload": "base64-encoded-encrypted-data",
+  "did": "did:sage:ethereum:0xAlice",
+  "signature": "base64-encoded-signature",
+  "metadata": {"key": "value"},
+  "role": "user"
+}
+```
+
+**Response Format:**
+```json
+{
+  "success": true,
+  "message_id": "msg-123",
+  "task_id": "task-789",
+  "data": "base64-encoded-response",
+  "error": ""
+}
+```
+
+**Features:**
+- Firewall-friendly
+- REST-compatible
+- Simple integration
+- Load balancer support
+- Custom HTTP headers for metadata
+
+**Best For:** Web-based integrations, public APIs, microservices
+
+#### 3. WebSocket Transport
+
+Persistent bidirectional connection using WebSocket (RFC 6455).
+
+**Import:**
+```go
+import "github.com/sage-x-project/sage/pkg/agent/transport/websocket"
+```
+
+**Client Usage:**
+```go
+// Create WebSocket transport
+transport, err := websocket.NewWebSocketTransport("wss://agent.example.com/ws")
+if err != nil {
+    log.Fatal(err)
+}
+defer transport.Close()
+
+// Configure options
+config := websocket.Config{
+    PingInterval:    30 * time.Second,
+    PongWait:        60 * time.Second,
+    WriteWait:       10 * time.Second,
+    MaxMessageSize:  10 * 1024 * 1024, // 10MB
+    ReconnectDelay:  5 * time.Second,
+}
+transport := websocket.NewWebSocketTransportWithConfig("wss://agent.example.com/ws", config)
+
+// Send message
+msg := &transport.SecureMessage{
+    ID:      "msg-123",
+    Payload: encryptedData,
+    DID:     "did:sage:ethereum:0xAlice",
+}
+
+resp, err := transport.Send(ctx, msg)
+```
+
+**Server Usage:**
+```go
+import (
+    "net/http"
+    wsTransport "github.com/sage-x-project/sage/pkg/agent/transport/websocket"
+)
+
+// Create WebSocket server
+server := wsTransport.NewWebSocketServer(messageHandler)
+
+// Register WebSocket endpoint
+http.HandleFunc("/ws", server.HandleConnection)
+
+// Start server
+http.ListenAndServe(":8080", nil)
+```
+
+**Features:**
+- Persistent connection (no handshake overhead)
+- Bidirectional real-time communication
+- Automatic reconnection
+- Heartbeat/ping-pong mechanism
+- Browser-compatible
+
+**Best For:** Real-time communication, streaming, browser clients
+
+### Transport Selector
+
+Automatic transport selection based on URL scheme:
+
+```go
+import (
+    "github.com/sage-x-project/sage/pkg/agent/transport"
+    _ "github.com/sage-x-project/sage/pkg/agent/transport/http"
+    _ "github.com/sage-x-project/sage/pkg/agent/transport/websocket"
+)
+
+// Automatic selection by URL scheme
+transport, err := transport.SelectByURL("https://agent.example.com")
+
+// Manual selection
+transport, err := transport.Select(transport.TransportHTTPS, "https://agent.example.com")
+
+// Check available transports
+types := transport.DefaultSelector.AvailableTransports()
+```
+
+**Supported URL Schemes:**
+- `http://`, `https://` → HTTP Transport
+- `ws://`, `wss://` → WebSocket Transport
+- `grpc://`, `a2a://` → A2A Transport (requires `a2a` build tag)
+
+### Transport Comparison
+
+| Transport | Latency | Throughput | Firewall-Friendly | Browser Support | Complexity | Build Tag |
+|-----------|---------|------------|-------------------|-----------------|------------|-----------|
+| **A2A/gRPC** | Low | High | Moderate | No | High | `a2a` |
+| **HTTP** | Moderate | Moderate | High | Yes | Low | None |
+| **WebSocket** | Low | Moderate | High | Yes | Moderate | None |
+
+### Transport Security
+
+All transports carry pre-encrypted payloads:
+
+1. **Application Layer**: HPKE encryption + AEAD (ChaCha20-Poly1305)
+2. **Transport Layer**: TLS 1.3 (independent of SAGE encryption)
+3. **Authentication**: Ed25519 signatures verified at handshake layer
+
+**Defense in Depth:**
+- Even if TLS is compromised, SAGE encryption protects payloads
+- Even if SAGE keys leak, TLS prevents network sniffing
+- DID-based authentication prevents impersonation
+
+### Migration Guide
+
+**From Direct gRPC to Transport Abstraction:**
+
+```go
+// Before
+import a2apb "github.com/a2aproject/a2a/grpc"
+
+conn, _ := grpc.Dial(addr, opts...)
+client := a2apb.NewA2AServiceClient(conn)
+resp, err := client.SendSecureMessage(ctx, &a2apb.SecureMessage{...})
+
+// After
+import "github.com/sage-x-project/sage/pkg/agent/transport/a2a"
+
+conn, _ := grpc.Dial(addr, opts...)
+transport := a2a.NewA2ATransport(conn)
+resp, err := transport.Send(ctx, &transport.SecureMessage{...})
+```
+
+**Benefits:**
+- Protocol-agnostic security code
+- Easy testing with MockTransport
+- Flexible deployment options
+- Future-proof architecture
+
+---
+
 ## Quick Start
 
 ### 1. Install Dependencies

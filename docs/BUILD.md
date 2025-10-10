@@ -39,7 +39,7 @@ make release
 
 ### Required
 
-- **Go 1.22+** - [Download](https://golang.org/dl/)
+- **Go 1.23.0+** - [Download](https://golang.org/dl/)
 - **Make** - Standard on Linux/macOS, install via [Chocolatey](https://chocolatey.org/) on Windows
 - **Git** - For version information
 
@@ -693,7 +693,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.23.0'
 
       - name: Build all platforms
         run: make build-all-platforms
@@ -746,7 +746,7 @@ done
 
 ```dockerfile
 # Build stage
-FROM golang:1.22-alpine AS builder
+FROM golang:1.23.0-alpine AS builder
 WORKDIR /build
 COPY . .
 RUN make build
