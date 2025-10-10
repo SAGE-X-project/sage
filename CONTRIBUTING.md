@@ -654,6 +654,6 @@ Thank you for making SAGE better!
 
 ---
 
-**Happy Contributing! 🚀**
+**Happy Contributing! **
 
 For questions or clarifications, please open a [GitHub Discussion](https://github.com/sage-x-project/sage/discussions).

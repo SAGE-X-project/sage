@@ -15,7 +15,7 @@ SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based securit
 
 ### 🌐 Live Deployments
 
-**Sepolia Testnet** (LIVE ✅):
+**Sepolia Testnet** (LIVE ):
 - **SAGE Core System**:
   - SageRegistryV2: [`0x487d45a678eb947bbF9d8f38a67721b13a0209BF`](https://sepolia.etherscan.io/address/0x487d45a678eb947bbF9d8f38a67721b13a0209BF)
   - ERC8004ValidationRegistry: [`0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440`](https://sepolia.etherscan.io/address/0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440)
@@ -630,10 +630,10 @@ This project is licensed under the **GNU Lesser General Public License v3.0** - 
 
 **You CAN:**
 
-- ✅ Use SAGE in commercial applications
-- ✅ Use SAGE in proprietary software
-- ✅ Modify SAGE for your needs
-- ✅ Distribute SAGE
+-  Use SAGE in commercial applications
+-  Use SAGE in proprietary software
+-  Modify SAGE for your needs
+-  Distribute SAGE
 
 **You MUST:**
 

@@ -347,8 +347,8 @@ go build -o build/bin/sage-did ./cmd/sage-did
 
 If you use SAGE as a library in your application:
 
-- ✅ **You CAN**: Use SAGE in proprietary applications
-- ✅ **You CAN**: Distribute your application under any license
+-  **You CAN**: Use SAGE in proprietary applications
+-  **You CAN**: Distribute your application under any license
 - ❗ **You MUST**: Provide SAGE source code (if modified)
 - ❗ **You MUST**: Allow users to replace SAGE library
 - ❗ **You MUST**: Include SAGE's LICENSE and NOTICE files
