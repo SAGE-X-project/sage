@@ -18,10 +18,25 @@ REPORTS_DIR=reports
 GO=go
 GOFLAGS=-v
 LDFLAGS=-w -s
-VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-COMMIT?=$(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-BUILD_TIME?=$(shell date -u '+%Y-%m-%d_%H:%M:%S')
-BUILD_LDFLAGS=-X main.Version=$(VERSION) -X main.Commit=$(COMMIT) -X main.BuildTime=$(BUILD_TIME)
+
+# Version information
+VERSION?=$(shell cat VERSION 2>/dev/null || echo "0.1.0")
+GIT_COMMIT?=$(shell git rev-parse HEAD 2>/dev/null || echo "")
+GIT_BRANCH?=$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+BUILD_DATE?=$(shell date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+# Build flags for version injection
+VERSION_PKG=github.com/sage-x-project/sage/pkg/version
+BUILD_LDFLAGS=-X '$(VERSION_PKG).Version=$(VERSION)' \
+	-X '$(VERSION_PKG).GitCommit=$(GIT_COMMIT)' \
+	-X '$(VERSION_PKG).GitBranch=$(GIT_BRANCH)' \
+	-X '$(VERSION_PKG).BuildDate=$(BUILD_DATE)'
+
+# Legacy support for main package version
+MAIN_BUILD_LDFLAGS=$(BUILD_LDFLAGS) \
+	-X 'main.Version=$(VERSION)' \
+	-X 'main.Commit=$(GIT_COMMIT)' \
+	-X 'main.BuildTime=$(BUILD_DATE)'
 
 # Library build variables
 LIB_NAME=libsage.a
@@ -237,8 +252,9 @@ build-crypto: $(BIN_DIR)/$(CRYPTO_BINARY)
 
 $(BIN_DIR)/$(CRYPTO_BINARY):
 	@echo "Building $(CRYPTO_BINARY)..."
+	@echo "Version: $(VERSION) | Commit: $(GIT_COMMIT) | Branch: $(GIT_BRANCH)"
 	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS) $(BUILD_LDFLAGS)" -o $(BIN_DIR)/$(CRYPTO_BINARY) ./$(CMD_DIR)/$(CRYPTO_BINARY)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS) $(MAIN_BUILD_LDFLAGS)" -o $(BIN_DIR)/$(CRYPTO_BINARY) ./$(CMD_DIR)/$(CRYPTO_BINARY)
 	@echo "Build complete: $(BIN_DIR)/$(CRYPTO_BINARY)"
 
 # Build sage-did binary
@@ -247,8 +263,9 @@ build-did: $(BIN_DIR)/$(DID_BINARY)
 
 $(BIN_DIR)/$(DID_BINARY):
 	@echo "Building $(DID_BINARY)..."
+	@echo "Version: $(VERSION) | Commit: $(GIT_COMMIT) | Branch: $(GIT_BRANCH)"
 	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(DID_BINARY) ./$(CMD_DIR)/$(DID_BINARY)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS) $(MAIN_BUILD_LDFLAGS)" -o $(BIN_DIR)/$(DID_BINARY) ./$(CMD_DIR)/$(DID_BINARY)
 	@echo "Build complete: $(BIN_DIR)/$(DID_BINARY)"
 
 # Build sage-verify binary
@@ -257,8 +274,9 @@ build-verify: $(BIN_DIR)/$(VERIFY_BINARY)
 
 $(BIN_DIR)/$(VERIFY_BINARY):
 	@echo "Building $(VERIFY_BINARY)..."
+	@echo "Version: $(VERSION) | Commit: $(GIT_COMMIT) | Branch: $(GIT_BRANCH)"
 	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(VERIFY_BINARY) ./$(CMD_DIR)/$(VERIFY_BINARY)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS) $(MAIN_BUILD_LDFLAGS)" -o $(BIN_DIR)/$(VERIFY_BINARY) ./$(CMD_DIR)/$(VERIFY_BINARY)
 	@echo "Build complete: $(BIN_DIR)/$(VERIFY_BINARY)"
 
 # Build test utilities (deprecated - moved to tests/handshake/)
