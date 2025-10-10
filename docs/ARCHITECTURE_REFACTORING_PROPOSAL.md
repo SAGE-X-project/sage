@@ -25,11 +25,13 @@
 ### 1.1 핵심 문제
 
 **현재 상황**:
+
 - SAGE 프로젝트가 `github.com/a2aproject/a2a-go`에 직접 의존
 - a2a-go는 Go 1.24.4+ 요구
 - feature_list.docx 명세는 Go 1.23.0 요구
 
 **문제점**:
+
 ```
 sage (보안 라이브러리) → a2a-go (통신 라이브러리, Go 1.24.4+)
   ↓
@@ -40,11 +42,11 @@ sage (보안 라이브러리) → a2a-go (통신 라이브러리, Go 1.24.4+)
 
 **레이어 경계 위반 (Violation of Layer Separation)**:
 
-| 레이어 | 올바른 책임 | 현재 상태 |
-|--------|-------------|-----------|
-| **보안 레이어** | 암호화, 서명, DID | sage ✅ |
-| **전송 레이어** | gRPC, HTTP, 네트워크 | a2a-go ✅ |
-| **통합 레이어** | Agent 생성, 조합 | sage-adk ✅ |
+| 레이어          | 올바른 책임          | 현재 상태   |
+| --------------- | -------------------- | ----------- |
+| **보안 레이어** | 암호화, 서명, DID    | sage ✅     |
+| **전송 레이어** | gRPC, HTTP, 네트워크 | a2a-go ✅   |
+| **통합 레이어** | Agent 생성, 조합     | sage-adk ✅ |
 
 **문제**: sage(보안)가 a2a-go(전송)에 직접 의존 ❌
 
@@ -98,17 +100,18 @@ resp, err := c.SendMessage(ctx, req) // ← 단순 전송
 
 **비판적 질문**:
 
-| 질문 | 답변 |
-|------|------|
-| a2a.Message가 복잡한 로직을 가지는가? | ❌ 아니오, 단순 구조체 |
+| 질문                                  | 답변                      |
+| ------------------------------------- | ------------------------- |
+| a2a.Message가 복잡한 로직을 가지는가? | ❌ 아니오, 단순 구조체    |
 | SAGE 보안 로직이 a2a-go에 의존하는가? | ❌ 아니오, 전부 SAGE 내부 |
-| a2a-go는 필수 의존성인가? | ❌ 아니오, 추상화 가능 |
+| a2a-go는 필수 의존성인가?             | ❌ 아니오, 추상화 가능    |
 
 **결론**: a2a-go는 제거 가능하며, 인터페이스로 추상화해야 함
 
 ### 2.3 사용 파일 목록
 
 **핵심 구현** (5개):
+
 1. `pkg/agent/handshake/client.go` - 핸드셰이크 클라이언트
 2. `pkg/agent/handshake/server.go` - 핸드셰이크 서버
 3. `pkg/agent/hpke/client.go` - HPKE 클라이언트
@@ -116,6 +119,7 @@ resp, err := c.SendMessage(ctx, req) // ← 단순 전송
 5. `pkg/agent/hpke/common.go` - HPKE 공통 유틸
 
 **테스트** (4개):
+
 1. `pkg/agent/handshake/server_test.go`
 2. `pkg/agent/hpke/server_test.go`
 3. `test/integration/tests/session/handshake/server/main.go`
@@ -132,23 +136,23 @@ resp, err := c.SendMessage(ctx, req) // ← 단순 전송
 ```
 ┌─────────────────────────────────────────────────────┐
 │            sage-adk (Integration Layer)             │
-│  - Agent 생성 및 관리                                │
-│  - sage (보안) + A2A (전송) 통합                     │
-│  - 개발자 친화적 API 제공                            │
+│  - Agent 생성 및 관리                                 │
+│  - sage (보안) + A2A (전송) 통합                      │
+│  - 개발자 친화적 API 제공                              │
 ├─────────────────────────────────────────────────────┤
 │              A2A (Transport Layer)                  │
-│  - gRPC Client/Server 구현                          │
-│  - A2A 프로토콜 메시지 변환                          │
-│  - 네트워크 전송 (a2a-go 의존)                       │
-│  - Go 1.24.4+ 필요 (A2A만)                          │
+│  - gRPC Client/Server 구현                           │
+│  - A2A 프로토콜 메시지 변환                            │
+│  - 네트워크 전송 (a2a-go 의존)                         │
+│  - Go 1.24.4+ 필요 (A2A만)                           │
 ├─────────────────────────────────────────────────────┤
 │             sage (Security Layer) ★                 │
-│  - RFC 9421 HTTP Message Signatures                │
-│  - Crypto (Ed25519, Secp256k1, X25519)             │
-│  - DID Management (블록체인 신원)                    │
-│  - Session Encryption (HPKE, AEAD)                 │
-│  - Nonce, Replay Attack Prevention                 │
-│  - Go 1.23.0+ 요구 (낮은 버전) ✅                    │
+│  - RFC 9421 HTTP Message Signatures                 │
+│  - Crypto (Ed25519, Secp256k1, X25519)              │
+│  - DID Management (블록체인 신원)                     │
+│  - Session Encryption (HPKE, AEAD)                  │
+│  - Nonce, Replay Attack Prevention                  │
+│  - Go 1.23.0+ 요구 (낮은 버전) ✅                     │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -157,11 +161,13 @@ resp, err := c.SendMessage(ctx, req) // ← 단순 전송
 **원칙**: 고수준 모듈(sage)은 저수준 모듈(a2a-go)에 의존하지 않음
 
 **Before (현재)**:
+
 ```
 sage → a2a-go (구체 타입 의존) ❌
 ```
 
 **After (제안)**:
+
 ```
 sage (인터페이스 정의)
   ↑
@@ -235,6 +241,7 @@ package transport
 **파일**: `pkg/agent/handshake/client.go`
 
 **Before**:
+
 ```go
 import (
     a2a "github.com/a2aproject/a2a/grpc"  // ❌
@@ -254,6 +261,7 @@ func NewClient(conn grpc.ClientConnInterface, key sagecrypto.KeyPair) *Client {
 ```
 
 **After**:
+
 ```go
 import (
     "github.com/sage-x-project/sage/pkg/agent/transport"  // ✅
@@ -275,6 +283,7 @@ func NewClient(t transport.MessageTransport, key sagecrypto.KeyPair) *Client {
 #### 4.1.3 메시지 전송 로직 변경
 
 **Before**:
+
 ```go
 func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage, did string) (*a2a.SendMessageResponse, error) {
     payload, _ := toStructPB(invMsg)
@@ -296,6 +305,7 @@ func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage, did s
 ```
 
 **After**:
+
 ```go
 func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage, did string) (*transport.Response, error) {
     // 1. 페이로드 직렬화 (sage 내부)
@@ -481,15 +491,15 @@ func main() {
 
 ### 5.1 현재 vs 제안
 
-| 항목 | 현재 | 제안 | 개선 |
-|------|------|------|------|
-| **sage Go 버전** | 1.24.4+ | 1.23.0+ | ✅ 버전 복원 |
-| **A2A Go 버전** | N/A | 1.24.4+ | ✅ 분리됨 |
-| **전송 프로토콜** | gRPC만 | gRPC/HTTP/WS | ✅ 확장 가능 |
-| **모듈성** | 낮음 (강결합) | 높음 (느슨한 결합) | ✅ 개선 |
-| **테스트 용이성** | Mock 복잡 | Mock 간단 | ✅ 개선 |
-| **의존성 방향** | sage → a2a | sage ← A2A | ✅ 올바름 |
-| **패키지 크기** | 크다 | 작다 | ✅ 개선 |
+| 항목              | 현재          | 제안               | 개선         |
+| ----------------- | ------------- | ------------------ | ------------ |
+| **sage Go 버전**  | 1.24.4+       | 1.23.0+            | ✅ 버전 복원 |
+| **A2A Go 버전**   | N/A           | 1.24.4+            | ✅ 분리됨    |
+| **전송 프로토콜** | gRPC만        | gRPC/HTTP/WS       | ✅ 확장 가능 |
+| **모듈성**        | 낮음 (강결합) | 높음 (느슨한 결합) | ✅ 개선      |
+| **테스트 용이성** | Mock 복잡     | Mock 간단          | ✅ 개선      |
+| **의존성 방향**   | sage → a2a    | sage ← A2A         | ✅ 올바름    |
+| **패키지 크기**   | 크다          | 작다               | ✅ 개선      |
 
 ### 5.2 인과관계 분석
 
@@ -569,24 +579,26 @@ gRPC 전송
 
 ### 6.1 Timeline
 
-| Phase | 작업 | 기간 | 담당 |
-|-------|------|------|------|
-| **Phase 1** | sage 리팩토링 | 3-5일 | Backend |
-| **Phase 2** | A2A Adapter | 2-3일 | Transport |
+| Phase       | 작업          | 기간  | 담당        |
+| ----------- | ------------- | ----- | ----------- |
+| **Phase 1** | sage 리팩토링 | 3-5일 | Backend     |
+| **Phase 2** | A2A Adapter   | 2-3일 | Transport   |
 | **Phase 3** | sage-adk 통합 | 2-3일 | Integration |
-| **Phase 4** | 문서 업데이트 | 1-2일 | Docs |
-| **Phase 5** | 배포 | 1일 | DevOps |
+| **Phase 4** | 문서 업데이트 | 1-2일 | Docs        |
+| **Phase 5** | 배포          | 1일   | DevOps      |
 
 **총 기간**: 약 2주
 
 ### 6.2 Phase 1: sage 리팩토링 (3-5일)
 
 **Day 1-2: 인터페이스 설계**
+
 - [ ] `pkg/agent/transport/interface.go` 생성
 - [ ] `SecureMessage`, `Response` 타입 정의
 - [ ] `MessageTransport` 인터페이스 정의
 
 **Day 3-4: 코드 리팩토링**
+
 - [ ] `handshake/client.go` 리팩토링
 - [ ] `handshake/server.go` 리팩토링
 - [ ] `hpke/client.go` 리팩토링
@@ -594,6 +606,7 @@ gRPC 전송
 - [ ] `hpke/common.go` 리팩토링
 
 **Day 5: 테스트 및 정리**
+
 - [ ] 테스트 코드 업데이트
 - [ ] go.mod에서 a2a-go 제거
 - [ ] Go 1.23.0 복원 확인
@@ -602,33 +615,38 @@ gRPC 전송
 ### 6.3 Phase 2: A2A Adapter (2-3일)
 
 **Day 1: 프로젝트 설정**
+
 - [ ] A2A 저장소에 `transport/grpc` 패키지 생성
 - [ ] go.mod 설정 (a2a-go 의존성)
 
 **Day 2: Adapter 구현**
+
 - [ ] `adapter.go` 구현
 - [ ] `adapter_test.go` 작성
 - [ ] 통합 테스트
 
 **Day 3 (선택): HTTP Adapter**
+
 - [ ] `transport/http/adapter.go` 구현
 - [ ] 테스트
 
 ### 6.4 Phase 3: sage-adk 통합 (2-3일)
 
 **Day 1-2: 통합 코드 작성**
+
 - [ ] sage-adk 예제 업데이트
 - [ ] A2A Transport 사용 예시
 - [ ] HTTP Transport 사용 예시
 
 **Day 3: 검증**
+
 - [ ] End-to-End 테스트
 - [ ] 성능 테스트
 
 ### 6.5 Phase 4: 문서 (1-2일)
 
 - [ ] README.md 업데이트
-- [ ] docs/handshake/*.md 업데이트
+- [ ] docs/handshake/\*.md 업데이트
 - [ ] 마이그레이션 가이드 작성
 - [ ] API 문서 업데이트
 
@@ -647,12 +665,14 @@ gRPC 전송
 **A**: Breaking change이지만, 마이그레이션이 간단합니다.
 
 **Before**:
+
 ```go
 conn, _ := grpc.Dial("localhost:50051", grpc.WithInsecure())
 client := handshake.NewClient(conn, keyPair)
 ```
 
 **After**:
+
 ```go
 conn, _ := grpc.Dial("localhost:50051", grpc.WithInsecure())
 transport := a2aTransport.NewA2ATransport(conn)  // ← 1줄 추가
@@ -666,6 +686,7 @@ client := handshake.NewClient(transport, keyPair)
 **A**: A2A 없이도 sage를 사용할 수 있도록 하기 위함입니다.
 
 **사용 케이스**:
+
 - 간단한 프로토타입: HTTP만으로 충분
 - 레거시 시스템: gRPC 지원 불가
 - 테스트: Mock 서버로 HTTP 사용
@@ -675,6 +696,7 @@ client := handshake.NewClient(transport, keyPair)
 **A**: 없습니다. 인터페이스 호출 오버헤드는 무시할 수 있습니다.
 
 **벤치마크 예상**:
+
 - 현재: 100ns/op
 - 제안: 102ns/op (인터페이스 호출 2ns)
 - **차이: 2% 미만** ✅
@@ -682,6 +704,7 @@ client := handshake.NewClient(transport, keyPair)
 ### Q4: 테스트는 어떻게 변경되나요?
 
 **Before** (Mock이 복잡함):
+
 ```go
 mockA2A := &mockA2AServiceClient{
     SendMessageFunc: func(...) {...},
@@ -689,6 +712,7 @@ mockA2A := &mockA2AServiceClient{
 ```
 
 **After** (Mock이 간단함):
+
 ```go
 mockTransport := &mockTransport{
     SendFunc: func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
@@ -705,6 +729,7 @@ client := handshake.NewClient(mockTransport, keyPair)
 **A**: `MessageTransport` 인터페이스만 구현하면 됩니다.
 
 **예시: WebSocket**:
+
 ```go
 type WebSocketTransport struct {
     conn *websocket.Conn
@@ -740,33 +765,37 @@ func (t *WebSocketTransport) Send(ctx context.Context, msg *SecureMessage) (*Res
 > **"sage는 보안 라이브러리이지, 통신 라이브러리가 아닙니다."**
 
 **잘못된 현재**:
+
 ```
 sage (보안) → a2a-go (통신)  ❌ 레이어 경계 위반
 ```
 
 **올바른 제안**:
+
 ```
 sage (보안 인터페이스) ← A2A (통신 구현)  ✅ 의존성 역전
 ```
 
 ### 8.2 기대 효과
 
-| 효과 | 현재 | 제안 | 개선율 |
-|------|------|------|--------|
+| 효과    | 현재    | 제안    | 개선율  |
+| ------- | ------- | ------- | ------- |
 | Go 버전 | 1.24.4+ | 1.23.0+ | ✅ 복원 |
-| 모듈성 | 낮음 | 높음 | +80% |
-| 확장성 | gRPC만 | 다중 | +무한 |
-| 테스트 | 복잡 | 간단 | +50% |
+| 모듈성  | 낮음    | 높음    | +80%    |
+| 확장성  | gRPC만  | 다중    | +무한   |
+| 테스트  | 복잡    | 간단    | +50%    |
 
 ### 8.3 최종 권장사항
 
 **즉시 시작을 권장합니다**:
+
 - ✅ 기술적으로 완벽히 가능
 - ✅ 작업량 합리적 (2주)
 - ✅ 위험도 낮음
 - ✅ 장기적 이점 큼
 
 **다음 단계**:
+
 1. 이 제안서 검토 및 승인
 2. Phase 1 작업 시작 (인터페이스 추상화)
 3. A2A 프로젝트 설정
@@ -779,6 +808,7 @@ sage (보안 인터페이스) ← A2A (통신 구현)  ✅ 의존성 역전
 ### A. 변경 파일 목록
 
 **sage 프로젝트 (9개)**:
+
 ```
 신규:
   pkg/agent/transport/interface.go
@@ -797,6 +827,7 @@ sage (보안 인터페이스) ← A2A (통신 구현)  ✅ 의존성 역전
 ```
 
 **A2A 프로젝트 (신규)**:
+
 ```
 A2A/transport/grpc/adapter.go
 A2A/transport/grpc/adapter_test.go
