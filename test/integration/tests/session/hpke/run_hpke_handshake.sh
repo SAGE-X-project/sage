@@ -20,8 +20,8 @@ cleanup () {
 trap cleanup EXIT INT TERM
 
 echo "${YLW}[build] building server/client...${NC}"
-go build -o "${SERVER_BIN}" "${ROOT_DIR}/server"
-go build -o "${CLIENT_BIN}" "${ROOT_DIR}/client"
+go build -tags="integration,a2a" -o "${SERVER_BIN}" "${ROOT_DIR}/server"
+go build -tags="integration,a2a" -o "${CLIENT_BIN}" "${ROOT_DIR}/client"
 
 echo "${YLW}[start] launching server...${NC}"
 "${SERVER_BIN}" >"${SERVER_LOG}" 2>&1 &

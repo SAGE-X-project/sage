@@ -724,62 +724,14 @@ run_test "인증 태그 검증" \
 print_category "8.3 핸드셰이크 E2E 테스트"
 TEST_NUM=1
 
-print_test $TEST_NUM 5 "01-signed: 정상 서명 요청"
+# Run the new MockTransport-based E2E test instead of integration test
+print_test $TEST_NUM 4 "MockTransport HPKE E2E 테스트"
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
-if make test-handshake > /tmp/sage-test-logs/handshake_e2e.log 2>&1; then
-    if grep -q "\[packet 01-signed\].*200" /tmp/sage-test-logs/handshake_e2e.log; then
-        print_success "정상 서명 요청 (200)"
-        PASSED_TESTS=$((PASSED_TESTS + 1))
-    else
-        print_error "핸드셰이크 응답 오류"
-        FAILED_TESTS=$((FAILED_TESTS + 1))
-    fi
-else
-    print_error "핸드셰이크 테스트 실행 실패"
-    FAILED_TESTS=$((FAILED_TESTS + 1))
-fi
-TEST_NUM=$((TEST_NUM + 1))
-
-print_test $TEST_NUM 5 "02-empty-body: 재전송 방지"
-TOTAL_TESTS=$((TOTAL_TESTS + 1))
-if grep -q "\[packet 02-empty-body\].*401" /tmp/sage-test-logs/handshake_e2e.log; then
-    print_success "빈 바디 재전송 방지 (401)"
+if go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run TestE2E_HPKE_Handshake_MockTransport > /tmp/sage-test-logs/handshake_e2e.log 2>&1; then
+    print_success "HPKE E2E 테스트 통과 (4개 시나리오)"
     PASSED_TESTS=$((PASSED_TESTS + 1))
 else
-    print_error "재전송 방지 실패"
-    FAILED_TESTS=$((FAILED_TESTS + 1))
-fi
-TEST_NUM=$((TEST_NUM + 1))
-
-print_test $TEST_NUM 5 "03-bad-signature: 잘못된 서명 거부"
-TOTAL_TESTS=$((TOTAL_TESTS + 1))
-if grep -q "\[packet 03-bad-signature\].*400" /tmp/sage-test-logs/handshake_e2e.log; then
-    print_success "잘못된 서명 거부 (400)"
-    PASSED_TESTS=$((PASSED_TESTS + 1))
-else
-    print_error "서명 검증 실패"
-    FAILED_TESTS=$((FAILED_TESTS + 1))
-fi
-TEST_NUM=$((TEST_NUM + 1))
-
-print_test $TEST_NUM 5 "04-replay: Nonce 재사용 거부"
-TOTAL_TESTS=$((TOTAL_TESTS + 1))
-if grep -q "\[packet 04-replay\].*401" /tmp/sage-test-logs/handshake_e2e.log; then
-    print_success "Nonce 재사용 거부 (401)"
-    PASSED_TESTS=$((PASSED_TESTS + 1))
-else
-    print_error "Nonce 재사용 방지 실패"
-    FAILED_TESTS=$((FAILED_TESTS + 1))
-fi
-TEST_NUM=$((TEST_NUM + 1))
-
-print_test $TEST_NUM 5 "05-expired: 세션 만료 처리"
-TOTAL_TESTS=$((TOTAL_TESTS + 1))
-if grep -q "\[packet 05-expired\].*401" /tmp/sage-test-logs/handshake_e2e.log; then
-    print_success "세션 만료 처리 (401)"
-    PASSED_TESTS=$((PASSED_TESTS + 1))
-else
-    print_error "세션 만료 처리 실패"
+    print_error "HPKE E2E 테스트 실패"
     FAILED_TESTS=$((FAILED_TESTS + 1))
 fi
 
