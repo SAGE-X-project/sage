@@ -896,91 +896,25 @@ npx hardhat run scripts/deploy.js --network localhost
 
 ---
 
-### 모든 테스트를 검증하는 전체 워크플로우
 
-#### Step 1: 자동화 스크립트 실행
-```bash
-./tools/scripts/verify_all_features.sh -v
-```
-**결과**: 75+ 개의 단위 테스트 및 기능 테스트 통과
+### 통합 테스트에 대한 참고사항
 
-#### Step 2: 통합 테스트 실행
+`verify_all_features.sh` 스크립트의 **9.2 블록체인 통합 테스트** 섹션이 자동으로 다음을 실행합니다:
+
+- `TestBlockchainConnection` - Web3 연결 및 Chain ID 검증
+- `TestEnhancedProviderIntegration` - 가스 추정 및 재시도 로직
+- `TestDIDRegistration` - DID 등록 및 조회
+- `TestMultiAgentDID` - 멀티 에이전트 DID 생성
+- `TestDIDResolver` - DID Resolver 캐싱
+
+이 테스트들은 **블록체인 노드가 실행 중이어야** 통과합니다. 스크립트는 자동으로 다음을 수행합니다:
+1. 블록체인 노드 확인
+2. 통합 테스트 실행
+3. 결과 검증
+
+**수동으로 통합 테스트만 실행하려면**:
 ```bash
 make test-integration
-```
-**결과**: DID 등록/조회/관리, Ethereum 연동 검증 (건너뛴 4개 테스트 커버)
-
-#### Step 3: sage-verify 수동 검증
-```bash
-# 블록체인 노드 시작 및 배포 후
-./build/bin/sage-verify
-```
-**결과**: 배포 상태 검증 (건너뛴 1개 테스트 커버)
-
-#### Step 4: 핸드셰이크 E2E 테스트
-```bash
-make test-handshake
-```
-**결과**: 5개 시나리오 E2E 검증
-
----
-
-### 통합 테스트 상세 실행 가이드
-
-#### 사전 조건
-
-1. **블록체인 노드 시작**:
-```bash
-# 터미널 1
-cd contracts/ethereum
-npx hardhat node
-```
-
-2. **컨트랙트 배포**:
-```bash
-# 터미널 2
-cd contracts/ethereum
-npx hardhat run scripts/deploy.js --network localhost
-```
-
-3. **통합 테스트 실행**:
-```bash
-# 터미널 3
-make test-integration
-```
-
-#### 실행되는 테스트 목록
-
-```bash
-# 블록체인 연결
-TestBlockchainConnection
-- Web3 연결 확인
-- Chain ID 검증 (31337)
-- 블록 번호 조회
-
-# Enhanced Provider
-TestEnhancedProviderIntegration
-- 가스 추정
-- 재시도 로직
-- 트랜잭션 실행
-
-# DID 등록
-TestDIDRegistration
-- DID 생성 및 등록
-- 공개키 저장
-- 이벤트 수신
-- DID 조회 검증
-
-# Enhanced DID 통합
-TestEnhancedDIDIntegration
-- 전체 DID 생명주기
-- DID 업데이트
-- DID 비활성화
-
-# 기본 통합 테스트
-TestDIDIntegration
-- 기본 DID 흐름
-- 공개키 검증
 ```
 
 ---
@@ -1088,37 +1022,55 @@ chmod +x tools/scripts/quick_verify.sh
 ### 테스트 실행 요약
 
 - **빠른 검증**: `./tools/scripts/quick_verify.sh` (30초, 5개 주요 기능)
-- **전체 검증**: `./tools/scripts/verify_all_features.sh -v` (5-10분, 75+ 단위 테스트)
-- **통합 테스트**: `make test-integration` (2-3분, DID/블록체인 테스트)
-- **E2E 테스트**: `make test-handshake` (30초, 5개 시나리오)
+- **전체 검증**: `./tools/scripts/verify_all_features.sh -v` (5-10분, 88개 테스트 자동 실행)
+- **통합 테스트**: 자동화 스크립트에 포함됨 (DID/블록체인 검증)
+- **E2E 핸드셰이크**: 자동화 스크립트에 포함됨 (5개 시나리오)
 - **배포 검증**: `./build/bin/sage-verify` (수동, 블록체인 상태)
 
-### 건너뛴 테스트 (5개)
+### 자동화 스크립트에서 건너뛴 테스트 (4개)
 
-자동화 스크립트에서 건너뛴 테스트는 **모두 검증 가능**합니다:
-- **3.2-3.4 DID 관리** (3개) → `make test-integration`
-- **4.1 Ethereum 연동** (1개) → `make test-integration`
-- **6.3 sage-verify** (1개) → `./build/bin/sage-verify` (수동)
+다음 섹션들은 중복을 피하기 위해 자동화 스크립트의 중간에서 건너뛰지만,
+**9.2 블록체인 통합 테스트 섹션**에서 자동으로 검증됩니다:
 
-### 완전한 검증 체크리스트
+- **3.2 DID 등록** → 9.2에서 TestDIDRegistration으로 검증
+- **3.3 DID 조회** → 9.2에서 TestDIDRegistration으로 검증
+- **3.4 DID 관리** → 9.2에서 TestDIDRegistrationEnhanced로 검증
+- **4.1 Ethereum 연동** → 9.2에서 TestBlockchainConnection, TestEnhancedProviderIntegration으로 검증
 
-모든 기능을 검증하려면 다음 순서로 실행:
+### 추가 수동 검증 (선택사항)
 
+**6.3 sage-verify** - 배포 상태 검증 (자동화 스크립트에 미포함)
 ```bash
-# 1. 단위 테스트 및 기능 테스트 (75+)
-./tools/scripts/verify_all_features.sh -v
-
-# 2. 통합 테스트 (DID, 블록체인) (5+)
-make test-integration
-
-# 3. E2E 핸드셰이크 (5)
-make test-handshake
-
-# 4. 배포 검증 (수동)
+# 블록체인 노드 시작 및 배포 후
 ./build/bin/sage-verify
 ```
 
-**총 테스트 수**: 85+ 개 (모든 소분류 100% 커버)
+### 완전한 검증 체크리스트
+
+**단일 명령으로 모든 기능 검증** (88개 테스트):
+
+```bash
+./tools/scripts/verify_all_features.sh -v
+```
+
+이 명령어가 다음을 **모두 자동으로 실행**합니다:
+1. **RFC 9421 구현** (18개 테스트)
+2. **암호화 키 관리** (16개 테스트)
+3. **DID 생성/파싱** (2개 테스트)
+4. **블록체인 연동 설정** (4개 테스트)
+5. **메시지 처리** (12개 테스트)
+6. **CLI 도구** (5개 테스트)
+7. **세션 관리** (11개 테스트)
+8. **HPKE + E2E 핸드셰이크** (7개 테스트)
+9. **통합 테스트** (6개 테스트: 전체 유닛 테스트 + 블록체인 통합)
+   - 전체 유닛 테스트 (150+ 케이스)
+   - DID 등록/조회/관리
+   - Ethereum Web3 연결
+   - 가스 추정 및 트랜잭션
+   - 멀티 에이전트 DID
+   - DID Resolver 캐싱
+
+**총 테스트 수**: 88개 (모든 소분류 100% 자동 검증)
 
 ### 로그 및 디버깅
 

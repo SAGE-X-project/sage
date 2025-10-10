@@ -526,14 +526,14 @@ TEST_NUM=$((TEST_NUM + 1))
 print_test $TEST_NUM 5 "키페어 생성 (Secp256k1 PEM)"
 run_cli_test "Secp256k1 PEM 생성" \
     "./build/bin/sage-crypto generate --type secp256k1 --format pem" \
-    "BEGIN PRIVATE KEY" \
+    "BEGIN EC PRIVATE KEY" \
     "/tmp/sage-test-logs/cli_secp256k1_pem.txt"
 TEST_NUM=$((TEST_NUM + 1))
 
 print_test $TEST_NUM 5 "키 저장소 저장"
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 if ./build/bin/sage-crypto generate --type ed25519 --format storage --storage-dir /tmp/sage-keys --key-id test-key > /tmp/sage-test-logs/cli_storage.log 2>&1; then
-    if [ -f "/tmp/sage-keys/test-key.json" ]; then
+    if [ -f "/tmp/sage-keys/test-key.key" ]; then
         print_success "키 저장소 저장 성공"
         PASSED_TESTS=$((PASSED_TESTS + 1))
         rm -rf /tmp/sage-keys
