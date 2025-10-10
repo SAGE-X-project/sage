@@ -30,6 +30,14 @@ func HasPeer(s *Server, ctxID string) bool {
 	return ok
 }
 
+// HasPending reports whether the server has pending state for the given context.
+func HasPending(s *Server, ctxID string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.pending[ctxID]
+	return ok
+}
+
 // SetPeerExpiry overrides the expiry timestamp for the given peer in tests.
 func SetPeerExpiry(s *Server, ctxID string, expires time.Time) {
 	s.mu.Lock()

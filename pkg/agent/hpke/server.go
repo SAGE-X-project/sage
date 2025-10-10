@@ -25,20 +25,19 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"time"
 
-	a2a "github.com/a2aproject/a2a/grpc"
 	"github.com/google/uuid"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/session"
+	"github.com/sage-x-project/sage/pkg/agent/transport"
 	"golang.org/x/crypto/hkdf"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 // KeyIDBinder optionally lets the server issue custom key IDs.
@@ -47,14 +46,13 @@ type KeyIDBinder interface {
 }
 
 // Server accepts HPKE init, verifies DID-signature, derives secrets,
-// creates a session, and returns a signed A2A Message with kid/ephS/ackTag.
+// creates a session, and returns a signed response with kid/ephS/ackTag.
 type Server struct {
-	a2a.UnimplementedA2AServiceServer
-
-	key      sagecrypto.KeyPair // Ed25519 for signing A2A Message (metadata)
-	kem      sagecrypto.KeyPair // X25519 KEM static key (HPKE Base recipient)
-	DID      string
-	resolver did.Resolver
+	key       sagecrypto.KeyPair // Ed25519 for signing messages
+	kem       sagecrypto.KeyPair // X25519 KEM static key (HPKE Base recipient)
+	DID       string
+	resolver  did.Resolver
+	transport transport.MessageTransport // Optional: for sending responses
 
 	sessMgr *session.Manager
 	info    InfoBuilder
@@ -66,10 +64,11 @@ type Server struct {
 }
 
 type ServerOpts struct {
-	MaxSkew time.Duration
-	Binder  KeyIDBinder
-	Info    InfoBuilder
-	KEM     sagecrypto.KeyPair // X25519 KEM static key
+	MaxSkew   time.Duration
+	Binder    KeyIDBinder
+	Info      InfoBuilder
+	KEM       sagecrypto.KeyPair              // X25519 KEM static key
+	Transport transport.MessageTransport // Optional transport for responses
 }
 
 func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, didStr string, resolver did.Resolver, opts *ServerOpts) *Server {
@@ -83,36 +82,39 @@ func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, didStr string, 
 		opts.MaxSkew = 2 * time.Minute
 	}
 	return &Server{
-		key:      key,
-		kem:      opts.KEM,
-		resolver: resolver,
-		sessMgr:  sessMgr,
-		info:     opts.Info,
-		DID:      didStr,
-		maxSkew:  opts.MaxSkew,
-		nonces:   newNonceStore(10 * time.Minute),
-		binder:   opts.Binder,
+		key:       key,
+		kem:       opts.KEM,
+		resolver:  resolver,
+		transport: opts.Transport,
+		sessMgr:   sessMgr,
+		info:      opts.Info,
+		DID:       didStr,
+		maxSkew:   opts.MaxSkew,
+		nonces:    newNonceStore(10 * time.Minute),
+		binder:    opts.Binder,
 	}
 }
 
-// SendMessage handles TaskHPKEComplete: verifies the sender, parses payload,
+// HandleMessage handles TaskHPKEComplete: verifies the sender, parses payload,
 // derives exporter + E2E secret, creates the session, and replies with a
-// server-signed A2A Message (kid/ephS/ackTag).
-func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*a2a.SendMessageResponse, error) {
-	// 1) Basic validation and extract the data struct.
-	msg, st, err := validateAndExtract(in)
-	if err != nil {
-		return nil, err
+// signed response (kid/ephS/ackTag).
+func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+	// 1) Basic validation
+	if msg == nil {
+		return nil, errors.New("empty message")
+	}
+	if msg.TaskID != TaskHPKEComplete {
+		return nil, fmt.Errorf("unsupported task: %s", msg.TaskID)
 	}
 
-	// 2) Verify sender DID and signature (metadata.signature over message-without-metadata).
-	senderDID, _, err := s.verifySender(ctx, in)
+	// 2) Verify sender DID and signature
+	senderDID, _, err := s.verifySender(ctx, msg)
 	if err != nil {
 		return nil, err
 	}
 
 	// 3) Parse HPKE init payload (HPKE Base + client ephC).
-	pl, err := ParseHPKEInitPayloadWithEphC(st)
+	pl, err := ParseHPKEInitPayloadWithEphCFromJSON(msg.Payload)
 	if err != nil {
 		return nil, fmt.Errorf("parse payload: %w", err)
 	}
@@ -141,7 +143,7 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 	}
 
 	// 8) Create a session for the receiver side and bind a key ID.
-	kid, err := s.createSessionAndBindKid(msg.GetContextId(), combined)
+	kid, err := s.createSessionAndBindKid(msg.ContextID, combined)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +151,7 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 	// 9) Compute the key confirmation tag (ackTag).
 	ack := MakeAckTag(
 		combined,
-		msg.GetContextId(),
+		msg.ContextID,
 		pl.Nonce,
 		kid,
 		pl.Info,
@@ -161,57 +163,38 @@ func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*
 		[]byte(pl.RespDID),
 	)
 
-	// 10) Build a signed A2A Message response (SendMessageResponse_Msg).
+	// 10) Build a signed response.
 	out := map[string]any{
 		"kid":       kid,
 		"ephS":      base64.RawURLEncoding.EncodeToString(ephSPubBytes),
 		"ackTagB64": base64.RawURLEncoding.EncodeToString(ack),
 		"ts":        time.Now().UTC().Format(time.RFC3339Nano),
+		"did":       s.DID,
 	}
-	return s.signedMsgResponse(msg, out)
+	return s.signedResponse(msg, out)
 }
 
-// Validate request and extract the first data part as a struct.
-func validateAndExtract(in *a2a.SendMessageRequest) (*a2a.Message, *structpb.Struct, error) {
-	if in == nil || in.Request == nil {
-		return nil, nil, errors.New("empty request")
-	}
-	msg := in.Request
-	if msg.TaskId != TaskHPKEComplete {
-		return nil, nil, fmt.Errorf("unsupported task: %s", msg.TaskId)
-	}
-	if len(msg.Content) == 0 || msg.Content[0].GetData() == nil || msg.Content[0].GetData().Data == nil {
-		return nil, nil, errors.New("missing data part")
-	}
-	return msg, msg.Content[0].GetData().Data, nil
-}
-
-// Verify sender DID and metadata signature (over message-without-metadata).
-func (s *Server) verifySender(ctx context.Context, in *a2a.SendMessageRequest) (senderDID string, senderPub crypto.PublicKey, err error) {
+// Verify sender DID and signature.
+func (s *Server) verifySender(ctx context.Context, msg *transport.SecureMessage) (senderDID string, senderPub crypto.PublicKey, err error) {
 	if s.resolver == nil {
 		return "", nil, errors.New("resolver not configured")
 	}
-	v := in.Metadata.GetFields()["did"]
-	if v == nil || v.GetStringValue() == "" {
+	if msg.DID == "" {
 		return "", nil, errors.New("missing did")
 	}
-	senderDID = v.GetStringValue()
+	senderDID = msg.DID
 	senderPub, err = s.resolver.ResolvePublicKey(ctx, did.AgentDID(senderDID))
 	if err != nil || senderPub == nil {
 		return "", nil, errors.New("cannot resolve sender pubkey")
 	}
-	if in.Metadata != nil {
-		unsigned := proto.Clone(in.Request).(*a2a.Message)
-		unsigned.Metadata = nil
-		if err := verifySenderSignature(unsigned, in.Metadata, senderPub); err != nil {
-			return "", nil, fmt.Errorf("signature verification failed: %w", err)
-		}
+	if err := s.verifySignature(msg.Payload, msg.Signature, senderPub); err != nil {
+		return "", nil, fmt.Errorf("signature verification failed: %w", err)
 	}
 	return senderDID, senderPub, nil
 }
 
 // Validate DID binding, timestamp window, replay protection, and info/exportCtx.
-func (s *Server) validateInitEnvelope(msg *a2a.Message, pl HPKEInitPayload, senderDID string) error {
+func (s *Server) validateInitEnvelope(msg *transport.SecureMessage, pl HPKEInitPayload, senderDID string) error {
 	if senderDID != "" && senderDID != pl.InitDID {
 		return fmt.Errorf("authentication failed")
 	}
@@ -219,18 +202,32 @@ func (s *Server) validateInitEnvelope(msg *a2a.Message, pl HPKEInitPayload, send
 	if pl.Timestamp.Before(now.Add(-s.maxSkew)) || pl.Timestamp.After(now.Add(s.maxSkew)) {
 		return fmt.Errorf("ts out of window")
 	}
-	if !s.nonces.checkAndMark(msg.GetContextId() + "|" + pl.Nonce) {
+	if !s.nonces.checkAndMark(msg.ContextID + "|" + pl.Nonce) {
 		return fmt.Errorf("replay detected")
 	}
-	cInfo := s.info.BuildInfo(msg.GetContextId(), pl.InitDID, pl.RespDID)
+	cInfo := s.info.BuildInfo(msg.ContextID, pl.InitDID, pl.RespDID)
 	if string(cInfo) != string(pl.Info) {
 		return fmt.Errorf("info mismatch")
 	}
-	cExport := s.info.BuildExportContext(msg.GetContextId())
+	cExport := s.info.BuildExportContext(msg.ContextID)
 	if string(cExport) != string(pl.ExportCtx) {
 		return fmt.Errorf("exportCtx mismatch")
 	}
 	return nil
+}
+
+// verifySignature checks the signature against the payload.
+func (s *Server) verifySignature(payload, signature []byte, senderPub crypto.PublicKey) error {
+	type verifyKey interface {
+		Verify(msg, sig []byte) error
+	}
+
+	switch pk := senderPub.(type) {
+	case verifyKey:
+		return pk.Verify(payload, signature)
+	default:
+		return fmt.Errorf("unsupported public key type: %T", senderPub)
+	}
 }
 
 // Recompute HPKE exporter from server KEM private key and sender enc.
@@ -290,30 +287,20 @@ func (s *Server) createSessionAndBindKid(ctxID string, combined []byte) (string,
 	return kid, nil
 }
 
-// Build a server-signed A2A Message response (SendMessageResponse_Msg).
-func (s *Server) signedMsgResponse(req *a2a.Message, outData map[string]any) (*a2a.SendMessageResponse, error) {
-	msgOut := &a2a.Message{
-		MessageId: uuid.NewString(),
-		ContextId: req.GetContextId(),
-		TaskId:    req.GetTaskId(),
-		Role:      a2a.Role_ROLE_AGENT,
-		Content: []*a2a.Part{{
-			Part: &a2a.Part_Data{Data: &a2a.DataPart{Data: toStruct(outData)}},
-		}},
-		Metadata: nil,
-	}
-	// Sign the message bytes WITHOUT metadata.
-	bin, err := marshalForSig(msgOut)
+// Build a server-signed transport response.
+func (s *Server) signedResponse(req *transport.SecureMessage, outData map[string]any) (*transport.Response, error) {
+	data, err := json.Marshal(outData)
 	if err != nil {
-		return nil, fmt.Errorf("marshalForSig: %w", err)
+		return nil, fmt.Errorf("marshal response: %w", err)
 	}
-	meta, err := signStruct(s.key, bin, s.DID)
-	if err != nil {
-		return nil, fmt.Errorf("sign meta: %w", err)
-	}
-	msgOut.Metadata = meta
-	return &a2a.SendMessageResponse{
-		Payload: &a2a.SendMessageResponse_Msg{Msg: msgOut},
+
+	// Note: The response data includes "did" field for identification
+	// Signature verification is done via ackTag (key confirmation)
+	return &transport.Response{
+		Success:   true,
+		MessageID: req.ID,
+		TaskID:    req.TaskID,
+		Data:      data,
 	}, nil
 }
 

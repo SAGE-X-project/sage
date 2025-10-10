@@ -53,6 +53,10 @@ type SecureSession struct {
 	// sessionSeed is the HKDF-Extract(PRK) derived from the ECDH shared secret and handshake salt.
 	// It is NOT the raw ECDH output. Both peers must compute the same PRK.
 	sessionSeed []byte
+
+	// Pre-allocated key buffer (192 bytes total, sliced for all keys)
+	// Layout: [encryptKey:32][signingKey:32][c2sEnc:32][c2sSign:32][s2cEnc:32][s2cSign:32]
+	keyMaterial []byte
 	encryptKey  []byte
 	signingKey  []byte
 	aead        cipher.AEAD
@@ -214,56 +218,63 @@ func ComputeSessionIDFromSeed(seed []byte, label string) (string, error) {
 }
 
 // deriveKeys derives encryption and signing keys from shared secret using HKDF
+// Optimized: Uses single HKDF expansion for all keys
+// Reuses pre-allocated keyMaterial buffer if available (from session pool)
 func (s *SecureSession) deriveKeys() error {
 	salt := []byte(s.id) // Use session ID as salt
 
-	// Derive encryption key
-	hkdfEnc := hkdf.New(sha256.New, s.sessionSeed, salt, []byte("encryption"))
-	s.encryptKey = make([]byte, 32) // ChaCha20-Poly1305 key size
-	if _, err := io.ReadFull(hkdfEnc, s.encryptKey); err != nil {
-		return fmt.Errorf("failed to derive encryption key: %w", err)
+	// Reuse pre-allocated keyMaterial if available and large enough
+	// Otherwise allocate new buffer (2 keys x 32 bytes = 64 bytes)
+	if len(s.keyMaterial) < 64 {
+		s.keyMaterial = make([]byte, 192) // Allocate max size for potential directional keys
 	}
 
-	// Derive signing key
-	hkdfSign := hkdf.New(sha256.New, s.sessionSeed, salt, []byte("signing"))
-	s.signingKey = make([]byte, 32) // HMAC-SHA256 key size
-	if _, err := io.ReadFull(hkdfSign, s.signingKey); err != nil {
-		return fmt.Errorf("failed to derive signing key: %w", err)
+	// Single HKDF expansion with domain-separated info
+	// Info: "sage-session-keys-v1" provides domain separation
+	reader := hkdf.New(sha256.New, s.sessionSeed, salt, []byte("sage-session-keys-v1"))
+	if _, err := io.ReadFull(reader, s.keyMaterial[:64]); err != nil {
+		return fmt.Errorf("failed to derive keys: %w", err)
 	}
+
+	// Slice the key material
+	s.encryptKey = s.keyMaterial[0:32]  // First 32 bytes for encryption
+	s.signingKey = s.keyMaterial[32:64] // Next 32 bytes for signing
 
 	return nil
 }
 
 // deriveDirectionalKeys derives c2s/s2c enc+sign keys from sessionSeed using HKDF.
 // Salt = session ID (binds keys to session identity).
+// Optimized: Uses single HKDF expansion for all directional keys
 func (s *SecureSession) deriveDirectionalKeys() error {
 	salt := []byte(s.id)
-	expand := func(info string, n int) ([]byte, error) {
-		r := hkdf.New(sha256.New, s.sessionSeed, salt, []byte(info))
-		out := make([]byte, n)
-		if _, err := io.ReadFull(r, out); err != nil {
-			return nil, err
-		}
-		return out, nil
+
+	// Extend keyMaterial buffer to hold directional keys
+	// Layout: [encryptKey:32][signingKey:32][c2sEnc:32][c2sSign:32][s2cEnc:32][s2cSign:32]
+	if len(s.keyMaterial) < 192 {
+		// Preserve existing keys and extend buffer
+		existing := make([]byte, len(s.keyMaterial))
+		copy(existing, s.keyMaterial)
+		s.keyMaterial = make([]byte, 192)
+		copy(s.keyMaterial, existing)
+		// Update pointers to encryptKey and signingKey
+		s.encryptKey = s.keyMaterial[0:32]
+		s.signingKey = s.keyMaterial[32:64]
 	}
 
-	// 32B for ChaCha20-Poly1305 key, 32B for HMAC-SHA256 key.
-	c2sEnc, err := expand("c2s|enc|v1", 32)
-	if err != nil {
-		return err
+	// Single HKDF expansion for all 4 directional keys (128 bytes total)
+	// Info: "sage-directional-keys-v1" provides domain separation from deriveKeys()
+	reader := hkdf.New(sha256.New, s.sessionSeed, salt, []byte("sage-directional-keys-v1"))
+	if _, err := io.ReadFull(reader, s.keyMaterial[64:192]); err != nil {
+		return fmt.Errorf("failed to derive directional keys: %w", err)
 	}
-	c2sSign, err := expand("c2s|sign|v1", 32)
-	if err != nil {
-		return err
-	}
-	s2cEnc, err := expand("s2c|enc|v1", 32)
-	if err != nil {
-		return err
-	}
-	s2cSign, err := expand("s2c|sign|v1", 32)
-	if err != nil {
-		return err
-	}
+
+	// Slice the directional key material
+	// Layout in keyMaterial[64:192]: [c2sEnc:32][c2sSign:32][s2cEnc:32][s2cSign:32]
+	c2sEnc := s.keyMaterial[64:96]
+	c2sSign := s.keyMaterial[96:128]
+	s2cEnc := s.keyMaterial[128:160]
+	s2cSign := s.keyMaterial[160:192]
 
 	if s.initiator {
 		// Client(initiator) sends C2S and receives S2C
@@ -354,6 +365,74 @@ func (s *SecureSession) IsExpired() bool {
 func (s *SecureSession) UpdateLastUsed() {
 	s.lastUsedAt = time.Now()
 	s.messageCount++
+}
+
+// Reset clears the session for reuse from the pool
+// This method zeros all sensitive data and resets state fields
+func (s *SecureSession) Reset() {
+	s.closed = false
+	s.id = ""
+	s.createdAt = time.Time{}
+	s.lastUsedAt = time.Time{}
+	s.messageCount = 0
+	s.initiator = false
+
+	// Clear sensitive key material (zero the entire keyMaterial buffer)
+	if s.keyMaterial != nil {
+		for i := range s.keyMaterial {
+			s.keyMaterial[i] = 0
+		}
+	}
+	if s.sessionSeed != nil {
+		for i := range s.sessionSeed {
+			s.sessionSeed[i] = 0
+		}
+		s.sessionSeed = nil
+	}
+
+	// Clear slice references (they point into keyMaterial)
+	s.encryptKey = nil
+	s.signingKey = nil
+	s.outKey = nil
+	s.inKey = nil
+	s.outSign = nil
+	s.inSign = nil
+
+	// Clear AEAD instances
+	s.aead = nil
+	s.aeadOut = nil
+	s.aeadIn = nil
+}
+
+// InitializeSession initializes a pooled session with the given parameters
+// This is used by the session pool to reuse session objects
+func (s *SecureSession) InitializeSession(sid string, sessionSeed []byte, config Config) error {
+	if sid == "" || len(sessionSeed) == 0 {
+		return fmt.Errorf("invalid inputs")
+	}
+
+	now := time.Now()
+	s.id = sid
+	s.createdAt = now
+	s.lastUsedAt = now
+	s.messageCount = 0
+	s.config = config
+	s.closed = false
+	s.sessionSeed = append([]byte(nil), sessionSeed...)
+
+	// Derive encryption and signing keys using HKDF
+	if err := s.deriveKeys(); err != nil {
+		return fmt.Errorf("failed to derive keys: %w", err)
+	}
+
+	// Initialize AEAD cipher
+	aead, err := chacha20poly1305.New(s.encryptKey)
+	if err != nil {
+		return fmt.Errorf("failed to create AEAD: %w", err)
+	}
+	s.aead = aead
+
+	return nil
 }
 
 // Close marks the session as closed

@@ -16,6 +16,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
+//go:build integration && a2a
+// +build integration,a2a
+
 package main
 
 import (
@@ -42,6 +45,7 @@ import (
 	sagedid "github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/hpke"
 	"github.com/sage-x-project/sage/pkg/agent/session"
+	"github.com/sage-x-project/sage/pkg/agent/transport/a2a"
 )
 
 const (
@@ -76,14 +80,17 @@ func main() {
 	// 3) Register the client public key so the server can verify HTTP signatures
 	registerClientOnServer(clientDID, clientKP.PublicKey().(ed25519.PublicKey))
 
-	// 4) Create hpke.Client over gRPC
+	// 4) Create hpke.Client over gRPC with A2A transport
 	conn, err := grpc.Dial(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	mustNoErr(err, "grpc dial")
 	defer conn.Close()
 
+	// Wrap the gRPC connection with A2A transport adapter
+	transport := a2a.NewA2ATransport(conn)
+
 	resolver := &httpResolver{serverDID: serverDID}
 	cliMgr := session.NewManager()
-	hClient := hpke.NewClient(conn, resolver, clientKP, clientDID, hpke.DefaultInfoBuilder{}, cliMgr)
+	hClient := hpke.NewClient(transport, resolver, clientKP, clientDID, hpke.DefaultInfoBuilder{}, cliMgr)
 
 	// 5) Run HPKE init to obtain the key ID and session
 	ctxID := "ctx-" + uuid.NewString()

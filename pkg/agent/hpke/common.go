@@ -25,17 +25,12 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"sync"
 	"time"
-
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
-
-	a2a "github.com/a2aproject/a2a/grpc"
-	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 )
 
 // info is the RFC9180 "info" input and explicitly encodes suite/combiner/context data.
@@ -72,37 +67,12 @@ func DefaultExportContext(ctxID string) []byte {
 	return DefaultInfoBuilder{}.BuildExportContext(ctxID)
 }
 
-func signStruct(k sagecrypto.KeyPair, msg []byte, did string) (*structpb.Struct, error) {
-	sig, err := k.Sign(msg)
-	if err != nil {
-		return nil, err
-	}
-	return structpb.NewStruct(map[string]any{
-		"signature": base64.RawURLEncoding.EncodeToString(sig),
-		"did":       did,
-	})
-}
-
-func marshalForSig(msg *a2a.Message) ([]byte, error) {
-	cp := proto.Clone(msg).(*a2a.Message)
-	cp.Metadata = nil
-	return proto.MarshalOptions{Deterministic: true}.Marshal(cp)
-}
-
-// verifySenderSignature checks metadata.signature against deterministic-marshaled message bytes.
-func verifySenderSignature(m *a2a.Message, meta *structpb.Struct, senderPub crypto.PublicKey) error {
-	field := meta.GetFields()["signature"]
-	if field == nil {
+// verifySignature checks the signature against the payload (for ed25519).
+func verifySignature(payload, signature []byte, senderPub crypto.PublicKey) error {
+	if len(signature) == 0 {
 		return errors.New("missing signature")
 	}
-	sig, err := base64.RawURLEncoding.DecodeString(field.GetStringValue())
-	if err != nil {
-		return fmt.Errorf("bad signature b64: %w", err)
-	}
-	bytes, err := proto.MarshalOptions{Deterministic: true}.Marshal(m)
-	if err != nil {
-		return err
-	}
+
 	// Support either a custom Verify interface or raw ed25519.PublicKey
 	type verifyKey interface {
 		Verify(msg, sig []byte) error
@@ -110,14 +80,12 @@ func verifySenderSignature(m *a2a.Message, meta *structpb.Struct, senderPub cryp
 
 	switch pk := senderPub.(type) {
 	case verifyKey:
-		// Your key type implements Verify([]byte, []byte) error
-		if err := pk.Verify(bytes, sig); err != nil {
+		if err := pk.Verify(payload, signature); err != nil {
 			return fmt.Errorf("signature verify failed: %w", err)
 		}
 		return nil
 	case ed25519.PublicKey:
-		// Standard ed25519
-		if !ed25519.Verify(pk, bytes, sig) {
+		if !ed25519.Verify(pk, payload, signature) {
 			return errors.New("signature verify failed: invalid ed25519 signature")
 		}
 		return nil
@@ -152,23 +120,20 @@ func (s *nonceStore) checkAndMark(key string) bool {
 	return true
 }
 
-func toStruct(m map[string]any) *structpb.Struct { st, _ := structpb.NewStruct(m); return st }
-func getString(st *structpb.Struct, key string) (string, error) {
-	v := st.GetFields()[key]
-	if v == nil {
+func getString(m map[string]string, key string) (string, error) {
+	v, ok := m[key]
+	if !ok || v == "" {
 		return "", fmt.Errorf("missing %s", key)
 	}
-	return v.GetStringValue(), nil
+	return v, nil
 }
-func getBase64(st *structpb.Struct, key string) ([]byte, error) {
-	s, err := getString(st, key)
+
+func getBase64(m map[string]string, key string) ([]byte, error) {
+	s, err := getString(m, key)
 	if err != nil {
 		return nil, err
 	}
 	return base64.RawURLEncoding.DecodeString(s)
-}
-func putBase64(m map[string]any, key string, b []byte) {
-	m[key] = base64.RawURLEncoding.EncodeToString(b)
 }
 
 // ACK (HMAC) - key confirmation without ciphertext
@@ -231,35 +196,40 @@ type HPKEInitPayload struct {
 }
 
 // Parse: enc and ephC arrive as base64url strings and are converted to raw bytes.
-func ParseHPKEInitPayloadWithEphC(st *structpb.Struct) (HPKEInitPayload, error) {
+func ParseHPKEInitPayloadWithEphCFromJSON(data []byte) (HPKEInitPayload, error) {
 	var out HPKEInitPayload
-	var err error
+	var m map[string]string
 
-	if out.InitDID, err = getString(st, "initDid"); err != nil {
+	if err := json.Unmarshal(data, &m); err != nil {
+		return out, fmt.Errorf("unmarshal: %w", err)
+	}
+
+	var err error
+	if out.InitDID, err = getString(m, "initDid"); err != nil {
 		return out, err
 	}
-	if out.RespDID, err = getString(st, "respDid"); err != nil {
+	if out.RespDID, err = getString(m, "respDid"); err != nil {
 		return out, err
 	}
 	var infoStr string
-	if infoStr, err = getString(st, "info"); err != nil {
+	if infoStr, err = getString(m, "info"); err != nil {
 		return out, err
 	}
 	out.Info = []byte(infoStr)
 
 	var exportCtxStr string
-	if exportCtxStr, err = getString(st, "exportCtx"); err != nil {
+	if exportCtxStr, err = getString(m, "exportCtx"); err != nil {
 		return out, err
 	}
 	out.ExportCtx = []byte(exportCtxStr)
 
-	if out.Enc, err = getBase64(st, "enc"); err != nil {
+	if out.Enc, err = getBase64(m, "enc"); err != nil {
 		return out, err
 	}
-	if out.Nonce, err = getString(st, "nonce"); err != nil {
+	if out.Nonce, err = getString(m, "nonce"); err != nil {
 		return out, err
 	}
-	tsStr, err := getString(st, "ts")
+	tsStr, err := getString(m, "ts")
 	if err != nil {
 		return out, err
 	}
@@ -269,7 +239,7 @@ func ParseHPKEInitPayloadWithEphC(st *structpb.Struct) (HPKEInitPayload, error) 
 	}
 
 	// ephC is required to provide PFS.
-	if out.EphC, err = getBase64(st, "ephC"); err != nil {
+	if out.EphC, err = getBase64(m, "ephC"); err != nil {
 		return out, fmt.Errorf("missing ephC: %w", err)
 	}
 	if l := len(out.EphC); l != 32 {
@@ -291,39 +261,44 @@ type HPKEBaseInitPayload struct {
 	Timestamp time.Time
 }
 
-func ParseHPKEBaseInitPayload(st *structpb.Struct) (HPKEBaseInitPayload, error) {
+func ParseHPKEBaseInitPayloadFromJSON(data []byte) (HPKEBaseInitPayload, error) {
 	var out HPKEBaseInitPayload
-	var err error
+	var m map[string]string
 
-	if out.InitDID, err = getString(st, "initDid"); err != nil || out.InitDID == "" {
+	if err := json.Unmarshal(data, &m); err != nil {
+		return HPKEBaseInitPayload{}, fmt.Errorf("unmarshal: %w", err)
+	}
+
+	var err error
+	if out.InitDID, err = getString(m, "initDid"); err != nil || out.InitDID == "" {
 		return HPKEBaseInitPayload{}, fmt.Errorf("initDid missing: %w", err)
 	}
-	if out.RespDID, err = getString(st, "respDid"); err != nil || out.RespDID == "" {
+	if out.RespDID, err = getString(m, "respDid"); err != nil || out.RespDID == "" {
 		return HPKEBaseInitPayload{}, fmt.Errorf("respDid missing: %w", err)
 	}
 	var infoStr string
-	if infoStr, err = getString(st, "info"); err != nil || infoStr == "" {
+	if infoStr, err = getString(m, "info"); err != nil || infoStr == "" {
 		return HPKEBaseInitPayload{}, fmt.Errorf("info missing: %w", err)
 	}
 	out.Info = []byte(infoStr)
 
 	var exportCtxStr string
-	if exportCtxStr, err = getString(st, "exportCtx"); err != nil || exportCtxStr == "" {
+	if exportCtxStr, err = getString(m, "exportCtx"); err != nil || exportCtxStr == "" {
 		return HPKEBaseInitPayload{}, fmt.Errorf("exportCtx missing: %w", err)
 	}
 	out.ExportCtx = []byte(exportCtxStr)
 
-	if out.Enc, err = getBase64(st, "enc"); err != nil {
+	if out.Enc, err = getBase64(m, "enc"); err != nil {
 		return HPKEBaseInitPayload{}, err
 	}
 	if len(out.Enc) != 32 {
 		return HPKEBaseInitPayload{}, fmt.Errorf("enc length must be 32, got %d", len(out.Enc))
 	}
 
-	if out.Nonce, err = getString(st, "nonce"); err != nil || out.Nonce == "" {
+	if out.Nonce, err = getString(m, "nonce"); err != nil || out.Nonce == "" {
 		return HPKEBaseInitPayload{}, fmt.Errorf("nonce missing: %w", err)
 	}
-	tsStr, err := getString(st, "ts")
+	tsStr, err := getString(m, "ts")
 	if err != nil {
 		return HPKEBaseInitPayload{}, err
 	}

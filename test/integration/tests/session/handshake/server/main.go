@@ -16,6 +16,9 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
+//go:build integration && a2a
+// +build integration,a2a
+
 package main
 
 import (
@@ -36,7 +39,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	a2a "github.com/a2aproject/a2a/grpc"
+	a2apb "github.com/a2aproject/a2a/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -46,6 +49,7 @@ import (
 	sagedid "github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/hpke"
 	"github.com/sage-x-project/sage/pkg/agent/session"
+	a2atransport "github.com/sage-x-project/sage/pkg/agent/transport/a2a"
 )
 
 const (
@@ -183,7 +187,7 @@ func main() {
 		PublicKEMKey: serverKEMKP.PublicKey(),
 	})
 
-	// gRPC: HPKE Server
+	// gRPC: HPKE Server with A2A adapter
 	grpcLis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
 		log.Fatalf("grpc listen: %v", err)
@@ -194,11 +198,13 @@ func main() {
 		Info:    hpke.DefaultInfoBuilder{},
 		KEM:     serverKEMKP,
 	})
-	a2a.RegisterA2AServiceServer(grpcSrv, hpkeSrv)
+	// Wrap the HPKE server with A2A server adapter
+	a2aAdapter := a2atransport.NewA2AServerAdapter(hpkeSrv)
+	a2apb.RegisterA2AServiceServer(grpcSrv, a2aAdapter)
 	go func() { _ = grpcSrv.Serve(grpcLis) }()
 
 	grpcConn, _ := grpc.Dial(grpcAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	a2aCli := a2a.NewA2AServiceClient(grpcConn)
+	a2aCli := a2apb.NewA2AServiceClient(grpcConn)
 
 	// HTTP server
 	mux := http.NewServeMux()
@@ -209,7 +215,7 @@ func main() {
 			http.Error(w, "method not allowed", 405)
 			return
 		}
-		var req a2a.SendMessageRequest
+		var req a2apb.SendMessageRequest
 		if err := protojson.Unmarshal(mustReadAll(r.Body), &req); err != nil {
 			http.Error(w, "bad json: "+err.Error(), 400)
 			return

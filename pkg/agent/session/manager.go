@@ -36,6 +36,7 @@ type Manager struct {
 	stopCleanup   chan struct{}
 	defaultConfig Config
 	nonceCache    *NonceCache // replay guard
+	sessionPool   sync.Pool   // Pool for session object reuse
 }
 
 // NewManager creates a new session manager with default configuration
@@ -49,6 +50,14 @@ func NewManager() *Manager {
 			MaxMessages: 1000,
 		},
 		nonceCache: NewNonceCache(10 * time.Minute), // replay TTL
+		sessionPool: sync.Pool{
+			New: func() interface{} {
+				// Pre-allocate a session with keyMaterial buffer
+				return &SecureSession{
+					keyMaterial: make([]byte, 192), // Pre-allocate max size
+				}
+			},
+		},
 	}
 
 	// Start background cleanup every 30 seconds
@@ -185,6 +194,7 @@ func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, strin
 }
 
 // CreateSessionWithConfig creates a new session with custom configuration
+// Uses session pool to reduce GC pressure
 func (m *Manager) CreateSessionWithConfig(sessionID string, sharedSecret []byte, config Config) (Session, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -195,11 +205,16 @@ func (m *Manager) CreateSessionWithConfig(sessionID string, sharedSecret []byte,
 		return nil, fmt.Errorf("session %s already exists", sessionID)
 	}
 
-	// Create new crypto session
-	sess, err := NewSecureSession(sessionID, sharedSecret, config)
-	if err != nil {
+	// Get session from pool (reduces allocations)
+	sess := m.sessionPool.Get().(*SecureSession)
+
+	// Initialize the pooled session
+	if err := sess.InitializeSession(sessionID, sharedSecret, config); err != nil {
+		// Return to pool on failure
+		sess.Reset()
+		m.sessionPool.Put(sess)
 		metrics.SessionsCreated.WithLabelValues("failure").Inc()
-		return nil, fmt.Errorf("failed to create session: %w", err)
+		return nil, fmt.Errorf("failed to initialize session: %w", err)
 	}
 
 	// Store in manager
@@ -282,6 +297,7 @@ func (m *Manager) GetSession(sessionID string) (Session, bool) {
 }
 
 // RemoveSession removes a session and unbinds all associated keyids.
+// Returns the session to the pool after cleanup
 func (m *Manager) RemoveSession(sessionID string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -290,6 +306,12 @@ func (m *Manager) RemoveSession(sessionID string) {
 		sess.Close()
 		delete(m.sessions, sessionID)
 		metrics.SessionsActive.Dec()
+
+		// Return session to pool
+		if secSess, ok := sess.(*SecureSession); ok {
+			secSess.Reset()
+			m.sessionPool.Put(secSess)
+		}
 	}
 	// Unbind all keyids mapped to this sessionID
 	if set, ok := m.keyIDsBySID[sessionID]; ok {
@@ -409,6 +431,12 @@ func (m *Manager) cleanupExpiredSessions() {
 			delete(m.sessions, id)
 			metrics.SessionsExpired.Inc()
 			metrics.SessionsActive.Dec()
+
+			// Return session to pool
+			if secSess, ok := sess.(*SecureSession); ok {
+				secSess.Reset()
+				m.sessionPool.Put(secSess)
+			}
 		}
 		// Unbind all keyids for this session
 		if set, ok := m.keyIDsBySID[id]; ok {

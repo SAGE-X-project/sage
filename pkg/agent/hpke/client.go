@@ -24,42 +24,39 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"time"
 
-	a2a "github.com/a2aproject/a2a/grpc"
 	"github.com/google/uuid"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/session"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
+	"github.com/sage-x-project/sage/pkg/agent/transport"
 )
 
 // Client performs the HPKE-based initialization and session creation.
 type Client struct {
-	a2a      a2a.A2AServiceClient
-	resolver did.Resolver
-	key      sagecrypto.KeyPair // Ed25519 used to sign A2A Message (metadata)
-	DID      string
-	info     InfoBuilder
-	sessMgr  *session.Manager
+	transport transport.MessageTransport
+	resolver  did.Resolver
+	key       sagecrypto.KeyPair // Ed25519 used to sign messages
+	DID       string
+	info      InfoBuilder
+	sessMgr   *session.Manager
 }
 
-func NewClient(conn grpc.ClientConnInterface, resolver did.Resolver, key sagecrypto.KeyPair, didStr string, ib InfoBuilder, sessMgr *session.Manager) *Client {
+func NewClient(t transport.MessageTransport, resolver did.Resolver, key sagecrypto.KeyPair, didStr string, ib InfoBuilder, sessMgr *session.Manager) *Client {
 	if ib == nil {
 		ib = DefaultInfoBuilder{}
 	}
 	return &Client{
-		a2a:      a2a.NewA2AServiceClient(conn),
-		resolver: resolver,
-		key:      key,
-		DID:      didStr,
-		info:     ib,
-		sessMgr:  sessMgr,
+		transport: t,
+		resolver:  resolver,
+		key:       key,
+		DID:       didStr,
+		info:      ib,
+		sessMgr:   sessMgr,
 	}
 }
 
@@ -89,27 +86,21 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
 		return "", err
 	}
 
-	// 5) Build HPKE-init message and sign its metadata (DID-bound).
+	// 5) Build HPKE-init message and sign it (DID-bound).
 	nonce := uuid.NewString()
-	msg, meta, err := c.buildAndSignInitMsg(ctxID, initDID, peerDID, info, exportCtx, nonce, enc, ephCPubBytes)
+	msg, err := c.buildAndSignInitMsg(ctxID, initDID, peerDID, info, exportCtx, nonce, enc, ephCPubBytes)
 	if err != nil {
 		return "", err
 	}
 
-	// 6) Send the request and receive a server-signed A2A Message response.
-	m, err := c.sendAndGetSignedMsg(ctx, msg, meta)
+	// 6) Send the request and receive a server-signed response.
+	resp, err := c.sendAndGetSignedMsg(ctx, msg)
 	if err != nil {
 		return "", err
 	}
 
-	// 7) Verify the server's signature (metadata.signature) over (message without metadata).
-	if err := c.verifyServerMessageSig(ctx, m); err != nil {
-		return "", err
-	}
-
-	// 8) Extract response fields: kid, ackTagB64, ephS.
-	st := m.Content[0].GetData().GetData()
-	kid, ackTag, ephSbytes, err := parseServerFields(st)
+	// 7) Extract response fields: kid, ackTagB64, ephS, serverDID.
+	kid, ackTag, ephSbytes, err := parseServerFieldsFromJSON(resp.Data)
 	if err != nil {
 		return "", err
 	}
@@ -179,8 +170,8 @@ func genEphX25519() (priv *ecdh.PrivateKey, pubBytes []byte, err error) {
 	return priv, priv.PublicKey().Bytes(), nil
 }
 
-// Build an A2A Message for HPKE init and sign its metadata using DID key.
-func (c *Client) buildAndSignInitMsg(ctxID, initDID, peerDID string, info, exportCtx []byte, nonce string, enc, ephCPubBytes []byte) (*a2a.Message, *structpb.Struct, error) {
+// Build a transport message for HPKE init and sign it using DID key.
+func (c *Client) buildAndSignInitMsg(ctxID, initDID, peerDID string, info, exportCtx []byte, nonce string, enc, ephCPubBytes []byte) (*transport.SecureMessage, error) {
 	pl := map[string]any{
 		"initDid":   initDID,
 		"respDid":   peerDID,
@@ -191,71 +182,67 @@ func (c *Client) buildAndSignInitMsg(ctxID, initDID, peerDID string, info, expor
 		"enc":       base64.RawURLEncoding.EncodeToString(enc),
 		"ephC":      base64.RawURLEncoding.EncodeToString(ephCPubBytes),
 	}
-	msg := &a2a.Message{
-		MessageId: uuid.NewString(),
-		ContextId: ctxID,
-		TaskId:    TaskHPKEComplete,
-		Role:      a2a.Role_ROLE_USER,
-		Content:   []*a2a.Part{{Part: &a2a.Part_Data{Data: &a2a.DataPart{Data: toStruct(pl)}}}},
-	}
-	// Sign the message bytes WITHOUT metadata.
-	bin, err := marshalForSig(msg)
+
+	payload, err := json.Marshal(pl)
 	if err != nil {
-		return nil, nil, fmt.Errorf("marshalForSig: %w", err)
+		return nil, fmt.Errorf("marshal payload: %w", err)
 	}
-	meta, err := signStruct(c.key, bin, c.DID)
+
+	signature, err := c.key.Sign(payload)
 	if err != nil {
-		return nil, nil, fmt.Errorf("sign meta: %w", err)
+		return nil, fmt.Errorf("sign: %w", err)
 	}
-	return msg, meta, nil
+
+	msg := &transport.SecureMessage{
+		ID:        uuid.NewString(),
+		ContextID: ctxID,
+		TaskID:    TaskHPKEComplete,
+		Payload:   payload,
+		DID:       c.DID,
+		Signature: signature,
+		Role:      "user",
+		Metadata:  make(map[string]string),
+	}
+
+	return msg, nil
 }
 
-// Send and receive a server-signed Message (SendMessageResponse_Msg).
-func (c *Client) sendAndGetSignedMsg(ctx context.Context, msg *a2a.Message, meta *structpb.Struct) (*a2a.Message, error) {
-	resp, err := c.a2a.SendMessage(ctx, &a2a.SendMessageRequest{Request: msg, Metadata: meta})
+// Send and receive a server-signed message response.
+func (c *Client) sendAndGetSignedMsg(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+	resp, err := c.transport.Send(ctx, msg)
 	if err != nil {
-		return nil, fmt.Errorf("a2a send: %w", err)
+		return nil, fmt.Errorf("transport send: %w", err)
 	}
-	m := resp.GetMsg()
-	if m == nil || m.Metadata == nil || len(m.Content) == 0 || m.Content[0].GetData() == nil {
-		return nil, fmt.Errorf("empty msg or metadata")
+	if resp == nil || len(resp.Data) == 0 {
+		return nil, fmt.Errorf("empty response data")
 	}
-	return m, nil
+	return resp, nil
 }
 
-// Verify server's metadata signature over the message (excluding metadata).
-func (c *Client) verifyServerMessageSig(ctx context.Context, m *a2a.Message) error {
-	v := m.Metadata.GetFields()["did"]
-	if v == nil || v.GetStringValue() == "" {
-		return errors.New("missing did")
+// Parse server fields (kid, ackTag, ephS) from JSON response data.
+func parseServerFieldsFromJSON(data []byte) (kid string, ackTag []byte, ephSbytes []byte, err error) {
+	var resp map[string]string
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return "", nil, nil, fmt.Errorf("unmarshal response: %w", err)
 	}
-	senderDID := v.GetStringValue()
-	senderPub, err := c.resolver.ResolvePublicKey(ctx, did.AgentDID(senderDID))
-	if err != nil || senderPub == nil {
-		return errors.New("cannot resolve sender pubkey")
-	}
-	unsigned := proto.Clone(m).(*a2a.Message)
-	unsigned.Metadata = nil
-	return verifySenderSignature(unsigned, m.Metadata, senderPub)
-}
 
-// Parse server fields (kid, ackTag, ephS) from the data struct.
-func parseServerFields(st *structpb.Struct) (kid string, ackTag []byte, ephSbytes []byte, err error) {
-	kid, err = getString(st, "kid")
-	if err != nil || kid == "" {
-		return "", nil, nil, fmt.Errorf("missing kid: %w", err)
+	kid = resp["kid"]
+	if kid == "" {
+		return "", nil, nil, fmt.Errorf("missing kid")
 	}
-	ackTagB64, err := getString(st, "ackTagB64")
-	if err != nil || ackTagB64 == "" {
-		return "", nil, nil, fmt.Errorf("missing ackTagB64: %w", err)
+
+	ackTagB64 := resp["ackTagB64"]
+	if ackTagB64 == "" {
+		return "", nil, nil, fmt.Errorf("missing ackTagB64")
 	}
 	ackTag, err = base64.RawURLEncoding.DecodeString(ackTagB64)
 	if err != nil {
 		return "", nil, nil, fmt.Errorf("ackTag b64: %w", err)
 	}
-	ephSB64, err := getString(st, "ephS")
-	if err != nil || ephSB64 == "" {
-		return "", nil, nil, fmt.Errorf("missing ephS: %w", err)
+
+	ephSB64 := resp["ephS"]
+	if ephSB64 == "" {
+		return "", nil, nil, fmt.Errorf("missing ephS")
 	}
 	ephSbytes, err = base64.RawURLEncoding.DecodeString(ephSB64)
 	if err != nil {

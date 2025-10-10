@@ -21,37 +21,18 @@ package hpke
 import (
 	"bytes"
 	"context"
-	"net"
 	"testing"
 	"time"
 
-	a2a "github.com/a2aproject/a2a/grpc"
 	"github.com/google/uuid"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	sagedid "github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/session"
+	"github.com/sage-x-project/sage/pkg/agent/transport"
 	"github.com/stretchr/testify/require"
 	"github.com/test-go/testify/mock"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/test/bufconn"
 )
-
-const bufSize = 1 << 20
-
-func startBufGRPC(t *testing.T, s a2a.A2AServiceServer) (*grpc.Server, *bufconn.Listener) {
-	t.Helper()
-	lis := bufconn.Listen(bufSize)
-	srv := grpc.NewServer()
-	a2a.RegisterA2AServiceServer(srv, s)
-	go func() { _ = srv.Serve(lis) }()
-	t.Cleanup(func() {
-		srv.Stop()
-		lis.Close()
-	})
-	return srv, lis
-}
 
 type mockResolver struct{ mock.Mock }
 
@@ -99,28 +80,22 @@ func (m *mockResolver) Search(ctx context.Context, criteria sagedid.SearchCriter
 	return args.Get(0).([]*sagedid.AgentMetadata), args.Error(1)
 }
 
-func dialBuf(t *testing.T, lis *bufconn.Listener) *grpc.ClientConn {
+// setupHPKETest creates a complete test environment with client, server, and MockTransport
+func setupHPKETest(t *testing.T, srvCfg, cliCfg session.Config) (
+	*Client,
+	*Server,
+	*session.Manager,
+	*session.Manager,
+	*mockResolver,
+	*sagedid.MultiChainResolver,
+	string, // clientDID
+	string, // serverDID
+) {
 	t.Helper()
-	conn, err := grpc.NewClient(
-		"passthrough:///bufnet",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) {
-			return lis.Dial()
-		}),
-	)
-	require.NoError(t, err)
-	return conn
-}
 
-func Test_HPKE_PFS(t *testing.T) {
-	ctx := context.Background()
-
-	ethResolver := new(mockResolver)
-	multiResolver := sagedid.NewMultiChainResolver()
-	multiResolver.AddResolver(sagedid.ChainEthereum, ethResolver)
-
-	const clientDID = "did:sage:test:client"
-	const serverDID = "did:sage:test:server"
+	// Generate unique DIDs for each test
+	clientDID := "did:sage:test:client-" + uuid.NewString()
+	serverDID := "did:sage:test:server-" + uuid.NewString()
 
 	// Server: Ed25519 (metadata signing) + X25519 (static KEM)
 	serverSignKP, err := keys.GenerateEd25519KeyPair()
@@ -132,27 +107,52 @@ func Test_HPKE_PFS(t *testing.T) {
 	clientSignKP, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
+	// Setup resolver
+	ethResolver := new(mockResolver)
+	multiResolver := sagedid.NewMultiChainResolver()
+	multiResolver.AddResolver(sagedid.ChainEthereum, ethResolver)
+
+	// Client metadata
+	// Note: PublicKey must be the KeyPair, not the raw crypto.PublicKey,
+	// because the server needs to call Verify() method during signature verification
 	aliceMeta := &did.AgentMetadata{
-		DID:       clientDID,
+		DID:       did.AgentDID(clientDID),
 		Name:      "Active Agent",
 		IsActive:  true,
-		PublicKey: clientSignKP.PublicKey(), // Used by the server to verify metadata signatures
+		PublicKey: clientSignKP, // Store the KeyPair, not the raw ed25519.PublicKey
 	}
+	// Server metadata
 	bobMeta := &did.AgentMetadata{
-		DID:          serverDID,
-		Name:         "Active Agent",
+		DID:          did.AgentDID(serverDID),
+		Name:         "Server Agent",
 		IsActive:     true,
 		PublicKEMKey: serverKEMKP.PublicKey(),
-		PublicKey:    serverSignKP.PublicKey(), // Used by the client when resolving the HPKE KEM public key
+		PublicKey:    serverSignKP, // Store the KeyPair, not the raw ed25519.PublicKey
 	}
 
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(clientDID)).Return(aliceMeta, nil).Once()
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(serverDID)).Return(bobMeta, nil).Twice()
+	// Configure default expectations (can be overridden in tests)
+	ethResolver.On("Resolve", mock.Anything, did.AgentDID(clientDID)).Return(aliceMeta, nil)
+	ethResolver.On("Resolve", mock.Anything, did.AgentDID(serverDID)).Return(bobMeta, nil)
 
+	// Session managers
 	srvMgr := session.NewManager()
+	if srvCfg.MaxAge > 0 {
+		srvMgr.SetDefaultConfig(srvCfg)
+	}
 	cliMgr := session.NewManager()
-	t.Cleanup(func() { _ = srvMgr.Close(); _ = cliMgr.Close() })
+	if cliCfg.MaxAge > 0 {
+		cliMgr.SetDefaultConfig(cliCfg)
+	}
+	t.Cleanup(func() {
+		_ = srvMgr.Close()
+		_ = cliMgr.Close()
+		ethResolver.AssertExpectations(t)
+	})
 
+	// Create MockTransport
+	mockTransport := &transport.MockTransport{}
+
+	// Create Server
 	srv := NewServer(
 		serverSignKP,
 		srvMgr,
@@ -164,10 +164,22 @@ func Test_HPKE_PFS(t *testing.T) {
 			KEM:     serverKEMKP,
 		},
 	)
-	_, lis := startBufGRPC(t, srv)
-	conn := dialBuf(t, lis)
 
-	cli := NewClient(conn, multiResolver, clientSignKP, clientDID, DefaultInfoBuilder{}, cliMgr)
+	// Setup MockTransport to route messages to Server.HandleMessage
+	mockTransport.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		return srv.HandleMessage(ctx, msg)
+	}
+
+	// Create Client with MockTransport
+	cli := NewClient(mockTransport, multiResolver, clientSignKP, clientDID, DefaultInfoBuilder{}, cliMgr)
+
+	return cli, srv, srvMgr, cliMgr, ethResolver, multiResolver, clientDID, serverDID
+}
+
+func Test_HPKE_PFS(t *testing.T) {
+	ctx := context.Background()
+
+	cli, _, srvMgr, cliMgr, _, _, clientDID, serverDID := setupHPKETest(t, session.Config{}, session.Config{})
 
 	ctxID := "ctx-" + uuid.NewString()
 	kid, err := cli.Initialize(ctx, ctxID, clientDID, serverDID)
@@ -227,65 +239,19 @@ func Test_HPKE_DHKEM_ExporterEquality(t *testing.T) {
 func Test_Session_Lifecycle_IdleExpiry(t *testing.T) {
 	ctx := context.Background()
 
-	// Mock resolver stack
-	ethResolver := new(mockResolver)
-	multiResolver := sagedid.NewMultiChainResolver()
-	multiResolver.AddResolver(sagedid.ChainEthereum, ethResolver)
-
-	const clientDID = "did:sage:test:client"
-	const serverDID = "did:sage:test:server"
-
-	// Keys: server Ed25519(sign) + X25519(KEM), client Ed25519(sign)
-	serverSignKP, err := keys.GenerateEd25519KeyPair()
-	require.NoError(t, err)
-	serverKEMKP, err := keys.GenerateX25519KeyPair()
-	require.NoError(t, err)
-	clientSignKP, err := keys.GenerateEd25519KeyPair()
-	require.NoError(t, err)
-
-	// DID metadata: put Ed25519 into PublicKey, X25519 into PublicKEMKey
-	aliceMeta := &did.AgentMetadata{
-		DID:       clientDID,
-		Name:      "Client",
-		IsActive:  true,
-		PublicKey: clientSignKP.PublicKey(), // server verifies metadata signatures
-	}
-	bobMeta := &did.AgentMetadata{
-		DID:          serverDID,
-		Name:         "Server",
-		IsActive:     true,
-		PublicKEMKey: serverKEMKP.PublicKey(), // client uses this for HPKE
-		PublicKey:    serverSignKP.PublicKey(),
-	}
-
-	// Resolver answers
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(clientDID)).Return(aliceMeta, nil).Once()
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(serverDID)).Return(bobMeta, nil).Twice()
-
 	// Tight lifetimes to exercise idle expiry
-	srvMgr := session.NewManager()
-	srvMgr.SetDefaultConfig(session.Config{
-		MaxAge:      30 * time.Second, // generous absolute life
-		IdleTimeout: 1200 * time.Millisecond,
-		MaxMessages: 1000,
-	})
-	cliMgr := session.NewManager()
-	cliMgr.SetDefaultConfig(session.Config{
+	srvCfg := session.Config{
 		MaxAge:      30 * time.Second,
 		IdleTimeout: 1200 * time.Millisecond,
 		MaxMessages: 1000,
-	})
-	t.Cleanup(func() { _ = srvMgr.Close(); _ = cliMgr.Close() })
+	}
+	cliCfg := session.Config{
+		MaxAge:      30 * time.Second,
+		IdleTimeout: 1200 * time.Millisecond,
+		MaxMessages: 1000,
+	}
 
-	// Boot server and client over in-memory gRPC
-	srv := NewServer(serverSignKP, srvMgr, serverDID, multiResolver, &ServerOpts{
-		MaxSkew: 2 * time.Minute,
-		Info:    DefaultInfoBuilder{},
-		KEM:     serverKEMKP,
-	})
-	_, lis := startBufGRPC(t, srv)
-	conn := dialBuf(t, lis)
-	cli := NewClient(conn, multiResolver, clientSignKP, clientDID, DefaultInfoBuilder{}, cliMgr)
+	cli, _, srvMgr, cliMgr, _, _, clientDID, serverDID := setupHPKETest(t, srvCfg, cliCfg)
 
 	// Initialize one session
 	ctxID := "ctx-" + uuid.NewString()
@@ -321,56 +287,19 @@ func Test_Session_Lifecycle_IdleExpiry(t *testing.T) {
 func Test_Session_MaxMessages_Enforced(t *testing.T) {
 	ctx := context.Background()
 
-	ethResolver := new(mockResolver)
-	multiResolver := sagedid.NewMultiChainResolver()
-	multiResolver.AddResolver(sagedid.ChainEthereum, ethResolver)
-
-	const clientDID = "did:sage:test:client2"
-	const serverDID = "did:sage:test:server2"
-
-	serverSignKP, _ := keys.GenerateEd25519KeyPair()
-	serverKEMKP, _ := keys.GenerateX25519KeyPair()
-	clientSignKP, _ := keys.GenerateEd25519KeyPair()
-
-	aliceMeta := &did.AgentMetadata{
-		DID:       clientDID,
-		Name:      "Client2",
-		IsActive:  true,
-		PublicKey: clientSignKP.PublicKey(),
-	}
-	bobMeta := &did.AgentMetadata{
-		DID:          serverDID,
-		Name:         "Server2",
-		IsActive:     true,
-		PublicKEMKey: serverKEMKP.PublicKey(),
-		PublicKey:    serverSignKP.PublicKey(),
-	}
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(clientDID)).Return(aliceMeta, nil).Once()
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(serverDID)).Return(bobMeta, nil).Twice()
-
 	// Very small MaxMessages to trip the limiter quickly
-	srvMgr := session.NewManager()
-	srvMgr.SetDefaultConfig(session.Config{
+	srvCfg := session.Config{
 		MaxAge:      time.Minute,
 		IdleTimeout: 3 * time.Minute,
 		MaxMessages: 2, // allow only two messages per direction
-	})
-	cliMgr := session.NewManager()
-	cliMgr.SetDefaultConfig(session.Config{
+	}
+	cliCfg := session.Config{
 		MaxAge:      time.Minute,
 		IdleTimeout: 3 * time.Minute,
 		MaxMessages: 2,
-	})
-	t.Cleanup(func() { _ = srvMgr.Close(); _ = cliMgr.Close() })
+	}
 
-	srv := NewServer(serverSignKP, srvMgr, serverDID, multiResolver, &ServerOpts{
-		MaxSkew: 2 * time.Minute,
-		Info:    DefaultInfoBuilder{},
-		KEM:     serverKEMKP,
-	})
-	_, lis := startBufGRPC(t, srv)
-	conn := dialBuf(t, lis)
-	cli := NewClient(conn, multiResolver, clientSignKP, clientDID, DefaultInfoBuilder{}, cliMgr)
+	cli, _, srvMgr, cliMgr, _, _, clientDID, serverDID := setupHPKETest(t, srvCfg, cliCfg)
 
 	ctxID := "ctx-" + uuid.NewString()
 	kid, err := cli.Initialize(ctx, ctxID, clientDID, serverDID)
@@ -403,45 +332,7 @@ func Test_Session_MaxMessages_Enforced(t *testing.T) {
 func Test_AEAD_TagIntegrity_TamperFails(t *testing.T) {
 	ctx := context.Background()
 
-	ethResolver := new(mockResolver)
-	multiResolver := sagedid.NewMultiChainResolver()
-	multiResolver.AddResolver(sagedid.ChainEthereum, ethResolver)
-
-	const clientDID = "did:sage:test:client3"
-	const serverDID = "did:sage:test:server3"
-
-	serverSignKP, _ := keys.GenerateEd25519KeyPair()
-	serverKEMKP, _ := keys.GenerateX25519KeyPair()
-	clientSignKP, _ := keys.GenerateEd25519KeyPair()
-
-	aliceMeta := &did.AgentMetadata{
-		DID:       clientDID,
-		Name:      "Client3",
-		IsActive:  true,
-		PublicKey: clientSignKP.PublicKey(),
-	}
-	bobMeta := &did.AgentMetadata{
-		DID:          serverDID,
-		Name:         "Server3",
-		IsActive:     true,
-		PublicKEMKey: serverKEMKP.PublicKey(),
-		PublicKey:    serverSignKP.PublicKey(),
-	}
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(clientDID)).Return(aliceMeta, nil).Once()
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(serverDID)).Return(bobMeta, nil).Twice()
-
-	srvMgr := session.NewManager()
-	cliMgr := session.NewManager()
-	t.Cleanup(func() { _ = srvMgr.Close(); _ = cliMgr.Close() })
-
-	srv := NewServer(serverSignKP, srvMgr, serverDID, multiResolver, &ServerOpts{
-		MaxSkew: 2 * time.Minute,
-		Info:    DefaultInfoBuilder{},
-		KEM:     serverKEMKP,
-	})
-	_, lis := startBufGRPC(t, srv)
-	conn := dialBuf(t, lis)
-	cli := NewClient(conn, multiResolver, clientSignKP, clientDID, DefaultInfoBuilder{}, cliMgr)
+	cli, _, srvMgr, cliMgr, _, _, clientDID, serverDID := setupHPKETest(t, session.Config{}, session.Config{})
 
 	ctxID := "ctx-" + uuid.NewString()
 	kid, err := cli.Initialize(ctx, ctxID, clientDID, serverDID)
@@ -473,35 +364,7 @@ func Test_AEAD_TagIntegrity_TamperFails(t *testing.T) {
 func Test_Session_KeyID_Uniqueness(t *testing.T) {
 	ctx := context.Background()
 
-	ethResolver := new(mockResolver)
-	multiResolver := sagedid.NewMultiChainResolver()
-	multiResolver.AddResolver(sagedid.ChainEthereum, ethResolver)
-
-	const clientDID = "did:sage:test:client4"
-	const serverDID = "did:sage:test:server4"
-
-	serverSignKP, _ := keys.GenerateEd25519KeyPair()
-	serverKEMKP, _ := keys.GenerateX25519KeyPair()
-	clientSignKP, _ := keys.GenerateEd25519KeyPair()
-
-	aliceMeta := &did.AgentMetadata{DID: clientDID, Name: "Client4", IsActive: true, PublicKey: clientSignKP.PublicKey()}
-	bobMeta := &did.AgentMetadata{DID: serverDID, Name: "Server4", IsActive: true, PublicKEMKey: serverKEMKP.PublicKey(), PublicKey: serverSignKP.PublicKey()}
-
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(clientDID)).Return(aliceMeta, nil).Twice()
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(serverDID)).Return(bobMeta, nil).Times(4)
-
-	srvMgr := session.NewManager()
-	cliMgr := session.NewManager()
-	t.Cleanup(func() { _ = srvMgr.Close(); _ = cliMgr.Close() })
-
-	srv := NewServer(serverSignKP, srvMgr, serverDID, multiResolver, &ServerOpts{
-		MaxSkew: 2 * time.Minute,
-		Info:    DefaultInfoBuilder{},
-		KEM:     serverKEMKP,
-	})
-	_, lis := startBufGRPC(t, srv)
-	conn := dialBuf(t, lis)
-	cli := NewClient(conn, multiResolver, clientSignKP, clientDID, DefaultInfoBuilder{}, cliMgr)
+	cli, _, srvMgr, cliMgr, _, _, clientDID, serverDID := setupHPKETest(t, session.Config{}, session.Config{})
 
 	// Create two distinct sessions (contexts) and ensure different kids
 	ctxID1 := "ctx-" + uuid.NewString()
@@ -524,5 +387,4 @@ func Test_Session_KeyID_Uniqueness(t *testing.T) {
 	srvSession, _ = srvMgr.GetByKeyID(kid2)
 	cliSession, _ = cliMgr.GetByKeyID(kid2)
 	require.Equal(t, srvSession.GetID(), cliSession.GetID(), "shared secrets should match across phases")
-
 }

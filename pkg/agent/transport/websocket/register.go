@@ -16,27 +16,21 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-package handshake
+package websocket
 
 import (
-	"errors"
-	"fmt"
+	"github.com/sage-x-project/sage/pkg/agent/transport"
 )
 
-// GenerateTaskID returns a task ID prefixed with the handshake step, e.g. "invitation-<uuid>".
-func GenerateTaskID(p Phase) string {
-	// Stable, parseable task id; adjust to match your AIP rules if needed.
-	return fmt.Sprintf("handshake/%d", int(p))
-}
+// init registers the WebSocket transport factory with the default selector
+func init() {
+	// Register WebSocket factory
+	transport.DefaultSelector.RegisterFactory(transport.TransportWebSocket, func(endpoint string) (transport.MessageTransport, error) {
+		return NewWSTransport(endpoint), nil
+	})
 
-// These helper functions are no longer needed with transport abstraction
-// structpb-based helpers have been removed
-
-func parsePhase(taskID string) (Phase, error) {
-	var p int
-	_, err := fmt.Sscanf(taskID, "handshake/%d", &p)
-	if err != nil || p < int(Invitation) || p > int(Complete) {
-		return 0, errors.New("invalid task id")
-	}
-	return Phase(p), nil
+	// Register WebSocket Secure factory (same implementation)
+	transport.DefaultSelector.RegisterFactory(transport.TransportWebSocketSecure, func(endpoint string) (transport.MessageTransport, error) {
+		return NewWSTransport(endpoint), nil
+	})
 }
