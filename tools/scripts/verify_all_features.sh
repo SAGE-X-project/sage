@@ -124,31 +124,37 @@ print_header "[1/9] RFC 9421 구현"
 print_category "1.1 메시지 서명"
 TEST_NUM=1
 
-print_test $TEST_NUM 5 "HTTP 메시지 서명 생성"
-run_test "HTTP 메시지 서명 생성" \
+print_test $TEST_NUM 6 "HTTP 메시지 서명 생성 (Ed25519)"
+run_test "HTTP 메시지 서명 생성 (Ed25519)" \
     "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestIntegration/Ed25519'" \
-    "/tmp/sage-test-logs/rfc9421_sign.log"
+    "/tmp/sage-test-logs/rfc9421_sign_ed25519.log"
 TEST_NUM=$((TEST_NUM + 1))
 
-print_test $TEST_NUM 5 "Signature-Input 헤더 생성"
+print_test $TEST_NUM 6 "HTTP 메시지 서명 생성 (Secp256k1)"
+run_test "HTTP 메시지 서명 생성 (Secp256k1)" \
+    "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestIntegration/ECDSA_Secp256k1'" \
+    "/tmp/sage-test-logs/rfc9421_sign_secp256k1.log"
+TEST_NUM=$((TEST_NUM + 1))
+
+print_test $TEST_NUM 6 "Signature-Input 헤더 생성"
 run_test "Signature-Input 헤더 형식" \
     "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestParseSignatureInput'" \
     "/tmp/sage-test-logs/rfc9421_sig_input.log"
 TEST_NUM=$((TEST_NUM + 1))
 
-print_test $TEST_NUM 5 "Signature 헤더 생성"
+print_test $TEST_NUM 6 "Signature 헤더 생성"
 run_test "Signature 헤더 Base64 인코딩" \
     "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestParseSignature'" \
     "/tmp/sage-test-logs/rfc9421_sig_header.log"
 TEST_NUM=$((TEST_NUM + 1))
 
-print_test $TEST_NUM 5 "서명 필드 선택 및 정규화"
+print_test $TEST_NUM 6 "서명 필드 선택 및 정규화"
 run_test "서명 필드 정규화" \
     "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanonicalizer/basic_GET'" \
     "/tmp/sage-test-logs/rfc9421_field_normalize.log"
 TEST_NUM=$((TEST_NUM + 1))
 
-print_test $TEST_NUM 5 "Base64 인코딩 검증"
+print_test $TEST_NUM 6 "Base64 인코딩 검증"
 run_test "Base64 인코딩" \
     "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestIntegration'" \
     "/tmp/sage-test-logs/rfc9421_base64.log"

@@ -98,7 +98,15 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 ```
 - RFC 9421 표준에 따른 ECDSA P-256 서명 생성 확인
 
-**1.1.3 Signature-Input 헤더 생성**
+**1.1.3 HTTP 메시지 서명 생성 (ECDSA Secp256k1)**
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestIntegration/ECDSA_Secp256k1'
+```
+- RFC 9421 표준에 따른 Secp256k1 서명 생성 확인 (Ethereum 호환)
+- Ethereum 주소 파생 검증
+- es256k 알고리즘 사용
+
+**1.1.4 Signature-Input 헤더 생성**
 ```bash
 go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder'
 ```
@@ -130,7 +138,14 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 ```
 - ECDSA P-256 서명 검증
 
-**1.2.3 Signature-Input 파싱**
+**1.2.3 서명 검증 (ECDSA Secp256k1)**
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestIntegration/ECDSA_Secp256k1'
+```
+- Secp256k1 서명 검증 (Ethereum 호환)
+- Ethereum 주소 헤더 검증
+
+**1.2.4 Signature-Input 파싱**
 ```bash
 go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestParseSignatureInput'
 ```

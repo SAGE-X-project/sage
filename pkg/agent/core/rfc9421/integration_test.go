@@ -28,6 +28,7 @@ import (
 	"testing"
 	"time"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -94,6 +95,58 @@ func TestIntegration(t *testing.T) {
 		// Verify request
 		err = verifier.VerifyRequest(req, publicKey, nil)
 		assert.NoError(t, err)
+	})
+
+	// Test 2.1.3: ECDSA Secp256k1 signature/verification (Ethereum compatible)
+	t.Run("ECDSA Secp256k1 end-to-end", func(t *testing.T) {
+		// Generate ECDSA Secp256k1 key pair (Ethereum compatible)
+		privateKeyEth, err := ethcrypto.GenerateKey()
+		require.NoError(t, err)
+
+		// Convert to standard ecdsa.PrivateKey for RFC 9421
+		privateKey := privateKeyEth
+		publicKey := &privateKey.PublicKey
+
+		// Get Ethereum address from public key
+		ethAddress := ethcrypto.PubkeyToAddress(*publicKey).Hex()
+
+		// Create POST request with body (Ethereum transaction format)
+		body := `{"action":"transfer","amount":100,"to":"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"}`
+		req, err := http.NewRequest("POST", "https://ethereum.sage.dev/transaction", strings.NewReader(body))
+		require.NoError(t, err)
+
+		req.Header.Set("Date", time.Now().Format(http.TimeFormat))
+		req.Header.Set("Content-Digest", "sha-256=:k8H1234567890abcdefghijklmnopqrstuvwxyz+/=:")
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Ethereum-Address", ethAddress)
+
+		// Sign request with Secp256k1 (Ethereum curve)
+		params := &SignatureInputParams{
+			CoveredComponents: []string{`"@method"`, `"@path"`, `"date"`, `"content-digest"`, `"x-ethereum-address"`},
+			KeyID:             "ethereum-key-secp256k1",
+			Algorithm:         "es256k", // RFC 9421 algorithm for Secp256k1 (Ethereum-compatible)
+			Created:           time.Now().Unix(),
+		}
+
+		verifier := NewHTTPVerifier()
+		err = verifier.SignRequest(req, "sig1", params, privateKey)
+		require.NoError(t, err)
+
+		// Verify request
+		err = verifier.VerifyRequest(req, publicKey, nil)
+		assert.NoError(t, err)
+
+		// Verify that signature-input contains the ethereum address header
+		sigInput := req.Header.Get("Signature-Input")
+		assert.Contains(t, sigInput, "x-ethereum-address", "Signature should cover Ethereum address")
+
+		// Verify signature header exists
+		signature := req.Header.Get("Signature")
+		assert.NotEmpty(t, signature, "Signature header must be present")
+
+		// Verify Ethereum address format
+		assert.True(t, strings.HasPrefix(ethAddress, "0x"), "Ethereum address must start with 0x")
+		assert.Len(t, ethAddress, 42, "Ethereum address must be 42 characters (0x + 40 hex chars)")
 	})
 }
 
