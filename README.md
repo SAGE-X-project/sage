@@ -1,6 +1,6 @@
 # SAGE - Secure Agent Guarantee Engine
 
-[![Go Version](https://img.shields.io/badge/Go-1.24%2B-blue.svg)](https://golang.org/dl/)
+[![Go Version](https://img.shields.io/badge/Go-1.24.4%2B-blue.svg)](https://golang.org/dl/)
 [![Solidity Version](https://img.shields.io/badge/Solidity-0.8.19-red.svg)](https://soliditylang.org/)
 [![License](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)](LICENSE)
 
@@ -97,7 +97,7 @@ sage/
 
 ### Prerequisites
 
-- **Go 1.24 or higher**
+- **Go 1.24.4 or higher** (required by a2a-go dependency)
 - **Node.js 18+** and npm (for smart contract development)
 - **Git**
 
