@@ -289,7 +289,7 @@ defer func() {
 
 **문제 상황:**
 ```go
-// ❌ BAD: 하나의 메서드로 서명 키와 암호화 키 모두 처리
+//  BAD: 하나의 메서드로 서명 키와 암호화 키 모두 처리
 type Resolver interface {
     ResolvePublicKey(ctx context.Context, did AgentDID) (interface{}, error)
 }
@@ -301,7 +301,7 @@ sigKey := pub.(ed25519.PublicKey)  // 실제로는 *ecdh.PublicKey가 반환되�
 
 **해결 방법:**
 ```go
-// ✅ GOOD: 목적별로 메서드 분리
+//  GOOD: 목적별로 메서드 분리
 type Resolver interface {
     // Ed25519 signing key for signature verification
     ResolvePublicKey(ctx context.Context, did AgentDID) (interface{}, error)

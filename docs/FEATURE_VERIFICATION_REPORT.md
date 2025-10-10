@@ -50,7 +50,7 @@ PASS
 ok  	github.com/sage-x-project/sage/pkg/agent/core/rfc9421	(cached)
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: RFC 9421 표준에 따른 Ed25519 서명 생성이 정상적으로 작동함을 확인
 
@@ -75,7 +75,7 @@ PASS
 ok  	github.com/sage-x-project/sage/pkg/agent/core/rfc9421	0.220s
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**:
 - RFC 9421 표준에 따른 Secp256k1 (es256k) 서명 생성 확인
@@ -101,7 +101,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestParse
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Signature-Input 헤더 형식이 RFC 9421 명세에 부합함
 
@@ -123,7 +123,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestParse
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Signature 헤더가 올바르게 Base64로 인코딩됨
 
@@ -145,7 +145,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanon
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 서명 베이스를 위한 필드 정규화가 정확히 수행됨
 
@@ -167,7 +167,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 서명에 필수 파라미터 (keyid, created, nonce)가 포함됨
 
@@ -191,7 +191,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestParse
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Signature 헤더 파싱이 정확히 수행됨
 
@@ -213,7 +213,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestConst
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 서명 베이스 재구성이 올바르게 작동함
 
@@ -235,7 +235,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Ed25519 및 ECDSA 서명 검증이 정상 작동함
 
@@ -257,7 +257,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestNegat
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 만료된 서명이 올바르게 거부됨
 
@@ -279,7 +279,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 중복 Nonce가 정확히 감지되고 거부됨
 
@@ -303,7 +303,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 메시지 빌더가 완전한 HTTP 메시지 구조를 생성함
 
@@ -325,7 +325,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 커스텀 헤더 추가 기능이 정상 작동함
 
@@ -347,7 +347,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 메시지 메타데이터 설정이 정상 작동함
 
@@ -369,7 +369,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 서명 대상 필드 지정 기능이 올바르게 작동함
 
@@ -393,7 +393,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanon
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: RFC 9421 정규화 규칙에 따른 요청 정규화가 정확함
 
@@ -415,7 +415,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanon
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 헤더 값의 공백 처리 및 대소문자 정규화가 올바름
 
@@ -437,7 +437,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanon
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: URL 경로의 특수 문자 처리가 정확함
 
@@ -459,7 +459,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestQuery
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 쿼리 파라미터가 알파벳 순으로 정렬됨
 
@@ -487,7 +487,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestSecp25
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Ethereum 호환 Secp256k1 키 쌍이 정상 생성됨 (32바이트 개인키, 65바이트 비압축/33바이트 압축 공개키)
 
@@ -511,7 +511,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestEd2551
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Ed25519 키 쌍 (32바이트 개인키, 32바이트 공개키) 생성 확인
 
@@ -533,7 +533,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestX25519
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: HPKE 키 교환용 X25519 키 생성 확인
 
@@ -555,7 +555,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestRSA'
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: RSA-PSS 키 쌍 생성 확인
 
@@ -579,7 +579,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/storage -run 'TestFil
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: PEM 형식으로 키 저장 및 파일 권한 (0600) 설정 확인
 
@@ -601,7 +601,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/storage -run 'TestMem
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 인메모리 키 저장소가 정상 작동함
 
@@ -623,7 +623,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto -run 'TestManager_Del
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 키 삭제 및 회전 기능 확인
 
@@ -645,7 +645,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto -run 'TestManager_Lis
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 저장된 키 목록 조회 기능 확인
 
@@ -669,7 +669,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto -run 'TestManager_Exp
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: PEM 형식 변환 기능 확인
 
@@ -691,7 +691,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto -run 'TestManager_Exp
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: JSON Web Key 형식 변환 확인
 
@@ -713,7 +713,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestSecp25
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Secp256k1 공개키 압축/비압축 변환 확인
 
@@ -735,7 +735,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestEthere
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Ethereum 주소 (0x prefix, 40자) 생성 확인
 
@@ -759,7 +759,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestSecp25
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Secp256k1 ECDSA 서명 및 검증 확인
 
@@ -781,7 +781,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestEd2551
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Ed25519 EdDSA 서명 (64바이트) 및 검증 확인
 
@@ -803,7 +803,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run '.*SignLarg
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 대용량 데이터 서명 지원 확인
 
@@ -825,7 +825,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run '.*SignEmpt
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 빈 메시지 서명 지원 확인
 
@@ -851,7 +851,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run 'TestManager_Create
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: `did:sage:ethereum:<uuid>` 형식 생성 확인
 
@@ -873,7 +873,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run 'TestDocument'
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: DID Document 구조 생성 확인
 
@@ -888,7 +888,7 @@ PASS
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 블록체인 통합 테스트에서 DID 등록, 트랜잭션 처리, 가스 추정 확인됨
 
@@ -903,7 +903,7 @@ make test-integration
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 블록체인에서 DID 조회 및 공개키 검증 확인됨
 
@@ -918,7 +918,7 @@ make test-integration
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: DID 업데이트, 비활성화 기능이 통합 테스트에서 확인됨
 
@@ -937,7 +937,7 @@ make test-integration
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Web3 연결 및 Chain ID (31337) 확인
 
@@ -952,7 +952,7 @@ make test-integration
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 트랜잭션 생성, 서명, 전송, 가스 예측 모두 정상 작동
 
@@ -967,7 +967,7 @@ make test-integration
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 스마트 컨트랙트 배포, 함수 호출, 이벤트 모니터링 확인
 
@@ -991,7 +991,7 @@ go test -v github.com/sage-x-project/sage/deployments/config -run 'TestLoadConfi
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 멀티 체인 설정 로드 확인
 
@@ -1013,7 +1013,7 @@ go test -v github.com/sage-x-project/sage/deployments/config -run 'TestLoadForEn
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 환경별 설정 (dev, staging, prod) 로드 확인
 
@@ -1035,7 +1035,7 @@ go test -v github.com/sage-x-project/sage/deployments/config -run 'TestNetworkPr
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 네트워크 프리셋 (local, sepolia, mainnet) 지원 확인
 
@@ -1057,7 +1057,7 @@ go test -v github.com/sage-x-project/sage/deployments/config -run 'TestLoadWithE
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 환경 변수로 설정 오버라이드 기능 확인
 
@@ -1083,7 +1083,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: UUID 기반 고유 Nonce 생성 확인
 
@@ -1105,7 +1105,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 사용된 Nonce 마킹 및 중복 방지 확인
 
@@ -1127,7 +1127,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 동일 Nonce 재사용 시 거부됨
 
@@ -1149,7 +1149,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Nonce TTL 만료 및 자동 정리 확인
 
@@ -1173,7 +1173,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 유니크한 메시지 ID 생성 확인
 
@@ -1195,7 +1195,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 시퀀스 번호 단조 증가 확인
 
@@ -1217,7 +1217,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'Te
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 중복 메시지 감지 기능 확인
 
@@ -1239,7 +1239,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 타임스탬프 기반 순서 정렬 확인
 
@@ -1263,7 +1263,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 통합 검증 파이프라인 (DID, 서명, 타임스탬프, Nonce) 확인
 
@@ -1285,7 +1285,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 타임스탬프 범위 체크 (5분 윈도우) 확인
 
@@ -1307,7 +1307,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Replay 공격 탐지 기능 확인
 
@@ -1329,7 +1329,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 순서 어긋난 메시지 감지 확인
 
@@ -1357,7 +1357,7 @@ PASS
 }
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Ed25519 JWK 형식 키 생성 확인
 
@@ -1379,7 +1379,7 @@ PASS
 -----END EC PRIVATE KEY-----
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Secp256k1 PEM 형식 키 생성 확인
 
@@ -1399,7 +1399,7 @@ PASS
 Key saved to /tmp/sage-keys/test-key.key
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 키 저장소에 파일 저장 확인
 
@@ -1424,7 +1424,7 @@ Available Commands:
   ...
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Help 명령이 정상 작동함
 
@@ -1449,7 +1449,7 @@ Supported key types:
   ...
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Generate 서브커맨드 Help 확인
 
@@ -1477,7 +1477,7 @@ Available Commands:
   ...
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: sage-did Help 명령 확인
 
@@ -1501,7 +1501,7 @@ Flags:
   ...
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Register 서브커맨드 Help 확인
 
@@ -1527,7 +1527,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: UUID 기반 유니크 세션 ID 생성 확인
 
@@ -1549,7 +1549,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 세션 메타데이터 (Created, LastAccessed) 설정 확인
 
@@ -1571,7 +1571,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: ChaCha20-Poly1305 세션 암호화 키 생성 확인
 
@@ -1593,7 +1593,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 세션 저장 및 조회 기능 확인
 
@@ -1617,7 +1617,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 세션 ID로 세션 조회 확인
 
@@ -1639,7 +1639,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: LastAccessed 업데이트 및 TTL 연장 확인
 
@@ -1661,7 +1661,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: TTL 만료 시 자동 삭제 확인
 
@@ -1683,7 +1683,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 세션 명시적 삭제 기능 확인
 
@@ -1707,7 +1707,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: ChaCha20-Poly1305 AEAD 암호화 확인
 
@@ -1729,7 +1729,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 암호문 복호화 및 인증 태그 검증 확인
 
@@ -1751,7 +1751,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 변조된 메시지 복호화 실패 확인 (인증 태그 검증)
 
@@ -1777,7 +1777,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestX25519
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: X25519 DHKEM 키 교환 확인
 
@@ -1799,7 +1799,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestHPKE.*Derive'
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: ECDH 공유 비밀 생성 확인
 
@@ -1821,7 +1821,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestHPKE'
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: HKDF 기반 키 파생 확인
 
@@ -1845,7 +1845,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestClient'
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: HPKE 컨텍스트 초기화 확인
 
@@ -1867,7 +1867,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestHPKE'
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: HPKE 메시지 암호화 확인
 
@@ -1889,7 +1889,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestHPKE'
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: HPKE 메시지 복호화 확인
 
@@ -1911,7 +1911,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestHPKE'
 PASS
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: AEAD 인증 태그 검증 확인
 
@@ -1933,7 +1933,7 @@ make test-handshake
 [packet 01-signed] client <- status 200
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 클라이언트 → 서버 서명된 메시지 전송 및 검증 성공 (HTTP 200)
 
@@ -1969,7 +1969,7 @@ make test-handshake
 [packet 02-empty-body] client <- status 401 (expected 401)
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 빈 Body로 Nonce 재사용 시도, 401 Unauthorized 반환 확인
 
@@ -1998,7 +1998,7 @@ make test-handshake
 [packet 03-bad-signature] client <- status 400 (expected 400/401)
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Signature-Input 헤더 손상, 400 Bad Request 반환 확인
 
@@ -2026,7 +2026,7 @@ make test-handshake
 [packet 04-replay] client <- status 401 (expected 401)
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 동일 Nonce 재전송 시도, 401 Unauthorized 반환 확인
 
@@ -2054,7 +2054,7 @@ make test-handshake
 [packet 05-expired] client <- status 401 (expected 401)
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 세션 만료 (3초 idle timeout) 후 요청, 401 Unauthorized 반환 확인
 
@@ -2090,7 +2090,7 @@ ok  	github.com/sage-x-project/sage/pkg/agent/did	0.012s
 (150+ test cases)
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 모든 Go 패키지 유닛 테스트 통과 (150+ 케이스)
 
@@ -2107,7 +2107,7 @@ ok  	github.com/sage-x-project/sage/pkg/agent/did	0.012s
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: Web3 연결 및 Chain ID (31337) 확인
 
@@ -2122,7 +2122,7 @@ make test-integration
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 가스 예측 및 재시도 로직 확인
 
@@ -2137,7 +2137,7 @@ make test-integration
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: DID 등록, 조회, 공개키 검증 확인
 
@@ -2152,7 +2152,7 @@ make test-integration
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 5개 에이전트 생성 및 서명 확인
 
@@ -2167,7 +2167,7 @@ make test-integration
 make test-integration
 ```
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: DID 조회 결과 캐싱 성능 확인
 
@@ -2179,7 +2179,7 @@ make test-integration
 
 **명세서 요구사항**: /health 엔드포인트 응답 확인, 블록체인 연결 상태 확인, 메모리/CPU 사용률 확인
 
-**검증 상태**: ✅ 통과
+**검증 상태**:  통과
 
 **비고**: 통합 테스트에서 시스템 헬스체크 확인됨
 
@@ -2200,10 +2200,10 @@ make test-integration
 | | 키 형식 변환 | 4 | 4 | 0 | 100% |
 | | 서명/검증 | 4 | 4 | 0 | 100% |
 | DID 관리 | DID 생성 | 2 | 2 | 0 | 100% |
-| | DID 등록 | (통합) | ✅ | 0 | 100% |
-| | DID 조회 | (통합) | ✅ | 0 | 100% |
-| | DID 관리 | (통합) | ✅ | 0 | 100% |
-| 블록체인 연동 | Ethereum | (통합) | ✅ | 0 | 100% |
+| | DID 등록 | (통합) |  | 0 | 100% |
+| | DID 조회 | (통합) |  | 0 | 100% |
+| | DID 관리 | (통합) |  | 0 | 100% |
+| 블록체인 연동 | Ethereum | (통합) |  | 0 | 100% |
 | | 체인 레지스트리 | 4 | 4 | 0 | 100% |
 | 메시지 처리 | Nonce 관리 | 4 | 4 | 0 | 100% |
 | | 메시지 순서 | 4 | 4 | 0 | 100% |

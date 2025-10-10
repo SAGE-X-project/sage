@@ -44,13 +44,13 @@ sage (보안 라이브러리) → a2a-go (통신 라이브러리, Go 1.24.4+)
 
 | 레이어          | 올바른 책임          | 현재 상태   |
 | --------------- | -------------------- | ----------- |
-| **보안 레이어** | 암호화, 서명, DID    | sage ✅     |
-| **전송 레이어** | gRPC, HTTP, 네트워크 | a2a-go ✅   |
-| **통합 레이어** | Agent 생성, 조합     | sage-adk ✅ |
+| **보안 레이어** | 암호화, 서명, DID    | sage      |
+| **전송 레이어** | gRPC, HTTP, 네트워크 | a2a-go    |
+| **통합 레이어** | Agent 생성, 조합     | sage-adk  |
 
-**문제**: sage(보안)가 a2a-go(전송)에 직접 의존 ❌
+**문제**: sage(보안)가 a2a-go(전송)에 직접 의존 
 
-**올바른 구조**: sage(보안) ← A2A(전송) ✅
+**올바른 구조**: sage(보안) ← A2A(전송) 
 
 ---
 
@@ -60,12 +60,12 @@ sage (보안 라이브러리) → a2a-go (통신 라이브러리, Go 1.24.4+)
 
 ```
 sage (현재 프로젝트)
-  ├─ RFC 9421 (HTTP Message Signatures) ✅ 핵심 보안
-  ├─ Crypto (Ed25519, Secp256k1, X25519) ✅ 핵심 보안
-  ├─ DID (블록체인 신원 관리) ✅ 핵심 보안
-  ├─ Session (암호화 세션) ✅ 핵심 보안
-  └─ a2a-go (gRPC 전송) ❌ 보안과 무관
-       └─ Go 1.24.4+ 요구 ❌ 버전 제약
+  ├─ RFC 9421 (HTTP Message Signatures)  핵심 보안
+  ├─ Crypto (Ed25519, Secp256k1, X25519)  핵심 보안
+  ├─ DID (블록체인 신원 관리)  핵심 보안
+  ├─ Session (암호화 세션)  핵심 보안
+  └─ a2a-go (gRPC 전송)  보안과 무관
+       └─ Go 1.24.4+ 요구  버전 제약
 
 sage-adk (Agent Development Kit)
   ├─ sage 사용
@@ -102,9 +102,9 @@ resp, err := c.SendMessage(ctx, req) // ← 단순 전송
 
 | 질문                                  | 답변                      |
 | ------------------------------------- | ------------------------- |
-| a2a.Message가 복잡한 로직을 가지는가? | ❌ 아니오, 단순 구조체    |
-| SAGE 보안 로직이 a2a-go에 의존하는가? | ❌ 아니오, 전부 SAGE 내부 |
-| a2a-go는 필수 의존성인가?             | ❌ 아니오, 추상화 가능    |
+| a2a.Message가 복잡한 로직을 가지는가? |  아니오, 단순 구조체    |
+| SAGE 보안 로직이 a2a-go에 의존하는가? |  아니오, 전부 SAGE 내부 |
+| a2a-go는 필수 의존성인가?             |  아니오, 추상화 가능    |
 
 **결론**: a2a-go는 제거 가능하며, 인터페이스로 추상화해야 함
 
@@ -125,7 +125,7 @@ resp, err := c.SendMessage(ctx, req) // ← 단순 전송
 3. `test/integration/tests/session/handshake/server/main.go`
 4. `test/integration/tests/session/hpke/server/main.go`
 
-**총 9개 파일만 수정하면 됨** ✅
+**총 9개 파일만 수정하면 됨** 
 
 ---
 
@@ -152,7 +152,7 @@ resp, err := c.SendMessage(ctx, req) // ← 단순 전송
 │  - DID Management (블록체인 신원)                     │
 │  - Session Encryption (HPKE, AEAD)                  │
 │  - Nonce, Replay Attack Prevention                  │
-│  - Go 1.23.0+ 요구 (낮은 버전) ✅                     │
+│  - Go 1.23.0+ 요구 (낮은 버전)                      │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -163,7 +163,7 @@ resp, err := c.SendMessage(ctx, req) // ← 단순 전송
 **Before (현재)**:
 
 ```
-sage → a2a-go (구체 타입 의존) ❌
+sage → a2a-go (구체 타입 의존) 
 ```
 
 **After (제안)**:
@@ -171,7 +171,7 @@ sage → a2a-go (구체 타입 의존) ❌
 ```
 sage (인터페이스 정의)
   ↑
-  └─ A2A (인터페이스 구현) ✅
+  └─ A2A (인터페이스 구현) 
 ```
 
 ### 3.3 핵심 인터페이스
@@ -244,11 +244,11 @@ package transport
 
 ```go
 import (
-    a2a "github.com/a2aproject/a2a/grpc"  // ❌
+    a2a "github.com/a2aproject/a2a/grpc"  // 
 )
 
 type Client struct {
-    a2a.A2AServiceClient  // ❌ 구체 타입
+    a2a.A2AServiceClient  //  구체 타입
     key sagecrypto.KeyPair
 }
 
@@ -264,11 +264,11 @@ func NewClient(conn grpc.ClientConnInterface, key sagecrypto.KeyPair) *Client {
 
 ```go
 import (
-    "github.com/sage-x-project/sage/pkg/agent/transport"  // ✅
+    "github.com/sage-x-project/sage/pkg/agent/transport"  // 
 )
 
 type Client struct {
-    transport transport.MessageTransport  // ✅ 인터페이스
+    transport transport.MessageTransport  //  인터페이스
     key       sagecrypto.KeyPair
 }
 
@@ -288,7 +288,7 @@ func NewClient(t transport.MessageTransport, key sagecrypto.KeyPair) *Client {
 func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage, did string) (*a2a.SendMessageResponse, error) {
     payload, _ := toStructPB(invMsg)
 
-    msg := &a2a.Message{  // ❌ a2a 타입
+    msg := &a2a.Message{  //  a2a 타입
         MessageId: uuid.NewString(),
         ContextId: invMsg.ContextID,
         TaskId:    GenerateTaskID(Invitation),
@@ -299,7 +299,7 @@ func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage, did s
     bytes, _ := proto.Marshal(msg)
     meta, _ := signStruct(c.key, bytes, did)
 
-    resp, err := c.SendMessage(ctx, &a2a.SendMessageRequest{...})  // ❌ a2a 메서드
+    resp, err := c.SendMessage(ctx, &a2a.SendMessageRequest{...})  //  a2a 메서드
     return resp, err
 }
 ```
@@ -314,7 +314,7 @@ func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage, did s
     // 2. 서명 생성 (sage 내부)
     signature, _ := c.key.Sign(payloadBytes)
 
-    // 3. SecureMessage 생성 (✅ sage 타입)
+    // 3. SecureMessage 생성 ( sage 타입)
     msg := &transport.SecureMessage{
         ID:        uuid.NewString(),
         ContextID: invMsg.ContextID,
@@ -326,7 +326,7 @@ func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage, did s
         Metadata:  make(map[string]string),
     }
 
-    // 4. 전송 (✅ 인터페이스 호출)
+    // 4. 전송 ( 인터페이스 호출)
     resp, err := c.transport.Send(ctx, msg)
     return resp, err
 }
@@ -345,7 +345,7 @@ require (
 -replace github.com/a2aproject/a2a => github.com/a2aproject/a2a-go v0.0.0-20250723091033-2993b9830c07
 ```
 
-**결과**: Go 1.23.0으로 복원 ✅
+**결과**: Go 1.23.0으로 복원 
 
 ### 4.2 Phase 2: A2A Transport Adapter
 
@@ -493,13 +493,13 @@ func main() {
 
 | 항목              | 현재          | 제안               | 개선         |
 | ----------------- | ------------- | ------------------ | ------------ |
-| **sage Go 버전**  | 1.24.4+       | 1.23.0+            | ✅ 버전 복원 |
-| **A2A Go 버전**   | N/A           | 1.24.4+            | ✅ 분리됨    |
-| **전송 프로토콜** | gRPC만        | gRPC/HTTP/WS       | ✅ 확장 가능 |
-| **모듈성**        | 낮음 (강결합) | 높음 (느슨한 결합) | ✅ 개선      |
-| **테스트 용이성** | Mock 복잡     | Mock 간단          | ✅ 개선      |
-| **의존성 방향**   | sage → a2a    | sage ← A2A         | ✅ 올바름    |
-| **패키지 크기**   | 크다          | 작다               | ✅ 개선      |
+| **sage Go 버전**  | 1.24.4+       | 1.23.0+            |  버전 복원 |
+| **A2A Go 버전**   | N/A           | 1.24.4+            |  분리됨    |
+| **전송 프로토콜** | gRPC만        | gRPC/HTTP/WS       |  확장 가능 |
+| **모듈성**        | 낮음 (강결합) | 높음 (느슨한 결합) |  개선      |
+| **테스트 용이성** | Mock 복잡     | Mock 간단          |  개선      |
+| **의존성 방향**   | sage → a2a    | sage ← A2A         |  올바름    |
+| **패키지 크기**   | 크다          | 작다               |  개선      |
 
 ### 5.2 인과관계 분석
 
@@ -512,7 +512,7 @@ sage가 a2a-go import
   ↓
 Go 1.24.4+ 강제
   ↓
-Output: 원하지 않는 버전 상승 ❌
+Output: 원하지 않는 버전 상승 
 ```
 
 #### 제안 (해결)
@@ -524,7 +524,7 @@ sage는 인터페이스만 제공
   ↓
 Go 1.23.0+ 유지
   ↓
-Output: 낮은 버전 요구사항 ✅
+Output: 낮은 버전 요구사항 
 
 ---
 
@@ -534,7 +534,7 @@ A2A가 a2a-go import
   ↓
 Go 1.24.4+ 필요
   ↓
-Output: 필요한 곳만 높은 버전 ✅
+Output: 필요한 곳만 높은 버전 
 ```
 
 ### 5.3 데이터 흐름 비교
@@ -571,7 +571,7 @@ gRPC 전송
 응답
 ```
 
-**차이점**: sage가 전송 레이어 타입을 몰라도 됨 ✅
+**차이점**: sage가 전송 레이어 타입을 몰라도 됨 
 
 ---
 
@@ -679,7 +679,7 @@ transport := a2aTransport.NewA2ATransport(conn)  // ← 1줄 추가
 client := handshake.NewClient(transport, keyPair)
 ```
 
-**마이그레이션 가이드 제공 예정** ✅
+**마이그레이션 가이드 제공 예정** 
 
 ### Q2: 왜 HTTP Transport도 제공하나요?
 
@@ -699,7 +699,7 @@ client := handshake.NewClient(transport, keyPair)
 
 - 현재: 100ns/op
 - 제안: 102ns/op (인터페이스 호출 2ns)
-- **차이: 2% 미만** ✅
+- **차이: 2% 미만** 
 
 ### Q4: 테스트는 어떻게 변경되나요?
 
@@ -722,7 +722,7 @@ mockTransport := &mockTransport{
 client := handshake.NewClient(mockTransport, keyPair)
 ```
 
-**장점**: 더 간단하고 명확함 ✅
+**장점**: 더 간단하고 명확함 
 
 ### Q5: 다른 전송 프로토콜을 추가하려면?
 
@@ -742,7 +742,7 @@ func (t *WebSocketTransport) Send(ctx context.Context, msg *SecureMessage) (*Res
 }
 ```
 
-**확장성**: 무한대 ✅
+**확장성**: 무한대 
 
 ### Q6: 이 변경이 정말 필요한가요?
 
@@ -754,7 +754,7 @@ func (t *WebSocketTransport) Send(ctx context.Context, msg *SecureMessage) (*Res
 4. **테스트**: Mock 작성 간소화
 5. **모듈성**: 레이어 간 명확한 경계
 
-**장기적으로 더 좋은 구조입니다** ✅
+**장기적으로 더 좋은 구조입니다** 
 
 ---
 
@@ -767,20 +767,20 @@ func (t *WebSocketTransport) Send(ctx context.Context, msg *SecureMessage) (*Res
 **잘못된 현재**:
 
 ```
-sage (보안) → a2a-go (통신)  ❌ 레이어 경계 위반
+sage (보안) → a2a-go (통신)   레이어 경계 위반
 ```
 
 **올바른 제안**:
 
 ```
-sage (보안 인터페이스) ← A2A (통신 구현)  ✅ 의존성 역전
+sage (보안 인터페이스) ← A2A (통신 구현)   의존성 역전
 ```
 
 ### 8.2 기대 효과
 
 | 효과    | 현재    | 제안    | 개선율  |
 | ------- | ------- | ------- | ------- |
-| Go 버전 | 1.24.4+ | 1.23.0+ | ✅ 복원 |
+| Go 버전 | 1.24.4+ | 1.23.0+ |  복원 |
 | 모듈성  | 낮음    | 높음    | +80%    |
 | 확장성  | gRPC만  | 다중    | +무한   |
 | 테스트  | 복잡    | 간단    | +50%    |
@@ -789,10 +789,10 @@ sage (보안 인터페이스) ← A2A (통신 구현)  ✅ 의존성 역전
 
 **즉시 시작을 권장합니다**:
 
-- ✅ 기술적으로 완벽히 가능
-- ✅ 작업량 합리적 (2주)
-- ✅ 위험도 낮음
-- ✅ 장기적 이점 큼
+-  기술적으로 완벽히 가능
+-  작업량 합리적 (2주)
+-  위험도 낮음
+-  장기적 이점 큼
 
 **다음 단계**:
 

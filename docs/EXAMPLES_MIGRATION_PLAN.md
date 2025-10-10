@@ -82,13 +82,13 @@ func (c *Calculator) VerifyRequest(r *http.Request) error {
 
 | Example | Uses Transport? | Migration Needed? | Status |
 |---------|----------------|-------------------|--------|
-| basic-demo | No | No | ✅ No change required |
-| basic-tool | No | No | ✅ No change required |
-| client | No | No | ✅ No change required |
-| simple-standalone | No | No | ✅ No change required |
-| vulnerable-vs-secure | No | No | ✅ No change required |
-| multi-agent | No | No | ✅ No change required |
-| performance-benchmark | No | No | ✅ No change required |
+| basic-demo | No | No |  No change required |
+| basic-tool | No | No |  No change required |
+| client | No | No |  No change required |
+| simple-standalone | No | No |  No change required |
+| vulnerable-vs-secure | No | No |  No change required |
+| multi-agent | No | No |  No change required |
+| performance-benchmark | No | No |  No change required |
 
 **Total:** 7 examples, 0 migrations needed
 
@@ -106,7 +106,7 @@ The integration tests in `test/integration/tests/session/` **are** affected by t
 - Wire protocol unchanged (still A2A/gRPC)
 - Build tags: `//go:build integration && a2a`
 
-**Status:** ✅ Already migrated (Phase 2)
+**Status:**  Already migrated (Phase 2)
 
 ### HPKE Integration Tests
 
@@ -118,7 +118,7 @@ The integration tests in `test/integration/tests/session/` **are** affected by t
 - Wire protocol unchanged (still A2A/gRPC)
 - Build tags: `//go:build integration && a2a`
 
-**Status:** ✅ Already migrated (Phase 2)
+**Status:**  Already migrated (Phase 2)
 
 ### Verification
 
@@ -233,10 +233,10 @@ $ go run client/main.go
 ### For MCP Examples (Current)
 
 **No changes needed.** Current examples:
-- ✅ Focus on MCP protocol integration
-- ✅ Use SAGE signature verification
-- ✅ Don't need transport layer
-- ✅ Work as standalone HTTP servers
+-  Focus on MCP protocol integration
+-  Use SAGE signature verification
+-  Don't need transport layer
+-  Work as standalone HTTP servers
 
 ### For New Transport Examples (Future)
 
@@ -268,7 +268,7 @@ $ go run client/main.go
 $ ./examples/mcp-integration/test_compile.sh
 ```
 
-**Status:** ✅ No changes needed
+**Status:**  No changes needed
 
 ### Integration Tests
 
@@ -277,7 +277,7 @@ $ ./examples/mcp-integration/test_compile.sh
 $ go test -tags=a2a,integration ./test/integration/tests/session/...
 ```
 
-**Status:** ✅ Already working with A2A adapter
+**Status:**  Already working with A2A adapter
 
 ### Future Transport Examples
 
@@ -300,7 +300,7 @@ $ go build ./examples/transport-examples/a2a-client-server/client
 
 ## Conclusion
 
-### Current Status: ✅ Complete
+### Current Status:  Complete
 
 - **MCP Examples:** No migration needed (don't use transport)
 - **Integration Tests:** Already migrated (use A2A adapter)

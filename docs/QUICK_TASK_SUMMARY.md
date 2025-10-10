@@ -1,11 +1,11 @@
 # SAGE Quick Task Summary
 
-**Status:** Phase 3 Complete ✅ | **Next:** Performance Optimization (P0)
+**Status:** Phase 3 Complete  | **Next:** Performance Optimization (P0)
 **Date:** January 2025
 
 ---
 
-## 🎯 Immediate Next Steps (This Week)
+##  Immediate Next Steps (This Week)
 
 ### P0 - Critical: Performance Optimization (Week 1-2)
 
@@ -21,7 +21,7 @@
 
 ---
 
-## 📊 Full Priority Breakdown
+##  Full Priority Breakdown
 
 ### Priority 0: Critical (12 hours)
 - 🔴 Performance Optimization (3 tasks)
@@ -69,7 +69,7 @@ Week 9-12  ░░░░░░░░░░░░░░░░████  P3: Exa
 
 ---
 
-## 🚀 Quick Start Guide
+##  Quick Start Guide
 
 ### To Start P0-1 (Pre-allocate Key Buffers)
 
@@ -101,7 +101,7 @@ go tool pprof -alloc_space mem.prof
 
 ---
 
-## 📈 Success Metrics
+##  Success Metrics
 
 ### Performance (P0)
 - [ ] Session creation: 38 → <10 allocations
@@ -158,6 +158,6 @@ QUIC is complex. HTTP/WS cover 95% of use cases. Can add later if needed.
 
 ---
 
-**Status:** ✅ Ready to Start
+**Status:**  Ready to Start
 **First Task:** P0-1 Pre-allocate Key Buffers (2h)
 **Estimated Completion:** 12 weeks for all priorities

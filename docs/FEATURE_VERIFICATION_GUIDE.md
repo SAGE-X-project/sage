@@ -45,7 +45,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run TestIntegr
 ```
 
 #### 테스트 결과
-✅ **통과**: RFC 9421 준수 HTTP 메시지 서명 생성 확인
+ **통과**: RFC 9421 준수 HTTP 메시지 서명 생성 확인
 - Ed25519 end-to-end 테스트 통과
 - ECDSA P-256 end-to-end 테스트 통과
 - Signature-Input 헤더 형식 준수
@@ -77,7 +77,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run TestNegati
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - 유효한 서명 검증 성공 (true 반환)
 - 변조된 메시지 검증 실패 (false 반환)
 - 만료된 서명 거부 확인 (maxAge, expires)
@@ -104,7 +104,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run TestCanoni
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - Basic GET request 정규화
 - POST request with Content-Digest
 - 헤더 공백 처리
@@ -129,7 +129,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run TestMessag
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - 완전한 메시지 생성
 - 기본 서명 필드 적용
 - 최소 메시지 생성
@@ -167,7 +167,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run TestX25519
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - **Ed25519**: 32바이트 개인키, 32바이트 공개키 생성 확인
 - **Secp256k1**:
   - 32바이트 개인키 생성
@@ -203,7 +203,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/storage -run TestFile
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - PEM 형식 파일 저장 성공
 - 파일 권한 설정 (0600) 확인
 - 메모리 저장소 저장/조회 성공
@@ -234,7 +234,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run TestEthereu
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - JWK 형식 export/import
 - PEM 형식 export/import
 - Secp256k1 압축/비압축 변환
@@ -263,7 +263,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run ".*SignLarg
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - **EdDSA (Ed25519)**:
   - 64바이트 서명 생성
   - 서명 검증 성공
@@ -302,7 +302,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run TestDIDFormat
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - `did:sage:ethereum:` 형식 준수
 - 유효한 Ethereum 주소 포함
 - DID Document 생성 (Controller, PublicKey, Created, Updated)
@@ -332,7 +332,7 @@ go test -v github.com/sage-x-project/sage/test/integration/tests/integration -ta
 ```
 
 #### 테스트 결과
-✅ **통과** (통합 테스트):
+ **통과** (통합 테스트):
 - Ethereum 스마트 컨트랙트 등록 성공
 - 트랜잭션 해시 반환
 - 공개키 온체인 저장 확인
@@ -360,7 +360,7 @@ go test -v github.com/sage-x-project/sage/test/integration/tests/integration -ta
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - 유효한 DID 조회 성공
 - DID Document 반환 (Controller, PublicKey)
 - 캐싱 동작 확인 (첫 조회: 1.292µs, 캐시: 500ns)
@@ -388,7 +388,7 @@ go test -v github.com/sage-x-project/sage/test/integration/tests/integration -ta
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - DID Document 업데이트 성공 (새 키, 엔드포인트)
 - DID 비활성화 (revoke) 성공
 - 비활성화 후 inactive 상태 확인
@@ -425,7 +425,7 @@ go test -v github.com/sage-x-project/sage/test/integration/tests/integration -ta
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - Web3 Provider 연결 성공 (Chain ID: 31337)
 - 가스 예측 정확도: 25,200 gas
 - 가스 가격 제안: 2,000,000,000 Wei
@@ -452,7 +452,7 @@ go test -v github.com/sage-x-project/sage/deployments/config -run TestLoadForEnv
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - 멀티체인 설정 로드 (Ethereum, Solana, Kaia)
 - 프리셋 지원 (local, sepolia, mainnet)
 - 환경 변수 오버라이드
@@ -485,7 +485,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run Test
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - UUID 기반 유니크 Nonce 생성
 - 사용된 Nonce 마킹 및 검증
 - Nonce 만료 처리 (기본 5분)
@@ -514,7 +514,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run Test
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - 첫 메시지 시퀀스 번호 = 1
 - 시퀀스 단조 증가 보장
 - 타임스탬프 순서 검증
@@ -540,7 +540,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - 유효한 메시지 검증 및 통계 수집
 - 타임스탬프 허용 범위 밖 메시지 거부
 - 재전송 공격 감지 (duplicate Nonce)
@@ -565,7 +565,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run Tes
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - 새 메시지는 중복 아님
 - 동일 메시지 재전송 감지
 - 서로 다른 메시지 개별 카운트
@@ -631,7 +631,7 @@ echo "Hello SAGE" | ./build/bin/sage-crypto sign \
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - `generate` 명령: Ed25519, Secp256k1 키 생성 성공
 - JWK 형식: 올바른 JSON 구조 (kty, crv, x, d 필드)
 - PEM 형식: 표준 PEM 형식 출력
@@ -696,7 +696,7 @@ echo "Hello SAGE" | ./build/bin/sage-crypto sign \
 ```
 
 #### 테스트 결과
-✅ **통과** (CLI 구현 완료):
+ **통과** (CLI 구현 완료):
 - `register`: DID 등록 및 트랜잭션 해시 반환
 - `resolve`: DID Document 조회
 - `update`: 메타데이터 업데이트
@@ -730,7 +730,7 @@ echo "Hello SAGE" | ./build/bin/sage-crypto sign \
 ```
 
 #### 테스트 결과
-✅ **통과** (CLI 구현 완료):
+ **통과** (CLI 구현 완료):
 - HTTP Message Signature 검증
 - 체인 연결 상태 확인
 - 검증 결과 상세 출력
@@ -762,7 +762,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run TestSessionMana
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - UUID 기반 유니크 세션 ID 생성
 - ChaCha20-Poly1305 암호화 키 생성 (32바이트)
 - 세션 메타데이터 (Created, LastAccessed, ExpiresAt) 설정
@@ -790,7 +790,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run TestSessionMana
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - 세션 ID로 세션 조회
 - 세션 갱신 (LastAccessed 업데이트)
 - TTL 만료 후 세션 자동 삭제
@@ -819,7 +819,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run TestSessionMana
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - ChaCha20-Poly1305 AEAD 암호화 성공
 - 암호문 = Nonce (12바이트) + Ciphertext + Tag (16바이트)
 - 복호화 및 무결성 검증 성공
@@ -854,7 +854,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run TestHPKEDeriveShar
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - X25519 키페어 생성 (32바이트 개인키, 32바이트 공개키)
 - DHKEM 키 교환 성공
 - HKDF 키 파생 (공유 비밀 → 세션 키)
@@ -887,7 +887,7 @@ make test-handshake
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - **HPKE 암호화**:
   - Encapsulated key (enc) 생성
   - AEAD 암호화 (ChaCha20-Poly1305)
@@ -897,11 +897,11 @@ make test-handshake
   - AEAD 복호화
   - 인증 태그 검증
 - **Handshake 테스트**:
-  - 01-signed: 정상 서명 요청 ✅
-  - 02-empty-body: 재전송 방지 (401) ✅
-  - 03-bad-signature: 잘못된 서명 거부 (400) ✅
-  - 04-replay: Nonce 재사용 거부 (401) ✅
-  - 05-expired: 세션 만료 처리 (401) ✅
+  - 01-signed: 정상 서명 요청 
+  - 02-empty-body: 재전송 방지 (401) 
+  - 03-bad-signature: 잘못된 서명 거부 (400) 
+  - 04-replay: Nonce 재사용 거부 (401) 
+  - 05-expired: 세션 만료 처리 (401) 
 
 ### 8.3 벤치마크 성능
 
@@ -920,7 +920,7 @@ go test -bench=Benchmark github.com/sage-x-project/sage/pkg/agent/handshake
 ```
 
 #### 테스트 결과
-✅ **통과** (성능 베이스라인 수립):
+ **통과** (성능 베이스라인 수립):
 - **HPKE derive**: ~60-80 μs/op
 - **Ed25519 keygen**: ~17-25 μs/op
 - **Ed25519 signing**: ~20-25 μs/op
@@ -953,7 +953,7 @@ go test -v github.com/sage-x-project/sage/test/integration/tests/integration \
 ```
 
 #### 테스트 결과
-✅ **통과** (블록체인 연결 확인):
+ **통과** (블록체인 연결 확인):
 - Chain ID 확인: 31337 (로컬 테스트넷)
 - Latest block 조회 성공
 - 네트워크 연결 상태: OK
@@ -980,7 +980,7 @@ go test -v github.com/sage-x-project/sage/internal/metrics -run TestMetrics
 ```
 
 #### 테스트 결과
-✅ **통과**:
+ **통과**:
 - 메트릭 등록 (sage_handshakes_initiated_total 등)
 - 카운터 증가 확인
 - Prometheus 형식 export
@@ -999,7 +999,7 @@ make test
 ```
 
 #### 테스트 결과
-✅ **통과**: 전체 유닛 테스트 100% 통과
+ **통과**: 전체 유닛 테스트 100% 통과
 - Config 테스트: 18개 테스트 통과
 - Logger 테스트: 4개 테스트 통과
 - Crypto 테스트: 50+ 테스트 통과
@@ -1022,7 +1022,7 @@ make test-integration
 ```
 
 #### 테스트 결과
-✅ **통과**: 전체 통합 테스트 100% 통과
+ **통과**: 전체 통합 테스트 100% 통과
 - **BlockchainConnection**: 연결 및 Chain ID 확인
 - **EnhancedProviderIntegration**: 가스 예측, 재시도
 - **DIDRegistration**: 등록, 조회, 업데이트, 비활성화
@@ -1039,7 +1039,7 @@ make test-handshake
 ```
 
 #### 테스트 결과
-✅ **통과**: 5가지 시나리오 100% 통과
+ **통과**: 5가지 시나리오 100% 통과
 - **01-signed**: 정상 서명 요청 (200)
 - **02-empty-body**: 재전송 방지 (401)
 - **03-bad-signature**: 잘못된 서명 거부 (400)
@@ -1061,7 +1061,7 @@ go test -bench=. github.com/sage-x-project/sage/pkg/agent/session
 ```
 
 #### 테스트 결과
-✅ **통과**: 성능 베이스라인 수립
+ **통과**: 성능 베이스라인 수립
 - **HPKE**: ~60-80 μs/op
 - **Ed25519 keygen**: ~17-25 μs/op
 - **Ed25519 signing**: ~20-25 μs/op
@@ -1072,43 +1072,43 @@ go test -bench=. github.com/sage-x-project/sage/pkg/agent/session
 
 ## 11. 기능 구현 완성도 요약
 
-### 11.1 구현 완료 기능 (✅)
+### 11.1 구현 완료 기능 ()
 
 | 대분류 | 중분류 | 소분류 | 구현 상태 |
 |--------|--------|--------|-----------|
-| **RFC 9421 구현** | 메시지 서명 | HTTP 메시지 서명 생성 | ✅ 완료 |
-| | | Signature-Input/Signature 헤더 | ✅ 완료 |
-| | | 서명 필드 정규화 | ✅ 완료 |
-| | 메시지 검증 | 서명 파싱 및 검증 | ✅ 완료 |
-| | | 타임스탬프 검증 | ✅ 완료 |
-| | | Nonce 중복 체크 | ✅ 완료 |
-| | 메시지 빌더 | 메시지 구조 생성 | ✅ 완료 |
-| | 정규화 | Canonical Request 생성 | ✅ 완료 |
-| **암호화 키 관리** | 키 생성 | Secp256k1, Ed25519, X25519 | ✅ 완료 |
-| | 키 저장 | 파일/메모리 저장 | ✅ 완료 |
-| | 키 형식 변환 | PEM, JWK 변환 | ✅ 완료 |
-| | 서명/검증 | ECDSA, EdDSA | ✅ 완료 |
-| **DID 관리** | DID 생성 | did:sage:ethereum 생성 | ✅ 완료 |
-| | DID 등록 | Ethereum 컨트랙트 등록 | ✅ 완료 |
-| | DID 조회 | 블록체인 조회 | ✅ 완료 |
-| | DID 관리 | 업데이트, 비활성화 | ✅ 완료 |
-| **블록체인 연동** | Ethereum | Web3 연결, 트랜잭션 | ✅ 완료 |
-| | | 가스 예측 | ✅ 완료 |
-| | 체인 레지스트리 | 멀티체인 지원 | ✅ 완료 |
-| **메시지 처리** | Nonce 관리 | Nonce 생성/검증 | ✅ 완료 |
-| | 메시지 순서 | 순서 보장, 중복 감지 | ✅ 완료 |
-| | 검증 서비스 | 통합 검증 파이프라인 | ✅ 완료 |
-| **CLI 도구** | sage-crypto | 키 생성, 서명, 검증 | ✅ 완료 |
-| | sage-did | DID 등록, 조회, 관리 | ✅ 완료 |
-| | sage-verify | 메시지 검증 | ✅ 완료 |
-| **세션 관리** | 세션 생성 | 세션 ID, 암호화 키 | ✅ 완료 |
-| | 세션 관리 | 조회, 갱신, 만료 | ✅ 완료 |
-| | Nonce 관리 | 세션별 Nonce | ✅ 완료 |
-| **HPKE** | 암호화 | DHKEM, AEAD | ✅ 완료 |
-| | 복호화 | 컨텍스트 로드, 복호화 | ✅ 완료 |
-| | 키 교환 | X25519 키 교환 | ✅ 완료 |
-| **헬스체크** | 상태 모니터링 | 블록체인 연결 상태 | ✅ 완료 |
-| | 메트릭 수집 | 성능 메트릭 | ✅ 완료 |
+| **RFC 9421 구현** | 메시지 서명 | HTTP 메시지 서명 생성 |  완료 |
+| | | Signature-Input/Signature 헤더 |  완료 |
+| | | 서명 필드 정규화 |  완료 |
+| | 메시지 검증 | 서명 파싱 및 검증 |  완료 |
+| | | 타임스탬프 검증 |  완료 |
+| | | Nonce 중복 체크 |  완료 |
+| | 메시지 빌더 | 메시지 구조 생성 |  완료 |
+| | 정규화 | Canonical Request 생성 |  완료 |
+| **암호화 키 관리** | 키 생성 | Secp256k1, Ed25519, X25519 |  완료 |
+| | 키 저장 | 파일/메모리 저장 |  완료 |
+| | 키 형식 변환 | PEM, JWK 변환 |  완료 |
+| | 서명/검증 | ECDSA, EdDSA |  완료 |
+| **DID 관리** | DID 생성 | did:sage:ethereum 생성 |  완료 |
+| | DID 등록 | Ethereum 컨트랙트 등록 |  완료 |
+| | DID 조회 | 블록체인 조회 |  완료 |
+| | DID 관리 | 업데이트, 비활성화 |  완료 |
+| **블록체인 연동** | Ethereum | Web3 연결, 트랜잭션 |  완료 |
+| | | 가스 예측 |  완료 |
+| | 체인 레지스트리 | 멀티체인 지원 |  완료 |
+| **메시지 처리** | Nonce 관리 | Nonce 생성/검증 |  완료 |
+| | 메시지 순서 | 순서 보장, 중복 감지 |  완료 |
+| | 검증 서비스 | 통합 검증 파이프라인 |  완료 |
+| **CLI 도구** | sage-crypto | 키 생성, 서명, 검증 |  완료 |
+| | sage-did | DID 등록, 조회, 관리 |  완료 |
+| | sage-verify | 메시지 검증 |  완료 |
+| **세션 관리** | 세션 생성 | 세션 ID, 암호화 키 |  완료 |
+| | 세션 관리 | 조회, 갱신, 만료 |  완료 |
+| | Nonce 관리 | 세션별 Nonce |  완료 |
+| **HPKE** | 암호화 | DHKEM, AEAD |  완료 |
+| | 복호화 | 컨텍스트 로드, 복호화 |  완료 |
+| | 키 교환 | X25519 키 교환 |  완료 |
+| **헬스체크** | 상태 모니터링 | 블록체인 연결 상태 |  완료 |
+| | 메트릭 수집 | 성능 메트릭 |  완료 |
 
 ### 11.2 테스트 커버리지
 
@@ -1152,11 +1152,11 @@ make test-handshake
 echo "[4/4] CLI 도구 테스트 중..."
 ./build/bin/sage-crypto generate --type ed25519 --format jwk > /dev/null
 ./build/bin/sage-crypto generate --type secp256k1 --format pem > /dev/null
-echo "✅ CLI 테스트 통과"
+echo " CLI 테스트 통과"
 
 echo ""
 echo "======================================"
-echo "✅ 전체 기능 검증 완료!"
+echo " 전체 기능 검증 완료!"
 echo "======================================"
 ```
 
@@ -1180,7 +1180,7 @@ go test github.com/sage-x-project/sage/pkg/agent/crypto/keys -run "TestEd25519|T
 # HPKE
 make test-handshake
 
-echo "✅ 빠른 검증 완료"
+echo " 빠른 검증 완료"
 ```
 
 ---
@@ -1191,22 +1191,22 @@ echo "✅ 빠른 검증 완료"
 
 **모든 기능 명세서 항목이 100% 구현되고 테스트되었습니다.**
 
-- ✅ RFC 9421 구현 (메시지 서명, 검증, 빌더, 정규화)
-- ✅ 암호화 키 관리 (Secp256k1, Ed25519, X25519, RSA)
-- ✅ DID 관리 (생성, 등록, 조회, 업데이트, 비활성화)
-- ✅ 블록체인 연동 (Ethereum Web3, 가스 예측, 트랜잭션)
-- ✅ 메시지 처리 (Nonce, 순서, 검증, 중복 감지)
-- ✅ CLI 도구 (sage-crypto, sage-did, sage-verify)
-- ✅ 세션 관리 (생성, 암호화, 만료)
-- ✅ HPKE (키 교환, 암호화, 복호화)
-- ✅ 헬스체크 (상태 모니터링, 메트릭)
+-  RFC 9421 구현 (메시지 서명, 검증, 빌더, 정규화)
+-  암호화 키 관리 (Secp256k1, Ed25519, X25519, RSA)
+-  DID 관리 (생성, 등록, 조회, 업데이트, 비활성화)
+-  블록체인 연동 (Ethereum Web3, 가스 예측, 트랜잭션)
+-  메시지 처리 (Nonce, 순서, 검증, 중복 감지)
+-  CLI 도구 (sage-crypto, sage-did, sage-verify)
+-  세션 관리 (생성, 암호화, 만료)
+-  HPKE (키 교환, 암호화, 복호화)
+-  헬스체크 (상태 모니터링, 메트릭)
 
 ### 13.2 테스트 통과율
 
-- **유닛 테스트**: 150+ 케이스, **100% 통과** ✅
-- **통합 테스트**: 7개 시나리오, **100% 통과** ✅
-- **E2E 테스트**: 5개 시나리오, **100% 통과** ✅
-- **벤치마크**: 10+ 테스트, **베이스라인 수립** ✅
+- **유닛 테스트**: 150+ 케이스, **100% 통과** 
+- **통합 테스트**: 7개 시나리오, **100% 통과** 
+- **E2E 테스트**: 5개 시나리오, **100% 통과** 
+- **벤치마크**: 10+ 테스트, **베이스라인 수립** 
 
 ### 13.3 성능 지표
 
@@ -1229,4 +1229,4 @@ echo "✅ 빠른 검증 완료"
 
 **문서 작성**: 2025-10-10
 **검증 완료**: 2025-10-10
-**상태**: ✅ 모든 기능 구현 및 테스트 완료
+**상태**:  모든 기능 구현 및 테스트 완료

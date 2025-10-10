@@ -32,11 +32,11 @@ SAGE uses [k6](https://k6.io/) for load testing and performance benchmarking. Ou
 
 ### Why Load Testing?
 
-- ✅ **Catch Performance Regressions:** Detect slowdowns before production
-- ✅ **Capacity Planning:** Understand system limits
-- ✅ **Reliability:** Verify error handling under stress
-- ✅ **Optimization:** Identify bottlenecks
-- ✅ **SLA Validation:** Ensure performance commitments
+-  **Catch Performance Regressions:** Detect slowdowns before production
+-  **Capacity Planning:** Understand system limits
+-  **Reliability:** Verify error handling under stress
+-  **Optimization:** Identify bottlenecks
+-  **SLA Validation:** Ensure performance commitments
 
 ---
 
@@ -400,9 +400,9 @@ node loadtest/analysis/compare.js \
   loadtest/reports/baseline-2025-10-10.json
 
 # Expected output:
-# Latency (p95): 423ms → 387ms (↓ 8.5%) ✅
-# Error rate: 0.5% → 0.3% (↓ 40%) ✅
-# Throughput: 87 req/s → 95 req/s (↑ 9.2%) ✅
+# Latency (p95): 423ms → 387ms (↓ 8.5%) 
+# Error rate: 0.5% → 0.3% (↓ 40%) 
+# Throughput: 87 req/s → 95 req/s (↑ 9.2%) 
 ```
 
 ---
@@ -414,9 +414,9 @@ node loadtest/analysis/compare.js \
 Load tests run automatically:
 
 **Triggers:**
-- ✅ Every push to `main` branch (baseline only)
-- ✅ Daily at 2 AM UTC (stress test)
-- ✅ Manual trigger via workflow_dispatch
+-  Every push to `main` branch (baseline only)
+-  Daily at 2 AM UTC (stress test)
+-  Manual trigger via workflow_dispatch
 
 **Workflow:**
 ```yaml

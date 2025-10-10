@@ -5,46 +5,46 @@
 
 ---
 
-## 📊 제안서 Phase 별 진행 상황
+##  제안서 Phase 별 진행 상황
 
-### ✅ Phase 1: sage 리팩토링 (완료 100%)
+###  Phase 1: sage 리팩토링 (완료 100%)
 
 **Day 1-2: 인터페이스 설계**
-- ✅ `pkg/agent/transport/interface.go` 생성
-- ✅ `SecureMessage`, `Response` 타입 정의
-- ✅ `MessageTransport` 인터페이스 정의
+-  `pkg/agent/transport/interface.go` 생성
+-  `SecureMessage`, `Response` 타입 정의
+-  `MessageTransport` 인터페이스 정의
 
 **Day 3-4: 코드 리팩토링**
-- ✅ `handshake/client.go` 리팩토링
-- ✅ `handshake/server.go` 리팩토링
-- ✅ `hpke/client.go` 리팩토링
-- ✅ `hpke/server.go` 리팩토링
-- ✅ `hpke/common.go` 리팩토링
+-  `handshake/client.go` 리팩토링
+-  `handshake/server.go` 리팩토링
+-  `hpke/client.go` 리팩토링
+-  `hpke/server.go` 리팩토링
+-  `hpke/common.go` 리팩토링
 
 **Day 5: 테스트 및 정리**
-- ✅ 테스트 코드 업데이트 (MockTransport로 전환)
-- ⚠️ go.mod에서 a2a-go 제거 → Build tags로 대체
-- ⚠️ Go 1.23.0 복원 확인 → 1.24.4 유지 (호환성 우선)
-- ✅ 전체 테스트 실행 (12/12 통과)
+-  테스트 코드 업데이트 (MockTransport로 전환)
+-  go.mod에서 a2a-go 제거 → Build tags로 대체
+-  Go 1.23.0 복원 확인 → 1.24.4 유지 (호환성 우선)
+-  전체 테스트 실행 (12/12 통과)
 
 **추가 완료 (제안서 이상):**
-- ✅ MockTransport 구현
-- ✅ Build tags 전략 적용
-- ✅ Unit tests 재작성 (5배 빠름)
+-  MockTransport 구현
+-  Build tags 전략 적용
+-  Unit tests 재작성 (5배 빠름)
 
 ---
 
-### ✅ Phase 2: A2A Adapter (완료 100%)
+###  Phase 2: A2A Adapter (완료 100%)
 
 **Day 1: 프로젝트 설정**
-- ✅ sage 내부 `pkg/agent/transport/a2a` 패키지 생성 (별도 저장소 대신)
-- ✅ Build tags로 optional dependency 구현
+-  sage 내부 `pkg/agent/transport/a2a` 패키지 생성 (별도 저장소 대신)
+-  Build tags로 optional dependency 구현
 
 **Day 2: Adapter 구현**
-- ✅ `client.go` 구현 (A2ATransport)
-- ✅ `server.go` 구현 (A2AServerAdapter)
-- ✅ `adapter_test.go` 작성
-- ✅ Integration tests 검증
+-  `client.go` 구현 (A2ATransport)
+-  `server.go` 구현 (A2AServerAdapter)
+-  `adapter_test.go` 작성
+-  Integration tests 검증
 
 **Day 3 (선택): HTTP Adapter**
 - ⏳ 미구현 → **Option 2에서 진행 예정**
@@ -66,15 +66,15 @@
 
 ---
 
-### ⚠️ Phase 4: 문서 업데이트 (진행 중 60%)
+###  Phase 4: 문서 업데이트 (진행 중 60%)
 
 **완료된 문서:**
-- ✅ `pkg/agent/transport/README.md` - Transport 가이드
-- ✅ `docs/TRANSPORT_REFACTORING.md` - 리팩토링 문서
-- ✅ `docs/EXAMPLES_MIGRATION_PLAN.md` - 예제 분석
-- ✅ `docs/NEXT_TASKS_PRIORITY.md` - 향후 작업
-- ✅ `docs/BUILD_TAGS_SUCCESS.md` - Build tags 성공
-- ✅ `docs/FINAL_SUMMARY_KO.md` - 최종 요약
+-  `pkg/agent/transport/README.md` - Transport 가이드
+-  `docs/TRANSPORT_REFACTORING.md` - 리팩토링 문서
+-  `docs/EXAMPLES_MIGRATION_PLAN.md` - 예제 분석
+-  `docs/NEXT_TASKS_PRIORITY.md` - 향후 작업
+-  `docs/BUILD_TAGS_SUCCESS.md` - Build tags 성공
+-  `docs/FINAL_SUMMARY_KO.md` - 최종 요약
 
 **남은 작업:**
 - ⏳ README.md 업데이트 (메인 프로젝트)
@@ -97,7 +97,7 @@
 
 ---
 
-## 🎯 현재 sage 프로젝트에서 진행 가능한 작업
+##  현재 sage 프로젝트에서 진행 가능한 작업
 
 ### 즉시 진행 가능 (제안서 Phase 4 남은 부분)
 
@@ -117,7 +117,7 @@
 
 ---
 
-## 🚀 다음 단계: Option 1, 2, 3 진행
+##  다음 단계: Option 1, 2, 3 진행
 
 ### Option 1: 성능 최적화 (P0, 12시간)
 
@@ -205,7 +205,7 @@
 
 ---
 
-## ✅ 즉시 시작
+##  즉시 시작
 
 **현재 위치:** Phase 4 일부 완료
 **다음 작업:** Phase 4 남은 작업 → Option 1 → Option 2 → Option 3

@@ -156,10 +156,10 @@ go build ./...
 
 | Go Version | Status | Notes |
 |------------|--------|-------|
-| 1.22.x     | ⚠️ Not tested | May work but not officially supported |
-| 1.23.0     | ✅ Supported | Minimum required version |
-| 1.23.1+    | ✅ Supported | Recommended |
-| 1.24.0+    | ✅ Supported | Forward compatible |
+| 1.22.x     |  Not tested | May work but not officially supported |
+| 1.23.0     |  Supported | Minimum required version |
+| 1.23.1+    |  Supported | Recommended |
+| 1.24.0+    |  Supported | Forward compatible |
 
 ## Transport Options
 
@@ -237,4 +237,4 @@ For issues related to Go version compatibility:
 
 **Last Updated**: 2025-01-11
 **Maintainer**: SAGE Development Team
-**Status**: ✅ Active
+**Status**:  Active

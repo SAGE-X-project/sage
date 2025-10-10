@@ -1,25 +1,25 @@
 # Build Tags 전략 성공 보고서
 
 **Date:** January 2025
-**Status:** ✅ 완료
+**Status:**  완료
 **Goal:** a2a를 optional dependency로 만들기
 
 ---
 
-## ✅ 달성 결과
+##  달성 결과
 
 ### 핵심 목표 완료
 
 | 목표 | 상태 | 검증 방법 |
 |------|------|----------|
-| **A2A를 선택적으로 사용** | ✅ 완료 | Build tags 추가 |
-| **기본 빌드에서 a2a 제외** | ✅ 완료 | `go build` 성공 |
-| **Unit tests a2a 없이 통과** | ✅ 완료 | MockTransport 사용 |
-| **A2A 필요 시 포함 가능** | ✅ 완료 | `-tags=a2a` 빌드 성공 |
+| **A2A를 선택적으로 사용** |  완료 | Build tags 추가 |
+| **기본 빌드에서 a2a 제외** |  완료 | `go build` 성공 |
+| **Unit tests a2a 없이 통과** |  완료 | MockTransport 사용 |
+| **A2A 필요 시 포함 가능** |  완료 | `-tags=a2a` 빌드 성공 |
 
 ---
 
-## 🔧 적용된 변경사항
+##  적용된 변경사항
 
 ### 1. A2A Adapter - Build Tags 추가
 
@@ -64,7 +64,7 @@ package main
 // +build integration,a2a
 ```
 
-✅ 추가 작업 불필요
+ 추가 작업 불필요
 
 ---
 
@@ -75,15 +75,15 @@ package main
 ```bash
 # 메인 커맨드 빌드
 $ go build ./cmd/sage-crypto
-✅ 성공
+ 성공
 
 $ go build ./cmd/sage-did
-✅ 성공
+ 성공
 
 # A2A adapter 제외 확인
 $ go build ./pkg/agent/transport/a2a/...
-⚠️ warning: "./pkg/agent/transport/a2a/..." matched no packages
-✅ 예상대로 제외됨
+ warning: "./pkg/agent/transport/a2a/..." matched no packages
+ 예상대로 제외됨
 ```
 
 ---
@@ -104,7 +104,7 @@ $ go test ./pkg/agent/handshake/... -v
 --- PASS: TestInvitation_ResolverSingleflight (0.00s)
 PASS
 ok  	github.com/sage-x-project/sage/pkg/agent/handshake	(cached)
-✅ 모두 통과
+ 모두 통과
 
 $ go test ./pkg/agent/hpke/... -v
 === RUN   Test_HPKE_Base_Exporter_To_Session
@@ -123,7 +123,7 @@ $ go test ./pkg/agent/hpke/... -v
 --- PASS: Test_Session_KeyID_Uniqueness (0.00s)
 PASS
 ok  	github.com/sage-x-project/sage/pkg/agent/hpke	(cached)
-✅ 모두 통과
+ 모두 통과
 ```
 
 ---
@@ -132,15 +132,15 @@ ok  	github.com/sage-x-project/sage/pkg/agent/hpke	(cached)
 
 ```bash
 $ go build -tags=a2a ./pkg/agent/transport/a2a/...
-✅ 성공
+ 성공
 
 $ go build -tags="integration,a2a" ./test/integration/tests/session/handshake/server
-✅ 성공 (예상)
+ 성공 (예상)
 ```
 
 ---
 
-## 📊 Before vs After
+##  Before vs After
 
 ### Before (문제점)
 ```bash
@@ -159,66 +159,66 @@ $ go build ./...
 ```bash
 # 기본 빌드
 $ go build ./...
-→ A2A adapter 제외됨 ✅
-→ a2a-go import 안 됨 ✅
-→ MockTransport로 테스트 ✅
+→ A2A adapter 제외됨 
+→ a2a-go import 안 됨 
+→ MockTransport로 테스트 
 
 # A2A 필요 시
 $ go build -tags=a2a ./...
-→ A2A adapter 포함 ✅
-→ a2a-go 사용 가능 ✅
+→ A2A adapter 포함 
+→ a2a-go 사용 가능 
 ```
 
 ---
 
-## 🎯 목표 달성도
+##  목표 달성도
 
 ### 제안서 목표 (ARCHITECTURE_REFACTORING_PROPOSAL.md)
 
 | 목표 | 상태 | 달성도 |
 |------|------|--------|
-| Transport Interface 추상화 | ✅ 완료 | 100% |
-| A2A Adapter 구현 | ✅ 완료 | 100% |
-| a2a-go 의존성 제거 | ⚠️ 부분 달성 | 80% |
-| Go 1.23.0 복원 | ❌ 미달성 | 0% |
+| Transport Interface 추상화 |  완료 | 100% |
+| A2A Adapter 구현 |  완료 | 100% |
+| a2a-go 의존성 제거 |  부분 달성 | 80% |
+| Go 1.23.0 복원 |  미달성 | 0% |
 
 ### 새로운 목표 (Optional Dependency 전략)
 
 | 목표 | 상태 | 달성도 |
 |------|------|--------|
-| Transport Interface 추상화 | ✅ 완료 | 100% |
-| A2A Adapter 구현 | ✅ 완료 | 100% |
-| **a2a를 Optional로 만들기** | ✅ 완료 | 100% |
-| **Build tags로 선택적 사용** | ✅ 완료 | 100% |
-| **기본 빌드 a2a 제외** | ✅ 완료 | 100% |
+| Transport Interface 추상화 |  완료 | 100% |
+| A2A Adapter 구현 |  완료 | 100% |
+| **a2a를 Optional로 만들기** |  완료 | 100% |
+| **Build tags로 선택적 사용** |  완료 | 100% |
+| **기본 빌드 a2a 제외** |  완료 | 100% |
 
 ---
 
-## 💡 핵심 성과
+##  핵심 성과
 
-### 1. 아키텍처 개선 ✅
+### 1. 아키텍처 개선 
 - Transport abstraction 완벽 구현
 - Dependency Inversion Principle 준수
 - Clean Architecture 적용
 
-### 2. 테스트 개선 ✅
+### 2. 테스트 개선 
 - MockTransport로 unit tests 5배 빠름
 - 네트워크 없이 테스트 가능
 - 모든 테스트 통과 (12/12)
 
-### 3. 선택적 사용 ✅
+### 3. 선택적 사용 
 - 기본 빌드: a2a 제외
 - 필요 시: `-tags=a2a`
 - 사용자 선택권 보장
 
-### 4. 코드 품질 ✅
+### 4. 코드 품질 
 - 537 → 471 lines (handshake tests, -12%)
 - 533 → 389 lines (hpke tests, -27%)
 - 깔끔한 의존성 분리
 
 ---
 
-## 📝 사용자 가이드
+##  사용자 가이드
 
 ### A2A 없이 사용 (기본)
 
@@ -267,15 +267,15 @@ client := handshake.NewClient(transport, keyPair)
 
 ---
 
-## ✅ 결론
+##  결론
 
 **Build Tags 전략이 성공적으로 완료되었습니다!**
 
 ### 핵심 성과
-- ✅ a2a를 optional dependency로 만듦
-- ✅ 기본 빌드에서 a2a 완전 제외
-- ✅ 모든 unit tests 통과 (MockTransport)
-- ✅ A2A 필요 시 build tags로 포함 가능
+-  a2a를 optional dependency로 만듦
+-  기본 빌드에서 a2a 완전 제외
+-  모든 unit tests 통과 (MockTransport)
+-  A2A 필요 시 build tags로 포함 가능
 
 ### 다음 단계
 1. README 업데이트로 사용자에게 안내
@@ -284,6 +284,6 @@ client := handshake.NewClient(transport, keyPair)
 
 ---
 
-**Status:** ✅ Build Tags 전략 완료
+**Status:**  Build Tags 전략 완료
 **Date:** January 2025
 **Verified By:** 실제 빌드 및 테스트 검증

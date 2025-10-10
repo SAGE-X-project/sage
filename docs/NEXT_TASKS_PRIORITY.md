@@ -1,7 +1,7 @@
 # SAGE Next Tasks - Priority Roadmap
 
 **Date:** January 2025
-**Status:** Transport Refactoring Phase 3 Complete ✅
+**Status:** Transport Refactoring Phase 3 Complete 
 **Purpose:** Comprehensive prioritized task list for upcoming work
 
 ---
@@ -356,10 +356,10 @@ func (s *DefaultSelector) SelectTransport(ctx context.Context, did string) (tran
 
 | Transport | Unary | Streaming | Batch | Bidirectional | Latency | Complexity |
 |-----------|-------|-----------|-------|---------------|---------|------------|
-| A2A (gRPC) | ✅ | ✅ | ✅ | ✅ | Low | Medium |
-| HTTP/REST | ✅ | ❌ | ✅ | ❌ | Medium | Low |
-| WebSocket | ✅ | ✅ | ✅ | ✅ | Low | Medium |
-| QUIC | ✅ | ✅ | ✅ | ✅ | Very Low | High |
+| A2A (gRPC) |  |  |  |  | Low | Medium |
+| HTTP/REST |  |  |  |  | Medium | Low |
+| WebSocket |  |  |  |  | Low | Medium |
+| QUIC |  |  |  |  | Very Low | High |
 
 ---
 
@@ -829,64 +829,64 @@ graph TD
 ## Recommended Execution Order
 
 ### Sprint 1 (Week 1-2): Performance Critical
-1. ✅ P0-1: Pre-allocate Key Buffers (2h)
-2. ✅ P0-2: Single HKDF Expand (4h)
-3. ✅ P0-3: Session Pool (6h)
+1.  P0-1: Pre-allocate Key Buffers (2h)
+2.  P0-2: Single HKDF Expand (4h)
+3.  P0-3: Session Pool (6h)
 
 **Milestone:** Session creation < 10 allocations
 
 ---
 
 ### Sprint 2 (Week 3-4): HTTP Transport
-1. ✅ P1-1: HTTP/REST Transport (16h)
-2. ✅ P1-4: Transport Selector (6h)
-3. ✅ P1-5: Compatibility Matrix (2h)
-4. ✅ P1-6: Update Main README (2h)
+1.  P1-1: HTTP/REST Transport (16h)
+2.  P1-4: Transport Selector (6h)
+3.  P1-5: Compatibility Matrix (2h)
+4.  P1-6: Update Main README (2h)
 
 **Milestone:** HTTP transport fully functional
 
 ---
 
 ### Sprint 3 (Week 5): WebSocket + Documentation
-1. ✅ P1-2: WebSocket Transport (12h)
-2. ✅ P1-7: Migration Guide (4h)
-3. ✅ P1-8: API Documentation (2h)
+1.  P1-2: WebSocket Transport (12h)
+2.  P1-7: Migration Guide (4h)
+3.  P1-8: API Documentation (2h)
 
 **Milestone:** Multi-transport support complete
 
 ---
 
 ### Sprint 4 (Week 6-7): Enhanced Features
-1. ✅ P2-1: Streaming Support (12h)
-2. ✅ P2-2: Batch Operations (8h)
-3. ✅ P2-3: Transport Metrics (10h)
+1.  P2-1: Streaming Support (12h)
+2.  P2-2: Batch Operations (8h)
+3.  P2-3: Transport Metrics (10h)
 
 **Milestone:** Production-ready features
 
 ---
 
 ### Sprint 5 (Week 8): Resilience
-1. ✅ P2-4: Health Checks (8h)
-2. ✅ P2-5: Connection Pooling (10h)
-3. ✅ P2-6: Compression (6h)
+1.  P2-4: Health Checks (8h)
+2.  P2-5: Connection Pooling (10h)
+3.  P2-6: Compression (6h)
 
 **Milestone:** Production hardening complete
 
 ---
 
 ### Sprint 6 (Week 9-10): Examples
-1. ✅ P3-1: Examples Directory (2h)
-2. ✅ P3-2: A2A Example (4h)
-3. ✅ P3-3: HTTP Example (4h)
-4. ✅ P3-4: Multi-Transport Example (6h)
+1.  P3-1: Examples Directory (2h)
+2.  P3-2: A2A Example (4h)
+3.  P3-3: HTTP Example (4h)
+4.  P3-4: Multi-Transport Example (6h)
 
 **Milestone:** Complete example suite
 
 ---
 
 ### Sprint 7 (Week 11-12): Infrastructure
-1. ✅ P3-5: CI/CD Updates (4h)
-2. ✅ P3-6: Benchmarking Suite (8h)
+1.  P3-5: CI/CD Updates (4h)
+2.  P3-6: Benchmarking Suite (8h)
 
 **Milestone:** Automated testing complete
 
@@ -963,6 +963,6 @@ These items are not currently prioritized but may be valuable in the future:
 
 ---
 
-**Document Status:** ✅ Ready for Review
+**Document Status:**  Ready for Review
 **Last Updated:** January 2025
 **Maintained By:** SAGE Development Team

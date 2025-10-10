@@ -24,7 +24,7 @@
 
 ---
 
-## 🔒 타입 안전성
+##  타입 안전성
 
 ### interface{} 사용
 - [ ] `interface{}` 사용에 정당한 이유가 있는가?
@@ -35,13 +35,13 @@
 ### 타입 어설션
 - [ ] **모든 타입 어설션에 comma-ok 패턴을 사용하는가?**
   ```go
-  // ✅ GOOD
+  //  GOOD
   pub, ok := key.(ed25519.PublicKey)
   if !ok {
       return fmt.Errorf("expected ed25519.PublicKey, got %T", key)
   }
 
-  // ❌ BAD
+  //  BAD
   pub := key.(ed25519.PublicKey)  // panic 위험!
   ```
 
@@ -55,7 +55,7 @@
 
 ---
 
-## ⚠️ 에러 핸들링
+##  에러 핸들링
 
 ### 에러 처리
 - [ ] 모든 에러를 적절히 처리하는가?
@@ -119,7 +119,7 @@
 
 ---
 
-## 🚀 성능
+##  성능
 
 ### 효율성
 - [ ] 불필요한 메모리 할당이 없는가?
@@ -140,7 +140,7 @@
 
 ---
 
-## 📝 문서화
+##  문서화
 
 ### 코드 문서
 - [ ] 공개 함수/타입에 godoc 주석이 있는가?
@@ -156,7 +156,7 @@
 
 ---
 
-## 🔄 Git & 변경사항
+##  Git & 변경사항
 
 ### 커밋
 - [ ] 커밋 메시지가 변경 내용을 명확히 설명하는가?
@@ -172,7 +172,7 @@
 
 ---
 
-## 🎯 SAGE 프로젝트 특화 체크리스트
+##  SAGE 프로젝트 특화 체크리스트
 
 ### DID & Resolver
 - [ ] DID 형식이 올바른가? (`did:sage:chain:identifier`)
@@ -209,17 +209,17 @@
 
 ---
 
-## 🐛 알려진 이슈 패턴
+##  알려진 이슈 패턴
 
 ### 타입 어설션 버그 (HPKE Fix)
 HPKE 버그로부터 배운 교훈:
 
 ```go
-// ❌ BEFORE: 잘못된 패턴
+//  BEFORE: 잘못된 패턴
 pub, _ := resolver.ResolvePublicKey(ctx, serverDID)
 sigKey := pub.(ed25519.PublicKey)  // 실제로는 *ecdh.PublicKey 반환!
 
-// ✅ AFTER: 올바른 패턴
+//  AFTER: 올바른 패턴
 // 1. 목적별로 메서드 분리
 kemKey, err := resolver.ResolveKEMKey(ctx, serverDID)
 if err != nil {
@@ -240,7 +240,7 @@ if !ok {
 
 ---
 
-## 🔍 리뷰 프로세스
+##  리뷰 프로세스
 
 ### 셀프 리뷰
 PR 제출 전 스스로 체크:
@@ -265,7 +265,7 @@ PR 제출 전 스스로 체크:
 
 ---
 
-## 📚 참고 자료
+##  참고 자료
 
 - [SAGE Coding Guidelines](./CODING_GUIDELINES.md)
 - [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
@@ -274,7 +274,7 @@ PR 제출 전 스스로 체크:
 
 ---
 
-## 📝 체크리스트 사용 방법
+##  체크리스트 사용 방법
 
 ### PR 작성자
 1. PR 설명에 이 체크리스트 복사

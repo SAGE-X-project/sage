@@ -28,11 +28,11 @@ SAGE uses PostgreSQL for persistent storage of:
 
 ### Why PostgreSQL?
 
-- ✅ **ACID compliance** for session consistency
-- ✅ **JSONB support** for flexible metadata
-- ✅ **Advanced indexing** for performance
-- ✅ **Mature ecosystem** with excellent tooling
-- ✅ **Horizontal scaling** via connection pooling
+-  **ACID compliance** for session consistency
+-  **JSONB support** for flexible metadata
+-  **Advanced indexing** for performance
+-  **Mature ecosystem** with excellent tooling
+-  **Horizontal scaling** via connection pooling
 
 ---
 
@@ -318,7 +318,7 @@ sage_backup_20251010_121500.sql.gz
 gunzip -c backup.sql.gz | psql -h localhost -U sage -d sage
 ```
 
-**⚠️ Warning:** Restore will DROP all existing data!
+** Warning:** Restore will DROP all existing data!
 
 ---
 
@@ -433,7 +433,7 @@ Key metrics to monitor:
 
 ### Security
 
-✅ **Required in Production:**
+ **Required in Production:**
 1. Use SSL/TLS (`sslmode=require`)
 2. Strong passwords (rotate regularly)
 3. Network firewall rules
@@ -442,7 +442,7 @@ Key metrics to monitor:
 6. Audit logging enabled
 7. Read-only replica for queries
 
-❌ **Never in Production:**
+ **Never in Production:**
 1. Default passwords
 2. Public database access
 3. Unencrypted connections

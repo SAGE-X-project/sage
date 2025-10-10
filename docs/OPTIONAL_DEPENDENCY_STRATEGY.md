@@ -6,7 +6,7 @@
 
 ---
 
-## 🔄 전략 변경
+##  전략 변경
 
 ### 기존 계획 (DEPENDENCY_REMOVAL_PLAN.md)
 - Integration tests를 별도 모듈로 분리
@@ -121,53 +121,53 @@ A2A transport를 사용하려면:
 
 ---
 
-## ✅ 성공 기준
+##  성공 기준
 
 ### 기본 빌드 (a2a 없이)
 ```bash
 # 1. 빌드 성공
 go build ./cmd/sage-crypto
 go build ./cmd/sage-did
-# 예상: 성공 ✅
+# 예상: 성공 
 
 # 2. Unit tests 성공
 go test ./pkg/agent/handshake/...
 go test ./pkg/agent/hpke/...
-# 예상: 모두 통과 ✅ (MockTransport 사용)
+# 예상: 모두 통과  (MockTransport 사용)
 
 # 3. A2A adapter 제외 확인
 go build ./pkg/agent/transport/a2a/
-# 예상: 빌드 안 됨 (build tag 필요) ✅
+# 예상: 빌드 안 됨 (build tag 필요) 
 ```
 
 ### A2A 포함 빌드
 ```bash
 # 1. A2A adapter 빌드
 go build -tags=a2a ./pkg/agent/transport/a2a/
-# 예상: 성공 ✅
+# 예상: 성공 
 
 # 2. Integration tests 빌드
 go build -tags="integration,a2a" ./test/integration/tests/session/handshake/server
-# 예상: 성공 ✅
+# 예상: 성공 
 ```
 
 ---
 
-## 🎯 이 전략의 장점
+##  이 전략의 장점
 
-### 1. 순환 의존성 해결 ✅
+### 1. 순환 의존성 해결 
 - 모듈 분리 불필요
 - 복잡도 감소
 
-### 2. 호환성 유지 ✅
+### 2. 호환성 유지 
 - 기존 사용자 영향 최소화
 - go.mod 변경 불필요
 
-### 3. 선택적 사용 ✅
+### 3. 선택적 사용 
 - A2A 필요 없는 사용자: 기본 빌드
 - A2A 필요한 사용자: `-tags=a2a`
 
-### 4. 깔끔한 의존성 ✅
+### 4. 깔끔한 의존성 
 - 기본 빌드는 a2a import 안 함
 - go list로 확인 가능
 
@@ -203,23 +203,23 @@ go build -tags="integration,a2a" ./test/integration/tests/session/handshake/serv
 
 ---
 
-## 📊 제안서 목표 재검토
+##  제안서 목표 재검토
 
 ### 원래 목표 (ARCHITECTURE_REFACTORING_PROPOSAL.md)
-1. ✅ Transport Interface 추상화 (완료)
-2. ✅ A2A Adapter 구현 (완료)
-3. ❌ a2a-go 의존성 제거 (부분 달성)
-4. ❌ Go 1.23.0 복원 (미달성)
+1.  Transport Interface 추상화 (완료)
+2.  A2A Adapter 구현 (완료)
+3.  a2a-go 의존성 제거 (부분 달성)
+4.  Go 1.23.0 복원 (미달성)
 
 ### 새로운 목표 (Optional Dependency 전략)
-1. ✅ Transport Interface 추상화 (완료)
-2. ✅ A2A Adapter 구현 (완료)
-3. ✅ a2a를 optional로 만들기 (build tags)
-4. ⚠️ Go 1.24.4 유지 (호환성 우선)
+1.  Transport Interface 추상화 (완료)
+2.  A2A Adapter 구현 (완료)
+3.  a2a를 optional로 만들기 (build tags)
+4.  Go 1.24.4 유지 (호환성 우선)
 
 ---
 
-## 🚀 즉시 실행
+##  즉시 실행
 
 **Task 1: A2A Adapter에 build tags 추가**
 

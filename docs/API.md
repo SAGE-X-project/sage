@@ -385,9 +385,9 @@ chmod 600 agent_name/private.key
 chmod 644 agent_name/public.key
 
 # Storage
-# ✅ DO: Use encrypted key stores (HashiCorp Vault, AWS KMS)
-# ❌ DON'T: Commit keys to version control
-# ❌ DON'T: Share keys between environments
+#  DO: Use encrypted key stores (HashiCorp Vault, AWS KMS)
+#  DON'T: Commit keys to version control
+#  DON'T: Share keys between environments
 ```
 
 #### 2. DID Registration
@@ -631,10 +631,10 @@ func sendWithRetry(msg *Message) error {
 
 | Language | Status | Repository | Documentation |
 |----------|--------|------------|---------------|
-| Go | ✅ Built-in | `pkg/` | [GoDoc](https://pkg.go.dev/github.com/sage-x-project/sage) |
-| Python | 🚧 Planned | TBD | TBD |
-| Rust | 🚧 Planned | TBD | TBD |
-| Java | 🚧 Planned | TBD | TBD |
+| Go |  Built-in | `pkg/` | [GoDoc](https://pkg.go.dev/github.com/sage-x-project/sage) |
+| Python |  Planned | TBD | TBD |
+| Rust |  Planned | TBD | TBD |
+| Java |  Planned | TBD | TBD |
 
 ### Go SDK
 

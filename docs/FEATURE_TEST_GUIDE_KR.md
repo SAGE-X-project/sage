@@ -52,8 +52,8 @@ cd /Users/kevin/work/github/sage-x-project/sage
 **출력 형식**:
 - **카테고리 헤더**: 청록색(Cyan)으로 표시
 - **테스트 항목**: 노란색(Yellow)으로 표시, 진행 상황 표시 [1/5], [2/5] 등
-- **성공**: 녹색(Green)으로 "✅ 통과" 표시
-- **실패**: 빨간색(Red)으로 "❌ 실패" 표시
+- **성공**: 녹색(Green)으로 " 통과" 표시
+- **실패**: 빨간색(Red)으로 " 실패" 표시
 
 ### 상세 로그 실행
 
@@ -733,8 +733,8 @@ go test -v github.com/sage-x-project/sage/test/integration/tests/integration -ru
 ================================================================================
 검증 결과 요약
 ================================================================================
-✅ 통과: 78
-❌ 실패: 0
+ 통과: 78
+ 실패: 0
 ⏭️  건너뜀: 2 (통합 테스트 전용)
 ================================================================================
 통과율: 100.00%
@@ -902,11 +902,11 @@ npx hardhat run scripts/deploy.js --network localhost
 
 **예상 출력**:
 ```
-✅ Blockchain Connection: OK
-✅ Chain ID: 31337
-✅ Block Number: 1
-✅ Contract Address: 0x5FbDB2315678afecb367f032d93F642f64180aa3
-✅ Contract Code: Deployed
+ Blockchain Connection: OK
+ Chain ID: 31337
+ Block Number: 1
+ Contract Address: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+ Contract Code: Deployed
 ```
 
 ---
