@@ -21,6 +21,7 @@ package hpke
 import (
 	"crypto"
 	"crypto/ed25519"
+
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -31,6 +32,8 @@ import (
 	"io"
 	"sync"
 	"time"
+
+	"golang.org/x/crypto/hkdf"
 )
 
 // info is the RFC9180 "info" input and explicitly encodes suite/combiner/context data.
@@ -65,6 +68,45 @@ func DefaultInfo(ctxID, initDID, respDID string) []byte {
 // DefaultExportContext returns the canonical export context bytes used by SAGE.
 func DefaultExportContext(ctxID string) []byte {
 	return DefaultInfoBuilder{}.BuildExportContext(ctxID)
+}
+
+// Combine exporterHPKE || ssE2E using HKDF-Extract(salt=exportCtx) then
+// HKDF-Expand("SAGE-HPKE+E2E-Combiner") to 32 bytes.
+func combineSecrets(exporterHPKE, ssE2E, exportCtx []byte) ([]byte, error) {
+	ikm := make([]byte, 0, len(exporterHPKE)+len(ssE2E))
+	ikm = append(ikm, exporterHPKE...)
+	ikm = append(ikm, ssE2E...)
+	prk := hkdf.Extract(sha256.New, ikm, exportCtx)
+	r := hkdf.Expand(sha256.New, prk, []byte("SAGE-HPKE+E2E-Combiner"))
+	out := make([]byte, 32)
+	_, err := io.ReadFull(r, out)
+	return out, err
+}
+
+// zeroBytes best-effort clears a byte slice.
+func zeroBytes(b []byte) {
+	for i := range b {
+		b[i] = 0
+	}
+}
+
+type TrafficKeys struct {
+	C2SKey []byte // 32 bytes
+	C2SIV  []byte // 12 bytes
+	S2CKey []byte // 32 bytes
+	S2CIV  []byte // 12 bytes
+	CB     []byte // 32 bytes channel-binding value
+}
+
+// DeriveTrafficKeys splits a 32-byte seed into directional keys, IVs and CB.
+func DeriveTrafficKeys(seed []byte) TrafficKeys {
+	return TrafficKeys{
+		C2SKey: hkdfExpand(seed, c2sKeyLabel, 32),
+		C2SIV:  hkdfExpand(seed, c2sIVLabel, 12),
+		S2CKey: hkdfExpand(seed, s2cKeyLabel, 32),
+		S2CIV:  hkdfExpand(seed, s2cIVLabel, 12),
+		CB:     hkdfExpand(seed, cbLabel, 32),
+	}
 }
 
 // verifySignature checks the signature against the payload (for ed25519).

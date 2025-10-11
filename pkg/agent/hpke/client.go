@@ -23,6 +23,7 @@ import (
 	"crypto/ecdh"
 	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -36,6 +37,11 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/transport"
 )
 
+// CookieSource optionally provides DoS cookie to attach.
+type CookieSource interface {
+	GetCookie(ctxID, initDID, respDID string) (string, bool)
+}
+
 // Client performs the HPKE-based initialization and session creation.
 type Client struct {
 	transport transport.MessageTransport
@@ -44,6 +50,8 @@ type Client struct {
 	DID       string
 	info      InfoBuilder
 	sessMgr   *session.Manager
+
+	cookies CookieSource // optional
 }
 
 func NewClient(t transport.MessageTransport, resolver did.Resolver, key sagecrypto.KeyPair, didStr string, ib InfoBuilder, sessMgr *session.Manager) *Client {
@@ -60,8 +68,13 @@ func NewClient(t transport.MessageTransport, resolver did.Resolver, key sagecryp
 	}
 }
 
-// Initialize performs HPKE Base sender-side derivation, mixes an E2E ephemeral
-// X25519 DH with the HPKE exporter, verifies the server-signed response,
+// WithCookieSource enables optional cookie attachment.
+func (c *Client) WithCookieSource(src CookieSource) *Client {
+	c.cookies = src
+	return c
+}
+
+// Initialize performs HPKE Base sender-side derivation, mixes E2E DH, verifies ackTag & server signature,
 // and creates/binds a session keyed by kid.
 func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string) (kid string, err error) {
 	// 1) Resolve peer's KEM (X25519) public key.
@@ -83,6 +96,7 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
 	// 4) Generate client ephemeral X25519 key for additional E2E DH.
 	ephCpriv, ephCPubBytes, err := genEphX25519()
 	if err != nil {
+		zeroBytes(exporterHPKE)
 		return "", err
 	}
 
@@ -90,43 +104,85 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
 	nonce := uuid.NewString()
 	msg, err := c.buildAndSignInitMsg(ctxID, initDID, peerDID, info, exportCtx, nonce, enc, ephCPubBytes)
 	if err != nil {
+		zeroBytes(exporterHPKE)
 		return "", err
+	}
+
+	// Optional cookie
+	if c.cookies != nil {
+		if cookie, ok := c.cookies.GetCookie(ctxID, initDID, peerDID); ok && cookie != "" {
+			if msg.Metadata == nil {
+				msg.Metadata = map[string]string{}
+			}
+			msg.Metadata["cookie"] = cookie
+		}
 	}
 
 	// 6) Send the request and receive a server-signed response.
 	resp, err := c.sendAndGetSignedMsg(ctx, msg)
 	if err != nil {
+		zeroBytes(exporterHPKE)
 		return "", err
 	}
 
-	// 7) Extract response fields: kid, ackTagB64, ephS, serverDID.
-	kid, ackTag, ephSbytes, err := parseServerFieldsFromJSON(resp.Data)
+	// 7) Parse response (incl. server sig)
+	r, err := parseServerSignedResponse(resp.Data)
 	if err != nil {
+		zeroBytes(exporterHPKE)
 		return "", err
 	}
 
-	// 9) Compute the E2E DH: ssE2E = X25519(ephCpriv, ephSPub).
-	ssE2E, err := computeE2ESecret(ephCpriv, ephSbytes)
+	// 8) Compute ssE2E
+	ssE2E, err := computeE2ESecret(ephCpriv, r.EphSBytes)
 	if err != nil {
+		zeroBytes(exporterHPKE)
 		return "", err
 	}
 
-	// 10) Combine HPKE exporter and E2E secret using HKDF with exportCtx as salt.
-	combined, err := CombineSecrets(exporterHPKE, ssE2E, exportCtx)
+	// 9) Combine exporter + ssE2E
+	combined, err := combineSecrets(exporterHPKE, ssE2E, exportCtx)
+	zeroBytes(exporterHPKE)
+	zeroBytes(ssE2E)
 	if err != nil {
 		return "", fmt.Errorf("combine: %w", err)
 	}
 
-	// 11) Verify server's key confirmation tag (ackTag).
-	if err := verifyAckTag(combined, ctxID, nonce, kid, info, exportCtx, enc, ephCPubBytes, ephSbytes, initDID, peerDID, ackTag); err != nil {
+	// 10) Verify ackTag first (HMAC with combined secret)
+	binds := [][]byte{
+		info, exportCtx, enc, ephCPubBytes, r.EphSBytes, []byte(initDID), []byte(peerDID),
+	}
+	if err := verifyAckTag(combined, ctxID, nonce, r.Kid, binds, r.AckTag); err != nil {
+		zeroBytes(combined)
 		return "", err
 	}
 
-	// 12) Create session as the initiator and bind the key ID.
-	if err := c.createAndBindSession(combined, kid); err != nil {
+	// Cross-check that response echoed our enc/ephC (if present)
+	if len(r.Enc) > 0 {
+		if base64.RawURLEncoding.EncodeToString(enc) != r.EncB64 {
+			zeroBytes(combined)
+			return "", fmt.Errorf("enc mismatch")
+		}
+	}
+	if len(r.EphC) > 0 {
+		if base64.RawURLEncoding.EncodeToString(ephCPubBytes) != r.EphCB64 {
+			zeroBytes(combined)
+			return "", fmt.Errorf("ephC mismatch")
+		}
+	}
+
+	// 11) Verify server Ed25519 signature over canonical envelope
+	if err := c.verifySignature(ctx, peerDID, r, ctxID, info, exportCtx, enc, ephCPubBytes); err != nil {
+		zeroBytes(combined)
 		return "", err
 	}
-	return kid, nil
+
+	// 12) Create session and bind kid
+	if err := c.createAndBindSession(combined, r.Kid); err != nil {
+		zeroBytes(combined)
+		return "", err
+	}
+	zeroBytes(combined)
+	return r.Kid, nil
 }
 
 // Resolve KEM public key of the peer by DID.
@@ -219,40 +275,149 @@ func (c *Client) sendAndGetSignedMsg(ctx context.Context, msg *transport.SecureM
 	return resp, nil
 }
 
-// Parse server fields (kid, ackTag, ephS) from JSON response data.
-func parseServerFieldsFromJSON(data []byte) (kid string, ackTag []byte, ephSbytes []byte, err error) {
-	var resp map[string]string
-	if err := json.Unmarshal(data, &resp); err != nil {
-		return "", nil, nil, fmt.Errorf("unmarshal response: %w", err)
-	}
-
-	kid = resp["kid"]
-	if kid == "" {
-		return "", nil, nil, fmt.Errorf("missing kid")
-	}
-
-	ackTagB64 := resp["ackTagB64"]
-	if ackTagB64 == "" {
-		return "", nil, nil, fmt.Errorf("missing ackTagB64")
-	}
-	ackTag, err = base64.RawURLEncoding.DecodeString(ackTagB64)
-	if err != nil {
-		return "", nil, nil, fmt.Errorf("ackTag b64: %w", err)
-	}
-
-	ephSB64 := resp["ephS"]
-	if ephSB64 == "" {
-		return "", nil, nil, fmt.Errorf("missing ephS")
-	}
-	ephSbytes, err = base64.RawURLEncoding.DecodeString(ephSB64)
-	if err != nil {
-		return "", nil, nil, fmt.Errorf("ephS b64: %w", err)
-	}
-	if len(ephSbytes) != 32 {
-		return "", nil, nil, fmt.Errorf("bad ephS length: %d", len(ephSbytes))
-	}
-	return kid, ackTag, ephSbytes, nil
+type serverSignedResponse struct {
+	V             string
+	Task          string
+	Ctx           string
+	Kid           string
+	EphSBytes     []byte
+	AckTag        []byte
+	Ts            string
+	Did           string
+	InfoHash      []byte
+	ExportCtxHash []byte
+	Enc           []byte
+	EphC          []byte
+	EncB64        string
+	EphCB64       string
+	Sig           []byte
 }
+
+func parseServerSignedResponse(data []byte) (*serverSignedResponse, error) {
+	var m map[string]string
+	if err := json.Unmarshal(data, &m); err != nil {
+		return nil, fmt.Errorf("unmarshal resp: %w", err)
+	}
+	get := func(k string) (string, error) {
+		v, ok := m[k]
+		if !ok || v == "" {
+			return "", fmt.Errorf("missing %s", k)
+		}
+		return v, nil
+	}
+
+	v, _ := get("v")            // version
+	task, _ := get("task")
+	ctx, _ := get("ctx")
+	kid, _ := get("kid")
+	ephSB64, _ := get("ephS")
+	ackB64, _ := get("ackTagB64")
+	ts, _ := get("ts")
+	did, _ := get("did")
+	infoHB64, _ := get("infoHash")
+	exportHB64, _ := get("exportCtxHash")
+	sigB64, _ := get("sigB64")
+
+	ephS, err := base64.RawURLEncoding.DecodeString(ephSB64)
+	if err != nil || len(ephS) != 32 {
+		return nil, fmt.Errorf("bad ephS")
+	}
+	ack, err := base64.RawURLEncoding.DecodeString(ackB64)
+	if err != nil {
+		return nil, fmt.Errorf("bad ackTagB64")
+	}
+	ih, err := base64.RawURLEncoding.DecodeString(infoHB64)
+	if err != nil || len(ih) != 32 {
+		return nil, fmt.Errorf("bad infoHash")
+	}
+	eh, err := base64.RawURLEncoding.DecodeString(exportHB64)
+	if err != nil || len(eh) != 32 {
+		return nil, fmt.Errorf("bad exportCtxHash")
+	}
+	sig, err := base64.RawURLEncoding.DecodeString(sigB64)
+	if err != nil {
+		return nil, fmt.Errorf("bad sigB64")
+	}
+
+	var enc, ephC []byte
+	encB64, ok := m["enc"]
+	if ok && encB64 != "" {
+		enc, err = base64.RawURLEncoding.DecodeString(encB64)
+		if err != nil {
+			return nil, fmt.Errorf("bad enc")
+		}
+	}
+	ephCB64, ok := m["ephC"]
+	if ok && ephCB64 != "" {
+		ephC, err = base64.RawURLEncoding.DecodeString(ephCB64)
+		if err != nil {
+			return nil, fmt.Errorf("bad ephC")
+		}
+	}
+
+	return &serverSignedResponse{
+		V:             v,
+		Task:          task,
+		Ctx:           ctx,
+		Kid:           kid,
+		EphSBytes:     ephS,
+		AckTag:        ack,
+		Ts:            ts,
+		Did:           did,
+		InfoHash:      ih,
+		ExportCtxHash: eh,
+		Enc:           enc,
+		EphC:          ephC,
+		EncB64:        encB64,
+		EphCB64:       ephCB64,
+		Sig:           sig,
+	}, nil
+}
+
+func (c *Client) verifySignature(ctx context.Context, serverDID string, r *serverSignedResponse, ctxID string, info, exportCtx, enc, ephC []byte) error {
+	// Resolve server signing key (Ed25519)
+	if c.resolver == nil {
+		return fmt.Errorf("nil resolver")
+	}
+	pub, err := c.resolver.ResolvePublicKey(ctx, did.AgentDID(serverDID))
+	if err != nil || pub == nil {
+		return fmt.Errorf("cannot resolve server pubkey")
+	}
+
+	// Recompute info/export hashes and check equality
+	ih := sha256.Sum256(info)
+	eh := sha256.Sum256(exportCtx)
+	if !hmac.Equal(ih[:], r.InfoHash) || !hmac.Equal(eh[:], r.ExportCtxHash) {
+		return fmt.Errorf("info/exportCtx hash mismatch")
+	}
+
+	// Rebuild the exact envelope bytes (must match server side)
+	env := serverSigEnvelope{
+		V:             r.V,
+		Task:          r.Task,
+		Ctx:           ctxID, // prefer local ctxID
+		Kid:           r.Kid,
+		EphS:          base64.RawURLEncoding.EncodeToString(r.EphSBytes),
+		AckTagB64:     base64.RawURLEncoding.EncodeToString(r.AckTag),
+		Ts:            r.Ts,
+		Did:           serverDID,
+		InfoHash:      base64.RawURLEncoding.EncodeToString(ih[:]),
+		ExportCtxHash: base64.RawURLEncoding.EncodeToString(eh[:]),
+		Enc:           base64.RawURLEncoding.EncodeToString(enc),
+		EphC:          base64.RawURLEncoding.EncodeToString(ephC),
+	}
+	envBytes, err := json.Marshal(env)
+	if err != nil {
+		return fmt.Errorf("marshal env (client): %w", err)
+	}
+
+	// Verify detached signature
+	if err := verifySignature(envBytes, r.Sig, pub); err != nil {
+		return fmt.Errorf("server signature verify failed: %w", err)
+	}
+	return nil
+}
+
 
 // Compute ssE2E = X25519(ephCpriv, ephSPub).
 func computeE2ESecret(ephCpriv *ecdh.PrivateKey, ephSbytes []byte) ([]byte, error) {
@@ -269,21 +434,9 @@ func computeE2ESecret(ephCpriv *ecdh.PrivateKey, ephSbytes []byte) ([]byte, erro
 }
 
 // Constant-time verification of the server's ack tag.
-func verifyAckTag(combined []byte, ctxID, nonce, kid string, info, exportCtx, enc, ephCPubBytes, ephSbytes []byte, initDID, peerDID string, ack []byte) error {
-	expect := MakeAckTag(
-		combined,
-		ctxID,
-		nonce,
-		kid,
-		info,
-		exportCtx,
-		enc,
-		ephCPubBytes,
-		ephSbytes,
-		[]byte(initDID),
-		[]byte(peerDID),
-	)
-	if !hmac.Equal(expect, ack) {
+func verifyAckTag(seed []byte, ctxID, nonce, kid string, binds [][]byte, tag []byte) error {
+	expect := MakeAckTag(seed, ctxID, nonce, kid, binds...)
+	if !hmac.Equal(expect, tag) {
 		return fmt.Errorf("ack tag mismatch")
 	}
 	return nil
