@@ -37,8 +37,6 @@ Welcome to the SAGE (Secure Agent Guarantee Engine) documentation. This index pr
 
 - **[Go Version Requirements](GO_VERSION_REQUIREMENT.md)** - Go version compatibility and requirements
 - **[Version Management](../pkg/version/README.md)** - Software version tracking and release management
-- **[Architecture Refactoring Proposal](ARCHITECTURE_REFACTORING_PROPOSAL.md)** - Major refactoring plan and rationale
-- **[Migration Guides](EXAMPLES_MIGRATION_PLAN.md)** - Guide for migrating examples and code
 
 ## Module Documentation
 
@@ -68,8 +66,6 @@ Welcome to the SAGE (Secure Agent Guarantee Engine) documentation. This index pr
 - **[Transport Overview](../pkg/agent/transport/README.md)** - Protocol-agnostic message transport abstraction
 - **[HTTP Transport](../pkg/agent/transport/http/README.md)** - REST/HTTP transport implementation
 - **[WebSocket Transport](../pkg/agent/transport/websocket/README.md)** - WebSocket transport implementation
-- **[Transport Refactoring](TRANSPORT_REFACTORING.md)** - Architecture refactoring details
-- **[Build Tags Implementation](BUILD_TAGS_SUCCESS.md)** - Optional dependency strategy
 
 ## Smart Contracts
 
@@ -186,14 +182,16 @@ Comprehensive guides in Korean for in-depth understanding:
 
 ## Project History and Progress
 
-### Implementation Progress Reports
+### Active Planning
 
-- **[HTTP Transport Complete](OPTION2_HTTP_TRANSPORT_COMPLETE.md)** - HTTP/REST transport implementation summary
-- **[WebSocket Transport Complete](OPTION3_WEBSOCKET_TRANSPORT_COMPLETE.md)** - WebSocket transport implementation summary
-- **[Final Summary (Korean)](FINAL_SUMMARY_KO.md)** - Complete refactoring summary (Korean)
-- **[Dependency Removal Plan](DEPENDENCY_REMOVAL_PLAN.md)** - a2a dependency removal strategy
 - **[Optional Dependency Strategy](OPTIONAL_DEPENDENCY_STRATEGY.md)** - Build tags approach
 - **[Next Tasks Priority](NEXT_TASKS_PRIORITY.md)** - Future development priorities
+
+### Archived Documentation
+
+Historical implementation reports and refactoring plans have been moved to the archive:
+- **[Refactoring Archive](archive/refactoring/)** - Architecture proposals and transport refactoring history
+- **[Verification Reports](archive/)** - Feature and build verification reports
 
 ## Archive
 
@@ -225,6 +223,6 @@ Historical documentation and deprecated features:
 
 ---
 
-**Last Updated**: 2025-10-10
+**Last Updated**: 2025-10-11
 
 For suggestions to improve this documentation, please [open an issue](https://github.com/sage-x-project/sage/issues/new?title=Docs:+) or submit a pull request.
