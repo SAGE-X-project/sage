@@ -36,6 +36,12 @@ type CookieVerifier interface {
 	Verify(cookie, ctxID, initDID, respDID string) bool
 }
 
+// CookieSource optionally provides DoS cookie to attach.
+type CookieSource interface {
+	GetCookie(ctxID, initDID, respDID string) (string, bool)
+}
+
+
 
 const (
 	hpkeSuiteID    = "hpke-base+x25519+hkdf-sha256"

@@ -37,11 +37,6 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/transport"
 )
 
-// CookieSource optionally provides DoS cookie to attach.
-type CookieSource interface {
-	GetCookie(ctxID, initDID, respDID string) (string, bool)
-}
-
 // Client performs the HPKE-based initialization and session creation.
 type Client struct {
 	transport transport.MessageTransport
