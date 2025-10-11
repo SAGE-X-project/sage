@@ -243,6 +243,6 @@ Historical documentation and deprecated features:
 
 ---
 
-**Last Updated**: 2025-10-11
+**Last Updated**: 2025-10-11 (v1.0.0)
 
 For suggestions to improve this documentation, please [open an issue](https://github.com/sage-x-project/sage/issues/new?title=Docs:+) or submit a pull request.
