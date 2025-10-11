@@ -385,8 +385,8 @@ func TestConfigCopyDoesNotModifyPreset(t *testing.T) {
 	originalChainID := new(big.Int).Set(originalPreset.ChainID)
 
 	// Set environment variable to override chain ID
-	os.Setenv("SAGE_CHAIN_ID", "999")
-	defer os.Unsetenv("SAGE_CHAIN_ID")
+	_ = os.Setenv("SAGE_CHAIN_ID", "999")
+	defer func() { _ = os.Unsetenv("SAGE_CHAIN_ID") }()
 
 	// Load config
 	cfg, err := LoadConfig("local")

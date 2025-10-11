@@ -70,10 +70,10 @@ func TestLoadForEnvironment(t *testing.T) {
 
 func TestLoadWithEnvOverrides(t *testing.T) {
 	// Set environment overrides
-	os.Setenv("SAGE_BLOCKCHAIN_RPC", "http://override-rpc:8545")
-	os.Setenv("SAGE_LOG_LEVEL", "debug")
-	defer os.Unsetenv("SAGE_BLOCKCHAIN_RPC")
-	defer os.Unsetenv("SAGE_LOG_LEVEL")
+	_ = os.Setenv("SAGE_BLOCKCHAIN_RPC", "http://override-rpc:8545")
+	_ = os.Setenv("SAGE_LOG_LEVEL", "debug")
+	defer func() { _ = os.Unsetenv("SAGE_BLOCKCHAIN_RPC") }()
+	defer func() { _ = os.Unsetenv("SAGE_LOG_LEVEL") }()
 
 	cfg, err := Load(LoaderOptions{
 		ConfigDir:      ".",

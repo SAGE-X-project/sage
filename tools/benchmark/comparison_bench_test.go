@@ -58,7 +58,7 @@ func BenchmarkBaseline_vs_SAGE(b *testing.B) {
 	b.Run("SAGE_FullSecure", func(b *testing.B) {
 		// Create session with shared secret
 		sharedSecret := make([]byte, 32)
-		rand.Read(sharedSecret)
+		_, _ = rand.Read(sharedSecret)
 
 		manager := session.NewManager()
 		sess, _ := manager.CreateSession("bench-session", sharedSecret)
@@ -88,7 +88,7 @@ func BenchmarkThroughput(b *testing.B) {
 
 	for _, size := range messageSizes {
 		message := make([]byte, size)
-		rand.Read(message)
+		_, _ = rand.Read(message)
 
 		b.Run("Baseline_"+formatBytes(size), func(b *testing.B) {
 			b.SetBytes(int64(size))
@@ -111,7 +111,7 @@ func BenchmarkThroughput(b *testing.B) {
 		b.Run("SAGE_"+formatBytes(size), func(b *testing.B) {
 			// Create session with shared secret
 			sharedSecret := make([]byte, 32)
-			rand.Read(sharedSecret)
+			_, _ = rand.Read(sharedSecret)
 
 			manager := session.NewManager()
 			sess, _ := manager.CreateSession("throughput-bench", sharedSecret)
@@ -145,7 +145,7 @@ func BenchmarkThroughput(b *testing.B) {
 // BenchmarkLatency measures latency in different scenarios
 func BenchmarkLatency(b *testing.B) {
 	message := make([]byte, 1024)
-	rand.Read(message)
+	_, _ = rand.Read(message)
 
 	b.Run("Baseline_RoundTrip", func(b *testing.B) {
 		b.ReportAllocs()
@@ -173,7 +173,7 @@ func BenchmarkLatency(b *testing.B) {
 	b.Run("SAGE_RoundTrip", func(b *testing.B) {
 		// Create session with shared secret
 		sharedSecret := make([]byte, 32)
-		rand.Read(sharedSecret)
+		_, _ = rand.Read(sharedSecret)
 
 		manager := session.NewManager()
 		sess, _ := manager.CreateSession("latency-bench", sharedSecret)
@@ -212,7 +212,7 @@ func BenchmarkLatency(b *testing.B) {
 func BenchmarkMemoryUsage(b *testing.B) {
 	b.Run("Baseline_1000Messages", func(b *testing.B) {
 		message := make([]byte, 1024)
-		rand.Read(message)
+		_, _ = rand.Read(message)
 
 		b.ReportAllocs()
 		b.ResetTimer()
@@ -240,9 +240,9 @@ func BenchmarkMemoryUsage(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for j := 0; j < 1000; j++ {
 				sharedSecret := make([]byte, 32)
-				rand.Read(sharedSecret)
+				_, _ = rand.Read(sharedSecret)
 				sessionID := string(make([]byte, 16))
-				rand.Read([]byte(sessionID))
+				_, _ = rand.Read([]byte(sessionID))
 				_, _ = manager.CreateSession(sessionID, sharedSecret)
 			}
 		}
