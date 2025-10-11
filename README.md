@@ -211,6 +211,44 @@ MNEMONIC=your_twelve_word_mnemonic_phrase_here
 SAGE_REGISTRY_ADDRESS=0x...
 ```
 
+### Hardhat Setup
+
+SAGE uses two separate Hardhat installations for different purposes:
+
+#### 1. Root Hardhat (Go Integration Tests)
+
+- **Location**: `/hardhat.config.js`, `/package.json`, `/package-lock.json`
+- **Purpose**: Local blockchain for Go integration tests
+- **Version**: Hardhat 3.0.7 (latest)
+- **Usage**:
+  ```bash
+  make test-integration  # Automatically starts Hardhat node
+  make blockchain-start  # Start blockchain manually
+  make blockchain-stop   # Stop blockchain
+  ```
+- **Configuration**: Minimal setup (27 lines) with localhost network only
+
+#### 2. Contracts Hardhat (Solidity Development)
+
+- **Location**: `/contracts/ethereum/hardhat.config.js`
+- **Purpose**: Smart contract development, testing, and deployment
+- **Version**: Hardhat 2.26.3 (stable)
+- **Usage**:
+  ```bash
+  cd contracts/ethereum
+  npm run compile     # Compile contracts
+  npm test           # Run contract tests
+  npm run deploy:local    # Deploy to local network
+  npm run deploy:kairos   # Deploy to Kaia testnet
+  ```
+- **Configuration**: Full-featured (243 lines) with multiple networks, gas reporter, verification
+
+**Why Two Installations?**
+
+- **Separation of Concerns**: Go tests don't depend on Solidity development environment
+- **Independence**: Each can use optimal Hardhat version for its purpose
+- **Clean Testing**: Go integration tests run from project root without affecting contract development
+
 ## Usage
 
 ### 1. Generate Key Pairs

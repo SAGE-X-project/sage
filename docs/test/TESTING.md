@@ -123,7 +123,7 @@ go test -race ./...
 make test-integration
 
 # Run specific integration test
-go test ./test/integration/tests/session/... -v
+go test ./tests/integration/tests/session/... -v
 ```
 
 ### Component Tests
@@ -185,7 +185,7 @@ func TestHPKEEncryption(t *testing.T) {
 
 ### 2. Integration Tests
 
-**Location**: `test/integration/tests/`
+**Location**: `tests/integration/tests/`
 
 **Purpose**: Test interaction between components
 
@@ -566,7 +566,7 @@ staticcheck ./...
 
 Test fixtures are located in:
 - `test/fixtures/` - General test data
-- `test/integration/fixtures/` - Integration test data
+- `tests/integration/fixtures/` - Integration test data
 - `pkg/*/testdata/` - Package-specific test data
 
 ### Generating Test Data

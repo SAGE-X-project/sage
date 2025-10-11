@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package main
 
 import (
@@ -21,13 +24,13 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/sage-x-project/sage/core/rfc9421"
-	sagecrypto "github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/crypto/formats"
-	"github.com/sage-x-project/sage/crypto/keys"
-	sagedid "github.com/sage-x-project/sage/did"
-	"github.com/sage-x-project/sage/handshake"
-	"github.com/sage-x-project/sage/session"
+	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
+	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
+	sagedid "github.com/sage-x-project/sage/pkg/agent/did"
+	"github.com/sage-x-project/sage/pkg/agent/handshake"
+	"github.com/sage-x-project/sage/pkg/agent/session"
 )
 
 const base = "http://127.0.0.1:8080"

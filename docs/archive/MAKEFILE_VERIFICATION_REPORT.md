@@ -86,7 +86,7 @@ build/bin/random-test       (3.1M)
 - pkg/agent/hpke
 - pkg/agent/session
 - pkg/health
-- test/integration/tests/integration
+- tests/integration/tests/integration
 
 ---
 
@@ -152,8 +152,8 @@ version 1 (SYSV), statically linked, stripped
 ```
 fix: Update test paths in Makefile after folder restructuring
 ```
-- Updated `tests/integration/` → `test/integration/tests/integration/`
-- Updated `tests/session/` → `test/integration/tests/session/`
+- Updated `tests/integration/` → `tests/integration/tests/integration/`
+- Updated `tests/session/` → `tests/integration/tests/session/`
 - Fixed blockchain-*, test-integration, test-e2e* targets
 
 ### Commit 2: 5566b49
@@ -198,10 +198,10 @@ All paths updated after folder structure refactoring (PR #31):
 ./crypto/chain/ethereum       → ./pkg/agent/crypto/chain/ethereum
 ./crypto/vault                → ./pkg/agent/crypto/vault
 ./health                      → ./pkg/health
-./tests/integration/...       → ./test/integration/...
-./tests/session/handshake/    → ./test/integration/tests/session/handshake/
-./tests/session/hpke/         → ./test/integration/tests/session/hpke/
-./tests/integration/setup_*   → ./test/integration/tests/integration/setup_*
+./tests/integration/...       → ./tests/integration/...
+./tests/session/handshake/    → ./tests/integration/tests/session/handshake/
+./tests/session/hpke/         → ./tests/integration/tests/session/hpke/
+./tests/integration/setup_*   → ./tests/integration/tests/integration/setup_*
 ```
 
 ---

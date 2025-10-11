@@ -349,25 +349,25 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run 'TestParseDID'
 
 **4.1.1 DID 등록**
 ```bash
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run 'TestRegisterDID'
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run 'TestRegisterDID'
 ```
 - 스마트 컨트랙트에 DID 등록
 
 **4.1.2 공개키 조회**
 ```bash
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run 'TestGetPublicKey'
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run 'TestGetPublicKey'
 ```
 - 등록된 DID의 공개키 조회
 
 **4.1.3 가스 추정**
 ```bash
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run 'TestGasEstimation'
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run 'TestGasEstimation'
 ```
 - 트랜잭션 가스 추정 정확성
 
 **4.1.4 이벤트 모니터링**
 ```bash
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run 'TestEventMonitoring'
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run 'TestEventMonitoring'
 ```
 - 블록체인 이벤트 수신
 
@@ -787,7 +787,7 @@ make test-integration
 
 **9.2.2 멀티 에이전트 시나리오**
 ```bash
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestMultiAgentCommunication
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run TestMultiAgentCommunication
 ```
 - 여러 에이전트 간 메시지 교환
 
@@ -867,7 +867,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke -run TestHPKE
 make test-integration
 
 # 또는 개별 테스트
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestDIDRegistration
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run TestDIDRegistration
 ```
 
 **검증 내용**:
@@ -888,7 +888,7 @@ go test -v github.com/sage-x-project/sage/test/integration/tests/integration -ru
 make test-integration
 
 # 또는 개별 테스트
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestDIDRegistration
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run TestDIDRegistration
 ```
 
 **검증 내용**:
@@ -905,10 +905,10 @@ go test -v github.com/sage-x-project/sage/test/integration/tests/integration -ru
 **수동 검증 방법**:
 ```bash
 # Enhanced DID 통합 테스트
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestEnhancedDIDIntegration
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run TestEnhancedDIDIntegration
 
 # 기본 DID 통합 테스트
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestDIDIntegration
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run TestDIDIntegration
 ```
 
 **검증 내용**:
@@ -926,10 +926,10 @@ go test -v github.com/sage-x-project/sage/test/integration/tests/integration -ru
 **수동 검증 방법**:
 ```bash
 # 블록체인 연결 테스트
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestBlockchainConnection
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run TestBlockchainConnection
 
 # Enhanced Provider 테스트
-go test -v github.com/sage-x-project/sage/test/integration/tests/integration -run TestEnhancedProviderIntegration
+go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -run TestEnhancedProviderIntegration
 
 # 전체 통합 테스트
 make test-integration

@@ -450,6 +450,7 @@ Cargo.lock
 *.pdb
 
 # Claude local files
+CLAUDE.md
 CLAUDE.local.md
 *.local.md
 .claude/*.local.*

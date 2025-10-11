@@ -33,7 +33,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sage-x-project/sage/test/integration/tests/random"
+	"github.com/sage-x-project/sage/tests/integration/tests/random"
 )
 
 func main() {
