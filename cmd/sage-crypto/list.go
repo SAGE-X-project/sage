@@ -1,20 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 package main
 
@@ -23,7 +23,7 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/sage-x-project/sage/crypto/storage"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -73,12 +73,12 @@ func runList(cmd *cobra.Command, args []string) error {
 			fmt.Fprintf(w, "%s\t<error>\t%v\n", id, err)
 			continue
 		}
-		
+
 		fmt.Fprintf(w, "%s\t%s\t%s\n", id, keyPair.Type(), keyPair.ID())
 	}
 
 	w.Flush()
-	
+
 	fmt.Printf("\nTotal keys: %d\n", len(keyIDs))
 	fmt.Printf("Storage location: %s\n", storageDir)
 

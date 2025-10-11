@@ -1,20 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 package main
 
@@ -25,8 +25,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/spf13/cobra"
-	"github.com/sage-x-project/sage/did"
 )
 
 var listCmd = &cobra.Command{
@@ -39,12 +39,12 @@ This command retrieves all DIDs associated with the given owner address.`,
 
 var (
 	// List flags
-	listChain         string
-	listOwner         string
-	listRPCEndpoint   string
-	listContractAddr  string
-	listOutput        string
-	listFormat        string
+	listChain        string
+	listOwner        string
+	listRPCEndpoint  string
+	listContractAddr string
+	listOutput       string
+	listFormat       string
 )
 
 func init() {
@@ -145,24 +145,24 @@ func formatAgentsTable(agents []*did.AgentMetadata) string {
 		if !agent.IsActive {
 			status = "Inactive"
 		}
-		
+
 		// Truncate long values
 		didStr := string(agent.DID)
 		if len(didStr) > 40 {
 			didStr = didStr[:37] + "..."
 		}
-		
+
 		nameStr := agent.Name
 		if len(nameStr) > 20 {
 			nameStr = nameStr[:17] + "..."
 		}
-		
+
 		endpointStr := agent.Endpoint
 		if len(endpointStr) > 30 {
 			endpointStr = endpointStr[:27] + "..."
 		}
 
-		output += fmt.Sprintf("%-40s | %-20s | %-8s | %s\n", 
+		output += fmt.Sprintf("%-40s | %-20s | %-8s | %s\n",
 			didStr, nameStr, status, endpointStr)
 	}
 

@@ -1,0 +1,85 @@
+# Prometheus Configuration for SAGE Monitoring
+# https://prometheus.io/docs/prometheus/latest/configuration/configuration/
+
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'sage-cluster'
+    environment: 'production'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+# rule_files:
+#   - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # SAGE Metrics Demo (Local)
+  - job_name: 'sage-demo'
+    scrape_interval: 10s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
+          - 'host.docker.internal:9090'
+        labels:
+          service: 'sage-demo'
+          component: 'local'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}'
+
+  # SAGE Backend Metrics
+  - job_name: 'sage-backend'
+    scrape_interval: 10s
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
+          - 'sage-backend:9090'
+        labels:
+          service: 'sage-backend'
+          component: 'core'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        regex: '([^:]+):.*'
+        replacement: '${1}'
+
+  # Prometheus Self-Monitoring
+  - job_name: 'prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'localhost:9090'
+        labels:
+          service: 'prometheus'
+          component: 'monitoring'
+
+  # Redis Monitoring (if redis_exporter is added)
+  # - job_name: 'redis'
+  #   scrape_interval: 10s
+  #   static_configs:
+  #     - targets:
+  #         - 'redis-exporter:9121'
+  #       labels:
+  #         service: 'redis'
+  #         component: 'cache'
+
+  # Blockchain Node Monitoring (if node_exporter is added to blockchain container)
+  # - job_name: 'blockchain'
+  #   scrape_interval: 30s
+  #   static_configs:
+  #     - targets:
+  #         - 'blockchain:9100'
+  #       labels:
+  #         service: 'blockchain'
+  #         component: 'ethereum'

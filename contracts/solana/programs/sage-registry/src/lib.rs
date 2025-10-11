@@ -1,3 +1,7 @@
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (c) 2025 SAGE-X-project
+// SPDX-License-Identifier: MIT
+
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::pubkey::Pubkey;
 use anchor_lang::solana_program::program::invoke_signed;

@@ -1,20 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 package main
 
@@ -23,8 +23,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/spf13/cobra"
-	"github.com/sage-x-project/sage/did"
 )
 
 var updateCmd = &cobra.Command{
@@ -38,17 +38,17 @@ Only the agent owner can update the metadata.`,
 
 var (
 	// Update flags
-	updateName           string
-	updateDescription    string
-	updateEndpoint       string
-	updateCapabilities   string
-	updateKeyFile        string
-	updateKeyFormat      string
-	updateStorageDir     string
-	updateKeyID          string
-	updateRPCEndpoint    string
-	updateContractAddr   string
-	updatePrivateKey     string
+	updateName         string
+	updateDescription  string
+	updateEndpoint     string
+	updateCapabilities string
+	updateKeyFile      string
+	updateKeyFormat    string
+	updateStorageDir   string
+	updateKeyID        string
+	updateRPCEndpoint  string
+	updateContractAddr string
+	updatePrivateKey   string
 )
 
 func init() {
@@ -138,7 +138,7 @@ func runUpdate(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Println(" Agent updated successfully!")
-	
+
 	// Show what was updated
 	fmt.Println("\nUpdated fields:")
 	for key, value := range updates {

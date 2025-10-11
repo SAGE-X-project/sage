@@ -1,23 +1,21 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
-
-// VULNERABLE Chat Server - DO NOT USE IN PRODUCTION!
-// This example shows what NOT to do
 package main
 
 import (
@@ -45,10 +43,10 @@ func processMessage(msg ChatMessage) ChatResponse {
 	// In a real system, this could execute commands, access databases, etc.
 	fmt.Printf("  Received message from: %s\n", msg.AgentID)
 	fmt.Printf("💬 Message: %s\n", msg.Message)
-	
+
 	// Simulate some processing
 	time.Sleep(100 * time.Millisecond)
-	
+
 	return ChatResponse{
 		Status:  "success",
 		Reply:   fmt.Sprintf("Processed message from %s", msg.AgentID),
@@ -72,10 +70,10 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 	// NO VERIFICATION! Anyone can claim to be any agent!
 	// NO SIGNATURE CHECK! Messages can be tampered with!
 	// NO REPLAY PROTECTION! Old messages can be resent!
-	
+
 	response := processMessage(msg)
 	fmt.Println(" Processed successfully (THIS IS BAD!)")
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -91,7 +89,7 @@ func main() {
 	fmt.Println("   No replay attack protection")
 	fmt.Println("   Anyone can impersonate any agent")
 	fmt.Println("")
-	
+
 	http.HandleFunc("/chat", handleChat)
 	log.Fatal(http.ListenAndServe(":8082", nil))
 }

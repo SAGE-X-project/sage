@@ -4,13 +4,15 @@ A Go package providing Decentralized Identifier (DID) functionality for AI agent
 
 ## Key Features
 
-- **Multi-chain Support**: Ethereum and Solana blockchain integration
+- **Multi-chain Support**: Ethereum (deployed on Sepolia) and Solana (in development)
 - **Agent Registration**: Register AI agents with unique DIDs on blockchain
 - **DID Resolution**: Retrieve agent metadata and public keys from blockchain
 - **Metadata Verification**: Verify agent information against on-chain data
 - **Agent Management**: Update metadata and deactivate agents
 - **Owner-based Discovery**: List all agents owned by an address
 - **RFC-9421 Integration**: Works with SAGE's signature verification system
+- **HPKE/KEM Support**: Stores both signing and key encapsulation public keys
+- **Factory Pattern**: Flexible client creation for different blockchains
 
 ## Installation
 
@@ -25,14 +27,20 @@ go get github.com/sage-x-project/sage/did
 ```
 did/
 ├── types.go              # Core types and interfaces
-├── manager.go            # DID manager implementation
-├── verification.go       # Metadata verification
+├── did.go                # DID parsing and generation
+├── client.go             # Client interface definition
+├── manager.go            # DID manager (orchestrates registry/resolver/verifier)
+├── factory.go            # ClientFactory for creating chain-specific clients
+├── registry.go           # MultiChainRegistry implementation
+├── resolver.go           # MultiChainResolver implementation
+├── verification.go       # MetadataVerifier implementation
 ├── utils.go              # Utility functions
 ├── ethereum/             # Ethereum blockchain client
 │   ├── client.go        # Ethereum DID operations
 │   ├── resolver.go      # Ethereum-specific resolution
-│   └── contract.go      # Contract ABI and addresses
-└── solana/              # Solana blockchain client
+│   ├── abi.go           # Contract ABI definition
+│   └── SageRegistryV2.abi.json # Contract ABI JSON
+└── solana/              # Solana blockchain client (in development)
     ├── client.go        # Solana DID operations
     └── resolver.go      # Solana-specific resolution
 ```
@@ -287,19 +295,23 @@ if result.Valid {
 
 ### Ethereum Configuration
 
-| Network | RPC Endpoint | Contract Address |
-|---------|-------------|------------------|
-| Mainnet | https://eth-mainnet.g.alchemy.com/v2/{key} | TBD |
-| Goerli | https://eth-goerli.g.alchemy.com/v2/{key} | TBD |
-| Sepolia | https://eth-sepolia.g.alchemy.com/v2/{key} | TBD |
+| Network | RPC Endpoint | SageRegistryV2 Address | Status |
+|---------|-------------|------------------------|--------|
+| Mainnet | https://eth-mainnet.g.alchemy.com/v2/{key} | TBD | Planned |
+| Sepolia | https://eth-sepolia.g.alchemy.com/v2/{key} | `0x487d45a678eb947bbF9d8f38a67721b13a0209BF` | **Deployed** |
+| Holesky | https://eth-holesky.g.alchemy.com/v2/{key} | TBD | Planned |
+
+**Note**: Sepolia testnet is currently recommended for testing.
 
 ### Solana Configuration
 
-| Network | RPC Endpoint | Program ID |
-|---------|-------------|------------|
-| Mainnet | https://api.mainnet-beta.solana.com | TBD |
-| Devnet | https://api.devnet.solana.com | TBD |
-| Testnet | https://api.testnet.solana.com | TBD |
+| Network | RPC Endpoint | Program ID | Status |
+|---------|-------------|------------|--------|
+| Mainnet | https://api.mainnet-beta.solana.com | TBD | Planned |
+| Devnet | https://api.devnet.solana.com | TBD | In Development |
+| Testnet | https://api.testnet.solana.com | TBD | In Development |
+
+**Note**: Solana integration is currently under development. Basic client implementation exists but requires on-chain program deployment.
 
 ## DID Format
 
@@ -496,6 +508,40 @@ For better performance with large-scale queries:
 1. Use event listeners to index DID registrations
 2. Store indexed data in a database
 3. Implement the `SearchAgents` functionality
+
+## Implementation Status & Roadmap
+
+### Completed
+- Ethereum Sepolia integration (SageRegistryV2 deployed)
+- Multi-chain architecture with factory pattern
+- DID resolution and verification
+- Agent registration and metadata management
+- Integration with crypto package (Ed25519, Secp256k1, X25519)
+- RFC-9421 algorithm mapping
+
+### In Progress
+- Solana on-chain program development
+- HPKE/KEM key integration for handshake protocol
+- Off-chain indexing for efficient queries
+- Enhanced search capabilities
+
+### Planned
+- Ethereum Mainnet deployment
+- Kaia blockchain integration
+- Multi-signature agent ownership
+- Delegation and authorization framework
+- Agent capability verification system
+
+## Key Type Support
+
+The DID package integrates with SAGE crypto package and supports:
+
+| Blockchain | Signing Key | KEM Key (HPKE) | RFC 9421 Algorithm |
+|------------|-------------|----------------|-------------------|
+| Ethereum   | Secp256k1   | X25519         | es256k            |
+| Solana     | Ed25519     | X25519         | ed25519           |
+
+**Note**: `PublicKEMKey` field in `AgentMetadata` stores the X25519 public key used for HPKE-based secure handshake protocol.
 
 ## License
 

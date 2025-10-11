@@ -1,0 +1,16 @@
+# Grafana Dashboard Provisioning Configuration
+# Auto-provision SAGE monitoring dashboards
+
+apiVersion: 1
+
+providers:
+  - name: 'SAGE Dashboards'
+    orgId: 1
+    folder: 'SAGE'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: true

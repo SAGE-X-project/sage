@@ -429,6 +429,15 @@ FodyWeavers.xsd
 # Go build artifacts
 build/
 sage-crypto
+sage-did
+attacker
+basic-demo
+basic-tool
+client
+main
+secure-chat
+simple-standalone
+vulnerable-chat
 
 # Go test binaries
 *.test
@@ -558,3 +567,47 @@ cmake-build-*/
 # Integration test files
 *.integration.test.*
 integration.test.*
+test_accounts.json
+.blockchain.pid
+
+# Test reports and coverage
+reports/
+*.out
+
+# Python build artifacts
+*.egg-info/
+*.egg
+dist/
+.eggs/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Java build artifacts
+*.class
+*.jar
+!gradle-wrapper.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+target/
+.mvn/
+mvnw
+mvnw.cmd
+
+# Runtime key storage
+keys/
+*.key
+*.pem
+
+# Test script temporary files
+/tmp/make_test_*.log

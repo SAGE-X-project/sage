@@ -347,9 +347,9 @@ describe("SageRegistryV2 Integration Tests", function () {
         console.log(`        Agent ${i}: ${gas.toString()} gas`);
       });
 
-      // Average should be under 650K
+      // Average should be under 700K (Phase 3 security features add overhead)
       const avgGas = results.reduce((a, b) => a + b, 0n) / 3n;
-      expect(avgGas).to.be.lt(650000n);
+      expect(avgGas).to.be.lt(700000n);
     });
   });
 });

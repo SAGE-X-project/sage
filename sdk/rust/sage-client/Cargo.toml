@@ -1,0 +1,59 @@
+[package]
+name = "sage-client"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.70"
+authors = ["SAGE Team <sage@example.com>"]
+license = "LGPL-3.0"
+description = "Rust client for SAGE (Secure Agent Guarantee Engine)"
+homepage = "https://github.com/sage-x-project/sage"
+repository = "https://github.com/sage-x-project/sage"
+documentation = "https://docs.rs/sage-client"
+readme = "README.md"
+keywords = ["sage", "did", "agent", "blockchain", "cryptography"]
+categories = ["cryptography", "network-programming", "web-programming"]
+
+[dependencies]
+# Cryptography
+ed25519-dalek = "1.0"
+x25519-dalek = "1.2"
+sha2 = "0.10"
+hkdf = "0.12"
+aes-gcm = "0.10"
+rand = "0.7"
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+base64 = "0.21"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Async
+async-trait = "0.1"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockito = "1.2"
+
+[lib]
+name = "sage_client"
+path = "src/lib.rs"
+
+[[example]]
+name = "basic_usage"
+path = "examples/basic_usage.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

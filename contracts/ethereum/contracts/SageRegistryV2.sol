@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./interfaces/ISageRegistry.sol";
 import "./interfaces/IRegistryHook.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title SageRegistryV2
  * @notice Improved SAGE AI Agent Registry with Enhanced Public Key Validation
  * @dev Implements practical public key validation using signature-based ownership proof
+ *      Includes emergency pause mechanism for critical situations
  */
-contract SageRegistryV2 is ISageRegistry {
+contract SageRegistryV2 is ISageRegistry, Pausable, Ownable2Step {
     // Registration parameters struct to avoid stack too deep errors
     struct RegistrationParams {
         string did;
@@ -32,37 +35,37 @@ contract SageRegistryV2 is ISageRegistry {
     mapping(bytes32 => AgentMetadata) private agents;
     mapping(string => bytes32) private didToAgentId;
     mapping(address => bytes32[]) private ownerToAgents;
-    mapping(bytes32 => uint256) private agentNonce;
+    mapping(address => uint256) private registrationNonce; // User-specific nonce for agent ID generation
+    mapping(bytes32 => uint256) private agentNonce; // Agent-specific nonce for updates
     
     // Enhanced key validation
     mapping(bytes32 => KeyValidation) private keyValidations;
     mapping(address => bytes32) private addressToKeyHash;
-    
-    address public owner;
+    mapping(bytes32 => bytes32[]) private keyHashToAgentIds; // keyHash => agentIds
+
     address public beforeRegisterHook;
     address public afterRegisterHook;
     
     uint256 private constant MAX_AGENTS_PER_OWNER = 100;
     uint256 private constant MIN_PUBLIC_KEY_LENGTH = 32;
     uint256 private constant MAX_PUBLIC_KEY_LENGTH = 65;
+    uint256 private constant HOOK_GAS_LIMIT = 50000; // Gas limit for hook calls
     
     // Events
     event KeyValidated(bytes32 indexed keyHash, address indexed owner);
     event KeyRevoked(bytes32 indexed keyHash, address indexed owner);
-    
+    event HookFailed(address indexed hook, string reason);
+    event BeforeRegisterHookUpdated(address indexed oldHook, address indexed newHook);
+    event AfterRegisterHookUpdated(address indexed oldHook, address indexed newHook);
+
     // Modifiers
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner");
-        _;
-    }
-    
     modifier onlyAgentOwner(bytes32 agentId) {
         require(agents[agentId].owner == msg.sender, "Not agent owner");
         _;
     }
-    
+
     constructor() {
-        owner = msg.sender;
+        _transferOwnership(msg.sender);
     }
     
     /**
@@ -77,7 +80,7 @@ contract SageRegistryV2 is ISageRegistry {
         bytes calldata publicKey,
         string calldata capabilities,
         bytes calldata signature
-    ) external returns (bytes32) {
+    ) external whenNotPaused returns (bytes32) {
         // Validate public key format and ownership
         _validatePublicKey(publicKey, signature);
         
@@ -204,17 +207,16 @@ contract SageRegistryV2 is ISageRegistry {
         bytes32 keyHash = keccak256(publicKey);
         require(addressToKeyHash[msg.sender] == keyHash, "Not key owner");
         require(!keyValidations[keyHash].isRevoked, "Already revoked");
-        
+
         keyValidations[keyHash].isRevoked = true;
-        
-        // Deactivate all agents using this key
-        bytes32[] memory agentIds = ownerToAgents[msg.sender];
+
+        // Deactivate all agents using this key - O(n) where n is agents with this key
+        // (not all agents of owner)
+        bytes32[] memory agentIds = keyHashToAgentIds[keyHash];
         for (uint i = 0; i < agentIds.length; i++) {
-            if (keccak256(agents[agentIds[i]].publicKey) == keyHash) {
-                agents[agentIds[i]].active = false;
-            }
+            agents[agentIds[i]].active = false;
         }
-        
+
         emit KeyRevoked(keyHash, msg.sender);
     }
     
@@ -298,23 +300,84 @@ contract SageRegistryV2 is ISageRegistry {
         string memory name
     ) private view {
         require(bytes(did).length > 0, "DID required");
+        require(_isValidDID(did), "Invalid DID format");
         require(bytes(name).length > 0, "Name required");
         require(didToAgentId[did] == bytes32(0), "DID already registered");
         require(ownerToAgents[msg.sender].length < MAX_AGENTS_PER_OWNER, "Too many agents");
     }
+
+    /**
+     * @notice Validate DID format according to W3C DID spec
+     * @dev DIDs must follow the format: did:method:identifier
+     *      - Must start with "did:"
+     *      - Method must be lowercase alphanumeric
+     *      - Identifier must be non-empty
+     * @param did The DID string to validate
+     * @return bool True if DID format is valid
+     */
+    function _isValidDID(string memory did) private pure returns (bool) {
+        bytes memory didBytes = bytes(did);
+        uint256 len = didBytes.length;
+
+        // Minimum valid DID: "did:m:i" = 7 characters
+        if (len < 7) return false;
+
+        // Must start with "did:"
+        if (didBytes[0] != 'd' || didBytes[1] != 'i' || didBytes[2] != 'd' || didBytes[3] != ':') {
+            return false;
+        }
+
+        // Find second colon (after method)
+        uint256 secondColonIndex = 0;
+        for (uint256 i = 4; i < len; i++) {
+            if (didBytes[i] == ':') {
+                secondColonIndex = i;
+                break;
+            }
+        }
+
+        // Must have a second colon and identifier after it
+        if (secondColonIndex == 0 || secondColonIndex == len - 1) {
+            return false;
+        }
+
+        // Validate method (between first and second colon) - lowercase alphanumeric
+        for (uint256 i = 4; i < secondColonIndex; i++) {
+            bytes1 char = didBytes[i];
+            // Allow a-z, 0-9
+            if (!((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9'))) {
+                return false;
+            }
+        }
+
+        // Identifier exists (after second colon)
+        // We don't validate identifier format as it's method-specific
+
+        return true;
+    }
     
     /**
      * @notice Internal function to generate agent ID
+     * @dev Uses block.number instead of block.timestamp to prevent miner manipulation
      */
     function _generateAgentId(
         string memory did,
         bytes memory publicKey
-    ) private view returns (bytes32) {
-        return keccak256(abi.encodePacked(did, publicKey, block.timestamp));
+    ) private returns (bytes32) {
+        uint256 nonce = registrationNonce[msg.sender];
+        registrationNonce[msg.sender]++;
+
+        return keccak256(abi.encodePacked(
+            did,
+            publicKey,
+            msg.sender,
+            block.number,
+            nonce
+        ));
     }
     
     /**
-     * @notice Internal function to execute before register hook
+     * @notice Internal function to execute before register hook with gas limits and error handling
      */
     function _executeBeforeHook(
         bytes32 agentId,
@@ -324,10 +387,24 @@ contract SageRegistryV2 is ISageRegistry {
         if (beforeRegisterHook != address(0)) {
             bytes memory hookData = abi.encode(did, publicKey);
             emit BeforeRegisterHook(agentId, msg.sender, hookData);
-            
-            (bool success, string memory reason) = IRegistryHook(beforeRegisterHook)
-                .beforeRegister(agentId, msg.sender, hookData);
-            require(success, reason);
+
+            // Use try-catch with gas limit to prevent DoS and handle failures
+            try IRegistryHook(beforeRegisterHook).beforeRegister{gas: HOOK_GAS_LIMIT}(
+                agentId,
+                msg.sender,
+                hookData
+            ) returns (bool success, string memory reason) {
+                // If hook returns false, revert with the reason
+                require(success, reason);
+            } catch Error(string memory reason) {
+                // Catch revert with reason
+                emit HookFailed(beforeRegisterHook, reason);
+                revert(reason);
+            } catch (bytes memory /* lowLevelData */) {
+                // Catch other errors (out of gas, etc.)
+                emit HookFailed(beforeRegisterHook, "Hook call failed");
+                revert("Hook call failed");
+            }
         }
     }
     
@@ -354,12 +431,17 @@ contract SageRegistryV2 is ISageRegistry {
         didToAgentId[params.did] = agentId;
         ownerToAgents[msg.sender].push(agentId);
         agentNonce[agentId]++;
-        
+
+        // Track agent by key hash for O(1) revocation
+        bytes32 keyHash = keccak256(params.publicKey);
+        keyHashToAgentIds[keyHash].push(agentId);
+
         emit AgentRegistered(agentId, msg.sender, params.did, block.timestamp);
     }
     
     /**
-     * @notice Internal function to execute after register hook
+     * @notice Internal function to execute after register hook with gas limits and error handling
+     * @dev After hooks are non-critical, so failures are logged but don't revert the transaction
      */
     function _executeAfterHook(
         bytes32 agentId,
@@ -368,20 +450,50 @@ contract SageRegistryV2 is ISageRegistry {
     ) private {
         if (afterRegisterHook != address(0)) {
             bytes memory hookData = abi.encode(did, publicKey);
-            IRegistryHook(afterRegisterHook).afterRegister(agentId, msg.sender, hookData);
-            emit AfterRegisterHook(agentId, msg.sender, hookData);
+
+            // Use try-catch with gas limit - after hooks should not block registration
+            try IRegistryHook(afterRegisterHook).afterRegister{gas: HOOK_GAS_LIMIT}(
+                agentId,
+                msg.sender,
+                hookData
+            ) {
+                // Hook executed successfully
+                emit AfterRegisterHook(agentId, msg.sender, hookData);
+            } catch Error(string memory reason) {
+                // Log failure but don't revert - after hooks are non-critical
+                emit HookFailed(afterRegisterHook, reason);
+            } catch (bytes memory) {
+                // Log failure for out of gas or other errors
+                emit HookFailed(afterRegisterHook, "Hook call failed");
+            }
         }
     }
     
     /**
-     * @notice Deactivate an agent
+     * @notice Deactivate an agent by agent ID
      */
     function deactivateAgent(bytes32 agentId) external onlyAgentOwner(agentId) {
         require(agents[agentId].active, "Agent already inactive");
-        
+
         agents[agentId].active = false;
         agents[agentId].updatedAt = block.timestamp;
-        
+
+        emit AgentDeactivated(agentId, msg.sender, block.timestamp);
+    }
+
+    /**
+     * @notice Deactivate an agent by DID (more efficient)
+     * @dev Uses O(1) DID lookup instead of iterating through agents
+     */
+    function deactivateAgentByDID(string calldata did) external {
+        bytes32 agentId = didToAgentId[did];
+        require(agentId != bytes32(0), "Agent not found");
+        require(agents[agentId].owner == msg.sender, "Not agent owner");
+        require(agents[agentId].active, "Agent already inactive");
+
+        agents[agentId].active = false;
+        agents[agentId].updatedAt = block.timestamp;
+
         emit AgentDeactivated(agentId, msg.sender, block.timestamp);
     }
     
@@ -428,17 +540,37 @@ contract SageRegistryV2 is ISageRegistry {
     }
     
     /**
+     * @notice Emergency pause - stops all agent registrations
+     * @dev Only callable by owner during critical situations
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @notice Unpause - resumes normal operations
+     * @dev Only callable by owner after emergency is resolved
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
+
+    /**
      * @notice Set before register hook
      */
     function setBeforeRegisterHook(address hook) external onlyOwner {
+        address oldHook = beforeRegisterHook;
         beforeRegisterHook = hook;
+        emit BeforeRegisterHookUpdated(oldHook, hook);
     }
-    
+
     /**
      * @notice Set after register hook
      */
     function setAfterRegisterHook(address hook) external onlyOwner {
+        address oldHook = afterRegisterHook;
         afterRegisterHook = hook;
+        emit AfterRegisterHookUpdated(oldHook, hook);
     }
     
     /**

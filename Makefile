@@ -17,11 +17,41 @@ REPORTS_DIR=reports
 # Go build variables
 GO=go
 GOFLAGS=-v
-LDFLAGS=
+LDFLAGS=-w -s
+
+# Version information
+VERSION?=$(shell cat VERSION 2>/dev/null || echo "0.1.0")
+GIT_COMMIT?=$(shell git rev-parse HEAD 2>/dev/null || echo "")
+GIT_BRANCH?=$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+BUILD_DATE?=$(shell date -u '+%Y-%m-%d %H:%M:%S UTC')
+
+# Build flags for version injection
+VERSION_PKG=github.com/sage-x-project/sage/pkg/version
+BUILD_LDFLAGS=-X '$(VERSION_PKG).Version=$(VERSION)' \
+	-X '$(VERSION_PKG).GitCommit=$(GIT_COMMIT)' \
+	-X '$(VERSION_PKG).GitBranch=$(GIT_BRANCH)' \
+	-X '$(VERSION_PKG).BuildDate=$(BUILD_DATE)'
+
+# Legacy support for main package version
+MAIN_BUILD_LDFLAGS=$(BUILD_LDFLAGS) \
+	-X 'main.Version=$(VERSION)' \
+	-X 'main.Commit=$(GIT_COMMIT)' \
+	-X 'main.BuildTime=$(BUILD_DATE)'
 
 # Library build variables
 LIB_NAME=libsage.a
 LIB_SO_NAME=libsage.so
+LIB_DYLIB_NAME=libsage.dylib
+LIB_DLL_NAME=libsage.dll
+
+# Platform detection
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+
+# Cross-compilation targets
+PLATFORMS=linux darwin windows
+ARCHITECTURES=amd64 arm64
+DIST_DIR=$(BUILD_DIR)/dist
 
 # Example binaries
 EXAMPLE_BASIC_DEMO=basic-demo
@@ -48,25 +78,173 @@ build-binaries: build-crypto build-did build-verify
 .PHONY: build-lib
 build-lib: build-lib-static build-lib-shared
 
-# Build static library (.a)
+# Build static library (.a) for current platform
 .PHONY: build-lib-static
 build-lib-static: $(LIB_DIR)/$(LIB_NAME)
 
 $(LIB_DIR)/$(LIB_NAME):
-	@echo "Building static library $(LIB_NAME)..."
+	@echo "Building static library $(LIB_NAME) for current platform..."
 	@mkdir -p $(LIB_DIR)
 	$(GO) build -buildmode=c-archive -o $(LIB_DIR)/$(LIB_NAME) ./lib
 	@echo "Build complete: $(LIB_DIR)/$(LIB_NAME)"
 
-# Build shared library (.so)
+# Build shared library for current platform
 .PHONY: build-lib-shared
-build-lib-shared: $(LIB_DIR)/$(LIB_SO_NAME)
-
-$(LIB_DIR)/$(LIB_SO_NAME):
-	@echo "Building shared library $(LIB_SO_NAME)..."
+build-lib-shared:
+	@echo "Building shared library for current platform..."
 	@mkdir -p $(LIB_DIR)
+ifeq ($(UNAME_S),Darwin)
+	@echo "Building macOS dylib..."
+	$(GO) build -buildmode=c-shared -o $(LIB_DIR)/$(LIB_DYLIB_NAME) ./lib
+	@echo "Build complete: $(LIB_DIR)/$(LIB_DYLIB_NAME)"
+else ifeq ($(UNAME_S),Linux)
+	@echo "Building Linux shared library..."
 	$(GO) build -buildmode=c-shared -o $(LIB_DIR)/$(LIB_SO_NAME) ./lib
 	@echo "Build complete: $(LIB_DIR)/$(LIB_SO_NAME)"
+else
+	@echo "Windows DLL build not supported directly from Makefile. Use build-lib-all-platforms instead."
+endif
+
+# Build libraries for all platforms and architectures
+.PHONY: build-lib-all
+build-lib-all:
+	@echo "Building libraries for all platforms and architectures..."
+	@echo "Note: Cross-platform library builds require platform-specific C toolchains."
+	@echo "Some builds may fail if cross-compilation toolchains are not installed."
+	@echo ""
+	@$(MAKE) build-lib-linux-amd64 || echo "Warning: Linux amd64 build failed (may need cross-compiler)"
+	@$(MAKE) build-lib-linux-arm64 || echo "Warning: Linux arm64 build failed (may need cross-compiler)"
+	@$(MAKE) build-lib-darwin-amd64 || echo "Warning: macOS amd64 build failed (may need cross-compiler)"
+	@$(MAKE) build-lib-darwin-arm64 || echo "Warning: macOS arm64 build failed (may need cross-compiler)"
+	@$(MAKE) build-lib-windows-amd64 || echo "Warning: Windows amd64 build failed (may need cross-compiler)"
+	@echo ""
+	@echo "Library builds complete! (check for warnings above)"
+
+# Build Linux static library (amd64)
+.PHONY: build-lib-linux-amd64
+build-lib-linux-amd64:
+	@echo "Building Linux amd64 static library..."
+	@mkdir -p $(LIB_DIR)/linux-amd64
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GO) build -buildmode=c-archive \
+		-o $(LIB_DIR)/linux-amd64/libsage.a ./lib
+	@echo "Build complete: $(LIB_DIR)/linux-amd64/libsage.a"
+
+# Build Linux static library (arm64)
+.PHONY: build-lib-linux-arm64
+build-lib-linux-arm64:
+	@echo "Building Linux arm64 static library..."
+	@mkdir -p $(LIB_DIR)/linux-arm64
+	CGO_ENABLED=1 GOOS=linux GOARCH=arm64 $(GO) build -buildmode=c-archive \
+		-o $(LIB_DIR)/linux-arm64/libsage.a ./lib
+	@echo "Build complete: $(LIB_DIR)/linux-arm64/libsage.a"
+
+# Build macOS static library (amd64)
+.PHONY: build-lib-darwin-amd64
+build-lib-darwin-amd64:
+	@echo "Building macOS amd64 static library..."
+	@mkdir -p $(LIB_DIR)/darwin-amd64
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build -buildmode=c-archive \
+		-o $(LIB_DIR)/darwin-amd64/libsage.a ./lib
+	@echo "Build complete: $(LIB_DIR)/darwin-amd64/libsage.a"
+
+# Build macOS static library (arm64/Apple Silicon)
+.PHONY: build-lib-darwin-arm64
+build-lib-darwin-arm64:
+	@echo "Building macOS arm64 static library..."
+	@mkdir -p $(LIB_DIR)/darwin-arm64
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build -buildmode=c-archive \
+		-o $(LIB_DIR)/darwin-arm64/libsage.a ./lib
+	@echo "Build complete: $(LIB_DIR)/darwin-arm64/libsage.a"
+
+# Build Windows static library (amd64)
+.PHONY: build-lib-windows-amd64
+build-lib-windows-amd64:
+	@echo "Building Windows amd64 static library..."
+	@mkdir -p $(LIB_DIR)/windows-amd64
+	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 $(GO) build -buildmode=c-archive \
+		-o $(LIB_DIR)/windows-amd64/libsage.a ./lib
+	@echo "Build complete: $(LIB_DIR)/windows-amd64/libsage.a"
+
+# Build Linux shared library (amd64)
+.PHONY: build-lib-linux-amd64-shared
+build-lib-linux-amd64-shared:
+	@echo "Building Linux amd64 shared library..."
+	@mkdir -p $(LIB_DIR)/linux-amd64
+	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GO) build -buildmode=c-shared \
+		-o $(LIB_DIR)/linux-amd64/libsage.so ./lib
+	@echo "Build complete: $(LIB_DIR)/linux-amd64/libsage.so"
+
+# Build Linux shared library (arm64)
+.PHONY: build-lib-linux-arm64-shared
+build-lib-linux-arm64-shared:
+	@echo "Building Linux arm64 shared library..."
+	@mkdir -p $(LIB_DIR)/linux-arm64
+	CGO_ENABLED=1 GOOS=linux GOARCH=arm64 $(GO) build -buildmode=c-shared \
+		-o $(LIB_DIR)/linux-arm64/libsage.so ./lib
+	@echo "Build complete: $(LIB_DIR)/linux-arm64/libsage.so"
+
+# Build macOS shared library (amd64)
+.PHONY: build-lib-darwin-amd64-shared
+build-lib-darwin-amd64-shared:
+	@echo "Building macOS amd64 shared library..."
+	@mkdir -p $(LIB_DIR)/darwin-amd64
+	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build -buildmode=c-shared \
+		-o $(LIB_DIR)/darwin-amd64/libsage.dylib ./lib
+	@echo "Build complete: $(LIB_DIR)/darwin-amd64/libsage.dylib"
+
+# Build macOS shared library (arm64/Apple Silicon)
+.PHONY: build-lib-darwin-arm64-shared
+build-lib-darwin-arm64-shared:
+	@echo "Building macOS arm64 shared library..."
+	@mkdir -p $(LIB_DIR)/darwin-arm64
+	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build -buildmode=c-shared \
+		-o $(LIB_DIR)/darwin-arm64/libsage.dylib ./lib
+	@echo "Build complete: $(LIB_DIR)/darwin-arm64/libsage.dylib"
+
+# Build Windows shared library (amd64)
+.PHONY: build-lib-windows-amd64-shared
+build-lib-windows-amd64-shared:
+	@echo "Building Windows amd64 DLL..."
+	@mkdir -p $(LIB_DIR)/windows-amd64
+	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc $(GO) build -buildmode=c-shared \
+		-o $(LIB_DIR)/windows-amd64/libsage.dll ./lib
+	@echo "Build complete: $(LIB_DIR)/windows-amd64/libsage.dll"
+
+# Build all binaries for all platforms
+.PHONY: build-all-platforms
+build-all-platforms:
+	@echo "Building all binaries for all platforms and architectures..."
+	@$(MAKE) build-binaries-all-platforms
+	@echo "All platform builds complete!"
+
+# Build core binaries for all platforms
+.PHONY: build-binaries-all-platforms
+build-binaries-all-platforms:
+	@for platform in $(PLATFORMS); do \
+		for arch in $(ARCHITECTURES); do \
+			echo "Building for $$platform/$$arch..."; \
+			$(MAKE) build-platform GOOS=$$platform GOARCH=$$arch || true; \
+		done; \
+	done
+
+# Build for specific platform (called by build-binaries-all-platforms)
+.PHONY: build-platform
+build-platform:
+	@echo "Building binaries for $(GOOS)/$(GOARCH)..."
+	@mkdir -p $(DIST_DIR)/$(GOOS)-$(GOARCH)
+	@GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
+		-ldflags "$(LDFLAGS) $(BUILD_LDFLAGS)" \
+		-o $(DIST_DIR)/$(GOOS)-$(GOARCH)/$(CRYPTO_BINARY)$(if $(filter windows,$(GOOS)),.exe,) \
+		./$(CMD_DIR)/$(CRYPTO_BINARY)
+	@GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
+		-ldflags "$(LDFLAGS) $(BUILD_LDFLAGS)" \
+		-o $(DIST_DIR)/$(GOOS)-$(GOARCH)/$(DID_BINARY)$(if $(filter windows,$(GOOS)),.exe,) \
+		./$(CMD_DIR)/$(DID_BINARY)
+	@GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
+		-ldflags "$(LDFLAGS) $(BUILD_LDFLAGS)" \
+		-o $(DIST_DIR)/$(GOOS)-$(GOARCH)/$(VERIFY_BINARY)$(if $(filter windows,$(GOOS)),.exe,) \
+		./$(CMD_DIR)/$(VERIFY_BINARY)
+	@echo "Build complete: $(DIST_DIR)/$(GOOS)-$(GOARCH)/"
 
 # Build sage-crypto binary
 .PHONY: build-crypto
@@ -74,8 +252,9 @@ build-crypto: $(BIN_DIR)/$(CRYPTO_BINARY)
 
 $(BIN_DIR)/$(CRYPTO_BINARY):
 	@echo "Building $(CRYPTO_BINARY)..."
+	@echo "Version: $(VERSION) | Commit: $(GIT_COMMIT) | Branch: $(GIT_BRANCH)"
 	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(CRYPTO_BINARY) ./$(CMD_DIR)/$(CRYPTO_BINARY)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS) $(MAIN_BUILD_LDFLAGS)" -o $(BIN_DIR)/$(CRYPTO_BINARY) ./$(CMD_DIR)/$(CRYPTO_BINARY)
 	@echo "Build complete: $(BIN_DIR)/$(CRYPTO_BINARY)"
 
 # Build sage-did binary
@@ -84,8 +263,9 @@ build-did: $(BIN_DIR)/$(DID_BINARY)
 
 $(BIN_DIR)/$(DID_BINARY):
 	@echo "Building $(DID_BINARY)..."
+	@echo "Version: $(VERSION) | Commit: $(GIT_COMMIT) | Branch: $(GIT_BRANCH)"
 	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(DID_BINARY) ./$(CMD_DIR)/$(DID_BINARY)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS) $(MAIN_BUILD_LDFLAGS)" -o $(BIN_DIR)/$(DID_BINARY) ./$(CMD_DIR)/$(DID_BINARY)
 	@echo "Build complete: $(BIN_DIR)/$(DID_BINARY)"
 
 # Build sage-verify binary
@@ -94,8 +274,9 @@ build-verify: $(BIN_DIR)/$(VERIFY_BINARY)
 
 $(BIN_DIR)/$(VERIFY_BINARY):
 	@echo "Building $(VERIFY_BINARY)..."
+	@echo "Version: $(VERSION) | Commit: $(GIT_COMMIT) | Branch: $(GIT_BRANCH)"
 	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(VERIFY_BINARY) ./$(CMD_DIR)/$(VERIFY_BINARY)
+	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS) $(MAIN_BUILD_LDFLAGS)" -o $(BIN_DIR)/$(VERIFY_BINARY) ./$(CMD_DIR)/$(VERIFY_BINARY)
 	@echo "Build complete: $(BIN_DIR)/$(VERIFY_BINARY)"
 
 # Build test utilities (deprecated - moved to tests/handshake/)
@@ -235,31 +416,33 @@ test:
 .PHONY: test-crypto
 test-crypto:
 	@echo "Running crypto package tests..."
-	$(GO) test -v ./crypto/...
+	$(GO) test -v ./pkg/agent/crypto/...
 
 # Run Phase 1 complete test suite
 .PHONY: test-phase1
 test-phase1:
 	@echo "Running Phase 1 complete test suite..."
-	@bash ./test_phase1.sh
+	@echo "Note: test_phase1.sh script not found - running standard tests instead"
+	$(GO) test -v ./pkg/agent/...
 
 # Run quick tests for Phase 1 components
 .PHONY: test-quick
 test-quick:
 	@echo "Running quick tests for Phase 1 components..."
-	@bash ./run_tests.sh
+	@echo "Note: run_tests.sh script not found - running standard tests instead"
+	$(GO) test -v ./pkg/agent/crypto/... ./pkg/agent/did/... ./pkg/agent/core/...
 
 # Run enhanced provider tests
 .PHONY: test-provider
 test-provider:
 	@echo "Testing Enhanced Provider..."
-	$(GO) test -v ./crypto/chain/ethereum -count=1
+	$(GO) test -v ./pkg/agent/crypto/chain/ethereum -count=1
 
 # Run vault tests
 .PHONY: test-vault
 test-vault:
 	@echo "Testing SecureVault..."
-	$(GO) test -v ./crypto/vault -count=1
+	$(GO) test -v ./pkg/agent/crypto/vault -count=1
 
 # Run logger tests
 .PHONY: test-logger
@@ -271,46 +454,79 @@ test-logger:
 .PHONY: test-health
 test-health:
 	@echo "Testing Health Checker..."
-	$(GO) test -v ./health -count=1
+	$(GO) test -v ./pkg/health -count=1
 
 # Run integration tests
 .PHONY: test-integration
 test-integration:
 	@echo "Running integration tests..."
 	@echo "Starting test environment..."
-	@bash ./tests/integration/setup_test_env.sh start
+	@bash ./test/integration/tests/integration/setup_test_env.sh start
 	@echo "Running tests..."
-	$(GO) test -v ./tests/integration/... -tags=integration -count=1
+	$(GO) test -v ./test/integration/... -tags=integration -count=1
 	@echo "Stopping test environment..."
-	@bash ./tests/integration/setup_test_env.sh stop
+	@bash ./test/integration/tests/integration/setup_test_env.sh stop
 
 # Run integration tests without setup (assumes environment is ready)
 .PHONY: test-integration-only
 test-integration-only:
 	@echo "Running integration tests (environment should be ready)..."
-	$(GO) test -v ./tests/integration/... -tags=integration -count=1
+	$(GO) test -v ./test/integration/... -tags=integration -count=1
+
+# Run E2E tests (requires external services like Sepolia)
+.PHONY: test-e2e
+test-e2e:
+	@echo "Running E2E tests..."
+	@echo "Note: Requires SEPOLIA_RPC_URL and SEPOLIA_PRIVATE_KEY environment variables"
+	$(GO) test -v -tags=e2e ./test/integration/... -timeout 10m
+
+# Run E2E tests on Sepolia testnet
+.PHONY: test-e2e-sepolia
+test-e2e-sepolia:
+	@echo "Running Sepolia E2E tests..."
+	$(GO) test -v -tags=e2e ./test/integration/... -run Sepolia -timeout 10m
+
+# Run E2E tests without external blockchain (local only)
+.PHONY: test-e2e-local
+test-e2e-local:
+	@echo "Running local E2E tests (RFC 9421, key management, cross-chain)..."
+	$(GO) test -v -tags=e2e ./test/integration/... -run "RFC9421|KeyType|CrossChain|KeyRotation|MultiChain|Performance" -timeout 5m
+
+# Run E2E tests with coverage
+.PHONY: test-e2e-coverage
+test-e2e-coverage:
+	@echo "Running E2E tests with coverage..."
+	@mkdir -p $(REPORTS_DIR)
+	$(GO) test -v -tags=e2e -coverprofile=$(REPORTS_DIR)/e2e-coverage.out ./test/integration/... -timeout 10m
+	$(GO) tool cover -html=$(REPORTS_DIR)/e2e-coverage.out -o $(REPORTS_DIR)/e2e-coverage.html
+	@echo "Coverage report: $(REPORTS_DIR)/e2e-coverage.html"
 
 .PHONY: test-handshake
 test-handshake:
 	@echo "Running handshake scenario..."
-	@bash ./tests/handshake/run_handshake.sh
+	@bash ./test/integration/tests/session/handshake/run_handshake.sh
+
+.PHONY: test-hpke
+test-hpke:
+	@echo "Running HPKE based handshake scenario..."
+	@bash ./test/integration/tests/session/hpke/run_hpke_handshake.sh
 
 # Start local blockchain for testing
 .PHONY: blockchain-start
 blockchain-start:
 	@echo "Starting local blockchain..."
-	@bash ./tests/integration/setup_test_env.sh start
+	@bash ./test/integration/tests/integration/setup_test_env.sh start
 
 # Stop local blockchain
 .PHONY: blockchain-stop
 blockchain-stop:
 	@echo "Stopping local blockchain..."
-	@bash ./tests/integration/setup_test_env.sh stop
+	@bash ./test/integration/tests/integration/setup_test_env.sh stop
 
 # Check blockchain status
 .PHONY: blockchain-status
 blockchain-status:
-	@bash ./tests/integration/setup_test_env.sh status
+	@bash ./test/integration/tests/integration/setup_test_env.sh status
 
 # Run benchmarks
 .PHONY: bench
@@ -322,13 +538,14 @@ bench:
 .PHONY: bench-integration
 bench-integration:
 	@echo "Running integration benchmarks..."
-	$(GO) test -bench=. -benchmem ./tests/integration/... -tags=integration
+	$(GO) test -bench=. -benchmem ./test/integration/... -tags=integration
 
 # Clean build artifacts
 .PHONY: clean
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -rf $(BUILD_DIR)
+	@rm -rf $(DIST_DIR)
 	@rm -f $(BINARY_NAME)
 	@rm -f sage-crypto sage-did sage-verify random-test
 	@rm -f test_output.tmp
@@ -442,10 +659,61 @@ clean-reports:
 	@echo "Cleaning test reports..."
 	rm -rf $(REPORTS_DIR)
 
+# Create release packages for all platforms
+.PHONY: package
+package: build-all-platforms build-lib-all
+	@echo "Creating release packages..."
+	@mkdir -p $(DIST_DIR)/packages
+	@for platform in $(PLATFORMS); do \
+		for arch in $(ARCHITECTURES); do \
+			if [ -d "$(DIST_DIR)/$$platform-$$arch" ]; then \
+				echo "Packaging $$platform-$$arch..."; \
+				cd $(DIST_DIR)/$$platform-$$arch && \
+				tar czf ../packages/sage-$$platform-$$arch.tar.gz * && \
+				cd ../..; \
+			fi; \
+		done; \
+	done
+	@echo "Package creation complete!"
+	@echo "Packages available in: $(DIST_DIR)/packages/"
+	@ls -lh $(DIST_DIR)/packages/
+
+# Create checksums for release packages
+.PHONY: checksums
+checksums:
+	@echo "Generating checksums..."
+	@cd $(DIST_DIR)/packages && sha256sum *.tar.gz > SHA256SUMS
+	@echo "Checksums generated: $(DIST_DIR)/packages/SHA256SUMS"
+	@cat $(DIST_DIR)/packages/SHA256SUMS
+
+# Full release build (binaries + libraries + packages + checksums)
+.PHONY: release
+release: clean build-all-platforms build-lib-all package checksums
+	@echo "===================="
+	@echo "Release build complete!"
+	@echo "===================="
+	@echo ""
+	@echo "Binaries:"
+	@find $(DIST_DIR) -type f \( -name "sage-*" -o -name "*.exe" \) -exec ls -lh {} \;
+	@echo ""
+	@echo "Libraries:"
+	@find $(LIB_DIR) -type f \( -name "*.a" -o -name "*.so" -o -name "*.dylib" -o -name "*.dll" \) -exec ls -lh {} \;
+	@echo ""
+	@echo "Packages:"
+	@ls -lh $(DIST_DIR)/packages/
+
 # Help
 .PHONY: help
 help:
-	@echo "Available targets:"
+	@echo "========================================"
+	@echo "SAGE Build System"
+	@echo "========================================"
+	@echo ""
+	@echo "Quick Start:"
+	@echo "  make                    - Build all binaries and examples (default)"
+	@echo "  make build-all-platforms - Build for Linux, macOS, Windows (x86/ARM)"
+	@echo "  make build-lib-all      - Build libraries for all platforms"
+	@echo "  make release            - Full release build with packages"
 	@echo ""
 	@echo "Build targets:"
 	@echo "  make build              - Build all binaries and examples"
@@ -453,12 +721,33 @@ help:
 	@echo "  make build-crypto       - Build sage-crypto binary only"
 	@echo "  make build-did          - Build sage-did binary only"
 	@echo "  make build-verify       - Build sage-verify binary only"
-	@echo "  make build-test-utils   - Build test-client and test-server"
+	@echo ""
+	@echo "Cross-platform build targets:"
+	@echo "  make build-all-platforms         - Build binaries for all platforms"
+	@echo "  make build-platform GOOS=linux GOARCH=amd64  - Build for specific platform"
 	@echo ""
 	@echo "Library build targets:"
-	@echo "  make build-lib          - Build both static and shared libraries"
-	@echo "  make build-lib-static   - Build static library (libsage.a)"
-	@echo "  make build-lib-shared   - Build shared library (libsage.so)"
+	@echo "  make build-lib                   - Build library for current platform"
+	@echo "  make build-lib-static            - Build static library (.a)"
+	@echo "  make build-lib-shared            - Build shared library (.so/.dylib)"
+	@echo "  make build-lib-all               - Build libraries for all platforms"
+	@echo ""
+	@echo "Platform-specific library builds:"
+	@echo "  make build-lib-linux-amd64       - Linux x86_64 static library"
+	@echo "  make build-lib-linux-arm64       - Linux ARM64 static library"
+	@echo "  make build-lib-darwin-amd64      - macOS Intel static library"
+	@echo "  make build-lib-darwin-arm64      - macOS Apple Silicon static library"
+	@echo "  make build-lib-windows-amd64     - Windows x86_64 static library"
+	@echo "  make build-lib-linux-amd64-shared   - Linux x86_64 shared library (.so)"
+	@echo "  make build-lib-linux-arm64-shared   - Linux ARM64 shared library (.so)"
+	@echo "  make build-lib-darwin-amd64-shared  - macOS Intel shared library (.dylib)"
+	@echo "  make build-lib-darwin-arm64-shared  - macOS Apple Silicon shared library (.dylib)"
+	@echo "  make build-lib-windows-amd64-shared - Windows x86_64 DLL (requires MinGW)"
+	@echo ""
+	@echo "Release targets:"
+	@echo "  make package            - Create release packages (tar.gz)"
+	@echo "  make checksums          - Generate SHA256 checksums"
+	@echo "  make release            - Full release build (all platforms + packages)"
 	@echo ""
 	@echo "Example build targets:"
 	@echo "  make build-examples              - Build all examples"
@@ -495,6 +784,12 @@ help:
 	@echo "  make blockchain-start      - Start local blockchain"
 	@echo "  make blockchain-stop       - Stop local blockchain"
 	@echo "  make blockchain-status     - Check blockchain status"
+	@echo ""
+	@echo "E2E test targets:"
+	@echo "  make test-e2e              - Run all E2E tests"
+	@echo "  make test-e2e-sepolia      - Run Sepolia E2E tests only"
+	@echo "  make test-e2e-local        - Run local E2E tests (no blockchain)"
+	@echo "  make test-e2e-coverage     - Run E2E tests with coverage report"
 	@echo ""
 	@echo "Benchmark targets:"
 	@echo "  make bench            - Run all benchmarks"

@@ -1,0 +1,60 @@
+# SAGE Local Configuration (minimal setup for testing)
+environment: local
+
+# Blockchain configuration for local testing
+blockchain:
+  network_rpc: "http://127.0.0.1:8545"
+  contract_addr: ""  # Will be set after local deployment
+  chain_id: 31337  # Hardhat default
+  gas_limit: 3000000
+  max_retries: 1
+  retry_delay: 500ms
+  request_timeout: 10s
+
+# DID configuration
+did:
+  registry_address: ""  # Will be set after local deployment
+  method: "sage"
+  network: "ethereum"
+  cache_size: 10
+  cache_ttl: 1m
+
+# Key storage configuration
+keystore:
+  type: "encrypted-file"
+  directory: ".sage/keys"
+  passphrase_env: "SAGE_KEYSTORE_PASSPHRASE"
+
+# Session management
+session:
+  max_idle_time: 10m
+  cleanup_interval: 2m
+  max_sessions: 100
+  enable_metrics: false
+
+# Handshake configuration
+handshake:
+  timeout: 10s
+  max_retries: 1
+  retry_backoff: 500ms
+  enable_metrics: false
+
+# Logging configuration
+logging:
+  level: "debug"
+  format: "text"
+  output: "stdout"
+
+# Metrics configuration
+metrics:
+  enabled: false
+  port: 9090
+  path: "/metrics"
+
+# Health check configuration
+health:
+  enabled: false
+  port: 8080
+  path: "/health"
+  checks:
+    - "blockchain"

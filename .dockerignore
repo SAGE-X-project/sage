@@ -1,0 +1,90 @@
+# .dockerignore - Exclude unnecessary files from Docker context
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts
+build/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.o
+*.test
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Dependencies
+node_modules/
+vendor/
+.pnpm-store/
+
+# Test and coverage
+*.test
+coverage/
+*.out
+*.gcov
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# Documentation build artifacts
+docs/_build/
+site/
+
+# Contract artifacts (will be rebuilt in container)
+contracts/ethereum/artifacts/
+contracts/ethereum/cache/
+contracts/ethereum/typechain-types/
+contracts/ethereum/coverage/
+contracts/ethereum/coverage.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Docker files (avoid recursion)
+Dockerfile*
+docker-compose*.yml
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Examples that aren't needed in production
+examples/*/node_modules/
+
+# License decision documents (keep only final licenses)
+LICENSE_COMPLIANCE.md
+LICENSE_DECISION.md
+LICENSE_FINAL_RECOMMENDATION.md
+
+# Large test data
+*.tar.gz
+*.zip
+*.rar

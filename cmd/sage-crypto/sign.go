@@ -1,20 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 package main
 
@@ -25,9 +25,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/crypto/formats"
-	"github.com/sage-x-project/sage/crypto/storage"
+	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -110,12 +110,12 @@ func loadKey() (crypto.KeyPair, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to create key storage: %w", err)
 		}
-		
+
 		keyPair, err := keyStorage.Load(keyID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load key from storage: %w", err)
 		}
-		
+
 		return keyPair, nil
 	}
 
@@ -138,7 +138,7 @@ func loadKey() (crypto.KeyPair, error) {
 	case "jwk":
 		importer = formats.NewJWKImporter()
 		format = crypto.KeyFormatJWK
-		
+
 		// Handle the wrapper format from sage-crypto generate
 		var wrapper struct {
 			PrivateKey json.RawMessage `json:"private_key"`
@@ -146,12 +146,12 @@ func loadKey() (crypto.KeyPair, error) {
 			KeyID      string          `json:"key_id"`
 			KeyType    string          `json:"key_type"`
 		}
-		
+
 		if err := json.Unmarshal(keyData, &wrapper); err == nil && wrapper.PrivateKey != nil {
 			// It's a wrapper format, use the private key
 			keyData = wrapper.PrivateKey
 		}
-		
+
 	case "pem":
 		importer = formats.NewPEMImporter()
 		format = crypto.KeyFormatPEM
@@ -208,7 +208,7 @@ func outputSignature(signature []byte, keyPair crypto.KeyPair) error {
 			"key_type":  string(keyPair.Type()),
 			"algorithm": getSignatureAlgorithm(keyPair.Type()),
 		}
-		
+
 		jsonOutput, err := json.MarshalIndent(result, "", "  ")
 		if err != nil {
 			return fmt.Errorf("failed to marshal output: %w", err)

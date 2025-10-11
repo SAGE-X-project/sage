@@ -1,20 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 package main
 
@@ -24,10 +24,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/sage-x-project/sage/crypto"
-	"github.com/sage-x-project/sage/crypto/formats"
-	"github.com/sage-x-project/sage/crypto/keys"
-	"github.com/sage-x-project/sage/crypto/storage"
+	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 	"github.com/spf13/cobra"
 )
 
@@ -106,7 +106,7 @@ func runGenerate(cmd *cobra.Command, args []string) error {
 
 func outputJWK(keyPair crypto.KeyPair) error {
 	exporter := formats.NewJWKExporter()
-	
+
 	// Export private key
 	privateJWK, err := exporter.Export(keyPair, crypto.KeyFormatJWK)
 	if err != nil {
@@ -138,7 +138,7 @@ func outputJWK(keyPair crypto.KeyPair) error {
 
 func outputPEM(keyPair crypto.KeyPair) error {
 	exporter := formats.NewPEMExporter()
-	
+
 	// Export private key
 	privatePEM, err := exporter.Export(keyPair, crypto.KeyFormatPEM)
 	if err != nil {
@@ -153,7 +153,7 @@ func outputPEM(keyPair crypto.KeyPair) error {
 
 	// Combine PEM blocks
 	output := append(privatePEM, publicPEM...)
-	
+
 	// Add metadata as comments
 	metadata := fmt.Sprintf("# Key ID: %s\n# Key Type: %s\n", keyPair.ID(), keyPair.Type())
 	output = append([]byte(metadata), output...)
