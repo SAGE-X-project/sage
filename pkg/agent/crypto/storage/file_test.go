@@ -33,7 +33,7 @@ func TestFileKeyStorage(t *testing.T) {
 	// Create temporary directory for tests
 	tempDir, err := os.MkdirTemp("", "sage-key-storage-test-*")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	storage, err := NewFileKeyStorage(tempDir)
 	require.NoError(t, err)
@@ -116,7 +116,7 @@ func TestFileKeyStorage(t *testing.T) {
 		// Create new storage in clean directory
 		listDir, err := os.MkdirTemp("", "sage-list-test-*")
 		require.NoError(t, err)
-		defer os.RemoveAll(listDir)
+		defer func() { _ = os.RemoveAll(listDir) }()
 
 		listStorage, err := NewFileKeyStorage(listDir)
 		require.NoError(t, err)

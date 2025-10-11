@@ -43,7 +43,7 @@ func FuzzSessionCreation(f *testing.F) {
 
 		// Generate random session ID
 		sidBytes := make([]byte, 16)
-		rand.Read(sidBytes)
+		_, _ = rand.Read(sidBytes)
 		sessionID := string(sidBytes)
 
 		// Create session
@@ -76,7 +76,7 @@ func FuzzSessionEncryptDecrypt(f *testing.F) {
 
 	// Create a test session
 	sharedSecret := make([]byte, 32)
-	rand.Read(sharedSecret)
+	_, _ = rand.Read(sharedSecret)
 	sess, _ := manager.CreateSession("test-session", sharedSecret)
 
 	f.Fuzz(func(t *testing.T, plaintext []byte) {
@@ -156,7 +156,7 @@ func FuzzSessionExpiration(f *testing.F) {
 		})
 
 		sharedSecret := make([]byte, 32)
-		rand.Read(sharedSecret)
+		_, _ = rand.Read(sharedSecret)
 
 		sess, err := manager.CreateSession("exp-test", sharedSecret)
 		if err != nil {
@@ -189,7 +189,7 @@ func FuzzInvalidEncryptedData(f *testing.F) {
 
 	manager := session.NewManager()
 	sharedSecret := make([]byte, 32)
-	rand.Read(sharedSecret)
+	_, _ = rand.Read(sharedSecret)
 	sess, _ := manager.CreateSession("invalid-test", sharedSecret)
 
 	f.Fuzz(func(t *testing.T, invalidData []byte) {
@@ -211,7 +211,7 @@ func FuzzSessionMetadata(f *testing.F) {
 
 	manager := session.NewManager()
 	sharedSecret := make([]byte, 32)
-	rand.Read(sharedSecret)
+	_, _ = rand.Read(sharedSecret)
 	sess, _ := manager.CreateSession("meta-test", sharedSecret)
 
 	f.Fuzz(func(t *testing.T, key, value string) {
