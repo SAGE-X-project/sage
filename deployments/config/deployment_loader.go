@@ -21,7 +21,6 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -80,7 +79,7 @@ func LoadDeploymentInfo(network string) (*DeploymentInfo, error) {
 	var lastErr error
 
 	for _, path := range possiblePaths {
-		data, err := ioutil.ReadFile(path)
+		data, err := os.ReadFile(path)
 		if err != nil {
 			lastErr = err
 			continue
@@ -176,7 +175,7 @@ func SaveDeploymentAddress(network, address string) error {
 	}
 
 	file := filepath.Join(deploymentDir, fmt.Sprintf("%s-address.json", network))
-	if err := ioutil.WriteFile(file, jsonData, 0644); err != nil {
+	if err := os.WriteFile(file, jsonData, 0644); err != nil {
 		return fmt.Errorf("failed to write deployment file: %w", err)
 	}
 

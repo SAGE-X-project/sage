@@ -198,11 +198,8 @@ func (p *EnhancedProvider) GetTransactionOpts(
 		Context:  ctx,
 	}
 
-	// Add signer if private key is provided
-	if privateKey != nil {
-		// This would need proper implementation based on key type
-		// For now, we'll leave it to the caller to set the signer
-	}
+	// Note: Signer must be set by the caller based on private key type
+	// The privateKey parameter is reserved for future implementation
 
 	return opts, nil
 }

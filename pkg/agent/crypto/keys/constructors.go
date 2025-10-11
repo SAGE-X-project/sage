@@ -100,27 +100,34 @@ func NewRSAKeyPair(privateKey *rsa.PrivateKey, id string) (sagecrypto.KeyPair, e
 }
 
 // PublicKeyOnlyEd25519 wraps an Ed25519 public key for verification only
+//
+//nolint:unused // Reserved for future verification-only scenarios
 type publicKeyOnlyEd25519 struct {
 	publicKey ed25519.PublicKey
 	id        string
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyEd25519) PublicKey() crypto.PublicKey {
 	return pk.publicKey
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyEd25519) PrivateKey() crypto.PrivateKey {
 	return nil
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyEd25519) Type() sagecrypto.KeyType {
 	return sagecrypto.KeyTypeEd25519
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyEd25519) Sign(message []byte) ([]byte, error) {
 	return nil, errors.New("cannot sign with public key only")
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyEd25519) Verify(message, signature []byte) error {
 	if !ed25519.Verify(pk.publicKey, message, signature) {
 		return sagecrypto.ErrInvalidSignature
@@ -128,32 +135,40 @@ func (pk *publicKeyOnlyEd25519) Verify(message, signature []byte) error {
 	return nil
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyEd25519) ID() string {
 	return pk.id
 }
 
 // PublicKeyOnlyRSA wraps an RSA public key for verification only
+//
+//nolint:unused // Reserved for future verification-only scenarios
 type publicKeyOnlyRSA struct {
 	publicKey *rsa.PublicKey
 	id        string
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyRSA) PublicKey() crypto.PublicKey {
 	return pk.publicKey
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyRSA) PrivateKey() crypto.PrivateKey {
 	return nil
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyRSA) Type() sagecrypto.KeyType {
 	return sagecrypto.KeyTypeRSA
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyRSA) Sign(message []byte) ([]byte, error) {
 	return nil, errors.New("cannot sign with public key only")
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyRSA) Verify(message, signature []byte) error {
 	hash := sha256.Sum256(message)
 	if err := rsa.VerifyPKCS1v15(pk.publicKey, crypto.SHA256, hash[:], signature); err != nil {
@@ -162,6 +177,7 @@ func (pk *publicKeyOnlyRSA) Verify(message, signature []byte) error {
 	return nil
 }
 
+//nolint:unused // Reserved for future verification-only scenarios
 func (pk *publicKeyOnlyRSA) ID() string {
 	return pk.id
 }

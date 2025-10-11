@@ -76,7 +76,7 @@ func (c *EthereumClient) VerifyMetadata(ctx context.Context, agentDID did.AgentD
 		if errorMsg != "" {
 			errorMsg += "; "
 		}
-		errorMsg += fmt.Sprintf("description mismatch")
+		errorMsg += "description mismatch"
 	}
 
 	if metadata.Endpoint != onChainData.Endpoint {
@@ -348,7 +348,7 @@ func isValidEthereumAddress(address string) bool {
 
 	// Check if all characters are hex
 	for _, c := range addr {
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
 			return false
 		}
 	}

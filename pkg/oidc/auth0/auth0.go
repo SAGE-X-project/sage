@@ -391,6 +391,7 @@ func normalizeIssuer(s string) string {
 	return s
 }
 
+//nolint:unused // Reserved for future scope validation scenarios
 func containsScope(claims map[string]interface{}, want string) bool {
 	raw, ok := claims["scope"].(string)
 	if !ok || raw == "" {

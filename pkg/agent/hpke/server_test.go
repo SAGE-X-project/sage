@@ -26,7 +26,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"github.com/sage-x-project/sage/pkg/agent/did"
 	sagedid "github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/session"
 	"github.com/sage-x-project/sage/pkg/agent/transport"
@@ -115,15 +114,15 @@ func setupHPKETest(t *testing.T, srvCfg, cliCfg session.Config) (
 	// Client metadata
 	// Note: PublicKey must be the KeyPair, not the raw crypto.PublicKey,
 	// because the server needs to call Verify() method during signature verification
-	aliceMeta := &did.AgentMetadata{
-		DID:       did.AgentDID(clientDID),
+	aliceMeta := &sagedid.AgentMetadata{
+		DID:       sagedid.AgentDID(clientDID),
 		Name:      "Active Agent",
 		IsActive:  true,
 		PublicKey: clientSignKP, // Store the KeyPair, not the raw ed25519.PublicKey
 	}
 	// Server metadata
-	bobMeta := &did.AgentMetadata{
-		DID:          did.AgentDID(serverDID),
+	bobMeta := &sagedid.AgentMetadata{
+		DID:          sagedid.AgentDID(serverDID),
 		Name:         "Server Agent",
 		IsActive:     true,
 		PublicKEMKey: serverKEMKP.PublicKey(),
@@ -131,8 +130,8 @@ func setupHPKETest(t *testing.T, srvCfg, cliCfg session.Config) (
 	}
 
 	// Configure default expectations (can be overridden in tests)
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(clientDID)).Return(aliceMeta, nil)
-	ethResolver.On("Resolve", mock.Anything, did.AgentDID(serverDID)).Return(bobMeta, nil)
+	ethResolver.On("Resolve", mock.Anything, sagedid.AgentDID(clientDID)).Return(aliceMeta, nil)
+	ethResolver.On("Resolve", mock.Anything, sagedid.AgentDID(serverDID)).Return(bobMeta, nil)
 
 	// Session managers
 	srvMgr := session.NewManager()

@@ -235,11 +235,11 @@ func validateKeyForChain(keyPair crypto.KeyPair, chain did.Chain) error {
 	switch chain {
 	case did.ChainEthereum:
 		if keyPair.Type() != crypto.KeyTypeSecp256k1 {
-			return fmt.Errorf("Ethereum requires Secp256k1 keys, got %s", keyPair.Type())
+			return fmt.Errorf("ethereum requires Secp256k1 keys, got %s", keyPair.Type())
 		}
 	case did.ChainSolana:
 		if keyPair.Type() != crypto.KeyTypeEd25519 {
-			return fmt.Errorf("Solana requires Ed25519 keys, got %s", keyPair.Type())
+			return fmt.Errorf("solana requires Ed25519 keys, got %s", keyPair.Type())
 		}
 	}
 	return nil

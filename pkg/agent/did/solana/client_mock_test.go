@@ -53,13 +53,13 @@ func TestRegisterKeyTypeValidation(t *testing.T) {
 			name:    "Invalid Secp256k1 key",
 			keyType: sagecrypto.KeyTypeSecp256k1,
 			wantErr: true,
-			errMsg:  "Solana requires Ed25519 keys",
+			errMsg:  "solana requires Ed25519 keys",
 		},
 		{
 			name:    "Invalid X25519 key",
 			keyType: sagecrypto.KeyTypeX25519,
 			wantErr: true,
-			errMsg:  "Solana requires Ed25519 keys",
+			errMsg:  "solana requires Ed25519 keys",
 		},
 	}
 

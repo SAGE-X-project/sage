@@ -21,7 +21,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -99,7 +99,7 @@ type HealthConfig struct {
 
 // LoadFromFile loads configuration from a file
 func LoadFromFile(path string) (*Config, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -136,7 +136,7 @@ func SaveToFile(cfg *Config, path string) error {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	if err := ioutil.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

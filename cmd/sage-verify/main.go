@@ -19,6 +19,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -79,7 +80,7 @@ func main() {
 	defer client.Close()
 
 	// Check chain ID
-	chainID, err := client.ChainID(nil)
+	chainID, err := client.ChainID(context.TODO())
 	if err != nil {
 		fmt.Printf(" Failed to get Chain ID: %v\n", err)
 	} else {
@@ -87,7 +88,7 @@ func main() {
 	}
 
 	// Check latest block
-	block, err := client.BlockNumber(nil)
+	block, err := client.BlockNumber(context.TODO())
 	if err != nil {
 		fmt.Printf(" Failed to get block number: %v\n", err)
 	} else {
@@ -97,7 +98,7 @@ func main() {
 	// 5. Check contract code
 	if cfg.ContractAddr != "" {
 		addr := common.HexToAddress(cfg.ContractAddr)
-		code, err := client.CodeAt(nil, addr, nil)
+		code, err := client.CodeAt(context.TODO(), addr, nil)
 		if err != nil {
 			fmt.Printf(" Failed to get contract code: %v\n", err)
 		} else if len(code) == 0 {

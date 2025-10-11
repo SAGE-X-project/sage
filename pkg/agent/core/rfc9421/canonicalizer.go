@@ -21,7 +21,6 @@ package rfc9421
 import (
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 )
 
@@ -195,11 +194,7 @@ func (c *Canonicalizer) buildSignatureParams(sigName string, params *SignatureIn
 
 	// Add covered components
 	components := make([]string, len(params.CoveredComponents))
-	for i, comp := range params.CoveredComponents {
-		// Don't re-quote components that already have proper formatting
-		// e.g., "@query-param";name="id" should stay as is
-		components[i] = comp
-	}
+	copy(components, params.CoveredComponents)
 	parts = append(parts, "("+strings.Join(components, " ")+")")
 
 	// Add parameters
@@ -220,39 +215,4 @@ func (c *Canonicalizer) buildSignatureParams(sigName string, params *SignatureIn
 	}
 
 	return fmt.Sprintf(`"@signature-params": %s`, strings.Join(parts, ";"))
-}
-
-// Helper function to parse query parameters from URL
-func parseQueryString(rawQuery string) url.Values {
-	values := make(url.Values)
-	if rawQuery == "" {
-		return values
-	}
-
-	for rawQuery != "" {
-		var key, value string
-		// Find the next key-value pair
-		idx := strings.IndexAny(rawQuery, "&")
-		var pair string
-		if idx >= 0 {
-			pair = rawQuery[:idx]
-			rawQuery = rawQuery[idx+1:]
-		} else {
-			pair = rawQuery
-			rawQuery = ""
-		}
-
-		// Split key and value
-		if eqIdx := strings.Index(pair, "="); eqIdx >= 0 {
-			key = pair[:eqIdx]
-			value = pair[eqIdx+1:]
-		} else {
-			key = pair
-		}
-
-		// Add to values without decoding
-		values.Add(key, value)
-	}
-
-	return values
 }

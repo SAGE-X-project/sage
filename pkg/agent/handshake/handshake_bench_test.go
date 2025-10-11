@@ -19,7 +19,6 @@
 package handshake_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
@@ -114,16 +113,3 @@ func BenchmarkSignatureVerification(b *testing.B) {
 
 // NOTE: Session encryption/decryption benchmarks are available in tools/benchmark/session_bench_test.go
 // These have been removed from here to avoid duplication and session expiration issues.
-
-// Helper function to format sizes
-func formatSize(bytes int) string {
-	if bytes < 1024 {
-		return fmt.Sprintf("%dB", bytes)
-	}
-	kb := bytes / 1024
-	if kb < 1024 {
-		return fmt.Sprintf("%dKB", kb)
-	}
-	mb := kb / 1024
-	return fmt.Sprintf("%dMB", mb)
-}

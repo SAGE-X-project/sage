@@ -36,7 +36,6 @@ import (
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"github.com/sage-x-project/sage/pkg/agent/did"
 	sagedid "github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/handshake"
 	"github.com/sage-x-project/sage/pkg/agent/session"
@@ -137,8 +136,8 @@ func TestHandshake_Invitation(t *testing.T) {
 	ctx := context.Background()
 	contextId := "ctx-" + uuid.NewString()
 
-	aliceDID := did.AgentDID("did:sage:ethereum:agent001")
-	aliceMeta := &did.AgentMetadata{
+	aliceDID := sagedid.AgentDID("did:sage:ethereum:agent001")
+	aliceMeta := &sagedid.AgentMetadata{
 		DID:       aliceDID,
 		Name:      "Active Agent",
 		IsActive:  true,
@@ -169,8 +168,8 @@ func TestHandshake_Request(t *testing.T) {
 	ctx := context.Background()
 	contextId := "ctx-" + uuid.NewString()
 
-	aliceDID := did.AgentDID("did:sage:ethereum:agent001")
-	aliceMeta := &did.AgentMetadata{
+	aliceDID := sagedid.AgentDID("did:sage:ethereum:agent001")
+	aliceMeta := &sagedid.AgentMetadata{
 		DID:       aliceDID,
 		Name:      "Active Agent",
 		IsActive:  true,
@@ -214,8 +213,8 @@ func TestHandshake_Complete(t *testing.T) {
 	ctx := context.Background()
 	contextId := "ctx-" + uuid.NewString()
 
-	aliceDID := did.AgentDID("did:sage:ethereum:agent001")
-	aliceMeta := &did.AgentMetadata{
+	aliceDID := sagedid.AgentDID("did:sage:ethereum:agent001")
+	aliceMeta := &sagedid.AgentMetadata{
 		DID:       aliceDID,
 		Name:      "Active Agent",
 		IsActive:  true,
@@ -276,8 +275,8 @@ func TestHandshake_cache(t *testing.T) {
 
 	t.Run("cache clean", func(t *testing.T) {
 		cacheCtxID := "ctx-" + uuid.NewString()
-		aliceDID := did.AgentDID("did:sage:ethereum:agent-cache-clean")
-		aliceMeta := &did.AgentMetadata{
+		aliceDID := sagedid.AgentDID("did:sage:ethereum:agent-cache-clean")
+		aliceMeta := &sagedid.AgentMetadata{
 			DID:       aliceDID,
 			Name:      "Cache Clean Agent",
 			IsActive:  true,
@@ -313,8 +312,8 @@ func TestHandshake_cache(t *testing.T) {
 
 		handshake.OverridePendingTTL(hs, time.Hour)
 
-		expiredDID := did.AgentDID("did:sage:ethereum:agent-expired")
-		expiredMeta := &did.AgentMetadata{
+		expiredDID := sagedid.AgentDID("did:sage:ethereum:agent-expired")
+		expiredMeta := &sagedid.AgentMetadata{
 			DID:       expiredDID,
 			Name:      "Expired Agent",
 			IsActive:  true,
@@ -327,8 +326,8 @@ func TestHandshake_cache(t *testing.T) {
 		_, err := alice.Invitation(ctx, *expiredInv, string(expiredMeta.DID))
 		require.NoError(t, err)
 
-		activeDID := did.AgentDID("did:sage:ethereum:agent-active")
-		activeMeta := &did.AgentMetadata{
+		activeDID := sagedid.AgentDID("did:sage:ethereum:agent-active")
+		activeMeta := &sagedid.AgentMetadata{
 			DID:       activeDID,
 			Name:      "Active Agent",
 			IsActive:  true,
@@ -363,8 +362,8 @@ func TestInvitation_ResolverSingleflight(t *testing.T) {
 		ctx := context.Background()
 		contextId := "ctx-" + uuid.NewString()
 
-		aliceDID := did.AgentDID("did:sage:ethereum:agent-concurrent")
-		aliceMeta := &did.AgentMetadata{
+		aliceDID := sagedid.AgentDID("did:sage:ethereum:agent-concurrent")
+		aliceMeta := &sagedid.AgentMetadata{
 			DID:       aliceDID,
 			Name:      "Concurrent Agent",
 			IsActive:  true,
@@ -405,8 +404,8 @@ func TestInvitation_ResolverSingleflight(t *testing.T) {
 	t.Run("avoids second resolve", func(t *testing.T) {
 		ctx := context.Background()
 		contextId := "ctx-" + uuid.NewString()
-		aliceDID := did.AgentDID("did:sage:ethereum:agent-cache-fast")
-		aliceMeta := &did.AgentMetadata{
+		aliceDID := sagedid.AgentDID("did:sage:ethereum:agent-cache-fast")
+		aliceMeta := &sagedid.AgentMetadata{
 			DID:       aliceDID,
 			Name:      "Cache Fast Agent",
 			IsActive:  true,
@@ -431,8 +430,8 @@ func TestInvitation_ResolverSingleflight(t *testing.T) {
 		ctx := context.Background()
 		contextId := "ctx-" + uuid.NewString()
 
-		aliceDID := did.AgentDID("did:sage:ethereum:agent-rcache")
-		aliceMeta := &did.AgentMetadata{
+		aliceDID := sagedid.AgentDID("did:sage:ethereum:agent-rcache")
+		aliceMeta := &sagedid.AgentMetadata{
 			DID:       aliceDID,
 			Name:      "Cache Agent",
 			IsActive:  true,

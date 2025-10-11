@@ -429,12 +429,6 @@ func (s *Server) getPeer(ctxID string) (cachedPeer, bool) {
 	return cp, ok
 }
 
-func (s *Server) delPeer(ctxID string) {
-	s.mu.Lock()
-	delete(s.peers, ctxID)
-	s.mu.Unlock()
-}
-
 func (s *Server) cleanupLoop() {
 	ticker := s.cleanupTicker
 	for {

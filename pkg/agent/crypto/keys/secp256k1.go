@@ -120,21 +120,6 @@ func (kp *secp256k1KeyPair) ID() string {
 	return kp.id
 }
 
-// serializeSignature serializes an ECDSA signature
-func serializeSignature(r, s *big.Int) []byte {
-	// Ensure r and s are 32 bytes each
-	rBytes := r.Bytes()
-	sBytes := s.Bytes()
-
-	signature := make([]byte, 64)
-
-	// Pad with zeros if necessary
-	copy(signature[32-len(rBytes):32], rBytes)
-	copy(signature[64-len(sBytes):64], sBytes)
-
-	return signature
-}
-
 // deserializeSignature deserializes an ECDSA signature
 func deserializeSignature(data []byte) (*big.Int, *big.Int, error) {
 	if len(data) != 64 {

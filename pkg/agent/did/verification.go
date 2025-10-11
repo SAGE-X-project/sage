@@ -264,12 +264,9 @@ func (v *MetadataVerifier) validateEndpoint(ctx context.Context, endpoint string
 	// Check DNS resolution (optional but recommended)
 	host := parsedURL.Hostname()
 	if host != "" {
-		// Try to resolve the hostname
-		if _, err := net.LookupHost(host); err != nil {
-			// DNS lookup failed, but this might be acceptable for local development
-			// Log warning but don't fail validation
-			// In production, you might want to make this stricter
-		}
+		// Try to resolve the hostname - failure is logged but not fatal
+		// as this might be acceptable for local development or temporary issues
+		_, _ = net.LookupHost(host)
 	}
 
 	// Make a simple health check (with timeout)

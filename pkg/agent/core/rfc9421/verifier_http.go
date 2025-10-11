@@ -226,10 +226,7 @@ func (v *HTTPVerifier) verifySignature(publicKey crypto.PublicKey, message, sign
 // formatSignatureInput formats the Signature-Input header value
 func (v *HTTPVerifier) formatSignatureInput(sigName string, params *SignatureInputParams) string {
 	components := make([]string, len(params.CoveredComponents))
-	for i, comp := range params.CoveredComponents {
-		// Don't re-quote components that already have proper formatting
-		components[i] = comp
-	}
+	copy(components, params.CoveredComponents)
 
 	result := fmt.Sprintf("%s=(%s)", sigName, strings.Join(components, " "))
 
