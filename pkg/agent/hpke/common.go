@@ -21,8 +21,10 @@ package hpke
 import (
 	"crypto"
 	"crypto/ed25519"
+
 	"crypto/hmac"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -31,6 +33,8 @@ import (
 	"io"
 	"sync"
 	"time"
+
+	"golang.org/x/crypto/hkdf"
 )
 
 // info is the RFC9180 "info" input and explicitly encodes suite/combiner/context data.
@@ -67,9 +71,53 @@ func DefaultExportContext(ctxID string) []byte {
 	return DefaultInfoBuilder{}.BuildExportContext(ctxID)
 }
 
-// verifySignature checks the signature against the payload (for ed25519).
-//
-//nolint:unused // Reserved for future HPKE signature verification scenarios
+// Combine exporterHPKE || ssE2E using HKDF-Extract(salt=exportCtx) then
+// HKDF-Expand("SAGE-HPKE+E2E-Combiner") to 32 bytes.
+func combineSecrets(exporterHPKE, ssE2E, exportCtx []byte) ([]byte, error) {
+	ikm := make([]byte, 0, len(exporterHPKE)+len(ssE2E))
+	ikm = append(ikm, exporterHPKE...)
+	ikm = append(ikm, ssE2E...)
+	prk := hkdf.Extract(sha256.New, ikm, exportCtx)
+	r := hkdf.Expand(sha256.New, prk, []byte("SAGE-HPKE+E2E-Combiner"))
+	out := make([]byte, 32)
+	_, err := io.ReadFull(r, out)
+	return out, err
+}
+
+// zeroBytes best-effort clears a byte slice.
+func zeroBytes(b []byte) {
+	for i := range b {
+		b[i] = 0
+	}
+}
+
+func isAllZero32(b []byte) bool {
+    if len(b) != 32 { return false }
+    var z [32]byte
+    return subtle.ConstantTimeCompare(b, z[:]) == 1
+}
+
+type TrafficKeys struct {
+	C2SKey []byte // 32 bytes
+	C2SIV  []byte // 12 bytes
+	S2CKey []byte // 32 bytes
+	S2CIV  []byte // 12 bytes
+	CB     []byte // 32 bytes channel-binding value
+}
+
+// DeriveTrafficKeys splits a 32-byte seed into directional keys, IVs and CB.
+func DeriveTrafficKeys(seed []byte) TrafficKeys {
+	return TrafficKeys{
+		C2SKey: hkdfExpand(seed, c2sKeyLabel, 32),
+		C2SIV:  hkdfExpand(seed, c2sIVLabel, 12),
+		S2CKey: hkdfExpand(seed, s2cKeyLabel, 32),
+		S2CIV:  hkdfExpand(seed, s2cIVLabel, 12),
+		CB:     hkdfExpand(seed, cbLabel, 32),
+	}
+}
+
+
+// verifySignature verifies a detached signature in a constant-time friendly way.
 func verifySignature(payload, signature []byte, senderPub crypto.PublicKey) error {
 	if len(signature) == 0 {
 		return errors.New("missing signature")
@@ -136,6 +184,13 @@ func getBase64(m map[string]string, key string) ([]byte, error) {
 		return nil, err
 	}
 	return base64.RawURLEncoding.DecodeString(s)
+}
+
+func strContains(arr []string, v string) bool {
+    for _, x := range arr {
+        if x == v { return true }
+    }
+    return false
 }
 
 // ACK (HMAC) - key confirmation without ciphertext

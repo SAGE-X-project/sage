@@ -439,6 +439,9 @@ secure-chat
 simple-standalone
 vulnerable-chat
 
+.gocache
+.gomodcache
+
 # Go test binaries
 *.test
 integration.test

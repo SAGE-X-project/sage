@@ -28,22 +28,22 @@
 **문제 상황**:
 AI Agent A와 Agent B가 처음 만났을 때:
 
- 문제 1: 신원 확인
+문제 1: 신원 확인
 
 - B가 정말 B인지 어떻게 확인?
 - A가 정말 A인지 어떻게 확인?
 
- 문제 2: 안전한 키 교환
+문제 2: 안전한 키 교환
 
 - 대칭키를 어떻게 안전하게 공유?
 - 중간자 공격 방지는?
 
- 문제 3: Forward Secrecy
+문제 3: Forward Secrecy
 
 - 나중에 개인키가 노출되어도 과거 대화는 안전?
 - 세션마다 다른 키 사용?
 
- 문제 4: 재생 공격 방지
+문제 4: 재생 공격 방지
 
 - 같은 메시지를 여러 번 보내는 것 방지?
 - Nonce 관리는 어떻게?
@@ -120,15 +120,15 @@ SAGE 핸드셰이크 (HPKE 기반):
 
 **차이점**
 
-| 구분 | TLS 1.3 | SAGE HPKE |
+| 구분            | TLS 1.3      | SAGE HPKE                           |
 | --------------- | ------------ | ----------------------------------- |
-| 신원 증명 | X.509 인증서 | DID + Ed25519 서명 |
-| 인증 기관 | 중앙 CA | 블록체인 Resolver |
-| 키 합의 | ECDHE | X25519 (HPKE Base) |
-| 세션 암호화 | AES-GCM | ChaCha20-Poly1305 (session.Manager) |
-| 메시지 서명 | Finished MAC | RFC 9421 + HMAC-SHA256 |
-| Forward Secrecy | Yes | Yes |
-| 블록체인 통합 | No | Yes DID Resolver 기반 |
+| 신원 증명       | X.509 인증서 | DID + Ed25519 서명                  |
+| 인증 기관       | 중앙 CA      | 블록체인 Resolver                   |
+| 키 합의         | ECDHE        | X25519 (HPKE Base)                  |
+| 세션 암호화     | AES-GCM      | ChaCha20-Poly1305 (session.Manager) |
+| 메시지 서명     | Finished MAC | RFC 9421 + HMAC-SHA256              |
+| Forward Secrecy | Yes          | Yes                                 |
+| 블록체인 통합   | No           | Yes DID Resolver 기반               |
 
 ### 1.3 A2A 프로토콜과의 연결
 
@@ -257,17 +257,28 @@ Init 페이로드
 서버는 `hpke.Server.SendMessage`에서 Init을 검증하고 Ack 응답 및 세션 생성
 
 ```go
-pl, err := ParseHPKEInitPayload(st)
-verifySenderSignature(msg, in.Metadata, senderPub)
+_, sid, _, err := s.sessMgr.EnsureSessionFromExporterWithRole(
+    combined,
+    "sage/hpke+e2e v1",
+    false, // receiver
+    nil,
+)
+kid := "kid-" + uuid.NewString()
+s.sessMgr.BindKeyID(kid, sid)
 
-checkTimestamp(pl.Timestamp, s.maxSkew)
-if !s.nonces.checkAndMark(ctxID+"|"+pl.Nonce) { return replay }
-
-se, _ := keys.HPKEOpenSharedSecretWithPriv(s.key.PrivateKey(), pl.Enc, pl.Info, pl.ExportCtx, 32)
-
-_, sid, _, _ := s.sessMgr.EnsureSessionFromExporterWithRole(se, "sage/hpke v1", false, nil)
-
-ackTag := makeAckTag(se, ctxID, pl.Nonce, kid)
+ack := MakeAckTag(
+    combined,
+    msg.ContextID,
+    pl.Nonce,
+    kid,
+    pl.Info,
+    pl.ExportCtx,
+    pl.Enc,
+    pl.EphC,
+    ephSPubBytes,
+    []byte(pl.InitDID),
+    []byte(pl.RespDID),
+)
 ```
 
 Ack 메타데이터 예시
@@ -334,6 +345,75 @@ c.sessMgr.BindKeyID(kid, sid)
 
 ```
 
+### 핸드셰이크 전체 과정
+
+사전 조건
+
+- **S**는 정적 X25519 KEM 키(HPKE 수신자용)와 정적 Ed25519 서명 키를 DID로 공개
+- **C**는 S의 정적 키들을 DID Resolver로부터 얻을 수 있음
+
+```
+1) 준비(클라이언트)
+   1. C가 DID Resolver로부터 S의 정적 X25519 KEM 공개키와 Ed25519 서명키를 조회.
+   2. C가 `info`, `exportCtx`를 고정 형식으로 구성.
+   3. C가 HPKE SetupBaseS(pkB_static, info) 실행 →
+   `enc`(송신자 HPKE 임시 공개키)와 `exporter_HPKE` 획득.
+   4. C가 ephC(클라이언트 E2E용 임시 X25519 공개키) 생성, `nonce`와 `ts` 준비.
+   5. C가 `payload = {initDid, respDid, info, exportCtx, enc, ephC, nonce, ts}`를 Ed25519(클라이언트 DID)로 서명.
+      (선택) 쿠키/퍼즐이 설정되어 있으면 `cookie`를 메타데이터에 첨부.
+
+2) 전송
+   6. C → S: `SecureMessage(payload, signature, [cookie])`
+
+3) 1차 검증(서버: 저비용 먼저)
+
+   7. (선택) 쿠키/퍼즐 확인: Verifier가 설정되어 있으면 `cookie` 유효성 검사를 가장 먼저 수행(누락/불일치 시 즉시 거절).
+   8. 클라이언트 DID 서명 검증**(payload에 대한 Ed25519) → 발신자 무결성·인증.
+   9. 타임스탬프/스큐/리플레이**(nonceStore), info/exportCtx 일치 검사.
+
+4) 키 합의(서버)
+
+   10. HPKE Open(skB_static, enc, info) → `exporter_HPKE'` 재현.
+   11. ephS(서버 E2E용 임시 X25519 공개키) 생성.
+   12. ssE2E = X25519(ephS, ephC) 계산.
+   13. combined = HKDF-Extract(salt=exportCtx, IKM = exporter_HPKE || ssE2E)
+    → 이 값을 세션 시드로 사용(사용 즉시 메모리에서 zeroize).
+
+5) 세션 생성 + 응답(서버)
+
+   14. 서버 세션 매니저에 `combined`로 수신자 세션 생성, `kid` 발급/바인딩.
+   15. ackTag = HMAC(combined, ctxID|nonce|kid|TH(info,exportCtx,enc,ephC,ephS,IDs)) 계산.
+   16. 응답(envelope) 구성: `{v, task, ctx, kid, ephS, ackTagB64, ts, did, infoHash, exportCtxHash, enc, ephC}`
+    → 이를 서버 Ed25519로 서명(sigB64).
+   17. S → C: `{envelope, sigB64}` 전송.
+
+6) 2차 검증(클라이언트: 키 확인 → 신원 확인)
+
+   18. C가 ssE2E = X25519(ephC_priv, ephS) → combined 재계산
+   19. ackTag를 먼저 검증(키 일치·MITM/UKS 차단),
+    `enc/ephC` 에코와 `infoHash/exportCtxHash`도 확인.
+   20. DID Resolver로 서버 Ed25519 공개키 조회 → 서버 서명(sigB64) 검증(신원 바인딩).
+   21. 클라이언트 세션 매니저에 `combined`로 발신자 세션 생성, `kid` 바인딩.
+
+7) 트래픽 키/논스(양방향)
+
+   22. `DeriveTrafficKeys(combined)`로 c2s/s2c 각 키와 IV 파생.
+    전송 시 seq 기반 nonce = IV XOR seq로 재사용 불가 보장.
+
+8) 종료/폐기
+
+   23. 세션 종료 시: ephC/ephS/combined/exporter/세션키 모두 zeroize(메모리 덮어쓰기).
+```
+
+결과(보안 성질)
+
+- **전방 안전성(FS)**: ephC/ephS를 섞어 사용하므로 이후 정적 키 유출에도 과거 세션 복호화 불가
+- **상호 인증**: 요청은 **클라이언트 DID 서명**, 응답은 **서버 DID 서명**으로 신원 바인딩
+  (키 일치는 **ackTag**로 먼저 확인 → MITM/UKS 조기 차단)
+- **세션 분리/키 분리**: `info/exportCtx` 고정 포맷, HKDF 라벨 기반 파생으로 방향/용도 분리
+- **DoS 억제**: (설정 시) 쿠키/퍼즐 **초기에 검사**하여 고비용 HPKE/ECDH 전에 거절
+- **리플레이/다운그레이드 방지**: nonceStore, `infoHash/exportCtxHash`/스위트 고정, 에코 검증
+
 ## 3. 클라이언트 구현
 
 `hpke/client.go`의 구조는 다음과 같습니다.
@@ -346,7 +426,10 @@ type Client struct {
     DID      string
     info     InfoBuilder
     sessMgr  *session.Manager
+
+    cookies CookieSource // optional
 }
+
 ```
 
 **주요 흐름**
@@ -367,6 +450,7 @@ type Server struct {
     maxSkew  time.Duration
     nonces   *nonceStore
     binder   KeyIDBinder          //  커스텀 kid 발급
+    cookies CookieVerifier        // optional anti-DoS
 }
 ```
 
@@ -1108,36 +1192,31 @@ func main() {
 ### 8.1 타이밍 공격 방지
 
 ```go
-// handshake/server.go
+// hpke/common.go
+func verifySignature(payload, signature []byte, senderPub crypto.PublicKey) error {
+if len(signature) == 0 {
+    return errors.New("missing signature")
+}
 
-func (s *Server) verifySenderSignature(
-    m *a2a.Message,
-    meta *structpb.Struct,
-    senderPub crypto.PublicKey,
-) error {
-    field := meta.GetFields()["signature"]
-    if field == nil {
-        return errors.New("missing signature")
+// Support either a custom Verify interface or raw ed25519.PublicKey
+type verifyKey interface {
+    Verify(msg, sig []byte) error
+}
+
+switch pk := senderPub.(type) {
+case verifyKey:
+    if err := pk.Verify(payload, signature); err != nil {
+        return fmt.Errorf("signature verify failed: %w", err)
     }
-
-    sig, err := base64.RawURLEncoding.DecodeString(field.GetStringValue())
-    if err != nil {
-        return fmt.Errorf("bad signature b64: %w", err)
+    return nil
+case ed25519.PublicKey:
+    if !ed25519.Verify(pk, payload, signature) {
+        return errors.New("signature verify failed: invalid ed25519 signature")
     }
-
-    bytes, _ := proto.MarshalOptions{Deterministic: true}.Marshal(m)
-
-    // 타이밍 공격 방지를 위한 constant-time 비교
-    switch pk := senderPub.(type) {
-    case ed25519.PublicKey:
-        // ed25519.Verify는 내부적으로 constant-time
-        if !ed25519.Verify(pk, bytes, sig) {
-            return errors.New("signature verify failed")
-        }
-        return nil
-    default:
-        return fmt.Errorf("unsupported key type: %T", senderPub)
-    }
+    return nil
+default:
+    return fmt.Errorf("unsupported public key type: %T", senderPub)
+}
 }
 ```
 
@@ -1203,65 +1282,128 @@ func (nc *NonceCache) cleanup() {
 ### 8.3 DDoS 방지
 
 ```go
-// handshake/ratelimit.go
-
-type RateLimiter struct {
-    requests map[string][]time.Time  // IP → 요청 타임스탬프
-    mu       sync.Mutex
-    limit    int           // 최대 요청 수
-    window   time.Duration // 시간 윈도우
+// hpke/types.go
+type CookieSource interface {
+    GetCookie(ctxID, initDID, respDID string) (string, bool)
 }
 
-func NewRateLimiter(limit int, window time.Duration) *RateLimiter {
-    return &RateLimiter{
-        requests: make(map[string][]time.Time),
-        limit:    limit,
-        window:   window,
-    }
+type CookieVerifier interface {
+    Verify(cookie, ctxID, initDID, respDID string) bool
+}
+```
+
+```go
+// 클라이언트에 통합
+func (c *Client) WithCookieSource(src CookieSource) *Client {
+    c.cookies = src
+    return c
 }
 
-func (rl *RateLimiter) Allow(ip string) bool {
-    rl.mu.Lock()
-    defer rl.mu.Unlock()
-
-    now := time.Now()
-    cutoff := now.Add(-rl.window)
-
-    // 오래된 요청 제거
-    reqs := rl.requests[ip]
-    var recent []time.Time
-    for _, ts := range reqs {
-        if ts.After(cutoff) {
-            recent = append(recent, ts)
+if c.cookies != nil {
+    if cookie, ok := c.cookies.GetCookie(ctxID, initDID, peerDID); ok && cookie != "" {
+        if msg.Metadata == nil {
+            msg.Metadata = map[string]string{}
         }
+        msg.Metadata["cookie"] = cookie
     }
-
-    // 제한 확인
-    if len(recent) >= rl.limit {
-        return false
-    }
-
-    // 새 요청 기록
-    recent = append(recent, now)
-    rl.requests[ip] = recent
-
-    return true
 }
 
 // 서버에 통합
-func (s *Server) SendMessage(ctx context.Context, in *a2a.SendMessageRequest) (*a2a.SendMessageResponse, error) {
-    // 1. IP 추출
-    peer, _ := peer.FromContext(ctx)
-    ip := peer.Addr.String()
-
-    // 2. 레이트 리밋
-    if !s.rateLimiter.Allow(ip) {
-        return nil, status.Error(codes.ResourceExhausted, "rate limit exceeded")
-    }
-
-    // 3. 정상 처리
+type ServerOpts struct {
     // ...
+    Cookies CookieVerifier // optional DoS cookie/puzzle verifier
 }
+
+// In HandleMessage(...) BEFORE heavy crypto:
+if s.cookies != nil {
+    cookie := msg.Metadata["cookie"]
+    if !s.cookies.Verify(cookie, msg.ContextID, pl.InitDID, pl.RespDID) {
+        return nil, fmt.Errorf("cookie required or invalid") // early reject
+    }
+}
+```
+
+**Cookie Verifier 예시**
+
+1. HMAC 쿠키 (고속·저비용)
+
+```go
+// "hmac:<b64url(HMAC_SHA256('SAGE-Cookie|v1|'||ctxID||'|'||initDID||'|'||respDID))>"
+
+type hmacCookieVerifier struct{ secret []byte }
+
+func (v *hmacCookieVerifier) Verify(cookie, ctxID, initDID, respDID string) bool {
+    const prefix = "hmac:"
+    if len(cookie) <= len(prefix) || cookie[:len(prefix)] != prefix {
+        return false
+    }
+    gotRaw, err := base64.RawURLEncoding.DecodeString(cookie[len(prefix):])
+    if err != nil {
+        return false
+    }
+    m := hmac.New(sha256.New, v.secret)
+    m.Write([]byte("SAGE-Cookie|v1|"))
+    m.Write([]byte(ctxID)); m.Write([]byte("|"))
+    m.Write([]byte(initDID)); m.Write([]byte("|"))
+    m.Write([]byte(respDID))
+    exp := m.Sum(nil)
+    return hmac.Equal(gotRaw, exp) // constant-time compare
+}
+
+type hmacCookieSource struct{ secret []byte }
+
+func (s *hmacCookieSource) GetCookie(ctxID, initDID, respDID string) (string, bool) {
+    m := hmac.New(sha256.New, s.secret)
+    m.Write([]byte("SAGE-Cookie|v1|"))
+    m.Write([]byte(ctxID)); m.Write([]byte("|"))
+    m.Write([]byte(initDID)); m.Write([]byte("|"))
+    m.Write([]byte(respDID))
+    out := base64.RawURLEncoding.EncodeToString(m.Sum(nil))
+    return "hmac:" + out, true
+}
+```
+
+2. PoW 퍼즐 쿠키 (봇·스팸 트래픽 감쇠)
+
+```go
+// "pow:<nonceHex>:<hex(sha256('SAGE-PoW|'||ctxID||'|'||initDID||'|'||respDID||'|'||nonce))>"
+// difficulty = number of leading zero nibbles in SHA-256 digest
+
+type powCookieVerifier struct{ difficulty int }
+
+func leadingZeroNibbles(sum []byte) int {
+    n := 0
+    for _, b := range sum {
+        if b>>4 == 0 { n++ } else { return n }
+        if b&0x0F == 0 { n++ } else { return n }
+    }
+    return n
+}
+
+func (v *powCookieVerifier) Verify(cookie, ctxID, initDID, respDID string) bool {
+    var nonce, hexHash string
+    _, err := fmt.Sscanf(cookie, "pow:%s:%s", &nonce, &hexHash)
+    if err != nil { return false }
+    sum := sha256.Sum256([]byte("SAGE-PoW|" + ctxID + "|" + initDID + "|" + respDID + "|" + nonce))
+    if hex.EncodeToString(sum[:]) != hexHash {
+        return false
+    }
+    return leadingZeroNibbles(sum[:]) >= v.difficulty
+}
+
+type powCookieSource struct{ difficulty int }
+
+func (s *powCookieSource) GetCookie(ctxID, initDID, respDID string) (string, bool) {
+    for nonce := 0; nonce < 1<<24; nonce++ { // bounded search for tests
+        ns := fmt.Sprintf("%x", nonce)
+        sum := sha256.Sum256([]byte("SAGE-PoW|" + ctxID + "|" + initDID + "|" + respDID + "|" + ns))
+        if leadingZeroNibbles(sum[:]) >= s.difficulty {
+            return fmt.Sprintf("pow:%s:%s", ns, hex.EncodeToString(sum[:])), true
+        }
+    }
+    return "", false
+}
+
 ```
 
 ### 8.4 키 재사용 방지

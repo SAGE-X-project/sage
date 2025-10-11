@@ -315,13 +315,13 @@ Content-Type: application/json
 
 SAGE는 여러 블록체인 네트워크를 지원합니다:
 
-| 블록체인           | 상태      | 용도               |
-| ------------------ | --------- | ------------------ |
-| **Ethereum**       | 완전 지원 | 메인넷 프로덕션    |
-| **Sepolia**        | 테스트넷  | 개발 및 테스트     |
-| **Kaia (Cypress)** | 완전 지원 | 한국 중심 네트워크 |
-| **Kairos**         | 테스트넷  | Kaia 테스트 환경   |
-| **Solana**         | 개발 중   | 고성능 트랜잭션    |
+| 블록체인           | 상태          | 용도               |
+| ------------------ | ------------- | ------------------ |
+| **Ethereum**       | Yes 완전 지원 | 메인넷 프로덕션    |
+| **Sepolia**        | Yes 테스트넷  | 개발 및 테스트     |
+| **Kaia (Cypress)** | Yes 완전 지원 | 한국 중심 네트워크 |
+| **Kairos**         | Yes 테스트넷  | Kaia 테스트 환경   |
+| **Solana**         | 개발 중       | 고성능 트랜잭션    |
 
 **왜 여러 체인을 지원하나?**
 
@@ -569,33 +569,42 @@ Forward Secrecy:
 **SAGE의 구현**:
 
 ```
-핸드셰이크 과정:
-1. A가 임시 X25519 키 쌍 생성
-   임시_개인키_A, 임시_공개키_A
+Client                                   Server
+  |-- Resolve S(KEM_pub, Sign_pub) -------->|
+  |-- SetupBaseS(pkS, info): enc, exporter--|
+  |-- gen ephC, build payload, sign --------|
+  |-- [cookie?] --------------------------->|  cookie verify (optional/early)
+  |                                          verify C-sign, ts/skew/replay/info/exportCtx
+  |                                          Open(skS, enc, info) -> exporter
+  |                                          gen ephS, ssE2E, combined
+  |                                          session<-combined, kid
+  |                                          ackTag(combined,...)
+  |<- envelope{ephS, ackTag, ...} + sigB64 --|
+  | verify ackTag, echo, info/exportCtx hash |
+  | verify server signature(DID)              |
+  | session<-combined, bind kid               |
+  |==== AEAD traffic (seq→nonce = IV XOR seq)====>
 
-2. B가 임시 X25519 키 쌍 생성
-   임시_개인키_B, 임시_공개키_B
-
-3. 임시 공개키 교환
-
-4. 각자 공유 비밀 계산:
-   A: HPKE SetupBaseS(pkB, info) → enc(캡슐화), exporter(공유 비밀).
-   B: HPKE SetupBaseR(skB, enc, info) → exporter(공유 비밀, Client와 동일)
-
-5. 공유 비밀에서 세션 키 유도:
-   - exporter에서 HKDF로 방향별 키(c2s/s2c enc·sign) 유도 → AEAD  (ChaCha20-Poly1305) 초기화
-   - kid ↔ sessionID 바인딩 후 세션 사용 시작
-
-6. 통신 종료 시:
-   - 모든 임시 키 삭제
-   - 세션 키 삭제
-   - 메모리에서 완전히 지움 (0으로 덮어쓰기)
-
-결과:
-- 나중에 개인키가 노출되어도 과거 세션 복호화 불가능
-- 각 세션은 독립적으로 보호됨
 
 ```
+
+**전제**: 서버는 정적 X25519(KEM)·Ed25519(서명) 보유, 클라이언트가 DID로 둘 다 조회
+
+1. **Client**: info/exportCtx 구성 → HPKE SetupBaseS(pkS) ⇒ enc, exporter_HPKE → 임시 ephC 생성 → payload 서명(+옵션 cookie) 전송
+
+2. Server: 쿠키/퍼즐(있으면) 검증 → 클라이언트 서명·타임스큐·리플레이·info/exportCtx 확인.
+
+3. Server(공유 비밀 생성): HPKE Open(skS, enc) ⇒ exporter' → 임시 ephS, ssE2E → combined = HKDF(exporter||ssE2E, salt=exportCtx)
+
+4. Server(응답): 세션 생성·kid 바인딩 → ackTag = HMAC(combined, ctx|nonce|kid|TH) → **envelope{ephS, ackTag, hashes, enc, ephC}**에 서버 Ed25519 서명 후 전송
+
+5. Client(검증 순서): ackTag 먼저 검증(키 일치/MITM 차단) → enc/ephC 에코·해시 확인 → 서버 서명(DID) 검증
+
+6. 세션키 사용: HKDF 분리로 c2s/s2c 키·IV 파생, nonce = IV XOR seq 규칙으로 AEAD(ChaCha20-Poly1305) 트래픽 시작.
+
+7. 종료: ephC/ephS/exporter/combined/세션키 zeroize.
+
+**주요 포인트**: HPKE Base 전제 준수(수신자 정적), 키확인(HMAC) → 신원확인(서명), E2E 임시로 FS 확보, 쿠키/퍼즐로 DoS 억제.
 
 #### 해결책 3: 재생 공격 방지 (Replay Protection)
 

@@ -10,7 +10,7 @@
 
 - **서명**: 송신자가 Ed25519 신원키로 서명하여 출처/무결성을 보장
 
-- **부트스트랩 암호화**: 수신자의 Ed25519 공개키를 X25519로 변환해 Ephemeral-Static ECDH → HKDF → AEAD(AES-GCM) 로 암호화
+- **부트스트랩 암호화**: 수신자의 DID 문서에서 게시된 X25519 keyAgreement 공개키로 Ephemeral–Static ECDH/HPKE를 수행하고, HKDF→AEAD로 보호
 
 ### 보안 성질
 

@@ -78,12 +78,14 @@ func (DefaultInfoBuilder) BuildExportContext(ctxID string) []byte {
 ```
 
 **출력 예시**:
+
 ```
 info: "sage/hpke-info|v1|suite=hpke-base+x25519+hkdf-sha256|combiner=e2e-x25519-hkdf-v1|ctx=abc123|init=did:sage:A|resp=did:sage:B"
 exportCtx: "sage/hpke-export|v1|suite=hpke-base+x25519+hkdf-sha256|combiner=e2e-x25519-hkdf-v1|ctx=abc123"
 ```
 
 **보안 속성**:
+
 - `suite`: 특정 암호화 알고리즘에 바인딩 (HPKE Base 모드 + X25519 + HKDF-SHA256)
 - `combiner`: Base 전용 모드와 Base+E2E 모드를 분리 (다운그레이드 공격 방지)
 - `v1`: 프로토콜 업그레이드를 위한 버전 태그
@@ -162,6 +164,7 @@ ackTag = HMAC-SHA256(ackKey, ackMsg)
 ```
 
 **보안 속성**:
+
 - **길이 프리픽스 인코딩**: 길이 확장 공격 방지
 - **트랜스크립트 바인딩**: 모든 핸드셰이크 파라미터 포함 (info, exportCtx, enc, ephC, ephS, DIDs)
 - **버전 태그**: `SAGE-ack-key-v1` 및 `SAGE-ack-msg|v1|`로 프로토콜 업그레이드 대비
@@ -206,40 +209,60 @@ ackTag = HMAC-SHA256(ackKey, ackMsg)
 
 ### 1) 수신자 KEM 키 사후 유출에 따른 과거 트래픽 복호화 위험
 
-- **문제**: Base는 `enc`가 평문으로 전송되므로, 수신자 정적 KEM 개인키가 **나중에** 유출되면 과거 exporter를 재현할 수 있음.
-- **대응(권장)**: **PFS add-on** 으로 `ssE2E` 결합 → seed를 **exporterHPKE ∥ ssE2E** 의 함수로 만들면, 수신자 정적키만으로는 seed를 재현 불가. 또한 **ephemeral 키 안전폐기**를 정책화.
+- **문제**: Base 모드에서 `enc`는 평문 전송되므로, 수신자 정적 X25519 KEM **개인키가 나중에 유출**되면 과거 `exporter`를 **재현**할 수 있음.
+- **대응(권장)**: **PFS add-on** 적용 — `combined = HKDF(exporterHPKE ∥ ssE2E, salt=exportCtx)`로 파생(seed).
+  수신자 정적키만으로는 `combined`를 재현할 수 없고, **ephemeral(X25519) 키의 안전 폐기**를 정책화하여 과거 세션 보호.
 
-### 2) 중간자 공격(MITM)·다운그레이드
+### 2) 중간자(MITM)·UKS·다운그레이드
 
-- **위협**: ctxID/상대 DID를 바꿔치기하거나 info/exportCtx를 교란해 다른 문맥으로 exporter를 재사용 유도.
+- **문제**: 상대 신원 미바인딩, `info/exportCtx` 교란, `enc/ephC` 대체로 **다른 문맥에서 키 재사용** 유도 가능.
 - **대응**:
 
-  - **DID 서명 검증**(Ed25519)으로 발신자/무결성 보장
-  - **canonical info/exportCtx**를 **ctxID, initDID, respDID**로 구성 → **교차-문맥/다운그레이드** 차단
-  - **ackTag**(seed로부터 파생) 검증으로 **키 확인(key confirmation)** 수행
+  - **신원 바인딩**: 서버가 **canonical envelope**에 **Ed25519 서명** → 클라이언트가 서버 DID 공개키로 검증.
+  - **키 확인**: `ackTag = HMAC(combined, ctx|nonce|kid|TH)`로 **Key Confirmation** 수행(UKS/MITM 차단).
+  - **문맥 고정(canonical)**: `info/exportCtx`는 `suite, combiner, ctxID, initDID, respDID`로 **고정 포맷** 생성·해시 후 **서명 포함**.
+  - **에코 검증**: 응답 내 `enc/ephC` **echo**를 클라이언트가 원본과 비교하여 **바꿔치기 탐지**.
 
 ### 3) 재전송(Replay) 공격
 
-- **위협**: 동일 패킷 혹은 **동일 Nonce** 재사용
+- **문제**: 동일 초기 패킷/nonce 재송신, 또는 서명 요청의 nonce 재사용.
 - **대응**:
 
-  - Init: **nonce + ts**(±maxSkew) 체크 및 **NonceStore** 기록
-  - RFC 9421 요청: `Signature-Input`의 **nonce**를 `ReplayGuardSeenOnce(kid, nonce)` 로 거부
-  - 세션 정책: **MaxMessages** 제한
+  - **Init 단계**: `ts`를 `±MaxSkew` 내에서 확인하고, `NonceStore(ContextID|nonce)`에 **Seen-Once**로 기록 후 중복 거부.
+  - **HTTP 서명(RFC 9421)**: `Signature-Input`의 **nonce**를 `ReplayGuardSeenOnce(kid, nonce)`로 1회성 강제.
+  - **세션 정책**: `MaxMessages` 제한 및 사용 시각 갱신으로 **재사용·남용** 억제.
 
-### 4) 세션 탈취/키 재사용
+### 4) 세션 탈취·키 재사용
 
+- **문제**: `kid` 누출 등으로 세션 혼동/재사용 위험.
 - **대응**:
 
-  - 세션은 **seed에서 HKDF** 로 파생되며, **MaxAge/IdleTimeout** 만료 → 즉시 폐기
-  - **kid ↔ sessionID** 바인딩. `kid` 유출만으로는 메시지 복호화 불가(세션 키가 필요)
+  - **키 파생 분리**: 세션키는 **`combined`에서 HKDF**로 파생되며 `kid`만으로는 복호화 불가.
+  - **바인딩**: **`kid ↔ sessionID`**(서버 바인더/발급기)로 세션과 키 ID를 **강결합**.
+  - **수명 정책**: `MaxAge / IdleTimeout / MaxMessages`로 세션을 **단명·회전**하며 만료 시 즉시 폐기.
 
-### 5) 무결성/기밀성
+### 5) 무결성·기밀성(런타임 데이터 평면)
 
+- **문제**: Nonce 재사용·키 혼동·헤더 변조 시 기밀성/무결성 훼손.
 - **대응**:
 
-  - 세션 내 메시지는 **AEAD(예: ChaCha20-Poly1305)** 로 암호화
-  - HTTP 레벨에서 **RFC 9421** 서명(`content-digest`, `@method`, `@path`, `@authority` 등)으로 **헤더/본문 커버리지** 확보
+  - **AEAD**: 세션 메시지는 **ChaCha20-Poly1305** 등 AEAD 적용.
+  - **방향별 분리**: `c2s/s2c` 각각 **키/IV 분리**(`HKDF-Expand(…, "c2s:key|iv" / "s2c:key|iv")`).
+  - **Nonce 규칙**: `nonce = IV XOR seq`(64bit↑ 단조 증가)로 **재사용 불가** 보장.
+  - **HTTP 서명(RFC 9421)**: `content-digest`, `@method`, `@path`, `@authority` 등 서명 범위에 포함해 **헤더/본문 커버리지** 확보.
+
+### 6) DoS 공격 표면(초기 무인증 단계)
+
+- **문제**: 비싼 KEM/서명 연산을 **초기에 유도**하여 리소스 고갈 가능.
+- **대응**:
+
+  - **쿠키/퍼즐(옵션 정책)**: 서버에 **verifier가 설정되면 필수**, **없으면 선택**으로 허용.
+
+    - **HMAC 쿠키**: `hmac:<b64url(HMAC(secret, "SAGE-Cookie|v1|ctx|init|resp"))>`
+    - **PoW 퍼즐**: `pow:<nonce>:<hex(SHA256("SAGE-PoW|ctx|init|resp|nonce"))>`(선행 0-nibble 난이도)
+
+  - **초기 검증·빠른 차단**: 쿠키/퍼즐을 **HPKE 수행 전** 검사하여 **비용 선제 차단**.
+  - **추가 방어**: 전송 간격 제한, 재시도 한도, IP 레이트 리밋 등과 조합.
 
 ## End-to-End 보장 방식
 
@@ -279,6 +302,108 @@ ackTag = HMAC-SHA256(ackKey, ackMsg)
 ```
 
 메타: `did`, `signature(Ed25519)`.
+
+## Channel Binding (CB) — App-Layer Binding of Session Secrets
+
+**목적**: 세션 핸드셰이크에서 파생된 비밀을 **애플리케이션 레벨 요청**에 바인딩해, `kid`만 탈취/주입되어도 악용되지 않도록 막습니다(세션 혼동·토큰 주입 방지).
+
+**근거 재료**: `DeriveTrafficKeys(seed)`가 산출하는 `CB`(32 bytes, 대칭 비밀에서 파생된 채널 바인딩 값).
+
+### Derivation (요약)
+
+- `seed` = `HKDF-Extract(exportCtx, exporterHPKE || ssE2E)` → `HKDF-Expand("SAGE-HPKE+E2E-Combiner", 32)`
+- `DeriveTrafficKeys(seed)` → `{ C2SKey, C2SIV, S2CKey, S2CIV, CB }`
+- **CB**는 32바이트 바이너리. 전송 시 **base64url(=Raw, no padding)** 로 인코딩.
+
+### Header Format (권장)
+
+- 헤더명: `X-Channel-Binding`
+- 값: `sage-cb:v1.<base64url(CB)>`
+  예) `X-Channel-Binding: sage-cb:v1.RoK1Vj3gR8tOq0...`
+
+> 권장: RFC 9421 서명에 **이 헤더를 반드시 포함**(covered component)에 넣으세요. 그러면 중간에서 헤더를 바꿔치기해도 서명 검증이 실패합니다.
+
+### Client 동작 (요청 시)
+
+1. 핸드셰이크 완료 후 `seed`로 `DeriveTrafficKeys` 실행 → `CB` 획득.
+2. 모든 보호 대상 요청에 헤더 추가:
+
+   - `Authorization: Bearer <kid>`
+   - `X-Channel-Binding: sage-cb:v1.<b64url(CB)>`
+
+3. RFC 9421 서명 시 covered list에 **`"x-channel-binding"`** 를 포함.
+
+### Server 동작 (검증 시)
+
+1. `kid`로 세션 조회 → 서버도 `seed`로 `CB_expected` 계산(혹은 세션에 보관된 `CB` 사용).
+2. 수신 헤더 파싱: 접두사 `sage-cb:v1.` 확인 후 `CB_received = base64urlDecode(...)`.
+3. 상수시간 비교: `hmac.Equal(CB_expected, CB_received)` → 불일치 시 **401 (channel binding mismatch)**.
+4. RFC 9421 서명 검증 시 covered에 `x-channel-binding`가 포함되어 있는지 확인(헤더 무결성).
+
+### 보안 고려
+
+- **세션 고유성**: `seed`가 세션마다 달라 CB도 매 세션 고유. `kid`만으로는 재현 불가.
+- **노출 민감도**: CB는 “비밀에서 파생된 고유 지문”이지만, **로그/분석 등 외부로 노출 금지** 권장.
+- **Rekey/Resume**: 재키 시 새 `seed`→새 CB. 서버는 과도기 겹침을 허용하지 말고, 즉시 새 CB 요구(불일치 시 401).
+- **프록시/게이트웨이**: 중간 장비가 헤더를 건드릴 수 있으므로 **반드시 RFC 9421 covered 대상**에 포함.
+- **상호 운용**: 값 인코딩은 **base64url(패딩 없음)** 고정. 접두사/버전 문자열까지 **정확히** 일치해야 합니다.
+
+### HTTP 예시
+
+```
+POST /v1/tasks HTTP/1.1
+Host: api.example.com
+Authorization: Bearer kid-3f8b...
+X-Channel-Binding: sage-cb:v1.Px6f0k1w3k0O0_QH4m1k1J4oC4J9wTq6rj1c2dV2o0M
+Date: Tue, 07 Oct 2025 10:18:25 GMT
+Signature-Input: sig1=("@method" "@path" "host" "date" "x-channel-binding");keyid="kid-3f8b";created=1696673905
+Signature: sig1=:AbCd...:
+```
+
+### gRPC/Metadata 예시
+
+- 메타키: `x-channel-binding`
+- 값: `sage-cb:v1.<b64url(CB)>`
+- 권장: 메시지 서명/무결성 층이 있을 경우 해당 메타를 커버하도록 설정.
+
+### 의사코드 (Go)
+
+**Client**
+
+```go
+seed := combined // after ackTag verification & signature check
+tk := DeriveTrafficKeys(seed)
+cbB64 := base64.RawURLEncoding.EncodeToString(tk.CB)
+
+req.Header.Set("Authorization", "Bearer "+kid)
+req.Header.Set("X-Channel-Binding", "sage-cb:v1."+cbB64)
+
+// RFC 9421: include "x-channel-binding" in covered components
+```
+
+**Server**
+
+```go
+cbHeader := req.Header.Get("X-Channel-Binding")
+if !strings.HasPrefix(cbHeader, "sage-cb:v1.") {
+    return unauthorized("channel binding required")
+}
+cbRecv, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(cbHeader, "sage-cb:v1."))
+if err != nil { return unauthorized("bad channel binding") }
+
+seed := lookupSessionSeedByKID(kid)              // or recompute from session state
+cbExp := DeriveTrafficKeys(seed).CB
+if !hmac.Equal(cbExp, cbRecv) {                   // constant-time compare
+    return unauthorized("channel binding mismatch")
+}
+
+// then verify RFC 9421 signature that covers "x-channel-binding"
+```
+
+### 실패 처리 권장 문구
+
+- `401 Unauthorized` + 일반화된 사유: `"channel binding required"` 또는 `"channel binding mismatch"`.
+- 내부 로그에는 `kid`, `ctxID`, CB 지문(hash)만 기록(원값 미기록).
 
 ## 구성/튜닝 포인트
 
