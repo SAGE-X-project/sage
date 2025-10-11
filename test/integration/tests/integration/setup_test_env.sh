@@ -56,9 +56,14 @@ start_local_blockchain() {
     echo -e "${YELLOW}Starting local blockchain...${NC}"
 
     # Check if Hardhat is installed
-    if command_exists npx && npx hardhat version >/dev/null 2>&1; then
+    if command_exists npx && npx hardhat --version >/dev/null 2>&1; then
         echo "Using Hardhat node..."
-        npx hardhat node --fork "$FORK_URL" 2>/dev/null &
+        # Use fork if FORK_URL is set, otherwise run local network
+        if [ -n "$FORK_URL" ]; then
+            npx hardhat node --port 8545 --chain-id $CHAIN_ID --fork "$FORK_URL" >/dev/null 2>&1 &
+        else
+            npx hardhat node --port 8545 --chain-id $CHAIN_ID >/dev/null 2>&1 &
+        fi
         BLOCKCHAIN_PID=$!
 
     # Check if Anvil (Foundry) is installed
