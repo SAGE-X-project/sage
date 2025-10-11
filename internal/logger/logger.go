@@ -291,12 +291,12 @@ func (l *StructuredLogger) log(level Level, msg string, fields ...Field) {
 	}
 
 	if err != nil {
-		fmt.Fprintf(l.output, `{"level":"ERROR","message":"Failed to marshal log entry","error":"%v"}`+"\n", err)
+		_, _ = fmt.Fprintf(l.output, `{"level":"ERROR","message":"Failed to marshal log entry","error":"%v"}`+"\n", err)
 		return
 	}
 
 	// Write to output
-	fmt.Fprintf(l.output, "%s\n", data)
+	_, _ = fmt.Fprintf(l.output, "%s\n", data)
 }
 
 // SageError represents a structured error with additional context

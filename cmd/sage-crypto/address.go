@@ -240,7 +240,7 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 		// Print addresses in sorted order
 		for _, ct := range chainTypes {
 			address := addresses[ct]
-			fmt.Fprintf(w, "%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n",
 				ct,
 				address.Value,
 				address.Network)

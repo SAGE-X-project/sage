@@ -63,7 +63,7 @@ func BenchmarkKeyGeneration(b *testing.B) {
 // BenchmarkSigning benchmarks message signing
 func BenchmarkSigning(b *testing.B) {
 	message := make([]byte, 1024)
-	rand.Read(message)
+	_, _ = rand.Read(message)
 
 	b.Run("Ed25519", func(b *testing.B) {
 		keyPair, _ := keys.GenerateEd25519KeyPair()
@@ -95,7 +95,7 @@ func BenchmarkSigning(b *testing.B) {
 // BenchmarkVerification benchmarks signature verification
 func BenchmarkVerification(b *testing.B) {
 	message := make([]byte, 1024)
-	rand.Read(message)
+	_, _ = rand.Read(message)
 
 	b.Run("Ed25519", func(b *testing.B) {
 		keyPair, _ := keys.GenerateEd25519KeyPair()
@@ -200,7 +200,7 @@ func BenchmarkMessageSizes(b *testing.B) {
 
 	for _, size := range sizes {
 		message := make([]byte, size)
-		rand.Read(message)
+		_, _ = rand.Read(message)
 
 		b.Run(formatBytes(size), func(b *testing.B) {
 			b.SetBytes(int64(size))

@@ -149,7 +149,7 @@ func (r *ResultReporter) saveJSON(report *FuzzReport) error {
 	if err != nil {
 		return fmt.Errorf("failed to create report file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
@@ -278,7 +278,7 @@ func (r *ResultReporter) saveHTML(report *FuzzReport) error {
 	if err != nil {
 		return fmt.Errorf("failed to create report file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	return tmpl.Execute(file, report)
 }
@@ -289,7 +289,7 @@ func (r *ResultReporter) saveMarkdown(report *FuzzReport) error {
 	if err != nil {
 		return fmt.Errorf("failed to create report file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	_, _ = fmt.Fprintf(file, "# SAGE Random Test Report\n\n")
 	_, _ = fmt.Fprintf(file, "## Executive Summary\n\n")
@@ -348,20 +348,20 @@ func (r *ResultReporter) saveText(report *FuzzReport) error {
 	if err != nil {
 		return fmt.Errorf("failed to create report file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	_, _ = fmt.Fprintln(file, "================================================================================")
 	_, _ = fmt.Fprintln(file, "                        SAGE RANDOM TEST REPORT")
 	_, _ = fmt.Fprintln(file, "================================================================================")
-	fmt.Fprintln(file)
+	_, _ = fmt.Fprintln(file)
 	_, _ = fmt.Fprintln(file, report.Summary)
-	fmt.Fprintln(file)
+	_, _ = fmt.Fprintln(file)
 	_, _ = fmt.Fprintf(file, "Test Duration:  %v\n", report.Duration)
 	_, _ = fmt.Fprintf(file, "Total Tests:    %d\n", report.TotalTests)
 	_, _ = fmt.Fprintf(file, "Passed:         %d\n", report.PassedTests)
 	_, _ = fmt.Fprintf(file, "Failed:         %d\n", report.FailedTests)
 	_, _ = fmt.Fprintf(file, "Success Rate:   %.2f%%\n", report.SuccessRate)
-	fmt.Fprintln(file)
+	_, _ = fmt.Fprintln(file)
 	_, _ = fmt.Fprintln(file, "CATEGORY BREAKDOWN:")
 	_, _ = fmt.Fprintln(file, "-------------------")
 
@@ -374,7 +374,7 @@ func (r *ResultReporter) saveText(report *FuzzReport) error {
 	}
 
 	if len(report.Defects) > 0 {
-		fmt.Fprintln(file)
+		_, _ = fmt.Fprintln(file)
 		_, _ = fmt.Fprintln(file, "DEFECTS FOUND:")
 		_, _ = fmt.Fprintln(file, "--------------")
 		for i, defect := range report.Defects {
@@ -384,7 +384,7 @@ func (r *ResultReporter) saveText(report *FuzzReport) error {
 		}
 	}
 
-	fmt.Fprintln(file)
+	_, _ = fmt.Fprintln(file)
 	_, _ = fmt.Fprintln(file, "================================================================================")
 	_, _ = fmt.Fprintf(file, "Generated: %s\n", report.EndTime.Format("2006-01-02 15:04:05"))
 

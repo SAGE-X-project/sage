@@ -230,7 +230,7 @@ func (a *DemoAgent) CallTool(url string, operation string, args map[string]inter
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response
 	body, err := io.ReadAll(resp.Body)
@@ -276,7 +276,7 @@ func main() {
 
 	// Info endpoint
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, `SAGE-Secured Calculator Tool
+		_, _ = fmt.Fprintf(w, `SAGE-Secured Calculator Tool
 
 Endpoints:
   POST /calculator - Execute calculation (requires SAGE signature)

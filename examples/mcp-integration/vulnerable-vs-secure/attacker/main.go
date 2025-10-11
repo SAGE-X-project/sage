@@ -116,7 +116,7 @@ func sendRequest(url string, msg ChatMessage, expectFailure bool) {
 		fmt.Printf("    Request failed: %v\n", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 

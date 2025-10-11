@@ -179,7 +179,7 @@ func makeSAGERequest() {
 		log.Printf("Request failed: %v", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ToolResponse
 	_ = json.NewDecoder(resp.Body).Decode(&result)
@@ -200,7 +200,7 @@ func main() {
 
 	// Demo info endpoint
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, `SAGE Integration Demo
+		_, _ = fmt.Fprintf(w, `SAGE Integration Demo
 
 Endpoints:
 - POST /weather-insecure - No security (vulnerable)
