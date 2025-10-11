@@ -303,7 +303,9 @@ func (m *Manager) RemoveSession(sessionID string) {
 	defer m.mu.Unlock()
 
 	if sess, exists := m.sessions[sessionID]; exists {
-		sess.Close()
+		if err := sess.Close(); err != nil {
+			fmt.Printf("Warning: error closing session %s: %v\n", sessionID, err)
+		}
 		delete(m.sessions, sessionID)
 		metrics.SessionsActive.Dec()
 
@@ -394,7 +396,9 @@ func (m *Manager) Close() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, sess := range m.sessions {
-		sess.Close()
+		if err := sess.Close(); err != nil {
+			fmt.Printf("Warning: error closing session during manager shutdown: %v\n", err)
+		}
 	}
 	m.sessions = make(map[string]Session)
 	m.byKeyID = nil
@@ -427,7 +431,9 @@ func (m *Manager) cleanupExpiredSessions() {
 	}
 	for _, id := range expiredIDs {
 		if sess, exists := m.sessions[id]; exists {
-			sess.Close()
+			if err := sess.Close(); err != nil {
+				fmt.Printf("Warning: error closing expired session %s: %v\n", id, err)
+			}
 			delete(m.sessions, id)
 			metrics.SessionsExpired.Inc()
 			metrics.SessionsActive.Dec()

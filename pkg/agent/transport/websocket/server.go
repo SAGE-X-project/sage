@@ -105,7 +105,7 @@ func (s *WSServer) Handler() http.Handler {
 		// Track connection
 		s.addConnection(conn)
 		defer s.removeConnection(conn)
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 
 		// Handle messages on this connection
 		s.handleConnection(r.Context(), conn)
@@ -253,7 +253,7 @@ func (s *WSServer) Close() error {
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 		)
-		conn.Close()
+		_ = conn.Close()
 	}
 
 	s.connections = make(map[*websocket.Conn]bool)

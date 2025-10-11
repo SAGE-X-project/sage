@@ -246,7 +246,9 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 				address.Network)
 		}
 
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			return fmt.Errorf("failed to flush output: %w", err)
+		}
 	}
 
 	return nil

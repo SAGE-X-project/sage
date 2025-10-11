@@ -79,7 +79,9 @@ func runList(cmd *cobra.Command, args []string) error {
 		fmt.Fprintf(w, "%s\t%s\t%s\n", id, keyPair.Type(), keyPair.ID())
 	}
 
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("failed to flush output: %w", err)
+	}
 
 	fmt.Printf("\nTotal keys: %d\n", len(keyIDs))
 	fmt.Printf("Storage location: %s\n", storageDir)

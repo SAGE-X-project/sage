@@ -263,7 +263,7 @@ func TestHTTPServer_Validation(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GET request failed: %v", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode != http.StatusMethodNotAllowed {
 			t.Errorf("Expected status %d, got %d", http.StatusMethodNotAllowed, resp.StatusCode)

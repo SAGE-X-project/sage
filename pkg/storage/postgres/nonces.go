@@ -22,7 +22,7 @@ func (n *NonceStore) CheckAndStore(ctx context.Context, nonce string, sessionID 
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Check if nonce already exists
 	var exists bool

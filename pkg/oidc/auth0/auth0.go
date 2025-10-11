@@ -113,7 +113,12 @@ func (a *Agent) RequestToken(ctx context.Context, tokenURL string, audience stri
 	if err != nil {
 		return "", fmt.Errorf("do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but dont fail the request since body was already read
+			fmt.Printf("Warning: failed to close response body: %v\n", err)
+		}
+	}()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -310,7 +315,12 @@ func (v *verifier) getJWKS(ctx context.Context, issuer string) ([]formats.JWK, e
 	if err != nil {
 		return nil, fmt.Errorf("fetch JWKS: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but dont fail the request since body was already read
+			fmt.Printf("Warning: failed to close response body: %v\n", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("JWKS endpoint returned status %d", resp.StatusCode)

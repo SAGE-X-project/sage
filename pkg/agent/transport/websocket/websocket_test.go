@@ -62,7 +62,7 @@ func TestWSTransport_Send(t *testing.T) {
 
 		// Create WebSocket transport client
 		client := NewWSTransport(wsURL)
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Send message
 		msg := &transport.SecureMessage{
@@ -108,7 +108,7 @@ func TestWSTransport_Send(t *testing.T) {
 		wsURL := "ws" + strings.TrimPrefix(testServer.URL, "http")
 
 		client := NewWSTransport(wsURL)
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		msg := &transport.SecureMessage{
 			ID:      "test-msg-123",
@@ -153,7 +153,7 @@ func TestWSTransport_Send(t *testing.T) {
 		wsURL := "ws" + strings.TrimPrefix(testServer.URL, "http")
 
 		client := NewWSTransport(wsURL)
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Send multiple messages
 		for i := 1; i <= 3; i++ {
@@ -192,7 +192,7 @@ func TestWSTransport_Send(t *testing.T) {
 		wsURL := "ws" + strings.TrimPrefix(testServer.URL, "http")
 
 		client := NewWSTransport(wsURL)
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		// Test nil message
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -207,7 +207,7 @@ func TestWSTransport_Send(t *testing.T) {
 	t.Run("Connection timeout", func(t *testing.T) {
 		// Create client with short timeout
 		client := NewWSTransportWithTimeouts("ws://localhost:19999", 100*time.Millisecond, 1*time.Second, 1*time.Second)
-		defer client.Close()
+		defer func() { _ = client.Close() }()
 
 		msg := &transport.SecureMessage{
 			ID:      "test-msg",
@@ -269,7 +269,7 @@ func TestWSServer_Validation(t *testing.T) {
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				client := NewWSTransport(wsURL)
-				defer client.Close()
+				defer func() { _ = client.Close() }()
 
 				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 				defer cancel()
@@ -315,7 +315,7 @@ func TestWSServer_ConnectionCount(t *testing.T) {
 
 	// Create client and connect
 	client := NewWSTransport(wsURL)
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	msg := &transport.SecureMessage{
 		ID:      "test-msg",
