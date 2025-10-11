@@ -123,7 +123,7 @@ func TestLoadConfig(t *testing.T) {
 			defer func() {
 				// Clean up
 				for k := range tt.envVars {
-					os.Unsetenv(k)
+					_ = os.Unsetenv(k)
 				}
 			}()
 
@@ -181,7 +181,7 @@ func TestLoadConfigInvalidInputs(t *testing.T) {
 			defer func() {
 				// Clean up
 				for k := range tt.envVars {
-					os.Unsetenv(k)
+					_ = os.Unsetenv(k)
 				}
 			}()
 

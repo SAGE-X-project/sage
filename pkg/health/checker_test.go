@@ -370,7 +370,7 @@ func BenchmarkHealthChecker(b *testing.B) {
 
 	b.Run("SingleCheck", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			checker.Check(context.Background(), "check_0")
+			_, _ = checker.Check(context.Background(), "check_0")
 		}
 	})
 
@@ -389,7 +389,7 @@ func BenchmarkHealthChecker(b *testing.B) {
 	b.Run("WithCache", func(b *testing.B) {
 		checker.SetCacheTTL(1 * time.Second)
 		for i := 0; i < b.N; i++ {
-			checker.Check(context.Background(), "check_0")
+			_, _ = checker.Check(context.Background(), "check_0")
 		}
 	})
 }

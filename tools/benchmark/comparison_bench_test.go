@@ -32,7 +32,7 @@ import (
 // BenchmarkBaseline_vs_SAGE compares baseline (no security) vs SAGE-secured communication
 func BenchmarkBaseline_vs_SAGE(b *testing.B) {
 	message := make([]byte, 1024)
-	rand.Read(message)
+	_, _ = rand.Read(message)
 
 	b.Run("Baseline_NoSecurity", func(b *testing.B) {
 		b.ReportAllocs()
