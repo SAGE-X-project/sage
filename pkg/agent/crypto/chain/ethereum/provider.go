@@ -163,5 +163,5 @@ func (p *Provider) isNetworkSupported(network chain.Network) bool {
 
 // init registers the provider
 func init() {
-	chain.RegisterProvider(NewProvider())
+	_ = chain.RegisterProvider(NewProvider())
 }

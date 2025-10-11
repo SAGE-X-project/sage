@@ -181,7 +181,7 @@ func SaveDeploymentAddress(network, address string) error {
 	}
 
 	// Also update environment variable for current session
-	os.Setenv("DEPLOYED_CONTRACT_ADDRESS", address)
+	_ = os.Setenv("DEPLOYED_CONTRACT_ADDRESS", address)
 
 	return nil
 }

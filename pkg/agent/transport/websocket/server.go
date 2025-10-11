@@ -249,7 +249,7 @@ func (s *WSServer) Close() error {
 
 	for conn := range s.connections {
 		// Send close message
-		conn.WriteMessage(
+		_ = conn.WriteMessage(
 			websocket.CloseMessage,
 			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""),
 		)
