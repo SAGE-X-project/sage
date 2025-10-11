@@ -234,6 +234,10 @@ func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage
 		}
 
 		exported, err := s.importer.ImportPublic([]byte(req.EphemeralPubKey), sagecrypto.KeyFormatJWK)
+		if err != nil {
+			metrics.HandshakesFailed.WithLabelValues("invalid_key").Inc()
+			return nil, fmt.Errorf("import peer ephemeral key: %w", err)
+		}
 		peerPub, ok := exported.(*ecdh.PublicKey)
 		if !ok {
 			metrics.HandshakesFailed.WithLabelValues("invalid_key").Inc()

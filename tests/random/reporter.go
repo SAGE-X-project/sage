@@ -95,7 +95,7 @@ const (
 
 // NewResultReporter creates a new result reporter
 func NewResultReporter(reportPath string) *ResultReporter {
-	format := FormatJSON
+	var format ReportFormat
 
 	// Determine format from file extension
 	switch filepath.Ext(reportPath) {

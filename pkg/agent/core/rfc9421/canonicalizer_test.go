@@ -303,7 +303,7 @@ func TestHTTPFields(t *testing.T) {
 		}
 
 		canonicalizer := NewCanonicalizer()
-		result, err := canonicalizer.BuildSignatureBase(req, "sig1", params)
+		_, err := canonicalizer.BuildSignatureBase(req, "sig1", params)
 
 		// Should fail because @status is only for responses
 		require.Error(t, err)
