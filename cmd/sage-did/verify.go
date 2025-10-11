@@ -56,7 +56,9 @@ func init() {
 	verifyCmd.Flags().StringVar(&verifyContractAddr, "contract", "", "DID registry contract address")
 
 	// Mark required flags
-	verifyCmd.MarkFlagRequired("metadata")
+	if err := verifyCmd.MarkFlagRequired("metadata"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
 }
 
 func runVerify(cmd *cobra.Command, args []string) error {

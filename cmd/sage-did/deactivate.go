@@ -80,7 +80,11 @@ func runDeactivate(cmd *cobra.Command, args []string) error {
 	if !deactivateConfirm {
 		fmt.Printf("  Are you sure you want to deactivate agent %s? (y/N): ", agentDID)
 		var response string
-		fmt.Scanln(&response)
+		if _, err := fmt.Scanln(&response); err != nil {
+			fmt.Printf("Failed to read input: %v\n", err)
+			fmt.Println("Deactivation cancelled")
+			return nil
+		}
 		if response != "y" && response != "Y" {
 			fmt.Println("Deactivation cancelled")
 			return nil

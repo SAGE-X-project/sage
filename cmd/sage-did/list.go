@@ -61,8 +61,12 @@ func init() {
 	listCmd.Flags().StringVar(&listFormat, "format", "table", "Output format (table, json)")
 
 	// Mark required flags
-	listCmd.MarkFlagRequired("chain")
-	listCmd.MarkFlagRequired("owner")
+	if err := listCmd.MarkFlagRequired("chain"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
+	if err := listCmd.MarkFlagRequired("owner"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
 }
 
 func runList(cmd *cobra.Command, args []string) error {

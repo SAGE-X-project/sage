@@ -40,7 +40,9 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 
 	listCmd.Flags().StringVarP(&storageDir, "storage-dir", "s", "", "Storage directory (required)")
-	listCmd.MarkFlagRequired("storage-dir")
+	if err := listCmd.MarkFlagRequired("storage-dir"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
 }
 
 func runList(cmd *cobra.Command, args []string) error {

@@ -65,7 +65,9 @@ func init() {
 	debugCmd.Flags().StringVar(&signature, "signature", "", "Signature to verify")
 	debugCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
 
-	debugCmd.MarkFlagRequired("did")
+	if err := debugCmd.MarkFlagRequired("did"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
 }
 
 func runDebug(cmd *cobra.Command, args []string) error {

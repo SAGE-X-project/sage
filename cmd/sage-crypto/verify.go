@@ -74,7 +74,9 @@ func init() {
 	verifyCmd.Flags().StringVar(&signatureFile, "signature-file", "", "Signature file (JSON or raw)")
 	verifyCmd.Flags().StringVar(&signatureB64, "signature-b64", "", "Base64 encoded signature")
 
-	verifyCmd.MarkFlagRequired("key")
+	if err := verifyCmd.MarkFlagRequired("key"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
 }
 
 func runVerify(cmd *cobra.Command, args []string) error {
