@@ -55,9 +55,11 @@ type Server struct {
 
 	binder KeyIDBinder
 	cookies CookieVerifier // optional anti-DoS
+	allowedSuites []string
 }
 
 type ServerOpts struct {
+	AllowedSuites []string // ex) []{"DHKEM(X25519,HKDF-SHA256)+ChaCha20-Poly1305"}
 	MaxSkew   time.Duration
 	Binder    KeyIDBinder
 	Info      InfoBuilder
@@ -105,6 +107,7 @@ func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, didStr string, 
 		nonces:    newNonceStore(10 * time.Minute),
 		binder:    opts.Binder,
 		cookies:   opts.Cookies,
+		allowedSuites: opts.AllowedSuites,
 	}
 }
 
@@ -217,6 +220,7 @@ func (s *Server) verifySender(ctx context.Context, msg *transport.SecureMessage)
 
 // Validate DID binding, timestamp window, replay protection, and info/exportCtx.
 func (s *Server) validateInitEnvelope(msg *transport.SecureMessage, pl HPKEInitPayload, senderDID string) error {
+	
 	if senderDID != "" && senderDID != pl.InitDID {
 		return fmt.Errorf("authentication failed")
 	}
@@ -235,6 +239,10 @@ func (s *Server) validateInitEnvelope(msg *transport.SecureMessage, pl HPKEInitP
 	if string(cExport) != string(pl.ExportCtx) {
 		return fmt.Errorf("exportCtx mismatch")
 	}
+	// suite whitelist
+    if len(s.allowedSuites) > 0 && !strContains(s.allowedSuites, hpkeSuiteID) {
+        return fmt.Errorf("suite not allowed")
+    }
 	return nil
 }
 
@@ -271,6 +279,8 @@ func generateSrvE2E(ephC []byte) (ephSPubBytes, ssE2E []byte, err error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("e2e ecdh: %w", err)
 	}
+	// RFC 7748
+	if isAllZero32(sec) { return nil, nil, fmt.Errorf("invalid ECDH (all-zero)") }
 	return srvPriv.PublicKey().Bytes(), sec, nil
 }
 

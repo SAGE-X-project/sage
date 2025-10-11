@@ -21,9 +21,11 @@ package hpke
 import (
 	"context"
 	"crypto/ecdh"
+	"crypto/ed25519"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -46,7 +48,8 @@ type Client struct {
 	info      InfoBuilder
 	sessMgr   *session.Manager
 
-	cookies CookieSource // optional
+	cookies CookieSource 	// optional
+	pins map[string][]byte  // DID -> ed25519 pub (TOFU pin)
 }
 
 func NewClient(t transport.MessageTransport, resolver did.Resolver, key sagecrypto.KeyPair, didStr string, ib InfoBuilder, sessMgr *session.Manager) *Client {
@@ -60,6 +63,7 @@ func NewClient(t transport.MessageTransport, resolver did.Resolver, key sagecryp
 		DID:       didStr,
 		info:      ib,
 		sessMgr:   sessMgr,
+		pins:      make(map[string][]byte),
 	}
 }
 
@@ -370,6 +374,9 @@ func parseServerSignedResponse(data []byte) (*serverSignedResponse, error) {
 }
 
 func (c *Client) verifySignature(ctx context.Context, serverDID string, r *serverSignedResponse, ctxID string, info, exportCtx, enc, ephC []byte) error {
+	if r.V != "v1" || r.Task != TaskHPKEComplete {
+		return fmt.Errorf("unsupported version/task: %s/%s", r.V, r.Task)
+	}
 	// Resolve server signing key (Ed25519)
 	if c.resolver == nil {
 		return fmt.Errorf("nil resolver")
@@ -378,6 +385,13 @@ func (c *Client) verifySignature(ctx context.Context, serverDID string, r *serve
 	if err != nil || pub == nil {
 		return fmt.Errorf("cannot resolve server pubkey")
 	}
+
+	if pinned, ok := c.pins[serverDID]; ok {
+        pk, ok := pub.(ed25519.PublicKey)
+        if !ok || subtle.ConstantTimeCompare(pinned, pk) != 1 {
+            return fmt.Errorf("pin mismatch: server signing key changed")
+        }
+    }
 
 	// Recompute info/export hashes and check equality
 	ih := sha256.Sum256(info)
@@ -425,6 +439,8 @@ func computeE2ESecret(ephCpriv *ecdh.PrivateKey, ephSbytes []byte) ([]byte, erro
 	if err != nil {
 		return nil, fmt.Errorf("e2e ecdh: %w", err)
 	}
+	// RFC 7748
+	if isAllZero32(ssE2E) { return nil, fmt.Errorf("invalid ECDH (all-zero)") }
 	return ssE2E, nil
 }
 

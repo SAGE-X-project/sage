@@ -578,6 +578,140 @@ func Test_ZeroBytes_Wipes_Buffer(t *testing.T) {
 	}
 }
 
+// Client rejects a response carrying an all-zero ECDH secret.
+func Test_Tamper_EphS_AllZero_Fails(t *testing.T) {
+	ctx := context.Background()
+	cli, srv, _, _, _, _, mt, clientDID, serverDID :=
+		setupHPKETestWithTransport(t, session.Config{}, session.Config{})
+
+	// Tamper: server returns ephS = 32 zero bytes
+	mt.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		resp, err := srv.HandleMessage(ctx, msg)
+		if err != nil {
+			return nil, err
+		}
+		var m map[string]string
+		_ = json.Unmarshal(resp.Data, &m)
+		m["ephS"] = base64.RawURLEncoding.EncodeToString(make([]byte, 32))
+		resp.Data, _ = json.Marshal(m)
+		return resp, nil
+	}
+
+	ctxID := "ctx-" + uuid.NewString()
+	_, err := cli.Initialize(ctx, ctxID, clientDID, serverDID)
+	require.Error(t, err, "ECDH all-zero must be rejected")
+}
+
+// Reject responses that attempt a protocol version downgrade.
+func Test_Downgrade_Version_Rejects(t *testing.T) {
+	ctx := context.Background()
+	cli, srv, _, _, _, _, mt, clientDID, serverDID :=
+		setupHPKETestWithTransport(t, session.Config{}, session.Config{})
+
+	mt.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		resp, err := srv.HandleMessage(ctx, msg)
+		if err != nil {
+			return nil, err
+		}
+		var m map[string]string
+		_ = json.Unmarshal(resp.Data, &m)
+		m["v"] = "v0" // downgrade
+		resp.Data, _ = json.Marshal(m)
+		return resp, nil
+	}
+
+	ctxID := "ctx-" + uuid.NewString()
+	_, err := cli.Initialize(ctx, ctxID, clientDID, serverDID)
+	require.Error(t, err, "version downgrade must be rejected")
+}
+
+// Reject responses that advertise an unexpected task identifier.
+func Test_Downgrade_Task_Rejects(t *testing.T) {
+	ctx := context.Background()
+	cli, srv, _, _, _, _, mt, clientDID, serverDID :=
+		setupHPKETestWithTransport(t, session.Config{}, session.Config{})
+
+	mt.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		resp, err := srv.HandleMessage(ctx, msg)
+		if err != nil {
+			return nil, err
+		}
+		var m map[string]string
+		_ = json.Unmarshal(resp.Data, &m)
+		m["task"] = "hpke/other@v1" // wrong task
+		resp.Data, _ = json.Marshal(m)
+		return resp, nil
+	}
+
+	ctxID := "ctx-" + uuid.NewString()
+	_, err := cli.Initialize(ctx, ctxID, clientDID, serverDID)
+	require.Error(t, err, "unexpected task must be rejected")
+}
+
+// Client pinning: reject when the returned key differs from the stored pin.
+func Test_Client_Pinning_Rejects_KeyChange(t *testing.T) {
+	ctx := context.Background()
+	cli, srv, _, _, _, _, mt, clientDID, serverDID :=
+		setupHPKETestWithTransport(t, session.Config{}, session.Config{})
+
+	// Preload WRONG pin for serverDID
+	wrongKP, err := keys.GenerateEd25519KeyPair()
+	require.NoError(t, err)
+	// Client.pins is exported within the same package.
+	if cli.pins == nil {
+		cli.pins = make(map[string][]byte)
+	}
+	cli.pins[serverDID] = wrongKP.PublicKey().(ed25519.PublicKey)
+
+	mt.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		return srv.HandleMessage(ctx, msg)
+	}
+
+	ctxID := "ctx-" + uuid.NewString()
+	_, err = cli.Initialize(ctx, ctxID, clientDID, serverDID)
+	require.Error(t, err, "pin mismatch must be rejected")
+}
+
+// Server suite whitelist: reject suites that are not explicitly allowed.
+func Test_SuiteWhitelist_Rejects_Unsupported(t *testing.T) {
+	ctx := context.Background()
+
+	srvCfg, cliCfg := session.Config{}, session.Config{}
+	cli, srv, _, _, _, _, mt, clientDID, serverDID :=
+		setupHPKETestWithTransport(t, srvCfg, cliCfg)
+
+	// Configure allowedSuites with a value different from the active suite
+	//    => the server should reject with "suite not allowed".
+	srv.allowedSuites = []string{"UNSUPPORTED-SUITE"}
+
+	// Route the message straight to the server.
+	mt.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		return srv.HandleMessage(ctx, msg)
+	}
+
+	ctxID := "ctx-" + uuid.NewString()
+	_, err := cli.Initialize(ctx, ctxID, clientDID, serverDID)
+	require.Error(t, err, "suite not allowed must be rejected")
+}
+
+func Test_SuiteWhitelist_Allows_CurrentSuite(t *testing.T) {
+	ctx := context.Background()
+	cli, srv, _, _, _, _, mt, clientDID, serverDID :=
+		setupHPKETestWithTransport(t, session.Config{}, session.Config{})
+
+	// Allow the suite used by the current implementation.
+	srv.allowedSuites = []string{hpkeSuiteID}
+
+	mt.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		return srv.HandleMessage(ctx, msg)
+	}
+
+	ctxID := "ctx-" + uuid.NewString()
+	kid, err := cli.Initialize(ctx, ctxID, clientDID, serverDID)
+	require.NoError(t, err)
+	require.NotEmpty(t, kid)
+}
+
 // Local helper functions
 
 // flipB64Byte decodes a base64url string, flips one bit, and re-encodes.
