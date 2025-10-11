@@ -3,7 +3,7 @@ module github.com/sage-x-project/sage
 go 1.24.0
 
 require (
-	filippo.io/edwards25519 v1.0.0-rc.1
+	filippo.io/edwards25519 v1.1.0
 	github.com/cloudflare/circl v1.6.1
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
 	github.com/ethereum/go-ethereum v1.16.4
