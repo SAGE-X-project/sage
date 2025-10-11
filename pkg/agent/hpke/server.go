@@ -207,6 +207,8 @@ func (s *Server) verifySender(ctx context.Context, msg *transport.SecureMessage)
 		return "", nil, errors.New("cannot resolve sender pubkey")
 	}
 
+	// Verify over the exact bytes that were signed by the client.
+	// Do NOT re-marshal or re-encode here; use msg.Payload as-is.
 	if err := verifySignature(msg.Payload, msg.Signature, senderPub); err != nil {
 		return "", nil, fmt.Errorf("signature verification failed: %w", err)
 	}
