@@ -293,6 +293,103 @@ Metadata: `did`, `signature` (Ed25519).
 
 Metadata: `did`, `signature` (Ed25519).
 
+## Channel Binding (CB) — Application-Layer Binding of Session Secrets
+
+**Purpose**: bind the session secret established during the handshake to every application request so that stealing or replaying `kid` alone is insufficient to hijack the session (prevents session confusion and token injection).
+
+**Backing material**: `DeriveTrafficKeys(seed)` yields `CB` (32 bytes), a channel-binding value derived from the same symmetric secret as the traffic keys.
+
+### Derivation (recap)
+
+- `seed = HKDF-Extract(exportCtx, exporterHPKE || ssE2E)` → `HKDF-Expand("SAGE-HPKE+E2E-Combiner", 32)`
+- `DeriveTrafficKeys(seed)` → `{ C2SKey, C2SIV, S2CKey, S2CIV, CB }`
+- `CB` is 32 bytes of binary data; encode it with base64url (raw, no padding) when transmitting.
+
+### Header format (recommended)
+
+- Header name: `X-Channel-Binding`
+- Value: `sage-cb:v1.<base64url(CB)>`  
+  Example: `X-Channel-Binding: sage-cb:v1.RoK1Vj3gR8tOq0...`
+
+> Recommendation: include this header in the RFC 9421 covered components list. Any tampering in transit will then invalidate the signature.
+
+### Client behavior (when sending requests)
+
+1. After the handshake, run `DeriveTrafficKeys(seed)` and obtain `CB`.
+2. Attach the header to every protected request:
+   - `Authorization: Bearer <kid>`
+   - `X-Channel-Binding: sage-cb:v1.<b64url(CB)>`
+3. Add `"x-channel-binding"` to the covered components list when generating the RFC 9421 signature.
+
+### Server behavior (when verifying requests)
+
+1. Look up the session via `kid` and compute `CB_expected` from the stored seed (or fetch the cached CB).
+2. Parse the incoming header, ensure the prefix `sage-cb:v1.`, and decode `CB_received = base64urlDecode(...)`.
+3. Compare in constant time: `hmac.Equal(CB_expected, CB_received)`; return **401 (channel binding mismatch)** if it differs.
+4. During RFC 9421 verification, ensure `"x-channel-binding"` is present in the covered set so the header cannot be modified by intermediaries.
+
+### Security considerations
+
+- **Per-session uniqueness**: each seed yields a unique CB; `kid` by itself cannot recreate it.
+- **Sensitive material**: CB is derived from secret material; avoid logging or exporting it.
+- **Rekey / resume**: a rekey produces a new seed and CB. Require the new CB immediately and reject old values with 401.
+- **Proxies / gateways**: intermediaries may touch headers, so always cover the header with RFC 9421 signatures.
+- **Interoperability**: use **base64url without padding** and match the prefix/version string exactly.
+
+### HTTP example
+
+```
+POST /v1/tasks HTTP/1.1
+Host: api.example.com
+Authorization: Bearer kid-3f8b...
+X-Channel-Binding: sage-cb:v1.Px6f0k1w3k0O0_QH4m1k1J4oC4J9wTq6rj1c2dV2o0M
+Date: Tue, 07 Oct 2025 10:18:25 GMT
+Signature-Input: sig1=("@method" "@path" "host" "date" "x-channel-binding");keyid="kid-3f8b";created=1696673905
+Signature: sig1=:AbCd...:
+```
+
+### gRPC / metadata example
+
+- Metadata key: `x-channel-binding`
+- Value: `sage-cb:v1.<b64url(CB)>`
+- Recommendation: ensure the signing / integrity layer covers this metadata key as well.
+
+### Pseudocode (Go)
+
+**Client**
+
+```go
+seed := combined // after ackTag verification and signature check
+tk := DeriveTrafficKeys(seed)
+cbB64 := base64.RawURLEncoding.EncodeToString(tk.CB)
+
+req.Header.Set("Authorization", "Bearer "+kid)
+req.Header.Set("X-Channel-Binding", "sage-cb:v1."+cbB64)
+
+// RFC 9421: include "x-channel-binding" in the covered components.
+```
+
+**Server**
+
+```go
+cbHeader := req.Header.Get("X-Channel-Binding")
+if !strings.HasPrefix(cbHeader, "sage-cb:v1.") {
+    return unauthorized("channel binding required")
+}
+cbRecv, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(cbHeader, "sage-cb:v1."))
+if err != nil {
+    return unauthorized("bad channel binding")
+}
+
+seed := lookupSessionSeedByKID(kid)           // or recompute from session state
+cbExp := DeriveTrafficKeys(seed).CB
+if !hmac.Equal(cbExp, cbRecv) {
+    return unauthorized("channel binding mismatch")
+}
+
+// Then verify the RFC 9421 signature, which must cover "x-channel-binding".
+```
+
 ## Configuration & Tuning
 
 - **ServerOpts.MaxSkew**: acceptable drift for `ts` (default 2 minutes)

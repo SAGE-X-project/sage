@@ -303,6 +303,108 @@ ackTag = HMAC-SHA256(ackKey, ackMsg)
 
 메타: `did`, `signature(Ed25519)`.
 
+## Channel Binding (CB) — App-Layer Binding of Session Secrets
+
+**목적**: 세션 핸드셰이크에서 파생된 비밀을 **애플리케이션 레벨 요청**에 바인딩해, `kid`만 탈취/주입되어도 악용되지 않도록 막습니다(세션 혼동·토큰 주입 방지).
+
+**근거 재료**: `DeriveTrafficKeys(seed)`가 산출하는 `CB`(32 bytes, 대칭 비밀에서 파생된 채널 바인딩 값).
+
+### Derivation (요약)
+
+- `seed` = `HKDF-Extract(exportCtx, exporterHPKE || ssE2E)` → `HKDF-Expand("SAGE-HPKE+E2E-Combiner", 32)`
+- `DeriveTrafficKeys(seed)` → `{ C2SKey, C2SIV, S2CKey, S2CIV, CB }`
+- **CB**는 32바이트 바이너리. 전송 시 **base64url(=Raw, no padding)** 로 인코딩.
+
+### Header Format (권장)
+
+- 헤더명: `X-Channel-Binding`
+- 값: `sage-cb:v1.<base64url(CB)>`
+  예) `X-Channel-Binding: sage-cb:v1.RoK1Vj3gR8tOq0...`
+
+> 권장: RFC 9421 서명에 **이 헤더를 반드시 포함**(covered component)에 넣으세요. 그러면 중간에서 헤더를 바꿔치기해도 서명 검증이 실패합니다.
+
+### Client 동작 (요청 시)
+
+1. 핸드셰이크 완료 후 `seed`로 `DeriveTrafficKeys` 실행 → `CB` 획득.
+2. 모든 보호 대상 요청에 헤더 추가:
+
+   - `Authorization: Bearer <kid>`
+   - `X-Channel-Binding: sage-cb:v1.<b64url(CB)>`
+
+3. RFC 9421 서명 시 covered list에 **`"x-channel-binding"`** 를 포함.
+
+### Server 동작 (검증 시)
+
+1. `kid`로 세션 조회 → 서버도 `seed`로 `CB_expected` 계산(혹은 세션에 보관된 `CB` 사용).
+2. 수신 헤더 파싱: 접두사 `sage-cb:v1.` 확인 후 `CB_received = base64urlDecode(...)`.
+3. 상수시간 비교: `hmac.Equal(CB_expected, CB_received)` → 불일치 시 **401 (channel binding mismatch)**.
+4. RFC 9421 서명 검증 시 covered에 `x-channel-binding`가 포함되어 있는지 확인(헤더 무결성).
+
+### 보안 고려
+
+- **세션 고유성**: `seed`가 세션마다 달라 CB도 매 세션 고유. `kid`만으로는 재현 불가.
+- **노출 민감도**: CB는 “비밀에서 파생된 고유 지문”이지만, **로그/분석 등 외부로 노출 금지** 권장.
+- **Rekey/Resume**: 재키 시 새 `seed`→새 CB. 서버는 과도기 겹침을 허용하지 말고, 즉시 새 CB 요구(불일치 시 401).
+- **프록시/게이트웨이**: 중간 장비가 헤더를 건드릴 수 있으므로 **반드시 RFC 9421 covered 대상**에 포함.
+- **상호 운용**: 값 인코딩은 **base64url(패딩 없음)** 고정. 접두사/버전 문자열까지 **정확히** 일치해야 합니다.
+
+### HTTP 예시
+
+```
+POST /v1/tasks HTTP/1.1
+Host: api.example.com
+Authorization: Bearer kid-3f8b...
+X-Channel-Binding: sage-cb:v1.Px6f0k1w3k0O0_QH4m1k1J4oC4J9wTq6rj1c2dV2o0M
+Date: Tue, 07 Oct 2025 10:18:25 GMT
+Signature-Input: sig1=("@method" "@path" "host" "date" "x-channel-binding");keyid="kid-3f8b";created=1696673905
+Signature: sig1=:AbCd...:
+```
+
+### gRPC/Metadata 예시
+
+- 메타키: `x-channel-binding`
+- 값: `sage-cb:v1.<b64url(CB)>`
+- 권장: 메시지 서명/무결성 층이 있을 경우 해당 메타를 커버하도록 설정.
+
+### 의사코드 (Go)
+
+**Client**
+
+```go
+seed := combined // after ackTag verification & signature check
+tk := DeriveTrafficKeys(seed)
+cbB64 := base64.RawURLEncoding.EncodeToString(tk.CB)
+
+req.Header.Set("Authorization", "Bearer "+kid)
+req.Header.Set("X-Channel-Binding", "sage-cb:v1."+cbB64)
+
+// RFC 9421: include "x-channel-binding" in covered components
+```
+
+**Server**
+
+```go
+cbHeader := req.Header.Get("X-Channel-Binding")
+if !strings.HasPrefix(cbHeader, "sage-cb:v1.") {
+    return unauthorized("channel binding required")
+}
+cbRecv, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(cbHeader, "sage-cb:v1."))
+if err != nil { return unauthorized("bad channel binding") }
+
+seed := lookupSessionSeedByKID(kid)              // or recompute from session state
+cbExp := DeriveTrafficKeys(seed).CB
+if !hmac.Equal(cbExp, cbRecv) {                   // constant-time compare
+    return unauthorized("channel binding mismatch")
+}
+
+// then verify RFC 9421 signature that covers "x-channel-binding"
+```
+
+### 실패 처리 권장 문구
+
+- `401 Unauthorized` + 일반화된 사유: `"channel binding required"` 또는 `"channel binding mismatch"`.
+- 내부 로그에는 `kid`, `ctxID`, CB 지문(hash)만 기록(원값 미기록).
+
 ## 구성/튜닝 포인트
 
 - **ServerOpts.MaxSkew**: `ts` 수용 범위(기본 2분)
