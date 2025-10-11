@@ -24,7 +24,14 @@ Welcome to the SAGE (Secure Agent Guarantee Engine) documentation. This index pr
 
 ### Testing
 
-- **[Testing Guide](TESTING.md)** - Testing strategies and best practices
+- **[Testing Guide](test/TESTING.md)** - Testing strategies and best practices
+- **[Feature Test Guide (Korean)](test/FEATURE_TEST_GUIDE_KR.md)** - Feature testing guide in Korean
+- **[Feature Verification Guide](test/FEATURE_VERIFICATION_GUIDE.md)** - Feature verification procedures
+- **[Test Execution Guide](test/TEST_EXECUTION_GUIDE.md)** - Test execution instructions
+- **[Fuzzing Guide](test/FUZZING.md)** - Fuzz testing strategies
+- **[Load Testing Guide](test/LOAD-TESTING.md)** - Performance and load testing
+- **[Performance Baseline](test/PERFORMANCE-BASELINE.md)** - Performance benchmarks and baselines
+- **[Optimization Plan](test/OPTIMIZATION-PLAN.md)** - Performance optimization strategies
 - **[Integration Tests](../tests/integration/README.md)** - End-to-end integration testing
 - **[Benchmark Guide](../tools/benchmark/README.md)** - Performance benchmarking
 
@@ -68,6 +75,12 @@ Welcome to the SAGE (Secure Agent Guarantee Engine) documentation. This index pr
 - **[WebSocket Transport](../pkg/agent/transport/websocket/README.md)** - WebSocket transport implementation
 
 ## Smart Contracts
+
+### Standards and Analysis
+
+- **[ERC-8004 Analysis](contracts/ERC-8004-Analysis.md)** - Analysis of ERC-8004 standard
+- **[SAGE vs ERC-8004 Comparison](contracts/SAGE-vs-ERC8004-Comparison.md)** - Comparison with ERC-8004
+- **[Contracts Submodule Setup](contracts/contracts-submodule-setup.md)** - Git submodule configuration
 
 ### Ethereum
 
@@ -125,8 +138,8 @@ See [CLI Documentation](cli/) for detailed usage.
 
 ### Advanced Topics
 
-- **[Multi-Party Sessions](DETAILED_GUIDE_PART2_KO.md)** - Group messaging patterns
-- **[Key Rotation](DETAILED_GUIDE_PART3_KO.md)** - Rotation strategies
+- **[Multi-Party Sessions](overview/DETAILED_GUIDE_PART2_KO.md)** - Group messaging patterns
+- **[Key Rotation](overview/DETAILED_GUIDE_PART3_KO.md)** - Rotation strategies
 
 ## Reference
 
@@ -164,21 +177,27 @@ See [CLI Documentation](cli/) for detailed usage.
 
 Comprehensive guides in Korean for in-depth understanding:
 
-- **[Part 1: Project Overview and Architecture](DETAILED_GUIDE_PART1_KO.md)**
+- **[Part 1: Project Overview and Architecture](overview/DETAILED_GUIDE_PART1_KO.md)**
   - What is SAGE?
   - Why SAGE is needed
   - Overall architecture
   - Core concepts
 
-- **[Part 2: Development and Testing](DETAILED_GUIDE_PART2_KO.md)**
+- **[Part 2: Development and Testing](overview/DETAILED_GUIDE_PART2_KO.md)**
   - Development environment setup
   - Testing strategies
   - Debugging techniques
 
-- **[Part 3: Advanced Features](DETAILED_GUIDE_PART3_KO.md)**
+- **[Part 3: Advanced Features](overview/DETAILED_GUIDE_PART3_KO.md)**
   - Advanced cryptographic operations
   - Multi-chain integration
   - Performance optimization
+
+- **[Part 4: Extended Guide](overview/DETAILED_GUIDE_PART4_KO.md)**
+- **[Part 5: Extended Guide](overview/DETAILED_GUIDE_PART5_KO.md)**
+- **[Part 6A: Extended Guide](overview/DETAILED_GUIDE_PART6A_KO.md)**
+- **[Part 6B: Extended Guide](overview/DETAILED_GUIDE_PART6B_KO.md)**
+- **[Part 6C: Extended Guide](overview/DETAILED_GUIDE_PART6C_KO.md)**
 
 ## Project History and Progress
 
