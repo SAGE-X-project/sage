@@ -461,72 +461,72 @@ test-health:
 test-integration:
 	@echo "Running integration tests..."
 	@echo "Starting test environment..."
-	@bash ./test/integration/tests/integration/setup_test_env.sh start
+	@bash ./tests/integration/tests/integration/setup_test_env.sh start
 	@echo "Running tests..."
-	$(GO) test -v ./test/integration/... -tags=integration -count=1
+	$(GO) test -v ./tests/integration/... -tags=integration -count=1
 	@echo "Stopping test environment..."
-	@bash ./test/integration/tests/integration/setup_test_env.sh stop
+	@bash ./tests/integration/tests/integration/setup_test_env.sh stop
 
 # Run integration tests without setup (assumes environment is ready)
 .PHONY: test-integration-only
 test-integration-only:
 	@echo "Running integration tests (environment should be ready)..."
-	$(GO) test -v ./test/integration/... -tags=integration -count=1
+	$(GO) test -v ./tests/integration/... -tags=integration -count=1
 
 # Run E2E tests (requires external services like Sepolia)
 .PHONY: test-e2e
 test-e2e:
 	@echo "Running E2E tests..."
 	@echo "Note: Requires SEPOLIA_RPC_URL and SEPOLIA_PRIVATE_KEY environment variables"
-	$(GO) test -v -tags=e2e ./test/integration/... -timeout 10m
+	$(GO) test -v -tags=e2e ./tests/integration/... -timeout 10m
 
 # Run E2E tests on Sepolia testnet
 .PHONY: test-e2e-sepolia
 test-e2e-sepolia:
 	@echo "Running Sepolia E2E tests..."
-	$(GO) test -v -tags=e2e ./test/integration/... -run Sepolia -timeout 10m
+	$(GO) test -v -tags=e2e ./tests/integration/... -run Sepolia -timeout 10m
 
 # Run E2E tests without external blockchain (local only)
 .PHONY: test-e2e-local
 test-e2e-local:
 	@echo "Running local E2E tests (RFC 9421, key management, cross-chain)..."
-	$(GO) test -v -tags=e2e ./test/integration/... -run "RFC9421|KeyType|CrossChain|KeyRotation|MultiChain|Performance" -timeout 5m
+	$(GO) test -v -tags=e2e ./tests/integration/... -run "RFC9421|KeyType|CrossChain|KeyRotation|MultiChain|Performance" -timeout 5m
 
 # Run E2E tests with coverage
 .PHONY: test-e2e-coverage
 test-e2e-coverage:
 	@echo "Running E2E tests with coverage..."
 	@mkdir -p $(REPORTS_DIR)
-	$(GO) test -v -tags=e2e -coverprofile=$(REPORTS_DIR)/e2e-coverage.out ./test/integration/... -timeout 10m
+	$(GO) test -v -tags=e2e -coverprofile=$(REPORTS_DIR)/e2e-coverage.out ./tests/integration/... -timeout 10m
 	$(GO) tool cover -html=$(REPORTS_DIR)/e2e-coverage.out -o $(REPORTS_DIR)/e2e-coverage.html
 	@echo "Coverage report: $(REPORTS_DIR)/e2e-coverage.html"
 
 .PHONY: test-handshake
 test-handshake:
 	@echo "Running handshake scenario..."
-	@bash ./test/integration/tests/session/handshake/run_handshake.sh
+	@bash ./tests/integration/tests/session/handshake/run_handshake.sh
 
 .PHONY: test-hpke
 test-hpke:
 	@echo "Running HPKE based handshake scenario..."
-	@bash ./test/integration/tests/session/hpke/run_hpke_handshake.sh
+	@bash ./tests/integration/tests/session/hpke/run_hpke_handshake.sh
 
 # Start local blockchain for testing
 .PHONY: blockchain-start
 blockchain-start:
 	@echo "Starting local blockchain..."
-	@bash ./test/integration/tests/integration/setup_test_env.sh start
+	@bash ./tests/integration/tests/integration/setup_test_env.sh start
 
 # Stop local blockchain
 .PHONY: blockchain-stop
 blockchain-stop:
 	@echo "Stopping local blockchain..."
-	@bash ./test/integration/tests/integration/setup_test_env.sh stop
+	@bash ./tests/integration/tests/integration/setup_test_env.sh stop
 
 # Check blockchain status
 .PHONY: blockchain-status
 blockchain-status:
-	@bash ./test/integration/tests/integration/setup_test_env.sh status
+	@bash ./tests/integration/tests/integration/setup_test_env.sh status
 
 # Run benchmarks
 .PHONY: bench
@@ -538,7 +538,7 @@ bench:
 .PHONY: bench-integration
 bench-integration:
 	@echo "Running integration benchmarks..."
-	$(GO) test -bench=. -benchmem ./test/integration/... -tags=integration
+	$(GO) test -bench=. -benchmem ./tests/integration/... -tags=integration
 
 # Clean build artifacts
 .PHONY: clean

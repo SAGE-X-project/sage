@@ -103,7 +103,7 @@ jobs:
 
       - name: Run integration tests
         run: |
-          go test -v -tags=integration ./test/integration/... \
+          go test -v -tags=integration ./tests/integration/... \
             -timeout 20m \
             -coverprofile=integration-coverage.out
 

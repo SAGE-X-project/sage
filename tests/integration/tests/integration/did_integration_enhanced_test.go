@@ -27,7 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did/ethereum"
-	"github.com/sage-x-project/sage/test/integration/tests/testutil"
+	"github.com/sage-x-project/sage/tests/integration/tests/testutil"
 	"github.com/stretchr/testify/require"
 )
 
