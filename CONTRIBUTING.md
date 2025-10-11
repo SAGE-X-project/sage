@@ -601,20 +601,162 @@ Update relevant documentation files:
 
 We follow [Semantic Versioning 2.0.0](https://semver.org/):
 
-- **MAJOR**: Breaking changes
-- **MINOR**: New features (backward compatible)
-- **PATCH**: Bug fixes (backward compatible)
+**Format**: `MAJOR.MINOR.PATCH`
+
+#### MAJOR Version (X.0.0)
+
+Increment when making **incompatible API changes** that break backward compatibility.
+
+**Examples:**
+- Removing or renaming public functions, methods, or types
+- Changing function signatures (parameters, return types)
+- Removing support for a network or blockchain
+- Major architecture redesign affecting public APIs
+- Changing data formats that break existing integrations
+
+**Breaking Change Indicators:**
+- `BREAKING CHANGE:` in commit message footer
+- API endpoints removed or significantly changed
+- Configuration file format changes requiring migration
+- Database schema changes requiring migration
+
+#### MINOR Version (0.X.0)
+
+Increment when adding **new functionality** in a backward-compatible manner.
+
+**Examples:**
+- Adding new public functions, methods, or types
+- Adding new CLI commands or flags
+- Implementing new cryptographic algorithms
+- Adding support for new blockchains or networks
+- Adding new transport layer implementations
+- Performance improvements without API changes
+- Deprecating features (without removing them)
+
+**Feature Indicators:**
+- `feat:` commit type
+- New modules or packages
+- Enhanced existing functionality
+- New configuration options
+
+#### PATCH Version (0.0.X)
+
+Increment for **backward-compatible bug fixes** and minor improvements.
+
+**Examples:**
+- Fixing bugs without changing public APIs
+- Security patches and vulnerability fixes
+- Documentation corrections and improvements
+- Internal refactoring without API changes
+- Test improvements and coverage increases
+- Build script and CI/CD improvements
+- Dependency updates (non-breaking)
+
+**Patch Indicators:**
+- `fix:` commit type
+- `docs:` commit type
+- `test:` commit type
+- `chore:` commit type
+- `perf:` commit type (minor optimizations)
+
+### Version Decision Guide
+
+Use this decision tree to determine version bump:
+
+```
+Does the change break backward compatibility?
+├─ YES → MAJOR version bump (e.g., 1.0.0 → 2.0.0)
+└─ NO
+   └─ Does the change add new functionality?
+      ├─ YES → MINOR version bump (e.g., 1.0.0 → 1.1.0)
+      └─ NO → PATCH version bump (e.g., 1.0.0 → 1.0.1)
+```
+
+### Pre-release Versions
+
+For testing before stable release:
+
+- **Alpha**: `1.0.0-alpha.1` - Internal testing, unstable
+- **Beta**: `1.0.0-beta.1` - External testing, feature complete
+- **Release Candidate**: `1.0.0-rc.1` - Final testing, production candidate
+
+### Files to Update
+
+When releasing a new version, update these files:
+
+1. **`VERSION`** - Root version file (single line)
+2. **`package.json`** - Root Node.js package version
+3. **`contracts/ethereum/package.json`** - Smart contract package version
+4. **`CHANGELOG.md`** - Add release notes
+5. **`docs/INDEX.md`** - Update "Last Updated" date
 
 ### Release Checklist
 
-1. Update `CHANGELOG.md` with release notes
-2. Update version in `go.mod` and relevant files
-3. Create release branch: `release/v1.2.3`
-4. Run full test suite and security scans
-5. Merge to `main` via PR
-6. Tag release: `git tag -a v1.2.3 -m "Release v1.2.3"`
-7. Push tag: `git push origin v1.2.3`
-8. GitHub Actions automatically builds and publishes release
+**Preparation:**
+1. Ensure all tests pass: `make test && make test-integration`
+2. Run security scans: `make security-scan`
+3. Update `CHANGELOG.md` with release notes
+4. Update version in all relevant files (see above)
+5. Review and merge all pending PRs for this release
+
+**Release Steps:**
+1. Create release branch from `main`:
+   ```bash
+   git checkout main
+   git pull origin main
+   git checkout -b release/v1.2.3
+   ```
+
+2. Update version files:
+   ```bash
+   echo "1.2.3" > VERSION
+   # Update package.json files
+   npm version 1.2.3 --no-git-tag-version
+   cd contracts/ethereum && npm version 1.2.3 --no-git-tag-version && cd ../..
+   ```
+
+3. Commit version bump:
+   ```bash
+   git add VERSION package.json contracts/ethereum/package.json CHANGELOG.md
+   git commit -m "chore(release): Prepare v1.2.3 release"
+   ```
+
+4. Create Pull Request to `main`:
+   - Title: `Release: v1.2.3`
+   - Description: Include changelog highlights
+   - Require 2 approvals
+
+5. After merge, create and push annotated tag:
+   ```bash
+   git checkout main
+   git pull origin main
+   git tag -a v1.2.3 -m "Release v1.2.3
+
+   - Feature 1: Description
+   - Feature 2: Description
+   - Fix: Bug fix description
+
+   See CHANGELOG.md for full details."
+
+   git push origin v1.2.3
+   ```
+
+6. GitHub Actions will automatically:
+   - Build binaries for all platforms
+   - Run test suite and security scans
+   - Create GitHub Release with artifacts
+   - Publish documentation updates
+
+7. Verify release:
+   - Check GitHub Release page
+   - Test released binaries
+   - Verify documentation is updated
+
+**Post-Release:**
+1. Announce release in GitHub Discussions
+2. Update project website (if applicable)
+3. Notify community channels
+4. Close milestone for this version
 
 ## Getting Help
 
