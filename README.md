@@ -1,6 +1,6 @@
 # SAGE - Secure Agent Guarantee Engine
 
-[![Go Version](https://img.shields.io/badge/Go-1.24.4%2B-blue.svg)](https://golang.org/dl/)
+[![Go Version](https://img.shields.io/badge/Go-1.23.0-blue.svg)](https://golang.org/dl/)
 [![Solidity Version](https://img.shields.io/badge/Solidity-0.8.19-red.svg)](https://soliditylang.org/)
 [![License](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)](LICENSE)
 
@@ -32,8 +32,10 @@ SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based securit
 - **Multi-Algorithm Support**: Ed25519, Secp256k1, and X25519 cryptographic operations
 - **Smart Contract Registry**: Decentralized agent registry with V2 security enhancements
 - **Session Management**: Automatic session creation, key rotation, nonce tracking, and replay protection
+- **Protocol-Agnostic Transport**: HTTP, WebSocket, and MockTransport implementations with pluggable architecture
+- **Zero External Dependencies**: Removed a2a-go dependency for better maintainability and independence
 - **Modular Architecture**: Clean separation of concerns with extensible event-driven design
-- **Comprehensive Testing**: Integration tests, random fuzzing, and health monitoring
+- **Comprehensive Testing**: 85+ feature tests, integration tests, random fuzzing, and health monitoring
 
 ## Project Structure
 
@@ -66,6 +68,13 @@ sage/
 │   ├── session.go          # Secure session with ChaCha20-Poly1305 AEAD
 │   ├── nonce.go            # Replay attack prevention with nonce cache
 │   └── metadata.go         # Session state and expiration tracking
+├── transport/               # Protocol-agnostic transport layer (NEW)
+│   ├── interface.go        # MessageTransport interface
+│   ├── mock.go             # MockTransport for testing
+│   ├── selector.go         # Runtime transport selection
+│   ├── http/               # HTTP/REST transport implementation
+│   ├── websocket/          # WebSocket transport implementation
+│   └── a2a/                # A2A adapter for backward compatibility
 ├── health/                  # Health monitoring system (NEW)
 │   ├── checker.go          # Component health checks
 │   └── server.go           # HTTP health endpoint
@@ -97,7 +106,7 @@ sage/
 
 ### Prerequisites
 
-- **Go 1.24.4 or higher** (required by a2a-go dependency)
+- **Go 1.23.0 or higher** (see [GO_VERSION_REQUIREMENT.md](docs/GO_VERSION_REQUIREMENT.md))
 - **Node.js 18+** and npm (for smart contract development)
 - **Git**
 
@@ -238,54 +247,81 @@ SAGE_REGISTRY_ADDRESS=0x...
 ./build/bin/sage-did list --owner 0x...
 ```
 
-### 3. Secure Handshake Protocol
+### 3. Transport Layer Selection
+
+SAGE supports multiple transport protocols with automatic selection:
+
+```go
+import (
+    "github.com/sage-x-project/sage/pkg/agent/transport"
+    "github.com/sage-x-project/sage/pkg/agent/transport/http"
+    "github.com/sage-x-project/sage/pkg/agent/transport/websocket"
+)
+
+// Option 1: HTTP Transport
+httpTransport := http.NewHTTPTransport("https://api.example.com")
+
+// Option 2: WebSocket Transport
+wsTransport := websocket.NewWebSocketTransport("wss://api.example.com")
+
+// Option 3: MockTransport for testing
+mockTransport := &transport.MockTransport{
+    SendFunc: func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+        return serverHPKE.HandleMessage(ctx, msg)
+    },
+}
+
+// Option 4: Automatic selection
+selector := transport.NewDefaultSelector()
+selector.AddTransport("http", httpTransport)
+selector.AddTransport("ws", wsTransport)
+selectedTransport, _ := selector.SelectTransport(ctx, targetDID)
+```
+
+### 4. Secure Handshake Protocol
 
 The handshake establishes an end-to-end encrypted session between two agents:
 
 ```go
 import (
-    "github.com/sage-x-project/sage/hpke"
-    "github.com/sage-x-project/sage/session"
-    "github.com/sage-x-project/sage/did"
+    "github.com/sage-x-project/sage/pkg/agent/hpke"
+    "github.com/sage-x-project/sage/pkg/agent/session"
+    "github.com/sage-x-project/sage/pkg/agent/did"
 )
 
 // Client side (Agent A)
-client := hpke.NewClient(conn, myKeyPair)
+client := hpke.NewClient(transport, resolver, myKeyPair, string(myDID), infoBuilder, sessionManager)
 
 // Initialize session
-// Receive kid from Server (Agent B)
 ctxID := "ctx-" + uuid.NewString()
 kid, _ := client.Initialize(ctx, ctxID, clientDID, serverDID)
-
 ```
 
-### 4. HPKE Encryption/Decryption
+### 5. HPKE Encryption/Decryption
 
 ```go
 import (
-    "github.com/sage-x-project/sage/hpke"
-    "github.com/sage-x-project/sage/session"
+    "github.com/sage-x-project/sage/pkg/agent/hpke"
+    "github.com/sage-x-project/sage/pkg/agent/session"
 )
 
 // Get session from manager
 sess, ok := sessionManager.GetByKeyID(keyID)
 
-// encryption
+// Encryption
 cipher, _ := sess.Encrypt(body)
 
-// decryption
-plain, _:= sess.Decrypt(cipher)
-
+// Decryption
+plain, _ := sess.Decrypt(cipher)
 ```
 
-### 5. Create RFC 9421 Signed Messages
+### 6. Create RFC 9421 Signed Messages
 
 ```go
 import (
-    "github.com/sage-x-project/sage/core/rfc9421"
-    "github.com/sage-x-project/sage/session"
+    "github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
+    "github.com/sage-x-project/sage/pkg/agent/session"
 )
-
 
 // Create HTTP message builder
 builder := rfc9421.NewMessageBuilder()
@@ -302,8 +338,8 @@ verifier := rfc9421.NewHTTPVerifier(sess, sessionManager)
 
 // Sign the message
 signature, err := verifier.SignRequest(msg, sigName, []string{
-    "@method", "@authority", "@path", "content-type", "content-digest", privKey
-})
+    "@method", "@authority", "@path", "content-type", "content-digest",
+}, privKey)
 
 // Verify signature
 err = verifier.VerifyRequest(req, pubKey, HTTPVerificationOptions)
@@ -324,17 +360,24 @@ go test ./...
 go test -cover ./...
 
 # Run specific package tests
-go test ./crypto/...
-go test ./did/...
-go test ./core/...
-go test ./handshake/...
-go test ./session/...
+go test ./pkg/agent/crypto/...
+go test ./pkg/agent/did/...
+go test ./pkg/agent/core/...
+go test ./pkg/agent/hpke/...
+go test ./pkg/agent/session/...
+go test ./pkg/agent/transport/...
+
+# Run E2E tests with MockTransport
+go test -v ./pkg/agent/hpke -run TestE2E_HPKE_Handshake_MockTransport
 
 # Run integration tests
 make test-integration
 
-# Run hpke based handshake integration test
-make test-hpke
+# Run feature verification (85+ tests)
+./tools/scripts/verify_all_features.sh
+
+# Quick verification (5 checks)
+./tools/scripts/quick_verify.sh
 
 # Run quick tests (excluding slow integration tests)
 make test-quick
@@ -700,7 +743,7 @@ This project is licensed under the **GNU Lesser General Public License v3.0** - 
 - **[Handshake Protocol](docs/handshake/handshake-en.md)** - HPKE handshake details
 - **[Smart Contracts](contracts/README.md)** - Ethereum and Solana contracts
 - **[Security Design](docs/dev/security-design.md)** - Security architecture
-- **[Testing Guide](docs/TESTING.md)** - Testing strategies and best practices
+- **[Testing Guide](docs/test/TESTING.md)** - Testing strategies and best practices
 - **[Benchmark Guide](tools/benchmark/README.md)** - Performance benchmarking
 
 ### Development
