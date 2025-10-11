@@ -28,7 +28,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,13 +36,7 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/session"
 	"github.com/sage-x-project/sage/pkg/agent/transport"
-	"golang.org/x/crypto/hkdf"
 )
-
-// KeyIDBinder optionally lets the server issue custom key IDs.
-type KeyIDBinder interface {
-	IssueKeyID(ctxID string) (keyid string, ok bool)
-}
 
 // Server accepts HPKE init, verifies DID-signature, derives secrets,
 // creates a session, and returns a signed response with kid/ephS/ackTag.
@@ -61,14 +54,35 @@ type Server struct {
 	nonces  *nonceStore
 
 	binder KeyIDBinder
+	cookies CookieVerifier // optional anti-DoS
+	allowedSuites []string
 }
 
 type ServerOpts struct {
+	AllowedSuites []string // ex) []{"DHKEM(X25519,HKDF-SHA256)+ChaCha20-Poly1305"}
 	MaxSkew   time.Duration
 	Binder    KeyIDBinder
 	Info      InfoBuilder
-	KEM       sagecrypto.KeyPair              // X25519 KEM static key
-	Transport transport.MessageTransport // Optional transport for responses
+	KEM       sagecrypto.KeyPair            // X25519 KEM static key
+	Transport transport.MessageTransport	// Optional transport for responses
+	Cookies   CookieVerifier
+}
+
+// serverSigEnvelope is the canonical structure signed by the server.
+// Field order is fixed to guarantee deterministic JSON encoding.
+type serverSigEnvelope struct {
+	V             string `json:"v"`
+	Task          string `json:"task"`
+	Ctx           string `json:"ctx"`
+	Kid           string `json:"kid"`
+	EphS          string `json:"ephS"`
+	AckTagB64     string `json:"ackTagB64"`
+	Ts            string `json:"ts"`
+	Did           string `json:"did"`
+	InfoHash      string `json:"infoHash"`      // b64url(SHA256(info))
+	ExportCtxHash string `json:"exportCtxHash"` // b64url(SHA256(exportCtx))
+	Enc           string `json:"enc"`           // b64url(sender enc)
+	EphC          string `json:"ephC"`          // b64url(client ephC)
 }
 
 func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, didStr string, resolver did.Resolver, opts *ServerOpts) *Server {
@@ -92,12 +106,12 @@ func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, didStr string, 
 		maxSkew:   opts.MaxSkew,
 		nonces:    newNonceStore(10 * time.Minute),
 		binder:    opts.Binder,
+		cookies:   opts.Cookies,
+		allowedSuites: opts.AllowedSuites,
 	}
 }
 
-// HandleMessage handles TaskHPKEComplete: verifies the sender, parses payload,
-// derives exporter + E2E secret, creates the session, and replies with a
-// signed response (kid/ephS/ackTag).
+// HandleMessage handles TaskHPKEComplete, does verification/derivations, and replies with a signed envelope
 func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
 	// 1) Basic validation
 	if msg == nil {
@@ -119,6 +133,14 @@ func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage
 		return nil, fmt.Errorf("parse payload: %w", err)
 	}
 
+	// 3.5) Optional DoS cookie check (before expensive HPKE)
+	if s.cookies != nil {
+		cookie := msg.Metadata["cookie"]
+		if !s.cookies.Verify(cookie, msg.ContextID, pl.InitDID, pl.RespDID) {
+			return nil, fmt.Errorf("cookie required or invalid")
+		}
+	}
+
 	// 4) Validate DID binding, timestamp window, replay, info/exportCtx.
 	if err := s.validateInitEnvelope(msg, pl, senderDID); err != nil {
 		return nil, err
@@ -133,11 +155,14 @@ func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage
 	// 6) Generate server ephS and compute ssE2E with client ephC.
 	ephSPubBytes, ssE2E, err := generateSrvE2E(pl.EphC)
 	if err != nil {
+		zeroBytes(exporterHPKE)
 		return nil, err
 	}
 
 	// 7) Combine exporter and E2E secret (HKDF-Extract/Expand with exportCtx).
-	combined, err := CombineSecrets(exporterHPKE, ssE2E, pl.ExportCtx)
+	combined, err := combineSecrets(exporterHPKE, ssE2E, pl.ExportCtx)
+	zeroBytes(exporterHPKE)
+	zeroBytes(ssE2E)
 	if err != nil {
 		return nil, fmt.Errorf("combine: %w", err)
 	}
@@ -145,6 +170,7 @@ func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage
 	// 8) Create a session for the receiver side and bind a key ID.
 	kid, err := s.createSessionAndBindKid(msg.ContextID, combined)
 	if err != nil {
+		zeroBytes(combined)
 		return nil, err
 	}
 
@@ -163,15 +189,11 @@ func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage
 		[]byte(pl.RespDID),
 	)
 
-	// 10) Build a signed response.
-	out := map[string]any{
-		"kid":       kid,
-		"ephS":      base64.RawURLEncoding.EncodeToString(ephSPubBytes),
-		"ackTagB64": base64.RawURLEncoding.EncodeToString(ack),
-		"ts":        time.Now().UTC().Format(time.RFC3339Nano),
-		"did":       s.DID,
-	}
-	return s.signedResponse(msg, out)
+	// Best-effort wipe local seed copy
+	zeroBytes(combined)
+
+	// 10) Build signed response (envelope + sigB64)
+	return s.buildAndSignResponse(msg, pl, kid, ack, ephSPubBytes)
 }
 
 // Verify sender DID and signature.
@@ -187,7 +209,10 @@ func (s *Server) verifySender(ctx context.Context, msg *transport.SecureMessage)
 	if err != nil || senderPub == nil {
 		return "", nil, errors.New("cannot resolve sender pubkey")
 	}
-	if err := s.verifySignature(msg.Payload, msg.Signature, senderPub); err != nil {
+
+	// Verify over the exact bytes that were signed by the client.
+	// Do NOT re-marshal or re-encode here; use msg.Payload as-is.
+	if err := verifySignature(msg.Payload, msg.Signature, senderPub); err != nil {
 		return "", nil, fmt.Errorf("signature verification failed: %w", err)
 	}
 	return senderDID, senderPub, nil
@@ -195,6 +220,7 @@ func (s *Server) verifySender(ctx context.Context, msg *transport.SecureMessage)
 
 // Validate DID binding, timestamp window, replay protection, and info/exportCtx.
 func (s *Server) validateInitEnvelope(msg *transport.SecureMessage, pl HPKEInitPayload, senderDID string) error {
+	
 	if senderDID != "" && senderDID != pl.InitDID {
 		return fmt.Errorf("authentication failed")
 	}
@@ -213,21 +239,11 @@ func (s *Server) validateInitEnvelope(msg *transport.SecureMessage, pl HPKEInitP
 	if string(cExport) != string(pl.ExportCtx) {
 		return fmt.Errorf("exportCtx mismatch")
 	}
+	// suite whitelist
+    if len(s.allowedSuites) > 0 && !strContains(s.allowedSuites, hpkeSuiteID) {
+        return fmt.Errorf("suite not allowed")
+    }
 	return nil
-}
-
-// verifySignature checks the signature against the payload.
-func (s *Server) verifySignature(payload, signature []byte, senderPub crypto.PublicKey) error {
-	type verifyKey interface {
-		Verify(msg, sig []byte) error
-	}
-
-	switch pk := senderPub.(type) {
-	case verifyKey:
-		return pk.Verify(payload, signature)
-	default:
-		return fmt.Errorf("unsupported public key type: %T", senderPub)
-	}
 }
 
 // Recompute HPKE exporter from server KEM private key and sender enc.
@@ -263,6 +279,8 @@ func generateSrvE2E(ephC []byte) (ephSPubBytes, ssE2E []byte, err error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("e2e ecdh: %w", err)
 	}
+	// RFC 7748
+	if isAllZero32(sec) { return nil, nil, fmt.Errorf("invalid ECDH (all-zero)") }
 	return srvPriv.PublicKey().Bytes(), sec, nil
 }
 
@@ -287,32 +305,66 @@ func (s *Server) createSessionAndBindKid(ctxID string, combined []byte) (string,
 	return kid, nil
 }
 
-// Build a server-signed transport response.
-func (s *Server) signedResponse(req *transport.SecureMessage, outData map[string]any) (*transport.Response, error) {
-	data, err := json.Marshal(outData)
+// buildAndSignResponse creates the canonical envelope and attaches an Ed25519 signature.
+func (s *Server) buildAndSignResponse(req *transport.SecureMessage, pl HPKEInitPayload, kid string, ack []byte, ephSPubBytes []byte) (*transport.Response, error) {
+	if s.key == nil {
+		return nil, fmt.Errorf("server signing key not configured")
+	}
+
+	ts := time.Now().UTC().Format(time.RFC3339Nano)
+
+	ih := sha256.Sum256(pl.Info)
+	eh := sha256.Sum256(pl.ExportCtx)
+	env := serverSigEnvelope{
+		V:             "v1",
+		Task:          req.TaskID,
+		Ctx:           req.ContextID,
+		Kid:           kid,
+		EphS:          base64.RawURLEncoding.EncodeToString(ephSPubBytes),
+		AckTagB64:     base64.RawURLEncoding.EncodeToString(ack),
+		Ts:            ts,
+		Did:           s.DID,
+		InfoHash:      base64.RawURLEncoding.EncodeToString(ih[:]),
+		ExportCtxHash: base64.RawURLEncoding.EncodeToString(eh[:]),
+		Enc:           base64.RawURLEncoding.EncodeToString(pl.Enc),
+		EphC:          base64.RawURLEncoding.EncodeToString(pl.EphC),
+	}
+
+	envBytes, err := json.Marshal(env) // deterministic order by struct field order
+	if err != nil {
+		return nil, fmt.Errorf("marshal env: %w", err)
+	}
+	sig, err := s.key.Sign(envBytes) // Ed25519 sign
+	if err != nil {
+		return nil, fmt.Errorf("sign env: %w", err)
+	}
+
+	out := map[string]any{
+		// Envelope fields
+		"v":             env.V,
+		"task":          env.Task,
+		"ctx":           env.Ctx,
+		"kid":           env.Kid,
+		"ephS":          env.EphS,
+		"ackTagB64":     env.AckTagB64,
+		"ts":            env.Ts,
+		"did":           env.Did,
+		"infoHash":      env.InfoHash,
+		"exportCtxHash": env.ExportCtxHash,
+		"enc":           env.Enc,
+		"ephC":          env.EphC,
+		// Detached signature
+		"sigB64": base64.RawURLEncoding.EncodeToString(sig),
+	}
+
+	data, err := json.Marshal(out)
 	if err != nil {
 		return nil, fmt.Errorf("marshal response: %w", err)
 	}
-
-	// Note: The response data includes "did" field for identification
-	// Signature verification is done via ackTag (key confirmation)
 	return &transport.Response{
 		Success:   true,
 		MessageID: req.ID,
 		TaskID:    req.TaskID,
 		Data:      data,
 	}, nil
-}
-
-// Combine exporterHPKE || ssE2E using HKDF-Extract(salt=exportCtx) then
-// HKDF-Expand("SAGE-HPKE+E2E-Combiner") to 32 bytes.
-func CombineSecrets(exporterHPKE, ssE2E, exportCtx []byte) ([]byte, error) {
-	ikm := make([]byte, 0, len(exporterHPKE)+len(ssE2E))
-	ikm = append(ikm, exporterHPKE...)
-	ikm = append(ikm, ssE2E...)
-	prk := hkdf.Extract(sha256.New, ikm, exportCtx)
-	r := hkdf.Expand(sha256.New, prk, []byte("SAGE-HPKE+E2E-Combiner"))
-	out := make([]byte, 32)
-	_, err := io.ReadFull(r, out)
-	return out, err
 }

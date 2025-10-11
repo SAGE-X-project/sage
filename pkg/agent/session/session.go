@@ -437,48 +437,27 @@ func (s *SecureSession) InitializeSession(sid string, sessionSeed []byte, config
 
 // Close marks the session as closed
 func (s *SecureSession) Close() error {
-	s.closed = true
+    s.closed = true
 
-	// Clear sensitive key material
-	if s.encryptKey != nil {
-		for i := range s.encryptKey {
-			s.encryptKey[i] = 0
+    zeroBytes := func(b []byte) {
+		for i := range b {
+			b[i] = 0
 		}
-	}
-	if s.signingKey != nil {
-		for i := range s.signingKey {
-			s.signingKey[i] = 0
-		}
-	}
-	if s.sessionSeed != nil {
-		for i := range s.sessionSeed {
-			s.sessionSeed[i] = 0
-		}
-	}
+    }
 
-	// Clear directional keys
-	if s.outKey != nil {
-		for i := range s.outKey {
-			s.outKey[i] = 0
-		}
-	}
-	if s.inKey != nil {
-		for i := range s.inKey {
-			s.inKey[i] = 0
-		}
-	}
-	if s.outSign != nil {
-		for i := range s.outSign {
-			s.outSign[i] = 0
-		}
-	}
-	if s.inSign != nil {
-		for i := range s.inSign {
-			s.inSign[i] = 0
-		}
-	}
+    zeroBytes(s.encryptKey)
+    zeroBytes(s.signingKey)
+    zeroBytes(s.sessionSeed)
+    zeroBytes(s.outKey)
+    zeroBytes(s.inKey)
+    zeroBytes(s.outSign)
+    zeroBytes(s.inSign)
 
-	return nil
+    s.aead = nil
+    s.aeadOut = nil
+    s.aeadIn = nil
+
+    return nil
 }
 
 // GetMessageCount returns the number of messages processed
