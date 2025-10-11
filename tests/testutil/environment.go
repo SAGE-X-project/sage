@@ -215,7 +215,7 @@ func (m *MockEthereumServer) Start() error {
 		Handler: mux,
 	}
 
-	go m.server.Serve(listener)
+	go func() { _ = m.server.Serve(listener) }()
 
 	// Wait for server to be ready
 	time.Sleep(100 * time.Millisecond)
@@ -228,7 +228,7 @@ func (m *MockEthereumServer) Stop() {
 	if m.server != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		m.server.Shutdown(ctx)
+		_ = m.server.Shutdown(ctx)
 	}
 }
 
@@ -243,7 +243,7 @@ func (m *MockEthereumServer) handleRPC(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(response))
+	_, _ = w.Write([]byte(response))
 }
 
 // CreateTestContract creates a mock contract for testing

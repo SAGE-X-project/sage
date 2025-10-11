@@ -351,7 +351,7 @@ func (g *TestCaseGenerator) randomInt(min, max int) int {
 
 func (g *TestCaseGenerator) randomString(length int) string {
 	bytes := make([]byte, length)
-	rand.Read(bytes)
+	_, _ = rand.Read(bytes)
 	return base64.RawURLEncoding.EncodeToString(bytes)[:length]
 }
 

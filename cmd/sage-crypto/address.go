@@ -225,8 +225,8 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 		fmt.Printf("\nGenerated Addresses:\n\n")
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintf(w, "CHAIN\tADDRESS\tNETWORK\n")
-		fmt.Fprintf(w, "-----\t-------\t-------\n")
+		_, _ = fmt.Fprintf(w, "CHAIN\tADDRESS\tNETWORK\n")
+		_, _ = fmt.Fprintf(w, "-----\t-------\t-------\n")
 
 		// Sort chain types for consistent output
 		var chainTypes []chain.ChainType

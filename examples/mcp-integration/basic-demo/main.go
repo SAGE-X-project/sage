@@ -111,7 +111,7 @@ func (c *Calculator) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // Calculate performs the actual calculation
@@ -233,14 +233,19 @@ func (a *DemoAgent) CallTool(url string, operation string, args map[string]inter
 	defer resp.Body.Close()
 
 	// Read response
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %w", err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("request failed (%d): %s", resp.StatusCode, string(body))
 	}
 
 	var result ToolResponse
-	json.Unmarshal(body, &result)
+	if err := json.Unmarshal(body, &result); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
 	if result.Error != "" {
 		fmt.Printf("   Error: %s\n", result.Error)
@@ -311,13 +316,13 @@ Untrusted agents:
 
 		// Alice's request (trusted)
 		fmt.Printf("\n1. Alice (trusted) requests: 10 + 20\n")
-		alice.CallTool("http://localhost:8080/calculator", "add", map[string]interface{}{
+		_ = alice.CallTool("http://localhost:8080/calculator", "add", map[string]interface{}{
 			"a": 10, "b": 20,
 		})
 
 		// Bob's request (trusted)
 		fmt.Printf("\n2. Bob (trusted) requests: 100 / 5\n")
-		bob.CallTool("http://localhost:8080/calculator", "divide", map[string]interface{}{
+		_ = bob.CallTool("http://localhost:8080/calculator", "divide", map[string]interface{}{
 			"a": 100, "b": 5,
 		})
 
@@ -332,12 +337,14 @@ Untrusted agents:
 
 		// Invalid request (no signature)
 		fmt.Printf("\n4. Anonymous request (no signature)\n")
-		resp, _ := http.Post("http://localhost:8080/calculator", "application/json",
+		resp, err := http.Post("http://localhost:8080/calculator", "application/json",
 			strings.NewReader(`{"tool":"calculator","operation":"add","arguments":{"a":1,"b":1}}`))
-		if resp.StatusCode == http.StatusUnauthorized {
-			fmt.Printf("   Rejected as expected: %s\n", resp.Status)
+		if err == nil {
+			if resp.StatusCode == http.StatusUnauthorized {
+				fmt.Printf("   Rejected as expected: %s\n", resp.Status)
+			}
+			_ = resp.Body.Close()
 		}
-		resp.Body.Close()
 
 		fmt.Println("\n=== Demo Complete ===")
 	}()

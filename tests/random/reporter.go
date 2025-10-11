@@ -291,22 +291,22 @@ func (r *ResultReporter) saveMarkdown(report *FuzzReport) error {
 	}
 	defer file.Close()
 
-	fmt.Fprintf(file, "# SAGE Random Test Report\n\n")
-	fmt.Fprintf(file, "## Executive Summary\n\n")
-	fmt.Fprintf(file, "%s\n\n", report.Summary)
-	fmt.Fprintf(file, "- **Duration**: %v\n", report.Duration)
-	fmt.Fprintf(file, "- **Total Tests**: %d\n", report.TotalTests)
-	fmt.Fprintf(file, "- **Passed**: %d\n", report.PassedTests)
-	fmt.Fprintf(file, "- **Failed**: %d\n", report.FailedTests)
-	fmt.Fprintf(file, "- **Success Rate**: %.2f%%\n\n", report.SuccessRate)
+	_, _ = fmt.Fprintf(file, "# SAGE Random Test Report\n\n")
+	_, _ = fmt.Fprintf(file, "## Executive Summary\n\n")
+	_, _ = fmt.Fprintf(file, "%s\n\n", report.Summary)
+	_, _ = fmt.Fprintf(file, "- **Duration**: %v\n", report.Duration)
+	_, _ = fmt.Fprintf(file, "- **Total Tests**: %d\n", report.TotalTests)
+	_, _ = fmt.Fprintf(file, "- **Passed**: %d\n", report.PassedTests)
+	_, _ = fmt.Fprintf(file, "- **Failed**: %d\n", report.FailedTests)
+	_, _ = fmt.Fprintf(file, "- **Success Rate**: %.2f%%\n\n", report.SuccessRate)
 
-	fmt.Fprintf(file, "## Performance Metrics\n\n")
-	fmt.Fprintf(file, "- **Average Duration**: %v\n", report.Statistics.AverageDuration)
-	fmt.Fprintf(file, "- **Tests per Second**: %.2f\n\n", report.Statistics.TestsPerSecond)
+	_, _ = fmt.Fprintf(file, "## Performance Metrics\n\n")
+	_, _ = fmt.Fprintf(file, "- **Average Duration**: %v\n", report.Statistics.AverageDuration)
+	_, _ = fmt.Fprintf(file, "- **Tests per Second**: %.2f\n\n", report.Statistics.TestsPerSecond)
 
-	fmt.Fprintf(file, "## Category Results\n\n")
-	fmt.Fprintf(file, "| Category | Total | Passed | Failed | Success Rate | Avg Duration |\n")
-	fmt.Fprintf(file, "|----------|-------|--------|--------|--------------|-------------|\n")
+	_, _ = fmt.Fprintf(file, "## Category Results\n\n")
+	_, _ = fmt.Fprintf(file, "| Category | Total | Passed | Failed | Success Rate | Avg Duration |\n")
+	_, _ = fmt.Fprintf(file, "|----------|-------|--------|--------|--------------|-------------|\n")
 
 	// Sort categories for consistent output
 	var categories []TestCategory
@@ -319,25 +319,25 @@ func (r *ResultReporter) saveMarkdown(report *FuzzReport) error {
 
 	for _, cat := range categories {
 		stats := report.Statistics.CategoryStats[cat]
-		fmt.Fprintf(file, "| %s | %d | %d | %d | %.2f%% | %v |\n",
+		_, _ = fmt.Fprintf(file, "| %s | %d | %d | %d | %.2f%% | %v |\n",
 			cat, stats.TotalTests, stats.PassedTests, stats.FailedTests,
 			stats.SuccessRate, stats.AverageDuration)
 	}
 
 	if len(report.Defects) > 0 {
-		fmt.Fprintf(file, "\n## Defects Found\n\n")
-		fmt.Fprintf(file, "| Test ID | Category | Error | Severity |\n")
-		fmt.Fprintf(file, "|---------|----------|-------|----------|\n")
+		_, _ = fmt.Fprintf(file, "\n## Defects Found\n\n")
+		_, _ = fmt.Fprintf(file, "| Test ID | Category | Error | Severity |\n")
+		_, _ = fmt.Fprintf(file, "|---------|----------|-------|----------|\n")
 		for _, defect := range report.Defects {
-			fmt.Fprintf(file, "| %s | %s | %s | %s |\n",
+			_, _ = fmt.Fprintf(file, "| %s | %s | %s | %s |\n",
 				defect.TestID, defect.Category,
 				strings.ReplaceAll(defect.Error, "|", "\\|"),
 				defect.Severity)
 		}
 	}
 
-	fmt.Fprintf(file, "\n---\n\n")
-	fmt.Fprintf(file, "_Generated: %s_\n", report.EndTime.Format("2006-01-02 15:04:05"))
+	_, _ = fmt.Fprintf(file, "\n---\n\n")
+	_, _ = fmt.Fprintf(file, "_Generated: %s_\n", report.EndTime.Format("2006-01-02 15:04:05"))
 
 	return nil
 }
@@ -350,43 +350,43 @@ func (r *ResultReporter) saveText(report *FuzzReport) error {
 	}
 	defer file.Close()
 
-	fmt.Fprintln(file, "================================================================================")
-	fmt.Fprintln(file, "                        SAGE RANDOM TEST REPORT")
-	fmt.Fprintln(file, "================================================================================")
+	_, _ = fmt.Fprintln(file, "================================================================================")
+	_, _ = fmt.Fprintln(file, "                        SAGE RANDOM TEST REPORT")
+	_, _ = fmt.Fprintln(file, "================================================================================")
 	fmt.Fprintln(file)
-	fmt.Fprintln(file, report.Summary)
+	_, _ = fmt.Fprintln(file, report.Summary)
 	fmt.Fprintln(file)
-	fmt.Fprintf(file, "Test Duration:  %v\n", report.Duration)
-	fmt.Fprintf(file, "Total Tests:    %d\n", report.TotalTests)
-	fmt.Fprintf(file, "Passed:         %d\n", report.PassedTests)
-	fmt.Fprintf(file, "Failed:         %d\n", report.FailedTests)
-	fmt.Fprintf(file, "Success Rate:   %.2f%%\n", report.SuccessRate)
+	_, _ = fmt.Fprintf(file, "Test Duration:  %v\n", report.Duration)
+	_, _ = fmt.Fprintf(file, "Total Tests:    %d\n", report.TotalTests)
+	_, _ = fmt.Fprintf(file, "Passed:         %d\n", report.PassedTests)
+	_, _ = fmt.Fprintf(file, "Failed:         %d\n", report.FailedTests)
+	_, _ = fmt.Fprintf(file, "Success Rate:   %.2f%%\n", report.SuccessRate)
 	fmt.Fprintln(file)
-	fmt.Fprintln(file, "CATEGORY BREAKDOWN:")
-	fmt.Fprintln(file, "-------------------")
+	_, _ = fmt.Fprintln(file, "CATEGORY BREAKDOWN:")
+	_, _ = fmt.Fprintln(file, "-------------------")
 
 	for cat, stats := range report.Statistics.CategoryStats {
-		fmt.Fprintf(file, "\n%s:\n", cat)
-		fmt.Fprintf(file, "  Total:        %d\n", stats.TotalTests)
-		fmt.Fprintf(file, "  Passed:       %d\n", stats.PassedTests)
-		fmt.Fprintf(file, "  Failed:       %d\n", stats.FailedTests)
-		fmt.Fprintf(file, "  Success Rate: %.2f%%\n", stats.SuccessRate)
+		_, _ = fmt.Fprintf(file, "\n%s:\n", cat)
+		_, _ = fmt.Fprintf(file, "  Total:        %d\n", stats.TotalTests)
+		_, _ = fmt.Fprintf(file, "  Passed:       %d\n", stats.PassedTests)
+		_, _ = fmt.Fprintf(file, "  Failed:       %d\n", stats.FailedTests)
+		_, _ = fmt.Fprintf(file, "  Success Rate: %.2f%%\n", stats.SuccessRate)
 	}
 
 	if len(report.Defects) > 0 {
 		fmt.Fprintln(file)
-		fmt.Fprintln(file, "DEFECTS FOUND:")
-		fmt.Fprintln(file, "--------------")
+		_, _ = fmt.Fprintln(file, "DEFECTS FOUND:")
+		_, _ = fmt.Fprintln(file, "--------------")
 		for i, defect := range report.Defects {
-			fmt.Fprintf(file, "\n%d. %s (Category: %s, Severity: %s)\n",
+			_, _ = fmt.Fprintf(file, "\n%d. %s (Category: %s, Severity: %s)\n",
 				i+1, defect.TestID, defect.Category, defect.Severity)
-			fmt.Fprintf(file, "   Error: %s\n", defect.Error)
+			_, _ = fmt.Fprintf(file, "   Error: %s\n", defect.Error)
 		}
 	}
 
 	fmt.Fprintln(file)
-	fmt.Fprintln(file, "================================================================================")
-	fmt.Fprintf(file, "Generated: %s\n", report.EndTime.Format("2006-01-02 15:04:05"))
+	_, _ = fmt.Fprintln(file, "================================================================================")
+	_, _ = fmt.Fprintf(file, "Generated: %s\n", report.EndTime.Format("2006-01-02 15:04:05"))
 
 	return nil
 }
