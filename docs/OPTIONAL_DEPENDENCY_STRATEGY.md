@@ -14,8 +14,8 @@
 
 ### 문제점 발견
 ```
-cmd/random-test → test/integration/tests/random
-test/integration → sage (replace directive)
+cmd/random-test → tests/integration/tests/random
+tests/integration → sage (replace directive)
 → 순환 의존성 발생
 ```
 
@@ -81,7 +81,7 @@ go build -tags=a2a ./pkg/agent/transport/a2a/...
 
 **Integration tests 빌드:**
 ```bash
-go build -tags="integration,a2a" ./test/integration/...
+go build -tags="integration,a2a" ./tests/integration/...
 go build -tags=integration ./cmd/random-test/...
 ```
 
@@ -147,7 +147,7 @@ go build -tags=a2a ./pkg/agent/transport/a2a/
 # 예상: 성공 
 
 # 2. Integration tests 빌드
-go build -tags="integration,a2a" ./test/integration/tests/session/handshake/server
+go build -tags="integration,a2a" ./tests/integration/tests/session/handshake/server
 # 예상: 성공 
 ```
 

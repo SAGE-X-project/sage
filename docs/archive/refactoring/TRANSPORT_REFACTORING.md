@@ -753,7 +753,7 @@ pkg/agent/
     ├── server.go         # Server (implements MessageHandler)
     └── server_test.go    # Tests (uses MockTransport)
 
-test/integration/tests/session/
+tests/integration/tests/session/
 ├── handshake/
 │   ├── server/main.go    # Integration test server (uses A2A adapter)
 │   └── client/main.go    # Integration test client (uses A2A adapter)

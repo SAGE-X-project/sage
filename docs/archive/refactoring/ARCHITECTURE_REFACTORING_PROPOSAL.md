@@ -122,8 +122,8 @@ resp, err := c.SendMessage(ctx, req) // ← 단순 전송
 
 1. `pkg/agent/handshake/server_test.go`
 2. `pkg/agent/hpke/server_test.go`
-3. `test/integration/tests/session/handshake/server/main.go`
-4. `test/integration/tests/session/hpke/server/main.go`
+3. `tests/integration/tests/session/handshake/server/main.go`
+4. `tests/integration/tests/session/hpke/server/main.go`
 
 **총 9개 파일만 수정하면 됨** 
 
