@@ -184,8 +184,9 @@ Comprehensive guides in Korean for in-depth understanding:
 
 ### Active Planning
 
-- **[Optional Dependency Strategy](OPTIONAL_DEPENDENCY_STRATEGY.md)** - Build tags approach
+- **[Performance Optimization Roadmap](PERFORMANCE_OPTIMIZATION_ROADMAP.md)** - Performance improvement plan and goals
 - **[Next Tasks Priority](NEXT_TASKS_PRIORITY.md)** - Future development priorities
+- **[Optional Dependency Strategy](OPTIONAL_DEPENDENCY_STRATEGY.md)** - Build tags approach
 
 ### Archived Documentation
 
