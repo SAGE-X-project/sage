@@ -109,7 +109,7 @@ func DeriveTrafficKeys(seed []byte) TrafficKeys {
 	}
 }
 
-// verifySignature checks the signature against the payload (for ed25519).
+// verifySignature verifies a detached signature in a constant-time friendly way.
 func verifySignature(payload, signature []byte, senderPub crypto.PublicKey) error {
 	if len(signature) == 0 {
 		return errors.New("missing signature")
