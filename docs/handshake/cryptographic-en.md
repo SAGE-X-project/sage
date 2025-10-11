@@ -132,7 +132,7 @@ The client mirrors the same procedure, validates `ackTag`, and binds the resulti
 - **Mitigations**
   - Verify the full A2A message with **DID signatures** to block spoofed senders.
   - Check **`info/exportCtx` consistency** (both sides must use the same builder).
-  - Validate **`ackTag`** to confirm the actual key agreement.
+  - Validate **`ackTag`**—an HMAC over `ctxID`, `nonce`, `kid`, and the transcript hash—to confirm the actual key agreement.
 
 #### 2. Replay
 
@@ -239,7 +239,7 @@ s.signingKey = make([]byte, 32)
 - **Risk**  
   ChaCha20-Poly1305 fails catastrophically under nonce reuse. Random nonces are safe but collision probability accumulates in very long sessions.
 - **Mitigation**  
-  Generate a 12-byte CSPRNG nonce for every encryption (`nonce := rand(12B)`) and consider per-session counters for extremely high throughput.
+  Generate a 12-byte CSPRNG nonce for every encryption (`nonce := rand(12B)`), regenerate ephemeral handshake keys each session, and consider per-session counters for extremely high throughput.
 
 #### 4. Key lifetime / usage limits
 

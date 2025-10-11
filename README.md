@@ -16,6 +16,7 @@ SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based securit
 ### 🌐 Live Deployments
 
 **Sepolia Testnet** (LIVE ):
+
 - **SAGE Core System**:
   - SageRegistryV2: [`0x487d45a678eb947bbF9d8f38a67721b13a0209BF`](https://sepolia.etherscan.io/address/0x487d45a678eb947bbF9d8f38a67721b13a0209BF)
   - ERC8004ValidationRegistry: [`0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440`](https://sepolia.etherscan.io/address/0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440)
@@ -159,6 +160,7 @@ npm run compile
 ```
 
 **See [docs/BUILD.md](docs/BUILD.md) for detailed build instructions including:**
+
 - Cross-platform compilation (Linux, macOS, Windows)
 - Multi-architecture support (x86_64, ARM64)
 - Library builds (static `.a`, shared `.so`/`.dylib`/`.dll`)
@@ -482,18 +484,27 @@ See [contracts/README.md](contracts/README.md) for detailed smart contract docum
 
 ## Architecture Highlights
 
-### Handshake Protocol
+### Handshake Protocol(HPKE, 1-RTT / 2-Phase)
 
-SAGE implements a four-phase handshake protocol for secure session establishment:
+SAGE uses a server static X25519 KEM, a client ephemeral KEM (enc), plus Ed25519 signatures, an ackTag (key-confirmation), and optional cookies for DoS control.
 
-1. **Invitation**: Agent A declares intent, Agent B verifies DID signature
-2. **Request**: Agent A sends ephemeral key (encrypted with B's public key)
-3. **Response**: Agent B sends ephemeral key (encrypted with A's public key)
-4. **Complete**: Both agents derive session keys from shared secret
+1.  Initialize (Client → Server)
 
-![Handshake Diagram](docs/assets/SAGE-handshake.png)
+    - **Sends**: enc (HPKE encapsulation), ephC (client X25519 for PFS), info / exportCtx, nonce / ts, DID signature, and (optional) cookie.
+    - **Server**: (if configured) verify cookie early → verify DID signature → check replay/clock-skew/context → HPKE Open to recover exporterHPKE → generate ephS and compute ssE2E → derive seed = HKDF(exporterHPKE ∥ ssE2E, exportCtx) → **create session**.
 
-See [docs/handshake/handshake-en.md](docs/handshake/handshake-en.md) for detailed protocol documentation.
+2.  Acknowledge (Server → Client)
+
+    - **Sends**: kid, ackTagB64 (key confirmation), ephS, and a signed server envelope.
+    - **Client**: verify ackTag (keys match) → verify server signature (identity + transcript binding) → **bind kid ↔ session** → derive c2s/s2c AEAD keys from seed and start the channel.
+
+    <img src="docs/assets/SAGE-hpke-handshake.png" width="450" height="550"/>
+
+See [docs/handshake/hpke-based-handshake-en.md](docs/handshake/hpke-based-handshake-en.md) for detailed protocol documentation.
+
+> Notes:  
+> • If Cookies == nil, cookies are optional (missing cookie is allowed). If a verifier is set, a cookie is required.  
+> • info/exportCtx are built via a canonical builder that includes ctxID, initDID, and respDID, preventing downgrade and cross-context reuse.
 
 ### Session Management
 
@@ -569,6 +580,7 @@ int main() {
 ```
 
 **Compile with static library:**
+
 ```bash
 # Linux
 gcc -o myapp myapp.c build/lib/linux-amd64/libsage.a
@@ -673,10 +685,10 @@ This project is licensed under the **GNU Lesser General Public License v3.0** - 
 
 **You CAN:**
 
--  Use SAGE in commercial applications
--  Use SAGE in proprietary software
--  Modify SAGE for your needs
--  Distribute SAGE
+- Use SAGE in commercial applications
+- Use SAGE in proprietary software
+- Modify SAGE for your needs
+- Distribute SAGE
 
 **You MUST:**
 

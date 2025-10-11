@@ -205,14 +205,15 @@ See also `hpke/hpke_test.go` (when L1 DIDs are used, frequent rotation may be co
 - **Threat**: `enc` travels in the clear, so a future leak of the static KEM key lets attackers reproduce past exporters.
 - **Mitigation (recommended)**: Combine **`ssE2E`** via the PFS add-on. By making the seed a function of `exporterHPKE ∥ ssE2E`, the static key alone is insufficient. Enforce policies for **secure disposal of ephemeral keys**.
 
-### 2) MITM / downgrade attacks
+### 2) MITM / UKS / downgrade attacks
 
-- **Threat**: tampering with ctxID / peer DID or manipulating info/exportCtx to make the exporter reusable in a different context.
+- **Threat**: missing identity binding, manipulating info/exportCtx, or swapping `enc` / `ephC` can trick peers into reusing key material in a different transcript.
 - **Mitigations**:
 
-  - **Ed25519 DID signatures** ensure sender authenticity and integrity.
-  - A **canonical info/exportCtx** containing `ctxID`, `initDID`, and `respDID` blocks cross-context reuse and downgrades.
-  - **ackTag** (derived from the seed) provides key confirmation.
+  - **Identity binding**: the server signs a canonical envelope with its Ed25519 key and the client verifies it using the server DID public key.
+  - **Key confirmation**: **ackTag**, derived from the combined seed, ensures both sides computed the same secret.
+  - **Canonical transcripts**: info/exportCtx are generated in a fixed format (`suite`, `combiner`, `ctxID`, both DIDs), hashed, and covered by the signature to prevent cross-context reuse or downgrade.
+  - **Echo checks**: the client compares echoed `enc` / `ephC` values in the response with what it sent to detect tampering.
 
 ### 3) Replay attacks
 
@@ -225,17 +226,33 @@ See also `hpke/hpke_test.go` (when L1 DIDs are used, frequent rotation may be co
 
 ### 4) Session hijacking / key reuse
 
+- **Threat**: leaking `kid` or reusing handles could cause peers to attach the wrong keys to a session.
 - **Mitigations**:
 
-  - Sessions derive their keys from the seed via HKDF and expire via **MaxAge/IdleTimeout**.
-  - A **kid ↔ sessionID** binding means leaking `kid` alone is insufficient to decrypt traffic (session keys are still required).
+  - **Key separation**: sessions derive traffic keys from the combined seed via HKDF, so `kid` alone never reveals decryption material.
+  - **Binding**: the binder ties every `kid` to a concrete `sessionID`, preventing handle confusion.
+  - **Lifetime policies**: **MaxAge**, **IdleTimeout**, and **MaxMessages** keep sessions short-lived and revoke them promptly.
 
-### 5) Integrity / confidentiality
+### 5) Integrity / confidentiality (runtime data plane)
 
+- **Threat**: nonce reuse, key confusion, or header tampering can break confidentiality or integrity.
 - **Mitigations**:
 
   - Session payloads use **AEAD** (e.g., ChaCha20-Poly1305).
+  - **Direction separation**: HKDF-Expand derives distinct `c2s` / `s2c` keys and IVs (labels such as `"c2s:key"`, `"s2c:iv"`), so compromising one direction does not expose the other.
+  - **Nonce discipline**: nonces are computed as `IV XOR seq` with a monotonically increasing sequence counter to guarantee single use.
   - At the HTTP layer, **RFC 9421 signatures** cover the request line, headers, and body (`content-digest`, `@method`, `@path`, `@authority`, etc.).
+
+### 6) DoS surface (unauthenticated pre-handshake)
+
+- **Threat**: attackers can trigger expensive KEM or signature work before authentication and exhaust server resources.
+- **Mitigations**:
+
+  - **Cookies / puzzles** (policy-driven): when the server is configured with a verifier they are mandatory; otherwise traffic is accepted without them.
+    - **HMAC cookie**: `hmac:<b64url(HMAC(secret, "SAGE-Cookie|v1|ctx|init|resp"))>`
+    - **PoW puzzle**: `pow:<nonce>:<hex(SHA256("SAGE-PoW|ctx|init|resp|nonce"))>` with a configurable leading-zero-nibble difficulty
+  - **Early rejection**: validate cookies or puzzles **before** running HPKE so invalid attempts fail fast.
+  - **Additional guards**: combine with rate limiting, retry caps, and IP throttling as needed.
 
 ## End-to-End Protection Strategy
 
@@ -275,6 +292,103 @@ Metadata: `did`, `signature` (Ed25519).
 ```
 
 Metadata: `did`, `signature` (Ed25519).
+
+## Channel Binding (CB) — Application-Layer Binding of Session Secrets
+
+**Purpose**: bind the session secret established during the handshake to every application request so that stealing or replaying `kid` alone is insufficient to hijack the session (prevents session confusion and token injection).
+
+**Backing material**: `DeriveTrafficKeys(seed)` yields `CB` (32 bytes), a channel-binding value derived from the same symmetric secret as the traffic keys.
+
+### Derivation (recap)
+
+- `seed = HKDF-Extract(exportCtx, exporterHPKE || ssE2E)` → `HKDF-Expand("SAGE-HPKE+E2E-Combiner", 32)`
+- `DeriveTrafficKeys(seed)` → `{ C2SKey, C2SIV, S2CKey, S2CIV, CB }`
+- `CB` is 32 bytes of binary data; encode it with base64url (raw, no padding) when transmitting.
+
+### Header format (recommended)
+
+- Header name: `X-Channel-Binding`
+- Value: `sage-cb:v1.<base64url(CB)>`  
+  Example: `X-Channel-Binding: sage-cb:v1.RoK1Vj3gR8tOq0...`
+
+> Recommendation: include this header in the RFC 9421 covered components list. Any tampering in transit will then invalidate the signature.
+
+### Client behavior (when sending requests)
+
+1. After the handshake, run `DeriveTrafficKeys(seed)` and obtain `CB`.
+2. Attach the header to every protected request:
+   - `Authorization: Bearer <kid>`
+   - `X-Channel-Binding: sage-cb:v1.<b64url(CB)>`
+3. Add `"x-channel-binding"` to the covered components list when generating the RFC 9421 signature.
+
+### Server behavior (when verifying requests)
+
+1. Look up the session via `kid` and compute `CB_expected` from the stored seed (or fetch the cached CB).
+2. Parse the incoming header, ensure the prefix `sage-cb:v1.`, and decode `CB_received = base64urlDecode(...)`.
+3. Compare in constant time: `hmac.Equal(CB_expected, CB_received)`; return **401 (channel binding mismatch)** if it differs.
+4. During RFC 9421 verification, ensure `"x-channel-binding"` is present in the covered set so the header cannot be modified by intermediaries.
+
+### Security considerations
+
+- **Per-session uniqueness**: each seed yields a unique CB; `kid` by itself cannot recreate it.
+- **Sensitive material**: CB is derived from secret material; avoid logging or exporting it.
+- **Rekey / resume**: a rekey produces a new seed and CB. Require the new CB immediately and reject old values with 401.
+- **Proxies / gateways**: intermediaries may touch headers, so always cover the header with RFC 9421 signatures.
+- **Interoperability**: use **base64url without padding** and match the prefix/version string exactly.
+
+### HTTP example
+
+```
+POST /v1/tasks HTTP/1.1
+Host: api.example.com
+Authorization: Bearer kid-3f8b...
+X-Channel-Binding: sage-cb:v1.Px6f0k1w3k0O0_QH4m1k1J4oC4J9wTq6rj1c2dV2o0M
+Date: Tue, 07 Oct 2025 10:18:25 GMT
+Signature-Input: sig1=("@method" "@path" "host" "date" "x-channel-binding");keyid="kid-3f8b";created=1696673905
+Signature: sig1=:AbCd...:
+```
+
+### gRPC / metadata example
+
+- Metadata key: `x-channel-binding`
+- Value: `sage-cb:v1.<b64url(CB)>`
+- Recommendation: ensure the signing / integrity layer covers this metadata key as well.
+
+### Pseudocode (Go)
+
+**Client**
+
+```go
+seed := combined // after ackTag verification and signature check
+tk := DeriveTrafficKeys(seed)
+cbB64 := base64.RawURLEncoding.EncodeToString(tk.CB)
+
+req.Header.Set("Authorization", "Bearer "+kid)
+req.Header.Set("X-Channel-Binding", "sage-cb:v1."+cbB64)
+
+// RFC 9421: include "x-channel-binding" in the covered components.
+```
+
+**Server**
+
+```go
+cbHeader := req.Header.Get("X-Channel-Binding")
+if !strings.HasPrefix(cbHeader, "sage-cb:v1.") {
+    return unauthorized("channel binding required")
+}
+cbRecv, err := base64.RawURLEncoding.DecodeString(strings.TrimPrefix(cbHeader, "sage-cb:v1."))
+if err != nil {
+    return unauthorized("bad channel binding")
+}
+
+seed := lookupSessionSeedByKID(kid)           // or recompute from session state
+cbExp := DeriveTrafficKeys(seed).CB
+if !hmac.Equal(cbExp, cbRecv) {
+    return unauthorized("channel binding mismatch")
+}
+
+// Then verify the RFC 9421 signature, which must cover "x-channel-binding".
+```
 
 ## Configuration & Tuning
 

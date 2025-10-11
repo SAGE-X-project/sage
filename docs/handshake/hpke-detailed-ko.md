@@ -12,6 +12,7 @@
 > 정확한 HPKE 구현은 [hpke-based-handshake-ko.md](./hpke-based-handshake-ko.md)를 참조하세요.
 
 ## 목차
+
 1. [기술 용어 해설](#기술-용어-해설)
 2. [HPKE 핸드셰이크 과정 (2단계)](#hpke-핸드셰이크-과정-2단계)
 3. [Forward Secrecy 구현](#forward-secrecy-구현)
@@ -25,33 +26,31 @@ HPKE 핸드셰이크를 이해하기 위해 필요한 핵심 용어들을 정리
 
 ### 암호화 프로토콜
 
-| 용어 | 전체 이름 | 설명 |
-|------|----------|------|
-| **HPKE** | Hybrid Public Key Encryption | 공개키와 대칭키 암호화를 혼합한 방식. 공개키로 키 합의 → 대칭키로 빠른 암호화 |
-| **DID** | Decentralized Identifier | 블록체인에 등록된 에이전트의 고유 식별자 (예: `did:sage:agent123`) |
-| **HKDF** | HMAC-based Key Derivation Function | 하나의 비밀값(exporter)에서 여러 개의 키를 안전하게 생성하는 함수 |
-| **HMAC** | Hash-based Message Authentication Code | 메시지가 변조되지 않았음을 증명하는 코드 |
+| 용어     | 전체 이름                              | 설명                                                                          |
+| -------- | -------------------------------------- | ----------------------------------------------------------------------------- |
+| **HPKE** | Hybrid Public Key Encryption           | 공개키와 대칭키 암호화를 혼합한 방식. 공개키로 키 합의 → 대칭키로 빠른 암호화 |
+| **DID**  | Decentralized Identifier               | 블록체인에 등록된 에이전트의 고유 식별자 (예: `did:sage:agent123`)            |
+| **HKDF** | HMAC-based Key Derivation Function     | 하나의 비밀값(exporter)에서 여러 개의 키를 안전하게 생성하는 함수             |
+| **HMAC** | Hash-based Message Authentication Code | 메시지가 변조되지 않았음을 증명하는 코드                                      |
 
 ### 핵심 데이터 값
 
-| 용어 | 크기 | 설명 | 전송 여부 |
-|------|------|------|----------|
-| **enc** | 32 bytes | HPKE에서 생성되는 임시 공개키 (encapsulated key) | Yes (전송) |
-| **exporter** | 32 bytes | 양쪽 에이전트가 동일하게 계산하는 공유 비밀값 | No (절대 전송 안함) |
-| **ackTag** | 32 bytes | HMAC 기반 키 확인 태그 (상대방이 같은 키를 가졌는지 증명) | Yes (전송) |
-| **kid** | variable | Key ID - 세션을 식별하는 ID (예: `"session:abc123"`) | Yes (전송) |
-| **nonce** | variable | 재전송 공격 방지를 위한 일회용 난수 | Yes (전송) |
+| 용어         | 크기     | 설명                                                      | 전송 여부           |
+| ------------ | -------- | --------------------------------------------------------- | ------------------- |
+| **enc**      | 32 bytes | HPKE에서 생성되는 임시 공개키 (encapsulated key)          | Yes (전송)          |
+| **exporter** | 32 bytes | 양쪽 에이전트가 동일하게 계산하는 공유 비밀값             | No (절대 전송 안함) |
+| **ackTag**   | 32 bytes | HMAC 기반 키 확인 태그 (상대방이 같은 키를 가졌는지 증명) | Yes (전송)          |
+| **kid**      | variable | Key ID - 세션을 식별하는 ID (예: `"session:abc123"`)      | Yes (전송)          |
+| **nonce**    | variable | 재전송 공격 방지를 위한 일회용 난수                       | Yes (전송)          |
 
 ### 암호화 알고리즘
 
-| 알고리즘 | 용도 | 특징 |
-|---------|------|------|
-| **X25519** | 타원곡선 키 교환 (ECDH) | Diffie-Hellman 키 합의에 사용, 32바이트 키 생성 |
-| **Ed25519** | 전자 서명 | 메시지 서명 및 검증, 공개키 인증에 사용 |
-| **ChaCha20-Poly1305** | AEAD 대칭키 암호화 | 실제 메시지 암호화, AES보다 빠름 |
-| **SHA-256** | 해시 함수 | HMAC, HKDF에서 사용 |
-
----
+| 알고리즘              | 용도                    | 특징                                            |
+| --------------------- | ----------------------- | ----------------------------------------------- |
+| **X25519**            | 타원곡선 키 교환 (ECDH) | Diffie-Hellman 키 합의에 사용, 32바이트 키 생성 |
+| **Ed25519**           | 전자 서명               | 메시지 서명 및 검증, 공개키 인증에 사용         |
+| **ChaCha20-Poly1305** | AEAD 대칭키 암호화      | 실제 메시지 암호화, AES보다 빠름                |
+| **SHA-256**           | 해시 함수               | HMAC, HKDF에서 사용                             |
 
 ## HPKE 핸드셰이크 과정 (2단계)
 
@@ -136,6 +135,7 @@ func (c *Client) Invitation(ctx context.Context, invMsg InvitationMessage, did s
 ```
 
 **데이터 흐름**:
+
 ```
 Agent A                                    Agent B
    │                                          │
@@ -148,6 +148,7 @@ Agent A                                    Agent B
 ```
 
 **특징**:
+
 - 평문 전송이지만 Ed25519 서명으로 보호
 - 아직 암호화 없음 (공개키 교환 전)
 - Agent B는 서명을 검증하여 Agent A의 신원 확인
@@ -216,6 +217,7 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
 ```
 
 **HPKE 키 합의 내부 동작** (`keys.HPKEDeriveSharedSecretToPeer`):
+
 ```go
 // 내부적으로 다음과 같은 작업 수행:
 // 1. 임시 X25519 키쌍 생성
@@ -233,6 +235,7 @@ exporter := HKDF-Extract(sharedPoint, info)
 ```
 
 **데이터 흐름**:
+
 ```
 Agent A                                                Agent B
    │                                                      │
@@ -254,6 +257,7 @@ Agent A                                                Agent B
 ```
 
 **핵심 포인트**:
+
 - **enc만 전송**, exporter는 절대 전송 안함
 - Agent B는 받은 enc와 자신의 개인키로 동일한 exporter 계산 가능
 - info, exportCtx는 양쪽이 동일하게 사용 (프로토콜 바인딩)
@@ -346,6 +350,7 @@ func (s *Server) OnHandleTask(ctx context.Context, in *a2a.TaskRequest) (*a2a.Ta
 ```
 
 **ackTag 생성 로직** (`hpke/common.go:180-190`):
+
 ```go
 func makeAckTag(exporter []byte, ctxID, nonce, kid string) []byte {
     // 1. HKDF로 ack 전용 키 생성
@@ -366,6 +371,7 @@ func makeAckTag(exporter []byte, ctxID, nonce, kid string) []byte {
 ```
 
 **데이터 흐름**:
+
 ```
 Agent A                                                Agent B
    │                                                      │
@@ -390,6 +396,7 @@ Agent A                                                Agent B
 ```
 
 **핵심 포인트**:
+
 - Agent B는 **enc를 받아서 동일한 exporter 계산** (HPKE의 핵심)
 - **ackTag**: Agent B가 올바른 exporter를 가졌음을 증명
 - **nonce**: 재전송 공격 방지 (한 번만 사용)
@@ -449,6 +456,7 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
 ```
 
 **검증 흐름**:
+
 ```
 Agent A                                                Agent B
    │                                                      │
@@ -467,6 +475,7 @@ Agent A                                                Agent B
 ```
 
 **핵심 포인트**:
+
 - **ackTag 검증**: 암호문 없이도 키 일치 확인 (HMAC 사용)
 - **hmac.Equal**: 타이밍 공격 방지 (상수 시간 비교)
 - **kid 바인딩**: 이후 메시지에서 "Authorization: Bearer {kid}" 형태로 사용
@@ -540,12 +549,11 @@ func (a *Creator) OnComplete(ctx context.Context, ctxID string, comp CompleteMes
 ```
 
 **핵심**:
+
 - 각 세션마다 **새로운 임시 키** 생성
 - 세션 종료 시 **즉시 삭제** (메모리에서 완전 제거)
 - 장기 개인키(DID 키)는 **서명 검증용**으로만 사용
 - **HPKE는 임시 키만** 사용 → Forward Secrecy 보장
-
----
 
 ## 세션 암호화
 
@@ -616,6 +624,7 @@ func encryptMessage(plaintext []byte, key []byte, nonce []byte) (ciphertext []by
 ```
 
 **AEAD 특징**:
+
 - **기밀성** (Confidentiality): ChaCha20으로 암호화 → 내용 숨김
 - **무결성** (Integrity): Poly1305 MAC → 변조 탐지
 - **인증** (Authentication): 올바른 키 없이는 MAC 생성 불가
@@ -649,21 +658,162 @@ Agent A                                    Agent B
    │  "World"                                 │
 ```
 
+## 프로토콜 상수/라벨 (고정값 명세)
+
+- `suite` (예: `X25519+HKDF-SHA256+CHACHA20-POLY1305`)
+- `combiner` (예: `hpke+e2e`)
+- `infoLabel`, `exportCtxLabel` 문자열
+- `ackTag` 라벨: `"SAGE-ack-key-v1"`, `"SAGE-ack-msg|v1|"`
+  → **MUST**: 모든 라벨은 바이트 단위로 고정하며 버전 업 시 새 라벨을 사용.
+
+## Wire 포맷 (요청/응답 예시)
+
+```json
+// Initialize (client → server)
+{
+  "initDid": "did:sage:alice",
+  "respDid": "did:sage:bob",
+  "info": "sage/hpke v1|suite=...|combiner=...|ctx=abcd|init=...|resp=...",
+  "exportCtx": "exportCtx v1|suite=...|combiner=...|ctx=abcd",
+  "enc": "BASE64URL(32B)",
+  "ephC": "BASE64URL(32B)",
+  "nonce": "UUID",
+  "ts": "2025-10-09T12:34:56.789Z"
+}
+```
+
+```json
+// Acknowledge (server → client)
+{
+  "v": "v1",
+  "task": "hpke/complete",
+  "ctx": "abcd",
+  "kid": "kid-<uuid>",
+  "ephS": "BASE64URL(32B)",
+  "ackTagB64": "BASE64URL(32B)",
+  "ts": "2025-10-09T12:34:56.999Z",
+  "did": "did:sage:bob",
+  "infoHash": "BASE64URL(32B)",
+  "exportCtxHash": "BASE64URL(32B)",
+  "enc": "BASE64URL(32B)",
+  "ephC": "BASE64URL(32B)",
+  "sigB64": "BASE64URL(Ed25519 64B)"
+}
+```
+
+> **MUST**: `enc`, `ephC`, `ephS`는 **base64url(무패딩)**, `infoHash/exportCtxHash`는 **SHA-256(32B)**.
+
+## 서명 정규화(Canonicalization) & 커버리지
+
+- 서버 서명 대상(정확히 이 순서/키만):
+
+  - `v, task, ctx, kid, ephS, ackTagB64, ts, did, infoHash, exportCtxHash, enc, ephC`
+
+- **MUST**: 구조체 기반 deterministic JSON 직렬화(필드 순서 고정). **map 기반 직렬화 금지**.
+- **MUST**: `infoHash = SHA256(info)`, `exportCtxHash = SHA256(exportCtx)`를 서명에 포함(다운그레이드/문맥 교란 방지).
+- **SHOULD**: 클라이언트는 **ackTag 검증 후** 서명을 검증(서명 오라클 악용 최소화).
+
+## DoS 억제 정책 매트릭스
+
+| 서버 Verifier | 클라이언트 쿠키 | 처리                |
+| ------------- | --------------- | ------------------- |
+| 없음(nil)     | 없음/있음       | **허용**(쿠키 선택) |
+| HMAC          | 없음            | **거부**            |
+| HMAC          | 올바름          | **허용**            |
+| HMAC          | 비밀 불일치     | **거부**            |
+| PoW           | 난이도 충족     | **허용**            |
+| PoW           | 불충족/변조     | **거부**            |
+
+- **MUST**: 쿠키/퍼즐 검증은 **HPKE 수행 전**(비용 큰 연산 전에) 실행.
+- 에러 메시지는 **일반화**(구체 원인 누설 금지).
+
+## Replay·Time·State
+
+- **NonceStore TTL**: 10분 (예시). `checkAndMark(ctxID|nonce)` 1회성 보장.
+- **MaxSkew 기본값**: ±2분 (문서화).
+- **MUST**: `MaxAge`, `IdleTimeout`, `MaxMessages` 기본값 표기 및 권장값 제시.
+
+## Nonce·키 파생 규칙
+
+- **Nonce**: `nonce = IV XOR seq` (송수신 방향별 64비트 단조 증가 `seq`).
+- **키 분리**:
+
+  - `c2s:key`, `c2s:iv`, `s2c:key`, `s2c:iv`, `channel-binding`
+
+- **MUST NOT**: exporter/combined에서 **비대칭(서명)키** 파생 금지.
+
+## PFS Add-on 명시
+
+- `combined = HKDF-Extract(salt=exportCtx, IKM=exporterHPKE ∥ ssE2E)`
+  → `DeriveTrafficKeys(combined)`로 분리.
+- **Rationale**: 수신자 KEM 정적키만 유출되어서는 과거 세션 재현 불가.
+
 ---
+
+### 구성(Ops) 가이드
+
+- 추천 기본값:
+
+  - `MaxAge: 30m`, `IdleTimeout: 2m`, `MaxMessages: 10^6`(서비스 패턴에 맞춰 조정)
+  - HMAC 쿠키 시크릿 회전 주기, PoW 난이도 목표(평균 <50ms)
+
+- 로깅:
+
+  - **NEVER**: exporter/combined/트래픽 키 로깅 금지
+  - **OK**: `kid`, 버전, `ctx`, 결과코드, 지연시간
+
+- 모니터링 지표: 실패 사유별 카운터(서명 실패/ackTag 실패/쿠키 실패/재전송 등)
+
+---
+
+### 에러 모델
+
+- 표준화된 코드/문구 예:
+
+  - `ERR_COOKIE_REQUIRED`, `ERR_COOKIE_INVALID`
+  - `ERR_SIG_VERIFY`, `ERR_ACK_MISMATCH`
+  - `ERR_TS_SKEW`, `ERR_REPLAY`
+  - `ERR_INFO_MISMATCH`, `ERR_EXPORTCTX_MISMATCH`
+
+- **SHOULD**: 외부 노출 메시지는 일반화(내부 사유는 로그로만).
+
+---
+
+### 상호운용성 & 업그레이드
+
+- **버전 필드(`v`)**를 **서명 및 ackTag 문맥**에 포함.
+- 새 스위트/라벨 도입 시 **구버전과 병행 운용**(dual-stack), 다운그레이드 방지 체크 유지.
+
+---
+
+### 프라이버시 고려
+
+- DID·`ctx`·`kid`는 상관관계 메타데이터가 될 수 있음 → 필요 시 **pairwise DID**·**context 랜덤화** 가이드 제시.
+- 옵셔널: `kid`를 외부로 노출하지 않고 세션 토큰을 별도 보호 채널로 전달하는 운영 모드.
+
+### 구현 주의(코드와 직접 연결)
+
+- **MUST**: 서명용 JSON은 **구조체**로 직렬화(필드 순서 고정). **map 사용 금지**.
+- **SHOULD**: 비교는 `hmac.Equal` 사용(상수 시간).
+- **SHOULD**: exporter/combined/ssE2E는 즉시 `zeroBytes()` 처리.
+- **SHOULD**: 서버는 **ackTag 생성 → 서명** 순서로 처리(응답 위변조 방지).
 
 ## 요약
 
 ### HPKE 핸드셰이크의 핵심
 
 1. **키 합의**: 공개키 암호화로 공유 비밀(exporter) 생성
+
    - Agent A: `exporter = HPKE-Seal(B_pub, info, exportCtx)` → `enc` 생성
    - Agent B: `exporter = HPKE-Open(B_priv, enc, info, exportCtx)` → 동일한 `exporter` 계산
 
 2. **키 확인**: 암호문 없이 ackTag로 검증
+
    - `ackTag = HMAC(HKDF(exporter, "ack-key"), "hpke-ack|...")`
    - 양쪽이 동일한 ackTag 계산 → exporter 일치 확인
 
 3. **Forward Secrecy**: 임시 키 사용 및 즉시 삭제
+
    - 각 세션마다 새로운 X25519 키쌍
    - 핸드셰이크 완료 후 즉시 삭제
 
@@ -673,18 +823,30 @@ Agent A                                    Agent B
 
 ### 보안 특성
 
-| 특성 | 구현 방법 |
-|------|----------|
-| **기밀성** | ChaCha20-Poly1305 AEAD 암호화 |
-| **무결성** | Poly1305 MAC, Ed25519 서명 |
-| **인증** | DID 기반 Ed25519 서명 검증 |
-| **Forward Secrecy** | 임시 X25519 키쌍 사용 및 즉시 삭제 |
-| **재전송 공격 방지** | Nonce 중복 체크 |
-| **타임스탬프 검증** | 5분 이내 메시지만 허용 |
+| 특성                                  | 구현 방법                                                                   |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| **기밀성**                            | ChaCha20-Poly1305 AEAD 암호화                                               |
+| **무결성**                            | Poly1305 MAC, Ed25519 서명                                                  |
+| **인증**                              | DID 기반 Ed25519 서명 검증                                                  |
+| **Forward Secrecy**                   | 임시 X25519 키쌍 사용 및 즉시 삭제                                          |
+| **재전송 공격 방지**                  | Nonce 중복 체크                                                             |
+| **타임스탬프 검증**                   | 5분 이내 메시지만 허용                                                      |
+| **키 확인 (KC)**                      | `ackTag = HMAC(HKDF(exporter,"ack-key"), transcript‖ctxID‖nonce‖kid)` 검증  |
+| **컨텍스트 바인딩/다운그레이드 차단** | `info/exportCtx` 해시 포함 + 서버 서명(정규화 JSON)로 스위트/버전/역할 고정 |
+| **방향별 키 분리**                    | HKDF 라벨로 `c2s-key/s2c-key`, `c2s-iv/s2c-iv` 파생(키 재사용 금지)         |
+| **논스 안전성**                       | 64-bit 시퀀스 유지, `nonce = IV XOR seq` 구성, 역행/중복 거부               |
+| **세션 수명/회전**                    | `MaxAge/IdleTimeout/MaxMessages` 강제, 만료 시 재핸드셰이크                 |
+| **DoS 억제**                          | 사전 쿠키(HMAC/PoW) 검증 후 HPKE 수행, 레이트리밋/조기 거절                 |
+| **PFS 강화(Add-on)**                  | `combined = HKDF-Extract(salt=exportCtx, exporterHPKE ∥ ssE2E)`             |
+| **채널 바인딩(CB)**                   | `Export("channel-binding",32)` 파생값을 상위 레이어 서명/토큰에 포함        |
+| **제로화**                            | `zeroBytes` 등으로 exporter/세션키/임시키 메모리 즉시 소거                  |
+| **MITM/UKS 방지**                     | DID/서명 검증 + `enc/ephC` 에코 일치 확인 + `ackTag` 실패 시 즉시 중단      |
+| **스위트/버전 핀닝**                  | `info`에 스위트/버전/역할 포함, 서명 커버리지에 넣어 다운그레이드 차단      |
 
 ---
 
 **참고 자료**:
+
 - HPKE RFC: [RFC 9180](https://www.rfc-editor.org/rfc/rfc9180.html)
 - ChaCha20-Poly1305: [RFC 8439](https://www.rfc-editor.org/rfc/rfc8439.html)
 - HKDF: [RFC 5869](https://www.rfc-editor.org/rfc/rfc5869.html)
