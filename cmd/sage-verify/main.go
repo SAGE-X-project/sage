@@ -45,7 +45,6 @@ func main() {
 	if err != nil {
 		log.Fatalf(" Failed to load config: %v", err)
 	}
-
 	fmt.Println("\n Blockchain Configuration:")
 	fmt.Printf("  RPC URL: %s\n", cfg.NetworkRPC)
 	fmt.Printf("  Chain ID: %s\n", cfg.ChainID)
