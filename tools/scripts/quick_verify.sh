@@ -30,10 +30,10 @@ echo -e "${YELLOW}[4/5] 세션 관리${NC}"
 go test github.com/sage-x-project/sage/pkg/agent/session -run "TestSessionManager_CreateSession" -v
 
 echo -e "${YELLOW}[5/5] HPKE 핸드셰이크${NC}"
-make test-handshake
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run TestE2E_HPKE_Handshake_MockTransport
 
 echo ""
-echo -e "${GREEN}✅ 빠른 검증 완료!${NC}"
+echo -e "${GREEN}빠른 검증 완료!${NC}"
 echo ""
 echo "전체 검증을 실행하려면:"
 echo "  ./tools/scripts/verify_all_features.sh"

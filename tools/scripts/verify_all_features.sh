@@ -33,15 +33,15 @@ print_test() {
 }
 
 print_success() {
-    echo -e "       ${GREEN}✅ $1${NC}"
+    echo -e "       ${GREEN}$1${NC}"
 }
 
 print_error() {
-    echo -e "       ${RED}❌ $1${NC}"
+    echo -e "       ${RED}$1${NC}"
 }
 
 print_skip() {
-    echo -e "       ${YELLOW}⏭️  $1${NC}"
+    echo -e "       ${YELLOW}$1${NC}"
 }
 
 # 테스트 실행 함수
@@ -803,15 +803,15 @@ echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 if [ $FAILED_TESTS -eq 0 ]; then
-    echo -e "${GREEN}✅ 모든 기능 검증 완료! 🎉${NC}"
+    echo -e "${GREEN}모든 기능 검증 완료!${NC}"
     echo ""
     echo -e "${GREEN}기능 명세서의 모든 소분류 항목이 구현되고 테스트되었습니다.${NC}"
     echo ""
-    echo "📄 상세 검증 결과: docs/FEATURE_VERIFICATION_GUIDE.md"
-    echo "📁 테스트 로그: /tmp/sage-test-logs/"
+    echo "상세 검증 결과: docs/FEATURE_VERIFICATION_GUIDE.md"
+    echo "테스트 로그: /tmp/sage-test-logs/"
     exit 0
 else
-    echo -e "${RED}❌ 일부 테스트 실패 ($FAILED_TESTS/$TOTAL_TESTS)${NC}"
+    echo -e "${RED}일부 테스트 실패 ($FAILED_TESTS/$TOTAL_TESTS)${NC}"
     echo ""
     echo "실패한 테스트 로그:"
     echo "  /tmp/sage-test-logs/"
