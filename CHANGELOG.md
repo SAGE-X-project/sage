@@ -5,6 +5,60 @@ All notable changes to SAGE (Secure Agent Guarantee Engine) will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-10-12
+
+### Changed
+
+#### Dependency Updates
+
+**GitHub Actions:**
+- actions/checkout: v4 → v5
+- actions/download-artifact: v4 → v5
+- codecov/codecov-action: v4 → v5
+- crytic/slither-action: v0.4.0 → v0.4.1
+- golangci/golangci-lint-action: v6 → v8
+
+**Docker:**
+- golang: 1.24-alpine → 1.25-alpine
+
+**Java SDK (Bouncy Castle):**
+- bcprov-jdk18on: 1.77 → 1.78
+- bcpkix-jdk18on: 1.77 → 1.78.1
+
+**Go Dependencies:**
+- github.com/ethereum/go-ethereum: 1.16.1 → 1.16.4
+- github.com/gagliardetto/solana-go: 1.12.0 → 1.14.0
+- golang.org/x/crypto: 0.41.0 → 0.43.0
+- google.golang.org/grpc: 1.73.0 → 1.76.0
+- google.golang.org/protobuf: 1.36.8 → 1.36.10
+- filippo.io/edwards25519: 1.0.0-rc.1 → 1.1.0
+- github.com/spf13/cobra: 1.9.1 → 1.10.1
+
+### Fixed
+
+- **Linter Migration**: Complete golangci-lint v2 migration with all linting errors resolved
+  - Fixed 98 linting issues across the codebase
+  - Updated to golangci-lint v8 with enhanced rule set
+  - Improved code quality and maintainability
+
+### Improved
+
+- **Test Infrastructure**: Consolidated test directories and enhanced Hardhat setup documentation
+  - Improved blockchain test setup documentation
+  - Clarified dual Hardhat configuration purposes (Go integration tests vs contract deployment)
+  - Enhanced test reliability and maintainability
+
+### Security
+
+- All dependencies updated to latest stable versions addressing known vulnerabilities
+- Enhanced CI/CD security scanning with updated tools
+
+### Testing
+
+- All 85 feature tests passing with 100% success rate
+- Zero linting issues after migration
+- Complete test coverage maintained across all packages
+
 ## [1.0.0] - 2025-10-11
 
 ### 🎉 First Production Release

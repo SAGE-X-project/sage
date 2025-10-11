@@ -1,6 +1,6 @@
 {
   "name": "sage-contracts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SAGE Registry Smart Contracts for Kaia Network",
   "main": "index.js",
   "scripts": {
