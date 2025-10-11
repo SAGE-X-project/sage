@@ -4,11 +4,14 @@ A Go package providing cryptographic functionality for the SAGE (Secure Agent Gu
 
 ## Key Features
 
-- **Key Pair Generation**: Support for Ed25519 and Secp256k1 algorithms
+- **Key Pair Generation**: Support for Ed25519, Secp256k1, X25519, and RS256 algorithms
 - **Key Export/Import**: Support for JWK (JSON Web Key) and PEM formats
 - **Secure Key Storage**: Memory and file-based storage
+- **Encrypted Key Vault**: AES-256-GCM encrypted storage via Vault
 - **Key Rotation**: Automatic key rotation with history management
 - **Message Signing and Verification**: Digital signature generation and verification
+- **ECDH Key Exchange**: X25519-based key agreement and HPKE support
+- **RFC 9421 Support**: Compliance with HTTP Message Signatures standard
 - **Blockchain Integration**: Ethereum and Solana address generation and validation
 
 ## Installation
@@ -24,22 +27,37 @@ go get github.com/sage-x-project/sage/crypto
 ```
 crypto/
 ├── types.go              # Core interface definitions
+├── crypto.go             # Common utility functions
+├── manager.go            # Centralized key manager
+├── wrappers.go           # Convenience wrapper functions
+├── algorithm_registry.go # Algorithm registry (RFC 9421 support)
 ├── keys/                 # Key generation and management
-│   ├── ed25519.go       # Ed25519 implementation
-│   └── secp256k1.go     # Secp256k1 implementation
+│   ├── ed25519.go       # Ed25519 implementation (signing)
+│   ├── secp256k1.go     # Secp256k1 implementation (Ethereum)
+│   ├── x25519.go        # X25519 implementation (ECDH + HPKE)
+│   ├── rs256.go         # RSA-PSS-SHA256 implementation
+│   ├── algorithms.go    # Algorithm registration
+│   └── constructors.go  # Key generation factory
 ├── formats/              # Key format conversion
 │   ├── jwk.go           # JWK format
 │   └── pem.go           # PEM format
 ├── storage/              # Key storage
 │   ├── memory.go        # Memory storage
 │   └── file.go          # File storage
+├── vault/                # Encrypted key vault
+│   └── secure_storage.go # AES-256-GCM encrypted storage
 ├── rotation/             # Key rotation
 │   └── rotator.go       # Key rotation management
 └── chain/               # Blockchain integration
     ├── types.go         # Chain Provider interface
     ├── registry.go      # Provider registry
+    ├── key_mapper.go    # Key type mapping
+    ├── utils.go         # Utility functions
     ├── ethereum/        # Ethereum support
+    │   ├── provider.go
+    │   └── enhanced_provider.go
     └── solana/          # Solana support
+        └── provider.go
 ```
 
 ## Build Instructions
@@ -160,6 +178,81 @@ if err == nil {
 }
 ```
 
+#### X25519 Key Exchange and Encryption
+
+```go
+import "github.com/sage-x-project/sage/crypto/keys"
+
+// Generate X25519 keys for Alice and Bob
+aliceKey, _ := keys.GenerateX25519KeyPair()
+bobKey, _ := keys.GenerateX25519KeyPair()
+
+// Alice derives shared secret with Bob's public key
+sharedSecret, _ := aliceKey.(*keys.X25519KeyPair).DeriveSharedSecret(
+    bobKey.PublicKey().(*ecdh.PublicKey).Bytes(),
+)
+
+// Encrypt message
+plaintext := []byte("Secret message")
+nonce, ciphertext, _ := aliceKey.(*keys.X25519KeyPair).Encrypt(
+    bobKey.PublicKey().(*ecdh.PublicKey).Bytes(),
+    plaintext,
+)
+
+// Bob decrypts
+decrypted, _ := bobKey.(*keys.X25519KeyPair).DecryptWithX25519(
+    aliceKey.PublicKey().(*ecdh.PublicKey).Bytes(),
+    nonce,
+    ciphertext,
+)
+```
+
+#### Secure Key Exchange using HPKE
+
+```go
+import "github.com/sage-x-project/sage/crypto/keys"
+
+// Sender: Derive shared secret
+info := []byte("application context")
+exportCtx := []byte("shared secret")
+enc, sharedSecret, _ := keys.HPKEDeriveSharedSecretToPeer(
+    recipientPublicKey,
+    info,
+    exportCtx,
+    32, // Generate 32-byte secret
+)
+
+// Receiver: Recover same shared secret
+recoveredSecret, _ := keys.HPKEOpenSharedSecretWithPriv(
+    recipientPrivateKey,
+    enc,
+    info,
+    exportCtx,
+    32,
+)
+// sharedSecret == recoveredSecret
+```
+
+#### Encrypted Key Storage using Vault
+
+```go
+import "github.com/sage-x-project/sage/crypto/vault"
+
+// Create vault
+fileVault, _ := vault.NewFileVault("./secure-keys")
+
+// Store encrypted key
+passphrase := "strong-password"
+keyData := []byte("sensitive key material")
+fileVault.StoreEncrypted("my-secure-key", keyData, passphrase)
+
+// Load and decrypt key
+decryptedKey, _ := fileVault.LoadDecrypted("my-secure-key", passphrase)
+
+// List stored keys
+keys := fileVault.ListKeys()
+```
+
 ### 2. CLI Tool Usage
 
 #### Key Generation
@@ -247,10 +340,10 @@ echo "Message to sign" | ./sage-crypto sign --key mykey.jwk --base64
 
 ### Supported Blockchains
 
-| Blockchain | Required Key Type | Address Format | Public Key Recovery |
-|------------|------------------|----------------|---------------------|
-| Ethereum | Secp256k1 | 40-char hex starting with 0x | No |
-| Solana | Ed25519 | Base58 encoded | Yes |
+| Blockchain | Required Key Type | Address Format | Public Key Recovery | Networks |
+|------------|------------------|----------------|---------------------|----------|
+| Ethereum | Secp256k1 | 40-char hex starting with 0x | No | Mainnet, Sepolia, Holesky |
+| Solana | Ed25519 | Base58 encoded (32 bytes) | Yes | Mainnet, Devnet, Testnet |
 
 ### Programmatic Blockchain Address Usage
 
@@ -410,8 +503,19 @@ echo "Document content" > document.txt
 
 ## Supported Algorithms
 
-- **Ed25519**: Fast and secure EdDSA signature algorithm
-- **Secp256k1**: Elliptic curve used in Bitcoin and Ethereum
+| Algorithm | Type | Purpose | RFC 9421 | Signing | Encryption | Key Exchange |
+|-----------|------|---------|----------|---------|------------|--------------|
+| **Ed25519** | EdDSA | Digital signatures | Yes (ed25519) | Yes | No | No |
+| **Secp256k1** | ECDSA | Signing, blockchain | Yes (es256k) | Yes | No | No |
+| **X25519** | ECDH | Key exchange, encryption | No | No | Yes | Yes |
+| **RS256** | RSA | Signing, encryption | Yes (rsa-pss-sha256) | Yes | Yes | No |
+
+### Algorithm Features
+
+- **Ed25519**: Fast and secure EdDSA signature algorithm (Curve25519-based)
+- **Secp256k1**: ECDSA elliptic curve used in Bitcoin and Ethereum
+- **X25519**: ECDH (Elliptic Curve Diffie-Hellman) key exchange with HPKE support
+- **RS256**: RSA-PSS-SHA256 with 2048-bit key length
 
 ## Supported Formats
 

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 /**
  * @title ISageRegistry
@@ -73,6 +73,8 @@ interface ISageRegistry {
     ) external;
 
     function deactivateAgent(bytes32 agentId) external;
+
+    function deactivateAgentByDID(string calldata did) external;
 
     function getAgent(bytes32 agentId) external view returns (AgentMetadata memory);
 

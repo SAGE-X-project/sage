@@ -1,0 +1,64 @@
+# SAGE Development Configuration
+environment: development
+
+# Blockchain configuration for local development
+blockchain:
+  network_rpc: "${SAGE_BLOCKCHAIN_RPC:http://127.0.0.1:8545}"
+  contract_addr: "${SAGE_CONTRACT_ADDRESS}"
+  chain_id: 31337  # Hardhat default chain ID
+  gas_limit: 3000000
+  max_gas_price: "100000000000"  # 100 Gwei
+  max_retries: 3
+  retry_delay: 1s
+  request_timeout: 30s
+
+# DID configuration
+did:
+  registry_address: "${SAGE_DID_REGISTRY}"
+  method: "sage"
+  network: "ethereum"
+  cache_size: 100
+  cache_ttl: 5m
+
+# Key storage configuration
+keystore:
+  type: "encrypted-file"
+  directory: "${SAGE_KEYSTORE_DIR:.sage/keys}"
+  passphrase_env: "SAGE_KEYSTORE_PASSPHRASE"
+
+# Session management
+session:
+  max_idle_time: 30m
+  cleanup_interval: 5m
+  max_sessions: 1000
+  enable_metrics: true
+
+# Handshake configuration
+handshake:
+  timeout: 30s
+  max_retries: 3
+  retry_backoff: 1s
+  enable_metrics: true
+
+# Logging configuration
+logging:
+  level: "debug"
+  format: "text"  # text format for easier reading in development
+  output: "stdout"
+  file_path: ""
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 9090
+  path: "/metrics"
+
+# Health check configuration
+health:
+  enabled: true
+  port: 8080
+  path: "/health"
+  checks:
+    - "blockchain"
+    - "did"
+    - "keystore"

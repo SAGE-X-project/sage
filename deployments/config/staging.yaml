@@ -1,0 +1,65 @@
+# SAGE Staging Configuration
+environment: staging
+
+# Blockchain configuration for staging
+blockchain:
+  network_rpc: "${SAGE_BLOCKCHAIN_RPC}"
+  contract_addr: "${SAGE_CONTRACT_ADDRESS}"
+  chain_id: 1001  # Klaytn Baobab testnet
+  gas_limit: 3000000
+  max_gas_price: "250000000000"  # 250 Gwei
+  max_retries: 5
+  retry_delay: 2s
+  request_timeout: 60s
+
+# DID configuration
+did:
+  registry_address: "${SAGE_DID_REGISTRY}"
+  method: "sage"
+  network: "ethereum"
+  cache_size: 500
+  cache_ttl: 10m
+
+# Key storage configuration
+keystore:
+  type: "encrypted-file"
+  directory: "${SAGE_KEYSTORE_DIR:/var/lib/sage/keys}"
+  passphrase_env: "SAGE_KEYSTORE_PASSPHRASE"
+
+# Session management
+session:
+  max_idle_time: 1h
+  cleanup_interval: 10m
+  max_sessions: 5000
+  enable_metrics: true
+
+# Handshake configuration
+handshake:
+  timeout: 45s
+  max_retries: 5
+  retry_backoff: 2s
+  enable_metrics: true
+
+# Logging configuration
+logging:
+  level: "info"
+  format: "json"
+  output: "file"
+  file_path: "/var/log/sage/app.log"
+
+# Metrics configuration
+metrics:
+  enabled: true
+  port: 9090
+  path: "/metrics"
+
+# Health check configuration
+health:
+  enabled: true
+  port: 8080
+  path: "/health"
+  checks:
+    - "blockchain"
+    - "did"
+    - "keystore"
+    - "sessions"

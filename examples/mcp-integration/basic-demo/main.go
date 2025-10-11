@@ -1,22 +1,21 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
-
-// Basic demo of SAGE-secured MCP tool
 package main
 
 import (
@@ -29,8 +28,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sage-x-project/sage/core/rfc9421"
-	"github.com/sage-x-project/sage/crypto/keys"
+	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 )
 
 // === MCP Tool Types ===
@@ -102,7 +101,7 @@ func (c *Calculator) HandleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Perform calculation
 	result, err := c.Calculate(req.Operation, req.Arguments)
-	
+
 	// 4. Send response
 	resp := ToolResponse{}
 	if err != nil {
@@ -235,14 +234,14 @@ func (a *DemoAgent) CallTool(url string, operation string, args map[string]inter
 
 	// Read response
 	body, _ := io.ReadAll(resp.Body)
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("request failed (%d): %s", resp.StatusCode, string(body))
 	}
 
 	var result ToolResponse
 	json.Unmarshal(body, &result)
-	
+
 	if result.Error != "" {
 		fmt.Printf("   Error: %s\n", result.Error)
 	} else {
@@ -269,7 +268,7 @@ func main() {
 
 	// Set up HTTP handler
 	http.HandleFunc("/calculator", calc.HandleRequest)
-	
+
 	// Info endpoint
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, `SAGE-Secured Calculator Tool
@@ -307,9 +306,9 @@ Untrusted agents:
 	// Run demo requests after server starts
 	go func() {
 		time.Sleep(2 * time.Second)
-		
+
 		fmt.Println("\n=== Running Demo Requests ===")
-		
+
 		// Alice's request (trusted)
 		fmt.Printf("\n1. Alice (trusted) requests: 10 + 20\n")
 		alice.CallTool("http://localhost:8080/calculator", "add", map[string]interface{}{

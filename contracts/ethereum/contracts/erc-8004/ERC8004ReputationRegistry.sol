@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./interfaces/IERC8004ReputationRegistry.sol";
 import "./interfaces/IERC8004IdentityRegistry.sol";
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title ERC8004ReputationRegistry
@@ -19,12 +20,12 @@ import "./interfaces/IERC8004IdentityRegistry.sol";
  * - Minimal on-chain data storage (gas efficient)
  * - Off-chain aggregation via events
  * - Integration with Identity Registry for agent verification
+ * - Two-step ownership transfer for security
  */
-contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
+contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
     // State variables
     IERC8004IdentityRegistry public identityRegistry;
     address public validationRegistry;
-    address public owner;
 
     // Feedback storage
     mapping(bytes32 => Feedback) private feedbacks;
@@ -42,10 +43,8 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
     uint256 private constant MAX_RATING = 100;
     uint256 private constant MAX_FEEDBACK_PER_QUERY = 100;
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner");
-        _;
-    }
+    // Events
+    event ValidationRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
 
     modifier onlyValidationRegistry() {
         require(msg.sender == validationRegistry, "Only validation registry");
@@ -55,7 +54,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
     constructor(address _identityRegistry) {
         require(_identityRegistry != address(0), "Invalid identity registry");
         identityRegistry = IERC8004IdentityRegistry(_identityRegistry);
-        owner = msg.sender;
+        _transferOwnership(msg.sender);
     }
 
     /**
@@ -66,7 +65,9 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
     function setValidationRegistry(address _validationRegistry) external onlyOwner {
         require(_validationRegistry != address(0), "Invalid validation registry");
         require(validationRegistry == address(0), "Already set");
+        address oldRegistry = validationRegistry;
         validationRegistry = _validationRegistry;
+        emit ValidationRegistryUpdated(oldRegistry, _validationRegistry);
     }
 
     /**

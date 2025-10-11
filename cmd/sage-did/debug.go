@@ -1,19 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 package main
 
@@ -24,7 +25,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/sage-x-project/sage/did/ethereum"
+	"github.com/sage-x-project/sage/pkg/agent/did/ethereum"
 	"github.com/spf13/cobra"
 )
 
@@ -42,14 +43,14 @@ This command provides debugging utilities for:
 }
 
 var (
-	didString      string
-	resolveFlag    bool
-	parseOnly      bool
-	checkCache     bool
+	didString       string
+	resolveFlag     bool
+	parseOnly       bool
+	checkCache      bool
 	verifySignature bool
-	message        string
-	signature      string
-	verbose        bool
+	message         string
+	signature       string
+	verbose         bool
 )
 
 func init() {

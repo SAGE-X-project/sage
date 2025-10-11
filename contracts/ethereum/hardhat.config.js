@@ -28,6 +28,7 @@ const networks = {
   // Local Development Networks
   hardhat: {
     chainId: 31337,
+    blockGasLimit: 30000000, // 30M gas limit for complex governance operations
     mining: {
       auto: true,
       interval: 0
@@ -126,7 +127,8 @@ const etherscanConfig = {
   apiKey: {
     kairos: getEnvVariable("KAIROS_API_KEY", "unnecessary"),
     kaia: getEnvVariable("KAIA_API_KEY", "unnecessary"),
-    cypress: getEnvVariable("KAIA_API_KEY", "unnecessary")
+    cypress: getEnvVariable("KAIA_API_KEY", "unnecessary"),
+    sepolia: getEnvVariable("ETHERSCAN_API_KEY", "")
   },
   customChains: [
     {
@@ -155,11 +157,6 @@ const etherscanConfig = {
     }
   ]
 };
-
-// Add Sepolia to etherscan config if configured
-if (process.env.ETHERSCAN_API_KEY && process.env.SEPOLIA_RPC_URL) {
-  etherscanConfig.apiKey.sepolia = process.env.ETHERSCAN_API_KEY;
-}
 
 // ============================================
 // GAS REPORTER CONFIGURATION

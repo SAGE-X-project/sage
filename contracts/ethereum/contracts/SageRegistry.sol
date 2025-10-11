@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.19;
 
 import "./interfaces/ISageRegistry.sol";
 import "./interfaces/IRegistryHook.sol";
@@ -261,13 +261,29 @@ contract SageRegistry is ISageRegistry {
      */
     function deactivateAgent(bytes32 agentId) external onlyAgentOwner(agentId) {
         require(agents[agentId].active, "Agent already inactive");
-        
+
         agents[agentId].active = false;
         agents[agentId].updatedAt = block.timestamp;
-        
+
         emit AgentDeactivated(agentId, msg.sender, block.timestamp);
     }
-    
+
+    /**
+     * @notice Deactivate an agent by DID (O(1) lookup)
+     * @dev More efficient than deactivateAgent as it uses DID-to-ID mapping
+     */
+    function deactivateAgentByDID(string calldata did) external {
+        bytes32 agentId = didToAgentId[did];
+        require(agentId != bytes32(0), "Agent not found");
+        require(agents[agentId].owner == msg.sender, "Not agent owner");
+        require(agents[agentId].active, "Agent already inactive");
+
+        agents[agentId].active = false;
+        agents[agentId].updatedAt = block.timestamp;
+
+        emit AgentDeactivated(agentId, msg.sender, block.timestamp);
+    }
+
     /**
      * @notice Get agent metadata by ID
      */

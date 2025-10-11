@@ -1,13 +1,27 @@
 # SAGE - Secure Agent Guarantee Engine
 
-[![Go Version](https://img.shields.io/badge/Go-1.24%2B-blue.svg)](https://golang.org/dl/)
+[![Go Version](https://img.shields.io/badge/Go-1.24.4%2B-blue.svg)](https://golang.org/dl/)
 [![Solidity Version](https://img.shields.io/badge/Solidity-0.8.19-red.svg)](https://soliditylang.org/)
 [![License](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+
+[![Tests](https://github.com/sage-x-project/sage/workflows/Test/badge.svg)](https://github.com/sage-x-project/sage/actions/workflows/test.yml)
+[![Integration Tests](https://github.com/sage-x-project/sage/workflows/Integration%20Tests/badge.svg)](https://github.com/sage-x-project/sage/actions/workflows/integration-test.yml)
+[![Security](https://github.com/sage-x-project/sage/workflows/Security/badge.svg)](https://github.com/sage-x-project/sage/actions/workflows/security.yml)
+[![codecov](https://codecov.io/gh/sage-x-project/sage/branch/main/graph/badge.svg)](https://codecov.io/gh/sage-x-project/sage)
 
 ## Overview
 
 SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based security framework for AI agent communication. It provides end-to-end encrypted, authenticated communication channels between AI agents using decentralized identity (DID) management, HPKE-based key agreement, and RFC 9421 HTTP Message Signatures.
+
+### 🌐 Live Deployments
+
+**Sepolia Testnet** (LIVE ):
+- **SAGE Core System**:
+  - SageRegistryV2: [`0x487d45a678eb947bbF9d8f38a67721b13a0209BF`](https://sepolia.etherscan.io/address/0x487d45a678eb947bbF9d8f38a67721b13a0209BF)
+  - ERC8004ValidationRegistry: [`0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440`](https://sepolia.etherscan.io/address/0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440)
+- **ERC-8004 Standalone**:
+  - ERC8004IdentityRegistry: [`0x02439d8DA11517603d0DE1424B33139A90969517`](https://sepolia.etherscan.io/address/0x02439d8DA11517603d0DE1424B33139A90969517)
+  - [See all deployed contracts →](contracts/ethereum/docs/PHASE7-SEPOLIA-DEPLOYMENT-COMPLETE.md)
 
 ### Key Features
 
@@ -83,7 +97,7 @@ sage/
 
 ### Prerequisites
 
-- **Go 1.24 or higher**
+- **Go 1.24.4 or higher** (required by a2a-go dependency)
 - **Node.js 18+** and npm (for smart contract development)
 - **Git**
 
@@ -112,8 +126,18 @@ npm install
 4. **Build the project**
 
 ```bash
-# Build all CLI tools using Makefile
+# Build all CLI tools for current platform
 make build
+
+# Build for all platforms (Linux, macOS, Windows on x86_64 and ARM64)
+make build-all-platforms
+
+# Build as C-compatible library
+make build-lib              # Build for current platform
+make build-lib-all          # Build for all platforms
+
+# Create release packages with checksums
+make release
 
 # Or build individually
 go build -o build/bin/sage-crypto ./cmd/sage-crypto
@@ -124,6 +148,12 @@ go build -o build/bin/sage-verify ./cmd/sage-verify
 cd contracts/ethereum
 npm run compile
 ```
+
+**See [docs/BUILD.md](docs/BUILD.md) for detailed build instructions including:**
+- Cross-platform compilation (Linux, macOS, Windows)
+- Multi-architecture support (x86_64, ARM64)
+- Library builds (static `.a`, shared `.so`/`.dylib`/`.dll`)
+- C/C++, Python, and Rust integration examples
 
 ## Configuration
 
@@ -214,43 +244,41 @@ The handshake establishes an end-to-end encrypted session between two agents:
 
 ```go
 import (
-    "github.com/sage-x-project/sage/handshake"
+    "github.com/sage-x-project/sage/hpke"
     "github.com/sage-x-project/sage/session"
     "github.com/sage-x-project/sage/did"
 )
 
 // Client side (Agent A)
-client := handshake.NewClient(conn, myKeyPair)
+client := hpke.NewClient(conn, myKeyPair)
 
-// 1. Send invitation
-inv := &handshake.InvitationMessage{
-    BaseMessage: message.BaseMessage{ContextID: contextID},
-}
-resp, err := client.Invitation(ctx, *inv, myDID)
+// Initialize session
+// Receive kid from Server (Agent B)
+ctxID := "ctx-" + uuid.NewString()
+kid, _ := client.Initialize(ctx, ctxID, clientDID, serverDID)
 
-// 2. Send ephemeral key request
-req := &handshake.RequestMessage{
-    BaseMessage:     message.BaseMessage{ContextID: contextID},
-    EphemeralPubKey: myEphemeralKey,
-}
-resp, err = client.Request(ctx, *req, peerPublicKey, myDID)
-
-// 3. Complete handshake
-comp := &handshake.CompleteMessage{
-    BaseMessage: message.BaseMessage{ContextID: contextID},
-}
-resp, err = client.Complete(ctx, *comp, myDID)
-
-// Server side (Agent B) - Event-driven
-events := &MyEventHandler{
-    sessionManager: session.NewManager(),
-}
-server := handshake.NewServer(keyPair, events, resolver, nil, cleanupInterval)
-
-// Sessions are created automatically via OnComplete event
 ```
 
-### 4. Create RFC 9421 Signed Messages
+### 4. HPKE Encryption/Decryption
+
+```go
+import (
+    "github.com/sage-x-project/sage/hpke"
+    "github.com/sage-x-project/sage/session"
+)
+
+// Get session from manager
+sess, ok := sessionManager.GetByKeyID(keyID)
+
+// encryption
+cipher, _ := sess.Encrypt(body)
+
+// decryption
+plain, _:= sess.Decrypt(cipher)
+
+```
+
+### 5. Create RFC 9421 Signed Messages
 
 ```go
 import (
@@ -258,8 +286,6 @@ import (
     "github.com/sage-x-project/sage/session"
 )
 
-// Get session from manager
-sess, ok := sessionManager.GetByKeyID(keyID)
 
 // Create HTTP message builder
 builder := rfc9421.NewMessageBuilder()
@@ -268,38 +294,19 @@ msg := builder.
     Authority("api.example.com").
     Path("/api/v1/chat").
     Header("Content-Type", "application/json").
-    Body([]byte(requestBody)).
+    Body([]byte(cipherRequestBody)).
     Build()
 
 // Create verifier with session
 verifier := rfc9421.NewHTTPVerifier(sess, sessionManager)
 
 // Sign the message
-signature, err := verifier.SignHTTPMessage(msg, keyID, []string{
-    "@method", "@authority", "@path", "content-type", "content-digest",
+signature, err := verifier.SignRequest(msg, sigName, []string{
+    "@method", "@authority", "@path", "content-type", "content-digest", privKey
 })
 
 // Verify signature
-err = verifier.VerifyHTTPSignature(msg, signature, keyID)
-```
-
-### 5. HPKE Encryption
-
-```go
-import (
-    "github.com/sage-x-project/sage/hpke"
-)
-
-// Sender (Agent A)
-client, err := hpke.NewClient(peerPublicKey)
-ciphertext, encapsulated, err := client.Seal(plaintext, associatedData)
-
-// Receiver (Agent B)
-server, err := hpke.NewServer(myPrivateKey)
-plaintext, err := server.Open(encapsulated, ciphertext, associatedData)
-
-// Export session key for derived channels
-exportedKey := server.Export(context, length)
+err = verifier.VerifyRequest(req, pubKey, HTTPVerificationOptions)
 ```
 
 ## Testing
@@ -326,8 +333,8 @@ go test ./session/...
 # Run integration tests
 make test-integration
 
-# Run handshake integration test
-make test-handshake
+# Run hpke based handshake integration test
+make test-hpke
 
 # Run quick tests (excluding slow integration tests)
 make test-quick
@@ -348,6 +355,18 @@ go test -race ./...
 # Generate coverage report
 go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
+```
+
+### Development Scripts
+
+```bash
+# Verify all Makefile targets
+./tools/scripts/verify_makefile.sh
+
+# This script tests all major Makefile targets and reports:
+# - PASS: Target executed successfully
+# - FAIL: Target failed with error details
+# - SKIP: Target skipped (e.g., requires external services)
 ```
 
 ### Run Smart Contract Tests
@@ -455,12 +474,13 @@ See [docs/handshake/handshake-en.md](docs/handshake/handshake-en.md) for detaile
 SAGE provides bindings for multiple programming languages:
 
 - **Go**: Native implementation
-- **Python**: Web3.py based bindings
-- **Rust**: Ethers-rs based bindings (planned)
+- **C/C++**: Static and shared library bindings
+- **Python**: Web3.py based bindings + ctypes library integration
+- **Rust**: FFI bindings via static library
 - **JavaScript/TypeScript**: Ethers.js bindings
-- **Java**: Web3j based bindings (planned)
+- **Java**: JNI bindings (planned)
 
-Example usage in Python:
+### Smart Contract Bindings (Python Example)
 
 ```python
 from sage_contracts import SageRegistry
@@ -480,6 +500,72 @@ tx_hash = registry.register_agent(
     capabilities=["chat", "analysis"]
 )
 ```
+
+### C Library Integration
+
+SAGE can be built as a C-compatible library for integration with other languages:
+
+```c
+#include "libsage.h"
+
+int main() {
+    // Initialize SAGE library
+    sage_init();
+
+    // Generate Ed25519 key pair
+    char public_key[128];
+    char private_key[128];
+    sage_generate_keypair(public_key, private_key);
+
+    printf("Public Key: %s\n", public_key);
+
+    // Cleanup
+    sage_cleanup();
+    return 0;
+}
+```
+
+**Compile with static library:**
+```bash
+# Linux
+gcc -o myapp myapp.c build/lib/linux-amd64/libsage.a
+
+# macOS
+clang -o myapp myapp.c build/lib/darwin-arm64/libsage.a
+
+# Windows (MinGW)
+x86_64-w64-mingw32-gcc -o myapp.exe myapp.c build/lib/windows-amd64/libsage.a
+```
+
+### Python Library Integration (ctypes)
+
+```python
+import ctypes
+import os
+
+# Load SAGE library
+if os.name == 'nt':
+    lib = ctypes.CDLL('libsage.dll')
+elif os.uname().sysname == 'Darwin':
+    lib = ctypes.CDLL('libsage.dylib')
+else:
+    lib = ctypes.CDLL('libsage.so')
+
+# Initialize
+lib.sage_init()
+
+# Generate key pair
+public_key = ctypes.create_string_buffer(128)
+private_key = ctypes.create_string_buffer(128)
+lib.sage_generate_keypair(public_key, private_key)
+
+print(f"Public Key: {public_key.value.decode()}")
+
+# Cleanup
+lib.sage_cleanup()
+```
+
+**See [docs/BUILD.md](docs/BUILD.md) for complete integration examples with C/C++, Python, Rust, and other languages.**
 
 ## Security Considerations
 
@@ -544,10 +630,10 @@ This project is licensed under the **GNU Lesser General Public License v3.0** - 
 
 **You CAN:**
 
-- ✅ Use SAGE in commercial applications
-- ✅ Use SAGE in proprietary software
-- ✅ Modify SAGE for your needs
-- ✅ Distribute SAGE
+-  Use SAGE in commercial applications
+-  Use SAGE in proprietary software
+-  Modify SAGE for your needs
+-  Distribute SAGE
 
 **You MUST:**
 
@@ -600,9 +686,26 @@ This project is licensed under the **GNU Lesser General Public License v3.0** - 
 
 **Built by the SAGE Team**
 
-For detailed documentation on specific components:
+## Documentation
 
-- [Handshake Protocol](docs/handshake/handshake-en.md)
-- [Smart Contracts](contracts/README.md)
-- [Security Design](docs/dev/security-design.md)
-- [Testing Guide](docs/TEST_EXECUTION_GUIDE.md)
+### Core Documentation
+
+- **[Documentation Index](docs/INDEX.md)** - Complete documentation catalog
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - System architecture and design patterns
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to SAGE
+- **[API Reference](docs/API.md)** - HTTP and gRPC API documentation
+
+### Component Documentation
+
+- **[Handshake Protocol](docs/handshake/handshake-en.md)** - HPKE handshake details
+- **[Smart Contracts](contracts/README.md)** - Ethereum and Solana contracts
+- **[Security Design](docs/dev/security-design.md)** - Security architecture
+- **[Testing Guide](docs/TESTING.md)** - Testing strategies and best practices
+- **[Benchmark Guide](tools/benchmark/README.md)** - Performance benchmarking
+
+### Development
+
+- **[Build Instructions](docs/BUILD.md)** - Compilation and installation
+- **[CI/CD Pipeline](docs/CI-CD.md)** - Continuous integration workflows
+- **[Coding Guidelines](docs/CODING_GUIDELINES.md)** - Code quality standards
+- **[Code Review Checklist](docs/CODE_REVIEW_CHECKLIST.md)** - PR review guidelines

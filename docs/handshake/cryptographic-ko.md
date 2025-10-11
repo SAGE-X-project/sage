@@ -12,7 +12,7 @@
 
 - **부트스트랩 암호화**: 수신자의 Ed25519 공개키를 X25519로 변환해 Ephemeral-Static ECDH → HKDF → AEAD(AES-GCM) 로 암호화
 
-**보안 성질**
+### 보안 성질
 
 - **기밀성**: 부트스트랩 암호화로 임시키/핸드셰이크 내용을 제3자가 볼 수 없습니다(AES-GCM).
 - **무결성/출처**: Ed25519 서명 검증 및 AEAD 인증태그로 변조·바꿔치기를 차단합니다.
@@ -23,7 +23,7 @@
 - **유효한 DID → 올바른 공개키**: 상대 DID Document가 최신이며 변조되지 않았음을 전제(블록체인 앵커·검증 절차로 확보)
 - **정상 난수원**: 임시키 생성, AEAD nonce 생성에 충분한 엔트로피가 제공
 
-### 유의사항 & 대응
+### 대표 위협 & 대응
 
 ### 1. 중간자 공격 (MitM)
 
@@ -72,6 +72,117 @@
    상위 레이어에서 DID Document 검증을 전제로 동작(네 문서/흐름에 명시). DID를 통해 신원키를 조회하고 A2A 서명 검증·부트스트랩 암호화에 활용
 - **유의 사항**  
    DID 리졸버에 TTL/리프레시/해지(Revocation) 확인 정책을 적용하고, 체인 앵커 검증·캐시 무결성 보호(예: 서명된 캐시) 추가
+
+## DID 신원키(Ed25519) & HPKE로 임시(X25519) 키 교환 보호
+
+**DID 신원 레이어**와 **HPKE(RFC 9180)** 를 조합해 핸드셰이크 단계의 임시 키 교환을 보호하는 SAGE의 권장 운용을 설명합니다. 핵심은:
+
+- **신원·무결성**: **DID 서명(Ed25519)** 으로 보장
+- **세션 시드 합의**: **HPKE(Base)** 로 보호
+- **수신자 정적 KEM 키 유출 리스크**: **Ephemeral–Ephemeral 보강(PFS add-on)** 으로 제거
+
+### 페이로드(요약)
+
+**Client → Server (Init)**
+
+- `enc` : HPKE encapsulation (32B, 평문 전달)
+- `info`, `exportCtx` : 컨텍스트 결합용 문자열(예: `sage/hpke v1|ctx=...|init=...|resp=...`, `exporter:ctx`)
+- `nonce`, `ts` : 재전송·신선도 방지
+- `ephC` _(선택, PFS add-on)_ : 클라이언트 X25519 임시 공개키(32B)
+
+> A2A 메타데이터에는 **발신자 DID** 와 **Ed25519 서명**이 들어갑니다(메시지 원천/무결성 보장).
+
+**Server → Client (Ack)**
+
+- `kid` : 세션 키 식별자
+- `ackTagB64` : 키 확인 태그
+  `ackKey = HKDF(seed, "ack-key", 32)`
+  `ackTag = HMAC(ackKey, "hpke-ack|"+ctxID+"|"+nonce+"|"+kid)`
+- `ephS` _(선택, PFS add-on)_ : 서버 X25519 임시 공개키(32B)
+
+### 시드 파생(HPKE Base + PFS 보강)
+
+1. **HPKE Base**
+   수신자 정적 X25519 KEM 공개키로 파생한 **exporterHPKE** 를 양단에서 일치시킵니다.
+
+2. **PFS add-on(권장)**
+   `ssE2E = X25519(ephC, ephS)`를 추가로 결합해 최종 시드를 강화합니다.
+
+```
+Base only:
+    seed = exporterHPKE
+
+Base + PFS add-on:
+    seed = HKDF-Extract( salt = exportCtx,
+                         IKM  = exporterHPKE || ssE2E )
+           → HKDF-Expand(info = "SAGE-HPKE+E2E-Combiner", L=32)
+```
+
+클라이언트는 동일한 절차로 `seed`를 계산해 `ackTag`를 검증하고, `kid`에 세션을 바인딩합니다.
+
+### 보안 성질
+
+- **기밀성(세션 이후)**: 파생된 `seed`에서 세션 키를 HKDF로 얻고, 애플리케이션 데이터는 **AEAD(예: ChaCha20-Poly1305)** 로 암·복호화합니다.
+- **무결성/출처(핸드셰이크 메시지)**: Init/Ack 메시지는 **DID 서명(Ed25519)** 으로 검증됩니다.
+- **키 확인(Key Confirmation)**: `ackTag` 를 통해 양끝이 **동일 seed**를 가졌음을 상호 증명합니다.
+- **문맥 바인딩**: `info/exportCtx` 에 `ctxID`, `initDID`, `respDID` 를 포함해 **교차-문맥/다운그레이드**를 차단합니다.
+- **재전송 방지**: Init의 `nonce` 및 이후 RFC 9421 요청의 `nonce`를 **ReplayGuard** 로 거부합니다.
+- **신선도**: `ts` 는 `±maxSkew` 윈도우로 검증합니다.
+
+### 위협 모델과 전제
+
+- **유효한 DID → 올바른 공개키**  
+  DID Document가 최신이며 변조되지 않았다고 가정(체인 앵커·검증 절차)
+- **정상 난수원**  
+  X25519 임시키, AEAD nonce, HPKE 내부 난수는 CSPRNG에서 안전하게 생성
+
+### 대표 위협 & 대응
+
+### 1. 중간자(MitM) / 다운그레이드
+
+- **위험/고려**  
+  `ctxID`/상대 DID/`info` 를 바꿔치기해 exporter를 다른 문맥으로 유도.
+- **대응**:
+  - A2A **DID 서명 검증**(메타 전체)으로 발신자 위조 차단
+  - **`info/exportCtx` 일치성** 검증(양단 동일한 빌더)
+  - **`ackTag` 검증** 으로 실제 키 확인
+
+### 2. Replay(재전송)
+
+- **위험/고려**  
+   동일 Init/HTTP 요청 재전송으로 상태 교란
+- **대응**:
+  - Init: `nonce` 기록 + **신선도(`ts`)**
+  - 세션 단계: RFC 9421 **`nonce` → ReplayGuardSeenOnce(kid, nonce)**
+
+### 3. ECDH all-zero (RFC 7748)
+
+- **위험**: 비정상 공개키로 X25519 공유비밀이 `0x00…00`
+- **대응**:
+  `ECDH` 결과 길이/올-제로 체크 후 **즉시 거부**(로그는 지문만)
+
+### 4. 수신자 정적 KEM 개인키 사후 유출
+
+- **위험**: Base만 쓰면 캡처된 `enc` 로 과거 **exporter** 재현 가능 → 과거 트래픽 복호화 위험
+- **대응**:
+
+  - **PFS add-on 권장**: `exporterHPKE || ssE2E` 결합 → 정적키만으로 seed 재현 불가
+  - 운영 보완: **KEM 키 단기화/자동 회전**, **HSM 보관**, 상위 채널에서 `enc` 은닉
+
+### 5. **요청 무결성/커버리지 부족**
+
+- **대응**:  
+  세션 이후 HTTP 요청은 **RFC 9421** 로 `@method`, `@path`, `@authority`, `content-digest`, `date` 를 커버해 **헤더/본문 무결성**과 **재연불가성** 확보.
+
+---
+
+### 운용 팁
+
+- **InfoBuilder** 를 서비스 문맥에 맞게 고정 규격으로 유지(양단 동일).
+- **`maxSkew`/Nonce TTL** 은 네트워크 지연을 고려해 설정.
+- **세션 정책**: `MaxAge`·`IdleTimeout`·`MaxMessages` 로 수명·폭주 제어, **만료 시 키 안전폐기**.
+- **로그**: DID·컨텍스트·키 지문만 기록(원문/seed/키 재료 저장 금지).
+- **강한 FS가 필요**하면 **Base+PFS add-on** 을 기본으로 운용.
 
 ## X25519 공유 비밀(shared secret) → HKDF-SHA256 → 세션 키 파생 (AEAD/HMAC)
 

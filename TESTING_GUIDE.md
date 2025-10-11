@@ -226,8 +226,8 @@ export ETHEREUM_RPC_URL=http://127.0.0.1:8545
 ### 문제: Auth0 인증 실패
 ```bash
 # Auth0 도메인 확인 (https:// 제외)
-export AUTH0_DOMAIN_1=your-tenant.auth0.com  # ✅ 올바른 형식
-# export AUTH0_DOMAIN_1=https://your-tenant.auth0.com  # ❌ 잘못된 형식
+export AUTH0_DOMAIN_1=your-tenant.auth0.com  #  올바른 형식
+# export AUTH0_DOMAIN_1=https://your-tenant.auth0.com  #  잘못된 형식
 ```
 
 ### 문제: 환경변수가 테스트에서 인식되지 않음

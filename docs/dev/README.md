@@ -2,6 +2,16 @@
 
 > 블록체인 DID 기반 AI 에이전트 신뢰 통신 프레임워크
 
+> ️ **NOTE**: This README contains some outdated information from initial planning phase.
+>
+> **Current implementation**:
+> -  HPKE handshake, session encryption, RFC 9421 signatures
+> -  DID management, CLI tools (sage-crypto, sage-did)
+> -  Gateway mode not implemented (Direct P2P only)
+> -  No Rust engine (Go native implementation using cloudflare/circl)
+>
+> For quick start, see CLI documentation in `/docs/cli/`
+
 ## 목차
 
 - [프로젝트 개요](#프로젝트-개요)

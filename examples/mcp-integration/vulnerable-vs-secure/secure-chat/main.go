@@ -1,22 +1,21 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
-
-// SECURE Chat Server with SAGE Protection
 package main
 
 import (
@@ -56,7 +55,7 @@ func verifyRequest(r *http.Request) error {
 	// 1. Resolve the agent's public key from blockchain
 	// 2. Verify the signature using RFC-9421
 	// 3. Check agent capabilities
-	
+
 	// For demo, we accept any request with both headers
 	return nil
 }
@@ -65,10 +64,10 @@ func verifyRequest(r *http.Request) error {
 func processMessage(msg ChatMessage, verifiedAgentDID string) ChatResponse {
 	fmt.Printf(" Verified message from: %s\n", verifiedAgentDID)
 	fmt.Printf("💬 Message: %s\n", msg.Message)
-	
+
 	// Now we KNOW this is really from the claimed agent!
 	time.Sleep(100 * time.Millisecond)
-	
+
 	return ChatResponse{
 		Status:  "success",
 		Reply:   fmt.Sprintf("Securely processed message from verified agent %s", verifiedAgentDID),
@@ -105,10 +104,10 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 
 	// Get the verified agent DID
 	verifiedAgentDID := r.Header.Get("X-Agent-DID")
-	
+
 	response := processMessage(msg, verifiedAgentDID)
 	fmt.Println(" Processed securely")
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -125,7 +124,7 @@ func main() {
 	fmt.Println("")
 	fmt.Println("(This is a demo - in production, full SAGE verification would be used)")
 	fmt.Println("")
-	
+
 	http.HandleFunc("/chat", handleChat)
 	log.Fatal(http.ListenAndServe(":8083", nil))
 }

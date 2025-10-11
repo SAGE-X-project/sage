@@ -1,22 +1,21 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
-
-// Package main demonstrates a basic MCP calculator tool secured with SAGE
 package main
 
 import (
@@ -24,9 +23,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/sage-x-project/sage/core"
-	"github.com/sage-x-project/sage/core/rfc9421"
-	"github.com/sage-x-project/sage/did"
+	"github.com/sage-x-project/sage/pkg/agent/core"
+	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
+	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
 // CalculatorTool represents a simple MCP tool that performs calculations
@@ -65,7 +64,7 @@ func NewCalculatorTool() (*CalculatorTool, error) {
 	// In production, use real contract address and RPC endpoint
 	config := &did.RegistryConfig{
 		ContractAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f7F1a", // Example address
-		RPCEndpoint:     "https://eth-mainnet.example.com",              // Example endpoint
+		RPCEndpoint:     "https://eth-mainnet.example.com",           // Example endpoint
 	}
 	didManager.Configure(did.ChainEthereum, config)
 

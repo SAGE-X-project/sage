@@ -1,19 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 package metrics
 
@@ -27,15 +28,15 @@ type MetricsCollector struct {
 	mu sync.RWMutex
 
 	// Counters
-	SignatureCount      int64
-	VerificationCount   int64
-	SuccessfulVerifies  int64
-	FailedVerifies      int64
-	DIDResolutions      int64
-	CacheHits           int64
-	CacheMisses         int64
-	BlockchainCalls     int64
-	BlockchainErrors    int64
+	SignatureCount     int64
+	VerificationCount  int64
+	SuccessfulVerifies int64
+	FailedVerifies     int64
+	DIDResolutions     int64
+	CacheHits          int64
+	CacheMisses        int64
+	BlockchainCalls    int64
+	BlockchainErrors   int64
 
 	// Timing metrics (in microseconds)
 	SignatureTimes      []int64
@@ -124,24 +125,24 @@ func (mc *MetricsCollector) GetSnapshot() *MetricsSnapshot {
 	defer mc.mu.RUnlock()
 
 	return &MetricsSnapshot{
-		Timestamp:           time.Now(),
-		Uptime:              time.Since(mc.startTime),
-		SignatureCount:      mc.SignatureCount,
-		VerificationCount:   mc.VerificationCount,
-		SuccessfulVerifies:  mc.SuccessfulVerifies,
-		FailedVerifies:      mc.FailedVerifies,
-		DIDResolutions:      mc.DIDResolutions,
-		CacheHits:           mc.CacheHits,
-		CacheMisses:         mc.CacheMisses,
-		BlockchainCalls:     mc.BlockchainCalls,
-		BlockchainErrors:    mc.BlockchainErrors,
-		AvgSignatureTime:    calculateAverage(mc.SignatureTimes),
-		AvgVerificationTime: calculateAverage(mc.VerificationTimes),
-		AvgBlockchainTime:   calculateAverage(mc.BlockchainLatencies),
+		Timestamp:            time.Now(),
+		Uptime:               time.Since(mc.startTime),
+		SignatureCount:       mc.SignatureCount,
+		VerificationCount:    mc.VerificationCount,
+		SuccessfulVerifies:   mc.SuccessfulVerifies,
+		FailedVerifies:       mc.FailedVerifies,
+		DIDResolutions:       mc.DIDResolutions,
+		CacheHits:            mc.CacheHits,
+		CacheMisses:          mc.CacheMisses,
+		BlockchainCalls:      mc.BlockchainCalls,
+		BlockchainErrors:     mc.BlockchainErrors,
+		AvgSignatureTime:     calculateAverage(mc.SignatureTimes),
+		AvgVerificationTime:  calculateAverage(mc.VerificationTimes),
+		AvgBlockchainTime:    calculateAverage(mc.BlockchainLatencies),
 		AvgDIDResolutionTime: calculateAverage(mc.DIDResolutionTimes),
-		P95SignatureTime:    calculatePercentile(mc.SignatureTimes, 95),
-		P95VerificationTime: calculatePercentile(mc.VerificationTimes, 95),
-		P95BlockchainTime:   calculatePercentile(mc.BlockchainLatencies, 95),
+		P95SignatureTime:     calculatePercentile(mc.SignatureTimes, 95),
+		P95VerificationTime:  calculatePercentile(mc.VerificationTimes, 95),
+		P95BlockchainTime:    calculatePercentile(mc.BlockchainLatencies, 95),
 		P95DIDResolutionTime: calculatePercentile(mc.DIDResolutionTimes, 95),
 	}
 }
@@ -175,15 +176,15 @@ type MetricsSnapshot struct {
 	Uptime    time.Duration
 
 	// Counters
-	SignatureCount      int64
-	VerificationCount   int64
-	SuccessfulVerifies  int64
-	FailedVerifies      int64
-	DIDResolutions      int64
-	CacheHits           int64
-	CacheMisses         int64
-	BlockchainCalls     int64
-	BlockchainErrors    int64
+	SignatureCount     int64
+	VerificationCount  int64
+	SuccessfulVerifies int64
+	FailedVerifies     int64
+	DIDResolutions     int64
+	CacheHits          int64
+	CacheMisses        int64
+	BlockchainCalls    int64
+	BlockchainErrors   int64
 
 	// Timing averages (microseconds)
 	AvgSignatureTime     float64

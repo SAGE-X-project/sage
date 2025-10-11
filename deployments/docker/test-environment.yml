@@ -1,0 +1,133 @@
+version: '3.8'
+
+# SAGE Test Environment
+# Lightweight setup for integration testing with Ethereum and Solana local nodes
+
+services:
+  # Ethereum Local Node (Hardhat)
+  ethereum-node:
+    image: node:18-alpine
+    container_name: sage-test-ethereum
+    working_dir: /app
+    command: sh -c "cd /app/contracts/ethereum && npm install && npx hardhat node --hostname 0.0.0.0"
+    ports:
+      - "8545:8545"
+    volumes:
+      - ../../contracts/ethereum:/app/contracts/ethereum:ro
+    networks:
+      - sage-test-network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "wget -q -O- http://localhost:8545 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    environment:
+      - NODE_ENV=test
+
+  # Solana Local Validator (Test Validator)
+  solana-node:
+    image: solanalabs/solana:stable
+    container_name: sage-test-solana
+    command: >
+      solana-test-validator
+      --reset
+      --quiet
+      --rpc-port 8899
+      --ledger /ledger
+      --limit-ledger-size 10000
+      --bpf-program metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s /bpf/spl_token_metadata.so
+    ports:
+      - "8899:8899"
+      - "8900:8900"  # WebSocket
+    volumes:
+      - solana-ledger:/ledger
+    networks:
+      - sage-test-network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "solana cluster-version --url http://localhost:8899 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    environment:
+      - RUST_LOG=error
+
+  # Redis (Session Cache for Tests)
+  redis-test:
+    image: redis:7-alpine
+    container_name: sage-test-redis
+    ports:
+      - "6380:6379"  # Different port to avoid conflicts
+    command: redis-server --save "" --appendonly no  # No persistence for tests
+    networks:
+      - sage-test-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+    environment:
+      - REDIS_DISABLE_PERSISTENCE=yes
+
+  # PostgreSQL (Optional - for DID Registry tests)
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: sage-test-postgres
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts
+    environment:
+      - POSTGRES_DB=sage_test
+      - POSTGRES_USER=sage_test
+      - POSTGRES_PASSWORD=sage_test_password
+      - POSTGRES_HOST_AUTH_METHOD=trust
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    networks:
+      - sage-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sage_test"]
+      interval: 3s
+      timeout: 2s
+      retries: 5
+    profiles:
+      - with-db
+
+  # Test Coordinator (Health Check & Status)
+  test-health:
+    image: alpine:latest
+    container_name: sage-test-health
+    command: >
+      sh -c '
+        apk add --no-cache curl &&
+        echo "Waiting for services to be healthy..." &&
+        while ! curl -f http://ethereum-node:8545 >/dev/null 2>&1; do
+          echo "Waiting for Ethereum node...";
+          sleep 2;
+        done &&
+        while ! curl -f http://solana-node:8899 >/dev/null 2>&1; do
+          echo "Waiting for Solana node...";
+          sleep 2;
+        done &&
+        echo "✅ All test services are ready!" &&
+        tail -f /dev/null
+      '
+    depends_on:
+      - ethereum-node
+      - solana-node
+      - redis-test
+    networks:
+      - sage-test-network
+
+networks:
+  sage-test-network:
+    driver: bridge
+    name: sage-test-network
+
+volumes:
+  solana-ledger:
+    driver: local
+    name: sage-test-solana-ledger
+  postgres-test-data:
+    driver: local
+    name: sage-test-postgres-data

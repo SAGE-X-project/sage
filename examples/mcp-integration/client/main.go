@@ -1,22 +1,21 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
-
-// AI Agent Client with SAGE Security
 package main
 
 import (
@@ -27,7 +26,7 @@ import (
 func main() {
 	fmt.Println("AI Agent with SAGE Security")
 	fmt.Println("================================")
-	
+
 	// Create SAGE client - just one line!
 	client, err := NewSAGEClient("did:sage:ethereum:0x742d35Cc6634C0532925a3b844Bc9e7595f7F1a")
 	if err != nil {
@@ -44,7 +43,7 @@ func main() {
 			"b": 20,
 		},
 	})
-	
+
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {
@@ -61,7 +60,7 @@ func main() {
 			"b": 5,
 		},
 	})
-	
+
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {
@@ -78,7 +77,7 @@ func main() {
 			"b": 8,
 		},
 	})
-	
+
 	if err != nil {
 		fmt.Printf("Error: %v\n", err)
 	} else {

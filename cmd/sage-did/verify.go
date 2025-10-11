@@ -1,20 +1,20 @@
-// Copyright (C) 2025 sage-x-project
+// SAGE - Secure Agent Guarantee Engine
+// Copyright (C) 2025 SAGE-X-project
 //
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
+// This file is part of SAGE.
 //
-// This program is distributed in the hope that it will be useful,
+// SAGE is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// SAGE is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-License-Identifier: LGPL-3.0-or-later
-
+// along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 package main
 
@@ -25,8 +25,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/spf13/cobra"
-	"github.com/sage-x-project/sage/did"
 )
 
 var verifyCmd = &cobra.Command{
@@ -40,9 +40,9 @@ This command compares provided metadata with the blockchain record.`,
 
 var (
 	// Verify flags
-	verifyMetadataFile   string
-	verifyRPCEndpoint    string
-	verifyContractAddr   string
+	verifyMetadataFile string
+	verifyRPCEndpoint  string
+	verifyContractAddr string
 )
 
 func init() {
@@ -102,7 +102,7 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	// For now, we'll just resolve and compare
 	// In a full implementation, we'd add a VerifyMetadata method to the manager
 	fmt.Printf("Verifying metadata for %s...\n", agentDID)
-	
+
 	// Resolve current on-chain metadata
 	onChainMetadata, err := manager.ResolveAgent(ctx, agentDID)
 	if err != nil {
@@ -112,12 +112,12 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	// Compare metadata
 	valid := true
 	errorMsg := ""
-	
+
 	if metadata.Name != onChainMetadata.Name {
 		valid = false
 		errorMsg = fmt.Sprintf("name mismatch: expected %s, got %s", onChainMetadata.Name, metadata.Name)
 	}
-	
+
 	if metadata.Endpoint != onChainMetadata.Endpoint {
 		valid = false
 		if errorMsg != "" {
