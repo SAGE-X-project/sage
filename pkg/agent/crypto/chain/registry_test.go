@@ -82,8 +82,8 @@ func TestChainRegistry(t *testing.T) {
 		assert.Empty(t, chains)
 
 		// Add providers
-		registry.RegisterProvider(&mockProvider{chainType: ChainTypeEthereum})
-		registry.RegisterProvider(&mockProvider{chainType: ChainTypeSolana})
+		_ = registry.RegisterProvider(&mockProvider{chainType: ChainTypeEthereum})
+		_ = registry.RegisterProvider(&mockProvider{chainType: ChainTypeSolana})
 
 		chains = registry.ListProviders()
 		assert.Len(t, chains, 2)

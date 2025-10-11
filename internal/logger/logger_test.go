@@ -185,7 +185,7 @@ func TestSageError(t *testing.T) {
 
 	t.Run("ErrorWithDetails", func(t *testing.T) {
 		err := NewSageError(ErrCodeValidationError, "Validation failed", nil)
-		err.WithDetails("field", "email").
+		_ = err.WithDetails("field", "email").
 			WithDetails("reason", "invalid format")
 
 		assert.Equal(t, "email", err.Details["field"])

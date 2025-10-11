@@ -180,18 +180,18 @@ func TestHealthChecker(t *testing.T) {
 		})
 
 		// First call
-		checker.Check(context.Background(), "cached_check")
+		_, _ = checker.Check(context.Background(), "cached_check")
 		assert.Equal(t, 1, callCount)
 
 		// Second call (should use cache)
-		checker.Check(context.Background(), "cached_check")
+		_, _ = checker.Check(context.Background(), "cached_check")
 		assert.Equal(t, 1, callCount)
 
 		// Clear cache
 		checker.ClearCache()
 
 		// Third call (should execute again)
-		checker.Check(context.Background(), "cached_check")
+		_, _ = checker.Check(context.Background(), "cached_check")
 		assert.Equal(t, 2, callCount)
 	})
 

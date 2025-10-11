@@ -327,7 +327,7 @@ func TestWSServer_ConnectionCount(t *testing.T) {
 	defer cancel()
 
 	// Send message to establish connection
-	go client.Send(ctx, msg)
+	go func() { _, _ = client.Send(ctx, msg) }()
 
 	// Wait for connection to be established
 	time.Sleep(50 * time.Millisecond)
