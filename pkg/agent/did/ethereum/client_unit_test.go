@@ -222,13 +222,13 @@ func TestRegisterKeyTypeValidation(t *testing.T) {
 			name:    "Invalid Ed25519 key",
 			keyType: sagecrypto.KeyTypeEd25519,
 			wantErr: true,
-			errMsg:  "Ethereum requires Secp256k1 keys",
+			errMsg:  "ethereum requires Secp256k1 keys",
 		},
 		{
 			name:    "Invalid X25519 key",
 			keyType: sagecrypto.KeyTypeX25519,
 			wantErr: true,
-			errMsg:  "Ethereum requires Secp256k1 keys",
+			errMsg:  "ethereum requires Secp256k1 keys",
 		},
 	}
 
@@ -263,7 +263,7 @@ func TestRegisterKeyTypeValidation(t *testing.T) {
 				// Will fail with other errors (no real blockchain), but should pass key type check
 				// We just verify it doesn't fail with key type error
 				if err != nil {
-					assert.NotContains(t, err.Error(), "Ethereum requires Secp256k1 keys")
+					assert.NotContains(t, err.Error(), "ethereum requires Secp256k1 keys")
 				}
 			}
 		})

@@ -111,7 +111,7 @@ func (c *SAGEClient) CallTool(toolURL string, request interface{}) (interface{},
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response
 	responseBody, err := io.ReadAll(resp.Body)

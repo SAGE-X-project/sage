@@ -97,7 +97,7 @@ func simulateActivity() {
 	// Simulate session creation
 	fmt.Println("  💼 Creating test sessions...")
 	mgr := session.NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	for i := 0; i < 3; i++ {
 		sessionID := fmt.Sprintf("test-session-%d", i)

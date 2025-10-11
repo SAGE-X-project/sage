@@ -275,6 +275,6 @@ func GenerateRandomInt(min, max int64) int64 {
 // GenerateRandomBool generates a random boolean
 func GenerateRandomBool() bool {
 	b := make([]byte, 1)
-	rand.Read(b)
+	_, _ = rand.Read(b)
 	return b[0]&1 == 1
 }

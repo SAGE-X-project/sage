@@ -132,7 +132,7 @@ func BenchmarkHPKEInfoSizes(b *testing.B) {
 
 	for _, size := range infoSizes {
 		info := make([]byte, size)
-		rand.Read(info)
+		_, _ = rand.Read(info)
 
 		b.Run(fmt.Sprintf("Info_%dB", size), func(b *testing.B) {
 			b.SetBytes(int64(size))

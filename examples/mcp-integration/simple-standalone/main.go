@@ -88,7 +88,7 @@ func insecureWeatherHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(ToolResponse{Result: result})
+	_ = json.NewEncoder(w).Encode(ToolResponse{Result: result})
 }
 
 // Weather tool handler - WITH SAGE (secure)
@@ -121,7 +121,7 @@ func secureWeatherHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(ToolResponse{Result: result})
+	_ = json.NewEncoder(w).Encode(ToolResponse{Result: result})
 }
 
 // Demo client that makes signed requests
@@ -179,10 +179,10 @@ func makeSAGERequest() {
 		log.Printf("Request failed: %v", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ToolResponse
-	json.NewDecoder(resp.Body).Decode(&result)
+	_ = json.NewDecoder(resp.Body).Decode(&result)
 
 	if resp.StatusCode == http.StatusOK {
 		fmt.Printf(" Secure request succeeded! Weather: %v\n", result.Result)
@@ -200,7 +200,7 @@ func main() {
 
 	// Demo info endpoint
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, `SAGE Integration Demo
+		_, _ = fmt.Fprintf(w, `SAGE Integration Demo
 
 Endpoints:
 - POST /weather-insecure - No security (vulnerable)

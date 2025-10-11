@@ -101,9 +101,6 @@ type KeyIDBinder interface {
 	IssueKeyID(ctxID string) (keyid string, ok bool)
 }
 
-const contextIDPrefix = "ctx-handshake"
-const handshkePrefix = "handshake/*"
-
 // InvitationMessage represents an invitation packet containing only the Session ID.
 // It is delivered alongside a JWT carrying the agent's DID information.
 type InvitationMessage struct {

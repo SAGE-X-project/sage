@@ -117,8 +117,8 @@ func TestStructuredLogger(t *testing.T) {
 		var buf bytes.Buffer
 		logger := NewLogger(&buf, InfoLevel)
 
-		ctx := context.WithValue(context.Background(), "request_id", "req-123")
-		ctx = context.WithValue(ctx, "trace_id", "trace-456")
+		ctx := WithRequestID(context.Background(), "req-123")
+		ctx = WithTraceID(ctx, "trace-456")
 
 		contextLogger := logger.WithContext(ctx)
 		contextLogger.Info("test message")
@@ -185,7 +185,7 @@ func TestSageError(t *testing.T) {
 
 	t.Run("ErrorWithDetails", func(t *testing.T) {
 		err := NewSageError(ErrCodeValidationError, "Validation failed", nil)
-		err.WithDetails("field", "email").
+		_ = err.WithDetails("field", "email").
 			WithDetails("reason", "invalid format")
 
 		assert.Equal(t, "email", err.Details["field"])

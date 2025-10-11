@@ -40,7 +40,9 @@ func init() {
 	rootCmd.AddCommand(listCmd)
 
 	listCmd.Flags().StringVarP(&storageDir, "storage-dir", "s", "", "Storage directory (required)")
-	listCmd.MarkFlagRequired("storage-dir")
+	if err := listCmd.MarkFlagRequired("storage-dir"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
 }
 
 func runList(cmd *cobra.Command, args []string) error {
@@ -63,21 +65,23 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Create tabwriter for formatted output
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "KEY ID\tTYPE\tFINGERPRINT\n")
-	fmt.Fprintf(w, "------\t----\t-----------\n")
+	_, _ = fmt.Fprintf(w, "KEY ID\tTYPE\tFINGERPRINT\n")
+	_, _ = fmt.Fprintf(w, "------\t----\t-----------\n")
 
 	// Load each key to get details
 	for _, id := range keyIDs {
 		keyPair, err := keyStorage.Load(id)
 		if err != nil {
-			fmt.Fprintf(w, "%s\t<error>\t%v\n", id, err)
+			_, _ = fmt.Fprintf(w, "%s\t<error>\t%v\n", id, err)
 			continue
 		}
 
-		fmt.Fprintf(w, "%s\t%s\t%s\n", id, keyPair.Type(), keyPair.ID())
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", id, keyPair.Type(), keyPair.ID())
 	}
 
-	w.Flush()
+	if err := w.Flush(); err != nil {
+		return fmt.Errorf("failed to flush output: %w", err)
+	}
 
 	fmt.Printf("\nTotal keys: %d\n", len(keyIDs))
 	fmt.Printf("Storage location: %s\n", storageDir)

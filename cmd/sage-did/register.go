@@ -80,9 +80,15 @@ func init() {
 	registerCmd.Flags().StringVar(&registerPrivateKey, "private-key", "", "Transaction signer private key (for gas fees)")
 
 	// Mark required flags
-	registerCmd.MarkFlagRequired("chain")
-	registerCmd.MarkFlagRequired("name")
-	registerCmd.MarkFlagRequired("endpoint")
+	if err := registerCmd.MarkFlagRequired("chain"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
+	if err := registerCmd.MarkFlagRequired("name"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
+	if err := registerCmd.MarkFlagRequired("endpoint"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
 }
 
 func runRegister(cmd *cobra.Command, args []string) error {
@@ -229,11 +235,11 @@ func validateKeyForChain(keyPair crypto.KeyPair, chain did.Chain) error {
 	switch chain {
 	case did.ChainEthereum:
 		if keyPair.Type() != crypto.KeyTypeSecp256k1 {
-			return fmt.Errorf("Ethereum requires Secp256k1 keys, got %s", keyPair.Type())
+			return fmt.Errorf("ethereum requires Secp256k1 keys, got %s", keyPair.Type())
 		}
 	case did.ChainSolana:
 		if keyPair.Type() != crypto.KeyTypeEd25519 {
-			return fmt.Errorf("Solana requires Ed25519 keys, got %s", keyPair.Type())
+			return fmt.Errorf("solana requires Ed25519 keys, got %s", keyPair.Type())
 		}
 	}
 	return nil
@@ -278,7 +284,13 @@ func saveRegistrationInfo(storageDir, agentDID string, result *did.RegistrationR
 		"gasUsed":         result.GasUsed,
 	}
 
-	data, _ := json.MarshalIndent(info, "", "  ")
+	data, err := json.MarshalIndent(info, "", "  ")
+	if err != nil {
+		fmt.Printf("Warning: failed to marshal registration info: %v\n", err)
+		return
+	}
 	fileName := fmt.Sprintf("%s/did_%s.json", storageDir, strings.ReplaceAll(agentDID, ":", "_"))
-	os.WriteFile(fileName, data, 0600)
+	if err := os.WriteFile(fileName, data, 0600); err != nil {
+		fmt.Printf("Warning: failed to save registration info to %s: %v\n", fileName, err)
+	}
 }

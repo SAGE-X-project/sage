@@ -225,8 +225,8 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 		fmt.Printf("\nGenerated Addresses:\n\n")
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-		fmt.Fprintf(w, "CHAIN\tADDRESS\tNETWORK\n")
-		fmt.Fprintf(w, "-----\t-------\t-------\n")
+		_, _ = fmt.Fprintf(w, "CHAIN\tADDRESS\tNETWORK\n")
+		_, _ = fmt.Fprintf(w, "-----\t-------\t-------\n")
 
 		// Sort chain types for consistent output
 		var chainTypes []chain.ChainType
@@ -240,13 +240,15 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 		// Print addresses in sorted order
 		for _, ct := range chainTypes {
 			address := addresses[ct]
-			fmt.Fprintf(w, "%s\t%s\t%s\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n",
 				ct,
 				address.Value,
 				address.Network)
 		}
 
-		w.Flush()
+		if err := w.Flush(); err != nil {
+			return fmt.Errorf("failed to flush output: %w", err)
+		}
 	}
 
 	return nil

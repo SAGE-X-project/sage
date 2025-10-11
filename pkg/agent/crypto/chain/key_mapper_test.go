@@ -150,7 +150,7 @@ func TestGetSupportedKeyTypes_ImmutableResult(t *testing.T) {
 
 	// Modify the returned slice
 	originalLen := len(keyTypes1)
-	keyTypes1 = append(keyTypes1, sagecrypto.KeyTypeRSA)
+	_ = append(keyTypes1, sagecrypto.KeyTypeRSA)
 
 	// Get the supported key types again
 	keyTypes2, err := mapper.GetSupportedKeyTypes(ChainTypeEthereum)

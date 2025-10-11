@@ -49,7 +49,7 @@ func NewMockEthereumRPCServer() *MockEthereumRPCServer {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(response))
+		_, _ = w.Write([]byte(response))
 	})
 
 	mock.server = httptest.NewServer(handler)

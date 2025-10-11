@@ -54,7 +54,7 @@ func NewMockAuth0Server() *MockAuth0Server {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	})
 
 	// Mock JWKS endpoint
@@ -73,7 +73,7 @@ func NewMockAuth0Server() *MockAuth0Server {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(jwks)
+		_ = json.NewEncoder(w).Encode(jwks)
 	})
 
 	mock.server = httptest.NewServer(mux)

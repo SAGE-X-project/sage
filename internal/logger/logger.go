@@ -30,6 +30,25 @@ import (
 	"time"
 )
 
+// contextKey is the type for context keys to avoid collisions
+type contextKey string
+
+// Context key constants
+const (
+	requestIDKey contextKey = "request_id"
+	traceIDKey   contextKey = "trace_id"
+)
+
+// WithRequestID adds a request ID to the context
+func WithRequestID(ctx context.Context, requestID string) context.Context {
+	return context.WithValue(ctx, requestIDKey, requestID)
+}
+
+// WithTraceID adds a trace ID to the context
+func WithTraceID(ctx context.Context, traceID string) context.Context {
+	return context.WithValue(ctx, traceIDKey, traceID)
+}
+
 // Level represents the severity level of a log message
 type Level int
 
@@ -263,10 +282,10 @@ func (l *StructuredLogger) log(level Level, msg string, fields ...Field) {
 
 	// Add context fields if available
 	if l.context != nil {
-		if requestID := l.context.Value("request_id"); requestID != nil {
+		if requestID := l.context.Value(requestIDKey); requestID != nil {
 			entry["request_id"] = requestID
 		}
-		if traceID := l.context.Value("trace_id"); traceID != nil {
+		if traceID := l.context.Value(traceIDKey); traceID != nil {
 			entry["trace_id"] = traceID
 		}
 	}
@@ -291,12 +310,12 @@ func (l *StructuredLogger) log(level Level, msg string, fields ...Field) {
 	}
 
 	if err != nil {
-		fmt.Fprintf(l.output, `{"level":"ERROR","message":"Failed to marshal log entry","error":"%v"}`+"\n", err)
+		_, _ = fmt.Fprintf(l.output, `{"level":"ERROR","message":"Failed to marshal log entry","error":"%v"}`+"\n", err)
 		return
 	}
 
 	// Write to output
-	fmt.Fprintf(l.output, "%s\n", data)
+	_, _ = fmt.Fprintf(l.output, "%s\n", data)
 }
 
 // SageError represents a structured error with additional context

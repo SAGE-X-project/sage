@@ -39,7 +39,7 @@ func main() {
 			tool.GetToolDefinition(),
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"tools": tools,
 		})
 	})
@@ -48,7 +48,7 @@ func main() {
 
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	fmt.Println(" SAGE-secured MCP Calculator Tool Server")

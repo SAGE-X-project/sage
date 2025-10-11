@@ -30,7 +30,7 @@ import (
 
 func TestManager_CreateGetRemove(t *testing.T) {
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	secret := make([]byte, 32)
 	_, err := rand.Read(secret)
@@ -57,7 +57,7 @@ func TestManager_CreateGetRemove(t *testing.T) {
 // We wait past MaxAge and then call cleanupExpiredSessions() directly.
 func TestManager_ExpirationCleanup(t *testing.T) {
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	secret := make([]byte, 32)
 	_, err := rand.Read(secret)
@@ -85,7 +85,7 @@ func TestManager_ExpirationCleanup(t *testing.T) {
 // Lists and stats should reflect active sessions correctly.
 func TestManager_ListAndStats(t *testing.T) {
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	secret := make([]byte, 32)
 	_, err := rand.Read(secret)
@@ -106,7 +106,7 @@ func TestManager_ListAndStats(t *testing.T) {
 
 func TestManager_ExistingSessionReuseAndCreateCollisions(t *testing.T) {
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	secret := rb(chacha20poly1305.KeySize)
 
@@ -145,7 +145,7 @@ func TestManager_ExistingSessionReuseAndCreateCollisions(t *testing.T) {
 
 func TestManager_EnsureSessionWithParams_DeterminismAndConfig(t *testing.T) {
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	secret := rb(chacha20poly1305.KeySize)
 	eA, eB := rb(32), rb(32)
@@ -192,7 +192,7 @@ func TestManager_EnsureSessionWithParams_DeterminismAndConfig(t *testing.T) {
 
 func TestManager_EnsureSessionWithParams_DoubleCheckedLocking_Concurrency(t *testing.T) {
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	secret := rb(chacha20poly1305.KeySize)
 	e1, e2 := rb(32), rb(32)
@@ -253,7 +253,7 @@ func TestManager_EnsureSessionWithParams_DoubleCheckedLocking_Concurrency(t *tes
 
 func TestManager_EnsureSessionWithParams_ErrorPaths(t *testing.T) {
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	secret := rb(chacha20poly1305.KeySize)
 	e1 := rb(32)

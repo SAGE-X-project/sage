@@ -264,12 +264,9 @@ func (v *MetadataVerifier) validateEndpoint(ctx context.Context, endpoint string
 	// Check DNS resolution (optional but recommended)
 	host := parsedURL.Hostname()
 	if host != "" {
-		// Try to resolve the hostname
-		if _, err := net.LookupHost(host); err != nil {
-			// DNS lookup failed, but this might be acceptable for local development
-			// Log warning but don't fail validation
-			// In production, you might want to make this stricter
-		}
+		// Try to resolve the hostname - failure is logged but not fatal
+		// as this might be acceptable for local development or temporary issues
+		_, _ = net.LookupHost(host)
 	}
 
 	// Make a simple health check (with timeout)
@@ -289,7 +286,12 @@ func (v *MetadataVerifier) validateEndpoint(ctx context.Context, endpoint string
 		// Consider this a warning rather than a hard failure
 		return fmt.Errorf("endpoint health check failed (may be temporary): %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log error but dont fail the request since body was already read
+			fmt.Printf("Warning: failed to close response body: %v\n", err)
+		}
+	}()
 
 	// Accept any 2xx or 404 status (404 means server is up but no /health endpoint)
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {

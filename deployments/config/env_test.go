@@ -72,8 +72,8 @@ func TestSubstituteEnvVars(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables
 			for k, v := range tt.envVars {
-				os.Setenv(k, v)
-				defer os.Unsetenv(k)
+				_ = os.Setenv(k, v)
+				defer func(k string) { _ = os.Unsetenv(k) }(k)
 			}
 
 			result := SubstituteEnvVars(tt.input)
@@ -114,12 +114,12 @@ func TestGetEnvironment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clear both env vars
-			os.Unsetenv("SAGE_ENV")
-			os.Unsetenv("ENVIRONMENT")
+			_ = os.Unsetenv("SAGE_ENV")
+			_ = os.Unsetenv("ENVIRONMENT")
 
 			if tt.envVar != "" {
-				os.Setenv(tt.envVar, tt.value)
-				defer os.Unsetenv(tt.envVar)
+				_ = os.Setenv(tt.envVar, tt.value)
+				defer func(key string) { _ = os.Unsetenv(key) }(tt.envVar)
 			}
 
 			result := GetEnvironment()
@@ -143,8 +143,8 @@ func TestIsProduction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("SAGE_ENV", tt.env)
-			defer os.Unsetenv("SAGE_ENV")
+			_ = os.Setenv("SAGE_ENV", tt.env)
+			defer func() { _ = os.Unsetenv("SAGE_ENV") }()
 
 			result := IsProduction()
 			if result != tt.expected {
@@ -168,8 +168,8 @@ func TestIsDevelopment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv("SAGE_ENV", tt.env)
-			defer os.Unsetenv("SAGE_ENV")
+			_ = os.Setenv("SAGE_ENV", tt.env)
+			defer func() { _ = os.Unsetenv("SAGE_ENV") }()
 
 			result := IsDevelopment()
 			if result != tt.expected {
@@ -181,10 +181,10 @@ func TestIsDevelopment(t *testing.T) {
 
 func TestSubstituteEnvVarsInConfig(t *testing.T) {
 	// Set test environment variables
-	os.Setenv("TEST_RPC", "http://test-rpc:8545")
-	os.Setenv("TEST_ADDR", "0x1234567890abcdef")
-	defer os.Unsetenv("TEST_RPC")
-	defer os.Unsetenv("TEST_ADDR")
+	_ = os.Setenv("TEST_RPC", "http://test-rpc:8545")
+	_ = os.Setenv("TEST_ADDR", "0x1234567890abcdef")
+	defer func() { _ = os.Unsetenv("TEST_RPC") }()
+	defer func() { _ = os.Unsetenv("TEST_ADDR") }()
 
 	cfg := &Config{
 		Blockchain: &BlockchainConfig{

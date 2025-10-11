@@ -35,7 +35,7 @@ func BenchmarkSessionCreation(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		sharedSecret := make([]byte, 32)
-		rand.Read(sharedSecret)
+		_, _ = rand.Read(sharedSecret)
 		sessionID := fmt.Sprintf("bench-session-%d", i)
 
 		_, err := manager.CreateSession(sessionID, sharedSecret)
@@ -49,7 +49,7 @@ func BenchmarkSessionCreation(b *testing.B) {
 func BenchmarkSessionEncryption(b *testing.B) {
 	manager := session.NewManager()
 	sharedSecret := make([]byte, 32)
-	rand.Read(sharedSecret)
+	_, _ = rand.Read(sharedSecret)
 
 	sess, _ := manager.CreateSession("encrypt-bench", sharedSecret)
 
@@ -57,7 +57,7 @@ func BenchmarkSessionEncryption(b *testing.B) {
 
 	for _, size := range sizes {
 		message := make([]byte, size)
-		rand.Read(message)
+		_, _ = rand.Read(message)
 
 		b.Run(fmt.Sprintf("%dB", size), func(b *testing.B) {
 			b.SetBytes(int64(size))
@@ -78,7 +78,7 @@ func BenchmarkSessionEncryption(b *testing.B) {
 func BenchmarkSessionDecryption(b *testing.B) {
 	manager := session.NewManager()
 	sharedSecret := make([]byte, 32)
-	rand.Read(sharedSecret)
+	_, _ = rand.Read(sharedSecret)
 
 	sess, _ := manager.CreateSession("decrypt-bench", sharedSecret)
 
@@ -86,7 +86,7 @@ func BenchmarkSessionDecryption(b *testing.B) {
 
 	for _, size := range sizes {
 		message := make([]byte, size)
-		rand.Read(message)
+		_, _ = rand.Read(message)
 		encrypted, _ := sess.Encrypt(message)
 
 		b.Run(fmt.Sprintf("%dB", size), func(b *testing.B) {

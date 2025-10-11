@@ -165,7 +165,7 @@ func TestAlgorithmRegistry_Immutability(t *testing.T) {
 		originalLen := len(algorithms1)
 
 		// Try to modify the returned slice
-		algorithms1 = append(algorithms1, AlgorithmInfo{})
+		_ = append(algorithms1, AlgorithmInfo{})
 
 		// Get the list again
 		algorithms2 := ListSupportedAlgorithms()
@@ -179,7 +179,7 @@ func TestAlgorithmRegistry_Immutability(t *testing.T) {
 		originalLen := len(list1)
 
 		// Try to modify
-		list1 = append(list1, "fake-algorithm")
+		_ = append(list1, "fake-algorithm")
 
 		// Get again
 		list2 := ListRFC9421SupportedAlgorithms()

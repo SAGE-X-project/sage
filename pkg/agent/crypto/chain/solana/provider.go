@@ -166,5 +166,5 @@ func base58Decode(s string) ([]byte, error) {
 
 // init registers the provider
 func init() {
-	chain.RegisterProvider(NewProvider())
+	_ = chain.RegisterProvider(NewProvider())
 }

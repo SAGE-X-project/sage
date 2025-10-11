@@ -88,7 +88,12 @@ func (s *HTTPServer) MessagesHandler() http.Handler {
 			s.sendErrorResponse(w, "", "", fmt.Errorf("failed to read request body: %w", err))
 			return
 		}
-		defer r.Body.Close()
+		defer func() {
+			if err := r.Body.Close(); err != nil {
+				// Log error but don't fail the request since body was already read
+				fmt.Printf("Warning: failed to close request body: %v\n", err)
+			}
+		}()
 
 		// Parse wire message
 		var wireMsg wireMessage

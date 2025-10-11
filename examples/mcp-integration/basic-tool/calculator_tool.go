@@ -66,7 +66,7 @@ func NewCalculatorTool() (*CalculatorTool, error) {
 		ContractAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f7F1a", // Example address
 		RPCEndpoint:     "https://eth-mainnet.example.com",           // Example endpoint
 	}
-	didManager.Configure(did.ChainEthereum, config)
+	_ = didManager.Configure(did.ChainEthereum, config)
 
 	return &CalculatorTool{
 		name:        "calculator",
@@ -134,7 +134,7 @@ func (t *CalculatorTool) HandleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Step 4: Send the response (response signing could be added here if needed)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // calculate performs the actual calculation

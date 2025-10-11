@@ -56,8 +56,12 @@ func init() {
 	rotateCmd.Flags().StringVarP(&keyID, "key-id", "k", "", "Key ID to rotate (required)")
 	rotateCmd.Flags().BoolVar(&keepOldKeys, "keep-old", false, "Keep old keys after rotation")
 
-	rotateCmd.MarkFlagRequired("storage-dir")
-	rotateCmd.MarkFlagRequired("key-id")
+	if err := rotateCmd.MarkFlagRequired("storage-dir"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
+	if err := rotateCmd.MarkFlagRequired("key-id"); err != nil {
+		panic(fmt.Sprintf("failed to mark flag required: %v", err))
+	}
 }
 
 func runRotate(cmd *cobra.Command, args []string) error {

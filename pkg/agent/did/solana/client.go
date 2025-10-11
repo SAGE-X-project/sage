@@ -102,7 +102,7 @@ func NewSolanaClient(config *did.RegistryConfig) (*SolanaClient, error) {
 func (c *SolanaClient) Register(ctx context.Context, req *did.RegistrationRequest) (*did.RegistrationResult, error) {
 	// Solana requires Ed25519 keys
 	if req.KeyPair.Type() != sagecrypto.KeyTypeEd25519 {
-		return nil, fmt.Errorf("Solana requires Ed25519 keys")
+		return nil, fmt.Errorf("solana requires Ed25519 keys")
 	}
 
 	// Get the Solana address for the public key

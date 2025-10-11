@@ -32,7 +32,7 @@ func TestFileVault(t *testing.T) {
 	// Create temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "vault_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	vault, err := NewFileVault(tempDir)
 	require.NoError(t, err)
@@ -137,7 +137,7 @@ func TestFileVault(t *testing.T) {
 	t.Run("ListKeys", func(t *testing.T) {
 		// Clear vault
 		for _, key := range vault.ListKeys() {
-			vault.Delete(key)
+			_ = vault.Delete(key)
 		}
 
 		// Add multiple keys
@@ -237,7 +237,7 @@ func TestMemoryVault(t *testing.T) {
 	t.Run("ListKeys", func(t *testing.T) {
 		// Clear vault
 		for _, key := range vault.ListKeys() {
-			vault.Delete(key)
+			_ = vault.Delete(key)
 		}
 
 		// Add multiple keys
@@ -273,7 +273,7 @@ func TestMemoryVault(t *testing.T) {
 func BenchmarkFileVault(b *testing.B) {
 	tempDir, err := os.MkdirTemp("", "vault_bench")
 	require.NoError(b, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	vault, err := NewFileVault(tempDir)
 	require.NoError(b, err)
@@ -284,17 +284,17 @@ func BenchmarkFileVault(b *testing.B) {
 	b.Run("StoreEncrypted", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			keyID := "bench_key_" + string(rune(i))
-			vault.StoreEncrypted(keyID, key, passphrase)
+			_ = vault.StoreEncrypted(keyID, key, passphrase)
 		}
 	})
 
 	// Setup for load benchmark
 	testKeyID := "bench_load_key"
-	vault.StoreEncrypted(testKeyID, key, passphrase)
+	_ = vault.StoreEncrypted(testKeyID, key, passphrase)
 
 	b.Run("LoadDecrypted", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			vault.LoadDecrypted(testKeyID, passphrase)
+			_, _ = vault.LoadDecrypted(testKeyID, passphrase)
 		}
 	})
 }
@@ -308,17 +308,17 @@ func BenchmarkMemoryVault(b *testing.B) {
 	b.Run("StoreEncrypted", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			keyID := "bench_key_" + string(rune(i))
-			vault.StoreEncrypted(keyID, key, passphrase)
+			_ = vault.StoreEncrypted(keyID, key, passphrase)
 		}
 	})
 
 	// Setup for load benchmark
 	testKeyID := "bench_load_key"
-	vault.StoreEncrypted(testKeyID, key, passphrase)
+	_ = vault.StoreEncrypted(testKeyID, key, passphrase)
 
 	b.Run("LoadDecrypted", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			vault.LoadDecrypted(testKeyID, passphrase)
+			_, _ = vault.LoadDecrypted(testKeyID, passphrase)
 		}
 	})
 }

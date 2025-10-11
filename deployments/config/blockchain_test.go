@@ -118,12 +118,12 @@ func TestLoadConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables
 			for k, v := range tt.envVars {
-				os.Setenv(k, v)
+				_ = os.Setenv(k, v)
 			}
 			defer func() {
 				// Clean up
 				for k := range tt.envVars {
-					os.Unsetenv(k)
+					_ = os.Unsetenv(k)
 				}
 			}()
 
@@ -176,12 +176,12 @@ func TestLoadConfigInvalidInputs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variables
 			for k, v := range tt.envVars {
-				os.Setenv(k, v)
+				_ = os.Setenv(k, v)
 			}
 			defer func() {
 				// Clean up
 				for k := range tt.envVars {
-					os.Unsetenv(k)
+					_ = os.Unsetenv(k)
 				}
 			}()
 
@@ -385,8 +385,8 @@ func TestConfigCopyDoesNotModifyPreset(t *testing.T) {
 	originalChainID := new(big.Int).Set(originalPreset.ChainID)
 
 	// Set environment variable to override chain ID
-	os.Setenv("SAGE_CHAIN_ID", "999")
-	defer os.Unsetenv("SAGE_CHAIN_ID")
+	_ = os.Setenv("SAGE_CHAIN_ID", "999")
+	defer func() { _ = os.Unsetenv("SAGE_CHAIN_ID") }()
 
 	// Load config
 	cfg, err := LoadConfig("local")

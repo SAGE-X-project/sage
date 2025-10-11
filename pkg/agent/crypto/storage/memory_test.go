@@ -155,7 +155,7 @@ func TestMemoryKeyStorage(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			go func(id int) {
 				keyPair, _ := keys.GenerateEd25519KeyPair()
-				storage.Store(fmt.Sprintf("concurrent-%d", id), keyPair)
+				_ = storage.Store(fmt.Sprintf("concurrent-%d", id), keyPair)
 				done <- true
 			}(i)
 		}

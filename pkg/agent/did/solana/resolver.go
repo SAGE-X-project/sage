@@ -74,7 +74,7 @@ func (c *SolanaClient) VerifyMetadata(ctx context.Context, agentDID did.AgentDID
 		if errorMsg != "" {
 			errorMsg += "; "
 		}
-		errorMsg += fmt.Sprintf("description mismatch")
+		errorMsg += "description mismatch"
 	}
 
 	if metadata.Endpoint != onChainData.Endpoint {

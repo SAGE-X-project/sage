@@ -103,7 +103,7 @@ func NewEthereumClient(config *did.RegistryConfig) (*EthereumClient, error) {
 func (c *EthereumClient) Register(ctx context.Context, req *did.RegistrationRequest) (*did.RegistrationResult, error) {
 	// Convert the key pair to Ethereum format
 	if req.KeyPair.Type() != sagecrypto.KeyTypeSecp256k1 {
-		return nil, fmt.Errorf("Ethereum requires Secp256k1 keys")
+		return nil, fmt.Errorf("ethereum requires Secp256k1 keys")
 	}
 
 	// Get the Ethereum address for the public key
