@@ -709,6 +709,76 @@ go test -v github.com/sage-x-project/sage/test/handshake -run TestHandshake
 
 #### 9.2 블록체인 통합 (2개 테스트)
 
+**⚠️ 사전 조건: 로컬 블록체인 노드 필요**
+
+블록체인 통합 테스트를 실행하기 전에 **반드시** 로컬 블록체인 노드가 실행 중이어야 합니다.
+
+**Hardhat 설치 및 실행 (권장)**:
+
+```bash
+# 1. Node.js 프로젝트 초기화 (처음 한 번만)
+npm init -y
+
+# 2. Hardhat 설치
+npm install --save-dev hardhat
+
+# 3. package.json에 ESM 모듈 타입 설정
+npm pkg set type="module"
+
+# 4. hardhat.config.js 생성
+cat > hardhat.config.js << 'EOF'
+/** @type import('hardhat/config').HardhatUserConfig */
+export default {
+  solidity: "0.8.19",
+  networks: {
+    hardhat: {
+      type: "edr-simulated",
+      chainId: 31337,
+      accounts: {
+        mnemonic: "test test test test test test test test test test test junk",
+        count: 10,
+        accountsBalance: "10000000000000000000000"
+      }
+    },
+    localhost: {
+      type: "http",
+      url: "http://127.0.0.1:8545",
+      chainId: 31337
+    }
+  }
+};
+EOF
+
+# 5. Hardhat 노드 백그라운드 실행
+npx hardhat node --port 8545 --chain-id 31337 > /tmp/hardhat_node.log 2>&1 &
+
+# 6. 블록체인 연결 확인
+curl -s -X POST http://localhost:8545 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
+```
+
+**대체 옵션: Foundry Anvil**:
+```bash
+# Foundry 설치 (https://book.getfoundry.sh/)
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+
+# Anvil 실행
+anvil --port 8545 --chain-id 31337 &
+```
+
+**노드 종료**:
+```bash
+# Hardhat 노드 종료
+pkill -f "hardhat node"
+
+# Anvil 종료
+pkill anvil
+```
+
+---
+
 **9.2.1 전체 통합 테스트**
 ```bash
 make test-integration
@@ -922,15 +992,26 @@ npx hardhat run scripts/deploy.js --network localhost
 - `TestMultiAgentDID` - 멀티 에이전트 DID 생성
 - `TestDIDResolver` - DID Resolver 캐싱
 
-이 테스트들은 **블록체인 노드가 실행 중이어야** 통과합니다. 스크립트는 자동으로 다음을 수행합니다:
-1. 블록체인 노드 확인
-2. 통합 테스트 실행
-3. 결과 검증
+**⚠️ 중요**: 이 테스트들은 **블록체인 노드가 실행 중이어야** 통과합니다.
+
+**테스트 실행 전 체크리스트**:
+1. ✅ Hardhat/Anvil 설치 완료 ([9.2 섹션](#92-블록체인-통합-2개-테스트) 참조)
+2. ✅ 블록체인 노드 실행 중 (`ps aux | grep -E "hardhat|anvil"`)
+3. ✅ 포트 8545 연결 가능 (`curl -X POST http://localhost:8545`)
+4. ✅ Chain ID 31337 확인
 
 **수동으로 통합 테스트만 실행하려면**:
 ```bash
+# Hardhat 노드가 이미 실행 중인 경우
+make test-integration-only
+
+# 또는 스크립트가 노드를 자동으로 시작/종료
 make test-integration
 ```
+
+**참고**:
+- `make test-integration`은 노드를 자동으로 시작/종료 시도
+- `make test-integration-only`는 이미 실행 중인 노드 사용 (더 빠름)
 
 ---
 
@@ -1014,9 +1095,70 @@ go test -bench=. ./...
 
 ### 통합 테스트 실패 시
 
-1. **블록체인 노드 확인**: Anvil/Hardhat 노드가 실행 중인지 확인
-2. **컨트랙트 배포**: 스마트 컨트랙트가 배포되었는지 확인
-3. **환경 변수**: 필요한 환경 변수가 설정되었는지 확인
+**일반적인 실패 원인 및 해결 방법**:
+
+#### 1. "No local blockchain tool found" 오류
+
+**원인**: 로컬 블록체인 노드가 설치되지 않았거나 실행 중이지 않음
+
+**해결 방법**:
+```bash
+# Hardhat 설치 및 실행
+npm init -y
+npm install --save-dev hardhat
+npm pkg set type="module"
+
+# hardhat.config.js 생성 (9.2 섹션 참조)
+# ...
+
+# 노드 실행
+npx hardhat node --port 8545 --chain-id 31337 &
+
+# 연결 확인
+curl -X POST http://localhost:8545 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
+```
+
+#### 2. "connection refused" 오류
+
+**원인**: 블록체인 노드가 실행 중이지 않음
+
+**해결 방법**:
+```bash
+# 노드 프로세스 확인
+ps aux | grep -E "hardhat|anvil"
+
+# Hardhat 노드 재시작
+pkill -f "hardhat node"
+npx hardhat node --port 8545 --chain-id 31337 > /tmp/hardhat_node.log 2>&1 &
+
+# 로그 확인
+tail -f /tmp/hardhat_node.log
+```
+
+#### 3. "TestBlockchainConnection" 실패
+
+**원인**: 잘못된 Chain ID 또는 포트
+
+**해결 방법**:
+```bash
+# 블록체인 상태 확인
+curl -X POST http://localhost:8545 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
+
+# 예상 응답: {"jsonrpc":"2.0","id":1,"result":"0x7a69"}  (31337)
+```
+
+#### 4. 기타 확인 사항
+
+- **컨트랙트 배포**: 스마트 컨트랙트 배포는 테스트 내에서 자동으로 수행됨
+- **환경 변수**: 통합 테스트는 로컬호스트 기본값 사용 (환경 변수 불필요)
+- **포트 충돌**: 8545 포트가 이미 사용 중인지 확인
+  ```bash
+  lsof -i :8545
+  ```
 
 ### 권한 문제
 
