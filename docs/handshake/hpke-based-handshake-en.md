@@ -205,14 +205,15 @@ See also `hpke/hpke_test.go` (when L1 DIDs are used, frequent rotation may be co
 - **Threat**: `enc` travels in the clear, so a future leak of the static KEM key lets attackers reproduce past exporters.
 - **Mitigation (recommended)**: Combine **`ssE2E`** via the PFS add-on. By making the seed a function of `exporterHPKE ∥ ssE2E`, the static key alone is insufficient. Enforce policies for **secure disposal of ephemeral keys**.
 
-### 2) MITM / downgrade attacks
+### 2) MITM / UKS / downgrade attacks
 
-- **Threat**: tampering with ctxID / peer DID or manipulating info/exportCtx to make the exporter reusable in a different context.
+- **Threat**: missing identity binding, manipulating info/exportCtx, or swapping `enc` / `ephC` can trick peers into reusing key material in a different transcript.
 - **Mitigations**:
 
-  - **Ed25519 DID signatures** ensure sender authenticity and integrity.
-  - A **canonical info/exportCtx** containing `ctxID`, `initDID`, and `respDID` blocks cross-context reuse and downgrades.
-  - **ackTag** (derived from the seed) provides key confirmation.
+  - **Identity binding**: the server signs a canonical envelope with its Ed25519 key and the client verifies it using the server DID public key.
+  - **Key confirmation**: **ackTag**, derived from the combined seed, ensures both sides computed the same secret.
+  - **Canonical transcripts**: info/exportCtx are generated in a fixed format (`suite`, `combiner`, `ctxID`, both DIDs), hashed, and covered by the signature to prevent cross-context reuse or downgrade.
+  - **Echo checks**: the client compares echoed `enc` / `ephC` values in the response with what it sent to detect tampering.
 
 ### 3) Replay attacks
 
@@ -225,17 +226,33 @@ See also `hpke/hpke_test.go` (when L1 DIDs are used, frequent rotation may be co
 
 ### 4) Session hijacking / key reuse
 
+- **Threat**: leaking `kid` or reusing handles could cause peers to attach the wrong keys to a session.
 - **Mitigations**:
 
-  - Sessions derive their keys from the seed via HKDF and expire via **MaxAge/IdleTimeout**.
-  - A **kid ↔ sessionID** binding means leaking `kid` alone is insufficient to decrypt traffic (session keys are still required).
+  - **Key separation**: sessions derive traffic keys from the combined seed via HKDF, so `kid` alone never reveals decryption material.
+  - **Binding**: the binder ties every `kid` to a concrete `sessionID`, preventing handle confusion.
+  - **Lifetime policies**: **MaxAge**, **IdleTimeout**, and **MaxMessages** keep sessions short-lived and revoke them promptly.
 
-### 5) Integrity / confidentiality
+### 5) Integrity / confidentiality (runtime data plane)
 
+- **Threat**: nonce reuse, key confusion, or header tampering can break confidentiality or integrity.
 - **Mitigations**:
 
   - Session payloads use **AEAD** (e.g., ChaCha20-Poly1305).
+  - **Direction separation**: HKDF-Expand derives distinct `c2s` / `s2c` keys and IVs (labels such as `"c2s:key"`, `"s2c:iv"`), so compromising one direction does not expose the other.
+  - **Nonce discipline**: nonces are computed as `IV XOR seq` with a monotonically increasing sequence counter to guarantee single use.
   - At the HTTP layer, **RFC 9421 signatures** cover the request line, headers, and body (`content-digest`, `@method`, `@path`, `@authority`, etc.).
+
+### 6) DoS surface (unauthenticated pre-handshake)
+
+- **Threat**: attackers can trigger expensive KEM or signature work before authentication and exhaust server resources.
+- **Mitigations**:
+
+  - **Cookies / puzzles** (policy-driven): when the server is configured with a verifier they are mandatory; otherwise traffic is accepted without them.
+    - **HMAC cookie**: `hmac:<b64url(HMAC(secret, "SAGE-Cookie|v1|ctx|init|resp"))>`
+    - **PoW puzzle**: `pow:<nonce>:<hex(SHA256("SAGE-PoW|ctx|init|resp|nonce"))>` with a configurable leading-zero-nibble difficulty
+  - **Early rejection**: validate cookies or puzzles **before** running HPKE so invalid attempts fail fast.
+  - **Additional guards**: combine with rate limiting, retry caps, and IP throttling as needed.
 
 ## End-to-End Protection Strategy
 

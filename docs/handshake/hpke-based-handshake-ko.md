@@ -78,12 +78,14 @@ func (DefaultInfoBuilder) BuildExportContext(ctxID string) []byte {
 ```
 
 **출력 예시**:
+
 ```
 info: "sage/hpke-info|v1|suite=hpke-base+x25519+hkdf-sha256|combiner=e2e-x25519-hkdf-v1|ctx=abc123|init=did:sage:A|resp=did:sage:B"
 exportCtx: "sage/hpke-export|v1|suite=hpke-base+x25519+hkdf-sha256|combiner=e2e-x25519-hkdf-v1|ctx=abc123"
 ```
 
 **보안 속성**:
+
 - `suite`: 특정 암호화 알고리즘에 바인딩 (HPKE Base 모드 + X25519 + HKDF-SHA256)
 - `combiner`: Base 전용 모드와 Base+E2E 모드를 분리 (다운그레이드 공격 방지)
 - `v1`: 프로토콜 업그레이드를 위한 버전 태그
@@ -162,6 +164,7 @@ ackTag = HMAC-SHA256(ackKey, ackMsg)
 ```
 
 **보안 속성**:
+
 - **길이 프리픽스 인코딩**: 길이 확장 공격 방지
 - **트랜스크립트 바인딩**: 모든 핸드셰이크 파라미터 포함 (info, exportCtx, enc, ephC, ephS, DIDs)
 - **버전 태그**: `SAGE-ack-key-v1` 및 `SAGE-ack-msg|v1|`로 프로토콜 업그레이드 대비
@@ -206,40 +209,60 @@ ackTag = HMAC-SHA256(ackKey, ackMsg)
 
 ### 1) 수신자 KEM 키 사후 유출에 따른 과거 트래픽 복호화 위험
 
-- **문제**: Base는 `enc`가 평문으로 전송되므로, 수신자 정적 KEM 개인키가 **나중에** 유출되면 과거 exporter를 재현할 수 있음.
-- **대응(권장)**: **PFS add-on** 으로 `ssE2E` 결합 → seed를 **exporterHPKE ∥ ssE2E** 의 함수로 만들면, 수신자 정적키만으로는 seed를 재현 불가. 또한 **ephemeral 키 안전폐기**를 정책화.
+- **문제**: Base 모드에서 `enc`는 평문 전송되므로, 수신자 정적 X25519 KEM **개인키가 나중에 유출**되면 과거 `exporter`를 **재현**할 수 있음.
+- **대응(권장)**: **PFS add-on** 적용 — `combined = HKDF(exporterHPKE ∥ ssE2E, salt=exportCtx)`로 파생(seed).
+  수신자 정적키만으로는 `combined`를 재현할 수 없고, **ephemeral(X25519) 키의 안전 폐기**를 정책화하여 과거 세션 보호.
 
-### 2) 중간자 공격(MITM)·다운그레이드
+### 2) 중간자(MITM)·UKS·다운그레이드
 
-- **위협**: ctxID/상대 DID를 바꿔치기하거나 info/exportCtx를 교란해 다른 문맥으로 exporter를 재사용 유도.
+- **문제**: 상대 신원 미바인딩, `info/exportCtx` 교란, `enc/ephC` 대체로 **다른 문맥에서 키 재사용** 유도 가능.
 - **대응**:
 
-  - **DID 서명 검증**(Ed25519)으로 발신자/무결성 보장
-  - **canonical info/exportCtx**를 **ctxID, initDID, respDID**로 구성 → **교차-문맥/다운그레이드** 차단
-  - **ackTag**(seed로부터 파생) 검증으로 **키 확인(key confirmation)** 수행
+  - **신원 바인딩**: 서버가 **canonical envelope**에 **Ed25519 서명** → 클라이언트가 서버 DID 공개키로 검증.
+  - **키 확인**: `ackTag = HMAC(combined, ctx|nonce|kid|TH)`로 **Key Confirmation** 수행(UKS/MITM 차단).
+  - **문맥 고정(canonical)**: `info/exportCtx`는 `suite, combiner, ctxID, initDID, respDID`로 **고정 포맷** 생성·해시 후 **서명 포함**.
+  - **에코 검증**: 응답 내 `enc/ephC` **echo**를 클라이언트가 원본과 비교하여 **바꿔치기 탐지**.
 
 ### 3) 재전송(Replay) 공격
 
-- **위협**: 동일 패킷 혹은 **동일 Nonce** 재사용
+- **문제**: 동일 초기 패킷/nonce 재송신, 또는 서명 요청의 nonce 재사용.
 - **대응**:
 
-  - Init: **nonce + ts**(±maxSkew) 체크 및 **NonceStore** 기록
-  - RFC 9421 요청: `Signature-Input`의 **nonce**를 `ReplayGuardSeenOnce(kid, nonce)` 로 거부
-  - 세션 정책: **MaxMessages** 제한
+  - **Init 단계**: `ts`를 `±MaxSkew` 내에서 확인하고, `NonceStore(ContextID|nonce)`에 **Seen-Once**로 기록 후 중복 거부.
+  - **HTTP 서명(RFC 9421)**: `Signature-Input`의 **nonce**를 `ReplayGuardSeenOnce(kid, nonce)`로 1회성 강제.
+  - **세션 정책**: `MaxMessages` 제한 및 사용 시각 갱신으로 **재사용·남용** 억제.
 
-### 4) 세션 탈취/키 재사용
+### 4) 세션 탈취·키 재사용
 
+- **문제**: `kid` 누출 등으로 세션 혼동/재사용 위험.
 - **대응**:
 
-  - 세션은 **seed에서 HKDF** 로 파생되며, **MaxAge/IdleTimeout** 만료 → 즉시 폐기
-  - **kid ↔ sessionID** 바인딩. `kid` 유출만으로는 메시지 복호화 불가(세션 키가 필요)
+  - **키 파생 분리**: 세션키는 **`combined`에서 HKDF**로 파생되며 `kid`만으로는 복호화 불가.
+  - **바인딩**: **`kid ↔ sessionID`**(서버 바인더/발급기)로 세션과 키 ID를 **강결합**.
+  - **수명 정책**: `MaxAge / IdleTimeout / MaxMessages`로 세션을 **단명·회전**하며 만료 시 즉시 폐기.
 
-### 5) 무결성/기밀성
+### 5) 무결성·기밀성(런타임 데이터 평면)
 
+- **문제**: Nonce 재사용·키 혼동·헤더 변조 시 기밀성/무결성 훼손.
 - **대응**:
 
-  - 세션 내 메시지는 **AEAD(예: ChaCha20-Poly1305)** 로 암호화
-  - HTTP 레벨에서 **RFC 9421** 서명(`content-digest`, `@method`, `@path`, `@authority` 등)으로 **헤더/본문 커버리지** 확보
+  - **AEAD**: 세션 메시지는 **ChaCha20-Poly1305** 등 AEAD 적용.
+  - **방향별 분리**: `c2s/s2c` 각각 **키/IV 분리**(`HKDF-Expand(…, "c2s:key|iv" / "s2c:key|iv")`).
+  - **Nonce 규칙**: `nonce = IV XOR seq`(64bit↑ 단조 증가)로 **재사용 불가** 보장.
+  - **HTTP 서명(RFC 9421)**: `content-digest`, `@method`, `@path`, `@authority` 등 서명 범위에 포함해 **헤더/본문 커버리지** 확보.
+
+### 6) DoS 공격 표면(초기 무인증 단계)
+
+- **문제**: 비싼 KEM/서명 연산을 **초기에 유도**하여 리소스 고갈 가능.
+- **대응**:
+
+  - **쿠키/퍼즐(옵션 정책)**: 서버에 **verifier가 설정되면 필수**, **없으면 선택**으로 허용.
+
+    - **HMAC 쿠키**: `hmac:<b64url(HMAC(secret, "SAGE-Cookie|v1|ctx|init|resp"))>`
+    - **PoW 퍼즐**: `pow:<nonce>:<hex(SHA256("SAGE-PoW|ctx|init|resp|nonce"))>`(선행 0-nibble 난이도)
+
+  - **초기 검증·빠른 차단**: 쿠키/퍼즐을 **HPKE 수행 전** 검사하여 **비용 선제 차단**.
+  - **추가 방어**: 전송 간격 제한, 재시도 한도, IP 레이트 리밋 등과 조합.
 
 ## End-to-End 보장 방식
 
