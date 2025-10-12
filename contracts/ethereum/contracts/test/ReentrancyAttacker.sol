@@ -34,9 +34,8 @@ contract ReentrancyAttacker {
             ) {
                 // If this succeeds, reentrancy protection failed
                 revert("Reentrancy attack succeeded");
-            } catch {
+            } catch { // solhint-disable-line no-empty-blocks
                 // Expected - reentrancy should be prevented
-                // No action needed
             }
         }
     }
