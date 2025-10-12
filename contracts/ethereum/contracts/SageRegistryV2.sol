@@ -323,14 +323,14 @@ contract SageRegistryV2 is ISageRegistry, Pausable, Ownable2Step {
         if (len < 7) return false;
 
         // Must start with "did:"
-        if (didBytes[0] != 'd' || didBytes[1] != 'i' || didBytes[2] != 'd' || didBytes[3] != ':') {
+        if (didBytes[0] != 0x64 || didBytes[1] != 0x69 || didBytes[2] != 0x64 || didBytes[3] != 0x3A) {
             return false;
         }
 
         // Find second colon (after method)
         uint256 secondColonIndex = 0;
         for (uint256 i = 4; i < len; i++) {
-            if (didBytes[i] == ':') {
+            if (didBytes[i] == 0x3A) {
                 secondColonIndex = i;
                 break;
             }
@@ -345,7 +345,7 @@ contract SageRegistryV2 is ISageRegistry, Pausable, Ownable2Step {
         for (uint256 i = 4; i < secondColonIndex; i++) {
             bytes1 char = didBytes[i];
             // Allow a-z, 0-9
-            if (!((char >= 'a' && char <= 'z') || (char >= '0' && char <= '9'))) {
+            if (!((char >= 0x61 && char <= 0x7A) || (char >= 0x30 && char <= 0x39))) {
                 return false;
             }
         }
