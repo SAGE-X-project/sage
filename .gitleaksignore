@@ -1,39 +1,30 @@
-# GitLeaks Ignore File
-# This file contains false positives for secret scanning
-# All keys listed here are test keys, documentation examples, or well-known test accounts
+# GitLeaks Ignore File - Fingerprint format
+# All entries are test keys, documentation examples, or publicly known test accounts
 
 # Hardhat default test accounts (publicly known)
-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
-0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d
-0x5de4111afa1a4b94908f83103eb1f1706367c2e68ca870fc3fb9a804cdab365a
-0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6
+contracts/ethereum/LOCAL_CONTRACT_INFO.md:generic-api-key:54
+contracts/ethereum/LOCAL_CONTRACT_INFO.md:generic-api-key:123
+contracts/ethereum/LOCAL_CONTRACT_INFO.md:generic-api-key:186
 
 # Test fixtures and documentation examples
-Y29ycmVjdF94MjU1MTlfcHVibGljX2tleQ==
-abcdef1234567890
-abc123def456
-xyz789abc012
+api/examples/authentication.md:generic-api-key:75
+docs/API.md:generic-api-key:636
+contracts/examples/ethereum-registration.js:generic-api-key:10
 
 # PEM format markers in test files
------BEGIN PRIVATE KEY-----
------END PRIVATE KEY-----
------BEGIN EC PRIVATE KEY-----
------END EC PRIVATE KEY-----
------BEGIN RSA PRIVATE KEY-----
------END RSA PRIVATE KEY-----
------BEGIN ED25519 PRIVATE KEY-----
------END ED25519 PRIVATE KEY-----
+pkg/agent/crypto/formats/pem_test.go:private-key:45
+pkg/agent/crypto/formats/pem_test.go:private-key:75
+pkg/agent/crypto/formats/pem_test.go:private-key:103
 
 # Documentation files with examples
-contracts/ethereum/LOCAL_CONTRACT_INFO.md:*
-api/examples/authentication.md:*
-docs/API.md:*
-docs/overview/DETAILED_GUIDE_PART2_KO.md:*
-docs/overview/DETAILED_GUIDE_PART5_KO.md:*
-docs/overview/DETAILED_GUIDE_PART6B_KO.md:*
+docs/overview/DETAILED_GUIDE_PART2_KO.md:private-key:1848
+docs/overview/DETAILED_GUIDE_PART5_KO.md:generic-api-key:1562
+docs/overview/DETAILED_GUIDE_PART6B_KO.md:generic-api-key:136
+docs/overview/DETAILED_GUIDE_PART6B_KO.md:generic-api-key:168
 
 # Test files
-pkg/agent/crypto/formats/pem_test.go:*
-pkg/agent/did/ethereum/client_unit_test.go:*
-tests/integration/tests/integration/setup_test_env.sh:*
-contracts/examples/ethereum-registration.js:*
+pkg/agent/did/ethereum/client_unit_test.go:generic-api-key:531
+tests/integration/tests/integration/setup_test_env.sh:generic-api-key:20
+tests/integration/tests/integration/setup_test_env.sh:generic-api-key:220
+tests/integration/tests/integration/setup_test_env.sh:generic-api-key:224
+tests/integration/tests/integration/setup_test_env.sh:generic-api-key:228
