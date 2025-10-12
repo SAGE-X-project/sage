@@ -33,8 +33,8 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
      * @return success True if registration successful
      */
     function registerAgent(
-        string calldata agentId,
-        string calldata endpoint
+        string calldata /* agentId */,
+        string calldata /* endpoint */
     ) external override returns (bool success) {
         // For minimal ERC-8004 registration, we create default values
         // In production, the caller should use SageRegistryV2 directly for full control
@@ -123,7 +123,7 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
      */
     function updateAgentEndpoint(
         string calldata agentId,
-        string calldata newEndpoint
+        string calldata /* newEndpoint */
     ) external override returns (bool success) {
         // Get current agent metadata
         ISageRegistry.AgentMetadata memory metadata = sageRegistry.getAgentByDID(agentId);
