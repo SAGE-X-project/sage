@@ -28,7 +28,7 @@
     "port:check": "./scripts/port-manager.sh check",
     "console": "hardhat console",
     "console:kairos": "hardhat console --network kairos",
-    "coverage": "hardhat coverage",
+    "coverage": "COVERAGE=true hardhat coverage",
     "size": "hardhat size-contracts",
     "quick-test": "hardhat run scripts/quick-test.js",
     "check-balance": "hardhat run scripts/check-balance.js",

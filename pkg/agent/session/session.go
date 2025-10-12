@@ -437,27 +437,27 @@ func (s *SecureSession) InitializeSession(sid string, sessionSeed []byte, config
 
 // Close marks the session as closed
 func (s *SecureSession) Close() error {
-    s.closed = true
+	s.closed = true
 
-    zeroBytes := func(b []byte) {
+	zeroBytes := func(b []byte) {
 		for i := range b {
 			b[i] = 0
 		}
-    }
+	}
 
-    zeroBytes(s.encryptKey)
-    zeroBytes(s.signingKey)
-    zeroBytes(s.sessionSeed)
-    zeroBytes(s.outKey)
-    zeroBytes(s.inKey)
-    zeroBytes(s.outSign)
-    zeroBytes(s.inSign)
+	zeroBytes(s.encryptKey)
+	zeroBytes(s.signingKey)
+	zeroBytes(s.sessionSeed)
+	zeroBytes(s.outKey)
+	zeroBytes(s.inKey)
+	zeroBytes(s.outSign)
+	zeroBytes(s.inSign)
 
-    s.aead = nil
-    s.aeadOut = nil
-    s.aeadIn = nil
+	s.aead = nil
+	s.aeadOut = nil
+	s.aeadIn = nil
 
-    return nil
+	return nil
 }
 
 // GetMessageCount returns the number of messages processed

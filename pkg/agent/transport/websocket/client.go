@@ -41,11 +41,11 @@ import (
 //	// Use with handshake client
 //	client := handshake.NewClient(transport, keyPair)
 type WSTransport struct {
-	url         string
-	conn        *websocket.Conn
-	mu          sync.Mutex
-	dialTimeout time.Duration
-	readTimeout time.Duration
+	url          string
+	conn         *websocket.Conn
+	mu           sync.Mutex
+	dialTimeout  time.Duration
+	readTimeout  time.Duration
 	writeTimeout time.Duration
 
 	// Response handling

@@ -92,9 +92,11 @@ func zeroBytes(b []byte) {
 }
 
 func isAllZero32(b []byte) bool {
-    if len(b) != 32 { return false }
-    var z [32]byte
-    return subtle.ConstantTimeCompare(b, z[:]) == 1
+	if len(b) != 32 {
+		return false
+	}
+	var z [32]byte
+	return subtle.ConstantTimeCompare(b, z[:]) == 1
 }
 
 type TrafficKeys struct {
@@ -115,7 +117,6 @@ func DeriveTrafficKeys(seed []byte) TrafficKeys {
 		CB:     hkdfExpand(seed, cbLabel, 32),
 	}
 }
-
 
 // verifySignature verifies a detached signature in a constant-time friendly way.
 func verifySignature(payload, signature []byte, senderPub crypto.PublicKey) error {
@@ -187,10 +188,12 @@ func getBase64(m map[string]string, key string) ([]byte, error) {
 }
 
 func strContains(arr []string, v string) bool {
-    for _, x := range arr {
-        if x == v { return true }
-    }
-    return false
+	for _, x := range arr {
+		if x == v {
+			return true
+		}
+	}
+	return false
 }
 
 // ACK (HMAC) - key confirmation without ciphertext

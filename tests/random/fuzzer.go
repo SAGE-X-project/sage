@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package random
 
 import (
@@ -37,11 +36,11 @@ type Fuzzer struct {
 	config    *FuzzerConfig
 
 	// Statistics
-	totalTests     atomic.Int64
-	passedTests    atomic.Int64
-	failedTests    atomic.Int64
-	skippedTests   atomic.Int64
-	totalDuration  atomic.Int64 // in nanoseconds
+	totalTests    atomic.Int64
+	passedTests   atomic.Int64
+	failedTests   atomic.Int64
+	skippedTests  atomic.Int64
+	totalDuration atomic.Int64 // in nanoseconds
 }
 
 // FuzzerConfig contains configuration for the fuzzer

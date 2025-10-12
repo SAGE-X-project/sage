@@ -15,14 +15,12 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package random
 
 import (
 	"context"
 	"fmt"
 	"time"
-
 	// Import SAGE packages for actual testing
 	// These will be adjusted based on actual package structure
 	// "github.com/sage/core/rfc9421"

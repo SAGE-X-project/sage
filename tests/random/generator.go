@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package random
 
 import (
@@ -47,41 +46,41 @@ type TestInput struct {
 	SignatureParams SignatureParams
 
 	// Crypto related
-	KeyType      string
-	KeySize      int
-	Message      []byte
-	Signature    []byte
-	PublicKey    []byte
-	PrivateKey   []byte
+	KeyType    string
+	KeySize    int
+	Message    []byte
+	Signature  []byte
+	PublicKey  []byte
+	PrivateKey []byte
 
 	// DID related
-	DIDMethod    string
-	DIDChain     string
-	DIDDocument  map[string]interface{}
-	DIDMetadata  map[string]interface{}
+	DIDMethod   string
+	DIDChain    string
+	DIDDocument map[string]interface{}
+	DIDMetadata map[string]interface{}
 
 	// Session related
-	SessionID    string
-	SessionData  []byte
-	Nonce        string
+	SessionID   string
+	SessionData []byte
+	Nonce       string
 
 	// HPKE related
-	PlainText    []byte
-	CipherText   []byte
-	AAD          []byte
+	PlainText  []byte
+	CipherText []byte
+	AAD        []byte
 
 	// Generic parameters
-	Parameters   map[string]interface{}
+	Parameters map[string]interface{}
 }
 
 // SignatureParams contains RFC 9421 signature parameters
 type SignatureParams struct {
-	Algorithm    string
-	KeyID        string
-	Created      int64
-	Expires      int64
-	Nonce        string
-	Fields       []string
+	Algorithm string
+	KeyID     string
+	Created   int64
+	Expires   int64
+	Nonce     string
+	Fields    []string
 }
 
 // TestExpectation defines expected test outcomes
@@ -101,8 +100,8 @@ type ValidationRule struct {
 
 // TestCaseGenerator generates random test cases
 type TestCaseGenerator struct {
-	seed     int64
-	counter  int64
+	seed    int64
+	counter int64
 }
 
 // NewTestCaseGenerator creates a new test case generator
@@ -189,18 +188,18 @@ func (g *TestCaseGenerator) generateRFC9421TestCase(tc *TestCase) {
 	// Note: Negative test cases can be enabled when needed
 	// by uncommenting the following code:
 	/*
-	if !tc.Expected.ShouldPass {
-		// Introduce deliberate errors
-		if g.randomBool() {
-			// Invalid timestamp
-			tc.Input.SignatureParams.Created = time.Now().Add(-10 * time.Minute).Unix()
-			tc.Expected.ExpectedError = "signature timestamp out of valid range"
-		} else {
-			// Invalid signature
-			tc.Input.Signature = []byte(g.randomString(64))
-			tc.Expected.ExpectedError = "signature verification failed"
+		if !tc.Expected.ShouldPass {
+			// Introduce deliberate errors
+			if g.randomBool() {
+				// Invalid timestamp
+				tc.Input.SignatureParams.Created = time.Now().Add(-10 * time.Minute).Unix()
+				tc.Expected.ExpectedError = "signature timestamp out of valid range"
+			} else {
+				// Invalid signature
+				tc.Input.Signature = []byte(g.randomString(64))
+				tc.Expected.ExpectedError = "signature verification failed"
+			}
 		}
-	}
 	*/
 }
 
@@ -248,9 +247,9 @@ func (g *TestCaseGenerator) generateDIDTestCase(tc *TestCase) {
 		"id":       fmt.Sprintf("did:sage:%s:%s", tc.Input.DIDChain, g.randomString(20)),
 		"authentication": []interface{}{
 			map[string]interface{}{
-				"id":         "#key-1",
-				"type":       "EcdsaSecp256k1VerificationKey2019",
-				"controller": fmt.Sprintf("did:sage:%s:%s", tc.Input.DIDChain, g.randomString(20)),
+				"id":           "#key-1",
+				"type":         "EcdsaSecp256k1VerificationKey2019",
+				"controller":   fmt.Sprintf("did:sage:%s:%s", tc.Input.DIDChain, g.randomString(20)),
 				"publicKeyHex": g.randomString(64),
 			},
 		},
@@ -278,11 +277,11 @@ func (g *TestCaseGenerator) generateBlockchainTestCase(tc *TestCase) {
 	tc.Description = "Test smart contract interaction and transaction handling"
 
 	tc.Input.Parameters = map[string]interface{}{
-		"chain":          g.randomChoice([]string{"ethereum", "polygon", "arbitrum"}),
+		"chain":           g.randomChoice([]string{"ethereum", "polygon", "arbitrum"}),
 		"contractAddress": "0x" + g.randomString(40),
-		"method":         g.randomChoice([]string{"registerAgent", "updateAgent", "getAgent"}),
-		"gasLimit":       int64(g.randomInt(100000, 1000000)),
-		"value":          int64(g.randomInt(0, 1000000)),
+		"method":          g.randomChoice([]string{"registerAgent", "updateAgent", "getAgent"}),
+		"gasLimit":        int64(g.randomInt(100000, 1000000)),
+		"value":           int64(g.randomInt(0, 1000000)),
 	}
 
 	tc.Expected.ShouldPass = true

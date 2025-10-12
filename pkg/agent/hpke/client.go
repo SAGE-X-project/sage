@@ -48,8 +48,8 @@ type Client struct {
 	info      InfoBuilder
 	sessMgr   *session.Manager
 
-	cookies CookieSource 	// optional
-	pins map[string][]byte  // DID -> ed25519 pub (TOFU pin)
+	cookies CookieSource      // optional
+	pins    map[string][]byte // DID -> ed25519 pub (TOFU pin)
 }
 
 func NewClient(t transport.MessageTransport, resolver did.Resolver, key sagecrypto.KeyPair, didStr string, ib InfoBuilder, sessMgr *session.Manager) *Client {
@@ -305,7 +305,7 @@ func parseServerSignedResponse(data []byte) (*serverSignedResponse, error) {
 		return v, nil
 	}
 
-	v, _ := get("v")            // version
+	v, _ := get("v") // version
 	task, _ := get("task")
 	ctx, _ := get("ctx")
 	kid, _ := get("kid")
@@ -387,11 +387,11 @@ func (c *Client) verifySignature(ctx context.Context, serverDID string, r *serve
 	}
 
 	if pinned, ok := c.pins[serverDID]; ok {
-        pk, ok := pub.(ed25519.PublicKey)
-        if !ok || subtle.ConstantTimeCompare(pinned, pk) != 1 {
-            return fmt.Errorf("pin mismatch: server signing key changed")
-        }
-    }
+		pk, ok := pub.(ed25519.PublicKey)
+		if !ok || subtle.ConstantTimeCompare(pinned, pk) != 1 {
+			return fmt.Errorf("pin mismatch: server signing key changed")
+		}
+	}
 
 	// Recompute info/export hashes and check equality
 	ih := sha256.Sum256(info)
@@ -427,7 +427,6 @@ func (c *Client) verifySignature(ctx context.Context, serverDID string, r *serve
 	return nil
 }
 
-
 // Compute ssE2E = X25519(ephCpriv, ephSPub).
 func computeE2ESecret(ephCpriv *ecdh.PrivateKey, ephSbytes []byte) ([]byte, error) {
 	x := ecdh.X25519()
@@ -440,7 +439,9 @@ func computeE2ESecret(ephCpriv *ecdh.PrivateKey, ephSbytes []byte) ([]byte, erro
 		return nil, fmt.Errorf("e2e ecdh: %w", err)
 	}
 	// RFC 7748
-	if isAllZero32(ssE2E) { return nil, fmt.Errorf("invalid ECDH (all-zero)") }
+	if isAllZero32(ssE2E) {
+		return nil, fmt.Errorf("invalid ECDH (all-zero)")
+	}
 	return ssE2E, nil
 }
 

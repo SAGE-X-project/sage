@@ -33,7 +33,7 @@ type AgentMetadata struct {
 	Name         string                 `json:"name"`
 	Description  string                 `json:"description"`
 	Endpoint     string                 `json:"endpoint"`
-	PublicKey    interface{}            `json:"public_key"` // crypto.PublicKey type
+	PublicKey    interface{}            `json:"public_key"`     // crypto.PublicKey type
 	PublicKEMKey interface{}            `json:"public_kem_key"` // crypto.PublicKey type
 	Capabilities map[string]interface{} `json:"capabilities"`
 	Owner        string                 `json:"owner"` // Blockchain address of the owner

@@ -15,7 +15,6 @@
 
 // SPDX-License-Identifier: LGPL-3.0-or-later
 
-
 package testutil
 
 import (
@@ -30,11 +29,11 @@ import (
 
 // TestEnvironment manages test dependencies
 type TestEnvironment struct {
-	EthereumRPC      string
-	ContractAddress  string
-	Auth0Available   bool
-	SolanaRPC        string
-	skipIntegration  bool
+	EthereumRPC     string
+	ContractAddress string
+	Auth0Available  bool
+	SolanaRPC       string
+	skipIntegration bool
 }
 
 // NewTestEnvironment creates a new test environment
@@ -152,19 +151,19 @@ func (e *TestEnvironment) SetupMockAuth0(t *testing.T) {
 
 	// Set mock environment variables
 	mockEnv := map[string]string{
-		"AUTH0_DOMAIN_1":       "mock-domain.auth0.com",
-		"AUTH0_CLIENT_ID_1":    "mock-client-id-1",
+		"AUTH0_DOMAIN_1":        "mock-domain.auth0.com",
+		"AUTH0_CLIENT_ID_1":     "mock-client-id-1",
 		"AUTH0_CLIENT_SECRET_1": "mock-client-secret-1",
-		"TEST_DID_1":          "did:sage:mock:agent1",
-		"IDENTIFIER_1":        "https://api.mock.com/agent1",
-		"AUTH0_KEY_ID_1":      "mock-key-1",
+		"TEST_DID_1":            "did:sage:mock:agent1",
+		"IDENTIFIER_1":          "https://api.mock.com/agent1",
+		"AUTH0_KEY_ID_1":        "mock-key-1",
 
-		"AUTH0_DOMAIN_2":       "mock-domain.auth0.com",
-		"AUTH0_CLIENT_ID_2":    "mock-client-id-2",
+		"AUTH0_DOMAIN_2":        "mock-domain.auth0.com",
+		"AUTH0_CLIENT_ID_2":     "mock-client-id-2",
 		"AUTH0_CLIENT_SECRET_2": "mock-client-secret-2",
-		"TEST_DID_2":          "did:sage:mock:agent2",
-		"IDENTIFIER_2":        "https://api.mock.com/agent2",
-		"AUTH0_KEY_ID_2":      "mock-key-2",
+		"TEST_DID_2":            "did:sage:mock:agent2",
+		"IDENTIFIER_2":          "https://api.mock.com/agent2",
+		"AUTH0_KEY_ID_2":        "mock-key-2",
 	}
 
 	for key, value := range mockEnv {

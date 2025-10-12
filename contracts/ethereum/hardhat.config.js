@@ -98,12 +98,17 @@ if (process.env.SEPOLIA_RPC_URL) {
 // SOLIDITY COMPILER CONFIGURATION
 // ============================================
 
+// Adjust optimizer runs for coverage to handle deep stacks
+const optimizerRuns = process.env.COVERAGE
+  ? 800  // Higher runs for coverage to reduce stack depth
+  : parseInt(getEnvVariable("OPTIMIZER_RUNS", "200"));
+
 const solidityConfig = {
   version: "0.8.19",
   settings: {
     optimizer: {
       enabled: true,
-      runs: parseInt(getEnvVariable("OPTIMIZER_RUNS", "200")),
+      runs: optimizerRuns,
       details: {
         yul: true,
         yulDetails: {

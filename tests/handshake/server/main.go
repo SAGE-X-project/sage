@@ -25,11 +25,11 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	sessioninit "github.com/sage-x-project/sage/internal"
 	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	sagedid "github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/handshake"
-	sessioninit "github.com/sage-x-project/sage/internal"
 	"github.com/sage-x-project/sage/pkg/agent/session"
 )
 

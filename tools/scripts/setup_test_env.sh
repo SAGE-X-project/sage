@@ -34,6 +34,17 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Detect docker compose command
+detect_compose_cmd() {
+    if command -v docker-compose &> /dev/null; then
+        echo "docker-compose"
+    elif docker compose version &> /dev/null 2>&1; then
+        echo "docker compose"
+    else
+        return 1
+    fi
+}
+
 # Check dependencies
 check_dependencies() {
     log_info "Checking dependencies..."
@@ -43,7 +54,8 @@ check_dependencies() {
         exit 1
     fi
 
-    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
+    COMPOSE_CMD=$(detect_compose_cmd)
+    if [ $? -ne 0 ]; then
         log_error "Docker Compose is not installed"
         exit 1
     fi
@@ -61,7 +73,7 @@ cleanup_existing() {
     log_info "Cleaning up existing test environment..."
 
     if [ -f "${DOCKER_COMPOSE_FILE}" ]; then
-        docker-compose -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans 2>/dev/null || true
+        $COMPOSE_CMD -f "${DOCKER_COMPOSE_FILE}" down -v --remove-orphans 2>/dev/null || true
     fi
 
     # Remove any dangling containers
@@ -80,7 +92,7 @@ start_services() {
     fi
 
     # Start services
-    docker-compose -f "${DOCKER_COMPOSE_FILE}" up -d
+    $COMPOSE_CMD -f "${DOCKER_COMPOSE_FILE}" up -d
 
     log_success "Services started"
 }
@@ -94,7 +106,7 @@ wait_for_service() {
     log_info "Waiting for ${service_name} to be healthy..."
 
     while [ $elapsed -lt $max_wait ]; do
-        if docker-compose -f "${DOCKER_COMPOSE_FILE}" ps | grep "${service_name}" | grep -q "Up (healthy)"; then
+        if $COMPOSE_CMD -f "${DOCKER_COMPOSE_FILE}" ps | grep "${service_name}" | grep -q "Up (healthy)"; then
             log_success "${service_name} is healthy"
             return 0
         fi
@@ -160,7 +172,7 @@ print_service_urls() {
     echo -e "${GREEN}║${NC} Solana RPC:      http://localhost:8899           ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC} Redis:           localhost:6380                  ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}                                                    ${GREEN}║${NC}"
-    echo -e "${GREEN}║${NC} View logs:       docker-compose -f \\             ${GREEN}║${NC}"
+    echo -e "${GREEN}║${NC} View logs:       ${COMPOSE_CMD} -f \\              ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}                  ${DOCKER_COMPOSE_FILE} logs -f   ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC}                                                    ${GREEN}║${NC}"
     echo -e "${GREEN}║${NC} Stop services:   ./tools/scripts/                 ${GREEN}║${NC}"
@@ -261,7 +273,7 @@ main() {
     start_services
     wait_for_services || {
         log_error "Failed to start services. Check logs with:"
-        echo "  docker-compose -f ${DOCKER_COMPOSE_FILE} logs"
+        echo "  ${COMPOSE_CMD} -f ${DOCKER_COMPOSE_FILE} logs"
         exit 1
     }
 
