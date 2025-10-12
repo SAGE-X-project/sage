@@ -300,10 +300,11 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
 
     /**
      * @notice Get all feedback for a specific task
-     * @param taskId ERC-8004 task identifier
+     * @dev This function is not fully implemented in standalone version
+     *      as it requires server agent address mapping
      * @return feedbacks Array of feedback for the task
      */
-    function getTaskFeedback(bytes32 taskId)
+    function getTaskFeedback(bytes32 /* taskId */)
         external
         view
         override
@@ -325,7 +326,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
         external
         view
         override
-        returns (uint256 count)
+        returns (uint256)
     {
         return agentFeedbackIds[agentAddress].length;
     }
