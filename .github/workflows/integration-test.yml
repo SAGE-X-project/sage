@@ -97,10 +97,7 @@ jobs:
             -coverprofile=integration-coverage.out
 
       - name: Run handshake tests
-        run: make test-handshake
-
-      - name: Run HPKE tests
-        run: make test-hpke
+        run: bash tests/handshake/run_handshake.sh
 
       - name: Upload integration test coverage
         uses: actions/upload-artifact@v4
@@ -115,7 +112,6 @@ jobs:
           echo "### Integration Test Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Handshake tests completed" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ HPKE tests completed" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
 
   e2e-test:

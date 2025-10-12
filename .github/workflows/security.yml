@@ -96,11 +96,19 @@ jobs:
         working-directory: contracts/ethereum
         run: npm ci
 
+      - name: Compile contracts for Slither
+        working-directory: contracts/ethereum
+        run: npx hardhat compile
+
       - name: Run Slither
         working-directory: contracts/ethereum
         run: |
           pip3 install slither-analyzer
-          slither contracts/ --filter-paths "node_modules|test" --exclude-dependencies --sarif slither-results.sarif || true
+          slither . \
+            --compile-force-framework hardhat \
+            --filter-paths "node_modules|test" \
+            --exclude-dependencies \
+            --sarif slither-results.sarif || true
 
       - name: Move SARIF file
         run: mv contracts/ethereum/slither-results.sarif slither-results.sarif || true

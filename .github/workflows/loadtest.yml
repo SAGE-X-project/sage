@@ -98,7 +98,7 @@ jobs:
           DB_SSLMODE: disable
           SAGE_PORT: 8080
         run: |
-          go run tests/session/handshake/server/main.go &
+          go run tests/handshake/server/main.go &
           echo $! > server.pid
 
           # Wait for server to be ready
@@ -120,24 +120,25 @@ jobs:
           SAGE_BASE_URL: http://localhost:8080
           SAGE_ENV: ci
         run: |
+          mkdir -p tools/loadtest/reports
           k6 run \
-            --out json=loadtest/reports/baseline-results.json \
-            --summary-export=loadtest/reports/baseline-summary.json \
-            loadtest/scenarios/baseline.js
+            --out json=tools/loadtest/reports/baseline-results.json \
+            --summary-export=tools/loadtest/reports/baseline-summary.json \
+            tools/loadtest/scenarios/baseline.js
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: baseline-test-results
-          path: loadtest/reports/baseline-*.json
+          path: tools/loadtest/reports/baseline-*.json
           retention-days: 30
 
       - name: Check test status
         if: always()
         run: |
           # Parse summary and check if thresholds passed
-          if jq -e '.metrics | to_entries | map(select(.value.thresholds)) | map(.value.thresholds | to_entries | map(.value.ok)) | flatten | all' loadtest/reports/baseline-summary.json > /dev/null 2>&1; then
+          if jq -e '.metrics | to_entries | map(select(.value.thresholds)) | map(.value.thresholds | to_entries | map(.value.ok)) | flatten | all' tools/loadtest/reports/baseline-summary.json > /dev/null 2>&1; then
             echo "✅ Baseline test passed"
             exit 0
           else
@@ -204,7 +205,7 @@ jobs:
         run: |
           go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
           migrate -path ./deployments/migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
-          go run tests/session/handshake/server/main.go &
+          go run tests/handshake/server/main.go &
           echo $! > server.pid
 
           # Wait for server
@@ -223,17 +224,18 @@ jobs:
           SAGE_BASE_URL: http://localhost:8080
           SAGE_ENV: ci
         run: |
+          mkdir -p tools/loadtest/reports
           k6 run \
-            --out json=loadtest/reports/stress-results.json \
-            --summary-export=loadtest/reports/stress-summary.json \
-            loadtest/scenarios/stress.js
+            --out json=tools/loadtest/reports/stress-results.json \
+            --summary-export=tools/loadtest/reports/stress-summary.json \
+            tools/loadtest/scenarios/stress.js
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: stress-test-results
-          path: loadtest/reports/stress-*.json
+          path: tools/loadtest/reports/stress-*.json
           retention-days: 30
 
       - name: Stop server
@@ -284,7 +286,7 @@ jobs:
           go mod download
           go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
           migrate -path ./deployments/migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
-          go run tests/session/handshake/server/main.go &
+          go run tests/handshake/server/main.go &
           echo $! > server.pid
 
           for i in {1..30}; do
@@ -302,17 +304,18 @@ jobs:
           SAGE_BASE_URL: http://localhost:8080
           SAGE_ENV: ci
         run: |
+          mkdir -p tools/loadtest/reports
           k6 run \
-            --out json=loadtest/reports/spike-results.json \
-            --summary-export=loadtest/reports/spike-summary.json \
-            loadtest/scenarios/spike.js
+            --out json=tools/loadtest/reports/spike-results.json \
+            --summary-export=tools/loadtest/reports/spike-summary.json \
+            tools/loadtest/scenarios/spike.js
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: spike-test-results
-          path: loadtest/reports/spike-*.json
+          path: tools/loadtest/reports/spike-*.json
           retention-days: 30
 
       - name: Stop server
