@@ -95,16 +95,40 @@ run_cli_test() {
 
 # 옵션 파싱
 VERBOSE=0
-if [ "$1" = "-v" ] || [ "$1" = "--verbose" ]; then
-    VERBOSE=1
-fi
+SKIP_INTEGRATION=0
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose)
+            VERBOSE=1
+            shift
+            ;;
+        --skip-integration)
+            SKIP_INTEGRATION=1
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [-v|--verbose] [--skip-integration]"
+            echo "  -v, --verbose          Show detailed logs for failed tests"
+            echo "  --skip-integration     Skip blockchain integration tests (9.2)"
+            exit 1
+            ;;
+    esac
+done
 
 # 시작
 print_header "SAGE 전체 기능 검증 (소분류 기준)"
 echo "기능 명세서: feature_list.docx"
 echo "검증 문서: docs/FEATURE_VERIFICATION_GUIDE.md"
 echo ""
-echo "옵션: -v 또는 --verbose 로 실패 로그 상세 출력"
+echo "옵션:"
+echo "  -v, --verbose          실패 로그 상세 출력"
+echo "  --skip-integration     블록체인 통합 테스트 건너뛰기 (9.2)"
+if [ "$SKIP_INTEGRATION" = "1" ]; then
+    echo ""
+    echo "⚠️  블록체인 통합 테스트 건너뜀 (--skip-integration)"
+fi
 echo ""
 
 # 테스트 카운터
@@ -751,36 +775,41 @@ run_test "모든 패키지 테스트 (150+ 케이스)" \
 
 ## 9.2 블록체인 통합 테스트
 print_category "9.2 블록체인 통합 테스트"
-TEST_NUM=1
 
-print_test $TEST_NUM 5 "블록체인 연결"
-run_test "Web3 연결 및 Chain ID 확인" \
-    "make test-integration 2>&1 | grep -A 5 'TestBlockchainConnection'" \
-    "/tmp/sage-test-logs/integration_blockchain.log"
-TEST_NUM=$((TEST_NUM + 1))
+if [ "$SKIP_INTEGRATION" = "1" ]; then
+    print_skip "블록체인 통합 테스트 건너뜀 (--skip-integration)"
+else
+    TEST_NUM=1
 
-print_test $TEST_NUM 5 "Enhanced Provider (가스 예측)"
-run_test "가스 예측 및 재시도 로직" \
-    "make test-integration 2>&1 | grep -A 10 'TestEnhancedProviderIntegration'" \
-    "/tmp/sage-test-logs/integration_provider.log"
-TEST_NUM=$((TEST_NUM + 1))
+    print_test $TEST_NUM 5 "블록체인 연결"
+    run_test "Web3 연결 및 Chain ID 확인" \
+        "make test-integration 2>&1 | grep -A 5 'TestBlockchainConnection'" \
+        "/tmp/sage-test-logs/integration_blockchain.log"
+    TEST_NUM=$((TEST_NUM + 1))
 
-print_test $TEST_NUM 5 "DID 등록/조회"
-run_test "DID 등록 및 조회" \
-    "make test-integration 2>&1 | grep -A 10 'TestDIDRegistration'" \
-    "/tmp/sage-test-logs/integration_did.log"
-TEST_NUM=$((TEST_NUM + 1))
+    print_test $TEST_NUM 5 "Enhanced Provider (가스 예측)"
+    run_test "가스 예측 및 재시도 로직" \
+        "make test-integration 2>&1 | grep -A 10 'TestEnhancedProviderIntegration'" \
+        "/tmp/sage-test-logs/integration_provider.log"
+    TEST_NUM=$((TEST_NUM + 1))
 
-print_test $TEST_NUM 5 "멀티 에이전트 DID"
-run_test "5개 에이전트 생성 및 서명" \
-    "make test-integration 2>&1 | grep -A 10 'TestMultiAgentDID'" \
-    "/tmp/sage-test-logs/integration_multi_agent.log"
-TEST_NUM=$((TEST_NUM + 1))
+    print_test $TEST_NUM 5 "DID 등록/조회"
+    run_test "DID 등록 및 조회" \
+        "make test-integration 2>&1 | grep -A 10 'TestDIDRegistration'" \
+        "/tmp/sage-test-logs/integration_did.log"
+    TEST_NUM=$((TEST_NUM + 1))
 
-print_test $TEST_NUM 5 "DID Resolver 캐싱"
-run_test "DID 조회 캐싱 성능" \
-    "make test-integration 2>&1 | grep -A 10 'TestDIDResolver'" \
-    "/tmp/sage-test-logs/integration_resolver.log"
+    print_test $TEST_NUM 5 "멀티 에이전트 DID"
+    run_test "5개 에이전트 생성 및 서명" \
+        "make test-integration 2>&1 | grep -A 10 'TestMultiAgentDID'" \
+        "/tmp/sage-test-logs/integration_multi_agent.log"
+    TEST_NUM=$((TEST_NUM + 1))
+
+    print_test $TEST_NUM 5 "DID Resolver 캐싱"
+    run_test "DID 조회 캐싱 성능" \
+        "make test-integration 2>&1 | grep -A 10 'TestDIDResolver'" \
+        "/tmp/sage-test-logs/integration_resolver.log"
+fi
 
 #==============================================================================
 # 최종 결과
