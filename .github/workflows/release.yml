@@ -61,18 +61,18 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
-          make build-platform PLATFORM=${{ matrix.goos }}-${{ matrix.goarch }}
+          make build-platform GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }}
 
       - name: Create release package
         shell: bash
         run: |
-          cd build
+          cd build/dist/${{ matrix.goos }}-${{ matrix.goarch }}
           if [ "${{ matrix.goos }}" = "windows" ]; then
-            7z a sage-${{ steps.version.outputs.VERSION }}-${{ matrix.goos }}-${{ matrix.goarch }}.zip bin/
+            7z a ../../sage-${{ steps.version.outputs.VERSION }}-${{ matrix.goos }}-${{ matrix.goarch }}.zip *
           else
-            tar czf sage-${{ steps.version.outputs.VERSION }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz bin/
+            tar czf ../../sage-${{ steps.version.outputs.VERSION }}-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz *
           fi
-          cd ..
+          cd ../../..
 
       - name: Generate checksums
         shell: bash
