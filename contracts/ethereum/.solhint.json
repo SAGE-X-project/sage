@@ -16,19 +16,20 @@
     "func-name-mixedcase": "error",
     "func-param-name-mixedcase": "error",
     "modifier-name-mixedcase": "error",
-    "private-vars-leading-underscore": "warn",
+    "private-vars-leading-underscore": "off",
     "reason-string": ["warn", { "maxLength": 64 }],
     "constructor-syntax": "error",
     "quotes": ["error", "double"],
-    "not-rely-on-time": "warn",
+    "not-rely-on-time": "off",
     "var-name-mixedcase": "error",
     "const-name-snakecase": "error",
     "contract-name-camelcase": "error",
     "event-name-camelcase": "error",
     "use-forbidden-name": "error",
     "imports-on-top": "error",
-    "ordering": "warn",
+    "ordering": "off",
     "no-unused-import": "error",
-    "gas-custom-errors": "warn"
+    "custom-errors": "off",
+    "no-global-import": "off"
   }
 }

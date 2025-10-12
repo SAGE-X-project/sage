@@ -27,12 +27,14 @@ contract ReentrancyAttacker {
             attackCount++;
 
             // Attempt to reenter by submitting another validation
+            // solhint-disable-next-line no-empty-blocks
             try validationRegistry.submitStakeValidation{value: msg.value / 2}(
                 attackRequestId,
                 attackComputedHash
             ) {
                 // If this succeeds, reentrancy protection failed
-            } catch {
+                revert("Reentrancy attack succeeded");
+            } catch { // solhint-disable-line no-empty-blocks
                 // Expected - reentrancy should be prevented
             }
         }

@@ -112,7 +112,7 @@ contract SageVerificationHook is IRegistryHook {
         if (didBytes.length < 10) return false;
         
         // Check if starts with "did:"
-        if (didBytes[0] != 'd' || didBytes[1] != 'i' || didBytes[2] != 'd' || didBytes[3] != ':') {
+        if (didBytes[0] != 0x64 || didBytes[1] != 0x69 || didBytes[2] != 0x64 || didBytes[3] != 0x3A) {
             return false;
         }
         

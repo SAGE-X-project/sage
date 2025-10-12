@@ -282,7 +282,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
         external
         view
         override
-        returns (uint256 count)
+        returns (uint256)
     {
         return agentFeedbackCount[agentAddress];
     }
@@ -292,7 +292,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
      * @param taskId The task identifier
      * @return isAuthorized True if task is authorized and not used
      */
-    function isTaskAuthorized(bytes32 taskId) external view returns (bool isAuthorized) {
+    function isTaskAuthorized(bytes32 taskId) external view returns (bool) {
         TaskAuthorization memory auth = taskAuthorizations[taskId];
         return auth.client != address(0) &&
                !auth.used &&
@@ -302,12 +302,12 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
     /**
      * @notice Get task authorization details
      * @param taskId The task identifier
-     * @return authorization Task authorization structure
+     * @return Task authorization structure
      */
     function getTaskAuthorization(bytes32 taskId)
         external
         view
-        returns (TaskAuthorization memory authorization)
+        returns (TaskAuthorization memory)
     {
         return taskAuthorizations[taskId];
     }

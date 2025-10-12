@@ -167,26 +167,40 @@ func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage
 		}
 		senderDID := msg.DID
 
-		var senderPub crypto.PublicKey
-		if cache, ok := s.getPeer(msg.ContextID); ok && cache.did == senderDID && time.Now().Before(cache.expires) {
-			senderPub = cache.pub
-		} else {
-			if s.resolver == nil {
-				return nil, errors.New("cannot resolve sender pubkey: resolver not set")
+		if s.resolver == nil {
+			return nil, errors.New("cannot resolve sender pubkey: resolver not set")
+		}
+
+		// Use singleflight for both cache check and resolve to prevent race conditions
+		v, err, _ := s.sf.Do("resolve:"+senderDID+":"+msg.ContextID, func() (any, error) {
+			// Check cache inside singleflight to ensure only one goroutine resolves
+			if cache, ok := s.getPeer(msg.ContextID); ok && cache.did == senderDID && time.Now().Before(cache.expires) {
+				return cache.pub, nil
 			}
-			v, err, _ := s.sf.Do("resolve:"+senderDID, func() (any, error) {
-				return s.resolver.ResolvePublicKey(ctx, did.AgentDID(senderDID))
-			})
-			if err != nil || v == nil {
-				return nil, errors.New("cannot resolve sender pubkey")
+
+			// Resolve public key from DID
+			pub, err := s.resolver.ResolvePublicKey(ctx, did.AgentDID(senderDID))
+			if err != nil {
+				return nil, err
 			}
-			var okType bool
-			senderPub, okType = v.(crypto.PublicKey)
-			if !okType {
-				return nil, fmt.Errorf("resolver returned unexpected key type: %T", v)
-			}
+
 			// Cache the resolved public key for future requests
-			s.savePeer(msg.ContextID, senderPub, senderDID)
+			if pubKey, ok := pub.(crypto.PublicKey); ok {
+				s.savePeer(msg.ContextID, pubKey, senderDID)
+			}
+
+			return pub, nil
+		})
+
+		if err != nil || v == nil {
+			return nil, errors.New("cannot resolve sender pubkey")
+		}
+
+		var senderPub crypto.PublicKey
+		var okType bool
+		senderPub, okType = v.(crypto.PublicKey)
+		if !okType {
+			return nil, fmt.Errorf("resolver returned unexpected key type: %T", v)
 		}
 
 		// Verify sender signature

@@ -23,8 +23,5 @@
     "url": "https://github.com/SAGE-X-project/sage/issues"
   },
   "homepage": "https://github.com/SAGE-X-project/sage#readme",
-  "devDependencies": {
-    "hardhat": "^3.0.7"
-  },
   "type": "module"
 }

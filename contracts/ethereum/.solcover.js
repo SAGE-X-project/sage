@@ -1,7 +1,8 @@
 module.exports = {
   skipFiles: [
     'test/',
-    'governance/TimelockController.sol' // Skip complex contract with deep stack
+    'governance/TimelockController.sol', // Skip complex contract with deep stack
+    'SageRegistryV3.sol' // Skip due to stack too deep in coverage
   ],
   configureYulOptimizer: true,
   solcOptimizerDetails: {

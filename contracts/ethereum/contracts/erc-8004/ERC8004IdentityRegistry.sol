@@ -27,14 +27,13 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
 
     /**
      * @notice Register a new agent (ERC-8004 compliant)
-     * @dev Delegates to SageRegistryV2 with additional ERC-8004 event emission
-     * @param agentId Unique identifier for the agent (DID)
-     * @param endpoint URL or IPFS hash pointing to AgentCard
+     * @dev This function is not implemented. Use SageRegistryV2.registerAgent for full registration.
+     *      Parameters: agentId (DID), endpoint (AgentCard URL)
      * @return success True if registration successful
      */
     function registerAgent(
-        string calldata agentId,
-        string calldata endpoint
+        string calldata /* agentId */,
+        string calldata /* endpoint */
     ) external override returns (bool success) {
         // For minimal ERC-8004 registration, we create default values
         // In production, the caller should use SageRegistryV2 directly for full control
@@ -116,14 +115,14 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
 
     /**
      * @notice Update agent endpoint (AgentCard location)
-     * @dev Delegates to SageRegistryV2's updateAgent function
+     * @dev This function is not fully implemented. Use SageRegistryV2.updateAgent for updates.
+     *      Parameters: agentId (DID), newEndpoint (AgentCard URL)
      * @param agentId The agent identifier (DID)
-     * @param newEndpoint New AgentCard URL or IPFS hash
      * @return success True if update successful
      */
     function updateAgentEndpoint(
         string calldata agentId,
-        string calldata newEndpoint
+        string calldata /* newEndpoint */
     ) external override returns (bool success) {
         // Get current agent metadata
         ISageRegistry.AgentMetadata memory metadata = sageRegistry.getAgentByDID(agentId);

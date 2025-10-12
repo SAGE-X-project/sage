@@ -1,0 +1,30 @@
+# GitLeaks Ignore File - Fingerprint format
+# All entries are test keys, documentation examples, or publicly known test accounts
+
+# Hardhat default test accounts (publicly known)
+contracts/ethereum/LOCAL_CONTRACT_INFO.md:generic-api-key:54
+contracts/ethereum/LOCAL_CONTRACT_INFO.md:generic-api-key:123
+contracts/ethereum/LOCAL_CONTRACT_INFO.md:generic-api-key:186
+
+# Test fixtures and documentation examples
+api/examples/authentication.md:generic-api-key:75
+docs/API.md:generic-api-key:636
+contracts/examples/ethereum-registration.js:generic-api-key:10
+
+# PEM format markers in test files
+pkg/agent/crypto/formats/pem_test.go:private-key:45
+pkg/agent/crypto/formats/pem_test.go:private-key:75
+pkg/agent/crypto/formats/pem_test.go:private-key:103
+
+# Documentation files with examples
+docs/overview/DETAILED_GUIDE_PART2_KO.md:private-key:1848
+docs/overview/DETAILED_GUIDE_PART5_KO.md:generic-api-key:1562
+docs/overview/DETAILED_GUIDE_PART6B_KO.md:generic-api-key:136
+docs/overview/DETAILED_GUIDE_PART6B_KO.md:generic-api-key:168
+
+# Test files
+pkg/agent/did/ethereum/client_unit_test.go:generic-api-key:531
+tests/integration/tests/integration/setup_test_env.sh:generic-api-key:20
+tests/integration/tests/integration/setup_test_env.sh:generic-api-key:220
+tests/integration/tests/integration/setup_test_env.sh:generic-api-key:224
+tests/integration/tests/integration/setup_test_env.sh:generic-api-key:228
