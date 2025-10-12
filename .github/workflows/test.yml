@@ -80,15 +80,16 @@ jobs:
         working-directory: contracts/ethereum
         run: npm test
 
-      - name: Generate coverage report
-        working-directory: contracts/ethereum
-        run: npm run coverage
-
-      - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: contracts-coverage
-          path: contracts/ethereum/coverage
+      # Coverage disabled due to timeout issues with complex contracts
+      # - name: Generate coverage report
+      #   working-directory: contracts/ethereum
+      #   run: npm run coverage
+      #
+      # - name: Upload coverage artifact
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: contracts-coverage
+      #     path: contracts/ethereum/coverage
 
   # Linting and code quality
   lint:

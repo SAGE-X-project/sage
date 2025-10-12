@@ -370,9 +370,9 @@ func TestInvitation_ResolverSingleflight(t *testing.T) {
 			PublicKey: aliceKeyPair.PublicKey(),
 		}
 		var callCount atomic.Int32
-		ethResolver.On("Resolve", mock.Anything, aliceDID).Run(func(args mock.Arguments) {
+		ethResolver.On("ResolvePublicKey", mock.Anything, aliceDID).Run(func(args mock.Arguments) {
 			callCount.Add(1)
-		}).Return(aliceMeta, nil)
+		}).Return(aliceMeta.PublicKey, nil)
 
 		invMsg := &handshake.InvitationMessage{
 			BaseMessage: message.BaseMessage{ContextID: contextId},
