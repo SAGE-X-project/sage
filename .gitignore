@@ -453,7 +453,7 @@ Cargo.lock
 *.pdb
 
 # Claude local files
-CLAUDE.md
+# Note: CLAUDE.md in root is the project-level AI development guide (tracked)
 CLAUDE.local.md
 *.local.md
 .claude/*.local.*

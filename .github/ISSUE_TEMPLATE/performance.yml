@@ -1,0 +1,178 @@
+name: ⚡ Performance Issue
+description: Report performance problems or suggest optimizations
+title: "[Performance]: "
+labels: ["performance", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve SAGE's performance!
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      description: Which component has performance issues?
+      options:
+        - HPKE Encryption/Decryption
+        - Signature Generation/Verification
+        - DID Resolution
+        - Blockchain Calls
+        - Database Queries
+        - Session Management
+        - Memory Usage
+        - Network I/O
+        - Overall Throughput
+        - Startup Time
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Performance Issue Description
+      description: Describe the performance problem
+      placeholder: What is slow or using excessive resources?
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-performance
+    attributes:
+      label: Current Performance
+      description: Quantify the current performance
+      placeholder: |
+        - Operation takes X seconds
+        - Memory usage is Y GB
+        - Throughput is Z ops/sec
+        - CPU usage is W%
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-performance
+    attributes:
+      label: Expected Performance
+      description: What performance would you expect?
+      placeholder: |
+        - Should take X seconds or less
+        - Memory should be under Y GB
+        - Should handle Z ops/sec
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction Steps
+      description: How to reproduce the performance issue
+      placeholder: |
+        1. Start with configuration '...'
+        2. Run load test with '...'
+        3. Observe performance metrics
+    validations:
+      required: true
+
+  - type: textarea
+    id: benchmark
+    attributes:
+      label: Benchmark Results
+      description: If you've run benchmarks, paste the results
+      render: shell
+      placeholder: |
+        $ go test -bench=. -benchmem ./...
+        BenchmarkEncrypt-8    1000    1234567 ns/op    12345 B/op    123 allocs/op
+
+  - type: textarea
+    id: profiling
+    attributes:
+      label: Profiling Data
+      description: CPU/memory profiles if available
+      placeholder: |
+        Attach pprof output, flame graphs, or profiling data
+        - CPU profile: ...
+        - Memory profile: ...
+        - goroutine profile: ...
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Details
+      description: Hardware and software environment
+      placeholder: |
+        - CPU: 8 cores, 3.5 GHz
+        - RAM: 16 GB
+        - Go version: 1.23.0
+        - OS: Ubuntu 22.04
+        - SAGE version: v1.0.1
+    validations:
+      required: true
+
+  - type: textarea
+    id: workload
+    attributes:
+      label: Workload Characteristics
+      description: Describe the workload that triggers the issue
+      placeholder: |
+        - Number of concurrent sessions: ...
+        - Request rate: ... ops/sec
+        - Data size: ... KB/MB per request
+        - Duration: ... minutes/hours
+
+  - type: textarea
+    id: optimization-ideas
+    attributes:
+      label: Optimization Ideas
+      description: Do you have suggestions for improvement?
+      placeholder: |
+        - Add caching for ...
+        - Use connection pooling for ...
+        - Reduce allocations in ...
+        - Parallelize ...
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is the performance issue?
+      options:
+        - Low - Minor slowdown in specific scenarios
+        - Medium - Noticeable impact on common operations
+        - High - Significantly impacts production workloads
+        - Critical - System unusable at scale
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information
+      placeholder: |
+        - Comparison with other similar systems
+        - Performance regression from previous version
+        - Related issues or discussions
+        - etc.
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to help implement optimizations with guidance
+          required: false
+        - label: I can provide additional profiling data if needed
+          required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have provided quantitative performance data
+          required: true
+        - label: I have tested with the latest version
+          required: true
