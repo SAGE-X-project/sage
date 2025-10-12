@@ -86,7 +86,7 @@ jobs:
           DB_NAME: sage_test
         run: |
           go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-          migrate -path ./migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
+          migrate -path ./deployments/migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
 
       - name: Start SAGE server
         env:
@@ -203,7 +203,7 @@ jobs:
           DB_SSLMODE: disable
         run: |
           go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-          migrate -path ./migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
+          migrate -path ./deployments/migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
           go run tests/session/handshake/server/main.go &
           echo $! > server.pid
 
@@ -283,7 +283,7 @@ jobs:
         run: |
           go mod download
           go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-          migrate -path ./migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
+          migrate -path ./deployments/migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
           go run tests/session/handshake/server/main.go &
           echo $! > server.pid
 
