@@ -1,0 +1,131 @@
+name: 📖 Documentation
+description: Report issues with documentation or suggest improvements
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation!
+
+  - type: dropdown
+    id: doc-type
+    attributes:
+      label: Documentation Type
+      description: What type of documentation needs attention?
+      options:
+        - README
+        - API Documentation
+        - Architecture Documentation
+        - Tutorial/Guide
+        - Code Comments
+        - Examples
+        - CHANGELOG
+        - Contributing Guidelines
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Documentation Location
+      description: Path or URL to the documentation
+      placeholder: docs/ARCHITECTURE.md, README.md, pkg/agent/README.md, etc.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: issue-type
+    attributes:
+      label: Issue Type
+      description: What kind of documentation issue is this?
+      options:
+        - Missing documentation
+        - Incorrect/outdated information
+        - Unclear explanation
+        - Broken links
+        - Typo/grammar
+        - Code example not working
+        - Missing code example
+        - Formatting issue
+        - Translation needed
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current Documentation
+      description: What does the current documentation say (if applicable)?
+      placeholder: Quote the current documentation or describe what's missing
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Description
+      description: What is wrong or missing?
+      placeholder: Clearly describe the issue with the documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Improvement
+      description: How should this be improved?
+      placeholder: Provide your suggested changes or additions
+    validations:
+      required: true
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Code Examples
+      description: If suggesting new examples, provide them here
+      render: go
+      placeholder: |
+        // Example code
+        package main
+
+        func main() {
+            // ...
+        }
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Links to related documentation, specs, or issues
+      placeholder: |
+        - RFC 9180: https://datatracker.ietf.org/doc/html/rfc9180
+        - Related issue: #123
+        - etc.
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context or screenshots
+      placeholder: Add any other relevant information
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to submit a PR to fix this documentation
+          required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have checked that the documentation is actually incorrect/missing
+          required: true
+        - label: My suggestion follows the project's documentation standards
+          required: false
