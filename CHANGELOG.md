@@ -5,6 +5,48 @@ All notable changes to SAGE (Secure Agent Guarantee Engine) will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-10-13
+
+### Fixed
+
+- **Coverage Issues**: Skip SageRegistryV3 in coverage to resolve stack depth issues (#70)
+  - Resolved stack too deep compilation errors during coverage analysis
+  - Added solcover.js configuration to exclude problematic contracts
+  - Maintained test coverage for critical contract components
+
+- **CI/CD Pipeline**: Multiple CI/CD improvements and fixes
+  - Fixed Go formatting issues across codebase
+  - Resolved docker-compose configuration problems
+  - Fixed Solidity contract compilation issues in CI
+  - Updated loadtest and release workflows to Go 1.23.0
+
+- **License Compliance**: Added LGPL-v3 license headers and GitHub templates (#69)
+  - Added proper license headers to all source files
+  - Created GitHub issue and PR templates
+  - Enhanced project documentation structure
+
+### Security
+
+- **HPKE Handshake Security**: Critical security improvements to handshake protocol (#66, #68)
+  - Enhanced key exchange validation
+  - Improved session establishment security
+  - Strengthened authentication mechanisms
+  - Added additional security checks for handshake phase
+
+### Changed
+
+- **Go Version**: Updated to Go 1.23.0 for better performance and security
+  - Updated CI/CD workflows to use Go 1.23.0
+  - Updated Docker base images
+  - Resolved compatibility issues with Go 1.23.0
+
+### Infrastructure
+
+- **GitHub Actions**: Updated workflow configurations
+  - Improved test reliability and coverage reporting
+  - Enhanced security scanning integration
+  - Optimized CI execution time
+
 ## [1.0.1] - 2025-10-12
 
 ### Changed
@@ -274,6 +316,17 @@ SAGE v1.0.0 marks the first production-ready release of the Secure Agent Guarant
 ---
 
 ## Version History
+
+- **v1.0.2** (2025-10-13): Patch release with security and CI/CD improvements
+  - Critical HPKE handshake security enhancements
+  - Stack depth issue resolution for test coverage
+  - License compliance and documentation improvements
+  - Go 1.23.0 update and CI/CD optimizations
+
+- **v1.0.1** (2025-10-12): Maintenance release
+  - Dependency updates across the board
+  - Linter migration and code quality improvements
+  - Test infrastructure enhancements
 
 - **v1.0.0** (2025-10-11): First production release
   - Production-ready blockchain-based security framework
