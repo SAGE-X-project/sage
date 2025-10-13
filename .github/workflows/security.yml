@@ -151,7 +151,7 @@ jobs:
 
       - name: Check Go licenses
         continue-on-error: true  # Allow CI to pass while reporting license issues
-        uses: google/go-licenses@v1.6.0
+        uses: google/go-licenses@v2.0.1
         with:
           args: check ./...
 
