@@ -168,25 +168,36 @@ func TestNegativeCases(t *testing.T) {
 		err = verifier.SignRequest(req, "sig1", params, privateKey)
 		require.NoError(t, err)
 
+		// Store original signature for comparison
+		originalSig := req.Header.Get("Signature")
+		require.NotEmpty(t, originalSig, "Original signature must not be empty")
+
 		// Modify the signature by changing one character in the base64
-		sig := req.Header.Get("Signature")
+		sig := originalSig
 		// Find the base64 part between colons
 		start := strings.Index(sig, ":")
 		end := strings.LastIndex(sig, ":")
-		if start != -1 && end != -1 && start < end {
-			b64Part := sig[start+1 : end]
-			// Change a character in the middle
-			if len(b64Part) > 10 {
-				modifiedB64 := b64Part[:10] + "X" + b64Part[11:]
-				sig = sig[:start+1] + modifiedB64 + sig[end:]
-			}
-		}
+		require.True(t, start != -1 && end != -1 && start < end, "Signature must have proper format")
+
+		b64Part := sig[start+1 : end]
+		require.True(t, len(b64Part) > 10, "Base64 signature must be long enough to modify")
+
+		// Change a character in the middle (flip first bit of 11th character)
+		modifiedB64 := b64Part[:10] + "X" + b64Part[11:]
+		sig = sig[:start+1] + modifiedB64 + sig[end:]
+
+		// Verify signature was actually modified
+		require.NotEqual(t, originalSig, sig, "Signature must be modified")
+
 		req.Header.Set("Signature", sig)
 
 		// Should fail verification
 		err = verifier.VerifyRequest(req, publicKey, nil)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "signature verification failed")
+		if err == nil {
+			t.Errorf("Expected verification to fail for modified signature, but it succeeded")
+		} else {
+			assert.Contains(t, err.Error(), "signature verification failed", "Error message should indicate signature verification failure")
+		}
 	})
 
 	// Test 3.1.2: Modified signed header
