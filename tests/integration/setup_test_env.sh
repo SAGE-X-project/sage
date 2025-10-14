@@ -60,8 +60,9 @@ start_local_blockchain() {
     HARDHAT_AVAILABLE=false
     if command_exists npx; then
         # Temporarily disable exit-on-error for this check
+        # Use --no-install flag to prevent installation prompt if hardhat is not found
         set +e
-        npx hardhat --version >/dev/null 2>&1 && HARDHAT_AVAILABLE=true
+        npx --no-install hardhat --version >/dev/null 2>&1 && HARDHAT_AVAILABLE=true
         set -e
     fi
 

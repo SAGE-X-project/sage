@@ -323,7 +323,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run TestDIDFormat
 #### 테스트 방법
 ```bash
 # 통합 테스트 (DID 등록)
-go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -tags=integration -run TestDIDRegistration
+go test -v github.com/sage-x-project/sage/tests/integration -tags=integration -run TestDIDRegistration
 
 # 예상 결과:
 # - 트랜잭션 성공
@@ -349,10 +349,10 @@ go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -t
 #### 테스트 방법
 ```bash
 # DID Resolver 테스트
-go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -tags=integration -run TestDIDResolver
+go test -v github.com/sage-x-project/sage/tests/integration -tags=integration -run TestDIDResolver
 
 # 캐싱 성능 테스트
-go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -tags=integration -run "TestDIDResolver/Cache"
+go test -v github.com/sage-x-project/sage/tests/integration -tags=integration -run "TestDIDResolver/Cache"
 
 # 예상 결과:
 # - DID Document 조회 성공
@@ -377,10 +377,10 @@ go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -t
 #### 테스트 방법
 ```bash
 # DID 업데이트 테스트
-go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -tags=integration -run "TestDIDRegistration/Update_DID"
+go test -v github.com/sage-x-project/sage/tests/integration -tags=integration -run "TestDIDRegistration/Update_DID"
 
 # DID 비활성화 테스트
-go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -tags=integration -run "TestDIDRegistration/Revoke_DID"
+go test -v github.com/sage-x-project/sage/tests/integration -tags=integration -run "TestDIDRegistration/Revoke_DID"
 
 # 예상 결과:
 # - 업데이트 성공 (새 엔드포인트 반영)
@@ -413,10 +413,10 @@ go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -t
 #### 테스트 방법
 ```bash
 # 블록체인 연결 테스트
-go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -tags=integration -run TestBlockchainConnection
+go test -v github.com/sage-x-project/sage/tests/integration -tags=integration -run TestBlockchainConnection
 
 # Enhanced Provider 테스트 (가스 예측, 재시도)
-go test -v github.com/sage-x-project/sage/tests/integration/tests/integration -tags=integration -run TestEnhancedProviderIntegration
+go test -v github.com/sage-x-project/sage/tests/integration -tags=integration -run TestEnhancedProviderIntegration
 
 # 예상 결과:
 # - Chain ID 확인 (로컬: 31337)
@@ -943,7 +943,7 @@ go test -bench=Benchmark github.com/sage-x-project/sage/pkg/agent/handshake
 #### 테스트 방법
 ```bash
 # 블록체인 연결 상태 확인
-go test -v github.com/sage-x-project/sage/tests/integration/tests/integration \
+go test -v github.com/sage-x-project/sage/tests/integration \
   -tags=integration -run TestBlockchainConnection
 
 # 예상 결과:
