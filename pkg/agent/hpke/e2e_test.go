@@ -34,7 +34,7 @@ import (
 
 // TestE2E_HPKE_Handshake_MockTransport tests complete HPKE handshake flow
 // using MockTransport instead of actual gRPC/A2A transport.
-// This replaces the integration test in tests/integration/tests/session/handshake/
+// This replaces the integration test in tests/integration/session/handshake/
 func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 	ctx := context.Background()
 

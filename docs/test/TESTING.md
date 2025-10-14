@@ -123,7 +123,7 @@ go test -race ./...
 make test-integration
 
 # Run specific integration test
-go test ./tests/integration/tests/session/... -v
+go test ./tests/integration/session/... -v
 ```
 
 ### Component Tests
@@ -185,7 +185,7 @@ func TestHPKEEncryption(t *testing.T) {
 
 ### 2. Integration Tests
 
-**Location**: `tests/integration/tests/`
+**Location**: `tests/integration/`
 
 **Purpose**: Test interaction between components
 

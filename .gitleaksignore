@@ -24,7 +24,7 @@ docs/overview/DETAILED_GUIDE_PART6B_KO.md:generic-api-key:168
 
 # Test files
 pkg/agent/did/ethereum/client_unit_test.go:generic-api-key:531
-tests/integration/tests/integration/setup_test_env.sh:generic-api-key:20
-tests/integration/tests/integration/setup_test_env.sh:generic-api-key:220
-tests/integration/tests/integration/setup_test_env.sh:generic-api-key:224
-tests/integration/tests/integration/setup_test_env.sh:generic-api-key:228
+tests/integration/setup_test_env.sh:generic-api-key:20
+tests/integration/setup_test_env.sh:generic-api-key:220
+tests/integration/setup_test_env.sh:generic-api-key:224
+tests/integration/setup_test_env.sh:generic-api-key:228

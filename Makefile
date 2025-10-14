@@ -461,11 +461,11 @@ test-health:
 test-integration:
 	@echo "Running integration tests..."
 	@echo "Starting test environment..."
-	@bash ./tests/integration/tests/integration/setup_test_env.sh start
+	@bash ./tests/integration/setup_test_env.sh start
 	@echo "Running tests..."
 	$(GO) test -v ./tests/integration/... -tags=integration -count=1
 	@echo "Stopping test environment..."
-	@bash ./tests/integration/tests/integration/setup_test_env.sh stop
+	@bash ./tests/integration/setup_test_env.sh stop
 
 # Run integration tests without setup (assumes environment is ready)
 .PHONY: test-integration-only
@@ -504,29 +504,29 @@ test-e2e-coverage:
 .PHONY: test-handshake
 test-handshake:
 	@echo "Running handshake scenario..."
-	@bash ./tests/integration/tests/session/handshake/run_handshake.sh
+	@bash ./tests/integration/session/handshake/run_handshake.sh
 
 .PHONY: test-hpke
 test-hpke:
 	@echo "Running HPKE based handshake scenario..."
-	@bash ./tests/integration/tests/session/hpke/run_hpke_handshake.sh
+	@bash ./tests/integration/session/hpke/run_hpke_handshake.sh
 
 # Start local blockchain for testing
 .PHONY: blockchain-start
 blockchain-start:
 	@echo "Starting local blockchain..."
-	@bash ./tests/integration/tests/integration/setup_test_env.sh start
+	@bash ./tests/integration/setup_test_env.sh start
 
 # Stop local blockchain
 .PHONY: blockchain-stop
 blockchain-stop:
 	@echo "Stopping local blockchain..."
-	@bash ./tests/integration/tests/integration/setup_test_env.sh stop
+	@bash ./tests/integration/setup_test_env.sh stop
 
 # Check blockchain status
 .PHONY: blockchain-status
 blockchain-status:
-	@bash ./tests/integration/tests/integration/setup_test_env.sh status
+	@bash ./tests/integration/setup_test_env.sh status
 
 # Run benchmarks
 .PHONY: bench
