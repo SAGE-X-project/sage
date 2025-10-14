@@ -56,7 +56,16 @@ start_local_blockchain() {
     echo -e "${YELLOW}Starting local blockchain...${NC}"
 
     # Check if Hardhat is installed
-    if command_exists npx && npx hardhat --version >/dev/null 2>&1; then
+    # Use separate check to prevent set -e from terminating script if hardhat is not found
+    HARDHAT_AVAILABLE=false
+    if command_exists npx; then
+        # Temporarily disable exit-on-error for this check
+        set +e
+        npx hardhat --version >/dev/null 2>&1 && HARDHAT_AVAILABLE=true
+        set -e
+    fi
+
+    if [ "$HARDHAT_AVAILABLE" = "true" ]; then
         echo "Using Hardhat node..."
         # Use fork if FORK_URL is set, otherwise run local network
         if [ -n "$FORK_URL" ]; then
