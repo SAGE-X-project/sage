@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
 // Color codes for console output
 const colors = {
@@ -91,10 +91,16 @@ async function generateJavaBindings() {
       fs.writeFileSync(tempBinPath, bytecode.replace('0x', ''));
 
       // Generate Java binding using web3j
-      const cmd = `web3j generate solidity -a=${abiPath} -b=${tempBinPath} -o=${javaDir}/src/main/java -p=io.sage.contracts`;
-      
+      // Use execFileSync to prevent shell injection
       try {
-        execSync(cmd, { stdio: 'pipe' });
+        execFileSync('web3j', [
+          'generate',
+          'solidity',
+          `-a=${abiPath}`,
+          `-b=${tempBinPath}`,
+          `-o=${javaDir}/src/main/java`,
+          `-p=io.sage.contracts`
+        ], { stdio: 'pipe' });
         log(`   Generated ${contract.name}.java`, "green");
         
         // Clean up temp file

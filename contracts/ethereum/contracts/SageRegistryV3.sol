@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import "./interfaces/ISageRegistry.sol";
 import "./interfaces/IRegistryHook.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
@@ -87,7 +88,7 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  * @custom:audit-status Phase 7.5 - Security enhancements implemented, pending external audit
  * @custom:version 3.0.0
  */
-contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
+contract SageRegistryV3 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Step {
     // ============================================
     // STRUCTS
     // ============================================
@@ -369,7 +370,7 @@ contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
         string calldata capabilities,
         bytes calldata signature,
         bytes32 salt
-    ) external whenNotPaused returns (bytes32) {
+    ) external whenNotPaused nonReentrant returns (bytes32) {
         RegistrationCommitment storage commitment = registrationCommitments[msg.sender];
 
         // Verify commitment exists
@@ -435,7 +436,7 @@ contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
         bytes calldata publicKey,
         string calldata capabilities,
         bytes calldata signature
-    ) external whenNotPaused returns (bytes32) {
+    ) external whenNotPaused nonReentrant returns (bytes32) {
         // Validate public key format and ownership
         _validatePublicKey(publicKey, signature);
 

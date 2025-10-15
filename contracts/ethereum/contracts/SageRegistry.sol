@@ -3,13 +3,14 @@ pragma solidity 0.8.19;
 
 import "./interfaces/ISageRegistry.sol";
 import "./interfaces/IRegistryHook.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
  * @title SageRegistry
  * @notice SAGE AI Agent Registry Contract
  * @dev Implements secure registration and management of AI agents with public key verification
  */
-contract SageRegistry is ISageRegistry {
+contract SageRegistry is ISageRegistry, ReentrancyGuard {
     // Registration parameters struct to avoid stack too deep errors
     struct RegistrationParams {
         string did;
@@ -70,7 +71,7 @@ contract SageRegistry is ISageRegistry {
         bytes calldata publicKey,
         string calldata capabilities,
         bytes calldata signature
-    ) external validPublicKey(publicKey) returns (bytes32) {
+    ) external validPublicKey(publicKey) nonReentrant returns (bytes32) {
         RegistrationParams memory params = RegistrationParams({
             did: did,
             name: name,
