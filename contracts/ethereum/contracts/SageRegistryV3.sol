@@ -388,7 +388,7 @@ contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
         }
 
         // Verify commitment hash matches revealed parameters
-        bytes32 expectedHash = keccak256(abi.encodePacked(
+        bytes32 expectedHash = keccak256(abi.encode(
             did,
             publicKey,
             msg.sender,
@@ -603,7 +603,7 @@ contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
         uint256 nonce = registrationNonce[msg.sender];
         registrationNonce[msg.sender]++;
 
-        return keccak256(abi.encodePacked(
+        return keccak256(abi.encode(
             did,
             publicKey,
             msg.sender,
@@ -694,7 +694,7 @@ contract SageRegistryV3 is ISageRegistry, Pausable, Ownable2Step {
         require(agents[agentId].active, "Agent not active");
 
         // Include chainId in update signature for cross-chain protection
-        bytes32 messageHash = keccak256(abi.encodePacked(
+        bytes32 messageHash = keccak256(abi.encode(
             agentId,
             name,
             description,

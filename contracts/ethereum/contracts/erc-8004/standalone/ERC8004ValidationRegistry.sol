@@ -499,7 +499,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         bytes calldata proof
     ) internal view returns (bool isValid) {
         // Extract public key hash from attestation
-        bytes32 keyHash = keccak256(abi.encodePacked(attestation, proof));
+        bytes32 keyHash = keccak256(abi.encode(attestation, proof));
 
         // Check if TEE key is trusted
         return trustedTeeKeys[keyHash];
