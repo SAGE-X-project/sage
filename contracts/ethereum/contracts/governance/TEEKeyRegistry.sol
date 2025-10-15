@@ -510,33 +510,34 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
         // Update proposal status
         proposal.status = approved ? ProposalStatus.APPROVED : ProposalStatus.REJECTED;
 
+        // Mark as executed BEFORE external calls (Checks-Effects-Interactions pattern)
+        proposal.status = ProposalStatus.EXECUTED;
+
         // Execute based on result
         if (approved) {
-            // Approve TEE key
+            // Approve TEE key (state changes before external calls)
             approvedTEEKeys[proposal.keyHash] = true;
             teeKeyTypes[proposal.keyHash] = proposal.teeType;
             teeKeyApprovedAt[proposal.keyHash] = block.timestamp;
 
-            // Return stake to proposer
+            emit TEEKeyApproved(proposal.keyHash, proposal.teeType);
+
+            // External call AFTER state changes
             (bool success, ) = proposal.proposer.call{value: proposal.proposalStake}("");
             require(success, "Stake return failed");
-
-            emit TEEKeyApproved(proposal.keyHash, proposal.teeType);
         } else {
             // Slash stake for rejected proposal
             uint256 slashAmount = (proposal.proposalStake * slashingPercentage) / 100;
             uint256 returnAmount = proposal.proposalStake - slashAmount;
 
-            // Return remaining stake to proposer
+            // Slashed amount stays in contract (could be used for treasury/rewards)
+
+            // External call AFTER state changes
             if (returnAmount > 0) {
                 (bool success, ) = proposal.proposer.call{value: returnAmount}("");
                 require(success, "Partial return failed");
             }
-
-            // Slashed amount stays in contract (could be used for treasury/rewards)
         }
-
-        proposal.status = ProposalStatus.EXECUTED;
 
         emit ProposalExecuted(proposalId, proposal.keyHash, approved);
 

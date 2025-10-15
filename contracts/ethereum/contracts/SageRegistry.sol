@@ -129,7 +129,8 @@ contract SageRegistry is ISageRegistry {
         string memory did,
         bytes memory publicKey
     ) private view returns (bytes32) {
-        return keccak256(abi.encodePacked(did, publicKey, block.timestamp));
+        // Use abi.encode to prevent hash collision attacks
+        return keccak256(abi.encode(did, publicKey, block.timestamp));
     }
     
     /**
@@ -139,7 +140,8 @@ contract SageRegistry is ISageRegistry {
         bytes32 agentId,
         RegistrationParams memory params
     ) private view {
-        bytes32 messageHash = keccak256(abi.encodePacked(
+        // Use abi.encode to prevent hash collision attacks
+        bytes32 messageHash = keccak256(abi.encode(
             params.did,
             params.name,
             params.description,
@@ -149,7 +151,7 @@ contract SageRegistry is ISageRegistry {
             msg.sender,
             agentNonce[agentId]
         ));
-        
+
         require(_verifySignature(messageHash, params.signature, params.publicKey, msg.sender), "Invalid signature");
     }
     
@@ -227,9 +229,10 @@ contract SageRegistry is ISageRegistry {
     ) external onlyAgentOwner(agentId) {
         require(agents[agentId].active, "Agent not active");
         require(bytes(name).length > 0, "Name required");
-        
+
         // Verify signature with stored public key
-        bytes32 messageHash = keccak256(abi.encodePacked(
+        // Use abi.encode to prevent hash collision attacks
+        bytes32 messageHash = keccak256(abi.encode(
             agentId,
             name,
             description,
@@ -238,21 +241,21 @@ contract SageRegistry is ISageRegistry {
             msg.sender,
             agentNonce[agentId]
         ));
-        
+
         require(
             _verifySignature(messageHash, signature, agents[agentId].publicKey, msg.sender),
             "Invalid signature"
         );
-        
+
         // Update metadata
         agents[agentId].name = name;
         agents[agentId].description = description;
         agents[agentId].endpoint = endpoint;
         agents[agentId].capabilities = capabilities;
         agents[agentId].updatedAt = block.timestamp;
-        
+
         agentNonce[agentId]++;
-        
+
         emit AgentUpdated(agentId, msg.sender, block.timestamp);
     }
     

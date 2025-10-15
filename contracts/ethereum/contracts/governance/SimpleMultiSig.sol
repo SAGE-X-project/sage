@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 /**
  * @title SimpleMultiSig
  * @notice Simple multi-signature wallet for SAGE governance
@@ -17,7 +19,7 @@ pragma solidity 0.8.19;
  * - For mainnet, use audited Gnosis Safe contracts
  * - This contract is NOT recommended for production use
  */
-contract SimpleMultiSig {
+contract SimpleMultiSig is ReentrancyGuard {
     // Events
     event OwnerAdded(address indexed owner);
     event OwnerRemoved(address indexed owner);
@@ -191,11 +193,13 @@ contract SimpleMultiSig {
         onlyOwner
         transactionExists(transactionId)
         notExecuted(transactionId)
+        nonReentrant
     {
         Transaction storage txn = transactions[transactionId];
 
         require(txn.confirmations >= threshold, "Insufficient confirmations");
 
+        // Mark as executed BEFORE external call (Checks-Effects-Interactions pattern)
         txn.executed = true;
 
         (bool success, bytes memory returnData) = txn.to.call{value: txn.value}(txn.data);
@@ -203,7 +207,8 @@ contract SimpleMultiSig {
         if (success) {
             emit TransactionExecuted(transactionId, msg.sender);
         } else {
-            txn.executed = false; // Allow retry
+            // Allow retry on failure
+            txn.executed = false;
 
             // Extract revert reason if available
             string memory reason = "Execution failed";

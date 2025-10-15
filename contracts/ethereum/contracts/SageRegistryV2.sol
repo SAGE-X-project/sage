@@ -263,7 +263,8 @@ contract SageRegistryV2 is ISageRegistry, Pausable, Ownable2Step {
         require(agents[agentId].active, "Agent not active");
         
         // Verify signature with stored public key
-        bytes32 messageHash = keccak256(abi.encodePacked(
+        // Use abi.encode to prevent hash collision attacks
+        bytes32 messageHash = keccak256(abi.encode(
             agentId,
             name,
             description,
@@ -367,7 +368,8 @@ contract SageRegistryV2 is ISageRegistry, Pausable, Ownable2Step {
         uint256 nonce = registrationNonce[msg.sender];
         registrationNonce[msg.sender]++;
 
-        return keccak256(abi.encodePacked(
+        // Use abi.encode to prevent hash collision attacks
+        return keccak256(abi.encode(
             did,
             publicKey,
             msg.sender,
