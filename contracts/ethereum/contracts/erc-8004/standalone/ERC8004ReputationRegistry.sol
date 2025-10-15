@@ -75,6 +75,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
     // ============================================
 
     constructor(address _validationRegistry) {
+        // Note: address(0) is allowed - registry can be set later via setValidationRegistry
         validationRegistry = _validationRegistry;
     }
 

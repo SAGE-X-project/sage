@@ -137,7 +137,7 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  */
 contract ERC8004ReputationRegistryV2 is IERC8004ReputationRegistry, Ownable2Step {
     // State variables
-    IERC8004IdentityRegistry public identityRegistry;
+    IERC8004IdentityRegistry public immutable identityRegistry;
     address public validationRegistry;
 
     // Feedback storage
@@ -350,16 +350,7 @@ contract ERC8004ReputationRegistryV2 is IERC8004ReputationRegistry, Ownable2Step
 
         require(taskAuthorizations[taskId].client == address(0), "Task already authorized");
 
-        // Verify both client and server are registered agents
-        IERC8004IdentityRegistry.AgentInfo memory clientInfo =
-            identityRegistry.resolveAgentByAddress(msg.sender);
-        require(clientInfo.isActive, "Client not active");
-
-        IERC8004IdentityRegistry.AgentInfo memory serverInfo =
-            identityRegistry.resolveAgentByAddress(serverAgent);
-        require(serverInfo.isActive, "Server not active");
-
-        // Store authorization
+        // Store authorization BEFORE external calls (CEI pattern)
         taskAuthorizations[taskId] = TaskAuthorization({
             taskId: taskId,
             client: msg.sender,
@@ -368,7 +359,18 @@ contract ERC8004ReputationRegistryV2 is IERC8004ReputationRegistry, Ownable2Step
             used: false
         });
 
+        // Emit event BEFORE external calls (reentrancy protection)
         emit TaskAuthorized(taskId, msg.sender, serverAgent, deadline);
+
+        // External calls LAST (after state changes and events)
+        // Verify both client and server are registered agents
+        IERC8004IdentityRegistry.AgentInfo memory clientInfo =
+            identityRegistry.resolveAgentByAddress(msg.sender);
+        require(clientInfo.isActive, "Client not active");
+
+        IERC8004IdentityRegistry.AgentInfo memory serverInfo =
+            identityRegistry.resolveAgentByAddress(serverAgent);
+        require(serverInfo.isActive, "Server not active");
 
         return true;
     }

@@ -521,8 +521,13 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
             teeKeyApprovedAt[proposal.keyHash] = block.timestamp;
 
             emit TEEKeyApproved(proposal.keyHash, proposal.teeType);
+        }
 
-            // External call AFTER state changes
+        // Emit event BEFORE external calls (reentrancy protection)
+        emit ProposalExecuted(proposalId, proposal.keyHash, approved);
+
+        // External calls LAST (after all state changes and events)
+        if (approved) {
             (bool success, ) = proposal.proposer.call{value: proposal.proposalStake}("");
             require(success, "Stake return failed");
         } else {
@@ -532,14 +537,11 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
 
             // Slashed amount stays in contract (could be used for treasury/rewards)
 
-            // External call AFTER state changes
             if (returnAmount > 0) {
                 (bool success, ) = proposal.proposer.call{value: returnAmount}("");
                 require(success, "Partial return failed");
             }
         }
-
-        emit ProposalExecuted(proposalId, proposal.keyHash, approved);
 
         return approved;
     }

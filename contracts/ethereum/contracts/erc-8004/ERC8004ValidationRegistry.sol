@@ -173,8 +173,8 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     error InvalidMinimum(uint256 minimum);
 
     // State variables
-    IERC8004IdentityRegistry public identityRegistry;
-    IERC8004ReputationRegistry public reputationRegistry;
+    IERC8004IdentityRegistry public immutable identityRegistry;
+    IERC8004ReputationRegistry public immutable reputationRegistry;
 
     // Validation storage
     mapping(bytes32 => ValidationRequest) private validationRequests;
@@ -921,8 +921,12 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         // Update state before transfer (checks-effects-interactions)
         pendingWithdrawals[msg.sender] = 0;
 
-        // Transfer funds
-        (bool success, ) = msg.sender.call{value: amount}("");
+        // Transfer funds using assembly to prevent return bomb attack
+        // This avoids copying potentially large return data to memory
+        bool success;
+        assembly {
+            success := call(gas(), caller(), amount, 0, 0, 0, 0)
+        }
         if (!success) revert TransferFailed();
 
         emit WithdrawalProcessed(msg.sender, amount);
