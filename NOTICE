@@ -18,102 +18,90 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 THIRD-PARTY COMPONENTS
 
-This software includes or depends upon the following third-party components,
-each subject to its own license terms:
+This software includes or depends upon third-party components, each subject
+to its own license terms. The following is a list of these components and
+their licenses.
+
+For a complete list of dependencies and their licenses, please see:
+- The "Go Module Dependencies" section below for Go module dependencies.
+- contracts/ethereum/package.json for smart contract dependencies.
 
 ================================================================================
 
-1. go-ethereum (LGPL-3.0)
-   https://github.com/ethereum/go-ethereum
-   Copyright (C) 2014-2024 The go-ethereum Authors
-   License: GNU Lesser General Public License v3.0
+Go Module Dependencies
 
-2. Cloudflare CIRCL (BSD-3-Clause)
-   https://github.com/cloudflare/circl
-   Copyright (c) 2019 Cloudflare
-   License: BSD 3-Clause License
+This project includes the following Go modules. Each module is subject to its
+own license terms.
 
-3. Cobra (Apache-2.0)
-   https://github.com/spf13/cobra
-   Copyright (c) 2013 Steve Francia
-   License: Apache License 2.0
-
-4. gRPC-Go (Apache-2.0)
-   https://github.com/grpc/grpc-go
-   Copyright (c) 2014 gRPC authors
-   License: Apache License 2.0
-
-5. Google Protocol Buffers (BSD-3-Clause)
-   https://github.com/protocolbuffers/protobuf-go
-   Copyright (c) 2018 The Go Authors
-   License: BSD 3-Clause License
-
-6. Solana Go SDK (Apache-2.0)
-   https://github.com/gagliardetto/solana-go
-   Copyright (c) 2021 Gagliardetto
-   License: Apache License 2.0
-
-7. edwards25519 (BSD-3-Clause)
-   https://github.com/FiloSottile/edwards25519
-   Copyright (c) 2019 Filippo Valsorda
-   License: BSD 3-Clause License
-
-8. secp256k1 (ISC)
-   https://github.com/decred/dcrd/tree/master/dcrec/secp256k1
-   Copyright (c) 2013-2022 The btcsuite developers
-   Copyright (c) 2015-2022 The Decred developers
-   License: ISC License
-
-9. golang-jwt/jwt (MIT)
-   https://github.com/golang-jwt/jwt
-   Copyright (c) 2012 Dave Grijalva
-   Copyright (c) 2021 golang-jwt maintainers
-   License: MIT License
-
-10. google/uuid (BSD-3-Clause)
-    https://github.com/google/uuid
-    Copyright (c) 2009,2014 Google Inc.
-    License: BSD 3-Clause License
-
-11. godotenv (MIT)
-    https://github.com/joho/godotenv
-    Copyright (c) 2013 John Barton
-    License: MIT License
-
-12. base58 (MIT)
-    https://github.com/mr-tron/base58
-    Copyright (c) 2017 mr-tron
-    License: MIT License
-
-13. Prometheus client_golang (Apache-2.0)
-    https://github.com/prometheus/client_golang
-    Copyright (c) 2012-2015 The Prometheus Authors
-    License: Apache License 2.0
-
-14. testify (MIT)
-    https://github.com/stretchr/testify
-    Copyright (c) 2012-2020 Mat Ryer, Tyler Bunnell and contributors
-    License: MIT License
-
-15. golang.org/x/crypto (BSD-3-Clause)
-    https://golang.org/x/crypto
-    Copyright (c) 2009 The Go Authors
-    License: BSD 3-Clause License
-
-16. golang.org/x/sync (BSD-3-Clause)
-    https://golang.org/x/sync
-    Copyright (c) 2009 The Go Authors
-    License: BSD 3-Clause License
-
-17. gopkg.in/yaml.v3 (MIT & Apache-2.0)
-    https://github.com/go-yaml/yaml
-    Copyright (c) 2011-2019 Canonical Ltd.
-    License: MIT License & Apache License 2.0
-
-18. A2A Protocol (Apache-2.0)
-    https://github.com/a2aproject/a2a-go
-    Copyright (c) 2024 A2A Project
-    License: Apache License 2.0
+filippo.io/edwards25519,https://github.com/FiloSottile/edwards25519/blob/v1.1.0/LICENSE,BSD-3-Clause
+github.com/andres-erbsen/clock,https://github.com/andres-erbsen/clock/blob/9e14626cd129/LICENSE,MIT
+github.com/beorn7/perks/quantile,https://github.com/beorn7/perks/blob/v1.0.1/LICENSE,MIT
+github.com/bits-and-blooms/bitset,https://github.com/bits-and-blooms/bitset/blob/v1.20.0/LICENSE,BSD-3-Clause
+github.com/blendle/zapdriver,https://github.com/blendle/zapdriver/blob/v1.3.1/LICENSE,ISC
+github.com/cespare/xxhash/v2,https://github.com/cespare/xxhash/blob/v2.3.0/LICENSE.txt,MIT
+github.com/cloudflare/circl,https://github.com/cloudflare/circl/blob/v1.6.1/LICENSE,BSD-3-Clause
+github.com/consensys/gnark-crypto,https://github.com/consensys/gnark-crypto/blob/v0.18.0/LICENSE,Apache-2.0
+github.com/crate-crypto/go-eth-kzg,https://github.com/crate-crypto/go-eth-kzg/blob/v1.4.0/LICENSE,Apache-2.0
+github.com/crate-crypto/go-ipa,https://github.com/crate-crypto/go-ipa/blob/53bbb0ceb27a/LICENSE-APACHE,Apache-2.0
+github.com/davecgh/go-spew/spew,https://github.com/davecgh/go-spew/blob/v1.1.1/LICENSE,ISC
+github.com/deckarep/golang-set/v2,https://github.com/deckarep/golang-set/blob/v2.6.0/LICENSE,MIT
+github.com/decred/dcrd/dcrec/secp256k1/v4,https://github.com/decred/dcrd/blob/dcrec/secp256k1/v4.4.0/dcrec/secp256k1/LICENSE,ISC
+github.com/ethereum/go-ethereum,https://github.com/ethereum/go-ethereum/blob/v1.15.11/COPYING,GPL-3.0
+github.com/ethereum/go-ethereum/crypto/secp256k1,https://github.com/ethereum/go-ethereum/blob/v1.15.11/crypto/secp256k1/LICENSE,BSD-3-Clause
+github.com/ethereum/go-ethereum/metrics,https://github.com/ethereum/go-ethereum/blob/v1.15.11/metrics/LICENSE,BSD-2-Clause-FreeBSD
+github.com/ethereum/go-verkle,https://github.com/ethereum/go-verkle/blob/v0.2.2/LICENSE,Unlicense
+github.com/fatih/color,https://github.com/fatih/color/blob/v1.16.0/LICENSE.md,MIT
+github.com/fsnotify/fsnotify,https://github.com/fsnotify/fsnotify/blob/v1.6.0/LICENSE,BSD-3-Clause
+github.com/gagliardetto/binary,https://github.com/gagliardetto/binary/blob/v0.8.0/LICENSE,Apache-2.0
+github.com/gagliardetto/solana-go,https://github.com/gagliardetto/solana-go/blob/v1.14.0/LICENSE,Apache-2.0
+github.com/gagliardetto/solana-go/rpc/jsonrpc,https://github.com/gagliardetto/solana-go/blob/v1.14.0/rpc/jsonrpc/LICENSE,MIT
+github.com/gagliardetto/treeout,https://github.com/gagliardetto/treeout/blob/master/LICENSE,MIT
+github.com/golang-jwt/jwt/v5,https://github.com/golang-jwt/jwt/blob/v5.3.0/LICENSE,MIT
+github.com/google/uuid,https://github.com/google/uuid/blob/v1.6.0/LICENSE,BSD-3-Clause
+github.com/gorilla/websocket,https://github.com/gorilla/websocket/blob/v1.5.3/LICENSE,BSD-2-Clause
+github.com/holiman/uint256,https://github.com/holiman/uint256/blob/v1.3.2/COPYING,BSD-3-Clause
+github.com/jackc/pgpassfile,https://github.com/jackc/pgpassfile/blob/v1.0.0/LICENSE,MIT
+github.com/jackc/pgservicefile,https://github.com/jackc/pgservicefile/blob/5a60cdf6a761/LICENSE,MIT
+github.com/jackc/pgx/v5,https://github.com/jackc/pgx/blob/v5.7.6/LICENSE,MIT
+github.com/jackc/puddle/v2,https://github.com/jackc/puddle/blob/v2.2.2/LICENSE,MIT
+github.com/json-iterator/go,https://github.com/json-iterator/go/blob/v1.1.12/LICENSE,MIT
+github.com/klauspost/compress,https://github.com/klauspost/compress/blob/v1.18.0/LICENSE,Apache-2.0
+github.com/klauspost/compress/gzhttp,https://github.com/klauspost/compress/blob/v1.18.0/gzhttp/LICENSE,Apache-2.0
+github.com/klauspost/compress/internal/snapref,https://github.com/klauspost/compress/blob/v1.18.0/internal/snapref/LICENSE,BSD-3-Clause
+github.com/klauspost/compress/zstd/internal/xxhash,https://github.com/klauspost/compress/blob/v1.18.0/zstd/internal/xxhash/LICENSE.txt,MIT
+github.com/logrusorgru/aurora,https://github.com/logrusorgru/aurora/blob/v2.0.3/LICENSE,Unlicense
+github.com/mattn/go-colorable,https://github.com/mattn/go-colorable/blob/v0.1.13/LICENSE,MIT
+github.com/mattn/go-isatty,https://github.com/mattn/go-isatty/blob/v0.0.20/LICENSE,MIT
+github.com/mitchellh/go-testing-interface,https://github.com/mitchellh/go-testing-interface/blob/v1.14.1/LICENSE,MIT
+github.com/modern-go/concurrent,https://github.com/modern-go/concurrent/blob/bacd9c7ef1dd/LICENSE,Apache-2.0
+github.com/modern-go/reflect2,https://github.com/modern-go/reflect2/blob/v1.0.2/LICENSE,Apache-2.0
+github.com/mostynb/zstdpool-freelist,https://github.com/mostynb/zstdpool-freelist/blob/927304c0c3b1/LICENSE,Apache-2.0
+github.com/mr-tron/base58,https://github.com/mr-tron/base58/blob/v1.2.0/LICENSE,MIT
+github.com/munnerz/goautoneg,https://github.com/munnerz/goautoneg/blob/a7dc8b61c822/LICENSE,BSD-3-Clause
+github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil,https://github.com/prometheus/client_golang/blob/v1.23.2/internal/github.com/golang/gddo/LICENSE,BSD-3-Clause
+github.com/prometheus/client_golang/prometheus,https://github.com/prometheus/client_golang/blob/v1.23.2/LICENSE,Apache-2.0
+github.com/prometheus/client_model/go,https://github.com/prometheus/client_model/blob/v0.6.2/LICENSE,Apache-2.0
+github.com/prometheus/common,https://github.com/prometheus/common/blob/v0.66.1/LICENSE,Apache-2.0
+github.com/sage-x-project/sage,https://github.com/sage-x-project/sage/blob/HEAD/LICENSE,LGPL-3.0
+github.com/shirou/gopsutil,https://github.com/shirou/gopsutil/blob/c7a38de76ee5/LICENSE,BSD-3-Clause
+github.com/spf13/cobra,https://github.com/spf13/cobra/blob/v1.10.1/LICENSE.txt,Apache-2.0
+github.com/spf13/pflag,https://github.com/spf13/pflag/blob/v1.0.9/LICENSE,BSD-3-Clause
+github.com/streamingfast/logging,https://github.com/streamingfast/logging/blob/f22c91403091/LICENSE,Apache-2.0
+github.com/tklauser/go-sysconf,https://github.com/tklauser/go-sysconf/blob/v0.3.12/LICENSE,BSD-3-Clause
+go.mongodb.org/mongo-driver,https://github.com/mongodb/mongo-go-driver/blob/v1.12.2/LICENSE,Apache-2.0
+go.uber.org/atomic,https://github.com/uber-go/atomic/blob/v1.7.0/LICENSE.txt,MIT
+go.uber.org/multierr,https://github.com/uber-go/multierr/blob/v1.6.0/LICENSE.txt,MIT
+go.uber.org/ratelimit,https://github.com/uber-go/ratelimit/blob/v0.2.0/LICENSE,MIT
+go.uber.org/zap,https://github.com/uber-go/zap/blob/v1.21.0/LICENSE.txt,MIT
+go.yaml.in/yaml/v2,https://github.com/yaml/go-yaml/blob/v2.4.2/LICENSE,Apache-2.0
+golang.org/x/crypto,https://cs.opensource.google/go/x/crypto/+/v0.41.0:LICENSE,BSD-3-Clause
+golang.org/x/sync,https://cs.opensource.google/go/x/sync/+/v0.16.0:LICENSE,BSD-3-Clause
+golang.org/x/sys,https://cs.opensource.google/go/x/sys/+/v0.35.0:LICENSE,BSD-3-Clause
+golang.org/x/term,https://cs.opensource.google/go/x/term/+/v0.34.0:LICENSE,BSD-3-Clause
+golang.org/x/text,https://cs.opensource.google/go/x/text/+/v0.28.0:LICENSE,BSD-3-Clause
+golang.org/x/time/rate,https://cs.opensource.google/go/x/time/+/v0.9.0:LICENSE,BSD-3-Clause
+google.golang.org/protobuf,https://github.com/protocolbuffers/protobuf-go/blob/v1.36.10/LICENSE,BSD-3-Clause
+gopkg.in/yaml.v3,https://github.com/go-yaml/yaml/blob/v3.0.1/LICENSE,MIT
 
 ================================================================================
 
@@ -132,10 +120,6 @@ This software implements decentralized identifier concepts from the W3C DID
 specification (https://www.w3.org/TR/did-core/).
 
 ================================================================================
-
-For a complete list of dependencies and their licenses, please see:
-- go.mod for Go module dependencies
-- contracts/ethereum/package.json for smart contract dependencies
 
 For the complete source code, visit:
 https://github.com/SAGE-X-project/sage
