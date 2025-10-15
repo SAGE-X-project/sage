@@ -20,6 +20,7 @@ package metrics
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -31,10 +32,19 @@ func Handler() http.Handler {
 	})
 }
 
-// StartServer starts a standalone metrics HTTP server
+// StartServer starts a standalone metrics HTTP server with proper timeouts
 func StartServer(addr string) error {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", Handler())
 
-	return http.ListenAndServe(addr, mux)
+	server := &http.Server{
+		Addr:              addr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	return server.ListenAndServe()
 }

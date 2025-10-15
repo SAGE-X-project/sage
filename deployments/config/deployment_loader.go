@@ -159,7 +159,7 @@ func UpdateBlockchainConfig(cfg *BlockchainConfig, network string) error {
 func SaveDeploymentAddress(network, address string) error {
 	// Create simple deployment info for Go applications
 	deploymentDir := filepath.Join("deployments")
-	if err := os.MkdirAll(deploymentDir, 0755); err != nil {
+	if err := os.MkdirAll(deploymentDir, 0750); err != nil {
 		return fmt.Errorf("failed to create deployment directory: %w", err)
 	}
 
@@ -175,7 +175,7 @@ func SaveDeploymentAddress(network, address string) error {
 	}
 
 	file := filepath.Join(deploymentDir, fmt.Sprintf("%s-address.json", network))
-	if err := os.WriteFile(file, jsonData, 0644); err != nil {
+	if err := os.WriteFile(file, jsonData, 0600); err != nil {
 		return fmt.Errorf("failed to write deployment file: %w", err)
 	}
 

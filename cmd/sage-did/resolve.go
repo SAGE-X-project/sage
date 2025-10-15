@@ -108,7 +108,7 @@ func runResolve(cmd *cobra.Command, args []string) error {
 
 	// Write output
 	if resolveOutput != "" {
-		if err := os.WriteFile(resolveOutput, []byte(output), 0644); err != nil {
+		if err := os.WriteFile(resolveOutput, []byte(output), 0600); err != nil {
 			return fmt.Errorf("failed to write output: %w", err)
 		}
 		fmt.Printf(" Metadata saved to %s\n", resolveOutput)

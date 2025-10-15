@@ -58,8 +58,12 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/metrics", s.handleMetrics)
 
 	s.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.port),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", s.port),
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	s.logger.Info("Starting health check server")

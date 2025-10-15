@@ -218,7 +218,7 @@ func outputSignature(signature []byte, keyPair crypto.KeyPair) error {
 
 	// Write output
 	if signatureOut != "" {
-		if err := os.WriteFile(signatureOut, output, 0644); err != nil {
+		if err := os.WriteFile(signatureOut, output, 0600); err != nil {
 			return fmt.Errorf("failed to write signature file: %w", err)
 		}
 		fmt.Printf("Signature saved to: %s\n", signatureOut)

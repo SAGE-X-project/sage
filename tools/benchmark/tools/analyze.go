@@ -83,7 +83,7 @@ func main() {
 	}
 
 	// Write output
-	if err := os.WriteFile(*outputFile, []byte(analysis), 0644); err != nil {
+	if err := os.WriteFile(*outputFile, []byte(analysis), 0600); err != nil {
 		fmt.Fprintf(os.Stderr, "Error writing output file: %v\n", err)
 		os.Exit(1)
 	}

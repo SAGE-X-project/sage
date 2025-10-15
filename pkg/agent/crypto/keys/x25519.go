@@ -303,7 +303,8 @@ func convertEd25519PrivToX25519(privKey crypto.PrivateKey) ([]byte, error) {
 		return nil, fmt.Errorf("bad Ed25519 priv length: %d", l)
 	}
 	seed := edPriv.Seed()    // 32-byte seed
-	h := sha512.Sum512(seed) // RFC8032 §5.1.5
+	h := sha512.Sum512(seed) // RFC8032 §5.1.5, returns [64]byte
+	// #nosec G602 - sha512.Sum512 always returns 64 bytes, indices 0 and 31 are safe
 	h[0] &= 248
 	h[31] &= 127
 	h[31] |= 64
@@ -380,7 +381,10 @@ func HPKEDeriveSharedSecretToX25519Peer(
 	}
 
 	// Export a shared secret without necessarily encrypting application data.
-	secret := sealer.Export(exportCtx, uint(exportLen))
+	if exportLen < 0 {
+		return nil, nil, fmt.Errorf("exportLen must be non-negative: %d", exportLen)
+	}
+	secret := sealer.Export(exportCtx, uint(exportLen)) // #nosec G115 - negative check above
 	return enc, secret, nil
 }
 
@@ -416,7 +420,10 @@ func HPKEOpenSharedSecretWithX25519Priv(
 		return nil, fmt.Errorf("hpke receiver setup: %w", err)
 	}
 
-	secret := opener.Export(exportCtx, uint(exportLen))
+	if exportLen < 0 {
+		return nil, fmt.Errorf("exportLen must be non-negative: %d", exportLen)
+	}
+	secret := opener.Export(exportCtx, uint(exportLen)) // #nosec G115 - negative check above
 	return secret, nil
 }
 
@@ -500,7 +507,10 @@ func HPKESealAndExportToX25519Peer(
 		return nil, nil, fmt.Errorf("hpke seal: %w", err)
 	}
 
-	secret := sealer.Export(exportCtx, uint(exportLen))
+	if exportLen < 0 {
+		return nil, nil, fmt.Errorf("exportLen must be non-negative: %d", exportLen)
+	}
+	secret := sealer.Export(exportCtx, uint(exportLen)) // #nosec G115 - negative check above
 	return append(append([]byte{}, enc...), ct...), secret, nil
 }
 
@@ -550,6 +560,9 @@ func HPKEOpenAndExportWithX25519Priv(
 		return nil, nil, fmt.Errorf("hpke open: %w", err)
 	}
 
-	secret := opener.Export(exportCtx, uint(exportLen))
+	if exportLen < 0 {
+		return nil, nil, fmt.Errorf("exportLen must be non-negative: %d", exportLen)
+	}
+	secret := opener.Export(exportCtx, uint(exportLen)) // #nosec G115 - negative check above
 	return pt, secret, nil
 }
