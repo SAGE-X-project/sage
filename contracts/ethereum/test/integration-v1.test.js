@@ -39,7 +39,7 @@ describe("SAGE Registry Integration Tests", function () {
       // Create message hash
       const nonce = 0;
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [
             agentData.did,
@@ -131,9 +131,9 @@ describe("SAGE Registry Integration Tests", function () {
         };
 
         const messageHash = ethers.keccak256(
-          ethers.solidityPacked(
+          ethers.AbiCoder.defaultAbiCoder().encode(
             ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
-            [agentData.did, agentData.name, agentData.description, agentData.endpoint, 
+            [agentData.did, agentData.name, agentData.description, agentData.endpoint,
              agentData.publicKey, agentData.capabilities, user2.address, 0]
           )
         );
@@ -166,7 +166,7 @@ describe("SAGE Registry Integration Tests", function () {
       };
 
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [spamData.did, spamData.name, spamData.description, spamData.endpoint,
            spamData.publicKey, spamData.capabilities, user2.address, 0]
@@ -202,7 +202,7 @@ describe("SAGE Registry Integration Tests", function () {
       };
 
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [agentData.did, agentData.name, agentData.description, agentData.endpoint,
            agentData.publicKey, agentData.capabilities, user2.address, 0]
@@ -240,7 +240,7 @@ describe("SAGE Registry Integration Tests", function () {
       };
 
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [agentData.did, agentData.name, agentData.description, agentData.endpoint,
            agentData.publicKey, agentData.capabilities, user1.address, 0]
@@ -277,7 +277,7 @@ describe("SAGE Registry Integration Tests", function () {
       const agent = await registry.getAgent(agentId);
 
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["bytes32", "string", "string", "string", "string", "address", "uint256"],
           [agentId, updatedData.name, updatedData.description, updatedData.endpoint,
            updatedData.capabilities, user1.address, 1] // nonce incremented
@@ -309,7 +309,7 @@ describe("SAGE Registry Integration Tests", function () {
 
     it("should prevent non-owner from updating", async function () {
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["bytes32", "string", "string", "string", "string", "address", "uint256"],
           [agentId, "Hacked", "Hacked", "https://hacked.ai", "{}", user2.address, 1]
         )

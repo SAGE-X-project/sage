@@ -17,12 +17,12 @@ describe("SageRegistry V1 - Fixed Tests", function () {
 
   /**
    * Helper function to create signature for V1 registry
-   * V1 uses abi.encodePacked, not encode
+   * V1 uses abi.encode (NOT abi.encodePacked) to prevent hash collision attacks
    */
   async function createV1Signature(signer, params, nonce = 0) {
-    // V1 uses abi.encodePacked for message hash
+    // V1 uses abi.encode for message hash (secure against hash collisions)
     const messageHash = ethers.keccak256(
-      ethers.solidityPacked(
+      ethers.AbiCoder.defaultAbiCoder().encode(
         ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
         [
           params.did,
@@ -36,7 +36,7 @@ describe("SageRegistry V1 - Fixed Tests", function () {
         ]
       )
     );
-    
+
     // Sign the message
     return await signer.signMessage(ethers.getBytes(messageHash));
   }
@@ -258,7 +258,7 @@ describe("SageRegistry V1 - Fixed Tests", function () {
       // Create update signature
       // Note: After registration, nonce is incremented to 1
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["bytes32", "string", "string", "string", "string", "address", "uint256"],
           [agentId, newName, newDescription, newEndpoint, newCapabilities, agent1.address, 1]
         )
@@ -286,7 +286,7 @@ describe("SageRegistry V1 - Fixed Tests", function () {
 
     it("Should reject update from non-owner", async function () {
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["bytes32", "string", "string", "string", "string", "address", "uint256"],
           [agentId, "Hacked", testDescription, testEndpoint, testCapabilities, agent2.address, 0]
         )

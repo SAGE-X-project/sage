@@ -73,7 +73,7 @@ describe("Security Features Integration Tests", function () {
 
                 // Alice creates commitment
                 const commitHash = ethers.keccak256(
-                    ethers.solidityPacked(
+                    ethers.AbiCoder.defaultAbiCoder().encode(
                         ["string", "bytes", "address", "bytes32", "uint256"],
                         [did, publicKey, aliceWallet.address, salt, chainId]
                     )
@@ -148,7 +148,7 @@ describe("Security Features Integration Tests", function () {
 
                 // Create commitment
                 const commitHash = ethers.keccak256(
-                    ethers.solidityPacked(
+                    ethers.AbiCoder.defaultAbiCoder().encode(
                         ["string", "bytes", "address", "bytes32", "uint256"],
                         [did, publicKey, aliceWallet.address, salt, chainId]
                     )
@@ -231,7 +231,7 @@ describe("Security Features Integration Tests", function () {
                 const chainId = (await ethers.provider.getNetwork()).chainId;
 
                 const commitHash = ethers.keccak256(
-                    ethers.solidityPacked(
+                    ethers.AbiCoder.defaultAbiCoder().encode(
                         ["string", "bytes", "address", "bytes32", "uint256"],
                         [did, publicKey, alice.address, salt, chainId]
                     )
@@ -266,7 +266,7 @@ describe("Security Features Integration Tests", function () {
                 const chainId = (await ethers.provider.getNetwork()).chainId;
 
                 const commitHash = ethers.keccak256(
-                    ethers.solidityPacked(
+                    ethers.AbiCoder.defaultAbiCoder().encode(
                         ["string", "bytes", "address", "bytes32", "uint256"],
                         [did, publicKey, alice.address, salt, chainId]
                     )
@@ -332,7 +332,7 @@ describe("Security Features Integration Tests", function () {
 
             // Correct commitment (with chainId)
             const correctCommitHash = ethers.keccak256(
-                ethers.solidityPacked(
+                ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes", "address", "bytes32", "uint256"],
                     [did, publicKey, aliceWallet.address, salt, chainId]
                 )
@@ -340,7 +340,7 @@ describe("Security Features Integration Tests", function () {
 
             // Wrong commitment (without chainId or wrong chainId)
             const wrongCommitHash = ethers.keccak256(
-                ethers.solidityPacked(
+                ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes", "address", "bytes32", "uint256"],
                     [did, publicKey, aliceWallet.address, salt, 999n] // wrong chain
                 )
