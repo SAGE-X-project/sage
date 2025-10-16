@@ -38,7 +38,7 @@ describe("SageRegistry", function () {
 
   describe("Deployment", function () {
     it("Should set the correct owner", async function () {
-      expect(await sageRegistry.owner()).to.equal(owner.address);
+      expect(await sageRegistry.OWNER()).to.equal(owner.address);
     });
 
     it("Should have the verification hook set", async function () {

@@ -522,8 +522,8 @@ contract SageRegistryV2 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Ste
     /**
      * @notice Get all agent IDs owned by an address
      */
-    function getAgentsByOwner(address _owner) external view returns (bytes32[] memory) {
-        return ownerToAgents[_owner];
+    function getAgentsByOwner(address ownerAddress) external view returns (bytes32[] memory) {
+        return ownerToAgents[ownerAddress];
     }
     
     /**

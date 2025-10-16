@@ -42,7 +42,7 @@ contract SimpleMultiSig is ReentrancyGuard {
     // State variables
     mapping(address => bool) public isOwner;
     address[] public owners;
-    uint256 public threshold;
+    uint256 public immutable THRESHOLD;
 
     mapping(uint256 => Transaction) public transactions;
     mapping(uint256 => mapping(address => bool)) public confirmations;
@@ -89,7 +89,7 @@ contract SimpleMultiSig is ReentrancyGuard {
             emit OwnerAdded(owner);
         }
 
-        threshold = _threshold;
+        THRESHOLD = _threshold;
         emit ThresholdChanged(_threshold);
     }
 
@@ -161,7 +161,7 @@ contract SimpleMultiSig is ReentrancyGuard {
         emit TransactionConfirmed(transactionId, msg.sender);
 
         // Auto-execute if threshold reached
-        if (transactions[transactionId].confirmations >= threshold) {
+        if (transactions[transactionId].confirmations >= THRESHOLD) {
             executeTransaction(transactionId);
         }
     }
@@ -197,7 +197,7 @@ contract SimpleMultiSig is ReentrancyGuard {
     {
         Transaction storage txn = transactions[transactionId];
 
-        require(txn.confirmations >= threshold, "Insufficient confirmations");
+        require(txn.confirmations >= THRESHOLD, "Insufficient confirmations");
 
         // Mark as executed BEFORE external call (Checks-Effects-Interactions pattern)
         txn.executed = true;
@@ -299,7 +299,8 @@ contract SimpleMultiSig is ReentrancyGuard {
         view
         returns (uint256 count)
     {
-        for (uint256 i = 0; i < owners.length; i++) {
+        uint256 ownersLength = owners.length;
+        for (uint256 i = 0; i < ownersLength; i++) {
             if (confirmations[transactionId][owners[i]]) {
                 count++;
             }
@@ -322,7 +323,7 @@ contract SimpleMultiSig is ReentrancyGuard {
      */
     function getPendingTransactionCount() public view returns (uint256 count) {
         for (uint256 i = 0; i < transactionCount; i++) {
-            if (!transactions[i].executed && transactions[i].confirmations < threshold) {
+            if (!transactions[i].executed && transactions[i].confirmations < THRESHOLD) {
                 count++;
             }
         }
@@ -333,7 +334,7 @@ contract SimpleMultiSig is ReentrancyGuard {
      */
     function getExecutableTransactionCount() public view returns (uint256 count) {
         for (uint256 i = 0; i < transactionCount; i++) {
-            if (!transactions[i].executed && transactions[i].confirmations >= threshold) {
+            if (!transactions[i].executed && transactions[i].confirmations >= THRESHOLD) {
                 count++;
             }
         }

@@ -18,17 +18,17 @@ contract SageVerificationHook is IRegistryHook {
     
     // Blacklist for malicious actors
     mapping(address => bool) public blacklisted;
-    
+
     // Owner for blacklist management
-    address public owner;
-    
+    address public immutable OWNER;
+
     modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner");
+        require(msg.sender == OWNER, "Only owner");
         _;
     }
     
     constructor() {
-        owner = msg.sender;
+        OWNER = msg.sender;
     }
     
     /**

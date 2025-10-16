@@ -152,7 +152,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
  * | votingPeriod | 7 days | Any | Deliberation time |
  * | approvalThreshold | 66% | 50-100% | Supermajority |
  * | minVoterParticipation | 10% | 0-100% | Prevent small groups |
- * | slashingPercentage | 50% | 0-100% | Penalty for bad proposals |
+ * | SLASHING_PERCENTAGE | 50% | 0-100% | Penalty for bad proposals |
  *
  * ## Gas Costs (Approximate)
  *
@@ -299,7 +299,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
     uint256 public minVoterParticipation = 10;        // At least 10% of voters must participate
 
     // Slashing
-    uint256 public slashingPercentage = 50;           // 50% slashed for rejected proposals
+    uint256 public constant SLASHING_PERCENTAGE = 50;  // 50% slashed for rejected proposals
 
     // ============================================
     // EVENTS
@@ -532,7 +532,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
             require(success, "Stake return failed");
         } else {
             // Slash stake for rejected proposal
-            uint256 slashAmount = (proposal.proposalStake * slashingPercentage) / 100;
+            uint256 slashAmount = (proposal.proposalStake * SLASHING_PERCENTAGE) / 100;
             uint256 returnAmount = proposal.proposalStake - slashAmount;
 
             // Slashed amount stays in contract (could be used for treasury/rewards)
@@ -651,28 +651,28 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
      * @notice Update governance parameters
      */
     function updateParameters(
-        uint256 _proposalStake,
-        uint256 _votingPeriod,
-        uint256 _approvalThreshold,
-        uint256 _minVoterParticipation
+        uint256 newProposalStake,
+        uint256 newVotingPeriod,
+        uint256 newApprovalThreshold,
+        uint256 newMinVoterParticipation
     ) external onlyOwner {
-        if (_approvalThreshold < 50 || _approvalThreshold > 100) {
+        if (newApprovalThreshold < 50 || newApprovalThreshold > 100) {
             revert InvalidParameters();
         }
-        if (_minVoterParticipation > 100) {
+        if (newMinVoterParticipation > 100) {
             revert InvalidParameters();
         }
 
-        proposalStake = _proposalStake;
-        votingPeriod = _votingPeriod;
-        approvalThreshold = _approvalThreshold;
-        minVoterParticipation = _minVoterParticipation;
+        proposalStake = newProposalStake;
+        votingPeriod = newVotingPeriod;
+        approvalThreshold = newApprovalThreshold;
+        minVoterParticipation = newMinVoterParticipation;
 
         emit ParametersUpdated(
-            _proposalStake,
-            _votingPeriod,
-            _approvalThreshold,
-            _minVoterParticipation
+            newProposalStake,
+            newVotingPeriod,
+            newApprovalThreshold,
+            newMinVoterParticipation
         );
     }
 
@@ -781,7 +781,8 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
     // ============================================
 
     function _getTotalVoterWeight() private view returns (uint256 total) {
-        for (uint256 i = 0; i < voters.length; i++) {
+        uint256 votersLength = voters.length;
+        for (uint256 i = 0; i < votersLength; i++) {
             total += voterWeight[voters[i]];
         }
         return total;

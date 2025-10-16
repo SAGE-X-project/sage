@@ -173,8 +173,8 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     error InvalidMinimum(uint256 minimum);
 
     // State variables
-    IERC8004IdentityRegistry public immutable identityRegistry;
-    IERC8004ReputationRegistry public immutable reputationRegistry;
+    IERC8004IdentityRegistry public immutable IDENTITY_REGISTRY;
+    IERC8004ReputationRegistry public immutable REPUTATION_REGISTRY;
 
     // Validation storage
     mapping(bytes32 => ValidationRequest) private validationRequests;
@@ -223,12 +223,12 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     // Trusted TEE keys (for production, use a more sophisticated verification system)
     mapping(bytes32 => bool) private trustedTEEKeys;
 
-    constructor(address _identityRegistry, address _reputationRegistry) {
-        require(_identityRegistry != address(0), "Invalid identity registry");
-        require(_reputationRegistry != address(0), "Invalid reputation registry");
+    constructor(address identityRegistryAddress, address reputationRegistryAddress) {
+        require(identityRegistryAddress != address(0), "Invalid identity registry");
+        require(reputationRegistryAddress != address(0), "Invalid reputation registry");
 
-        identityRegistry = IERC8004IdentityRegistry(_identityRegistry);
-        reputationRegistry = IERC8004ReputationRegistry(_reputationRegistry);
+        IDENTITY_REGISTRY = IERC8004IdentityRegistry(identityRegistryAddress);
+        REPUTATION_REGISTRY = IERC8004ReputationRegistry(reputationRegistryAddress);
         _transferOwnership(msg.sender);
     }
 
@@ -263,12 +263,12 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
 
         // Verify requester is a registered agent
         IERC8004IdentityRegistry.AgentInfo memory requesterInfo =
-            identityRegistry.resolveAgentByAddress(msg.sender);
+            IDENTITY_REGISTRY.resolveAgentByAddress(msg.sender);
         if (!requesterInfo.isActive) revert RequesterNotActive(msg.sender);
 
         // Verify server agent is registered
         IERC8004IdentityRegistry.AgentInfo memory serverInfo =
-            identityRegistry.resolveAgentByAddress(serverAgent);
+            IDENTITY_REGISTRY.resolveAgentByAddress(serverAgent);
         if (!serverInfo.isActive) revert ServerNotActive(serverAgent);
 
         // Generate unique request ID
@@ -456,7 +456,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
 
         // Verify validator is a registered agent
         IERC8004IdentityRegistry.AgentInfo memory validatorInfo =
-            identityRegistry.resolveAgentByAddress(msg.sender);
+            IDENTITY_REGISTRY.resolveAgentByAddress(msg.sender);
         require(validatorInfo.isActive, "Validator not active");
 
         // Determine validation result
@@ -535,7 +535,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
 
         // Verify validator is a registered agent
         IERC8004IdentityRegistry.AgentInfo memory validatorInfo =
-            identityRegistry.resolveAgentByAddress(msg.sender);
+            IDENTITY_REGISTRY.resolveAgentByAddress(msg.sender);
         require(validatorInfo.isActive, "Validator not active");
 
         // Verify TEE attestation
@@ -871,51 +871,51 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     /**
      * @notice Update configuration parameters
      */
-    function setMinStake(uint256 _minStake) external onlyOwner {
+    function setMinStake(uint256 newMinStake) external onlyOwner {
         uint256 oldValue = minStake;
-        minStake = _minStake;
-        emit MinStakeUpdated(oldValue, _minStake);
+        minStake = newMinStake;
+        emit MinStakeUpdated(oldValue, newMinStake);
     }
 
-    function setMinValidatorStake(uint256 _minValidatorStake) external onlyOwner {
+    function setMinValidatorStake(uint256 newValidatorStake) external onlyOwner {
         uint256 oldValue = minValidatorStake;
-        minValidatorStake = _minValidatorStake;
-        emit MinValidatorStakeUpdated(oldValue, _minValidatorStake);
+        minValidatorStake = newValidatorStake;
+        emit MinValidatorStakeUpdated(oldValue, newValidatorStake);
     }
 
-    function setValidatorRewardPercentage(uint256 _percentage) external onlyOwner {
-        if (_percentage > 100) revert InvalidPercentage(_percentage);
+    function setValidatorRewardPercentage(uint256 percentage) external onlyOwner {
+        if (percentage > 100) revert InvalidPercentage(percentage);
         uint256 oldValue = validatorRewardPercentage;
-        validatorRewardPercentage = _percentage;
-        emit ValidatorRewardPercentageUpdated(oldValue, _percentage);
+        validatorRewardPercentage = percentage;
+        emit ValidatorRewardPercentageUpdated(oldValue, percentage);
     }
 
-    function setSlashingPercentage(uint256 _percentage) external onlyOwner {
-        if (_percentage > 100) revert InvalidPercentage(_percentage);
+    function setSlashingPercentage(uint256 percentage) external onlyOwner {
+        if (percentage > 100) revert InvalidPercentage(percentage);
         uint256 oldValue = slashingPercentage;
-        slashingPercentage = _percentage;
-        emit SlashingPercentageUpdated(oldValue, _percentage);
+        slashingPercentage = percentage;
+        emit SlashingPercentageUpdated(oldValue, percentage);
     }
 
-    function setConsensusThreshold(uint256 _threshold) external onlyOwner {
-        if (_threshold <= 50 || _threshold > 100) revert InvalidThreshold(_threshold);
+    function setConsensusThreshold(uint256 threshold) external onlyOwner {
+        if (threshold <= 50 || threshold > 100) revert InvalidThreshold(threshold);
         uint256 oldValue = consensusThreshold;
-        consensusThreshold = _threshold;
-        emit ConsensusThresholdUpdated(oldValue, _threshold);
+        consensusThreshold = threshold;
+        emit ConsensusThresholdUpdated(oldValue, threshold);
     }
 
-    function setMinValidatorsRequired(uint256 _minValidators) external onlyOwner {
-        if (_minValidators == 0) revert InvalidMinimum(_minValidators);
+    function setMinValidatorsRequired(uint256 newMinValidators) external onlyOwner {
+        if (newMinValidators == 0) revert InvalidMinimum(newMinValidators);
         uint256 oldValue = minValidatorsRequired;
-        minValidatorsRequired = _minValidators;
-        emit MinValidatorsRequiredUpdated(oldValue, _minValidators);
+        minValidatorsRequired = newMinValidators;
+        emit MinValidatorsRequiredUpdated(oldValue, newMinValidators);
     }
 
-    function setMaxValidatorsPerRequest(uint256 _maxValidators) external onlyOwner {
-        if (_maxValidators == 0) revert InvalidMinimum(_maxValidators);
+    function setMaxValidatorsPerRequest(uint256 newMaxValidators) external onlyOwner {
+        if (newMaxValidators == 0) revert InvalidMinimum(newMaxValidators);
         uint256 oldValue = maxValidatorsPerRequest;
-        maxValidatorsPerRequest = _maxValidators;
-        emit MaxValidatorsPerRequestUpdated(oldValue, _maxValidators);
+        maxValidatorsPerRequest = newMaxValidators;
+        emit MaxValidatorsPerRequestUpdated(oldValue, newMaxValidators);
     }
 
     /**
