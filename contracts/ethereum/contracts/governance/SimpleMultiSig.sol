@@ -299,7 +299,8 @@ contract SimpleMultiSig is ReentrancyGuard {
         view
         returns (uint256 count)
     {
-        for (uint256 i = 0; i < owners.length; i++) {
+        uint256 ownersLength = owners.length;
+        for (uint256 i = 0; i < ownersLength; i++) {
             if (confirmations[transactionId][owners[i]]) {
                 count++;
             }

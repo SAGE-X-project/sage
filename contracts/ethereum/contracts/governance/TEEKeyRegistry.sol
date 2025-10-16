@@ -781,7 +781,8 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
     // ============================================
 
     function _getTotalVoterWeight() private view returns (uint256 total) {
-        for (uint256 i = 0; i < voters.length; i++) {
+        uint256 votersLength = voters.length;
+        for (uint256 i = 0; i < votersLength; i++) {
             total += voterWeight[voters[i]];
         }
         return total;
