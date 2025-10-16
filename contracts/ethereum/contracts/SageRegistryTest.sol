@@ -14,10 +14,10 @@ contract SageRegistryTest is SageRegistryV2 {
     
     /**
      * @notice Toggle test mode on/off
-     * @param _testMode Enable or disable test mode
+     * @param enabled Enable or disable test mode
      */
-    function setTestMode(bool _testMode) external onlyOwner {
-        testMode = _testMode;
+    function setTestMode(bool enabled) external onlyOwner {
+        testMode = enabled;
     }
     
     /**

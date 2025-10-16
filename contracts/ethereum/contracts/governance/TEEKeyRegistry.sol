@@ -299,7 +299,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
     uint256 public minVoterParticipation = 10;        // At least 10% of voters must participate
 
     // Slashing
-    uint256 public slashingPercentage = 50;           // 50% slashed for rejected proposals
+    uint256 public constant slashingPercentage = 50;  // 50% slashed for rejected proposals
 
     // ============================================
     // EVENTS
@@ -651,28 +651,28 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
      * @notice Update governance parameters
      */
     function updateParameters(
-        uint256 _proposalStake,
-        uint256 _votingPeriod,
-        uint256 _approvalThreshold,
-        uint256 _minVoterParticipation
+        uint256 newProposalStake,
+        uint256 newVotingPeriod,
+        uint256 newApprovalThreshold,
+        uint256 newMinVoterParticipation
     ) external onlyOwner {
-        if (_approvalThreshold < 50 || _approvalThreshold > 100) {
+        if (newApprovalThreshold < 50 || newApprovalThreshold > 100) {
             revert InvalidParameters();
         }
-        if (_minVoterParticipation > 100) {
+        if (newMinVoterParticipation > 100) {
             revert InvalidParameters();
         }
 
-        proposalStake = _proposalStake;
-        votingPeriod = _votingPeriod;
-        approvalThreshold = _approvalThreshold;
-        minVoterParticipation = _minVoterParticipation;
+        proposalStake = newProposalStake;
+        votingPeriod = newVotingPeriod;
+        approvalThreshold = newApprovalThreshold;
+        minVoterParticipation = newMinVoterParticipation;
 
         emit ParametersUpdated(
-            _proposalStake,
-            _votingPeriod,
-            _approvalThreshold,
-            _minVoterParticipation
+            newProposalStake,
+            newVotingPeriod,
+            newApprovalThreshold,
+            newMinVoterParticipation
         );
     }
 

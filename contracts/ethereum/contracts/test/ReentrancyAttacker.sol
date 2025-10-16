@@ -9,7 +9,7 @@ import "../erc-8004/interfaces/IERC8004ValidationRegistry.sol";
  * @dev This contract attempts to reenter the ValidationRegistry during fund transfers
  */
 contract ReentrancyAttacker {
-    IERC8004ValidationRegistry public validationRegistry;
+    IERC8004ValidationRegistry public immutable validationRegistry;
     bytes32 public attackRequestId;
     bytes32 public attackComputedHash;
     uint256 public attackCount;

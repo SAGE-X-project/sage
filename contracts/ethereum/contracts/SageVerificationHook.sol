@@ -18,9 +18,9 @@ contract SageVerificationHook is IRegistryHook {
     
     // Blacklist for malicious actors
     mapping(address => bool) public blacklisted;
-    
+
     // Owner for blacklist management
-    address public owner;
+    address public immutable owner;
     
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner");

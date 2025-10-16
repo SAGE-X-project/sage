@@ -17,9 +17,6 @@ import "../SageRegistryV2.sol";
 contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
     SageRegistryV2 public immutable sageRegistry;
 
-    // Mapping from ERC-8004 agentId (DID string) to agent address
-    mapping(string => address) private agentIdToAddress;
-
     constructor(address _sageRegistry) {
         require(_sageRegistry != address(0), "Invalid registry address");
         sageRegistry = SageRegistryV2(_sageRegistry);

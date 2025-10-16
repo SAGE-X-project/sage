@@ -60,14 +60,14 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
     /**
      * @notice Set the Validation Registry address
      * @dev Only callable by owner during initial setup
-     * @param _validationRegistry Address of the Validation Registry
+     * @param registry Address of the Validation Registry
      */
-    function setValidationRegistry(address _validationRegistry) external onlyOwner {
-        require(_validationRegistry != address(0), "Invalid validation registry");
+    function setValidationRegistry(address registry) external onlyOwner {
+        require(registry != address(0), "Invalid validation registry");
         require(validationRegistry == address(0), "Already set");
         address oldRegistry = validationRegistry;
-        validationRegistry = _validationRegistry;
-        emit ValidationRegistryUpdated(oldRegistry, _validationRegistry);
+        validationRegistry = registry;
+        emit ValidationRegistryUpdated(oldRegistry, registry);
     }
 
     /**

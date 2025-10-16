@@ -42,7 +42,7 @@ contract SimpleMultiSig is ReentrancyGuard {
     // State variables
     mapping(address => bool) public isOwner;
     address[] public owners;
-    uint256 public threshold;
+    uint256 public immutable threshold;
 
     mapping(uint256 => Transaction) public transactions;
     mapping(uint256 => mapping(address => bool)) public confirmations;

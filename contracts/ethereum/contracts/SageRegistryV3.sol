@@ -881,8 +881,8 @@ contract SageRegistryV3 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Ste
         return agents[agentId];
     }
 
-    function getAgentsByOwner(address _owner) external view returns (bytes32[] memory) {
-        return ownerToAgents[_owner];
+    function getAgentsByOwner(address ownerAddress) external view returns (bytes32[] memory) {
+        return ownerToAgents[ownerAddress];
     }
 
     function verifyAgentOwnership(bytes32 agentId, address claimedOwner) external view returns (bool) {

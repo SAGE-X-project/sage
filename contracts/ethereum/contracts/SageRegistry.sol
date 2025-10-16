@@ -26,8 +26,8 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
     mapping(string => bytes32) private didToAgentId;
     mapping(address => bytes32[]) private ownerToAgents;
     mapping(bytes32 => uint256) private agentNonce;
-    
-    address public owner;
+
+    address public immutable owner;
     address public beforeRegisterHook;
     address public afterRegisterHook;
     
@@ -310,8 +310,8 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
     /**
      * @notice Get all agent IDs owned by an address
      */
-    function getAgentsByOwner(address _owner) external view returns (bytes32[] memory) {
-        return ownerToAgents[_owner];
+    function getAgentsByOwner(address ownerAddress) external view returns (bytes32[] memory) {
+        return ownerToAgents[ownerAddress];
     }
     
     /**
