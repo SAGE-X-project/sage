@@ -77,7 +77,11 @@ jobs:
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           echo "Running gosec security scan..."
+          # Generate SARIF format for GitHub Code Scanning
+          gosec -fmt=sarif -out=gosec-results.sarif -no-fail ./... || true
+          # Also generate JSON for detailed output
           gosec -fmt=json -out=gosec-results.json -no-fail ./... || true
+          # Display text output
           gosec -fmt=text -no-fail ./... || true
         continue-on-error: true
 
@@ -96,6 +100,14 @@ jobs:
           else
             echo "No gosec results file generated"
           fi
+
+      - name: Upload Gosec results to GitHub Security
+        if: always()
+        continue-on-error: true  # Allow CI to pass if SARIF upload fails
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gosec-results.sarif
+          category: gosec
 
   # Smart contract security
   slither:
