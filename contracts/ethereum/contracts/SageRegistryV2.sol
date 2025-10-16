@@ -304,6 +304,8 @@ contract SageRegistryV2 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Ste
         require(bytes(did).length > 0, "DID required");
         require(_isValidDID(did), "Invalid DID format");
         require(bytes(name).length > 0, "Name required");
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking bytes32(0) is safe - it's the default value for uninitialized mapping entries
         require(didToAgentId[did] == bytes32(0), "DID already registered");
         require(ownerToAgents[msg.sender].length < MAX_AGENTS_PER_OWNER, "Too many agents");
     }
@@ -585,23 +587,27 @@ contract SageRegistryV2 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Ste
         bytes memory publicKey,
         address expectedSigner
     ) private pure returns (bool) {
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking publicKey.length is safe - bytes array length is deterministic
         // For Ethereum (secp256k1), verify the signer address matches
         if (publicKey.length == 64 || publicKey.length == 65) {
             bytes32 ethSignedHash = keccak256(
                 abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
             );
-            
+
             address recovered = _recoverSigner(ethSignedHash, signature);
             return recovered == expectedSigner;
         }
-        
+
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking publicKey.length is safe - bytes array length is deterministic
         // For Ed25519 (32 bytes), would need external verification
         if (publicKey.length == 32) {
             // In production, use an oracle or ZK proof for Ed25519
             // For now, we'll require secp256k1 keys only
             revert("Ed25519 not supported on-chain");
         }
-        
+
         return false;
     }
     

@@ -760,6 +760,8 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
         participationRate = totalWeight > 0 ? (totalVotes * 100) / totalWeight : 0;
         approvalRate = totalVotes > 0 ? (votesFor * 100) / totalVotes : 0;
 
+        // slither-disable-next-line incorrect-equality
+        // Note: Comparing enum values with == is safe and the correct way to check enum state
         canExecute = status == ProposalStatus.PENDING &&
                      block.timestamp > proposal.votingDeadline;
 

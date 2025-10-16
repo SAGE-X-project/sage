@@ -596,6 +596,8 @@ contract SageRegistryV3 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Ste
         require(bytes(did).length > 0, "DID required");
         require(_isValidDID(did), "Invalid DID format");
         require(bytes(name).length > 0, "Name required");
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking bytes32(0) is safe - it's the default value for uninitialized mapping entries
         require(didToAgentId[did] == bytes32(0), "DID already registered");
         require(ownerToAgents[msg.sender].length < MAX_AGENTS_PER_OWNER, "Too many agents");
     }
@@ -949,6 +951,8 @@ contract SageRegistryV3 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Ste
         bytes memory publicKey,
         address expectedSigner
     ) private pure returns (bool) {
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking publicKey.length is safe - bytes array length is deterministic
         if (publicKey.length == 64 || publicKey.length == 65) {
             bytes32 ethSignedHash = keccak256(
                 abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
@@ -958,6 +962,8 @@ contract SageRegistryV3 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Ste
             return recovered == expectedSigner;
         }
 
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking publicKey.length is safe - bytes array length is deterministic
         if (publicKey.length == 32) {
             revert("Ed25519 not supported on-chain");
         }

@@ -18,8 +18,29 @@ import "../interfaces/IERC8004ValidationRegistry.sol";
  * - Hybrid validation support
  * - Validator reward/slashing mechanism
  * - Consensus-based validation finalization
+ * - Reentrancy protection via ReentrancyGuard
+ * - Pull payment pattern for secure fund distribution
+ *
+ * @custom:security-note All state changes occur before external calls (Checks-Effects-Interactions)
  */
 contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
+
+    // ============================================
+    // REENTRANCY PROTECTION
+    // ============================================
+
+    /// @dev Reentrancy guard status
+    uint256 private constant NOT_ENTERED = 1;
+    uint256 private constant ENTERED = 2;
+    uint256 private reentrancyStatus;
+
+    /// @dev Prevents reentrancy attacks
+    modifier nonReentrant() {
+        require(reentrancyStatus != ENTERED, "ReentrancyGuard: reentrant call");
+        reentrancyStatus = ENTERED;
+        _;
+        reentrancyStatus = NOT_ENTERED;
+    }
 
     // ============================================
     // STATE VARIABLES
@@ -39,6 +60,9 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
 
     /// @dev Counter for generating unique request IDs
     uint256 private requestCounter;
+
+    /// @dev Pull payment pattern - pending withdrawals for validators and requesters
+    mapping(address => uint256) public pendingWithdrawals;
 
     /// @dev Minimum stake required for validation
     uint256 public minStake;
@@ -88,6 +112,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         minStake = _minStake;
         minValidators = _minValidators;
         consensusThreshold = _consensusThreshold;
+        reentrancyStatus = NOT_ENTERED;
     }
 
     // ============================================
@@ -182,11 +207,14 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         external
         payable
         override
+        nonReentrant
         returns (bool success)
     {
         ValidationRequest storage request = validationRequests[requestId];
         ValidationResponse[] storage responses = validationResponses[requestId];
 
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking timestamp == 0 is safe - it's used to detect uninitialized structs, not for time comparison
         // Validate request exists and is active
         if (request.timestamp == 0) {
             revert ValidationRequestNotFound(requestId);
@@ -263,10 +291,13 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
     )
         external
         override
+        nonReentrant
         returns (bool success)
     {
         ValidationRequest storage request = validationRequests[requestId];
 
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking timestamp == 0 is safe - it's used to detect uninitialized structs, not for time comparison
         // Validate request exists and is active
         if (request.timestamp == 0) {
             revert ValidationRequestNotFound(requestId);
@@ -340,6 +371,8 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         returns (ValidationRequest memory request)
     {
         request = validationRequests[requestId];
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking timestamp == 0 is safe - it's used to detect uninitialized structs, not for time comparison
         if (request.timestamp == 0) {
             revert ValidationRequestNotFound(requestId);
         }
@@ -374,6 +407,8 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
     {
         ValidationRequest storage request = validationRequests[requestId];
 
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking timestamp == 0 is safe - it's used to detect uninitialized structs, not for time comparison
         if (request.timestamp == 0) {
             revert ValidationRequestNotFound(requestId);
         }
@@ -413,23 +448,35 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         // Calculate success rate
         uint256 successRate = (successCount * 100) / responses.length;
 
-        // Check consensus
+        // CHECKS-EFFECTS-INTERACTIONS PATTERN:
+        // 1. CHECKS: Determine consensus outcome
+        bool consensusReached = false;
+        ValidationStatus newStatus = ValidationStatus.PENDING;
+
         if (successRate >= consensusThreshold) {
-            request.status = ValidationStatus.VALIDATED;
-            _distributeRewards(requestId, true);
+            consensusReached = true;
+            newStatus = ValidationStatus.VALIDATED;
         } else if (responses.length >= minValidators * 2) {
             // If we have 2x minimum validators and still no consensus, mark as disputed
-            request.status = ValidationStatus.DISPUTED;
-            _distributeRewards(requestId, false);
+            newStatus = ValidationStatus.DISPUTED;
         }
 
-        if (request.status != ValidationStatus.PENDING) {
-            emit ValidationFinalized(requestId, request.status, successRate);
+        // 2. EFFECTS: Update state BEFORE external interactions
+        if (newStatus != ValidationStatus.PENDING) {
+            request.status = newStatus;
+
+            // Emit event BEFORE distribution (which may involve external calls)
+            emit ValidationFinalized(requestId, newStatus, successRate);
+
+            // 3. INTERACTIONS: Distribute rewards (involves state updates for pull payments)
+            _distributeRewards(requestId, consensusReached);
         }
     }
 
     /**
      * @notice Distribute rewards or slash stakes based on validation outcome
+     * @dev Uses PULL PAYMENT pattern to prevent reentrancy attacks
+     *      All state updates occur BEFORE any external interactions
      * @param requestId The validation request identifier
      * @param consensusReached Whether consensus was reached
      */
@@ -438,31 +485,54 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         ValidationResponse[] storage responses = validationResponses[requestId];
 
         if (!consensusReached) {
-            // Disputed - return stakes
+            // DISPUTED CASE: Return all stakes via pull payment
+            // EFFECTS: Update pending withdrawals (NO external calls)
             for (uint256 i = 0; i < responses.length; i++) {
                 if (responses[i].validatorStake > 0) {
-                    payable(responses[i].validator).transfer(responses[i].validatorStake);
+                    pendingWithdrawals[responses[i].validator] += responses[i].validatorStake;
                 }
             }
             // Return requester stake
             if (request.stake > 0) {
-                payable(request.requester).transfer(request.stake);
+                pendingWithdrawals[request.requester] += request.stake;
             }
             return;
         }
 
-        // Consensus reached - reward honest validators, slash dishonest ones
+        // CONSENSUS REACHED: Reward honest validators, slash dishonest ones
+        // CHECKS: Calculate reward distribution
         uint256 totalRewardPool = request.stake;
         uint256 honestValidatorCount = 0;
 
-        // Count honest validators
+        // Count honest validators and calculate total reward pool
         for (uint256 i = 0; i < responses.length; i++) {
             if (responses[i].success) {
                 honestValidatorCount++;
                 totalRewardPool += responses[i].validatorStake;
             } else {
-                // Slash dishonest validator's stake
+                // Dishonest validator - their stake goes to reward pool
                 totalRewardPool += responses[i].validatorStake;
+            }
+        }
+
+        // Calculate reward per honest validator
+        uint256 rewardPerValidator = 0;
+        if (honestValidatorCount > 0) {
+            rewardPerValidator = totalRewardPool / honestValidatorCount;
+        }
+
+        // EFFECTS: Update pending withdrawals and emit events (NO external calls)
+        for (uint256 i = 0; i < responses.length; i++) {
+            if (responses[i].success) {
+                // Honest validator - gets reward
+                pendingWithdrawals[responses[i].validator] += rewardPerValidator;
+                emit ValidatorRewarded(
+                    responses[i].validator,
+                    requestId,
+                    rewardPerValidator
+                );
+            } else {
+                // Dishonest validator - stake is slashed (added to reward pool above)
                 emit ValidatorSlashed(
                     responses[i].validator,
                     requestId,
@@ -471,20 +541,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
             }
         }
 
-        // Distribute rewards to honest validators
-        if (honestValidatorCount > 0) {
-            uint256 rewardPerValidator = totalRewardPool / honestValidatorCount;
-            for (uint256 i = 0; i < responses.length; i++) {
-                if (responses[i].success) {
-                    payable(responses[i].validator).transfer(rewardPerValidator);
-                    emit ValidatorRewarded(
-                        responses[i].validator,
-                        requestId,
-                        rewardPerValidator
-                    );
-                }
-            }
-        }
+        // Note: No external calls made - validators must call withdraw() to claim funds
     }
 
     /**
@@ -576,4 +633,48 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
     function setMaxValidatorsPerRequest(uint256 newMaxValidators) external {
         maxValidatorsPerRequest = newMaxValidators;
     }
+
+    /**
+     * @notice Withdraw pending rewards/refunds (pull payment pattern)
+     * @dev Implements the PULL PAYMENT pattern to prevent reentrancy attacks
+     *      Users must call this function to claim their rewards or refunded stakes
+     * @return amount The amount withdrawn
+     *
+     * @custom:security-note Uses Checks-Effects-Interactions pattern:
+     *                       1. CHECKS: Verify amount > 0
+     *                       2. EFFECTS: Set pendingWithdrawals to 0
+     *                       3. INTERACTIONS: Transfer funds
+     */
+    function withdraw() external nonReentrant returns (uint256 amount) {
+        // CHECKS: Verify there are funds to withdraw
+        amount = pendingWithdrawals[msg.sender];
+        require(amount > 0, "No funds to withdraw");
+
+        // EFFECTS: Update state BEFORE external call (prevent reentrancy)
+        pendingWithdrawals[msg.sender] = 0;
+
+        // INTERACTIONS: Transfer funds (external call happens LAST)
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Transfer failed");
+
+        emit WithdrawalProcessed(msg.sender, amount);
+
+        return amount;
+    }
+
+    /**
+     * @notice Get pending withdrawal amount for an address
+     * @param account The address to check
+     * @return amount The pending withdrawal amount
+     */
+    function getPendingWithdrawal(address account) external view returns (uint256 amount) {
+        return pendingWithdrawals[account];
+    }
+
+    /**
+     * @notice Event emitted when a withdrawal is processed
+     * @param account Address that withdrew funds
+     * @param amount Amount withdrawn
+     */
+    event WithdrawalProcessed(address indexed account, uint256 amount);
 }
