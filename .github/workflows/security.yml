@@ -71,6 +71,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23.0'
+          cache: false  # Disable cache to avoid tar extraction issues
 
       - name: Run Gosec Security Scanner
         run: |
@@ -96,6 +97,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gosec-results.sarif
+          checkout_path: ${{ github.workspace }}
           category: gosec
 
   # Smart contract security
@@ -171,6 +173,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23.0'
+          cache: false  # Disable cache to avoid tar extraction issues
 
       - name: Check Go licenses
         continue-on-error: true  # Allow CI to pass while reporting license issues
