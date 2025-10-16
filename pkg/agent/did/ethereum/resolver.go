@@ -186,10 +186,16 @@ func (c *EthereumClient) GetRegistrationStatus(ctx context.Context, txHash strin
 		return nil, fmt.Errorf("failed to get block: %w", err)
 	}
 
+	blockTime := block.Time()
+	const maxInt64 = 1<<63 - 1
+	if blockTime > maxInt64 {
+		return nil, fmt.Errorf("block timestamp overflow: %d exceeds maximum int64 value", blockTime)
+	}
+
 	return &did.RegistrationResult{
 		TransactionHash: txHash,
 		BlockNumber:     receipt.BlockNumber.Uint64(),
-		Timestamp:       time.Unix(int64(block.Time()), 0),
+		Timestamp:       time.Unix(int64(blockTime), 0), // #nosec G115 - overflow checked above
 		GasUsed:         receipt.GasUsed,
 	}, nil
 }

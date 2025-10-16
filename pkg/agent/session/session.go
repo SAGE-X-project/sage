@@ -494,6 +494,7 @@ func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
 	}
 
 	// Seal appends the ciphertext and authentication tag
+	// #nosec G407 - nonce is randomly generated using crypto/rand above
 	ciphertext := s.aead.Seal(nil, nonce, plaintext, nil)
 
 	// Prepend nonce
@@ -556,6 +557,7 @@ func (s *SecureSession) EncryptAndSign(plaintext []byte, covered []byte) (cipher
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
+	// #nosec G407 - nonce is randomly generated using crypto/rand above
 	ct := s.aead.Seal(nil, nonce, plaintext, nil)
 
 	out := make([]byte, len(nonce)+len(ct))
@@ -616,6 +618,7 @@ func (s *SecureSession) EncryptWithAAD(plaintext, aad []byte) ([]byte, error) {
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
+	// #nosec G407 - nonce is randomly generated using crypto/rand above
 	ct := s.aead.Seal(nil, nonce, plaintext, aad)
 	out := make([]byte, len(nonce)+len(ct))
 	copy(out, nonce)
@@ -675,6 +678,7 @@ func (s *SecureSession) EncryptOutbound(plaintext []byte) ([]byte, error) {
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
+	// #nosec G407 - nonce is randomly generated using crypto/rand above
 	ct := s.aeadOut.Seal(nil, nonce, plaintext, nil)
 
 	out := make([]byte, len(nonce)+len(ct))
@@ -714,6 +718,7 @@ func (s *SecureSession) EncryptWithAADOutbound(plaintext, aad []byte) ([]byte, e
 	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
+	// #nosec G407 - nonce is randomly generated using crypto/rand above
 	ct := s.aeadOut.Seal(nil, nonce, plaintext, aad)
 
 	out := make([]byte, len(nonce)+len(ct))

@@ -8,7 +8,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 
 // Color codes for console output
 const colors = {
@@ -94,10 +94,15 @@ async function generateGoBindings() {
       fs.writeFileSync(tempBinPath, bytecode.replace('0x', ''));
 
       // Generate Go binding using abigen
-      const cmd = `abigen --abi=${abiPath} --bin=${tempBinPath} --pkg=${contract.pkg} --type=${contract.type} --out=${outputPath}`;
-      
+      // Use execFileSync to prevent shell injection
       try {
-        execSync(cmd, { stdio: 'pipe' });
+        execFileSync('abigen', [
+          `--abi=${abiPath}`,
+          `--bin=${tempBinPath}`,
+          `--pkg=${contract.pkg}`,
+          `--type=${contract.type}`,
+          `--out=${outputPath}`
+        ], { stdio: 'pipe' });
         log(`   Generated ${contract.pkg}.go`, "green");
         
         // Clean up temp file

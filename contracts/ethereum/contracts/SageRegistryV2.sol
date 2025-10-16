@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import "./interfaces/ISageRegistry.sol";
 import "./interfaces/IRegistryHook.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
@@ -12,7 +13,7 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  * @dev Implements practical public key validation using signature-based ownership proof
  *      Includes emergency pause mechanism for critical situations
  */
-contract SageRegistryV2 is ISageRegistry, Pausable, Ownable2Step {
+contract SageRegistryV2 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Step {
     // Registration parameters struct to avoid stack too deep errors
     struct RegistrationParams {
         string did;
@@ -80,7 +81,7 @@ contract SageRegistryV2 is ISageRegistry, Pausable, Ownable2Step {
         bytes calldata publicKey,
         string calldata capabilities,
         bytes calldata signature
-    ) external whenNotPaused returns (bytes32) {
+    ) external whenNotPaused nonReentrant returns (bytes32) {
         // Validate public key format and ownership
         _validatePublicKey(publicKey, signature);
         
@@ -263,7 +264,8 @@ contract SageRegistryV2 is ISageRegistry, Pausable, Ownable2Step {
         require(agents[agentId].active, "Agent not active");
         
         // Verify signature with stored public key
-        bytes32 messageHash = keccak256(abi.encodePacked(
+        // Use abi.encode to prevent hash collision attacks
+        bytes32 messageHash = keccak256(abi.encode(
             agentId,
             name,
             description,
@@ -367,7 +369,8 @@ contract SageRegistryV2 is ISageRegistry, Pausable, Ownable2Step {
         uint256 nonce = registrationNonce[msg.sender];
         registrationNonce[msg.sender]++;
 
-        return keccak256(abi.encodePacked(
+        // Use abi.encode to prevent hash collision attacks
+        return keccak256(abi.encode(
             did,
             publicKey,
             msg.sender,

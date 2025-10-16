@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 /**
  * @title SimpleMultiSig
  * @notice Simple multi-signature wallet for SAGE governance
@@ -17,7 +19,7 @@ pragma solidity 0.8.19;
  * - For mainnet, use audited Gnosis Safe contracts
  * - This contract is NOT recommended for production use
  */
-contract SimpleMultiSig {
+contract SimpleMultiSig is ReentrancyGuard {
     // Events
     event OwnerAdded(address indexed owner);
     event OwnerRemoved(address indexed owner);
@@ -191,25 +193,70 @@ contract SimpleMultiSig {
         onlyOwner
         transactionExists(transactionId)
         notExecuted(transactionId)
+        nonReentrant
     {
         Transaction storage txn = transactions[transactionId];
 
         require(txn.confirmations >= threshold, "Insufficient confirmations");
 
+        // Mark as executed BEFORE external call (Checks-Effects-Interactions pattern)
         txn.executed = true;
 
-        (bool success, bytes memory returnData) = txn.to.call{value: txn.value}(txn.data);
+        // Load struct fields to avoid complex assembly for storage access
+        address target = txn.to;
+        uint256 value = txn.value;
+        bytes memory data = txn.data;
+
+        // Execute with return data size limit to prevent return bomb attack
+        bool success;
+        bytes memory returnData;
+        uint256 maxReturnSize = 1024;
+
+        assembly {
+            // Allocate memory for return data (limit to prevent return bomb)
+            returnData := mload(0x40)
+            mstore(returnData, 0)
+            mstore(0x40, add(returnData, add(maxReturnSize, 32)))
+
+            // Call with limited return data size
+            success := call(
+                gas(),
+                target,
+                value,
+                add(data, 32),
+                mload(data),
+                add(returnData, 32),
+                maxReturnSize
+            )
+
+            // Store actual return data size (capped at maxReturnSize)
+            let actualSize := returndatasize()
+            if gt(actualSize, maxReturnSize) {
+                actualSize := maxReturnSize
+            }
+            mstore(returnData, actualSize)
+        }
 
         if (success) {
             emit TransactionExecuted(transactionId, msg.sender);
         } else {
-            txn.executed = false; // Allow retry
+            // Allow retry on failure
+            txn.executed = false;
 
-            // Extract revert reason if available
+            // Extract revert reason if available (limited by maxReturnSize)
             string memory reason = "Execution failed";
-            if (returnData.length > 0) {
+            if (returnData.length > 68) {
+                // Standard Error(string) has: selector(4) + offset(32) + length(32) + data
                 assembly {
-                    reason := add(returnData, 0x04)
+                    // Point to the string data (skip selector and offset)
+                    let strPtr := add(returnData, 68)
+                    let strLen := mload(strPtr)
+                    // Cap string length to avoid issues
+                    if gt(strLen, 256) {
+                        strLen := 256
+                    }
+                    reason := strPtr
+                    mstore(reason, strLen)
                 }
             }
 

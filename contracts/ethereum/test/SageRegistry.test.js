@@ -52,9 +52,9 @@ describe("SageRegistry", function () {
       const publicKey = ethers.hexlify(ethers.randomBytes(64)); // 64 bytes for uncompressed secp256k1
       const did = `did:sage:test:${agent1.address}`;
       
-      // Create message hash for signature (using solidityPacked for V1 compatibility)
+      // Create message hash for signature (using abi.encode to match contract)
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [did, testName, testDescription, testEndpoint, publicKey, testCapabilities, agent1.address, 0]
         )
@@ -93,7 +93,7 @@ describe("SageRegistry", function () {
       const invalidDID = "invalid-did"; // Not starting with "did:"
       
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [invalidDID, testName, testDescription, testEndpoint, publicKey, testCapabilities, agent1.address, 0]
         )
@@ -119,14 +119,14 @@ describe("SageRegistry", function () {
       const did = `did:sage:test:${agent1.address}`;
       
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [did, testName, testDescription, testEndpoint, publicKey, testCapabilities, agent1.address, 0]
         )
       );
-      
+
       const signature = await agent1.signMessage(ethers.getBytes(messageHash));
-      
+
       // First registration should succeed
       await sageRegistry.connect(agent1).registerAgent(
         did,
@@ -137,10 +137,10 @@ describe("SageRegistry", function () {
         testCapabilities,
         signature
       );
-      
+
       // Second registration with same DID should fail (from different owner)
       const messageHash2 = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [did, testName, testDescription, testEndpoint, publicKey, testCapabilities, agent2.address, 0]
         )
@@ -168,13 +168,13 @@ describe("SageRegistry", function () {
       // First registration
       const did1 = `did:sage:test:${agent1.address}_1`;
       const messageHash1 = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [did1, testName, testDescription, testEndpoint, publicKey1, testCapabilities, agent1.address, 0]
         )
       );
       const signature1 = await agent1.signMessage(ethers.getBytes(messageHash1));
-      
+
       await sageRegistry.connect(agent1).registerAgent(
         did1,
         testName,
@@ -184,11 +184,11 @@ describe("SageRegistry", function () {
         testCapabilities,
         signature1
       );
-      
+
       // Try second registration immediately
       const did2 = `did:sage:test:${agent1.address}_2`;
       const messageHash2 = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [did2, testName, testDescription, testEndpoint, publicKey2, testCapabilities, agent1.address, 0]
         )
@@ -217,9 +217,9 @@ describe("SageRegistry", function () {
       // Register an agent for testing
       publicKey = ethers.hexlify(ethers.randomBytes(64));
       const did = `did:sage:test:${agent1.address}`;
-      
+
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [did, testName, testDescription, testEndpoint, publicKey, testCapabilities, agent1.address, 0]
         )
@@ -249,7 +249,7 @@ describe("SageRegistry", function () {
       
       // Get current nonce (should be 1 after registration)
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["bytes32", "string", "string", "string", "string", "address", "uint256"],
           [agentId, newName, newDescription, newEndpoint, newCapabilities, agent1.address, 1]
         )
@@ -276,7 +276,7 @@ describe("SageRegistry", function () {
     it("Should only allow owner to update agent", async function () {
       const newName = "Hacked Name";
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["bytes32", "string", "string", "string", "string", "address", "uint256"],
           [agentId, newName, testDescription, testEndpoint, testCapabilities, attacker.address, 1]
         )
@@ -321,9 +321,9 @@ describe("SageRegistry", function () {
       // Register an agent
       const publicKey = ethers.hexlify(ethers.randomBytes(64));
       did = `did:sage:test:${agent1.address}`;
-      
+
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [did, testName, testDescription, testEndpoint, publicKey, testCapabilities, agent1.address, 0]
         )
@@ -372,9 +372,9 @@ describe("SageRegistry", function () {
       // Register another agent
       const publicKey2 = ethers.hexlify(ethers.randomBytes(64));
       const did2 = `did:sage:test:${agent1.address}_second`;
-      
+
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [did2, "Second Agent", testDescription, testEndpoint, publicKey2, testCapabilities, agent1.address, 0]
         )
@@ -404,9 +404,9 @@ describe("SageRegistry", function () {
       
       const publicKey = ethers.hexlify(ethers.randomBytes(64));
       const did = `did:sage:test:${attacker.address}`;
-      
+
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [did, testName, testDescription, testEndpoint, publicKey, testCapabilities, attacker.address, 0]
         )
@@ -434,7 +434,7 @@ describe("SageRegistry", function () {
         const did = `did:sage:test:${agent1.address}_${i}`;
         
         const messageHash = ethers.keccak256(
-          ethers.solidityPacked(
+          ethers.AbiCoder.defaultAbiCoder().encode(
             ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
             [did, `Agent ${i}`, testDescription, testEndpoint, publicKey, testCapabilities, agent1.address, 0]
           )
@@ -463,9 +463,9 @@ describe("SageRegistry", function () {
       
       const publicKey = ethers.hexlify(ethers.randomBytes(64));
       const did = `did:sage:test:${agent1.address}_6`;
-      
+
       const messageHash = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
           [did, "Agent 6", testDescription, testEndpoint, publicKey, testCapabilities, agent1.address, 0]
         )

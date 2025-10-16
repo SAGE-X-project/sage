@@ -373,7 +373,11 @@ func (c *EthereumClient) getTransactOpts(ctx context.Context) (*bind.TransactOpt
 
 	// Set gas price if configured
 	if c.config.GasPrice > 0 {
-		auth.GasPrice = big.NewInt(int64(c.config.GasPrice))
+		const maxInt64 = 1<<63 - 1
+		if c.config.GasPrice > maxInt64 {
+			return nil, fmt.Errorf("gas price overflow: %d exceeds maximum int64 value", c.config.GasPrice)
+		}
+		auth.GasPrice = big.NewInt(int64(c.config.GasPrice)) // #nosec G115 - overflow checked above
 	}
 
 	return auth, nil
@@ -395,8 +399,11 @@ func (c *EthereumClient) waitForTransaction(ctx context.Context, tx *types.Trans
 					return nil, err
 				}
 
+				if c.config.ConfirmationBlocks < 0 {
+					return nil, fmt.Errorf("confirmation blocks must be non-negative: %d", c.config.ConfirmationBlocks)
+				}
 				confirmations := currentBlock - receipt.BlockNumber.Uint64()
-				if confirmations < uint64(c.config.ConfirmationBlocks) {
+				if confirmations < uint64(c.config.ConfirmationBlocks) { // #nosec G115 - negative values checked above
 					time.Sleep(5 * time.Second)
 					continue
 				}

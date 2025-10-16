@@ -74,7 +74,7 @@ func LoadOrCreateKeyPair(suffix string) (kp sagecrypto.KeyPair, privPEM, pubPEM 
 	pubBlock := &pem.Block{Type: "PUBLIC KEY", Bytes: pubDER}
 	pubPEM = pem.EncodeToMemory(pubBlock)
 
-	if err = os.WriteFile(pubPath, pubPEM, 0o644); err != nil {
+	if err = os.WriteFile(pubPath, pubPEM, 0o600); err != nil {
 		return nil, nil, nil, fmt.Errorf("write public key PEM: %w", err)
 	}
 

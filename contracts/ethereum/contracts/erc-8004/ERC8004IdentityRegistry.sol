@@ -15,7 +15,7 @@ import "../SageRegistryV2.sol";
  * existing agent registration system.
  */
 contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
-    SageRegistryV2 public sageRegistry;
+    SageRegistryV2 public immutable sageRegistry;
 
     // Mapping from ERC-8004 agentId (DID string) to agent address
     mapping(string => address) private agentIdToAddress;

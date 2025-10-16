@@ -212,7 +212,7 @@ func outputAddresses(addresses map[chain.ChainType]*chain.Address, keyPair crypt
 			return fmt.Errorf("failed to marshal output: %w", err)
 		}
 
-		if err := os.WriteFile(outputFile, jsonData, 0644); err != nil {
+		if err := os.WriteFile(outputFile, jsonData, 0600); err != nil {
 			return fmt.Errorf("failed to write output file: %w", err)
 		}
 

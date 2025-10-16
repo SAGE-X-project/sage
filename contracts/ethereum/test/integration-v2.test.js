@@ -100,7 +100,7 @@ describe("SageRegistryV2 Integration Tests", function () {
       // 2. Update agent
       console.log("      2️⃣  Updating agent...");
       const updateMessage = ethers.keccak256(
-        ethers.solidityPacked(
+        ethers.AbiCoder.defaultAbiCoder().encode(
           ["bytes32", "string", "string", "string", "string", "address", "uint256"],
           [agentId, "Updated Agent", "Enhanced AI", "https://new.example.com",
            JSON.stringify(["chat", "code", "analyze"]), testWallet.address, 1]

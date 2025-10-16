@@ -615,3 +615,6 @@ keys/
 
 # Test script temporary files
 /tmp/make_test_*.log
+
+# Security scanning reports
+gosec-report.json

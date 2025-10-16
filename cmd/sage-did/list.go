@@ -121,7 +121,7 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	// Write output
 	if listOutput != "" {
-		if err := os.WriteFile(listOutput, []byte(output), 0644); err != nil {
+		if err := os.WriteFile(listOutput, []byte(output), 0600); err != nil {
 			return fmt.Errorf("failed to write output: %w", err)
 		}
 		fmt.Printf(" Agent list saved to %s\n", listOutput)

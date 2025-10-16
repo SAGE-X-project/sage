@@ -190,9 +190,14 @@ func (p *EnhancedProvider) GetTransactionOpts(
 		return nil, err
 	}
 
+	const maxInt64 = 1<<63 - 1
+	if nonce > maxInt64 {
+		return nil, fmt.Errorf("nonce overflow: %d exceeds maximum int64 value", nonce)
+	}
+
 	opts := &bind.TransactOpts{
 		From:     from,
-		Nonce:    big.NewInt(int64(nonce)),
+		Nonce:    big.NewInt(int64(nonce)), // #nosec G115 - overflow checked above
 		GasLimit: p.config.GasLimit,
 		GasPrice: gasPrice,
 		Context:  ctx,
