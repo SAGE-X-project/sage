@@ -151,6 +151,8 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
 
         // Check authorization
         TaskAuthorization storage auth = taskAuthorizations[taskId];
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking deadline == 0 is safe - it's used to detect uninitialized structs, not for time comparison
         if (auth.deadline == 0) {
             revert TaskNotAuthorized(taskId);
         }
@@ -225,6 +227,8 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
     {
         Feedback storage feedback = feedbacks[feedbackId];
 
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking timestamp == 0 is safe - it's used to detect uninitialized structs, not for time comparison
         if (feedback.timestamp == 0) {
             revert FeedbackNotFound(feedbackId);
         }
@@ -251,6 +255,8 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
         returns (Feedback memory feedback)
     {
         feedback = feedbacks[feedbackId];
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking timestamp == 0 is safe - it's used to detect uninitialized structs, not for time comparison
         if (feedback.timestamp == 0) {
             revert FeedbackNotFound(feedbackId);
         }

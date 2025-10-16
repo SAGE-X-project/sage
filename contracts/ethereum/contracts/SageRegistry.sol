@@ -119,6 +119,8 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
     ) private view {
         require(bytes(did).length > 0, "DID required");
         require(bytes(name).length > 0, "Name required");
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking bytes32(0) is safe - it's the default value for uninitialized mapping entries
         require(didToAgentId[did] == bytes32(0), "DID already registered");
         require(ownerToAgents[msg.sender].length < MAX_AGENTS_PER_OWNER, "Too many agents");
     }
@@ -354,16 +356,20 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
         bytes memory publicKey,
         address expectedSigner
     ) private pure returns (bool) {
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking publicKey.length is safe - bytes array length is deterministic
         // For Ethereum (secp256k1), verify the signer address matches
         if (publicKey.length == 64 || publicKey.length == 65) {
             bytes32 ethSignedHash = keccak256(
                 abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
             );
-            
+
             address recovered = _recoverSigner(ethSignedHash, signature);
             return recovered == expectedSigner;
         }
-        
+
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking publicKey.length is safe - bytes array length is deterministic
         // For Ed25519 (32 bytes), we would need external verification
         // This is a placeholder - in production, use a library or precompile
         if (publicKey.length == 32) {
@@ -371,7 +377,7 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
             // For now, we'll require a separate verification step
             return true;
         }
-        
+
         return false;
     }
     
