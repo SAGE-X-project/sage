@@ -699,11 +699,13 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
             // Update pending withdrawals instead of direct transfer
             for (uint256 i = 0; i < responses.length; i++) {
                 if (responses[i].validatorStake > 0) {
+                    require(responses[i].validator != address(0), "Invalid validator address");
                     validatorStakes[responses[i].validator] -= responses[i].validatorStake;
                     pendingWithdrawals[responses[i].validator] += responses[i].validatorStake;
                 }
             }
             // Return requester stake
+            require(request.requester != address(0), "Invalid requester address");
             pendingWithdrawals[request.requester] += request.stake;
             return;
         }
@@ -720,6 +722,8 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         }
 
         require(honestValidatorCount > 0, "No honest validators");
+        // slither-disable-next-line divide-before-multiply
+        // Note: This is intentional - calculating remainder after integer division
         uint256 rewardPerValidator = totalReward / honestValidatorCount;
         uint256 rewardRemainder = totalReward - (rewardPerValidator * honestValidatorCount);
         bool remainderDistributed = false;
@@ -727,6 +731,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         // Distribute rewards and slash dishonest validators
         for (uint256 i = 0; i < responses.length; i++) {
             ValidationResponse storage response = responses[i];
+            require(response.validator != address(0), "Invalid validator address");
 
             if (response.success == expectedSuccess) {
                 // Honest validator - reward
@@ -761,6 +766,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
                     validatorStakes[response.validator] -= response.validatorStake;
 
                     // Add slashed amount to requester's pending withdrawals
+                    require(request.requester != address(0), "Invalid requester address");
                     pendingWithdrawals[request.requester] += slashAmount;
 
                     // Return remainder (if slashing < 100%) to validator
@@ -779,6 +785,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         // Return remaining stake to requester
         uint256 remainingStake = request.stake - totalReward;
         if (remainingStake > 0) {
+            require(request.requester != address(0), "Invalid requester address");
             pendingWithdrawals[request.requester] += remainingStake;
         }
     }
@@ -790,6 +797,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
      * @return requiredStake The minimum stake required
      */
     function _calculateRequiredStake(address validator) private view returns (uint256 requiredStake) {
+        require(validator != address(0), "Invalid validator address");
         ValidatorStats memory stats = validatorStats[validator];
 
         // New validators (no history) must use base minimum stake
@@ -822,6 +830,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
      * @return requiredStake The minimum stake required
      */
     function getRequiredStake(address validator) external view returns (uint256) {
+        require(validator != address(0), "Invalid validator address");
         return _calculateRequiredStake(validator);
     }
 
@@ -835,6 +844,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         view
         returns (ValidatorStats memory stats)
     {
+        require(validator != address(0), "Invalid validator address");
         return validatorStats[validator];
     }
 
@@ -955,6 +965,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
      * @return amount The withdrawable amount
      */
     function getWithdrawableAmount(address account) external view returns (uint256) {
+        require(account != address(0), "Invalid account address");
         return pendingWithdrawals[account];
     }
 
@@ -976,12 +987,14 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
         validationComplete[requestId] = true;
 
         // Return requester's stake
+        require(request.requester != address(0), "Invalid requester address");
         pendingWithdrawals[request.requester] += request.stake;
 
         // Return validator stakes
         ValidationResponse[] storage responses = validationResponses[requestId];
         for (uint256 i = 0; i < responses.length; i++) {
             if (responses[i].validatorStake > 0) {
+                require(responses[i].validator != address(0), "Invalid validator address");
                 validatorStakes[responses[i].validator] -= responses[i].validatorStake;
                 pendingWithdrawals[responses[i].validator] += responses[i].validatorStake;
             }
