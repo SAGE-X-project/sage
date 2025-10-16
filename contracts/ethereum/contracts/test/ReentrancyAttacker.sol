@@ -9,14 +9,14 @@ import "../erc-8004/interfaces/IERC8004ValidationRegistry.sol";
  * @dev This contract attempts to reenter the ValidationRegistry during fund transfers
  */
 contract ReentrancyAttacker {
-    IERC8004ValidationRegistry public immutable validationRegistry;
+    IERC8004ValidationRegistry public immutable VALIDATION_REGISTRY;
     bytes32 public attackRequestId;
     bytes32 public attackComputedHash;
     uint256 public attackCount;
     bool public attacking;
 
     constructor(address _validationRegistry) {
-        validationRegistry = IERC8004ValidationRegistry(_validationRegistry);
+        VALIDATION_REGISTRY = IERC8004ValidationRegistry(_validationRegistry);
     }
 
     /**
@@ -28,7 +28,7 @@ contract ReentrancyAttacker {
 
             // Attempt to reenter by submitting another validation
             // solhint-disable-next-line no-empty-blocks
-            try validationRegistry.submitStakeValidation{value: msg.value / 2}(
+            try VALIDATION_REGISTRY.submitStakeValidation{value: msg.value / 2}(
                 attackRequestId,
                 attackComputedHash
             ) {
@@ -52,7 +52,7 @@ contract ReentrancyAttacker {
         attackRequestId = requestId;
         attackComputedHash = computedHash;
 
-        validationRegistry.submitStakeValidation{value: msg.value}(
+        VALIDATION_REGISTRY.submitStakeValidation{value: msg.value}(
             requestId,
             computedHash
         );
@@ -73,7 +73,7 @@ contract ReentrancyAttacker {
         attacking = true;
         attackCount = 0;
 
-        bytes32 requestId = validationRegistry.requestValidation{value: msg.value}(
+        bytes32 requestId = VALIDATION_REGISTRY.requestValidation{value: msg.value}(
             taskId,
             serverAgent,
             dataHash,

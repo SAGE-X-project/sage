@@ -173,8 +173,8 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     error InvalidMinimum(uint256 minimum);
 
     // State variables
-    IERC8004IdentityRegistry public immutable identityRegistry;
-    IERC8004ReputationRegistry public immutable reputationRegistry;
+    IERC8004IdentityRegistry public immutable IDENTITY_REGISTRY;
+    IERC8004ReputationRegistry public immutable REPUTATION_REGISTRY;
 
     // Validation storage
     mapping(bytes32 => ValidationRequest) private validationRequests;
@@ -223,12 +223,12 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
     // Trusted TEE keys (for production, use a more sophisticated verification system)
     mapping(bytes32 => bool) private trustedTEEKeys;
 
-    constructor(address _identityRegistry, address _reputationRegistry) {
-        require(_identityRegistry != address(0), "Invalid identity registry");
-        require(_reputationRegistry != address(0), "Invalid reputation registry");
+    constructor(address identityRegistryAddress, address reputationRegistryAddress) {
+        require(identityRegistryAddress != address(0), "Invalid identity registry");
+        require(reputationRegistryAddress != address(0), "Invalid reputation registry");
 
-        identityRegistry = IERC8004IdentityRegistry(_identityRegistry);
-        reputationRegistry = IERC8004ReputationRegistry(_reputationRegistry);
+        IDENTITY_REGISTRY = IERC8004IdentityRegistry(identityRegistryAddress);
+        REPUTATION_REGISTRY = IERC8004ReputationRegistry(reputationRegistryAddress);
         _transferOwnership(msg.sender);
     }
 
@@ -263,12 +263,12 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
 
         // Verify requester is a registered agent
         IERC8004IdentityRegistry.AgentInfo memory requesterInfo =
-            identityRegistry.resolveAgentByAddress(msg.sender);
+            IDENTITY_REGISTRY.resolveAgentByAddress(msg.sender);
         if (!requesterInfo.isActive) revert RequesterNotActive(msg.sender);
 
         // Verify server agent is registered
         IERC8004IdentityRegistry.AgentInfo memory serverInfo =
-            identityRegistry.resolveAgentByAddress(serverAgent);
+            IDENTITY_REGISTRY.resolveAgentByAddress(serverAgent);
         if (!serverInfo.isActive) revert ServerNotActive(serverAgent);
 
         // Generate unique request ID
@@ -456,7 +456,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
 
         // Verify validator is a registered agent
         IERC8004IdentityRegistry.AgentInfo memory validatorInfo =
-            identityRegistry.resolveAgentByAddress(msg.sender);
+            IDENTITY_REGISTRY.resolveAgentByAddress(msg.sender);
         require(validatorInfo.isActive, "Validator not active");
 
         // Determine validation result
@@ -535,7 +535,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, ReentrancyGuar
 
         // Verify validator is a registered agent
         IERC8004IdentityRegistry.AgentInfo memory validatorInfo =
-            identityRegistry.resolveAgentByAddress(msg.sender);
+            IDENTITY_REGISTRY.resolveAgentByAddress(msg.sender);
         require(validatorInfo.isActive, "Validator not active");
 
         // Verify TEE attestation

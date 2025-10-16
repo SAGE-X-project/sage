@@ -24,7 +24,7 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  */
 contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
     // State variables
-    IERC8004IdentityRegistry public immutable identityRegistry;
+    IERC8004IdentityRegistry public immutable IDENTITY_REGISTRY;
     address public validationRegistry;
 
     // Feedback storage
@@ -51,9 +51,9 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
         _;
     }
 
-    constructor(address _identityRegistry) {
-        require(_identityRegistry != address(0), "Invalid identity registry");
-        identityRegistry = IERC8004IdentityRegistry(_identityRegistry);
+    constructor(address identityRegistryAddress) {
+        require(identityRegistryAddress != address(0), "Invalid identity registry");
+        IDENTITY_REGISTRY = IERC8004IdentityRegistry(identityRegistryAddress);
         _transferOwnership(msg.sender);
     }
 
@@ -104,11 +104,11 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
         // External calls LAST (after state changes and events)
         // Verify both client and server are registered agents
         IERC8004IdentityRegistry.AgentInfo memory clientInfo =
-            identityRegistry.resolveAgentByAddress(msg.sender);
+            IDENTITY_REGISTRY.resolveAgentByAddress(msg.sender);
         require(clientInfo.isActive, "Client not active");
 
         IERC8004IdentityRegistry.AgentInfo memory serverInfo =
-            identityRegistry.resolveAgentByAddress(serverAgent);
+            IDENTITY_REGISTRY.resolveAgentByAddress(serverAgent);
         require(serverInfo.isActive, "Server not active");
 
         return true;
@@ -142,7 +142,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
 
         // Verify server agent is still active
         IERC8004IdentityRegistry.AgentInfo memory serverInfo =
-            identityRegistry.resolveAgentByAddress(serverAgent);
+            IDENTITY_REGISTRY.resolveAgentByAddress(serverAgent);
         require(serverInfo.isActive, "Server not active");
 
         // Mark authorization as used

@@ -27,7 +27,7 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
     mapping(address => bytes32[]) private ownerToAgents;
     mapping(bytes32 => uint256) private agentNonce;
 
-    address public immutable owner;
+    address public immutable OWNER;
     address public beforeRegisterHook;
     address public afterRegisterHook;
     
@@ -37,7 +37,7 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
     
     // Modifiers
     modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner");
+        require(msg.sender == OWNER, "Only owner");
         _;
     }
     
@@ -56,7 +56,7 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
     }
     
     constructor() {
-        owner = msg.sender;
+        OWNER = msg.sender;
     }
     
     /**

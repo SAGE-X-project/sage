@@ -152,7 +152,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
  * | votingPeriod | 7 days | Any | Deliberation time |
  * | approvalThreshold | 66% | 50-100% | Supermajority |
  * | minVoterParticipation | 10% | 0-100% | Prevent small groups |
- * | slashingPercentage | 50% | 0-100% | Penalty for bad proposals |
+ * | SLASHING_PERCENTAGE | 50% | 0-100% | Penalty for bad proposals |
  *
  * ## Gas Costs (Approximate)
  *
@@ -299,7 +299,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
     uint256 public minVoterParticipation = 10;        // At least 10% of voters must participate
 
     // Slashing
-    uint256 public constant slashingPercentage = 50;  // 50% slashed for rejected proposals
+    uint256 public constant SLASHING_PERCENTAGE = 50;  // 50% slashed for rejected proposals
 
     // ============================================
     // EVENTS
@@ -532,7 +532,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
             require(success, "Stake return failed");
         } else {
             // Slash stake for rejected proposal
-            uint256 slashAmount = (proposal.proposalStake * slashingPercentage) / 100;
+            uint256 slashAmount = (proposal.proposalStake * SLASHING_PERCENTAGE) / 100;
             uint256 returnAmount = proposal.proposalStake - slashAmount;
 
             // Slashed amount stays in contract (could be used for treasury/rewards)

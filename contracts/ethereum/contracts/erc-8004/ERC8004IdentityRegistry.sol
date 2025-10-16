@@ -15,11 +15,11 @@ import "../SageRegistryV2.sol";
  * existing agent registration system.
  */
 contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
-    SageRegistryV2 public immutable sageRegistry;
+    SageRegistryV2 public immutable SAGE_REGISTRY;
 
-    constructor(address _sageRegistry) {
-        require(_sageRegistry != address(0), "Invalid registry address");
-        sageRegistry = SageRegistryV2(_sageRegistry);
+    constructor(address sageRegistryAddress) {
+        require(sageRegistryAddress != address(0), "Invalid registry address");
+        SAGE_REGISTRY = SageRegistryV2(sageRegistryAddress);
     }
 
     /**
@@ -52,7 +52,7 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
         returns (AgentInfo memory info)
     {
         // Get agent from SageRegistryV2 using DID
-        ISageRegistry.AgentMetadata memory metadata = sageRegistry.getAgentByDID(agentId);
+        ISageRegistry.AgentMetadata memory metadata = SAGE_REGISTRY.getAgentByDID(agentId);
 
         // Convert to ERC-8004 format
         info = AgentInfo({
@@ -78,11 +78,11 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
         returns (AgentInfo memory info)
     {
         // Get all agents owned by this address
-        bytes32[] memory agentIds = sageRegistry.getAgentsByOwner(agentAddress);
+        bytes32[] memory agentIds = SAGE_REGISTRY.getAgentsByOwner(agentAddress);
         require(agentIds.length > 0, "No agent found for address");
 
         // Return the first (primary) agent
-        ISageRegistry.AgentMetadata memory metadata = sageRegistry.getAgent(agentIds[0]);
+        ISageRegistry.AgentMetadata memory metadata = SAGE_REGISTRY.getAgent(agentIds[0]);
 
         info = AgentInfo({
             agentId: metadata.did,
@@ -106,7 +106,7 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
         override
         returns (bool)
     {
-        ISageRegistry.AgentMetadata memory metadata = sageRegistry.getAgentByDID(agentId);
+        ISageRegistry.AgentMetadata memory metadata = SAGE_REGISTRY.getAgentByDID(agentId);
         return metadata.active;
     }
 
@@ -122,7 +122,7 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
         string calldata /* newEndpoint */
     ) external override returns (bool success) {
         // Get current agent metadata
-        ISageRegistry.AgentMetadata memory metadata = sageRegistry.getAgentByDID(agentId);
+        ISageRegistry.AgentMetadata memory metadata = SAGE_REGISTRY.getAgentByDID(agentId);
         require(metadata.owner == msg.sender, "Not agent owner");
 
         // For endpoint-only updates, use SageRegistryV2 directly
@@ -143,7 +143,7 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
     {
         // Use O(1) DID-based deactivation instead of iterating through all agents
         // This delegates to SageRegistryV2.deactivateAgentByDID which uses didToAgentId mapping
-        sageRegistry.deactivateAgentByDID(agentId);
+        SAGE_REGISTRY.deactivateAgentByDID(agentId);
 
         emit AgentDeactivated(agentId, msg.sender);
 
@@ -155,6 +155,6 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
      * @return Address of the SageRegistryV2 contract
      */
     function getSageRegistry() external view returns (address) {
-        return address(sageRegistry);
+        return address(SAGE_REGISTRY);
     }
 }
