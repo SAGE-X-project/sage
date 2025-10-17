@@ -126,6 +126,7 @@ func (s *fileKeyStorage) Load(id string) (sagecrypto.KeyPair, error) {
 	}
 
 	// Read file
+	// #nosec G304 - File path is validated and sanitized through validateKeyID
 	jsonData, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read key file: %w", err)

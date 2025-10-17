@@ -72,6 +72,7 @@ func runVerify(cmd *cobra.Command, args []string) error {
 	}
 
 	// Load metadata from file
+	// #nosec G304 - User-specified file path is intentional for CLI tool
 	metadataData, err := os.ReadFile(verifyMetadataFile)
 	if err != nil {
 		return fmt.Errorf("failed to read metadata file: %w", err)

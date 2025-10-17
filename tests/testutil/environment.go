@@ -211,7 +211,11 @@ func (m *MockEthereumServer) Start() error {
 	mux.HandleFunc("/", m.handleRPC)
 
 	m.server = &http.Server{
-		Handler: mux,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() { _ = m.server.Serve(listener) }()

@@ -36,12 +36,14 @@ func LoadOrCreateKeyPair(suffix string) (kp sagecrypto.KeyPair, privPEM, pubPEM 
 	privPath := filepath.Join(filepath.Dir(keyPath), "private_"+suffix+".pem")
 	pubPath := filepath.Join(filepath.Dir(keyPath), "public_"+suffix+".pem")
 
+	// #nosec G304 - Internal test file path is sanitized
 	if data, err2 := os.ReadFile(privPath); err2 == nil {
 		kp, err = formats.NewPEMImporter().Import(data, sagecrypto.KeyFormatPEM)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("import existing key: %w", err)
 		}
 		pubPath := filepath.Join(filepath.Dir(keyPath), "public_"+suffix+".pem")
+		// #nosec G304 - Internal test file path is sanitized
 		if pubData, err3 := os.ReadFile(pubPath); err3 == nil {
 			return kp, data, pubData, nil
 		}

@@ -75,14 +75,24 @@ jobs:
 
       - name: Run Gosec Security Scanner
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
           echo "Running gosec security scan..."
-          # Generate SARIF format for GitHub Code Scanning
-          gosec -fmt=sarif -out=gosec-results.sarif -no-fail ./... || true
-          # Also generate JSON for detailed output
+          # Generate JSON format for detailed output
           gosec -fmt=json -out=gosec-results.json -no-fail ./... || true
+          # Generate SARIF format for GitHub Code Scanning
+          gosec -fmt=sarif -out=gosec-results-raw.sarif -no-fail ./... || true
           # Display text output
           gosec -fmt=text -no-fail ./... || true
+        continue-on-error: true
+
+      - name: Fix SARIF artifact paths
+        if: always()
+        run: |
+          if [ -f "gosec-results-raw.sarif" ]; then
+            python3 .github/scripts/fix-sarif-paths.py
+          else
+            echo "No SARIF file to fix"
+          fi
         continue-on-error: true
 
       - name: Display Gosec Results

@@ -182,8 +182,12 @@ func TestNegativeCases(t *testing.T) {
 		b64Part := sig[start+1 : end]
 		require.True(t, len(b64Part) > 10, "Base64 signature must be long enough to modify")
 
-		// Change a character in the middle (flip first bit of 11th character)
-		modifiedB64 := b64Part[:10] + "X" + b64Part[11:]
+		// Change a character in the middle - ensure it's actually different
+		targetChar := "X"
+		if b64Part[10:11] == "X" {
+			targetChar = "Y" // Use a different character if position 10 is already 'X'
+		}
+		modifiedB64 := b64Part[:10] + targetChar + b64Part[11:]
 		sig = sig[:start+1] + modifiedB64 + sig[end:]
 
 		// Verify signature was actually modified

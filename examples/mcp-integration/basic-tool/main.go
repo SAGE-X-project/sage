@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -65,5 +66,12 @@ func main() {
 	fmt.Println("   Agent capabilities checked before execution")
 	fmt.Println("   Responses are signed for authenticity")
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// Configure HTTP server with timeouts to prevent resource exhaustion
+	server := &http.Server{
+		Addr:         ":8080",
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	log.Fatal(server.ListenAndServe())
 }

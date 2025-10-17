@@ -139,6 +139,7 @@ func runVerify(cmd *cobra.Command, args []string) error {
 
 func loadPublicKey() (crypto.PublicKey, sagecrypto.KeyPair, error) {
 	// Read key file
+	// #nosec G304 - User-specified file path is intentional for CLI tool
 	keyData, err := os.ReadFile(publicKeyFile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to read key file: %w", err)
@@ -205,6 +206,7 @@ func getSignature() ([]byte, error) {
 	}
 
 	if signatureFile != "" {
+		// #nosec G304 - User-specified file path is intentional for CLI tool
 		data, err := os.ReadFile(signatureFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read signature file: %w", err)

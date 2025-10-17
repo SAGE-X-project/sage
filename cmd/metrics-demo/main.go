@@ -27,8 +27,12 @@ func main() {
 	mux.Handle("/metrics", metrics.Handler())
 
 	server := &http.Server{
-		Addr:    metricsAddr,
-		Handler: mux,
+		Addr:              metricsAddr,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	// Start HTTP server in goroutine
