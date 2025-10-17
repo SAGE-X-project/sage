@@ -99,6 +99,7 @@ type HealthConfig struct {
 
 // LoadFromFile loads configuration from a file
 func LoadFromFile(path string) (*Config, error) {
+	// #nosec G304 - Configuration file path is provided by trusted deployment scripts
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)

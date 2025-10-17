@@ -202,6 +202,7 @@ func loadKeyPair() (crypto.KeyPair, error) {
 
 	// Load from file
 	if registerKeyFile != "" {
+		// #nosec G304 - User-specified file path is intentional for CLI tool
 		data, err := os.ReadFile(registerKeyFile)
 		if err != nil {
 			return nil, err

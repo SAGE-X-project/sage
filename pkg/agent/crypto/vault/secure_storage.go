@@ -162,6 +162,7 @@ func (v *FileVault) LoadDecrypted(keyID string, passphrase string) ([]byte, erro
 	filePath := v.getKeyPath(keyID)
 
 	// Read encrypted data
+	// #nosec G304 - File path is sanitized through getKeyPath() using filepath.Base
 	jsonData, err := os.ReadFile(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {

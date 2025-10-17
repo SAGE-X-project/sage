@@ -79,6 +79,7 @@ func LoadDeploymentInfo(network string) (*DeploymentInfo, error) {
 	var lastErr error
 
 	for _, path := range possiblePaths {
+		// #nosec G304 - Paths are predefined deployment file locations, not user input
 		data, err := os.ReadFile(path)
 		if err != nil {
 			lastErr = err

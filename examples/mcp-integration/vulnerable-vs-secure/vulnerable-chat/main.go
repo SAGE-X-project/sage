@@ -91,5 +91,13 @@ func main() {
 	fmt.Println("")
 
 	http.HandleFunc("/chat", handleChat)
-	log.Fatal(http.ListenAndServe(":8082", nil))
+
+	// Configure HTTP server with timeouts to prevent resource exhaustion
+	server := &http.Server{
+		Addr:         ":8082",
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+	log.Fatal(server.ListenAndServe())
 }

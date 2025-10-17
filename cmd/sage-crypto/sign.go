@@ -125,6 +125,7 @@ func loadKey() (crypto.KeyPair, error) {
 	}
 
 	// Read key file
+	// #nosec G304 - User-specified file path is intentional for CLI tool
 	keyData, err := os.ReadFile(keyFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read key file: %w", err)
@@ -174,6 +175,7 @@ func getMessage() ([]byte, error) {
 	}
 
 	if messageFile != "" {
+		// #nosec G304 - User-specified file path is intentional for CLI tool
 		data, err := os.ReadFile(messageFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read message file: %w", err)
