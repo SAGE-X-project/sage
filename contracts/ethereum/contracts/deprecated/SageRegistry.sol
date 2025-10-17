@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "./interfaces/ISageRegistry.sol";
-import "./interfaces/IRegistryHook.sol";
+import "../interfaces/ISageRegistry.sol";
+import "../interfaces/IRegistryHook.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /**
