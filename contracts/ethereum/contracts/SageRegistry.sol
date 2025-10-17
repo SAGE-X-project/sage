@@ -31,9 +31,18 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
     address public beforeRegisterHook;
     address public afterRegisterHook;
     
+    // Agent limits
     uint256 private constant MAX_AGENTS_PER_OWNER = 100;
-    uint256 private constant MIN_PUBLIC_KEY_LENGTH = 32;
-    uint256 private constant MAX_PUBLIC_KEY_LENGTH = 65;
+
+    // Public key length constants
+    uint256 private constant MIN_PUBLIC_KEY_LENGTH = 32;  // Ed25519 (not supported on-chain)
+    uint256 private constant MAX_PUBLIC_KEY_LENGTH = 65;  // Uncompressed secp256k1
+    uint256 private constant SECP256K1_UNCOMPRESSED_LENGTH = 65;  // With 0x04 prefix
+    uint256 private constant SECP256K1_RAW_LENGTH = 64;  // Without prefix
+    uint256 private constant ED25519_KEY_LENGTH = 32;
+
+    // Signature constants
+    uint256 private constant ECDSA_SIGNATURE_LENGTH = 65;  // r(32) + s(32) + v(1)
     
     // Modifiers
     modifier onlyOwner() {
@@ -359,7 +368,7 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
         // slither-disable-next-line incorrect-equality
         // Note: Checking publicKey.length is safe - bytes array length is deterministic
         // For Ethereum (secp256k1), verify the signer address matches
-        if (publicKey.length == 64 || publicKey.length == 65) {
+        if (publicKey.length == SECP256K1_RAW_LENGTH || publicKey.length == SECP256K1_UNCOMPRESSED_LENGTH) {
             bytes32 ethSignedHash = keccak256(
                 abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
             );
@@ -370,12 +379,11 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
 
         // slither-disable-next-line incorrect-equality
         // Note: Checking publicKey.length is safe - bytes array length is deterministic
-        // For Ed25519 (32 bytes), we would need external verification
-        // This is a placeholder - in production, use a library or precompile
-        if (publicKey.length == 32) {
-            // Ed25519 verification would go here
-            // For now, we'll require a separate verification step
-            return true;
+        // For Ed25519 (32 bytes), we would need external verification via precompile or library
+        // Since on-chain Ed25519 verification is not available in this version,
+        // we explicitly reject Ed25519 keys to prevent security bypass
+        if (publicKey.length == ED25519_KEY_LENGTH) {
+            revert("Ed25519 not supported on-chain");
         }
 
         return false;
@@ -384,12 +392,12 @@ contract SageRegistry is ISageRegistry, ReentrancyGuard {
     /**
      * @notice Recover signer from signature
      */
-    function _recoverSigner(bytes32 messageHash, bytes memory signature) 
-        private 
-        pure 
-        returns (address) 
+    function _recoverSigner(bytes32 messageHash, bytes memory signature)
+        private
+        pure
+        returns (address)
     {
-        require(signature.length == 65, "Invalid signature length");
+        require(signature.length == ECDSA_SIGNATURE_LENGTH, "Invalid signature length");
         
         bytes32 r;
         bytes32 s;
