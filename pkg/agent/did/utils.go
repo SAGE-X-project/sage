@@ -19,12 +19,15 @@
 package did
 
 import (
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 // MarshalPublicKey converts a public key to bytes for storage
@@ -34,6 +37,15 @@ func MarshalPublicKey(publicKey interface{}) ([]byte, error) {
 		return pk, nil
 	case *secp256k1.PublicKey:
 		return pk.SerializeCompressed(), nil
+	case *ecdsa.PublicKey:
+		// Handle ECDSA public keys (including secp256k1 converted to ECDSA)
+		// Check if this is a secp256k1 curve (Ethereum)
+		if pk.Curve == ethcrypto.S256() {
+			// For secp256k1, use compressed format (33 bytes)
+			return ethcrypto.CompressPubkey(pk), nil
+		}
+		// For other ECDSA curves, use uncompressed format
+		return elliptic.Marshal(pk.Curve, pk.X, pk.Y), nil
 	default:
 		// Try to marshal as generic public key using x509
 		return x509.MarshalPKIXPublicKey(publicKey)

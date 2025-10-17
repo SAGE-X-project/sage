@@ -126,9 +126,8 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 		return nil, fmt.Errorf("failed to marshal capabilities: %w", err)
 	}
 
-	// Prepare the message to sign for each key
-	message := c.prepareRegistrationMessage(req, keys)
-	messageHash := crypto.Keccak256([]byte(message))
+	// Get owner address from private key
+	ownerAddress := crypto.PubkeyToAddress(c.privateKey.PublicKey)
 
 	// Process each key
 	for i, key := range keys {
@@ -141,8 +140,29 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 			// Use pre-computed signature
 			signatures[i] = key.Signature
 		} else if req.KeyPair != nil && len(keys) == 1 {
-			// Single-key mode: sign with the provided keypair
-			sig, err := req.KeyPair.Sign(messageHash)
+			// Single-key mode: generate signature for this key
+			// Calculate keyHash
+			keyHash := crypto.Keccak256Hash(keyData[i])
+
+			// Prepare challenge message matching contract's expectation:
+			// keccak256(abi.encodePacked("SAGE Key Registration:", chainId, registryAddress, ownerAddress, keyHash))
+			challengeData := []byte{}
+			challengeData = append(challengeData, []byte("SAGE Key Registration:")...)
+			challengeData = append(challengeData, common.LeftPadBytes(c.chainID.Bytes(), 32)...)
+			challengeData = append(challengeData, c.contractAddress.Bytes()...)
+			challengeData = append(challengeData, ownerAddress.Bytes()...)
+			challengeData = append(challengeData, keyHash.Bytes()...)
+
+			challenge := crypto.Keccak256Hash(challengeData)
+
+			// Apply Ethereum personal sign prefix
+			// "\x19Ethereum Signed Message:\n" + len(message) + message
+			prefixedMessage := fmt.Sprintf("\x19Ethereum Signed Message:\n%d", len(challenge.Bytes()))
+			prefixedData := append([]byte(prefixedMessage), challenge.Bytes()...)
+			prefixedHash := crypto.Keccak256Hash(prefixedData)
+
+			// Sign the prefixed hash
+			sig, err := crypto.Sign(prefixedHash.Bytes(), c.privateKey)
 			if err != nil {
 				return nil, fmt.Errorf("failed to sign with key %d: %w", i, err)
 			}
