@@ -26,6 +26,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -126,8 +127,26 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 		return nil, fmt.Errorf("failed to marshal capabilities: %w", err)
 	}
 
+	// Calculate agentId (same as contract: keccak256(abi.encode(did, firstKeyData)))
+	stringType, _ := abi.NewType("string", "", nil)
+	bytesType, _ := abi.NewType("bytes", "", nil)
+	arguments := abi.Arguments{
+		{Type: stringType},
+		{Type: bytesType},
+	}
+
+	agentIdData, err := arguments.Pack(string(req.DID), keyData[0])
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode agentId: %w", err)
+	}
+
+	agentId := crypto.Keccak256Hash(agentIdData)
+
 	// Get owner address from private key
 	ownerAddress := crypto.PubkeyToAddress(c.privateKey.PublicKey)
+
+	// agentNonce is 0 for new registrations
+	agentNonce := big.NewInt(0)
 
 	// Process each key
 	for i, key := range keys {
@@ -141,28 +160,35 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 			signatures[i] = key.Signature
 		} else if req.KeyPair != nil && len(keys) == 1 {
 			// Single-key mode: generate signature for this key
-			// Calculate keyHash
-			keyHash := crypto.Keccak256Hash(keyData[i])
+			// Contract expects: keccak256(abi.encode(agentId, keyData, msg.sender, agentNonce))
 
-			// Prepare challenge message matching contract's expectation:
-			// keccak256(abi.encodePacked("SAGE Key Registration:", chainId, registryAddress, ownerAddress, keyHash))
-			challengeData := []byte{}
-			challengeData = append(challengeData, []byte("SAGE Key Registration:")...)
-			challengeData = append(challengeData, common.LeftPadBytes(c.chainID.Bytes(), 32)...)
-			challengeData = append(challengeData, c.contractAddress.Bytes()...)
-			challengeData = append(challengeData, ownerAddress.Bytes()...)
-			challengeData = append(challengeData, keyHash.Bytes()...)
+			// Use ABI encoding to match Solidity's abi.encode
+			bytes32Type, _ := abi.NewType("bytes32", "", nil)
+			bytesType, _ := abi.NewType("bytes", "", nil)
+			addressType, _ := abi.NewType("address", "", nil)
+			uint256Type, _ := abi.NewType("uint256", "", nil)
 
-			challenge := crypto.Keccak256Hash(challengeData)
+			messageArgs := abi.Arguments{
+				{Type: bytes32Type},
+				{Type: bytesType},
+				{Type: addressType},
+				{Type: uint256Type},
+			}
 
-			// Apply Ethereum personal sign prefix
-			// "\x19Ethereum Signed Message:\n" + len(message) + message
-			prefixedMessage := fmt.Sprintf("\x19Ethereum Signed Message:\n%d", len(challenge.Bytes()))
-			prefixedData := append([]byte(prefixedMessage), challenge.Bytes()...)
-			prefixedHash := crypto.Keccak256Hash(prefixedData)
+			messageData, err := messageArgs.Pack(agentId, keyData[i], ownerAddress, agentNonce)
+			if err != nil {
+				return nil, fmt.Errorf("failed to encode message for key %d: %w", i, err)
+			}
 
-			// Sign the prefixed hash
-			sig, err := crypto.Sign(prefixedHash.Bytes(), c.privateKey)
+			messageHash := crypto.Keccak256Hash(messageData)
+
+			// Apply Ethereum personal sign prefix (contract does this)
+			prefixedData := []byte("\x19Ethereum Signed Message:\n32")
+			prefixedData = append(prefixedData, messageHash.Bytes()...)
+			ethSignedHash := crypto.Keccak256Hash(prefixedData)
+
+			// Sign the ethSignedHash
+			sig, err := crypto.Sign(ethSignedHash.Bytes(), c.privateKey)
 			if err != nil {
 				return nil, fmt.Errorf("failed to sign with key %d: %w", i, err)
 			}
