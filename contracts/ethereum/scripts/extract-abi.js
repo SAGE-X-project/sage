@@ -42,12 +42,20 @@ async function extractABIs() {
         path: 'contracts/SageRegistryV2.sol/SageRegistryV2.json'
       },
       {
+        name: 'SageRegistryV4',
+        path: 'contracts/SageRegistryV4.sol/SageRegistryV4.json'
+      },
+      {
         name: 'SageVerificationHook',
         path: 'contracts/SageVerificationHook.sol/SageVerificationHook.json'
       },
       {
         name: 'ISageRegistry',
         path: 'contracts/interfaces/ISageRegistry.sol/ISageRegistry.json'
+      },
+      {
+        name: 'ISageRegistryV4',
+        path: 'contracts/interfaces/ISageRegistryV4.sol/ISageRegistryV4.json'
       },
       {
         name: 'IRegistryHook',
@@ -95,8 +103,10 @@ async function extractABIs() {
 
 module.exports = {
   SageRegistryV2: require('./SageRegistryV2.abi.json'),
+  SageRegistryV4: require('./SageRegistryV4.abi.json'),
   SageVerificationHook: require('./SageVerificationHook.abi.json'),
   ISageRegistry: require('./ISageRegistry.abi.json'),
+  ISageRegistryV4: require('./ISageRegistryV4.abi.json'),
   IRegistryHook: require('./IRegistryHook.abi.json')
 };
 `;
@@ -109,8 +119,10 @@ module.exports = {
 // Generated: ${new Date().toISOString()}
 
 export const SageRegistryV2: any[];
+export const SageRegistryV4: any[];
 export const SageVerificationHook: any[];
 export const ISageRegistry: any[];
+export const ISageRegistryV4: any[];
 export const IRegistryHook: any[];
 `;
 

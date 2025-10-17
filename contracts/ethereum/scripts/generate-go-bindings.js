@@ -55,8 +55,15 @@ async function generateGoBindings() {
         name: 'SageRegistryV2',
         abi: 'abi/SageRegistryV2.abi.json',
         bin: 'artifacts/contracts/SageRegistryV2.sol/SageRegistryV2.json',
-        pkg: 'registry',
+        pkg: 'registryv2',
         type: 'SageRegistryV2'
+      },
+      {
+        name: 'SageRegistryV4',
+        abi: 'abi/SageRegistryV4.abi.json',
+        bin: 'artifacts/contracts/SageRegistryV4.sol/SageRegistryV4.json',
+        pkg: 'registryv4',
+        type: 'SageRegistryV4'
       },
       {
         name: 'SageVerificationHook',
