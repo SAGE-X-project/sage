@@ -81,45 +81,18 @@ jobs:
           gosec -fmt=json -out=gosec-results.json -no-fail ./... || true
           # Generate SARIF format for GitHub Code Scanning
           gosec -fmt=sarif -out=gosec-results-raw.sarif -no-fail ./... || true
-
-          # Fix SARIF artifact locations to include full repository paths
-          # GitHub Code Scanning requires paths relative to repository root
-          if [ -f "gosec-results-raw.sarif" ]; then
-            python3 -c '
-import json
-import sys
-import os
-import glob
-
-with open("gosec-results-raw.sarif", "r") as f:
-    sarif = json.load(f)
-
-# Build a mapping of filename -> full path
-file_map = {}
-for filepath in glob.glob("**/*.go", recursive=True):
-    filename = os.path.basename(filepath)
-    file_map[filename] = filepath
-
-# Fix artifact locations in SARIF
-for run in sarif.get("runs", []):
-    for result in run.get("results", []):
-        for location in result.get("locations", []):
-            phys_loc = location.get("physicalLocation", {})
-            artifact_loc = phys_loc.get("artifactLocation", {})
-            uri = artifact_loc.get("uri", "")
-
-            # If uri is just a filename (no path separator), look up full path
-            if uri and "/" not in uri and uri in file_map:
-                artifact_loc["uri"] = file_map[uri]
-
-with open("gosec-results.sarif", "w") as f:
-    json.dump(sarif, f, indent=2)
-'
-            echo "✓ Fixed SARIF artifact locations"
-          fi
-
           # Display text output
           gosec -fmt=text -no-fail ./... || true
+        continue-on-error: true
+
+      - name: Fix SARIF artifact paths
+        if: always()
+        run: |
+          if [ -f "gosec-results-raw.sarif" ]; then
+            python3 .github/scripts/fix-sarif-paths.py
+          else
+            echo "No SARIF file to fix"
+          fi
         continue-on-error: true
 
       - name: Display Gosec Results
