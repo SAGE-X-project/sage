@@ -428,16 +428,16 @@ FodyWeavers.xsd
 
 # Go build artifacts
 build/
-sage-crypto
-sage-did
-attacker
-basic-demo
-basic-tool
-client
-main
-secure-chat
-simple-standalone
-vulnerable-chat
+/sage-crypto
+/sage-did
+/attacker
+/basic-demo
+/basic-tool
+/client
+/main
+/secure-chat
+/simple-standalone
+/vulnerable-chat
 
 .gocache
 .gomodcache
