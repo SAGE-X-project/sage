@@ -778,4 +778,114 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
       expect(receipt.gasUsed).to.be.lt(1500000);
     });
   });
+
+  describe("DID Format Validation (Optional Feature)", function () {
+    it("Should validate DID format with owner address", async function () {
+      const testWallet = ethers.Wallet.createRandom().connect(ethers.provider);
+      const ecdsaKey = testWallet.signingKey.publicKey;
+      const ownerAddress = testWallet.address.toLowerCase();
+      const did = `did:sage:ethereum:${ownerAddress}`;
+
+      await owner.sendTransaction({
+        to: testWallet.address,
+        value: ethers.parseEther("1.0")
+      });
+
+      const agentIdCalc = calculateAgentId(did, ecdsaKey);
+      const signature = await createEcdsaRegistrationSignature(testWallet, agentIdCalc, ecdsaKey);
+
+      const params = {
+        did: did,
+        name: testName,
+        description: testDescription,
+        endpoint: testEndpoint,
+        keyTypes: [KeyType.ECDSA],
+        keyData: [ecdsaKey],
+        signatures: [signature],
+        capabilities: testCapabilities
+      };
+
+      const tx = await sageRegistry.connect(testWallet).registerAgent(params);
+      const receipt = await tx.wait();
+
+      const registerEvent = receipt.logs.find(
+        log => log.fragment && log.fragment.name === "AgentRegistered"
+      );
+
+      expect(registerEvent).to.not.be.undefined;
+
+      const agent = await sageRegistry.getAgent(registerEvent.args[0]);
+      expect(agent.did).to.equal(did);
+    });
+
+    it("Should validate DID format with owner address and nonce", async function () {
+      const testWallet = ethers.Wallet.createRandom().connect(ethers.provider);
+      const ecdsaKey = testWallet.signingKey.publicKey;
+      const ownerAddress = testWallet.address.toLowerCase();
+      const nonce = 1;
+      const did = `did:sage:ethereum:${ownerAddress}:${nonce}`;
+
+      await owner.sendTransaction({
+        to: testWallet.address,
+        value: ethers.parseEther("1.0")
+      });
+
+      const agentIdCalc = calculateAgentId(did, ecdsaKey);
+      const signature = await createEcdsaRegistrationSignature(testWallet, agentIdCalc, ecdsaKey);
+
+      const params = {
+        did: did,
+        name: testName,
+        description: testDescription,
+        endpoint: testEndpoint,
+        keyTypes: [KeyType.ECDSA],
+        keyData: [ecdsaKey],
+        signatures: [signature],
+        capabilities: testCapabilities
+      };
+
+      const tx = await sageRegistry.connect(testWallet).registerAgent(params);
+      const receipt = await tx.wait();
+
+      const registerEvent = receipt.logs.find(
+        log => log.fragment && log.fragment.name === "AgentRegistered"
+      );
+
+      expect(registerEvent).to.not.be.undefined;
+
+      const agent = await sageRegistry.getAgent(registerEvent.args[0]);
+      expect(agent.did).to.equal(did);
+    });
+
+    it("Should accept legacy DID format without address validation", async function () {
+      const testWallet = ethers.Wallet.createRandom().connect(ethers.provider);
+      const ecdsaKey = testWallet.signingKey.publicKey;
+      const did = `did:sage:test:${testWallet.address}`;
+
+      await owner.sendTransaction({
+        to: testWallet.address,
+        value: ethers.parseEther("1.0")
+      });
+
+      const agentIdCalc = calculateAgentId(did, ecdsaKey);
+      const signature = await createEcdsaRegistrationSignature(testWallet, agentIdCalc, ecdsaKey);
+
+      const params = {
+        did: did,
+        name: testName,
+        description: testDescription,
+        endpoint: testEndpoint,
+        keyTypes: [KeyType.ECDSA],
+        keyData: [ecdsaKey],
+        signatures: [signature],
+        capabilities: testCapabilities
+      };
+
+      const tx = await sageRegistry.connect(testWallet).registerAgent(params);
+      await tx.wait();
+
+      const agent = await sageRegistry.getAgentByDID(did);
+      expect(agent.did).to.equal(did);
+    });
+  });
 });
