@@ -20,7 +20,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
     mapping(address => bytes32[]) private ownerToAgents;
     mapping(bytes32 => uint256) private agentNonce;
 
-    address public immutable OWNER;
+    // slither-disable-next-line naming-convention
+    address public immutable OWNER;  // Uppercase is standard convention for immutable variables
     address public beforeRegisterHook;
     address public afterRegisterHook;
 
@@ -135,7 +136,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
         external
         onlyAgentOwner(agentId)
     {
-        require(agentKeys[keyHash].registeredAt > 0, "Key not found");
+        // slither-disable-next-line timestamp
+        require(agentKeys[keyHash].registeredAt > 0, "Key not found");  // Existence check, not timestamp comparison
         require(_keyExistsInAgent(agentId, keyHash), "Key not in agent");
         require(agents[agentId].keyHashes.length > 1, "Cannot revoke last key");
 
@@ -172,7 +174,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
         bytes calldata newSignature
     ) external onlyAgentOwner(agentId) returns (bytes32) {
         require(agents[agentId].active, "Agent not active");
-        require(agentKeys[oldKeyHash].registeredAt > 0, "Old key not found");
+        // slither-disable-next-line timestamp
+        require(agentKeys[oldKeyHash].registeredAt > 0, "Old key not found");  // Existence check, not timestamp comparison
         require(agentKeys[oldKeyHash].verified, "Old key not verified");
 
         // Verify old key belongs to this agent
@@ -202,7 +205,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
      * @dev Required for Ed25519 keys since on-chain verification is not available
      */
     function approveEd25519Key(bytes32 keyHash) external onlyOwner {
-        require(agentKeys[keyHash].registeredAt > 0, "Key not found");
+        // slither-disable-next-line timestamp
+        require(agentKeys[keyHash].registeredAt > 0, "Key not found");  // Existence check, not timestamp comparison
         require(agentKeys[keyHash].keyType == KeyType.Ed25519, "Not Ed25519 key");
 
         agentKeys[keyHash].verified = true;
@@ -271,7 +275,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
      * @notice Get agent metadata by ID
      */
     function getAgent(bytes32 agentId) external view returns (AgentMetadata memory) {
-        require(agents[agentId].registeredAt > 0, "Agent not found");
+        // slither-disable-next-line timestamp
+        require(agents[agentId].registeredAt > 0, "Agent not found");  // Existence check, not timestamp comparison
         return agents[agentId];
     }
 
@@ -288,7 +293,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
      * @notice Get key details by key hash
      */
     function getKey(bytes32 keyHash) external view returns (AgentKey memory) {
-        require(agentKeys[keyHash].registeredAt > 0, "Key not found");
+        // slither-disable-next-line timestamp
+        require(agentKeys[keyHash].registeredAt > 0, "Key not found");  // Existence check, not timestamp comparison
         return agentKeys[keyHash];
     }
 
@@ -296,7 +302,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
      * @notice Get all keys for an agent
      */
     function getAgentKeys(bytes32 agentId) external view returns (bytes32[] memory) {
-        require(agents[agentId].registeredAt > 0, "Agent not found");
+        // slither-disable-next-line timestamp
+        require(agents[agentId].registeredAt > 0, "Agent not found");  // Existence check, not timestamp comparison
         return agents[agentId].keyHashes;
     }
 
@@ -505,7 +512,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
 
         // Generate key hash
         bytes32 keyHash = keccak256(abi.encode(agentId, keyType, keyData));
-        require(agentKeys[keyHash].registeredAt == 0, "Key already registered");
+        // slither-disable-next-line timestamp
+        require(agentKeys[keyHash].registeredAt == 0, "Key already registered");  // Existence check, not timestamp comparison
 
         // Determine verification status based on key type
         bool verified = false;
@@ -593,6 +601,16 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
         bytes32 s;
         uint8 v;
 
+        // Assembly: Extract ECDSA signature components (r, s, v)
+        // SAFETY:
+        // - signature.length is verified to be exactly 65 bytes (line 590)
+        // - Memory layout: [length(32)] [r(32)] [s(32)] [v(1)]
+        // - add(signature, 32) skips the length field to read r
+        // - add(signature, 64) reads s at offset 64
+        // - add(signature, 96) reads v at offset 96
+        // - All reads are within bounds due to length check
+        // - Using assembly saves ~200 gas vs. abi.decode
+        // slither-disable-next-line assembly
         assembly {
             r := mload(add(signature, 32))
             s := mload(add(signature, 64))
@@ -642,6 +660,14 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
 
         // Ethereum address is the last 20 bytes of the hash
         address derivedAddress;
+        // Assembly: Extract last 20 bytes from hash for Ethereum address
+        // SAFETY:
+        // - hash is a bytes32 (32 bytes) computed from keccak256
+        // - Mask 0xFFFF...FFFF (20 bytes of F) extracts rightmost 160 bits (20 bytes)
+        // - This is the standard Ethereum address derivation algorithm
+        // - Equivalent to: address(uint160(uint256(hash)))
+        // - Using assembly saves ~50 gas vs. type conversions
+        // slither-disable-next-line assembly
         assembly {
             // Load the last 20 bytes from the hash
             // mload loads 32 bytes, so we need to shift right by 12 bytes (96 bits)
