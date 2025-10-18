@@ -1,0 +1,40 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - gofmt
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+
+issues:
+  exclude-dirs:
+    - vendor
+    - node_modules
+    - .git
+  exclude-files:
+    - "contracts/ethereum/bindings/go/example.go"
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - errcheck
+    # Exclude auto-generated files
+    - path: ".*\\.gen\\.go"
+      linters:
+        - all
+    # Exclude bindings (auto-generated)
+    - path: "contracts/ethereum/bindings/go/"
+      text: "local import"
+      linters:
+        - typecheck
+    # Exclude unused functions in test files (test helpers)
+    - path: _test\.go
+      linters:
+        - unused

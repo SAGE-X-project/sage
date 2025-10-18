@@ -49,7 +49,7 @@ type RegistrationRequest struct {
 	Description  string                 `json:"description"`
 	Endpoint     string                 `json:"endpoint"`
 	Capabilities map[string]interface{} `json:"capabilities"`
-	KeyPair      crypto.KeyPair         `json:"-"` // Used for signing, not serialized
+	KeyPair      crypto.KeyPair         `json:"-"`              // Used for signing, not serialized
 	Keys         []AgentKey             `json:"keys,omitempty"` // Multiple keys for V4 (optional)
 }
 

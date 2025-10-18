@@ -342,6 +342,7 @@ func TestNetworkPresets(t *testing.T) {
 				// Sepolia might not exist, skip if not present
 				if cfg == nil {
 					t.Skip("Sepolia preset not defined")
+					return
 				}
 				assert.NotNil(t, cfg.ChainID)
 			},

@@ -71,10 +71,10 @@ type AgentMetadataV4 struct {
 
 // A2APublicKey represents a public key in A2A Agent Card format
 type A2APublicKey struct {
-	ID              string `json:"id"`               // Key identifier
-	Type            string `json:"type"`             // Key type (e.g., "Ed25519VerificationKey2020")
-	Controller      string `json:"controller"`       // DID that controls this key
-	PublicKeyBase58 string `json:"publicKeyBase58"`  // Base58-encoded public key
+	ID              string `json:"id"`                     // Key identifier
+	Type            string `json:"type"`                   // Key type (e.g., "Ed25519VerificationKey2020")
+	Controller      string `json:"controller"`             // DID that controls this key
+	PublicKeyBase58 string `json:"publicKeyBase58"`        // Base58-encoded public key
 	PublicKeyHex    string `json:"publicKeyHex,omitempty"` // Hex-encoded (alternative)
 }
 
@@ -87,16 +87,16 @@ type A2AEndpoint struct {
 // A2AAgentCard represents a Google A2A protocol Agent Card
 // Spec: https://github.com/a2aproject/a2a
 type A2AAgentCard struct {
-	Context      []string              `json:"@context"`    // JSON-LD context
-	ID           string                `json:"id"`          // Agent DID
-	Type         []string              `json:"type"`        // e.g., ["Agent", "AIAgent"]
-	Name         string                `json:"name"`        // Agent name
-	Description  string                `json:"description"` // Agent description
-	PublicKeys   []A2APublicKey        `json:"publicKey"`   // Multiple public keys
-	Endpoints    []A2AEndpoint         `json:"service"`     // Service endpoints
-	Capabilities []string              `json:"capabilities,omitempty"` // Agent capabilities
-	Created      time.Time             `json:"created"`     // Creation timestamp
-	Updated      time.Time             `json:"updated"`     // Last update timestamp
+	Context      []string       `json:"@context"`               // JSON-LD context
+	ID           string         `json:"id"`                     // Agent DID
+	Type         []string       `json:"type"`                   // e.g., ["Agent", "AIAgent"]
+	Name         string         `json:"name"`                   // Agent name
+	Description  string         `json:"description"`            // Agent description
+	PublicKeys   []A2APublicKey `json:"publicKey"`              // Multiple public keys
+	Endpoints    []A2AEndpoint  `json:"service"`                // Service endpoints
+	Capabilities []string       `json:"capabilities,omitempty"` // Agent capabilities
+	Created      time.Time      `json:"created"`                // Creation timestamp
+	Updated      time.Time      `json:"updated"`                // Last update timestamp
 }
 
 // GetKeyByType returns the first key of the specified type

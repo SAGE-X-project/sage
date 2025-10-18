@@ -598,11 +598,6 @@ func (c *EthereumClientV4) waitForTransaction(ctx context.Context, tx *types.Tra
 	return nil, fmt.Errorf("transaction timeout")
 }
 
-func (c *EthereumClientV4) prepareRegistrationMessage(req *did.RegistrationRequest, keys []did.AgentKey) string {
-	return fmt.Sprintf("Register agent:\nDID: %s\nName: %s\nEndpoint: %s\nKeys: %d",
-		req.DID, req.Name, req.Endpoint, len(keys))
-}
-
 func (c *EthereumClientV4) prepareUpdateMessage(agentDID did.AgentDID, updates map[string]interface{}) string {
 	return fmt.Sprintf("Update agent: %s\nUpdates: %v", agentDID, updates)
 }

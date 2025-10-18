@@ -43,11 +43,11 @@ func TestV4SingleKeyRegistration(t *testing.T) {
 
 	// Configuration for local Hardhat/Anvil network
 	config := &did.RegistryConfig{
-		ContractAddress: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // From deployment (X25519 removed)
-		RPCEndpoint:     "http://localhost:8545",
-		PrivateKey:      "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat test account #0
-		GasPrice:        0, // Let the client determine gas price
-		MaxRetries:      10,
+		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // From deployment (X25519 removed)
+		RPCEndpoint:        "http://localhost:8545",
+		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat test account #0
+		GasPrice:           0,                                                                  // Let the client determine gas price
+		MaxRetries:         10,
 		ConfirmationBlocks: 0, // No need to wait for confirmations on local network
 	}
 
@@ -132,11 +132,11 @@ func TestV4Ed25519Registration(t *testing.T) {
 
 	// Configuration for local Hardhat/Anvil network
 	config := &did.RegistryConfig{
-		ContractAddress: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // From deployment (X25519 removed)
-		RPCEndpoint:     "http://localhost:8545",
-		PrivateKey:      "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat test account #0
-		GasPrice:        0, // Let the client determine gas price
-		MaxRetries:      10,
+		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // From deployment (X25519 removed)
+		RPCEndpoint:        "http://localhost:8545",
+		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat test account #0
+		GasPrice:           0,                                                                  // Let the client determine gas price
+		MaxRetries:         10,
 		ConfirmationBlocks: 0, // No need to wait for confirmations on local network
 	}
 
@@ -266,11 +266,11 @@ func TestV4MultiKeyRegistration(t *testing.T) {
 
 	// Configuration for local Hardhat/Anvil network
 	config := &did.RegistryConfig{
-		ContractAddress: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
-		RPCEndpoint:     "http://localhost:8545",
-		PrivateKey:      "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
-		GasPrice:        0,
-		MaxRetries:      10,
+		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		RPCEndpoint:        "http://localhost:8545",
+		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+		GasPrice:           0,
+		MaxRetries:         10,
 		ConfirmationBlocks: 0,
 	}
 
@@ -951,4 +951,3 @@ func TestV4RevokeKey(t *testing.T) {
 	t.Log("")
 	t.Logf("Agent owner: %s", agent.Owner)
 }
-

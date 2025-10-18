@@ -21,7 +21,6 @@ package did
 import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
-	"crypto/elliptic"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -47,8 +46,14 @@ func MarshalPublicKey(publicKey interface{}) ([]byte, error) {
 			// This matches ethers.js Wallet.publicKey format
 			return ethcrypto.CompressPubkey(pk), nil
 		}
-		// For other ECDSA curves, use uncompressed format
-		return elliptic.Marshal(pk.Curve, pk.X, pk.Y), nil
+		// For other ECDSA curves, use uncompressed format (0x04 || X || Y)
+		// Manual construction to avoid deprecated elliptic.Marshal
+		byteLen := (pk.Curve.Params().BitSize + 7) / 8
+		bytes := make([]byte, 1+2*byteLen)
+		bytes[0] = 0x04 // uncompressed point format
+		pk.X.FillBytes(bytes[1 : 1+byteLen])
+		pk.Y.FillBytes(bytes[1+byteLen:])
+		return bytes, nil
 	default:
 		// Try to marshal as generic public key using x509
 		return x509.MarshalPKIXPublicKey(publicKey)

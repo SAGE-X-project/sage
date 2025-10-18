@@ -260,8 +260,8 @@ func TestExtractCapabilities(t *testing.T) {
 			expected: []string{"encrypt", "decrypt"},
 		},
 		{
-			name: "Empty map",
-			capMap: map[string]interface{}{},
+			name:     "Empty map",
+			capMap:   map[string]interface{}{},
 			expected: []string{"message-signing", "message-verification"},
 		},
 		{

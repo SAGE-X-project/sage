@@ -45,20 +45,20 @@ This command creates a new agent identity on the specified blockchain network.`,
 
 var (
 	// Register flags
-	registerChain         string
-	registerName          string
-	registerDescription   string
-	registerEndpoint      string
-	registerCapabilities  string
-	registerKeyFile       string
-	registerKeyFormat     string
-	registerStorageDir    string
-	registerKeyID         string
-	registerRPCEndpoint   string
-	registerContractAddr  string
-	registerPrivateKey    string
+	registerChain          string
+	registerName           string
+	registerDescription    string
+	registerEndpoint       string
+	registerCapabilities   string
+	registerKeyFile        string
+	registerKeyFormat      string
+	registerStorageDir     string
+	registerKeyID          string
+	registerRPCEndpoint    string
+	registerContractAddr   string
+	registerPrivateKey     string
 	registerAdditionalKeys string // Additional keys (comma-separated file paths)
-	registerKeyTypes      string // Key types for additional keys (comma-separated: ed25519,ecdsa)
+	registerKeyTypes       string // Key types for additional keys (comma-separated: ed25519,ecdsa)
 )
 
 func init() {
