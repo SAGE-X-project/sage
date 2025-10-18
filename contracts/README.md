@@ -385,7 +385,29 @@ await tx.wait();
 
 ## Gas Optimization & Performance
 
-### V2 Gas Usage
+### V4 Gas Usage (Multi-Key Registry)
+
+| Operation                  | Gas Used     | USD (@ 30 gwei) | Notes                             |
+| -------------------------- | ------------ | --------------- | --------------------------------- |
+| Register (1 ECDSA key)     | ~875,000     | ~$68            | Single-key baseline               |
+| Register (2 keys)          | ~1,200,000   | ~$93            | 1 ECDSA + 1 Ed25519               |
+| Register (3 keys)          | ~1,300,000   | ~$101           | Maximum recommended               |
+| Add Key (ECDSA)            | ~50,000      | ~$3.9           | To existing agent                 |
+| Add Key (Ed25519)          | ~45,000      | ~$3.5           | Requires approval                 |
+| Revoke Key                 | ~70,000      | ~$5.4           | Owner-controlled                  |
+| Approve Ed25519 Key        | ~55,000      | ~$4.3           | Registry owner only               |
+| Update Agent Metadata      | ~85,000      | ~$6.6           | Same as V2                        |
+| Query Agent (view)         | 0            | $0              | All key types                     |
+| Resolve All Keys (view)    | 0            | $0              | Returns all verified keys         |
+| Resolve Key by Type (view) | 0            | $0              | Filter by ECDSA/Ed25519           |
+
+**Key Insights**:
+- **41% gas increase** for single-key registration (875k vs 620k) due to multi-key infrastructure
+- **~325,000 gas per additional key** for 2-key registration (economies of scale)
+- **~100,000 gas per additional key** for 3-key registration (optimized batching)
+- Adding keys post-registration is gas-efficient (~50k per key)
+
+### V2 Gas Usage (Single-Key Registry)
 
 | Operation             | Gas Used | USD (@ 30 gwei) |
 | --------------------- | -------- | --------------- |
@@ -395,7 +417,17 @@ await tx.wait();
 | Deactivate Agent      | ~50,000  | ~$3.8           |
 | Query Agent (view)    | 0        | $0              |
 
-### Optimization Techniques
+### V4 Optimization Techniques
+
+- **Packed AgentKey structs**: 3 storage slots per key (type + keyData + signature + metadata)
+- **Batch key registration**: Single transaction for up to 10 keys
+- **Selective key verification**: ECDSA on-chain, Ed25519 off-chain with approval
+- **Mapping-based key lookup**: O(1) key resolution by hash
+- **Event-driven indexing**: Off-chain key verification state tracking
+- **Minimal nonce increment**: Only on critical operations (revoke, rotate)
+- **Storage slot reuse**: Swap-and-pop pattern for key revocation
+
+### V2 Optimization Techniques
 
 - Efficient storage packing in AgentMetadata struct
 - Minimal storage writes with batched updates
