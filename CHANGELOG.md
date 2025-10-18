@@ -7,13 +7,114 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-10-18
+
+### Added
+
+#### Phase 2: HIGH Priority Features - Multi-Key Infrastructure
+
+- **Multi-Key Resolution Support** (Task 2.2)
+  - `ResolveAllPublicKeys()`: Retrieve all verified public keys for an agent
+  - `ResolvePublicKeyByType()`: Get specific key type (ECDSA or Ed25519)
+  - Protocol-specific key selection (ECDSA for Ethereum, Ed25519 for Solana)
+  - Comprehensive integration tests for multi-key scenarios
+  - Filtering: Only verified keys are returned
+
+- **Enhanced DID Format with Owner Validation** (Task 2.1)
+  - New DID formats with owner address:
+    - `did:sage:ethereum:0x{address}`
+    - `did:sage:ethereum:0x{address}:{nonce}`
+  - Benefits: Off-chain ownership verification, cross-chain traceability, DID collision prevention
+  - Optional validation functions in SageRegistryV4.sol (backward compatible)
+  - Go helper functions:
+    - `generateAgentDIDWithAddress()`: Create DID with owner address
+    - `generateAgentDIDWithNonce()`: Create DID with address and nonce
+    - `deriveEthereumAddress()`: Derive Ethereum address from secp256k1 keypair
+  - Comprehensive test coverage (201 contract tests, 13 Go tests)
+
+#### Phase 1: CRITICAL Security Enhancements
+
+- **Public Key Ownership Verification**
+  - `_deriveAddressFromPublicKey()`: Verify ECDSA public key ownership
+  - Prevents attackers from registering someone else's public key
+  - Uses ecrecover to derive Ethereum address from public key
+  - Dual verification: signature verification + address matching
+
+- **Atomic Key Rotation**
+  - `rotateKey()`: Transaction-level atomic key replacement
+  - Prevents incomplete key rotation states
+  - Swap-and-pop pattern for gas efficiency
+  - Automatic nonce increment to invalidate old signatures
+  - `KeyRotated` event for off-chain tracking
+
+- **Complete Key Revocation**
+  - Enhanced `revokeKey()`: Complete deletion from storage
+  - Removes key from both keyHashes array and keys mapping
+  - Prevents revoked keys from being used
+  - Nonce increment invalidates old signatures
+  - Auto-deactivation when last key is revoked
+
+### Changed
+
+#### Smart Contract Improvements
+
+- **SageRegistryV4**: Enhanced with critical security features
+  - Chain-specific signature verification design
+    - ECDSA on Ethereum: On-chain verification via ecrecover (signature required)
+    - Ed25519 on Ethereum: Off-chain verification + owner approval (no signature)
+  - Multi-key support: Up to 10 keys per agent
+  - Key type validation: ECDSA (65 bytes) and Ed25519 (32 bytes)
+  - Improved error messages for better debugging
+
+#### Test Coverage
+
+- **Contract Tests**: 201 passing (up from 198)
+  - 3 new DID format validation tests
+  - Security verification tests for ownership, rotation, revocation
+  - Multi-key resolution tests
+
+- **Go Tests**: Comprehensive DID generation testing
+  - `TestGenerateAgentDIDWithAddress`: 3 test cases
+  - `TestGenerateAgentDIDWithNonce`: 4 test cases
+  - `TestDeriveEthereumAddress`: 3 test cases
+  - `TestDIDGenerationIntegration`: End-to-end flow
+
 ### Security
+
+#### Critical Fixes (Phase 1)
+
+- **CVE-SAGE-2025-001**: Public Key Theft Prevention
+  - Severity: CRITICAL
+  - Issue: Attackers could register with someone else's public key
+  - Fix: `_deriveAddressFromPublicKey()` verifies ownership
+  - Status: Resolved in SageRegistryV4
+
+- **CVE-SAGE-2025-002**: Atomic Key Rotation
+  - Severity: HIGH
+  - Issue: Non-atomic key rotation could leave agent in inconsistent state
+  - Fix: `rotateKey()` with transaction-level atomicity
+  - Status: Resolved in SageRegistryV4
+
+- **CVE-SAGE-2025-003**: Complete Key Revocation
+  - Severity: HIGH
+  - Issue: Soft-deleted keys could potentially be reused
+  - Fix: Complete deletion from storage with nonce increment
+  - Status: Resolved in SageRegistryV4
 
 - **Bouncy Castle Dependency**: Updated to address CVE-2025-8916 (Dependabot Alert #11)
   - Updated bcprov-jdk18on from 1.78 to 1.79
   - Updated bcpkix-jdk18on from 1.78.1 to 1.79
   - Fixed excessive allocation vulnerability in PKIXCertPathReviewer
   - Affects Java SDK only (sdk/java/sage-client)
+
+### Documentation
+
+- **SAGE-A2A Integration Guide**: Comprehensive guide for sage-a2a-go project
+  - Architecture separation (SAGE core vs sage-a2a-go)
+  - Available SAGE APIs for DID resolution and multi-key support
+  - Implementation guide for RFC9421 DID integration
+  - Code examples and testing strategies
+  - Migration path from v3 to v4
 
 ## [1.0.3] - 2025-10-18
 
@@ -348,122 +449,18 @@ SAGE v1.0.0 marks the first production-ready release of the Secure Agent Guarant
 - **Forward Secrecy**: Ephemeral X25519 keys provide forward secrecy in handshakes
 - **AEAD Encryption**: ChaCha20-Poly1305 provides authenticated encryption for all messages
 
-## [Unreleased]
-
-### Added
-
-#### Phase 2: HIGH Priority Features - Multi-Key Infrastructure
-
-- **Multi-Key Resolution Support** (Task 2.2)
-  - `ResolveAllPublicKeys()`: Retrieve all verified public keys for an agent
-  - `ResolvePublicKeyByType()`: Get specific key type (ECDSA or Ed25519)
-  - Protocol-specific key selection (ECDSA for Ethereum, Ed25519 for Solana)
-  - Comprehensive integration tests for multi-key scenarios
-  - Filtering: Only verified keys are returned
-
-- **Enhanced DID Format with Owner Validation** (Task 2.1)
-  - New DID formats with owner address:
-    - `did:sage:ethereum:0x{address}`
-    - `did:sage:ethereum:0x{address}:{nonce}`
-  - Benefits: Off-chain ownership verification, cross-chain traceability, DID collision prevention
-  - Optional validation functions in SageRegistryV4.sol (backward compatible)
-  - Go helper functions:
-    - `generateAgentDIDWithAddress()`: Create DID with owner address
-    - `generateAgentDIDWithNonce()`: Create DID with address and nonce
-    - `deriveEthereumAddress()`: Derive Ethereum address from secp256k1 keypair
-  - Comprehensive test coverage (201 contract tests, 13 Go tests)
-
-#### Phase 1: CRITICAL Security Enhancements
-
-- **Public Key Ownership Verification**
-  - `_deriveAddressFromPublicKey()`: Verify ECDSA public key ownership
-  - Prevents attackers from registering someone else's public key
-  - Uses ecrecover to derive Ethereum address from public key
-  - Dual verification: signature verification + address matching
-
-- **Atomic Key Rotation**
-  - `rotateKey()`: Transaction-level atomic key replacement
-  - Prevents incomplete key rotation states
-  - Swap-and-pop pattern for gas efficiency
-  - Automatic nonce increment to invalidate old signatures
-  - `KeyRotated` event for off-chain tracking
-
-- **Complete Key Revocation**
-  - Enhanced `revokeKey()`: Complete deletion from storage
-  - Removes key from both keyHashes array and keys mapping
-  - Prevents revoked keys from being used
-  - Nonce increment invalidates old signatures
-  - Auto-deactivation when last key is revoked
-
-### Changed
-
-#### Smart Contract Improvements
-
-- **SageRegistryV4**: Enhanced with critical security features
-  - Chain-specific signature verification design
-    - ECDSA on Ethereum: On-chain verification via ecrecover (signature required)
-    - Ed25519 on Ethereum: Off-chain verification + owner approval (no signature)
-  - Multi-key support: Up to 10 keys per agent
-  - Key type validation: ECDSA (65 bytes) and Ed25519 (32 bytes)
-  - Improved error messages for better debugging
-
-#### Test Coverage
-
-- **Contract Tests**: 201 passing (up from 198)
-  - 3 new DID format validation tests
-  - Security verification tests for ownership, rotation, revocation
-  - Multi-key resolution tests
-
-- **Go Tests**: Comprehensive DID generation testing
-  - `TestGenerateAgentDIDWithAddress`: 3 test cases
-  - `TestGenerateAgentDIDWithNonce`: 4 test cases
-  - `TestDeriveEthereumAddress`: 3 test cases
-  - `TestDIDGenerationIntegration`: End-to-end flow
-
-### Security
-
-#### Critical Fixes (Phase 1)
-
-- **CVE-SAGE-2025-001**: Public Key Theft Prevention
-  - Severity: CRITICAL
-  - Issue: Attackers could register with someone else's public key
-  - Fix: `_deriveAddressFromPublicKey()` verifies ownership
-  - Status: Resolved in SageRegistryV4
-
-- **CVE-SAGE-2025-002**: Atomic Key Rotation
-  - Severity: HIGH
-  - Issue: Non-atomic key rotation could leave agent in inconsistent state
-  - Fix: `rotateKey()` with transaction-level atomicity
-  - Status: Resolved in SageRegistryV4
-
-- **CVE-SAGE-2025-003**: Complete Key Revocation
-  - Severity: HIGH
-  - Issue: Soft-deleted keys could potentially be reused
-  - Fix: Complete deletion from storage with nonce increment
-  - Status: Resolved in SageRegistryV4
-
-### Documentation
-
-- **SAGE-A2A Integration Guide**: Comprehensive guide for sage-a2a-go project
-  - Architecture separation (SAGE core vs sage-a2a-go)
-  - Available SAGE APIs for DID resolution and multi-key support
-  - Implementation guide for RFC9421 DID integration
-  - Code examples and testing strategies
-  - Migration path from v3 to v4
-
-### Planned Features
-
-- Post-quantum cryptography support
-- Multi-party sessions with shared session keys
-- Automatic key rotation protocol
-- Zero-knowledge proof integration
-- Cross-chain bridges for L2 solutions
-- Enhanced performance optimizations
-- Additional language bindings (Java, Swift)
-
 ---
 
 ## Version History
+
+- **v1.1.0** (2025-10-18): Multi-Key Registry V4 - Major Feature Release
+  - SageRegistryV4 with multi-key support (up to 10 keys per agent)
+  - Multi-key resolution: ResolveAllPublicKeys() and ResolvePublicKeyByType()
+  - Enhanced DID format with owner address validation
+  - Critical security fixes: CVE-SAGE-2025-001, CVE-SAGE-2025-002, CVE-SAGE-2025-003
+  - SAGE-A2A integration guide for cross-project compatibility
+  - 201 passing contract tests, comprehensive Go test coverage
+  - Bouncy Castle CVE-2025-8916 security update
 
 - **v1.0.3** (2025-10-18): Security and code quality improvements
   - Gosec security scan findings addressed
