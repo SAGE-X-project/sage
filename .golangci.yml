@@ -13,7 +13,6 @@ linters:
     - unused
     - gosimple
     - ineffassign
-    - typecheck
 
 issues:
   exclude-dirs:
@@ -31,11 +30,9 @@ issues:
     - path: ".*\\.gen\\.go"
       linters:
         - all
-    # Exclude bindings (auto-generated)
+    # Exclude bindings (auto-generated) - skip type errors for local imports
     - path: "contracts/ethereum/bindings/go/"
       text: "local import"
-      linters:
-        - typecheck
     # Exclude unused functions in test files (test helpers)
     - path: _test\.go
       linters:
