@@ -353,6 +353,116 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
         require(bytes(name).length > 0, "Name required");
         require(didToAgentId[did] == bytes32(0), "DID already registered");
         require(ownerToAgents[msg.sender].length < MAX_AGENTS_PER_OWNER, "Too many agents");
+
+        // Optional: Validate DID format includes owner address
+        // This provides stronger identity binding but is not strictly enforced
+        // for backward compatibility and cross-chain flexibility
+        // Format: did:sage:ethereum:0x{address} or did:sage:ethereum:0x{address}:{nonce}
+        // Uncomment to enable strict DID validation:
+        // _validateDIDFormat(did, msg.sender);
+    }
+
+    /**
+     * @notice Validate that DID includes the owner's Ethereum address
+     * @dev This function provides optional stronger identity binding by requiring
+     *      the DID to include the owner's address. This ensures:
+     *      - Off-chain DID ownership verification
+     *      - Cross-chain owner traceability
+     *      - DID collision prevention
+     *
+     *      Expected formats:
+     *      - did:sage:ethereum:0x{address}
+     *      - did:sage:ethereum:0x{address}:{nonce}
+     *
+     *      Example: did:sage:ethereum:0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
+     *
+     * @param did The DID string to validate
+     * @param owner The expected owner address
+     */
+    function _validateDIDFormat(string memory did, address owner) private pure {
+        bytes memory didBytes = bytes(did);
+
+        // Minimum length: "did:sage:ethereum:0x" + 40 hex chars = 62 characters
+        require(didBytes.length >= 62, "DID too short for address inclusion");
+
+        // Check prefix "did:sage:ethereum:0x"
+        require(_startsWith(didBytes, "did:sage:ethereum:0x"), "Invalid DID prefix");
+
+        // Extract address portion (40 hex characters starting at position 22)
+        // Position breakdown: "did:" (4) + "sage:" (5) + "ethereum:" (9) + "0x" (2) = 20 chars
+        bytes memory addressHex = new bytes(40);
+        for (uint256 i = 0; i < 40; i++) {
+            addressHex[i] = didBytes[22 + i];
+        }
+
+        // Convert hex string to address
+        address didAddress = _parseAddressFromHex(addressHex);
+
+        // Verify the DID address matches the owner
+        require(didAddress == owner, "DID address does not match owner");
+    }
+
+    /**
+     * @notice Check if bytes start with a specific prefix
+     * @param data The bytes to check
+     * @param prefix The prefix string to match
+     * @return true if data starts with prefix
+     */
+    function _startsWith(bytes memory data, string memory prefix) private pure returns (bool) {
+        bytes memory prefixBytes = bytes(prefix);
+        if (data.length < prefixBytes.length) {
+            return false;
+        }
+
+        for (uint256 i = 0; i < prefixBytes.length; i++) {
+            if (data[i] != prefixBytes[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @notice Parse Ethereum address from hex string
+     * @param hexAddress 40-character hex string representing an address
+     * @return The parsed Ethereum address
+     */
+    function _parseAddressFromHex(bytes memory hexAddress) private pure returns (address) {
+        require(hexAddress.length == 40, "Invalid hex address length");
+
+        uint160 addressValue = 0;
+
+        for (uint256 i = 0; i < 40; i++) {
+            uint8 digit = _hexCharToUint(hexAddress[i]);
+            addressValue = addressValue * 16 + digit;
+        }
+
+        return address(addressValue);
+    }
+
+    /**
+     * @notice Convert hex character to uint
+     * @param char The hex character (0-9, a-f, A-F)
+     * @return The uint value (0-15)
+     */
+    function _hexCharToUint(bytes1 char) private pure returns (uint8) {
+        uint8 c = uint8(char);
+
+        // '0'-'9'
+        if (c >= 48 && c <= 57) {
+            return c - 48;
+        }
+        // 'a'-'f'
+        else if (c >= 97 && c <= 102) {
+            return c - 87;  // 97 - 10 = 87
+        }
+        // 'A'-'F'
+        else if (c >= 65 && c <= 70) {
+            return c - 55;  // 65 - 10 = 55
+        }
+
+        revert("Invalid hex character");
     }
 
     /**
