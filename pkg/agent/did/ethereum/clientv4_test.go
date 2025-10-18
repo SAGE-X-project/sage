@@ -471,11 +471,9 @@ func generateMultiKeySignatures(
 		}
 
 		if keyType == did.KeyTypeECDSA {
-			// Extract ECDSA private key from KeyPair
-			ecdsaPrivKey, err := extractECDSAPrivateKey(keyPairs[i])
-			if err != nil {
-				return nil, err
-			}
+			// IMPORTANT: Contract verifies that msg.sender signed the message
+			// NOT that the key owner signed it. All signatures must use client.privateKey
+			// This proves that the transaction sender (msg.sender) authorizes adding this key
 
 			// Contract expects: keccak256(abi.encode(agentId, keyData, msg.sender, agentNonce))
 			bytes32Type, _ := abi.NewType("bytes32", "", nil)
@@ -502,8 +500,9 @@ func generateMultiKeySignatures(
 			prefixedData = append(prefixedData, messageHash.Bytes()...)
 			ethSignedHash := ethcrypto.Keccak256Hash(prefixedData)
 
-			// Sign with this key's private key (not the client's!)
-			sig, err := ethcrypto.Sign(ethSignedHash.Bytes(), ecdsaPrivKey)
+			// Sign with client's private key (msg.sender)
+			// This proves the transaction sender authorizes adding this key
+			sig, err := ethcrypto.Sign(ethSignedHash.Bytes(), client.privateKey)
 			if err != nil {
 				return nil, err
 			}
