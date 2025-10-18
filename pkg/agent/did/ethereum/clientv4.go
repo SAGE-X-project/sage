@@ -348,7 +348,7 @@ func (c *EthereumClientV4) Resolve(ctx context.Context, agentDID did.AgentDID) (
 	}, nil
 }
 
-// ResolvePublicKey retrieves only the public key for an agent
+// ResolvePublicKey retrieves only the first public key for an agent (backward compatibility)
 func (c *EthereumClientV4) ResolvePublicKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
 	agent, err := c.contract.GetAgentByDID(&bind.CallOpts{Context: ctx}, string(agentDID))
 	if err != nil {
@@ -382,6 +382,91 @@ func (c *EthereumClientV4) ResolvePublicKey(ctx context.Context, agentDID did.Ag
 	}
 
 	return publicKey, nil
+}
+
+// ResolveAllPublicKeys retrieves all public keys for an agent
+// This enables multi-key resolution for scenarios where agents have multiple keys
+// for different purposes (e.g., ECDSA for Ethereum, Ed25519 for Solana)
+func (c *EthereumClientV4) ResolveAllPublicKeys(
+	ctx context.Context,
+	agentDID did.AgentDID,
+) ([]did.AgentKey, error) {
+	agent, err := c.contract.GetAgentByDID(&bind.CallOpts{Context: ctx}, string(agentDID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent: %w", err)
+	}
+
+	if agent.Did == "" {
+		return nil, did.ErrDIDNotFound
+	}
+
+	if len(agent.KeyHashes) == 0 {
+		return nil, fmt.Errorf("agent has no keys")
+	}
+
+	keys := make([]did.AgentKey, 0, len(agent.KeyHashes))
+
+	for _, keyHash := range agent.KeyHashes {
+		keyData, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, keyHash)
+		if err != nil {
+			// Skip keys that can't be retrieved
+			continue
+		}
+
+		// Only include verified keys
+		if !keyData.Verified {
+			continue
+		}
+
+		keys = append(keys, did.AgentKey{
+			Type:      did.KeyType(keyData.KeyType),
+			KeyData:   keyData.KeyData,
+			Signature: keyData.Signature,
+			Verified:  keyData.Verified,
+			CreatedAt: time.Unix(keyData.RegisteredAt.Int64(), 0),
+		})
+	}
+
+	if len(keys) == 0 {
+		return nil, fmt.Errorf("no verified keys found for agent")
+	}
+
+	return keys, nil
+}
+
+// ResolvePublicKeyByType retrieves a specific type of public key for an agent
+// This enables protocol-specific key selection (e.g., use ECDSA for Ethereum operations,
+// Ed25519 for Solana operations)
+func (c *EthereumClientV4) ResolvePublicKeyByType(
+	ctx context.Context,
+	agentDID did.AgentDID,
+	keyType did.KeyType,
+) (interface{}, error) {
+	keys, err := c.ResolveAllPublicKeys(ctx, agentDID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find first verified key of the specified type
+	for _, key := range keys {
+		if key.Type == keyType && key.Verified {
+			// Determine key type string for unmarshaling
+			keyTypeStr := "secp256k1"
+			if keyType == did.KeyTypeEd25519 {
+				keyTypeStr = "ed25519"
+			}
+
+			publicKey, err := did.UnmarshalPublicKey(key.KeyData, keyTypeStr)
+			if err != nil {
+				// Try next key if unmarshal fails
+				continue
+			}
+
+			return publicKey, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no verified %s key found for agent", keyType)
 }
 
 // Update updates agent metadata
