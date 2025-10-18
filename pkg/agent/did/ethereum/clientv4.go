@@ -127,6 +127,12 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 		return nil, fmt.Errorf("failed to marshal capabilities: %w", err)
 	}
 
+	// First, populate key types and data
+	for i, key := range keys {
+		keyTypes[i] = uint8(key.Type)
+		keyData[i] = key.KeyData
+	}
+
 	// Calculate agentId (same as contract: keccak256(abi.encode(did, firstKeyData)))
 	stringType, _ := abi.NewType("string", "", nil)
 	bytesType, _ := abi.NewType("bytes", "", nil)
@@ -148,11 +154,8 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 	// agentNonce is 0 for new registrations
 	agentNonce := big.NewInt(0)
 
-	// Process each key
+	// Now generate signatures for each key
 	for i, key := range keys {
-		// Set key type
-		keyTypes[i] = uint8(key.Type)
-		keyData[i] = key.KeyData
 
 		// Sign message with each key
 		if len(key.Signature) > 0 {
@@ -192,6 +195,13 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 			if err != nil {
 				return nil, fmt.Errorf("failed to sign with key %d: %w", i, err)
 			}
+
+			// Adjust V value for Ethereum compatibility
+			// crypto.Sign returns V as 0 or 1, but Ethereum ecrecover expects 27 or 28
+			if sig[64] < 27 {
+				sig[64] += 27
+			}
+
 			signatures[i] = sig
 		} else {
 			return nil, fmt.Errorf("key %d has no signature", i)

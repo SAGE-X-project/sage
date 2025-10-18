@@ -26,12 +26,16 @@ async function main() {
   console.log("SageRegistryV4 deployed to:", registryAddress);
   console.log();
 
+  // Get chain ID and agent nonce (0 for new registrations)
+  const chainId = (await hre.ethers.provider.getNetwork()).chainId;
+  const agentNonce = 0n;
+
   // Test single-key registration (ECDSA)
   console.log("=== Testing Single-Key Registration (ECDSA) ===");
 
-  // Prepare ECDSA key (secp256k1)
-  const randomKey = hre.ethers.randomBytes(64);
-  const ecdsaPublicKey = hre.ethers.concat(["0x04", randomKey]); // Uncompressed format
+  // Prepare ECDSA key (secp256k1) - compressed format (33 bytes)
+  const randomPrivKey1 = hre.ethers.Wallet.createRandom();
+  const ecdsaPublicKey = randomPrivKey1.publicKey; // Already in hex format (0x04...)
 
   const testAgent1 = {
     did: `did:sage:ethereum:${agent1.address.substring(2, 10)}`,
@@ -41,37 +45,48 @@ async function main() {
     capabilities: JSON.stringify(["chat", "code"])
   };
 
-  // Create key registration data for ECDSA
-  const keyHash1 = hre.ethers.keccak256(ecdsaPublicKey);
-  const chainId = (await hre.ethers.provider.getNetwork()).chainId;
-
-  // Challenge for ECDSA key ownership
-  const challenge1 = hre.ethers.keccak256(
-    hre.ethers.solidityPacked(
-      ["string", "uint256", "address", "address", "bytes32"],
-      ["SAGE Key Registration:", chainId, registryAddress, agent1.address, keyHash1]
+  // Calculate agentId same as contract: keccak256(abi.encode(did, firstKeyData))
+  const abiCoder = hre.ethers.AbiCoder.defaultAbiCoder();
+  const agentId1 = hre.ethers.keccak256(
+    abiCoder.encode(
+      ["string", "bytes"],
+      [testAgent1.did, ecdsaPublicKey]
     )
   );
 
-  const signature1 = await agent1.signMessage(hre.ethers.getBytes(challenge1));
+  console.log("Calculated Agent ID:", agentId1);
 
-  // Prepare key array with single ECDSA key
-  const keys1 = [{
-    publicKey: ecdsaPublicKey,
-    keyType: 1, // KeyType.ECDSA
-    signature: signature1
-  }];
+  // Create message hash for signature: keccak256(abi.encode(agentId, keyData, msg.sender, agentNonce))
+  const messageHash1 = hre.ethers.keccak256(
+    abiCoder.encode(
+      ["bytes32", "bytes", "address", "uint256"],
+      [agentId1, ecdsaPublicKey, agent1.address, agentNonce]
+    )
+  );
+
+  console.log("Message Hash:", messageHash1);
+
+  // Sign with Ethereum personal sign (adds prefix automatically)
+  const signature1 = await agent1.signMessage(hre.ethers.getBytes(messageHash1));
+
+  console.log("Signature:", signature1);
+  console.log("Signature length:", signature1.length);
+
+  // Prepare registration params for V4 (using struct)
+  const params1 = {
+    did: testAgent1.did,
+    name: testAgent1.name,
+    description: testAgent1.description,
+    endpoint: testAgent1.endpoint,
+    keyTypes: [1], // KeyType.ECDSA
+    keyData: [ecdsaPublicKey],
+    signatures: [signature1],
+    capabilities: testAgent1.capabilities
+  };
 
   // Register agent with single key
   console.log("Registering agent with single ECDSA key...");
-  let tx = await sageRegistry.connect(agent1).registerAgent(
-    testAgent1.did,
-    testAgent1.name,
-    testAgent1.description,
-    testAgent1.endpoint,
-    testAgent1.capabilities,
-    keys1
-  );
+  let tx = await sageRegistry.connect(agent1).registerAgent(params1);
 
   let receipt = await tx.wait();
   console.log("Single-key agent registered!");
@@ -85,17 +100,16 @@ async function main() {
   );
 
   if (logs.length > 0) {
-    const agentId1 = logs[0].args[0];
-    console.log("Agent ID:", agentId1);
+    const returnedAgentId = logs[0].args[0];
+    console.log("Returned Agent ID:", returnedAgentId);
 
-    const agent = await sageRegistry.getAgent(agentId1);
+    const agent = await sageRegistry.getAgent(returnedAgentId);
     console.log("\nAgent Details:");
+    console.log("  DID:", agent.did);
     console.log("  Name:", agent.name);
     console.log("  Owner:", agent.owner);
     console.log("  Active:", agent.active);
-    console.log("  Keys Count:", agent.keys.length);
-    console.log("  Key Type:", agent.keys[0].keyType === 1n ? "ECDSA" : "Unknown");
-    console.log("  Key Verified:", agent.keys[0].verified);
+    console.log("  Keys Count:", agent.keyHashes.length);
   }
   console.log();
 
@@ -103,8 +117,9 @@ async function main() {
   console.log("=== Testing Multi-Key Registration (ECDSA + X25519) ===");
 
   // Prepare multiple keys
-  const ecdsaKey2 = hre.ethers.concat(["0x04", hre.ethers.randomBytes(64)]);
-  const x25519Key = hre.ethers.randomBytes(32); // X25519 is 32 bytes
+  const randomPrivKey2 = hre.ethers.Wallet.createRandom();
+  const ecdsaKey2 = randomPrivKey2.publicKey;
+  const x25519Key = hre.ethers.hexlify(hre.ethers.randomBytes(32)); // X25519 is 32 bytes
 
   const testAgent2 = {
     did: `did:sage:ethereum:${agent2.address.substring(2, 10)}`,
@@ -114,50 +129,49 @@ async function main() {
     capabilities: JSON.stringify(["chat", "encryption"])
   };
 
-  // ECDSA key signature
-  const keyHash2_1 = hre.ethers.keccak256(ecdsaKey2);
-  const challenge2_1 = hre.ethers.keccak256(
-    hre.ethers.solidityPacked(
-      ["string", "uint256", "address", "address", "bytes32"],
-      ["SAGE Key Registration:", chainId, registryAddress, agent2.address, keyHash2_1]
+  // Calculate agentId for agent2
+  const agentId2 = hre.ethers.keccak256(
+    abiCoder.encode(
+      ["string", "bytes"],
+      [testAgent2.did, ecdsaKey2]
     )
   );
-  const signature2_1 = await agent2.signMessage(hre.ethers.getBytes(challenge2_1));
 
-  // X25519 key signature (owner signature, not key-specific)
-  const keyHash2_2 = hre.ethers.keccak256(x25519Key);
-  const challenge2_2 = hre.ethers.keccak256(
-    hre.ethers.solidityPacked(
-      ["string", "uint256", "address", "address", "bytes32"],
-      ["SAGE Key Registration:", chainId, registryAddress, agent2.address, keyHash2_2]
+  console.log("Calculated Agent ID:", agentId2);
+
+  // Create signature for ECDSA key
+  const messageHash2_1 = hre.ethers.keccak256(
+    abiCoder.encode(
+      ["bytes32", "bytes", "address", "uint256"],
+      [agentId2, ecdsaKey2, agent2.address, agentNonce]
     )
   );
-  const signature2_2 = await agent2.signMessage(hre.ethers.getBytes(challenge2_2));
+  const signature2_1 = await agent2.signMessage(hre.ethers.getBytes(messageHash2_1));
 
-  // Prepare key array with ECDSA and X25519
-  const keys2 = [
-    {
-      publicKey: ecdsaKey2,
-      keyType: 1, // KeyType.ECDSA
-      signature: signature2_1
-    },
-    {
-      publicKey: x25519Key,
-      keyType: 2, // KeyType.X25519
-      signature: signature2_2
-    }
-  ];
+  // Create signature for X25519 key (same format)
+  const messageHash2_2 = hre.ethers.keccak256(
+    abiCoder.encode(
+      ["bytes32", "bytes", "address", "uint256"],
+      [agentId2, x25519Key, agent2.address, agentNonce]
+    )
+  );
+  const signature2_2 = await agent2.signMessage(hre.ethers.getBytes(messageHash2_2));
+
+  // Prepare registration params with multiple keys
+  const params2 = {
+    did: testAgent2.did,
+    name: testAgent2.name,
+    description: testAgent2.description,
+    endpoint: testAgent2.endpoint,
+    keyTypes: [1, 2], // KeyType.ECDSA, KeyType.X25519
+    keyData: [ecdsaKey2, x25519Key],
+    signatures: [signature2_1, signature2_2],
+    capabilities: testAgent2.capabilities
+  };
 
   // Register agent with multiple keys
   console.log("Registering agent with ECDSA + X25519 keys...");
-  tx = await sageRegistry.connect(agent2).registerAgent(
-    testAgent2.did,
-    testAgent2.name,
-    testAgent2.description,
-    testAgent2.endpoint,
-    testAgent2.capabilities,
-    keys2
-  );
+  tx = await sageRegistry.connect(agent2).registerAgent(params2);
 
   receipt = await tx.wait();
   console.log("Multi-key agent registered!");
@@ -171,21 +185,25 @@ async function main() {
   );
 
   if (logs.length > 0) {
-    const agentId2 = logs[0].args[0];
-    console.log("Agent ID:", agentId2);
+    const returnedAgentId2 = logs[0].args[0];
+    console.log("Returned Agent ID:", returnedAgentId2);
 
-    const agent = await sageRegistry.getAgent(agentId2);
+    const agent = await sageRegistry.getAgent(returnedAgentId2);
     console.log("\nAgent Details:");
+    console.log("  DID:", agent.did);
     console.log("  Name:", agent.name);
     console.log("  Owner:", agent.owner);
     console.log("  Active:", agent.active);
-    console.log("  Keys Count:", agent.keys.length);
+    console.log("  Keys Count:", agent.keyHashes.length);
 
-    for (let i = 0; i < agent.keys.length; i++) {
-      const keyTypeName = agent.keys[i].keyType === 0n ? "Ed25519" :
-                          agent.keys[i].keyType === 1n ? "ECDSA" :
-                          agent.keys[i].keyType === 2n ? "X25519" : "Unknown";
-      console.log(`  Key ${i + 1}:`, keyTypeName, "- Verified:", agent.keys[i].verified);
+    // Get and display key details
+    for (let i = 0; i < agent.keyHashes.length; i++) {
+      const keyHash = agent.keyHashes[i];
+      const keyData = await sageRegistry.getKey(keyHash);
+      const keyTypeName = keyData.keyType === 0n ? "Ed25519" :
+                          keyData.keyType === 1n ? "ECDSA" :
+                          keyData.keyType === 2n ? "X25519" : "Unknown";
+      console.log(`  Key ${i + 1}:`, keyTypeName, "- Verified:", keyData.verified);
     }
   }
   console.log();
@@ -204,11 +222,9 @@ async function main() {
   console.log("  Agent 1:", agent1.address);
   console.log("  Agent 2:", agent2.address);
   console.log("\nNext Steps:");
-  console.log("  1. Save the contract address for Go SDK integration");
-  console.log("  2. Generate Go bindings:");
-  console.log("     cd contracts/ethereum");
-  console.log("     npx hardhat run scripts/generate-go-bindings.js");
-  console.log("  3. Update pkg/agent/did/ethereum/client.go with V4 contract");
+  console.log("  1. Use this contract address in Go SDK tests");
+  console.log("  2. Contract is ready for multi-key agent registration");
+  console.log("  3. Test with: SAGE_INTEGRATION_TEST=1 go test ./pkg/agent/did/ethereum -v");
   console.log();
 }
 

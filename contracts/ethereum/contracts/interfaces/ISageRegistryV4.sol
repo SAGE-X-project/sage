@@ -8,11 +8,13 @@ pragma solidity 0.8.19;
 interface ISageRegistryV4 {
     /**
      * @notice Supported key types for multi-chain compatibility
+     * @dev Only signature keys are supported for DID registration
+     *      Encryption keys (like X25519) should be generated ephemerally
+     *      per session to ensure forward secrecy
      */
     enum KeyType {
         Ed25519,  // Solana, Cardano, Polkadot (32 bytes)
-        ECDSA,    // Ethereum, Bitcoin (33/65 bytes for secp256k1)
-        X25519    // HPKE key exchange (32 bytes)
+        ECDSA     // Ethereum, Bitcoin (33/65 bytes for secp256k1)
     }
 
     /**

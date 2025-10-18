@@ -40,8 +40,11 @@ func MarshalPublicKey(publicKey interface{}) ([]byte, error) {
 	case *ecdsa.PublicKey:
 		// Handle ECDSA public keys (including secp256k1 converted to ECDSA)
 		// Check if this is a secp256k1 curve (Ethereum)
-		if pk.Curve == ethcrypto.S256() {
+		// Note: Can't use pointer equality (pk.Curve == ethcrypto.S256()) because
+		// different libraries may use different curve instances
+		if pk.Curve.Params().Name == "secp256k1" {
 			// For secp256k1, use compressed format (33 bytes)
+			// This matches ethers.js Wallet.publicKey format
 			return ethcrypto.CompressPubkey(pk), nil
 		}
 		// For other ECDSA curves, use uncompressed format

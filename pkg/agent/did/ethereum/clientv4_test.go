@@ -38,7 +38,7 @@ func TestV4SingleKeyRegistration(t *testing.T) {
 
 	// Configuration for local Hardhat/Anvil network
 	config := &did.RegistryConfig{
-		ContractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3", // From deployment
+		ContractAddress: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // From deployment (X25519 removed)
 		RPCEndpoint:     "http://localhost:8545",
 		PrivateKey:      "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat test account #0
 		GasPrice:        0, // Let the client determine gas price
@@ -127,7 +127,7 @@ func TestV4MultiKeyRegistration(t *testing.T) {
 
 	// Configuration for local Hardhat/Anvil network
 	config := &did.RegistryConfig{
-		ContractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+		ContractAddress: "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
 		RPCEndpoint:     "http://localhost:8545",
 		PrivateKey:      "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 		GasPrice:        0,

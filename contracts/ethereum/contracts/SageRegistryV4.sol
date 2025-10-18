@@ -9,7 +9,8 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
  * @title SageRegistryV4
  * @notice SAGE AI Agent Registry Contract with Multi-Key Support
  * @dev Implements secure registration and management of AI agents with multiple public keys
- *      Supports Ed25519, ECDSA/secp256k1, and X25519 key types for multi-chain compatibility
+ *      Supports Ed25519 and ECDSA/secp256k1 signature keys for multi-chain compatibility
+ *      Note: Encryption keys (like X25519) should be generated ephemerally per session
  */
 contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
     // State variables
@@ -29,7 +30,6 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
 
     // Public key length constants
     uint256 private constant ED25519_KEY_LENGTH = 32;
-    uint256 private constant X25519_KEY_LENGTH = 32;
     uint256 private constant SECP256K1_COMPRESSED_LENGTH = 33;
     uint256 private constant SECP256K1_UNCOMPRESSED_LENGTH = 65;
     uint256 private constant SECP256K1_RAW_LENGTH = 64;
@@ -333,9 +333,6 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
             bytes32 messageHash = keccak256(abi.encode(agentId, keyData, msg.sender, agentNonce[agentId]));
             verified = _verifyEcdsaSignature(messageHash, signature, keyData, msg.sender);
             require(verified, "ECDSA signature verification failed");
-        } else if (keyType == KeyType.X25519) {
-            // X25519 keys don't need verification (public key exchange)
-            verified = true;
         }
         // Ed25519 keys remain unverified until owner approves
 
@@ -364,8 +361,6 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
                 keyData.length == SECP256K1_COMPRESSED_LENGTH,
                 "Invalid ECDSA key length"
             );
-        } else if (keyType == KeyType.X25519) {
-            require(keyData.length == X25519_KEY_LENGTH, "Invalid X25519 key length");
         }
     }
 
