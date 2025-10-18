@@ -534,11 +534,53 @@ bench:
 	@echo "Running benchmarks..."
 	$(GO) test -bench=. -benchmem ./...
 
+# Run comprehensive benchmarks using script
+.PHONY: bench-full
+bench-full:
+	@echo "Running comprehensive benchmarks..."
+	@bash ./tools/scripts/run-benchmarks.sh
+
 # Run integration benchmarks
 .PHONY: bench-integration
 bench-integration:
 	@echo "Running integration benchmarks..."
 	$(GO) test -bench=. -benchmem ./tests/integration/... -tags=integration
+
+# Run fuzz tests
+.PHONY: fuzz
+fuzz:
+	@echo "Running fuzz tests..."
+	@bash ./tools/scripts/run-fuzz.sh
+
+# Run load tests
+.PHONY: loadtest
+loadtest:
+	@echo "Running load tests..."
+	@bash ./tools/scripts/run-loadtest.sh
+
+# Verify all features (comprehensive feature verification)
+.PHONY: verify-features
+verify-features:
+	@echo "Running comprehensive feature verification..."
+	@bash ./tools/scripts/verify_all_features.sh -v
+
+# Run full test suite (all tests + verification)
+.PHONY: test-full
+test-full:
+	@echo "Running full test suite..."
+	@bash ./tools/scripts/full-test.sh
+
+# Quick verification (fast feature check)
+.PHONY: verify-quick
+verify-quick:
+	@echo "Running quick verification..."
+	@bash ./tools/scripts/quick_verify.sh
+
+# Cleanup test environment
+.PHONY: test-cleanup
+test-cleanup:
+	@echo "Cleaning up test environment..."
+	@bash ./tools/scripts/cleanup_test_env.sh
 
 # Clean build artifacts
 .PHONY: clean
@@ -804,10 +846,21 @@ help:
 	@echo "  make random-test-crypto  - Test crypto only"
 	@echo "  make random-test-did     - Test DID only"
 	@echo ""
+	@echo "Verification targets:"
+	@echo "  make verify-features - Run comprehensive feature verification"
+	@echo "  make verify-quick    - Run quick feature verification"
+	@echo "  make test-full       - Run full test suite with all checks"
+	@echo ""
+	@echo "Advanced test targets:"
+	@echo "  make fuzz         - Run fuzz tests"
+	@echo "  make loadtest     - Run load tests"
+	@echo "  make bench-full   - Run comprehensive benchmarks"
+	@echo ""
 	@echo "Utility targets:"
 	@echo "  make clean         - Remove build artifacts"
 	@echo "  make clean-all     - Remove all build artifacts and reports"
 	@echo "  make clean-reports - Remove test reports only"
+	@echo "  make test-cleanup  - Cleanup test environment"
 	@echo "  make install       - Install binaries to GOPATH/bin"
 	@echo "  make lint          - Run linter"
 	@echo "  make fmt           - Format code"

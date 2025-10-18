@@ -653,11 +653,6 @@ func TestV4PublicKeyOwnershipVerification(t *testing.T) {
 		t.Fatalf("Failed to generate Alice's keypair: %v", err)
 	}
 
-	alicePubKey, err := did.MarshalPublicKey(aliceKeyPair.PublicKey())
-	if err != nil {
-		t.Fatalf("Failed to marshal Alice's public key: %v", err)
-	}
-
 	// Verify that Alice's public key derives to Alice's address
 	aliceECDSAKey, ok := aliceKeyPair.PublicKey().(*ecdsa.PublicKey)
 	if !ok {
