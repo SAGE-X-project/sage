@@ -3,8 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::ed25519_program;
-use anchor_lang::solana_program::instruction::Instruction;
+use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 
 declare_id!("Hook1111111111111111111111111111111111111111");
 
@@ -23,6 +22,16 @@ pub mod sage_verification_hook {
         Ok(())
     }
 
+    /// Initialize user state (must be called before verify_registration)
+    pub fn initialize_user_state(ctx: Context<InitializeUserState>) -> Result<()> {
+        let user_state = &mut ctx.accounts.user_state;
+        user_state.registration_count = 0;
+        user_state.last_registration = 0;
+        user_state.last_day = 0;
+        user_state.blacklisted = false;
+        Ok(())
+    }
+
     /// Verify registration before it happens
     pub fn verify_registration(
         ctx: Context<VerifyRegistration>,
@@ -32,10 +41,10 @@ pub mod sage_verification_hook {
     ) -> Result<()> {
         let user_state = &mut ctx.accounts.user_state;
         let clock = Clock::get()?;
-        
+
         // Check if user is blacklisted
         require!(!user_state.blacklisted, ErrorCode::Blacklisted);
-        
+
         // Check cooldown
         if user_state.last_registration > 0 {
             require!(
@@ -43,26 +52,26 @@ pub mod sage_verification_hook {
                 ErrorCode::CooldownActive
             );
         }
-        
+
         // Check daily limit
         let current_day = clock.unix_timestamp / 86400;
         if user_state.last_day != current_day {
             user_state.registration_count = 0;
             user_state.last_day = current_day;
         }
-        
+
         require!(
             user_state.registration_count < MAX_REGISTRATIONS_PER_DAY,
             ErrorCode::DailyLimitReached
         );
-        
+
         // Verify DID format
         require!(did.starts_with("did:"), ErrorCode::InvalidDIDFormat);
         require!(did.len() >= 10, ErrorCode::InvalidDIDFormat);
-        
+
         // Verify Ed25519 signature
         verify_ed25519_signature(&ctx.accounts.signer.key(), &message, &signature)?;
-        
+
         Ok(())
     }
 
@@ -128,14 +137,27 @@ pub struct Initialize<'info> {
 }
 
 #[derive(Accounts)]
-#[instruction(did: String)]
-pub struct VerifyRegistration<'info> {
+pub struct InitializeUserState<'info> {
     #[account(
-        init_if_needed,
+        init,
         payer = signer,
         space = 8 + UserState::LEN,
         seeds = [b"user_state", signer.key().as_ref()],
         bump
+    )]
+    pub user_state: Account<'info, UserState>,
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(did: String)]
+pub struct VerifyRegistration<'info> {
+    #[account(
+        mut,
+        seeds = [b"user_state", signer.key().as_ref()],
+        bump,
     )]
     pub user_state: Account<'info, UserState>,
     #[account(
@@ -147,9 +169,6 @@ pub struct VerifyRegistration<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
     pub system_program: Program<'info, System>,
-    /// CHECK: Ed25519 program for signature verification
-    #[account(address = ed25519_program::ID)]
-    pub ed25519_program: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
@@ -234,27 +253,30 @@ pub enum ErrorCode {
     HookDisabled,
 }
 
-/// Verify Ed25519 signature using the Ed25519 program
+/// Verify Ed25519 signature using ed25519-dalek
 fn verify_ed25519_signature(
     pubkey: &Pubkey,
     message: &[u8],
     signature: &[u8],
 ) -> Result<()> {
     require!(signature.len() == 64, ErrorCode::InvalidSignature);
-    
-    // Construct the Ed25519 program instruction
-    let instruction = Instruction {
-        program_id: ed25519_program::id(),
-        accounts: vec![],
-        data: ed25519_program::create_instruction_data(pubkey, message, signature),
-    };
-    
-    // Submit the instruction to the Solana runtime
-    let result = solana_program::program::invoke(&instruction, &[]);
-    
-    // Handle the result of the verification
-    match result {
-        Ok(_) => Ok(()),
-        Err(_) => err!(ErrorCode::InvalidSignature),
-    }
+
+    // Convert Pubkey to VerifyingKey (Ed25519 public key is 32 bytes)
+    let pubkey_bytes: &[u8; 32] = pubkey.as_ref().try_into()
+        .map_err(|_| ErrorCode::InvalidSignature)?;
+
+    let verifying_key = VerifyingKey::from_bytes(pubkey_bytes)
+        .map_err(|_| ErrorCode::InvalidSignature)?;
+
+    // Convert signature bytes to Signature
+    let sig_bytes: [u8; 64] = signature.try_into()
+        .map_err(|_| ErrorCode::InvalidSignature)?;
+    let sig = Signature::from_bytes(&sig_bytes);
+
+    // Verify the signature
+    verifying_key
+        .verify(message, &sig)
+        .map_err(|_| ErrorCode::InvalidSignature)?;
+
+    Ok(())
 }

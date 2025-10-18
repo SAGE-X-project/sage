@@ -20,3 +20,9 @@ default = []
 
 [dependencies]
 anchor-lang = "0.29.0"
+ed25519-dalek = { version = "2.0", default-features = false }
+sha2 = "0.10"
+
+[dev-dependencies]
+rand = "0.8"
+rand_core = "0.6"
