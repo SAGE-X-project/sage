@@ -1,12 +1,7 @@
+version: "2"
+
 run:
   timeout: 5m
-  tests: true
-  skip-dirs:
-    - vendor
-    - node_modules
-    - .git
-  skip-files:
-    - "contracts/ethereum/bindings/go/example.go"
 
 linters:
   enable:
@@ -17,18 +12,25 @@ linters:
     - unused
     - gosimple
     - ineffassign
-
-issues:
-  exclude-rules:
-    # Exclude some linters from running on tests files
-    - path: _test\.go
-      linters:
-        - errcheck
-        - unused
-    # Exclude auto-generated files
-    - path: ".*\\.gen\\.go"
-      linters:
-        - all
-    # Exclude bindings (auto-generated)
-    - path: "contracts/ethereum/bindings/go/"
-      text: "local import"
+  exclusions:
+    paths:
+      - vendor
+      - node_modules
+      - .git
+      - contracts/ethereum/bindings/go/example.go
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - unused
+      - path: ".*\\.gen\\.go"
+        linters:
+          - gofmt
+          - govet
+          - errcheck
+          - staticcheck
+          - unused
+          - gosimple
+          - ineffassign
+      - path: "contracts/ethereum/bindings/go/"
+        text: "local import"
