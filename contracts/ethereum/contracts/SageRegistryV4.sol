@@ -36,7 +36,6 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
 
     // Signature constants
     uint256 private constant ECDSA_SIGNATURE_LENGTH = 65;
-    uint256 private constant ED25519_SIGNATURE_LENGTH = 64;
 
     // Modifiers
     modifier onlyOwner() {
@@ -361,6 +360,23 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
         // Uncomment to enable strict DID validation:
         // _validateDIDFormat(did, msg.sender);
     }
+
+    // ============ OPTIONAL SECURITY FEATURE (Currently Disabled) ============
+    //
+    // The following functions provide DID format validation for stronger identity binding.
+    // Currently disabled for backward compatibility and cross-chain flexibility.
+    //
+    // To enable: Uncomment line 361 in _validateRegistrationInputs()
+    //
+    // Functions:
+    //   - _validateDIDFormat: Validates DID includes owner address
+    //   - _startsWith: String prefix checking helper
+    //   - _parseAddressFromHex: Hex string to address conversion
+    //   - _hexCharToUint: Hex character to uint conversion
+    //
+    // Note: Kept for future security enhancement. Removal would require
+    //       re-implementation if stricter DID validation is needed later.
+    // =========================================================================
 
     /**
      * @notice Validate that DID includes the owner's Ethereum address
