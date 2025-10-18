@@ -194,11 +194,12 @@ jobs:
           go-version: '1.23.0'
           cache: false  # Disable cache to avoid tar extraction issues
 
+      - name: Install go-licenses v2
+        run: go install github.com/google/go-licenses/v2@v2.0.1
+
       - name: Check Go licenses
         continue-on-error: true  # Allow CI to pass while reporting license issues
-        uses: google/go-licenses@v1.6.0
-        with:
-          args: check ./...
+        run: go-licenses check ./...
 
       - name: Check npm licenses
         continue-on-error: true  # Allow CI to pass while reporting license issues
