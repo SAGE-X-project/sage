@@ -519,20 +519,6 @@ func generateMultiKeySignatures(
 	return signatures, nil
 }
 
-// extractECDSAPrivateKey extracts the ECDSA private key from a KeyPair
-func extractECDSAPrivateKey(keyPair crypto.KeyPair) (*ecdsa.PrivateKey, error) {
-	// Get the private key interface
-	privKey := keyPair.PrivateKey()
-
-	// Type assert to *ecdsa.PrivateKey
-	ecdsaPrivKey, ok := privKey.(*ecdsa.PrivateKey)
-	if !ok {
-		return nil, crypto.ErrInvalidKeyType
-	}
-
-	return ecdsaPrivKey, nil
-}
-
 // TestV4PublicKeyOwnershipVerification tests that the contract prevents
 // registration of public keys that don't belong to msg.sender
 //

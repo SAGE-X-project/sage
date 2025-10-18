@@ -169,9 +169,11 @@ func TestV4MultiKeyResolution(t *testing.T) {
 			t.Errorf("Key %d should be verified", i)
 		}
 
-		if key.Type == did.KeyTypeECDSA {
+		// Use tagged switch for staticcheck QF1003
+		switch key.Type {
+		case did.KeyTypeECDSA:
 			ecdsaCount++
-		} else if key.Type == did.KeyTypeEd25519 {
+		case did.KeyTypeEd25519:
 			ed25519Count++
 		}
 	}

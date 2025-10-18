@@ -170,7 +170,8 @@ func TestDeriveEthereumAddress(t *testing.T) {
 		// Verify all hex chars
 		addressWithoutPrefix := strings.TrimPrefix(address, "0x")
 		for i, c := range addressWithoutPrefix {
-			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+			// Apply De Morgan's law for staticcheck QF1001
+			if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
 				t.Errorf("Address contains non-hex character at position %d: %c", i, c)
 			}
 		}
