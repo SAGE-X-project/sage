@@ -29,10 +29,10 @@ import (
 
 func TestGenerateAgentDIDWithAddress(t *testing.T) {
 	tests := []struct {
-		name          string
-		chain         Chain
-		ownerAddress  string
-		expectedDID   AgentDID
+		name         string
+		chain        Chain
+		ownerAddress string
+		expectedDID  AgentDID
 	}{
 		{
 			name:         "Ethereum with 0x prefix",
