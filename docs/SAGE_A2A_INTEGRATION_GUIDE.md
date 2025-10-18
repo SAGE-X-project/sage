@@ -3,7 +3,7 @@
 **Target Project**: `sage-a2a-go`
 **Purpose**: Integrate SAGE DID system with A2A (Agent-to-Agent) protocol
 **SAGE Version**: v4 (Multi-key Registry)
-**Date**: 2025-01-18
+**Last Updated**: 2025-01-19 (DID Helper Functions exported)
 
 ---
 
@@ -31,6 +31,9 @@ SAGE is a **DID Registry and Cryptographic Infrastructure** that provides:
 - ✅ Public key resolution by DID and key type
 - ✅ Cryptographic operations (sign/verify)
 - ✅ Owner address validation in DID format
+- ✅ DID generation helpers (`GenerateAgentDIDWithAddress`, `GenerateAgentDIDWithNonce`, `DeriveEthereumAddress`)
+- ✅ Public key marshaling/unmarshaling (`MarshalPublicKey`, `UnmarshalPublicKey`)
+- ✅ A2A Agent Card generation (`GenerateA2ACard`, `ValidateA2ACard`, `MergeA2ACard`)
 
 ### What sage-a2a-go Will Provide
 
@@ -88,6 +91,9 @@ sage-a2a-go is an **A2A Protocol Integration Layer** that will provide:
 | Owner Validation | DID format with owner address | ✅ Complete |
 | Crypto Operations | Sign/Verify with different key types | ✅ Complete |
 | Blockchain Client | Ethereum V4 client | ✅ Complete |
+| DID Helper Functions | `GenerateAgentDIDWithAddress()`, `GenerateAgentDIDWithNonce()`, `DeriveEthereumAddress()` | ✅ Complete |
+| Key Marshaling | `MarshalPublicKey()`, `UnmarshalPublicKey()` | ✅ Complete |
+| A2A Agent Card | `GenerateA2ACard()`, `ValidateA2ACard()`, `MergeA2ACard()` | ✅ Complete |
 
 ### sage-a2a-go Responsibilities
 
@@ -129,9 +135,11 @@ type AgentMetadata struct {
 }
 ```
 
-### 2. Multi-Key Resolution (NEW in V4)
+### 2. Multi-Key Resolution (✅ Implemented in V4)
 
 **Package**: `github.com/sage-x-project/sage/pkg/agent/did/ethereum`
+
+**Status**: ✅ Available
 
 ```go
 // EthereumClientV4 interface
@@ -160,26 +168,48 @@ const (
 )
 ```
 
-### 3. DID Format (NEW in V4)
+### 3. DID Format & Helper Functions (✅ Implemented in V4)
+
+**Package**: `github.com/sage-x-project/sage/pkg/agent/did`
+
+**Status**: ✅ Available (exported as public API)
 
 **Enhanced DID Format with Owner Validation**:
 
 ```
-Format 1: did:sage:ethereum:0x{address}
-Format 2: did:sage:ethereum:0x{address}:{nonce}
+Ethereum:
+- Format 1: did:sage:ethereum:0x{address}
+- Format 2: did:sage:ethereum:0x{address}:{nonce}
+
+Solana:
+- Format 1: did:sage:solana:{address}
+- Format 2: did:sage:solana:{address}:{nonce}
 ```
 
-**Helper Functions** (in `cmd/sage-did/register.go` - can be moved to package):
+**Helper Functions** (✅ Public API in `pkg/agent/did/utils.go`):
 
 ```go
-// Generate DID with owner address
-func generateAgentDIDWithAddress(chain did.Chain, ownerAddress string) did.AgentDID
+// Generate DID with owner address (Ethereum or Solana)
+func GenerateAgentDIDWithAddress(chain Chain, ownerAddress string) AgentDID
 
-// Generate DID with owner address and nonce
-func generateAgentDIDWithNonce(chain did.Chain, ownerAddress string, nonce uint64) did.AgentDID
+// Generate DID with owner address and nonce (for multiple agents per owner)
+func GenerateAgentDIDWithNonce(chain Chain, ownerAddress string, nonce uint64) AgentDID
 
 // Derive Ethereum address from secp256k1 keypair
-func deriveEthereumAddress(keyPair crypto.KeyPair) (string, error)
+func DeriveEthereumAddress(keyPair crypto.KeyPair) (string, error)
+```
+
+**Usage Example**:
+```go
+import "github.com/sage-x-project/sage/pkg/agent/did"
+
+// Create DID with Ethereum address
+agentDID := did.GenerateAgentDIDWithAddress(did.ChainEthereum, "0xf39Fd...")
+// Returns: "did:sage:ethereum:0xf39fd..."
+
+// Create multiple DIDs for same owner
+did1 := did.GenerateAgentDIDWithNonce(did.ChainEthereum, "0xf39Fd...", 0)
+did2 := did.GenerateAgentDIDWithNonce(did.ChainEthereum, "0xf39Fd...", 1)
 ```
 
 ### 4. Crypto Operations
@@ -201,17 +231,30 @@ func GenerateSecp256k1KeyPair() (KeyPair, error)
 func GenerateEd25519KeyPair() (KeyPair, error)
 ```
 
-### 5. DID Marshaling/Unmarshaling
+### 5. DID Marshaling/Unmarshaling (✅ Implemented)
 
 **Package**: `github.com/sage-x-project/sage/pkg/agent/did`
 
+**Status**: ✅ Available (public API in `pkg/agent/did/utils.go`)
+
 ```go
 // Marshal public key to bytes
+// Supports: ed25519.PublicKey, *secp256k1.PublicKey, *ecdsa.PublicKey
 func MarshalPublicKey(pubKey interface{}) ([]byte, error)
 
 // Unmarshal public key from bytes
 // keyType: "secp256k1" or "ed25519"
 func UnmarshalPublicKey(data []byte, keyType string) (interface{}, error)
+```
+
+**Usage Example**:
+```go
+// Marshal Ed25519 public key
+keyPair, _ := crypto.GenerateEd25519KeyPair()
+marshaled, _ := did.MarshalPublicKey(keyPair.PublicKey())
+
+// Unmarshal back
+unmarshaled, _ := did.UnmarshalPublicKey(marshaled, "ed25519")
 ```
 
 ---
@@ -996,7 +1039,12 @@ client.ApproveEd25519Key(ctx, keyHash)
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-01-18
+**Document Version**: 1.1
+**Last Updated**: 2025-01-19
+**Changes**:
+  - Exported DID helper functions as public API (`pkg/agent/did/utils.go`)
+  - Added comprehensive unit tests and godoc
+  - Updated API locations and implementation status
+
 **Author**: SAGE Development Team
 **Contact**: https://github.com/sage-x-project/sage

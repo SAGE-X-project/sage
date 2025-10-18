@@ -55,6 +55,50 @@ See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 - **Modular Architecture**: Clean separation of concerns with extensible event-driven design
 - **Comprehensive Testing**: 85+ feature tests, integration tests, random fuzzing, and health monitoring
 
+## A2A Protocol Integration
+
+SAGE provides native support for the **Google A2A (Agent-to-Agent)** protocol, enabling seamless interoperability with AI agent platforms that implement the A2A standard.
+
+### Available APIs
+
+- **DID Generation Helpers** (`pkg/agent/did`):
+  - `GenerateAgentDIDWithAddress()` - Create DIDs with owner address validation
+  - `GenerateAgentDIDWithNonce()` - Support multiple agents per owner
+  - `DeriveEthereumAddress()` - Derive Ethereum address from secp256k1 keys
+
+- **Public Key Utilities** (`pkg/agent/did`):
+  - `MarshalPublicKey()` / `UnmarshalPublicKey()` - Cross-platform key serialization
+  - Support for Ed25519, ECDSA/secp256k1, and X25519 keys
+
+- **A2A Agent Cards** (`pkg/agent/did`):
+  - `GenerateA2ACard()` - Export agent metadata as A2A-compliant JSON
+  - `ValidateA2ACard()` - Validate incoming A2A agent cards
+  - `MergeA2ACard()` - Import capabilities from A2A agents
+
+### Integration Guide
+
+For detailed integration instructions with the **sage-a2a-go** project, see:
+- [SAGE A2A Integration Guide](docs/SAGE_A2A_INTEGRATION_GUIDE.md)
+- [sage-a2a-go Repository](https://github.com/sage-x-project/sage-a2a-go)
+
+### Quick Example
+
+```go
+import "github.com/sage-x-project/sage/pkg/agent/did"
+
+// Generate a key pair and derive Ethereum address
+keyPair, _ := crypto.GenerateSecp256k1KeyPair()
+ownerAddr, _ := did.DeriveEthereumAddress(keyPair)
+
+// Create DID with owner address for verification
+agentDID := did.GenerateAgentDIDWithAddress(did.ChainEthereum, ownerAddr)
+// Result: "did:sage:ethereum:0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+
+// For multi-agent systems, use nonce
+did1 := did.GenerateAgentDIDWithNonce(did.ChainEthereum, ownerAddr, 0)
+did2 := did.GenerateAgentDIDWithNonce(did.ChainEthereum, ownerAddr, 1)
+```
+
 ## Project Structure
 
 ```
