@@ -16,36 +16,17 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "owner",
+        "name": "caller",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "bytes",
-        "name": "data",
+        "name": "hookData",
         "type": "bytes"
       }
     ],
     "name": "AfterRegisterHook",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "oldHook",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newHook",
-        "type": "address"
-      }
-    ],
-    "name": "AfterRegisterHookUpdated",
     "type": "event"
   },
   {
@@ -141,13 +122,13 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "owner",
+        "name": "caller",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "bytes",
-        "name": "data",
+        "name": "hookData",
         "type": "bytes"
       }
     ],
@@ -159,37 +140,18 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "address",
-        "name": "oldHook",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newHook",
-        "type": "address"
-      }
-    ],
-    "name": "BeforeRegisterHookUpdated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "hook",
-        "type": "address"
+        "internalType": "bytes32",
+        "name": "keyHash",
+        "type": "bytes32"
       },
       {
         "indexed": false,
-        "internalType": "string",
-        "name": "reason",
-        "type": "string"
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
       }
     ],
-    "name": "HookFailed",
+    "name": "Ed25519KeyApproved",
     "type": "event"
   },
   {
@@ -198,106 +160,100 @@
       {
         "indexed": true,
         "internalType": "bytes32",
-        "name": "keyHash",
+        "name": "agentId",
         "type": "bytes32"
       },
       {
         "indexed": true,
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
+        "internalType": "bytes32",
+        "name": "keyHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "enum ISageRegistryV4.KeyType",
+        "name": "keyType",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      }
+    ],
+    "name": "KeyAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "agentId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "keyHash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
       }
     ],
     "name": "KeyRevoked",
     "type": "event"
   },
   {
-    "anonymous": false,
+    "inputs": [],
+    "name": "OWNER",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
-        "indexed": true,
         "internalType": "bytes32",
-        "name": "keyHash",
+        "name": "agentId",
         "type": "bytes32"
       },
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "owner",
-        "type": "address"
-      }
-    ],
-    "name": "KeyValidated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "previousOwner",
-        "type": "address"
+        "internalType": "enum ISageRegistryV4.KeyType",
+        "name": "keyType",
+        "type": "uint8"
       },
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "OwnershipTransferStarted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "previousOwner",
-        "type": "address"
+        "internalType": "bytes",
+        "name": "keyData",
+        "type": "bytes"
       },
       {
-        "indexed": true,
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
       }
     ],
-    "name": "OwnershipTransferred",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
+    "name": "addKey",
+    "outputs": [
       {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
+        "internalType": "bytes32",
+        "name": "",
+        "type": "bytes32"
       }
     ],
-    "name": "Paused",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "account",
-        "type": "address"
-      }
-    ],
-    "name": "Unpaused",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "acceptOwnership",
-    "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
@@ -312,6 +268,19 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "keyHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "approveEd25519Key",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -336,19 +305,6 @@
       }
     ],
     "name": "deactivateAgent",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "did",
-        "type": "string"
-      }
-    ],
-    "name": "deactivateAgentByDID",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -386,9 +342,9 @@
             "type": "string"
           },
           {
-            "internalType": "bytes",
-            "name": "publicKey",
-            "type": "bytes"
+            "internalType": "bytes32[]",
+            "name": "keyHashes",
+            "type": "bytes32[]"
           },
           {
             "internalType": "string",
@@ -416,7 +372,7 @@
             "type": "bool"
           }
         ],
-        "internalType": "struct ISageRegistry.AgentMetadata",
+        "internalType": "struct ISageRegistryV4.AgentMetadata",
         "name": "",
         "type": "tuple"
       }
@@ -457,9 +413,9 @@
             "type": "string"
           },
           {
-            "internalType": "bytes",
-            "name": "publicKey",
-            "type": "bytes"
+            "internalType": "bytes32[]",
+            "name": "keyHashes",
+            "type": "bytes32[]"
           },
           {
             "internalType": "string",
@@ -487,9 +443,28 @@
             "type": "bool"
           }
         ],
-        "internalType": "struct ISageRegistry.AgentMetadata",
+        "internalType": "struct ISageRegistryV4.AgentMetadata",
         "name": "",
         "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "agentId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getAgentKeys",
+    "outputs": [
+      {
+        "internalType": "bytes32[]",
+        "name": "",
+        "type": "bytes32[]"
       }
     ],
     "stateMutability": "view",
@@ -518,6 +493,52 @@
     "inputs": [
       {
         "internalType": "bytes32",
+        "name": "keyHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getKey",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "enum ISageRegistryV4.KeyType",
+            "name": "keyType",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes",
+            "name": "keyData",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes",
+            "name": "signature",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bool",
+            "name": "verified",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "registeredAt",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct ISageRegistryV4.AgentKey",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
         "name": "agentId",
         "type": "bytes32"
       }
@@ -536,104 +557,51 @@
   {
     "inputs": [
       {
-        "internalType": "bytes",
-        "name": "publicKey",
-        "type": "bytes"
-      }
-    ],
-    "name": "isKeyValid",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "pause",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "paused",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "pendingOwner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "string",
-        "name": "did",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "name",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "endpoint",
-        "type": "string"
-      },
-      {
-        "internalType": "bytes",
-        "name": "publicKey",
-        "type": "bytes"
-      },
-      {
-        "internalType": "string",
-        "name": "capabilities",
-        "type": "string"
-      },
-      {
-        "internalType": "bytes",
-        "name": "signature",
-        "type": "bytes"
+        "components": [
+          {
+            "internalType": "string",
+            "name": "did",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "description",
+            "type": "string"
+          },
+          {
+            "internalType": "string",
+            "name": "endpoint",
+            "type": "string"
+          },
+          {
+            "internalType": "enum ISageRegistryV4.KeyType[]",
+            "name": "keyTypes",
+            "type": "uint8[]"
+          },
+          {
+            "internalType": "bytes[]",
+            "name": "keyData",
+            "type": "bytes[]"
+          },
+          {
+            "internalType": "bytes[]",
+            "name": "signatures",
+            "type": "bytes[]"
+          },
+          {
+            "internalType": "string",
+            "name": "capabilities",
+            "type": "string"
+          }
+        ],
+        "internalType": "struct ISageRegistryV4.RegistrationParams",
+        "name": "params",
+        "type": "tuple"
       }
     ],
     "name": "registerAgent",
@@ -648,18 +616,16 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "renounceOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
-        "internalType": "bytes",
-        "name": "publicKey",
-        "type": "bytes"
+        "internalType": "bytes32",
+        "name": "agentId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "keyHash",
+        "type": "bytes32"
       }
     ],
     "name": "revokeKey",
@@ -689,26 +655,6 @@
       }
     ],
     "name": "setBeforeRegisterHook",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "newOwner",
-        "type": "address"
-      }
-    ],
-    "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "unpause",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

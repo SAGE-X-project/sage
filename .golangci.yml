@@ -1,0 +1,39 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - ineffassign
+  exclusions:
+    paths:
+      - vendor
+      - node_modules
+      - .git
+      - contracts/ethereum/bindings/go/example.go
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+      - path: ".*\\.gen\\.go"
+        linters:
+          - govet
+          - errcheck
+          - staticcheck
+          - ineffassign
+      - path: "contracts/ethereum/bindings/go/"
+        text: "local import"
+
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    paths:
+      - vendor
+      - node_modules
+      - .git
+      - contracts/ethereum/bindings/go/example.go

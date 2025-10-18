@@ -19,12 +19,14 @@
 package did
 
 import (
+	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 // MarshalPublicKey converts a public key to bytes for storage
@@ -34,6 +36,24 @@ func MarshalPublicKey(publicKey interface{}) ([]byte, error) {
 		return pk, nil
 	case *secp256k1.PublicKey:
 		return pk.SerializeCompressed(), nil
+	case *ecdsa.PublicKey:
+		// Handle ECDSA public keys (including secp256k1 converted to ECDSA)
+		// Check if this is a secp256k1 curve (Ethereum)
+		// Note: Can't use pointer equality (pk.Curve == ethcrypto.S256()) because
+		// different libraries may use different curve instances
+		if pk.Curve.Params().Name == "secp256k1" {
+			// For secp256k1, use compressed format (33 bytes)
+			// This matches ethers.js Wallet.publicKey format
+			return ethcrypto.CompressPubkey(pk), nil
+		}
+		// For other ECDSA curves, use uncompressed format (0x04 || X || Y)
+		// Manual construction to avoid deprecated elliptic.Marshal
+		byteLen := (pk.Curve.Params().BitSize + 7) / 8
+		bytes := make([]byte, 1+2*byteLen)
+		bytes[0] = 0x04 // uncompressed point format
+		pk.X.FillBytes(bytes[1 : 1+byteLen])
+		pk.Y.FillBytes(bytes[1+byteLen:])
+		return bytes, nil
 	default:
 		// Try to marshal as generic public key using x509
 		return x509.MarshalPKIXPublicKey(publicKey)

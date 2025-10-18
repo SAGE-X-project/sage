@@ -1,33 +1,29 @@
-# SAGE Smart Contracts
+# SAGE Ethereum Contracts - Implementation Guide
 
 ## Overview
 
-SAGE Registry smart contracts for managing AI agent identities and ERC-8004 Trustless Agents implementation.
+This directory contains the Ethereum/EVM implementation of SAGE smart contracts for decentralized AI agent identity management.
 
-### 🌐 Live Deployments
+**For general SAGE contracts documentation, see [../README.md](../README.md)**
 
-**Sepolia Testnet** (LIVE ✅):
+### Current Implementation Status
 
-- SageRegistryV2: [`0x487d45a678eb947bbF9d8f38a67721b13a0209BF`](https://sepolia.etherscan.io/address/0x487d45a678eb947bbF9d8f38a67721b13a0209BF)
-- ERC8004ValidationRegistry: [`0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440`](https://sepolia.etherscan.io/address/0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440)
-- [See all deployed contracts →](./docs/PHASE7-SEPOLIA-DEPLOYMENT-COMPLETE.md)
+**V4 (Latest - In Development)**
+- Multi-key registry with Ed25519, ECDSA, X25519 support
+- Smart contract: `contracts/SageRegistryV4.sol`
+- Test suite: `test/SageRegistryV4.test.js` (30 tests, 100% passing)
+- Status: Contract complete, pending deployment
 
-### ⚡ Key Features
+**V2 (Stable Production)**
+- Enhanced validation with 5-step public key verification
+- Deployed on Sepolia testnet: `0x487d45a678eb947bbF9d8f38a67721b13a0209BF`
+- Smart contract: `contracts/SageRegistryV2.sol`
+- Status: Production ready
 
-**SAGE Core System**:
-
-- **Enhanced Security**: ReentrancyGuard, Ownable2Step, Pausable, Pull Payment
-- **Public Key Validation**: 5-step secp256k1 verification process
-- **Key Revocation**: Ability to revoke compromised keys
-- **Hook System**: Extensible verification hooks with gas limits
-- **Front-running Protection**: Commit-reveal pattern in V3
-
-**ERC-8004 Implementation**:
-
-- **Validation Registry**: Stake-based and TEE attestation validation
-- **Reputation System**: Task authorization with commit-reveal
-- **Identity Registry**: Decentralized agent identity management
-- **Consensus Mechanism**: Configurable validator thresholds
+**V1 (Deprecated)**
+- Legacy implementation with basic signature verification
+- Smart contract: `contracts/SageRegistry.sol`
+- Status: Archived, not recommended for new deployments
 
 ## Quick Start
 
@@ -58,39 +54,47 @@ Get test KLAY from Kairos faucet: <https://kairos.wallet.kaia.io/faucet>
 ./bin/quick-start.sh
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 sage/contracts/ethereum/
 ├── contracts/               # Smart contracts
-│   ├── SageRegistry.sol     # V1 Registry (deprecated)
-│   ├── SageRegistryV2.sol   # V2 Registry with enhanced validation
-│   ├── SageVerificationHook.sol
+│   ├── SageRegistryV4.sol       # V4 multi-key registry (latest)
+│   ├── SageRegistryV3.sol       # V3 registry (legacy)
+│   ├── SageRegistryV2.sol       # V2 registry with enhanced validation (stable)
+│   ├── SageRegistry.sol         # V1 registry (deprecated)
+│   ├── SageVerificationHook.sol # Hook implementation
 │   └── interfaces/
+│       ├── ISageRegistryV4.sol  # V4 interface
+│       ├── ISageRegistry.sol    # V2 interface
+│       └── IRegistryHook.sol    # Hook interface
 ├── scripts/                 # Deployment and utility scripts
-│   ├── deploy-v2.js        # Main deployment script
-│   ├── quick-test.js       # Quick testing script
-│   └── check-balance.js   # Balance checker
-├── test/                   # Test files
-│   ├── SageRegistryV2.test.js
-│   └── integration-v2.test.js
-├── bin/                    # Shell scripts
-│   ├── quick-start.sh      # Interactive setup
-│   ├── deploy-v2.sh        # Deployment helper
-│   ├── compile.sh          # Compilation script
-│   ├── test.sh             # Test runner
-│   └── test-v2.sh          # V2-specific tests
-├── deployments/            # Deployment records
-├── hardhat.config.js       # Hardhat configuration
+│   ├── deploy-unified.js        # Unified deployment script
+│   ├── deploy-v2.js            # V2 deployment
+│   ├── quick-test.js           # Quick testing
+│   └── check-balance.js        # Balance checker
+├── test/                    # Test files
+│   ├── SageRegistryV4.test.js      # V4 multi-key tests (30 tests)
+│   ├── SageRegistryV2.test.js      # V2 unit tests
+│   ├── integration-v2.test.js      # V2 integration tests
+│   └── SageRegistry.test.fixed.js  # V1 compatibility tests
+├── bin/                     # Shell scripts
+│   ├── quick-start.sh          # Interactive setup
+│   ├── deploy-v2.sh            # Deployment helper
+│   ├── compile.sh              # Compilation script
+│   ├── test.sh                 # Test runner
+│   └── test-v2.sh              # V2-specific tests
+├── deployments/             # Deployment records (auto-generated)
+├── hardhat.config.js        # Hardhat configuration
 └── package.json
 
 ```
 
-## 🛠 Available Scripts
+## Available Scripts
 
 ### Shell Scripts (in `bin/` directory)
 
-#### **quick-start.sh** - Interactive Setup Assistant
+#### quick-start.sh - Interactive Setup Assistant
 
 ```bash
 ./bin/quick-start.sh
@@ -104,7 +108,7 @@ Features:
 - Runs tests
 - Provides deployment options
 
-#### **deploy-v2.sh** - Deployment Helper
+#### deploy-v2.sh - Deployment Helper
 
 ```bash
 ./bin/deploy-v2.sh
@@ -116,7 +120,7 @@ Options:
 2. Kaia Testnet (Kairos)
 3. Kaia Mainnet
 
-#### **compile.sh** - Compile Contracts
+#### compile.sh - Compile Contracts
 
 ```bash
 ./bin/compile.sh
@@ -124,7 +128,7 @@ Options:
 
 Compiles all contracts with size report.
 
-#### **test-v2.sh** - Run V2 Tests
+#### test-v2.sh - Run V2 Tests
 
 ```bash
 ./bin/test-v2.sh
@@ -287,36 +291,46 @@ The updated `hardhat.config.js` now includes:
 
 ## Security Features
 
-### SageRegistryV2 Enhancements
+### SageRegistryV4 (Latest)
 
-1. **Public Key Validation**
-   - Format checking (0x04, 0x02, 0x03)
-   - Zero-key prevention
-   - Length validation (32-65 bytes)
+1. **Multi-Key Validation**
+   - Type-specific verification (Ed25519, ECDSA, X25519)
+   - ECDSA keys verified on-chain via ecrecover
+   - Ed25519 keys require registry owner pre-approval
+   - X25519 keys automatically verified for encryption
 
-2. **Ownership Verification**
-   - Challenge-response signature
-   - Private key possession proof
-   - Replay attack protection
+2. **Key Lifecycle Management**
+   - Add/revoke keys independently
+   - Maximum 10 keys per agent (DoS prevention)
+   - Key-specific verification status tracking
+   - Owner-controlled approval for Ed25519 keys
 
-3. **Key Management**
-   - Key revocation capability
-   - Automatic agent deactivation
-   - Revoked key tracking
+3. **Enhanced Security**
+   - ReentrancyGuard protection
+   - Ownable2Step for safe ownership transfer
+   - Pausable for emergency situations
+   - Per-key verification status
 
 ### Gas Usage
 
+**V4 Gas Costs:**
+- Single-key registration: ~875K gas
+- Three-key registration: ~1.3M gas
+- Add key: ~50K gas per key
+- Revoke key: ~30K gas
+
+**V2 Gas Costs:**
 - Registration: ~620K gas
 - Update: ~50K gas
 - Revocation: ~30K gas
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
 #### Compilation Warnings
 
- Fixed in latest version - no warnings
+Fixed in latest version - no warnings
 
 #### "Insufficient funds" Error
 
@@ -351,12 +365,14 @@ curl -X POST -H "Content-Type: application/json" \
   https://public-en-kairos.node.kaia.io
 ```
 
-## 📚 Documentation
+## Documentation
 
-- [Deployment Guide](DEPLOYMENT_GUIDE.md) - Detailed deployment instructions
-- [Migration Guide](MIGRATION_GUIDE_V2.md) - V1 to V2 migration
-- [Code Review](CODE_REVIEW_V2.md) - Security analysis
-- [Key Validation](KEY_VALIDATION_IMPROVEMENTS.md) - Technical improvements
+See the main contracts documentation:
+- [Contracts Overview](../README.md) - General SAGE contracts documentation
+- [Deployment Guide](../DEPLOYMENT_GUIDE.md) - Deployment instructions
+- [Roadmap](../ROADMAP.md) - Planned features and enhancements
+- [Multi-Key Design](../MULTI_KEY_DESIGN.md) - V4 multi-key architecture specification
+- [Security Audit (Legacy)](../archived/SECURITY_AUDIT_LEGACY.md) - Historical security findings
 
 ## Resources
 
@@ -365,7 +381,7 @@ curl -X POST -H "Content-Type: application/json" \
 - [Hardhat Documentation](https://hardhat.org)
 - [Ethers.js Documentation](https://docs.ethers.org)
 
-## 📄 License
+## License
 
 This directory contains SAGE smart contracts licensed under the **MIT License**.
 

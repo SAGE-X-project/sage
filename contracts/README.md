@@ -17,7 +17,50 @@ The SAGE contracts provide a decentralized registry for AI agents with enhanced 
 - **Multi-chain Support**: Ethereum, Kaia, and other EVM-compatible chains
 - **Gas Optimized**: Efficient storage patterns and streamlined operations
 
-### V2 Enhancements (Current Version)
+### V4 Enhancements (Latest Version - In Development)
+
+**Multi-Key Agent Support with A2A Protocol Compatibility**
+
+SageRegistryV4 introduces a comprehensive multi-key architecture enabling agents to register and manage multiple cryptographic key types simultaneously. This design provides true multi-chain interoperability and compatibility with the Google A2A (Agent-to-Agent) protocol.
+
+**Key Features:**
+
+- **Multi-Key Architecture**: Single agent can register up to 10 keys across different types
+  - Ed25519 (32 bytes) - Solana, Cardano, Polkadot compatibility
+  - ECDSA/secp256k1 (33/65 bytes) - Ethereum, Bitcoin compatibility
+  - X25519 (32 bytes) - HPKE key exchange for secure communication
+
+- **Type-Specific Verification**:
+  - ECDSA keys verified on-chain via ecrecover signature validation
+  - Ed25519 keys require registry owner pre-approval (EVM native support pending)
+  - X25519 keys automatically verified upon registration
+
+- **Key Lifecycle Management**:
+  - `registerAgent()` - Register agent with multiple keys in single transaction
+  - `addKey()` - Add new keys to existing agent with signature proof
+  - `revokeKey()` - Revoke compromised keys (owner-controlled)
+  - `approveEd25519Key()` - Owner approves Ed25519 keys after verification
+
+- **A2A Protocol Integration**:
+  - Native support for A2A Agent Card generation
+  - DID-based identity with multi-key credential verification
+  - Service endpoint management for agent discovery
+  - Capability declarations for interoperability
+
+- **Gas Efficiency**:
+  - ~875,000 gas for single-key registration
+  - ~1,300,000 gas for three-key registration
+  - ~50,000 gas per additional key via addKey()
+  - Optimized storage with packed AgentKey structs
+
+- **Backward Compatibility**:
+  - Maintains support for legacy single-key agents
+  - Automatic conversion from V2/V3 agent metadata format
+  - Migration path from previous registry versions
+
+**Status**: Smart contract implementation complete (30 tests passing), Go backend integration complete (77.6% coverage), CLI tools available (card generate/validate/show). Deployment to testnet/mainnet pending.
+
+### V2 Features (Stable)
 
 - **5-Step Public Key Validation**
   - Length validation (33, 64, or 65 bytes for secp256k1)
@@ -34,14 +77,23 @@ The SAGE contracts provide a decentralized registry for AI agents with enhanced 
 
 ### Ethereum Implementation
 
-#### V2 Contracts (Recommended)
+#### V4 Contracts (Latest - In Development)
+
+- **SageRegistryV4.sol**: Multi-key registry with Ed25519, ECDSA, and X25519 support
+- **ISageRegistryV4.sol**: V4 registry interface with multi-key operations
+- **Types**: AgentKey, AgentMetadataV4, KeyType enum (Ed25519, ECDSA, X25519)
+- **Features**: Multi-key registration, key lifecycle management, A2A protocol compatibility
+
+**Status**: Smart contract complete (30 unit tests passing), pending deployment to testnet
+
+#### V2 Contracts (Stable Production)
 
 - **SageRegistryV2.sol**: Enhanced registry with 5-step public key validation
 - **SageVerificationHook.sol**: Hook implementation with DID validation, rate limiting, and blacklist
 - **IRegistryHook.sol**: Hook interface for extensibility
 - **ISageRegistry.sol**: Registry interface
 
-#### V1 Contracts (Legacy)
+#### V1 Contracts (Legacy - Deprecated)
 
 - **SageRegistry.sol**: Original registry contract with basic signature verification
 
@@ -435,13 +487,17 @@ npx hardhat test --network localhost                # Terminal 2
 ```
 contracts/ethereum/
 ├── contracts/
-│   ├── SageRegistryV2.sol          # V2 registry with enhanced validation
-│   ├── SageRegistry.sol            # V1 registry (legacy)
+│   ├── SageRegistryV4.sol          # V4 multi-key registry (latest)
+│   ├── SageRegistryV3.sol          # V3 registry (legacy)
+│   ├── SageRegistryV2.sol          # V2 registry (stable production)
+│   ├── SageRegistry.sol            # V1 registry (deprecated)
 │   ├── SageVerificationHook.sol    # Hook implementation
 │   └── interfaces/
-│       ├── ISageRegistry.sol       # Registry interface
+│       ├── ISageRegistryV4.sol     # V4 multi-key interface
+│       ├── ISageRegistry.sol       # V2 registry interface
 │       └── IRegistryHook.sol       # Hook interface
 ├── test/
+│   ├── SageRegistryV4.test.js      # V4 multi-key tests (30 tests)
 │   ├── SageRegistryV2.test.js      # V2 unit tests
 │   ├── integration-v2.test.js      # V2 integration tests
 │   └── SageRegistry.test.fixed.js  # V1 compatibility tests

@@ -20,6 +20,8 @@ package main
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -30,6 +32,7 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/sha3"
 )
 
 var registerCmd = &cobra.Command{
@@ -42,18 +45,20 @@ This command creates a new agent identity on the specified blockchain network.`,
 
 var (
 	// Register flags
-	registerChain        string
-	registerName         string
-	registerDescription  string
-	registerEndpoint     string
-	registerCapabilities string
-	registerKeyFile      string
-	registerKeyFormat    string
-	registerStorageDir   string
-	registerKeyID        string
-	registerRPCEndpoint  string
-	registerContractAddr string
-	registerPrivateKey   string
+	registerChain          string
+	registerName           string
+	registerDescription    string
+	registerEndpoint       string
+	registerCapabilities   string
+	registerKeyFile        string
+	registerKeyFormat      string
+	registerStorageDir     string
+	registerKeyID          string
+	registerRPCEndpoint    string
+	registerContractAddr   string
+	registerPrivateKey     string
+	registerAdditionalKeys string // Additional keys (comma-separated file paths)
+	registerKeyTypes       string // Key types for additional keys (comma-separated: ed25519,ecdsa)
 )
 
 func init() {
@@ -73,6 +78,10 @@ func init() {
 	registerCmd.Flags().StringVar(&registerKeyFormat, "key-format", "jwk", "Key file format (jwk, pem)")
 	registerCmd.Flags().StringVar(&registerStorageDir, "storage-dir", "", "Key storage directory")
 	registerCmd.Flags().StringVar(&registerKeyID, "key-id", "", "Key ID in storage")
+
+	// Multi-key support flags
+	registerCmd.Flags().StringVar(&registerAdditionalKeys, "additional-keys", "", "Additional key files (comma-separated)")
+	registerCmd.Flags().StringVar(&registerKeyTypes, "key-types", "", "Key types for additional keys (comma-separated: ed25519,ecdsa)")
 
 	// Blockchain connection flags
 	registerCmd.Flags().StringVar(&registerRPCEndpoint, "rpc", "", "Blockchain RPC endpoint")
@@ -100,7 +109,7 @@ func runRegister(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Load key pair
+	// Load primary key pair
 	keyPair, err := loadKeyPair()
 	if err != nil {
 		return fmt.Errorf("failed to load key pair: %w", err)
@@ -109,6 +118,15 @@ func runRegister(cmd *cobra.Command, args []string) error {
 	// Validate key type for chain
 	if err := validateKeyForChain(keyPair, chain); err != nil {
 		return err
+	}
+
+	// Load additional keys for multi-key registration
+	var additionalKeys []did.AgentKey
+	if registerAdditionalKeys != "" {
+		additionalKeys, err = loadAdditionalKeys(registerAdditionalKeys, registerKeyTypes)
+		if err != nil {
+			return fmt.Errorf("failed to load additional keys: %w", err)
+		}
 	}
 
 	// Parse capabilities
@@ -150,6 +168,7 @@ func runRegister(cmd *cobra.Command, args []string) error {
 		Endpoint:     registerEndpoint,
 		Capabilities: capabilities,
 		KeyPair:      keyPair,
+		Keys:         additionalKeys, // Multi-key support
 	}
 
 	// Register agent
@@ -252,6 +271,64 @@ func generateAgentDID(chain did.Chain, keyPair crypto.KeyPair) did.AgentDID {
 	return did.AgentDID(fmt.Sprintf("did:sage:%s:%s", chain, agentID))
 }
 
+// generateAgentDIDWithAddress creates a DID that includes the owner's Ethereum address
+// Format: did:sage:ethereum:0x{address}
+// This enables off-chain ownership verification and cross-chain traceability
+// and prevents DID collisions across different owners
+func generateAgentDIDWithAddress(chain did.Chain, ownerAddress string) did.AgentDID {
+	// Ensure address starts with 0x
+	if !strings.HasPrefix(ownerAddress, "0x") {
+		ownerAddress = "0x" + ownerAddress
+	}
+	// Convert to lowercase for consistency
+	ownerAddress = strings.ToLower(ownerAddress)
+	return did.AgentDID(fmt.Sprintf("did:sage:%s:%s", chain, ownerAddress))
+}
+
+// generateAgentDIDWithNonce creates a DID with both owner address and nonce
+// Format: did:sage:ethereum:0x{address}:{nonce}
+// Use case: Creating multiple agents per owner
+func generateAgentDIDWithNonce(chain did.Chain, ownerAddress string, nonce uint64) did.AgentDID {
+	// Ensure address starts with 0x
+	if !strings.HasPrefix(ownerAddress, "0x") {
+		ownerAddress = "0x" + ownerAddress
+	}
+	// Convert to lowercase for consistency
+	ownerAddress = strings.ToLower(ownerAddress)
+	return did.AgentDID(fmt.Sprintf("did:sage:%s:%s:%d", chain, ownerAddress, nonce))
+}
+
+// deriveEthereumAddress derives the Ethereum address from a secp256k1 keypair
+// This address can be used with generateAgentDIDWithAddress() for enhanced DID format
+// that includes owner verification
+func deriveEthereumAddress(keyPair crypto.KeyPair) (string, error) {
+	// Verify this is a secp256k1 key
+	if keyPair.Type() != crypto.KeyTypeSecp256k1 {
+		return "", fmt.Errorf("ethereum address derivation requires secp256k1 key, got %s", keyPair.Type())
+	}
+
+	// Extract ECDSA public key
+	ecdsaPubKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
+	if !ok {
+		return "", fmt.Errorf("failed to convert public key to ECDSA format")
+	}
+
+	// Convert public key to uncompressed format (64 bytes: 32 bytes X + 32 bytes Y)
+	pubKeyBytes := make([]byte, 64)
+	ecdsaPubKey.X.FillBytes(pubKeyBytes[:32])
+	ecdsaPubKey.Y.FillBytes(pubKeyBytes[32:])
+
+	// Keccak256 hash of the public key
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(pubKeyBytes)
+	addressBytes := hash.Sum(nil)
+
+	// Take the last 20 bytes as the address and format with 0x prefix
+	address := "0x" + hex.EncodeToString(addressBytes[12:])
+
+	return address, nil
+}
+
 func getDefaultRPCEndpoint(chain did.Chain) string {
 	switch chain {
 	case did.ChainEthereum:
@@ -294,4 +371,46 @@ func saveRegistrationInfo(storageDir, agentDID string, result *did.RegistrationR
 	if err := os.WriteFile(fileName, data, 0600); err != nil {
 		fmt.Printf("Warning: failed to save registration info to %s: %v\n", fileName, err)
 	}
+}
+
+func loadAdditionalKeys(keyFiles, keyTypesStr string) ([]did.AgentKey, error) {
+	files := strings.Split(keyFiles, ",")
+	types := strings.Split(keyTypesStr, ",")
+
+	if len(files) != len(types) {
+		return nil, fmt.Errorf("number of key files (%d) must match number of key types (%d)", len(files), len(types))
+	}
+
+	var keys []did.AgentKey
+	for i, file := range files {
+		file = strings.TrimSpace(file)
+		keyTypeStr := strings.TrimSpace(types[i])
+
+		// Parse key type
+		var keyType did.KeyType
+		switch strings.ToLower(keyTypeStr) {
+		case "ed25519":
+			keyType = did.KeyTypeEd25519
+		case "ecdsa", "secp256k1":
+			keyType = did.KeyTypeECDSA
+		default:
+			return nil, fmt.Errorf("unsupported key type: %s (supported: ed25519, ecdsa)", keyTypeStr)
+		}
+
+		// Read key file
+		// #nosec G304 - User-specified file path is intentional for CLI tool
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read key file %s: %w", file, err)
+		}
+
+		// For now, we expect raw public key bytes in the file
+		// In production, you'd want to support multiple formats (JWK, PEM, etc.)
+		keys = append(keys, did.AgentKey{
+			Type:    keyType,
+			KeyData: data,
+		})
+	}
+
+	return keys, nil
 }
