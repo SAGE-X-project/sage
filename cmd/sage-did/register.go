@@ -20,8 +20,6 @@ package main
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -32,7 +30,6 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/spf13/cobra"
-	"golang.org/x/crypto/sha3"
 )
 
 var registerCmd = &cobra.Command{
@@ -271,63 +268,9 @@ func generateAgentDID(chain did.Chain, keyPair crypto.KeyPair) did.AgentDID {
 	return did.AgentDID(fmt.Sprintf("did:sage:%s:%s", chain, agentID))
 }
 
-// generateAgentDIDWithAddress creates a DID that includes the owner's Ethereum address
-// Format: did:sage:ethereum:0x{address}
-// This enables off-chain ownership verification and cross-chain traceability
-// and prevents DID collisions across different owners
-func generateAgentDIDWithAddress(chain did.Chain, ownerAddress string) did.AgentDID {
-	// Ensure address starts with 0x
-	if !strings.HasPrefix(ownerAddress, "0x") {
-		ownerAddress = "0x" + ownerAddress
-	}
-	// Convert to lowercase for consistency
-	ownerAddress = strings.ToLower(ownerAddress)
-	return did.AgentDID(fmt.Sprintf("did:sage:%s:%s", chain, ownerAddress))
-}
-
-// generateAgentDIDWithNonce creates a DID with both owner address and nonce
-// Format: did:sage:ethereum:0x{address}:{nonce}
-// Use case: Creating multiple agents per owner
-func generateAgentDIDWithNonce(chain did.Chain, ownerAddress string, nonce uint64) did.AgentDID {
-	// Ensure address starts with 0x
-	if !strings.HasPrefix(ownerAddress, "0x") {
-		ownerAddress = "0x" + ownerAddress
-	}
-	// Convert to lowercase for consistency
-	ownerAddress = strings.ToLower(ownerAddress)
-	return did.AgentDID(fmt.Sprintf("did:sage:%s:%s:%d", chain, ownerAddress, nonce))
-}
-
-// deriveEthereumAddress derives the Ethereum address from a secp256k1 keypair
-// This address can be used with generateAgentDIDWithAddress() for enhanced DID format
-// that includes owner verification
-func deriveEthereumAddress(keyPair crypto.KeyPair) (string, error) {
-	// Verify this is a secp256k1 key
-	if keyPair.Type() != crypto.KeyTypeSecp256k1 {
-		return "", fmt.Errorf("ethereum address derivation requires secp256k1 key, got %s", keyPair.Type())
-	}
-
-	// Extract ECDSA public key
-	ecdsaPubKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
-	if !ok {
-		return "", fmt.Errorf("failed to convert public key to ECDSA format")
-	}
-
-	// Convert public key to uncompressed format (64 bytes: 32 bytes X + 32 bytes Y)
-	pubKeyBytes := make([]byte, 64)
-	ecdsaPubKey.X.FillBytes(pubKeyBytes[:32])
-	ecdsaPubKey.Y.FillBytes(pubKeyBytes[32:])
-
-	// Keccak256 hash of the public key
-	hash := sha3.NewLegacyKeccak256()
-	hash.Write(pubKeyBytes)
-	addressBytes := hash.Sum(nil)
-
-	// Take the last 20 bytes as the address and format with 0x prefix
-	address := "0x" + hex.EncodeToString(addressBytes[12:])
-
-	return address, nil
-}
+// Note: DID helper functions have been moved to pkg/agent/did/utils.go for public API access.
+// Use did.GenerateAgentDIDWithAddress(), did.GenerateAgentDIDWithNonce(), and
+// did.DeriveEthereumAddress() instead.
 
 func getDefaultRPCEndpoint(chain did.Chain) string {
 	switch chain {
