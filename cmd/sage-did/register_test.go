@@ -52,18 +52,18 @@ func TestGenerateAgentDIDWithAddress(t *testing.T) {
 		{
 			name:          "Solana chain",
 			chain:         did.ChainSolana,
-			ownerAddress:  "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
-			expectedDID:   "did:sage:solana:0x742d35cc6634c0532925a3b844bc9e7595f0beb0",
+			ownerAddress:  "DYw8jCTfwHNRJhhmFcbXvVDTqWMEVFBX6ZKUmG5CNSKK",
+			expectedDID:   "did:sage:solana:dyw8jctfwhnrjhhmfcbxvvdtqwmevfbx6zkumg5cnskk",
 			expectContain: "solana",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := generateAgentDIDWithAddress(tt.chain, tt.ownerAddress)
+			result := did.GenerateAgentDIDWithAddress(tt.chain, tt.ownerAddress)
 
 			if string(result) != tt.expectedDID {
-				t.Errorf("generateAgentDIDWithAddress() = %v, want %v", result, tt.expectedDID)
+				t.Errorf("did.GenerateAgentDIDWithAddress() = %v, want %v", result, tt.expectedDID)
 			}
 
 			if !strings.Contains(string(result), tt.expectContain) {
@@ -118,10 +118,10 @@ func TestGenerateAgentDIDWithNonce(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := generateAgentDIDWithNonce(tt.chain, tt.ownerAddress, tt.nonce)
+			result := did.GenerateAgentDIDWithNonce(tt.chain, tt.ownerAddress, tt.nonce)
 
 			if string(result) != tt.expectedDID {
-				t.Errorf("generateAgentDIDWithNonce() = %v, want %v", result, tt.expectedDID)
+				t.Errorf("did.GenerateAgentDIDWithNonce() = %v, want %v", result, tt.expectedDID)
 			}
 
 			// Verify format
@@ -147,7 +147,7 @@ func TestDeriveEthereumAddress(t *testing.T) {
 		}
 
 		// Derive address
-		address, err := deriveEthereumAddress(keyPair)
+		address, err := did.DeriveEthereumAddress(keyPair)
 		if err != nil {
 			t.Fatalf("Failed to derive address: %v", err)
 		}
@@ -185,7 +185,7 @@ func TestDeriveEthereumAddress(t *testing.T) {
 		}
 
 		// Try to derive address (should fail)
-		_, err = deriveEthereumAddress(keyPair)
+		_, err = did.DeriveEthereumAddress(keyPair)
 		if err == nil {
 			t.Error("Expected error for Ed25519 keypair, got nil")
 		}
@@ -203,12 +203,12 @@ func TestDeriveEthereumAddress(t *testing.T) {
 		}
 
 		// Derive address twice
-		address1, err := deriveEthereumAddress(keyPair)
+		address1, err := did.DeriveEthereumAddress(keyPair)
 		if err != nil {
 			t.Fatalf("Failed to derive address (first): %v", err)
 		}
 
-		address2, err := deriveEthereumAddress(keyPair)
+		address2, err := did.DeriveEthereumAddress(keyPair)
 		if err != nil {
 			t.Fatalf("Failed to derive address (second): %v", err)
 		}
@@ -229,13 +229,13 @@ func TestDIDGenerationIntegration(t *testing.T) {
 		}
 
 		// Derive address
-		address, err := deriveEthereumAddress(keyPair)
+		address, err := did.DeriveEthereumAddress(keyPair)
 		if err != nil {
 			t.Fatalf("Failed to derive address: %v", err)
 		}
 
 		// Generate DID with address
-		didWithAddr := generateAgentDIDWithAddress(did.ChainEthereum, address)
+		didWithAddr := did.GenerateAgentDIDWithAddress(did.ChainEthereum, address)
 
 		// Verify DID contains the address
 		if !strings.Contains(string(didWithAddr), address) {
@@ -243,7 +243,7 @@ func TestDIDGenerationIntegration(t *testing.T) {
 		}
 
 		// Generate DID with nonce
-		didWithNonce := generateAgentDIDWithNonce(did.ChainEthereum, address, 1)
+		didWithNonce := did.GenerateAgentDIDWithNonce(did.ChainEthereum, address, 1)
 
 		// Verify DID format
 		expectedPrefix := "did:sage:ethereum:" + address + ":"
