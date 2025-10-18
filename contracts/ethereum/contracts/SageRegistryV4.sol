@@ -129,18 +129,73 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
 
     /**
      * @notice Revoke a key from an agent
+     * @dev Completely removes the key from the agent (not just soft delete)
+     *      This ensures revoked keys cannot be used even if verification checks are missed
      */
     function revokeKey(bytes32 agentId, bytes32 keyHash)
         external
         onlyAgentOwner(agentId)
     {
         require(agentKeys[keyHash].registeredAt > 0, "Key not found");
+        require(_keyExistsInAgent(agentId, keyHash), "Key not in agent");
         require(agents[agentId].keyHashes.length > 1, "Cannot revoke last key");
 
-        agentKeys[keyHash].verified = false;
+        // Completely remove key from agent's keyHashes array
+        _removeKeyFromAgent(agentId, keyHash);
+
+        // Delete key data from storage
+        delete agentKeys[keyHash];
+
+        // Update metadata and nonce
         agents[agentId].updatedAt = block.timestamp;
+        agentNonce[agentId]++;
 
         emit KeyRevoked(agentId, keyHash, block.timestamp);
+    }
+
+    /**
+     * @notice Atomically rotate a key (remove old key and add new key)
+     * @dev This is the recommended way to replace a compromised key
+     *      The operation is atomic - if adding the new key fails,
+     *      the old key is not removed (transaction reverts)
+     * @param agentId The agent ID
+     * @param oldKeyHash The key hash to remove
+     * @param newKeyType The type of new key
+     * @param newKeyData The new public key data
+     * @param newSignature Signature proving ownership of new key
+     * @return newKeyHash Hash of the newly added key
+     */
+    function rotateKey(
+        bytes32 agentId,
+        bytes32 oldKeyHash,
+        KeyType newKeyType,
+        bytes calldata newKeyData,
+        bytes calldata newSignature
+    ) external onlyAgentOwner(agentId) returns (bytes32) {
+        require(agents[agentId].active, "Agent not active");
+        require(agentKeys[oldKeyHash].registeredAt > 0, "Old key not found");
+        require(agentKeys[oldKeyHash].verified, "Old key not verified");
+
+        // Verify old key belongs to this agent
+        require(_keyExistsInAgent(agentId, oldKeyHash), "Old key not in agent");
+
+        // Step 1: Process and verify new key (will revert if invalid)
+        bytes32 newKeyHash = _processAndStoreKey(agentId, newKeyType, newKeyData, newSignature);
+
+        // Step 2: Remove old key from agent's keyHashes array
+        // Only reaches here if new key was successfully added
+        _removeKeyFromAgent(agentId, oldKeyHash);
+
+        // Step 3: Delete old key data
+        delete agentKeys[oldKeyHash];
+
+        // Step 4: Update metadata and nonce
+        agents[agentId].updatedAt = block.timestamp;
+        agentNonce[agentId]++;
+
+        emit KeyRotated(agentId, oldKeyHash, newKeyHash, block.timestamp);
+
+        return newKeyHash;
     }
 
     /**
@@ -365,20 +420,37 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
     }
 
     /**
-     * @notice Verify ECDSA signature
+     * @notice Verify ECDSA signature and public key ownership
+     * @dev This function performs TWO critical security checks:
+     *      1. Signature verification: Confirms msg.sender signed the message
+     *      2. Public key ownership: Confirms the public key belongs to msg.sender
+     *      Both checks must pass to prevent public key theft attacks
+     * @param messageHash The hash of the message that was signed
+     * @param signature The ECDSA signature (65 bytes: r + s + v)
+     * @param publicKey The secp256k1 public key being registered
+     * @param expectedSigner The address that should have signed (typically msg.sender)
+     * @return true if both signature and ownership are valid
      */
     function _verifyEcdsaSignature(
         bytes32 messageHash,
         bytes memory signature,
-        bytes memory /* publicKey */,
+        bytes memory publicKey,
         address expectedSigner
     ) private pure returns (bool) {
+        // Check 1: Verify that expectedSigner (msg.sender) signed the message
         bytes32 ethSignedHash = keccak256(
             abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)
         );
 
         address recovered = _recoverSigner(ethSignedHash, signature);
-        return recovered == expectedSigner;
+        require(recovered == expectedSigner, "Invalid signature");
+
+        // Check 2: Verify that the public key actually belongs to the signer
+        // This prevents attackers from registering someone else's public key
+        address derivedAddress = _deriveAddressFromPublicKey(publicKey);
+        require(derivedAddress == expectedSigner, "Public key does not match signer");
+
+        return true;
     }
 
     /**
@@ -405,6 +477,55 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
     }
 
     /**
+     * @notice Derive Ethereum address from secp256k1 public key
+     * @dev Ethereum address = last 20 bytes of keccak256(publicKey)
+     *      This is used to verify that the registered public key actually belongs to msg.sender
+     * @param publicKey The public key in uncompressed (65 bytes with 0x04 prefix) or raw (64 bytes) format
+     * @return The derived Ethereum address
+     */
+    function _deriveAddressFromPublicKey(bytes memory publicKey)
+        private
+        pure
+        returns (address)
+    {
+        bytes memory keyWithoutPrefix;
+
+        if (publicKey.length == SECP256K1_UNCOMPRESSED_LENGTH) {
+            // Uncompressed format: 0x04 + 64 bytes (x, y coordinates)
+            require(publicKey[0] == 0x04, "Invalid uncompressed key prefix");
+
+            // Extract 64 bytes (x, y) without the 0x04 prefix
+            keyWithoutPrefix = new bytes(SECP256K1_RAW_LENGTH);
+            for (uint256 i = 0; i < SECP256K1_RAW_LENGTH; i++) {
+                keyWithoutPrefix[i] = publicKey[i + 1];
+            }
+        } else if (publicKey.length == SECP256K1_RAW_LENGTH) {
+            // Raw format: 64 bytes (x, y coordinates without prefix)
+            keyWithoutPrefix = publicKey;
+        } else if (publicKey.length == SECP256K1_COMPRESSED_LENGTH) {
+            // Compressed format: 0x02/0x03 + 32 bytes
+            // Decompression requires elliptic curve point operations (very expensive gas cost)
+            // For security-critical operations, we require uncompressed keys for clarity
+            revert("Compressed keys not supported");
+        } else {
+            revert("Invalid public key length");
+        }
+
+        // Compute keccak256 hash of the 64-byte public key
+        bytes32 hash = keccak256(keyWithoutPrefix);
+
+        // Ethereum address is the last 20 bytes of the hash
+        address derivedAddress;
+        assembly {
+            // Load the last 20 bytes from the hash
+            // mload loads 32 bytes, so we need to shift right by 12 bytes (96 bits)
+            derivedAddress := and(hash, 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+        }
+
+        return derivedAddress;
+    }
+
+    /**
      * @notice Get first verified ECDSA key for an agent
      */
     function _getFirstVerifiedEcdsaKey(bytes32 agentId) private view returns (bytes32) {
@@ -416,6 +537,45 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
             }
         }
         return bytes32(0);
+    }
+
+    /**
+     * @notice Remove a key hash from agent's keyHashes array
+     * @dev Uses swap-and-pop pattern for gas efficiency
+     * @param agentId The agent ID
+     * @param keyHash The key hash to remove
+     */
+    function _removeKeyFromAgent(bytes32 agentId, bytes32 keyHash) private {
+        bytes32[] storage hashes = agents[agentId].keyHashes;
+
+        // Find the key in the array
+        for (uint256 i = 0; i < hashes.length; i++) {
+            if (hashes[i] == keyHash) {
+                // Swap with last element and pop
+                hashes[i] = hashes[hashes.length - 1];
+                hashes.pop();
+                return;
+            }
+        }
+
+        // If we reach here, key was not found
+        revert("Key not found in agent");
+    }
+
+    /**
+     * @notice Check if a key hash exists in agent's keyHashes array
+     * @param agentId The agent ID
+     * @param keyHash The key hash to check
+     * @return true if key exists in agent's keyHashes
+     */
+    function _keyExistsInAgent(bytes32 agentId, bytes32 keyHash) private view returns (bool) {
+        bytes32[] memory hashes = agents[agentId].keyHashes;
+        for (uint256 i = 0; i < hashes.length; i++) {
+            if (hashes[i] == keyHash) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

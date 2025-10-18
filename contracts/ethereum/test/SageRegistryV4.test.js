@@ -71,13 +71,6 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
   }
 
   /**
-   * Helper function to create X25519 key (32 bytes)
-   */
-  function createX25519Key() {
-    return ethers.hexlify(ethers.randomBytes(32));
-  }
-
-  /**
    * Helper function to create a mock Ed25519 signature
    */
   function createMockEd25519Signature() {
@@ -85,19 +78,11 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
   }
 
   /**
-   * Helper function to create a mock X25519 signature
-   */
-  function createMockX25519Signature() {
-    return ethers.hexlify(ethers.randomBytes(65));
-  }
-
-  /**
    * Helper function to get KeyType enum value
    */
   const KeyType = {
     Ed25519: 0,
-    ECDSA: 1,
-    X25519: 2
+    ECDSA: 1
   };
 
   beforeEach(async function () {
@@ -199,16 +184,15 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
 
       await expect(
         sageRegistry.connect(testWallet).registerAgent(params)
-      ).to.be.revertedWith("ECDSA signature verification failed");
+      ).to.be.revertedWith("Invalid signature");
     });
   });
 
   describe("Multi-Key Registration", function () {
-    it("Should register agent with ECDSA, Ed25519, and X25519 keys", async function () {
+    it("Should register agent with ECDSA and Ed25519 keys", async function () {
       const testWallet = ethers.Wallet.createRandom().connect(ethers.provider);
       const ecdsaKey = testWallet.signingKey.publicKey;
       const ed25519Key = createEd25519Key();
-      const x25519Key = createX25519Key();
       const did = `did:sage:test:${testWallet.address}`;
 
       await owner.sendTransaction({
@@ -220,16 +204,15 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
       const agentIdCalc = calculateAgentId(did, ecdsaKey);
       const ecdsaSignature = await createEcdsaRegistrationSignature(testWallet, agentIdCalc, ecdsaKey);
       const ed25519Signature = createMockEd25519Signature();
-      const x25519Signature = createMockX25519Signature();
 
       const params = {
         did: did,
         name: testName,
         description: testDescription,
         endpoint: testEndpoint,
-        keyTypes: [KeyType.ECDSA, KeyType.Ed25519, KeyType.X25519],
-        keyData: [ecdsaKey, ed25519Key, x25519Key],
-        signatures: [ecdsaSignature, ed25519Signature, x25519Signature],
+        keyTypes: [KeyType.ECDSA, KeyType.Ed25519],
+        keyData: [ecdsaKey, ed25519Key],
+        signatures: [ecdsaSignature, ed25519Signature],
         capabilities: testCapabilities
       };
 
@@ -241,9 +224,9 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
       );
       const agentId = registerEvent.args[0];
 
-      // Verify agent has 3 keys
+      // Verify agent has 2 keys
       const agent = await sageRegistry.getAgent(agentId);
-      expect(agent.keyHashes.length).to.equal(3);
+      expect(agent.keyHashes.length).to.equal(2);
 
       // Verify ECDSA key is verified
       const ecdsaKeyHash = agent.keyHashes[0];
@@ -256,12 +239,6 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
       const ed25519StoredKey = await sageRegistry.getKey(ed25519KeyHash);
       expect(ed25519StoredKey.keyType).to.equal(KeyType.Ed25519);
       expect(ed25519StoredKey.verified).to.be.false;
-
-      // Verify X25519 key is verified (public key exchange)
-      const x25519KeyHash = agent.keyHashes[2];
-      const x25519StoredKey = await sageRegistry.getKey(x25519KeyHash);
-      expect(x25519StoredKey.keyType).to.equal(KeyType.X25519);
-      expect(x25519StoredKey.verified).to.be.true;
     });
 
     it("Should reject registration with mismatched array lengths", async function () {
@@ -299,9 +276,9 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
       });
 
       // Create 11 keys (exceeds MAX_KEYS_PER_AGENT = 10)
-      const keyTypes = Array(11).fill(KeyType.X25519);
-      const keyData = Array(11).fill(createX25519Key());
-      const signatures = Array(11).fill(createMockX25519Signature());
+      const keyTypes = Array(11).fill(KeyType.Ed25519);
+      const keyData = Array(11).fill(0).map(() => createEd25519Key());
+      const signatures = Array(11).fill(0).map(() => createMockEd25519Signature());
 
       const params = {
         did: did,
@@ -431,13 +408,13 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
     });
 
     it("Should allow agent owner to add new key", async function () {
-      const newX25519Key = createX25519Key();
-      const signature = createMockX25519Signature();
+      const newEd25519Key = createEd25519Key();
+      const signature = createMockEd25519Signature();
 
       const tx = await sageRegistry.connect(testWallet).addKey(
         agentId,
-        KeyType.X25519,
-        newX25519Key,
+        KeyType.Ed25519,
+        newEd25519Key,
         signature
       );
 
@@ -448,14 +425,14 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
     });
 
     it("Should reject non-owner adding key", async function () {
-      const newX25519Key = createX25519Key();
-      const signature = createMockX25519Signature();
+      const newEd25519Key = createEd25519Key();
+      const signature = createMockEd25519Signature();
 
       await expect(
         sageRegistry.connect(agent1).addKey(
           agentId,
-          KeyType.X25519,
-          newX25519Key,
+          KeyType.Ed25519,
+          newEd25519Key,
           signature
         )
       ).to.be.revertedWith("Not agent owner");
@@ -463,12 +440,12 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
 
     it("Should allow agent owner to revoke key", async function () {
       // First add a second key
-      const newX25519Key = createX25519Key();
-      const signature = createMockX25519Signature();
+      const newEd25519Key = createEd25519Key();
+      const signature = createMockEd25519Signature();
       await sageRegistry.connect(testWallet).addKey(
         agentId,
-        KeyType.X25519,
-        newX25519Key,
+        KeyType.Ed25519,
+        newEd25519Key,
         signature
       );
 
@@ -478,8 +455,14 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
       const tx = await sageRegistry.connect(testWallet).revokeKey(agentId, keyHashToRevoke);
       await expect(tx).to.emit(sageRegistry, "KeyRevoked");
 
-      const revokedKey = await sageRegistry.getKey(keyHashToRevoke);
-      expect(revokedKey.verified).to.be.false;
+      // Key should be completely deleted
+      const updatedAgent = await sageRegistry.getAgent(agentId);
+      expect(updatedAgent.keyHashes.length).to.equal(1);
+
+      // Trying to get deleted key should revert with "Key not found"
+      await expect(
+        sageRegistry.getKey(keyHashToRevoke)
+      ).to.be.revertedWith("Key not found");
     });
 
     it("Should prevent revoking last key", async function () {
@@ -517,32 +500,6 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
       await expect(
         sageRegistry.connect(testWallet).registerAgent(params)
       ).to.be.revertedWith("Invalid Ed25519 key length");
-    });
-
-    it("Should reject X25519 key with invalid length", async function () {
-      const testWallet = ethers.Wallet.createRandom().connect(ethers.provider);
-      const invalidX25519Key = ethers.hexlify(ethers.randomBytes(33));  // Wrong length
-      const did = `did:sage:test:${testWallet.address}`;
-
-      await owner.sendTransaction({
-        to: testWallet.address,
-        value: ethers.parseEther("1.0")
-      });
-
-      const params = {
-        did: did,
-        name: testName,
-        description: testDescription,
-        endpoint: testEndpoint,
-        keyTypes: [KeyType.X25519],
-        keyData: [invalidX25519Key],
-        signatures: [createMockX25519Signature()],
-        capabilities: testCapabilities
-      };
-
-      await expect(
-        sageRegistry.connect(testWallet).registerAgent(params)
-      ).to.be.revertedWith("Invalid X25519 key length");
     });
 
     it("Should reject ECDSA key with invalid length", async function () {
@@ -792,7 +749,6 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
       const testWallet = ethers.Wallet.createRandom().connect(ethers.provider);
       const ecdsaKey = testWallet.signingKey.publicKey;
       const ed25519Key = createEd25519Key();
-      const x25519Key = createX25519Key();
       const did = `did:sage:test:${testWallet.address}_multikey`;
 
       await owner.sendTransaction({
@@ -803,23 +759,22 @@ describe("SageRegistryV4 - Multi-Key Support", function () {
       const agentIdCalc = calculateAgentId(did, ecdsaKey);
       const ecdsaSignature = await createEcdsaRegistrationSignature(testWallet, agentIdCalc, ecdsaKey);
       const ed25519Signature = createMockEd25519Signature();
-      const x25519Signature = createMockX25519Signature();
 
       const params = {
         did: did,
         name: testName,
         description: testDescription,
         endpoint: testEndpoint,
-        keyTypes: [KeyType.ECDSA, KeyType.Ed25519, KeyType.X25519],
-        keyData: [ecdsaKey, ed25519Key, x25519Key],
-        signatures: [ecdsaSignature, ed25519Signature, x25519Signature],
+        keyTypes: [KeyType.ECDSA, KeyType.Ed25519],
+        keyData: [ecdsaKey, ed25519Key],
+        signatures: [ecdsaSignature, ed25519Signature],
         capabilities: testCapabilities
       };
 
       const tx = await sageRegistry.connect(testWallet).registerAgent(params);
       const receipt = await tx.wait();
 
-      console.log(`      Gas used for 3-key registration: ${receipt.gasUsed.toString()}`);
+      console.log(`      Gas used for 2-key registration: ${receipt.gasUsed.toString()}`);
       expect(receipt.gasUsed).to.be.lt(1500000);
     });
   });

@@ -107,6 +107,16 @@ interface ISageRegistryV4 {
     );
 
     /**
+     * @notice Emitted when a key is rotated (old key removed, new key added atomically)
+     */
+    event KeyRotated(
+        bytes32 indexed agentId,
+        bytes32 indexed oldKeyHash,
+        bytes32 indexed newKeyHash,
+        uint256 timestamp
+    );
+
+    /**
      * @notice Emitted when contract owner approves an Ed25519 key
      */
     event Ed25519KeyApproved(
@@ -174,6 +184,26 @@ interface ISageRegistryV4 {
      * @param keyHash Hash of key to revoke
      */
     function revokeKey(bytes32 agentId, bytes32 keyHash) external;
+
+    /**
+     * @notice Atomically rotate a key (remove old key and add new key)
+     * @dev This is the recommended way to replace a compromised key
+     *      The operation is atomic - if the new key fails verification,
+     *      the old key is not removed
+     * @param agentId Agent identifier
+     * @param oldKeyHash Hash of key to remove
+     * @param newKeyType Type of new key
+     * @param newKeyData New public key data
+     * @param newSignature Signature proving ownership of new key
+     * @return newKeyHash Hash of the new key
+     */
+    function rotateKey(
+        bytes32 agentId,
+        bytes32 oldKeyHash,
+        KeyType newKeyType,
+        bytes calldata newKeyData,
+        bytes calldata newSignature
+    ) external returns (bytes32);
 
     /**
      * @notice Contract owner approves an Ed25519 key
