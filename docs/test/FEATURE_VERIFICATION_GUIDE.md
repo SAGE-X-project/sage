@@ -703,7 +703,7 @@ echo "Hello SAGE" | ./build/bin/sage-crypto sign \
 - `deactivate`: DID 비활성화
 - Help 명령: 상세한 사용법
 
-### 6.3 sage-verify
+### 6.3 deployment-verify
 
 #### 테스트 항목
 - 메시지 검증 명령
@@ -711,18 +711,18 @@ echo "Hello SAGE" | ./build/bin/sage-crypto sign \
 - 체인 상태 확인
 
 #### 구현 위치
-- `cmd/sage-verify/`
+- `cmd/deployment-verify/`
 
 #### 테스트 방법
 ```bash
 # HTTP 메시지 검증
-./build/bin/sage-verify message \
+./build/bin/deployment-verify message \
   --signature-input "<sig-input>" \
   --signature "<sig>" \
   --message-file request.http
 
 # 체인 상태 확인
-./build/bin/sage-verify chain-status \
+./build/bin/deployment-verify chain-status \
   --chain ethereum \
   --rpc-url http://localhost:8545
 
@@ -1100,7 +1100,7 @@ go test -bench=. github.com/sage-x-project/sage/pkg/agent/session
 | | 검증 서비스 | 통합 검증 파이프라인 |  완료 |
 | **CLI 도구** | sage-crypto | 키 생성, 서명, 검증 |  완료 |
 | | sage-did | DID 등록, 조회, 관리 |  완료 |
-| | sage-verify | 메시지 검증 |  완료 |
+| | deployment-verify | 메시지 검증 |  완료 |
 | **세션 관리** | 세션 생성 | 세션 ID, 암호화 키 |  완료 |
 | | 세션 관리 | 조회, 갱신, 만료 |  완료 |
 | | Nonce 관리 | 세션별 Nonce |  완료 |
@@ -1196,7 +1196,7 @@ echo " 빠른 검증 완료"
 -  DID 관리 (생성, 등록, 조회, 업데이트, 비활성화)
 -  블록체인 연동 (Ethereum Web3, 가스 예측, 트랜잭션)
 -  메시지 처리 (Nonce, 순서, 검증, 중복 감지)
--  CLI 도구 (sage-crypto, sage-did, sage-verify)
+-  CLI 도구 (sage-crypto, sage-did, deployment-verify)
 -  세션 관리 (생성, 암호화, 만료)
 -  HPKE (키 교환, 암호화, 복호화)
 -  헬스체크 (상태 모니터링, 메트릭)

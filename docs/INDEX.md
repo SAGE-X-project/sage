@@ -117,14 +117,14 @@ DID management tool:
 sage-did help
 ```
 
-### sage-verify
+### deployment-verify
 
 Message signature verification:
 - RFC 9421 HTTP signature verification
 - Batch verification support
 
 ```bash
-sage-verify help
+deployment-verify help
 ```
 
 See [CLI Documentation](cli/) for detailed usage.

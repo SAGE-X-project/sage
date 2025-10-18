@@ -496,18 +496,18 @@ test -f /tmp/sig.bin && echo "성공"
 ```
 - CLI로 DID 해석
 
-#### 6.3 sage-verify (배포 검증 도구)
+#### 6.3 deployment-verify (배포 검증 도구)
 
 **6.3.1 배포 상태 검증**
 ```bash
-./build/bin/sage-verify
+./build/bin/deployment-verify
 ```
 - 블록체인 배포 상태 검증
 - 컨트랙트 주소 확인
 - 네트워크 연결 테스트
 - 환경 변수 확인
 
-**참고**: sage-verify는 HTTP 메시지 검증이 아닌 **블록체인 배포 검증 도구**입니다.
+**참고**: deployment-verify는 HTTP 메시지 검증이 아닌 **블록체인 배포 검증 도구**입니다.
 
 ---
 
@@ -945,7 +945,7 @@ make test-integration
 
 ---
 
-#### 5. sage-verify CLI (6.3)
+#### 5. deployment-verify CLI (6.3)
 
 **자동화 스크립트**: ⏭️ 건너뜀 (배포 상태 검증 도구)
 
@@ -959,8 +959,8 @@ npx hardhat node
 cd contracts/ethereum
 npx hardhat run scripts/deploy.js --network localhost
 
-# 3. sage-verify 실행 (터미널 3)
-./build/bin/sage-verify
+# 3. deployment-verify 실행 (터미널 3)
+./build/bin/deployment-verify
 ```
 
 **검증 내용**:
@@ -1182,7 +1182,7 @@ chmod +x tools/scripts/quick_verify.sh
 - **전체 검증**: `./tools/scripts/verify_all_features.sh -v` (5-10분, 88개 테스트 자동 실행)
 - **통합 테스트**: 자동화 스크립트에 포함됨 (DID/블록체인 검증)
 - **E2E 핸드셰이크**: 자동화 스크립트에 포함됨 (5개 시나리오)
-- **배포 검증**: `./build/bin/sage-verify` (수동, 블록체인 상태)
+- **배포 검증**: `./build/bin/deployment-verify` (수동, 블록체인 상태)
 
 ### 자동화 스크립트에서 건너뛴 테스트 (4개)
 
@@ -1196,10 +1196,10 @@ chmod +x tools/scripts/quick_verify.sh
 
 ### 추가 수동 검증 (선택사항)
 
-**6.3 sage-verify** - 배포 상태 검증 (자동화 스크립트에 미포함)
+**6.3 deployment-verify** - 배포 상태 검증 (자동화 스크립트에 미포함)
 ```bash
 # 블록체인 노드 시작 및 배포 후
-./build/bin/sage-verify
+./build/bin/deployment-verify
 ```
 
 ### 완전한 검증 체크리스트

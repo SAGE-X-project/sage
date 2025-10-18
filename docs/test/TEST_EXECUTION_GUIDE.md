@@ -115,7 +115,7 @@ export SAGE_CHAIN_ID=31337
 
 # Go verification
 cd ../../
-go run sage/cmd/sage-verify/main.go
+go run sage/cmd/deployment-verify/main.go
 ```
 
 #### Step 6: Test Cleanup and Termination

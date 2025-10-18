@@ -16,8 +16,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
-//go:build ignore
-// +build ignore
+//go:build integration
+// +build integration
 
 package main
 

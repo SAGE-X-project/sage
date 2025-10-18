@@ -105,7 +105,7 @@ sage/
 ├── cmd/                     # CLI applications
 │   ├── sage-crypto/        # Cryptographic operations CLI
 │   ├── sage-did/           # DID management CLI
-│   └── sage-verify/        # Message signature verification CLI (NEW)
+│   └── deployment-verify/  # Blockchain deployment verification CLI
 ├── examples/                # Usage examples
 │   └── mcp-integration/    # Model Context Protocol integration examples
 ├── tests/                   # Testing infrastructure (NEW)
@@ -169,7 +169,7 @@ make release
 # Or build individually
 go build -o build/bin/sage-crypto ./cmd/sage-crypto
 go build -o build/bin/sage-did ./cmd/sage-did
-go build -o build/bin/sage-verify ./cmd/sage-verify
+go build -o build/bin/deployment-verify ./cmd/deployment-verify
 
 # Compile smart contracts
 cd contracts/ethereum
