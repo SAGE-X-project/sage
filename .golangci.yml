@@ -8,8 +8,6 @@ linters:
     - govet
     - errcheck
     - staticcheck
-    - unused
-    - gosimple
     - ineffassign
   exclusions:
     paths:
@@ -21,14 +19,11 @@ linters:
       - path: _test\.go
         linters:
           - errcheck
-          - unused
       - path: ".*\\.gen\\.go"
         linters:
           - govet
           - errcheck
           - staticcheck
-          - unused
-          - gosimple
           - ineffassign
       - path: "contracts/ethereum/bindings/go/"
         text: "local import"
