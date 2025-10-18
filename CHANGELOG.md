@@ -5,6 +5,43 @@ All notable changes to SAGE (Secure Agent Guarantee Engine) will be documented i
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2025-10-18
+
+### Security
+
+- **Gosec Security Scan**: Addressed security findings from gosec static analysis (#93)
+  - Fixed potential security issues in cryptographic operations
+  - Resolved file permission and error handling vulnerabilities
+  - Enhanced input validation and bounds checking
+  - Added SARIF output format for better integration with security tools
+
+- **Code Scanning Vulnerabilities**: Resolved critical security issues (#91)
+  - Fixed 88 out of 128 code scanning vulnerabilities
+  - Addressed high-priority security concerns
+  - Improved code quality and security posture
+  - Enhanced error handling and validation logic
+
+### Fixed
+
+- **Smart Contract Code Quality**: Slither analysis improvements (#92)
+  - Resolved code quality and optimization issues
+  - Enhanced gas efficiency in contract operations
+  - Fixed potential edge cases and error conditions
+  - Improved contract maintainability
+
+- **CI/CD Pipeline**: Enhanced security scanning integration
+  - Added SARIF output and upload for gosec results
+  - Improved security scan reporting and visibility
+  - Better integration with GitHub Code Scanning
+
+### Changed
+
+- **Architecture Refactoring**: Removed A2A implementation from SAGE core (#90)
+  - Simplified core architecture by removing Agent-to-Agent (A2A) direct implementation
+  - Maintained compatibility through adapter pattern
+  - Improved code maintainability and clarity
+  - Reduced complexity in core modules
+
 ## [1.0.2] - 2025-10-13
 
 ### Fixed
@@ -316,6 +353,13 @@ SAGE v1.0.0 marks the first production-ready release of the Secure Agent Guarant
 ---
 
 ## Version History
+
+- **v1.0.3** (2025-10-18): Security and code quality improvements
+  - Gosec security scan findings addressed
+  - Critical code scanning vulnerabilities resolved (88/128 issues)
+  - Slither smart contract code quality improvements
+  - Enhanced CI/CD security scanning integration
+  - Removed A2A implementation from core architecture
 
 - **v1.0.2** (2025-10-13): Patch release with security and CI/CD improvements
   - Critical HPKE handshake security enhancements

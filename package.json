@@ -1,6 +1,6 @@
 {
   "name": "sage",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "[![Go Version](https://img.shields.io/badge/Go-1.23.0-blue.svg)](https://golang.org/dl/) [![Solidity Version](https://img.shields.io/badge/Solidity-0.8.19-red.svg)](https://soliditylang.org/) [![License](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)](LICENSE)",
   "main": "index.js",
   "directories": {
