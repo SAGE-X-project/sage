@@ -39,6 +39,26 @@ import (
 )
 
 // EthereumClientV4 implements V4 DID registry operations for Ethereum with multi-key support
+//
+// CHAIN-SPECIFIC SIGNATURE VERIFICATION DESIGN:
+//
+// This client implements Ethereum-specific key verification logic. Different blockchains
+// have different native cryptographic primitives and verification costs:
+//
+// ETHEREUM:
+//   - ECDSA (secp256k1): Uses ecrecover precompile for on-chain verification (REQUIRED signature)
+//   - Ed25519: No native precompile, uses off-chain verification + owner approval (NO signature)
+//
+// SOLANA (future implementation):
+//   - Ed25519: Native ed25519_verify instruction for on-chain verification (REQUIRED signature)
+//   - ECDSA: No native support, would use off-chain approval (NO signature or NOT SUPPORTED)
+//
+// TENDERMINT/COSMOS (future implementation):
+//   - Ed25519: Native verification (REQUIRED signature)
+//   - secp256k1: Supported but more expensive than Ed25519 (REQUIRED signature)
+//
+// This design allows each chain to use its most efficient verification method while
+// supporting cross-chain agent identities through the multi-key architecture.
 type EthereumClientV4 struct {
 	client          *ethclient.Client
 	contract        *registryv4.SageRegistryV4
@@ -154,15 +174,47 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 	// agentNonce is 0 for new registrations
 	agentNonce := big.NewInt(0)
 
-	// Now generate signatures for each key
+	// Generate signatures for each key based on chain-specific verification methods
+	//
+	// IMPORTANT: Signature requirements differ by blockchain due to on-chain verification capabilities:
+	//
+	// ETHEREUM (this implementation):
+	//   - ECDSA/secp256k1: Signature REQUIRED
+	//     → On-chain verification via ecrecover precompile (cheap and native)
+	//     → Contract verifies signature matches msg.sender
+	//   - Ed25519: Signature NOT REQUIRED
+	//     → No native on-chain verification (would require expensive precompile)
+	//     → Registered with empty signature, contract owner approves off-chain
+	//
+	// SOLANA/TENDERMINT (future implementations):
+	//   - Ed25519: Signature REQUIRED
+	//     → Native on-chain verification (ed25519_verify instruction)
+	//     → Contract verifies signature proves key ownership
+	//   - ECDSA: Signature NOT REQUIRED or NOT SUPPORTED
+	//     → No native secp256k1 verification on Solana
+	//     → Either use off-chain approval or don't support ECDSA
+	//
+	// This design ensures each chain uses its native cryptographic primitives efficiently
+	// while maintaining cross-chain compatibility through the multi-key architecture.
 	for i, key := range keys {
 
-		// Sign message with each key
+		// Priority 1: Use pre-computed signature if provided
 		if len(key.Signature) > 0 {
-			// Use pre-computed signature
 			signatures[i] = key.Signature
-		} else if req.KeyPair != nil && len(keys) == 1 {
-			// Single-key mode: generate signature for this key
+			continue
+		}
+
+		// Priority 2: Check if signature is required based on key type and chain
+		if key.Type == did.KeyTypeEd25519 {
+			// Ed25519 keys on Ethereum: NO signature required
+			// Will be verified off-chain and approved by contract owner
+			signatures[i] = []byte{} // Empty signature
+			continue
+		}
+
+		// Priority 3: Generate ECDSA signature for Ethereum
+		if key.Type == did.KeyTypeECDSA && req.KeyPair != nil && len(keys) == 1 {
+			// Single-key mode: generate ECDSA signature for this key
 			// Contract expects: keccak256(abi.encode(agentId, keyData, msg.sender, agentNonce))
 
 			// Use ABI encoding to match Solidity's abi.encode
@@ -190,7 +242,7 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 			prefixedData = append(prefixedData, messageHash.Bytes()...)
 			ethSignedHash := crypto.Keccak256Hash(prefixedData)
 
-			// Sign the ethSignedHash
+			// Sign the ethSignedHash with transaction signer's private key
 			sig, err := crypto.Sign(ethSignedHash.Bytes(), c.privateKey)
 			if err != nil {
 				return nil, fmt.Errorf("failed to sign with key %d: %w", i, err)
@@ -203,9 +255,11 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 			}
 
 			signatures[i] = sig
-		} else {
-			return nil, fmt.Errorf("key %d has no signature", i)
+			continue
 		}
+
+		// If we reach here, key requires signature but none was provided
+		return nil, fmt.Errorf("key %d (type=%d) requires signature but none provided", i, key.Type)
 	}
 
 	// Prepare transaction options
@@ -466,4 +520,87 @@ func (c *EthereumClientV4) prepareRegistrationMessage(req *did.RegistrationReque
 
 func (c *EthereumClientV4) prepareUpdateMessage(agentDID did.AgentDID, updates map[string]interface{}) string {
 	return fmt.Sprintf("Update agent: %s\nUpdates: %v", agentDID, updates)
+}
+
+// ApproveEd25519Key approves an Ed25519 key (contract owner only)
+func (c *EthereumClientV4) ApproveEd25519Key(ctx context.Context, keyHash [32]byte) error {
+	auth, err := c.getTransactOpts(ctx)
+	if err != nil {
+		return err
+	}
+
+	tx, err := c.contract.ApproveEd25519Key(auth, keyHash)
+	if err != nil {
+		return fmt.Errorf("failed to approve Ed25519 key: %w", err)
+	}
+
+	_, err = c.waitForTransaction(ctx, tx)
+	return err
+}
+
+// GetAgentKeyHash retrieves key details by calculating the key hash
+func (c *EthereumClientV4) GetAgentKeyHash(ctx context.Context, agentDID did.AgentDID, keyData []byte, keyType did.KeyType) ([32]byte, error) {
+	// First get agentId
+	agent, err := c.contract.GetAgentByDID(&bind.CallOpts{Context: ctx}, string(agentDID))
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to get agent: %w", err)
+	}
+
+	if agent.Did == "" {
+		return [32]byte{}, did.ErrDIDNotFound
+	}
+
+	// Calculate agentId (same as contract: keccak256(abi.encode(did, firstKeyData)))
+	stringType, _ := abi.NewType("string", "", nil)
+	bytesType, _ := abi.NewType("bytes", "", nil)
+	arguments := abi.Arguments{
+		{Type: stringType},
+		{Type: bytesType},
+	}
+
+	// Get first key data
+	firstKeyHash := agent.KeyHashes[0]
+	firstKey, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, firstKeyHash)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to get first key: %w", err)
+	}
+
+	agentIdData, err := arguments.Pack(string(agentDID), firstKey.KeyData)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to encode agentId: %w", err)
+	}
+
+	agentId := crypto.Keccak256Hash(agentIdData)
+
+	// Calculate keyHash: keccak256(abi.encode(agentId, keyType, keyData))
+	bytes32Type, _ := abi.NewType("bytes32", "", nil)
+	uint8Type, _ := abi.NewType("uint8", "", nil)
+	bytesType2, _ := abi.NewType("bytes", "", nil)
+
+	keyHashArgs := abi.Arguments{
+		{Type: bytes32Type},
+		{Type: uint8Type},
+		{Type: bytesType2},
+	}
+
+	keyHashData, err := keyHashArgs.Pack(agentId, uint8(keyType), keyData)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to encode keyHash: %w", err)
+	}
+
+	return crypto.Keccak256Hash(keyHashData), nil
+}
+
+// GetAgentKey retrieves key details by key hash
+func (c *EthereumClientV4) GetAgentKey(ctx context.Context, keyHash [32]byte) (*registryv4.ISageRegistryV4AgentKey, error) {
+	key, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, keyHash)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get key: %w", err)
+	}
+
+	if key.RegisteredAt.Int64() == 0 {
+		return nil, fmt.Errorf("key not found")
+	}
+
+	return &key, nil
 }
