@@ -42,18 +42,20 @@ This command creates a new agent identity on the specified blockchain network.`,
 
 var (
 	// Register flags
-	registerChain        string
-	registerName         string
-	registerDescription  string
-	registerEndpoint     string
-	registerCapabilities string
-	registerKeyFile      string
-	registerKeyFormat    string
-	registerStorageDir   string
-	registerKeyID        string
-	registerRPCEndpoint  string
-	registerContractAddr string
-	registerPrivateKey   string
+	registerChain         string
+	registerName          string
+	registerDescription   string
+	registerEndpoint      string
+	registerCapabilities  string
+	registerKeyFile       string
+	registerKeyFormat     string
+	registerStorageDir    string
+	registerKeyID         string
+	registerRPCEndpoint   string
+	registerContractAddr  string
+	registerPrivateKey    string
+	registerAdditionalKeys string // Additional keys (comma-separated file paths)
+	registerKeyTypes      string // Key types for additional keys (comma-separated: ed25519,ecdsa)
 )
 
 func init() {
@@ -73,6 +75,10 @@ func init() {
 	registerCmd.Flags().StringVar(&registerKeyFormat, "key-format", "jwk", "Key file format (jwk, pem)")
 	registerCmd.Flags().StringVar(&registerStorageDir, "storage-dir", "", "Key storage directory")
 	registerCmd.Flags().StringVar(&registerKeyID, "key-id", "", "Key ID in storage")
+
+	// Multi-key support flags
+	registerCmd.Flags().StringVar(&registerAdditionalKeys, "additional-keys", "", "Additional key files (comma-separated)")
+	registerCmd.Flags().StringVar(&registerKeyTypes, "key-types", "", "Key types for additional keys (comma-separated: ed25519,ecdsa)")
 
 	// Blockchain connection flags
 	registerCmd.Flags().StringVar(&registerRPCEndpoint, "rpc", "", "Blockchain RPC endpoint")
@@ -100,7 +106,7 @@ func runRegister(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Load key pair
+	// Load primary key pair
 	keyPair, err := loadKeyPair()
 	if err != nil {
 		return fmt.Errorf("failed to load key pair: %w", err)
@@ -109,6 +115,15 @@ func runRegister(cmd *cobra.Command, args []string) error {
 	// Validate key type for chain
 	if err := validateKeyForChain(keyPair, chain); err != nil {
 		return err
+	}
+
+	// Load additional keys for multi-key registration
+	var additionalKeys []did.AgentKey
+	if registerAdditionalKeys != "" {
+		additionalKeys, err = loadAdditionalKeys(registerAdditionalKeys, registerKeyTypes)
+		if err != nil {
+			return fmt.Errorf("failed to load additional keys: %w", err)
+		}
 	}
 
 	// Parse capabilities
@@ -150,6 +165,7 @@ func runRegister(cmd *cobra.Command, args []string) error {
 		Endpoint:     registerEndpoint,
 		Capabilities: capabilities,
 		KeyPair:      keyPair,
+		Keys:         additionalKeys, // Multi-key support
 	}
 
 	// Register agent
@@ -294,4 +310,46 @@ func saveRegistrationInfo(storageDir, agentDID string, result *did.RegistrationR
 	if err := os.WriteFile(fileName, data, 0600); err != nil {
 		fmt.Printf("Warning: failed to save registration info to %s: %v\n", fileName, err)
 	}
+}
+
+func loadAdditionalKeys(keyFiles, keyTypesStr string) ([]did.AgentKey, error) {
+	files := strings.Split(keyFiles, ",")
+	types := strings.Split(keyTypesStr, ",")
+
+	if len(files) != len(types) {
+		return nil, fmt.Errorf("number of key files (%d) must match number of key types (%d)", len(files), len(types))
+	}
+
+	var keys []did.AgentKey
+	for i, file := range files {
+		file = strings.TrimSpace(file)
+		keyTypeStr := strings.TrimSpace(types[i])
+
+		// Parse key type
+		var keyType did.KeyType
+		switch strings.ToLower(keyTypeStr) {
+		case "ed25519":
+			keyType = did.KeyTypeEd25519
+		case "ecdsa", "secp256k1":
+			keyType = did.KeyTypeECDSA
+		default:
+			return nil, fmt.Errorf("unsupported key type: %s (supported: ed25519, ecdsa)", keyTypeStr)
+		}
+
+		// Read key file
+		// #nosec G304 - User-specified file path is intentional for CLI tool
+		data, err := os.ReadFile(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read key file %s: %w", file, err)
+		}
+
+		// For now, we expect raw public key bytes in the file
+		// In production, you'd want to support multiple formats (JWK, PEM, etc.)
+		keys = append(keys, did.AgentKey{
+			Type:    keyType,
+			KeyData: data,
+		})
+	}
+
+	return keys, nil
 }
