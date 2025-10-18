@@ -175,7 +175,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
     ) external onlyAgentOwner(agentId) returns (bytes32) {
         require(agents[agentId].active, "Agent not active");
         // slither-disable-next-line timestamp
-        require(agentKeys[oldKeyHash].registeredAt > 0, "Old key not found");  // Existence check, not timestamp comparison
+        // Existence check, not timestamp comparison
+        require(agentKeys[oldKeyHash].registeredAt > 0, "Old key not found");
         require(agentKeys[oldKeyHash].verified, "Old key not verified");
 
         // Verify old key belongs to this agent
@@ -513,7 +514,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
         // Generate key hash
         bytes32 keyHash = keccak256(abi.encode(agentId, keyType, keyData));
         // slither-disable-next-line timestamp
-        require(agentKeys[keyHash].registeredAt == 0, "Key already registered");  // Existence check, not timestamp comparison
+        // Existence check, not timestamp comparison
+        require(agentKeys[keyHash].registeredAt == 0, "Key already registered");
 
         // Determine verification status based on key type
         bool verified = false;
@@ -611,6 +613,7 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
         // - All reads are within bounds due to length check
         // - Using assembly saves ~200 gas vs. abi.decode
         // slither-disable-next-line assembly
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             r := mload(add(signature, 32))
             s := mload(add(signature, 64))
@@ -668,6 +671,7 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
         // - Equivalent to: address(uint160(uint256(hash)))
         // - Using assembly saves ~50 gas vs. type conversions
         // slither-disable-next-line assembly
+        // solhint-disable-next-line no-inline-assembly
         assembly {
             // Load the last 20 bytes from the hash
             // mload loads 32 bytes, so we need to shift right by 12 bytes (96 bits)
