@@ -17,11 +17,13 @@ The SAGE contracts provide a decentralized registry for AI agents with enhanced 
 - **Multi-chain Support**: Ethereum, Kaia, and other EVM-compatible chains
 - **Gas Optimized**: Efficient storage patterns and streamlined operations
 
-### V4 Enhancements (Latest Version - In Development)
+### V4 Enhancements (Latest Version - v1.1.0)
 
 **Multi-Key Agent Support with A2A Protocol Compatibility**
 
 SageRegistryV4 introduces a comprehensive multi-key architecture enabling agents to register and manage multiple cryptographic key types simultaneously. This design provides true multi-chain interoperability and compatibility with the Google A2A (Agent-to-Agent) protocol.
+
+**Release**: Included in SAGE v1.1.0 (2025-10-18)
 
 **Key Features:**
 
@@ -58,7 +60,12 @@ SageRegistryV4 introduces a comprehensive multi-key architecture enabling agents
   - Automatic conversion from V2/V3 agent metadata format
   - Migration path from previous registry versions
 
-**Status**: Smart contract implementation complete (30 tests passing), Go backend integration complete (77.6% coverage), CLI tools available (card generate/validate/show). Deployment to testnet/mainnet pending.
+**Status**: ✅ Development Complete
+- Smart contract: 201 tests passing (100% core functionality coverage)
+- Go backend: 77.6% test coverage
+- CLI tools: card generate/validate/show commands available
+- Release: v1.1.0 (2025-10-18)
+- Deployment: Ready for testnet/mainnet deployment
 
 ### V2 Features (Stable)
 
@@ -77,14 +84,18 @@ SageRegistryV4 introduces a comprehensive multi-key architecture enabling agents
 
 ### Ethereum Implementation
 
-#### V4 Contracts (Latest - In Development)
+#### V4 Contracts (Latest - v1.1.0)
 
 - **SageRegistryV4.sol**: Multi-key registry with Ed25519, ECDSA, and X25519 support
 - **ISageRegistryV4.sol**: V4 registry interface with multi-key operations
 - **Types**: AgentKey, AgentMetadataV4, KeyType enum (Ed25519, ECDSA, X25519)
 - **Features**: Multi-key registration, key lifecycle management, A2A protocol compatibility
 
-**Status**: Smart contract complete (30 unit tests passing), pending deployment to testnet
+**Status**: ✅ Development Complete (v1.1.0)
+- 201 contract tests passing (100% core coverage)
+- Go backend integration complete
+- CLI tools available
+- Ready for deployment
 
 #### V2 Contracts (Stable Production)
 
@@ -487,20 +498,23 @@ npx hardhat test --network localhost                # Terminal 2
 ```
 contracts/ethereum/
 ├── contracts/
-│   ├── SageRegistryV4.sol          # V4 multi-key registry (latest)
-│   ├── SageRegistryV3.sol          # V3 registry (legacy)
+│   ├── SageRegistryV4.sol          # V4 multi-key registry (latest - v1.1.0)
 │   ├── SageRegistryV2.sol          # V2 registry (stable production)
-│   ├── SageRegistry.sol            # V1 registry (deprecated)
+│   ├── SageRegistryTest.sol        # V2 test version (local testing)
 │   ├── SageVerificationHook.sol    # Hook implementation
+│   ├── deprecated/
+│   │   ├── SageRegistry.sol        # V1 registry (DEPRECATED - security issues)
+│   │   ├── SageRegistryV3.sol      # V3 registry (DEPRECATED - superseded by V4)
+│   │   └── README.md               # Deprecation information
 │   └── interfaces/
 │       ├── ISageRegistryV4.sol     # V4 multi-key interface
 │       ├── ISageRegistry.sol       # V2 registry interface
 │       └── IRegistryHook.sol       # Hook interface
 ├── test/
-│   ├── SageRegistryV4.test.js      # V4 multi-key tests (30 tests)
+│   ├── SageRegistryV4.test.js      # V4 multi-key tests (201 tests passing)
 │   ├── SageRegistryV2.test.js      # V2 unit tests
 │   ├── integration-v2.test.js      # V2 integration tests
-│   └── SageRegistry.test.fixed.js  # V1 compatibility tests
+│   └── SageRegistry.test.fixed.js  # V1 compatibility tests (deprecated)
 ├── scripts/
 │   ├── deploy-unified.js           # Unified deployment (NEW)
 │   ├── deploy-v2.js                # V2 deployment

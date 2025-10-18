@@ -255,10 +255,10 @@ This index provides an organized overview of all SAGE smart contract documentati
 
 ### Smart Contracts (contracts/ethereum/contracts/)
 
-#### V4 Contracts (Latest - In Development)
+#### V4 Contracts (Latest - v1.1.0)
 - **SageRegistryV4.sol** - Multi-key registry implementation
 - **ISageRegistryV4.sol** - V4 interface
-- Status: Complete, 30 unit tests passing, pending deployment
+- Status: ✅ Complete (v1.1.0), 201 tests passing, ready for deployment
 
 #### V2 Contracts (Stable Production)
 - **SageRegistryV2.sol** - Enhanced registry with 5-step validation
@@ -272,24 +272,26 @@ This index provides an organized overview of all SAGE smart contract documentati
 - Status: Archived, not recommended for use
 
 ### Test Files (contracts/ethereum/test/)
-- **SageRegistryV4.test.js** - V4 unit tests (30 tests)
+- **SageRegistryV4.test.js** - V4 unit tests (201 tests passing)
 - **SageRegistryV2.test.js** - V2 unit tests
 - **integration-v2.test.js** - V2 integration tests
-- **SageRegistry.test.fixed.js** - V1 compatibility tests
+- **SageRegistry.test.fixed.js** - V1 compatibility tests (deprecated)
 
 ---
 
 ## Version History
 
-### V4 (Current - In Development)
-**Status**: Smart contract complete, pending deployment
+### V4 (Current - v1.1.0)
+**Status**: ✅ Development Complete (Released 2025-10-18)
 **Documentation**: Complete
-**Key Features**: Multi-key support (Ed25519, ECDSA, X25519), A2A protocol
+**Key Features**: Multi-key support (Ed25519, ECDSA, X25519), A2A protocol compatibility
+**Test Status**: 201 tests passing (100% core coverage)
 
 **Key Documents**:
 - [MULTI_KEY_DESIGN.md](#multi_key_designmd)
 - [ROADMAP.md](#roadmapmd)
 - [README.md](#readmemd) (V4 section)
+- [CHANGELOG.md](../CHANGELOG.md#110---2025-10-18) - Release notes
 
 ### V3 (Legacy)
 **Status**: Superseded by V4
