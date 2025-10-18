@@ -5,7 +5,6 @@ run:
 
 linters:
   enable:
-    - gofmt
     - govet
     - errcheck
     - staticcheck
@@ -25,7 +24,6 @@ linters:
           - unused
       - path: ".*\\.gen\\.go"
         linters:
-          - gofmt
           - govet
           - errcheck
           - staticcheck
@@ -34,3 +32,13 @@ linters:
           - ineffassign
       - path: "contracts/ethereum/bindings/go/"
         text: "local import"
+
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    paths:
+      - vendor
+      - node_modules
+      - .git
+      - contracts/ethereum/bindings/go/example.go
