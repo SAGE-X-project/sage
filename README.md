@@ -13,16 +13,33 @@
 
 SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based security framework for AI agent communication. It provides end-to-end encrypted, authenticated communication channels between AI agents using decentralized identity (DID) management, HPKE-based key agreement, and RFC 9421 HTTP Message Signatures.
 
+### ✨ What's New in v1.1.0 (2025-10-18)
+
+**Multi-Key Registry V4** - Major Feature Release
+
+- **Multi-Key Support**: Register up to 10 cryptographic keys per agent (Ed25519, ECDSA/secp256k1)
+- **Multi-Chain Ready**: Protocol-specific key selection for Ethereum (ECDSA), Solana (Ed25519), and more
+- **Enhanced Security**: Three critical CVE fixes (CVE-SAGE-2025-001, 002, 003)
+  - Public key ownership verification prevents theft attacks
+  - Atomic key rotation eliminates inconsistent states
+  - Complete key revocation with storage deletion
+- **New APIs**: `ResolveAllPublicKeys()` and `ResolvePublicKeyByType()` for multi-key resolution
+- **DID Format Enhancement**: Owner address validation for off-chain verification
+- **Production Ready**: 201 passing contract tests, comprehensive Go test coverage
+
+See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
+
 ### 🌐 Live Deployments
 
-**Sepolia Testnet** (LIVE ):
+**Sepolia Testnet** (SageRegistryV2 - Legacy):
 
 - **SAGE Core System**:
   - SageRegistryV2: [`0x487d45a678eb947bbF9d8f38a67721b13a0209BF`](https://sepolia.etherscan.io/address/0x487d45a678eb947bbF9d8f38a67721b13a0209BF)
   - ERC8004ValidationRegistry: [`0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440`](https://sepolia.etherscan.io/address/0x4D31A11DdE882D2B2cdFB9cCf534FaA55A519440)
 - **ERC-8004 Standalone**:
   - ERC8004IdentityRegistry: [`0x02439d8DA11517603d0DE1424B33139A90969517`](https://sepolia.etherscan.io/address/0x02439d8DA11517603d0DE1424B33139A90969517)
-  - [See all deployed contracts →](contracts/ethereum/docs/PHASE7-SEPOLIA-DEPLOYMENT-COMPLETE.md)
+
+> **Note**: SageRegistryV4 (Multi-Key Registry) is ready for deployment. See [contracts/README.md](contracts/README.md) for details.
 
 ### Key Features
 
@@ -31,7 +48,7 @@ SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based securit
 - **Multi-Chain Support**: Ethereum, Solana, and Kaia network integration for DID registry
 - **Enhanced Security**: Public key ownership verification with on-chain validation and key revocation
 - **Multi-Algorithm Support**: Ed25519, Secp256k1, and X25519 cryptographic operations
-- **Smart Contract Registry**: Decentralized agent registry with V2 security enhancements
+- **Multi-Key Agent Registry**: SageRegistryV4 with support for up to 10 keys per agent (Ed25519, ECDSA) and atomic key rotation
 - **Session Management**: Automatic session creation, key rotation, nonce tracking, and replay protection
 - **Protocol-Agnostic Transport**: HTTP, WebSocket, and MockTransport implementations with pluggable architecture
 - **Zero External Dependencies**: Removed a2a-go dependency for better maintainability and independence
@@ -485,15 +502,23 @@ curl http://localhost:8080/health
 
 ## Smart Contract Features
 
-### SageRegistryV2 - Enhanced Security Features
+### SageRegistryV4 - Multi-Key Registry (v1.1.0)
 
-The latest version includes significant security enhancements:
+The latest version introduces comprehensive multi-key support and critical security enhancements:
 
-- **5-Step Public Key Validation**: Length, format, zero-key check, ownership proof, revocation status
-- **Challenge-Response Authentication**: Signature-based proof of key ownership
-- **Key Revocation System**: Ability to revoke compromised keys with auto-deactivation
-- **Hook System**: Extensible validation through hook contracts
-- **Gas Optimized**: Efficient storage patterns and operations
+- **Multi-Key Support**: Up to 10 keys per agent with Ed25519 and ECDSA/secp256k1 algorithms
+- **Atomic Key Rotation**: Transaction-level atomic key replacement prevents incomplete rotation states
+- **Complete Key Revocation**: Full deletion from storage with nonce increment to invalidate old signatures
+- **Public Key Ownership Verification**: Dual verification (signature + address matching) prevents key theft attacks
+- **Challenge-Response Authentication**: Signature-based proof of key ownership for ECDSA keys
+- **Ed25519 Approval Flow**: Off-chain verification with contract owner approval for Ed25519 keys
+- **Hook System**: Extensible validation through before/after registration hooks
+- **Gas Optimized**: Efficient storage patterns with swap-and-pop for array operations
+
+**Security Fixes in V4:**
+- CVE-SAGE-2025-001: Public key theft prevention via ownership verification
+- CVE-SAGE-2025-002: Atomic key rotation to prevent inconsistent states
+- CVE-SAGE-2025-003: Complete key revocation with storage deletion
 
 See [contracts/README.md](contracts/README.md) for detailed smart contract documentation.
 
