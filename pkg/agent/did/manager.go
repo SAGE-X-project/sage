@@ -20,6 +20,7 @@ package did
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync"
@@ -224,4 +225,91 @@ func ParseDID(did AgentDID) (chain Chain, identifier string, err error) {
 
 	identifier = strings.Join(parts[3:], ":")
 	return chain, identifier, nil
+}
+
+// AddKey adds a new cryptographic key to an existing agent
+func (m *Manager) AddKey(ctx context.Context, chain Chain, did AgentDID, key AgentKey) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Get registry for the chain
+	registry := m.registry.GetRegistry(chain)
+	if registry == nil {
+		return "", fmt.Errorf("no registry configured for chain %s", chain)
+	}
+
+	// Check if registry supports V4 interface (key management)
+	v4Registry, ok := registry.(RegistryV4)
+	if !ok {
+		return "", fmt.Errorf("registry for chain %s does not support multi-key management", chain)
+	}
+
+	// Add key via V4 interface
+	return v4Registry.AddKey(ctx, did, key)
+}
+
+// RevokeKey revokes a cryptographic key from an agent
+func (m *Manager) RevokeKey(ctx context.Context, chain Chain, did AgentDID, keyHash string) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Get registry for the chain
+	registry := m.registry.GetRegistry(chain)
+	if registry == nil {
+		return fmt.Errorf("no registry configured for chain %s", chain)
+	}
+
+	// Check if registry supports V4 interface (key management)
+	v4Registry, ok := registry.(RegistryV4)
+	if !ok {
+		return fmt.Errorf("registry for chain %s does not support multi-key management", chain)
+	}
+
+	// Revoke key via V4 interface
+	return v4Registry.RevokeKey(ctx, did, keyHash)
+}
+
+// ApproveEd25519Key approves an Ed25519 key (registry owner only)
+func (m *Manager) ApproveEd25519Key(ctx context.Context, chain Chain, keyHashStr string) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Get registry for the chain
+	registry := m.registry.GetRegistry(chain)
+	if registry == nil {
+		return fmt.Errorf("no registry configured for chain %s", chain)
+	}
+
+	// Check if registry supports V4 interface (key management)
+	v4Registry, ok := registry.(RegistryV4)
+	if !ok {
+		return fmt.Errorf("registry for chain %s does not support multi-key management", chain)
+	}
+
+	// For Ethereum V4, convert string to [32]byte
+	// Parse key hash from hex string
+	keyHashBytes, err := hexDecode(keyHashStr)
+	if err != nil {
+		return fmt.Errorf("invalid key hash format: %w", err)
+	}
+
+	var keyHash [32]byte
+	copy(keyHash[:], keyHashBytes)
+
+	// Approve key via V4 interface (call the method that takes [32]byte)
+	if ethV4, ok := v4Registry.(interface {
+		ApproveEd25519Key(context.Context, [32]byte) error
+	}); ok {
+		return ethV4.ApproveEd25519Key(ctx, keyHash)
+	}
+
+	return fmt.Errorf("registry does not support Ed25519 approval")
+}
+
+// hexDecode decodes a hex string with optional 0x prefix
+func hexDecode(s string) ([]byte, error) {
+	if strings.HasPrefix(s, "0x") {
+		s = s[2:]
+	}
+	return hex.DecodeString(s)
 }

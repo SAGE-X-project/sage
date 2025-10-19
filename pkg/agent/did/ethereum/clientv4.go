@@ -21,9 +21,11 @@ package ethereum
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -684,4 +686,175 @@ func (c *EthereumClientV4) GetAgentKey(ctx context.Context, keyHash [32]byte) (*
 	}
 
 	return &key, nil
+}
+
+// AddKey adds a new cryptographic key to an existing agent
+func (c *EthereumClientV4) AddKey(ctx context.Context, agentDID did.AgentDID, key did.AgentKey) (string, error) {
+	// Get agent to calculate agentId
+	agent, err := c.contract.GetAgentByDID(&bind.CallOpts{Context: ctx}, string(agentDID))
+	if err != nil {
+		return "", fmt.Errorf("failed to get agent: %w", err)
+	}
+
+	if agent.Did == "" {
+		return "", did.ErrDIDNotFound
+	}
+
+	// Calculate agentId
+	stringType, _ := abi.NewType("string", "", nil)
+	bytesType, _ := abi.NewType("bytes", "", nil)
+	arguments := abi.Arguments{
+		{Type: stringType},
+		{Type: bytesType},
+	}
+
+	// Get first key data
+	firstKeyHash := agent.KeyHashes[0]
+	firstKey, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, firstKeyHash)
+	if err != nil {
+		return "", fmt.Errorf("failed to get first key: %w", err)
+	}
+
+	agentIdData, err := arguments.Pack(string(agentDID), firstKey.KeyData)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode agentId: %w", err)
+	}
+	agentId := crypto.Keccak256Hash(agentIdData)
+
+	// Generate signature for ECDSA keys
+	signature := key.Signature
+	if key.Type == did.KeyTypeECDSA && len(signature) == 0 {
+		// Get owner address
+		ownerAddress := crypto.PubkeyToAddress(c.privateKey.PublicKey)
+
+		// Get current agent nonce (number of keys)
+		agentNonce := big.NewInt(int64(len(agent.KeyHashes)))
+
+		// Generate signature: keccak256(abi.encode(agentId, keyData, msg.sender, agentNonce))
+		bytes32Type, _ := abi.NewType("bytes32", "", nil)
+		addressType, _ := abi.NewType("address", "", nil)
+		uint256Type, _ := abi.NewType("uint256", "", nil)
+
+		messageArgs := abi.Arguments{
+			{Type: bytes32Type},
+			{Type: bytesType},
+			{Type: addressType},
+			{Type: uint256Type},
+		}
+
+		messageData, err := messageArgs.Pack(agentId, key.KeyData, ownerAddress, agentNonce)
+		if err != nil {
+			return "", fmt.Errorf("failed to encode message: %w", err)
+		}
+
+		messageHash := crypto.Keccak256Hash(messageData)
+
+		// Apply Ethereum personal sign prefix
+		prefixedData := []byte("\x19Ethereum Signed Message:\n32")
+		prefixedData = append(prefixedData, messageHash.Bytes()...)
+		ethSignedHash := crypto.Keccak256Hash(prefixedData)
+
+		// Sign with private key
+		sig, err := crypto.Sign(ethSignedHash.Bytes(), c.privateKey)
+		if err != nil {
+			return "", fmt.Errorf("failed to sign message: %w", err)
+		}
+
+		// Adjust V value
+		if sig[64] < 27 {
+			sig[64] += 27
+		}
+
+		signature = sig
+	}
+
+	// Ed25519 keys don't need signature on Ethereum
+	if key.Type == did.KeyTypeEd25519 {
+		signature = []byte{}
+	}
+
+	// Prepare transaction options
+	auth, err := c.getTransactOpts(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	// Call addKey on contract
+	tx, err := c.contract.AddKey(auth, agentId, uint8(key.Type), key.KeyData, signature) // #nosec G115 -- KeyType enum is 0-2, safe uint8 conversion
+	if err != nil {
+		return "", fmt.Errorf("failed to add key: %w", err)
+	}
+
+	// Wait for transaction confirmation
+	_, err = c.waitForTransaction(ctx, tx)
+	if err != nil {
+		return "", err
+	}
+
+	// Calculate key hash to return
+	keyHash, err := c.GetAgentKeyHash(ctx, agentDID, key.KeyData, key.Type)
+	if err != nil {
+		return "", fmt.Errorf("failed to calculate key hash: %w", err)
+	}
+
+	return "0x" + hex.EncodeToString(keyHash[:]), nil
+}
+
+// RevokeKey revokes a cryptographic key from an agent
+func (c *EthereumClientV4) RevokeKey(ctx context.Context, agentDID did.AgentDID, keyHashStr string) error {
+	// Get agent to calculate agentId
+	agent, err := c.contract.GetAgentByDID(&bind.CallOpts{Context: ctx}, string(agentDID))
+	if err != nil {
+		return fmt.Errorf("failed to get agent: %w", err)
+	}
+
+	if agent.Did == "" {
+		return did.ErrDIDNotFound
+	}
+
+	// Calculate agentId
+	stringType, _ := abi.NewType("string", "", nil)
+	bytesType, _ := abi.NewType("bytes", "", nil)
+	arguments := abi.Arguments{
+		{Type: stringType},
+		{Type: bytesType},
+	}
+
+	// Get first key data
+	firstKeyHash := agent.KeyHashes[0]
+	firstKey, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, firstKeyHash)
+	if err != nil {
+		return fmt.Errorf("failed to get first key: %w", err)
+	}
+
+	agentIdData, err := arguments.Pack(string(agentDID), firstKey.KeyData)
+	if err != nil {
+		return fmt.Errorf("failed to encode agentId: %w", err)
+	}
+	agentId := crypto.Keccak256Hash(agentIdData)
+
+	// Parse key hash from hex string
+	keyHashBytes, err := hex.DecodeString(strings.TrimPrefix(keyHashStr, "0x"))
+	if err != nil {
+		return fmt.Errorf("invalid key hash format: %w", err)
+	}
+
+	var keyHash [32]byte
+	copy(keyHash[:], keyHashBytes)
+
+	// Prepare transaction options
+	auth, err := c.getTransactOpts(ctx)
+	if err != nil {
+		return err
+	}
+
+	// Call revokeKey on contract
+	tx, err := c.contract.RevokeKey(auth, agentId, keyHash)
+	if err != nil {
+		return fmt.Errorf("failed to revoke key: %w", err)
+	}
+
+	// Wait for transaction confirmation
+	_, err = c.waitForTransaction(ctx, tx)
+	return err
 }
