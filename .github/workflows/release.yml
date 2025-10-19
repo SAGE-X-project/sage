@@ -108,6 +108,7 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v5
         with:
+          pattern: release-*
           path: artifacts
 
       - name: Consolidate artifacts
