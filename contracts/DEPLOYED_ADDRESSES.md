@@ -28,7 +28,7 @@ This document tracks all deployed SAGE smart contracts across different networks
 
 | Network | Chain ID | Contract Address | Deployer | Deployed | Verified | Explorer |
 |---------|----------|------------------|----------|----------|----------|----------|
-| Sepolia | 11155111 | `TBD` | - | - | - | [View](https://sepolia.etherscan.io) |
+| Sepolia | 11155111 | `0x0F3a2817099916050D116f83dFd7e65E2178ab77` | `0x9f6D4f5d...685Ddc` | 2025-01-19 | ⏳ Pending | [View](https://sepolia.etherscan.io/address/0x0F3a2817099916050D116f83dFd7e65E2178ab77) |
 | Goerli | 5 | `TBD` | - | - | - | [View](https://goerli.etherscan.io) |
 
 ### Local Development
