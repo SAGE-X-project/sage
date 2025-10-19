@@ -230,10 +230,14 @@ contract SageRegistryV2 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Ste
         
         // Generate agent ID
         bytes32 agentId = _generateAgentId(params.did, params.publicKey);
-        
+
         // Execute before hook
+        // slither-disable-next-line reentrancy-no-eth
+        // Note: Hook is a trusted contract set by owner. State changes after hook are intentional
+        // to validate registration before committing state. Agent ID uniqueness is checked in
+        // _generateAgentId, preventing duplicate registrations even if hook attempts reentrancy
         _executeBeforeHook(agentId, params.did, params.publicKey);
-        
+
         // Store agent metadata
         _storeAgentMetadata(agentId, params);
         

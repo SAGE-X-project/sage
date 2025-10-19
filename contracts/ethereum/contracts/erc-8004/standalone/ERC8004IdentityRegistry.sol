@@ -138,6 +138,8 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
         returns (AgentInfo memory info)
     {
         info = agents[agentId];
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking registeredAt == 0 is safe - it's used to detect uninitialized structs, not for time comparison
         if (info.registeredAt == 0) {
             revert AgentNotFound(agentId);
         }

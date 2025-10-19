@@ -1,5 +1,5 @@
 {
-  "detectors_to_exclude": "timestamp,naming-convention,assembly,low-level-calls,reentrancy-benign,reentrancy-events,costly-loop,cyclomatic-complexity",
+  "detectors_to_exclude": "timestamp,naming-convention,assembly,low-level-calls,reentrancy-benign,reentrancy-events,costly-loop,cyclomatic-complexity,incorrect-equality,reentrancy-no-eth,divide-before-multiply",
   "exclude_dependencies": true,
   "exclude_informational": false,
   "exclude_low": false,

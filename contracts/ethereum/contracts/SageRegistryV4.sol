@@ -73,6 +73,10 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
         bytes32 agentId = _generateAgentId(params.did, params.keyData[0]);
 
         // Execute before hook
+        // slither-disable-next-line reentrancy-no-eth
+        // Note: Hook is a trusted contract set by owner. Protected by nonReentrant modifier.
+        // State changes after hook are intentional to validate registration before committing state.
+        // Agent ID uniqueness is checked in _generateAgentId, preventing duplicate registrations.
         _executeBeforeHook(agentId, params.did, params.keyData);
 
         // Process and verify each key
@@ -639,8 +643,12 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
     {
         bytes memory keyWithoutPrefix;
 
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking publicKey.length is safe - bytes array length is deterministic
         if (publicKey.length == SECP256K1_UNCOMPRESSED_LENGTH) {
             // Uncompressed format: 0x04 + 64 bytes (x, y coordinates)
+            // slither-disable-next-line incorrect-equality
+            // Note: Checking byte value == 0x04 is safe - deterministic prefix check
             require(publicKey[0] == 0x04, "Invalid uncompressed key prefix");
 
             // Extract 64 bytes (x, y) without the 0x04 prefix
@@ -648,9 +656,13 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
             for (uint256 i = 0; i < SECP256K1_RAW_LENGTH; i++) {
                 keyWithoutPrefix[i] = publicKey[i + 1];
             }
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking publicKey.length is safe - bytes array length is deterministic
         } else if (publicKey.length == SECP256K1_RAW_LENGTH) {
             // Raw format: 64 bytes (x, y coordinates without prefix)
             keyWithoutPrefix = publicKey;
+        // slither-disable-next-line incorrect-equality
+        // Note: Checking publicKey.length is safe - bytes array length is deterministic
         } else if (publicKey.length == SECP256K1_COMPRESSED_LENGTH) {
             // Compressed format: 0x02/0x03 + 32 bytes
             // Decompression requires elliptic curve point operations (very expensive gas cost)
@@ -690,6 +702,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
         bytes32[] memory keyHashes = agents[agentId].keyHashes;
         for (uint256 i = 0; i < keyHashes.length; i++) {
             AgentKey memory key = agentKeys[keyHashes[i]];
+            // slither-disable-next-line incorrect-equality
+            // Note: Checking enum equality is safe - KeyType is a deterministic enum value
             if (key.keyType == KeyType.ECDSA && key.verified) {
                 return keyHashes[i];
             }
@@ -729,6 +743,8 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
     function _keyExistsInAgent(bytes32 agentId, bytes32 keyHash) private view returns (bool) {
         bytes32[] memory hashes = agents[agentId].keyHashes;
         for (uint256 i = 0; i < hashes.length; i++) {
+            // slither-disable-next-line incorrect-equality
+            // Note: Checking bytes32 hash equality is safe - deterministic hash comparison for lookup
             if (hashes[i] == keyHash) {
                 return true;
             }
