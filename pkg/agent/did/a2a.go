@@ -19,6 +19,7 @@
 package did
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 
@@ -247,6 +248,95 @@ func MergeA2ACard(metadata *AgentMetadataV4, card *A2AAgentCard) error {
 	}
 	if !card.Updated.IsZero() {
 		metadata.UpdatedAt = card.Updated
+	}
+
+	return nil
+}
+
+// ValidateA2ACardWithDID validates an A2A Agent Card against on-chain DID data
+//
+// This function performs cross-validation between the A2A card and the blockchain:
+//  1. Resolves the DID from the blockchain
+//  2. Verifies that all public keys in the card exist on-chain
+//  3. Checks that all keys are marked as verified
+//  4. Validates endpoint consistency
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - card: A2A Agent Card to validate
+//   - resolver: DID resolver for blockchain queries
+//
+// Returns:
+//   - Error with specific validation failure, or nil if validation passes
+func ValidateA2ACardWithDID(ctx context.Context, card *A2AAgentCard, resolver Resolver) error {
+	if card == nil {
+		return fmt.Errorf("card cannot be nil")
+	}
+	if resolver == nil {
+		return fmt.Errorf("resolver cannot be nil")
+	}
+
+	// Parse DID from card
+	did := AgentDID(card.ID)
+
+	// Resolve on-chain metadata
+	metadata, err := resolver.Resolve(ctx, did)
+	if err != nil {
+		return fmt.Errorf("failed to resolve DID from blockchain: %w", err)
+	}
+
+	// Convert to V4 metadata for key comparison
+	metadataV4 := FromAgentMetadata(metadata)
+
+	// Verify all public keys in card exist on-chain
+	for _, cardKey := range card.PublicKeys {
+		// Decode card key data
+		var cardKeyData []byte
+		if cardKey.PublicKeyBase58 != "" {
+			cardKeyData, err = base58.Decode(cardKey.PublicKeyBase58)
+			if err != nil {
+				return fmt.Errorf("invalid key data in card for key %s: %w", cardKey.ID, err)
+			}
+		} else if cardKey.PublicKeyHex != "" {
+			cardKeyData, err = hex.DecodeString(cardKey.PublicKeyHex)
+			if err != nil {
+				return fmt.Errorf("invalid hex key data in card for key %s: %w", cardKey.ID, err)
+			}
+		} else {
+			return fmt.Errorf("key %s has no public key data", cardKey.ID)
+		}
+
+		// Check if this key exists on-chain
+		found := false
+		for _, onChainKey := range metadataV4.Keys {
+			// Compare key data
+			if hex.EncodeToString(onChainKey.KeyData) == hex.EncodeToString(cardKeyData) {
+				// Key found - check if verified
+				if !onChainKey.Verified {
+					return fmt.Errorf("key %s exists on-chain but is not verified", cardKey.ID)
+				}
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			return fmt.Errorf("key %s not found in on-chain DID document", cardKey.ID)
+		}
+	}
+
+	// Verify endpoint consistency
+	if len(card.Endpoints) > 0 {
+		primaryEndpoint := card.Endpoints[0].URI
+		if primaryEndpoint != metadata.Endpoint {
+			return fmt.Errorf("primary endpoint mismatch: card has %s, on-chain has %s",
+				primaryEndpoint, metadata.Endpoint)
+		}
+	}
+
+	// Verify agent is active
+	if !metadata.IsActive {
+		return fmt.Errorf("DID %s is not active on-chain", did)
 	}
 
 	return nil
