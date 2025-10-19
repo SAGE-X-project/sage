@@ -60,6 +60,13 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
     error InvalidPaginationParams(uint256 offset, uint256 limit);
 
     // ============================================
+    // EVENTS
+    // ============================================
+
+    /// @notice Emitted when validation registry address is updated
+    event ValidationRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
+
+    // ============================================
     // MODIFIERS
     // ============================================
 
@@ -352,7 +359,9 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
         if (validationRegistry != address(0) && msg.sender != validationRegistry) {
             revert UnauthorizedVerifier(msg.sender);
         }
+        address oldRegistry = validationRegistry;
         // slither-disable-next-line missing-zero-check
         validationRegistry = newValidationRegistry;
+        emit ValidationRegistryUpdated(oldRegistry, newValidationRegistry);
     }
 }
