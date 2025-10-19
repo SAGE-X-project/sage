@@ -20,7 +20,6 @@ package did
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync"
@@ -102,10 +101,9 @@ func (m *Manager) Configure(chain Chain, config *RegistryConfig) error {
 			if err := m.setClientUnlocked(chain, client); err != nil {
 				return fmt.Errorf("failed to set V4 client: %w", err)
 			}
-		} else {
-			// Fallback: clients must be added separately using SetClient method
-			// This maintains backward compatibility
 		}
+		// Fallback: clients must be added separately using SetClient method
+		// This maintains backward compatibility
 	case ChainSolana:
 		// Solana V4 client initialization would go here
 		// For now, clients must be added separately using SetClient method
@@ -360,12 +358,4 @@ func (m *Manager) ApproveEd25519Key(ctx context.Context, chain Chain, keyHashStr
 	// Call ApproveEd25519Key via V4 interface
 	// The interface expects a string (hex-encoded key hash)
 	return v4Registry.ApproveEd25519Key(ctx, keyHashStr)
-}
-
-// hexDecode decodes a hex string with optional 0x prefix
-func hexDecode(s string) ([]byte, error) {
-	if strings.HasPrefix(s, "0x") {
-		s = s[2:]
-	}
-	return hex.DecodeString(s)
 }

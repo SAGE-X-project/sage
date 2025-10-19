@@ -46,12 +46,12 @@ import (
 // - Multi-key agents for maximum security
 
 type SecureMessage struct {
-	From      string `json:"from"`       // Sender's DID
-	To        string `json:"to"`         // Recipient's DID
-	Timestamp string `json:"timestamp"`  // Message timestamp
-	Content   []byte `json:"content"`    // Encrypted content
-	Signature []byte `json:"signature"`  // Ed25519 signature of content
-	Nonce     []byte `json:"nonce"`      // HPKE nonce/encapsulated key
+	From      string `json:"from"`      // Sender's DID
+	To        string `json:"to"`        // Recipient's DID
+	Timestamp string `json:"timestamp"` // Message timestamp
+	Content   []byte `json:"content"`   // Encrypted content
+	Signature []byte `json:"signature"` // Ed25519 signature of content
+	Nonce     []byte `json:"nonce"`     // HPKE nonce/encapsulated key
 }
 
 func main() {
