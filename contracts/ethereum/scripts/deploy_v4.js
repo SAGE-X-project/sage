@@ -113,18 +113,9 @@ async function main() {
     console.log();
   }
 
-  // Transfer ownership if needed
-  if (initialOwner !== deployer.address) {
-    console.log("🔐 Transferring ownership to", initialOwner);
-    const transferTx = await sageRegistry.transferOwnership(initialOwner);
-    await transferTx.wait();
-    console.log("✅ Ownership transferred");
-    console.log();
-  }
-
-  // Verify contract owner
-  const contractOwner = await sageRegistry.owner();
-  console.log("Contract Owner:  ", contractOwner);
+  // Note: SageRegistryV4 does not use Ownable pattern
+  // Owner/admin functionality is handled differently
+  console.log("✅ Contract deployed with deployer as initial admin");
   console.log();
 
   // Save deployment information
@@ -133,7 +124,6 @@ async function main() {
     chainId: chainId.toString(),
     contractAddress: registryAddress,
     deployer: deployer.address,
-    owner: contractOwner,
     transactionHash: deployTx?.hash,
     blockNumber: deployTx ? (await deployTx.wait()).blockNumber : null,
     timestamp: new Date().toISOString(),
