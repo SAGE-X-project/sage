@@ -68,12 +68,12 @@ EXAMPLES:
 
 var (
 	// Key command flags
-	keyChain         string
-	keyRPCEndpoint   string
-	keyContractAddr  string
-	keyPrivateKey    string
-	keyType          string
-	keyOutputFormat  string
+	keyChain        string
+	keyRPCEndpoint  string
+	keyContractAddr string
+	keyPrivateKey   string
+	keyType         string
+	keyOutputFormat string
 )
 
 // Key add command
@@ -398,7 +398,10 @@ func runKeyRevoke(cmd *cobra.Command, args []string) error {
 	fmt.Print("Are you sure you want to continue? (yes/no): ")
 
 	var confirmation string
-	fmt.Scanln(&confirmation)
+	if _, err := fmt.Scanln(&confirmation); err != nil {
+		fmt.Println("Operation cancelled")
+		return nil
+	}
 	if strings.ToLower(confirmation) != "yes" {
 		fmt.Println("Operation cancelled")
 		return nil

@@ -26,19 +26,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mr-tron/base58"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/mr-tron/base58"
 )
 
 // A2AProof represents a cryptographic proof for an A2A Agent Card
 // Following W3C Verifiable Credentials Data Model 1.1 proof format
 // https://www.w3.org/TR/vc-data-model/#proofs-signatures
 type A2AProof struct {
-	Type               string    `json:"type"`                      // Signature type (e.g., "Ed25519Signature2020")
-	Created            time.Time `json:"created"`                   // When the proof was created
-	VerificationMethod string    `json:"verificationMethod"`        // Key ID used for signing
-	ProofPurpose       string    `json:"proofPurpose"`              // Purpose (e.g., "assertionMethod")
-	ProofValue         string    `json:"proofValue"`                // Base58-encoded signature
+	Type               string    `json:"type"`               // Signature type (e.g., "Ed25519Signature2020")
+	Created            time.Time `json:"created"`            // When the proof was created
+	VerificationMethod string    `json:"verificationMethod"` // Key ID used for signing
+	ProofPurpose       string    `json:"proofPurpose"`       // Purpose (e.g., "assertionMethod")
+	ProofValue         string    `json:"proofValue"`         // Base58-encoded signature
 }
 
 // A2AAgentCardWithProof extends A2AAgentCard with cryptographic proof

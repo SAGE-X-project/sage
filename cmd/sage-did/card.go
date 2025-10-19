@@ -120,11 +120,11 @@ var (
 	cardGenerateOutput   string
 
 	// Card validate flags
-	cardValidateVerbose  bool
+	cardValidateVerbose   bool
 	cardValidateWithProof bool
 	cardValidateVerifyDID bool
-	cardValidateRPC      string
-	cardValidateContract string
+	cardValidateRPC       string
+	cardValidateContract  string
 
 	// Card show flags
 	cardShowRPC      string
