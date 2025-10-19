@@ -181,10 +181,8 @@ jobs:
         run: |
           pip3 install slither-analyzer
           slither . \
+            --config-file .slither.config.json \
             --compile-force-framework hardhat \
-            --filter-paths "node_modules|test|deprecated" \
-            --exclude dead-code \
-            --exclude-dependencies \
             --sarif slither-results.sarif || true
 
       - name: Move SARIF file
