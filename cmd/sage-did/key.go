@@ -36,10 +36,11 @@ var keyCmd = &cobra.Command{
 	Long: `Manage cryptographic keys for registered agents.
 
 SUBCOMMANDS:
-  add      Add a new key to an existing agent
-  list     List all keys for an agent
-  revoke   Revoke a key from an agent
-  approve  Approve an Ed25519 key (contract owner only)
+  add        Add a new key to an existing agent
+  list       List all keys for an agent
+  revoke     Revoke a key from an agent
+  approve    Approve an Ed25519 key (contract owner only)
+  verify-pop Verify proof-of-possession for agent keys
 
 EXAMPLES:
   # List all keys for an agent
@@ -58,7 +59,11 @@ EXAMPLES:
   # Approve an Ed25519 key (owner only)
   sage-did key approve 0x1234... \
     --chain ethereum \
-    --private-key <registry-owner-key>`,
+    --private-key <registry-owner-key>
+
+  # Verify key proof-of-possession
+  sage-did key verify-pop did:sage:eth:agent_12345678 \
+    --chain ethereum`,
 }
 
 var (
@@ -163,12 +168,45 @@ EXAMPLES:
 	RunE: runKeyApprove,
 }
 
+// Key verify-pop command
+var keyVerifyPopCmd = &cobra.Command{
+	Use:   "verify-pop <did>",
+	Short: "Verify proof-of-possession for agent keys",
+	Long: `Verify proof-of-possession signatures for all keys of an agent.
+
+This command retrieves the agent's keys from the blockchain and verifies
+that each key has a valid proof-of-possession (PoP) signature. PoP ensures
+that the agent controls the private keys corresponding to the public keys
+registered on-chain.
+
+VERIFICATION CHECKS:
+  - Each signing key (Ed25519, ECDSA) has a PoP signature
+  - PoP signatures are cryptographically valid
+  - Signatures match the registered public keys
+  - X25519 keys are skipped (key agreement only)
+
+EXAMPLES:
+  # Verify all keys for an agent
+  sage-did key verify-pop did:sage:ethereum:0x1234567890abcdef \
+    --chain ethereum \
+    --rpc https://sepolia.infura.io/v3/YOUR_KEY
+
+  # Verify with custom contract address
+  sage-did key verify-pop did:sage:ethereum:0x1234567890abcdef \
+    --chain ethereum \
+    --rpc https://sepolia.infura.io/v3/YOUR_KEY \
+    --contract 0xCONTRACT_ADDRESS`,
+	Args: cobra.ExactArgs(1),
+	RunE: runKeyVerifyPop,
+}
+
 func init() {
 	rootCmd.AddCommand(keyCmd)
 	keyCmd.AddCommand(keyAddCmd)
 	keyCmd.AddCommand(keyListCmd)
 	keyCmd.AddCommand(keyRevokeCmd)
 	keyCmd.AddCommand(keyApproveCmd)
+	keyCmd.AddCommand(keyVerifyPopCmd)
 
 	// Common flags for all key commands
 	keyCmd.PersistentFlags().StringVarP(&keyChain, "chain", "c", "", "Blockchain network (ethereum, solana)")
@@ -491,9 +529,124 @@ func displayKeysJSON(keys []did.AgentKey) error {
 	return nil
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
+// runKeyVerifyPop verifies proof-of-possession for all agent keys
+func runKeyVerifyPop(cmd *cobra.Command, args []string) error {
+	ctx := context.Background()
+	agentDID := did.AgentDID(args[0])
+
+	// Parse DID to get chain
+	chain, _, err := did.ParseDID(agentDID)
+	if err != nil {
+		return fmt.Errorf("invalid DID format: %w", err)
 	}
-	return b
+
+	// Determine chain if not specified
+	if keyChain == "" {
+		keyChain = string(chain)
+	}
+
+	// Setup configuration
+	config := &did.RegistryConfig{
+		RPCEndpoint:     keyRPCEndpoint,
+		ContractAddress: keyContractAddr,
+	}
+
+	if config.RPCEndpoint == "" {
+		config.RPCEndpoint = getDefaultRPCEndpoint(chain)
+	}
+	if config.ContractAddress == "" {
+		config.ContractAddress = getDefaultContractAddress(chain)
+	}
+
+	// Create DID manager
+	manager := did.NewManager()
+	if err := manager.Configure(chain, config); err != nil {
+		return fmt.Errorf("failed to configure DID manager: %w", err)
+	}
+
+	// Resolve agent metadata
+	fmt.Printf("Resolving agent: %s\n", agentDID)
+	metadata, err := manager.ResolveAgent(ctx, agentDID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve agent: %w", err)
+	}
+
+	// Convert to V4 metadata
+	metadataV4 := did.FromAgentMetadata(metadata)
+
+	fmt.Printf("Agent: %s\n", metadataV4.Name)
+	fmt.Printf("DID: %s\n", metadataV4.DID)
+	fmt.Printf("Keys: %d\n\n", len(metadataV4.Keys))
+
+	// Verify proof-of-possession for all keys
+	fmt.Println("Verifying proof-of-possession for each key...")
+	fmt.Println(strings.Repeat("=", 100))
+	fmt.Printf("%-4s %-20s %-12s %-10s %s\n", "#", "Key Hash", "Type", "Status", "Details")
+	fmt.Println(strings.Repeat("=", 100))
+
+	var totalKeys, verifiedKeys, skippedKeys, failedKeys int
+	var errors []string
+
+	for i, key := range metadataV4.Keys {
+		totalKeys++
+		keyHash := hex.EncodeToString(key.KeyData[:min(8, len(key.KeyData))])
+
+		// Skip X25519 keys (key agreement only, no PoP required)
+		if key.Type == did.KeyTypeX25519 {
+			skippedKeys++
+			fmt.Printf("%-4d 0x%-18s %-12s %-10s %s\n",
+				i+1,
+				keyHash,
+				key.Type.String(),
+				"⊘ SKIPPED",
+				"Key agreement only (no PoP required)")
+			continue
+		}
+
+		// Verify PoP
+		err := did.VerifyKeyProofOfPossession(metadataV4.DID, &metadataV4.Keys[i])
+		if err != nil {
+			failedKeys++
+			errMsg := fmt.Sprintf("PoP verification failed: %v", err)
+			errors = append(errors, fmt.Sprintf("Key %d (0x%s): %s", i+1, keyHash, err.Error()))
+			fmt.Printf("%-4d 0x%-18s %-12s %-10s %s\n",
+				i+1,
+				keyHash,
+				key.Type.String(),
+				"✗ FAILED",
+				errMsg)
+		} else {
+			verifiedKeys++
+			fmt.Printf("%-4d 0x%-18s %-12s %-10s %s\n",
+				i+1,
+				keyHash,
+				key.Type.String(),
+				"✓ VALID",
+				"Proof-of-possession verified")
+		}
+	}
+
+	fmt.Println(strings.Repeat("=", 100))
+
+	// Summary
+	fmt.Printf("\n=== Verification Summary ===\n")
+	fmt.Printf("Total Keys:    %d\n", totalKeys)
+	fmt.Printf("Verified:      %d\n", verifiedKeys)
+	fmt.Printf("Skipped:       %d (X25519 key agreement keys)\n", skippedKeys)
+	fmt.Printf("Failed:        %d\n", failedKeys)
+
+	if failedKeys > 0 {
+		fmt.Printf("\n=== Errors ===\n")
+		for _, errMsg := range errors {
+			fmt.Printf("  • %s\n", errMsg)
+		}
+		fmt.Printf("\nℹ Note: Failed PoP verification may indicate:\n")
+		fmt.Printf("  - Keys registered without proper signature\n")
+		fmt.Printf("  - Mismatched public/private key pairs\n")
+		fmt.Printf("  - Corrupted key data on-chain\n")
+		return fmt.Errorf("proof-of-possession verification failed for %d keys", failedKeys)
+	}
+
+	fmt.Printf("\n✓ All %d signing keys have valid proof-of-possession\n", verifiedKeys)
+	return nil
 }
