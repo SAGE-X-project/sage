@@ -89,11 +89,22 @@ jobs:
         if: always()
         run: |
           if [ -f "gosec-results-raw.sarif" ]; then
+            echo "✓ Raw SARIF file found, fixing paths..."
             python3 .github/scripts/fix-sarif-paths.py
+            if [ -f "gosec-results.sarif" ]; then
+              echo "✓ Fixed SARIF file created successfully"
+              echo "SARIF file size: $(wc -c < gosec-results.sarif) bytes"
+              echo "Number of results: $(cat gosec-results.sarif | jq '.runs[0].results | length')"
+            else
+              echo "❌ Failed to create fixed SARIF file"
+              exit 1
+            fi
           else
-            echo "No SARIF file to fix"
+            echo "❌ No raw SARIF file found to fix"
+            echo "Available files:"
+            ls -la gosec-* || echo "No gosec files found"
+            exit 1
           fi
-        continue-on-error: true
 
       - name: Display Gosec Results
         if: always()
@@ -111,9 +122,29 @@ jobs:
             echo "No gosec results file generated"
           fi
 
-      - name: Upload Gosec results to GitHub Security
+      - name: Validate SARIF file before upload
         if: always()
-        continue-on-error: true  # Allow CI to pass if SARIF upload fails
+        run: |
+          if [ -f "gosec-results.sarif" ]; then
+            echo "✓ SARIF file exists"
+            echo "File size: $(wc -c < gosec-results.sarif) bytes"
+            # Validate JSON structure
+            if jq empty gosec-results.sarif 2>/dev/null; then
+              echo "✓ SARIF file is valid JSON"
+              echo "SARIF version: $(cat gosec-results.sarif | jq -r '.version')"
+              echo "Tool name: $(cat gosec-results.sarif | jq -r '.runs[0].tool.driver.name')"
+              echo "Number of results: $(cat gosec-results.sarif | jq '.runs[0].results | length')"
+            else
+              echo "❌ SARIF file is not valid JSON"
+              exit 1
+            fi
+          else
+            echo "❌ SARIF file not found for upload"
+            exit 1
+          fi
+
+      - name: Upload Gosec results to GitHub Security
+        if: always() && hashFiles('gosec-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gosec-results.sarif
