@@ -1,3 +1,5 @@
+//go:build ignore
+
 // SAGE - Secure Agent Guarantee Engine
 // Copyright (C) 2025 SAGE-X-project
 //

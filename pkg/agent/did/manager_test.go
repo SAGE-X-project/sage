@@ -74,9 +74,10 @@ func TestManager(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "RPC endpoint is required")
 
-		// Unknown chain should still succeed with just config storage
+		// Unknown chain should return error
 		err = manager.Configure(Chain("unknown"), ethConfig)
-		assert.NoError(t, err)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported chain")
 	})
 
 	t.Run("GetSupportedChains", func(t *testing.T) {
