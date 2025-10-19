@@ -337,6 +337,7 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
      * @notice Set before register hook
      */
     function setBeforeRegisterHook(address hook) external onlyOwner {
+        require(hook != address(0), "Hook cannot be zero address");
         beforeRegisterHook = hook;
     }
 
@@ -344,6 +345,7 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
      * @notice Set after register hook
      */
     function setAfterRegisterHook(address hook) external onlyOwner {
+        require(hook != address(0), "Hook cannot be zero address");
         afterRegisterHook = hook;
     }
 

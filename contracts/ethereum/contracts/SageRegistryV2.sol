@@ -564,6 +564,7 @@ contract SageRegistryV2 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Ste
      * @notice Set before register hook
      */
     function setBeforeRegisterHook(address hook) external onlyOwner {
+        require(hook != address(0), "Hook cannot be zero address");
         address oldHook = beforeRegisterHook;
         beforeRegisterHook = hook;
         emit BeforeRegisterHookUpdated(oldHook, hook);
@@ -573,6 +574,7 @@ contract SageRegistryV2 is ISageRegistry, Pausable, ReentrancyGuard, Ownable2Ste
      * @notice Set after register hook
      */
     function setAfterRegisterHook(address hook) external onlyOwner {
+        require(hook != address(0), "Hook cannot be zero address");
         address oldHook = afterRegisterHook;
         afterRegisterHook = hook;
         emit AfterRegisterHookUpdated(oldHook, hook);

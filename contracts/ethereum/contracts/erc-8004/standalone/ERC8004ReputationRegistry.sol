@@ -76,6 +76,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
 
     constructor(address _validationRegistry) {
         // Note: address(0) is allowed - registry can be set later via setValidationRegistry
+        // slither-disable-next-line missing-zero-check
         validationRegistry = _validationRegistry;
     }
 
@@ -351,6 +352,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
         if (validationRegistry != address(0) && msg.sender != validationRegistry) {
             revert UnauthorizedVerifier(msg.sender);
         }
+        // slither-disable-next-line missing-zero-check
         validationRegistry = newValidationRegistry;
     }
 }
