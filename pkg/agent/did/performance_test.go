@@ -217,14 +217,14 @@ func BenchmarkMultiKeyOperations(b *testing.B) {
 		}
 
 		metadata := &AgentMetadataV4{
-			DID:         did,
-			Name:        "Multi-Key Agent",
-			Endpoint:    "https://multikey.agent.com",
-			Keys:        keys,
-			Owner:       "0x1234567890abcdef",
-			IsActive:    true,
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
+			DID:       did,
+			Name:      "Multi-Key Agent",
+			Endpoint:  "https://multikey.agent.com",
+			Keys:      keys,
+			Owner:     "0x1234567890abcdef",
+			IsActive:  true,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		}
 
 		b.Run("VerifyAllKeyProofs_"+string(rune(count))+"keys", func(b *testing.B) {

@@ -228,9 +228,9 @@ func TestValidateA2ACardWithProof(t *testing.T) {
 func TestGenerateA2ACardWithProof_NoVerifiedKey(t *testing.T) {
 	// Create metadata with unverified key
 	metadata := &AgentMetadataV4{
-		DID:         "did:sage:ethereum:0x1234567890abcdef",
-		Name:        "Test Agent",
-		Endpoint:    "https://test.agent.com",
+		DID:      "did:sage:ethereum:0x1234567890abcdef",
+		Name:     "Test Agent",
+		Endpoint: "https://test.agent.com",
 		Keys: []AgentKey{
 			{
 				Type:      KeyTypeEd25519,
