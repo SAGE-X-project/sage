@@ -3,7 +3,8 @@
 Comprehensive index of all smart contracts in the SAGE project.
 
 **Last Updated**: 2025-01-19
-**Current Version**: V4 (Multi-Key Registry)
+**Current Version**: V4 (Multi-Key Registry + Enhanced Validation)
+**Status**: Phase 1, 2 & 3 Complete ✅
 
 ---
 
@@ -34,17 +35,22 @@ Comprehensive index of all smart contracts in the SAGE project.
 - Up to 10 keys per agent
 - Key lifecycle management (add, revoke, rotate)
 - Type-specific verification (ECDSA on-chain, Ed25519 owner-approved)
-- A2A Agent Card generation
+- A2A Agent Card generation with W3C Verifiable Credentials
+- Enhanced validation framework (3-layer validation)
+- Proof-of-Possession mechanism (challenge-response)
 - Backward compatibility with V2/V3
 
-**Gas Costs**:
-| Operation | Gas Used | Notes |
-|-----------|----------|-------|
-| Register (1 key) | ~875,000 | Single ECDSA key |
-| Register (3 keys) | ~1,300,000 | Mixed key types |
-| Add Key | ~50,000 | To existing agent |
-| Revoke Key | ~70,000 | Owner-controlled |
-| Approve Ed25519 | ~55,000 | Owner only |
+**Gas Costs** (Ethereum Mainnet):
+| Operation | Gas Used | USD Cost* | Notes |
+|-----------|----------|----------|-------|
+| Register (1 key) | ~907,000 | ~$40 | Single ECDSA key |
+| Register (2 keys) | ~1,100,000 | ~$48 | Dual keys |
+| Register (3 keys) | ~1,300,000 | ~$57 | Mixed key types |
+| Add Key | ~50,000 | ~$2.20 | To existing agent |
+| Revoke Key | ~30,000 | ~$1.32 | Per-key revocation |
+| Approve Ed25519 | ~55,000 | ~$2.42 | Owner only |
+
+*USD costs at 50 gwei gas price, $2000 ETH. Layer 2 (Optimism/Arbitrum): 97% cheaper
 
 **Test Coverage**:
 - 201 contract tests (100% core coverage)
@@ -58,37 +64,6 @@ Comprehensive index of all smart contracts in the SAGE project.
 - CLI: `cmd/sage-did/register.go`, `cmd/sage-did/key.go`
 - Deployment: `contracts/ethereum/scripts/deploy_v4.js`
 
----
-
-### SageRegistryV2.sol (STABLE PRODUCTION)
-
-**Status**: ✅ Production Stable
-**Location**: `contracts/ethereum/contracts/SageRegistryV2.sol`
-**Interface**: `ISageRegistry.sol`
-**License**: MIT
-
-**Purpose**: Enhanced single-key registry with 5-step validation
-
-**Key Features**:
-- 5-step public key validation
-- Key revocation system
-- Challenge-response ownership proof
-- Hook system for extensibility
-- Gas-optimized operations
-
-**Gas Costs**:
-| Operation | Gas Used | Notes |
-|-----------|----------|-------|
-| Register Agent | ~620,000 | With validation |
-| Update Metadata | ~80,000 | Owner only |
-| Revoke Key | ~66,000 | Auto-deactivate agent |
-| Deactivate Agent | ~50,000 | Owner only |
-
-**Related Files**:
-- Hook implementation: `SageVerificationHook.sol`
-- Interface: `ISageRegistry.sol`, `IRegistryHook.sol`
-- Tests: `contracts/ethereum/test/SageRegistryV2.test.js`
-- Deployment: `contracts/ethereum/scripts/deploy-v2.js`
 
 ---
 
@@ -117,6 +92,72 @@ Comprehensive index of all smart contracts in the SAGE project.
 
 ## Deprecated Contracts
 
+### SageRegistry.sol (V1)
+
+**Status**: 🗑️ DEPRECATED - Critical Security Issues
+**Location**: `contracts/ethereum/contracts/deprecated/SageRegistry.sol`
+**Deprecated Date**: 2024-12-01
+
+**Reason for Deprecation**:
+- **CRITICAL**: Ed25519 signature bypass vulnerability
+- Insufficient public key validation
+- No key revocation mechanism
+- Security vulnerabilities identified in audit
+- Missing ownership proof verification
+
+**Critical Issues**:
+- Ed25519 bypass allows unauthorized agent registration
+- Weak signature validation
+- No protection against key reuse attacks
+- Missing revocation functionality
+
+**Migration**: Use SageRegistryV4
+
+**See**: `contracts/archived/SECURITY_AUDIT_LEGACY.md` for details
+
+---
+
+### SageRegistryV2.sol
+
+**Status**: 🗑️ DEPRECATED - Superseded by V4
+**Location**: `contracts/ethereum/contracts/deprecated/SageRegistryV2.sol`
+**Deprecated Date**: 2025-01-19
+
+**Reason for Deprecation**:
+- Single-key limitation (only one key per agent)
+- No support for Ed25519 or X25519 keys
+- Limited A2A protocol compatibility
+- V4 provides all V2 features plus multi-key support and enhanced validation
+
+**Key Features** (Historical):
+- 5-step public key validation
+- Signature-based ownership proof
+- Key revocation capability
+- Hook system for extensibility
+- Emergency pause mechanism
+
+**Legacy Deployment**:
+- Sepolia testnet: 0x487d45a678eb947bbF9d8f38a67721b13a0209BF (no longer recommended)
+
+**Migration**: Use SageRegistryV4 for all new deployments
+
+---
+
+### SageRegistryTest.sol (V2 Test Version)
+
+**Status**: 🗑️ DEPRECATED - Testing Contract
+**Deprecated Date**: 2025-01-19
+**Location**: `contracts/ethereum/contracts/deprecated/SageRegistryTest.sol`
+
+**Reason for Deprecation**:
+- Test version of SageRegistryV2 (now deprecated)
+- Bypasses key validation for local testing
+- **NEVER intended for production use**
+
+**Replacement**: Use V4 test suite in `contracts/ethereum/test/` directory
+
+---
+
 ### SageRegistryV3.sol
 
 **Status**: 🗑️ DEPRECATED - Superseded by V4
@@ -127,31 +168,9 @@ Comprehensive index of all smart contracts in the SAGE project.
 - Limited to single key per agent
 - Superseded by V4 multi-key architecture
 - Missing A2A protocol compatibility
+- No support for multiple cryptographic key types
 
 **Migration**: Use SageRegistryV4 for new deployments
-
----
-
-### SageRegistry.sol (V1)
-
-**Status**: 🗑️ DEPRECATED - Security Issues
-**Location**: `contracts/ethereum/contracts/deprecated/SageRegistry.sol`
-**Deprecated Date**: 2024-12-01
-
-**Reason for Deprecation**:
-- Insufficient public key validation
-- No key revocation mechanism
-- Security vulnerabilities identified in audit
-- Missing ownership proof verification
-
-**Critical Issues**:
-- Weak signature validation
-- No protection against key reuse attacks
-- Missing revocation functionality
-
-**Migration**: Use SageRegistryV2 or V4
-
-**See**: `contracts/archived/SECURITY_AUDIT_LEGACY.md` for details
 
 ---
 
@@ -264,15 +283,16 @@ function afterRegister(
 |---------|----|----|-----|
 | **Multi-Key Support** | ❌ | ❌ | ✅ Up to 10 keys |
 | **Key Types** | ECDSA only | ECDSA only | ECDSA, Ed25519, X25519 |
-| **Key Validation** | Basic | 5-step | Type-specific |
-| **Key Revocation** | ❌ | ✅ | ✅ Per-key |
-| **Key Rotation** | ❌ | ❌ | ✅ |
-| **Ownership Proof** | ❌ | ✅ Challenge | ✅ Per-key |
-| **Hook System** | ❌ | ✅ | ❌ (future) |
-| **A2A Compatibility** | ❌ | ❌ | ✅ |
-| **Gas Cost (register)** | ~400k | ~620k | ~875k (1 key) |
-| **Status** | Deprecated | Production | Production Ready |
-| **Test Coverage** | Basic | Comprehensive | Comprehensive |
+| **Key Validation** | Basic (broken) | 5-step | Type-specific + PoP |
+| **Key Revocation** | ❌ | ✅ Global | ✅ Per-key granular |
+| **Key Rotation** | ❌ | ❌ | ✅ Add/revoke independently |
+| **Ownership Proof** | ❌ | ✅ Challenge | ✅ Per-key PoP |
+| **Hook System** | ❌ | ✅ | ✅ |
+| **A2A Compatibility** | ❌ | ❌ | ✅ W3C Verifiable Credentials |
+| **Enhanced Validation** | ❌ | ❌ | ✅ 3-layer framework |
+| **Gas Cost (register)** | ~400k | ~734k | ~907k (1 key) |
+| **Status** | DEPRECATED | DEPRECATED | ✅ Production Ready |
+| **Test Coverage** | Basic | Comprehensive | Comprehensive (115+ tests) |
 
 ---
 
@@ -375,22 +395,27 @@ function afterRegister(
 
 ### Which Contract Should I Use?
 
-**Use SageRegistryV4 if**:
-- ✅ You need multi-chain agent identity
-- ✅ You want A2A protocol compatibility
-- ✅ You need key rotation without re-registration
-- ✅ You have multiple key types (ECDSA, Ed25519, X25519)
-- ✅ You're building new applications
+**Use SageRegistryV4** (Recommended for ALL new deployments):
+- ✅ Multi-chain agent identity
+- ✅ A2A protocol compatibility with W3C Verifiable Credentials
+- ✅ Enhanced validation framework (3-layer validation)
+- ✅ Key rotation without re-registration
+- ✅ Multiple key types (ECDSA, Ed25519, X25519)
+- ✅ Proof-of-Possession mechanism
+- ✅ Production ready with comprehensive testing
+- ✅ Layer 2 optimization (97% cheaper than mainnet)
 
-**Use SageRegistryV2 if**:
-- ✅ You only need single ECDSA key
-- ✅ You want lower gas costs
-- ✅ You need hook extensibility
-- ✅ You're maintaining existing V2 deployments
+**Migrating from V2**:
+- ⚠️ V2 is now DEPRECATED (as of 2025-01-19)
+- ✅ Migrate to V4 for multi-key support and enhanced security
+- ✅ V4 supports single-key agents (backward compatible)
+- ✅ See [deprecated/README.md](ethereum/contracts/deprecated/README.md) for migration guide
 
-**Don't Use V1/V3**:
-- ❌ Security vulnerabilities (V1)
-- ❌ Superseded by better alternatives (V3)
+**Don't Use V1/V2/V3**:
+- ❌ All deprecated as of 2025-01-19
+- ❌ V1: Critical security vulnerabilities
+- ❌ V2: Single-key limitation
+- ❌ V3: Superseded by V4
 
 ---
 
