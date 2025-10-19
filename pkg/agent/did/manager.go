@@ -20,12 +20,36 @@ package did
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync"
 
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 )
+
+// EthereumV4ClientCreator is a factory function type for creating Ethereum V4 clients
+type EthereumV4ClientCreator func(*RegistryConfig) (interface{}, error)
+
+var (
+	ethereumV4ClientCreator EthereumV4ClientCreator
+	ethereumV4CreatorMu     sync.RWMutex
+)
+
+// RegisterEthereumV4ClientCreator registers a factory function for Ethereum V4 clients
+// This is called by the ethereum package's init() function to avoid import cycles
+func RegisterEthereumV4ClientCreator(creator EthereumV4ClientCreator) {
+	ethereumV4CreatorMu.Lock()
+	defer ethereumV4CreatorMu.Unlock()
+	ethereumV4ClientCreator = creator
+}
+
+// GetEthereumV4ClientCreator returns the registered Ethereum V4 client creator
+func GetEthereumV4ClientCreator() EthereumV4ClientCreator {
+	ethereumV4CreatorMu.RLock()
+	defer ethereumV4CreatorMu.RUnlock()
+	return ethereumV4ClientCreator
+}
 
 // Manager provides a unified interface for DID operations across multiple chains
 type Manager struct {
@@ -47,7 +71,7 @@ func NewManager() *Manager {
 	}
 }
 
-// Configure adds configuration for a specific chain
+// Configure adds configuration for a specific chain and automatically initializes V4 client
 func (m *Manager) Configure(chain Chain, config *RegistryConfig) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -63,9 +87,57 @@ func (m *Manager) Configure(chain Chain, config *RegistryConfig) error {
 	// Store configuration
 	m.configs[chain] = config
 
-	// Note: In production, chain-specific clients should be initialized here
-	// using a factory pattern or dependency injection to avoid import cycles.
-	// For now, clients must be added separately using SetClient method.
+	// Auto-initialize chain-specific V4 client
+	// This avoids the need for manual SetClient calls in CLI code
+	switch chain {
+	case ChainEthereum:
+		// Dynamically import and create V4 client to avoid import cycles
+		// The ethereum package registers a factory function via init()
+		if creator := GetEthereumV4ClientCreator(); creator != nil {
+			client, err := creator(config)
+			if err != nil {
+				return fmt.Errorf("failed to create Ethereum V4 client: %w", err)
+			}
+			// Set the client immediately
+			if err := m.setClientUnlocked(chain, client); err != nil {
+				return fmt.Errorf("failed to set V4 client: %w", err)
+			}
+		} else {
+			// Fallback: clients must be added separately using SetClient method
+			// This maintains backward compatibility
+		}
+	case ChainSolana:
+		// Solana V4 client initialization would go here
+		// For now, clients must be added separately using SetClient method
+	default:
+		return fmt.Errorf("unsupported chain: %s", chain)
+	}
+
+	return nil
+}
+
+// setClientUnlocked sets a client without acquiring the lock (internal use only)
+func (m *Manager) setClientUnlocked(chain Chain, client interface{}) error {
+	// Verify the client implements required interfaces
+	registry, ok := client.(Registry)
+	if !ok {
+		return fmt.Errorf("client does not implement Registry interface")
+	}
+
+	resolver, ok := client.(Resolver)
+	if !ok {
+		return fmt.Errorf("client does not implement Resolver interface")
+	}
+
+	// Get configuration for the chain
+	config, exists := m.configs[chain]
+	if !exists {
+		return fmt.Errorf("configuration not found for chain %s", chain)
+	}
+
+	// Add to registry and resolver
+	m.registry.AddRegistry(chain, registry, config)
+	m.resolver.AddResolver(chain, resolver)
 
 	return nil
 }
@@ -224,4 +296,76 @@ func ParseDID(did AgentDID) (chain Chain, identifier string, err error) {
 
 	identifier = strings.Join(parts[3:], ":")
 	return chain, identifier, nil
+}
+
+// AddKey adds a new cryptographic key to an existing agent
+func (m *Manager) AddKey(ctx context.Context, chain Chain, did AgentDID, key AgentKey) (string, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Get registry for the chain
+	registry := m.registry.GetRegistry(chain)
+	if registry == nil {
+		return "", fmt.Errorf("no registry configured for chain %s", chain)
+	}
+
+	// Check if registry supports V4 interface (key management)
+	v4Registry, ok := registry.(RegistryV4)
+	if !ok {
+		return "", fmt.Errorf("registry for chain %s does not support multi-key management", chain)
+	}
+
+	// Add key via V4 interface
+	return v4Registry.AddKey(ctx, did, key)
+}
+
+// RevokeKey revokes a cryptographic key from an agent
+func (m *Manager) RevokeKey(ctx context.Context, chain Chain, did AgentDID, keyHash string) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Get registry for the chain
+	registry := m.registry.GetRegistry(chain)
+	if registry == nil {
+		return fmt.Errorf("no registry configured for chain %s", chain)
+	}
+
+	// Check if registry supports V4 interface (key management)
+	v4Registry, ok := registry.(RegistryV4)
+	if !ok {
+		return fmt.Errorf("registry for chain %s does not support multi-key management", chain)
+	}
+
+	// Revoke key via V4 interface
+	return v4Registry.RevokeKey(ctx, did, keyHash)
+}
+
+// ApproveEd25519Key approves an Ed25519 key (registry owner only)
+func (m *Manager) ApproveEd25519Key(ctx context.Context, chain Chain, keyHashStr string) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Get registry for the chain
+	registry := m.registry.GetRegistry(chain)
+	if registry == nil {
+		return fmt.Errorf("no registry configured for chain %s", chain)
+	}
+
+	// Check if registry supports V4 interface (key management)
+	v4Registry, ok := registry.(RegistryV4)
+	if !ok {
+		return fmt.Errorf("registry for chain %s does not support multi-key management", chain)
+	}
+
+	// Call ApproveEd25519Key via V4 interface
+	// The interface expects a string (hex-encoded key hash)
+	return v4Registry.ApproveEd25519Key(ctx, keyHashStr)
+}
+
+// hexDecode decodes a hex string with optional 0x prefix
+func hexDecode(s string) ([]byte, error) {
+	if strings.HasPrefix(s, "0x") {
+		s = s[2:]
+	}
+	return hex.DecodeString(s)
 }

@@ -40,6 +40,20 @@ type Registry interface {
 	GetRegistrationStatus(ctx context.Context, txHash string) (*RegistrationResult, error)
 }
 
+// RegistryV4 extends Registry with multi-key management operations
+type RegistryV4 interface {
+	Registry
+
+	// AddKey adds a new cryptographic key to an agent
+	AddKey(ctx context.Context, did AgentDID, key AgentKey) (keyHash string, err error)
+
+	// RevokeKey revokes a key from an agent
+	RevokeKey(ctx context.Context, did AgentDID, keyHash string) error
+
+	// ApproveEd25519Key approves an Ed25519 key (owner only)
+	ApproveEd25519Key(ctx context.Context, keyHash string) error
+}
+
 // RegistryConfig contains configuration for a DID registry
 type RegistryConfig struct {
 	Chain              Chain
@@ -70,6 +84,11 @@ func NewMultiChainRegistry() *MultiChainRegistry {
 func (m *MultiChainRegistry) AddRegistry(chain Chain, registry Registry, config *RegistryConfig) {
 	m.registries[chain] = registry
 	m.configs[chain] = config
+}
+
+// GetRegistry retrieves the registry for a specific chain
+func (m *MultiChainRegistry) GetRegistry(chain Chain) Registry {
+	return m.registries[chain]
 }
 
 // Register registers an agent on the specified chain
