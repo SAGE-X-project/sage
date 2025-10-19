@@ -613,7 +613,22 @@ func (c *EthereumClientV4) prepareUpdateMessage(agentDID did.AgentDID, updates m
 }
 
 // ApproveEd25519Key approves an Ed25519 key (contract owner only)
-func (c *EthereumClientV4) ApproveEd25519Key(ctx context.Context, keyHash [32]byte) error {
+// Implements RegistryV4 interface - takes hex-encoded key hash string
+func (c *EthereumClientV4) ApproveEd25519Key(ctx context.Context, keyHashStr string) error {
+	// Parse hex string to [32]byte
+	keyHashHex := keyHashStr
+	if len(keyHashStr) > 2 && keyHashStr[:2] == "0x" {
+		keyHashHex = keyHashStr[2:]
+	}
+
+	keyHashBytes, err := hex.DecodeString(keyHashHex)
+	if err != nil {
+		return fmt.Errorf("invalid key hash format: %w", err)
+	}
+
+	var keyHash [32]byte
+	copy(keyHash[:], keyHashBytes)
+
 	auth, err := c.getTransactOpts(ctx)
 	if err != nil {
 		return err

@@ -235,7 +235,8 @@ func TestV4Ed25519Registration(t *testing.T) {
 
 	// Contract owner approves the Ed25519 key
 	t.Log("Contract owner approving Ed25519 key...")
-	err = client.ApproveEd25519Key(ctx, keyHash)
+	keyHashStr := "0x" + hex.EncodeToString(keyHash[:])
+	err = client.ApproveEd25519Key(ctx, keyHashStr)
 	if err != nil {
 		t.Fatalf("Failed to approve Ed25519 key: %v", err)
 	}
@@ -1188,7 +1189,8 @@ func TestV4ApproveEd25519Key(t *testing.T) {
 
 	// Approve the Ed25519 key (as contract owner)
 	t.Log("Approving Ed25519 key as contract owner...")
-	err = client.ApproveEd25519Key(ctx, keyHash)
+	keyHashStr = "0x" + hex.EncodeToString(keyHash[:])
+	err = client.ApproveEd25519Key(ctx, keyHashStr)
 	if err != nil {
 		t.Fatalf("Failed to approve Ed25519 key: %v", err)
 	}

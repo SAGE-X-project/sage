@@ -20,6 +20,7 @@ package ethereum
 
 import (
 	"context"
+	"encoding/hex"
 	"os"
 	"testing"
 	"time"
@@ -137,7 +138,8 @@ func TestV4MultiKeyResolution(t *testing.T) {
 	}
 
 	t.Log("Approving Ed25519 key...")
-	err = client.ApproveEd25519Key(ctx, ed25519KeyHash)
+	ed25519KeyHashStr := "0x" + hex.EncodeToString(ed25519KeyHash[:])
+	err = client.ApproveEd25519Key(ctx, ed25519KeyHashStr)
 	if err != nil {
 		t.Fatalf("Failed to approve Ed25519 key: %v", err)
 	}
@@ -356,7 +358,8 @@ func TestV4MultiKeyResolutionFiltering(t *testing.T) {
 	}
 
 	t.Log("Approving Ed25519 key...")
-	err = client.ApproveEd25519Key(ctx, ed25519KeyHash)
+	ed25519KeyHashStr := "0x" + hex.EncodeToString(ed25519KeyHash[:])
+	err = client.ApproveEd25519Key(ctx, ed25519KeyHashStr)
 	if err != nil {
 		t.Fatalf("Failed to approve Ed25519 key: %v", err)
 	}

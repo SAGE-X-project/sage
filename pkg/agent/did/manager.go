@@ -357,24 +357,9 @@ func (m *Manager) ApproveEd25519Key(ctx context.Context, chain Chain, keyHashStr
 		return fmt.Errorf("registry for chain %s does not support multi-key management", chain)
 	}
 
-	// For Ethereum V4, convert string to [32]byte
-	// Parse key hash from hex string
-	keyHashBytes, err := hexDecode(keyHashStr)
-	if err != nil {
-		return fmt.Errorf("invalid key hash format: %w", err)
-	}
-
-	var keyHash [32]byte
-	copy(keyHash[:], keyHashBytes)
-
-	// Approve key via V4 interface (call the method that takes [32]byte)
-	if ethV4, ok := v4Registry.(interface {
-		ApproveEd25519Key(context.Context, [32]byte) error
-	}); ok {
-		return ethV4.ApproveEd25519Key(ctx, keyHash)
-	}
-
-	return fmt.Errorf("registry does not support Ed25519 approval")
+	// Call ApproveEd25519Key via V4 interface
+	// The interface expects a string (hex-encoded key hash)
+	return v4Registry.ApproveEd25519Key(ctx, keyHashStr)
 }
 
 // hexDecode decodes a hex string with optional 0x prefix
