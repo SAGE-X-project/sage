@@ -332,11 +332,18 @@ func getDefaultRPCEndpoint(chain did.Chain) string {
 }
 
 func getDefaultContractAddress(chain did.Chain) string {
-	// These would be the actual deployed contract addresses
+	// Default contract addresses for SageRegistryV4
+	// These are placeholder addresses. For production deployments:
+	// 1. Use --contract-address flag with the actual deployed address
+	// 2. Refer to contracts/DEPLOYED_ADDRESSES.md for network-specific addresses
+	// 3. For local testing, use the address from deployment output
 	switch chain {
 	case did.ChainEthereum:
+		// Placeholder - Update after mainnet/testnet deployment
+		// See: contracts/DEPLOYED_ADDRESSES.md
 		return "0x0000000000000000000000000000000000000000"
 	case did.ChainSolana:
+		// Placeholder for future Solana support
 		return "11111111111111111111111111111111"
 	default:
 		return ""

@@ -40,6 +40,13 @@ import (
 	"github.com/sage-x-project/sage/pkg/blockchain/ethereum/contracts/registryv4"
 )
 
+// init registers the Ethereum V4 client creator with the factory
+func init() {
+	did.RegisterEthereumV4ClientCreator(func(config *did.RegistryConfig) (interface{}, error) {
+		return NewEthereumClientV4(config)
+	})
+}
+
 // EthereumClientV4 implements V4 DID registry operations for Ethereum with multi-key support
 //
 // CHAIN-SPECIFIC SIGNATURE VERIFICATION DESIGN:
