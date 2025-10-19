@@ -20,7 +20,6 @@ package did
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
 	"strings"
 	"sync"
