@@ -277,7 +277,7 @@ func DecryptWithEd25519Peer(privateKey crypto.PrivateKey, packet []byte) ([]byte
 	if err != nil {
 		return nil, err
 	}
-	return aead.Open(nil, nonce, ct, transcript)
+	return aead.Open(nil, nonce, ct, transcript) // #nosec G407 -- nonce is function parameter, not hardcoded
 }
 
 // deriveHKDFKey derives a 32-byte AES key using HKDF-SHA256.

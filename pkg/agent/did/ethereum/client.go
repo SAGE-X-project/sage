@@ -403,7 +403,8 @@ func (c *EthereumClient) waitForTransaction(ctx context.Context, tx *types.Trans
 					return nil, fmt.Errorf("confirmation blocks must be non-negative: %d", c.config.ConfirmationBlocks)
 				}
 				confirmations := currentBlock - receipt.BlockNumber.Uint64()
-				if confirmations < uint64(c.config.ConfirmationBlocks) { // #nosec G115 - negative values checked above
+				// #nosec G115 -- ConfirmationBlocks is validated non-negative above
+			if confirmations < uint64(c.config.ConfirmationBlocks) {
 					time.Sleep(5 * time.Second)
 					continue
 				}

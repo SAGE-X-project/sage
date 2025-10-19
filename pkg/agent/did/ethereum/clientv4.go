@@ -149,7 +149,7 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 
 	// First, populate key types and data
 	for i, key := range keys {
-		keyTypes[i] = uint8(key.Type)
+		keyTypes[i] = uint8(key.Type) // #nosec G115 -- KeyType enum is 0-2, safe uint8 conversion
 		keyData[i] = key.KeyData
 	}
 
@@ -583,7 +583,8 @@ func (c *EthereumClientV4) waitForTransaction(ctx context.Context, tx *types.Tra
 					return nil, fmt.Errorf("confirmation blocks must be non-negative: %d", c.config.ConfirmationBlocks)
 				}
 				confirmations := currentBlock - receipt.BlockNumber.Uint64()
-				if confirmations < uint64(c.config.ConfirmationBlocks) { // #nosec G115 - negative values checked above
+				// #nosec G115 -- ConfirmationBlocks is validated non-negative above
+			if confirmations < uint64(c.config.ConfirmationBlocks) {
 					time.Sleep(5 * time.Second)
 					continue
 				}
@@ -663,7 +664,7 @@ func (c *EthereumClientV4) GetAgentKeyHash(ctx context.Context, agentDID did.Age
 		{Type: bytesType2},
 	}
 
-	keyHashData, err := keyHashArgs.Pack(agentId, uint8(keyType), keyData)
+	keyHashData, err := keyHashArgs.Pack(agentId, uint8(keyType), keyData) // #nosec G115 -- KeyType enum is 0-2, safe uint8 conversion
 	if err != nil {
 		return [32]byte{}, fmt.Errorf("failed to encode keyHash: %w", err)
 	}

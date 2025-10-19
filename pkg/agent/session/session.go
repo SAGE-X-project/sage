@@ -533,7 +533,7 @@ func (s *SecureSession) Decrypt(data []byte) ([]byte, error) {
 	ciphertext := data[chacha20poly1305.NonceSize:]
 
 	// Open verifies authenticity and decrypts
-	plaintext, err := s.aead.Open(nil, nonce, ciphertext, nil)
+	plaintext, err := s.aead.Open(nil, nonce, ciphertext, nil) // #nosec G407 -- nonce extracted from data, not hardcoded
 	if err != nil {
 		metrics.CryptoOperations.WithLabelValues("decrypt", "failure").Inc()
 		return nil, fmt.Errorf("decryption failed: %w", err)
@@ -595,7 +595,7 @@ func (s *SecureSession) DecryptAndVerify(cipher []byte, covered []byte, mac []by
 	nonce := cipher[:chacha20poly1305.NonceSize]
 	ct := cipher[chacha20poly1305.NonceSize:]
 
-	plain, err := s.aead.Open(nil, nonce, ct, nil)
+	plain, err := s.aead.Open(nil, nonce, ct, nil) // #nosec G407 -- nonce extracted from cipher data, not hardcoded
 	if err != nil {
 		return nil, fmt.Errorf("decryption/verification failed: %w", err)
 	}
@@ -642,7 +642,7 @@ func (s *SecureSession) DecryptWithAAD(data, aad []byte) ([]byte, error) {
 	}
 	nonce := data[:chacha20poly1305.NonceSize]
 	ct := data[chacha20poly1305.NonceSize:]
-	pt, err := s.aead.Open(nil, nonce, ct, aad)
+	pt, err := s.aead.Open(nil, nonce, ct, aad) // #nosec G407 -- nonce extracted from data, not hardcoded
 	if err != nil {
 		return nil, fmt.Errorf("decryption failed: %w", err)
 	}
@@ -701,7 +701,7 @@ func (s *SecureSession) DecryptInbound(data []byte) ([]byte, error) {
 	nonce := data[:chacha20poly1305.NonceSize]
 	ct := data[chacha20poly1305.NonceSize:]
 
-	pt, err := s.aeadIn.Open(nil, nonce, ct, nil)
+	pt, err := s.aeadIn.Open(nil, nonce, ct, nil) // #nosec G407 -- nonce extracted from data, not hardcoded
 	if err != nil {
 		return nil, fmt.Errorf("decryption failed: %w", err)
 	}
@@ -740,7 +740,7 @@ func (s *SecureSession) DecryptWithAADInbound(data, aad []byte) ([]byte, error) 
 	nonce := data[:chacha20poly1305.NonceSize]
 	ct := data[chacha20poly1305.NonceSize:]
 
-	pt, err := s.aeadIn.Open(nil, nonce, ct, aad)
+	pt, err := s.aeadIn.Open(nil, nonce, ct, aad) // #nosec G407 -- nonce extracted from data, not hardcoded
 	if err != nil {
 		return nil, fmt.Errorf("decryption failed: %w", err)
 	}
