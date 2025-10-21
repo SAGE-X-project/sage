@@ -32,14 +32,14 @@ import (
 
 // Server represents the health check HTTP server
 type Server struct {
-	checker *HealthChecker
+	checker *Checker
 	logger  logger.Logger
 	port    int
 	server  *http.Server
 }
 
 // NewServer creates a new health check server
-func NewServer(checker *HealthChecker, logger logger.Logger, port int) *Server {
+func NewServer(checker *Checker, logger logger.Logger, port int) *Server {
 	return &Server{
 		checker: checker,
 		logger:  logger,
@@ -87,43 +87,19 @@ func (s *Server) Stop(ctx context.Context) error {
 
 // handleHealth handles the main health check endpoint
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-	defer cancel()
+	status := s.checker.CheckAll()
 
-	results := s.checker.CheckAll(ctx)
-
-	// Determine overall status
-	overallHealthy := true
-	var errors []string
-
-	for name, result := range results {
-		if result.Status != "healthy" {
-			overallHealthy = false
-			if result.Message != "" {
-				errors = append(errors, fmt.Sprintf("%s: %s", name, result.Message))
-			} else {
-				errors = append(errors, fmt.Sprintf("%s: unhealthy", name))
-			}
-		}
-	}
-
-	// Prepare response
-	response := map[string]interface{}{
-		"status":    "healthy",
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"checks":    results,
-	}
-
-	if !overallHealthy {
-		response["status"] = "unhealthy"
-		response["errors"] = errors
+	// Set HTTP status code based on health status
+	if status.Status == StatusUnhealthy {
 		w.WriteHeader(http.StatusServiceUnavailable)
+	} else if status.Status == StatusDegraded {
+		w.WriteHeader(http.StatusOK) // 200 but with degraded status in body
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(status)
 }
 
 // handleLiveness handles the liveness probe endpoint
@@ -141,36 +117,22 @@ func (s *Server) handleLiveness(w http.ResponseWriter, r *http.Request) {
 
 // handleReadiness handles the readiness probe endpoint
 func (s *Server) handleReadiness(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-	defer cancel()
+	status := s.checker.CheckAll()
 
-	// Check only critical services for readiness
-	criticalChecks := []string{"blockchain", "keystore"}
-	ready := true
-	var errors []string
-
-	// Run critical checks
-	allResults := s.checker.CheckAll(ctx)
-	for _, checkName := range criticalChecks {
-		if result, exists := allResults[checkName]; exists {
-			if result.Status != "healthy" {
-				ready = false
-				if result.Message != "" {
-					errors = append(errors, fmt.Sprintf("%s: %s", checkName, result.Message))
-				} else {
-					errors = append(errors, fmt.Sprintf("%s: unhealthy", checkName))
-				}
-			}
-		}
-	}
+	// Check critical component: blockchain must be healthy
+	ready := status.BlockchainStatus != nil && status.BlockchainStatus.Connected
 
 	response := map[string]interface{}{
 		"ready":     ready,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"blockchain": map[string]interface{}{
+			"connected": status.BlockchainStatus != nil && status.BlockchainStatus.Connected,
+			"status":    status.BlockchainStatus.Status,
+		},
 	}
 
 	if !ready {
-		response["errors"] = errors
+		response["errors"] = status.Errors
 		w.WriteHeader(http.StatusServiceUnavailable)
 	} else {
 		w.WriteHeader(http.StatusOK)
@@ -223,12 +185,9 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 // StartHealthServer is a convenience function to start a health server
-func StartHealthServer(port int, checks map[string]HealthCheck) (*Server, error) {
+func StartHealthServer(port int, rpcURL string) (*Server, error) {
 	// Create health checker
-	checker := NewHealthChecker(5 * time.Second)
-	for name, check := range checks {
-		checker.RegisterCheck(name, check)
-	}
+	checker := NewChecker(rpcURL)
 
 	// Create logger
 	log := logger.NewLogger(os.Stdout, logger.InfoLevel)
