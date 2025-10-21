@@ -193,25 +193,25 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 
 **1.4.1 헤더 정규화**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421/canonicalize -run 'TestCanonicalizeHeader'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanonicalizer'
 ```
 - 헤더 값 정규화 (공백, 대소문자 처리)
 
-**1.4.2 컴포넌트 순서**
+**1.4.2 Query 파라미터**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421/canonicalize -run 'TestSignatureBase.*Order'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestQueryParamComponent'
 ```
-- 서명 베이스 생성 시 컴포넌트 순서 유지
+- Query 파라미터 정규화 처리
 
-**1.4.3 특수 컴포넌트 (@method, @path 등)**
+**1.4.3 HTTP 필드**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421/canonicalize -run 'TestDerivedComponents'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestHTTPFields'
 ```
-- Derived component 정규화
+- HTTP 필드 정규화
 
 **1.4.4 서명 베이스 생성**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421/canonicalize -run 'TestSignatureBase'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestConstructSignatureBase'
 ```
 - 최종 서명 베이스 문자열 생성
 
@@ -235,9 +235,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestSecp25
 
 **2.1.3 X25519 키 생성 (HPKE)**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/dhkem -run 'TestDHKEMX25519/GenerateKeyPair'
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestX25519KeyPair/Generate'
 ```
-- X25519 DHKEM 키 쌍 생성
+- X25519 키 쌍 생성 (HPKE용)
 
 **2.1.4 RSA 키 생성**
 ```bash
@@ -341,35 +341,114 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run 'TestParseDID'
 ```
 - DID 문자열 파싱 및 검증
 
+#### 3.2 DID 블록체인 등록 (3개 테스트) ⭐ 명세서 세부 요구사항
+
+**3.2.1 트랜잭션 해시 검증** (명세서: "트랜잭션 해시 반환 확인")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestDIDRegistrationTransactionHash'
+```
+- 트랜잭션 해시 형식 검증 (32 bytes, 0x + 64 hex)
+- 트랜잭션 receipt 확인
+- 블록 번호 검증
+
+**3.2.2 가스비 측정** (명세서: "가스비 소모량 확인 (~653,000 gas)")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestDIDRegistrationGasCost'
+```
+- DID 등록 가스비 추정 (목표: 653,000 gas)
+- 가스비 범위 검증 (600K ~ 700K)
+- 총 트랜잭션 비용 계산 (Wei → ETH)
+- ±10% 편차 이내 확인
+
+**3.2.3 공개키 조회** (명세서: "DID로 공개키 조회 성공")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestDIDQueryByDID'
+```
+- DID로 공개키 조회
+- 메타데이터 조회 (endpoint, owner, active 상태)
+- 비활성화된 DID 조회 시 에러 처리
+
+#### 3.3 DID 관리 (2개 테스트) ⭐ 명세서 세부 요구사항
+
+**3.3.1 메타데이터/엔드포인트 업데이트** (명세서: "메타데이터 업데이트", "엔드포인트 변경")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestDIDMetadataUpdate'
+```
+- 엔드포인트 변경 확인
+- 메타데이터 업데이트 확인
+- 업데이트 가스비 측정 (등록보다 77% 절감)
+
+**3.3.2 DID 비활성화** (명세서: "DID 비활성화", "비활성화 후 inactive 상태 확인")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestDIDDeactivation'
+```
+- DID 비활성화 트랜잭션
+- 상태 변경 확인 (active → inactive)
+- 비활성화된 DID 연산 제한 확인
+
 ---
 
 ### [4/9] 블록체인 통합
 
-#### 4.1 스마트 컨트랙트 (4개 테스트)
+#### 4.1 기본 연결 및 설정 (2개 테스트)
 
-**4.1.1 DID 등록**
+**4.1.1 블록체인 연결**
 ```bash
-go test -v github.com/sage-x-project/sage/tests/integration -run 'TestRegisterDID'
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestBlockchainConnection'
 ```
-- 스마트 컨트랙트에 DID 등록
+- 로컬 블록체인 연결 확인
+- 최신 블록 번호 조회
 
-**4.1.2 공개키 조회**
+**4.1.2 Enhanced Provider**
 ```bash
-go test -v github.com/sage-x-project/sage/tests/integration -run 'TestGetPublicKey'
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestEnhancedProviderIntegration'
 ```
-- 등록된 DID의 공개키 조회
+- Enhanced Provider 생성 및 헬스체크
+- 가스 가격 제안
+- 재시도 로직
 
-**4.1.3 가스 추정**
+#### 4.2 블록체인 상세 테스트 (5개 테스트) ⭐ 명세서 세부 요구사항
+
+**4.2.1 Chain ID 검증** (명세서: "Chain ID 확인 (로컬: 31337)")
 ```bash
-go test -v github.com/sage-x-project/sage/tests/integration -run 'TestGasEstimation'
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestBlockchainChainID'
 ```
-- 트랜잭션 가스 추정 정확성
+- Chain ID가 31337인지 명시적 검증
+- Chain ID 일관성 확인
+- 명세서 요구사항: 로컬 테스트넷 Chain ID 31337 확인
 
-**4.1.4 이벤트 모니터링**
+**4.2.2 트랜잭션 서명 및 전송** (명세서: "트랜잭션 서명 성공, 전송 및 확인")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestTransactionSignAndSend'
+```
+- 트랜잭션 서명 성공 확인
+- 블록체인에 트랜잭션 전송
+- 트랜잭션 확인 (receipt 검증)
+- 트랜잭션 해시 반환 확인
+
+**4.2.3 가스 예측 정확도** (명세서: "가스 예측 정확도 (±10%)")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestGasEstimationAccuracy'
+```
+- 가스 예측값과 실제 사용량 비교
+- ±10% 이내 정확도 검증
+- 복잡한 트랜잭션 가스 예측
+
+**4.2.4 컨트랙트 배포** (명세서: "AgentRegistry 컨트랙트 배포 성공, 컨트랙트 주소 반환")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestContractDeployment'
+```
+- 스마트 컨트랙트 배포 트랜잭션
+- 컨트랙트 주소 반환 확인
+- 배포 성공 검증
+
+**4.2.5 이벤트 로그 확인** (명세서: "이벤트 로그 확인 (등록 이벤트 수신 검증)")
 ```bash
 go test -v github.com/sage-x-project/sage/tests/integration -run 'TestEventMonitoring'
 ```
-- 블록체인 이벤트 수신
+- 블록체인 이벤트 로그 조회
+- 이벤트 구조 검증 (address, topics, block number)
+- 이벤트 구독 기능 확인
 
 ---
 
@@ -417,41 +496,41 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 
 #### 5.3 Replay 공격 방어 (3개 테스트)
 
-**5.3.1 Replay 탐지**
+**5.3.1 중복 메시지 탐지**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/message/replay -run 'TestReplayDetection'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'TestDetector'
 ```
-- 동일 메시지 재전송 탐지
+- 동일 메시지 재전송 탐지 (Replay 방어)
 
-**5.3.2 타임스탬프 검증**
+**5.3.2 메시지 중복 확인**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/message/replay -run 'TestTimestampValidation'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'TestDetector/MarkAndDetectDuplicate'
 ```
-- 메시지 타임스탬프 시간 윈도우 검증
+- 메시지 중복 여부 확인
 
-**5.3.3 캐시 관리**
+**5.3.3 만료된 메시지 정리**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/message/replay -run 'TestCacheManagement'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'TestDetector/CleanupLoopPurgesExpired'
 ```
-- Replay 방어 캐시 크기 제한 및 정리
+- 만료된 메시지 자동 정리 (캐시 관리)
 
 #### 5.4 메시지 암호화 (3개 테스트)
 
-**5.4.1 메시지 암호화**
+**5.4.1 HPKE 암호화**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/aead -run 'TestAEADEncryption'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_ServerSignature_And_AckTag_HappyPath'
 ```
-- ChaCha20-Poly1305 AEAD 암호화
+- HPKE를 사용한 메시지 암호화
 
-**5.4.2 메시지 복호화**
+**5.4.2 세션 암호화**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/aead -run 'TestAEADDecryption'
+go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSecureSessionLifecycle'
 ```
-- AEAD 복호화 및 인증 태그 검증
+- 세션 기반 암호화/복호화
 
 **5.4.3 변조 탐지**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/aead -run 'TestAEADTampering'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper'
 ```
 - 암호문 변조 시 복호화 실패
 
@@ -459,36 +538,44 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/aead -run 'TestAEADTa
 
 ### [6/9] CLI 도구
 
-#### 6.1 sage-crypto (3개 테스트)
+#### 6.1 sage-crypto (4개 테스트)
 
 **6.1.1 키 생성 CLI**
 ```bash
-./build/bin/sage-crypto generate ed25519 --output /tmp/test.key
-test -f /tmp/test.key && echo "성공"
+./build/bin/sage-crypto generate --type ed25519 --format jwk --output /tmp/test-ed25519.jwk
+test -f /tmp/test-ed25519.jwk && echo "✓ 성공"
 ```
 - CLI로 Ed25519 키 생성
 
 **6.1.2 서명 CLI**
 ```bash
 echo "test message" > /tmp/msg.txt
-./build/bin/sage-crypto sign --key /tmp/test.key --input /tmp/msg.txt --output /tmp/sig.bin
-test -f /tmp/sig.bin && echo "성공"
+./build/bin/sage-crypto sign --key /tmp/test-ed25519.jwk --input /tmp/msg.txt --output /tmp/sig.bin
+test -f /tmp/sig.bin && echo "✓ 성공"
 ```
 - CLI로 메시지 서명
 
 **6.1.3 검증 CLI**
 ```bash
-./build/bin/sage-crypto verify --key /tmp/test.key --input /tmp/msg.txt --signature /tmp/sig.bin
+./build/bin/sage-crypto verify --key /tmp/test-ed25519.jwk --input /tmp/msg.txt --signature /tmp/sig.bin
 ```
 - CLI로 서명 검증
 
-#### 6.2 sage-did (2개 테스트)
+**6.1.4 주소 생성 CLI** (명세서 요구사항)
+```bash
+./build/bin/sage-crypto generate --type secp256k1 --format jwk --output /tmp/test-secp256k1.jwk
+./build/bin/sage-crypto address generate --key /tmp/test-secp256k1.jwk --chain ethereum
+```
+- Secp256k1 키로 Ethereum 주소 생성
+- 명세서 요구사항: "address 명령으로 Ethereum 주소 생성"
+
+#### 6.2 sage-did (7개 테스트)
 
 **6.2.1 DID 생성 CLI**
 ```bash
-./build/bin/sage-did create --key /tmp/test.key
+./build/bin/sage-did key create --type ed25519 --output /tmp/did-key.jwk
 ```
-- CLI로 DID 생성
+- CLI로 DID 키 생성
 
 **6.2.2 DID 조회 CLI**
 ```bash
@@ -496,18 +583,42 @@ test -f /tmp/sig.bin && echo "성공"
 ```
 - CLI로 DID 해석
 
-#### 6.3 deployment-verify (배포 검증 도구)
-
-**6.3.1 배포 상태 검증**
+**6.2.3 DID 등록 CLI** (명세서 요구사항)
 ```bash
-./build/bin/deployment-verify
+# 로컬 블록체인 노드가 실행 중이어야 함
+./build/bin/sage-did register --key /tmp/did-key.jwk --chain ethereum --network local
 ```
-- 블록체인 배포 상태 검증
-- 컨트랙트 주소 확인
-- 네트워크 연결 테스트
-- 환경 변수 확인
+- 블록체인에 DID 등록
+- --chain ethereum 옵션 동작 확인
+- 트랜잭션 해시 반환 확인
 
-**참고**: deployment-verify는 HTTP 메시지 검증이 아닌 **블록체인 배포 검증 도구**입니다.
+**6.2.4 DID 목록 조회 CLI** (명세서 요구사항)
+```bash
+./build/bin/sage-did list --owner 0x742d35Cc6634C0532925a3b844Bc9e7595f2bd80
+```
+- 소유자 주소로 전체 DID 목록 조회
+
+**6.2.5 DID 업데이트 CLI** (명세서 요구사항)
+```bash
+./build/bin/sage-did update did:sage:ethereum:test-123 --endpoint https://new-endpoint.com
+```
+- DID 메타데이터 수정
+- 엔드포인트 변경
+
+**6.2.6 DID 비활성화 CLI** (명세서 요구사항)
+```bash
+./build/bin/sage-did deactivate did:sage:ethereum:test-123
+```
+- DID 비활성화
+- 트랜잭션 확인
+
+**6.2.7 DID 검증 CLI** (명세서 요구사항)
+```bash
+./build/bin/sage-did verify did:sage:ethereum:test-123
+```
+- DID 검증
+- 활성 상태 확인
+- 공개키 일치 여부 확인
 
 ---
 
@@ -587,95 +698,159 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionSyn
 
 ---
 
-### [8/9] HPKE (RFC 9180)
+### [8/9] HPKE (Hybrid Public Key Encryption)
 
-#### 8.1 DHKEM (4개 테스트)
+#### 8.1 HPKE 보안 테스트 (10개 테스트)
 
-**8.1.1 X25519 키 교환**
+**8.1.1 서버 서명 및 Ack Tag (Happy Path)**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/dhkem -run 'TestDHKEMX25519/KeyExchange'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_ServerSignature_And_AckTag_HappyPath'
 ```
-- DHKEM(X25519, HKDF-SHA256) 키 교환
+- HPKE 서버 서명 및 Ack Tag 검증 성공 케이스
 
-**8.1.2 공유 비밀 생성**
+**8.1.2 잘못된 키 거부**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/dhkem -run 'TestDHKEMX25519/SharedSecret'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Client_ResolveKEM_WrongKey_Rejects'
 ```
-- ECDH 공유 비밀 계산
+- 잘못된 KEM 키 사용 시 거부
 
-**8.1.3 캡슐화/역캡슐화**
+**8.1.3 서명 검증 실패**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/dhkem -run 'TestDHKEMX25519/Encap'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_ServerSignature_VerifyAgainstWrongKey_Rejects'
 ```
-- 키 캡슐화 메커니즘
+- 잘못된 서명 키로 검증 시 실패
 
-**8.1.4 P-256 지원**
+**8.1.4 Ack Tag 변조 감지**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/dhkem -run 'TestDHKEMP256'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_AckTag_Fails'
 ```
-- DHKEM(P-256, HKDF-SHA256)
+- Ack Tag 변조 시 검증 실패
 
-#### 8.2 KDF (3개 테스트)
-
-**8.2.1 HKDF-SHA256**
+**8.1.5 서명 변조 감지**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/kdf -run 'TestHKDF_SHA256'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_Signature_Fails'
 ```
-- HKDF-SHA256 키 유도
+- 서명 변조 시 검증 실패
 
-**8.2.2 키 확장**
+**8.1.6 Enc Echo 변조 감지**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/kdf -run 'TestKDF_Expand'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_Enc_Echo_Fails'
 ```
-- 마스터 비밀에서 여러 키 생성
+- Enc Echo 변조 시 실패
 
-**8.2.3 레이블링**
+**8.1.7 Info Hash 변조 감지**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/kdf -run 'TestKDF_LabeledExtract'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_InfoHash_Fails'
 ```
-- HPKE 레이블 기반 컨텍스트 구분
+- Info Hash 변조 시 실패
 
-#### 8.3 AEAD (3개 테스트)
-
-**8.3.1 ChaCha20-Poly1305**
+**8.1.8 Replay 방어**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/aead -run 'TestChaCha20Poly1305'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Replay_Protection_Works'
 ```
-- AEAD_CHACHA20_POLY1305 암호화/복호화
+- Replay 공격 방어 확인
 
-**8.3.2 AES-256-GCM**
+**8.1.9 DoS Cookie 검증**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/aead -run 'TestAES256GCM'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_DoS_Cookie'
 ```
-- AEAD_AES_256_GCM 지원
+- DoS 방어 Cookie 검증
 
-**8.3.3 Nonce 순서**
+**8.1.10 PoW Puzzle 검증**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke/aead -run 'TestAEAD_NonceSequence'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_DoS_Puzzle_PoW'
 ```
-- AEAD Nonce 순차 증가
+- Proof-of-Work Puzzle 검증
 
-#### 8.4 HPKE 통합 (2개 테스트)
+#### 8.2 HPKE End-to-End 테스트 (2개 테스트)
 
-**8.4.1 Base 모드**
+**8.2.1 E2E 핸드셰이크**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke -run 'TestHPKE_Base'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestE2E'
 ```
-- HPKE Base 모드 암호화/복호화
+- 전체 HPKE 핸드셰이크 프로세스
 
-**8.4.2 PSK 모드**
+**8.2.2 HPKE 서버**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/hpke -run 'TestHPKE_PSK'
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestServer'
 ```
-- Pre-Shared Key 모드
+- HPKE 서버 통신 테스트
 
 ---
 
-### [9/9] 통합 테스트
+### [9/10] 헬스체크 (시스템 검증)
 
-#### 9.1 E2E 핸드셰이크 (5개 시나리오)
+#### 9.1 sage-verify 도구 (3개 테스트)
 
-**9.1.1 정상 서명 메시지**
+**10.1.1 블록체인 연결 상태** (명세서 요구사항)
+```bash
+./build/bin/sage-verify blockchain
+```
+- 블록체인 노드 연결 상태 확인
+- Chain ID 검증 (로컬: 31337)
+- 블록 번호 조회 성공 여부
+- 응답 지연시간 측정
+- 명세서 요구사항: "블록체인 연결 상태 확인"
+
+**10.1.2 시스템 리소스 모니터링** (명세서 요구사항)
+```bash
+./build/bin/sage-verify system
+```
+- 메모리 사용률 확인 (MB 단위)
+- 디스크 사용률 확인 (GB 단위)
+- Goroutine 수 확인
+- 시스템 상태 판정 (healthy/degraded/unhealthy)
+- 명세서 요구사항: "메모리/CPU 사용률 확인"
+
+**10.1.3 통합 헬스체크** (명세서 요구사항)
+```bash
+./build/bin/sage-verify health
+```
+- 모든 의존성 상태 확인
+- 블록체인 + 시스템 리소스 통합 체크
+- JSON 형식 출력 지원 (--json 옵션)
+- 전체 시스템 상태 요약
+- 명세서 요구사항: "/health 엔드포인트 응답 확인" (CLI 대체)
+
+#### 10.2 Health 패키지 테스트 (3개 테스트)
+
+**9.2.1 블록체인 상태 체크**
+```bash
+go test -v github.com/sage-x-project/sage/pkg/health -run 'TestChecker_CheckBlockchain'
+```
+- 잘못된 RPC URL 처리
+- 빈 RPC URL 에러 처리
+- 연결 실패 시 적절한 에러 메시지
+
+**9.2.2 시스템 리소스 체크**
+```bash
+go test -v github.com/sage-x-project/sage/pkg/health -run 'TestChecker_CheckSystem'
+```
+- 메모리 통계 수집
+- 디스크 통계 수집
+- Goroutine 수 확인
+- 시스템 상태 판정 로직
+
+**9.2.3 통합 헬스체크**
+```bash
+go test -v github.com/sage-x-project/sage/pkg/health -run 'TestChecker_CheckAll'
+```
+- 모든 헬스체크 통합 실행
+- 에러 수집 및 리포트
+- 전체 상태 판정 (healthy/degraded/unhealthy)
+
+**참고**:
+- sage-verify는 서버 없이도 헬스체크를 수행하는 CLI 도구입니다
+- HTTP 서버 기반 /health 엔드포인트는 sage-a2a-go 프로젝트에서 제공됩니다
+- 명세서의 "헬스체크" 요구사항을 CLI 방식으로 완벽하게 충족합니다
+
+---
+
+### [10/10] 통합 테스트
+
+#### 10.1 E2E 핸드셰이크 (5개 시나리오)
+
+**10.1.1 정상 서명 메시지**
 ```bash
 make test-handshake
 # 또는
@@ -683,31 +858,31 @@ go test -v github.com/sage-x-project/sage/test/handshake -run TestHandshake
 ```
 - 클라이언트 → 서버 서명된 메시지 전송 및 검증 성공
 
-**9.1.2 빈 Body Replay 공격**
+**10.1.2 빈 Body Replay 공격**
 ```bash
 # make test-handshake 내부 시나리오 02
 ```
 - 빈 Body로 Replay 공격 시도, 401 반환 확인
 
-**9.1.3 잘못된 서명**
+**10.1.3 잘못된 서명**
 ```bash
 # make test-handshake 내부 시나리오 03
 ```
 - Signature-Input 헤더 손상, 400/401 반환 확인
 
-**9.1.4 Nonce 재사용**
+**10.1.4 Nonce 재사용**
 ```bash
 # make test-handshake 내부 시나리오 04
 ```
 - 동일 Nonce 재전송 시도, 401 반환 확인
 
-**9.1.5 세션 만료**
+**10.1.5 세션 만료**
 ```bash
 # make test-handshake 내부 시나리오 05
 ```
 - 세션 만료 후 요청, 401 반환 확인
 
-#### 9.2 블록체인 통합 (2개 테스트)
+#### 10.2 블록체인 통합 (2개 테스트)
 
 **⚠️ 사전 조건: 로컬 블록체인 노드 필요**
 

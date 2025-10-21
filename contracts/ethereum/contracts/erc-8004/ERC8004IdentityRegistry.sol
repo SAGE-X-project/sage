@@ -2,13 +2,16 @@
 pragma solidity 0.8.19;
 
 import "./interfaces/IERC8004IdentityRegistry.sol";
-import "../SageRegistryV2.sol";
+import "../deprecated/SageRegistryV2.sol";
 
 /**
  * @title ERC8004IdentityRegistry
  * @notice ERC-8004 compliant Identity Registry adapter for SAGE
  * @dev Part of ERC-8004: Trustless Agents standard
  *      https://eips.ethereum.org/EIPS/eip-8004
+ *
+ * **DEPRECATED**: This contract wraps SageRegistryV2, which is now deprecated.
+ * For new deployments, use SageRegistryV4 directly or create a new ERC-8004 adapter for V4.
  *
  * This contract wraps the existing SageRegistryV2 to provide an ERC-8004
  * compliant interface while maintaining backward compatibility with SAGE's

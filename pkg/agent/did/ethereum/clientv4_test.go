@@ -21,6 +21,7 @@ package ethereum
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"math/big"
 	"os"
 	"testing"
@@ -234,7 +235,8 @@ func TestV4Ed25519Registration(t *testing.T) {
 
 	// Contract owner approves the Ed25519 key
 	t.Log("Contract owner approving Ed25519 key...")
-	err = client.ApproveEd25519Key(ctx, keyHash)
+	keyHashStr := "0x" + hex.EncodeToString(keyHash[:])
+	err = client.ApproveEd25519Key(ctx, keyHashStr)
 	if err != nil {
 		t.Fatalf("Failed to approve Ed25519 key: %v", err)
 	}
@@ -928,12 +930,283 @@ func TestV4RevokeKey(t *testing.T) {
 	}
 
 	t.Log("Key 1 verified before revocation")
-	t.Log("")
-	t.Log("NOTE: Full revokeKey() client implementation pending")
-	t.Log("      Contract function is ready and implements complete deletion")
-	t.Log("      - Removes key from agent's keyHashes array")
-	t.Log("      - Deletes key data from storage")
-	t.Log("      - Increments nonce to invalidate old signatures")
-	t.Log("")
+
+	// Now test the actual RevokeKey implementation
+	t.Log("Revoking key 1...")
+	keyHashStr := "0x" + string(keyHash1[:])
+	err = client.RevokeKey(ctx, testDID, keyHashStr)
+	if err != nil {
+		t.Fatalf("Failed to revoke key: %v", err)
+	}
+
+	t.Log("Key revoked successfully!")
+
+	// Verify key is no longer verified
+	key1After, err := client.GetAgentKey(ctx, keyHash1)
+	if err != nil {
+		t.Fatalf("Failed to get key 1 after revocation: %v", err)
+	}
+
+	if key1After.Verified {
+		t.Fatal("Key 1 should not be verified after revocation")
+	}
+
+	t.Log("✓ Key 1 successfully revoked and marked as unverified")
 	t.Logf("Agent owner: %s", agent.Owner)
+}
+
+// TestV4AddKey tests adding a new key to an existing agent
+func TestV4AddKey(t *testing.T) {
+	// Skip if not running integration tests
+	if os.Getenv("SAGE_INTEGRATION_TEST") != "1" {
+		t.Skip("Skipping integration test. Set SAGE_INTEGRATION_TEST=1 to run")
+	}
+
+	config := &did.RegistryConfig{
+		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		RPCEndpoint:        "http://localhost:8545",
+		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+		GasPrice:           0,
+		MaxRetries:         10,
+		ConfirmationBlocks: 0,
+	}
+
+	client, err := NewEthereumClientV4(config)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	// Generate initial keypair for registration
+	keyPair1, err := crypto.GenerateSecp256k1KeyPair()
+	if err != nil {
+		t.Fatalf("Failed to generate keypair 1: %v", err)
+	}
+
+	// Register agent with single key
+	testDID := did.AgentDID("did:sage:eth:addkey-test-" + time.Now().Format("20060102150405"))
+
+	req := &did.RegistrationRequest{
+		DID:         testDID,
+		Name:        "Add Key Test Agent",
+		Description: "Testing AddKey functionality",
+		Endpoint:    "http://localhost:8080",
+		Capabilities: map[string]interface{}{
+			"test": "add_key",
+		},
+		KeyPair: keyPair1,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	t.Log("Registering agent with initial key...")
+	result, err := client.Register(ctx, req)
+	if err != nil {
+		t.Fatalf("Failed to register agent: %v", err)
+	}
+
+	t.Logf("Agent registered successfully!")
+	t.Logf("  Transaction Hash: %s", result.TransactionHash)
+	t.Logf("  Gas Used: %d", result.GasUsed)
+
+	// Verify agent has 1 key initially
+	initialKeys, err := client.ResolveAllPublicKeys(ctx, testDID)
+	if err != nil {
+		t.Fatalf("Failed to resolve initial keys: %v", err)
+	}
+
+	initialKeyCount := len(initialKeys)
+	t.Logf("Agent initially has %d key(s)", initialKeyCount)
+
+	if initialKeyCount != 1 {
+		t.Fatalf("Expected 1 initial key, got %d", initialKeyCount)
+	}
+
+	// Generate a second ECDSA keypair to add
+	keyPair2, err := crypto.GenerateSecp256k1KeyPair()
+	if err != nil {
+		t.Fatalf("Failed to generate keypair 2: %v", err)
+	}
+
+	pubKey2, err := did.MarshalPublicKey(keyPair2.PublicKey())
+	if err != nil {
+		t.Fatalf("Failed to marshal public key 2: %v", err)
+	}
+
+	// Add the second key
+	t.Log("Adding second ECDSA key...")
+	keyHash2Str, err := client.AddKey(ctx, testDID, did.AgentKey{
+		Type:    did.KeyTypeECDSA,
+		KeyData: pubKey2,
+	})
+	if err != nil {
+		t.Fatalf("Failed to add key: %v", err)
+	}
+
+	t.Logf("Second key added successfully!")
+	t.Logf("  Key Hash: %s", keyHash2Str)
+
+	// Verify agent now has 2 keys
+	keysAfterAdd, err := client.ResolveAllPublicKeys(ctx, testDID)
+	if err != nil {
+		t.Fatalf("Failed to resolve keys after adding: %v", err)
+	}
+
+	finalKeyCount := len(keysAfterAdd)
+	t.Logf("Agent now has %d key(s)", finalKeyCount)
+
+	if finalKeyCount != 2 {
+		t.Fatalf("Expected 2 keys after adding, got %d", finalKeyCount)
+	}
+
+	// Generate an Ed25519 keypair to add
+	keyPair3, err := crypto.GenerateEd25519KeyPair()
+	if err != nil {
+		t.Fatalf("Failed to generate Ed25519 keypair: %v", err)
+	}
+
+	pubKey3, err := did.MarshalPublicKey(keyPair3.PublicKey())
+	if err != nil {
+		t.Fatalf("Failed to marshal Ed25519 public key: %v", err)
+	}
+
+	// Add Ed25519 key (requires approval)
+	t.Log("Adding Ed25519 key (requires approval)...")
+	keyHash3Str, err := client.AddKey(ctx, testDID, did.AgentKey{
+		Type:    did.KeyTypeEd25519,
+		KeyData: pubKey3,
+	})
+	if err != nil {
+		t.Fatalf("Failed to add Ed25519 key: %v", err)
+	}
+
+	t.Logf("Ed25519 key added successfully!")
+	t.Logf("  Key Hash: %s", keyHash3Str)
+	t.Log("  NOTE: Ed25519 key requires owner approval to become verified")
+
+	t.Log("✓ AddKey test completed successfully!")
+}
+
+// TestV4ApproveEd25519Key tests Ed25519 key approval by contract owner
+func TestV4ApproveEd25519Key(t *testing.T) {
+	// Skip if not running integration tests
+	if os.Getenv("SAGE_INTEGRATION_TEST") != "1" {
+		t.Skip("Skipping integration test. Set SAGE_INTEGRATION_TEST=1 to run")
+	}
+
+	config := &did.RegistryConfig{
+		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		RPCEndpoint:        "http://localhost:8545",
+		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
+		GasPrice:           0,
+		MaxRetries:         10,
+		ConfirmationBlocks: 0,
+	}
+
+	client, err := NewEthereumClientV4(config)
+	if err != nil {
+		t.Fatalf("Failed to create client: %v", err)
+	}
+
+	// Generate ECDSA keypair for initial registration
+	ecdsaKeyPair, err := crypto.GenerateSecp256k1KeyPair()
+	if err != nil {
+		t.Fatalf("Failed to generate ECDSA keypair: %v", err)
+	}
+
+	// Generate Ed25519 keypair to add later
+	ed25519KeyPair, err := crypto.GenerateEd25519KeyPair()
+	if err != nil {
+		t.Fatalf("Failed to generate Ed25519 keypair: %v", err)
+	}
+
+	ed25519PubKey, err := did.MarshalPublicKey(ed25519KeyPair.PublicKey())
+	if err != nil {
+		t.Fatalf("Failed to marshal Ed25519 public key: %v", err)
+	}
+
+	// Register agent with ECDSA key
+	testDID := did.AgentDID("did:sage:eth:approve-test-" + time.Now().Format("20060102150405"))
+
+	req := &did.RegistrationRequest{
+		DID:         testDID,
+		Name:        "Ed25519 Approval Test Agent",
+		Description: "Testing Ed25519 key approval",
+		Endpoint:    "http://localhost:8080",
+		Capabilities: map[string]interface{}{
+			"test": "ed25519_approval",
+		},
+		KeyPair: ecdsaKeyPair,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	t.Log("Registering agent with ECDSA key...")
+	result, err := client.Register(ctx, req)
+	if err != nil {
+		t.Fatalf("Failed to register agent: %v", err)
+	}
+
+	t.Logf("Agent registered successfully!")
+	t.Logf("  Transaction Hash: %s", result.TransactionHash)
+
+	// Add Ed25519 key (unverified initially)
+	t.Log("Adding Ed25519 key (will be unverified)...")
+	keyHashStr, err := client.AddKey(ctx, testDID, did.AgentKey{
+		Type:    did.KeyTypeEd25519,
+		KeyData: ed25519PubKey,
+	})
+	if err != nil {
+		t.Fatalf("Failed to add Ed25519 key: %v", err)
+	}
+
+	t.Logf("Ed25519 key added: %s", keyHashStr)
+
+	// Parse key hash from hex string
+	keyHashHex := keyHashStr
+	if len(keyHashStr) > 2 && keyHashStr[:2] == "0x" {
+		keyHashHex = keyHashStr[2:]
+	}
+	keyHashBytes, err := hex.DecodeString(keyHashHex)
+	if err != nil {
+		t.Fatalf("Failed to decode key hash: %v", err)
+	}
+	var keyHash [32]byte
+	copy(keyHash[:], keyHashBytes)
+
+	// Verify key is unverified before approval
+	key, err := client.GetAgentKey(ctx, keyHash)
+	if err != nil {
+		t.Fatalf("Failed to get Ed25519 key: %v", err)
+	}
+
+	if key.Verified {
+		t.Fatal("Ed25519 key should be unverified before approval")
+	}
+
+	t.Log("✓ Ed25519 key is unverified before approval")
+
+	// Approve the Ed25519 key (as contract owner)
+	t.Log("Approving Ed25519 key as contract owner...")
+	keyHashStr = "0x" + hex.EncodeToString(keyHash[:])
+	err = client.ApproveEd25519Key(ctx, keyHashStr)
+	if err != nil {
+		t.Fatalf("Failed to approve Ed25519 key: %v", err)
+	}
+
+	t.Log("Ed25519 key approved successfully!")
+
+	// Verify key is now verified
+	key, err = client.GetAgentKey(ctx, keyHash)
+	if err != nil {
+		t.Fatalf("Failed to get Ed25519 key after approval: %v", err)
+	}
+
+	if !key.Verified {
+		t.Fatal("Ed25519 key should be verified after approval")
+	}
+
+	t.Log("✓ Ed25519 key is now verified after approval")
+	t.Log("✓ ApproveEd25519Key test completed successfully!")
 }

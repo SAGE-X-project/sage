@@ -8,22 +8,27 @@ This directory contains the Ethereum/EVM implementation of SAGE smart contracts 
 
 ### Current Implementation Status
 
-**V4 (Latest - In Development)**
+**V4 (Latest - Production Ready)** ✅
 - Multi-key registry with Ed25519, ECDSA, X25519 support
+- W3C Verifiable Credentials and Proof-of-Possession
+- Enhanced validation framework (3-layer validation)
 - Smart contract: `contracts/SageRegistryV4.sol`
-- Test suite: `test/SageRegistryV4.test.js` (30 tests, 100% passing)
-- Status: Contract complete, pending deployment
+- Test suite: 30 Solidity tests + 85+ Go tests (100% passing)
+- Performance: 21 benchmarks, comprehensive gas analysis
+- Development: Phase 1, 2 & 3 complete
+- **Status**: ✅ Production Ready - Use for all new deployments
 
-**V2 (Stable Production)**
+**V2 (Deprecated)** ⚠️
 - Enhanced validation with 5-step public key verification
-- Deployed on Sepolia testnet: `0x487d45a678eb947bbF9d8f38a67721b13a0209BF`
-- Smart contract: `contracts/SageRegistryV2.sol`
-- Status: Production ready
+- Single-key limitation (superseded by V4)
+- Smart contract: `contracts/deprecated/SageRegistryV2.sol`
+- Legacy deployment: Sepolia testnet (0x487d45a678eb947bbF9d8f38a67721b13a0209BF)
+- **Status**: DEPRECATED - Migrate to V4
 
-**V1 (Deprecated)**
-- Legacy implementation with basic signature verification
-- Smart contract: `contracts/SageRegistry.sol`
-- Status: Archived, not recommended for new deployments
+**V1 & V3 (Deprecated)** ⚠️
+- Legacy implementations with security vulnerabilities (V1) or single-key limitations (V3)
+- Smart contracts: `contracts/deprecated/`
+- **Status**: DEPRECATED - Do not use for new deployments
 
 ## Quick Start
 
@@ -59,32 +64,38 @@ Get test KLAY from Kairos faucet: <https://kairos.wallet.kaia.io/faucet>
 ```
 sage/contracts/ethereum/
 ├── contracts/               # Smart contracts
-│   ├── SageRegistryV4.sol       # V4 multi-key registry (latest)
-│   ├── SageRegistryV3.sol       # V3 registry (legacy)
-│   ├── SageRegistryV2.sol       # V2 registry with enhanced validation (stable)
-│   ├── SageRegistry.sol         # V1 registry (deprecated)
-│   ├── SageVerificationHook.sol # Hook implementation
+│   ├── SageRegistryV4.sol       # ✅ V4 multi-key registry (PRODUCTION)
+│   ├── SageVerificationHook.sol # Hook implementation (V4 compatible)
+│   ├── deprecated/              # Legacy contracts (DO NOT USE)
+│   │   ├── README.md               # Deprecation guide
+│   │   ├── SageRegistry.sol        # V1 (DEPRECATED - security issues)
+│   │   ├── SageRegistryV2.sol      # V2 (DEPRECATED - single-key only)
+│   │   ├── SageRegistryTest.sol    # V2 test version
+│   │   └── SageRegistryV3.sol      # V3 (DEPRECATED - superseded by V4)
 │   └── interfaces/
 │       ├── ISageRegistryV4.sol  # V4 interface
-│       ├── ISageRegistry.sol    # V2 interface
+│       ├── ISageRegistry.sol    # V2 interface (legacy)
 │       └── IRegistryHook.sol    # Hook interface
 ├── scripts/                 # Deployment and utility scripts
-│   ├── deploy-unified.js        # Unified deployment script
-│   ├── deploy-v2.js            # V2 deployment
+│   ├── deploy-v4.js            # V4 deployment
+│   ├── deploy-unified.js       # Unified deployment script
 │   ├── quick-test.js           # Quick testing
 │   └── check-balance.js        # Balance checker
 ├── test/                    # Test files
-│   ├── SageRegistryV4.test.js      # V4 multi-key tests (30 tests)
-│   ├── SageRegistryV2.test.js      # V2 unit tests
-│   ├── integration-v2.test.js      # V2 integration tests
-│   └── SageRegistry.test.fixed.js  # V1 compatibility tests
+│   ├── SageRegistryV4.test.js      # V4 multi-key tests (30 tests, 100% passing)
+│   ├── SageRegistryV2.test.js      # V2 unit tests (legacy)
+│   ├── integration-v2.test.js      # V2 integration tests (legacy)
+│   └── SageRegistry.test.fixed.js  # V1 compatibility tests (legacy)
 ├── bin/                     # Shell scripts
 │   ├── quick-start.sh          # Interactive setup
-│   ├── deploy-v2.sh            # Deployment helper
+│   ├── deploy-v4.sh            # V4 deployment helper
 │   ├── compile.sh              # Compilation script
 │   ├── test.sh                 # Test runner
-│   └── test-v2.sh              # V2-specific tests
+│   └── test-v4.sh              # V4-specific tests
 ├── deployments/             # Deployment records (auto-generated)
+├── docs/                    # Documentation
+│   ├── DEPLOYMENT_GUIDE_V4.md  # V4 deployment instructions
+│   └── GAS_COST_ANALYSIS.md    # Gas optimization analysis
 ├── hardhat.config.js        # Hardhat configuration
 └── package.json
 
@@ -305,24 +316,39 @@ The updated `hardhat.config.js` now includes:
    - Key-specific verification status tracking
    - Owner-controlled approval for Ed25519 keys
 
-3. **Enhanced Security**
+3. **Enhanced Validation Framework** (Phase 3 - Complete)
+   - **Level 1**: Basic A2A card structure validation
+   - **Level 2**: W3C Verifiable Credentials with cryptographic proof
+   - **Level 3**: DID cross-validation against blockchain
+   - Proof-of-Possession mechanism (challenge-response)
+   - Prevents card tampering and ensures key ownership
+
+4. **Smart Contract Security**
    - ReentrancyGuard protection
    - Ownable2Step for safe ownership transfer
    - Pausable for emergency situations
    - Per-key verification status
+   - Hook support for custom validation logic
 
 ### Gas Usage
 
-**V4 Gas Costs:**
-- Single-key registration: ~875K gas
-- Three-key registration: ~1.3M gas
-- Add key: ~50K gas per key
-- Revoke key: ~30K gas
+See [GAS_COST_ANALYSIS.md](GAS_COST_ANALYSIS.md) for detailed analysis.
 
-**V2 Gas Costs:**
-- Registration: ~620K gas
-- Update: ~50K gas
-- Revocation: ~30K gas
+**V4 Gas Costs (Ethereum Mainnet):**
+- Single-key registration: ~907K gas (~$40 at 50 gwei, $2000 ETH)
+- Dual-key registration: ~1.1M gas (~$48)
+- Triple-key registration: ~1.3M gas (~$57)
+- Add key: ~50K gas per key (~$2.20)
+- Revoke key: ~30K gas (~$1.32)
+
+**Layer 2 Optimization (Optimism/Arbitrum):**
+- 97% cost reduction vs Ethereum mainnet
+- Single-key: ~$1.20 (vs $40 on mainnet)
+- Production recommendation: Deploy to L2 for cost efficiency
+
+**V2 Gas Costs (Legacy - Single Key):**
+- Registration: ~734K gas (~$32 at 50 gwei, $2000 ETH)
+- V4 single-key overhead: +23.6% vs V2 (for multi-key flexibility)
 
 ## Troubleshooting
 
@@ -367,12 +393,21 @@ curl -X POST -H "Content-Type: application/json" \
 
 ## Documentation
 
-See the main contracts documentation:
+### Core Documentation
 - [Contracts Overview](../README.md) - General SAGE contracts documentation
-- [Deployment Guide](../DEPLOYMENT_GUIDE.md) - Deployment instructions
-- [Roadmap](../ROADMAP.md) - Planned features and enhancements
-- [Multi-Key Design](../MULTI_KEY_DESIGN.md) - V4 multi-key architecture specification
+- [Roadmap](../ROADMAP.md) - Feature roadmap (Phase 1, 2 & 3 complete)
+- [TODO](../TODO.md) - Current tasks and progress tracking
+
+### V4 Documentation
+- [Multi-Key Design](../MULTI_KEY_DESIGN.md) - V4 architecture specification
+- [Deployment Guide V4](DEPLOYMENT_GUIDE_V4.md) - V4 deployment instructions
+- [Gas Cost Analysis](GAS_COST_ANALYSIS.md) - V2 vs V4 gas optimization
+- [Performance Benchmarks](../../docs/PERFORMANCE_BENCHMARKS.md) - 21 benchmark functions
+
+### Legacy Documentation
+- [Deprecated Contracts](contracts/deprecated/README.md) - V1/V2/V3 deprecation guide
 - [Security Audit (Legacy)](../archived/SECURITY_AUDIT_LEGACY.md) - Historical security findings
+- [Code Analysis V1/V2/V3](../archived/CODE_ANALYSIS_V1_V2_V3.md) - Legacy contract analysis
 
 ## Resources
 
