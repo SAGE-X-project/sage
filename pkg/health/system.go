@@ -56,16 +56,23 @@ func CheckSystem() *SystemHealth {
 	var stat syscall.Statfs_t
 	err := syscall.Statfs(".", &stat)
 	if err == nil {
-		// Calculate disk usage
-		totalBytes := stat.Blocks * uint64(stat.Bsize)
-		freeBytes := stat.Bfree * uint64(stat.Bsize)
-		usedBytes := totalBytes - freeBytes
+		// Validate Bsize before conversion to prevent integer overflow
+		// #nosec G115 - validated that Bsize is positive before conversion
+		if stat.Bsize > 0 {
+			// Calculate disk usage
+			bsize := uint64(stat.Bsize)
+			totalBytes := stat.Blocks * bsize
+			freeBytes := stat.Bfree * bsize
+			usedBytes := totalBytes - freeBytes
 
-		health.DiskTotalGB = totalBytes / 1024 / 1024 / 1024
-		health.DiskUsedGB = usedBytes / 1024 / 1024 / 1024
+			health.DiskTotalGB = totalBytes / 1024 / 1024 / 1024
+			health.DiskUsedGB = usedBytes / 1024 / 1024 / 1024
 
-		if health.DiskTotalGB > 0 {
-			health.DiskPercent = float64(health.DiskUsedGB) / float64(health.DiskTotalGB) * 100
+			if health.DiskTotalGB > 0 {
+				health.DiskPercent = float64(health.DiskUsedGB) / float64(health.DiskTotalGB) * 100
+			}
+		} else {
+			health.Error = "Invalid block size from filesystem stats"
 		}
 	} else {
 		health.Error = fmt.Sprintf("Failed to get disk stats: %v", err)
