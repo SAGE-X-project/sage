@@ -1969,7 +1969,7 @@ cat /tmp/test-ed25519.jwk | jq '.kty, .crv'
 echo "test message" > /tmp/msg.txt
 
 # 서명 생성
-./build/bin/sage-crypto sign --key /tmp/test-ed25519.jwk --input /tmp/msg.txt --output /tmp/sig.bin
+./build/bin/sage-crypto sign --key /tmp/test-ed25519.jwk --message-file /tmp/msg.txt --output /tmp/sig.bin
 
 # 확인
 test -f /tmp/sig.bin && echo "✓ 서명 생성 성공"
@@ -1978,17 +1978,18 @@ ls -lh /tmp/sig.bin
 
 **예상 결과**:
 ```
+Signature saved to: /tmp/sig.bin
 ✓ 서명 생성 성공
--rw-r--r-- 1 user group 64 Oct 22 10:00 /tmp/sig.bin
+-rw-r--r-- 1 user group 190 Oct 22 10:00 /tmp/sig.bin
 ```
 
 **검증 방법**:
 - 서명 파일 생성 확인
-- 파일 크기 = 64 bytes (Ed25519) 확인
+- 서명 파일 크기 확인 (JSON 형식으로 저장됨)
 
 **통과 기준**:
 - ✅ 서명 파일 생성
-- ✅ 크기 = 64 bytes
+- ✅ 서명 데이터 정상 저장
 - ✅ CLI 동작 정상
 
 ---
@@ -1999,12 +2000,14 @@ ls -lh /tmp/sig.bin
 
 **CLI 검증**:
 ```bash
-./build/bin/sage-crypto verify --key /tmp/test-ed25519.jwk --input /tmp/msg.txt --signature /tmp/sig.bin
+./build/bin/sage-crypto verify --key /tmp/test-ed25519.jwk --message-file /tmp/msg.txt --signature-file /tmp/sig.bin
 ```
 
 **예상 결과**:
 ```
-✓ Signature valid
+Signature verification PASSED
+Key Type: Ed25519
+Key ID: 67afcf6c322beb76
 ```
 
 **검증 방법**:
