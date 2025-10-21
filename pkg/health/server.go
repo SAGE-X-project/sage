@@ -90,11 +90,12 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	status := s.checker.CheckAll()
 
 	// Set HTTP status code based on health status
-	if status.Status == StatusUnhealthy {
+	switch status.Status {
+	case StatusUnhealthy:
 		w.WriteHeader(http.StatusServiceUnavailable)
-	} else if status.Status == StatusDegraded {
+	case StatusDegraded:
 		w.WriteHeader(http.StatusOK) // 200 but with degraded status in body
-	} else {
+	default:
 		w.WriteHeader(http.StatusOK)
 	}
 
