@@ -26,10 +26,10 @@ import (
 
 const (
 	// Thresholds for system health
-	MemoryThresholdHealthy  = 70.0  // 70%
-	MemoryThresholdDegraded = 85.0  // 85%
-	DiskThresholdHealthy    = 70.0  // 70%
-	DiskThresholdDegraded   = 85.0  // 85%
+	MemoryThresholdHealthy  = 70.0 // 70%
+	MemoryThresholdDegraded = 85.0 // 85%
+	DiskThresholdHealthy    = 70.0 // 70%
+	DiskThresholdDegraded   = 85.0 // 85%
 )
 
 // CheckSystem checks the health of system resources

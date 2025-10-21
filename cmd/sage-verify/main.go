@@ -164,7 +164,7 @@ func runBlockchainCheck() {
 		fmt.Printf("  Chain ID:   %s\n", blockchainStatus.ChainID)
 		fmt.Printf("  Block:      %d\n", blockchainStatus.BlockNumber)
 		fmt.Printf("  Latency:    %s\n", blockchainStatus.Latency)
-		
+
 		statusColor := getStatusSymbol(blockchainStatus.Status)
 		fmt.Printf("\n%s Overall:    %s\n", statusColor, blockchainStatus.Status)
 	} else {
@@ -204,7 +204,7 @@ func runSystemCheck() {
 	fmt.Printf("Disk:        %d GB / %d GB (%.1f%%)\n",
 		systemStatus.DiskUsedGB, systemStatus.DiskTotalGB, systemStatus.DiskPercent)
 	fmt.Printf("Goroutines:  %d\n", systemStatus.GoRoutines)
-	
+
 	statusColor := getStatusSymbol(systemStatus.Status)
 	fmt.Printf("\n%s Overall:    %s\n", statusColor, systemStatus.Status)
 

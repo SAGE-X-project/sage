@@ -107,16 +107,16 @@ func TestDIDRegistrationGasCost(t *testing.T) {
 
 		ecdsaPubKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
 		require.True(t, ok)
-		
+
 		pubKeyBytes := crypto.FromECDSAPub(ecdsaPubKey)
 		agentAddress := crypto.PubkeyToAddress(*ecdsaPubKey)
 
 		// Expected gas cost range for agent registration
 		// Based on SageRegistryV4 contract complexity
 		const (
-			expectedMinGas = 600000  // ~600K gas minimum
-			expectedMaxGas = 700000  // ~700K gas maximum
-			targetGas      = 653000  // ~653K gas (specification target)
+			expectedMinGas = 600000 // ~600K gas minimum
+			expectedMaxGas = 700000 // ~700K gas maximum
+			targetGas      = 653000 // ~653K gas (specification target)
 		)
 
 		// For now, we simulate the gas estimate based on contract complexity
@@ -148,10 +148,10 @@ func TestDIDRegistrationGasCost(t *testing.T) {
 		require.NoError(t, err)
 
 		gasLimit := uint64(653000) // Target from specification
-		
+
 		// Calculate total cost in Wei
 		totalCostWei := new(big.Int).Mul(gasPrice, big.NewInt(int64(gasLimit)))
-		
+
 		// Convert to ETH
 		ethValue := new(big.Float).Quo(
 			new(big.Float).SetInt(totalCostWei),
@@ -186,12 +186,12 @@ func TestDIDMetadataUpdate(t *testing.T) {
 		ecdsaPubKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
 		require.True(t, ok)
 		agentAddress := crypto.PubkeyToAddress(*ecdsaPubKey)
-		
+
 		did := fmt.Sprintf("did:sage:ethereum:%s", agentAddress.Hex())
 
 		// Original endpoint
 		originalEndpoint := "https://agent.example.com/card/v1"
-		
+
 		// Updated endpoint
 		newEndpoint := "https://new-agent.example.com/card/v2"
 
@@ -212,7 +212,7 @@ func TestDIDMetadataUpdate(t *testing.T) {
 		ecdsaPubKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
 		require.True(t, ok)
 		agentAddress := crypto.PubkeyToAddress(*ecdsaPubKey)
-		
+
 		did := fmt.Sprintf("did:sage:ethereum:%s", agentAddress.Hex())
 
 		// Original metadata
@@ -280,12 +280,12 @@ func TestDIDDeactivation(t *testing.T) {
 		ecdsaPubKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
 		require.True(t, ok)
 		agentAddress := crypto.PubkeyToAddress(*ecdsaPubKey)
-		
+
 		did := fmt.Sprintf("did:sage:ethereum:%s", agentAddress.Hex())
 
 		// Initial state
 		initialState := "active"
-		
+
 		// After deactivation
 		deactivatedState := "inactive"
 
@@ -304,7 +304,7 @@ func TestDIDDeactivation(t *testing.T) {
 		ecdsaPubKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
 		require.True(t, ok)
 		agentAddress := crypto.PubkeyToAddress(*ecdsaPubKey)
-		
+
 		did := fmt.Sprintf("did:sage:ethereum:%s", agentAddress.Hex())
 
 		t.Logf("✓ DID: %s", did)
@@ -328,7 +328,7 @@ func TestDIDQueryByDID(t *testing.T) {
 
 		ecdsaPubKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
 		require.True(t, ok)
-		
+
 		pubKeyBytes := crypto.FromECDSAPub(ecdsaPubKey)
 		agentAddress := crypto.PubkeyToAddress(*ecdsaPubKey)
 		did := fmt.Sprintf("did:sage:ethereum:%s", agentAddress.Hex())

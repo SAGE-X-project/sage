@@ -121,7 +121,7 @@ func TestTransactionSignAndSend(t *testing.T) {
 
 		// Create transaction
 		value := big.NewInt(1000000000000000) // 0.001 ETH
-		gasLimit := uint64(21000)              // Standard transfer gas limit
+		gasLimit := uint64(21000)             // Standard transfer gas limit
 
 		tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, nil)
 

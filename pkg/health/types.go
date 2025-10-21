@@ -31,34 +31,34 @@ const (
 
 // HealthStatus represents the complete health status of the system
 type HealthStatus struct {
-	Status           Status               `json:"status"`
-	Timestamp        time.Time            `json:"timestamp"`
-	BlockchainStatus *BlockchainHealth    `json:"blockchain,omitempty"`
-	SystemStatus     *SystemHealth        `json:"system,omitempty"`
-	Errors           []string             `json:"errors,omitempty"`
+	Status           Status            `json:"status"`
+	Timestamp        time.Time         `json:"timestamp"`
+	BlockchainStatus *BlockchainHealth `json:"blockchain,omitempty"`
+	SystemStatus     *SystemHealth     `json:"system,omitempty"`
+	Errors           []string          `json:"errors,omitempty"`
 }
 
 // BlockchainHealth represents blockchain connection health
 type BlockchainHealth struct {
-	Status      Status    `json:"status"`
-	Connected   bool      `json:"connected"`
-	ChainID     string    `json:"chain_id,omitempty"`
-	BlockNumber uint64    `json:"block_number,omitempty"`
-	NetworkRPC  string    `json:"network_rpc,omitempty"`
-	Latency     string    `json:"latency,omitempty"`
-	Error       string    `json:"error,omitempty"`
+	Status      Status `json:"status"`
+	Connected   bool   `json:"connected"`
+	ChainID     string `json:"chain_id,omitempty"`
+	BlockNumber uint64 `json:"block_number,omitempty"`
+	NetworkRPC  string `json:"network_rpc,omitempty"`
+	Latency     string `json:"latency,omitempty"`
+	Error       string `json:"error,omitempty"`
 }
 
 // SystemHealth represents system resource health
 type SystemHealth struct {
-	Status         Status  `json:"status"`
-	MemoryUsedMB   uint64  `json:"memory_used_mb"`
-	MemoryTotalMB  uint64  `json:"memory_total_mb"`
-	MemoryPercent  float64 `json:"memory_percent"`
-	CPUPercent     float64 `json:"cpu_percent"`
-	DiskUsedGB     uint64  `json:"disk_used_gb"`
-	DiskTotalGB    uint64  `json:"disk_total_gb"`
-	DiskPercent    float64 `json:"disk_percent"`
-	GoRoutines     int     `json:"goroutines"`
-	Error          string  `json:"error,omitempty"`
+	Status        Status  `json:"status"`
+	MemoryUsedMB  uint64  `json:"memory_used_mb"`
+	MemoryTotalMB uint64  `json:"memory_total_mb"`
+	MemoryPercent float64 `json:"memory_percent"`
+	CPUPercent    float64 `json:"cpu_percent"`
+	DiskUsedGB    uint64  `json:"disk_used_gb"`
+	DiskTotalGB   uint64  `json:"disk_total_gb"`
+	DiskPercent   float64 `json:"disk_percent"`
+	GoRoutines    int     `json:"goroutines"`
+	Error         string  `json:"error,omitempty"`
 }
