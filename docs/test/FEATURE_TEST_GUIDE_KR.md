@@ -390,31 +390,65 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestDIDDeactiv
 
 ### [4/9] 블록체인 통합
 
-#### 4.1 스마트 컨트랙트 (4개 테스트)
+#### 4.1 기본 연결 및 설정 (2개 테스트)
 
-**4.1.1 DID 등록**
+**4.1.1 블록체인 연결**
 ```bash
-go test -v github.com/sage-x-project/sage/tests/integration -run 'TestRegisterDID'
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestBlockchainConnection'
 ```
-- 스마트 컨트랙트에 DID 등록
+- 로컬 블록체인 연결 확인
+- 최신 블록 번호 조회
 
-**4.1.2 공개키 조회**
+**4.1.2 Enhanced Provider**
 ```bash
-go test -v github.com/sage-x-project/sage/tests/integration -run 'TestGetPublicKey'
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestEnhancedProviderIntegration'
 ```
-- 등록된 DID의 공개키 조회
+- Enhanced Provider 생성 및 헬스체크
+- 가스 가격 제안
+- 재시도 로직
 
-**4.1.3 가스 추정**
+#### 4.2 블록체인 상세 테스트 (5개 테스트) ⭐ 명세서 세부 요구사항
+
+**4.2.1 Chain ID 검증** (명세서: "Chain ID 확인 (로컬: 31337)")
 ```bash
-go test -v github.com/sage-x-project/sage/tests/integration -run 'TestGasEstimation'
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestBlockchainChainID'
 ```
-- 트랜잭션 가스 추정 정확성
+- Chain ID가 31337인지 명시적 검증
+- Chain ID 일관성 확인
+- 명세서 요구사항: 로컬 테스트넷 Chain ID 31337 확인
 
-**4.1.4 이벤트 모니터링**
+**4.2.2 트랜잭션 서명 및 전송** (명세서: "트랜잭션 서명 성공, 전송 및 확인")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestTransactionSignAndSend'
+```
+- 트랜잭션 서명 성공 확인
+- 블록체인에 트랜잭션 전송
+- 트랜잭션 확인 (receipt 검증)
+- 트랜잭션 해시 반환 확인
+
+**4.2.3 가스 예측 정확도** (명세서: "가스 예측 정확도 (±10%)")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestGasEstimationAccuracy'
+```
+- 가스 예측값과 실제 사용량 비교
+- ±10% 이내 정확도 검증
+- 복잡한 트랜잭션 가스 예측
+
+**4.2.4 컨트랙트 배포** (명세서: "AgentRegistry 컨트랙트 배포 성공, 컨트랙트 주소 반환")
+```bash
+go test -v github.com/sage-x-project/sage/tests/integration -run 'TestContractDeployment'
+```
+- 스마트 컨트랙트 배포 트랜잭션
+- 컨트랙트 주소 반환 확인
+- 배포 성공 검증
+
+**4.2.5 이벤트 로그 확인** (명세서: "이벤트 로그 확인 (등록 이벤트 수신 검증)")
 ```bash
 go test -v github.com/sage-x-project/sage/tests/integration -run 'TestEventMonitoring'
 ```
-- 블록체인 이벤트 수신
+- 블록체인 이벤트 로그 조회
+- 이벤트 구조 검증 (address, topics, block number)
+- 이벤트 구독 기능 확인
 
 ---
 
