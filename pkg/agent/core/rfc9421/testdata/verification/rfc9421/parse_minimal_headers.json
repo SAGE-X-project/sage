@@ -1,0 +1,21 @@
+{
+  "data": {
+    "input": {
+      "body": "test body",
+      "header_count": 1,
+      "headers": {
+        "X-Agent-DID": "did:sage:ethereum:agent001"
+      }
+    },
+    "parsed_message": {
+      "agent_did": "did:sage:ethereum:agent001",
+      "body": "test body",
+      "headers_initialized": true,
+      "metadata_initialized": true
+    },
+    "test_case": "14.2.2_RFC9421_헤더_파싱_최소_헤더",
+    "validation": "최소_헤더_파싱_통과"
+  },
+  "test_name": "TestParseMessageFromHeaders/Parse_minimal_headers",
+  "timestamp": "2025-10-22T23:17:24+09:00"
+}

@@ -1,0 +1,35 @@
+{
+  "data": {
+    "input": {
+      "body": "test body",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Agent-DID": "did:sage:ethereum:agent001",
+        "X-Key-ID": "key-001",
+        "X-Message-ID": "msg-001",
+        "X-Nonce": "nonce123",
+        "X-Signature-Algorithm": "EdDSA",
+        "X-Signed-Fields": "agent_did, message_id, body",
+        "X-Timestamp": "2024-01-01T12:00:00Z"
+      }
+    },
+    "parsed_message": {
+      "agent_did": "did:sage:ethereum:agent001",
+      "algorithm": "EdDSA",
+      "body": "test body",
+      "key_id": "key-001",
+      "message_id": "msg-001",
+      "nonce": "nonce123",
+      "signed_fields": [
+        "agent_did",
+        "message_id",
+        "body"
+      ],
+      "timestamp": "2024-01-01T12:00:00Z"
+    },
+    "test_case": "14.2.1_RFC9421_헤더_파싱_완전한_헤더",
+    "validation": "완전한_헤더_파싱_통과"
+  },
+  "test_name": "TestParseMessageFromHeaders/Parse_complete_headers",
+  "timestamp": "2025-10-22T23:17:24+09:00"
+}

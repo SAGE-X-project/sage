@@ -1,0 +1,31 @@
+{
+  "data": {
+    "message": {
+      "agent_did": "did:sage:ethereum:agent001",
+      "algorithm": "EdDSA",
+      "body": "test body",
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Custom": "value"
+      },
+      "key_id": "key-001",
+      "message_id": "msg-001",
+      "metadata": {
+        "feature": "test",
+        "version": "1.0"
+      },
+      "nonce": "nonce123",
+      "signature_present": true,
+      "signed_fields": [
+        "agent_did",
+        "message_id",
+        "body"
+      ],
+      "timestamp": "2025-10-22T23:17:24.757591+09:00"
+    },
+    "test_case": "14.1.1_RFC9421_메시지_빌더_완전한_생성",
+    "validation": "완전한_메시지_생성_통과"
+  },
+  "test_name": "TestMessageBuilder/Build_complete_message",
+  "timestamp": "2025-10-22T23:17:24+09:00"
+}

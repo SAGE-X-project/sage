@@ -1,0 +1,22 @@
+{
+  "data": {
+    "input": {
+      "agent_did": "did:sage:ethereum:agent001",
+      "signed_fields_specified": false
+    },
+    "output": {
+      "field_count": 5,
+      "signed_fields": [
+        "agent_did",
+        "message_id",
+        "timestamp",
+        "nonce",
+        "body"
+      ]
+    },
+    "test_case": "14.1.2_RFC9421_메시지_빌더_기본_서명_필드",
+    "validation": "기본_서명_필드_자동_설정_통과"
+  },
+  "test_name": "TestMessageBuilder/Build_with_default_signed_fields",
+  "timestamp": "2025-10-22T23:17:24+09:00"
+}
