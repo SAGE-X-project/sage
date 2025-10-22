@@ -121,14 +121,31 @@ start_local_blockchain() {
 stop_local_blockchain() {
     echo -e "${YELLOW}Stopping local blockchain...${NC}"
 
+    # First, try to kill using PID file
     if [ -f .blockchain.pid ]; then
         PID=$(cat .blockchain.pid)
         if kill -0 $PID 2>/dev/null; then
-            kill $PID
-            echo -e "${GREEN}Blockchain stopped${NC}"
+            kill $PID 2>/dev/null || true
+            sleep 1
+            # Force kill if still running
+            kill -0 $PID 2>/dev/null && kill -9 $PID 2>/dev/null || true
         fi
         rm -f .blockchain.pid
     fi
+
+    # Also kill any anvil/hardhat/ganache processes on port 8545
+    # This ensures cleanup even if PID file is missing
+    PIDS=$(lsof -ti:8545 2>/dev/null || true)
+    if [ -n "$PIDS" ]; then
+        echo "Cleaning up processes on port 8545..."
+        echo "$PIDS" | xargs kill 2>/dev/null || true
+        sleep 1
+        # Force kill if still running
+        PIDS=$(lsof -ti:8545 2>/dev/null || true)
+        [ -n "$PIDS" ] && echo "$PIDS" | xargs kill -9 2>/dev/null || true
+    fi
+
+    echo -e "${GREEN}Blockchain stopped${NC}"
 }
 
 # Function to deploy contracts
