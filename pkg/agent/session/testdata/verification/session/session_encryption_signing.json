@@ -1,0 +1,32 @@
+{
+  "data": {
+    "algorithm": "ChaCha20-Poly1305",
+    "ciphertext": {
+      "nonce_size": 12,
+      "size": 33
+    },
+    "config": {
+      "idle_timeout_ms": 50,
+      "max_age_ms": 100,
+      "max_messages": 10
+    },
+    "mac": {
+      "algorithm": "HMAC-SHA256",
+      "size": 32
+    },
+    "mac_algorithm": "HMAC-SHA256",
+    "plaintext": {
+      "message": "hello",
+      "size": 5
+    },
+    "session_id": "sess1",
+    "test_case": "7.1.1_Session_Encryption_Signing",
+    "verification": {
+      "decrypted": "hello",
+      "match": true,
+      "message_count": 2
+    }
+  },
+  "test_name": "TestSecureSessionLifecycle/Encrypt_and_decrypt_with_sign_roundtrip",
+  "timestamp": "2025-10-22T22:24:53+09:00"
+}

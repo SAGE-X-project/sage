@@ -23,9 +23,12 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/hex"
 	"testing"
 	"time"
 
+	"github.com/sage-x-project/sage/tests/helpers"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/chacha20poly1305"
 )
@@ -43,21 +46,103 @@ func TestSecureSessionLifecycle(t *testing.T) {
 	covered := []byte("covered-for-tests")
 
 	t.Run("Encrypt and decrypt with sign roundtrip", func(t *testing.T) {
+		// Specification Requirement: Secure session encryption with HMAC signature
+		helpers.LogTestSection(t, "7.1.1", "Secure Session Encryption and Signing")
+
 		sess, err := NewSecureSession("sess1", sharedSecret, config)
 		require.NoError(t, err)
+
+		// Specification Requirement: Session ID validation
 		require.Equal(t, "sess1", sess.GetID())
 		require.False(t, sess.IsExpired())
 
+		helpers.LogSuccess(t, "Secure session created")
+		helpers.LogDetail(t, "Session ID: %s", sess.GetID())
+		helpers.LogDetail(t, "Shared secret size: %d bytes", len(sharedSecret))
+		helpers.LogDetail(t, "Max age: %v", config.MaxAge)
+		helpers.LogDetail(t, "Idle timeout: %v", config.IdleTimeout)
+		helpers.LogDetail(t, "Max messages: %d", config.MaxMessages)
+		helpers.LogDetail(t, "Session expired: %v", sess.IsExpired())
+
 		plaintext := []byte("hello")
+		helpers.LogDetail(t, "Plaintext message: %s", string(plaintext))
+		helpers.LogDetail(t, "Plaintext size: %d bytes", len(plaintext))
+		helpers.LogDetail(t, "Covered data: %s", string(covered))
+
+		// Specification Requirement: AEAD encryption with HMAC signature
 		ct, mac, err := sess.EncryptAndSign(plaintext, covered)
 		require.NoError(t, err)
 
-		// Changed: DecryptAndVerify(cipher, covered, mac)
+		helpers.LogSuccess(t, "Message encrypted and signed")
+		helpers.LogDetail(t, "Ciphertext size: %d bytes", len(ct))
+		helpers.LogDetail(t, "Ciphertext (hex): %s", hex.EncodeToString(ct)[:64]+"...")
+		helpers.LogDetail(t, "MAC size: %d bytes (HMAC-SHA256)", len(mac))
+		helpers.LogDetail(t, "MAC (hex): %s", hex.EncodeToString(mac)[:32]+"...")
+
+		// Specification Requirement: Nonce size validation (ChaCha20-Poly1305)
+		assert.GreaterOrEqual(t, len(ct), chacha20poly1305.NonceSize, "Ciphertext must include nonce")
+		nonce := ct[:chacha20poly1305.NonceSize]
+		helpers.LogDetail(t, "Nonce size: %d bytes", len(nonce))
+		helpers.LogDetail(t, "Nonce (hex): %s", hex.EncodeToString(nonce))
+
+		// Specification Requirement: Decryption and MAC verification
 		pt, err := sess.DecryptAndVerify(ct, covered, mac)
 		require.NoError(t, err)
 		require.Equal(t, plaintext, pt)
 
-		require.Equal(t, 2, sess.GetMessageCount())
+		helpers.LogSuccess(t, "Message decrypted and verified")
+		helpers.LogDetail(t, "Decrypted message: %s", string(pt))
+		helpers.LogDetail(t, "Plaintext match: %v", bytes.Equal(plaintext, pt))
+
+		// Specification Requirement: Message count tracking
+		msgCount := sess.GetMessageCount()
+		require.Equal(t, 2, msgCount)
+		helpers.LogDetail(t, "Message count: %d (encrypt + decrypt)", msgCount)
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Secure session creation successful",
+			"Session ID matches expected",
+			"Session not expired",
+			"Encryption successful (EncryptAndSign)",
+			"MAC generation successful (HMAC-SHA256)",
+			"Ciphertext includes nonce",
+			"Decryption successful",
+			"MAC verification successful",
+			"Plaintext matches original",
+			"Message count tracking correct",
+		})
+
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case":   "7.1.1_Session_Encryption_Signing",
+			"session_id":  sess.GetID(),
+			"algorithm":   "ChaCha20-Poly1305",
+			"mac_algorithm": "HMAC-SHA256",
+			"config": map[string]interface{}{
+				"max_age_ms":      config.MaxAge.Milliseconds(),
+				"idle_timeout_ms": config.IdleTimeout.Milliseconds(),
+				"max_messages":    config.MaxMessages,
+			},
+			"plaintext": map[string]interface{}{
+				"message": string(plaintext),
+				"size":    len(plaintext),
+			},
+			"ciphertext": map[string]interface{}{
+				"size":       len(ct),
+				"nonce_size": chacha20poly1305.NonceSize,
+			},
+			"mac": map[string]interface{}{
+				"size":      len(mac),
+				"algorithm": "HMAC-SHA256",
+			},
+			"verification": map[string]interface{}{
+				"decrypted":      string(pt),
+				"match":          bytes.Equal(plaintext, pt),
+				"message_count":  msgCount,
+			},
+		}
+		helpers.SaveTestData(t, "session/session_encryption_signing.json", testData)
 	})
 
 	t.Run("Encrypt and decrypt roundtrip", func(t *testing.T) {
