@@ -1,0 +1,36 @@
+{
+  "data": {
+    "context_id": "ctx-e4475247-03fc-4901-ae63-1bae53252cd3",
+    "key_id": "kid-513495aa-28e9-43b3-bc2f-30a2e3007cde",
+    "message_count": 3,
+    "messages": [
+      {
+        "ciphertext_size": 48,
+        "decrypted": "{\"op\":\"ping\",\"ts\":1}",
+        "index": 1,
+        "plaintext": "{\"op\":\"ping\",\"ts\":1}",
+        "plaintext_size": 20,
+        "verified": true
+      },
+      {
+        "ciphertext_size": 56,
+        "decrypted": "{\"op\":\"echo\",\"data\":\"hello\"}",
+        "index": 2,
+        "plaintext": "{\"op\":\"echo\",\"data\":\"hello\"}",
+        "plaintext_size": 28,
+        "verified": true
+      },
+      {
+        "ciphertext_size": 54,
+        "decrypted": "{\"op\":\"status\",\"code\":200}",
+        "index": 3,
+        "plaintext": "{\"op\":\"status\",\"code\":200}",
+        "plaintext_size": 26,
+        "verified": true
+      }
+    ],
+    "test_case": "9.1.2_HPKE_E2E_Multiple_Messages"
+  },
+  "test_name": "TestE2E_HPKE_Handshake_MockTransport/Scenario_02_Message_Encryption_Decryption",
+  "timestamp": "2025-10-22T22:38:50+09:00"
+}

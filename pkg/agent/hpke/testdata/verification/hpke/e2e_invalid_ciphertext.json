@@ -1,0 +1,13 @@
+{
+  "data": {
+    "context_id": "ctx-24f4a080-708b-4f56-895f-a8f2113de4b8",
+    "decryption_failed": true,
+    "error": "decryption failed: chacha20poly1305: message authentication failed",
+    "invalid_ciphertext": "this is not valid ciphertext",
+    "invalid_size": 28,
+    "key_id": "kid-741b47a8-de40-41c0-881a-f906550f91f7",
+    "test_case": "9.1.3_HPKE_E2E_Invalid_Ciphertext"
+  },
+  "test_name": "TestE2E_HPKE_Handshake_MockTransport/Scenario_03_Invalid_Ciphertext",
+  "timestamp": "2025-10-22T22:38:50+09:00"
+}

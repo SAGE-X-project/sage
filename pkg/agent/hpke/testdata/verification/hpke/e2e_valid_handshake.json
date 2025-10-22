@@ -1,0 +1,26 @@
+{
+  "data": {
+    "client": {
+      "did": "did:sage:ethereum:cli-1d9f0fc0-400a-44c0-9de5-128a4b98b52f",
+      "kem_public_key": "fe67ce5e04b4cc1ca8d69094976483e54861db51d349ed49e85763640a0dc53f",
+      "session_id": "PEjiAHs2ffELFTAuZAvEKg"
+    },
+    "context_id": "ctx-1235c236-bada-4b0c-a6d2-81d9d31b7df2",
+    "encryption": {
+      "ciphertext_hex": "7851cd6beac1b02c6c9fc022fe770ec05dd2dd88e769d978fab5eedffac97d6cb344a546f08659aefba95b5818ac3c93",
+      "ciphertext_size": 48,
+      "plaintext": "{\"op\":\"ping\",\"ts\":1}",
+      "plaintext_size": 20
+    },
+    "handshake_status": "success",
+    "key_id": "kid-310cfd3f-fd29-4681-a381-02cdd532a644",
+    "server": {
+      "did": "did:sage:ethereum:srv-706c5174-32e7-441e-bf2e-1bb0662342bd",
+      "kem_public_key": "e05745fa1b7d984c6cedf54388ac441b48fdcc4300dde299f21ea748927be915",
+      "session_id": "PEjiAHs2ffELFTAuZAvEKg"
+    },
+    "test_case": "9.1.1_HPKE_E2E_Valid_Handshake"
+  },
+  "test_name": "TestE2E_HPKE_Handshake_MockTransport/Scenario_01_Valid_Handshake",
+  "timestamp": "2025-10-22T22:38:50+09:00"
+}

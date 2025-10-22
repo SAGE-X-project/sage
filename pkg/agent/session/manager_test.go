@@ -20,88 +20,223 @@ package session
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
 func TestManager_CreateGetRemove(t *testing.T) {
+	// Specification Requirement: Session manager lifecycle operations
+	helpers.LogTestSection(t, "9.2.1", "Session Manager Create, Get, Remove")
+
 	mgr := NewManager()
 	defer func() { _ = mgr.Close() }()
+	helpers.LogDetail(t, "Session manager initialized")
 
 	secret := make([]byte, 32)
 	_, err := rand.Read(secret)
 	require.NoError(t, err)
+	helpers.LogDetail(t, "Shared secret generated:")
+	helpers.LogDetail(t, "  Secret (hex): %s", hex.EncodeToString(secret))
 
-	t.Run("Create and retrieve session", func(t *testing.T) {
-		sess, err := mgr.CreateSession("id1", secret)
+	t.Run("Create_and_retrieve_session", func(t *testing.T) {
+		// Specification Requirement: Create session with unique ID
+		sessionID := "id1"
+		helpers.LogDetail(t, "Creating session with ID: %s", sessionID)
+
+		sess, err := mgr.CreateSession(sessionID, secret)
 		require.NoError(t, err)
 		require.NotNil(t, sess)
+		helpers.LogSuccess(t, "Session created successfully")
+		helpers.LogDetail(t, "  Session ID: %s", sess.GetID())
 
-		got, exists := mgr.GetSession("id1")
+		// Specification Requirement: Retrieve created session
+		helpers.LogDetail(t, "Retrieving session by ID")
+		got, exists := mgr.GetSession(sessionID)
 		require.True(t, exists)
 		require.Equal(t, sess.GetID(), got.GetID())
+		helpers.LogSuccess(t, "Session retrieved successfully")
+		helpers.LogDetail(t, "  Retrieved session ID matches: %v", sess.GetID() == got.GetID())
 	})
 
-	t.Run("Remove session", func(t *testing.T) {
-		mgr.RemoveSession("id1")
-		_, exists := mgr.GetSession("id1")
+	t.Run("Remove_session", func(t *testing.T) {
+		// Specification Requirement: Remove session from manager
+		sessionID := "id1"
+		helpers.LogDetail(t, "Removing session: %s", sessionID)
+
+		mgr.RemoveSession(sessionID)
+		helpers.LogSuccess(t, "Session removed")
+
+		// Specification Requirement: Verify session no longer exists
+		helpers.LogDetail(t, "Verifying session removal")
+		_, exists := mgr.GetSession(sessionID)
 		require.False(t, exists)
+		helpers.LogSuccess(t, "Session confirmed removed")
 	})
+
+	// Pass criteria checklist
+	helpers.LogPassCriteria(t, []string{
+		"Session manager initialized",
+		"Shared secret generated (32 bytes)",
+		"Session created with unique ID",
+		"Session retrieved by ID",
+		"Retrieved session matches created session",
+		"Session removed from manager",
+		"Removed session no longer exists",
+	})
+
+	// Save test data for CLI verification
+	testData := map[string]interface{}{
+		"test_case": "9.2.1_Session_Manager_Lifecycle",
+		"operations": []string{"Create", "Get", "Remove"},
+		"session_id": "id1",
+		"secret_size": len(secret),
+		"lifecycle_verified": true,
+	}
+	helpers.SaveTestData(t, "session/manager_lifecycle.json", testData)
 }
 
 // Verifies expiration and cleanup without relying on the background ticker.
 // We wait past MaxAge and then call cleanupExpiredSessions() directly.
 func TestManager_ExpirationCleanup(t *testing.T) {
+	// Specification Requirement: Session expiration and automatic cleanup
+	helpers.LogTestSection(t, "9.2.2", "Session Manager Expiration Cleanup")
+
 	mgr := NewManager()
 	defer func() { _ = mgr.Close() }()
+	helpers.LogDetail(t, "Session manager initialized")
 
 	secret := make([]byte, 32)
 	_, err := rand.Read(secret)
 	require.NoError(t, err)
+	helpers.LogDetail(t, "Shared secret generated (%d bytes)", len(secret))
 
-	// Absolute expiration 50ms
-	cfg := Config{MaxAge: 50 * time.Millisecond, IdleTimeout: 0, MaxMessages: 0}
+	// Specification Requirement: Create session with short expiration time
+	maxAge := 50 * time.Millisecond
+	cfg := Config{MaxAge: maxAge, IdleTimeout: 0, MaxMessages: 0}
+	helpers.LogDetail(t, "Creating session with expiration config:")
+	helpers.LogDetail(t, "  Max age: %v", maxAge)
+	helpers.LogDetail(t, "  Session ID: exp1")
+
 	sess, err := mgr.CreateSessionWithConfig("exp1", secret, cfg)
 	require.NoError(t, err)
 	require.NotNil(t, sess)
+	helpers.LogSuccess(t, "Session created with expiration config")
 
+	// Specification Requirement: Verify session exists before expiration
 	_, exists := mgr.GetSession("exp1")
 	require.True(t, exists)
+	helpers.LogSuccess(t, "Session exists before expiration")
 
-	// Wait until it should be expired
-	time.Sleep(60 * time.Millisecond)
+	// Specification Requirement: Wait for expiration period
+	waitTime := 60 * time.Millisecond
+	helpers.LogDetail(t, "Waiting %v for session to expire", waitTime)
+	time.Sleep(waitTime)
+	helpers.LogSuccess(t, "Expiration period elapsed")
 
-	// Trigger synchronous cleanup (avoid waiting for background ticker)
+	// Specification Requirement: Trigger cleanup and verify session removed
+	helpers.LogDetail(t, "Triggering synchronous cleanup")
 	mgr.cleanupExpiredSessions()
+	helpers.LogSuccess(t, "Cleanup executed")
 
+	// Specification Requirement: Verify expired session no longer exists
 	_, exists = mgr.GetSession("exp1")
 	require.False(t, exists)
+	helpers.LogSuccess(t, "Expired session successfully removed")
+
+	// Pass criteria checklist
+	helpers.LogPassCriteria(t, []string{
+		"Session manager initialized",
+		"Session created with MaxAge expiration",
+		"Session exists before expiration time",
+		"Expiration period elapsed",
+		"Cleanup triggered synchronously",
+		"Expired session removed from manager",
+	})
+
+	// Save test data for CLI verification
+	testData := map[string]interface{}{
+		"test_case": "9.2.2_Session_Manager_Expiration",
+		"session_id": "exp1",
+		"max_age_ms": maxAge.Milliseconds(),
+		"wait_time_ms": waitTime.Milliseconds(),
+		"expiration_verified": true,
+		"cleanup_successful": true,
+	}
+	helpers.SaveTestData(t, "session/manager_expiration.json", testData)
 }
 
 // Lists and stats should reflect active sessions correctly.
 func TestManager_ListAndStats(t *testing.T) {
+	// Specification Requirement: Session manager listing and statistics tracking
+	helpers.LogTestSection(t, "9.2.3", "Session Manager List and Stats")
+
 	mgr := NewManager()
 	defer func() { _ = mgr.Close() }()
+	helpers.LogDetail(t, "Session manager initialized")
 
 	secret := make([]byte, 32)
 	_, err := rand.Read(secret)
 	require.NoError(t, err)
+	helpers.LogDetail(t, "Shared secret generated")
 
-	// Create multiple sessions
-	_, _ = mgr.CreateSession("s1", secret)
-	_, _ = mgr.CreateSession("s2", secret)
+	// Specification Requirement: Create multiple sessions
+	helpers.LogDetail(t, "Creating two sessions")
+	sess1, err1 := mgr.CreateSession("s1", secret)
+	sess2, err2 := mgr.CreateSession("s2", secret)
+	require.NoError(t, err1)
+	require.NoError(t, err2)
+	helpers.LogSuccess(t, "Two sessions created")
+	helpers.LogDetail(t, "  Session 1 ID: %s", sess1.GetID())
+	helpers.LogDetail(t, "  Session 2 ID: %s", sess2.GetID())
 
+	// Specification Requirement: List all sessions
+	helpers.LogDetail(t, "Listing all sessions")
 	list := mgr.ListSessions()
 	require.Len(t, list, 2)
+	helpers.LogSuccess(t, "Session list retrieved")
+	helpers.LogDetail(t, "  Total sessions in list: %d", len(list))
 
+	// Specification Requirement: Get session statistics
+	helpers.LogDetail(t, "Retrieving session statistics")
 	stats := mgr.GetSessionStats()
 	require.Equal(t, 2, stats.TotalSessions)
 	require.Equal(t, 2, stats.ActiveSessions)
 	require.Equal(t, 0, stats.ExpiredSessions)
+	helpers.LogSuccess(t, "Session statistics verified")
+	helpers.LogDetail(t, "  Total sessions: %d", stats.TotalSessions)
+	helpers.LogDetail(t, "  Active sessions: %d", stats.ActiveSessions)
+	helpers.LogDetail(t, "  Expired sessions: %d", stats.ExpiredSessions)
+
+	// Pass criteria checklist
+	helpers.LogPassCriteria(t, []string{
+		"Session manager initialized",
+		"Two sessions created successfully",
+		"ListSessions returns all sessions",
+		"Session count matches expected (2)",
+		"Statistics show correct total count",
+		"Statistics show correct active count",
+		"Statistics show zero expired sessions",
+	})
+
+	// Save test data for CLI verification
+	testData := map[string]interface{}{
+		"test_case": "9.2.3_Session_Manager_List_Stats",
+		"sessions_created": 2,
+		"sessions_listed": len(list),
+		"statistics": map[string]interface{}{
+			"total_sessions": stats.TotalSessions,
+			"active_sessions": stats.ActiveSessions,
+			"expired_sessions": stats.ExpiredSessions,
+		},
+		"verification_passed": true,
+	}
+	helpers.SaveTestData(t, "session/manager_list_stats.json", testData)
 }
 
 func TestManager_ExistingSessionReuseAndCreateCollisions(t *testing.T) {
