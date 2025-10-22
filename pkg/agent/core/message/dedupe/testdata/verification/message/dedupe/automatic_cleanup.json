@@ -1,0 +1,22 @@
+{
+  "data": {
+    "cleanup": {
+      "cleanup_successful": true,
+      "final_count": 0,
+      "initial_count": 1,
+      "sleep_duration_ms": 40
+    },
+    "detector_config": {
+      "cleanup_interval_ms": 10,
+      "ttl_ms": 20
+    },
+    "message": {
+      "nonce": "y",
+      "sequence": 1,
+      "timestamp": "2025-10-22T22:59:53.109742+09:00"
+    },
+    "test_case": "8.2.5_Automatic_Cleanup_Loop"
+  },
+  "test_name": "TestDetector/CleanupLoopPurgesExpired",
+  "timestamp": "2025-10-22T22:59:53+09:00"
+}

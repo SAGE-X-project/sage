@@ -1,0 +1,23 @@
+{
+  "data": {
+    "detector_config": {
+      "cleanup_interval_ms": 3600000,
+      "ttl_ms": 20
+    },
+    "expiration": {
+      "expired": true,
+      "final_count": 0,
+      "initial_count": 1,
+      "is_duplicate": false,
+      "sleep_duration_ms": 30
+    },
+    "message": {
+      "nonce": "x",
+      "sequence": 1,
+      "timestamp": "2025-10-22T22:59:53.074102+09:00"
+    },
+    "test_case": "8.2.4_Expiration_On_Check"
+  },
+  "test_name": "TestDetector/IsDuplicateRemovesExpired",
+  "timestamp": "2025-10-22T22:59:53+09:00"
+}

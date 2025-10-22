@@ -1,10 +1,8 @@
 {
   "data": {
     "detection": {
-      "is_duplicate": true,
-      "marked_seen": true,
-      "replay_prevented": true,
-      "seen_count": 1
+      "is_duplicate": false,
+      "packet_count": 0
     },
     "detector_config": {
       "cleanup_interval_ms": 1000,
@@ -15,8 +13,8 @@
       "sequence": 1,
       "timestamp": "2025-10-22T22:59:53.068388+09:00"
     },
-    "test_case": "8.2.1_Message_Deduplication"
+    "test_case": "8.2.2_Detector_Initialization"
   },
-  "test_name": "TestDetector/MarkAndDetectDuplicate",
+  "test_name": "TestDetector/NewDetector_NoDuplicate",
   "timestamp": "2025-10-22T22:59:53+09:00"
 }
