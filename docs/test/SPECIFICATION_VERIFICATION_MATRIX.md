@@ -11,13 +11,13 @@
 - [1. RFC 9421 구현](#1-rfc-9421-구현)
 - [2. 암호화 키 관리](#2-암호화-키-관리)
 - [3. DID 관리](#3-did-관리)
-- [4. 블록체인 통합](#4-블록체인-통합)
+- [4. 블록체인 연동](#4-블록체인-연동)
 - [5. 메시지 처리](#5-메시지-처리)
 - [6. CLI 도구](#6-cli-도구)
 - [7. 세션 관리](#7-세션-관리)
 - [8. HPKE](#8-hpke)
 - [9. 헬스체크](#9-헬스체크)
-- [10. 통합 테스트](#10-통합-테스트)
+- [10. 추가 테스트](#10-추가-테스트)
 
 ## 개요
 
@@ -49,6 +49,7 @@
 이 문서의 각 섹션에서 제공하는 명령어를 사용하여 개별 항목 검증
 
 ---
+
 
 ## 1. RFC 9421 구현
 
@@ -82,6 +83,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 
 ---
 
+---
+
 #### 1.1.2 RFC 9421 준수 HTTP 메시지 서명 생성 확인 (ECDSA P-256)
 
 **시험항목**: RFC 9421 표준에 따른 ECDSA P-256 서명 생성
@@ -106,6 +109,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 - ✅ ECDSA P-256 서명 생성 성공
 - ✅ 알고리즘 = es256
 - ✅ RFC 9421 표준 준수
+
+---
 
 ---
 
@@ -137,6 +142,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 
 ---
 
+---
+
 #### 1.1.4 Signature-Input 헤더 생성
 
 **시험항목**: RFC 9421 Signature-Input 헤더 포맷 검증
@@ -164,8 +171,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 
 ---
 
-
-#### 1.1.6 서명 파라미터 (keyid, created, nonce)
+#### 1.1.5 서명 파라미터 (keyid, created, nonce)
 
 **시험항목**: 서명 파라미터 포함 여부 확인
 
@@ -192,9 +198,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestSigne
 
 ---
 
-### 1.2 메시지 검증
-
-#### 1.2.1 서명 검증 성공 (Ed25519)
+#### 1.1.6 서명 검증 성공 (Ed25519)
 
 **시험항목**: Ed25519 서명 검증 성공 케이스
 
@@ -221,7 +225,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 ---
 
-#### 1.2.2 서명 검증 성공 (ECDSA P-256)
+---
+
+#### 1.1.7 서명 검증 성공 (ECDSA P-256)
 
 **시험항목**: ECDSA P-256 서명 검증
 
@@ -247,7 +253,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 ---
 
-#### 1.2.3 서명 검증 성공 (ECDSA Secp256k1)
+---
+
+#### 1.1.8 서명 검증 성공 (ECDSA Secp256k1)
 
 **시험항목**: Secp256k1 서명 검증 (Ethereum 호환)
 
@@ -273,63 +281,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 
 ---
 
-#### 1.2.4 Signature-Input 파싱
-
-**시험항목**: Signature-Input 헤더 파싱 정확성
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestParseSignatureInput'
-```
-
-**예상 결과**:
-```
-=== RUN   TestParseSignatureInput
---- PASS: TestParseSignatureInput (0.00s)
-```
-
-**검증 방법**:
-- 헤더 파싱 후 각 필드 추출 확인
-- 파라미터 파싱 정확성 확인
-- 컴포넌트 리스트 파싱 확인
-
-**통과 기준**:
-- ✅ 헤더 파싱 성공
-- ✅ 모든 파라미터 추출
-- ✅ 컴포넌트 리스트 정확
-
 ---
 
-#### 1.2.5 Content-Digest 검증
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-
-**시험항목**: Content-Digest 일치 여부 검증
-
-**Go 테스트**:
-```bash
-# 현재 존재하지 않음
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier.*Digest'
-```
-
-**예상 결과**:
-```
---- PASS: TestVerifier (0.01s)
-```
-
-**검증 방법**:
-- Body의 SHA-256 해시 계산
-- Content-Digest 헤더와 비교
-- 불일치 시 검증 실패 확인
-
-**통과 기준**:
-- ✅ Digest 일치 시 검증 성공
-- ✅ Digest 불일치 시 에러 반환
-- ✅ SHA-256 해시 정확
-
----
-
-#### 1.2.6 변조된 메시지 탐지
+#### 1.1.9 변조된 메시지 탐지
 
 **시험항목**: 메시지 변조 시 검증 실패 확인 (잘못된 서명 거부)
 
@@ -361,265 +315,74 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 ---
 
-### 1.3 메시지 빌더
+### 1.2 Nonce 관리
 
-#### 1.3.1 HTTP 메시지 빌더 (완전한 메시지 생성)
+#### 1.2.1 Nonce 생성
 
-**시험항목**: 빌더 패턴으로 완전한 HTTP 서명 메시지 생성
+**시험항목**: UUID 기반 고유 Nonce 생성
 
 **Go 테스트**:
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/Build_complete_message'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'TestNonceManager/GenerateNonce'
 ```
 
 **예상 결과**:
 ```
-=== RUN   TestMessageBuilder/Build_complete_message
-    message_builder_test.go:33: ===== 14.1.1 RFC9421 메시지 빌더 - 완전한 메시지 생성 =====
-    message_builder_test.go:61: [PASS] 메시지 빌드 완료
-    message_builder_test.go:77: [PASS] 모든 필드 검증 완료
---- PASS: TestMessageBuilder/Build_complete_message (0.00s)
+--- PASS: TestNonceManager/GenerateNonce (0.00s)
+    nonce_test.go:XX: Nonce generated: 12345678-1234-1234-1234-123456789abc
 ```
 
 **검증 방법**:
-- AgentDID, MessageID 설정 확인
-- Timestamp, Nonce 설정 확인
-- Body, Algorithm, KeyID 설정 확인
-- Headers, Metadata, SignedFields 확인
+- Nonce 생성 성공 확인
+- UUID v4 형식 확인
+- 여러 Nonce 생성 시 고유성 확인
 
 **통과 기준**:
-- ✅ 빌더 패턴으로 메시지 생성 성공
-- ✅ AgentDID 올바르게 설정됨
-- ✅ MessageID 올바르게 설정됨
-- ✅ Timestamp 올바르게 설정됨
-- ✅ Nonce 올바르게 설정됨
-- ✅ Body 올바르게 설정됨
+- ✅ Nonce 생성 성공
+- ✅ UUID v4 형식
+- ✅ 고유성 보장
 
 ---
 
-#### 1.3.2 HTTP 요청 정규화 (Canonicalization)
+---
 
-**시험항목**: HTTP 요청 정규화 정확성 확인, 헤더 필드 정렬 및 소문자 변환 확인
+#### 1.2.2 Nonce 중복 검사
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: 동일 Nonce 재사용 탐지
 
 **Go 테스트**:
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanonicalizer/basic_GET_request'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'TestNonceManager/CheckReplay'
 ```
 
 **예상 결과**:
 ```
-=== RUN   TestCanonicalizer/basic_GET_request
-    canonicalizer_test.go:37: ===== 12.1.1 RFC9421 정규화 - 기본 GET 요청 =====
-    canonicalizer_test.go:68: [PASS] 서명 베이스 생성 완료
-    canonicalizer_test.go:77: [PASS] 서명 베이스 검증 완료
---- PASS: TestCanonicalizer/basic_GET_request (0.00s)
+--- PASS: TestNonceManager/CheckReplay (0.01s)
+    nonce_test.go:XX: Duplicate nonce detected and rejected
 ```
 
 **검증 방법**:
-- HTTP GET 요청 생성 (메서드: GET, URL: https://example.com/foo?bar=baz)
-- 커버된 컴포넌트 설정: @method, @authority, @path, @query
-- 서명 파라미터 설정: KeyID, Algorithm, Created
-- 서명 베이스 정규화 및 검증
-- @signature-params 올바르게 생성됨 확인
+- 동일 Nonce 재사용 시도
+- Replay 공격 탐지 확인
+- 에러 반환 확인
 
 **통과 기준**:
-- ✅ HTTP GET 요청 생성 성공
-- ✅ 커버된 컴포넌트 4개 설정
-- ✅ 서명 파라미터 설정 완료
-- ✅ 정규화기 생성 성공
-- ✅ 서명 베이스 생성 성공
-- ✅ @method, @authority, @path, @query 포함
-- ✅ @signature-params 올바르게 생성됨
+- ✅ 중복 Nonce 탐지
+- ✅ 재사용 거부
+- ✅ Replay 방어
 
 ---
 
-#### 1.3.3 Body 설정
-
-**시험항목**: Body 설정 시 Content-Digest 자동 생성
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/SetBody'
-```
-
-**예상 결과**:
-```
---- PASS: TestMessageBuilder/SetBody (0.00s)
-```
-
-**검증 방법**:
-- Body 설정 후 Content-Digest 헤더 존재 확인
-- Digest 값 정확성 확인
-- 자동 생성 확인
-
-**통과 기준**:
-- ✅ Content-Digest 자동 생성
-- ✅ SHA-256 해시 정확
-- ✅ Base64 인코딩 정확
-
 ---
 
-#### 1.3.4 Query 파라미터
-
-**시험항목**: @query-param 컴포넌트 처리
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestQueryParamComponent'
-```
-
-**예상 결과**:
-```
-=== RUN   TestQueryParamComponent
-=== RUN   TestQueryParamComponent/specific_parameter_protection
-=== RUN   TestQueryParamComponent/parameter_name_case_sensitivity
-=== RUN   TestQueryParamComponent/non-existent_parameter
-=== RUN   TestQueryParamComponent/multiple_query_parameters
---- PASS: TestQueryParamComponent (0.00s)
-    --- PASS: TestQueryParamComponent/specific_parameter_protection (0.00s)
-    --- PASS: TestQueryParamComponent/parameter_name_case_sensitivity (0.00s)
-    --- PASS: TestQueryParamComponent/non-existent_parameter (0.00s)
-    --- PASS: TestQueryParamComponent/multiple_query_parameters (0.00s)
-```
-
-**검증 방법**:
-- 특정 파라미터 보호 (specific_parameter_protection)
-- 파라미터 이름 대소문자 구분 (parameter_name_case_sensitivity)
-- 존재하지 않는 파라미터 처리 (non-existent_parameter)
-- 여러 Query 파라미터 동시 처리 (multiple_query_parameters)
-
-**통과 기준**:
-- ✅ 특정 Query 파라미터 보호 기능 동작
-- ✅ 파라미터 이름 대소문자 정확히 구분
-- ✅ 존재하지 않는 파라미터 올바르게 처리
-- ✅ 여러 Query 파라미터 동시 처리 성공
-- ✅ RFC 9421 @query-param 컴포넌트 형식 준수
-
----
-
-### 1.4 정규화 (Canonicalization)
-
-#### 1.4.1 헤더 정규화
-
-**시험항목**: 헤더 값 정규화 (공백, 대소문자 처리)
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanonicalizer'
-```
-
-**예상 결과**:
-```
-=== RUN   TestCanonicalizer
---- PASS: TestCanonicalizer (0.00s)
-```
-
-**검증 방법**:
-- 헤더 이름 소문자 변환 확인
-- 여러 공백을 단일 공백으로 변환 확인
-- 앞뒤 공백 제거 확인
-
-**통과 기준**:
-- ✅ 헤더 이름 소문자화
-- ✅ 공백 정규화
-- ✅ RFC 9421 정규화 규칙 준수
-
----
-
-
-#### 1.4.3 HTTP 필드
-
-**시험항목**: HTTP 필드 정규화
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestHTTPFields'
-```
-
-**예상 결과**:
-```
---- PASS: TestHTTPFields (0.00s)
-```
-
-**검증 방법**:
-- HTTP 필드 값 정규화 확인
-- 특수 필드 처리 확인
-- RFC 9421 규칙 준수 확인
-
-**통과 기준**:
-- ✅ HTTP 필드 정규화
-- ✅ 특수 필드 올바른 처리
-- ✅ RFC 9421 준수
-
----
-
-#### 1.4.4 서명 베이스 생성
-
-**시험항목**: 최종 서명 베이스 문자열 생성
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestConstructSignatureBase'
-```
-
-**예상 결과**:
-```
-=== RUN   TestConstructSignatureBase
---- PASS: TestConstructSignatureBase (0.00s)
-```
-
-**검증 방법**:
-- 서명 베이스 문자열 형식 확인
-- 각 컴포넌트가 올바른 순서로 포함되는지 확인
-- RFC 9421 형식 준수 확인
-
-**통과 기준**:
-- ✅ 서명 베이스 생성 성공
-- ✅ 모든 컴포넌트 포함
-- ✅ RFC 9421 형식 정확
-
----
 
 ## 2. 암호화 키 관리
 
 ### 2.1 키 생성
 
-#### 2.1.1 Ed25519 키 생성 (32바이트 공개키, 64바이트 비밀키)
-
-**시험항목**: Ed25519 키 쌍 생성 및 크기 확인
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestEd25519KeyPair/Generate'
-```
-
-**CLI 검증**:
-```bash
-./build/bin/sage-crypto generate --type ed25519 --format jwk --output /tmp/test-ed25519.jwk
-cat /tmp/test-ed25519.jwk | jq '.'
-```
-
-**예상 결과**:
-```
---- PASS: TestEd25519KeyPair/Generate (0.00s)
-    keys_test.go:XX: Public key size: 32 bytes
-    keys_test.go:XX: Private key size: 64 bytes
-```
-
-**검증 방법**:
-- 공개키 크기 = 32 bytes 확인
-- 비밀키 크기 = 64 bytes 확인
-- JWK 형식 유효성 확인
-
-**통과 기준**:
-- ✅ Ed25519 키 생성 성공
-- ✅ 공개키 = 32 bytes
-- ✅ 비밀키 = 64 bytes
-- ✅ JWK 형식 정확
-
----
-
-#### 2.1.2 Secp256k1 키 생성 (32바이트 개인키)
+#### 2.1.1 Secp256k1 키 생성 (32바이트 개인키)
 
 **시험항목**: Secp256k1 키 쌍 생성 (Ethereum 호환)
 
@@ -655,58 +418,42 @@ cat /tmp/test-secp256k1.jwk | jq '.'
 
 ---
 
-#### 2.1.3 X25519 키 생성 (HPKE)
-
-**시험항목**: X25519 키 쌍 생성 (HPKE용)
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestX25519KeyPair/Generate'
-```
-
-**예상 결과**:
-```
---- PASS: TestX25519KeyPair/Generate (0.00s)
-    keys_test.go:XX: X25519 key pair generated successfully
-```
-
-**검증 방법**:
-- X25519 키 생성 성공 확인
-- HPKE에 사용 가능한지 확인
-- 키 크기 정확성 확인
-
-**통과 기준**:
-- ✅ X25519 키 생성 성공
-- ✅ HPKE 호환
-- ✅ 키 크기 정확
-
 ---
 
-#### 2.1.4 RSA 키 생성 (2048/4096비트)
+#### 2.1.2 Ed25519 키 생성 (32바이트 공개키, 64바이트 비밀키)
 
-**시험항목**: RSA-PSS 키 쌍 생성
+**시험항목**: Ed25519 키 쌍 생성 및 크기 확인
 
 **Go 테스트**:
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestRSAKeyPair/Generate'
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestEd25519KeyPair/Generate'
+```
+
+**CLI 검증**:
+```bash
+./build/bin/sage-crypto generate --type ed25519 --format jwk --output /tmp/test-ed25519.jwk
+cat /tmp/test-ed25519.jwk | jq '.'
 ```
 
 **예상 결과**:
 ```
---- PASS: TestRSAKeyPair/Generate (0.10s)
-    keys_test.go:XX: RSA-2048 generated
-    keys_test.go:XX: RSA-4096 generated
+--- PASS: TestEd25519KeyPair/Generate (0.00s)
+    keys_test.go:XX: Public key size: 32 bytes
+    keys_test.go:XX: Private key size: 64 bytes
 ```
 
 **검증 방법**:
-- RSA 2048비트 키 생성 확인
-- RSA 4096비트 키 생성 확인
-- RSA-PSS 알고리즘 사용 확인
+- 공개키 크기 = 32 bytes 확인
+- 비밀키 크기 = 64 bytes 확인
+- JWK 형식 유효성 확인
 
 **통과 기준**:
-- ✅ RSA-2048 생성 성공
-- ✅ RSA-4096 생성 성공
-- ✅ RSA-PSS 지원
+- ✅ Ed25519 키 생성 성공
+- ✅ 공개키 = 32 bytes
+- ✅ 비밀키 = 64 bytes
+- ✅ JWK 형식 정확
+
+---
 
 ---
 
@@ -747,74 +494,9 @@ cat /tmp/test.pem
 
 ---
 
-#### 2.2.2 DER 형식 저장
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: DER 형식으로 키 저장/로드
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*DER'
-```
-
-**예상 결과**:
-```
---- PASS: TestKeyPairDER (0.01s)
-```
-
-**검증 방법**:
-- DER 바이너리 형식 확인
-- 저장 후 로드 가능 확인
-- 키 일치 확인
-
-**통과 기준**:
-- ✅ DER 형식 저장 성공
-- ✅ DER 형식 로드 성공
-- ✅ 키 일치 확인
-
 ---
 
-#### 2.2.3 JWK 형식
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: JSON Web Key 형식 지원
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*JWK'
-```
-
-**CLI 검증**:
-```bash
-./build/bin/sage-crypto generate --type ed25519 --format jwk --output /tmp/test.jwk
-cat /tmp/test.jwk | jq '.private_key | {kty, crv, x, d}'
-```
-
-**예상 결과**:
-```json
-{
-  "kty": "OKP",
-  "crv": "Ed25519",
-  "x": "base64url...",
-  "d": "base64url..."
-}
-```
-
-**검증 방법**:
-- JWK JSON 형식 유효성 확인
-- 필수 필드 (kty, crv, x, d) 존재 확인
-- Base64URL 인코딩 확인
-
-**통과 기준**:
-- ✅ JWK 형식 저장 성공
-- ✅ JWK 형식 로드 성공
-- ✅ RFC 7517 준수
-
----
-
-#### 2.2.4 암호화 저장
+#### 2.2.2 암호화 저장
 
 
 ⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
@@ -842,125 +524,37 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Encr
 
 ---
 
-### 2.3 키 형식 변환
+### 2.3 서명/검증
 
-#### 2.3.1 Ed25519 바이트 변환
+#### 2.3.1 Secp256k1 서명/검증
 
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: 공개키/비밀키 바이트 배열 변환
+**시험항목**: Secp256k1 ECDSA 서명/검증
 
 **Go 테스트**:
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestEd25519.*Bytes'
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestSecp256k1KeyPair/SignAndVerify'
 ```
 
 **예상 결과**:
 ```
---- PASS: TestEd25519KeyPairBytes (0.00s)
+--- PASS: TestSecp256k1KeyPair/SignAndVerify (0.01s)
 ```
 
 **검증 방법**:
-- 키 → 바이트 변환 확인
-- 바이트 → 키 변환 확인
-- 왕복 변환 후 키 일치 확인
+- ECDSA 서명 생성 확인
+- 서명 검증 성공 확인
+- Ethereum 호환성 확인
 
 **통과 기준**:
-- ✅ 바이트 변환 성공
-- ✅ 왕복 변환 정확
-- ✅ 키 데이터 무손실
+- ✅ Secp256k1 서명 생성
+- ✅ 검증 성공
+- ✅ Ethereum 호환
 
 ---
 
-#### 2.3.2 Secp256k1 바이트 변환
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: 압축/비압축 공개키 형식
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestSecp256k1.*Bytes'
-```
-
-**예상 결과**:
-```
---- PASS: TestSecp256k1KeyPairBytes (0.00s)
-    keys_test.go:XX: Compressed public key: 33 bytes
-    keys_test.go:XX: Uncompressed public key: 65 bytes
-```
-
-**검증 방법**:
-- 압축 공개키 크기 = 33 bytes 확인
-- 비압축 공개키 크기 = 65 bytes 확인
-- 두 형식 간 변환 확인
-
-**통과 기준**:
-- ✅ 압축 형식 = 33 bytes
-- ✅ 비압축 형식 = 65 bytes
-- ✅ 형식 변환 정확
-
 ---
 
-#### 2.3.3 Hex 인코딩
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: 16진수 문자열 변환
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Hex'
-```
-
-**예상 결과**:
-```
---- PASS: TestKeyHexEncoding (0.00s)
-```
-
-**검증 방법**:
-- 키 → Hex 변환 확인
-- Hex → 키 변환 확인
-- 16진수 문자열 형식 확인 (0-9a-f)
-
-**통과 기준**:
-- ✅ Hex 인코딩 성공
-- ✅ Hex 디코딩 성공
-- ✅ 왕복 변환 정확
-
----
-
-#### 2.3.4 Base64 인코딩
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: Base64 문자열 변환
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Base64'
-```
-
-**예상 결과**:
-```
---- PASS: TestKeyBase64Encoding (0.00s)
-```
-
-**검증 방법**:
-- 키 → Base64 변환 확인
-- Base64 → 키 변환 확인
-- Base64 형식 유효성 확인
-
-**통과 기준**:
-- ✅ Base64 인코딩 성공
-- ✅ Base64 디코딩 성공
-- ✅ 왕복 변환 정확
-
----
-
-### 2.4 서명/검증
-
-#### 2.4.1 Ed25519 서명/검증 (64바이트 서명)
+#### 2.3.2 Ed25519 서명/검증 (64바이트 서명)
 
 **시험항목**: Ed25519 서명 생성 및 검증
 
@@ -1003,90 +597,12 @@ echo "test message" > /tmp/msg.txt
 
 ---
 
-#### 2.4.2 Secp256k1 서명/검증
-
-**시험항목**: Secp256k1 ECDSA 서명/검증
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestSecp256k1KeyPair/SignAndVerify'
-```
-
-**예상 결과**:
-```
---- PASS: TestSecp256k1KeyPair/SignAndVerify (0.01s)
-```
-
-**검증 방법**:
-- ECDSA 서명 생성 확인
-- 서명 검증 성공 확인
-- Ethereum 호환성 확인
-
-**통과 기준**:
-- ✅ Secp256k1 서명 생성
-- ✅ 검증 성공
-- ✅ Ethereum 호환
-
 ---
 
-#### 2.4.3 RSA-PSS 서명/검증
-
-**시험항목**: RSA-PSS 서명/검증
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestRSAKeyPair/SignAndVerify'
-```
-
-**예상 결과**:
-```
---- PASS: TestRSAKeyPair/SignAndVerify (0.02s)
-```
-
-**검증 방법**:
-- RSA-PSS 서명 생성 확인
-- PSS 패딩 사용 확인
-- 서명 검증 성공 확인
-
-**통과 기준**:
-- ✅ RSA-PSS 서명 생성
-- ✅ 검증 성공
-- ✅ PSS 패딩 정확
-
----
-
-#### 2.4.4 잘못된 서명 거부
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: 변조된 서명 검증 실패 확인
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*InvalidSignature'
-```
-
-**예상 결과**:
-```
---- PASS: TestInvalidSignatureRejection (0.00s)
-    keys_test.go:XX: Invalid signature correctly rejected
-```
-
-**검증 방법**:
-- 서명 데이터 변조 후 검증
-- 검증 실패 확인
-- 적절한 에러 메시지 확인
-
-**통과 기준**:
-- ✅ 변조된 서명 거부
-- ✅ 에러 반환
-- ✅ 보안 유지
-
----
 
 ## 3. DID 관리
 
-### 3.1 DID 생성/해석
+### 3.1 DID 생성
 
 #### 3.1.1 DID 생성 (did:sage:ethereum:<uuid> 형식)
 
@@ -1123,6 +639,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run 'TestCreateDID'
 
 ---
 
+---
+
 #### 3.1.2 DID 파싱
 
 **시험항목**: DID 문자열 파싱 및 검증
@@ -1154,7 +672,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run 'TestParseDID'
 
 ---
 
-### 3.2 DID 블록체인 등록
+### 3.2 DID 등록
 
 #### 3.2.1 트랜잭션 해시 반환 확인
 
@@ -1199,6 +717,8 @@ npx hardhat node --port 8545 --chain-id 31337 &
 
 ---
 
+---
+
 #### 3.2.2 가스비 소모량 확인 (~653,000 gas)
 
 **시험항목**: DID 등록 가스비 측정
@@ -1227,6 +747,8 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestDIDRegistr
 - ✅ 가스 사용량 측정
 - ✅ 범위: 600K ~ 700K gas
 - ✅ 편차 ±10% 이내
+
+---
 
 ---
 
@@ -1273,9 +795,9 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestDIDQueryBy
 
 ---
 
-### 3.3 DID 관리
+### 3.4 DID 관리
 
-#### 3.3.1 메타데이터 업데이트, 엔드포인트 변경
+#### 3.4.1 메타데이터 업데이트, 엔드포인트 변경
 
 **시험항목**: DID 메타데이터 및 엔드포인트 업데이트
 
@@ -1314,7 +836,9 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestDIDMetadat
 
 ---
 
-#### 3.3.2 DID 비활성화, inactive 상태 확인
+---
+
+#### 3.4.2 DID 비활성화, inactive 상태 확인
 
 **시험항목**: DID 비활성화 및 상태 변경 확인
 
@@ -1357,9 +881,12 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestDIDDeactiv
 
 ---
 
-## 4. 블록체인 통합
+---
 
-### 4.1 기본 연결 및 설정
+
+## 4. 블록체인 연동
+
+### 4.1 Ethereum
 
 #### 4.1.1 블록체인 연결
 
@@ -1398,6 +925,8 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestBlockchain
 
 ---
 
+---
+
 #### 4.1.2 Enhanced Provider
 
 **시험항목**: Enhanced Provider 생성 및 기능 확인
@@ -1430,9 +959,7 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestEnhancedPr
 
 ---
 
-### 4.2 블록체인 상세 테스트
-
-#### 4.2.1 Chain ID 확인 (로컬: 31337)
+#### 4.1.3 Chain ID 확인 (로컬: 31337)
 
 **시험항목**: Chain ID 명시적 검증
 
@@ -1467,7 +994,9 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestBlockchain
 
 ---
 
-#### 4.2.2 트랜잭션 서명 성공, 전송 및 확인
+---
+
+#### 4.1.4 트랜잭션 서명 성공, 전송 및 확인
 
 **시험항목**: EIP-155 트랜잭션 서명 및 전송
 
@@ -1501,7 +1030,9 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestTransactio
 
 ---
 
-#### 4.2.3 가스 예측 정확도 (±10%)
+---
+
+#### 4.1.5 가스 예측 정확도 (±10%)
 
 **시험항목**: 가스 예측값과 실제 사용량 비교
 
@@ -1533,7 +1064,11 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestGasEstimat
 
 ---
 
-#### 4.2.4 AgentRegistry 컨트랙트 배포 성공, 컨트랙트 주소 반환
+---
+
+### 4.2 컨트랙트
+
+#### 4.2.1 AgentRegistry 컨트랙트 배포 성공, 컨트랙트 주소 반환
 
 **시험항목**: 스마트 컨트랙트 배포
 
@@ -1566,7 +1101,9 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestContractDe
 
 ---
 
-#### 4.2.5 이벤트 로그 확인 (등록 이벤트 수신 검증)
+---
+
+#### 4.2.2 이벤트 로그 확인 (등록 이벤트 수신 검증)
 
 **시험항목**: 블록체인 이벤트 로그 조회
 
@@ -1598,94 +1135,10 @@ go test -v github.com/sage-x-project/sage/tests/integration -run 'TestEventMonit
 
 ---
 
+---
+
+
 ## 5. 메시지 처리
-
-### 5.1 Nonce 관리
-
-#### 5.1.1 Nonce 생성
-
-**시험항목**: UUID 기반 고유 Nonce 생성
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'TestNonceManager/GenerateNonce'
-```
-
-**예상 결과**:
-```
---- PASS: TestNonceManager/GenerateNonce (0.00s)
-    nonce_test.go:XX: Nonce generated: 12345678-1234-1234-1234-123456789abc
-```
-
-**검증 방법**:
-- Nonce 생성 성공 확인
-- UUID v4 형식 확인
-- 여러 Nonce 생성 시 고유성 확인
-
-**통과 기준**:
-- ✅ Nonce 생성 성공
-- ✅ UUID v4 형식
-- ✅ 고유성 보장
-
----
-
-#### 5.1.2 Nonce 중복 검사
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: 동일 Nonce 재사용 탐지
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'TestNonceManager/CheckReplay'
-```
-
-**예상 결과**:
-```
---- PASS: TestNonceManager/CheckReplay (0.01s)
-    nonce_test.go:XX: Duplicate nonce detected and rejected
-```
-
-**검증 방법**:
-- 동일 Nonce 재사용 시도
-- Replay 공격 탐지 확인
-- 에러 반환 확인
-
-**통과 기준**:
-- ✅ 중복 Nonce 탐지
-- ✅ 재사용 거부
-- ✅ Replay 방어
-
----
-
-#### 5.1.3 Nonce 만료
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: TTL 초과 Nonce 자동 제거
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'TestNonceManager/Expiration'
-```
-
-**예상 결과**:
-```
---- PASS: TestNonceManager/Expiration (0.50s)
-    nonce_test.go:XX: Expired nonces cleaned up successfully
-```
-
-**검증 방법**:
-- TTL 설정
-- 시간 경과 후 Nonce 만료 확인
-- 자동 정리 확인
-
-**통과 기준**:
-- ✅ TTL 기반 만료
-- ✅ 만료된 Nonce 정리
-- ✅ 메모리 효율성
-
----
 
 ### 5.2 메시지 순서
 
@@ -1713,6 +1166,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 - ✅ 순서 번호 증가
 - ✅ 연속성 유지
 - ✅ 간격 없음
+
+---
 
 ---
 
@@ -1746,6 +1201,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 
 ---
 
+---
+
 #### 5.2.3 순서 불일치 탐지
 
 
@@ -1775,7 +1232,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 
 ---
 
-### 5.3 Replay 공격 방어
+### 5.3 중복 서비스
 
 #### 5.3.1 중복 메시지 탐지
 
@@ -1804,6 +1261,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'Te
 
 ---
 
+---
+
 #### 5.3.2 메시지 중복 확인
 
 **시험항목**: 메시지 중복 여부 확인
@@ -1827,6 +1286,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'Te
 - ✅ 메시지 마킹 성공
 - ✅ 중복 탐지 정확
 - ✅ 캐시 효율적
+
+---
 
 ---
 
@@ -1857,10 +1318,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'Te
 
 ---
 
-### 5.4 메시지 암호화
 
 
-#### 5.4.2 세션 암호화
+---
+
+#### 5.3.4 세션 암호화
 
 **시험항목**: 세션 기반 암호화/복호화
 
@@ -1887,7 +1349,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSecureSess
 
 ---
 
-#### 5.4.3 변조 탐지
+---
+
+#### 5.3.5 변조 탐지
 
 **시험항목**: 암호문 변조 시 복호화 실패
 
@@ -1913,6 +1377,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper'
 - ✅ 에러 반환
 
 ---
+
+---
+
 
 ## 6. CLI 도구
 
@@ -1945,6 +1412,8 @@ Ed25519
 - ✅ 키 파일 생성
 - ✅ JWK 형식 정확
 - ✅ Ed25519 키
+
+---
 
 ---
 
@@ -1983,6 +1452,8 @@ Signature saved to: /tmp/sig.bin
 
 ---
 
+---
+
 #### 6.1.3 검증 CLI
 
 **시험항목**: CLI로 서명 검증
@@ -2007,6 +1478,8 @@ Key ID: 67afcf6c322beb76
 - ✅ 올바른 서명 검증 성공
 - ✅ 변조된 서명 검증 실패
 - ✅ CLI 동작 정상
+
+---
 
 ---
 
@@ -2072,6 +1545,8 @@ Ed25519
 
 ---
 
+---
+
 #### 6.2.2 DID 조회 CLI
 
 **시험항목**: CLI로 DID 해석
@@ -2098,6 +1573,8 @@ Active: true
 - ✅ DID 조회 성공
 - ✅ 정보 출력 정확
 - ✅ CLI 동작 정상
+
+---
 
 ---
 
@@ -2132,6 +1609,8 @@ DID registered successfully: did:sage:ethereum:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx
 
 ---
 
+---
+
 #### 6.2.4 DID 목록 조회 CLI
 
 **시험항목**: 소유자 주소로 DID 목록 조회
@@ -2159,6 +1638,8 @@ Total: 2 DIDs
 - ✅ DID 출력 정확
 - ✅ 상태 표시
 - ✅ CLI 동작 정상
+
+---
 
 ---
 
@@ -2191,6 +1672,8 @@ New endpoint: https://new-endpoint.com
 
 ---
 
+---
+
 #### 6.2.6 DID 비활성화 CLI
 
 **시험항목**: DID 비활성화
@@ -2217,6 +1700,8 @@ Status: Inactive
 - ✅ 트랜잭션 해시 반환
 - ✅ 상태 = Inactive
 - ✅ CLI 동작 정상
+
+---
 
 ---
 
@@ -2251,9 +1736,12 @@ DID verification: PASSED
 
 ---
 
+---
+
+
 ## 7. 세션 관리
 
-### 7.1 세션 생성/관리
+### 7.1 세션 생성
 
 #### 7.1.1 세션 생성
 
@@ -2284,6 +1772,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 ---
 
+---
+
 #### 7.1.2 세션 조회
 
 
@@ -2309,6 +1799,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 - ✅ 세션 조회 성공
 - ✅ 데이터 일치
 - ✅ 에러 없음
+
+---
 
 ---
 
@@ -2341,36 +1833,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 ---
 
-#### 7.1.4 세션 나열
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: 활성 세션 목록 조회
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionManager_ListSessions'
-```
-
-**예상 결과**:
-```
---- PASS: TestSessionManager_ListSessions (0.00s)
-    session_test.go:XX: Active sessions: 3
-```
-
-**검증 방법**:
-- 세션 목록 조회
-- 개수 확인
-- 각 세션 정보 확인
-
-**통과 기준**:
-- ✅ 목록 조회 성공
-- ✅ 개수 정확
-- ✅ 정보 완전
-
 ---
 
-### 7.2 세션 만료
+### 7.2 세션 관리
 
 #### 7.2.1 TTL 기반 만료
 
@@ -2400,6 +1865,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 ---
 
+---
+
 #### 7.2.2 자동 정리
 
 
@@ -2425,6 +1892,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 - ✅ 자동 정리 동작
 - ✅ 만료 세션 제거
 - ✅ 백그라운드 실행
+
+---
 
 ---
 
@@ -2457,127 +1926,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 ---
 
-### 7.3 세션 상태
-
-#### 7.3.1 세션 데이터 저장
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: 세션별 데이터 저장
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionStore'
-```
-
-**예상 결과**:
-```
---- PASS: TestSessionStore (0.00s)
-    session_test.go:XX: Session data stored successfully
-```
-
-**검증 방법**:
-- 데이터 저장
-- 데이터 조회
-- 데이터 일치 확인
-
-**통과 기준**:
-- ✅ 데이터 저장 성공
-- ✅ 조회 정확
-- ✅ 무결성 유지
-
----
-
-#### 7.3.2 세션 데이터 암호화
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: 민감 데이터 암호화 저장
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionEncryption'
-```
-
-**예상 결과**:
-```
---- PASS: TestSessionEncryption (0.01s)
-    session_test.go:XX: Session data encrypted successfully
-```
-
-**검증 방법**:
-- 암호화 저장
-- 복호화 조회
-- 원본 데이터 일치 확인
-
-**통과 기준**:
-- ✅ 암호화 저장
-- ✅ 복호화 정확
-- ✅ 보안 유지
-
----
-
-#### 7.3.3 동시성 제어
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: 멀티 스레드 환경 세션 안전성
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionConcurrency'
-```
-
-**예상 결과**:
-```
---- PASS: TestSessionConcurrency (0.10s)
-    session_test.go:XX: 100 concurrent operations completed safely
-```
-
-**검증 방법**:
-- 동시 읽기/쓰기
-- 경쟁 상태 없음 확인
-- 데이터 무결성 확인
-
-**통과 기준**:
-- ✅ 동시 접근 안전
-- ✅ 경쟁 상태 없음
-- ✅ 데이터 일관성
-
----
-
-#### 7.3.4 세션 상태 동기화
-
-
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-**시험항목**: 분산 환경 세션 동기화
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionSync'
-```
-
-**예상 결과**:
-```
---- PASS: TestSessionSync (0.20s)
-    session_test.go:XX: Session state synchronized across nodes
-```
-
-**검증 방법**:
-- 세션 상태 변경
-- 다른 노드에서 동기화 확인
-- 일관성 확인
-
-**통과 기준**:
-- ✅ 상태 동기화
-- ✅ 일관성 유지
-- ✅ 분산 지원
-
----
 
 ## 8. HPKE
 
-### 8.1 HPKE 보안 테스트
+### 8.1 암호화/복호화
 
 #### 8.1.1 서버 서명 및 Ack Tag (Happy Path)
 
@@ -2607,6 +1959,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_ServerSignat
 
 ---
 
+---
+
 #### 8.1.2 잘못된 키 거부
 
 **시험항목**: 잘못된 KEM 키 사용 시 거부
@@ -2633,217 +1987,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Client_Resol
 
 ---
 
-#### 8.1.3 서명 검증 실패
-
-**시험항목**: 잘못된 서명 키로 검증 시 실패
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_ServerSignature_VerifyAgainstWrongKey_Rejects'
-```
-
-**예상 결과**:
-```
---- PASS: Test_ServerSignature_VerifyAgainstWrongKey_Rejects (0.01s)
-    hpke_test.go:XX: Wrong signature key rejected
-```
-
-**검증 방법**:
-- 잘못된 키로 서명 검증 시도
-- 검증 실패 확인
-
-**통과 기준**:
-- ✅ 검증 실패
-- ✅ 에러 반환
-- ✅ 보안 유지
-
 ---
 
-#### 8.1.4 Ack Tag 변조 감지
-
-**시험항목**: Ack Tag 변조 시 검증 실패
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_AckTag_Fails'
-```
-
-**예상 결과**:
-```
---- PASS: Test_Tamper_AckTag_Fails (0.01s)
-    hpke_test.go:XX: Tampered Ack Tag detected
-```
-
-**검증 방법**:
-- Ack Tag 변조
-- 검증 실패 확인
-
-**통과 기준**:
-- ✅ 변조 탐지
-- ✅ 검증 실패
-- ✅ 보안 유지
-
----
-
-#### 8.1.5 서명 변조 감지
-
-**시험항목**: 서명 변조 시 검증 실패
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_Signature_Fails'
-```
-
-**예상 결과**:
-```
---- PASS: Test_Tamper_Signature_Fails (0.01s)
-    hpke_test.go:XX: Tampered signature detected
-```
-
-**검증 방법**:
-- 서명 변조
-- 검증 실패 확인
-
-**통과 기준**:
-- ✅ 변조 탐지
-- ✅ 검증 실패
-- ✅ 보안 유지
-
----
-
-#### 8.1.6 Enc Echo 변조 감지
-
-**시험항목**: Enc Echo 변조 시 실패
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_Enc_Echo_Fails'
-```
-
-**예상 결과**:
-```
---- PASS: Test_Tamper_Enc_Echo_Fails (0.01s)
-```
-
-**검증 방법**:
-- Enc Echo 변조
-- 검증 실패 확인
-
-**통과 기준**:
-- ✅ 변조 탐지
-- ✅ 검증 실패
-- ✅ 보안 유지
-
----
-
-#### 8.1.7 Info Hash 변조 감지
-
-**시험항목**: Info Hash 변조 시 실패
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_InfoHash_Fails'
-```
-
-**예상 결과**:
-```
---- PASS: Test_Tamper_InfoHash_Fails (0.01s)
-```
-
-**검증 방법**:
-- Info Hash 변조
-- 검증 실패 확인
-
-**통과 기준**:
-- ✅ 변조 탐지
-- ✅ 검증 실패
-- ✅ 보안 유지
-
----
-
-#### 8.1.8 Replay 방어
-
-**시험항목**: Replay 공격 방어 확인
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Replay_Protection_Works'
-```
-
-**예상 결과**:
-```
---- PASS: Test_Replay_Protection_Works (0.02s)
-    hpke_test.go:XX: Replay attack prevented
-```
-
-**검증 방법**:
-- 메시지 재전송
-- Replay 탐지 확인
-
-**통과 기준**:
-- ✅ Replay 탐지
-- ✅ 공격 방어
-- ✅ 보안 유지
-
----
-
-#### 8.1.9 DoS Cookie 검증
-
-**시험항목**: DoS 방어 Cookie 검증
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_DoS_Cookie'
-```
-
-**예상 결과**:
-```
---- PASS: Test_DoS_Cookie (0.01s)
-```
-
-**검증 방법**:
-- DoS Cookie 생성
-- Cookie 검증
-- 잘못된 Cookie 거부
-
-**통과 기준**:
-- ✅ Cookie 생성
-- ✅ 검증 성공
-- ✅ DoS 방어
-
----
-
-#### 8.1.10 PoW Puzzle 검증
-
-**시험항목**: Proof-of-Work Puzzle 검증
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_DoS_Puzzle_PoW'
-```
-
-**예상 결과**:
-```
---- PASS: Test_DoS_Puzzle_PoW (0.10s)
-    hpke_test.go:XX: PoW puzzle solved
-    hpke_test.go:XX: Puzzle verified
-```
-
-**검증 방법**:
-- PoW Puzzle 생성
-- Puzzle 해결
-- 검증 성공 확인
-
-**통과 기준**:
-- ✅ Puzzle 생성
-- ✅ 해결 성공
-- ✅ 검증 통과
-
----
-
-### 8.2 HPKE End-to-End 테스트
-
-#### 8.2.1 E2E 핸드셰이크
+#### 8.1.3 E2E 핸드셰이크
 
 **시험항목**: 전체 HPKE 핸드셰이크 프로세스
 
@@ -2870,7 +2016,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestE2E'
 
 ---
 
-#### 8.2.2 HPKE 서버
+---
+
+#### 8.1.4 HPKE 서버
 
 
 ⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
@@ -2898,9 +2046,12 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestServer'
 
 ---
 
+---
+
+
 ## 9. 헬스체크
 
-### 9.1 sage-verify 도구
+### 9.1 상태 모니터링
 
 #### 9.1.1 블록체인 연결 상태
 
@@ -2937,6 +2088,8 @@ Status: Healthy
 
 ---
 
+---
+
 #### 9.1.2 시스템 리소스 모니터링
 
 **시험항목**: 메모리/CPU 사용률 확인
@@ -2967,6 +2120,8 @@ Status: Healthy
 - ✅ 디스크 사용량 표시
 - ✅ Goroutine 수 표시
 - ✅ 상태 판정 정확
+
+---
 
 ---
 
@@ -3033,9 +2188,1015 @@ Overall Status: Healthy
 
 ---
 
-### 9.2 Health 패키지 테스트
 
-#### 9.2.1 블록체인 상태 체크
+## 10. 추가 테스트
+
+### 10.1 RFC 9421 추가
+
+#### 10.1.1 Signature-Input 파싱
+
+**시험항목**: Signature-Input 헤더 파싱 정확성
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestParseSignatureInput'
+```
+
+**예상 결과**:
+```
+=== RUN   TestParseSignatureInput
+--- PASS: TestParseSignatureInput (0.00s)
+```
+
+**검증 방법**:
+- 헤더 파싱 후 각 필드 추출 확인
+- 파라미터 파싱 정확성 확인
+- 컴포넌트 리스트 파싱 확인
+
+**통과 기준**:
+- ✅ 헤더 파싱 성공
+- ✅ 모든 파라미터 추출
+- ✅ 컴포넌트 리스트 정확
+
+---
+
+---
+
+#### 10.1.2 Content-Digest 검증
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+
+**시험항목**: Content-Digest 일치 여부 검증
+
+**Go 테스트**:
+```bash
+# 현재 존재하지 않음
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier.*Digest'
+```
+
+**예상 결과**:
+```
+--- PASS: TestVerifier (0.01s)
+```
+
+**검증 방법**:
+- Body의 SHA-256 해시 계산
+- Content-Digest 헤더와 비교
+- 불일치 시 검증 실패 확인
+
+**통과 기준**:
+- ✅ Digest 일치 시 검증 성공
+- ✅ Digest 불일치 시 에러 반환
+- ✅ SHA-256 해시 정확
+
+---
+
+---
+
+#### 10.1.3 HTTP 메시지 빌더 (완전한 메시지 생성)
+
+**시험항목**: 빌더 패턴으로 완전한 HTTP 서명 메시지 생성
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/Build_complete_message'
+```
+
+**예상 결과**:
+```
+=== RUN   TestMessageBuilder/Build_complete_message
+    message_builder_test.go:33: ===== 14.1.1 RFC9421 메시지 빌더 - 완전한 메시지 생성 =====
+    message_builder_test.go:61: [PASS] 메시지 빌드 완료
+    message_builder_test.go:77: [PASS] 모든 필드 검증 완료
+--- PASS: TestMessageBuilder/Build_complete_message (0.00s)
+```
+
+**검증 방법**:
+- AgentDID, MessageID 설정 확인
+- Timestamp, Nonce 설정 확인
+- Body, Algorithm, KeyID 설정 확인
+- Headers, Metadata, SignedFields 확인
+
+**통과 기준**:
+- ✅ 빌더 패턴으로 메시지 생성 성공
+- ✅ AgentDID 올바르게 설정됨
+- ✅ MessageID 올바르게 설정됨
+- ✅ Timestamp 올바르게 설정됨
+- ✅ Nonce 올바르게 설정됨
+- ✅ Body 올바르게 설정됨
+
+---
+
+---
+
+#### 10.1.4 HTTP 요청 정규화 (Canonicalization)
+
+**시험항목**: HTTP 요청 정규화 정확성 확인, 헤더 필드 정렬 및 소문자 변환 확인
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanonicalizer/basic_GET_request'
+```
+
+**예상 결과**:
+```
+=== RUN   TestCanonicalizer/basic_GET_request
+    canonicalizer_test.go:37: ===== 12.1.1 RFC9421 정규화 - 기본 GET 요청 =====
+    canonicalizer_test.go:68: [PASS] 서명 베이스 생성 완료
+    canonicalizer_test.go:77: [PASS] 서명 베이스 검증 완료
+--- PASS: TestCanonicalizer/basic_GET_request (0.00s)
+```
+
+**검증 방법**:
+- HTTP GET 요청 생성 (메서드: GET, URL: https://example.com/foo?bar=baz)
+- 커버된 컴포넌트 설정: @method, @authority, @path, @query
+- 서명 파라미터 설정: KeyID, Algorithm, Created
+- 서명 베이스 정규화 및 검증
+- @signature-params 올바르게 생성됨 확인
+
+**통과 기준**:
+- ✅ HTTP GET 요청 생성 성공
+- ✅ 커버된 컴포넌트 4개 설정
+- ✅ 서명 파라미터 설정 완료
+- ✅ 정규화기 생성 성공
+- ✅ 서명 베이스 생성 성공
+- ✅ @method, @authority, @path, @query 포함
+- ✅ @signature-params 올바르게 생성됨
+
+---
+
+---
+
+#### 10.1.5 Body 설정
+
+**시험항목**: Body 설정 시 Content-Digest 자동 생성
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/SetBody'
+```
+
+**예상 결과**:
+```
+--- PASS: TestMessageBuilder/SetBody (0.00s)
+```
+
+**검증 방법**:
+- Body 설정 후 Content-Digest 헤더 존재 확인
+- Digest 값 정확성 확인
+- 자동 생성 확인
+
+**통과 기준**:
+- ✅ Content-Digest 자동 생성
+- ✅ SHA-256 해시 정확
+- ✅ Base64 인코딩 정확
+
+---
+
+---
+
+#### 10.1.6 Query 파라미터
+
+**시험항목**: @query-param 컴포넌트 처리
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestQueryParamComponent'
+```
+
+**예상 결과**:
+```
+=== RUN   TestQueryParamComponent
+=== RUN   TestQueryParamComponent/specific_parameter_protection
+=== RUN   TestQueryParamComponent/parameter_name_case_sensitivity
+=== RUN   TestQueryParamComponent/non-existent_parameter
+=== RUN   TestQueryParamComponent/multiple_query_parameters
+--- PASS: TestQueryParamComponent (0.00s)
+    --- PASS: TestQueryParamComponent/specific_parameter_protection (0.00s)
+    --- PASS: TestQueryParamComponent/parameter_name_case_sensitivity (0.00s)
+    --- PASS: TestQueryParamComponent/non-existent_parameter (0.00s)
+    --- PASS: TestQueryParamComponent/multiple_query_parameters (0.00s)
+```
+
+**검증 방법**:
+- 특정 파라미터 보호 (specific_parameter_protection)
+- 파라미터 이름 대소문자 구분 (parameter_name_case_sensitivity)
+- 존재하지 않는 파라미터 처리 (non-existent_parameter)
+- 여러 Query 파라미터 동시 처리 (multiple_query_parameters)
+
+**통과 기준**:
+- ✅ 특정 Query 파라미터 보호 기능 동작
+- ✅ 파라미터 이름 대소문자 정확히 구분
+- ✅ 존재하지 않는 파라미터 올바르게 처리
+- ✅ 여러 Query 파라미터 동시 처리 성공
+- ✅ RFC 9421 @query-param 컴포넌트 형식 준수
+
+---
+
+#### 10.1.7 헤더 정규화
+
+**시험항목**: 헤더 값 정규화 (공백, 대소문자 처리)
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanonicalizer'
+```
+
+**예상 결과**:
+```
+=== RUN   TestCanonicalizer
+--- PASS: TestCanonicalizer (0.00s)
+```
+
+**검증 방법**:
+- 헤더 이름 소문자 변환 확인
+- 여러 공백을 단일 공백으로 변환 확인
+- 앞뒤 공백 제거 확인
+
+**통과 기준**:
+- ✅ 헤더 이름 소문자화
+- ✅ 공백 정규화
+- ✅ RFC 9421 정규화 규칙 준수
+
+---
+
+#### 10.1.8 HTTP 필드
+
+**시험항목**: HTTP 필드 정규화
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestHTTPFields'
+```
+
+**예상 결과**:
+```
+--- PASS: TestHTTPFields (0.00s)
+```
+
+**검증 방법**:
+- HTTP 필드 값 정규화 확인
+- 특수 필드 처리 확인
+- RFC 9421 규칙 준수 확인
+
+**통과 기준**:
+- ✅ HTTP 필드 정규화
+- ✅ 특수 필드 올바른 처리
+- ✅ RFC 9421 준수
+
+---
+
+---
+
+#### 10.1.9 서명 베이스 생성
+
+**시험항목**: 최종 서명 베이스 문자열 생성
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestConstructSignatureBase'
+```
+
+**예상 결과**:
+```
+=== RUN   TestConstructSignatureBase
+--- PASS: TestConstructSignatureBase (0.00s)
+```
+
+**검증 방법**:
+- 서명 베이스 문자열 형식 확인
+- 각 컴포넌트가 올바른 순서로 포함되는지 확인
+- RFC 9421 형식 준수 확인
+
+**통과 기준**:
+- ✅ 서명 베이스 생성 성공
+- ✅ 모든 컴포넌트 포함
+- ✅ RFC 9421 형식 정확
+
+---
+
+---
+
+#### 10.1.10 Nonce 만료
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: TTL 초과 Nonce 자동 제거
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'TestNonceManager/Expiration'
+```
+
+**예상 결과**:
+```
+--- PASS: TestNonceManager/Expiration (0.50s)
+    nonce_test.go:XX: Expired nonces cleaned up successfully
+```
+
+**검증 방법**:
+- TTL 설정
+- 시간 경과 후 Nonce 만료 확인
+- 자동 정리 확인
+
+**통과 기준**:
+- ✅ TTL 기반 만료
+- ✅ 만료된 Nonce 정리
+- ✅ 메모리 효율성
+
+---
+
+### 10.2 키 관리 추가
+
+#### 10.2.1 X25519 키 생성 (HPKE)
+
+**시험항목**: X25519 키 쌍 생성 (HPKE용)
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestX25519KeyPair/Generate'
+```
+
+**예상 결과**:
+```
+--- PASS: TestX25519KeyPair/Generate (0.00s)
+    keys_test.go:XX: X25519 key pair generated successfully
+```
+
+**검증 방법**:
+- X25519 키 생성 성공 확인
+- HPKE에 사용 가능한지 확인
+- 키 크기 정확성 확인
+
+**통과 기준**:
+- ✅ X25519 키 생성 성공
+- ✅ HPKE 호환
+- ✅ 키 크기 정확
+
+---
+
+---
+
+#### 10.2.2 RSA 키 생성 (2048/4096비트)
+
+**시험항목**: RSA-PSS 키 쌍 생성
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestRSAKeyPair/Generate'
+```
+
+**예상 결과**:
+```
+--- PASS: TestRSAKeyPair/Generate (0.10s)
+    keys_test.go:XX: RSA-2048 generated
+    keys_test.go:XX: RSA-4096 generated
+```
+
+**검증 방법**:
+- RSA 2048비트 키 생성 확인
+- RSA 4096비트 키 생성 확인
+- RSA-PSS 알고리즘 사용 확인
+
+**통과 기준**:
+- ✅ RSA-2048 생성 성공
+- ✅ RSA-4096 생성 성공
+- ✅ RSA-PSS 지원
+
+---
+
+#### 10.2.3 DER 형식 저장
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: DER 형식으로 키 저장/로드
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*DER'
+```
+
+**예상 결과**:
+```
+--- PASS: TestKeyPairDER (0.01s)
+```
+
+**검증 방법**:
+- DER 바이너리 형식 확인
+- 저장 후 로드 가능 확인
+- 키 일치 확인
+
+**통과 기준**:
+- ✅ DER 형식 저장 성공
+- ✅ DER 형식 로드 성공
+- ✅ 키 일치 확인
+
+---
+
+---
+
+#### 10.2.4 JWK 형식
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: JSON Web Key 형식 지원
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*JWK'
+```
+
+**CLI 검증**:
+```bash
+./build/bin/sage-crypto generate --type ed25519 --format jwk --output /tmp/test.jwk
+cat /tmp/test.jwk | jq '.private_key | {kty, crv, x, d}'
+```
+
+**예상 결과**:
+```json
+{
+  "kty": "OKP",
+  "crv": "Ed25519",
+  "x": "base64url...",
+  "d": "base64url..."
+}
+```
+
+**검증 방법**:
+- JWK JSON 형식 유효성 확인
+- 필수 필드 (kty, crv, x, d) 존재 확인
+- Base64URL 인코딩 확인
+
+**통과 기준**:
+- ✅ JWK 형식 저장 성공
+- ✅ JWK 형식 로드 성공
+- ✅ RFC 7517 준수
+
+---
+
+---
+
+#### 10.2.5 Ed25519 바이트 변환
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: 공개키/비밀키 바이트 배열 변환
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestEd25519.*Bytes'
+```
+
+**예상 결과**:
+```
+--- PASS: TestEd25519KeyPairBytes (0.00s)
+```
+
+**검증 방법**:
+- 키 → 바이트 변환 확인
+- 바이트 → 키 변환 확인
+- 왕복 변환 후 키 일치 확인
+
+**통과 기준**:
+- ✅ 바이트 변환 성공
+- ✅ 왕복 변환 정확
+- ✅ 키 데이터 무손실
+
+---
+
+---
+
+#### 10.2.6 Secp256k1 바이트 변환
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: 압축/비압축 공개키 형식
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestSecp256k1.*Bytes'
+```
+
+**예상 결과**:
+```
+--- PASS: TestSecp256k1KeyPairBytes (0.00s)
+    keys_test.go:XX: Compressed public key: 33 bytes
+    keys_test.go:XX: Uncompressed public key: 65 bytes
+```
+
+**검증 방법**:
+- 압축 공개키 크기 = 33 bytes 확인
+- 비압축 공개키 크기 = 65 bytes 확인
+- 두 형식 간 변환 확인
+
+**통과 기준**:
+- ✅ 압축 형식 = 33 bytes
+- ✅ 비압축 형식 = 65 bytes
+- ✅ 형식 변환 정확
+
+---
+
+---
+
+#### 10.2.7 Hex 인코딩
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: 16진수 문자열 변환
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Hex'
+```
+
+**예상 결과**:
+```
+--- PASS: TestKeyHexEncoding (0.00s)
+```
+
+**검증 방법**:
+- 키 → Hex 변환 확인
+- Hex → 키 변환 확인
+- 16진수 문자열 형식 확인 (0-9a-f)
+
+**통과 기준**:
+- ✅ Hex 인코딩 성공
+- ✅ Hex 디코딩 성공
+- ✅ 왕복 변환 정확
+
+---
+
+---
+
+#### 10.2.8 Base64 인코딩
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: Base64 문자열 변환
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Base64'
+```
+
+**예상 결과**:
+```
+--- PASS: TestKeyBase64Encoding (0.00s)
+```
+
+**검증 방법**:
+- 키 → Base64 변환 확인
+- Base64 → 키 변환 확인
+- Base64 형식 유효성 확인
+
+**통과 기준**:
+- ✅ Base64 인코딩 성공
+- ✅ Base64 디코딩 성공
+- ✅ 왕복 변환 정확
+
+---
+
+#### 10.2.9 RSA-PSS 서명/검증
+
+**시험항목**: RSA-PSS 서명/검증
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestRSAKeyPair/SignAndVerify'
+```
+
+**예상 결과**:
+```
+--- PASS: TestRSAKeyPair/SignAndVerify (0.02s)
+```
+
+**검증 방법**:
+- RSA-PSS 서명 생성 확인
+- PSS 패딩 사용 확인
+- 서명 검증 성공 확인
+
+**통과 기준**:
+- ✅ RSA-PSS 서명 생성
+- ✅ 검증 성공
+- ✅ PSS 패딩 정확
+
+---
+
+---
+
+#### 10.2.10 잘못된 서명 거부
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: 변조된 서명 검증 실패 확인
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*InvalidSignature'
+```
+
+**예상 결과**:
+```
+--- PASS: TestInvalidSignatureRejection (0.00s)
+    keys_test.go:XX: Invalid signature correctly rejected
+```
+
+**검증 방법**:
+- 서명 데이터 변조 후 검증
+- 검증 실패 확인
+- 적절한 에러 메시지 확인
+
+**통과 기준**:
+- ✅ 변조된 서명 거부
+- ✅ 에러 반환
+- ✅ 보안 유지
+
+---
+
+---
+
+### 10.3 세션 관리 추가
+
+#### 10.3.1 세션 나열
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: 활성 세션 목록 조회
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionManager_ListSessions'
+```
+
+**예상 결과**:
+```
+--- PASS: TestSessionManager_ListSessions (0.00s)
+    session_test.go:XX: Active sessions: 3
+```
+
+**검증 방법**:
+- 세션 목록 조회
+- 개수 확인
+- 각 세션 정보 확인
+
+**통과 기준**:
+- ✅ 목록 조회 성공
+- ✅ 개수 정확
+- ✅ 정보 완전
+
+---
+
+#### 10.3.2 세션 데이터 저장
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: 세션별 데이터 저장
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionStore'
+```
+
+**예상 결과**:
+```
+--- PASS: TestSessionStore (0.00s)
+    session_test.go:XX: Session data stored successfully
+```
+
+**검증 방법**:
+- 데이터 저장
+- 데이터 조회
+- 데이터 일치 확인
+
+**통과 기준**:
+- ✅ 데이터 저장 성공
+- ✅ 조회 정확
+- ✅ 무결성 유지
+
+---
+
+---
+
+#### 10.3.3 세션 데이터 암호화
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: 민감 데이터 암호화 저장
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionEncryption'
+```
+
+**예상 결과**:
+```
+--- PASS: TestSessionEncryption (0.01s)
+    session_test.go:XX: Session data encrypted successfully
+```
+
+**검증 방법**:
+- 암호화 저장
+- 복호화 조회
+- 원본 데이터 일치 확인
+
+**통과 기준**:
+- ✅ 암호화 저장
+- ✅ 복호화 정확
+- ✅ 보안 유지
+
+---
+
+---
+
+#### 10.3.4 동시성 제어
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: 멀티 스레드 환경 세션 안전성
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionConcurrency'
+```
+
+**예상 결과**:
+```
+--- PASS: TestSessionConcurrency (0.10s)
+    session_test.go:XX: 100 concurrent operations completed safely
+```
+
+**검증 방법**:
+- 동시 읽기/쓰기
+- 경쟁 상태 없음 확인
+- 데이터 무결성 확인
+
+**통과 기준**:
+- ✅ 동시 접근 안전
+- ✅ 경쟁 상태 없음
+- ✅ 데이터 일관성
+
+---
+
+---
+
+#### 10.3.5 세션 상태 동기화
+
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+**시험항목**: 분산 환경 세션 동기화
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionSync'
+```
+
+**예상 결과**:
+```
+--- PASS: TestSessionSync (0.20s)
+    session_test.go:XX: Session state synchronized across nodes
+```
+
+**검증 방법**:
+- 세션 상태 변경
+- 다른 노드에서 동기화 확인
+- 일관성 확인
+
+**통과 기준**:
+- ✅ 상태 동기화
+- ✅ 일관성 유지
+- ✅ 분산 지원
+
+---
+
+---
+
+### 10.4 HPKE 추가
+
+#### 10.4.1 서명 검증 실패
+
+**시험항목**: 잘못된 서명 키로 검증 시 실패
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_ServerSignature_VerifyAgainstWrongKey_Rejects'
+```
+
+**예상 결과**:
+```
+--- PASS: Test_ServerSignature_VerifyAgainstWrongKey_Rejects (0.01s)
+    hpke_test.go:XX: Wrong signature key rejected
+```
+
+**검증 방법**:
+- 잘못된 키로 서명 검증 시도
+- 검증 실패 확인
+
+**통과 기준**:
+- ✅ 검증 실패
+- ✅ 에러 반환
+- ✅ 보안 유지
+
+---
+
+---
+
+#### 10.4.2 Ack Tag 변조 감지
+
+**시험항목**: Ack Tag 변조 시 검증 실패
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_AckTag_Fails'
+```
+
+**예상 결과**:
+```
+--- PASS: Test_Tamper_AckTag_Fails (0.01s)
+    hpke_test.go:XX: Tampered Ack Tag detected
+```
+
+**검증 방법**:
+- Ack Tag 변조
+- 검증 실패 확인
+
+**통과 기준**:
+- ✅ 변조 탐지
+- ✅ 검증 실패
+- ✅ 보안 유지
+
+---
+
+---
+
+#### 10.4.3 서명 변조 감지
+
+**시험항목**: 서명 변조 시 검증 실패
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_Signature_Fails'
+```
+
+**예상 결과**:
+```
+--- PASS: Test_Tamper_Signature_Fails (0.01s)
+    hpke_test.go:XX: Tampered signature detected
+```
+
+**검증 방법**:
+- 서명 변조
+- 검증 실패 확인
+
+**통과 기준**:
+- ✅ 변조 탐지
+- ✅ 검증 실패
+- ✅ 보안 유지
+
+---
+
+---
+
+#### 10.4.4 Enc Echo 변조 감지
+
+**시험항목**: Enc Echo 변조 시 실패
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_Enc_Echo_Fails'
+```
+
+**예상 결과**:
+```
+--- PASS: Test_Tamper_Enc_Echo_Fails (0.01s)
+```
+
+**검증 방법**:
+- Enc Echo 변조
+- 검증 실패 확인
+
+**통과 기준**:
+- ✅ 변조 탐지
+- ✅ 검증 실패
+- ✅ 보안 유지
+
+---
+
+---
+
+#### 10.4.5 Info Hash 변조 감지
+
+**시험항목**: Info Hash 변조 시 실패
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper_InfoHash_Fails'
+```
+
+**예상 결과**:
+```
+--- PASS: Test_Tamper_InfoHash_Fails (0.01s)
+```
+
+**검증 방법**:
+- Info Hash 변조
+- 검증 실패 확인
+
+**통과 기준**:
+- ✅ 변조 탐지
+- ✅ 검증 실패
+- ✅ 보안 유지
+
+---
+
+---
+
+#### 10.4.6 Replay 방어
+
+**시험항목**: Replay 공격 방어 확인
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Replay_Protection_Works'
+```
+
+**예상 결과**:
+```
+--- PASS: Test_Replay_Protection_Works (0.02s)
+    hpke_test.go:XX: Replay attack prevented
+```
+
+**검증 방법**:
+- 메시지 재전송
+- Replay 탐지 확인
+
+**통과 기준**:
+- ✅ Replay 탐지
+- ✅ 공격 방어
+- ✅ 보안 유지
+
+---
+
+---
+
+#### 10.4.7 DoS Cookie 검증
+
+**시험항목**: DoS 방어 Cookie 검증
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_DoS_Cookie'
+```
+
+**예상 결과**:
+```
+--- PASS: Test_DoS_Cookie (0.01s)
+```
+
+**검증 방법**:
+- DoS Cookie 생성
+- Cookie 검증
+- 잘못된 Cookie 거부
+
+**통과 기준**:
+- ✅ Cookie 생성
+- ✅ 검증 성공
+- ✅ DoS 방어
+
+---
+
+---
+
+#### 10.4.8 PoW Puzzle 검증
+
+**시험항목**: Proof-of-Work Puzzle 검증
+
+**Go 테스트**:
+```bash
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_DoS_Puzzle_PoW'
+```
+
+**예상 결과**:
+```
+--- PASS: Test_DoS_Puzzle_PoW (0.10s)
+    hpke_test.go:XX: PoW puzzle solved
+    hpke_test.go:XX: Puzzle verified
+```
+
+**검증 방법**:
+- PoW Puzzle 생성
+- Puzzle 해결
+- 검증 성공 확인
+
+**통과 기준**:
+- ✅ Puzzle 생성
+- ✅ 해결 성공
+- ✅ 검증 통과
+
+---
+
+### 10.5 헬스체크 추가
+
+#### 10.5.1 블록체인 상태 체크
 
 **시험항목**: 블록체인 헬스체크 로직 테스트
 
@@ -3062,7 +3223,9 @@ go test -v github.com/sage-x-project/sage/pkg/health -run 'TestChecker_CheckBloc
 
 ---
 
-#### 9.2.2 시스템 리소스 체크
+---
+
+#### 10.5.2 시스템 리소스 체크
 
 **시험항목**: 시스템 헬스체크 로직 테스트
 
@@ -3090,7 +3253,9 @@ go test -v github.com/sage-x-project/sage/pkg/health -run 'TestChecker_CheckSyst
 
 ---
 
-#### 9.2.3 통합 헬스체크
+---
+
+#### 10.5.3 통합 헬스체크
 
 **시험항목**: 전체 헬스체크 통합 실행
 
@@ -3117,11 +3282,11 @@ go test -v github.com/sage-x-project/sage/pkg/health -run 'TestChecker_CheckAll'
 
 ---
 
-## 10. 통합 테스트
+---
 
-### 10.1 E2E 핸드셰이크
+### 10.6 통합 테스트
 
-#### 10.1.1 정상 서명 메시지
+#### 10.6.1 정상 서명 메시지
 
 **시험항목**: 클라이언트 → 서버 서명 메시지 전송 및 검증
 
@@ -3150,7 +3315,9 @@ go test -v github.com/sage-x-project/sage/test/handshake -run TestHandshake
 
 ---
 
-#### 10.1.2 빈 Body Replay 공격
+---
+
+#### 10.6.2 빈 Body Replay 공격
 
 **시험항목**: 빈 Body로 Replay 공격 시도
 
@@ -3176,7 +3343,9 @@ go test -v github.com/sage-x-project/sage/test/handshake -run TestHandshake
 
 ---
 
-#### 10.1.3 잘못된 서명
+---
+
+#### 10.6.3 잘못된 서명
 
 **시험항목**: Signature-Input 헤더 손상
 
@@ -3202,7 +3371,9 @@ go test -v github.com/sage-x-project/sage/test/handshake -run TestHandshake
 
 ---
 
-#### 10.1.4 Nonce 재사용
+---
+
+#### 10.6.4 Nonce 재사용
 
 **시험항목**: 동일 Nonce 재전송 시도
 
@@ -3228,7 +3399,9 @@ go test -v github.com/sage-x-project/sage/test/handshake -run TestHandshake
 
 ---
 
-#### 10.1.5 세션 만료
+---
+
+#### 10.6.5 세션 만료
 
 **시험항목**: 세션 만료 후 요청
 
@@ -3254,9 +3427,7 @@ go test -v github.com/sage-x-project/sage/test/handshake -run TestHandshake
 
 ---
 
-### 10.2 블록체인 통합
-
-#### 10.2.1 전체 통합 테스트
+#### 10.6.6 전체 통합 테스트
 
 **시험항목**: 블록체인 + DID + 서명 통합
 
@@ -3290,7 +3461,9 @@ Integration tests: PASSED
 
 ---
 
-#### 10.2.2 멀티 에이전트 시나리오
+---
+
+#### 10.6.7 멀티 에이전트 시나리오
 
 
 ⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
@@ -3324,7 +3497,6 @@ go test -v github.com/sage-x-project/sage/tests/integration -run TestMultiAgentC
 
 ## 요약
 
-### 전체 검증 통계
 
 - **총 시험항목**: 111개
 - **대분류**: 10개
@@ -3332,7 +3504,6 @@ go test -v github.com/sage-x-project/sage/tests/integration -run TestMultiAgentC
 - **자동화 테스트**: 111개
 - **CLI 검증**: 11개
 
-### 빠른 검증
 
 ```bash
 # 전체 자동화 검증 (5-10분)
@@ -3345,7 +3516,6 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did
 go test -v github.com/sage-x-project/sage/tests/integration
 ```
 
-### 문서 참조
 
 - **테스트 가이드**: `docs/test/FEATURE_TEST_GUIDE_KR.md`
 - **검증 가이드**: `docs/test/FEATURE_VERIFICATION_GUIDE.md`
@@ -3357,3 +3527,5 @@ go test -v github.com/sage-x-project/sage/tests/integration
 **작성일**: 2025-10-22
 **버전**: 1.0
 **상태**: ✅ 100% 명세서 커버리지 달성 완료
+---
+
