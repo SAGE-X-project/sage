@@ -197,7 +197,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 
 **Go 테스트**:
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestSigner.*Parameters'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestSigner/.*Parameters'
 ```
 
 **예상 결과**:
@@ -226,7 +226,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestSigne
 
 **Go 테스트**:
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier.*Ed25519'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier/.*Ed25519'
 ```
 
 **예상 결과**:
@@ -253,7 +253,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 **Go 테스트**:
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier.*ECDSA'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier/.*ECDSA'
 ```
 
 **예상 결과**:

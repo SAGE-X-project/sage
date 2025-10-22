@@ -120,7 +120,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 
 **1.1.5 서명 파라미터 (keyid, created, nonce)**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestSigner.*Parameters'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestSigner/.*Parameters'
 ```
 - keyid, created, nonce 파라미터 포함 여부 확인
 
@@ -128,13 +128,13 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestSigne
 
 **1.2.1 서명 검증 (Ed25519)**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier.*Ed25519'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier/.*Ed25519'
 ```
 - Ed25519 서명 검증 성공/실패 케이스
 
 **1.2.2 서명 검증 (ECDSA P-256)**
 ```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier.*ECDSA'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier/.*ECDSA'
 ```
 - ECDSA P-256 서명 검증
 
