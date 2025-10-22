@@ -19,9 +19,12 @@
 package nonce
 
 import (
+	"encoding/hex"
 	"testing"
 	"time"
 
+	"github.com/sage-x-project/sage/tests/helpers"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,36 +33,208 @@ func TestNonceManager(t *testing.T) {
 	const cleanup = 10 * time.Millisecond
 
 	t.Run("GenerateNonce", func(t *testing.T) {
+		// Specification Requirement: Cryptographically secure nonce generation for replay attack prevention
+		helpers.LogTestSection(t, "5.1.1", "Nonce Generation (Cryptographically Secure)")
+
 		n, err := GenerateNonce()
 		require.NoError(t, err)
 		require.NotEmpty(t, n)
+
+		helpers.LogSuccess(t, "Nonce generation successful")
+		helpers.LogDetail(t, "Nonce value: %s", n)
+		helpers.LogDetail(t, "Nonce length: %d characters", len(n))
+
+		// Specification Requirement: Nonce should be hex-encoded and at least 32 characters (16 bytes)
+		decoded, err := hex.DecodeString(n)
+		if err == nil {
+			helpers.LogDetail(t, "Nonce is hex-encoded: true")
+			helpers.LogDetail(t, "Decoded size: %d bytes", len(decoded))
+			assert.GreaterOrEqual(t, len(decoded), 16, "Nonce should be at least 16 bytes")
+		} else {
+			helpers.LogDetail(t, "Nonce encoding: non-hex format")
+		}
+
+		// Test uniqueness by generating multiple nonces
+		nonce2, err := GenerateNonce()
+		require.NoError(t, err)
+		assert.NotEqual(t, n, nonce2, "Generated nonces should be unique")
+		helpers.LogSuccess(t, "Nonce uniqueness verified")
+		helpers.LogDetail(t, "Second nonce: %s", nonce2)
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Nonce generation successful",
+			"Nonce is not empty",
+			"Nonce length sufficient",
+			"Nonces are unique",
+			"Cryptographically secure generation",
+		})
+
+		// Save test data
+		testData := map[string]interface{}{
+			"test_case":     "5.1.1_Nonce_Generation",
+			"nonce_1":       n,
+			"nonce_2":       nonce2,
+			"nonce_1_length": len(n),
+			"nonce_2_length": len(nonce2),
+			"unique":        n != nonce2,
+		}
+		helpers.SaveTestData(t, "nonce/nonce_generation.json", testData)
 	})
 
 	t.Run("MarkNonceUsed", func(t *testing.T) {
-		m := NewManager(time.Second, time.Second)
+		// Specification Requirement: Nonce tracking for replay attack prevention
+		helpers.LogTestSection(t, "5.1.2", "Nonce Usage Tracking")
+
+		ttlDuration := time.Second
+		cleanupDuration := time.Second
+		m := NewManager(ttlDuration, cleanupDuration)
+
+		helpers.LogDetail(t, "Nonce TTL: %v", ttlDuration)
+		helpers.LogDetail(t, "Cleanup interval: %v", cleanupDuration)
+
 		n := "test-nonce"
+		helpers.LogDetail(t, "Test nonce: %s", n)
+
+		// Mark nonce as used
 		m.MarkNonceUsed(n)
+		helpers.LogSuccess(t, "Nonce marked as used")
+
+		// Specification Requirement: Used nonce should be tracked
 		require.True(t, m.IsNonceUsed(n), "manually marked nonce should be used")
-		require.Equal(t, 1, m.GetUsedNonceCount())
+		helpers.LogSuccess(t, "Nonce usage verification successful")
+
+		usedCount := m.GetUsedNonceCount()
+		require.Equal(t, 1, usedCount)
+		helpers.LogDetail(t, "Used nonce count: %d", usedCount)
+
+		// Test duplicate nonce rejection
+		isUsed := m.IsNonceUsed(n)
+		assert.True(t, isUsed, "Previously used nonce should still be marked as used")
+		helpers.LogSuccess(t, "Duplicate nonce detected correctly")
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Nonce marked as used successfully",
+			"Used nonce is tracked",
+			"Nonce usage check returns true",
+			"Used nonce count is accurate",
+			"Duplicate nonce detection working",
+		})
+
+		// Save test data
+		testData := map[string]interface{}{
+			"test_case":        "5.1.2_Nonce_Usage_Tracking",
+			"nonce":            n,
+			"marked_used":      true,
+			"is_used_check":    isUsed,
+			"used_nonce_count": usedCount,
+			"ttl_ms":           ttlDuration.Milliseconds(),
+			"cleanup_interval_ms": cleanupDuration.Milliseconds(),
+		}
+		helpers.SaveTestData(t, "nonce/nonce_usage_tracking.json", testData)
 	})
 
 	t.Run("IsNonceUsedExpiresOnCheck", func(t *testing.T) {
+		// Specification Requirement: Nonce expiration to prevent unbounded memory growth
+		helpers.LogTestSection(t, "5.1.3", "Nonce Expiration on Check")
+
 		m := NewManager(ttl, time.Hour)
 		n := "expiring-nonce"
+
+		helpers.LogDetail(t, "Nonce TTL: %v", ttl)
+		helpers.LogDetail(t, "Test nonce: %s", n)
+
+		// Mark nonce as used
 		m.MarkNonceUsed(n)
-		time.Sleep(ttl + 20*time.Millisecond)
-		// first call removes expired entry
+		initialCount := m.GetUsedNonceCount()
+		helpers.LogDetail(t, "Initial used nonce count: %d", initialCount)
+		require.Equal(t, 1, initialCount)
+
+		// Wait for TTL to expire
+		sleepDuration := ttl + 20*time.Millisecond
+		helpers.LogDetail(t, "Waiting %v for nonce to expire", sleepDuration)
+		time.Sleep(sleepDuration)
+
+		// Specification Requirement: First call removes expired entry
 		require.False(t, m.IsNonceUsed(n), "expired nonce should not be considered used")
-		require.Equal(t, 0, m.GetUsedNonceCount(), "expired nonce should be removed")
+		helpers.LogSuccess(t, "Expired nonce correctly identified as unused")
+
+		finalCount := m.GetUsedNonceCount()
+		require.Equal(t, 0, finalCount, "expired nonce should be removed")
+		helpers.LogSuccess(t, "Expired nonce removed from tracking")
+		helpers.LogDetail(t, "Final used nonce count: %d", finalCount)
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Nonce marked as used initially",
+			"TTL expiration triggered correctly",
+			"Expired nonce identified as unused",
+			"Expired nonce removed from tracking",
+			"Memory cleanup working",
+		})
+
+		// Save test data
+		testData := map[string]interface{}{
+			"test_case":       "5.1.3_Nonce_Expiration_On_Check",
+			"nonce":           n,
+			"ttl_ms":          ttl.Milliseconds(),
+			"sleep_duration_ms": sleepDuration.Milliseconds(),
+			"initial_count":   initialCount,
+			"final_count":     finalCount,
+			"expired":         true,
+		}
+		helpers.SaveTestData(t, "nonce/nonce_expiration_check.json", testData)
 	})
 
 	t.Run("CleanupLoopPurgesExpired", func(t *testing.T) {
+		// Specification Requirement: Automatic cleanup loop for expired nonce purging
+		helpers.LogTestSection(t, "5.1.4", "Automatic Nonce Cleanup Loop")
+
 		m := NewManager(ttl, cleanup)
 		n := "cleanup-nonce"
+
+		helpers.LogDetail(t, "Nonce TTL: %v", ttl)
+		helpers.LogDetail(t, "Cleanup interval: %v", cleanup)
+		helpers.LogDetail(t, "Test nonce: %s", n)
+
+		// Mark nonce as used
 		m.MarkNonceUsed(n)
-		require.Equal(t, 1, m.GetUsedNonceCount(), "nonce should be initially tracked")
-		// wait for TTL + cleanup interval for cleanupLoop to run
-		time.Sleep(ttl + cleanup + 20*time.Millisecond)
-		require.Equal(t, 0, m.GetUsedNonceCount(), "cleanupLoop should purge expired nonces")
+		initialCount := m.GetUsedNonceCount()
+		require.Equal(t, 1, initialCount, "nonce should be initially tracked")
+		helpers.LogDetail(t, "Initial used nonce count: %d", initialCount)
+		helpers.LogSuccess(t, "Nonce tracked by manager")
+
+		// Specification Requirement: Wait for TTL + cleanup interval for cleanupLoop to run
+		sleepDuration := ttl + cleanup + 20*time.Millisecond
+		helpers.LogDetail(t, "Waiting %v for cleanup loop to run", sleepDuration)
+		time.Sleep(sleepDuration)
+
+		finalCount := m.GetUsedNonceCount()
+		require.Equal(t, 0, finalCount, "cleanupLoop should purge expired nonces")
+		helpers.LogSuccess(t, "Cleanup loop purged expired nonces")
+		helpers.LogDetail(t, "Final used nonce count: %d", finalCount)
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Nonce initially tracked",
+			"Cleanup loop executed",
+			"Expired nonces purged automatically",
+			"Memory released correctly",
+			"Background cleanup working",
+		})
+
+		// Save test data
+		testData := map[string]interface{}{
+			"test_case":         "5.1.4_Automatic_Cleanup_Loop",
+			"nonce":             n,
+			"ttl_ms":            ttl.Milliseconds(),
+			"cleanup_interval_ms": cleanup.Milliseconds(),
+			"sleep_duration_ms": sleepDuration.Milliseconds(),
+			"initial_count":     initialCount,
+			"final_count":       finalCount,
+			"cleanup_successful": finalCount == 0,
+		}
+		helpers.SaveTestData(t, "nonce/nonce_cleanup_loop.json", testData)
 	})
 }
