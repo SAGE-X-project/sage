@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,11 +50,70 @@ func TestDetector(t *testing.T) {
 	})
 
 	t.Run("MarkAndDetectDuplicate", func(t *testing.T) {
-		d := NewDetector(time.Second, time.Second)
-		h := &mockHeader{seq: 1, nonce: "n1", timestamp: now}
+		// Specification Requirement: Message deduplication for replay attack prevention
+		helpers.LogTestSection(t, "8.2.1", "Message Deduplication Detection")
+
+		ttl := time.Second
+		cleanupInterval := time.Second
+		d := NewDetector(ttl, cleanupInterval)
+
+		helpers.LogDetail(t, "Detector TTL: %v", ttl)
+		helpers.LogDetail(t, "Cleanup interval: %v", cleanupInterval)
+
+		// Specification Requirement: Create message header with unique identifiers
+		seq := uint64(1)
+		nonce := "n1"
+		timestamp := now
+		h := &mockHeader{seq: seq, nonce: nonce, timestamp: timestamp}
+
+		helpers.LogDetail(t, "Message header:")
+		helpers.LogDetail(t, "  Sequence: %d", seq)
+		helpers.LogDetail(t, "  Nonce: %s", nonce)
+		helpers.LogDetail(t, "  Timestamp: %s", timestamp.Format(time.RFC3339Nano))
+
+		// Specification Requirement: Mark packet as seen (first occurrence)
 		d.MarkPacketSeen(h)
-		require.True(t, d.IsDuplicate(h), "packet just marked should be detected as duplicate")
-		require.Equal(t, 1, d.GetSeenPacketCount(), "seen packet count should be 1")
+		helpers.LogSuccess(t, "Packet marked as seen")
+
+		seenCount := d.GetSeenPacketCount()
+		require.Equal(t, 1, seenCount, "seen packet count should be 1")
+		helpers.LogDetail(t, "Seen packet count: %d", seenCount)
+
+		// Specification Requirement: Detect duplicate (replay attack)
+		isDup := d.IsDuplicate(h)
+		require.True(t, isDup, "packet just marked should be detected as duplicate")
+		helpers.LogSuccess(t, "Duplicate detected: Replay attack prevented")
+		helpers.LogDetail(t, "Is duplicate: %v", isDup)
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Detector initialized with TTL and cleanup",
+			"Packet marked as seen successfully",
+			"Seen packet count = 1",
+			"Duplicate detection successful",
+			"Replay attack prevented",
+		})
+
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case": "8.2.1_Message_Deduplication",
+			"detector_config": map[string]interface{}{
+				"ttl_ms":             ttl.Milliseconds(),
+				"cleanup_interval_ms": cleanupInterval.Milliseconds(),
+			},
+			"message": map[string]interface{}{
+				"sequence":  seq,
+				"nonce":     nonce,
+				"timestamp": timestamp.Format(time.RFC3339Nano),
+			},
+			"detection": map[string]interface{}{
+				"marked_seen":      true,
+				"seen_count":       seenCount,
+				"is_duplicate":     isDup,
+				"replay_prevented": true,
+			},
+		}
+		helpers.SaveTestData(t, "message/dedupe/deduplication_detection.json", testData)
 	})
 
 	t.Run("DifferentMessagesCount", func(t *testing.T) {
