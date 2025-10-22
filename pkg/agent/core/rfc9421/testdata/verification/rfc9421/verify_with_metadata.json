@@ -1,0 +1,27 @@
+{
+  "data": {
+    "metadata": {
+      "capabilities": {
+        "chat": true,
+        "code": true
+      },
+      "endpoint": "https://api.example.com"
+    },
+    "result": {
+      "error": "",
+      "valid": true
+    },
+    "test_case": "15.1.4_RFC9421_검증기_메타데이터_검증",
+    "validation": "메타데이터_검증_통과",
+    "verification_conditions": {
+      "expected_metadata": {
+        "endpoint": "https://api.example.com"
+      },
+      "required_capabilities": [
+        "chat"
+      ]
+    }
+  },
+  "test_name": "TestVerifier/VerifyWithMetadata",
+  "timestamp": "2025-10-22T23:24:47+09:00"
+}

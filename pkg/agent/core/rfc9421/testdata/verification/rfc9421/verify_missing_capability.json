@@ -1,0 +1,19 @@
+{
+  "data": {
+    "message_capabilities": {
+      "chat": true
+    },
+    "required_capabilities": [
+      "chat",
+      "code"
+    ],
+    "result": {
+      "error": "agent missing required capabilities",
+      "valid": false
+    },
+    "test_case": "15.1.5_RFC9421_검증기_누락된_Capability",
+    "validation": "누락된_Capability_감지_통과"
+  },
+  "test_name": "TestVerifier/VerifyWithMetadata_missing_capability",
+  "timestamp": "2025-10-22T23:24:47+09:00"
+}

@@ -1,0 +1,30 @@
+{
+  "data": {
+    "message": {
+      "agent_did": "did:sage:ethereum:agent001",
+      "algorithm": "EdDSA",
+      "body": "test message",
+      "message_id": "msg-001",
+      "nonce": "random-nonce",
+      "signed_fields": [
+        "agent_did",
+        "message_id",
+        "timestamp",
+        "nonce",
+        "body"
+      ]
+    },
+    "signature": {
+      "algorithm": "Ed25519",
+      "signature_bytes": 64
+    },
+    "test_case": "15.1.1_RFC9421_검증기_유효한_EdDSA_서명",
+    "validation": "유효한_EdDSA_서명_검증_통과",
+    "verification": {
+      "error": null,
+      "success": true
+    }
+  },
+  "test_name": "TestVerifier/VerifySignature_with_valid_EdDSA_signature",
+  "timestamp": "2025-10-22T23:24:47+09:00"
+}
