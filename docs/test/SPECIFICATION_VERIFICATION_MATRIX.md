@@ -328,10 +328,13 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestParse
 
 #### 1.2.5 Content-Digest 검증
 
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+
 **시험항목**: Content-Digest 일치 여부 검증
 
 **Go 테스트**:
 ```bash
+# 현재 존재하지 않음
 go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier.*Digest'
 ```
 
@@ -354,10 +357,13 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 #### 1.2.6 변조된 메시지 탐지
 
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+
 **시험항목**: 메시지 변조 시 검증 실패 확인
 
 **Go 테스트**:
 ```bash
+# 현재 존재하지 않음
 go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier.*Tampered'
 ```
 
@@ -384,10 +390,13 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 #### 1.3.1 HTTP 메소드/경로 설정
 
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+
 **시험항목**: @method, @path 컴포넌트 설정
 
 **Go 테스트**:
 ```bash
+# 현재 존재하지 않음
 go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/Method'
 ```
 
@@ -410,10 +419,13 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 
 #### 1.3.2 헤더 추가
 
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+
 **시험항목**: 커스텀 헤더 추가 및 서명 대상 지정
 
 **Go 테스트**:
 ```bash
+# 현재 존재하지 않음
 go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/Headers'
 ```
 
@@ -462,10 +474,13 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 
 #### 1.3.4 Query 파라미터
 
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
+
 **시험항목**: @query-param 컴포넌트 처리
 
 **Go 테스트**:
 ```bash
+# 현재 존재하지 않음
 go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/Query'
 ```
 
@@ -797,7 +812,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*JWK'
 **CLI 검증**:
 ```bash
 ./build/bin/sage-crypto generate --type ed25519 --format jwk --output /tmp/test.jwk
-cat /tmp/test.jwk | jq '.kty, .crv, .x, .d'
+cat /tmp/test.jwk | jq '.private_key | {kty, crv, x, d}'
 ```
 
 **예상 결과**:
@@ -1937,14 +1952,14 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Tamper'
 ```bash
 ./build/bin/sage-crypto generate --type ed25519 --format jwk --output /tmp/test-ed25519.jwk
 test -f /tmp/test-ed25519.jwk && echo "✓ 키 생성 성공"
-cat /tmp/test-ed25519.jwk | jq '.kty, .crv'
+cat /tmp/test-ed25519.jwk | jq -r '.private_key.kty, .private_key.crv'
 ```
 
 **예상 결과**:
 ```
 ✓ 키 생성 성공
-"OKP"
-"Ed25519"
+OKP
+Ed25519
 ```
 
 **검증 방법**:
@@ -2061,14 +2076,14 @@ Ethereum Address: 0x742d35Cc6634C0532925a3b844Bc9e7595f2bd80
 **CLI 검증**:
 ```bash
 ./build/bin/sage-did key create --type ed25519 --output /tmp/did-key.jwk
-cat /tmp/did-key.jwk | jq '.kty, .crv'
+cat /tmp/did-key.jwk | jq -r '.private_key.kty, .private_key.crv'
 ```
 
 **예상 결과**:
 ```
 DID Key created: /tmp/did-key.jwk
-"OKP"
-"Ed25519"
+OKP
+Ed25519
 ```
 
 **검증 방법**:
