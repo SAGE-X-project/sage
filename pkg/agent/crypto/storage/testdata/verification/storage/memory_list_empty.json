@@ -1,0 +1,9 @@
+{
+  "data": {
+    "keys_count": 0,
+    "test_case": "19.1.7_빈_스토리지_목록_조회",
+    "validation": "빈_목록_검증_통과"
+  },
+  "test_name": "TestMemoryKeyStorage/EmptyStorageList",
+  "timestamp": "2025-10-22T23:54:33+09:00"
+}

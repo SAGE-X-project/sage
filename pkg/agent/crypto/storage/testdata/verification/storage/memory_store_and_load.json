@@ -1,0 +1,12 @@
+{
+  "data": {
+    "key_id": "926d6982aa86e3e3",
+    "key_type": "Ed25519",
+    "sign_verify": "성공",
+    "storage_key": "test-key",
+    "test_case": "19.1.1_키_쌍_저장_및_로드",
+    "validation": "저장_로드_검증_통과"
+  },
+  "test_name": "TestMemoryKeyStorage/StoreAndLoadKeyPair",
+  "timestamp": "2025-10-22T23:54:33+09:00"
+}

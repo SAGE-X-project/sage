@@ -1,0 +1,13 @@
+{
+  "data": {
+    "key1_id": "88da66945b96d230",
+    "key2_id": "f4b3eaaff703534a",
+    "loaded_id": "f4b3eaaff703534a",
+    "overwrite": "성공",
+    "storage_key": "overwrite-test",
+    "test_case": "19.1.3_기존_키_덮어쓰기",
+    "validation": "덮어쓰기_검증_통과"
+  },
+  "test_name": "TestMemoryKeyStorage/OverwriteExistingKey",
+  "timestamp": "2025-10-22T23:54:33+09:00"
+}
