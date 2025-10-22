@@ -1,0 +1,9 @@
+{
+  "data": {
+    "error": "unsupported key type: unsupported",
+    "test_case": "18.2.3_미지원_키_타입",
+    "validation": "에러_처리_검증_통과"
+  },
+  "test_name": "TestManager_GenerateKeyPair/Unsupported_key_type",
+  "timestamp": "2025-10-22T23:50:14+09:00"
+}

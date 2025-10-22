@@ -1,0 +1,10 @@
+{
+  "data": {
+    "error": "unsupported key type: RSA256",
+    "key_type": "RSA",
+    "test_case": "18.2.5_RSA_미지원",
+    "validation": "미지원_검증_통과"
+  },
+  "test_name": "TestManager_GenerateKeyPair/RSA_key_type_not_supported_by_Manager",
+  "timestamp": "2025-10-22T23:50:14+09:00"
+}

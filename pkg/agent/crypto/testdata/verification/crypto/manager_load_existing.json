@@ -1,0 +1,10 @@
+{
+  "data": {
+    "ids_match": true,
+    "key_loaded": true,
+    "test_case": "18.4.1_키_쌍_로드",
+    "validation": "로드_검증_통과"
+  },
+  "test_name": "TestManager_LoadKeyPair/Load_existing_key_pair",
+  "timestamp": "2025-10-22T23:50:14+09:00"
+}

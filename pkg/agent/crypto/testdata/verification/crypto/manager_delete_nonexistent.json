@@ -1,0 +1,9 @@
+{
+  "data": {
+    "error": "key not found",
+    "test_case": "18.5.2_존재하지_않는_키_삭제",
+    "validation": "에러_처리_검증_통과"
+  },
+  "test_name": "TestManager_DeleteKeyPair/Delete_non-existent_key_pair",
+  "timestamp": "2025-10-22T23:50:14+09:00"
+}

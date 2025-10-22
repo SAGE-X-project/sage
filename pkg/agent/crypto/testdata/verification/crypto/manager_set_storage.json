@@ -1,0 +1,10 @@
+{
+  "data": {
+    "no_panic": true,
+    "storage_set": true,
+    "test_case": "18.1.2_스토리지_설정",
+    "validation": "스토리지_설정_검증_통과"
+  },
+  "test_name": "TestManager_SetStorage",
+  "timestamp": "2025-10-22T23:50:14+09:00"
+}
