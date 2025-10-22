@@ -1,0 +1,18 @@
+{
+  "data": {
+    "content_digest": "sha-256=:RBsLjMq4VvLtwL6W0heDElJPTe2WbHL7gWRYYhHbAw0=:",
+    "curve": "P-256",
+    "private_key_d": "100782a16412f54d39e949c0fd23e1bb1b9a81a77f00ebbafbc7553615a67c46",
+    "public_key_x": "93db5044f7ebd739718caa641ad5cdd2a80b4eb7334d02fc9af2b805b0c08bdb",
+    "public_key_y": "5edad23bf821a8f20da493d6ec39619219c53371053c2736c73ea4b5736394bb",
+    "request_body": "{\"a\":1}",
+    "request_method": "POST",
+    "request_url": "https://sage.dev/data",
+    "signature": "sig1=:pMjT8qkZGDgzW+9Pu/SxlvrPf/ftmDv7hcl2HStBg3QEIc/SA77r1t7WnHHSVdvx/KErb+MHROlBZPiJleCVnw==:",
+    "signature_input": "sig1=(\"date\" \"content-digest\");keyid=\"test-key-ecdsa\";created=1761137214",
+    "test_case": "1.1.2_ECDSA_P256_Signature",
+    "timestamp": "2025-10-22T21:46:54+09:00"
+  },
+  "test_name": "TestIntegration/ECDSA_P-256_end-to-end",
+  "timestamp": "2025-10-22T21:46:54+09:00"
+}

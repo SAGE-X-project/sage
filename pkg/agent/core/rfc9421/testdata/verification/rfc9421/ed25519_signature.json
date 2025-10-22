@@ -9,13 +9,13 @@
       "public_key": 32
     },
     "message": "https://sage.dev/resource/123?user=alice",
-    "private_key_hex": "03ec487676b8b91229d563f131ba25245970ac622323f0fb399d464967eac20578895069ee8fb38e571380679dfea97d18a1597bfd061f7dc52a569e36826020",
-    "public_key_hex": "78895069ee8fb38e571380679dfea97d18a1597bfd061f7dc52a569e36826020",
-    "signature": "sig1=:oOS3kshv83BqMHwTqAvT1TNmzP5FQf1zgBUrHhv4LEf1zBA1BOnyhkU8YwmQOi1dGgYeOfhIqvRJwp9BO3e/CA==:",
-    "signature_input": "sig1=(\"@method\" \"host\" \"date\" \"@path\" \"@query\");keyid=\"test-key-ed25519\";alg=\"ed25519\";created=1761136559",
+    "private_key_hex": "f7a2125c800c5e172b0cd77a968fa55101f854551a03f74d6d0f61528f2a546944c7f856e4d477c4a1e9165b8d71e9d3ec9a1d8d618c8a15cc0919b5e5717c5e",
+    "public_key_hex": "44c7f856e4d477c4a1e9165b8d71e9d3ec9a1d8d618c8a15cc0919b5e5717c5e",
+    "signature": "sig1=:Tz5xbnmJ4D4jDfi6Bg0HL1UvJ7SkGgPuaI+4PkZDC7ZRQIjX0Amb2NUlkYM/14Gf8pSKp286rXXYirzyb9cdBw==:",
+    "signature_input": "sig1=(\"@method\" \"host\" \"date\" \"@path\" \"@query\");keyid=\"test-key-ed25519\";alg=\"ed25519\";created=1761137214",
     "test_case": "1.1.1_Ed25519_Signature",
-    "timestamp": "2025-10-22T21:35:59+09:00"
+    "timestamp": "2025-10-22T21:46:54+09:00"
   },
   "test_name": "TestIntegration/Ed25519_end-to-end",
-  "timestamp": "2025-10-22T21:35:59+09:00"
+  "timestamp": "2025-10-22T21:46:54+09:00"
 }

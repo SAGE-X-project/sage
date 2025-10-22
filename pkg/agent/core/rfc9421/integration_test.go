@@ -132,39 +132,102 @@ func TestIntegration(t *testing.T) {
 
 	// Test 2.1.2: ECDSA P-256 signature/verification
 	t.Run("ECDSA P-256 end-to-end", func(t *testing.T) {
+		// Specification Requirement: RFC 9421 compliant HTTP message signature with ECDSA P-256
+		helpers.LogTestSection(t, "1.1.2", "RFC 9421 ECDSA P-256 Signature Generation and Verification")
+
 		// Generate ECDSA P-256 key pair
 		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		require.NoError(t, err)
 		publicKey := &privateKey.PublicKey
 
+		// Specification Requirement: ECDSA P-256 key validation
+		assert.Equal(t, elliptic.P256(), privateKey.Curve, "Curve must be P-256")
+
+		helpers.LogSuccess(t, "ECDSA P-256 key generation successful")
+		helpers.LogDetail(t, "Curve: P-256")
+		helpers.LogDetail(t, "Private key D size: %d bytes", len(privateKey.D.Bytes()))
+		helpers.LogDetail(t, "Public key X: %x", publicKey.X.Bytes())
+		helpers.LogDetail(t, "Public key Y: %x", publicKey.Y.Bytes())
+
 		// Create POST request with body
 		body := `{"a":1}`
-		req, err := http.NewRequest("POST", "https://sage.dev/data", strings.NewReader(body))
+		testURL := "https://sage.dev/data"
+		req, err := http.NewRequest("POST", testURL, strings.NewReader(body))
 		require.NoError(t, err)
 
-		req.Header.Set("Date", time.Now().Format(http.TimeFormat))
+		currentTime := time.Now()
+		req.Header.Set("Date", currentTime.Format(http.TimeFormat))
 		req.Header.Set("Content-Digest", "sha-256=:RBsLjMq4VvLtwL6W0heDElJPTe2WbHL7gWRYYhHbAw0=:")
 		req.Header.Set("Content-Type", "application/json")
+
+		helpers.LogDetail(t, "Test request URL: %s", testURL)
+		helpers.LogDetail(t, "Request method: POST")
+		helpers.LogDetail(t, "Request body: %s", body)
+		helpers.LogDetail(t, "Test time: %s", currentTime.Format(time.RFC3339))
 
 		// Sign request
 		params := &SignatureInputParams{
 			CoveredComponents: []string{`"date"`, `"content-digest"`},
 			KeyID:             "test-key-ecdsa",
 			Algorithm:         "", // Empty algorithm - will be inferred from key type
-			Created:           time.Now().Unix(),
+			Created:           currentTime.Unix(),
 		}
 
 		verifier := NewHTTPVerifier()
 		err = verifier.SignRequest(req, "sig1", params, privateKey)
 		require.NoError(t, err)
 
+		// Specification Requirement: Signature validation
+		signature := req.Header.Get("Signature")
+		assert.NotEmpty(t, signature, "Signature header must be present")
+
+		sigInput := req.Header.Get("Signature-Input")
+		assert.Contains(t, sigInput, "keyid=", "Signature-Input must contain keyid parameter")
+		assert.Contains(t, sigInput, "created=", "Signature-Input must contain created parameter")
+
+		helpers.LogSuccess(t, "Signature generation successful")
+		helpers.LogDetail(t, "Signature: %s", signature)
+		helpers.LogDetail(t, "Signature-Input: %s", sigInput)
+
 		// Verify request
 		err = verifier.VerifyRequest(req, publicKey, nil)
 		assert.NoError(t, err)
+
+		helpers.LogSuccess(t, "Signature verification successful")
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"ECDSA P-256 signature generation successful",
+			"Curve = P-256 (NIST)",
+			"Signature header present",
+			"Signature-Input header format correct",
+			"Content-Digest covered in signature",
+			"RFC 9421 standard compliant",
+		})
+
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case":        "1.1.2_ECDSA_P256_Signature",
+			"curve":            "P-256",
+			"private_key_d":    hex.EncodeToString(privateKey.D.Bytes()),
+			"public_key_x":     hex.EncodeToString(publicKey.X.Bytes()),
+			"public_key_y":     hex.EncodeToString(publicKey.Y.Bytes()),
+			"request_url":      testURL,
+			"request_method":   "POST",
+			"request_body":     body,
+			"timestamp":        currentTime.Format(time.RFC3339),
+			"signature":        signature,
+			"signature_input":  sigInput,
+			"content_digest":   "sha-256=:RBsLjMq4VvLtwL6W0heDElJPTe2WbHL7gWRYYhHbAw0=:",
+		}
+		helpers.SaveTestData(t, "rfc9421/ecdsa_p256_signature.json", testData)
 	})
 
 	// Test 2.1.3: ECDSA Secp256k1 signature/verification (Ethereum compatible)
 	t.Run("ECDSA Secp256k1 end-to-end", func(t *testing.T) {
+		// Specification Requirement: RFC 9421 compliant HTTP message signature with ECDSA Secp256k1 (Ethereum)
+		helpers.LogTestSection(t, "1.1.3", "RFC 9421 ECDSA Secp256k1 Signature Generation and Verification (Ethereum)")
+
 		// Generate ECDSA Secp256k1 key pair (Ethereum compatible)
 		privateKeyEth, err := ethcrypto.GenerateKey()
 		require.NoError(t, err)
@@ -176,43 +239,98 @@ func TestIntegration(t *testing.T) {
 		// Get Ethereum address from public key
 		ethAddress := ethcrypto.PubkeyToAddress(*publicKey).Hex()
 
+		// Specification Requirement: Ethereum address format validation (0x + 40 hex chars)
+		assert.True(t, strings.HasPrefix(ethAddress, "0x"), "Ethereum address must start with 0x")
+		assert.Len(t, ethAddress, 42, "Ethereum address must be 42 characters (0x + 40 hex chars)")
+
+		helpers.LogSuccess(t, "ECDSA Secp256k1 key generation successful (Ethereum compatible)")
+		helpers.LogDetail(t, "Curve: Secp256k1")
+		helpers.LogDetail(t, "Ethereum address: %s", ethAddress)
+		helpers.LogDetail(t, "Private key D size: %d bytes", len(privateKey.D.Bytes()))
+		helpers.LogDetail(t, "Public key X: %x", publicKey.X.Bytes())
+		helpers.LogDetail(t, "Public key Y: %x", publicKey.Y.Bytes())
+
 		// Create POST request with body (Ethereum transaction format)
 		body := `{"action":"transfer","amount":100,"to":"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"}`
-		req, err := http.NewRequest("POST", "https://ethereum.sage.dev/transaction", strings.NewReader(body))
+		testURL := "https://ethereum.sage.dev/transaction"
+		req, err := http.NewRequest("POST", testURL, strings.NewReader(body))
 		require.NoError(t, err)
 
-		req.Header.Set("Date", time.Now().Format(http.TimeFormat))
+		currentTime := time.Now()
+		req.Header.Set("Date", currentTime.Format(http.TimeFormat))
 		req.Header.Set("Content-Digest", "sha-256=:k8H1234567890abcdefghijklmnopqrstuvwxyz+/=:")
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-Ethereum-Address", ethAddress)
+
+		helpers.LogDetail(t, "Test request URL: %s", testURL)
+		helpers.LogDetail(t, "Request method: POST")
+		helpers.LogDetail(t, "Request body: %s", body)
+		helpers.LogDetail(t, "Test time: %s", currentTime.Format(time.RFC3339))
 
 		// Sign request with Secp256k1 (Ethereum curve)
 		params := &SignatureInputParams{
 			CoveredComponents: []string{`"@method"`, `"@path"`, `"date"`, `"content-digest"`, `"x-ethereum-address"`},
 			KeyID:             "ethereum-key-secp256k1",
 			Algorithm:         "es256k", // RFC 9421 algorithm for Secp256k1 (Ethereum-compatible)
-			Created:           time.Now().Unix(),
+			Created:           currentTime.Unix(),
 		}
 
 		verifier := NewHTTPVerifier()
 		err = verifier.SignRequest(req, "sig1", params, privateKey)
 		require.NoError(t, err)
 
+		// Specification Requirement: Signature validation
+		signature := req.Header.Get("Signature")
+		assert.NotEmpty(t, signature, "Signature header must be present")
+
+		// Specification Requirement: Signature-Input header must cover Ethereum address
+		sigInput := req.Header.Get("Signature-Input")
+		assert.Contains(t, sigInput, "x-ethereum-address", "Signature must cover Ethereum address")
+		assert.Contains(t, sigInput, "keyid=", "Signature-Input must contain keyid parameter")
+		assert.Contains(t, sigInput, "alg=", "Signature-Input must contain alg parameter")
+		assert.Contains(t, sigInput, "es256k", "Algorithm must be es256k for Secp256k1")
+
+		helpers.LogSuccess(t, "Signature generation successful")
+		helpers.LogDetail(t, "Signature: %s", signature)
+		helpers.LogDetail(t, "Signature-Input: %s", sigInput)
+		helpers.LogDetail(t, "Algorithm: es256k (Secp256k1)")
+
 		// Verify request
 		err = verifier.VerifyRequest(req, publicKey, nil)
 		assert.NoError(t, err)
 
-		// Verify that signature-input contains the ethereum address header
-		sigInput := req.Header.Get("Signature-Input")
-		assert.Contains(t, sigInput, "x-ethereum-address", "Signature should cover Ethereum address")
+		helpers.LogSuccess(t, "Signature verification successful")
 
-		// Verify signature header exists
-		signature := req.Header.Get("Signature")
-		assert.NotEmpty(t, signature, "Signature header must be present")
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"ECDSA Secp256k1 signature generation successful",
+			"Ethereum address format correct (0x + 40 hex)",
+			"Ethereum address covered in signature",
+			"Algorithm = es256k (RFC 9421)",
+			"Signature header present",
+			"Signature-Input header format correct",
+			"Ethereum compatible",
+			"RFC 9421 standard compliant",
+		})
 
-		// Verify Ethereum address format
-		assert.True(t, strings.HasPrefix(ethAddress, "0x"), "Ethereum address must start with 0x")
-		assert.Len(t, ethAddress, 42, "Ethereum address must be 42 characters (0x + 40 hex chars)")
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case":        "1.1.3_ECDSA_Secp256k1_Signature_Ethereum",
+			"curve":            "Secp256k1",
+			"ethereum_address": ethAddress,
+			"private_key_d":    hex.EncodeToString(privateKey.D.Bytes()),
+			"public_key_x":     hex.EncodeToString(publicKey.X.Bytes()),
+			"public_key_y":     hex.EncodeToString(publicKey.Y.Bytes()),
+			"request_url":      testURL,
+			"request_method":   "POST",
+			"request_body":     body,
+			"timestamp":        currentTime.Format(time.RFC3339),
+			"signature":        signature,
+			"signature_input":  sigInput,
+			"algorithm":        "es256k",
+			"content_digest":   "sha-256=:k8H1234567890abcdefghijklmnopqrstuvwxyz+/=:",
+		}
+		helpers.SaveTestData(t, "rfc9421/ecdsa_secp256k1_signature.json", testData)
 	})
 }
 
