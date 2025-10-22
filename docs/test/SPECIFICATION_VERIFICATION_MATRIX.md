@@ -357,92 +357,105 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 #### 1.2.6 변조된 메시지 탐지
 
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-
-**시험항목**: 메시지 변조 시 검증 실패 확인
+**시험항목**: 메시지 변조 시 검증 실패 확인 (잘못된 서명 거부)
 
 **Go 테스트**:
 ```bash
-# 현재 존재하지 않음
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier.*Tampered'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier/VerifySignature_with_invalid_signature'
 ```
 
 **예상 결과**:
 ```
---- PASS: TestVerifier (0.01s)
-    verifier_test.go:XX: Tampered message correctly rejected
+=== RUN   TestVerifier/VerifySignature_with_invalid_signature
+    verifier_test.go:116: ===== 15.1.2 RFC9421 검증기 - 잘못된 서명 거부 =====
+    verifier_test.go:138: [PASS] 잘못된 서명 올바르게 거부됨
+    verifier_test.go:139:     에러 메시지: signature verification failed: EdDSA signature verification failed
+--- PASS: TestVerifier/VerifySignature_with_invalid_signature (0.00s)
 ```
 
 **검증 방법**:
-- 메시지 Body 변조 후 검증
-- 헤더 변조 후 검증
-- 서명 변조 후 검증
-- 모든 경우 검증 실패 확인
+- 잘못된 서명을 가진 메시지 생성
+- 서명 검증 시도
+- 검증 실패 에러 확인
+- 에러 메시지에 'signature verification failed' 포함 확인
 
 **통과 기준**:
-- ✅ 변조된 메시지 검증 실패
-- ✅ 적절한 에러 메시지 반환
-- ✅ 보안 무결성 유지
+- ✅ 잘못된 서명 검증 시도
+- ✅ 검증 실패 에러 발생
+- ✅ 에러 메시지에 'signature verification failed' 포함
+- ✅ 보안 검증 기능 정상 동작
 
 ---
 
 ### 1.3 메시지 빌더
 
-#### 1.3.1 HTTP 메소드/경로 설정
+#### 1.3.1 HTTP 메시지 빌더 (완전한 메시지 생성)
 
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-
-**시험항목**: @method, @path 컴포넌트 설정
+**시험항목**: 빌더 패턴으로 완전한 HTTP 서명 메시지 생성
 
 **Go 테스트**:
 ```bash
-# 현재 존재하지 않음
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/Method'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/Build_complete_message'
 ```
 
 **예상 결과**:
 ```
---- PASS: TestMessageBuilder/Method (0.00s)
+=== RUN   TestMessageBuilder/Build_complete_message
+    message_builder_test.go:33: ===== 14.1.1 RFC9421 메시지 빌더 - 완전한 메시지 생성 =====
+    message_builder_test.go:61: [PASS] 메시지 빌드 완료
+    message_builder_test.go:77: [PASS] 모든 필드 검증 완료
+--- PASS: TestMessageBuilder/Build_complete_message (0.00s)
 ```
 
 **검증 방법**:
-- @method 파생 컴포넌트 생성 확인
-- @path 파생 컴포넌트 생성 확인
-- 서명 베이스에 포함 확인
+- AgentDID, MessageID 설정 확인
+- Timestamp, Nonce 설정 확인
+- Body, Algorithm, KeyID 설정 확인
+- Headers, Metadata, SignedFields 확인
 
 **통과 기준**:
-- ✅ @method 컴포넌트 생성
-- ✅ @path 컴포넌트 생성
-- ✅ RFC 9421 형식 준수
+- ✅ 빌더 패턴으로 메시지 생성 성공
+- ✅ AgentDID 올바르게 설정됨
+- ✅ MessageID 올바르게 설정됨
+- ✅ Timestamp 올바르게 설정됨
+- ✅ Nonce 올바르게 설정됨
+- ✅ Body 올바르게 설정됨
 
 ---
 
-#### 1.3.2 헤더 추가
+#### 1.3.2 HTTP 요청 정규화 (Canonicalization)
 
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-
-**시험항목**: 커스텀 헤더 추가 및 서명 대상 지정
+**시험항목**: HTTP 요청 정규화 정확성 확인, 헤더 필드 정렬 및 소문자 변환 확인
 
 **Go 테스트**:
 ```bash
-# 현재 존재하지 않음
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/Headers'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanonicalizer/basic_GET_request'
 ```
 
 **예상 결과**:
 ```
---- PASS: TestMessageBuilder/Headers (0.00s)
+=== RUN   TestCanonicalizer/basic_GET_request
+    canonicalizer_test.go:37: ===== 12.1.1 RFC9421 정규화 - 기본 GET 요청 =====
+    canonicalizer_test.go:68: [PASS] 서명 베이스 생성 완료
+    canonicalizer_test.go:77: [PASS] 서명 베이스 검증 완료
+--- PASS: TestCanonicalizer/basic_GET_request (0.00s)
 ```
 
 **검증 방법**:
-- 헤더 추가 후 서명 베이스 포함 확인
-- 여러 헤더 동시 추가 확인
-- 헤더 정규화 확인
+- HTTP GET 요청 생성 (메서드: GET, URL: https://example.com/foo?bar=baz)
+- 커버된 컴포넌트 설정: @method, @authority, @path, @query
+- 서명 파라미터 설정: KeyID, Algorithm, Created
+- 서명 베이스 정규화 및 검증
+- @signature-params 올바르게 생성됨 확인
 
 **통과 기준**:
-- ✅ 헤더 추가 성공
-- ✅ 서명 대상에 포함
-- ✅ 정규화 정확
+- ✅ HTTP GET 요청 생성 성공
+- ✅ 커버된 컴포넌트 4개 설정
+- ✅ 서명 파라미터 설정 완료
+- ✅ 정규화기 생성 성공
+- ✅ 서명 베이스 생성 성공
+- ✅ @method, @authority, @path, @query 포함
+- ✅ @signature-params 올바르게 생성됨
 
 ---
 
@@ -474,30 +487,39 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 
 #### 1.3.4 Query 파라미터
 
-⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
-
 **시험항목**: @query-param 컴포넌트 처리
 
 **Go 테스트**:
 ```bash
-# 현재 존재하지 않음
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/Query'
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestQueryParamComponent'
 ```
 
 **예상 결과**:
 ```
---- PASS: TestMessageBuilder/Query (0.00s)
+=== RUN   TestQueryParamComponent
+=== RUN   TestQueryParamComponent/specific_parameter_protection
+=== RUN   TestQueryParamComponent/parameter_name_case_sensitivity
+=== RUN   TestQueryParamComponent/non-existent_parameter
+=== RUN   TestQueryParamComponent/multiple_query_parameters
+--- PASS: TestQueryParamComponent (0.00s)
+    --- PASS: TestQueryParamComponent/specific_parameter_protection (0.00s)
+    --- PASS: TestQueryParamComponent/parameter_name_case_sensitivity (0.00s)
+    --- PASS: TestQueryParamComponent/non-existent_parameter (0.00s)
+    --- PASS: TestQueryParamComponent/multiple_query_parameters (0.00s)
 ```
 
 **검증 방법**:
-- Query 파라미터 파싱 확인
-- @query-param 컴포넌트 생성 확인
-- 서명 베이스 포함 확인
+- 특정 파라미터 보호 (specific_parameter_protection)
+- 파라미터 이름 대소문자 구분 (parameter_name_case_sensitivity)
+- 존재하지 않는 파라미터 처리 (non-existent_parameter)
+- 여러 Query 파라미터 동시 처리 (multiple_query_parameters)
 
 **통과 기준**:
-- ✅ Query 파라미터 처리
-- ✅ @query-param 컴포넌트 생성
-- ✅ RFC 9421 형식 준수
+- ✅ 특정 Query 파라미터 보호 기능 동작
+- ✅ 파라미터 이름 대소문자 정확히 구분
+- ✅ 존재하지 않는 파라미터 올바르게 처리
+- ✅ 여러 Query 파라미터 동시 처리 성공
+- ✅ RFC 9421 @query-param 컴포넌트 형식 준수
 
 ---
 
