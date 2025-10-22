@@ -624,3 +624,6 @@ keys/
 # Security scanning reports
 gosec-report.json
 docs/Todo.md
+
+# Test output files - generated during test execution
+**/testdata/verification/
