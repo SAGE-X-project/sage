@@ -5,18 +5,18 @@
       "is_out_of_order": false,
       "is_replay": false,
       "is_valid": true,
-      "message_id": "d3e15d07-e3a8-4f15-899a-87528fe65960"
+      "message_id": "e902b9fd-d65e-4d75-a2fc-e00917c3e6ee"
     },
     "message": {
-      "nonce": "9b9a7ee0-d060-4494-b3c0-dd8a8da1892a",
+      "nonce": "79b54e8e-7483-49ff-98da-634c034d134e",
       "sequence": 1,
-      "timestamp": "2025-10-22T22:30:37.907923+09:00"
+      "timestamp": "2025-10-22T22:55:39.211123+09:00"
     },
     "second_validation": {
       "error": "replay attack detected",
       "is_replay": true,
       "is_valid": false,
-      "message_id": "b9082777-c914-4e5c-bc6e-6eb723d25667"
+      "message_id": "bb79431d-815c-4294-82ac-6c847823820f"
     },
     "session_id": "sess",
     "statistics": {
@@ -26,5 +26,5 @@
     "test_case": "8.3.1_Validator_Replay_Detection"
   },
   "test_name": "TestValidateMessage/ReplayDetection",
-  "timestamp": "2025-10-22T22:30:37+09:00"
+  "timestamp": "2025-10-22T22:55:39+09:00"
 }

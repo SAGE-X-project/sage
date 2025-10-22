@@ -1,0 +1,26 @@
+{
+  "data": {
+    "configuration": {
+      "timestamp_tolerance_ms": 10
+    },
+    "message": {
+      "age_seconds": 1.000212667,
+      "message_id": "3bd39d7b-5edd-43a5-9673-14f0f6948e93",
+      "nonce": "9085de73-7bbc-41b1-b3f9-ca052a517caf",
+      "sequence": 1,
+      "timestamp": "2025-10-22T22:55:38.210144+09:00"
+    },
+    "session_id": "sess",
+    "statistics": {
+      "tracked_nonces": 0,
+      "tracked_packets": 0
+    },
+    "test_case": "8.3.3_Validator_Timestamp_Tolerance",
+    "validation_result": {
+      "error": "timestamp outside tolerance window",
+      "is_valid": false
+    }
+  },
+  "test_name": "TestValidateMessage/TimestampOutsideTolerance",
+  "timestamp": "2025-10-22T22:55:39+09:00"
+}
