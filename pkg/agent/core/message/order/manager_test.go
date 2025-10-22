@@ -366,4 +366,161 @@ func TestOrderManager(t *testing.T) {
 		}
 		helpers.SaveTestData(t, "message/order/session_isolation.json", testData)
 	})
+
+	// Test 5.2.2: 순서 번호 검증
+	t.Run("ValidateSeq", func(t *testing.T) {
+		// Specification Requirement: Sequence number validation for message ordering
+		helpers.LogTestSection(t, "5.2.2", "Sequence Number Validation")
+
+		sessionID := "validate-session"
+		ts := time.Now()
+		helpers.LogDetail(t, "Session ID: %s", sessionID)
+		helpers.LogDetail(t, "Base timestamp: %s", ts.Format(time.RFC3339Nano))
+
+		// First message - valid
+		seq1 := uint64(1)
+		helpers.LogDetail(t, "Processing first message with seq=%d", seq1)
+		err1 := mgr.ProcessMessage(&mockHeader{seq: seq1, timestamp: ts}, sessionID)
+		require.NoError(t, err1)
+		helpers.LogSuccess(t, "Valid sequence accepted (seq=1)")
+
+		// Second message with valid sequence (increasing)
+		seq2 := uint64(2)
+		ts2 := ts.Add(time.Millisecond)
+		helpers.LogDetail(t, "Processing second message with seq=%d", seq2)
+		err2 := mgr.ProcessMessage(&mockHeader{seq: seq2, timestamp: ts2}, sessionID)
+		require.NoError(t, err2)
+		helpers.LogSuccess(t, "Valid sequence accepted (seq=2)")
+
+		// Invalid: same sequence (no increase)
+		seq3 := seq2 // same as previous
+		ts3 := ts2.Add(time.Millisecond)
+		helpers.LogDetail(t, "Attempting invalid sequence (same as previous): seq=%d", seq3)
+		err3 := mgr.ProcessMessage(&mockHeader{seq: seq3, timestamp: ts3}, sessionID)
+		require.Error(t, err3)
+		require.Contains(t, err3.Error(), "invalid sequence")
+		helpers.LogSuccess(t, "Invalid sequence rejected (same as previous)")
+		helpers.LogDetail(t, "Error: %s", err3.Error())
+
+		// Invalid: lower sequence (decreasing)
+		seq4 := uint64(1) // lower than current
+		ts4 := ts3.Add(time.Millisecond)
+		helpers.LogDetail(t, "Attempting invalid sequence (lower than current): seq=%d", seq4)
+		err4 := mgr.ProcessMessage(&mockHeader{seq: seq4, timestamp: ts4}, sessionID)
+		require.Error(t, err4)
+		require.Contains(t, err4.Error(), "invalid sequence")
+		helpers.LogSuccess(t, "Invalid sequence rejected (lower than current)")
+		helpers.LogDetail(t, "Error: %s", err4.Error())
+
+		// Valid: higher sequence (skip allowed)
+		seq5 := uint64(10) // jump forward
+		ts5 := ts4.Add(time.Millisecond)
+		helpers.LogDetail(t, "Processing message with higher sequence: seq=%d", seq5)
+		err5 := mgr.ProcessMessage(&mockHeader{seq: seq5, timestamp: ts5}, sessionID)
+		require.NoError(t, err5)
+		helpers.LogSuccess(t, "Valid sequence accepted (seq=10, forward jump)")
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"올바른 순서 수락",
+			"잘못된 순서 거부",
+			"검증 로직 정확",
+			"증가하는 순서 수락",
+			"동일 순서 거부",
+			"감소하는 순서 거부",
+			"순서 점프 허용",
+		})
+
+		// Save test data
+		testData := map[string]interface{}{
+			"test_case":   "5.2.2_Sequence_Validation",
+			"session_id":  sessionID,
+			"sequence_tests": []map[string]interface{}{
+				{"seq": seq1, "expected": "accept", "result": "accepted"},
+				{"seq": seq2, "expected": "accept", "result": "accepted"},
+				{"seq": seq3, "expected": "reject", "result": "rejected", "reason": "same_as_previous"},
+				{"seq": seq4, "expected": "reject", "result": "rejected", "reason": "lower_than_current"},
+				{"seq": seq5, "expected": "accept", "result": "accepted", "reason": "forward_jump"},
+			},
+		}
+		helpers.SaveTestData(t, "message/order/sequence_validation.json", testData)
+	})
+
+	// Test 5.2.3: 순서 불일치 탐지
+	t.Run("OutOfOrder", func(t *testing.T) {
+		// Specification Requirement: Out-of-order message detection and rejection
+		helpers.LogTestSection(t, "5.2.3", "Out-of-Order Message Detection")
+
+		sessionID := "ooo-session"
+		ts := time.Now()
+		helpers.LogDetail(t, "Session ID: %s", sessionID)
+		helpers.LogDetail(t, "Base timestamp: %s", ts.Format(time.RFC3339Nano))
+
+		// Establish baseline with first message
+		seq1 := uint64(5)
+		ts1 := ts
+		helpers.LogDetail(t, "Establishing baseline: seq=%d", seq1)
+		err1 := mgr.ProcessMessage(&mockHeader{seq: seq1, timestamp: ts1}, sessionID)
+		require.NoError(t, err1)
+		helpers.LogSuccess(t, "Baseline established (seq=5)")
+
+		// Normal progression
+		seq2 := uint64(6)
+		ts2 := ts.Add(time.Millisecond)
+		helpers.LogDetail(t, "Normal progression: seq=%d", seq2)
+		err2 := mgr.ProcessMessage(&mockHeader{seq: seq2, timestamp: ts2}, sessionID)
+		require.NoError(t, err2)
+		helpers.LogSuccess(t, "Normal progression accepted (seq=6)")
+
+		// Out-of-order: sequence skip backward
+		seq3 := uint64(4) // lower than current (6)
+		ts3 := ts2.Add(time.Millisecond)
+		helpers.LogDetail(t, "Out-of-order attempt: seq=%d (current is %d)", seq3, seq2)
+		err3 := mgr.ProcessMessage(&mockHeader{seq: seq3, timestamp: ts3}, sessionID)
+		require.Error(t, err3)
+		helpers.LogSuccess(t, "Out-of-order message detected and rejected")
+		helpers.LogDetail(t, "Error: %s", err3.Error())
+
+		// Out-of-order: timestamp goes backward
+		seq4 := uint64(7) // sequence OK
+		ts4 := ts1 // timestamp earlier than ts2
+		helpers.LogDetail(t, "Out-of-order timestamp: seq=%d but earlier timestamp", seq4)
+		err4 := mgr.ProcessMessage(&mockHeader{seq: seq4, timestamp: ts4}, sessionID)
+		require.Error(t, err4)
+		require.Contains(t, err4.Error(), "out-of-order")
+		helpers.LogSuccess(t, "Out-of-order timestamp detected and rejected")
+		helpers.LogDetail(t, "Error: %s", err4.Error())
+
+		// Correct order after rejection
+		seq5 := uint64(7)
+		ts5 := ts2.Add(2 * time.Millisecond)
+		helpers.LogDetail(t, "Correct order: seq=%d with later timestamp", seq5)
+		err5 := mgr.ProcessMessage(&mockHeader{seq: seq5, timestamp: ts5}, sessionID)
+		require.NoError(t, err5)
+		helpers.LogSuccess(t, "Correct order accepted after rejections")
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"순서 불일치 탐지",
+			"메시지 거부",
+			"보안 유지",
+			"시퀀스 역행 탐지",
+			"타임스탬프 역행 탐지",
+			"정상 순서 복구 가능",
+		})
+
+		// Save test data
+		testData := map[string]interface{}{
+			"test_case":   "5.2.3_Out_Of_Order_Detection",
+			"session_id":  sessionID,
+			"test_sequence": []map[string]interface{}{
+				{"seq": seq1, "timestamp_delta_ms": 0, "result": "accepted", "note": "baseline"},
+				{"seq": seq2, "timestamp_delta_ms": 1, "result": "accepted", "note": "normal_progression"},
+				{"seq": seq3, "timestamp_delta_ms": 2, "result": "rejected", "note": "sequence_backward"},
+				{"seq": seq4, "timestamp_delta_ms": -1, "result": "rejected", "note": "timestamp_backward"},
+				{"seq": seq5, "timestamp_delta_ms": 2, "result": "accepted", "note": "correct_order_restored"},
+			},
+		}
+		helpers.SaveTestData(t, "message/order/out_of_order_detection.json", testData)
+	})
 }

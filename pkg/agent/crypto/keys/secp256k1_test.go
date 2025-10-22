@@ -265,3 +265,105 @@ func TestSecp256k1KeyPair(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+// Test 10.2.6: Secp256k1 바이트 변환
+func TestSecp256k1KeyPairBytes(t *testing.T) {
+	// Specification Requirement: Compressed/uncompressed public key formats
+	helpers.LogTestSection(t, "10.2.6", "Secp256k1 Byte Array Conversion (Compressed/Uncompressed)")
+
+	// Generate Secp256k1 key pair
+	keyPair, err := GenerateSecp256k1KeyPair()
+	require.NoError(t, err)
+	helpers.LogSuccess(t, "Key pair generated")
+
+	// Get keys
+	privKey := keyPair.PrivateKey().(*ecdsa.PrivateKey)
+	pubKey := keyPair.PublicKey().(*ecdsa.PublicKey)
+
+	// Get uncompressed public key (65 bytes)
+	uncompressedPubKey := ethcrypto.FromECDSAPub(pubKey)
+	helpers.LogSuccess(t, "Uncompressed public key extracted")
+	helpers.LogDetail(t, "Uncompressed public key size: %d bytes", len(uncompressedPubKey))
+
+	// Verify uncompressed size
+	assert.Equal(t, 65, len(uncompressedPubKey), "Uncompressed public key should be 65 bytes")
+	helpers.LogSuccess(t, "Uncompressed public key size verified (65 bytes)")
+
+	// Get compressed public key (33 bytes)
+	compressedPubKey := ethcrypto.CompressPubkey(pubKey)
+	helpers.LogSuccess(t, "Compressed public key extracted")
+	helpers.LogDetail(t, "Compressed public key size: %d bytes", len(compressedPubKey))
+
+	// Verify compressed size
+	assert.Equal(t, 33, len(compressedPubKey), "Compressed public key should be 33 bytes")
+	helpers.LogSuccess(t, "Compressed public key size verified (33 bytes)")
+
+	// Get private key bytes
+	privKeyBytes := ethcrypto.FromECDSA(privKey)
+	helpers.LogSuccess(t, "Private key bytes extracted")
+	helpers.LogDetail(t, "Private key size: %d bytes", len(privKeyBytes))
+	assert.Equal(t, 32, len(privKeyBytes), "Private key should be 32 bytes")
+
+	// Decompress the compressed public key and verify it matches
+	decompressedPubKey, err := ethcrypto.DecompressPubkey(compressedPubKey)
+	require.NoError(t, err)
+	assert.Equal(t, pubKey.X, decompressedPubKey.X)
+	assert.Equal(t, pubKey.Y, decompressedPubKey.Y)
+	helpers.LogSuccess(t, "Decompressed public key matches original")
+
+	// Reconstruct private key from bytes
+	reconstructedPrivKey, err := ethcrypto.ToECDSA(privKeyBytes)
+	require.NoError(t, err)
+	assert.Equal(t, privKey.D, reconstructedPrivKey.D)
+	helpers.LogSuccess(t, "Private key reconstructed from bytes")
+
+	// Verify reconstructed key can sign
+	message := []byte("test message for byte conversion")
+	hash := ethcrypto.Keccak256Hash(message)
+	signature, err := ethcrypto.Sign(hash.Bytes(), reconstructedPrivKey)
+	require.NoError(t, err)
+	require.NotEmpty(t, signature)
+	helpers.LogSuccess(t, "Signature generated with reconstructed key")
+
+	// Verify signature with original public key
+	recoveredPubKey, err := ethcrypto.SigToPub(hash.Bytes(), signature)
+	require.NoError(t, err)
+	assert.Equal(t, pubKey.X, recoveredPubKey.X)
+	assert.Equal(t, pubKey.Y, recoveredPubKey.Y)
+	helpers.LogSuccess(t, "Signature verified with original public key")
+
+	// Test Ethereum address from compressed vs uncompressed
+	addrFromUncompressed := ethcrypto.PubkeyToAddress(*pubKey)
+	addrFromDecompressed := ethcrypto.PubkeyToAddress(*decompressedPubKey)
+	assert.Equal(t, addrFromUncompressed, addrFromDecompressed)
+	helpers.LogSuccess(t, "Ethereum address consistent across formats")
+	helpers.LogDetail(t, "Ethereum address: %s", addrFromUncompressed.Hex())
+
+	// Pass criteria checklist
+	helpers.LogPassCriteria(t, []string{
+		"압축 공개키 = 33 bytes",
+		"비압축 공개키 = 65 bytes",
+		"비밀키 = 32 bytes",
+		"압축 해제 성공",
+		"바이트에서 키 재구성",
+		"재구성된 키로 서명",
+		"Ethereum 주소 일관성",
+	})
+
+	// Save test data
+	testData := map[string]interface{}{
+		"test_case":               "10.2.6_Secp256k1_Byte_Conversion",
+		"key_id":                  keyPair.ID(),
+		"compressed_pub_key_hex":  hex.EncodeToString(compressedPubKey),
+		"uncompressed_pub_key_hex": hex.EncodeToString(uncompressedPubKey),
+		"private_key_hex":         hex.EncodeToString(privKeyBytes),
+		"sizes": map[string]int{
+			"compressed_public":   len(compressedPubKey),
+			"uncompressed_public": len(uncompressedPubKey),
+			"private":             len(privKeyBytes),
+		},
+		"ethereum_address": addrFromUncompressed.Hex(),
+		"signature_hex":    hex.EncodeToString(signature),
+	}
+	helpers.SaveTestData(t, "keys/secp256k1_byte_conversion.json", testData)
+}

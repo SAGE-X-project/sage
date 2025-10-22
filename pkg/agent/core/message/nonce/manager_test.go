@@ -237,4 +237,126 @@ func TestNonceManager(t *testing.T) {
 		}
 		helpers.SaveTestData(t, "nonce/nonce_cleanup_loop.json", testData)
 	})
+
+	// Test 1.2.2: Nonce 중복 검사 (Replay Attack Prevention)
+	t.Run("CheckReplay", func(t *testing.T) {
+		// Specification Requirement: Duplicate nonce detection for replay attack prevention
+		helpers.LogTestSection(t, "1.2.2", "Nonce Duplicate Detection (CheckReplay)")
+
+		m := NewManager(time.Second, time.Second)
+		n, err := GenerateNonce()
+		require.NoError(t, err)
+		require.NotEmpty(t, n)
+
+		helpers.LogDetail(t, "Generated nonce: %s", n)
+
+		// First use: should be accepted
+		isUsedBefore := m.IsNonceUsed(n)
+		require.False(t, isUsedBefore, "nonce should not be used initially")
+		helpers.LogSuccess(t, "First use: nonce not marked as used")
+		helpers.LogDetail(t, "Is used before marking: %v", isUsedBefore)
+
+		// Mark nonce as used
+		m.MarkNonceUsed(n)
+		helpers.LogSuccess(t, "Nonce marked as used")
+
+		// Second use: should be detected as duplicate (replay attack)
+		isUsedAfter := m.IsNonceUsed(n)
+		require.True(t, isUsedAfter, "duplicate nonce should be detected")
+		helpers.LogSuccess(t, "Duplicate nonce detected successfully")
+		helpers.LogDetail(t, "Is used after marking: %v", isUsedAfter)
+
+		// Verify replay attack is prevented
+		replayDetected := m.IsNonceUsed(n)
+		assert.True(t, replayDetected, "replay attack should be detected")
+		helpers.LogSuccess(t, "Replay attack prevention working")
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"중복 Nonce 탐지",
+			"재사용 거부",
+			"Replay 방어",
+			"첫 사용 정상 처리",
+			"두 번째 사용 탐지",
+			"보안 메커니즘 동작",
+		})
+
+		// Save test data
+		testData := map[string]interface{}{
+			"test_case":         "1.2.2_Nonce_CheckReplay",
+			"nonce":             n,
+			"is_used_before":    isUsedBefore,
+			"is_used_after":     isUsedAfter,
+			"replay_detected":   replayDetected,
+			"replay_prevented":  replayDetected,
+		}
+		helpers.SaveTestData(t, "nonce/nonce_check_replay.json", testData)
+	})
+
+	// Test 10.1.10: Nonce 만료
+	t.Run("Expiration", func(t *testing.T) {
+		// Specification Requirement: TTL-based nonce expiration for memory management
+		helpers.LogTestSection(t, "10.1.10", "Nonce Expiration (TTL-based)")
+
+		shortTTL := 50 * time.Millisecond
+		m := NewManager(shortTTL, time.Hour) // long cleanup interval to test manual expiration
+		n, err := GenerateNonce()
+		require.NoError(t, err)
+
+		helpers.LogDetail(t, "Generated nonce: %s", n)
+		helpers.LogDetail(t, "TTL: %v", shortTTL)
+
+		// Mark nonce as used
+		m.MarkNonceUsed(n)
+		initialCount := m.GetUsedNonceCount()
+		require.Equal(t, 1, initialCount)
+		helpers.LogSuccess(t, "Nonce marked as used")
+		helpers.LogDetail(t, "Initial count: %d", initialCount)
+
+		// Verify nonce is tracked
+		isUsedBeforeExpiry := m.IsNonceUsed(n)
+		require.True(t, isUsedBeforeExpiry, "nonce should be tracked before expiry")
+		helpers.LogSuccess(t, "Nonce tracked before expiry")
+
+		// Wait for TTL to expire
+		sleepDuration := shortTTL + 20*time.Millisecond
+		helpers.LogDetail(t, "Waiting %v for nonce to expire", sleepDuration)
+		time.Sleep(sleepDuration)
+
+		// Check if nonce is expired
+		isUsedAfterExpiry := m.IsNonceUsed(n)
+		require.False(t, isUsedAfterExpiry, "expired nonce should not be considered used")
+		helpers.LogSuccess(t, "Expired nonce correctly identified as unused")
+		helpers.LogDetail(t, "Is used after expiry: %v", isUsedAfterExpiry)
+
+		// Verify nonce is removed from tracking
+		finalCount := m.GetUsedNonceCount()
+		require.Equal(t, 0, finalCount, "expired nonce should be removed")
+		helpers.LogSuccess(t, "Expired nonce removed from tracking")
+		helpers.LogDetail(t, "Final count: %d", finalCount)
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"TTL 기반 만료",
+			"만료된 Nonce 정리",
+			"메모리 효율성",
+			"만료 시간 정확성",
+			"자동 제거 동작",
+			"재사용 가능 (만료 후)",
+		})
+
+		// Save test data
+		testData := map[string]interface{}{
+			"test_case":            "10.1.10_Nonce_Expiration",
+			"nonce":                n,
+			"ttl_ms":               shortTTL.Milliseconds(),
+			"sleep_duration_ms":    sleepDuration.Milliseconds(),
+			"initial_count":        initialCount,
+			"final_count":          finalCount,
+			"is_used_before_expiry": isUsedBeforeExpiry,
+			"is_used_after_expiry":  isUsedAfterExpiry,
+			"expired":              true,
+		}
+		helpers.SaveTestData(t, "nonce/nonce_expiration.json", testData)
+	})
 }
