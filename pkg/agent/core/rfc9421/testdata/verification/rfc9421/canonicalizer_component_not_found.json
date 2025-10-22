@@ -1,0 +1,17 @@
+{
+  "data": {
+    "request": {
+      "method": "GET",
+      "url": "https://example.com"
+    },
+    "requested_component": "content-digest",
+    "result": {
+      "error": true,
+      "error_message": "component not found: header content-digest"
+    },
+    "test_case": "12.1.3_RFC9421_정규화_컴포넌트_누락",
+    "validation": "에러_처리_검증_통과"
+  },
+  "test_name": "TestCanonicalizer/component_not_found",
+  "timestamp": "2025-10-22T23:07:55+09:00"
+}

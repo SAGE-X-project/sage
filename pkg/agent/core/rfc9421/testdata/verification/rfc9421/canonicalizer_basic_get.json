@@ -1,0 +1,24 @@
+{
+  "data": {
+    "request": {
+      "method": "GET",
+      "url": "https://example.com/foo?bar=baz"
+    },
+    "signature_base": "\"@method\": GET\n\"@authority\": example.com\n\"@path\": /foo\n\"@query\": ?bar=baz\n\"@signature-params\": (\"@method\" \"@authority\" \"@path\" \"@query\");keyid=\"test-key\";alg=\"ed25519\";created=1719234000",
+    "signature_params": {
+      "algorithm": "ed25519",
+      "covered_components": [
+        "\"@method\"",
+        "\"@authority\"",
+        "\"@path\"",
+        "\"@query\""
+      ],
+      "created": 1719234000,
+      "key_id": "test-key"
+    },
+    "test_case": "12.1.1_RFC9421_정규화_기본_GET",
+    "validation": "통과"
+  },
+  "test_name": "TestCanonicalizer/basic_GET_request",
+  "timestamp": "2025-10-22T23:07:55+09:00"
+}

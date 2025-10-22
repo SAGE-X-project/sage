@@ -3,18 +3,18 @@
     "algorithm": "es256k",
     "content_digest": "sha-256=:k8H1234567890abcdefghijklmnopqrstuvwxyz+/=:",
     "curve": "Secp256k1",
-    "ethereum_address": "0x73200305763aC26E118aB68F8AA64557b9cE9Cc9",
-    "private_key_d": "96cd8e52a06b86002c682b8f398307e9db93defc2fa78c64172a6ff6828d8987",
-    "public_key_x": "af6cfa4823afd79a4106ec080f22fc1995b5ce0056881e69aa23ffcdc558cca5",
-    "public_key_y": "7ac1df176c87b26d50fefa29a4eb51a2a46777d41473281637e7915bf6941fee",
+    "ethereum_address": "0xc05cb2959C76C3aE2Fc556AA48e3f2E2F7AD256B",
+    "private_key_d": "c74812f3a5fecce34fed1920a529ef345682b50d0cced533fe1f34f79753c807",
+    "public_key_x": "507403ad9fa021a57c86847e47e0d5a331175e4673713b2d89ed785d0df770f1",
+    "public_key_y": "29c9e0bd5bde2ce1fee9023f4e07bd5e19a2fdada7acc593a1f8f7ddad67e985",
     "request_body": "{\"action\":\"transfer\",\"amount\":100,\"to\":\"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb\"}",
     "request_method": "POST",
     "request_url": "https://ethereum.sage.dev/transaction",
-    "signature": "sig1=:T6+p8rojlr/FkUBLc3TSn1+SJBPYdeLeUOGRyBeYuvb4ygtYYp+UdlutI7U3qtX8PdkFEZuRDRHvcNQOYq44fw==:",
-    "signature_input": "sig1=(\"@method\" \"@path\" \"date\" \"content-digest\" \"x-ethereum-address\");keyid=\"ethereum-key-secp256k1\";alg=\"es256k\";created=1761138764",
+    "signature": "sig1=:ra6r5814qCgRIoqKMmJBH/yygZxktakxag6rjUzYiWPBaZbyRiy2lLw31++WWF4pjEqTrWJ6ODNxiG8BP37tLQ==:",
+    "signature_input": "sig1=(\"@method\" \"@path\" \"date\" \"content-digest\" \"x-ethereum-address\");keyid=\"ethereum-key-secp256k1\";alg=\"es256k\";created=1761141068",
     "test_case": "1.1.3_ECDSA_Secp256k1_Signature_Ethereum",
-    "timestamp": "2025-10-22T22:12:44+09:00"
+    "timestamp": "2025-10-22T22:51:08+09:00"
   },
   "test_name": "TestIntegration/ECDSA_Secp256k1_end-to-end",
-  "timestamp": "2025-10-22T22:12:44+09:00"
+  "timestamp": "2025-10-22T22:51:08+09:00"
 }

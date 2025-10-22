@@ -1,0 +1,15 @@
+{
+  "data": {
+    "request": {
+      "body": "{\"hello\": \"world\"}",
+      "content_digest": "sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:",
+      "date": "Mon, 24 Jun 2024 12:00:00 GMT",
+      "method": "POST",
+      "url": "https://example.com/data"
+    },
+    "test_case": "12.1.2_RFC9421_정규화_POST_Content_Digest",
+    "validation": "통과"
+  },
+  "test_name": "TestCanonicalizer/POST_request_with_Content-Digest",
+  "timestamp": "2025-10-22T23:07:55+09:00"
+}
