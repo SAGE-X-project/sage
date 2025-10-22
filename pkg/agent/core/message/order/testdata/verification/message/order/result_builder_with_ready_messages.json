@@ -1,0 +1,22 @@
+{
+  "data": {
+    "messages": [
+      {
+        "nonce": "a",
+        "sequence": 1,
+        "timestamp": "2025-10-22T23:05:01.370778+09:00"
+      },
+      {
+        "nonce": "b",
+        "sequence": 2,
+        "timestamp": "2025-10-22T23:05:02.370778+09:00"
+      }
+    ],
+    "result": {
+      "ready_messages_count": 2
+    },
+    "test_case": "8.1.10_결과_빌더_준비된_메시지"
+  },
+  "test_name": "TestResultBuilder/WithReadyMessages",
+  "timestamp": "2025-10-22T23:05:01+09:00"
+}

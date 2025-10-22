@@ -1,0 +1,14 @@
+{
+  "data": {
+    "result": {
+      "is_waiting": true
+    },
+    "setting": {
+      "method": "WithWaiting",
+      "value": true
+    },
+    "test_case": "8.1.9_결과_빌더_대기_상태"
+  },
+  "test_name": "TestResultBuilder/WithWaiting",
+  "timestamp": "2025-10-22T23:05:01+09:00"
+}
