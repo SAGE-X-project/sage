@@ -2,17 +2,17 @@
   "data": {
     "content_digest": "sha-256=:RBsLjMq4VvLtwL6W0heDElJPTe2WbHL7gWRYYhHbAw0=:",
     "curve": "P-256",
-    "private_key_d": "100782a16412f54d39e949c0fd23e1bb1b9a81a77f00ebbafbc7553615a67c46",
-    "public_key_x": "93db5044f7ebd739718caa641ad5cdd2a80b4eb7334d02fc9af2b805b0c08bdb",
-    "public_key_y": "5edad23bf821a8f20da493d6ec39619219c53371053c2736c73ea4b5736394bb",
+    "private_key_d": "d0d79d6b72348f06c6f25b88fc655d96fc524e3120948c375792874f4e35415b",
+    "public_key_x": "6d9db8f78b8af3f651cac370b0f1e4acf8c50cfd5fa75b123fcc871b34abe647",
+    "public_key_y": "9e55ffad19b7dac351d4e3c49e40c494f4c4dd25fdb2d9a1327914747e610dc1",
     "request_body": "{\"a\":1}",
     "request_method": "POST",
     "request_url": "https://sage.dev/data",
-    "signature": "sig1=:pMjT8qkZGDgzW+9Pu/SxlvrPf/ftmDv7hcl2HStBg3QEIc/SA77r1t7WnHHSVdvx/KErb+MHROlBZPiJleCVnw==:",
-    "signature_input": "sig1=(\"date\" \"content-digest\");keyid=\"test-key-ecdsa\";created=1761137214",
+    "signature": "sig1=:MfLwMm1G5doltOmi0N8FKKFM7JuXARBFIsWO3qA5hiNF647DbTPVdBk4v0w539qb5M1QKlGF5RTTDH3hulMDXw==:",
+    "signature_input": "sig1=(\"date\" \"content-digest\");keyid=\"test-key-ecdsa\";created=1761138753",
     "test_case": "1.1.2_ECDSA_P256_Signature",
-    "timestamp": "2025-10-22T21:46:54+09:00"
+    "timestamp": "2025-10-22T22:12:33+09:00"
   },
   "test_name": "TestIntegration/ECDSA_P-256_end-to-end",
-  "timestamp": "2025-10-22T21:46:54+09:00"
+  "timestamp": "2025-10-22T22:12:33+09:00"
 }
