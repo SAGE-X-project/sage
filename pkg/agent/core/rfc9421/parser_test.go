@@ -22,6 +22,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,41 +30,129 @@ import (
 func TestParseSignatureInput(t *testing.T) {
 	// Test 1.1.1: Basic parsing
 	t.Run("basic parsing", func(t *testing.T) {
-		input := `sig1=("@method" "host");keyid="did:key:z6Mk...";alg="ed25519";created=1719234000`
+		// 명세 요구사항: RFC9421 서명 입력 기본 파싱
+		helpers.LogTestSection(t, "13.1.1", "RFC9421 파서 - 기본 서명 입력 파싱")
 
+		input := `sig1=("@method" "host");keyid="did:key:z6Mk...";alg="ed25519";created=1719234000`
+		helpers.LogDetail(t, "서명 입력 문자열:")
+		helpers.LogDetail(t, "  %s", input)
+
+		helpers.LogDetail(t, "서명 입력 파싱 중...")
 		result, err := ParseSignatureInput(input)
 		require.NoError(t, err)
 		require.NotNil(t, result)
+		helpers.LogSuccess(t, "서명 입력 파싱 완료")
 
 		sig1, exists := result["sig1"]
 		require.True(t, exists)
+		helpers.LogSuccess(t, "sig1 서명 발견")
 
 		assert.Equal(t, []string{`"@method"`, `"host"`}, sig1.CoveredComponents)
 		assert.Equal(t, "did:key:z6Mk...", sig1.KeyID)
 		assert.Equal(t, "ed25519", sig1.Algorithm)
 		assert.Equal(t, int64(1719234000), sig1.Created)
+
+		helpers.LogSuccess(t, "서명 파라미터 검증 완료")
+		helpers.LogDetail(t, "파싱된 sig1 파라미터:")
+		helpers.LogDetail(t, "  커버된 컴포넌트: %v", sig1.CoveredComponents)
+		helpers.LogDetail(t, "  KeyID: %s", sig1.KeyID)
+		helpers.LogDetail(t, "  Algorithm: %s", sig1.Algorithm)
+		helpers.LogDetail(t, "  Created: %d", sig1.Created)
+
+		// 통과 기준 체크리스트
+		helpers.LogPassCriteria(t, []string{
+			"서명 입력 문자열 파싱 성공",
+			"sig1 서명 존재 확인",
+			"커버된 컴포넌트 2개 검증",
+			"KeyID DID 형식 검증",
+			"Algorithm ed25519 검증",
+			"Created 타임스탬프 검증",
+		})
+
+		// CLI 검증용 테스트 데이터 저장
+		testData := map[string]interface{}{
+			"test_case":     "13.1.1_RFC9421_파서_기본_파싱",
+			"signature_input": input,
+			"parsed_signature": map[string]interface{}{
+				"name":               "sig1",
+				"covered_components": sig1.CoveredComponents,
+				"key_id":             sig1.KeyID,
+				"algorithm":          sig1.Algorithm,
+				"created":            sig1.Created,
+			},
+			"validation": "통과",
+		}
+		helpers.SaveTestData(t, "rfc9421/parser_basic.json", testData)
 	})
 
 	// Test 1.1.2: Multiple signatures and parameters
 	t.Run("multiple signatures with parameters", func(t *testing.T) {
-		input := `sig-a=("@method");expires=1719237600, sig-b=("host" "date");keyid="test-key-2";nonce="abcdef"`
+		// 명세 요구사항: 다중 서명 및 파라미터 파싱
+		helpers.LogTestSection(t, "13.1.2", "RFC9421 파서 - 다중 서명 파싱")
 
+		input := `sig-a=("@method");expires=1719237600, sig-b=("host" "date");keyid="test-key-2";nonce="abcdef"`
+		helpers.LogDetail(t, "다중 서명 입력 문자열:")
+		helpers.LogDetail(t, "  %s", input)
+
+		helpers.LogDetail(t, "다중 서명 파싱 중...")
 		result, err := ParseSignatureInput(input)
 		require.NoError(t, err)
 		require.NotNil(t, result)
+		helpers.LogSuccess(t, "다중 서명 파싱 완료")
+		helpers.LogDetail(t, "파싱된 서명 개수: %d", len(result))
 
 		// Check sig-a
+		helpers.LogDetail(t, "sig-a 서명 검증 중...")
 		sigA, exists := result["sig-a"]
 		require.True(t, exists)
 		assert.Equal(t, []string{`"@method"`}, sigA.CoveredComponents)
 		assert.Equal(t, int64(1719237600), sigA.Expires)
+		helpers.LogSuccess(t, "sig-a 검증 완료")
+		helpers.LogDetail(t, "  커버된 컴포넌트: %v", sigA.CoveredComponents)
+		helpers.LogDetail(t, "  Expires: %d", sigA.Expires)
 
 		// Check sig-b
+		helpers.LogDetail(t, "sig-b 서명 검증 중...")
 		sigB, exists := result["sig-b"]
 		require.True(t, exists)
 		assert.Equal(t, []string{`"host"`, `"date"`}, sigB.CoveredComponents)
 		assert.Equal(t, "test-key-2", sigB.KeyID)
 		assert.Equal(t, "abcdef", sigB.Nonce)
+		helpers.LogSuccess(t, "sig-b 검증 완료")
+		helpers.LogDetail(t, "  커버된 컴포넌트: %v", sigB.CoveredComponents)
+		helpers.LogDetail(t, "  KeyID: %s", sigB.KeyID)
+		helpers.LogDetail(t, "  Nonce: %s", sigB.Nonce)
+
+		// 통과 기준 체크리스트
+		helpers.LogPassCriteria(t, []string{
+			"다중 서명 입력 파싱 성공",
+			"sig-a 서명 존재 및 검증",
+			"sig-a expires 파라미터 검증",
+			"sig-b 서명 존재 및 검증",
+			"sig-b keyid 파라미터 검증",
+			"sig-b nonce 파라미터 검증",
+			"다중 서명 처리 정상 동작",
+		})
+
+		// CLI 검증용 테스트 데이터 저장
+		testData := map[string]interface{}{
+			"test_case":     "13.1.2_RFC9421_파서_다중_서명",
+			"signature_input": input,
+			"parsed_signatures": map[string]interface{}{
+				"sig-a": map[string]interface{}{
+					"covered_components": sigA.CoveredComponents,
+					"expires":            sigA.Expires,
+				},
+				"sig-b": map[string]interface{}{
+					"covered_components": sigB.CoveredComponents,
+					"key_id":             sigB.KeyID,
+					"nonce":              sigB.Nonce,
+				},
+			},
+			"signature_count": len(result),
+			"validation":      "통과",
+		}
+		helpers.SaveTestData(t, "rfc9421/parser_multiple.json", testData)
 	})
 
 	// Test 1.1.3: Whitespace and case variations
@@ -84,17 +173,57 @@ func TestParseSignatureInput(t *testing.T) {
 
 	// Test 1.3.1: Malformed input
 	t.Run("malformed input", func(t *testing.T) {
-		inputs := []string{
-			`sig1=("@method"`,           // Missing closing parenthesis
-			`sig1="key=val"`,            // Not RFC 8941 format
-			`sig1=(method)`,             // Missing quotes
-			`sig1=("@method";keyid="x"`, // Malformed parameters
+		// 명세 요구사항: 잘못된 형식의 입력에 대한 에러 처리
+		helpers.LogTestSection(t, "13.1.3", "RFC9421 파서 - 잘못된 입력 처리")
+
+		inputs := []struct {
+			value       string
+			description string
+		}{
+			{`sig1=("@method"`, "닫는 괄호 누락"},
+			{`sig1="key=val"`, "RFC 8941 형식 아님"},
+			{`sig1=(method)`, "따옴표 누락"},
+			{`sig1=("@method";keyid="x"`, "잘못된 파라미터 형식"},
 		}
 
-		for _, input := range inputs {
-			_, err := ParseSignatureInput(input)
-			assert.Error(t, err, "Input should fail: %s", input)
+		helpers.LogDetail(t, "잘못된 입력 %d개 테스트", len(inputs))
+
+		errorCount := 0
+		for i, input := range inputs {
+			helpers.LogDetail(t, "테스트 케이스 %d: %s", i+1, input.description)
+			helpers.LogDetail(t, "  입력: %s", input.value)
+
+			_, err := ParseSignatureInput(input.value)
+			assert.Error(t, err, "입력이 실패해야 함: %s", input.value)
+
+			if err != nil {
+				errorCount++
+				helpers.LogSuccess(t, "예상대로 에러 발생")
+				helpers.LogDetail(t, "  에러: %s", err.Error())
+			}
 		}
+
+		helpers.LogSuccess(t, "모든 잘못된 입력에 대해 에러 처리 완료")
+		helpers.LogDetail(t, "총 에러 발생 개수: %d/%d", errorCount, len(inputs))
+
+		// 통과 기준 체크리스트
+		helpers.LogPassCriteria(t, []string{
+			"닫는 괄호 누락 감지",
+			"RFC 8941 형식 위반 감지",
+			"따옴표 누락 감지",
+			"잘못된 파라미터 형식 감지",
+			"모든 잘못된 입력에 대해 에러 발생",
+			"에러 처리가 올바르게 동작",
+		})
+
+		// CLI 검증용 테스트 데이터 저장
+		testData := map[string]interface{}{
+			"test_case":     "13.1.3_RFC9421_파서_잘못된_입력",
+			"test_cases":    len(inputs),
+			"errors_caught": errorCount,
+			"validation":    "에러_처리_검증_통과",
+		}
+		helpers.SaveTestData(t, "rfc9421/parser_malformed.json", testData)
 	})
 }
 

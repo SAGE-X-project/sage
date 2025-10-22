@@ -1,0 +1,26 @@
+{
+  "data": {
+    "parsed_signatures": {
+      "sig-a": {
+        "covered_components": [
+          "\"@method\""
+        ],
+        "expires": 1719237600
+      },
+      "sig-b": {
+        "covered_components": [
+          "\"host\"",
+          "\"date\""
+        ],
+        "key_id": "test-key-2",
+        "nonce": "abcdef"
+      }
+    },
+    "signature_count": 2,
+    "signature_input": "sig-a=(\"@method\");expires=1719237600, sig-b=(\"host\" \"date\");keyid=\"test-key-2\";nonce=\"abcdef\"",
+    "test_case": "13.1.2_RFC9421_파서_다중_서명",
+    "validation": "통과"
+  },
+  "test_name": "TestParseSignatureInput/multiple_signatures_with_parameters",
+  "timestamp": "2025-10-22T23:13:45+09:00"
+}
