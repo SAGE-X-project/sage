@@ -1,0 +1,16 @@
+{
+  "data": {
+    "session_id": "session1",
+    "test_case": "8.1.3_Empty_Timestamp_Rejection",
+    "timestamp": {
+      "is_zero": true,
+      "value": "0001-01-01T00:00:00Z"
+    },
+    "validation": {
+      "accepted": false,
+      "error": "empty timestamp"
+    }
+  },
+  "test_name": "TestOrderManager/EmptyTimestamp",
+  "timestamp": "2025-10-22T23:01:59+09:00"
+}

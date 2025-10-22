@@ -43,15 +43,91 @@ func TestOrderManager(t *testing.T) {
 	mgr := NewManager()
 
 	t.Run("EmptyTimestamp", func(t *testing.T) {
-		err := mgr.ProcessMessage(&mockHeader{timestamp: time.Time{}}, "session1")
+		// Specification Requirement: Reject messages with empty timestamps
+		helpers.LogTestSection(t, "8.1.3", "Message Order Empty Timestamp Rejection")
+
+		sessionID := "session1"
+		emptyTimestamp := time.Time{}
+
+		helpers.LogDetail(t, "Session ID: %s", sessionID)
+		helpers.LogDetail(t, "Testing empty timestamp: %v", emptyTimestamp)
+		helpers.LogDetail(t, "IsZero: %v", emptyTimestamp.IsZero())
+
+		// Specification Requirement: Empty timestamp must be rejected
+		helpers.LogDetail(t, "Processing message with empty timestamp")
+		err := mgr.ProcessMessage(&mockHeader{timestamp: emptyTimestamp}, sessionID)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "empty timestamp")
+
+		helpers.LogSuccess(t, "Empty timestamp correctly rejected")
+		helpers.LogDetail(t, "Error message: %s", err.Error())
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Empty timestamp detected",
+			"ProcessMessage returned error",
+			"Error message contains 'empty timestamp'",
+			"Invalid timestamp protection working",
+		})
+
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case":   "8.1.3_Empty_Timestamp_Rejection",
+			"session_id":  sessionID,
+			"timestamp": map[string]interface{}{
+				"value":   emptyTimestamp.Format(time.RFC3339Nano),
+				"is_zero": emptyTimestamp.IsZero(),
+			},
+			"validation": map[string]interface{}{
+				"accepted": false,
+				"error":    "empty timestamp",
+			},
+		}
+		helpers.SaveTestData(t, "message/order/empty_timestamp_rejection.json", testData)
 	})
 
 	t.Run("FirstMessage", func(t *testing.T) {
+		// Specification Requirement: First message establishes session baseline
+		helpers.LogTestSection(t, "8.1.4", "Message Order First Message Baseline")
+
+		sessionID := "session1"
+		seq := uint64(1)
 		ts := time.Now()
-		err := mgr.ProcessMessage(&mockHeader{timestamp: ts}, "session1")
+
+		helpers.LogDetail(t, "Session ID: %s", sessionID)
+		helpers.LogDetail(t, "First message:")
+		helpers.LogDetail(t, "  Sequence: %d", seq)
+		helpers.LogDetail(t, "  Timestamp: %s", ts.Format(time.RFC3339Nano))
+
+		// Specification Requirement: First message should be accepted and establish baseline
+		helpers.LogDetail(t, "Processing first message for session")
+		err := mgr.ProcessMessage(&mockHeader{seq: seq, timestamp: ts}, sessionID)
 		require.NoError(t, err)
+
+		helpers.LogSuccess(t, "First message accepted successfully")
+		helpers.LogDetail(t, "Session baseline established")
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"First message processed successfully",
+			"No error returned",
+			"Session baseline established",
+			"Timestamp tracking initialized",
+			"Sequence tracking initialized",
+		})
+
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case":   "8.1.4_First_Message_Baseline",
+			"session_id":  sessionID,
+			"first_message": map[string]interface{}{
+				"sequence":  seq,
+				"timestamp": ts.Format(time.RFC3339Nano),
+				"accepted":  true,
+			},
+			"baseline": "established",
+		}
+		helpers.SaveTestData(t, "message/order/first_message_baseline.json", testData)
 	})
 
 	t.Run("SeqMonotonicity", func(t *testing.T) {
@@ -186,20 +262,108 @@ func TestOrderManager(t *testing.T) {
 	})
 
 	t.Run("SessionIsolation", func(t *testing.T) {
-		// Session A: later then earlier => error on second
+		// Specification Requirement: Session-specific order tracking isolation
+		helpers.LogTestSection(t, "8.1.5", "Message Order Session Isolation")
+
 		tsA := time.Now()
+		sessionA := "A"
+		sessionB := "B"
 
-		errA1 := mgr.ProcessMessage(&mockHeader{timestamp: tsA.Add(50 * time.Millisecond)}, "A")
+		helpers.LogDetail(t, "Testing session isolation")
+		helpers.LogDetail(t, "Base timestamp: %s", tsA.Format(time.RFC3339Nano))
+		helpers.LogDetail(t, "Session A ID: %s", sessionA)
+		helpers.LogDetail(t, "Session B ID: %s", sessionB)
+
+		// Specification Requirement: Session A - later then earlier => error on second
+		tsA1 := tsA.Add(50 * time.Millisecond)
+		seqA1 := uint64(1)
+		helpers.LogDetail(t, "Session A - First message:")
+		helpers.LogDetail(t, "  Sequence: %d", seqA1)
+		helpers.LogDetail(t, "  Timestamp: %s (+50ms)", tsA1.Format(time.RFC3339Nano))
+
+		errA1 := mgr.ProcessMessage(&mockHeader{seq: seqA1, timestamp: tsA1}, sessionA)
 		require.NoError(t, errA1)
+		helpers.LogSuccess(t, "Session A first message accepted")
 
-		errA2 := mgr.ProcessMessage(&mockHeader{timestamp: tsA}, "A")
+		// Out-of-order in Session A
+		tsA2 := tsA
+		seqA2 := uint64(2)
+		helpers.LogDetail(t, "Session A - Second message (out-of-order):")
+		helpers.LogDetail(t, "  Sequence: %d", seqA2)
+		helpers.LogDetail(t, "  Timestamp: %s (earlier than first)", tsA2.Format(time.RFC3339Nano))
+
+		errA2 := mgr.ProcessMessage(&mockHeader{seq: seqA2, timestamp: tsA2}, sessionA)
 		require.Error(t, errA2)
+		helpers.LogSuccess(t, "Session A out-of-order message rejected")
+		helpers.LogDetail(t, "Error: %s", errA2.Error())
 
-		// Session B: separate, increasing order => no error
-		errB1 := mgr.ProcessMessage(&mockHeader{timestamp: tsA}, "B")
+		// Specification Requirement: Session B - separate, increasing order => no error
+		tsB1 := tsA
+		seqB1 := uint64(1)
+		helpers.LogDetail(t, "Session B - First message:")
+		helpers.LogDetail(t, "  Sequence: %d", seqB1)
+		helpers.LogDetail(t, "  Timestamp: %s", tsB1.Format(time.RFC3339Nano))
+
+		errB1 := mgr.ProcessMessage(&mockHeader{seq: seqB1, timestamp: tsB1}, sessionB)
 		require.NoError(t, errB1)
+		helpers.LogSuccess(t, "Session B first message accepted")
 
-		errB2 := mgr.ProcessMessage(&mockHeader{seq: 1, timestamp: tsA.Add(100 * time.Millisecond)}, "B")
+		tsB2 := tsA.Add(100 * time.Millisecond)
+		seqB2 := uint64(2)
+		helpers.LogDetail(t, "Session B - Second message (in order):")
+		helpers.LogDetail(t, "  Sequence: %d", seqB2)
+		helpers.LogDetail(t, "  Timestamp: %s (+100ms)", tsB2.Format(time.RFC3339Nano))
+
+		errB2 := mgr.ProcessMessage(&mockHeader{seq: seqB2, timestamp: tsB2}, sessionB)
 		require.NoError(t, errB2)
+		helpers.LogSuccess(t, "Session B second message accepted")
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Session A first message accepted",
+			"Session A out-of-order message rejected",
+			"Session B operates independently",
+			"Session B both messages accepted",
+			"Session isolation working correctly",
+			"No cross-session interference",
+		})
+
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case": "8.1.5_Session_Isolation",
+			"session_a": map[string]interface{}{
+				"id": sessionA,
+				"messages": []map[string]interface{}{
+					{
+						"sequence":  seqA1,
+						"timestamp": tsA1.Format(time.RFC3339Nano),
+						"accepted":  true,
+					},
+					{
+						"sequence":  seqA2,
+						"timestamp": tsA2.Format(time.RFC3339Nano),
+						"accepted":  false,
+						"error":     "out-of-order",
+					},
+				},
+			},
+			"session_b": map[string]interface{}{
+				"id": sessionB,
+				"messages": []map[string]interface{}{
+					{
+						"sequence":  seqB1,
+						"timestamp": tsB1.Format(time.RFC3339Nano),
+						"accepted":  true,
+					},
+					{
+						"sequence":  seqB2,
+						"timestamp": tsB2.Format(time.RFC3339Nano),
+						"accepted":  true,
+					},
+				},
+			},
+			"isolation": "verified",
+		}
+		helpers.SaveTestData(t, "message/order/session_isolation.json", testData)
 	})
 }

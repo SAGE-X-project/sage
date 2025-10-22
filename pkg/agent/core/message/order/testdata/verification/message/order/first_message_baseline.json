@@ -1,0 +1,14 @@
+{
+  "data": {
+    "baseline": "established",
+    "first_message": {
+      "accepted": true,
+      "sequence": 1,
+      "timestamp": "2025-10-22T23:01:59.720323+09:00"
+    },
+    "session_id": "session1",
+    "test_case": "8.1.4_First_Message_Baseline"
+  },
+  "test_name": "TestOrderManager/FirstMessage",
+  "timestamp": "2025-10-22T23:01:59+09:00"
+}
