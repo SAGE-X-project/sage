@@ -1,0 +1,18 @@
+{
+  "data": {
+    "alice": {
+      "did": "did:sage:ethereum:agent001",
+      "is_active": true,
+      "name": "Active Agent"
+    },
+    "context_id": "ctx-bc766bb4-c9fc-4e89-a0f2-d2e7003e65de",
+    "peer_cached": true,
+    "phase": "invitation",
+    "response": {
+      "success": true
+    },
+    "test_case": "10.1.1_Handshake_Invitation"
+  },
+  "test_name": "TestHandshake_Invitation",
+  "timestamp": "2025-10-22T22:44:10+09:00"
+}

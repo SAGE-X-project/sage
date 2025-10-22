@@ -1,0 +1,15 @@
+{
+  "data": {
+    "alice_did": "did:sage:ethereum:agent001",
+    "context_id": "ctx-df39bd4b-c307-498f-9a2e-7d02e13517ed",
+    "ephemeral_key_size": 131,
+    "pending_created": true,
+    "phase": "request",
+    "response": {
+      "success": true
+    },
+    "test_case": "10.1.2_Handshake_Request"
+  },
+  "test_name": "TestHandshake_Request",
+  "timestamp": "2025-10-22T22:44:10+09:00"
+}

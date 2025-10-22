@@ -1,0 +1,20 @@
+{
+  "data": {
+    "alice_did": "did:sage:ethereum:agent001",
+    "context_id": "ctx-95b97371-e032-4e55-a6fa-bb4b687f5277",
+    "handshake_status": "finalized",
+    "pending_consumed": true,
+    "phase": "complete",
+    "phases_completed": [
+      "invitation",
+      "request",
+      "complete"
+    ],
+    "response": {
+      "success": true
+    },
+    "test_case": "10.1.3_Handshake_Complete"
+  },
+  "test_name": "TestHandshake_Complete",
+  "timestamp": "2025-10-22T22:44:10+09:00"
+}

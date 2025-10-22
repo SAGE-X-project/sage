@@ -5,19 +5,19 @@
     "key_ids_unique": true,
     "plaintext": "{\"op\":\"test\"}",
     "session_1": {
-      "ciphertext_hex_prefix": "ce9d04954d203cdb0a90e393cb194cc1",
+      "ciphertext_hex_prefix": "9e3634e5c13ce10719452464b266caa5",
       "ciphertext_size": 41,
-      "context_id": "ctx-e5a22727-47ac-4f01-80f4-bb7d8cfd8b03",
-      "key_id": "kid-ec842785-6a5c-475e-acf9-4b92c0247371"
+      "context_id": "ctx-c29007f3-4e2c-48bf-8a82-9d4f345b1e20",
+      "key_id": "kid-156d5339-87a7-476a-b6e4-21facf3a2278"
     },
     "session_2": {
-      "ciphertext_hex_prefix": "747cd42633784c4e074b28719c804c14",
+      "ciphertext_hex_prefix": "a961eca2537138ed05a98d95cb2aad39",
       "ciphertext_size": 41,
-      "context_id": "ctx-fe39d03f-6883-444d-9085-7219fb88caea",
-      "key_id": "kid-62fbe779-b094-4047-866e-1dd456876bf8"
+      "context_id": "ctx-533bfb66-8e77-4b39-992b-b1dc328e84e4",
+      "key_id": "kid-07d61b44-1fdd-41ce-90f0-c65f61223700"
     },
     "test_case": "9.1.4_HPKE_E2E_Session_Isolation"
   },
   "test_name": "TestE2E_HPKE_Handshake_MockTransport/Scenario_04_Session_Isolation",
-  "timestamp": "2025-10-22T22:38:50+09:00"
+  "timestamp": "2025-10-22T22:41:23+09:00"
 }

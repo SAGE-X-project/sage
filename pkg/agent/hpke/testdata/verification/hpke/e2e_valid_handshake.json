@@ -1,26 +1,26 @@
 {
   "data": {
     "client": {
-      "did": "did:sage:ethereum:cli-1d9f0fc0-400a-44c0-9de5-128a4b98b52f",
-      "kem_public_key": "fe67ce5e04b4cc1ca8d69094976483e54861db51d349ed49e85763640a0dc53f",
-      "session_id": "PEjiAHs2ffELFTAuZAvEKg"
+      "did": "did:sage:ethereum:cli-1ca414f9-b00a-4844-88e6-c2c41d321f69",
+      "kem_public_key": "777fb89632b773b612a354feab71e893831d353b103c296c37cf41f97619191b",
+      "session_id": "3QMRtlKDLMkEW2OXqnjClA"
     },
-    "context_id": "ctx-1235c236-bada-4b0c-a6d2-81d9d31b7df2",
+    "context_id": "ctx-a8c83b9d-9149-48cf-ab8e-44797b2f90c7",
     "encryption": {
-      "ciphertext_hex": "7851cd6beac1b02c6c9fc022fe770ec05dd2dd88e769d978fab5eedffac97d6cb344a546f08659aefba95b5818ac3c93",
+      "ciphertext_hex": "9020c779a95e7906eaa882a66f0a6e520eaf4bca6b1646395e89953a5db11b3b04786801a2a8e8c59f2925dc64de365e",
       "ciphertext_size": 48,
       "plaintext": "{\"op\":\"ping\",\"ts\":1}",
       "plaintext_size": 20
     },
     "handshake_status": "success",
-    "key_id": "kid-310cfd3f-fd29-4681-a381-02cdd532a644",
+    "key_id": "kid-9dadb69c-8538-47c6-96aa-5a7c45563806",
     "server": {
-      "did": "did:sage:ethereum:srv-706c5174-32e7-441e-bf2e-1bb0662342bd",
-      "kem_public_key": "e05745fa1b7d984c6cedf54388ac441b48fdcc4300dde299f21ea748927be915",
-      "session_id": "PEjiAHs2ffELFTAuZAvEKg"
+      "did": "did:sage:ethereum:srv-dafa85cd-f4dc-40c0-9448-6910ce8b8a00",
+      "kem_public_key": "82425f39c8c1b6bf857d73bdb5615d6f0b8d861046c6b5ac16808c298d8ebf67",
+      "session_id": "3QMRtlKDLMkEW2OXqnjClA"
     },
     "test_case": "9.1.1_HPKE_E2E_Valid_Handshake"
   },
   "test_name": "TestE2E_HPKE_Handshake_MockTransport/Scenario_01_Valid_Handshake",
-  "timestamp": "2025-10-22T22:38:50+09:00"
+  "timestamp": "2025-10-22T22:41:23+09:00"
 }
