@@ -1,0 +1,20 @@
+{
+  "data": {
+    "ethereum_address": "0x85041eFf6a951EDd601036bCDd0DB0e2aB2F12B5",
+    "expected_sizes": {
+      "private_key": 32,
+      "uncompressed_public_key": 65
+    },
+    "key_id": "845e8f02644354ab",
+    "key_type": "Secp256k1",
+    "private_key_d": "640209e985b0e96d0347765fc202c72f6098828de92f0334430f5deba66de2f8",
+    "private_key_size": 32,
+    "public_key_x": "d86856caba36c59c4f55f93f7b25b864d9d4075ff43ff807200981a558d26cb0",
+    "public_key_y": "d2cff9c06785462a2a0bc25556248e5baa92e0e724103b65ad7d6fef0486c548",
+    "test_case": "2.1.2_Secp256k1_Key_Generation",
+    "uncompressed_public_key": "04d86856caba36c59c4f55f93f7b25b864d9d4075ff43ff807200981a558d26cb0d2cff9c06785462a2a0bc25556248e5baa92e0e724103b65ad7d6fef0486c548",
+    "uncompressed_public_key_size": 65
+  },
+  "test_name": "TestSecp256k1KeyPair/GenerateKeyPair",
+  "timestamp": "2025-10-22T22:05:11+09:00"
+}
