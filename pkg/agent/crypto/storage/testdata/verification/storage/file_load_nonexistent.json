@@ -1,0 +1,11 @@
+{
+  "data": {
+    "error": "key not found",
+    "error_raised": true,
+    "key": "non-existent",
+    "test_case": "20.1.3_존재하지_않는_키_로드",
+    "validation": "에러_처리_검증_통과"
+  },
+  "test_name": "TestFileKeyStorage/LoadNonExistentKey",
+  "timestamp": "2025-10-22T23:58:29+09:00"
+}

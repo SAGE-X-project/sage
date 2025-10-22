@@ -1,0 +1,20 @@
+{
+  "data": {
+    "directory": "/var/folders/rm/hlzw3w710ml8tk5t0s79rhtc0000gn/T/sage-list-test-3092250082",
+    "key_ids": [
+      "key1",
+      "key2",
+      "key3"
+    ],
+    "key_types": [
+      "Ed25519",
+      "Secp256k1",
+      "Ed25519"
+    ],
+    "keys_count": 3,
+    "test_case": "20.1.5_파일_키_목록_조회",
+    "validation": "목록_조회_검증_통과"
+  },
+  "test_name": "TestFileKeyStorage/ListKeys",
+  "timestamp": "2025-10-22T23:58:29+09:00"
+}
