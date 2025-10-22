@@ -765,6 +765,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestRSAKey
 
 #### 2.2.1 PEM 형식 저장
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: PEM 형식으로 키 저장/로드
 
 **Go 테스트**:
@@ -798,6 +800,8 @@ cat /tmp/test.pem
 
 #### 2.2.2 DER 형식 저장
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: DER 형식으로 키 저장/로드
 
 **Go 테스트**:
@@ -824,6 +828,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*DER'
 
 #### 2.2.3 JWK 형식
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: JSON Web Key 형식 지원
 
 **Go 테스트**:
@@ -861,6 +867,8 @@ cat /tmp/test.jwk | jq '.private_key | {kty, crv, x, d}'
 
 #### 2.2.4 암호화 저장
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 패스워드로 암호화된 키 저장
 
 **Go 테스트**:
@@ -889,6 +897,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Encr
 
 #### 2.3.1 Ed25519 바이트 변환
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 공개키/비밀키 바이트 배열 변환
 
 **Go 테스트**:
@@ -915,6 +925,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestEd2551
 
 #### 2.3.2 Secp256k1 바이트 변환
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 압축/비압축 공개키 형식
 
 **Go 테스트**:
@@ -943,6 +955,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestSecp25
 
 #### 2.3.3 Hex 인코딩
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 16진수 문자열 변환
 
 **Go 테스트**:
@@ -969,6 +983,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Hex'
 
 #### 2.3.4 Base64 인코딩
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: Base64 문자열 변환
 
 **Go 테스트**:
@@ -1092,6 +1108,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestRSAKey
 
 #### 2.4.4 잘못된 서명 거부
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 변조된 서명 검증 실패 확인
 
 **Go 테스트**:
@@ -1123,6 +1141,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Inva
 
 #### 3.1.1 DID 생성 (did:sage:ethereum:<uuid> 형식)
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: SAGE DID 생성
 
 **Go 테스트**:
@@ -1662,6 +1682,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 
 #### 5.1.2 Nonce 중복 검사
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 동일 Nonce 재사용 탐지
 
 **Go 테스트**:
@@ -1689,6 +1711,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 
 #### 5.1.3 Nonce 만료
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: TTL 초과 Nonce 자동 제거
 
 **Go 테스트**:
@@ -1745,6 +1769,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 
 #### 5.2.2 순서 번호 검증
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 순서 번호 유효성 검사
 
 **Go 테스트**:
@@ -1773,6 +1799,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 
 #### 5.2.3 순서 불일치 탐지
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 순서 어긋난 메시지 거부
 
 **Go 테스트**:
@@ -2305,6 +2333,8 @@ DID verification: PASSED
 
 #### 7.1.1 세션 생성
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: UUID 기반 세션 생성
 
 **Go 테스트**:
@@ -2332,6 +2362,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 #### 7.1.2 세션 조회
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 세션 ID로 세션 조회
 
 **Go 테스트**:
@@ -2358,6 +2390,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 #### 7.1.3 세션 삭제
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 세션 명시적 종료
 
 **Go 테스트**:
@@ -2385,6 +2419,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 #### 7.1.4 세션 나열
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 활성 세션 목록 조회
 
 **Go 테스트**:
@@ -2414,6 +2450,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 #### 7.2.1 TTL 기반 만료
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 세션 생명주기 관리
 
 **Go 테스트**:
@@ -2440,6 +2478,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 #### 7.2.2 자동 정리
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 만료된 세션 자동 제거
 
 **Go 테스트**:
@@ -2466,6 +2506,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 #### 7.2.3 만료 시간 갱신
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 세션 활동 시 TTL 연장
 
 **Go 테스트**:
@@ -2495,6 +2537,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionMan
 
 #### 7.3.1 세션 데이터 저장
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 세션별 데이터 저장
 
 **Go 테스트**:
@@ -2522,6 +2566,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionSto
 
 #### 7.3.2 세션 데이터 암호화
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 민감 데이터 암호화 저장
 
 **Go 테스트**:
@@ -2549,6 +2595,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionEnc
 
 #### 7.3.3 동시성 제어
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 멀티 스레드 환경 세션 안전성
 
 **Go 테스트**:
@@ -2576,6 +2624,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSessionCon
 
 #### 7.3.4 세션 상태 동기화
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 분산 환경 세션 동기화
 
 **Go 테스트**:
@@ -2898,6 +2948,8 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'TestE2E'
 
 #### 8.2.2 HPKE 서버
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: HPKE 서버 통신 테스트
 
 **Go 테스트**:
@@ -3316,6 +3368,8 @@ Integration tests: PASSED
 
 #### 10.2.2 멀티 에이전트 시나리오
 
+
+⚠️ **아직 구현되지 않음** - 이 테스트는 현재 코드베이스에 존재하지 않습니다.
 **시험항목**: 여러 에이전트 간 메시지 교환
 
 **Go 테스트**:
