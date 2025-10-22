@@ -1,0 +1,34 @@
+{
+  "data": {
+    "encryption": {
+      "ciphertext_size": 47,
+      "decrypted": "hello, secure world",
+      "message": "hello, secure world",
+      "message_size": 19,
+      "plaintext_match": true
+    },
+    "hpke": {
+      "enc_size": 32,
+      "export_context": "sage/session exporter v1",
+      "export_length": 32,
+      "exporter_a_hex": "51c5ce5c72d67286a497b098b0350cc8b089b11666e7b8e1dbbc0c0b944dd96c",
+      "exporter_b_hex": "51c5ce5c72d67286a497b098b0350cc8b089b11666e7b8e1dbbc0c0b944dd96c",
+      "info_context": "sage/hpke-handshake v1|ctx:ctx-001|init:did:alice|resp:did:bob",
+      "secrets_match": true
+    },
+    "key_type": "X25519",
+    "session": {
+      "ids_match": true,
+      "session_id_a": "DZ27aH7JRxX-zFlPkgGhWA",
+      "session_id_b": "DZ27aH7JRxX-zFlPkgGhWA"
+    },
+    "signature": {
+      "covered_size": 111,
+      "signature_size": 32,
+      "verification": "successful"
+    },
+    "test_case": "6.1.1_HPKE_Key_Exchange_Session"
+  },
+  "test_name": "Test_HPKE_Base_Exporter_To_Session",
+  "timestamp": "2025-10-22T22:22:25+09:00"
+}
