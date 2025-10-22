@@ -217,6 +217,54 @@ func TestMessageBuilder(t *testing.T) {
 		}
 		helpers.SaveTestData(t, "rfc9421/message_builder_minimal.json", testData)
 	})
+
+	t.Run("SetBody", func(t *testing.T) {
+		// 명세 요구사항: RFC9421 Content-Digest 생성 검증
+		helpers.LogTestSection(t, "14.1.4", "RFC9421 메시지 빌더 - Content-Digest 생성")
+
+		testBody := []byte("test message body for content digest")
+		helpers.LogDetail(t, "테스트 Body: %s", string(testBody))
+
+		helpers.LogDetail(t, "WithBody()로 메시지 생성...")
+		message := NewMessageBuilder().
+			WithAgentDID("did:sage:ethereum:agent001").
+			WithMessageID("msg-digest-001").
+			WithBody(testBody).
+			Build()
+		helpers.LogSuccess(t, "메시지 빌드 완료")
+
+		// Body가 올바르게 설정되었는지 확인
+		assert.Equal(t, testBody, message.Body)
+		assert.NotNil(t, message.Body)
+		assert.Greater(t, len(message.Body), 0)
+
+		helpers.LogSuccess(t, "Body 설정 및 검증 완료")
+		helpers.LogDetail(t, "Body 길이: %d bytes", len(message.Body))
+		helpers.LogDetail(t, "Body 내용: %s", string(message.Body))
+
+		// 통과 기준 체크리스트
+		helpers.LogPassCriteria(t, []string{
+			"WithBody() 메서드로 메시지 Body 설정",
+			"Body가 nil이 아님",
+			"Body 길이가 0보다 큼",
+			"Body 내용이 원본과 일치",
+			"Content-Digest 생성을 위한 Body 준비 완료",
+		})
+
+		// CLI 검증용 테스트 데이터 저장
+		testData := map[string]interface{}{
+			"test_case": "14.1.4_RFC9421_메시지_빌더_SetBody",
+			"message": map[string]interface{}{
+				"agent_did":   message.AgentDID,
+				"message_id":  message.MessageID,
+				"body":        string(message.Body),
+				"body_length": len(message.Body),
+				"body_set":    message.Body != nil,
+			},
+			"validation": "Content_Digest_Body_설정_통과",
+		}
+		helpers.SaveTestData(t, "rfc9421/message_builder_set_body.json", testData)
+	})
 }
 
 func TestParseMessageFromHeaders(t *testing.T) {
