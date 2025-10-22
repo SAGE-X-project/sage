@@ -1,0 +1,21 @@
+{
+  "data": {
+    "expected_sizes": {
+      "private_key": 64,
+      "public_key": 32
+    },
+    "key_sizes": {
+      "private_key": 64,
+      "public_key": 32
+    },
+    "message": "https://sage.dev/resource/123?user=alice",
+    "private_key_hex": "03ec487676b8b91229d563f131ba25245970ac622323f0fb399d464967eac20578895069ee8fb38e571380679dfea97d18a1597bfd061f7dc52a569e36826020",
+    "public_key_hex": "78895069ee8fb38e571380679dfea97d18a1597bfd061f7dc52a569e36826020",
+    "signature": "sig1=:oOS3kshv83BqMHwTqAvT1TNmzP5FQf1zgBUrHhv4LEf1zBA1BOnyhkU8YwmQOi1dGgYeOfhIqvRJwp9BO3e/CA==:",
+    "signature_input": "sig1=(\"@method\" \"host\" \"date\" \"@path\" \"@query\");keyid=\"test-key-ed25519\";alg=\"ed25519\";created=1761136559",
+    "test_case": "1.1.1_Ed25519_Signature",
+    "timestamp": "2025-10-22T21:35:59+09:00"
+  },
+  "test_name": "TestIntegration/Ed25519_end-to-end",
+  "timestamp": "2025-10-22T21:35:59+09:00"
+}

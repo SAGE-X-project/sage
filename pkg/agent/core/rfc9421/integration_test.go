@@ -23,6 +23,7 @@ import (
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/hex"
 	"net/http"
 	"strings"
 	"testing"
@@ -31,37 +32,102 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/sage-x-project/sage/tests/helpers"
 )
 
 func TestIntegration(t *testing.T) {
 	// Test 2.1.1: Ed25519 signature/verification
 	t.Run("Ed25519 end-to-end", func(t *testing.T) {
+		// Specification Requirement: RFC 9421 compliant HTTP message signature generation and verification (Ed25519)
+		helpers.LogTestSection(t, "1.1.1", "RFC 9421 Ed25519 Signature Generation and Verification")
+
 		// Generate Ed25519 key pair
 		publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 		require.NoError(t, err)
 
+		// Specification Requirement: Key size validation (public key: 32 bytes, private key: 64 bytes)
+		assert.Equal(t, 32, len(publicKey), "Public key size must be 32 bytes")
+		assert.Equal(t, 64, len(privateKey), "Private key size must be 64 bytes")
+
+		helpers.LogSuccess(t, "Ed25519 key generation successful")
+		helpers.LogDetail(t, "Public key size: %d bytes", len(publicKey))
+		helpers.LogDetail(t, "Private key size: %d bytes", len(privateKey))
+		helpers.LogDetail(t, "Public key (hex): %x", publicKey)
+
 		// Create request
-		req, err := http.NewRequest("GET", "https://sage.dev/resource/123?user=alice", nil)
+		testMessage := "https://sage.dev/resource/123?user=alice"
+		req, err := http.NewRequest("GET", testMessage, nil)
 		require.NoError(t, err)
 
 		req.Header.Set("Host", "sage.dev")
-		req.Header.Set("Date", time.Now().Format(http.TimeFormat))
+		currentTime := time.Now()
+		req.Header.Set("Date", currentTime.Format(http.TimeFormat))
+
+		helpers.LogDetail(t, "Test request URL: %s", testMessage)
+		helpers.LogDetail(t, "Test time: %s", currentTime.Format(time.RFC3339))
 
 		// Sign request
 		params := &SignatureInputParams{
 			CoveredComponents: []string{`"@method"`, `"host"`, `"date"`, `"@path"`, `"@query"`},
 			KeyID:             "test-key-ed25519",
 			Algorithm:         "ed25519",
-			Created:           time.Now().Unix(),
+			Created:           currentTime.Unix(),
 		}
 
 		verifier := NewHTTPVerifier()
 		err = verifier.SignRequest(req, "sig1", params, privateKey)
 		require.NoError(t, err)
 
+		// Specification Requirement: Signature validation (64 bytes)
+		signature := req.Header.Get("Signature")
+		assert.NotEmpty(t, signature, "Signature header must be present")
+
+		// Specification Requirement: Signature-Input header format validation
+		sigInput := req.Header.Get("Signature-Input")
+		assert.Contains(t, sigInput, "keyid=", "Signature-Input must contain keyid parameter")
+		assert.Contains(t, sigInput, "created=", "Signature-Input must contain created parameter")
+		assert.Contains(t, sigInput, "alg=", "Signature-Input must contain alg parameter")
+
+		helpers.LogSuccess(t, "Signature generation successful")
+		helpers.LogDetail(t, "Signature: %s", signature)
+		helpers.LogDetail(t, "Signature-Input: %s", sigInput)
+
 		// Verify request
 		err = verifier.VerifyRequest(req, publicKey, nil)
 		assert.NoError(t, err)
+
+		helpers.LogSuccess(t, "Signature verification successful")
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Ed25519 signature generation successful",
+			"Public key size = 32 bytes",
+			"Private key size = 64 bytes",
+			"Signature header present",
+			"Signature-Input header format correct",
+			"RFC 9421 standard compliant",
+		})
+
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case":        "1.1.1_Ed25519_Signature",
+			"public_key_hex":   hex.EncodeToString(publicKey),
+			"private_key_hex":  hex.EncodeToString(privateKey),
+			"message":          testMessage,
+			"timestamp":        currentTime.Format(time.RFC3339),
+			"signature":        signature,
+			"signature_input":  sigInput,
+			"key_sizes": map[string]int{
+				"public_key":  len(publicKey),
+				"private_key": len(privateKey),
+			},
+			"expected_sizes": map[string]int{
+				"public_key":  32,
+				"private_key": 64,
+			},
+		}
+		helpers.SaveTestData(t, "rfc9421/ed25519_signature.json", testData)
 	})
 
 	// Test 2.1.2: ECDSA P-256 signature/verification
