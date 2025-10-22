@@ -192,6 +192,7 @@ go mod download
 ```bash
 cd contracts/ethereum
 npm install
+cd ../..  # Return to root directory
 ```
 
 4. **Build the project**
