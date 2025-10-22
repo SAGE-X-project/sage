@@ -164,32 +164,6 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 
 ---
 
-#### 1.1.5 Content-Digest 생성
-
-**시험항목**: SHA-256 기반 Content-Digest 헤더 생성
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageBuilder/SetBody'
-```
-
-**예상 결과**:
-```
-=== RUN   TestMessageBuilder/SetBody
---- PASS: TestMessageBuilder/SetBody (0.00s)
-```
-
-**검증 방법**:
-- Body 설정 시 Content-Digest 자동 생성 확인
-- Digest 형식: `sha-256=:base64encodedvalue:`
-- SHA-256 해시 정확성 확인
-
-**통과 기준**:
-- ✅ Content-Digest 헤더 생성
-- ✅ SHA-256 알고리즘 사용
-- ✅ Base64 인코딩 정확
-
----
 
 #### 1.1.6 서명 파라미터 (keyid, created, nonce)
 
@@ -552,31 +526,6 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestCanon
 
 ---
 
-#### 1.4.2 Query 파라미터 정규화
-
-**시험항목**: Query 파라미터 정규화 처리
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestQueryParamComponent'
-```
-
-**예상 결과**:
-```
---- PASS: TestQueryParamComponent (0.00s)
-```
-
-**검증 방법**:
-- Query 파라미터 URL 디코딩 확인
-- 파라미터 이름 정규화 확인
-- 특수 문자 처리 확인
-
-**통과 기준**:
-- ✅ Query 파라미터 디코딩
-- ✅ 정규화 정확
-- ✅ RFC 9421 준수
-
----
 
 #### 1.4.3 HTTP 필드
 
@@ -1910,31 +1859,6 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'Te
 
 ### 5.4 메시지 암호화
 
-#### 5.4.1 HPKE 암호화
-
-**시험항목**: HPKE를 사용한 메시지 암호화
-
-**Go 테스트**:
-```bash
-go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_ServerSignature_And_AckTag_HappyPath'
-```
-
-**예상 결과**:
-```
---- PASS: Test_ServerSignature_And_AckTag_HappyPath (0.02s)
-```
-
-**검증 방법**:
-- HPKE 암호화 성공 확인
-- 복호화 성공 확인
-- 메시지 무결성 확인
-
-**통과 기준**:
-- ✅ HPKE 암호화 성공
-- ✅ 복호화 성공
-- ✅ 메시지 일치
-
----
 
 #### 5.4.2 세션 암호화
 
