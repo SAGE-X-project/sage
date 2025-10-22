@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,35 +55,134 @@ func TestOrderManager(t *testing.T) {
 	})
 
 	t.Run("SeqMonotonicity", func(t *testing.T) {
-		ts := time.Now()
-		// sequence 1
-		err := mgr.ProcessMessage(&mockHeader{seq: 1, timestamp: ts}, "sess2")
-		require.NoError(t, err)
+		// Specification Requirement: Sequence number monotonic increase validation for replay attack prevention
+		helpers.LogTestSection(t, "8.1.1", "Message Sequence Number Monotonicity")
 
-		// repeat sequence 1 => error
-		err2 := mgr.ProcessMessage(&mockHeader{seq: 1, timestamp: ts.Add(time.Millisecond)}, "sess2")
+		ts := time.Now()
+		sessionID := "sess2"
+		helpers.LogDetail(t, "Session ID: %s", sessionID)
+		helpers.LogDetail(t, "Base timestamp: %s", ts.Format(time.RFC3339Nano))
+
+		// Specification Requirement: First message with sequence 1
+		seq1 := uint64(1)
+		helpers.LogDetail(t, "Processing message with sequence: %d", seq1)
+		err := mgr.ProcessMessage(&mockHeader{seq: seq1, timestamp: ts}, sessionID)
+		require.NoError(t, err)
+		helpers.LogSuccess(t, "First message (seq=1) accepted")
+
+		// Specification Requirement: Replay attack detection - duplicate sequence must be rejected
+		helpers.LogDetail(t, "Attempting replay with same sequence: %d", seq1)
+		err2 := mgr.ProcessMessage(&mockHeader{seq: seq1, timestamp: ts.Add(time.Millisecond)}, sessionID)
 		require.Error(t, err2)
 		require.Contains(t, err2.Error(), "invalid sequence")
+		helpers.LogSuccess(t, "Replay attack detected: Duplicate sequence rejected")
+		helpers.LogDetail(t, "Error message: %s", err2.Error())
 
-		// higher sequence 2 => ok
-		err3 := mgr.ProcessMessage(&mockHeader{seq: 2, timestamp: ts.Add(2 * time.Millisecond)}, "sess2")
+		// Specification Requirement: Monotonic increase - higher sequence must be accepted
+		seq2 := uint64(2)
+		helpers.LogDetail(t, "Processing message with higher sequence: %d", seq2)
+		err3 := mgr.ProcessMessage(&mockHeader{seq: seq2, timestamp: ts.Add(2 * time.Millisecond)}, sessionID)
 		require.NoError(t, err3)
+		helpers.LogSuccess(t, "Higher sequence (seq=2) accepted")
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"First message with seq=1 accepted",
+			"Duplicate sequence rejected (replay attack)",
+			"Higher sequence accepted (monotonic increase)",
+			"Error message contains 'invalid sequence'",
+			"Session-specific sequence tracking",
+		})
+
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case":   "8.1.1_Sequence_Monotonicity",
+			"session_id":  sessionID,
+			"sequence_1": map[string]interface{}{
+				"value":    seq1,
+				"accepted": true,
+			},
+			"sequence_replay": map[string]interface{}{
+				"value":    seq1,
+				"accepted": false,
+				"error":    "invalid sequence",
+			},
+			"sequence_2": map[string]interface{}{
+				"value":    seq2,
+				"accepted": true,
+			},
+			"monotonicity": "enforced",
+		}
+		helpers.SaveTestData(t, "message/order/sequence_monotonicity.json", testData)
 	})
 
 	t.Run("TimestampOrder", func(t *testing.T) {
-		ts := time.Now()
-		// first, timestamp ts
-		err := mgr.ProcessMessage(&mockHeader{seq: 10, timestamp: ts}, "sess3")
-		require.NoError(t, err)
+		// Specification Requirement: Timestamp ordering validation for temporal consistency
+		helpers.LogTestSection(t, "8.1.2", "Message Timestamp Ordering")
 
-		// earlier timestamp => error
-		err2 := mgr.ProcessMessage(&mockHeader{seq: 11, timestamp: ts.Add(-time.Second)}, "sess3")
+		ts := time.Now()
+		sessionID := "sess3"
+		helpers.LogDetail(t, "Session ID: %s", sessionID)
+		helpers.LogDetail(t, "Base timestamp: %s", ts.Format(time.RFC3339Nano))
+
+		// Specification Requirement: First message establishes baseline
+		seq1 := uint64(10)
+		helpers.LogDetail(t, "First message - seq=%d, timestamp=%s", seq1, ts.Format(time.RFC3339Nano))
+		err := mgr.ProcessMessage(&mockHeader{seq: seq1, timestamp: ts}, sessionID)
+		require.NoError(t, err)
+		helpers.LogSuccess(t, "Baseline timestamp established")
+
+		// Specification Requirement: Earlier timestamp must be rejected (out-of-order)
+		seq2 := uint64(11)
+		earlierTS := ts.Add(-time.Second)
+		helpers.LogDetail(t, "Second message - seq=%d, timestamp=%s (1 second earlier)", seq2, earlierTS.Format(time.RFC3339Nano))
+		err2 := mgr.ProcessMessage(&mockHeader{seq: seq2, timestamp: earlierTS}, sessionID)
 		require.Error(t, err2)
 		require.Contains(t, err2.Error(), "out-of-order")
+		helpers.LogSuccess(t, "Out-of-order timestamp rejected")
+		helpers.LogDetail(t, "Error message: %s", err2.Error())
 
-		// later timestamp => ok
-		err3 := mgr.ProcessMessage(&mockHeader{seq: 12, timestamp: ts.Add(time.Second)}, "sess3")
+		// Specification Requirement: Later timestamp must be accepted
+		seq3 := uint64(12)
+		laterTS := ts.Add(time.Second)
+		helpers.LogDetail(t, "Third message - seq=%d, timestamp=%s (1 second later)", seq3, laterTS.Format(time.RFC3339Nano))
+		err3 := mgr.ProcessMessage(&mockHeader{seq: seq3, timestamp: laterTS}, sessionID)
 		require.NoError(t, err3)
+		helpers.LogSuccess(t, "Later timestamp accepted")
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Baseline timestamp established",
+			"Earlier timestamp rejected (out-of-order)",
+			"Later timestamp accepted",
+			"Error message contains 'out-of-order'",
+			"Temporal consistency enforced",
+		})
+
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case":   "8.1.2_Timestamp_Ordering",
+			"session_id":  sessionID,
+			"baseline": map[string]interface{}{
+				"sequence":  seq1,
+				"timestamp": ts.Format(time.RFC3339Nano),
+				"accepted":  true,
+			},
+			"earlier_timestamp": map[string]interface{}{
+				"sequence":       seq2,
+				"timestamp":      earlierTS.Format(time.RFC3339Nano),
+				"delta_seconds":  -1.0,
+				"accepted":       false,
+				"error":          "out-of-order",
+			},
+			"later_timestamp": map[string]interface{}{
+				"sequence":      seq3,
+				"timestamp":     laterTS.Format(time.RFC3339Nano),
+				"delta_seconds": 1.0,
+				"accepted":      true,
+			},
+		}
+		helpers.SaveTestData(t, "message/order/timestamp_ordering.json", testData)
 	})
 
 	t.Run("SessionIsolation", func(t *testing.T) {

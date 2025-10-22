@@ -1,0 +1,22 @@
+{
+  "data": {
+    "monotonicity": "enforced",
+    "sequence_1": {
+      "accepted": true,
+      "value": 1
+    },
+    "sequence_2": {
+      "accepted": true,
+      "value": 2
+    },
+    "sequence_replay": {
+      "accepted": false,
+      "error": "invalid sequence",
+      "value": 1
+    },
+    "session_id": "sess2",
+    "test_case": "8.1.1_Sequence_Monotonicity"
+  },
+  "test_name": "TestOrderManager/SeqMonotonicity",
+  "timestamp": "2025-10-22T22:27:37+09:00"
+}

@@ -1,0 +1,26 @@
+{
+  "data": {
+    "baseline": {
+      "accepted": true,
+      "sequence": 10,
+      "timestamp": "2025-10-22T22:27:43.845564+09:00"
+    },
+    "earlier_timestamp": {
+      "accepted": false,
+      "delta_seconds": -1,
+      "error": "out-of-order",
+      "sequence": 11,
+      "timestamp": "2025-10-22T22:27:42.845564+09:00"
+    },
+    "later_timestamp": {
+      "accepted": true,
+      "delta_seconds": 1,
+      "sequence": 12,
+      "timestamp": "2025-10-22T22:27:44.845564+09:00"
+    },
+    "session_id": "sess3",
+    "test_case": "8.1.2_Timestamp_Ordering"
+  },
+  "test_name": "TestOrderManager/TimestampOrder",
+  "timestamp": "2025-10-22T22:27:43+09:00"
+}
