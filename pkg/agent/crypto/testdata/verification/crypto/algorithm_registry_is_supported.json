@@ -1,0 +1,16 @@
+{
+  "data": {
+    "registered_count": 4,
+    "support_checks": {
+      "Ed25519": true,
+      "RSA": true,
+      "Secp256k1": true,
+      "X25519": true,
+      "unknown": false
+    },
+    "test_case": "17.1.10_알고리즘_지원_여부",
+    "validation": "알고리즘_지원_검증_통과"
+  },
+  "test_name": "TestAlgorithmRegistry/Check_if_algorithm_is_supported",
+  "timestamp": "2025-10-22T23:41:49+09:00"
+}

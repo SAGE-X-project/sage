@@ -1,0 +1,13 @@
+{
+  "data": {
+    "fake_not_included": true,
+    "immutability_maintained": true,
+    "modified_local": 3,
+    "original_length": 3,
+    "registry_length": 3,
+    "test_case": "17.2.2_RFC9421_목록_불변성",
+    "validation": "불변성_검증_통과"
+  },
+  "test_name": "TestAlgorithmRegistry_Immutability/Returned_RFC_9421_list_should_be_immutable",
+  "timestamp": "2025-10-22T23:41:49+09:00"
+}

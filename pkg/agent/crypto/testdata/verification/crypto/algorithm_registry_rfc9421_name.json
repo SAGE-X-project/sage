@@ -1,0 +1,14 @@
+{
+  "data": {
+    "mappings": {
+      "Ed25519": "ed25519",
+      "RSA256": "rsa-pss-sha256",
+      "Secp256k1": "es256k"
+    },
+    "test_case": "17.1.4_RFC9421_알고리즘_이름",
+    "test_count": 3,
+    "validation": "매핑_검증_통과"
+  },
+  "test_name": "TestAlgorithmRegistry/Get_RFC_9421_algorithm_name",
+  "timestamp": "2025-10-22T23:41:49+09:00"
+}

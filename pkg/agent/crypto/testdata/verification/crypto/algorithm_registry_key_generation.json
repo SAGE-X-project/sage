@@ -1,0 +1,15 @@
+{
+  "data": {
+    "all_supported": true,
+    "support_checks": {
+      "Ed25519": true,
+      "RSA256": true,
+      "Secp256k1": true,
+      "X25519": true
+    },
+    "test_case": "17.1.8_키_생성_지원_확인",
+    "validation": "키_생성_지원_검증_통과"
+  },
+  "test_name": "TestAlgorithmRegistry/Check_if_algorithm_supports_key_generation",
+  "timestamp": "2025-10-22T23:41:49+09:00"
+}

@@ -1,0 +1,14 @@
+{
+  "data": {
+    "reverse_mappings": {
+      "ed25519": "Ed25519",
+      "es256k": "Secp256k1",
+      "rsa-pss-sha256": "RSA256"
+    },
+    "test_case": "17.1.5_RFC9421_역매핑",
+    "test_count": 3,
+    "validation": "역매핑_검증_통과"
+  },
+  "test_name": "TestAlgorithmRegistry/Get_key_type_from_RFC_9421_algorithm",
+  "timestamp": "2025-10-22T23:41:49+09:00"
+}

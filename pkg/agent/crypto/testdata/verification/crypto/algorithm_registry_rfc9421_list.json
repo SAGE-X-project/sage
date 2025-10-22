@@ -1,0 +1,15 @@
+{
+  "data": {
+    "algorithms": [
+      "ed25519",
+      "es256k",
+      "rsa-pss-sha256"
+    ],
+    "algorithms_count": 3,
+    "excludes_x25519": true,
+    "test_case": "17.1.6_RFC9421_지원_목록",
+    "validation": "RFC9421_목록_검증_통과"
+  },
+  "test_name": "TestAlgorithmRegistry/List_RFC_9421_supported_algorithms",
+  "timestamp": "2025-10-22T23:41:49+09:00"
+}

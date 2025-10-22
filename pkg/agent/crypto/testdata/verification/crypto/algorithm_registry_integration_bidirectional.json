@@ -1,0 +1,15 @@
+{
+  "data": {
+    "algorithms_count": 3,
+    "all_mapped": true,
+    "bidirectional_mappings": {
+      "ed25519": "Ed25519",
+      "es256k": "Secp256k1",
+      "rsa-pss-sha256": "RSA256"
+    },
+    "test_case": "17.4.2_RFC9421_양방향_매핑",
+    "validation": "양방향_매핑_검증_통과"
+  },
+  "test_name": "TestAlgorithmRegistry_Integration/RFC_9421_algorithms_should_map_back_to_key_types",
+  "timestamp": "2025-10-22T23:41:49+09:00"
+}
