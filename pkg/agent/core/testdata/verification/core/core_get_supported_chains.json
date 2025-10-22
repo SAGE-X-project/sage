@@ -1,0 +1,11 @@
+{
+  "data": {
+    "chains_count": 0,
+    "chains_empty": true,
+    "chains_not_nil": true,
+    "test_case": "16.1.7_지원_체인_목록",
+    "validation": "체인_목록_검증_통과"
+  },
+  "test_name": "TestCore/GetSupportedChains",
+  "timestamp": "2025-10-22T23:31:53+09:00"
+}

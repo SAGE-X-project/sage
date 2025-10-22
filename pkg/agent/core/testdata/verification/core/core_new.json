@@ -1,0 +1,13 @@
+{
+  "data": {
+    "initialized_components": [
+      "cryptoManager",
+      "didManager",
+      "verificationService"
+    ],
+    "test_case": "16.1.1_Core_초기화",
+    "validation": "초기화_검증_통과"
+  },
+  "test_name": "TestCore/New",
+  "timestamp": "2025-10-22T23:31:53+09:00"
+}

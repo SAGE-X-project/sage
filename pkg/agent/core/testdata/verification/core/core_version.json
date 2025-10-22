@@ -1,0 +1,11 @@
+{
+  "data": {
+    "actual_version": "0.1.0",
+    "expected_version": "0.1.0",
+    "test_case": "16.2.1_버전_상수",
+    "validation": "버전_검증_통과",
+    "version_match": true
+  },
+  "test_name": "TestVersion",
+  "timestamp": "2025-10-22T23:31:53+09:00"
+}

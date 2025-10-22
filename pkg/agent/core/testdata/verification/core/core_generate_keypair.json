@@ -1,0 +1,15 @@
+{
+  "data": {
+    "ed25519_generated": true,
+    "secp256k1_generated": true,
+    "supported_key_types": [
+      "Ed25519",
+      "Secp256k1"
+    ],
+    "test_case": "16.1.2_키_쌍_생성",
+    "unsupported_rejected": true,
+    "validation": "키_생성_검증_통과"
+  },
+  "test_name": "TestCore/GenerateKeyPair",
+  "timestamp": "2025-10-22T23:31:53+09:00"
+}

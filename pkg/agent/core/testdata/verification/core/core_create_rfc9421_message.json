@@ -1,0 +1,18 @@
+{
+  "data": {
+    "builder_created": true,
+    "input": {
+      "agent_did": "did:sage:ethereum:agent001",
+      "body": "test body"
+    },
+    "message_built": true,
+    "output": {
+      "agent_did": "did:sage:ethereum:agent001",
+      "body": "test body"
+    },
+    "test_case": "16.1.4_RFC9421_메시지_생성",
+    "validation": "메시지_생성_검증_통과"
+  },
+  "test_name": "TestCore/CreateRFC9421Message",
+  "timestamp": "2025-10-22T23:31:53+09:00"
+}
