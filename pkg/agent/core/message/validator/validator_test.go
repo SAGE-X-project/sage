@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,24 +86,106 @@ func TestValidateMessage(t *testing.T) {
 	})
 
 	t.Run("ReplayDetection", func(t *testing.T) {
+		// Specification Requirement: Comprehensive message validation with replay attack detection
+		helpers.LogTestSection(t, "8.3.1", "Message Validator Replay Detection")
+
 		mv := NewMessageValidator(nil)
+		helpers.LogSuccess(t, "Message validator initialized")
 
+		// Specification Requirement: Generate unique nonce for message
 		nonce := uuid.NewString()
-		head := &mockHeader{seq: 1, nonce: nonce, timestamp: time.Now()}
+		seq := uint64(1)
+		timestamp := time.Now()
+		sessionID := "sess"
+		messageID := uuid.NewString()
 
-		// first call: valid
-		res1 := mv.ValidateMessage(head, "sess", uuid.NewString())
+		helpers.LogDetail(t, "Test message:")
+		helpers.LogDetail(t, "  Sequence: %d", seq)
+		helpers.LogDetail(t, "  Nonce: %s", nonce)
+		helpers.LogDetail(t, "  Timestamp: %s", timestamp.Format(time.RFC3339Nano))
+		helpers.LogDetail(t, "  Session ID: %s", sessionID)
+		helpers.LogDetail(t, "  Message ID: %s", messageID)
+
+		head := &mockHeader{seq: seq, nonce: nonce, timestamp: timestamp}
+
+		// Specification Requirement: First message should be valid
+		res1 := mv.ValidateMessage(head, sessionID, messageID)
 		require.True(t, res1.IsValid)
+		require.False(t, res1.IsReplay)
+		require.False(t, res1.IsDuplicate)
+		require.False(t, res1.IsOutOfOrder)
 
-		// second call: same nonce => replay
-		res2 := mv.ValidateMessage(head, "sess", uuid.NewString())
+		helpers.LogSuccess(t, "First message validated successfully")
+		helpers.LogDetail(t, "Validation result:")
+		helpers.LogDetail(t, "  Is valid: %v", res1.IsValid)
+		helpers.LogDetail(t, "  Is replay: %v", res1.IsReplay)
+		helpers.LogDetail(t, "  Is duplicate: %v", res1.IsDuplicate)
+		helpers.LogDetail(t, "  Is out-of-order: %v", res1.IsOutOfOrder)
+
+		// Specification Requirement: Second message with same nonce must be rejected (replay attack)
+		messageID2 := uuid.NewString()
+		helpers.LogDetail(t, "Attempting replay with same nonce")
+		helpers.LogDetail(t, "  Second message ID: %s", messageID2)
+
+		res2 := mv.ValidateMessage(head, sessionID, messageID2)
 		require.False(t, res2.IsValid)
 		require.True(t, res2.IsReplay)
 		require.Equal(t, "nonce has been used before (replay attack detected)", res2.Error.Error())
 
+		helpers.LogSuccess(t, "Replay attack detected and prevented")
+		helpers.LogDetail(t, "Validation result:")
+		helpers.LogDetail(t, "  Is valid: %v", res2.IsValid)
+		helpers.LogDetail(t, "  Is replay: %v", res2.IsReplay)
+		helpers.LogDetail(t, "  Error: %s", res2.Error.Error())
+
+		// Specification Requirement: Statistics validation
 		stats := mv.GetStats()
 		require.EqualValues(t, 1, stats["tracked_nonces"], "only first nonce is tracked")
 		require.EqualValues(t, 1, stats["tracked_packets"], "only first packet is tracked")
+
+		helpers.LogDetail(t, "Validator statistics:")
+		helpers.LogDetail(t, "  Tracked nonces: %d", stats["tracked_nonces"])
+		helpers.LogDetail(t, "  Tracked packets: %d", stats["tracked_packets"])
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"Validator initialized successfully",
+			"First message validated as valid",
+			"Second message (replay) detected",
+			"Replay flag set to true",
+			"Error message correct",
+			"Only first nonce tracked",
+			"Only first packet tracked",
+		})
+
+		// Save test data for CLI verification
+		testData := map[string]interface{}{
+			"test_case":   "8.3.1_Validator_Replay_Detection",
+			"session_id":  sessionID,
+			"message": map[string]interface{}{
+				"sequence":  seq,
+				"nonce":     nonce,
+				"timestamp": timestamp.Format(time.RFC3339Nano),
+			},
+			"first_validation": map[string]interface{}{
+				"message_id":    messageID,
+				"is_valid":      res1.IsValid,
+				"is_replay":     res1.IsReplay,
+				"is_duplicate":  res1.IsDuplicate,
+				"is_out_of_order": res1.IsOutOfOrder,
+			},
+			"second_validation": map[string]interface{}{
+				"message_id":    messageID2,
+				"is_valid":      res2.IsValid,
+				"is_replay":     res2.IsReplay,
+				"error":         "replay attack detected",
+			},
+			"statistics": map[string]interface{}{
+				"tracked_nonces":  stats["tracked_nonces"],
+				"tracked_packets": stats["tracked_packets"],
+			},
+		}
+		helpers.SaveTestData(t, "message/validator/replay_detection.json", testData)
 	})
 
 	t.Run("OutOfOrderError", func(t *testing.T) {

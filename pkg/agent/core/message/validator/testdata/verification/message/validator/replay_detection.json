@@ -1,0 +1,30 @@
+{
+  "data": {
+    "first_validation": {
+      "is_duplicate": false,
+      "is_out_of_order": false,
+      "is_replay": false,
+      "is_valid": true,
+      "message_id": "d3e15d07-e3a8-4f15-899a-87528fe65960"
+    },
+    "message": {
+      "nonce": "9b9a7ee0-d060-4494-b3c0-dd8a8da1892a",
+      "sequence": 1,
+      "timestamp": "2025-10-22T22:30:37.907923+09:00"
+    },
+    "second_validation": {
+      "error": "replay attack detected",
+      "is_replay": true,
+      "is_valid": false,
+      "message_id": "b9082777-c914-4e5c-bc6e-6eb723d25667"
+    },
+    "session_id": "sess",
+    "statistics": {
+      "tracked_nonces": 1,
+      "tracked_packets": 1
+    },
+    "test_case": "8.3.1_Validator_Replay_Detection"
+  },
+  "test_name": "TestValidateMessage/ReplayDetection",
+  "timestamp": "2025-10-22T22:30:37+09:00"
+}
