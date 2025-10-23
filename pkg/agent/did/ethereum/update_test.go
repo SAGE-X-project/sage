@@ -22,10 +22,12 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"fmt"
+	"math/big"
 	"os"
 	"testing"
 	"time"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/google/uuid"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
@@ -50,7 +52,21 @@ func TestV4Update(t *testing.T) {
 	// ========================================
 	t.Log("[Setup] Generating keypair and creating client...")
 
-	// Generate agent keypair
+	// Step 1: Create client with Hardhat default account (for funding)
+	hardhatConfig := &did.RegistryConfig{
+		ContractAddress:    "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+		RPCEndpoint:        "http://localhost:8545",
+		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat account #0
+		GasPrice:           0,
+		MaxRetries:         10,
+		ConfirmationBlocks: 0,
+	}
+
+	hardhatClient, err := NewEthereumClientV4(hardhatConfig)
+	require.NoError(t, err, "Failed to create hardhat client")
+	helpers.LogDetail(t, "    ✓ Hardhat client created")
+
+	// Step 2: Generate agent keypair
 	agentKeyPair, err := crypto.GenerateSecp256k1KeyPair()
 	require.NoError(t, err, "Failed to generate keypair")
 
@@ -59,7 +75,20 @@ func TestV4Update(t *testing.T) {
 	require.True(t, ok, "Failed to cast private key to ECDSA")
 	agentPrivateKeyHex := fmt.Sprintf("%x", ecdsaPrivKey.D.Bytes())
 
-	// Create client using agent's keypair
+	ecdsaPubKey, ok := agentKeyPair.PublicKey().(*ecdsa.PublicKey)
+	require.True(t, ok, "Failed to cast public key to ECDSA")
+	agentAddress := ethcrypto.PubkeyToAddress(*ecdsaPubKey)
+	helpers.LogDetail(t, "    ✓ Agent keypair generated")
+	helpers.LogDetail(t, "      Agent address: %s", agentAddress.Hex())
+
+	// Step 3: Fund the agent key with ETH from Hardhat default account
+	helpers.LogDetail(t, "    → Funding agent account with 10 ETH...")
+	fundAmount := new(big.Int).Mul(big.NewInt(10), big.NewInt(1e18)) // 10 ETH
+	fundReceipt, err := transferETH(ctx, hardhatClient, agentAddress, fundAmount)
+	require.NoError(t, err, "Failed to transfer ETH")
+	helpers.LogDetail(t, "    ✓ Agent funded (gas: %d)", fundReceipt.GasUsed)
+
+	// Step 4: Create client using agent's keypair
 	agentConfig := &did.RegistryConfig{
 		ContractAddress:    "0x5FbDB2315678afecb367f032d93F642f64180aa3",
 		RPCEndpoint:        "http://localhost:8545",
@@ -71,6 +100,7 @@ func TestV4Update(t *testing.T) {
 
 	agentClient, err := NewEthereumClientV4(agentConfig)
 	require.NoError(t, err, "Failed to create agent client")
+	helpers.LogDetail(t, "    ✓ Agent client created")
 
 	// Register test agent
 	testDID := did.AgentDID("did:sage:ethereum:" + uuid.New().String())

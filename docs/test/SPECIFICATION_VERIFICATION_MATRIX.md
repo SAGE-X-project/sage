@@ -5071,4 +5071,58 @@ Goroutines:  1
 
 ---
 
+### 전체 테스트 실행
+
+```bash
+# 1. Hardhat 노드 시작 (별도 터미널)
+cd contracts/ethereum
+npx hardhat node
+
+# 2. 모든 테스트 실행
+go test ./...
+
+# 3. 상세 로그와 함께 실행
+go test -v ./...
+
+# 4. 커버리지 확인
+go test -cover ./...
+```
+
+### Chapter별 테스트 실행
+
+```bash
+# Chapter 1: RFC 9421
+go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421
+
+# Chapter 2: Key Management
+go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys
+
+# Chapter 3: DID
+go test -v github.com/sage-x-project/sage/pkg/agent/did/...
+
+# Chapter 4: Blockchain
+go test -v ./tests -run TestBlockchain
+
+# Chapter 5: Message
+go test -v github.com/sage-x-project/sage/pkg/agent/core/message/...
+
+# Chapter 7: Session
+go test -v github.com/sage-x-project/sage/pkg/agent/session
+
+# Chapter 8: HPKE
+go test -v github.com/sage-x-project/sage/pkg/agent/hpke
+
+# Chapter 9: Health
+go test -v github.com/sage-x-project/sage/pkg/health
+```
+
+### 통합 테스트 실행
+
+```bash
+# DID Ethereum 통합 테스트 (Hardhat 노드 필요)
+SAGE_INTEGRATION_TEST=1 go test -v ./pkg/agent/did/ethereum
+
+# 전체 통합 테스트
+go test -v ./tests/integration
+```
 ---

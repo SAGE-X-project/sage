@@ -537,24 +537,17 @@ func (c *EthereumClientV4) Update(ctx context.Context, agentDID did.AgentDID, up
 		capabilitiesJSON = string(capBytes)
 	}
 
-	// Get current nonce from contract
-	// The contract has getNonce(bytes32 agentId) view function added in V4.1
-	// TODO: After contract redeployment and ABI regeneration with getNonce, use:
-	//   nonceResult, err := c.contract.GetNonce(&bind.CallOpts{Context: ctx}, agentId)
-	//   if err == nil {
-	//       nonce = nonceResult
-	//   } else {
-	//       nonce = big.NewInt(0) // Fallback for old contracts
-	//   }
-	//
-	// For now, we use fallback to nonce=0 until:
-	// 1. Contract is recompiled with getNonce function
-	// 2. ABI is regenerated (npm run extract-abi)
-	// 3. Go bindings are updated (npm run generate:go)
-	//
-	// With nonce=0, only the first update will work. After contract redeployment,
-	// multiple updates will work automatically.
-	nonce := big.NewInt(0)
+	// Get current nonce from contract for replay protection
+	// The contract's getNonce(bytes32 agentId) view function returns the current nonce
+	// For V4.0 contracts without getNonce, we fallback to nonce=0
+	var nonce *big.Int
+	nonceResult, err := c.contract.GetNonce(&bind.CallOpts{Context: ctx}, agentId)
+	if err == nil {
+		nonce = nonceResult
+	} else {
+		// Fallback to nonce=0 for V4.0 contracts without getNonce support
+		nonce = big.NewInt(0)
+	}
 
 	// Prepare message matching contract's signature verification
 	// Contract expects: keccak256(abi.encode(agentId, name, description, endpoint, capabilities, msg.sender, agentNonce[agentId]))
@@ -587,10 +580,28 @@ func (c *EthereumClientV4) Update(ctx context.Context, agentDID did.AgentDID, up
 
 	messageHash := crypto.Keccak256Hash(messageData)
 
-	// Sign the message
-	signature, err := keyPair.Sign(messageHash.Bytes())
+	// Apply Ethereum personal sign prefix (contract does this in _verifyEcdsaSignature)
+	prefixedData := []byte("\x19Ethereum Signed Message:\n32")
+	prefixedData = append(prefixedData, messageHash.Bytes()...)
+	ethSignedHash := crypto.Keccak256Hash(prefixedData)
+
+	// Sign the prefixed hash with agent's private key
+	// Note: We use crypto.Sign directly here instead of keyPair.Sign because we need
+	// to sign with the ECDSA private key specifically for Ethereum signature verification
+	ecdsaPrivKey, ok := keyPair.PrivateKey().(*ecdsa.PrivateKey)
+	if !ok {
+		return fmt.Errorf("private key must be ECDSA for Update on Ethereum")
+	}
+
+	signature, err := crypto.Sign(ethSignedHash.Bytes(), ecdsaPrivKey)
 	if err != nil {
 		return fmt.Errorf("failed to sign update: %w", err)
+	}
+
+	// Adjust V value for Ethereum compatibility
+	// go-ethereum's Sign returns V as 0 or 1, but Ethereum expects 27 or 28
+	if signature[64] < 27 {
+		signature[64] += 27
 	}
 
 	// Call the contract
