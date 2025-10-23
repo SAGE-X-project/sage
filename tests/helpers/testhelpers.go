@@ -21,6 +21,7 @@ package helpers
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -28,14 +29,46 @@ import (
 	"time"
 )
 
+// findProjectRoot finds the project root by looking for go.mod file
+func findProjectRoot() (string, error) {
+	// Start from current directory
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	// Walk up the directory tree looking for go.mod
+	for {
+		goModPath := filepath.Join(dir, "go.mod")
+		if _, err := os.Stat(goModPath); err == nil {
+			return dir, nil
+		}
+
+		// Move to parent directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached root directory
+			return "", fmt.Errorf("go.mod not found")
+		}
+		dir = parent
+	}
+}
+
 // SaveTestData saves test data to JSON file for CLI verification
 // This function creates test data files that can be used to verify
 // CLI tools produce the same results as the code-level tests.
 func SaveTestData(t *testing.T, filename string, data interface{}) {
 	t.Helper()
 
-	// Create testdata directory
-	testDataDir := "testdata/verification"
+	// Find project root by looking for go.mod
+	projectRoot, err := findProjectRoot()
+	if err != nil {
+		t.Logf("Warning: Failed to find project root: %v", err)
+		return
+	}
+
+	// Create testdata directory at project root
+	testDataDir := filepath.Join(projectRoot, "testdata", "verification")
 	if err := os.MkdirAll(testDataDir, 0755); err != nil {
 		t.Logf("Warning: Failed to create testdata directory: %v", err)
 		return

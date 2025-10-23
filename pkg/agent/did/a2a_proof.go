@@ -221,10 +221,27 @@ func VerifyA2ACardProof(cardWithProof *A2AAgentCardWithProof) (bool, error) {
 			return false, fmt.Errorf("failed to decode ECDSA public key: %w", err)
 		}
 
-		// Decompress public key
-		pubKey, err := ethcrypto.DecompressPubkey(pubKeyBytes)
-		if err != nil {
-			return false, fmt.Errorf("failed to decompress public key: %w", err)
+		// Handle both compressed (33 bytes) and uncompressed formats (64 or 65 bytes)
+		var pubKey *ecdsa.PublicKey
+		if len(pubKeyBytes) == 64 {
+			// Raw format (64 bytes: x || y) - prepend 0x04 for standard uncompressed format
+			pubKeyBytes = append([]byte{0x04}, pubKeyBytes...)
+		}
+
+		if len(pubKeyBytes) == 33 {
+			// Compressed format - use DecompressPubkey
+			pubKey, err = ethcrypto.DecompressPubkey(pubKeyBytes)
+			if err != nil {
+				return false, fmt.Errorf("failed to decompress public key: %w", err)
+			}
+		} else if len(pubKeyBytes) == 65 {
+			// Uncompressed format - use UnmarshalPubkey
+			pubKey, err = ethcrypto.UnmarshalPubkey(pubKeyBytes)
+			if err != nil {
+				return false, fmt.Errorf("failed to unmarshal public key: %w", err)
+			}
+		} else {
+			return false, fmt.Errorf("invalid public key length: %d (expected 33, 64, or 65 bytes)", len(pubKeyBytes))
 		}
 
 		// Verify signature (Ethereum signature includes recovery ID in last byte)

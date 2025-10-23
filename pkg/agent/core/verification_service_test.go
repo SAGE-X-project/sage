@@ -330,7 +330,7 @@ func TestVerificationService(t *testing.T) {
 			"X-Agent-DID":           agentDID,
 			"X-Message-ID":          "msg-003",
 			"X-Timestamp":           time.Now().Format(time.RFC3339),
-			"X-Nonce":               "nonce123",
+			"X-Nonce":               "nonce456", // Use unique nonce for this test
 			"X-Signature-Algorithm": "EdDSA",
 			"X-Signed-Fields":       "body",
 			"X-Metadata-Endpoint":   "https://api.example.com",

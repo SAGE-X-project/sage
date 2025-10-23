@@ -134,12 +134,12 @@ echo ""
 echo -e "${YELLOW}[Step 5/5]${NC} Running DID integration tests..."
 cd "$PROJECT_ROOT"
 
-# Run TestDIDDuplicateDetection (now in ethereum package)
+# Run DID duplicate detection tests (both contract-level and pre-registration check)
 echo ""
-echo "Running: TestDIDDuplicateDetection"
+echo "Running: TestDIDDuplicateDetection and TestDIDPreRegistrationCheck"
 echo "========================================"
 SAGE_INTEGRATION_TEST=1 go test -v ./pkg/agent/did/ethereum \
-    -run 'TestDIDDuplicateDetection' \
+    -run 'TestDIDDuplicateDetection|TestDIDPreRegistrationCheck' \
     2>&1 | tee "$TEST_LOG"
 
 TEST_EXIT_CODE=${PIPESTATUS[0]}

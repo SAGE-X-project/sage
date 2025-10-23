@@ -255,8 +255,9 @@ func TestMarshalUnmarshalPublicKey(t *testing.T) {
 		marshaled, err := MarshalPublicKey(keyPair.PublicKey())
 		require.NoError(t, err)
 		assert.NotEmpty(t, marshaled)
-		// secp256k1 compressed format is 33 bytes
-		assert.Equal(t, 33, len(marshaled))
+		// secp256k1 uncompressed format is 64 bytes (without 0x04 prefix)
+		// V4 contract uses uncompressed format to avoid expensive decompression on-chain
+		assert.Equal(t, 64, len(marshaled))
 
 		// Unmarshal public key
 		unmarshaled, err := UnmarshalPublicKey(marshaled, "secp256k1")

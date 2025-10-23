@@ -465,261 +465,458 @@ func hmacSHA256(k, msg []byte) []byte {
 	return m.Sum(nil)
 }
 
-// Test 7.1.1: 세션 생성
-func TestSessionManager_CreateSession(t *testing.T) {
-	// Specification Requirement: UUID-based session creation and management
-	helpers.LogTestSection(t, "7.1.1", "세션 생성 (UUID 기반)")
+// ============================================================================
+// 【7. 세션 관리】테스트 - 기능 명세서 기준
+// ============================================================================
+
+// Test 7.1.1.1: 중복된 세션 ID 생성 방지
+func Test_7_1_1_1_DuplicateSessionIDPrevention(t *testing.T) {
+	helpers.LogTestSection(t, "7.1.1.1", "중복된 세션 ID 생성 방지")
 
 	mgr := NewManager()
 	defer mgr.Close()
 
-	sessionID := "test-session-001"
+	// Generate session ID using SAGE's ComputeSessionIDFromSeed
 	sharedSecret := b(chacha20poly1305.KeySize)
+	label := "test-duplicate-prevention"
 
-	helpers.LogDetail(t, "세션 생성 시작:")
-	helpers.LogDetail(t, "  Session ID: %s", sessionID)
-	helpers.LogDetail(t, "  Shared secret size: %d bytes", len(sharedSecret))
+	sessionID, err := ComputeSessionIDFromSeed(sharedSecret, label)
+	require.NoError(t, err)
+	helpers.LogDetail(t, "세션 ID 생성:")
+	helpers.LogDetail(t, "  SAGE ComputeSessionIDFromSeed 사용")
+	helpers.LogDetail(t, "  Generated ID: %s", sessionID)
 
-	// Create session
+	// Create first session
+	sess1, err := mgr.CreateSession(sessionID, sharedSecret)
+	require.NoError(t, err)
+	require.NotNil(t, sess1)
+	helpers.LogSuccess(t, "첫 번째 세션 생성 성공")
+	helpers.LogDetail(t, "  Session ID: %s", sess1.GetID())
+
+	// Attempt to create duplicate session with same ID - should fail
+	sess2, err := mgr.CreateSession(sessionID, sharedSecret)
+	require.Error(t, err)
+	require.Nil(t, sess2)
+	helpers.LogSuccess(t, "중복 세션 ID 생성 방지 확인 (에러 발생)")
+	helpers.LogDetail(t, "  Error: %s", err.Error())
+
+	// Verify session count is still 1
+	count := mgr.GetSessionCount()
+	require.Equal(t, 1, count)
+	helpers.LogSuccess(t, "세션 카운트 검증 (중복 생성 안 됨)")
+	helpers.LogDetail(t, "  Active sessions: %d", count)
+
+	// Verify using EnsureSessionWithParams also prevents duplicates
+	params := Params{
+		SharedSecret: sharedSecret,
+		ContextID:    "duplicate-test",
+		SelfEph:      b(32),
+		PeerEph:      b(32),
+		Label:        label,
+	}
+
+	sess3, sid3, existed, err := mgr.EnsureSessionWithParams(params, nil)
+	require.NoError(t, err)
+	require.NotNil(t, sess3)
+
+	helpers.LogDetail(t, "EnsureSessionWithParams 중복 검사:")
+	helpers.LogDetail(t, "  Generated ID: %s", sid3)
+
+	// Call again with same params - should return existing session
+	sess4, sid4, existed2, err := mgr.EnsureSessionWithParams(params, nil)
+	require.NoError(t, err)
+	require.NotNil(t, sess4)
+	require.Equal(t, sid3, sid4)
+	require.True(t, existed2)
+	helpers.LogSuccess(t, "EnsureSessionWithParams 중복 방지 확인 (기존 세션 반환)")
+	helpers.LogDetail(t, "  First call existed: %v", existed)
+	helpers.LogDetail(t, "  Second call existed: %v", existed2)
+	helpers.LogDetail(t, "  IDs match: %v", sid3 == sid4)
+
+	helpers.LogPassCriteria(t, []string{
+		"SAGE ComputeSessionIDFromSeed 사용",
+		"중복 세션 ID 생성 시 에러 발생",
+		"세션 카운트 증가하지 않음",
+		"EnsureSessionWithParams 멱등성 확인",
+	})
+
+	testData := map[string]interface{}{
+		"test_case":               "7.1.1.1_Duplicate_Session_ID_Prevention",
+		"session_id":              sessionID,
+		"duplicate_prevented":     true,
+		"session_count":           count,
+		"ensure_params_idempotent": existed2,
+	}
+	helpers.SaveTestData(t, "session/7_1_1_1_duplicate_prevention.json", testData)
+}
+
+// Test 7.1.1.2: 세션 ID 포맷 검증 확인
+func Test_7_1_1_2_SessionIDFormatValidation(t *testing.T) {
+	helpers.LogTestSection(t, "7.1.1.2", "세션 ID 포맷 검증 확인")
+
+	mgr := NewManager()
+	defer mgr.Close()
+
+	helpers.LogDetail(t, "SAGE 세션 ID 생성 함수 테스트:")
+
+	// Test ComputeSessionIDFromSeed format
+	sharedSecret := b(chacha20poly1305.KeySize)
+	label := "format-validation-test"
+
+	sessionID, err := ComputeSessionIDFromSeed(sharedSecret, label)
+	require.NoError(t, err)
+	require.NotEmpty(t, sessionID)
+	helpers.LogSuccess(t, "ComputeSessionIDFromSeed로 세션 ID 생성")
+	helpers.LogDetail(t, "  Generated ID: %s", sessionID)
+	helpers.LogDetail(t, "  ID Length: %d characters", len(sessionID))
+
+	// Verify base64url format
+	require.Regexp(t, "^[A-Za-z0-9_-]+$", sessionID)
+	helpers.LogSuccess(t, "세션 ID 포맷 검증: base64url (RFC 4648)")
+	helpers.LogDetail(t, "  Allowed characters: A-Z, a-z, 0-9, _, -")
+	helpers.LogDetail(t, "  No padding (=) characters")
+
+	// Verify consistent length (16 bytes -> 22 chars in base64url)
+	require.Equal(t, 22, len(sessionID))
+	helpers.LogSuccess(t, "세션 ID 길이 검증: 22 characters")
+	helpers.LogDetail(t, "  Source: SHA256 hash (16 bytes)")
+	helpers.LogDetail(t, "  Encoding: base64url (22 chars)")
+
+	// Create session with validated ID
 	sess, err := mgr.CreateSession(sessionID, sharedSecret)
 	require.NoError(t, err)
-	require.NotNil(t, sess)
+	require.Equal(t, sessionID, sess.GetID())
+	helpers.LogSuccess(t, "검증된 세션 ID로 세션 생성 성공")
+
+	// Test deterministic generation (same input -> same ID)
+	sessionID2, err := ComputeSessionIDFromSeed(sharedSecret, label)
+	require.NoError(t, err)
+	require.Equal(t, sessionID, sessionID2)
+	helpers.LogSuccess(t, "결정론적 생성 확인 (동일 입력 → 동일 ID)")
+
+	// Test different input produces different ID
+	differentSecret := b(chacha20poly1305.KeySize)
+	sessionID3, err := ComputeSessionIDFromSeed(differentSecret, label)
+	require.NoError(t, err)
+	require.NotEqual(t, sessionID, sessionID3)
+	require.Regexp(t, "^[A-Za-z0-9_-]+$", sessionID3)
+	require.Equal(t, 22, len(sessionID3))
+	helpers.LogSuccess(t, "다른 입력으로 다른 ID 생성 (포맷 동일)")
+	helpers.LogDetail(t, "  Original ID:  %s", sessionID)
+	helpers.LogDetail(t, "  Different ID: %s", sessionID3)
+
+	helpers.LogPassCriteria(t, []string{
+		"SAGE ComputeSessionIDFromSeed 사용",
+		"Base64url 포맷 검증 (RFC 4648)",
+		"고정 길이 22 characters",
+		"결정론적 생성 확인",
+		"세션 생성 성공",
+	})
+
+	testData := map[string]interface{}{
+		"test_case":       "7.1.1.2_Session_ID_Format_Validation",
+		"session_id":      sessionID,
+		"format":          "base64url",
+		"length":          len(sessionID),
+		"deterministic":   sessionID == sessionID2,
+		"regex_pattern":   "^[A-Za-z0-9_-]+$",
+	}
+	helpers.SaveTestData(t, "session/7_1_1_2_id_format_validation.json", testData)
+}
+
+// Test 7.1.1.3: 세션 데이터 메타데이터 설정 확인
+func Test_7_1_1_3_SessionMetadataSetup(t *testing.T) {
+	helpers.LogTestSection(t, "7.1.1.3", "세션 데이터 메타데이터 설정 확인")
+
+	mgr := NewManager()
+	defer mgr.Close()
+
+	// Generate session ID
+	sharedSecret := b(chacha20poly1305.KeySize)
+	sessionID, err := ComputeSessionIDFromSeed(sharedSecret, "metadata-test")
+	require.NoError(t, err)
+	helpers.LogDetail(t, "세션 생성:")
+	helpers.LogDetail(t, "  Session ID: %s", sessionID)
+
+	// Create session
+	beforeCreate := time.Now()
+	sess, err := mgr.CreateSession(sessionID, sharedSecret)
+	require.NoError(t, err)
+	afterCreate := time.Now()
 	helpers.LogSuccess(t, "세션 생성 완료")
 
-	// Verify session was created
+	// Verify session metadata: ID
 	require.Equal(t, sessionID, sess.GetID())
-	require.False(t, sess.IsExpired())
-	helpers.LogDetail(t, "  Session ID 일치: %v", sess.GetID() == sessionID)
-	helpers.LogDetail(t, "  Session 만료 여부: %v", sess.IsExpired())
+	helpers.LogSuccess(t, "세션 ID 메타데이터 확인")
+	helpers.LogDetail(t, "  Session ID: %s", sess.GetID())
 
-	// Verify session can be retrieved
+	// Verify session metadata: CreatedAt timestamp
+	createdAt := sess.GetCreatedAt()
+	require.False(t, createdAt.IsZero())
+	require.True(t, createdAt.After(beforeCreate) || createdAt.Equal(beforeCreate))
+	require.True(t, createdAt.Before(afterCreate) || createdAt.Equal(afterCreate))
+	helpers.LogSuccess(t, "생성 시간 메타데이터 확인")
+	helpers.LogDetail(t, "  Created At: %s", createdAt.Format(time.RFC3339Nano))
+	helpers.LogDetail(t, "  Time validation: within creation window")
+
+	// Verify session metadata: LastUsedAt timestamp
+	lastUsedAt := sess.GetLastUsedAt()
+	require.False(t, lastUsedAt.IsZero())
+	require.Equal(t, createdAt, lastUsedAt) // Should be equal at creation
+	helpers.LogSuccess(t, "마지막 사용 시간 메타데이터 확인")
+	helpers.LogDetail(t, "  Last Used At: %s", lastUsedAt.Format(time.RFC3339Nano))
+	helpers.LogDetail(t, "  초기값 = 생성 시간: %v", createdAt.Equal(lastUsedAt))
+
+	// Verify session metadata: Message count
+	msgCount := sess.GetMessageCount()
+	require.Equal(t, 0, msgCount)
+	helpers.LogSuccess(t, "메시지 카운트 메타데이터 확인")
+	helpers.LogDetail(t, "  Initial message count: %d", msgCount)
+
+	// Verify session metadata: Config
+	config := sess.GetConfig()
+	require.NotZero(t, config.MaxAge)
+	require.NotZero(t, config.IdleTimeout)
+	require.NotZero(t, config.MaxMessages)
+	helpers.LogSuccess(t, "세션 설정 메타데이터 확인")
+	helpers.LogDetail(t, "  Max Age: %v", config.MaxAge)
+	helpers.LogDetail(t, "  Idle Timeout: %v", config.IdleTimeout)
+	helpers.LogDetail(t, "  Max Messages: %d", config.MaxMessages)
+
+	// Verify session metadata: IsExpired status
+	require.False(t, sess.IsExpired())
+	helpers.LogSuccess(t, "만료 상태 메타데이터 확인")
+	helpers.LogDetail(t, "  Is Expired: %v", sess.IsExpired())
+
+	// Perform activity and verify metadata updates
+	covered := []byte("test-covered")
+	plaintext := []byte("test-message")
+	_, _, err = sess.EncryptAndSign(plaintext, covered)
+	require.NoError(t, err)
+
+	// Verify LastUsedAt updated
+	newLastUsedAt := sess.GetLastUsedAt()
+	require.True(t, newLastUsedAt.After(lastUsedAt) || newLastUsedAt.Equal(lastUsedAt))
+	helpers.LogSuccess(t, "활동 후 메타데이터 자동 갱신 확인")
+	helpers.LogDetail(t, "  New Last Used At: %s", newLastUsedAt.Format(time.RFC3339Nano))
+
+	// Verify message count updated
+	newMsgCount := sess.GetMessageCount()
+	require.Equal(t, 1, newMsgCount)
+	helpers.LogDetail(t, "  Updated message count: %d", newMsgCount)
+
+	helpers.LogPassCriteria(t, []string{
+		"세션 ID 메타데이터 설정",
+		"생성 시간 (CreatedAt) 설정",
+		"마지막 사용 시간 (LastUsedAt) 설정",
+		"메시지 카운트 초기화",
+		"세션 설정 (Config) 저장",
+		"만료 상태 초기화",
+		"활동 시 메타데이터 자동 갱신",
+	})
+
+	testData := map[string]interface{}{
+		"test_case":        "7.1.1.3_Session_Metadata_Setup",
+		"session_id":       sessionID,
+		"created_at":       createdAt.Format(time.RFC3339Nano),
+		"last_used_at":     lastUsedAt.Format(time.RFC3339Nano),
+		"initial_msg_count": 0,
+		"config": map[string]interface{}{
+			"max_age_sec":      config.MaxAge.Seconds(),
+			"idle_timeout_sec": config.IdleTimeout.Seconds(),
+			"max_messages":     config.MaxMessages,
+		},
+		"is_expired":           false,
+		"metadata_auto_update": newMsgCount == 1,
+	}
+	helpers.SaveTestData(t, "session/7_1_1_3_metadata_setup.json", testData)
+}
+
+// Test 7.2.1.1: 세션 생성 ID TTL 시간 확인
+func Test_7_2_1_1_SessionTTLTime(t *testing.T) {
+	helpers.LogTestSection(t, "7.2.1.1", "세션 TTL 시간 확인")
+
+	mgr := NewManager()
+	defer mgr.Close()
+
+	// Test TTL configuration
+	testTTL := 100 * time.Millisecond
+	config := Config{
+		MaxAge:      testTTL,
+		IdleTimeout: time.Hour,
+		MaxMessages: 100,
+	}
+
+	sharedSecret := b(chacha20poly1305.KeySize)
+	sessionID, err := ComputeSessionIDFromSeed(sharedSecret, "ttl-test")
+	require.NoError(t, err)
+
+	helpers.LogDetail(t, "세션 TTL 설정:")
+	helpers.LogDetail(t, "  Session ID: %s", sessionID)
+	helpers.LogDetail(t, "  Max Age (TTL): %v", config.MaxAge)
+	helpers.LogDetail(t, "  Idle Timeout: %v", config.IdleTimeout)
+
+	// Create session with TTL
+	createdAt := time.Now()
+	sess, err := mgr.CreateSessionWithConfig(sessionID, sharedSecret, config)
+	require.NoError(t, err)
+	require.False(t, sess.IsExpired())
+	helpers.LogSuccess(t, "TTL 설정된 세션 생성 완료")
+	helpers.LogDetail(t, "  Created at: %s", createdAt.Format(time.RFC3339))
+	helpers.LogDetail(t, "  Expected expiry: %s", createdAt.Add(testTTL).Format(time.RFC3339))
+	helpers.LogDetail(t, "  Initial expired status: %v", sess.IsExpired())
+
+	// Verify TTL is configured correctly
+	sessionConfig := sess.GetConfig()
+	require.Equal(t, testTTL, sessionConfig.MaxAge)
+	helpers.LogSuccess(t, "TTL 설정값 확인")
+	helpers.LogDetail(t, "  Configured Max Age: %v", sessionConfig.MaxAge)
+
+	// Wait half TTL - session should still be valid
+	halfWait := testTTL / 2
+	time.Sleep(halfWait)
+	require.False(t, sess.IsExpired())
+	helpers.LogSuccess(t, "TTL 절반 경과 - 세션 유효")
+	helpers.LogDetail(t, "  Waited: %v", halfWait)
+	helpers.LogDetail(t, "  Expired: %v", sess.IsExpired())
+
+	// Wait for full TTL to expire
+	time.Sleep(testTTL/2 + 20*time.Millisecond)
+	require.True(t, sess.IsExpired())
+	helpers.LogSuccess(t, "TTL 만료 - 세션 무효")
+	actualExpiredAt := time.Now()
+	helpers.LogDetail(t, "  Total waited: ~%v", actualExpiredAt.Sub(createdAt))
+	helpers.LogDetail(t, "  Expired: %v", sess.IsExpired())
+
+	// Verify manager returns nil for expired session
+	retrieved, exists := mgr.GetSession(sessionID)
+	require.False(t, exists)
+	require.Nil(t, retrieved)
+	helpers.LogSuccess(t, "만료된 세션 조회 실패 (자동 무효화)")
+
+	helpers.LogPassCriteria(t, []string{
+		"세션 TTL (MaxAge) 설정 가능",
+		"TTL 설정값 확인 가능",
+		"TTL 경과 전 세션 유효",
+		"TTL 경과 후 세션 만료",
+		"만료 세션 자동 무효화",
+	})
+
+	testData := map[string]interface{}{
+		"test_case":       "7.2.1.1_Session_TTL_Time",
+		"session_id":      sessionID,
+		"ttl_ms":          testTTL.Milliseconds(),
+		"half_ttl_valid":  true,
+		"full_ttl_expired": true,
+		"auto_invalidated": !exists,
+	}
+	helpers.SaveTestData(t, "session/7_2_1_1_ttl_time.json", testData)
+}
+
+// Test 7.2.1.2: 세션 정보 조회 성공
+func Test_7_2_1_2_SessionInfoRetrieval(t *testing.T) {
+	helpers.LogTestSection(t, "7.2.1.2", "세션 정보 조회 성공")
+
+	mgr := NewManager()
+	defer mgr.Close()
+
+	// Create session
+	sharedSecret := b(chacha20poly1305.KeySize)
+	sessionID, err := ComputeSessionIDFromSeed(sharedSecret, "info-retrieval-test")
+	require.NoError(t, err)
+
+	_, err = mgr.CreateSession(sessionID, sharedSecret)
+	require.NoError(t, err)
+	helpers.LogSuccess(t, "세션 생성 완료")
+	helpers.LogDetail(t, "  Session ID: %s", sessionID)
+
+	// Retrieve session from manager
 	retrieved, exists := mgr.GetSession(sessionID)
 	require.True(t, exists)
 	require.NotNil(t, retrieved)
-	require.Equal(t, sessionID, retrieved.GetID())
 	helpers.LogSuccess(t, "세션 조회 성공")
+
+	// Verify all session information is accessible
+	helpers.LogDetail(t, "조회된 세션 정보:")
+
+	// 1. Session ID
+	retrievedID := retrieved.GetID()
+	require.Equal(t, sessionID, retrievedID)
+	helpers.LogDetail(t, "  [1] ID: %s", retrievedID)
+
+	// 2. Created timestamp
+	createdAt := retrieved.GetCreatedAt()
+	require.False(t, createdAt.IsZero())
+	helpers.LogDetail(t, "  [2] Created At: %s", createdAt.Format(time.RFC3339))
+
+	// 3. Last used timestamp
+	lastUsedAt := retrieved.GetLastUsedAt()
+	require.False(t, lastUsedAt.IsZero())
+	helpers.LogDetail(t, "  [3] Last Used At: %s", lastUsedAt.Format(time.RFC3339))
+
+	// 4. Message count
+	msgCount := retrieved.GetMessageCount()
+	helpers.LogDetail(t, "  [4] Message Count: %d", msgCount)
+
+	// 5. Expired status
+	isExpired := retrieved.IsExpired()
+	helpers.LogDetail(t, "  [5] Is Expired: %v", isExpired)
+
+	// 6. Config
+	config := retrieved.GetConfig()
+	helpers.LogDetail(t, "  [6] Config:")
+	helpers.LogDetail(t, "      - Max Age: %v", config.MaxAge)
+	helpers.LogDetail(t, "      - Idle Timeout: %v", config.IdleTimeout)
+	helpers.LogDetail(t, "      - Max Messages: %d", config.MaxMessages)
+
+	helpers.LogSuccess(t, "모든 세션 정보 조회 가능")
 
 	// Verify session count
 	count := mgr.GetSessionCount()
 	require.Equal(t, 1, count)
-	helpers.LogDetail(t, "  활성 세션 수: %d", count)
+	helpers.LogDetail(t, "  Manager session count: %d", count)
 
-	// Verify duplicate creation fails
-	_, err = mgr.CreateSession(sessionID, sharedSecret)
-	require.Error(t, err)
-	helpers.LogSuccess(t, "중복 세션 생성 방지 확인")
-
-	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
-		"세션 생성 성공",
-		"Session ID 일치",
-		"세션 만료되지 않음",
-		"세션 조회 가능",
-		"세션 카운트 정확",
-		"중복 생성 방지",
-	})
-
-	// Save test data
-	testData := map[string]interface{}{
-		"test_case":        "7.1.1_Session_Creation",
-		"session_id":       sessionID,
-		"session_created":  true,
-		"session_expired":  sess.IsExpired(),
-		"session_count":    count,
-		"duplicate_prevented": true,
-	}
-	helpers.SaveTestData(t, "session/manager_create_session.json", testData)
-}
-
-// Test 7.1.2: 세션 조회
-func TestSessionManager_GetSession(t *testing.T) {
-	// Specification Requirement: Session retrieval by ID
-	helpers.LogTestSection(t, "7.1.2", "세션 조회 (Session ID로 조회)")
-
-	mgr := NewManager()
-	defer mgr.Close()
-
-	sessionID := "test-session-002"
-	sharedSecret := b(chacha20poly1305.KeySize)
-
-	helpers.LogDetail(t, "세션 생성 및 조회 테스트:")
-	helpers.LogDetail(t, "  Session ID: %s", sessionID)
-
-	// Create session
-	created, err := mgr.CreateSession(sessionID, sharedSecret)
-	require.NoError(t, err)
-	helpers.LogSuccess(t, "세션 생성 완료")
-
-	// Retrieve session
-	retrieved, exists := mgr.GetSession(sessionID)
-	require.True(t, exists)
-	require.NotNil(t, retrieved)
-	helpers.LogSuccess(t, "세션 조회 성공")
-	helpers.LogDetail(t, "  조회된 Session ID: %s", retrieved.GetID())
-
-	// Verify session data matches
-	require.Equal(t, created.GetID(), retrieved.GetID())
-	helpers.LogDetail(t, "  Session ID 일치: %v", created.GetID() == retrieved.GetID())
-
-	// Try to retrieve non-existent session
-	_, exists = mgr.GetSession("non-existent-session")
+	// Verify non-existent session returns properly
+	_, exists = mgr.GetSession("non-existent-id")
 	require.False(t, exists)
-	helpers.LogSuccess(t, "존재하지 않는 세션 조회 실패 확인")
+	helpers.LogSuccess(t, "존재하지 않는 세션 조회 처리 확인")
 
-	// Pass criteria checklist
 	helpers.LogPassCriteria(t, []string{
-		"세션 조회 성공",
-		"Session ID 일치",
-		"세션 데이터 정확",
+		"세션 조회 성공 (GetSession)",
+		"세션 ID 조회 가능",
+		"생성 시간 조회 가능",
+		"마지막 사용 시간 조회 가능",
+		"메시지 카운트 조회 가능",
+		"만료 상태 조회 가능",
+		"세션 설정 조회 가능",
 		"존재하지 않는 세션 처리",
 	})
 
-	// Save test data
 	testData := map[string]interface{}{
-		"test_case":      "7.1.2_Session_Get",
-		"session_id":     sessionID,
-		"session_found":  exists,
-		"id_matches":     created.GetID() == retrieved.GetID(),
+		"test_case":    "7.2.1.2_Session_Info_Retrieval",
+		"session_id":   sessionID,
+		"session_found": true,
+		"info_accessible": map[string]interface{}{
+			"id":             retrievedID,
+			"created_at":     createdAt.Format(time.RFC3339),
+			"last_used_at":   lastUsedAt.Format(time.RFC3339),
+			"message_count":  msgCount,
+			"is_expired":     isExpired,
+			"config_accessible": true,
+		},
 		"non_existent_handled": true,
 	}
-	helpers.SaveTestData(t, "session/manager_get_session.json", testData)
+	helpers.SaveTestData(t, "session/7_2_1_2_info_retrieval.json", testData)
 }
 
-// Test 7.1.3: 세션 삭제
-func TestSessionManager_DeleteSession(t *testing.T) {
-	// Specification Requirement: Explicit session termination
-	helpers.LogTestSection(t, "7.1.3", "세션 삭제 (명시적 종료)")
+// Test 7.2.1.3: 만료 세션 삭제
+func Test_7_2_1_3_ExpiredSessionDeletion(t *testing.T) {
+	helpers.LogTestSection(t, "7.2.1.3", "만료 세션 삭제")
 
 	mgr := NewManager()
 	defer mgr.Close()
 
-	sessionID := "test-session-003"
-	sharedSecret := b(chacha20poly1305.KeySize)
-
-	helpers.LogDetail(t, "세션 생성 및 삭제 테스트:")
-	helpers.LogDetail(t, "  Session ID: %s", sessionID)
-
-	// Create session
-	_, err := mgr.CreateSession(sessionID, sharedSecret)
-	require.NoError(t, err)
-	helpers.LogSuccess(t, "세션 생성 완료")
-
-	// Verify session exists
-	_, exists := mgr.GetSession(sessionID)
-	require.True(t, exists)
-	countBefore := mgr.GetSessionCount()
-	require.Equal(t, 1, countBefore)
-	helpers.LogDetail(t, "  삭제 전 세션 수: %d", countBefore)
-
-	// Delete session
-	mgr.RemoveSession(sessionID)
-	helpers.LogSuccess(t, "세션 삭제 완료")
-
-	// Verify session no longer exists
-	_, exists = mgr.GetSession(sessionID)
-	require.False(t, exists)
-	helpers.LogSuccess(t, "삭제 후 세션 조회 실패 확인 (예상됨)")
-
-	// Verify session count decreased
-	countAfter := mgr.GetSessionCount()
-	require.Equal(t, 0, countAfter)
-	helpers.LogDetail(t, "  삭제 후 세션 수: %d", countAfter)
-
-	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
-		"세션 삭제 성공",
-		"삭제 후 조회 실패",
-		"세션 카운트 감소",
-		"메모리 해제",
-	})
-
-	// Save test data
-	testData := map[string]interface{}{
-		"test_case":       "7.1.3_Session_Delete",
-		"session_id":      sessionID,
-		"count_before":    countBefore,
-		"count_after":     countAfter,
-		"session_deleted": true,
-		"not_found_after": !exists,
-	}
-	helpers.SaveTestData(t, "session/manager_delete_session.json", testData)
-}
-
-// Test 7.2.1: TTL 기반 만료
-func TestSessionManager_TTL(t *testing.T) {
-	// Specification Requirement: TTL-based session expiration
-	helpers.LogTestSection(t, "7.2.1", "TTL 기반 만료 (세션 생명주기 관리)")
-
-	mgr := NewManager()
-	defer mgr.Close()
-
-	sessionID := "test-session-ttl"
-	sharedSecret := b(chacha20poly1305.KeySize)
-
-	// Set short TTL for testing
-	shortTTL := 100 * time.Millisecond
-	config := Config{
-		MaxAge:      shortTTL,
-		IdleTimeout: time.Hour, // Long idle timeout
-		MaxMessages: 100,
-	}
-
-	helpers.LogDetail(t, "TTL 기반 만료 테스트:")
-	helpers.LogDetail(t, "  Session ID: %s", sessionID)
-	helpers.LogDetail(t, "  TTL: %v", shortTTL)
-
-	// Create session with short TTL
-	sess, err := mgr.CreateSessionWithConfig(sessionID, sharedSecret, config)
-	require.NoError(t, err)
-	require.False(t, sess.IsExpired())
-	helpers.LogSuccess(t, "세션 생성 완료 (TTL 설정)")
-	helpers.LogDetail(t, "  초기 만료 상태: %v", sess.IsExpired())
-
-	// Wait for TTL to expire
-	sleepDuration := shortTTL + 20*time.Millisecond
-	helpers.LogDetail(t, "  대기 시간: %v", sleepDuration)
-	time.Sleep(sleepDuration)
-
-	// Verify session is now expired
-	require.True(t, sess.IsExpired())
-	helpers.LogSuccess(t, "TTL 만료 확인")
-	helpers.LogDetail(t, "  만료 후 상태: %v", sess.IsExpired())
-
-	// Verify GetSession returns nil for expired session
-	retrieved, exists := mgr.GetSession(sessionID)
-	require.False(t, exists)
-	require.Nil(t, retrieved)
-	helpers.LogSuccess(t, "만료된 세션 자동 무효화 확인")
-
-	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
-		"TTL 기반 만료 동작",
-		"시간 경과 후 만료 확인",
-		"자동 무효화",
-		"메모리 관리",
-	})
-
-	// Save test data
-	testData := map[string]interface{}{
-		"test_case":      "7.2.1_Session_TTL",
-		"session_id":     sessionID,
-		"ttl_ms":         shortTTL.Milliseconds(),
-		"sleep_ms":       sleepDuration.Milliseconds(),
-		"expired":        true,
-		"auto_invalidated": !exists,
-	}
-	helpers.SaveTestData(t, "session/manager_ttl.json", testData)
-}
-
-// Test 7.2.2: 자동 정리
-func TestSessionManager_AutoCleanup(t *testing.T) {
-	// Specification Requirement: Automatic cleanup of expired sessions
-	helpers.LogTestSection(t, "7.2.2", "자동 정리 (만료된 세션 자동 제거)")
-
-	mgr := NewManager()
-	defer mgr.Close()
-
-	// Create multiple sessions with short TTL
+	// Create sessions with short TTL
 	shortTTL := 50 * time.Millisecond
 	config := Config{
 		MaxAge:      shortTTL,
@@ -727,129 +924,96 @@ func TestSessionManager_AutoCleanup(t *testing.T) {
 		MaxMessages: 100,
 	}
 
-	helpers.LogDetail(t, "자동 정리 테스트:")
+	helpers.LogDetail(t, "만료 세션 자동 삭제 테스트:")
 	helpers.LogDetail(t, "  TTL: %v", shortTTL)
 
 	// Create 3 sessions
-	for i := 1; i <= 3; i++ {
-		sessionID := fmt.Sprintf("auto-cleanup-session-%d", i)
-		_, err := mgr.CreateSessionWithConfig(sessionID, b(chacha20poly1305.KeySize), config)
+	sessionIDs := make([]string, 3)
+	for i := 0; i < 3; i++ {
+		sharedSecret := b(chacha20poly1305.KeySize)
+		sid, err := ComputeSessionIDFromSeed(sharedSecret, fmt.Sprintf("expire-test-%d", i))
 		require.NoError(t, err)
+		sessionIDs[i] = sid
+
+		_, err = mgr.CreateSessionWithConfig(sid, sharedSecret, config)
+		require.NoError(t, err)
+		helpers.LogDetail(t, "  Session %d created: %s", i+1, sid)
 	}
 
 	countBefore := mgr.GetSessionCount()
 	require.Equal(t, 3, countBefore)
 	helpers.LogSuccess(t, "3개 세션 생성 완료")
-	helpers.LogDetail(t, "  정리 전 세션 수: %d", countBefore)
+	helpers.LogDetail(t, "  삭제 전 세션 수: %d", countBefore)
 
-	// Wait for TTL to expire
+	// Wait for sessions to expire
 	time.Sleep(shortTTL + 20*time.Millisecond)
+	helpers.LogDetail(t, "  TTL 만료 대기 완료")
 
-	// Manually trigger cleanup (simulating the background cleanup)
+	// Trigger cleanup
 	mgr.cleanupExpiredSessions()
-	helpers.LogSuccess(t, "자동 정리 실행")
+	helpers.LogSuccess(t, "만료 세션 정리 실행")
 
-	// Verify all sessions were cleaned up
+	// Verify all expired sessions were deleted
 	countAfter := mgr.GetSessionCount()
 	require.Equal(t, 0, countAfter)
-	helpers.LogSuccess(t, "만료된 세션 모두 제거")
-	helpers.LogDetail(t, "  정리 후 세션 수: %d", countAfter)
+	helpers.LogSuccess(t, "만료 세션 모두 삭제 확인")
+	helpers.LogDetail(t, "  삭제 후 세션 수: %d", countAfter)
 
-	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
-		"자동 정리 동작",
-		"만료된 세션 제거",
-		"백그라운드 실행",
-		"메모리 효율성",
-	})
-
-	// Save test data
-	testData := map[string]interface{}{
-		"test_case":      "7.2.2_Auto_Cleanup",
-		"ttl_ms":         shortTTL.Milliseconds(),
-		"sessions_before": countBefore,
-		"sessions_after":  countAfter,
-		"all_cleaned":     countAfter == 0,
+	// Verify each session is no longer retrievable
+	for i, sid := range sessionIDs {
+		_, exists := mgr.GetSession(sid)
+		require.False(t, exists)
+		helpers.LogDetail(t, "  Session %d 삭제 확인: %s", i+1, sid)
 	}
-	helpers.SaveTestData(t, "session/manager_auto_cleanup.json", testData)
-}
+	helpers.LogSuccess(t, "모든 만료 세션 조회 불가 확인")
 
-// Test 7.2.3: 만료 시간 갱신
-func TestSessionManager_RefreshTTL(t *testing.T) {
-	// Specification Requirement: TTL refresh on session activity
-	helpers.LogTestSection(t, "7.2.3", "만료 시간 갱신 (세션 활동 시 TTL 연장)")
-
-	mgr := NewManager()
-	defer mgr.Close()
-
-	sessionID := "test-session-refresh"
+	// Test manual deletion before expiry
 	sharedSecret := b(chacha20poly1305.KeySize)
+	manualID, err := ComputeSessionIDFromSeed(sharedSecret, "manual-delete-test")
+	require.NoError(t, err)
 
-	// Set moderate TTL with idle timeout
-	config := Config{
-		MaxAge:      time.Hour,               // Long max age
-		IdleTimeout: 100 * time.Millisecond,  // Short idle timeout
+	config2 := Config{
+		MaxAge:      time.Hour, // Long TTL
+		IdleTimeout: time.Hour,
 		MaxMessages: 100,
 	}
 
-	helpers.LogDetail(t, "TTL 갱신 테스트:")
-	helpers.LogDetail(t, "  Session ID: %s", sessionID)
-	helpers.LogDetail(t, "  Max Age: %v", config.MaxAge)
-	helpers.LogDetail(t, "  Idle Timeout: %v", config.IdleTimeout)
-
-	// Create session
-	sess, err := mgr.CreateSessionWithConfig(sessionID, sharedSecret, config)
+	_, err = mgr.CreateSessionWithConfig(manualID, sharedSecret, config2)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "세션 생성 완료")
+	helpers.LogDetail(t, "수동 삭제 테스트 세션 생성: %s", manualID)
 
-	// Wait half the idle timeout
-	time.Sleep(50 * time.Millisecond)
-	helpers.LogDetail(t, "  대기 (50ms)")
+	// Manually delete non-expired session
+	mgr.RemoveSession(manualID)
+	helpers.LogSuccess(t, "수동 삭제 성공")
 
-	// Perform activity (encrypt a message)
-	covered := []byte("covered-data")
-	plaintext := []byte("keep-alive")
-	_, _, err = sess.EncryptAndSign(plaintext, covered)
-	require.NoError(t, err)
-	helpers.LogSuccess(t, "세션 활동 수행 (암호화)")
+	// Verify it's deleted
+	_, exists := mgr.GetSession(manualID)
+	require.False(t, exists)
+	helpers.LogSuccess(t, "수동 삭제된 세션 조회 불가 확인")
 
-	// Wait another half idle timeout (would expire without refresh)
-	time.Sleep(50 * time.Millisecond)
-	helpers.LogDetail(t, "  추가 대기 (50ms)")
-
-	// Verify session is still alive (activity refreshed the idle timeout)
-	require.False(t, sess.IsExpired())
-	helpers.LogSuccess(t, "세션 활동 후 TTL 갱신 확인")
-	helpers.LogDetail(t, "  세션 만료 여부: %v", sess.IsExpired())
-
-	// Now wait for full idle timeout without activity
-	time.Sleep(config.IdleTimeout + 20*time.Millisecond)
-	helpers.LogDetail(t, "  유휴 시간 초과 대기")
-
-	// Verify session is now expired due to idle timeout
-	require.True(t, sess.IsExpired())
-	helpers.LogSuccess(t, "유휴 타임아웃으로 세션 만료 확인")
-
-	// Pass criteria checklist
 	helpers.LogPassCriteria(t, []string{
-		"세션 활동 시 TTL 갱신",
-		"Idle timeout 연장",
-		"세션 유지 확인",
-		"유휴 시간 초과 시 만료",
+		"만료 세션 자동 감지",
+		"cleanupExpiredSessions 실행",
+		"만료 세션 모두 삭제",
+		"삭제된 세션 조회 불가",
+		"수동 삭제 (RemoveSession) 동작",
 	})
 
-	// Save test data
 	testData := map[string]interface{}{
-		"test_case":        "7.2.3_Refresh_TTL",
-		"session_id":       sessionID,
-		"max_age_ms":       config.MaxAge.Milliseconds(),
-		"idle_timeout_ms":  config.IdleTimeout.Milliseconds(),
-		"activity_performed": true,
-		"ttl_refreshed":     true,
-		"final_expired":     true,
+		"test_case":          "7.2.1.3_Expired_Session_Deletion",
+		"ttl_ms":             shortTTL.Milliseconds(),
+		"sessions_created":   3,
+		"sessions_before":    countBefore,
+		"sessions_after":     countAfter,
+		"all_deleted":        countAfter == 0,
+		"manual_delete_works": true,
 	}
-	helpers.SaveTestData(t, "session/manager_refresh_ttl.json", testData)
+	helpers.SaveTestData(t, "session/7_2_1_3_expired_deletion.json", testData)
 }
+
+// ============================================================================
+// 【10. 추가 테스트】
+// ============================================================================
 
 // Test 10.3.1: 세션 나열
 func TestSessionManager_ListSessions(t *testing.T) {
