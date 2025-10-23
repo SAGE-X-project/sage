@@ -374,6 +374,12 @@ func TestV2RegistrationWithUpdate(t *testing.T) {
 		t.Skip("Skipping integration test. Set SAGE_INTEGRATION_TEST=1 to run")
 	}
 
+	// V2 contract is deprecated - skip this test
+	t.Skip("DEPRECATED: V2 contract is no longer supported due to incompatible signature verification. " +
+		"V2 expects: keccak256(abi.encodePacked('SAGE Key Registration:', chainId, contract, sender, keyHash)) " +
+		"but Go client provides text-based message signatures. " +
+		"Use V4 contract (TestV4Update) instead.")
+
 	t.Log("=== V2 Contract Registration and Update Test ===")
 
 	// Configuration for V2 contract

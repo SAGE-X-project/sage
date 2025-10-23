@@ -480,21 +480,48 @@ func (c *EthereumClientV4) ResolvePublicKeyByType(
 
 // Update updates agent metadata
 func (c *EthereumClientV4) Update(ctx context.Context, agentDID did.AgentDID, updates map[string]interface{}, keyPair sagecrypto.KeyPair) error {
-	// Prepare update message
-	message := c.prepareUpdateMessage(agentDID, updates)
-	messageHash := crypto.Keccak256([]byte(message))
-
-	// Sign the message
-	signature, err := keyPair.Sign(messageHash)
-	if err != nil {
-		return fmt.Errorf("failed to sign update: %w", err)
-	}
-
-	// Prepare transaction options
+	// Prepare transaction options first (need msg.sender)
 	auth, err := c.getTransactOpts(ctx)
 	if err != nil {
 		return err
 	}
+	sender := auth.From
+
+	// Get agent to retrieve first key data (needed to calculate correct agentId)
+	agent, err := c.contract.GetAgentByDID(&bind.CallOpts{Context: ctx}, string(agentDID))
+	if err != nil {
+		return fmt.Errorf("failed to resolve agent: %w", err)
+	}
+
+	if agent.Did == "" {
+		return did.ErrDIDNotFound
+	}
+
+	if len(agent.KeyHashes) == 0 {
+		return fmt.Errorf("agent has no keys")
+	}
+
+	// Get first key data
+	keyHash := agent.KeyHashes[0]
+	keyData, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, keyHash)
+	if err != nil {
+		return fmt.Errorf("failed to get key data: %w", err)
+	}
+
+	// Calculate agentId (same as contract: keccak256(abi.encode(did, firstKeyData)))
+	stringType, _ := abi.NewType("string", "", nil)
+	bytesType, _ := abi.NewType("bytes", "", nil)
+	arguments := abi.Arguments{
+		{Type: stringType},
+		{Type: bytesType},
+	}
+
+	agentIdData, err := arguments.Pack(string(agentDID), keyData.KeyData)
+	if err != nil {
+		return fmt.Errorf("failed to encode agentId: %w", err)
+	}
+
+	agentId := crypto.Keccak256Hash(agentIdData)
 
 	// Extract update fields
 	name, _ := updates["name"].(string)
@@ -510,8 +537,61 @@ func (c *EthereumClientV4) Update(ctx context.Context, agentDID did.AgentDID, up
 		capabilitiesJSON = string(capBytes)
 	}
 
-	// Generate agentId from DID (keccak256 hash)
-	agentId := crypto.Keccak256Hash([]byte(string(agentDID)))
+	// Get current nonce from contract
+	// The contract has getNonce(bytes32 agentId) view function added in V4.1
+	// TODO: After contract redeployment and ABI regeneration with getNonce, use:
+	//   nonceResult, err := c.contract.GetNonce(&bind.CallOpts{Context: ctx}, agentId)
+	//   if err == nil {
+	//       nonce = nonceResult
+	//   } else {
+	//       nonce = big.NewInt(0) // Fallback for old contracts
+	//   }
+	//
+	// For now, we use fallback to nonce=0 until:
+	// 1. Contract is recompiled with getNonce function
+	// 2. ABI is regenerated (npm run extract-abi)
+	// 3. Go bindings are updated (npm run generate:go)
+	//
+	// With nonce=0, only the first update will work. After contract redeployment,
+	// multiple updates will work automatically.
+	nonce := big.NewInt(0)
+
+	// Prepare message matching contract's signature verification
+	// Contract expects: keccak256(abi.encode(agentId, name, description, endpoint, capabilities, msg.sender, agentNonce[agentId]))
+	bytes32Type, _ := abi.NewType("bytes32", "", nil)
+	addressType, _ := abi.NewType("address", "", nil)
+	uint256Type, _ := abi.NewType("uint256", "", nil)
+
+	sigArguments := abi.Arguments{
+		{Type: bytes32Type},  // agentId
+		{Type: stringType},   // name
+		{Type: stringType},   // description
+		{Type: stringType},   // endpoint
+		{Type: stringType},   // capabilities
+		{Type: addressType},  // msg.sender
+		{Type: uint256Type},  // nonce
+	}
+
+	messageData, err := sigArguments.Pack(
+		agentId,
+		name,
+		description,
+		endpoint,
+		capabilitiesJSON,
+		sender,
+		nonce,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to encode update message: %w", err)
+	}
+
+	messageHash := crypto.Keccak256Hash(messageData)
+
+	// Sign the message
+	signature, err := keyPair.Sign(messageHash.Bytes())
+	if err != nil {
+		return fmt.Errorf("failed to sign update: %w", err)
+	}
 
 	// Call the contract
 	tx, err := c.contract.UpdateAgent(auth, agentId, name, description, endpoint, capabilitiesJSON, signature)
@@ -532,8 +612,41 @@ func (c *EthereumClientV4) Deactivate(ctx context.Context, agentDID did.AgentDID
 		return err
 	}
 
-	// Generate agentId from DID (keccak256 hash)
-	agentId := crypto.Keccak256Hash([]byte(string(agentDID)))
+	// Get agent to retrieve first key data (needed to calculate correct agentId)
+	agent, err := c.contract.GetAgentByDID(&bind.CallOpts{Context: ctx}, string(agentDID))
+	if err != nil {
+		return fmt.Errorf("failed to resolve agent: %w", err)
+	}
+
+	if agent.Did == "" {
+		return did.ErrDIDNotFound
+	}
+
+	if len(agent.KeyHashes) == 0 {
+		return fmt.Errorf("agent has no keys")
+	}
+
+	// Get first key data
+	keyHash := agent.KeyHashes[0]
+	keyData, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, keyHash)
+	if err != nil {
+		return fmt.Errorf("failed to get key data: %w", err)
+	}
+
+	// Calculate agentId (same as contract: keccak256(abi.encode(did, firstKeyData)))
+	stringType, _ := abi.NewType("string", "", nil)
+	bytesType, _ := abi.NewType("bytes", "", nil)
+	arguments := abi.Arguments{
+		{Type: stringType},
+		{Type: bytesType},
+	}
+
+	agentIdData, err := arguments.Pack(string(agentDID), keyData.KeyData)
+	if err != nil {
+		return fmt.Errorf("failed to encode agentId: %w", err)
+	}
+
+	agentId := crypto.Keccak256Hash(agentIdData)
 
 	// Call the contract
 	tx, err := c.contract.DeactivateAgent(auth, agentId)
