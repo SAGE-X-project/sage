@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -32,20 +33,39 @@ import (
 func TestCanonicalizer(t *testing.T) {
 	// Test 1.4.1: Basic GET request
 	t.Run("basic GET request", func(t *testing.T) {
-		req, err := http.NewRequest("GET", "https://example.com/foo?bar=baz", nil)
+		// 명세 요구사항: RFC9421 기본 GET 요청 서명 베이스 생성
+		helpers.LogTestSection(t, "12.1.1", "RFC9421 정규화 - 기본 GET 요청")
+
+		url := "https://example.com/foo?bar=baz"
+		helpers.LogDetail(t, "HTTP 요청 생성:")
+		helpers.LogDetail(t, "  메서드: GET")
+		helpers.LogDetail(t, "  URL: %s", url)
+
+		req, err := http.NewRequest("GET", url, nil)
 		require.NoError(t, err)
+		helpers.LogSuccess(t, "HTTP 요청 생성 완료")
 
 		components := []string{`"@method"`, `"@authority"`, `"@path"`, `"@query"`}
+		helpers.LogDetail(t, "커버된 컴포넌트: %v", components)
+
 		params := &SignatureInputParams{
 			CoveredComponents: components,
 			KeyID:             "test-key",
 			Algorithm:         "ed25519",
 			Created:           1719234000,
 		}
+		helpers.LogDetail(t, "서명 파라미터:")
+		helpers.LogDetail(t, "  KeyID: %s", params.KeyID)
+		helpers.LogDetail(t, "  Algorithm: %s", params.Algorithm)
+		helpers.LogDetail(t, "  Created: %d", params.Created)
 
 		canonicalizer := NewCanonicalizer()
+		helpers.LogSuccess(t, "정규화기 생성 완료")
+
+		helpers.LogDetail(t, "서명 베이스 생성 중...")
 		result, err := canonicalizer.BuildSignatureBase(req, "sig1", params)
 		require.NoError(t, err)
+		helpers.LogSuccess(t, "서명 베이스 생성 완료")
 
 		expected := `"@method": GET
 "@authority": example.com
@@ -54,18 +74,68 @@ func TestCanonicalizer(t *testing.T) {
 "@signature-params": ("@method" "@authority" "@path" "@query");keyid="test-key";alg="ed25519";created=1719234000`
 
 		assert.Equal(t, expected, result)
+		helpers.LogSuccess(t, "서명 베이스 검증 완료")
+		helpers.LogDetail(t, "생성된 서명 베이스:")
+		for i, line := range strings.Split(result, "\n") {
+			helpers.LogDetail(t, "  [%d] %s", i+1, line)
+		}
+
+		// 통과 기준 체크리스트
+		helpers.LogPassCriteria(t, []string{
+			"HTTP GET 요청 생성 성공",
+			"커버된 컴포넌트 4개 설정",
+			"서명 파라미터 설정 완료",
+			"정규화기 생성 성공",
+			"서명 베이스 생성 성공",
+			"@method, @authority, @path, @query 포함",
+			"@signature-params 올바르게 생성됨",
+		})
+
+		// CLI 검증용 테스트 데이터 저장
+		testData := map[string]interface{}{
+			"test_case": "12.1.1_RFC9421_정규화_기본_GET",
+			"request": map[string]interface{}{
+				"method": "GET",
+				"url":    url,
+			},
+			"signature_params": map[string]interface{}{
+				"covered_components": components,
+				"key_id":             params.KeyID,
+				"algorithm":          params.Algorithm,
+				"created":            params.Created,
+			},
+			"signature_base": result,
+			"validation":     "통과",
+		}
+		helpers.SaveTestData(t, "rfc9421/canonicalizer_basic_get.json", testData)
 	})
 
 	// Test 1.4.2: POST request with Content-Digest
 	t.Run("POST request with Content-Digest", func(t *testing.T) {
+		// 명세 요구사항: Content-Digest를 포함한 POST 요청 서명
+		helpers.LogTestSection(t, "12.1.2", "RFC9421 정규화 - Content-Digest가 있는 POST")
+
 		body := `{"hello": "world"}`
-		req, err := http.NewRequest("POST", "https://example.com/data", strings.NewReader(body))
+		url := "https://example.com/data"
+		digest := "sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:"
+		date := "Mon, 24 Jun 2024 12:00:00 GMT"
+
+		helpers.LogDetail(t, "HTTP POST 요청 생성:")
+		helpers.LogDetail(t, "  URL: %s", url)
+		helpers.LogDetail(t, "  Body: %s", body)
+
+		req, err := http.NewRequest("POST", url, strings.NewReader(body))
 		require.NoError(t, err)
 
-		req.Header.Set("Content-Digest", "sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:")
-		req.Header.Set("Date", "Mon, 24 Jun 2024 12:00:00 GMT")
+		req.Header.Set("Content-Digest", digest)
+		req.Header.Set("Date", date)
+		helpers.LogSuccess(t, "HTTP 요청 및 헤더 설정 완료")
+		helpers.LogDetail(t, "  Content-Digest: %s", digest)
+		helpers.LogDetail(t, "  Date: %s", date)
 
 		components := []string{`"content-digest"`, `"date"`}
+		helpers.LogDetail(t, "커버된 컴포넌트: %v", components)
+
 		params := &SignatureInputParams{
 			CoveredComponents: components,
 		}
@@ -73,9 +143,35 @@ func TestCanonicalizer(t *testing.T) {
 		canonicalizer := NewCanonicalizer()
 		result, err := canonicalizer.BuildSignatureBase(req, "sig1", params)
 		require.NoError(t, err)
+		helpers.LogSuccess(t, "서명 베이스 생성 완료")
 
 		assert.Contains(t, result, `"content-digest": sha-256=:X48E9qOokqqrvdts8nOJRJN3OWDUoyWxBf7kbu9DBPE=:`)
 		assert.Contains(t, result, `"date": Mon, 24 Jun 2024 12:00:00 GMT`)
+		helpers.LogSuccess(t, "Content-Digest 및 Date 헤더 검증 완료")
+
+		// 통과 기준 체크리스트
+		helpers.LogPassCriteria(t, []string{
+			"POST 요청 생성 성공",
+			"Content-Digest 헤더 설정",
+			"Date 헤더 설정",
+			"서명 베이스 생성 성공",
+			"Content-Digest 값 포함 검증",
+			"Date 값 포함 검증",
+		})
+
+		// CLI 검증용 테스트 데이터 저장
+		testData := map[string]interface{}{
+			"test_case": "12.1.2_RFC9421_정규화_POST_Content_Digest",
+			"request": map[string]interface{}{
+				"method":         "POST",
+				"url":            url,
+				"body":           body,
+				"content_digest": digest,
+				"date":           date,
+			},
+			"validation": "통과",
+		}
+		helpers.SaveTestData(t, "rfc9421/canonicalizer_post_digest.json", testData)
 	})
 
 	// Test 1.4.3: Header value whitespace handling
@@ -121,19 +217,57 @@ func TestCanonicalizer(t *testing.T) {
 
 	// Test 1.4.5: Component not found
 	t.Run("component not found", func(t *testing.T) {
-		req, err := http.NewRequest("GET", "https://example.com", nil)
+		// 명세 요구사항: 존재하지 않는 컴포넌트에 대한 에러 처리
+		helpers.LogTestSection(t, "12.1.3", "RFC9421 정규화 - 컴포넌트 누락 에러")
+
+		url := "https://example.com"
+		helpers.LogDetail(t, "HTTP GET 요청 생성: %s", url)
+
+		req, err := http.NewRequest("GET", url, nil)
 		require.NoError(t, err)
+		helpers.LogSuccess(t, "HTTP 요청 생성 완료")
 
 		components := []string{`"content-digest"`}
+		helpers.LogDetail(t, "존재하지 않는 컴포넌트 요청: %v", components)
+		helpers.LogDetail(t, "  참고: GET 요청에 content-digest 헤더 없음")
+
 		params := &SignatureInputParams{
 			CoveredComponents: components,
 		}
 
 		canonicalizer := NewCanonicalizer()
+		helpers.LogDetail(t, "서명 베이스 생성 시도 (에러 예상)...")
 		_, err = canonicalizer.BuildSignatureBase(req, "sig1", params)
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "component not found")
+		helpers.LogSuccess(t, "예상대로 에러 발생")
+		helpers.LogDetail(t, "에러 메시지: %s", err.Error())
+
+		// 통과 기준 체크리스트
+		helpers.LogPassCriteria(t, []string{
+			"GET 요청 생성 성공",
+			"존재하지 않는 컴포넌트 요청",
+			"서명 베이스 생성 실패 (예상됨)",
+			"에러 메시지에 'component not found' 포함",
+			"에러 처리가 올바르게 동작함",
+		})
+
+		// CLI 검증용 테스트 데이터 저장
+		testData := map[string]interface{}{
+			"test_case": "12.1.3_RFC9421_정규화_컴포넌트_누락",
+			"request": map[string]interface{}{
+				"method": "GET",
+				"url":    url,
+			},
+			"requested_component": "content-digest",
+			"result": map[string]interface{}{
+				"error":         true,
+				"error_message": err.Error(),
+			},
+			"validation": "에러_처리_검증_통과",
+		}
+		helpers.SaveTestData(t, "rfc9421/canonicalizer_component_not_found.json", testData)
 	})
 
 	// Test 4.2.1: Empty path

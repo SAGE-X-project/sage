@@ -320,6 +320,18 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
     }
 
     /**
+     * @notice Get current nonce for an agent
+     * @dev Nonce is used for replay protection in signed operations
+     * @param agentId Agent identifier
+     * @return Current nonce value
+     */
+    function getNonce(bytes32 agentId) external view returns (uint256) {
+        // slither-disable-next-line timestamp
+        require(agents[agentId].registeredAt > 0, "Agent not found");  // Existence check, not timestamp comparison
+        return agentNonce[agentId];
+    }
+
+    /**
      * @notice Verify agent ownership
      */
     function verifyAgentOwnership(bytes32 agentId, address claimedOwner)

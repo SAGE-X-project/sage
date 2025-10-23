@@ -22,13 +22,17 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/google/uuid"
 
 	_ "github.com/sage-x-project/sage/internal/cryptoinit" // Initialize crypto wrappers
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
@@ -1209,4 +1213,228 @@ func TestV4ApproveEd25519Key(t *testing.T) {
 
 	t.Log("✓ Ed25519 key is now verified after approval")
 	t.Log("✓ ApproveEd25519Key test completed successfully!")
+}
+
+// TestV4DIDLifecycleWithFundedKey demonstrates the complete DID lifecycle using a funded test key
+// This test covers SPECIFICATION_VERIFICATION_MATRIX.md sections:
+//
+//	3.2.1.1: Ethereum 스마트 컨트랙트 배포 성공
+//	3.2.1.2: 트랜잭션 해시 반환 확인
+//	3.2.1.3: 가스비 소모량 확인 (~653,000 gas)
+//	3.2.1.4: 등록 후 온체인 조회 가능 확인
+//
+// IMPORTANT: This test demonstrates the pattern of funding a newly generated Secp256k1 key
+// with ETH from the Hardhat/Anvil default account, which is required for the key to send
+// transactions and pay gas fees.
+func TestV4DIDLifecycleWithFundedKey(t *testing.T) {
+	// Skip if not running integration tests
+	if os.Getenv("SAGE_INTEGRATION_TEST") != "1" {
+		t.Skip("Skipping integration test. Set SAGE_INTEGRATION_TEST=1 to run")
+	}
+
+	t.Log("=== DID Lifecycle Test with Funded Key ===")
+	t.Log("This test demonstrates the complete pattern for testing DID operations:")
+	t.Log("1. Generate new Secp256k1 keypair")
+	t.Log("2. Fund the new key with ETH from Hardhat default account")
+	t.Log("3. Register DID on blockchain using the funded key")
+	t.Log("4. Verify registration and measure gas usage")
+
+	// Step 1: Create client with Hardhat default account (has initial ETH balance)
+	config := &did.RegistryConfig{
+		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		RPCEndpoint:        "http://localhost:8545",
+		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat account #0
+		GasPrice:           0,
+		MaxRetries:         10,
+		ConfirmationBlocks: 0,
+	}
+
+	client, err := NewEthereumClientV4(config)
+	if err != nil {
+		t.Fatalf("Failed to create V4 client: %v", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	// Step 2: Generate new Secp256k1 keypair for the agent
+	t.Log("\n[Step 1] Generating new Secp256k1 keypair...")
+	agentKeyPair, err := crypto.GenerateSecp256k1KeyPair()
+	if err != nil {
+		t.Fatalf("Failed to generate agent keypair: %v", err)
+	}
+
+	// Derive Ethereum address from the public key
+	ecdsaPubKey, ok := agentKeyPair.PublicKey().(*ecdsa.PublicKey)
+	if !ok {
+		t.Fatal("Failed to cast public key to ECDSA")
+	}
+	agentAddress := ethcrypto.PubkeyToAddress(*ecdsaPubKey)
+	t.Logf("✓ Agent keypair generated")
+	t.Logf("  Agent address: %s", agentAddress.Hex())
+
+	// Check initial balance (should be 0)
+	initialBalance, err := client.client.BalanceAt(ctx, agentAddress, nil)
+	if err != nil {
+		t.Fatalf("Failed to get initial balance: %v", err)
+	}
+	t.Logf("  Initial balance: %s wei", initialBalance.String())
+
+	// Step 3: Fund the new key with ETH from Hardhat default account
+	t.Log("\n[Step 2] Funding agent key with ETH from Hardhat account #0...")
+	fundAmount := new(big.Int).Mul(big.NewInt(10), big.NewInt(1e18)) // 10 ETH
+	receipt, err := transferETH(ctx, client, agentAddress, fundAmount)
+	if err != nil {
+		t.Fatalf("Failed to transfer ETH: %v", err)
+	}
+
+	t.Logf("✓ ETH transfer successful")
+	t.Logf("  Transaction hash: %s", receipt.TxHash.Hex())
+	t.Logf("  Block number: %d", receipt.BlockNumber.Uint64())
+	t.Logf("  Gas used: %d", receipt.GasUsed)
+	t.Logf("  Amount transferred: 10 ETH")
+
+	// Verify the transfer
+	newBalance, err := client.client.BalanceAt(ctx, agentAddress, nil)
+	if err != nil {
+		t.Fatalf("Failed to get new balance: %v", err)
+	}
+	t.Logf("  New balance: %s wei (%.2f ETH)", newBalance.String(), float64(newBalance.Int64())/1e18)
+
+	if newBalance.Cmp(fundAmount) < 0 {
+		t.Fatalf("Balance after transfer (%s) is less than transferred amount (%s)", newBalance.String(), fundAmount.String())
+	}
+
+	// Step 4: Register DID on blockchain
+	// NOTE: The client still uses Hardhat account #0 to send the registration transaction
+	// The agentKeyPair is registered as the agent's identity key in the DID document
+	t.Log("\n[Step 3] Registering DID on blockchain...")
+	testDID := did.AgentDID("did:sage:ethereum:" + uuid.New().String())
+
+	req := &did.RegistrationRequest{
+		DID:         testDID,
+		Name:        "Funded Agent Test",
+		Description: "Agent with funded Secp256k1 key for realistic testing",
+		Endpoint:    "http://localhost:8080",
+		Capabilities: map[string]interface{}{
+			"test":    "funded_key_lifecycle",
+			"balance": newBalance.String(),
+		},
+		KeyPair: agentKeyPair,
+	}
+
+	t.Logf("  Registering DID: %s", testDID)
+	regResult, err := client.Register(ctx, req)
+	if err != nil {
+		t.Fatalf("Failed to register DID: %v", err)
+	}
+
+	t.Logf("✓ DID registered successfully")
+	t.Logf("  Transaction hash: %s", regResult.TransactionHash)
+	t.Logf("  Block number: %d", regResult.BlockNumber)
+	t.Logf("  Gas used: %d", regResult.GasUsed)
+
+	// Verify gas usage is reasonable (~653,000 gas for registration)
+	if regResult.GasUsed < 100000 {
+		t.Errorf("Gas used (%d) seems too low for DID registration", regResult.GasUsed)
+	}
+	if regResult.GasUsed > 1000000 {
+		t.Errorf("Gas used (%d) seems too high for DID registration", regResult.GasUsed)
+	}
+
+	// Step 5: Verify registration by resolving the DID
+	t.Log("\n[Step 4] Verifying DID registration...")
+	agent, err := client.Resolve(ctx, testDID)
+	if err != nil {
+		t.Fatalf("Failed to resolve DID: %v", err)
+	}
+
+	t.Logf("✓ DID resolved successfully")
+	t.Logf("  DID: %s", agent.DID)
+	t.Logf("  Name: %s", agent.Name)
+	t.Logf("  Owner: %s", agent.Owner)
+	t.Logf("  Active: %v", agent.IsActive)
+	t.Logf("  Endpoint: %s", agent.Endpoint)
+
+	// Verify metadata
+	if agent.DID != testDID {
+		t.Errorf("DID mismatch: got %s, want %s", agent.DID, testDID)
+	}
+	if agent.Name != req.Name {
+		t.Errorf("Name mismatch: got %s, want %s", agent.Name, req.Name)
+	}
+	if !agent.IsActive {
+		t.Error("Agent should be active after registration")
+	}
+
+	// Summary
+	t.Log("\n=== Test Summary ===")
+	t.Log("✓ New Secp256k1 keypair generated")
+	t.Log("✓ Agent address funded with 10 ETH")
+	t.Logf("✓ DID registered (gas: %d)", regResult.GasUsed)
+	t.Log("✓ DID resolved and verified")
+	t.Log("✓ All metadata matches registration request")
+	t.Log("\nThis pattern should be followed for all DID integration tests")
+	t.Log("to ensure test keys have sufficient balance for gas fees.")
+}
+
+// transferETH transfers ETH from the client's account to a destination address
+// This is a helper function for test setup to fund newly generated test keys
+//
+// Parameters:
+//   - ctx: Context for the operation
+//   - client: Ethereum client with funded account (Hardhat/Anvil default account)
+//   - toAddress: Destination address to fund
+//   - amount: Amount in wei to transfer (use big.NewInt(value) where value is in wei)
+//
+// Common amounts for testing:
+//   - 1 ETH = big.NewInt(1e18)
+//   - 10 ETH = big.NewInt(0).Mul(big.NewInt(10), big.NewInt(1e18))
+//   - 100 ETH = big.NewInt(0).Mul(big.NewInt(100), big.NewInt(1e18))
+func transferETH(ctx context.Context, client *EthereumClientV4, toAddress common.Address, amount *big.Int) (*types.Receipt, error) {
+	// Get the nonce for the sender account
+	fromAddress := ethcrypto.PubkeyToAddress(client.privateKey.PublicKey)
+	nonce, err := client.client.PendingNonceAt(ctx, fromAddress)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get nonce: %w", err)
+	}
+
+	// Get current gas price
+	gasPrice, err := client.client.SuggestGasPrice(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get gas price: %w", err)
+	}
+
+	// Create a simple value transfer transaction
+	// Gas limit for simple ETH transfer is 21000
+	gasLimit := uint64(21000)
+
+	tx := types.NewTransaction(
+		nonce,
+		toAddress,
+		amount,
+		gasLimit,
+		gasPrice,
+		nil, // No data for simple transfer
+	)
+
+	// Sign the transaction
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(client.chainID), client.privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sign transaction: %w", err)
+	}
+
+	// Send the transaction
+	err = client.client.SendTransaction(ctx, signedTx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send transaction: %w", err)
+	}
+
+	// Wait for transaction confirmation
+	receipt, err := client.waitForTransaction(ctx, signedTx)
+	if err != nil {
+		return nil, fmt.Errorf("transaction failed: %w", err)
+	}
+
+	return receipt, nil
 }

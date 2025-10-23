@@ -28,7 +28,6 @@ import (
 	"strings"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"golang.org/x/crypto/sha3"
 )
@@ -43,12 +42,18 @@ func MarshalPublicKey(publicKey interface{}) ([]byte, error) {
 	case *ecdsa.PublicKey:
 		// Handle ECDSA public keys (including secp256k1 converted to ECDSA)
 		// Check if this is a secp256k1 curve (Ethereum)
-		// Note: Can't use pointer equality (pk.Curve == ethcrypto.S256()) because
+		// Note: We check curve name instead of pointer equality because
 		// different libraries may use different curve instances
 		if pk.Curve.Params().Name == "secp256k1" {
-			// For secp256k1, use compressed format (33 bytes)
-			// This matches ethers.js Wallet.publicKey format
-			return ethcrypto.CompressPubkey(pk), nil
+			// For secp256k1, use UNCOMPRESSED format (64 bytes: x || y)
+			// V4 contract rejects compressed keys due to expensive decompression on-chain
+			// Returns raw 64-byte format (without 0x04 prefix)
+			// Contract accepts both 64-byte and 65-byte (with 0x04) formats
+			byteLen := (pk.Curve.Params().BitSize + 7) / 8
+			bytes := make([]byte, 2*byteLen)
+			pk.X.FillBytes(bytes[0:byteLen])
+			pk.Y.FillBytes(bytes[byteLen:])
+			return bytes, nil
 		}
 		// For other ECDSA curves, use uncompressed format (0x04 || X || Y)
 		// Manual construction to avoid deprecated elliptic.Marshal
@@ -74,6 +79,11 @@ func UnmarshalPublicKey(data []byte, keyType string) (interface{}, error) {
 		return ed25519.PublicKey(data), nil
 
 	case "secp256k1":
+		// Handle multiple formats: compressed (33 bytes), uncompressed (65 bytes), or raw (64 bytes)
+		if len(data) == 64 {
+			// Raw format (64 bytes: x || y) - prepend 0x04 for standard uncompressed format
+			data = append([]byte{0x04}, data...)
+		}
 		pk, err := secp256k1.ParsePubKey(data)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse secp256k1 public key: %w", err)

@@ -29,17 +29,29 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/sage-x-project/sage/pkg/agent/core/message/nonce"
 )
 
 // Verifier provides RFC-9421 signature verification
 type Verifier struct {
 	httpVerifier *HTTPVerifier
+	nonceManager *nonce.Manager
 }
 
 // NewVerifier creates a new RFC-9421 verifier
 func NewVerifier() *Verifier {
 	return &Verifier{
 		httpVerifier: NewHTTPVerifier(),
+		nonceManager: nonce.NewManager(5*time.Minute, 1*time.Minute),
+	}
+}
+
+// NewVerifierWithNonceManager creates a verifier with a custom nonce manager
+func NewVerifierWithNonceManager(nonceManager *nonce.Manager) *Verifier {
+	return &Verifier{
+		httpVerifier: NewHTTPVerifier(),
+		nonceManager: nonceManager,
 	}
 }
 
@@ -58,12 +70,24 @@ func (v *Verifier) VerifySignature(publicKey interface{}, message *Message, opts
 		}
 	}
 
+	// Check for nonce replay attack if nonce is present
+	if message.Nonce != "" && v.nonceManager != nil {
+		if v.nonceManager.IsNonceUsed(message.Nonce) {
+			return fmt.Errorf("nonce replay attack detected: nonce %s has already been used", message.Nonce)
+		}
+	}
+
 	// Construct the message to verify based on RFC-9421 partial signing
 	signatureBase := v.ConstructSignatureBase(message)
 
 	// Verify the signature
 	if err := v.verifySignatureWithAlgorithm(publicKey, []byte(signatureBase), message.Signature, message.Algorithm); err != nil {
 		return fmt.Errorf("signature verification failed: %w", err)
+	}
+
+	// Mark nonce as used after successful verification
+	if message.Nonce != "" && v.nonceManager != nil {
+		v.nonceManager.MarkNonceUsed(message.Nonce)
 	}
 
 	return nil

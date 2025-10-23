@@ -271,6 +271,14 @@ interface ISageRegistryV4 {
     function getAgentsByOwner(address ownerAddress) external view returns (bytes32[] memory);
 
     /**
+     * @notice Get current nonce for an agent
+     * @dev Nonce is used for replay protection in signed operations
+     * @param agentId Agent identifier
+     * @return Current nonce value
+     */
+    function getNonce(bytes32 agentId) external view returns (uint256);
+
+    /**
      * @notice Verify agent ownership
      * @param agentId Agent identifier
      * @param claimedOwner Address claiming ownership

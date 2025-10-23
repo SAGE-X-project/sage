@@ -149,27 +149,27 @@ func runBlockchainCheck() {
 		return
 	}
 
-	// Pretty print
+	// 출력
 	fmt.Println()
 	fmt.Println("═══════════════════════════════════════════════════════════")
-	fmt.Println("  SAGE Blockchain Connection Check")
+	fmt.Println("  SAGE 블록체인 연결 확인")
 	fmt.Println("═══════════════════════════════════════════════════════════")
 	fmt.Println()
-	fmt.Printf("Network:    %s\n", network)
+	fmt.Printf("네트워크:    %s\n", network)
 	fmt.Printf("RPC URL:    %s\n", rpcURL)
 	fmt.Println()
 
 	if blockchainStatus.Connected {
-		fmt.Println("✓ Status:     CONNECTED")
+		fmt.Println("✓ 상태:      연결됨 (CONNECTED)")
 		fmt.Printf("  Chain ID:   %s\n", blockchainStatus.ChainID)
 		fmt.Printf("  Block:      %d\n", blockchainStatus.BlockNumber)
-		fmt.Printf("  Latency:    %s\n", blockchainStatus.Latency)
+		fmt.Printf("  지연시간:    %s\n", blockchainStatus.Latency)
 
 		statusColor := getStatusSymbol(blockchainStatus.Status)
-		fmt.Printf("\n%s Overall:    %s\n", statusColor, blockchainStatus.Status)
+		fmt.Printf("\n%s 전체 상태:  %s\n", statusColor, blockchainStatus.Status)
 	} else {
-		fmt.Println("✗ Status:     DISCONNECTED")
-		fmt.Printf("  Error:      %s\n", blockchainStatus.Error)
+		fmt.Println("✗ 상태:      연결 끊김 (DISCONNECTED)")
+		fmt.Printf("  에러:      %s\n", blockchainStatus.Error)
 	}
 
 	fmt.Println("═══════════════════════════════════════════════════════════")
@@ -193,23 +193,23 @@ func runSystemCheck() {
 		return
 	}
 
-	// Pretty print
+	// 출력
 	fmt.Println()
 	fmt.Println("═══════════════════════════════════════════════════════════")
-	fmt.Println("  SAGE System Resource Check")
+	fmt.Println("  SAGE 시스템 리소스 확인")
 	fmt.Println("═══════════════════════════════════════════════════════════")
 	fmt.Println()
-	fmt.Printf("Memory:      %d MB / %d MB (%.1f%%)\n",
+	fmt.Printf("메모리:       %d MB / %d MB (%.1f%%)\n",
 		systemStatus.MemoryUsedMB, systemStatus.MemoryTotalMB, systemStatus.MemoryPercent)
-	fmt.Printf("Disk:        %d GB / %d GB (%.1f%%)\n",
+	fmt.Printf("디스크:       %d GB / %d GB (%.1f%%)\n",
 		systemStatus.DiskUsedGB, systemStatus.DiskTotalGB, systemStatus.DiskPercent)
 	fmt.Printf("Goroutines:  %d\n", systemStatus.GoRoutines)
 
 	statusColor := getStatusSymbol(systemStatus.Status)
-	fmt.Printf("\n%s Overall:    %s\n", statusColor, systemStatus.Status)
+	fmt.Printf("\n%s 전체 상태:  %s\n", statusColor, systemStatus.Status)
 
 	if systemStatus.Error != "" {
-		fmt.Printf("  Warning:    %s\n", systemStatus.Error)
+		fmt.Printf("  경고:       %s\n", systemStatus.Error)
 	}
 
 	fmt.Println("═══════════════════════════════════════════════════════════")
@@ -223,47 +223,47 @@ func runSystemCheck() {
 func printHealthStatus(status *health.HealthStatus, network, rpcURL string) {
 	fmt.Println()
 	fmt.Println("═══════════════════════════════════════════════════════════")
-	fmt.Println("  SAGE Health Check")
+	fmt.Println("  SAGE 헬스체크")
 	fmt.Println("═══════════════════════════════════════════════════════════")
 	fmt.Println()
-	fmt.Printf("Network:     %s\n", network)
+	fmt.Printf("네트워크:     %s\n", network)
 	fmt.Printf("RPC URL:     %s\n", rpcURL)
-	fmt.Printf("Timestamp:   %s\n", status.Timestamp.Format("2006-01-02 15:04:05"))
+	fmt.Printf("타임스탬프:   %s\n", status.Timestamp.Format("2006-01-02 15:04:05"))
 	fmt.Println()
 
-	// Blockchain status
+	// 블록체인 상태
 	if status.BlockchainStatus != nil {
-		fmt.Println("Blockchain:")
+		fmt.Println("블록체인:")
 		if status.BlockchainStatus.Connected {
-			fmt.Printf("  ✓ Connected   Chain ID: %s, Block: %d\n",
+			fmt.Printf("  ✓ 연결됨   Chain ID: %s, Block: %d\n",
 				status.BlockchainStatus.ChainID, status.BlockchainStatus.BlockNumber)
-			fmt.Printf("    Latency:    %s\n", status.BlockchainStatus.Latency)
+			fmt.Printf("    지연시간:    %s\n", status.BlockchainStatus.Latency)
 		} else {
-			fmt.Printf("  ✗ Disconnected\n")
-			fmt.Printf("    Error:      %s\n", status.BlockchainStatus.Error)
+			fmt.Printf("  ✗ 연결 끊김 (Disconnected)\n")
+			fmt.Printf("    에러:      %s\n", status.BlockchainStatus.Error)
 		}
 		fmt.Println()
 	}
 
-	// System status
+	// 시스템 상태
 	if status.SystemStatus != nil {
-		fmt.Println("System:")
-		fmt.Printf("  Memory:      %d MB / %d MB (%.1f%%)\n",
+		fmt.Println("시스템:")
+		fmt.Printf("  메모리:       %d MB / %d MB (%.1f%%)\n",
 			status.SystemStatus.MemoryUsedMB, status.SystemStatus.MemoryTotalMB,
 			status.SystemStatus.MemoryPercent)
-		fmt.Printf("  Disk:        %d GB / %d GB (%.1f%%)\n",
+		fmt.Printf("  디스크:       %d GB / %d GB (%.1f%%)\n",
 			status.SystemStatus.DiskUsedGB, status.SystemStatus.DiskTotalGB,
 			status.SystemStatus.DiskPercent)
 		fmt.Printf("  Goroutines:  %d\n", status.SystemStatus.GoRoutines)
 		fmt.Println()
 	}
 
-	// Overall status
+	// 전체 상태
 	statusSymbol := getStatusSymbol(status.Status)
-	fmt.Printf("%s Overall Status: %s\n", statusSymbol, status.Status)
+	fmt.Printf("%s 전체 상태: %s\n", statusSymbol, status.Status)
 
 	if len(status.Errors) > 0 {
-		fmt.Println("\nErrors:")
+		fmt.Println("\n에러 목록:")
 		for _, err := range status.Errors {
 			fmt.Printf("  • %s\n", err)
 		}

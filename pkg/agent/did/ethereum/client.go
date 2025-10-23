@@ -36,11 +36,20 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
-	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
-// EthereumClient implements DID registry operations for Ethereum
+// EthereumClient implements DID registry operations for Ethereum V2 contracts.
+//
+// DEPRECATED: This client is for legacy V2 contracts only and is no longer actively maintained.
+// V2 contracts have incompatible signature verification with the current architecture.
+// For new deployments, use EthereumClientV4 (clientv4.go) which supports:
+//   - Multi-key management (ECDSA + Ed25519)
+//   - Compatible signature verification
+//   - Update functionality
+//   - Better security features
+//
+// Migration: Replace NewEthereumClient() calls with NewEthereumClientV4().
 type EthereumClient struct {
 	client          *ethclient.Client
 	contract        *bind.BoundContract
@@ -58,7 +67,10 @@ func init() {
 	})
 }
 
-// NewEthereumClient creates a new Ethereum DID client
+// NewEthereumClient creates a new Ethereum DID client for V2 contracts.
+//
+// DEPRECATED: Use NewEthereumClientV4() for new deployments.
+// V2 contracts are no longer maintained and have compatibility issues.
 func NewEthereumClient(config *did.RegistryConfig) (*EthereumClient, error) {
 	client, err := ethclient.Dial(config.RPCEndpoint)
 	if err != nil {
@@ -101,24 +113,26 @@ func NewEthereumClient(config *did.RegistryConfig) (*EthereumClient, error) {
 
 // Register registers a new agent on Ethereum
 func (c *EthereumClient) Register(ctx context.Context, req *did.RegistrationRequest) (*did.RegistrationResult, error) {
-	// Convert the key pair to Ethereum format
+	// Validate key type first (before checking client initialization)
 	if req.KeyPair.Type() != sagecrypto.KeyTypeSecp256k1 {
 		return nil, fmt.Errorf("ethereum requires Secp256k1 keys")
 	}
 
-	// Get the Ethereum address for the public key
-	provider, err := chain.GetProvider(chain.ChainTypeEthereum)
-	if err != nil {
-		return nil, err
+	// Validate client is initialized
+	if c.contract == nil {
+		return nil, fmt.Errorf("ethereum client not properly initialized: contract is nil")
 	}
 
-	address, err := provider.GenerateAddress(req.KeyPair.PublicKey(), chain.NetworkEthereumMainnet)
-	if err != nil {
-		return nil, err
+	// Get the Ethereum address directly from public key (no provider dependency needed)
+	ecdsaPubKey, ok := req.KeyPair.PublicKey().(*ecdsa.PublicKey)
+	if !ok {
+		return nil, fmt.Errorf("invalid public key type for Ethereum, expected *ecdsa.PublicKey")
 	}
+	ethAddress := crypto.PubkeyToAddress(*ecdsaPubKey)
+	addressValue := ethAddress.Hex()
 
 	// Prepare the message to sign
-	message := c.prepareRegistrationMessage(req, address.Value)
+	message := c.prepareRegistrationMessage(req, addressValue)
 	messageHash := crypto.Keccak256([]byte(message))
 
 	// Sign the message
@@ -137,6 +151,16 @@ func (c *EthereumClient) Register(ctx context.Context, req *did.RegistrationRequ
 	publicKeyBytes, err := did.MarshalPublicKey(req.KeyPair.PublicKey())
 	if err != nil {
 		return nil, err
+	}
+
+	// V2 contract requires 65-byte uncompressed format (0x04 prefix + 64 bytes)
+	// MarshalPublicKey returns 64 bytes for secp256k1, so we need to add the prefix for V2
+	// Note: This is V2-specific. V4 (clientv4.go) accepts both 64 and 65 byte formats
+	if len(publicKeyBytes) == 64 {
+		prefixedKey := make([]byte, 65)
+		prefixedKey[0] = 0x04 // uncompressed key prefix
+		copy(prefixedKey[1:], publicKeyBytes)
+		publicKeyBytes = prefixedKey
 	}
 
 	// Prepare transaction options

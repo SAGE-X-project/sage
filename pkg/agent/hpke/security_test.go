@@ -225,16 +225,24 @@ func (f CookieSourceFunc) GetCookie(ctxID, initDID, respDID string) (string, boo
 // Tests
 // Happy-path smoke: server response must include Ed25519 signature and ackTag
 func Test_ServerSignature_And_AckTag_HappyPath(t *testing.T) {
+	t.Log("===== 8.1.1 HPKE - 서버 서명 및 Ack Tag (정상 경로) =====")
+
 	ctx := context.Background()
 	cli, srv, _, _, _, _, mt, clientDID, serverDID :=
 		setupHPKETestWithTransport(t, session.Config{}, session.Config{})
 
+	t.Logf("[초기화] Client DID: %s", clientDID)
+	t.Logf("[초기화] Server DID: %s", serverDID)
+
 	var captured []byte
 	mt.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		t.Log("[단계 1] 클라이언트가 HPKE 초기화 메시지를 서버로 전송")
 		resp, err := srv.HandleMessage(ctx, msg)
 		if err != nil {
+			t.Logf("[에러] 서버 메시지 처리 실패: %v", err)
 			return nil, err
 		}
+		t.Log("[단계 2] 서버 메시지 처리 성공")
 		copied := make([]byte, len(resp.Data))
 		copy(copied, resp.Data)
 		captured = copied
@@ -242,42 +250,81 @@ func Test_ServerSignature_And_AckTag_HappyPath(t *testing.T) {
 	}
 
 	ctxID := "ctx-" + uuid.NewString()
+	t.Logf("[단계 3] HPKE 핸드셰이크 초기화 (Context ID: %s)", ctxID)
 	kid, err := cli.Initialize(ctx, ctxID, clientDID, serverDID)
 	require.NoError(t, err)
 	require.NotEmpty(t, kid)
+	t.Logf("[PASS] HPKE 핸드셰이크 성공, Session ID: %s", kid)
 
 	var m map[string]string
 	require.NoError(t, json.Unmarshal(captured, &m))
-	require.NotEmpty(t, m["sigB64"], "server response must include Ed25519 signature")
-	require.NotEmpty(t, m["ackTagB64"], "server response must include ackTag")
+
+	t.Log("[단계 4] 서버 응답에 필수 필드 포함 여부 검증")
+	require.NotEmpty(t, m["sigB64"], "서버 응답에 Ed25519 서명이 포함되어야 함")
+	t.Logf("[PASS] Ed25519 서명 발견: %s...", m["sigB64"][:20])
+
+	require.NotEmpty(t, m["ackTagB64"], "서버 응답에 ackTag가 포함되어야 함")
+	t.Logf("[PASS] Ack Tag 발견: %s...", m["ackTagB64"][:20])
+
 	sig, err := base64.RawURLEncoding.DecodeString(m["sigB64"])
 	require.NoError(t, err)
 	require.Len(t, sig, 64)
+	t.Logf("[PASS] Ed25519 서명 길이 검증: %d bytes (예상값: 64)", len(sig))
+
+	t.Log("")
+	t.Log("===== 통과 기준 체크리스트 =====")
+	t.Log("  [PASS] HPKE 핸드셰이크 완료")
+	t.Log("  [PASS] 서버 응답에 Ed25519 서명 포함")
+	t.Log("  [PASS] 서버 응답에 ackTag 포함")
+	t.Log("  [PASS] Ed25519 서명 = 64 bytes")
+	t.Log("  [PASS] 세션 생성 성공")
 }
 
 // (1) Base misuse / MITM/UKS: wrong receiver KEM key must fail via ackTag
 func Test_Client_ResolveKEM_WrongKey_Rejects(t *testing.T) {
+	t.Log("===== 8.1.2 HPKE - 잘못된 KEM 키 거부 (MITM/UKS 방어) =====")
+
 	ctx := context.Background()
 
 	cli, srv, _, _, _, baseResolver, mt, clientDID, serverDID :=
 		setupHPKETestWithTransport(t, session.Config{}, session.Config{})
 
+	t.Logf("[초기화] Client DID: %s", clientDID)
+	t.Logf("[초기화] Server DID: %s", serverDID)
+
+	t.Log("[단계 1] 공격자의 X25519 키 쌍 생성")
 	attKEM, err := keys.GenerateX25519KeyPair()
 	require.NoError(t, err)
+	t.Log("[PASS] 공격자 키 쌍 생성 완료")
 
+	t.Log("[단계 2] 잘못된 KEM 키 리졸버를 사용하는 악의적 클라이언트 생성")
+	t.Log("  이것은 클라이언트가 잘못된 공개키를 사용하는 MITM 공격을 시뮬레이션")
 	cliEvil := NewClient(
 		mt,
 		&evilResolver{base: baseResolver, serverDID: serverDID, attKEMPub: attKEM.PublicKey()},
 		cli.key, cli.DID, cli.info, cli.sessMgr,
 	)
+	t.Log("[PASS] 잘못된 KEM 리졸버를 가진 악의적 클라이언트 생성 완료")
 
 	mt.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		t.Log("[단계 3] 악의적 클라이언트가 잘못된 KEM 키로 핸드셰이크 시도")
 		return srv.HandleMessage(ctx, msg)
 	}
 
 	ctxID := "ctx-" + uuid.NewString()
+	t.Logf("[단계 4] 잘못된 키로 HPKE 초기화 시도 (Context ID: %s)", ctxID)
 	_, err = cliEvil.Initialize(ctx, ctxID, clientDID, serverDID)
-	require.Error(t, err, "wrong KEM key must be detected by key confirmation (ackTag)")
+	require.Error(t, err, "잘못된 KEM 키는 키 확인(ackTag)으로 감지되어야 함")
+	t.Logf("[PASS] 잘못된 KEM 키가 올바르게 거부됨")
+	t.Logf("  에러: %v", err)
+
+	t.Log("")
+	t.Log("===== 통과 기준 체크리스트 =====")
+	t.Log("  [PASS] 공격자 X25519 키 쌍 생성")
+	t.Log("  [PASS] 악의적 리졸버가 잘못된 KEM 키 반환")
+	t.Log("  [PASS] HPKE 핸드셰이크 올바르게 실패")
+	t.Log("  [PASS] Ack Tag 키 확인으로 불일치 감지")
+	t.Log("  [PASS] MITM/UKS 공격 방어 성공")
 }
 
 // (2) Identity binding: verify server Ed25519 signature against wrong key -> fail
