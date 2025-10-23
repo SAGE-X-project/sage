@@ -76,9 +76,15 @@ func (kp *secp256k1KeyPair) Type() sagecrypto.KeyType {
 // Sign signs the given message (Ethereum-compatible signature)
 func (kp *secp256k1KeyPair) Sign(message []byte) ([]byte, error) {
 	// For Ethereum compatibility, use Keccak256 hash
-	hash := ethcrypto.Keccak256(message)
 
 	privateKey := kp.privateKey.ToECDSA()
+	var hash []byte
+	if len(message) == 32 {
+		hash = message
+	} else {
+		// Ethereum 호환 경로: 메시지를 Keccak256으로 해시해서 서명
+		hash = ethcrypto.Keccak256(message)
+	}
 
 	// Sign using Ethereum's method which includes recovery byte
 	signature, err := ethcrypto.Sign(hash, privateKey)
