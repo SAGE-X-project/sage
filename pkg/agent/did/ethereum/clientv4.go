@@ -732,10 +732,6 @@ func (c *EthereumClientV4) waitForTransaction(ctx context.Context, tx *types.Tra
 	return nil, fmt.Errorf("transaction timeout")
 }
 
-func (c *EthereumClientV4) prepareUpdateMessage(agentDID did.AgentDID, updates map[string]interface{}) string {
-	return fmt.Sprintf("Update agent: %s\nUpdates: %v", agentDID, updates)
-}
-
 // ApproveEd25519Key approves an Ed25519 key (contract owner only)
 // Implements RegistryV4 interface - takes hex-encoded key hash string
 func (c *EthereumClientV4) ApproveEd25519Key(ctx context.Context, keyHashStr string) error {
