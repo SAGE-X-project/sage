@@ -114,18 +114,18 @@ func TestValidateMessage(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":   "8.3.2_Validator_Valid_Message_Stats",
-			"session_id":  sessionID,
+			"test_case":  "8.3.2_Validator_Valid_Message_Stats",
+			"session_id": sessionID,
 			"message": map[string]interface{}{
-				"sequence":  seq,
-				"nonce":     nonce,
+				"sequence":   seq,
+				"nonce":      nonce,
 				"message_id": messageID,
-				"timestamp": now.Format(time.RFC3339Nano),
+				"timestamp":  now.Format(time.RFC3339Nano),
 			},
 			"validation_result": map[string]interface{}{
-				"is_valid":      res.IsValid,
-				"is_replay":     res.IsReplay,
-				"is_duplicate":  res.IsDuplicate,
+				"is_valid":        res.IsValid,
+				"is_replay":       res.IsReplay,
+				"is_duplicate":    res.IsDuplicate,
 				"is_out_of_order": res.IsOutOfOrder,
 			},
 			"statistics": map[string]interface{}{
@@ -205,16 +205,16 @@ func TestValidateMessage(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":   "8.3.3_Validator_Timestamp_Tolerance",
-			"session_id":  sessionID,
+			"test_case":  "8.3.3_Validator_Timestamp_Tolerance",
+			"session_id": sessionID,
 			"configuration": map[string]interface{}{
 				"timestamp_tolerance_ms": cfg.TimestampTolerance.Milliseconds(),
 			},
 			"message": map[string]interface{}{
-				"sequence":  seq,
-				"nonce":     nonce,
-				"message_id": messageID,
-				"timestamp": old.Format(time.RFC3339Nano),
+				"sequence":    seq,
+				"nonce":       nonce,
+				"message_id":  messageID,
+				"timestamp":   old.Format(time.RFC3339Nano),
 				"age_seconds": time.Since(old).Seconds(),
 			},
 			"validation_result": map[string]interface{}{
@@ -304,25 +304,25 @@ func TestValidateMessage(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":   "8.3.1_Validator_Replay_Detection",
-			"session_id":  sessionID,
+			"test_case":  "8.3.1_Validator_Replay_Detection",
+			"session_id": sessionID,
 			"message": map[string]interface{}{
 				"sequence":  seq,
 				"nonce":     nonce,
 				"timestamp": timestamp.Format(time.RFC3339Nano),
 			},
 			"first_validation": map[string]interface{}{
-				"message_id":    messageID,
-				"is_valid":      res1.IsValid,
-				"is_replay":     res1.IsReplay,
-				"is_duplicate":  res1.IsDuplicate,
+				"message_id":      messageID,
+				"is_valid":        res1.IsValid,
+				"is_replay":       res1.IsReplay,
+				"is_duplicate":    res1.IsDuplicate,
 				"is_out_of_order": res1.IsOutOfOrder,
 			},
 			"second_validation": map[string]interface{}{
-				"message_id":    messageID2,
-				"is_valid":      res2.IsValid,
-				"is_replay":     res2.IsReplay,
-				"error":         "replay attack detected",
+				"message_id": messageID2,
+				"is_valid":   res2.IsValid,
+				"is_replay":  res2.IsReplay,
+				"error":      "replay attack detected",
 			},
 			"statistics": map[string]interface{}{
 				"tracked_nonces":  stats["tracked_nonces"],
@@ -417,22 +417,22 @@ func TestValidateMessage(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":   "8.3.4_Validator_Out_Of_Order",
-			"session_id":  sessionID,
+			"test_case":  "8.3.4_Validator_Out_Of_Order",
+			"session_id": sessionID,
 			"configuration": map[string]interface{}{
 				"max_out_of_order_window_ms": cfg.MaxOutOfOrderWindow.Milliseconds(),
 			},
 			"first_message": map[string]interface{}{
-				"sequence":  seq1,
-				"nonce":     nonce1,
+				"sequence":   seq1,
+				"nonce":      nonce1,
 				"message_id": messageID1,
-				"timestamp": t1.Format(time.RFC3339Nano),
+				"timestamp":  t1.Format(time.RFC3339Nano),
 			},
 			"second_message": map[string]interface{}{
-				"sequence":  seq2,
-				"nonce":     nonce2,
-				"message_id": messageID2,
-				"timestamp": t2.Format(time.RFC3339Nano),
+				"sequence":     seq2,
+				"nonce":        nonce2,
+				"message_id":   messageID2,
+				"timestamp":    t2.Format(time.RFC3339Nano),
 				"time_diff_ms": t1.Sub(t2).Milliseconds(),
 			},
 			"validation_results": map[string]interface{}{

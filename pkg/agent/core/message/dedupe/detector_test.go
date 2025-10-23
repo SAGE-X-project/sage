@@ -87,7 +87,7 @@ func TestDetector(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "8.2.2_Detector_Initialization",
 			"detector_config": map[string]interface{}{
-				"ttl_ms":             ttl.Milliseconds(),
+				"ttl_ms":              ttl.Milliseconds(),
 				"cleanup_interval_ms": cleanupInterval.Milliseconds(),
 			},
 			"message": map[string]interface{}{
@@ -96,8 +96,8 @@ func TestDetector(t *testing.T) {
 				"timestamp": timestamp.Format(time.RFC3339Nano),
 			},
 			"detection": map[string]interface{}{
-				"is_duplicate":  isDup,
-				"packet_count":  count,
+				"is_duplicate": isDup,
+				"packet_count": count,
 			},
 		}
 		helpers.SaveTestData(t, "message/dedupe/detector_initialization.json", testData)
@@ -152,7 +152,7 @@ func TestDetector(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "8.2.1_Message_Deduplication",
 			"detector_config": map[string]interface{}{
-				"ttl_ms":             ttl.Milliseconds(),
+				"ttl_ms":              ttl.Milliseconds(),
 				"cleanup_interval_ms": cleanupInterval.Milliseconds(),
 			},
 			"message": map[string]interface{}{
@@ -240,25 +240,25 @@ func TestDetector(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "8.2.3_Multi_Message_Tracking",
 			"detector_config": map[string]interface{}{
-				"ttl_ms":             ttl.Milliseconds(),
+				"ttl_ms":              ttl.Milliseconds(),
 				"cleanup_interval_ms": cleanupInterval.Milliseconds(),
 			},
 			"messages": []map[string]interface{}{
 				{
-					"sequence":  seq1,
-					"nonce":     nonce1,
-					"timestamp": timestamp1.Format(time.RFC3339Nano),
+					"sequence":     seq1,
+					"nonce":        nonce1,
+					"timestamp":    timestamp1.Format(time.RFC3339Nano),
 					"is_duplicate": isDup1,
 				},
 				{
-					"sequence":  seq2,
-					"nonce":     nonce2,
-					"timestamp": timestamp2.Format(time.RFC3339Nano),
+					"sequence":     seq2,
+					"nonce":        nonce2,
+					"timestamp":    timestamp2.Format(time.RFC3339Nano),
 					"is_duplicate": isDup2,
 				},
 			},
 			"tracking": map[string]interface{}{
-				"total_count": count,
+				"total_count":       count,
 				"distinct_messages": 2,
 			},
 		}
@@ -327,7 +327,7 @@ func TestDetector(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "8.2.4_Expiration_On_Check",
 			"detector_config": map[string]interface{}{
-				"ttl_ms":             ttl.Milliseconds(),
+				"ttl_ms":              ttl.Milliseconds(),
 				"cleanup_interval_ms": cleanupInterval.Milliseconds(),
 			},
 			"message": map[string]interface{}{
@@ -402,7 +402,7 @@ func TestDetector(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "8.2.5_Automatic_Cleanup_Loop",
 			"detector_config": map[string]interface{}{
-				"ttl_ms":             ttl.Milliseconds(),
+				"ttl_ms":              ttl.Milliseconds(),
 				"cleanup_interval_ms": cleanup.Milliseconds(),
 			},
 			"message": map[string]interface{}{
@@ -411,9 +411,9 @@ func TestDetector(t *testing.T) {
 				"timestamp": timestamp.Format(time.RFC3339Nano),
 			},
 			"cleanup": map[string]interface{}{
-				"sleep_duration_ms": sleepDuration.Milliseconds(),
-				"initial_count":     initialCount,
-				"final_count":       finalCount,
+				"sleep_duration_ms":  sleepDuration.Milliseconds(),
+				"initial_count":      initialCount,
+				"final_count":        finalCount,
 				"cleanup_successful": finalCount == 0,
 			},
 		}

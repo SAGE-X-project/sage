@@ -189,10 +189,10 @@ func TestVerifier(t *testing.T) {
 				"body": string(tamperedBody),
 			},
 			"verification": map[string]interface{}{
-				"original_success":  true,
-				"tampered_success":  false,
-				"error_present":     err != nil,
-				"error_message":     err.Error(),
+				"original_success":   true,
+				"tampered_success":   false,
+				"error_present":      err != nil,
+				"error_message":      err.Error(),
 				"tampering_detected": true,
 			},
 			"validation": "메시지_변조_탐지_통과",
@@ -288,7 +288,7 @@ func TestVerifier(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case": "15.1.2-2_RFC9421_변조된_메시지_탐지_Secp256k1",
+			"test_case":        "15.1.2-2_RFC9421_변조된_메시지_탐지_Secp256k1",
 			"ethereum_address": ethAddress,
 			"original_message": map[string]interface{}{
 				"agent_did":  message.AgentDID,
@@ -358,10 +358,10 @@ func TestVerifier(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "15.1.3_RFC9421_검증기_Clock_Skew_거부",
 			"timing": map[string]interface{}{
-				"current_time":    time.Now().Format(time.RFC3339),
-				"message_time":    futureTime.Format(time.RFC3339),
-				"skew_minutes":    10.0,
-				"max_clock_skew":  opts.MaxClockSkew.Minutes(),
+				"current_time":   time.Now().Format(time.RFC3339),
+				"message_time":   futureTime.Format(time.RFC3339),
+				"skew_minutes":   10.0,
+				"max_clock_skew": opts.MaxClockSkew.Minutes(),
 			},
 			"verification": map[string]interface{}{
 				"success":       false,
@@ -435,10 +435,10 @@ func TestVerifier(t *testing.T) {
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
 			"test_case": "15.1.4_RFC9421_검증기_메타데이터_검증",
-			"metadata": message.Metadata,
+			"metadata":  message.Metadata,
 			"verification_conditions": map[string]interface{}{
-				"expected_metadata":      expectedMetadata,
-				"required_capabilities":  requiredCapabilities,
+				"expected_metadata":     expectedMetadata,
+				"required_capabilities": requiredCapabilities,
 			},
 			"result": map[string]interface{}{
 				"valid": result.Valid,
@@ -502,8 +502,8 @@ func TestVerifier(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case": "15.1.5_RFC9421_검증기_누락된_Capability",
-			"message_capabilities": message.Metadata["capabilities"],
+			"test_case":             "15.1.5_RFC9421_검증기_누락된_Capability",
+			"message_capabilities":  message.Metadata["capabilities"],
 			"required_capabilities": requiredCapabilities,
 			"result": map[string]interface{}{
 				"valid": result.Valid,
@@ -710,12 +710,12 @@ func TestVerifier(t *testing.T) {
 
 			testData := map[string]interface{}{
 				"test_case": "10.1.2_Content_Digest_유효",
-				"body": string(bodyContent),
+				"body":      string(bodyContent),
 				"digest": map[string]interface{}{
 					"algorithm": "sha-256",
-					"hash_hex": string(hash[:]),
-					"base64":   expectedDigest,
-					"header":   message.Headers["Content-Digest"],
+					"hash_hex":  string(hash[:]),
+					"base64":    expectedDigest,
+					"header":    message.Headers["Content-Digest"],
 				},
 				"validation": "Digest_일치_검증_통과",
 			}
@@ -771,7 +771,7 @@ func TestVerifier(t *testing.T) {
 
 			testData := map[string]interface{}{
 				"test_case": "10.1.2_Content_Digest_불일치",
-				"body": string(bodyContent),
+				"body":      string(bodyContent),
 				"digest": map[string]interface{}{
 					"expected": actualDigest,
 					"provided": wrongDigest,
@@ -891,22 +891,22 @@ func TestVerifier(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "1.2.1_1.2.2_Nonce_Generation_ReplayAttackPrevention",
 			"nonce": map[string]interface{}{
-				"generated":   generatedNonce,
-				"length":      len(generatedNonce),
-				"is_used":     isNonceUsed,
+				"generated": generatedNonce,
+				"length":    len(generatedNonce),
+				"is_used":   isNonceUsed,
 			},
 			"first_message": map[string]interface{}{
-				"agent_did":   message.AgentDID,
-				"message_id":  message.MessageID,
-				"body":        string(message.Body),
-				"nonce":       message.Nonce,
+				"agent_did":    message.AgentDID,
+				"message_id":   message.MessageID,
+				"body":         string(message.Body),
+				"nonce":        message.Nonce,
 				"verification": "success",
 			},
 			"second_message": map[string]interface{}{
-				"agent_did":   message2.AgentDID,
-				"message_id":  message2.MessageID,
-				"body":        string(message2.Body),
-				"nonce":       message2.Nonce,
+				"agent_did":    message2.AgentDID,
+				"message_id":   message2.MessageID,
+				"body":         string(message2.Body),
+				"nonce":        message2.Nonce,
 				"verification": "failed (replay attack detected)",
 			},
 			"replay_attack": map[string]interface{}{
@@ -1026,10 +1026,10 @@ func TestDefaultVerificationOptions(t *testing.T) {
 	testData := map[string]interface{}{
 		"test_case": "15.3.1_RFC9421_기본_검증_옵션",
 		"options": map[string]interface{}{
-			"require_active_agent":  opts.RequireActiveAgent,
+			"require_active_agent":   opts.RequireActiveAgent,
 			"max_clock_skew_minutes": opts.MaxClockSkew.Minutes(),
-			"verify_metadata":       opts.VerifyMetadata,
-			"required_capabilities": opts.RequiredCapabilities,
+			"verify_metadata":        opts.VerifyMetadata,
+			"required_capabilities":  opts.RequiredCapabilities,
 		},
 		"validation": "기본_검증_옵션_통과",
 	}
@@ -1104,11 +1104,11 @@ func TestHasRequiredCapabilities(t *testing.T) {
 
 	// CLI 검증용 테스트 데이터 저장
 	testData := map[string]interface{}{
-		"test_case":      "15.4.1_RFC9421_Capability_검증",
-		"capabilities":   capabilities,
-		"test_cases":     len(tests),
-		"passed_count":   passedCount,
-		"validation":     "Capability_검증_통과",
+		"test_case":    "15.4.1_RFC9421_Capability_검증",
+		"capabilities": capabilities,
+		"test_cases":   len(tests),
+		"passed_count": passedCount,
+		"validation":   "Capability_검증_통과",
 	}
 	helpers.SaveTestData(t, "rfc9421/has_required_capabilities.json", testData)
 }

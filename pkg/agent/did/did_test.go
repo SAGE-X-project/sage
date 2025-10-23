@@ -377,10 +377,10 @@ func TestCreateDID(t *testing.T) {
 
 	// Save test data
 	testData := map[string]interface{}{
-		"test_case": "3.1.1_DID_Creation",
-		"did":       string(did),
-		"format":    "did:sage:ethereum:<uuid>",
-		"uuid":      uuidVal.String(),
+		"test_case":    "3.1.1_DID_Creation",
+		"did":          string(did),
+		"format":       "did:sage:ethereum:<uuid>",
+		"uuid":         uuidVal.String(),
 		"uuid_version": parsedUUID.Version(),
 		"components": map[string]string{
 			"prefix":  parts[0],

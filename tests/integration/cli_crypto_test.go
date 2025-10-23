@@ -75,14 +75,14 @@ func Test_6_1_1_1_GenerateKeyPairSuccess(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":         "Test_6_1_1_1_GenerateKeyPairSuccess",
-		"timestamp":         time.Now().Format(time.RFC3339),
-		"test_case":         "6.1.1.1_Generate_KeyPair_Success",
-		"cli_command":       "sage-crypto generate --type ed25519",
-		"key_type":          string(keyPair.Type()),
-		"key_id":            keyPair.ID(),
-		"public_key_size":   len(ed25519Pub),
-		"private_key_size":  len(ed25519Priv),
+		"test_name":          "Test_6_1_1_1_GenerateKeyPairSuccess",
+		"timestamp":          time.Now().Format(time.RFC3339),
+		"test_case":          "6.1.1.1_Generate_KeyPair_Success",
+		"cli_command":        "sage-crypto generate --type ed25519",
+		"key_type":           string(keyPair.Type()),
+		"key_id":             keyPair.ID(),
+		"public_key_size":    len(ed25519Pub),
+		"private_key_size":   len(ed25519Priv),
 		"generation_success": true,
 	}
 
@@ -139,14 +139,14 @@ func Test_6_1_1_2_GenerateSecp256k1KeyPair(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":         "Test_6_1_1_2_GenerateSecp256k1KeyPair",
-		"timestamp":         time.Now().Format(time.RFC3339),
-		"test_case":         "6.1.1.2_Generate_Secp256k1",
-		"cli_command":       "sage-crypto generate --type secp256k1",
-		"key_type":          string(keyPair.Type()),
-		"key_id":            keyPair.ID(),
-		"public_key_size":   len(pubBytes),
-		"private_key_size":  len(privBytes),
+		"test_name":          "Test_6_1_1_2_GenerateSecp256k1KeyPair",
+		"timestamp":          time.Now().Format(time.RFC3339),
+		"test_case":          "6.1.1.2_Generate_Secp256k1",
+		"cli_command":        "sage-crypto generate --type secp256k1",
+		"key_type":           string(keyPair.Type()),
+		"key_id":             keyPair.ID(),
+		"public_key_size":    len(pubBytes),
+		"private_key_size":   len(privBytes),
 		"generation_success": true,
 	}
 
@@ -321,14 +321,14 @@ func Test_6_1_2_2_VerifySignature(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":             "Test_6_1_2_2_VerifySignature",
-		"timestamp":             time.Now().Format(time.RFC3339),
-		"test_case":             "6.1.2.2_Verify_Signature",
-		"cli_command":           "sage-crypto verify --message <message> --signature <sig>",
-		"valid_signature":       true,
-		"invalid_signature":     false,
-		"tampered_message":      false,
-		"verification_success":  true,
+		"test_name":            "Test_6_1_2_2_VerifySignature",
+		"timestamp":            time.Now().Format(time.RFC3339),
+		"test_case":            "6.1.2.2_Verify_Signature",
+		"cli_command":          "sage-crypto verify --message <message> --signature <sig>",
+		"valid_signature":      true,
+		"invalid_signature":    false,
+		"tampered_message":     false,
+		"verification_success": true,
 	}
 
 	helpers.SaveTestData(t, "cli/6_1_2_2_verify_signature.json", data)
@@ -376,14 +376,14 @@ func Test_6_1_3_1_GenerateEthereumAddress(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":       "Test_6_1_3_1_GenerateEthereumAddress",
-		"timestamp":       time.Now().Format(time.RFC3339),
-		"test_case":       "6.1.3.1_Generate_Ethereum_Address",
-		"cli_command":     "sage-crypto address --key <keyfile>",
-		"address":         address,
-		"address_length":  len(address),
-		"has_0x_prefix":   address[:2] == "0x",
-		"deterministic":   address == address2,
+		"test_name":      "Test_6_1_3_1_GenerateEthereumAddress",
+		"timestamp":      time.Now().Format(time.RFC3339),
+		"test_case":      "6.1.3.1_Generate_Ethereum_Address",
+		"cli_command":    "sage-crypto address --key <keyfile>",
+		"address":        address,
+		"address_length": len(address),
+		"has_0x_prefix":  address[:2] == "0x",
+		"deterministic":  address == address2,
 	}
 
 	helpers.SaveTestData(t, "cli/6_1_3_1_ethereum_address.json", data)

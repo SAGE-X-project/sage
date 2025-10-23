@@ -92,10 +92,10 @@ func TestManager_CreateGetRemove(t *testing.T) {
 
 	// Save test data for CLI verification
 	testData := map[string]interface{}{
-		"test_case": "9.2.1_Session_Manager_Lifecycle",
-		"operations": []string{"Create", "Get", "Remove"},
-		"session_id": "id1",
-		"secret_size": len(secret),
+		"test_case":          "9.2.1_Session_Manager_Lifecycle",
+		"operations":         []string{"Create", "Get", "Remove"},
+		"session_id":         "id1",
+		"secret_size":        len(secret),
 		"lifecycle_verified": true,
 	}
 	helpers.SaveTestData(t, "session/manager_lifecycle.json", testData)
@@ -161,12 +161,12 @@ func TestManager_ExpirationCleanup(t *testing.T) {
 
 	// Save test data for CLI verification
 	testData := map[string]interface{}{
-		"test_case": "9.2.2_Session_Manager_Expiration",
-		"session_id": "exp1",
-		"max_age_ms": maxAge.Milliseconds(),
-		"wait_time_ms": waitTime.Milliseconds(),
+		"test_case":           "9.2.2_Session_Manager_Expiration",
+		"session_id":          "exp1",
+		"max_age_ms":          maxAge.Milliseconds(),
+		"wait_time_ms":        waitTime.Milliseconds(),
 		"expiration_verified": true,
-		"cleanup_successful": true,
+		"cleanup_successful":  true,
 	}
 	helpers.SaveTestData(t, "session/manager_expiration.json", testData)
 }
@@ -226,12 +226,12 @@ func TestManager_ListAndStats(t *testing.T) {
 
 	// Save test data for CLI verification
 	testData := map[string]interface{}{
-		"test_case": "9.2.3_Session_Manager_List_Stats",
+		"test_case":        "9.2.3_Session_Manager_List_Stats",
 		"sessions_created": 2,
-		"sessions_listed": len(list),
+		"sessions_listed":  len(list),
 		"statistics": map[string]interface{}{
-			"total_sessions": stats.TotalSessions,
-			"active_sessions": stats.ActiveSessions,
+			"total_sessions":   stats.TotalSessions,
+			"active_sessions":  stats.ActiveSessions,
 			"expired_sessions": stats.ExpiredSessions,
 		},
 		"verification_passed": true,

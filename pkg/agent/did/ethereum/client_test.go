@@ -200,10 +200,11 @@ func TestCompareCapabilities(t *testing.T) {
 
 // TestV2DIDLifecycleWithFundedKey demonstrates the complete DID lifecycle using V2 contract
 // This test covers SPECIFICATION_VERIFICATION_MATRIX.md sections:
-//   3.2.1.1: Ethereum 스마트 컨트랙트 배포 성공 (V2)
-//   3.2.1.2: 트랜잭션 해시 반환 확인 (V2)
-//   3.2.1.3: 가스비 소모량 확인 (V2)
-//   3.2.1.4: 등록 후 온체인 조회 가능 확인 (V2)
+//
+//	3.2.1.1: Ethereum 스마트 컨트랙트 배포 성공 (V2)
+//	3.2.1.2: 트랜잭션 해시 반환 확인 (V2)
+//	3.2.1.3: 가스비 소모량 확인 (V2)
+//	3.2.1.4: 등록 후 온체인 조회 가능 확인 (V2)
 //
 // V2 Contract Characteristics:
 //   - Single Secp256k1 key per agent
@@ -228,11 +229,11 @@ func TestV2DIDLifecycleWithFundedKey(t *testing.T) {
 	// Step 1: Create client with Hardhat default account
 	// NOTE: You need to deploy V2 contract to localhost and update this address
 	config := &did.RegistryConfig{
-		ContractAddress: "0x5FbDB2315678afecb367f032d93F642f64180aa3", // V2 contract address (update after deployment)
-		RPCEndpoint:     "http://localhost:8545",
-		PrivateKey:      "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat account #0
-		GasPrice:        0,
-		MaxRetries:      10,
+		ContractAddress:    "0x5FbDB2315678afecb367f032d93F642f64180aa3", // V2 contract address (update after deployment)
+		RPCEndpoint:        "http://localhost:8545",
+		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat account #0
+		GasPrice:           0,
+		MaxRetries:         10,
 		ConfirmationBlocks: 0,
 	}
 

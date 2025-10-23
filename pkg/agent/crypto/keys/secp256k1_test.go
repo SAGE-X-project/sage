@@ -251,31 +251,31 @@ func TestSecp256k1KeyPair(t *testing.T) {
 				"public_key_y":                 hex.EncodeToString(ecdsaPubKey.Y.Bytes()),
 			},
 			"storage": map[string]interface{}{
-				"vault_type":      "FileVault",
-				"encryption":      "AES-256-GCM",
-				"key_derivation":  "PBKDF2 (100,000 iterations)",
+				"vault_type":       "FileVault",
+				"encryption":       "AES-256-GCM",
+				"key_derivation":   "PBKDF2 (100,000 iterations)",
 				"file_permissions": "0600",
-				"stored_key_id":   storedKeyID,
+				"stored_key_id":    storedKeyID,
 			},
 			"verification": map[string]interface{}{
-				"original_signature_size":     len(signature),
-				"original_signature_valid":    true,
-				"reconstructed_signature_size": len(signature2),
+				"original_signature_size":       len(signature),
+				"original_signature_valid":      true,
+				"reconstructed_signature_size":  len(signature2),
 				"reconstructed_signature_valid": true,
-				"ethereum_address_consistent":  ethAddress.Hex() == reconstructedEthAddress.Hex(),
-				"test_message":                string(testMessage),
-				"test_message_2":              string(testMessage2),
-				"signature_first_32":          hex.EncodeToString(signature[:32]),
-				"recovery_byte":               signature[64],
+				"ethereum_address_consistent":   ethAddress.Hex() == reconstructedEthAddress.Hex(),
+				"test_message":                  string(testMessage),
+				"test_message_2":                string(testMessage2),
+				"signature_first_32":            hex.EncodeToString(signature[:32]),
+				"recovery_byte":                 signature[64],
 			},
 			"security": map[string]interface{}{
-				"cryptographically_secure":      true,
-				"secure_storage":                true,
-				"wrong_passphrase_rejected":     true,
-				"file_permissions_0600":         true,
-				"ethereum_compatible":           true,
-				"key_reusable_after_storage":    true,
-				"no_key_leakage":                true,
+				"cryptographically_secure":   true,
+				"secure_storage":             true,
+				"wrong_passphrase_rejected":  true,
+				"file_permissions_0600":      true,
+				"ethereum_compatible":        true,
+				"key_reusable_after_storage": true,
+				"no_key_leakage":             true,
 			},
 			"expected_sizes": map[string]int{
 				"private_key":             32,
@@ -361,16 +361,16 @@ func TestSecp256k1KeyPair(t *testing.T) {
 		uncompressedPubKey := ethcrypto.FromECDSAPub(ecdsaPubKey)
 
 		testData := map[string]interface{}{
-			"test_case":              "2.4.2_Secp256k1_Sign_Verify",
-			"message":                string(message),
-			"message_hex":            hex.EncodeToString(message),
-			"private_key_d":          hex.EncodeToString(privKey.D.Bytes()),
+			"test_case":               "2.4.2_Secp256k1_Sign_Verify",
+			"message":                 string(message),
+			"message_hex":             hex.EncodeToString(message),
+			"private_key_d":           hex.EncodeToString(privKey.D.Bytes()),
 			"public_key_uncompressed": hex.EncodeToString(uncompressedPubKey),
-			"ethereum_address":       expectedAddress.Hex(),
-			"signature_hex":          hex.EncodeToString(signature),
-			"signature_size":         len(signature),
-			"expected_size":          65,
-			"recovery_byte":          signature[64],
+			"ethereum_address":        expectedAddress.Hex(),
+			"signature_hex":           hex.EncodeToString(signature),
+			"signature_size":          len(signature),
+			"expected_size":           65,
+			"recovery_byte":           signature[64],
 		}
 		helpers.SaveTestData(t, "keys/secp256k1_sign_verify.json", testData)
 	})
@@ -526,11 +526,11 @@ func TestSecp256k1KeyPairBytes(t *testing.T) {
 
 	// Save test data
 	testData := map[string]interface{}{
-		"test_case":               "10.2.6_Secp256k1_Byte_Conversion",
-		"key_id":                  keyPair.ID(),
-		"compressed_pub_key_hex":  hex.EncodeToString(compressedPubKey),
+		"test_case":                "10.2.6_Secp256k1_Byte_Conversion",
+		"key_id":                   keyPair.ID(),
+		"compressed_pub_key_hex":   hex.EncodeToString(compressedPubKey),
 		"uncompressed_pub_key_hex": hex.EncodeToString(uncompressedPubKey),
-		"private_key_hex":         hex.EncodeToString(privKeyBytes),
+		"private_key_hex":          hex.EncodeToString(privKeyBytes),
 		"sizes": map[string]int{
 			"compressed_public":   len(compressedPubKey),
 			"uncompressed_public": len(uncompressedPubKey),
@@ -703,11 +703,11 @@ func TestSecp256k1KeyPairEncrypted(t *testing.T) {
 
 	// Save test data
 	testData := map[string]interface{}{
-		"test_case":    "2.2.2_Secp256k1_Encrypted_Key_Storage",
-		"key_id":       keyID,
-		"key_type":     string(keyPair.Type()),
-		"key_size":     len(privKeyBytes),
-		"vault_dir":    tempDir,
+		"test_case":        "2.2.2_Secp256k1_Encrypted_Key_Storage",
+		"key_id":           keyID,
+		"key_type":         string(keyPair.Type()),
+		"key_size":         len(privKeyBytes),
+		"vault_dir":        tempDir,
 		"file_permissions": "0600",
 		"ethereum_address": ethAddress.Hex(),
 		"encryption_test": map[string]interface{}{

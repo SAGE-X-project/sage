@@ -68,9 +68,9 @@ func TestResultBuilder(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "8.1.6_결과_빌더_기본값",
 			"result": map[string]interface{}{
-				"is_processed":        res.IsProcessed,
-				"is_duplicate":        res.IsDuplicate,
-				"is_waiting":          res.IsWaiting,
+				"is_processed":         res.IsProcessed,
+				"is_duplicate":         res.IsDuplicate,
+				"is_waiting":           res.IsWaiting,
 				"ready_messages_count": len(res.ReadyMessages),
 			},
 			"validation": "기본값_검증_통과",
@@ -100,8 +100,8 @@ func TestResultBuilder(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "8.1.7_결과_빌더_처리됨_상태",
 			"setting": map[string]interface{}{
-				"method":      "WithProcessed",
-				"value":       true,
+				"method": "WithProcessed",
+				"value":  true,
 			},
 			"result": map[string]interface{}{
 				"is_processed": res.IsProcessed,

@@ -71,18 +71,18 @@ func Test_6_2_1_1_RegisterDIDSuccess(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":      "Test_6_2_1_1_RegisterDIDSuccess",
-		"timestamp":      time.Now().Format(time.RFC3339),
-		"test_case":      "6.2.1.1_Register_DID_Success",
-		"cli_command":    "sage-did register --chain ethereum --name <name> --endpoint <url>",
-		"chain":          "ethereum",
-		"address":        address,
-		"did":            string(agentDID),
-		"did_format":     "did:sage:ethereum:<address>",
-		"key_type":       "Secp256k1",
-		"address_valid":  strings.HasPrefix(address, "0x") && len(address) == 42,
-		"did_valid":      strings.HasPrefix(didStr, "did:sage:ethereum:"),
-		"note":           "Full blockchain registration requires local Ethereum node at http://localhost:8545",
+		"test_name":     "Test_6_2_1_1_RegisterDIDSuccess",
+		"timestamp":     time.Now().Format(time.RFC3339),
+		"test_case":     "6.2.1.1_Register_DID_Success",
+		"cli_command":   "sage-did register --chain ethereum --name <name> --endpoint <url>",
+		"chain":         "ethereum",
+		"address":       address,
+		"did":           string(agentDID),
+		"did_format":    "did:sage:ethereum:<address>",
+		"key_type":      "Secp256k1",
+		"address_valid": strings.HasPrefix(address, "0x") && len(address) == 42,
+		"did_valid":     strings.HasPrefix(didStr, "did:sage:ethereum:"),
+		"note":          "Full blockchain registration requires local Ethereum node at http://localhost:8545",
 	}
 
 	helpers.SaveTestData(t, "cli/6_2_1_1_register_did.json", data)
@@ -132,16 +132,16 @@ func Test_6_2_1_2_RegisterWithEthereumChain(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":           "Test_6_2_1_2_RegisterWithEthereumChain",
-		"timestamp":           time.Now().Format(time.RFC3339),
-		"test_case":           "6.2.1.2_Register_Ethereum_Chain",
-		"cli_command":         "sage-did register --chain ethereum --name <name> --endpoint <url>",
-		"chain":               "ethereum",
-		"did":                 string(ethereumDID),
-		"did_with_nonce":      string(didWithNonce),
-		"nonce":               nonce,
-		"supports_multi_did":  true,
-		"chain_verification":  strings.Contains(string(ethereumDID), "ethereum"),
+		"test_name":          "Test_6_2_1_2_RegisterWithEthereumChain",
+		"timestamp":          time.Now().Format(time.RFC3339),
+		"test_case":          "6.2.1.2_Register_Ethereum_Chain",
+		"cli_command":        "sage-did register --chain ethereum --name <name> --endpoint <url>",
+		"chain":              "ethereum",
+		"did":                string(ethereumDID),
+		"did_with_nonce":     string(didWithNonce),
+		"nonce":              nonce,
+		"supports_multi_did": true,
+		"chain_verification": strings.Contains(string(ethereumDID), "ethereum"),
 	}
 
 	helpers.SaveTestData(t, "cli/6_2_1_2_ethereum_chain.json", data)
@@ -195,16 +195,16 @@ func Test_6_2_2_1_ResolveDIDSuccess(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":    "Test_6_2_2_1_ResolveDIDSuccess",
-		"timestamp":    time.Now().Format(time.RFC3339),
-		"test_case":    "6.2.2.1_Resolve_DID",
-		"cli_command":  "sage-did resolve <did>",
-		"did":          string(testDID),
-		"method":       method,
-		"chain":        chain,
-		"identifier":   identifier,
+		"test_name":     "Test_6_2_2_1_ResolveDIDSuccess",
+		"timestamp":     time.Now().Format(time.RFC3339),
+		"test_case":     "6.2.2.1_Resolve_DID",
+		"cli_command":   "sage-did resolve <did>",
+		"did":           string(testDID),
+		"method":        method,
+		"chain":         chain,
+		"identifier":    identifier,
 		"parse_success": true,
-		"note":         "Full resolution requires blockchain query to registry contract",
+		"note":          "Full resolution requires blockchain query to registry contract",
 	}
 
 	helpers.SaveTestData(t, "cli/6_2_2_1_resolve_did.json", data)
@@ -268,15 +268,15 @@ func Test_6_2_2_2_ListDIDs(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":    "Test_6_2_2_2_ListDIDs",
-		"timestamp":    time.Now().Format(time.RFC3339),
-		"test_case":    "6.2.2.2_List_DIDs",
-		"cli_command":  "sage-did list [--chain ethereum]",
-		"chain":        "ethereum",
-		"dids":         dids,
-		"count":        len(dids),
-		"all_unique":   len(uniqueCheck) == len(dids),
-		"note":         "Full listing requires blockchain query to retrieve all registered agents",
+		"test_name":   "Test_6_2_2_2_ListDIDs",
+		"timestamp":   time.Now().Format(time.RFC3339),
+		"test_case":   "6.2.2.2_List_DIDs",
+		"cli_command": "sage-did list [--chain ethereum]",
+		"chain":       "ethereum",
+		"dids":        dids,
+		"count":       len(dids),
+		"all_unique":  len(uniqueCheck) == len(dids),
+		"note":        "Full listing requires blockchain query to retrieve all registered agents",
 	}
 
 	helpers.SaveTestData(t, "cli/6_2_2_2_list_dids.json", data)
@@ -336,15 +336,15 @@ func Test_6_2_3_1_UpdateDIDMetadata(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":         "Test_6_2_3_1_UpdateDIDMetadata",
-		"timestamp":         time.Now().Format(time.RFC3339),
-		"test_case":         "6.2.3.1_Update_Metadata",
-		"cli_command":       "sage-did update <did> --name <name> --endpoint <url>",
-		"did":               string(testDID),
-		"initial_metadata":  initialMetadata,
-		"updated_metadata":  updatedMetadata,
-		"metadata_changed":  true,
-		"note":              "Full update requires blockchain transaction to registry contract",
+		"test_name":        "Test_6_2_3_1_UpdateDIDMetadata",
+		"timestamp":        time.Now().Format(time.RFC3339),
+		"test_case":        "6.2.3.1_Update_Metadata",
+		"cli_command":      "sage-did update <did> --name <name> --endpoint <url>",
+		"did":              string(testDID),
+		"initial_metadata": initialMetadata,
+		"updated_metadata": updatedMetadata,
+		"metadata_changed": true,
+		"note":             "Full update requires blockchain transaction to registry contract",
 	}
 
 	helpers.SaveTestData(t, "cli/6_2_3_1_update_metadata.json", data)
@@ -383,9 +383,9 @@ func Test_6_2_3_2_RevokeDID(t *testing.T) {
 	}
 
 	deactivatedState := map[string]interface{}{
-		"did":       string(testDID),
-		"is_active": false,
-		"owner":     address,
+		"did":            string(testDID),
+		"is_active":      false,
+		"owner":          address,
 		"deactivated_at": time.Now().Format(time.RFC3339),
 	}
 
@@ -400,15 +400,15 @@ func Test_6_2_3_2_RevokeDID(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":          "Test_6_2_3_2_RevokeDID",
-		"timestamp":          time.Now().Format(time.RFC3339),
-		"test_case":          "6.2.3.2_Deactivate_DID",
-		"cli_command":        "sage-did deactivate <did>",
-		"did":                string(testDID),
-		"initial_state":      initialState,
-		"deactivated_state":  deactivatedState,
-		"state_changed":      true,
-		"note":               "Full deactivation requires blockchain transaction by owner",
+		"test_name":         "Test_6_2_3_2_RevokeDID",
+		"timestamp":         time.Now().Format(time.RFC3339),
+		"test_case":         "6.2.3.2_Deactivate_DID",
+		"cli_command":       "sage-did deactivate <did>",
+		"did":               string(testDID),
+		"initial_state":     initialState,
+		"deactivated_state": deactivatedState,
+		"state_changed":     true,
+		"note":              "Full deactivation requires blockchain transaction by owner",
 	}
 
 	helpers.SaveTestData(t, "cli/6_2_3_2_deactivate_did.json", data)

@@ -78,16 +78,16 @@ func Test_9_1_1_1_HealthEndpointResponse(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":            "Test_9_1_1_1_HealthEndpointResponse",
-		"timestamp":            time.Now().Format(time.RFC3339),
-		"test_case":            "9.1.1.1_Health_Endpoint",
-		"endpoint":             "/health",
-		"status":               string(status.Status),
-		"response_timestamp":   status.Timestamp.Format(time.RFC3339),
-		"has_system_status":    status.SystemStatus != nil,
+		"test_name":             "Test_9_1_1_1_HealthEndpointResponse",
+		"timestamp":             time.Now().Format(time.RFC3339),
+		"test_case":             "9.1.1.1_Health_Endpoint",
+		"endpoint":              "/health",
+		"status":                string(status.Status),
+		"response_timestamp":    status.Timestamp.Format(time.RFC3339),
+		"has_system_status":     status.SystemStatus != nil,
 		"has_blockchain_status": status.BlockchainStatus != nil,
-		"error_count":          len(status.Errors),
-		"health_check_success": true,
+		"error_count":           len(status.Errors),
+		"health_check_success":  true,
 	}
 
 	helpers.SaveTestData(t, "health/9_1_1_1_health_endpoint.json", data)
@@ -252,10 +252,10 @@ func Test_9_1_1_3_SystemResourceMonitoring(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":       "Test_9_1_1_3_SystemResourceMonitoring",
-		"timestamp":       time.Now().Format(time.RFC3339),
-		"test_case":       "9.1.1.3_System_Resources",
-		"status":          string(systemStatus.Status),
+		"test_name": "Test_9_1_1_3_SystemResourceMonitoring",
+		"timestamp": time.Now().Format(time.RFC3339),
+		"test_case": "9.1.1.3_System_Resources",
+		"status":    string(systemStatus.Status),
 		"memory": map[string]interface{}{
 			"used_mb":  systemStatus.MemoryUsedMB,
 			"total_mb": systemStatus.MemoryTotalMB,
@@ -269,7 +269,7 @@ func Test_9_1_1_3_SystemResourceMonitoring(t *testing.T) {
 			"total_gb": systemStatus.DiskTotalGB,
 			"percent":  systemStatus.DiskPercent,
 		},
-		"goroutines":        systemStatus.GoRoutines,
+		"goroutines":         systemStatus.GoRoutines,
 		"monitoring_success": true,
 	}
 

@@ -67,8 +67,8 @@ func TestAlgorithmRegistry(t *testing.T) {
 			"test_case": "17.1.1_등록된_알고리즘_조회",
 			"key_type":  string(info.KeyType),
 			"info": map[string]interface{}{
-				"rfc9421_algorithm":      info.RFC9421Algorithm,
-				"supports_rfc9421":       info.SupportsRFC9421,
+				"rfc9421_algorithm":       info.RFC9421Algorithm,
+				"supports_rfc9421":        info.SupportsRFC9421,
 				"supports_key_generation": info.SupportsKeyGeneration,
 			},
 			"validation": "알고리즘_정보_조회_통과",
@@ -332,8 +332,8 @@ func TestAlgorithmRegistry(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "17.1.7_RFC9421_지원_확인",
 			"support_checks": map[string]bool{
-				"Ed25519":  SupportsRFC9421(KeyTypeEd25519),
-				"X25519":   SupportsRFC9421(KeyTypeX25519),
+				"Ed25519": SupportsRFC9421(KeyTypeEd25519),
+				"X25519":  SupportsRFC9421(KeyTypeX25519),
 			},
 			"validation": "RFC9421_지원_검증_통과",
 		}
@@ -369,10 +369,10 @@ func TestAlgorithmRegistry(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case":       "17.1.8_키_생성_지원_확인",
-			"support_checks":  supportMap,
-			"all_supported":   true,
-			"validation":      "키_생성_지원_검증_통과",
+			"test_case":      "17.1.8_키_생성_지원_확인",
+			"support_checks": supportMap,
+			"all_supported":  true,
+			"validation":     "키_생성_지원_검증_통과",
 		}
 		helpers.SaveTestData(t, "crypto/algorithm_registry_key_generation.json", testData)
 	})
@@ -418,7 +418,7 @@ func TestAlgorithmRegistry(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case":       "17.1.9_서명_지원_확인",
+			"test_case":         "17.1.9_서명_지원_확인",
 			"signature_support": supportMap,
 			"unknown_rejected":  !SupportsSignature(KeyType("unknown")),
 			"validation":        "서명_지원_검증_통과",
@@ -557,12 +557,12 @@ func TestAlgorithmRegistry_Immutability(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case":         "17.2.1_슬라이스_불변성",
-			"original_length":   originalLen,
-			"modified_local":    len(algorithms1),
-			"registry_length":   len(algorithms2),
+			"test_case":               "17.2.1_슬라이스_불변성",
+			"original_length":         originalLen,
+			"modified_local":          len(algorithms1),
+			"registry_length":         len(algorithms2),
 			"immutability_maintained": originalLen == len(algorithms2),
-			"validation":        "불변성_검증_통과",
+			"validation":              "불변성_검증_통과",
 		}
 		helpers.SaveTestData(t, "crypto/algorithm_registry_immutable_slice.json", testData)
 	})
@@ -605,13 +605,13 @@ func TestAlgorithmRegistry_Immutability(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case":          "17.2.2_RFC9421_목록_불변성",
-			"original_length":    originalLen,
-			"modified_local":     len(list1),
-			"registry_length":    len(list2),
-			"fake_not_included":  !containsString(list2, "fake-algorithm"),
+			"test_case":               "17.2.2_RFC9421_목록_불변성",
+			"original_length":         originalLen,
+			"modified_local":          len(list1),
+			"registry_length":         len(list2),
+			"fake_not_included":       !containsString(list2, "fake-algorithm"),
 			"immutability_maintained": originalLen == len(list2),
-			"validation":         "불변성_검증_통과",
+			"validation":              "불변성_검증_통과",
 		}
 		helpers.SaveTestData(t, "crypto/algorithm_registry_immutable_rfc9421.json", testData)
 	})
@@ -664,12 +664,12 @@ func TestAlgorithmRegistry_ThreadSafety(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case":         "17.3.1_동시_읽기_안전성",
-			"goroutines":        numGoroutines,
-			"completed":         completedCount,
-			"no_panics":         true,
-			"thread_safe":       true,
-			"validation":        "스레드_안전성_검증_통과",
+			"test_case":   "17.3.1_동시_읽기_안전성",
+			"goroutines":  numGoroutines,
+			"completed":   completedCount,
+			"no_panics":   true,
+			"thread_safe": true,
+			"validation":  "스레드_안전성_검증_통과",
 		}
 		helpers.SaveTestData(t, "crypto/algorithm_registry_thread_safety.json", testData)
 	})
@@ -728,11 +728,11 @@ func TestAlgorithmRegistry_Integration(t *testing.T) {
 			keyTypeStrings = append(keyTypeStrings, string(kt))
 		}
 		testData := map[string]interface{}{
-			"test_case":       "17.4.1_전체_키_타입_등록",
-			"key_types":       keyTypeStrings,
-			"total_count":     len(keyTypes),
-			"all_registered":  true,
-			"validation":      "키_타입_등록_검증_통과",
+			"test_case":      "17.4.1_전체_키_타입_등록",
+			"key_types":      keyTypeStrings,
+			"total_count":    len(keyTypes),
+			"all_registered": true,
+			"validation":     "키_타입_등록_검증_통과",
 		}
 		helpers.SaveTestData(t, "crypto/algorithm_registry_integration_all_keys.json", testData)
 	})
@@ -783,11 +783,11 @@ func TestAlgorithmRegistry_Integration(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case":          "17.4.2_RFC9421_양방향_매핑",
-			"algorithms_count":   len(rfc9421Algorithms),
+			"test_case":              "17.4.2_RFC9421_양방향_매핑",
+			"algorithms_count":       len(rfc9421Algorithms),
 			"bidirectional_mappings": mappings,
-			"all_mapped":         successCount == len(rfc9421Algorithms),
-			"validation":         "양방향_매핑_검증_통과",
+			"all_mapped":             successCount == len(rfc9421Algorithms),
+			"validation":             "양방향_매핑_검증_통과",
 		}
 		helpers.SaveTestData(t, "crypto/algorithm_registry_integration_bidirectional.json", testData)
 	})

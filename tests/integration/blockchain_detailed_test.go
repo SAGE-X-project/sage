@@ -78,12 +78,12 @@ func TestBlockchainChainID(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":       "4.1.1_Chain_ID_Verification",
-			"network_rpc":     cfg.NetworkRPC,
-			"chain_id":        chainID.String(),
+			"test_case":         "4.1.1_Chain_ID_Verification",
+			"network_rpc":       cfg.NetworkRPC,
+			"chain_id":          chainID.String(),
 			"expected_chain_id": "31337",
-			"match":           chainID.Cmp(expectedChainID) == 0,
-			"network_type":    "local_testnet",
+			"match":             chainID.Cmp(expectedChainID) == 0,
+			"network_type":      "local_testnet",
 		}
 		helpers.SaveTestData(t, "blockchain/chain_id_verification.json", testData)
 	})
@@ -123,10 +123,10 @@ func TestBlockchainChainID(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":   "4.1.2_Chain_ID_Consistency",
-			"chain_id_1":  chainID1.String(),
-			"chain_id_2":  chainID2.String(),
-			"consistent":  chainID1.Cmp(chainID2) == 0,
+			"test_case":  "4.1.2_Chain_ID_Consistency",
+			"chain_id_1": chainID1.String(),
+			"chain_id_2": chainID2.String(),
+			"consistent": chainID1.Cmp(chainID2) == 0,
 		}
 		helpers.SaveTestData(t, "blockchain/chain_id_consistency.json", testData)
 	})
@@ -241,27 +241,27 @@ func TestTransactionSignAndSend(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":       "4.2.1_Transaction_Sign_Send",
-			"from_address":    fromAddress.Hex(),
-			"to_address":      toAddress.Hex(),
-			"value_wei":       value.String(),
-			"value_eth":       "0.001",
-			"nonce":           nonce,
-			"gas_limit":       gasLimit,
-			"gas_price_wei":   gasPrice.String(),
-			"chain_id":        chainID.String(),
+			"test_case":     "4.2.1_Transaction_Sign_Send",
+			"from_address":  fromAddress.Hex(),
+			"to_address":    toAddress.Hex(),
+			"value_wei":     value.String(),
+			"value_eth":     "0.001",
+			"nonce":         nonce,
+			"gas_limit":     gasLimit,
+			"gas_price_wei": gasPrice.String(),
+			"chain_id":      chainID.String(),
 			"signature": map[string]string{
 				"v": v.String(),
 				"r": r.String(),
 				"s": s.String(),
 			},
-			"transaction_hash":      txHash.Hex(),
-			"block_number":          receipt.BlockNumber.Uint64(),
-			"status":                receipt.Status,
-			"gas_used":              receipt.GasUsed,
-			"effective_gas_price":   receipt.EffectiveGasPrice.String(),
-			"transaction_cost_wei":  totalCost.String(),
-			"total_cost_wei":        totalCostWithValue.String(),
+			"transaction_hash":     txHash.Hex(),
+			"block_number":         receipt.BlockNumber.Uint64(),
+			"status":               receipt.Status,
+			"gas_used":             receipt.GasUsed,
+			"effective_gas_price":  receipt.EffectiveGasPrice.String(),
+			"transaction_cost_wei": totalCost.String(),
+			"total_cost_wei":       totalCostWithValue.String(),
 		}
 		helpers.SaveTestData(t, "blockchain/transaction_sign_send.json", testData)
 	})
@@ -335,15 +335,15 @@ func TestGasEstimationAccuracy(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":      "4.3.1_Gas_Estimation_Accuracy",
-			"from_address":   from.Hex(),
-			"to_address":     to.Hex(),
-			"value_wei":      "1000000000000000",
-			"value_eth":      "0.001",
-			"estimated_gas":  estimatedGas,
-			"actual_gas":     actualGas,
-			"deviation_pct":  deviation,
-			"tolerance_pct":  10.0,
+			"test_case":        "4.3.1_Gas_Estimation_Accuracy",
+			"from_address":     from.Hex(),
+			"to_address":       to.Hex(),
+			"value_wei":        "1000000000000000",
+			"value_eth":        "0.001",
+			"estimated_gas":    estimatedGas,
+			"actual_gas":       actualGas,
+			"deviation_pct":    deviation,
+			"tolerance_pct":    10.0,
 			"within_tolerance": deviation <= 10.0,
 			"transaction_type": "simple_transfer",
 		}
@@ -571,11 +571,11 @@ func TestEventMonitoring(t *testing.T) {
 
 			// Save test data
 			testData := map[string]interface{}{
-				"test_case":       "4.4.1_Event_Log_Monitoring",
-				"current_block":   currentBlock,
-				"query_from":      0,
-				"query_to":        currentBlock,
-				"logs_found":      len(logs),
+				"test_case":     "4.4.1_Event_Log_Monitoring",
+				"current_block": currentBlock,
+				"query_from":    0,
+				"query_to":      currentBlock,
+				"logs_found":    len(logs),
 				"sample_log": map[string]interface{}{
 					"contract_address": firstLog.Address.Hex(),
 					"block_number":     firstLog.BlockNumber,
@@ -644,11 +644,11 @@ func TestEventMonitoring(t *testing.T) {
 
 			// Save test data
 			testData := map[string]interface{}{
-				"test_case":     "4.4.2_Event_Subscription",
-				"network_rpc":   cfg.NetworkRPC,
-				"available":     false,
-				"error":         err.Error(),
-				"note":          "WebSocket required for subscriptions",
+				"test_case":   "4.4.2_Event_Subscription",
+				"network_rpc": cfg.NetworkRPC,
+				"available":   false,
+				"error":       err.Error(),
+				"note":        "WebSocket required for subscriptions",
 			}
 			helpers.SaveTestData(t, "blockchain/event_subscription.json", testData)
 			return

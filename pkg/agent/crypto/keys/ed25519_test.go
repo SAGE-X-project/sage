@@ -224,10 +224,10 @@ func TestEd25519KeyPair(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "2.1.2_Ed25519_Complete_Key_Lifecycle",
 			"generation": map[string]interface{}{
-				"key_type":        string(keyPair.Type()),
-				"key_id":          keyID,
-				"public_key_hex":  hex.EncodeToString(pubKeyBytes),
-				"public_key_size": len(pubKeyBytes),
+				"key_type":         string(keyPair.Type()),
+				"key_id":           keyID,
+				"public_key_hex":   hex.EncodeToString(pubKeyBytes),
+				"public_key_size":  len(pubKeyBytes),
 				"private_key_size": len(privKeyBytes),
 			},
 			"storage": map[string]interface{}{
@@ -238,12 +238,12 @@ func TestEd25519KeyPair(t *testing.T) {
 				"stored_key_id":    storedKeyID,
 			},
 			"verification": map[string]interface{}{
-				"original_signature_size":      len(signature),
-				"original_signature_valid":     true,
-				"reconstructed_signature_size": len(signature2),
+				"original_signature_size":       len(signature),
+				"original_signature_valid":      true,
+				"reconstructed_signature_size":  len(signature2),
 				"reconstructed_signature_valid": true,
-				"test_message":                 string(testMessage),
-				"test_message_2":               string(testMessage2),
+				"test_message":                  string(testMessage),
+				"test_message_2":                string(testMessage2),
 			},
 			"security": map[string]interface{}{
 				"cryptographically_secure":   true,
@@ -320,14 +320,14 @@ func TestEd25519KeyPair(t *testing.T) {
 		privKey := keyPair.PrivateKey().(ed25519.PrivateKey)
 
 		testData := map[string]interface{}{
-			"test_case":        "2.4.1_Ed25519_Sign_Verify",
-			"message":          string(message),
-			"message_hex":      hex.EncodeToString(message),
-			"public_key_hex":   hex.EncodeToString(pubKey),
-			"private_key_hex":  hex.EncodeToString(privKey),
-			"signature_hex":    hex.EncodeToString(signature),
-			"signature_size":   len(signature),
-			"expected_size":    64,
+			"test_case":       "2.4.1_Ed25519_Sign_Verify",
+			"message":         string(message),
+			"message_hex":     hex.EncodeToString(message),
+			"public_key_hex":  hex.EncodeToString(pubKey),
+			"private_key_hex": hex.EncodeToString(privKey),
+			"signature_hex":   hex.EncodeToString(signature),
+			"signature_size":  len(signature),
+			"expected_size":   64,
 		}
 		helpers.SaveTestData(t, "keys/ed25519_sign_verify.json", testData)
 	})
@@ -675,11 +675,11 @@ func TestEd25519KeyPairEncrypted(t *testing.T) {
 
 	// Save test data
 	testData := map[string]interface{}{
-		"test_case":    "2.2.2_Encrypted_Key_Storage",
-		"key_id":       keyID,
-		"key_type":     string(keyPair.Type()),
-		"key_size":     len(keyData),
-		"vault_dir":    tempDir,
+		"test_case":        "2.2.2_Encrypted_Key_Storage",
+		"key_id":           keyID,
+		"key_type":         string(keyPair.Type()),
+		"key_size":         len(keyData),
+		"vault_dir":        tempDir,
 		"file_permissions": "0600",
 		"public_key_hex":   hex.EncodeToString(pubKey),
 		"encryption_test": map[string]interface{}{
@@ -770,13 +770,13 @@ func TestEd25519KeyPairDER(t *testing.T) {
 
 	// Save test data
 	testData := map[string]interface{}{
-		"test_case":        "10.2.3_DER_Format_Storage",
-		"key_id":           keyPair.ID(),
-		"key_type":         string(keyPair.Type()),
-		"der_priv_size":    len(privKeyDER),
-		"der_pub_size":     len(pubKeyDER),
-		"public_key_hex":   hex.EncodeToString(pubKey),
-		"signature_hex":    hex.EncodeToString(signature),
+		"test_case":      "10.2.3_DER_Format_Storage",
+		"key_id":         keyPair.ID(),
+		"key_type":       string(keyPair.Type()),
+		"der_priv_size":  len(privKeyDER),
+		"der_pub_size":   len(pubKeyDER),
+		"public_key_hex": hex.EncodeToString(pubKey),
+		"signature_hex":  hex.EncodeToString(signature),
 	}
 	helpers.SaveTestData(t, "keys/ed25519_der_format.json", testData)
 }
@@ -1019,12 +1019,12 @@ func TestEd25519KeyBase64Encoding(t *testing.T) {
 
 	// Save test data
 	testData := map[string]interface{}{
-		"test_case":           "10.2.8_Base64_Encoding",
-		"key_id":              keyPair.ID(),
-		"private_key_base64":  privKeyB64,
-		"public_key_base64":   pubKeyB64,
-		"private_key_b64url":  privKeyB64URL,
-		"public_key_b64url":   pubKeyB64URL,
+		"test_case":          "10.2.8_Base64_Encoding",
+		"key_id":             keyPair.ID(),
+		"private_key_base64": privKeyB64,
+		"public_key_base64":  pubKeyB64,
+		"private_key_b64url": privKeyB64URL,
+		"public_key_b64url":  pubKeyB64URL,
 		"base64_lengths": map[string]int{
 			"standard_private": len(privKeyB64),
 			"standard_public":  len(pubKeyB64),
@@ -1143,19 +1143,19 @@ func TestEd25519InvalidSignatureRejection(t *testing.T) {
 
 	// Save test data
 	testData := map[string]interface{}{
-		"test_case":           "10.2.10_Invalid_Signature_Rejection",
-		"key_id":              keyPair.ID(),
-		"message":             string(message),
-		"signature_hex":       hex.EncodeToString(signature),
+		"test_case":     "10.2.10_Invalid_Signature_Rejection",
+		"key_id":        keyPair.ID(),
+		"message":       string(message),
+		"signature_hex": hex.EncodeToString(signature),
 		"tampered_tests": map[string]bool{
-			"tampered_message":      true,
-			"tampered_signature":    true,
-			"wrong_key":             true,
-			"empty_signature":       true,
-			"short_signature":       true,
-			"long_signature":        true,
-			"null_message":          true,
-			"interface_error":       true,
+			"tampered_message":   true,
+			"tampered_signature": true,
+			"wrong_key":          true,
+			"empty_signature":    true,
+			"short_signature":    true,
+			"long_signature":     true,
+			"null_message":       true,
+			"interface_error":    true,
 		},
 	}
 	helpers.SaveTestData(t, "keys/ed25519_invalid_signature.json", testData)

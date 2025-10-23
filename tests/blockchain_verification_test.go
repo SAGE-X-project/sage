@@ -68,12 +68,12 @@ func TestBlockchainProviderConfiguration(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "4.1.1.1_Provider_Configuration",
 			"configuration": map[string]interface{}{
-				"network_rpc":      cfg.NetworkRPC,
-				"chain_id":         cfg.ChainID.Int64(),
-				"gas_limit":        cfg.GasLimit,
-				"max_gas_price":    cfg.MaxGasPrice.Int64(),
-				"max_retries":      cfg.MaxRetries,
-				"retry_delay_ms":   cfg.RetryDelay.Milliseconds(),
+				"network_rpc":       cfg.NetworkRPC,
+				"chain_id":          cfg.ChainID.Int64(),
+				"gas_limit":         cfg.GasLimit,
+				"max_gas_price":     cfg.MaxGasPrice.Int64(),
+				"max_retries":       cfg.MaxRetries,
+				"retry_delay_ms":    cfg.RetryDelay.Milliseconds(),
 				"request_timeout_s": cfg.RequestTimeout.Seconds(),
 			},
 			"validation": map[string]bool{
@@ -110,12 +110,12 @@ func TestBlockchainChainID(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":        "4.1.1.2_Chain_ID_Verification",
+			"test_case":         "4.1.1.2_Chain_ID_Verification",
 			"expected_chain_id": expectedChainID.Int64(),
 			"network_type":      "Hardhat Local",
 			"verification": map[string]interface{}{
-				"chain_id":        expectedChainID.Int64(),
-				"is_valid":        expectedChainID.Int64() == 31337,
+				"chain_id":         expectedChainID.Int64(),
+				"is_valid":         expectedChainID.Int64() == 31337,
 				"is_local_network": true,
 			},
 		}
@@ -141,12 +141,12 @@ func TestTransactionSigning(t *testing.T) {
 
 		// Create a test transaction
 		tx := types.NewTransaction(
-			0,                                                           // nonce
+			0, // nonce
 			common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8"), // to
-			big.NewInt(1000000000000000),                                // value (0.001 ETH)
-			21000,                                                       // gas limit
-			big.NewInt(20000000000),                                     // gas price (20 Gwei)
-			nil,                                                         // data
+			big.NewInt(1000000000000000),                                      // value (0.001 ETH)
+			21000,                                                             // gas limit
+			big.NewInt(20000000000),                                           // gas price (20 Gwei)
+			nil,                                                               // data
 		)
 
 		// Sign transaction
@@ -189,9 +189,9 @@ func TestTransactionSigning(t *testing.T) {
 				"s": s.String(),
 			},
 			"verification": map[string]interface{}{
-				"signed_successfully":    err == nil,
-				"signature_valid":        from == expectedFrom,
-				"from_address_matches":   from.Hex() == expectedFrom.Hex(),
+				"signed_successfully":  err == nil,
+				"signature_valid":      from == expectedFrom,
+				"from_address_matches": from.Hex() == expectedFrom.Hex(),
 			},
 		}
 
@@ -249,7 +249,7 @@ func TestTransactionSendAndConfirm(t *testing.T) {
 			nonce,
 			toAddress,
 			big.NewInt(1000000000000000), // 0.001 ETH
-			21000,                         // gas limit
+			21000,                        // gas limit
 			gasPrice,
 			nil,
 		)
@@ -300,14 +300,14 @@ func TestTransactionSendAndConfirm(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "4.1.2.2_Transaction_Send_Confirm",
 			"transaction": map[string]interface{}{
-				"hash":       txHash.Hex(),
-				"from":       fromAddress.Hex(),
-				"to":         toAddress.Hex(),
-				"value":      signedTx.Value().Int64(),
-				"gas_limit":  signedTx.Gas(),
-				"gas_price":  signedTx.GasPrice().Int64(),
-				"nonce":      signedTx.Nonce(),
-				"chain_id":   chainID.Int64(),
+				"hash":      txHash.Hex(),
+				"from":      fromAddress.Hex(),
+				"to":        toAddress.Hex(),
+				"value":     signedTx.Value().Int64(),
+				"gas_limit": signedTx.Gas(),
+				"gas_price": signedTx.GasPrice().Int64(),
+				"nonce":     signedTx.Nonce(),
+				"chain_id":  chainID.Int64(),
 			},
 			"receipt": map[string]interface{}{
 				"status":              receipt.Status,
@@ -318,10 +318,10 @@ func TestTransactionSendAndConfirm(t *testing.T) {
 				"block_hash":          receipt.BlockHash.Hex(),
 			},
 			"verification": map[string]interface{}{
-				"transaction_sent":     true,
-				"receipt_received":     true,
-				"status_success":       receipt.Status == 1,
-				"gas_used_expected":    receipt.GasUsed == 21000,
+				"transaction_sent":      true,
+				"receipt_received":      true,
+				"status_success":        receipt.Status == 1,
+				"gas_used_expected":     receipt.GasUsed == 21000,
 				"transaction_confirmed": true,
 			},
 		}
@@ -372,21 +372,21 @@ func TestGasEstimation(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "4.1.2.3_Gas_Estimation",
 			"estimation": map[string]interface{}{
-				"base_gas":        baseGas,
-				"buffer_percent":  bufferPercent,
-				"estimated_gas":   estimatedGas,
-				"lower_bound":     lowerBound,
-				"upper_bound":     upperBound,
+				"base_gas":       baseGas,
+				"buffer_percent": bufferPercent,
+				"estimated_gas":  estimatedGas,
+				"lower_bound":    lowerBound,
+				"upper_bound":    upperBound,
 			},
 			"capping": map[string]interface{}{
-				"gas_limit":     gasLimit,
-				"large_gas":     3600000,
-				"capped_gas":    cappedGas,
+				"gas_limit":  gasLimit,
+				"large_gas":  3600000,
+				"capped_gas": cappedGas,
 			},
 			"accuracy": map[string]interface{}{
-				"within_bounds":     estimatedGas >= lowerBound && estimatedGas <= upperBound,
-				"buffer_applied":    estimatedGas == baseGas + (baseGas * uint64(bufferPercent) / 100),
-				"capping_works":     cappedGas <= gasLimit,
+				"within_bounds":  estimatedGas >= lowerBound && estimatedGas <= upperBound,
+				"buffer_applied": estimatedGas == baseGas+(baseGas*uint64(bufferPercent)/100),
+				"capping_works":  cappedGas <= gasLimit,
 			},
 		}
 
@@ -437,7 +437,7 @@ func TestContractDeployment(t *testing.T) {
 				"chain_id":         31337,
 			},
 			"verification": map[string]interface{}{
-				"address_generated":   contractAddress != common.Address{},
+				"address_generated":    contractAddress != common.Address{},
 				"address_valid_format": len(contractAddress.Bytes()) == 20,
 				"deployment_success":   true,
 			},
@@ -503,11 +503,11 @@ func TestContractInteraction(t *testing.T) {
 				"call_successful": true,
 			},
 			"get_agent": map[string]interface{}{
-				"agent_address":    agentAddress.Hex(),
-				"retrieved_did":    retrievedAgent["did"],
-				"registered":       retrievedAgent["registered"],
-				"active":           retrievedAgent["active"],
-				"call_successful":  true,
+				"agent_address":   agentAddress.Hex(),
+				"retrieved_did":   retrievedAgent["did"],
+				"registered":      retrievedAgent["registered"],
+				"active":          retrievedAgent["active"],
+				"call_successful": true,
 			},
 			"verification": map[string]interface{}{
 				"register_success": true,
@@ -541,13 +541,13 @@ func TestContractEvents(t *testing.T) {
 		// Simulate AgentRegistered event
 		// Event AgentRegistered(address indexed agentAddress, string did, bytes publicKey)
 		event := map[string]interface{}{
-			"event_name":     "AgentRegistered",
-			"agent_address":  agentAddress.Hex(),
-			"did":            agentDID,
-			"public_key":     common.Bytes2Hex(crypto.CompressPubkey(ecdsaKey)),
-			"block_number":   12345,
-			"tx_hash":        crypto.Keccak256Hash([]byte(agentDID)).Hex(),
-			"log_index":      0,
+			"event_name":    "AgentRegistered",
+			"agent_address": agentAddress.Hex(),
+			"did":           agentDID,
+			"public_key":    common.Bytes2Hex(crypto.CompressPubkey(ecdsaKey)),
+			"block_number":  12345,
+			"tx_hash":       crypto.Keccak256Hash([]byte(agentDID)).Hex(),
+			"log_index":     0,
 		}
 
 		// Verify event structure
@@ -567,7 +567,7 @@ func TestContractEvents(t *testing.T) {
 		// Save test data
 		testData := map[string]interface{}{
 			"test_case": "4.2.2.3_Event_Log",
-			"event": event,
+			"event":     event,
 			"verification": map[string]interface{}{
 				"event_emitted":      true,
 				"event_name_correct": event["event_name"] == "AgentRegistered",

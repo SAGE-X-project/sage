@@ -116,9 +116,9 @@ func TestSecureSessionLifecycle(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":   "7.1.1_Session_Encryption_Signing",
-			"session_id":  sess.GetID(),
-			"algorithm":   "ChaCha20-Poly1305",
+			"test_case":     "7.1.1_Session_Encryption_Signing",
+			"session_id":    sess.GetID(),
+			"algorithm":     "ChaCha20-Poly1305",
 			"mac_algorithm": "HMAC-SHA256",
 			"config": map[string]interface{}{
 				"max_age_ms":      config.MaxAge.Milliseconds(),
@@ -138,9 +138,9 @@ func TestSecureSessionLifecycle(t *testing.T) {
 				"algorithm": "HMAC-SHA256",
 			},
 			"verification": map[string]interface{}{
-				"decrypted":      string(pt),
-				"match":          bytes.Equal(plaintext, pt),
-				"message_count":  msgCount,
+				"decrypted":     string(pt),
+				"match":         bytes.Equal(plaintext, pt),
+				"message_count": msgCount,
 			},
 		}
 		helpers.SaveTestData(t, "session/session_encryption_signing.json", testData)
@@ -541,10 +541,10 @@ func Test_7_1_1_1_DuplicateSessionIDPrevention(t *testing.T) {
 	})
 
 	testData := map[string]interface{}{
-		"test_case":               "7.1.1.1_Duplicate_Session_ID_Prevention",
-		"session_id":              sessionID,
-		"duplicate_prevented":     true,
-		"session_count":           count,
+		"test_case":                "7.1.1.1_Duplicate_Session_ID_Prevention",
+		"session_id":               sessionID,
+		"duplicate_prevented":      true,
+		"session_count":            count,
 		"ensure_params_idempotent": existed2,
 	}
 	helpers.SaveTestData(t, "session/7_1_1_1_duplicate_prevention.json", testData)
@@ -614,12 +614,12 @@ func Test_7_1_1_2_SessionIDFormatValidation(t *testing.T) {
 	})
 
 	testData := map[string]interface{}{
-		"test_case":       "7.1.1.2_Session_ID_Format_Validation",
-		"session_id":      sessionID,
-		"format":          "base64url",
-		"length":          len(sessionID),
-		"deterministic":   sessionID == sessionID2,
-		"regex_pattern":   "^[A-Za-z0-9_-]+$",
+		"test_case":     "7.1.1.2_Session_ID_Format_Validation",
+		"session_id":    sessionID,
+		"format":        "base64url",
+		"length":        len(sessionID),
+		"deterministic": sessionID == sessionID2,
+		"regex_pattern": "^[A-Za-z0-9_-]+$",
 	}
 	helpers.SaveTestData(t, "session/7_1_1_2_id_format_validation.json", testData)
 }
@@ -716,10 +716,10 @@ func Test_7_1_1_3_SessionMetadataSetup(t *testing.T) {
 	})
 
 	testData := map[string]interface{}{
-		"test_case":        "7.1.1.3_Session_Metadata_Setup",
-		"session_id":       sessionID,
-		"created_at":       createdAt.Format(time.RFC3339Nano),
-		"last_used_at":     lastUsedAt.Format(time.RFC3339Nano),
+		"test_case":         "7.1.1.3_Session_Metadata_Setup",
+		"session_id":        sessionID,
+		"created_at":        createdAt.Format(time.RFC3339Nano),
+		"last_used_at":      lastUsedAt.Format(time.RFC3339Nano),
 		"initial_msg_count": 0,
 		"config": map[string]interface{}{
 			"max_age_sec":      config.MaxAge.Seconds(),
@@ -803,10 +803,10 @@ func Test_7_2_1_1_SessionTTLTime(t *testing.T) {
 	})
 
 	testData := map[string]interface{}{
-		"test_case":       "7.2.1.1_Session_TTL_Time",
-		"session_id":      sessionID,
-		"ttl_ms":          testTTL.Milliseconds(),
-		"half_ttl_valid":  true,
+		"test_case":        "7.2.1.1_Session_TTL_Time",
+		"session_id":       sessionID,
+		"ttl_ms":           testTTL.Milliseconds(),
+		"half_ttl_valid":   true,
 		"full_ttl_expired": true,
 		"auto_invalidated": !exists,
 	}
@@ -893,15 +893,15 @@ func Test_7_2_1_2_SessionInfoRetrieval(t *testing.T) {
 	})
 
 	testData := map[string]interface{}{
-		"test_case":    "7.2.1.2_Session_Info_Retrieval",
-		"session_id":   sessionID,
+		"test_case":     "7.2.1.2_Session_Info_Retrieval",
+		"session_id":    sessionID,
 		"session_found": true,
 		"info_accessible": map[string]interface{}{
-			"id":             retrievedID,
-			"created_at":     createdAt.Format(time.RFC3339),
-			"last_used_at":   lastUsedAt.Format(time.RFC3339),
-			"message_count":  msgCount,
-			"is_expired":     isExpired,
+			"id":                retrievedID,
+			"created_at":        createdAt.Format(time.RFC3339),
+			"last_used_at":      lastUsedAt.Format(time.RFC3339),
+			"message_count":     msgCount,
+			"is_expired":        isExpired,
 			"config_accessible": true,
 		},
 		"non_existent_handled": true,
@@ -1000,12 +1000,12 @@ func Test_7_2_1_3_ExpiredSessionDeletion(t *testing.T) {
 	})
 
 	testData := map[string]interface{}{
-		"test_case":          "7.2.1.3_Expired_Session_Deletion",
-		"ttl_ms":             shortTTL.Milliseconds(),
-		"sessions_created":   3,
-		"sessions_before":    countBefore,
-		"sessions_after":     countAfter,
-		"all_deleted":        countAfter == 0,
+		"test_case":           "7.2.1.3_Expired_Session_Deletion",
+		"ttl_ms":              shortTTL.Milliseconds(),
+		"sessions_created":    3,
+		"sessions_before":     countBefore,
+		"sessions_after":      countAfter,
+		"all_deleted":         countAfter == 0,
 		"manual_delete_works": true,
 	}
 	helpers.SaveTestData(t, "session/7_2_1_3_expired_deletion.json", testData)
@@ -1132,11 +1132,11 @@ func TestSessionStore(t *testing.T) {
 
 	// Save test data
 	testDataJson := map[string]interface{}{
-		"test_case":     "10.3.2_Session_Store",
-		"session_id":    sessionID,
-		"data_size":     len(testData),
+		"test_case":      "10.3.2_Session_Store",
+		"session_id":     sessionID,
+		"data_size":      len(testData),
 		"encrypted_size": len(encrypted),
-		"data_match":    bytes.Equal(testData, decrypted),
+		"data_match":     bytes.Equal(testData, decrypted),
 	}
 	helpers.SaveTestData(t, "session/session_store.json", testDataJson)
 }
@@ -1200,13 +1200,13 @@ func TestSessionEncryption(t *testing.T) {
 
 	// Save test data
 	testData := map[string]interface{}{
-		"test_case":         "10.3.3_Session_Encryption",
-		"session_id":        sessionID,
-		"plaintext_size":    len(sensitiveData),
-		"ciphertext_size":   len(ciphertext),
-		"mac_size":          len(mac),
+		"test_case":          "10.3.3_Session_Encryption",
+		"session_id":         sessionID,
+		"plaintext_size":     len(sensitiveData),
+		"ciphertext_size":    len(ciphertext),
+		"mac_size":           len(mac),
 		"decryption_success": bytes.Equal(sensitiveData, decrypted),
-		"tamper_detected":   true,
+		"tamper_detected":    true,
 	}
 	helpers.SaveTestData(t, "session/session_encryption.json", testData)
 }
@@ -1303,11 +1303,11 @@ func TestSessionConcurrency(t *testing.T) {
 
 	// Save test data
 	testData := map[string]interface{}{
-		"test_case":       "10.3.4_Session_Concurrency",
-		"num_operations":  numOps,
-		"success_count":   successCount,
-		"error_count":     errorCount,
-		"all_success":     successCount == numOps,
+		"test_case":      "10.3.4_Session_Concurrency",
+		"num_operations": numOps,
+		"success_count":  successCount,
+		"error_count":    errorCount,
+		"all_success":    successCount == numOps,
 	}
 	helpers.SaveTestData(t, "session/session_concurrency.json", testData)
 }
@@ -1371,11 +1371,11 @@ func TestSessionSync(t *testing.T) {
 
 	// Save test data
 	testData := map[string]interface{}{
-		"test_case":      "10.3.5_Session_Sync",
-		"session_id":     sessionID,
-		"data_match":     bytes.Equal(data, decrypted),
+		"test_case":          "10.3.5_Session_Sync",
+		"session_id":         sessionID,
+		"data_match":         bytes.Equal(data, decrypted),
 		"cross_node_decrypt": true,
-		"state_consistent": sess1.GetID() == sess2.GetID(),
+		"state_consistent":   sess1.GetID() == sess2.GetID(),
 	}
 	helpers.SaveTestData(t, "session/session_sync.json", testData)
 }

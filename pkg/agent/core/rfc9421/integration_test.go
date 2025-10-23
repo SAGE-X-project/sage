@@ -111,13 +111,13 @@ func TestIntegration(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":        "1.1.1_Ed25519_Signature",
-			"public_key_hex":   hex.EncodeToString(publicKey),
-			"private_key_hex":  hex.EncodeToString(privateKey),
-			"message":          testMessage,
-			"timestamp":        currentTime.Format(time.RFC3339),
-			"signature":        signature,
-			"signature_input":  sigInput,
+			"test_case":       "1.1.1_Ed25519_Signature",
+			"public_key_hex":  hex.EncodeToString(publicKey),
+			"private_key_hex": hex.EncodeToString(privateKey),
+			"message":         testMessage,
+			"timestamp":       currentTime.Format(time.RFC3339),
+			"signature":       signature,
+			"signature_input": sigInput,
 			"key_sizes": map[string]int{
 				"public_key":  len(publicKey),
 				"private_key": len(privateKey),
@@ -207,18 +207,18 @@ func TestIntegration(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":        "1.1.2_ECDSA_P256_Signature",
-			"curve":            "P-256",
-			"private_key_d":    hex.EncodeToString(privateKey.D.Bytes()),
-			"public_key_x":     hex.EncodeToString(publicKey.X.Bytes()),
-			"public_key_y":     hex.EncodeToString(publicKey.Y.Bytes()),
-			"request_url":      testURL,
-			"request_method":   "POST",
-			"request_body":     body,
-			"timestamp":        currentTime.Format(time.RFC3339),
-			"signature":        signature,
-			"signature_input":  sigInput,
-			"content_digest":   "sha-256=:RBsLjMq4VvLtwL6W0heDElJPTe2WbHL7gWRYYhHbAw0=:",
+			"test_case":       "1.1.2_ECDSA_P256_Signature",
+			"curve":           "P-256",
+			"private_key_d":   hex.EncodeToString(privateKey.D.Bytes()),
+			"public_key_x":    hex.EncodeToString(publicKey.X.Bytes()),
+			"public_key_y":    hex.EncodeToString(publicKey.Y.Bytes()),
+			"request_url":     testURL,
+			"request_method":  "POST",
+			"request_body":    body,
+			"timestamp":       currentTime.Format(time.RFC3339),
+			"signature":       signature,
+			"signature_input": sigInput,
+			"content_digest":  "sha-256=:RBsLjMq4VvLtwL6W0heDElJPTe2WbHL7gWRYYhHbAw0=:",
 		}
 		helpers.SaveTestData(t, "rfc9421/ecdsa_p256_signature.json", testData)
 	})

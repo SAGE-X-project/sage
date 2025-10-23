@@ -204,9 +204,9 @@ func TestDIDDuplicateDetection(t *testing.T) {
 			"error_message":  fmt.Sprintf("%v", err),
 		},
 		"eth_transfer": map[string]interface{}{
-			"from":    "Hardhat Account #0",
-			"to":      agentAddress.Hex(),
-			"amount":  "10 ETH",
+			"from":     "Hardhat Account #0",
+			"to":       agentAddress.Hex(),
+			"amount":   "10 ETH",
 			"gas_used": receipt.GasUsed,
 		},
 	}

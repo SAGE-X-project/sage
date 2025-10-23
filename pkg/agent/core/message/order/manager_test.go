@@ -72,8 +72,8 @@ func TestOrderManager(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":   "8.1.3_Empty_Timestamp_Rejection",
-			"session_id":  sessionID,
+			"test_case":  "8.1.3_Empty_Timestamp_Rejection",
+			"session_id": sessionID,
 			"timestamp": map[string]interface{}{
 				"value":   emptyTimestamp.Format(time.RFC3339Nano),
 				"is_zero": emptyTimestamp.IsZero(),
@@ -118,8 +118,8 @@ func TestOrderManager(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":   "8.1.4_First_Message_Baseline",
-			"session_id":  sessionID,
+			"test_case":  "8.1.4_First_Message_Baseline",
+			"session_id": sessionID,
 			"first_message": map[string]interface{}{
 				"sequence":  seq,
 				"timestamp": ts.Format(time.RFC3339Nano),
@@ -172,8 +172,8 @@ func TestOrderManager(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":   "8.1.1_Sequence_Monotonicity",
-			"session_id":  sessionID,
+			"test_case":  "8.1.1_Sequence_Monotonicity",
+			"session_id": sessionID,
 			"sequence_1": map[string]interface{}{
 				"value":    seq1,
 				"accepted": true,
@@ -237,19 +237,19 @@ func TestOrderManager(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":   "8.1.2_Timestamp_Ordering",
-			"session_id":  sessionID,
+			"test_case":  "8.1.2_Timestamp_Ordering",
+			"session_id": sessionID,
 			"baseline": map[string]interface{}{
 				"sequence":  seq1,
 				"timestamp": ts.Format(time.RFC3339Nano),
 				"accepted":  true,
 			},
 			"earlier_timestamp": map[string]interface{}{
-				"sequence":       seq2,
-				"timestamp":      earlierTS.Format(time.RFC3339Nano),
-				"delta_seconds":  -1.0,
-				"accepted":       false,
-				"error":          "out-of-order",
+				"sequence":      seq2,
+				"timestamp":     earlierTS.Format(time.RFC3339Nano),
+				"delta_seconds": -1.0,
+				"accepted":      false,
+				"error":         "out-of-order",
 			},
 			"later_timestamp": map[string]interface{}{
 				"sequence":      seq3,
@@ -433,8 +433,8 @@ func TestOrderManager(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":   "5.2.2_Sequence_Validation",
-			"session_id":  sessionID,
+			"test_case":  "5.2.2_Sequence_Validation",
+			"session_id": sessionID,
 			"sequence_tests": []map[string]interface{}{
 				{"seq": seq1, "expected": "accept", "result": "accepted"},
 				{"seq": seq2, "expected": "accept", "result": "accepted"},
@@ -483,7 +483,7 @@ func TestOrderManager(t *testing.T) {
 
 		// Out-of-order: timestamp goes backward
 		seq4 := uint64(7) // sequence OK
-		ts4 := ts1 // timestamp earlier than ts2
+		ts4 := ts1        // timestamp earlier than ts2
 		helpers.LogDetail(t, "Out-of-order timestamp: seq=%d but earlier timestamp", seq4)
 		err4 := mgr.ProcessMessage(&mockHeader{seq: seq4, timestamp: ts4}, sessionID)
 		require.Error(t, err4)
@@ -511,8 +511,8 @@ func TestOrderManager(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":   "5.2.3_Out_Of_Order_Detection",
-			"session_id":  sessionID,
+			"test_case":  "5.2.3_Out_Of_Order_Detection",
+			"session_id": sessionID,
 			"test_sequence": []map[string]interface{}{
 				{"seq": seq1, "timestamp_delta_ms": 0, "result": "accepted", "note": "baseline"},
 				{"seq": seq2, "timestamp_delta_ms": 1, "result": "accepted", "note": "normal_progression"},

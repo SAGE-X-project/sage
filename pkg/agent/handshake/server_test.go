@@ -203,18 +203,18 @@ func TestHandshake_Invitation(t *testing.T) {
 
 	// Save test data for CLI verification
 	testData := map[string]interface{}{
-		"test_case": "10.1.1_Handshake_Invitation",
+		"test_case":  "10.1.1_Handshake_Invitation",
 		"context_id": contextId,
 		"alice": map[string]interface{}{
-			"did": string(aliceDID),
-			"name": aliceMeta.Name,
+			"did":       string(aliceDID),
+			"name":      aliceMeta.Name,
 			"is_active": aliceMeta.IsActive,
 		},
 		"response": map[string]interface{}{
 			"success": resp.Success,
 		},
 		"peer_cached": hasPeer,
-		"phase": "invitation",
+		"phase":       "invitation",
 	}
 	helpers.SaveTestData(t, "handshake/server_invitation.json", testData)
 }
@@ -295,15 +295,15 @@ func TestHandshake_Request(t *testing.T) {
 
 	// Save test data for CLI verification
 	testData := map[string]interface{}{
-		"test_case": "10.1.2_Handshake_Request",
-		"context_id": contextId,
-		"alice_did": string(aliceDID),
+		"test_case":          "10.1.2_Handshake_Request",
+		"context_id":         contextId,
+		"alice_did":          string(aliceDID),
 		"ephemeral_key_size": len(alicePubKeyJWK),
 		"response": map[string]interface{}{
 			"success": resp.Success,
 		},
 		"pending_created": hasPending,
-		"phase": "request",
+		"phase":           "request",
 	}
 	helpers.SaveTestData(t, "handshake/server_request.json", testData)
 }
@@ -393,15 +393,15 @@ func TestHandshake_Complete(t *testing.T) {
 
 	// Save test data for CLI verification
 	testData := map[string]interface{}{
-		"test_case": "10.1.3_Handshake_Complete",
-		"context_id": contextId,
-		"alice_did": string(aliceDID),
+		"test_case":        "10.1.3_Handshake_Complete",
+		"context_id":       contextId,
+		"alice_did":        string(aliceDID),
 		"phases_completed": []string{"invitation", "request", "complete"},
 		"response": map[string]interface{}{
 			"success": resp.Success,
 		},
 		"pending_consumed": !hasPending,
-		"phase": "complete",
+		"phase":            "complete",
 		"handshake_status": "finalized",
 	}
 	helpers.SaveTestData(t, "handshake/server_complete.json", testData)

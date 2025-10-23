@@ -105,17 +105,17 @@ func TestMessageBuilder(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "14.1.1_RFC9421_메시지_빌더_완전한_생성",
 			"message": map[string]interface{}{
-				"agent_did":          message.AgentDID,
-				"message_id":         message.MessageID,
-				"timestamp":          message.Timestamp.Format(time.RFC3339Nano),
-				"nonce":              message.Nonce,
-				"body":               string(message.Body),
-				"algorithm":          message.Algorithm,
-				"key_id":             message.KeyID,
-				"headers":            message.Headers,
-				"metadata":           message.Metadata,
-				"signed_fields":      message.SignedFields,
-				"signature_present":  len(message.Signature) > 0,
+				"agent_did":         message.AgentDID,
+				"message_id":        message.MessageID,
+				"timestamp":         message.Timestamp.Format(time.RFC3339Nano),
+				"nonce":             message.Nonce,
+				"body":              string(message.Body),
+				"algorithm":         message.Algorithm,
+				"key_id":            message.KeyID,
+				"headers":           message.Headers,
+				"metadata":          message.Metadata,
+				"signed_fields":     message.SignedFields,
+				"signature_present": len(message.Signature) > 0,
 			},
 			"validation": "완전한_메시지_생성_통과",
 		}
@@ -157,7 +157,7 @@ func TestMessageBuilder(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "14.1.2_RFC9421_메시지_빌더_기본_서명_필드",
 			"input": map[string]interface{}{
-				"agent_did": "did:sage:ethereum:agent001",
+				"agent_did":               "did:sage:ethereum:agent001",
 				"signed_fields_specified": false,
 			},
 			"output": map[string]interface{}{
@@ -207,11 +207,11 @@ func TestMessageBuilder(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "14.1.3_RFC9421_메시지_빌더_최소_메시지",
 			"message": map[string]interface{}{
-				"is_nil":              message == nil,
-				"headers_initialized": message.Headers != nil,
+				"is_nil":               message == nil,
+				"headers_initialized":  message.Headers != nil,
 				"metadata_initialized": message.Metadata != nil,
-				"timestamp_set":       !message.Timestamp.IsZero(),
-				"signed_fields_count": len(message.SignedFields),
+				"timestamp_set":        !message.Timestamp.IsZero(),
+				"signed_fields_count":  len(message.SignedFields),
 			},
 			"validation": "최소_메시지_생성_통과",
 		}
@@ -407,9 +407,9 @@ func TestParseMessageFromHeaders(t *testing.T) {
 				"header_count": len(headers),
 			},
 			"parsed_message": map[string]interface{}{
-				"agent_did":           message.AgentDID,
-				"body":                string(message.Body),
-				"headers_initialized": message.Headers != nil,
+				"agent_did":            message.AgentDID,
+				"body":                 string(message.Body),
+				"headers_initialized":  message.Headers != nil,
 				"metadata_initialized": message.Metadata != nil,
 			},
 			"validation": "최소_헤더_파싱_통과",
@@ -456,7 +456,7 @@ func TestParseMessageFromHeaders(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "14.2.3_RFC9421_헤더_파싱_잘못된_Timestamp",
 			"input": map[string]interface{}{
-				"headers": headers,
+				"headers":         headers,
 				"timestamp_value": headers["X-Timestamp"],
 			},
 			"result": map[string]interface{}{
@@ -508,9 +508,9 @@ func TestSignatureAlgorithmConstants(t *testing.T) {
 	testData := map[string]interface{}{
 		"test_case": "14.3.1_RFC9421_서명_알고리즘_상수",
 		"algorithms": map[string]interface{}{
-			"EdDSA":            string(AlgorithmEdDSA),
-			"ES256K":           string(AlgorithmES256K),
-			"ECDSA":            string(AlgorithmECDSA),
+			"EdDSA":           string(AlgorithmEdDSA),
+			"ES256K":          string(AlgorithmES256K),
+			"ECDSA":           string(AlgorithmECDSA),
 			"ECDSA-secp256k1": string(AlgorithmECDSASecp256k1),
 		},
 		"validation": "모든_알고리즘_상수_검증_통과",

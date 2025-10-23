@@ -120,15 +120,15 @@ func TestDIDRegistration(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case":            "3.1.1_DID_Creation_Registration",
-			"did":                  did,
-			"did_format":           "did:sage:ethereum:<ethereum-address>",
-			"ethereum_address":     agentAddress.Hex(),
-			"controller":           didDoc.Controller,
-			"public_key_hex":       didDoc.PublicKey,
-			"public_key_length":    len(pubKeyBytes),
-			"created_at":           currentTime.Format(time.RFC3339),
-			"expected_format":      didFormatPattern,
+			"test_case":         "3.1.1_DID_Creation_Registration",
+			"did":               did,
+			"did_format":        "did:sage:ethereum:<ethereum-address>",
+			"ethereum_address":  agentAddress.Hex(),
+			"controller":        didDoc.Controller,
+			"public_key_hex":    didDoc.PublicKey,
+			"public_key_length": len(pubKeyBytes),
+			"created_at":        currentTime.Format(time.RFC3339),
+			"expected_format":   didFormatPattern,
 		}
 		helpers.SaveTestData(t, "did/did_creation_registration.json", testData)
 	})

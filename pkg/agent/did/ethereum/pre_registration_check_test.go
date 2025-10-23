@@ -270,18 +270,18 @@ func TestDIDPreRegistrationCheck(t *testing.T) {
 			"block_number":     resultA.BlockNumber,
 		},
 		"agent_b": map[string]interface{}{
-			"attempted_did":    string(didA), // Tried to use Agent A's DID
+			"attempted_did":      string(didA), // Tried to use Agent A's DID
 			"collision_detected": true,
-			"new_did":          string(didB),
-			"new_uuid":         uuidB.String(),
-			"name":             "Agent B - After Pre-check",
-			"transaction_hash": resultB.TransactionHash,
-			"block_number":     resultB.BlockNumber,
+			"new_did":            string(didB),
+			"new_uuid":           uuidB.String(),
+			"name":               "Agent B - After Pre-check",
+			"transaction_hash":   resultB.TransactionHash,
+			"block_number":       resultB.BlockNumber,
 		},
 		"early_detection": map[string]interface{}{
-			"check_method": "Resolve before Register",
+			"check_method":    "Resolve before Register",
 			"collision_found": true,
-			"gas_saved":    "Prevented failed transaction",
+			"gas_saved":       "Prevented failed transaction",
 		},
 	}
 	helpers.SaveTestData(t, "did/did_pre_registration_check.json", testData)

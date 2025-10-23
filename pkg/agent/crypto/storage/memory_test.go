@@ -81,12 +81,12 @@ func TestMemoryKeyStorage(t *testing.T) {
 		})
 
 		testData := map[string]interface{}{
-			"test_case":    "19.1.1_키_쌍_저장_및_로드",
-			"key_id":       keyPair.ID(),
-			"key_type":     string(keyPair.Type()),
-			"storage_key":  "test-key",
-			"sign_verify":  "성공",
-			"validation":   "저장_로드_검증_통과",
+			"test_case":   "19.1.1_키_쌍_저장_및_로드",
+			"key_id":      keyPair.ID(),
+			"key_type":    string(keyPair.Type()),
+			"storage_key": "test-key",
+			"sign_verify": "성공",
+			"validation":  "저장_로드_검증_통과",
 		}
 		helpers.SaveTestData(t, "storage/memory_store_and_load.json", testData)
 	})
@@ -389,11 +389,11 @@ func TestMemoryKeyStorage(t *testing.T) {
 		})
 
 		testData := map[string]interface{}{
-			"test_case":        "19.1.8_동시_접근_테스트",
-			"goroutines":       10,
-			"keys_stored":      len(ids),
-			"concurrent_safe":  true,
-			"validation":       "동시_접근_검증_통과",
+			"test_case":       "19.1.8_동시_접근_테스트",
+			"goroutines":      10,
+			"keys_stored":     len(ids),
+			"concurrent_safe": true,
+			"validation":      "동시_접근_검증_통과",
 		}
 		helpers.SaveTestData(t, "storage/memory_concurrent.json", testData)
 	})

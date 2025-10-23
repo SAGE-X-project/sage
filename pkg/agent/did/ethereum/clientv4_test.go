@@ -1217,10 +1217,11 @@ func TestV4ApproveEd25519Key(t *testing.T) {
 
 // TestV4DIDLifecycleWithFundedKey demonstrates the complete DID lifecycle using a funded test key
 // This test covers SPECIFICATION_VERIFICATION_MATRIX.md sections:
-//   3.2.1.1: Ethereum 스마트 컨트랙트 배포 성공
-//   3.2.1.2: 트랜잭션 해시 반환 확인
-//   3.2.1.3: 가스비 소모량 확인 (~653,000 gas)
-//   3.2.1.4: 등록 후 온체인 조회 가능 확인
+//
+//	3.2.1.1: Ethereum 스마트 컨트랙트 배포 성공
+//	3.2.1.2: 트랜잭션 해시 반환 확인
+//	3.2.1.3: 가스비 소모량 확인 (~653,000 gas)
+//	3.2.1.4: 등록 후 온체인 조회 가능 확인
 //
 // IMPORTANT: This test demonstrates the pattern of funding a newly generated Secp256k1 key
 // with ETH from the Hardhat/Anvil default account, which is required for the key to send

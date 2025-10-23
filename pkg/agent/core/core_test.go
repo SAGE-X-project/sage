@@ -121,10 +121,10 @@ func TestCore(t *testing.T) {
 				string(crypto.KeyTypeEd25519),
 				string(crypto.KeyTypeSecp256k1),
 			},
-			"ed25519_generated":   true,
-			"secp256k1_generated": true,
+			"ed25519_generated":    true,
+			"secp256k1_generated":  true,
 			"unsupported_rejected": true,
-			"validation":          "키_생성_검증_통과",
+			"validation":           "키_생성_검증_통과",
 		}
 		helpers.SaveTestData(t, "core/core_generate_keypair.json", testData)
 	})
@@ -167,14 +167,14 @@ func TestCore(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case":      "16.1.3_메시지_서명",
-			"message":        string(message),
-			"message_length": len(message),
+			"test_case":        "16.1.3_메시지_서명",
+			"message":          string(message),
+			"message_length":   len(message),
 			"signature_length": len(signature),
-			"key_type":       string(crypto.KeyTypeEd25519),
-			"sign_success":   true,
-			"verify_success": true,
-			"validation":     "서명_검증_통과",
+			"key_type":         string(crypto.KeyTypeEd25519),
+			"sign_success":     true,
+			"verify_success":   true,
+			"validation":       "서명_검증_통과",
 		}
 		helpers.SaveTestData(t, "core/core_sign_message.json", testData)
 	})
@@ -315,9 +315,9 @@ func TestCore(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "16.1.6_매니저_접근자",
 			"managers": map[string]bool{
-				"crypto_manager":        cryptoMgr != nil,
-				"did_manager":           didMgr != nil,
-				"verification_service":  verifyService != nil,
+				"crypto_manager":       cryptoMgr != nil,
+				"did_manager":          didMgr != nil,
+				"verification_service": verifyService != nil,
 			},
 			"all_accessible": true,
 			"validation":     "매니저_접근_검증_통과",
@@ -351,11 +351,11 @@ func TestCore(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case":     "16.1.7_지원_체인_목록",
-			"chains_count":  len(chains),
-			"chains_empty":  len(chains) == 0,
+			"test_case":      "16.1.7_지원_체인_목록",
+			"chains_count":   len(chains),
+			"chains_empty":   len(chains) == 0,
 			"chains_not_nil": chains != nil,
-			"validation":    "체인_목록_검증_통과",
+			"validation":     "체인_목록_검증_통과",
 		}
 		helpers.SaveTestData(t, "core/core_get_supported_chains.json", testData)
 	})
@@ -382,7 +382,7 @@ func TestVersion(t *testing.T) {
 
 	// CLI 검증용 테스트 데이터 저장
 	testData := map[string]interface{}{
-		"test_case":       "16.2.1_버전_상수",
+		"test_case":        "16.2.1_버전_상수",
 		"expected_version": expectedVersion,
 		"actual_version":   Version,
 		"version_match":    Version == expectedVersion,

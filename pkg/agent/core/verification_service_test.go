@@ -231,16 +231,16 @@ func TestVerificationService(t *testing.T) {
 				"signature_size": len(message.Signature),
 			},
 			"agent_metadata": map[string]interface{}{
-				"name":     agentMetadata.Name,
+				"name":      agentMetadata.Name,
 				"is_active": agentMetadata.IsActive,
-				"owner":    agentMetadata.Owner,
-				"endpoint": agentMetadata.Endpoint,
+				"owner":     agentMetadata.Owner,
+				"endpoint":  agentMetadata.Endpoint,
 			},
 			"verification_result": map[string]interface{}{
-				"valid":      result.Valid,
-				"error":      result.Error,
-				"agent_id":   result.AgentID,
-				"agent_name": result.AgentName,
+				"valid":       result.Valid,
+				"error":       result.Error,
+				"agent_id":    result.AgentID,
+				"agent_name":  result.AgentName,
 				"agent_owner": result.AgentOwner,
 			},
 		}
@@ -312,7 +312,7 @@ func TestVerificationService(t *testing.T) {
 				"id": message.MessageID,
 			},
 			"agent_metadata": map[string]interface{}{
-				"name":     agentMetadata.Name,
+				"name":      agentMetadata.Name,
 				"is_active": agentMetadata.IsActive,
 			},
 			"verification_result": map[string]interface{}{

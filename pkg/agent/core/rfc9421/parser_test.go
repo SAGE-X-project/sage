@@ -71,7 +71,7 @@ func TestParseSignatureInput(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case":     "13.1.1_RFC9421_파서_기본_파싱",
+			"test_case":       "13.1.1_RFC9421_파서_기본_파싱",
 			"signature_input": input,
 			"parsed_signature": map[string]interface{}{
 				"name":               "sig1",
@@ -136,7 +136,7 @@ func TestParseSignatureInput(t *testing.T) {
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case":     "13.1.2_RFC9421_파서_다중_서명",
+			"test_case":       "13.1.2_RFC9421_파서_다중_서명",
 			"signature_input": input,
 			"parsed_signatures": map[string]interface{}{
 				"sig-a": map[string]interface{}{

@@ -72,12 +72,12 @@ func TestNonceManager(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":     "5.1.1_Nonce_Generation",
-			"nonce_1":       n,
-			"nonce_2":       nonce2,
+			"test_case":      "5.1.1_Nonce_Generation",
+			"nonce_1":        n,
+			"nonce_2":        nonce2,
 			"nonce_1_length": len(n),
 			"nonce_2_length": len(nonce2),
-			"unique":        n != nonce2,
+			"unique":         n != nonce2,
 		}
 		helpers.SaveTestData(t, "nonce/nonce_generation.json", testData)
 	})
@@ -124,12 +124,12 @@ func TestNonceManager(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":        "5.1.2_Nonce_Usage_Tracking",
-			"nonce":            n,
-			"marked_used":      true,
-			"is_used_check":    isUsed,
-			"used_nonce_count": usedCount,
-			"ttl_ms":           ttlDuration.Milliseconds(),
+			"test_case":           "5.1.2_Nonce_Usage_Tracking",
+			"nonce":               n,
+			"marked_used":         true,
+			"is_used_check":       isUsed,
+			"used_nonce_count":    usedCount,
+			"ttl_ms":              ttlDuration.Milliseconds(),
 			"cleanup_interval_ms": cleanupDuration.Milliseconds(),
 		}
 		helpers.SaveTestData(t, "nonce/nonce_usage_tracking.json", testData)
@@ -176,13 +176,13 @@ func TestNonceManager(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":       "5.1.3_Nonce_Expiration_On_Check",
-			"nonce":           n,
-			"ttl_ms":          ttl.Milliseconds(),
+			"test_case":         "5.1.3_Nonce_Expiration_On_Check",
+			"nonce":             n,
+			"ttl_ms":            ttl.Milliseconds(),
 			"sleep_duration_ms": sleepDuration.Milliseconds(),
-			"initial_count":   initialCount,
-			"final_count":     finalCount,
-			"expired":         true,
+			"initial_count":     initialCount,
+			"final_count":       finalCount,
+			"expired":           true,
 		}
 		helpers.SaveTestData(t, "nonce/nonce_expiration_check.json", testData)
 	})
@@ -226,14 +226,14 @@ func TestNonceManager(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":         "5.1.4_Automatic_Cleanup_Loop",
-			"nonce":             n,
-			"ttl_ms":            ttl.Milliseconds(),
+			"test_case":           "5.1.4_Automatic_Cleanup_Loop",
+			"nonce":               n,
+			"ttl_ms":              ttl.Milliseconds(),
 			"cleanup_interval_ms": cleanup.Milliseconds(),
-			"sleep_duration_ms": sleepDuration.Milliseconds(),
-			"initial_count":     initialCount,
-			"final_count":       finalCount,
-			"cleanup_successful": finalCount == 0,
+			"sleep_duration_ms":   sleepDuration.Milliseconds(),
+			"initial_count":       initialCount,
+			"final_count":         finalCount,
+			"cleanup_successful":  finalCount == 0,
 		}
 		helpers.SaveTestData(t, "nonce/nonce_cleanup_loop.json", testData)
 	})
@@ -283,12 +283,12 @@ func TestNonceManager(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":         "1.2.2_Nonce_CheckReplay",
-			"nonce":             n,
-			"is_used_before":    isUsedBefore,
-			"is_used_after":     isUsedAfter,
-			"replay_detected":   replayDetected,
-			"replay_prevented":  replayDetected,
+			"test_case":        "1.2.2_Nonce_CheckReplay",
+			"nonce":            n,
+			"is_used_before":   isUsedBefore,
+			"is_used_after":    isUsedAfter,
+			"replay_detected":  replayDetected,
+			"replay_prevented": replayDetected,
 		}
 		helpers.SaveTestData(t, "nonce/nonce_check_replay.json", testData)
 	})
@@ -347,15 +347,15 @@ func TestNonceManager(t *testing.T) {
 
 		// Save test data
 		testData := map[string]interface{}{
-			"test_case":            "10.1.10_Nonce_Expiration",
-			"nonce":                n,
-			"ttl_ms":               shortTTL.Milliseconds(),
-			"sleep_duration_ms":    sleepDuration.Milliseconds(),
-			"initial_count":        initialCount,
-			"final_count":          finalCount,
+			"test_case":             "10.1.10_Nonce_Expiration",
+			"nonce":                 n,
+			"ttl_ms":                shortTTL.Milliseconds(),
+			"sleep_duration_ms":     sleepDuration.Milliseconds(),
+			"initial_count":         initialCount,
+			"final_count":           finalCount,
 			"is_used_before_expiry": isUsedBeforeExpiry,
 			"is_used_after_expiry":  isUsedAfterExpiry,
-			"expired":              true,
+			"expired":               true,
 		}
 		helpers.SaveTestData(t, "nonce/nonce_expiration.json", testData)
 	})

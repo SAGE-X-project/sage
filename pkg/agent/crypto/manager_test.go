@@ -76,10 +76,10 @@ func TestManager_SetStorage(t *testing.T) {
 
 	// CLI 검증용 테스트 데이터 저장
 	testData := map[string]interface{}{
-		"test_case":       "18.1.2_스토리지_설정",
-		"storage_set":     true,
-		"no_panic":        true,
-		"validation":      "스토리지_설정_검증_통과",
+		"test_case":   "18.1.2_스토리지_설정",
+		"storage_set": true,
+		"no_panic":    true,
+		"validation":  "스토리지_설정_검증_통과",
 	}
 	helpers.SaveTestData(t, "crypto/manager_set_storage.json", testData)
 }
@@ -117,10 +117,10 @@ func TestManager_GenerateKeyPair(t *testing.T) {
 		})
 
 		testData := map[string]interface{}{
-			"test_case": "18.2.1_Ed25519_키_생성",
-			"key_type":  string(keyPair.Type()),
-			"has_id":    keyPair.ID() != "",
-			"has_keys":  true,
+			"test_case":  "18.2.1_Ed25519_키_생성",
+			"key_type":   string(keyPair.Type()),
+			"has_id":     keyPair.ID() != "",
+			"has_keys":   true,
 			"validation": "Ed25519_키_생성_통과",
 		}
 		helpers.SaveTestData(t, "crypto/manager_generate_ed25519.json", testData)
@@ -156,10 +156,10 @@ func TestManager_GenerateKeyPair(t *testing.T) {
 		})
 
 		testData := map[string]interface{}{
-			"test_case": "18.2.2_Secp256k1_키_생성",
-			"key_type":  string(keyPair.Type()),
-			"has_id":    keyPair.ID() != "",
-			"has_keys":  true,
+			"test_case":  "18.2.2_Secp256k1_키_생성",
+			"key_type":   string(keyPair.Type()),
+			"has_id":     keyPair.ID() != "",
+			"has_keys":   true,
 			"validation": "Secp256k1_키_생성_통과",
 		}
 		helpers.SaveTestData(t, "crypto/manager_generate_secp256k1.json", testData)
@@ -365,10 +365,10 @@ func TestManager_DeleteKeyPair(t *testing.T) {
 		})
 
 		testData := map[string]interface{}{
-			"test_case":    "18.5.1_키_쌍_삭제",
-			"key_deleted":  true,
-			"load_failed":  true,
-			"validation":   "삭제_검증_통과",
+			"test_case":   "18.5.1_키_쌍_삭제",
+			"key_deleted": true,
+			"load_failed": true,
+			"validation":  "삭제_검증_통과",
 		}
 		helpers.SaveTestData(t, "crypto/manager_delete_existing.json", testData)
 	})
@@ -816,11 +816,11 @@ func TestManager_Integration(t *testing.T) {
 			"재저장",
 			"목록확인",
 		},
-		"key_id":         importedKeyPair.ID(),
-		"key_type":       string(importedKeyPair.Type()),
-		"jwk_data_size":  len(jwkData),
+		"key_id":          importedKeyPair.ID(),
+		"key_type":        string(importedKeyPair.Type()),
+		"jwk_data_size":   len(jwkData),
 		"final_key_count": len(ids),
-		"validation":     "통합_테스트_검증_통과",
+		"validation":      "통합_테스트_검증_통과",
 	}
 	helpers.SaveTestData(t, "crypto/manager_integration.json", testData)
 }

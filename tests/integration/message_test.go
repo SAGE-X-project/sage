@@ -98,19 +98,19 @@ func Test_5_1_1_1_RFC9421SignatureGeneration(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":        "Test_5_1_1_1_RFC9421SignatureGeneration",
-		"timestamp":        time.Now().Format(time.RFC3339),
-		"test_case":        "5.1.1.1_RFC9421_Signature_Generation",
-		"url":              testURL,
-		"method":           "GET",
-		"algorithm":        params.Algorithm,
-		"key_id":           params.KeyID,
-		"created":          params.Created,
-		"covered_components": params.CoveredComponents,
-		"signature_present": signature != "",
+		"test_name":               "Test_5_1_1_1_RFC9421SignatureGeneration",
+		"timestamp":               time.Now().Format(time.RFC3339),
+		"test_case":               "5.1.1.1_RFC9421_Signature_Generation",
+		"url":                     testURL,
+		"method":                  "GET",
+		"algorithm":               params.Algorithm,
+		"key_id":                  params.KeyID,
+		"created":                 params.Created,
+		"covered_components":      params.CoveredComponents,
+		"signature_present":       signature != "",
 		"signature_input_present": signatureInput != "",
-		"public_key_size":  len(publicKey),
-		"private_key_size": len(privateKey),
+		"public_key_size":         len(publicKey),
+		"private_key_size":        len(privateKey),
 	}
 
 	helpers.SaveTestData(t, "message/5_1_1_1_rfc9421_signature.json", data)
@@ -182,14 +182,14 @@ func Test_5_1_1_2_SignatureVerificationSuccess(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":            "Test_5_1_1_2_SignatureVerificationSuccess",
-		"timestamp":            time.Now().Format(time.RFC3339),
-		"test_case":            "5.1.1.2_Signature_Verification_Success",
-		"url":                  testURL,
-		"method":               "POST",
-		"signature_verified":   true,
-		"verification_error":   nil,
-		"idempotent_check":     true,
+		"test_name":          "Test_5_1_1_2_SignatureVerificationSuccess",
+		"timestamp":          time.Now().Format(time.RFC3339),
+		"test_case":          "5.1.1.2_Signature_Verification_Success",
+		"url":                testURL,
+		"method":             "POST",
+		"signature_verified": true,
+		"verification_error": nil,
+		"idempotent_check":   true,
 	}
 
 	helpers.SaveTestData(t, "message/5_1_1_2_signature_verification.json", data)
@@ -290,14 +290,14 @@ func Test_5_1_1_3_TamperedMessageVerificationFailure(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":               "Test_5_1_1_3_TamperedMessageVerificationFailure",
-		"timestamp":               time.Now().Format(time.RFC3339),
-		"test_case":               "5.1.1.3_Tampered_Message_Detection",
-		"original_verified":       true,
-		"tampered_date_detected":  true,
-		"tampered_host_detected":  true,
-		"tampered_sig_detected":   true,
-		"all_tampering_detected":  true,
+		"test_name":              "Test_5_1_1_3_TamperedMessageVerificationFailure",
+		"timestamp":              time.Now().Format(time.RFC3339),
+		"test_case":              "5.1.1.3_Tampered_Message_Detection",
+		"original_verified":      true,
+		"tampered_date_detected": true,
+		"tampered_host_detected": true,
+		"tampered_sig_detected":  true,
+		"all_tampering_detected": true,
 	}
 
 	helpers.SaveTestData(t, "message/5_1_1_3_tampered_detection.json", data)
@@ -491,14 +491,14 @@ func Test_5_1_2_2_ExpiredSignatureRejection(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":                   "Test_5_1_2_2_ExpiredSignatureRejection",
-		"timestamp":                   time.Now().Format(time.RFC3339),
-		"test_case":                   "5.1.2.2_Expired_Signature_Rejection",
-		"past_10min_rejected":         true,
-		"future_10min_rejected":       true,
-		"max_clock_skew_minutes":      5,
-		"beyond_skew_rejected":        true,
-		"expiration_enforcement":      "active",
+		"test_name":              "Test_5_1_2_2_ExpiredSignatureRejection",
+		"timestamp":              time.Now().Format(time.RFC3339),
+		"test_case":              "5.1.2.2_Expired_Signature_Rejection",
+		"past_10min_rejected":    true,
+		"future_10min_rejected":  true,
+		"max_clock_skew_minutes": 5,
+		"beyond_skew_rejected":   true,
+		"expiration_enforcement": "active",
 	}
 
 	helpers.SaveTestData(t, "message/5_1_2_2_expired_rejection.json", data)

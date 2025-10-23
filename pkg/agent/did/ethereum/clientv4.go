@@ -556,13 +556,13 @@ func (c *EthereumClientV4) Update(ctx context.Context, agentDID did.AgentDID, up
 	uint256Type, _ := abi.NewType("uint256", "", nil)
 
 	sigArguments := abi.Arguments{
-		{Type: bytes32Type},  // agentId
-		{Type: stringType},   // name
-		{Type: stringType},   // description
-		{Type: stringType},   // endpoint
-		{Type: stringType},   // capabilities
-		{Type: addressType},  // msg.sender
-		{Type: uint256Type},  // nonce
+		{Type: bytes32Type}, // agentId
+		{Type: stringType},  // name
+		{Type: stringType},  // description
+		{Type: stringType},  // endpoint
+		{Type: stringType},  // capabilities
+		{Type: addressType}, // msg.sender
+		{Type: uint256Type}, // nonce
 	}
 
 	messageData, err := sigArguments.Pack(

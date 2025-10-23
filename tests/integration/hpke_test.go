@@ -78,16 +78,16 @@ func Test_8_1_1_1_X25519KeyExchangeSuccess(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":            "Test_8_1_1_1_X25519KeyExchangeSuccess",
-		"timestamp":            time.Now().Format(time.RFC3339),
-		"test_case":            "8.1.1.1_X25519_Key_Exchange",
-		"key_type":             "X25519",
+		"test_name":             "Test_8_1_1_1_X25519KeyExchangeSuccess",
+		"timestamp":             time.Now().Format(time.RFC3339),
+		"test_case":             "8.1.1.1_X25519_Key_Exchange",
+		"key_type":              "X25519",
 		"encapsulated_key_size": len(enc),
-		"exporter_secret_size": len(exporterAlice),
-		"info_context":         string(info),
-		"export_context":       string(exportCtx),
-		"export_length":        exportLen,
-		"key_exchange_success": true,
+		"exporter_secret_size":  len(exporterAlice),
+		"info_context":          string(info),
+		"export_context":        string(exportCtx),
+		"export_length":         exportLen,
+		"key_exchange_success":  true,
 	}
 
 	helpers.SaveTestData(t, "hpke/8_1_1_1_x25519_key_exchange.json", data)
@@ -157,17 +157,17 @@ func Test_8_1_1_2_SharedSecretGeneration(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":               "Test_8_1_1_2_SharedSecretGeneration",
-		"timestamp":               time.Now().Format(time.RFC3339),
-		"test_case":               "8.1.1.2_Shared_Secret_Generation",
-		"exporter_alice_hex":      hex.EncodeToString(exporterAlice),
-		"exporter_bob_hex":        hex.EncodeToString(exporterBob),
-		"secrets_match":           bytes.Equal(exporterAlice, exporterBob),
-		"secret_size":             len(exporterAlice),
-		"session_id_alice":        sidAlice,
-		"session_id_bob":          sidBob,
-		"session_ids_match":       sidAlice == sidBob,
-		"shared_secret_verified":  true,
+		"test_name":              "Test_8_1_1_2_SharedSecretGeneration",
+		"timestamp":              time.Now().Format(time.RFC3339),
+		"test_case":              "8.1.1.2_Shared_Secret_Generation",
+		"exporter_alice_hex":     hex.EncodeToString(exporterAlice),
+		"exporter_bob_hex":       hex.EncodeToString(exporterBob),
+		"secrets_match":          bytes.Equal(exporterAlice, exporterBob),
+		"secret_size":            len(exporterAlice),
+		"session_id_alice":       sidAlice,
+		"session_id_bob":         sidBob,
+		"session_ids_match":      sidAlice == sidBob,
+		"shared_secret_verified": true,
 	}
 
 	helpers.SaveTestData(t, "hpke/8_1_1_2_shared_secret.json", data)
@@ -328,16 +328,16 @@ func Test_8_1_2_2_DecryptionPlaintextMatch(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":              "Test_8_1_2_2_DecryptionPlaintextMatch",
-		"timestamp":              time.Now().Format(time.RFC3339),
-		"test_case":              "8.1.2.2_Decryption_Plaintext_Match",
-		"original_plaintext":     string(originalPlaintext),
-		"decrypted_plaintext":    string(decryptedPlaintext),
-		"plaintext_match":        bytes.Equal(originalPlaintext, decryptedPlaintext),
-		"original_size":          len(originalPlaintext),
-		"decrypted_size":         len(decryptedPlaintext),
-		"size_match":             len(originalPlaintext) == len(decryptedPlaintext),
-		"decryption_success":     true,
+		"test_name":           "Test_8_1_2_2_DecryptionPlaintextMatch",
+		"timestamp":           time.Now().Format(time.RFC3339),
+		"test_case":           "8.1.2.2_Decryption_Plaintext_Match",
+		"original_plaintext":  string(originalPlaintext),
+		"decrypted_plaintext": string(decryptedPlaintext),
+		"plaintext_match":     bytes.Equal(originalPlaintext, decryptedPlaintext),
+		"original_size":       len(originalPlaintext),
+		"decrypted_size":      len(decryptedPlaintext),
+		"size_match":          len(originalPlaintext) == len(decryptedPlaintext),
+		"decryption_success":  true,
 	}
 
 	helpers.SaveTestData(t, "hpke/8_1_2_2_decryption_match.json", data)
@@ -429,17 +429,17 @@ func Test_8_1_2_3_CiphertextConsistency(t *testing.T) {
 
 	// Save verification data
 	data := map[string]interface{}{
-		"test_name":             "Test_8_1_2_3_CiphertextConsistency",
-		"timestamp":             time.Now().Format(time.RFC3339),
-		"test_case":             "8.1.2.3_Ciphertext_Consistency",
-		"plaintext":             string(plaintext),
-		"ciphertext1_size":      len(ciphertext1),
-		"ciphertext2_size":      len(ciphertext2),
-		"ciphertexts_different": !bytes.Equal(ciphertext1, ciphertext2),
-		"decrypted1_match":      bytes.Equal(plaintext, decrypted1),
-		"decrypted2_match":      bytes.Equal(plaintext, decrypted2),
+		"test_name":              "Test_8_1_2_3_CiphertextConsistency",
+		"timestamp":              time.Now().Format(time.RFC3339),
+		"test_case":              "8.1.2.3_Ciphertext_Consistency",
+		"plaintext":              string(plaintext),
+		"ciphertext1_size":       len(ciphertext1),
+		"ciphertext2_size":       len(ciphertext2),
+		"ciphertexts_different":  !bytes.Equal(ciphertext1, ciphertext2),
+		"decrypted1_match":       bytes.Equal(plaintext, decrypted1),
+		"decrypted2_match":       bytes.Equal(plaintext, decrypted2),
 		"both_decryptions_match": bytes.Equal(decrypted1, decrypted2),
-		"consistency_verified":  true,
+		"consistency_verified":   true,
 	}
 
 	helpers.SaveTestData(t, "hpke/8_1_2_3_ciphertext_consistency.json", data)

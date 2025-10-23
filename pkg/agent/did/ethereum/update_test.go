@@ -176,9 +176,9 @@ func TestV4Update(t *testing.T) {
 
 	newEndpoint := "https://api.example.com/agent"
 	endpointUpdate := map[string]interface{}{
-		"name":        updatedAgent.Name,        // Keep same
-		"description": updatedAgent.Description, // Keep same
-		"endpoint":    newEndpoint,              // Only change this
+		"name":         updatedAgent.Name,        // Keep same
+		"description":  updatedAgent.Description, // Keep same
+		"endpoint":     newEndpoint,              // Only change this
 		"capabilities": updatedAgent.Capabilities,
 	}
 
@@ -266,9 +266,9 @@ func TestV4Update(t *testing.T) {
 
 	// Fourth update
 	fourthUpdate := map[string]interface{}{
-		"name":        thirdAgent.Name,
-		"description": "Fourth update - testing nonce management",
-		"endpoint":    "https://final.api.example.com/v4",
+		"name":         thirdAgent.Name,
+		"description":  "Fourth update - testing nonce management",
+		"endpoint":     "https://final.api.example.com/v4",
 		"capabilities": thirdAgent.Capabilities,
 	}
 

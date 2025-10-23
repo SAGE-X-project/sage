@@ -185,24 +185,24 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case": "9.1.1_HPKE_E2E_Valid_Handshake",
+			"test_case":  "9.1.1_HPKE_E2E_Valid_Handshake",
 			"context_id": ctxID,
-			"key_id": kid,
+			"key_id":     kid,
 			"client": map[string]interface{}{
-				"did": string(clientDID),
+				"did":            string(clientDID),
 				"kem_public_key": hex.EncodeToString(clientKEMKP.PublicKey().(*ecdh.PublicKey).Bytes()),
-				"session_id": clientSess.GetID(),
+				"session_id":     clientSess.GetID(),
 			},
 			"server": map[string]interface{}{
-				"did": string(serverDID),
+				"did":            string(serverDID),
 				"kem_public_key": hex.EncodeToString(serverKEMKP.PublicKey().(*ecdh.PublicKey).Bytes()),
-				"session_id": serverSess.GetID(),
+				"session_id":     serverSess.GetID(),
 			},
 			"encryption": map[string]interface{}{
-				"plaintext": string(plaintext),
-				"plaintext_size": len(plaintext),
+				"plaintext":       string(plaintext),
+				"plaintext_size":  len(plaintext),
 				"ciphertext_size": len(ciphertext),
-				"ciphertext_hex": hex.EncodeToString(ciphertext),
+				"ciphertext_hex":  hex.EncodeToString(ciphertext),
 			},
 			"handshake_status": "success",
 		}
@@ -255,12 +255,12 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 			helpers.LogDetail(t, "  Decrypted: %s", string(decrypted))
 
 			messageResults = append(messageResults, map[string]interface{}{
-				"index": i + 1,
-				"plaintext": string(msg),
-				"plaintext_size": len(msg),
+				"index":           i + 1,
+				"plaintext":       string(msg),
+				"plaintext_size":  len(msg),
 				"ciphertext_size": len(ciphertext),
-				"decrypted": string(decrypted),
-				"verified": true,
+				"decrypted":       string(decrypted),
+				"verified":        true,
 			})
 		}
 
@@ -279,11 +279,11 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case": "9.1.2_HPKE_E2E_Multiple_Messages",
-			"context_id": ctxID,
-			"key_id": kid,
+			"test_case":     "9.1.2_HPKE_E2E_Multiple_Messages",
+			"context_id":    ctxID,
+			"key_id":        kid,
 			"message_count": len(messages),
-			"messages": messageResults,
+			"messages":      messageResults,
 		}
 		helpers.SaveTestData(t, "hpke/e2e_multiple_messages.json", testData)
 	})
@@ -327,13 +327,13 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 
 		// Save test data for CLI verification
 		testData := map[string]interface{}{
-			"test_case": "9.1.3_HPKE_E2E_Invalid_Ciphertext",
-			"context_id": ctxID,
-			"key_id": kid,
+			"test_case":          "9.1.3_HPKE_E2E_Invalid_Ciphertext",
+			"context_id":         ctxID,
+			"key_id":             kid,
 			"invalid_ciphertext": string(invalidCipher),
-			"invalid_size": len(invalidCipher),
-			"decryption_failed": true,
-			"error": err.Error(),
+			"invalid_size":       len(invalidCipher),
+			"decryption_failed":  true,
+			"error":              err.Error(),
 		}
 		helpers.SaveTestData(t, "hpke/e2e_invalid_ciphertext.json", testData)
 	})
@@ -400,19 +400,19 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "9.1.4_HPKE_E2E_Session_Isolation",
 			"session_1": map[string]interface{}{
-				"context_id": ctxID1,
-				"key_id": kid1,
-				"ciphertext_size": len(cipher1),
+				"context_id":            ctxID1,
+				"key_id":                kid1,
+				"ciphertext_size":       len(cipher1),
 				"ciphertext_hex_prefix": hex.EncodeToString(cipher1[:min(16, len(cipher1))]),
 			},
 			"session_2": map[string]interface{}{
-				"context_id": ctxID2,
-				"key_id": kid2,
-				"ciphertext_size": len(cipher2),
+				"context_id":            ctxID2,
+				"key_id":                kid2,
+				"ciphertext_size":       len(cipher2),
 				"ciphertext_hex_prefix": hex.EncodeToString(cipher2[:min(16, len(cipher2))]),
 			},
-			"plaintext": string(msg),
-			"key_ids_unique": kid1 != kid2,
+			"plaintext":          string(msg),
+			"key_ids_unique":     kid1 != kid2,
 			"ciphertexts_unique": !bytes.Equal(cipher1, cipher2),
 			"isolation_verified": true,
 		}

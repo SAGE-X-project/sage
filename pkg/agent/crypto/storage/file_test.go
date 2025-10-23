@@ -285,10 +285,10 @@ func TestFileKeyStorage(t *testing.T) {
 		})
 
 		testData := map[string]interface{}{
-			"test_case":   "20.1.5_파일_키_목록_조회",
-			"directory":   listDir,
-			"keys_count":  len(ids),
-			"key_ids":     ids,
+			"test_case":  "20.1.5_파일_키_목록_조회",
+			"directory":  listDir,
+			"keys_count": len(ids),
+			"key_ids":    ids,
 			"key_types": []string{
 				string(keyPair1.Type()),
 				string(keyPair2.Type()),
@@ -334,7 +334,7 @@ func TestFileKeyStorage(t *testing.T) {
 				"../invalid/key",
 				"invalid\\key",
 			},
-			"security":  "경로_탐색_공격_방지",
+			"security":   "경로_탐색_공격_방지",
 			"validation": "보안_검증_통과",
 		}
 		helpers.SaveTestData(t, "storage/file_invalid_key_id.json", testData)
@@ -412,12 +412,12 @@ func TestFileKeyStorage(t *testing.T) {
 		})
 
 		testData := map[string]interface{}{
-			"test_case":         "20.1.8_파일_권한_검증",
-			"file_path":         keyFile,
-			"expected_perm":     "0600",
-			"actual_perm":       fmt.Sprintf("%o", actualPerm),
-			"security":          "소유자_전용_권한",
-			"validation":        "권한_검증_통과",
+			"test_case":     "20.1.8_파일_권한_검증",
+			"file_path":     keyFile,
+			"expected_perm": "0600",
+			"actual_perm":   fmt.Sprintf("%o", actualPerm),
+			"security":      "소유자_전용_권한",
+			"validation":    "권한_검증_통과",
 		}
 		helpers.SaveTestData(t, "storage/file_permissions.json", testData)
 	})
