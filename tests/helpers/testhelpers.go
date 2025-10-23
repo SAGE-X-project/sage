@@ -69,7 +69,7 @@ func SaveTestData(t *testing.T, filename string, data interface{}) {
 
 	// Create testdata directory at project root
 	testDataDir := filepath.Join(projectRoot, "testdata", "verification")
-	if err := os.MkdirAll(testDataDir, 0755); err != nil {
+	if err := os.MkdirAll(testDataDir, 0750); err != nil {
 		t.Logf("Warning: Failed to create testdata directory: %v", err)
 		return
 	}
@@ -90,7 +90,7 @@ func SaveTestData(t *testing.T, filename string, data interface{}) {
 
 	// Write to file
 	filePath := filepath.Join(testDataDir, filename)
-	if err := os.WriteFile(filePath, jsonData, 0644); err != nil {
+	if err := os.WriteFile(filePath, jsonData, 0600); err != nil {
 		t.Logf("Warning: Failed to write test data file: %v", err)
 		return
 	}
