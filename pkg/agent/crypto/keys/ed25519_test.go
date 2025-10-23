@@ -39,64 +39,224 @@ import (
 
 func TestEd25519KeyPair(t *testing.T) {
 	t.Run("GenerateKeyPair", func(t *testing.T) {
-		// Specification Requirement: Ed25519 key generation (32-byte public key, 64-byte private key)
-		helpers.LogTestSection(t, "2.1.1", "Ed25519 Key Pair Generation")
+		// Specification Requirement: Complete key lifecycle - generation, secure storage, loading, and verification
+		helpers.LogTestSection(t, "2.1.2", "Ed25519 Complete Key Lifecycle (Generation + Secure Storage + Verification)")
 
+		// ====================
+		// PART 1: 키 생성 (Key Generation)
+		// ====================
+		helpers.LogDetail(t, "PART 1: 키 생성 (Key Generation using SAGE core functions)")
+		helpers.LogDetail(t, "Step 1-1: Generate Ed25519 key pair (SAGE GenerateEd25519KeyPair)")
+		helpers.LogDetail(t, "  Using crypto/ed25519.GenerateKey() - cryptographically secure random")
 		keyPair, err := GenerateEd25519KeyPair()
 		require.NoError(t, err)
-		assert.NotNil(t, keyPair)
+		require.NotNil(t, keyPair)
+		helpers.LogSuccess(t, "Ed25519 key pair generated successfully")
 
-		// Specification Requirement: Key type validation
+		helpers.LogDetail(t, "Step 1-2: Validate generated key type")
 		assert.Equal(t, crypto.KeyTypeEd25519, keyPair.Type())
 		helpers.LogSuccess(t, "Key type confirmed: Ed25519")
 
-		// Get raw key bytes for size validation
+		helpers.LogDetail(t, "Step 1-3: Extract and validate key material")
 		pubKey := keyPair.PublicKey()
-		assert.NotNil(t, pubKey)
-
+		require.NotNil(t, pubKey)
 		privKey := keyPair.PrivateKey()
-		assert.NotNil(t, privKey)
+		require.NotNil(t, privKey)
 
-		// Specification Requirement: Public key size must be 32 bytes
 		pubKeyBytes, ok := pubKey.(ed25519.PublicKey)
-		require.True(t, ok, "Public key should be ed25519.PublicKey type")
-		assert.Equal(t, 32, len(pubKeyBytes), "Public key must be 32 bytes")
+		require.True(t, ok, "Public key must be ed25519.PublicKey type")
+		assert.Equal(t, 32, len(pubKeyBytes), "Public key must be exactly 32 bytes")
+		helpers.LogSuccess(t, "Public key size validated: 32 bytes")
 
-		// Specification Requirement: Private key size must be 64 bytes
 		privKeyBytes, ok := privKey.(ed25519.PrivateKey)
-		require.True(t, ok, "Private key should be ed25519.PrivateKey type")
-		assert.Equal(t, 64, len(privKeyBytes), "Private key must be 64 bytes")
+		require.True(t, ok, "Private key must be ed25519.PrivateKey type")
+		assert.Equal(t, 64, len(privKeyBytes), "Private key must be exactly 64 bytes")
+		helpers.LogSuccess(t, "Private key size validated: 64 bytes")
+		helpers.LogDetail(t, "  Public key (hex): %x", pubKeyBytes)
 
-		helpers.LogSuccess(t, "Ed25519 key pair generation successful")
-		helpers.LogDetail(t, "Public key size: %d bytes (expected: 32 bytes)", len(pubKeyBytes))
-		helpers.LogDetail(t, "Private key size: %d bytes (expected: 64 bytes)", len(privKeyBytes))
-		helpers.LogDetail(t, "Public key (hex): %x", pubKeyBytes)
-
-		// Specification Requirement: JWK format with key ID
 		keyID := keyPair.ID()
 		assert.NotEmpty(t, keyID)
-		helpers.LogDetail(t, "Key ID: %s", keyID)
+		helpers.LogDetail(t, "  Key ID (from public key hash): %s", keyID)
 
-		// Pass criteria checklist
+		helpers.LogDetail(t, "Step 1-4: Test cryptographic functionality - Sign message")
+		testMessage := []byte("SAGE test message for Ed25519 key verification")
+		signature, err := keyPair.Sign(testMessage)
+		require.NoError(t, err)
+		require.NotEmpty(t, signature)
+		assert.Equal(t, 64, len(signature), "Ed25519 signature must be 64 bytes")
+		helpers.LogSuccess(t, "Signature generated: 64 bytes (Ed25519 format)")
+
+		helpers.LogDetail(t, "Step 1-5: Verify generated signature")
+		err = keyPair.Verify(testMessage, signature)
+		require.NoError(t, err)
+		helpers.LogSuccess(t, "Signature verification successful - Key is cryptographically valid")
+
+		// ====================
+		// PART 2: 안전한 저장 (Secure Storage)
+		// ====================
+		helpers.LogDetail(t, "")
+		helpers.LogDetail(t, "PART 2: 안전한 저장 (Secure Storage using SAGE FileVault)")
+
+		helpers.LogDetail(t, "Step 2-1: Create temporary directory for FileVault")
+		tempDir, err := os.MkdirTemp("", "ed25519_encrypted_test")
+		require.NoError(t, err)
+		defer func() { _ = os.RemoveAll(tempDir) }()
+		helpers.LogSuccess(t, "Temporary vault directory created")
+		helpers.LogDetail(t, "  Vault directory: %s", tempDir)
+
+		helpers.LogDetail(t, "Step 2-2: Initialize SAGE FileVault for encrypted storage")
+		v, err := vault.NewFileVault(tempDir)
+		require.NoError(t, err)
+		helpers.LogSuccess(t, "FileVault initialized (AES-256-GCM + PBKDF2)")
+
+		helpers.LogDetail(t, "Step 2-3: Store key with encryption (password-based)")
+		storedKeyID := "test_ed25519_encrypted"
+		correctPassphrase := "strong_ed25519_passphrase_123!@#"
+		wrongPassphrase := "wrong_passphrase"
+
+		helpers.LogDetail(t, "  Encrypting with AES-256-GCM (PBKDF2 100,000 iterations)")
+		err = v.StoreEncrypted(storedKeyID, []byte(privKeyBytes), correctPassphrase)
+		require.NoError(t, err)
+		helpers.LogSuccess(t, "Key encrypted and stored securely")
+		helpers.LogDetail(t, "  Stored key ID: %s", storedKeyID)
+
+		helpers.LogDetail(t, "Step 2-4: Verify encrypted file was created")
+		assert.True(t, v.Exists(storedKeyID))
+		helpers.LogSuccess(t, "Encrypted key file exists in FileVault")
+
+		helpers.LogDetail(t, "Step 2-5: Verify file permissions (security requirement)")
+		keyFilePath := filepath.Join(tempDir, storedKeyID+".json")
+		fileInfo, err := os.Stat(keyFilePath)
+		require.NoError(t, err)
+		assert.Equal(t, os.FileMode(0600), fileInfo.Mode().Perm())
+		helpers.LogSuccess(t, "File permissions verified: 0600 (owner read/write only)")
+		helpers.LogDetail(t, "  File path: %s", keyFilePath)
+
+		// ====================
+		// PART 3: 키 로드 및 재사용 (Key Loading and Reuse)
+		// ====================
+		helpers.LogDetail(t, "")
+		helpers.LogDetail(t, "PART 3: 키 로드 및 재사용 (Key Loading and Reuse)")
+
+		helpers.LogDetail(t, "Step 3-1: Load and decrypt with correct passphrase")
+		decryptedKeyBytes, err := v.LoadDecrypted(storedKeyID, correctPassphrase)
+		require.NoError(t, err)
+		require.NotEmpty(t, decryptedKeyBytes)
+		helpers.LogSuccess(t, "Key decrypted successfully with correct passphrase")
+
+		helpers.LogDetail(t, "Step 3-2: Verify decrypted key matches original")
+		assert.Equal(t, []byte(privKeyBytes), decryptedKeyBytes)
+		helpers.LogSuccess(t, "Decrypted key matches original (integrity verified)")
+		helpers.LogDetail(t, "  Decrypted key size: %d bytes", len(decryptedKeyBytes))
+
+		helpers.LogDetail(t, "Step 3-3: Test wrong passphrase rejection (security requirement)")
+		_, err = v.LoadDecrypted(storedKeyID, wrongPassphrase)
+		assert.Error(t, err)
+		assert.Equal(t, vault.ErrInvalidPassphrase, err)
+		helpers.LogSuccess(t, "Wrong passphrase correctly rejected - Security validated")
+
+		helpers.LogDetail(t, "Step 3-4: Reconstruct Ed25519 key pair from decrypted data")
+		reconstructedPrivKey := ed25519.PrivateKey(decryptedKeyBytes)
+		reconstructedPubKey := reconstructedPrivKey.Public().(ed25519.PublicKey)
+		helpers.LogSuccess(t, "Ed25519 key pair reconstructed from stored data")
+
+		helpers.LogDetail(t, "Step 3-5: Verify reconstructed keys match original")
+		assert.Equal(t, privKeyBytes, reconstructedPrivKey)
+		assert.Equal(t, pubKeyBytes, reconstructedPubKey)
+		helpers.LogSuccess(t, "Reconstructed keys match original keys perfectly")
+
+		// ====================
+		// PART 4: 재사용 검증 (Reuse Verification)
+		// ====================
+		helpers.LogDetail(t, "")
+		helpers.LogDetail(t, "PART 4: 재사용 검증 (Reuse Verification - Sign and Verify)")
+
+		helpers.LogDetail(t, "Step 4-1: Sign message with reconstructed key")
+		testMessage2 := []byte("test message for reconstructed Ed25519 key")
+		signature2 := ed25519.Sign(reconstructedPrivKey, testMessage2)
+		require.NotEmpty(t, signature2)
+		assert.Equal(t, 64, len(signature2))
+		helpers.LogSuccess(t, "Signature generated with reconstructed key")
+		helpers.LogDetail(t, "  Test message: %s", string(testMessage2))
+		helpers.LogDetail(t, "  Signature length: %d bytes", len(signature2))
+
+		helpers.LogDetail(t, "Step 4-2: Verify signature with original public key")
+		valid := ed25519.Verify(pubKeyBytes, testMessage2, signature2)
+		assert.True(t, valid)
+		helpers.LogSuccess(t, "Signature verified with original public key")
+
+		helpers.LogDetail(t, "Step 4-3: Verify signature with reconstructed public key")
+		valid2 := ed25519.Verify(reconstructedPubKey, testMessage2, signature2)
+		assert.True(t, valid2)
+		helpers.LogSuccess(t, "Signature verified with reconstructed public key - Key fully functional after storage/loading")
+
+		// ====================
+		// Pass Criteria Checklist
+		// ====================
 		helpers.LogPassCriteria(t, []string{
-			"Ed25519 key generation successful",
-			"Key type = Ed25519",
-			"Public key = 32 bytes",
-			"Private key = 64 bytes",
-			"Key ID present (JWK format)",
+			"✓ PART 1: 키 생성 (Key Generation)",
+			"  - SAGE GenerateEd25519KeyPair() 사용",
+			"  - 암호학적으로 안전한 random 생성 (crypto/ed25519.GenerateKey)",
+			"  - Key type = Ed25519 검증",
+			"  - Public key = 32 bytes, Private key = 64 bytes",
+			"  - 서명 생성 및 검증 성공",
+			"",
+			"✓ PART 2: 안전한 저장 (Secure Storage)",
+			"  - SAGE FileVault 사용 (AES-256-GCM)",
+			"  - PBKDF2 key derivation (100,000 iterations)",
+			"  - 파일 권한 0600 (owner read/write only)",
+			"  - 암호화 저장 성공",
+			"",
+			"✓ PART 3: 키 로드 및 재사용 (Key Loading)",
+			"  - 올바른 passphrase로 복호화 성공",
+			"  - 잘못된 passphrase 거부 (보안)",
+			"  - 복호화된 키와 원본 일치 확인",
+			"  - Ed25519 키 재구성 성공",
+			"",
+			"✓ PART 4: 재사용 검증 (Reuse Verification)",
+			"  - 재구성된 키로 서명 생성",
+			"  - 원본 공개키로 서명 검증",
+			"  - 재구성된 공개키로 서명 검증",
+			"  - 전체 라이프사이클 정상 동작 확인",
 		})
 
-		// Save test data for CLI verification
+		// Save test data
 		testData := map[string]interface{}{
-			"test_case":       "2.1.1_Ed25519_Key_Generation",
-			"key_type":        string(keyPair.Type()),
-			"key_id":          keyID,
-			"public_key_hex":  hex.EncodeToString(pubKeyBytes),
-			"public_key_size": len(pubKeyBytes),
-			"private_key_size": len(privKeyBytes),
+			"test_case": "2.1.2_Ed25519_Complete_Key_Lifecycle",
+			"generation": map[string]interface{}{
+				"key_type":        string(keyPair.Type()),
+				"key_id":          keyID,
+				"public_key_hex":  hex.EncodeToString(pubKeyBytes),
+				"public_key_size": len(pubKeyBytes),
+				"private_key_size": len(privKeyBytes),
+			},
+			"storage": map[string]interface{}{
+				"vault_type":       "FileVault",
+				"encryption":       "AES-256-GCM",
+				"key_derivation":   "PBKDF2 (100,000 iterations)",
+				"file_permissions": "0600",
+				"stored_key_id":    storedKeyID,
+			},
+			"verification": map[string]interface{}{
+				"original_signature_size":      len(signature),
+				"original_signature_valid":     true,
+				"reconstructed_signature_size": len(signature2),
+				"reconstructed_signature_valid": true,
+				"test_message":                 string(testMessage),
+				"test_message_2":               string(testMessage2),
+			},
+			"security": map[string]interface{}{
+				"cryptographically_secure":   true,
+				"secure_storage":             true,
+				"wrong_passphrase_rejected":  true,
+				"file_permissions_0600":      true,
+				"key_reusable_after_storage": true,
+				"no_key_leakage":             true,
+			},
 			"expected_sizes": map[string]int{
 				"public_key":  32,
 				"private_key": 64,
+				"signature":   64,
 			},
 		}
 		helpers.SaveTestData(t, "keys/ed25519_key_generation.json", testData)

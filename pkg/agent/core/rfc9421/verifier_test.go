@@ -19,6 +19,7 @@
 package rfc9421
 
 import (
+	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -27,6 +28,8 @@ import (
 	"testing"
 	"time"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/core/message/nonce"
 	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -114,58 +117,198 @@ func TestVerifier(t *testing.T) {
 	})
 
 	t.Run("VerifySignature with invalid signature", func(t *testing.T) {
-		// 명세 요구사항: 잘못된 서명 감지
-		helpers.LogTestSection(t, "15.1.2", "RFC9421 검증기 - 잘못된 서명 거부")
+		// 명세 요구사항: 메시지 변조 감지 - 실제 서명 생성 후 메시지 조작하여 검증 실패 확인
+		helpers.LogTestSection(t, "15.1.2", "RFC9421 검증기 - 변조된 메시지 탐지")
 
+		// Step 1: 유효한 메시지 생성
+		originalBody := []byte("original message content")
 		message := &Message{
 			AgentDID:     "did:sage:ethereum:agent001",
 			MessageID:    "msg-002",
 			Timestamp:    time.Now(),
-			Body:         []byte("test message"),
+			Body:         originalBody,
 			Algorithm:    string(AlgorithmEdDSA),
-			SignedFields: []string{"body"},
-			Signature:    []byte("invalid signature"),
+			SignedFields: []string{"agent_did", "message_id", "timestamp", "body"},
 		}
 
-		helpers.LogDetail(t, "잘못된 서명을 가진 메시지:")
+		helpers.LogDetail(t, "Step 1: 유효한 메시지 생성")
 		helpers.LogDetail(t, "  AgentDID: %s", message.AgentDID)
 		helpers.LogDetail(t, "  MessageID: %s", message.MessageID)
-		helpers.LogDetail(t, "  Signature: %q", string(message.Signature))
+		helpers.LogDetail(t, "  Original Body: %q", string(originalBody))
 
-		helpers.LogDetail(t, "잘못된 서명 검증 시도...")
+		// Step 2: SAGE Verifier로 실제 서명 생성
+		helpers.LogDetail(t, "Step 2: 실제 서명 생성 (SAGE ConstructSignatureBase + Ed25519 Sign)")
+		signatureBase := verifier.ConstructSignatureBase(message)
+		message.Signature = ed25519.Sign(privateKey, []byte(signatureBase))
+		helpers.LogSuccess(t, "유효한 서명 생성 완료")
+		helpers.LogDetail(t, "  서명 길이: %d bytes", len(message.Signature))
+
+		// Step 3: 원본 메시지 검증 성공 확인
+		helpers.LogDetail(t, "Step 3: 원본 메시지 검증 (정상 통과 예상)")
 		err := verifier.VerifySignature(publicKey, message, nil)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "signature verification failed")
+		assert.NoError(t, err, "원본 메시지는 검증에 성공해야 함")
+		helpers.LogSuccess(t, "원본 메시지 검증 성공")
 
-		helpers.LogSuccess(t, "잘못된 서명 올바르게 거부됨")
+		// Step 4: 메시지 Body 변조
+		tamperedBody := []byte("TAMPERED message content - MODIFIED")
+		message.Body = tamperedBody
+		helpers.LogDetail(t, "Step 4: 메시지 Body 변조")
+		helpers.LogDetail(t, "  Original Body: %q", string(originalBody))
+		helpers.LogDetail(t, "  Tampered Body: %q", string(tamperedBody))
+		helpers.LogSuccess(t, "메시지 변조 완료")
+
+		// Step 5: 변조된 메시지 검증 실패 확인
+		helpers.LogDetail(t, "Step 5: 변조된 메시지 검증 (실패 예상)")
+		err = verifier.VerifySignature(publicKey, message, nil)
+		assert.Error(t, err, "변조된 메시지는 검증에 실패해야 함")
+		assert.Contains(t, err.Error(), "signature verification failed", "에러 메시지에 'signature verification failed' 포함되어야 함")
+
+		helpers.LogSuccess(t, "변조된 메시지 올바르게 거부됨")
 		helpers.LogDetail(t, "  에러 메시지: %s", err.Error())
 
 		// 통과 기준 체크리스트
 		helpers.LogPassCriteria(t, []string{
-			"잘못된 서명 검증 시도",
-			"검증 실패 에러 발생",
+			"SAGE 코드로 유효한 서명 생성",
+			"원본 메시지 검증 성공",
+			"메시지 Body 변조",
+			"변조된 메시지 검증 실패",
 			"에러 메시지에 'signature verification failed' 포함",
-			"보안 검증 기능 정상 동작",
+			"메시지 변조 탐지 기능 정상 동작",
 		})
 
 		// CLI 검증용 테스트 데이터 저장
 		testData := map[string]interface{}{
-			"test_case": "15.1.2_RFC9421_검증기_잘못된_서명_거부",
-			"message": map[string]interface{}{
-				"agent_did":   message.AgentDID,
-				"message_id":  message.MessageID,
-				"body":        string(message.Body),
-				"algorithm":   message.Algorithm,
-				"signature":   string(message.Signature),
+			"test_case": "15.1.2_RFC9421_변조된_메시지_탐지",
+			"original_message": map[string]interface{}{
+				"agent_did":  message.AgentDID,
+				"message_id": message.MessageID,
+				"body":       string(originalBody),
+				"algorithm":  message.Algorithm,
+			},
+			"tampered_message": map[string]interface{}{
+				"body": string(tamperedBody),
 			},
 			"verification": map[string]interface{}{
-				"success":       false,
-				"error_present": err != nil,
-				"error_message": err.Error(),
+				"original_success":  true,
+				"tampered_success":  false,
+				"error_present":     err != nil,
+				"error_message":     err.Error(),
+				"tampering_detected": true,
 			},
-			"validation": "잘못된_서명_거부_통과",
+			"validation": "메시지_변조_탐지_통과",
 		}
-		helpers.SaveTestData(t, "rfc9421/verify_invalid_signature.json", testData)
+		helpers.SaveTestData(t, "rfc9421/verify_tampered_message.json", testData)
+	})
+
+	t.Run("VerifySignature with tampered message - Secp256k1", func(t *testing.T) {
+		// 명세 요구사항: 메시지 변조 감지 - Secp256k1 (Ethereum) 서명으로 변조 탐지
+		helpers.LogTestSection(t, "15.1.2-2", "RFC9421 검증기 - 변조된 메시지 탐지 (Secp256k1)")
+
+		// Step 1: Secp256k1 (Ethereum) 키 쌍 생성
+		helpers.LogDetail(t, "Step 1: Secp256k1 (Ethereum) 키 쌍 생성")
+		privateKeyEth, err := ethcrypto.GenerateKey()
+		require.NoError(t, err)
+		publicKeyEth := &privateKeyEth.PublicKey
+		ethAddress := ethcrypto.PubkeyToAddress(*publicKeyEth).Hex()
+		helpers.LogSuccess(t, "Secp256k1 키 쌍 생성 완료")
+		helpers.LogDetail(t, "  Ethereum address: %s", ethAddress)
+
+		// Step 2: 유효한 메시지 생성
+		originalBody := []byte("original ethereum message")
+		message := &Message{
+			AgentDID:     "did:sage:ethereum:agent-secp256k1",
+			MessageID:    "msg-secp256k1-001",
+			Timestamp:    time.Now(),
+			Body:         originalBody,
+			Algorithm:    string(AlgorithmECDSA),
+			SignedFields: []string{"agent_did", "message_id", "timestamp", "body"},
+		}
+
+		helpers.LogDetail(t, "Step 2: 유효한 메시지 생성")
+		helpers.LogDetail(t, "  AgentDID: %s", message.AgentDID)
+		helpers.LogDetail(t, "  MessageID: %s", message.MessageID)
+		helpers.LogDetail(t, "  Original Body: %q", string(originalBody))
+
+		// Step 3: SAGE Verifier로 실제 서명 생성 (ECDSA)
+		helpers.LogDetail(t, "Step 3: 실제 서명 생성 (SAGE ConstructSignatureBase + ECDSA Sign)")
+		signatureBase := verifier.ConstructSignatureBase(message)
+		hash := sha256.Sum256([]byte(signatureBase))
+
+		// ECDSA signature using Ethereum's secp256k1 (raw r,s format, not ASN.1)
+		r, s, err := ecdsa.Sign(rand.Reader, privateKeyEth, hash[:])
+		require.NoError(t, err)
+
+		// Convert to fixed-size byte arrays (32 bytes each for Secp256k1)
+		signature := make([]byte, 64)
+		rBytes := r.Bytes()
+		sBytes := s.Bytes()
+
+		// Pad with zeros if necessary (right-align in 32-byte slots)
+		copy(signature[32-len(rBytes):32], rBytes)
+		copy(signature[64-len(sBytes):64], sBytes)
+
+		message.Signature = signature
+
+		helpers.LogSuccess(t, "유효한 서명 생성 완료 (Secp256k1)")
+		helpers.LogDetail(t, "  서명 길이: %d bytes", len(message.Signature))
+
+		// Step 4: 원본 메시지 검증 성공 확인
+		helpers.LogDetail(t, "Step 4: 원본 메시지 검증 (정상 통과 예상)")
+		err = verifier.VerifySignature(publicKeyEth, message, nil)
+		assert.NoError(t, err, "원본 메시지는 검증에 성공해야 함")
+		helpers.LogSuccess(t, "원본 메시지 검증 성공 (Secp256k1)")
+
+		// Step 5: 메시지 Body 변조
+		tamperedBody := []byte("TAMPERED ethereum message - HACKED")
+		message.Body = tamperedBody
+		helpers.LogDetail(t, "Step 5: 메시지 Body 변조")
+		helpers.LogDetail(t, "  Original Body: %q", string(originalBody))
+		helpers.LogDetail(t, "  Tampered Body: %q", string(tamperedBody))
+		helpers.LogSuccess(t, "메시지 변조 완료")
+
+		// Step 6: 변조된 메시지 검증 실패 확인
+		helpers.LogDetail(t, "Step 6: 변조된 메시지 검증 (실패 예상)")
+		err = verifier.VerifySignature(publicKeyEth, message, nil)
+		assert.Error(t, err, "변조된 메시지는 검증에 실패해야 함")
+		assert.Contains(t, err.Error(), "signature verification failed", "에러 메시지에 'signature verification failed' 포함되어야 함")
+
+		helpers.LogSuccess(t, "변조된 메시지 올바르게 거부됨 (Secp256k1)")
+		helpers.LogDetail(t, "  에러 메시지: %s", err.Error())
+
+		// 통과 기준 체크리스트
+		helpers.LogPassCriteria(t, []string{
+			"Secp256k1 (Ethereum) 키 쌍 생성",
+			"SAGE 코드로 유효한 ECDSA 서명 생성",
+			"원본 메시지 검증 성공",
+			"메시지 Body 변조",
+			"변조된 메시지 검증 실패",
+			"에러 메시지에 'signature verification failed' 포함",
+			"Secp256k1 메시지 변조 탐지 기능 정상 동작",
+		})
+
+		// CLI 검증용 테스트 데이터 저장
+		testData := map[string]interface{}{
+			"test_case": "15.1.2-2_RFC9421_변조된_메시지_탐지_Secp256k1",
+			"ethereum_address": ethAddress,
+			"original_message": map[string]interface{}{
+				"agent_did":  message.AgentDID,
+				"message_id": message.MessageID,
+				"body":       string(originalBody),
+				"algorithm":  message.Algorithm,
+			},
+			"tampered_message": map[string]interface{}{
+				"body": string(tamperedBody),
+			},
+			"verification": map[string]interface{}{
+				"original_success":   true,
+				"tampered_success":   false,
+				"error_present":      err != nil,
+				"error_message":      err.Error(),
+				"tampering_detected": true,
+			},
+			"validation": "Secp256k1_메시지_변조_탐지_통과",
+		}
+		helpers.SaveTestData(t, "rfc9421/verify_tampered_message_secp256k1.json", testData)
 	})
 
 	t.Run("VerifySignature with clock skew", func(t *testing.T) {
@@ -641,6 +784,138 @@ func TestVerifier(t *testing.T) {
 		})
 
 		helpers.LogSuccess(t, "Content-Digest 검증 테스트 완료")
+	})
+
+	// Test 1.2.1 & 1.2.2: Nonce 생성 및 Replay Attack 방어
+	t.Run("NonceGeneration and ReplayAttackPrevention", func(t *testing.T) {
+		helpers.LogTestSection(t, "1.2.1 & 1.2.2", "RFC9421 - Nonce 생성 및 Replay Attack 방어")
+
+		// Import nonce package
+		nonceManager := nonce.NewManager(5*time.Minute, 1*time.Minute)
+		verifierWithNonce := NewVerifierWithNonceManager(nonceManager)
+
+		// Step 1: Generate cryptographically secure nonce using SAGE's nonce package
+		helpers.LogDetail(t, "Step 1: SAGE Nonce 생성 (GenerateNonce)")
+		generatedNonce, err := nonce.GenerateNonce()
+		require.NoError(t, err)
+		require.NotEmpty(t, generatedNonce)
+		helpers.LogSuccess(t, "Nonce 생성 완료 (SAGE 핵심 기능 사용)")
+		helpers.LogDetail(t, "  Generated Nonce: %s", generatedNonce)
+		helpers.LogDetail(t, "  Nonce Length: %d characters", len(generatedNonce))
+
+		// Step 2: Create message with nonce (using SAGE's Message structure)
+		helpers.LogDetail(t, "Step 2: Nonce를 포함한 메시지 생성")
+		originalBody := []byte("test message with nonce for replay attack prevention")
+		message := &Message{
+			AgentDID:     "did:sage:ethereum:agent-nonce-test",
+			MessageID:    "msg-nonce-001",
+			Timestamp:    time.Now(),
+			Nonce:        generatedNonce,
+			Body:         originalBody,
+			Algorithm:    string(AlgorithmEdDSA),
+			SignedFields: []string{"agent_did", "message_id", "timestamp", "nonce", "body"},
+		}
+		helpers.LogSuccess(t, "메시지 생성 완료")
+		helpers.LogDetail(t, "  AgentDID: %s", message.AgentDID)
+		helpers.LogDetail(t, "  MessageID: %s", message.MessageID)
+		helpers.LogDetail(t, "  Nonce: %s", message.Nonce)
+		helpers.LogDetail(t, "  SignedFields: %v", message.SignedFields)
+
+		// Step 3: Sign message with Ed25519 (using SAGE's signature base construction)
+		helpers.LogDetail(t, "Step 3: 메시지 서명 (SAGE ConstructSignatureBase + Ed25519)")
+		signatureBase := verifierWithNonce.ConstructSignatureBase(message)
+		message.Signature = ed25519.Sign(privateKey, []byte(signatureBase))
+		require.NotEmpty(t, message.Signature)
+		helpers.LogSuccess(t, "메시지 서명 완료 (Ed25519)")
+		helpers.LogDetail(t, "  Signature Length: %d bytes", len(message.Signature))
+		helpers.LogDetail(t, "  Signature Base includes nonce: %v", strings.Contains(signatureBase, generatedNonce))
+
+		// Step 4: First verification - should succeed
+		helpers.LogDetail(t, "Step 4: 첫 번째 메시지 검증 (성공 예상)")
+		err = verifierWithNonce.VerifySignature(publicKey, message, nil)
+		require.NoError(t, err)
+		helpers.LogSuccess(t, "첫 번째 검증 성공")
+		helpers.LogDetail(t, "  Nonce는 자동으로 'used'로 마킹됨 (SAGE NonceManager)")
+
+		// Step 5: Verify nonce is marked as used
+		helpers.LogDetail(t, "Step 5: Nonce 사용 여부 확인")
+		isNonceUsed := nonceManager.IsNonceUsed(generatedNonce)
+		require.True(t, isNonceUsed)
+		helpers.LogSuccess(t, "Nonce가 'used'로 올바르게 마킹됨")
+		helpers.LogDetail(t, "  IsNonceUsed(%s): %v", generatedNonce, isNonceUsed)
+
+		// Step 6: Attempt replay attack with same nonce - should fail
+		helpers.LogDetail(t, "Step 6: Replay Attack 시도 (동일 Nonce 재사용)")
+		helpers.LogDetail(t, "  새로운 메시지 Body로 동일 Nonce 재사용 시도")
+		message2 := &Message{
+			AgentDID:     "did:sage:ethereum:agent-nonce-test",
+			MessageID:    "msg-nonce-002", // Different message ID
+			Timestamp:    time.Now(),
+			Nonce:        generatedNonce, // SAME nonce (replay attack)
+			Body:         []byte("different message body for replay attack"),
+			Algorithm:    string(AlgorithmEdDSA),
+			SignedFields: []string{"agent_did", "message_id", "timestamp", "nonce", "body"},
+		}
+
+		// Sign the second message
+		signatureBase2 := verifierWithNonce.ConstructSignatureBase(message2)
+		message2.Signature = ed25519.Sign(privateKey, []byte(signatureBase2))
+
+		helpers.LogDetail(t, "  Second MessageID: %s", message2.MessageID)
+		helpers.LogDetail(t, "  Second Body: %s", string(message2.Body))
+		helpers.LogDetail(t, "  Reused Nonce: %s", message2.Nonce)
+
+		// Step 7: Verify second message fails due to nonce replay
+		helpers.LogDetail(t, "Step 7: 두 번째 메시지 검증 (Replay Attack 탐지 예상)")
+		err = verifierWithNonce.VerifySignature(publicKey, message2, nil)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "nonce replay attack detected")
+		helpers.LogSuccess(t, "Replay Attack 올바르게 탐지 및 거부됨")
+		helpers.LogDetail(t, "  Error: %s", err.Error())
+
+		// Pass criteria checklist
+		helpers.LogPassCriteria(t, []string{
+			"SAGE GenerateNonce로 암호학적으로 안전한 Nonce 생성",
+			"Nonce를 포함한 메시지 생성 (SignedFields)",
+			"SAGE ConstructSignatureBase로 서명 베이스 구성",
+			"Ed25519로 메시지 서명",
+			"첫 번째 메시지 검증 성공",
+			"Nonce 자동 'used' 마킹 (SAGE NonceManager)",
+			"동일 Nonce로 두 번째 메시지 생성",
+			"Replay Attack 탐지 (nonce replay attack detected)",
+			"두 번째 검증 실패",
+			"SAGE 핵심 기능에 의한 Replay 방어 동작 확인",
+		})
+
+		// Save test data
+		testData := map[string]interface{}{
+			"test_case": "1.2.1_1.2.2_Nonce_Generation_ReplayAttackPrevention",
+			"nonce": map[string]interface{}{
+				"generated":   generatedNonce,
+				"length":      len(generatedNonce),
+				"is_used":     isNonceUsed,
+			},
+			"first_message": map[string]interface{}{
+				"agent_did":   message.AgentDID,
+				"message_id":  message.MessageID,
+				"body":        string(message.Body),
+				"nonce":       message.Nonce,
+				"verification": "success",
+			},
+			"second_message": map[string]interface{}{
+				"agent_did":   message2.AgentDID,
+				"message_id":  message2.MessageID,
+				"body":        string(message2.Body),
+				"nonce":       message2.Nonce,
+				"verification": "failed (replay attack detected)",
+			},
+			"replay_attack": map[string]interface{}{
+				"detected":      true,
+				"error_message": err.Error(),
+			},
+			"validation": "Nonce_생성_및_Replay_Attack_방어_통과",
+		}
+		helpers.SaveTestData(t, "rfc9421/nonce_replay_attack_prevention.json", testData)
 	})
 }
 
