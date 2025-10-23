@@ -26,6 +26,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"sync"
 	"time"
 
 	"io"
@@ -37,6 +38,7 @@ import (
 
 // SecureSession implements Session with ChaCha20-Poly1305 AEAD
 type SecureSession struct {
+	mu           sync.RWMutex
 	id           string
 	createdAt    time.Time
 	lastUsedAt   time.Time
@@ -337,6 +339,9 @@ func (s *SecureSession) GetLastUsedAt() time.Time {
 
 // IsExpired checks if the session has expired based on configured policies
 func (s *SecureSession) IsExpired() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	if s.closed {
 		return true
 	}
@@ -363,6 +368,8 @@ func (s *SecureSession) IsExpired() bool {
 
 // UpdateLastUsed updates the last activity timestamp and increments message count
 func (s *SecureSession) UpdateLastUsed() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.lastUsedAt = time.Now()
 	s.messageCount++
 }
