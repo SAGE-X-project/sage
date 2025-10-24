@@ -39,6 +39,16 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
+// getV4ContractAddress returns the V4 contract address from environment variable or default
+// Set SAGE_V4_CONTRACT_ADDRESS environment variable to override the default address
+func getV4ContractAddress() string {
+	if addr := os.Getenv("SAGE_V4_CONTRACT_ADDRESS"); addr != "" {
+		return addr
+	}
+	// Default address for backward compatibility
+	return "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9"
+}
+
 // TestV4SingleKeyRegistration tests single-key agent registration with V4 contract
 func TestV4SingleKeyRegistration(t *testing.T) {
 	// Skip if not running integration tests
@@ -48,7 +58,7 @@ func TestV4SingleKeyRegistration(t *testing.T) {
 
 	// Configuration for local Hardhat/Anvil network
 	config := &did.RegistryConfig{
-		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // From deployment (X25519 removed)
+		ContractAddress:    getV4ContractAddress(), // From deployment (X25519 removed)
 		RPCEndpoint:        "http://localhost:8545",
 		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat test account #0
 		GasPrice:           0,                                                                  // Let the client determine gas price
@@ -137,7 +147,7 @@ func TestV4Ed25519Registration(t *testing.T) {
 
 	// Configuration for local Hardhat/Anvil network
 	config := &did.RegistryConfig{
-		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9", // From deployment (X25519 removed)
+		ContractAddress:    getV4ContractAddress(), // From deployment (X25519 removed)
 		RPCEndpoint:        "http://localhost:8545",
 		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat test account #0
 		GasPrice:           0,                                                                  // Let the client determine gas price
@@ -272,7 +282,7 @@ func TestV4MultiKeyRegistration(t *testing.T) {
 
 	// Configuration for local Hardhat/Anvil network
 	config := &did.RegistryConfig{
-		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		ContractAddress:    getV4ContractAddress(),
 		RPCEndpoint:        "http://localhost:8545",
 		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 		GasPrice:           0,
@@ -539,7 +549,7 @@ func TestV4PublicKeyOwnershipVerification(t *testing.T) {
 	// Configuration for local Hardhat/Anvil network
 	// Using account #0 (Alice)
 	configAlice := &did.RegistryConfig{
-		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		ContractAddress:    getV4ContractAddress(),
 		RPCEndpoint:        "http://localhost:8545",
 		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Account #0
 		GasPrice:           0,
@@ -729,7 +739,7 @@ func TestV4KeyRotation(t *testing.T) {
 	}
 
 	config := &did.RegistryConfig{
-		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		ContractAddress:    getV4ContractAddress(),
 		RPCEndpoint:        "http://localhost:8545",
 		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 		GasPrice:           0,
@@ -835,7 +845,7 @@ func TestV4RevokeKey(t *testing.T) {
 	}
 
 	config := &did.RegistryConfig{
-		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		ContractAddress:    getV4ContractAddress(),
 		RPCEndpoint:        "http://localhost:8545",
 		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 		GasPrice:           0,
@@ -967,7 +977,7 @@ func TestV4AddKey(t *testing.T) {
 	}
 
 	config := &did.RegistryConfig{
-		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		ContractAddress:    getV4ContractAddress(),
 		RPCEndpoint:        "http://localhost:8545",
 		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 		GasPrice:           0,
@@ -1099,7 +1109,7 @@ func TestV4ApproveEd25519Key(t *testing.T) {
 	}
 
 	config := &did.RegistryConfig{
-		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		ContractAddress:    getV4ContractAddress(),
 		RPCEndpoint:        "http://localhost:8545",
 		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80",
 		GasPrice:           0,
@@ -1236,12 +1246,13 @@ func TestV4DIDLifecycleWithFundedKey(t *testing.T) {
 	t.Log("This test demonstrates the complete pattern for testing DID operations:")
 	t.Log("1. Generate new Secp256k1 keypair")
 	t.Log("2. Fund the new key with ETH from Hardhat default account")
-	t.Log("3. Register DID on blockchain using the funded key")
-	t.Log("4. Verify registration and measure gas usage")
+	t.Log("3. Create client with agent's private key")
+	t.Log("4. Register DID on blockchain using the funded key")
+	t.Log("5. Verify registration and measure gas usage")
 
-	// Step 1: Create client with Hardhat default account (has initial ETH balance)
+	// Step 1: Create funding client with Hardhat default account (for ETH transfer)
 	config := &did.RegistryConfig{
-		ContractAddress:    "0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9",
+		ContractAddress:    getV4ContractAddress(),
 		RPCEndpoint:        "http://localhost:8545",
 		PrivateKey:         "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", // Hardhat account #0
 		GasPrice:           0,
@@ -1305,10 +1316,35 @@ func TestV4DIDLifecycleWithFundedKey(t *testing.T) {
 		t.Fatalf("Balance after transfer (%s) is less than transferred amount (%s)", newBalance.String(), fundAmount.String())
 	}
 
-	// Step 4: Register DID on blockchain
-	// NOTE: The client still uses Hardhat account #0 to send the registration transaction
-	// The agentKeyPair is registered as the agent's identity key in the DID document
-	t.Log("\n[Step 3] Registering DID on blockchain...")
+	// Step 4: Create client with agent's private key
+	t.Log("\n[Step 3] Creating client with agent's private key...")
+
+	// Extract private key from agentKeyPair
+	ecdsaPrivKey, ok := agentKeyPair.PrivateKey().(*ecdsa.PrivateKey)
+	if !ok {
+		t.Fatal("Failed to cast private key to ECDSA")
+	}
+	agentPrivKeyHex := hex.EncodeToString(ethcrypto.FromECDSA(ecdsaPrivKey))
+
+	// Create new client with agent's private key
+	agentConfig := &did.RegistryConfig{
+		ContractAddress:    getV4ContractAddress(),
+		RPCEndpoint:        "http://localhost:8545",
+		PrivateKey:         agentPrivKeyHex,
+		GasPrice:           0,
+		MaxRetries:         10,
+		ConfirmationBlocks: 0,
+	}
+
+	agentClient, err := NewEthereumClientV4(agentConfig)
+	if err != nil {
+		t.Fatalf("Failed to create agent client: %v", err)
+	}
+	t.Logf("✓ Agent client created")
+	t.Logf("  Agent will sign and send transactions using its own key")
+
+	// Step 5: Register DID on blockchain
+	t.Log("\n[Step 4] Registering DID on blockchain...")
 	testDID := did.AgentDID("did:sage:ethereum:" + uuid.New().String())
 
 	req := &did.RegistrationRequest{
@@ -1324,7 +1360,7 @@ func TestV4DIDLifecycleWithFundedKey(t *testing.T) {
 	}
 
 	t.Logf("  Registering DID: %s", testDID)
-	regResult, err := client.Register(ctx, req)
+	regResult, err := agentClient.Register(ctx, req)
 	if err != nil {
 		t.Fatalf("Failed to register DID: %v", err)
 	}
@@ -1342,8 +1378,8 @@ func TestV4DIDLifecycleWithFundedKey(t *testing.T) {
 		t.Errorf("Gas used (%d) seems too high for DID registration", regResult.GasUsed)
 	}
 
-	// Step 5: Verify registration by resolving the DID
-	t.Log("\n[Step 4] Verifying DID registration...")
+	// Step 6: Verify registration by resolving the DID
+	t.Log("\n[Step 5] Verifying DID registration...")
 	agent, err := client.Resolve(ctx, testDID)
 	if err != nil {
 		t.Fatalf("Failed to resolve DID: %v", err)

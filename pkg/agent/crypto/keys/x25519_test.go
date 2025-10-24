@@ -21,36 +21,71 @@ package keys
 import (
 	"testing"
 
+	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestX25519KeyPair(t *testing.T) {
 	t.Run("GenerateKeyPair", func(t *testing.T) {
+		helpers.LogTestSection(t, "2.1.4", "X25519 Key Pair Generation (ECDH)")
+
+		helpers.LogDetail(t, "Step 1: Generate X25519 key pair for ECDH")
 		keyPair, err := GenerateX25519KeyPair()
 		require.NoError(t, err)
 		assert.NotNil(t, keyPair)
+		helpers.LogSuccess(t, "X25519 key pair generated successfully")
+
+		helpers.LogDetail(t, "Step 2: Validate key material")
 		assert.NotNil(t, keyPair.PublicKey())
 		assert.NotNil(t, keyPair.PrivateKey())
+		helpers.LogSuccess(t, "Public and private keys validated")
+
+		helpers.LogPassCriteria(t, []string{
+			"X25519 key pair generated",
+			"Public/Private keys exist",
+			"Ready for ECDH key exchange",
+		})
 	})
 
 	t.Run("DeriveSharedSecret", func(t *testing.T) {
+		helpers.LogTestSection(t, "2.5.1", "X25519 ECDH Shared Secret Derivation")
+
+		helpers.LogDetail(t, "Step 1: Generate two X25519 key pairs (Alice and Bob)")
 		a, err := GenerateX25519KeyPair()
 		require.NoError(t, err)
 		b, err := GenerateX25519KeyPair()
 		require.NoError(t, err)
+		helpers.LogSuccess(t, "Two key pairs generated (Alice and Bob)")
 
+		helpers.LogDetail(t, "Step 2: Type conversion to X25519KeyPair")
 		aKey, ok := a.(*X25519KeyPair)
 		require.True(t, ok)
 		bKey, ok := b.(*X25519KeyPair)
 		require.True(t, ok)
+		helpers.LogSuccess(t, "Type conversion successful")
 
+		helpers.LogDetail(t, "Step 3: Derive shared secret (Alice side)")
 		s1, err := aKey.DeriveSharedSecret(bKey.PublicBytesKey())
 		require.NoError(t, err)
+		helpers.LogSuccess(t, "Alice derived shared secret")
+		helpers.LogDetail(t, "  Shared secret size: %d bytes", len(s1))
+
+		helpers.LogDetail(t, "Step 4: Derive shared secret (Bob side)")
 		s2, err := bKey.DeriveSharedSecret(aKey.PublicBytesKey())
 		require.NoError(t, err)
+		helpers.LogSuccess(t, "Bob derived shared secret")
 
+		helpers.LogDetail(t, "Step 5: Verify shared secrets match")
 		assert.Equal(t, s1, s2)
+		helpers.LogSuccess(t, "Shared secrets match - ECDH successful")
+
+		helpers.LogPassCriteria(t, []string{
+			"Two X25519 key pairs generated",
+			"Alice derived shared secret",
+			"Bob derived shared secret",
+			"Shared secrets match (ECDH)",
+		})
 	})
 
 	t.Run("EphemeralEncryptAndDecrypt", func(t *testing.T) {

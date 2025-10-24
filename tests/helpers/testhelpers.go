@@ -90,6 +90,14 @@ func SaveTestData(t *testing.T, filename string, data interface{}) {
 
 	// Write to file
 	filePath := filepath.Join(testDataDir, filename)
+
+	// Create parent directory for the file (handles nested paths like "keys/file.json")
+	fileDir := filepath.Dir(filePath)
+	if err := os.MkdirAll(fileDir, 0750); err != nil {
+		t.Logf("Warning: Failed to create file directory: %v", err)
+		return
+	}
+
 	if err := os.WriteFile(filePath, jsonData, 0600); err != nil {
 		t.Logf("Warning: Failed to write test data file: %v", err)
 		return
