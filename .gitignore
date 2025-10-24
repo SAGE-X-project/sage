@@ -464,6 +464,11 @@ CLAUDE.local.md
 .claude/*.local.*
 .claude/settings.local.json
 
+# Specification verification backup files
+AGENTS.md
+docs/test/SPECIFICATION_VERIFICATION_MATRIX.md.phase3_backup
+docs/test/SPECIFICATION_VERIFICATION_MATRIX.md.backup
+
 # IntelliJ IDEA
 .idea/
 *.iml
@@ -624,3 +629,6 @@ keys/
 # Security scanning reports
 gosec-report.json
 docs/Todo.md
+
+# Test output files - generated during test execution
+**/testdata/verification/

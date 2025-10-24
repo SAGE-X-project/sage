@@ -121,10 +121,26 @@ func VerifyKeyProofOfPossession(did AgentDID, key *AgentKey) error {
 		return nil
 
 	case KeyTypeECDSA:
-		// Decompress the public key
-		pubKey, err := ethcrypto.DecompressPubkey(key.KeyData)
+		// Handle both compressed (33 bytes) and uncompressed formats (64 or 65 bytes)
+		keyData := key.KeyData
+		if len(keyData) == 64 {
+			// Raw format (64 bytes: x || y) - prepend 0x04 for standard uncompressed format
+			keyData = append([]byte{0x04}, keyData...)
+		}
+
+		var pubKey *ecdsa.PublicKey
+		var err error
+		if len(keyData) == 33 {
+			// Compressed format - use DecompressPubkey
+			pubKey, err = ethcrypto.DecompressPubkey(keyData)
+		} else if len(keyData) == 65 {
+			// Uncompressed format - use UnmarshalPubkey
+			pubKey, err = ethcrypto.UnmarshalPubkey(keyData)
+		} else {
+			return fmt.Errorf("invalid ECDSA public key length: %d (expected 33, 64, or 65 bytes)", len(keyData))
+		}
 		if err != nil {
-			return fmt.Errorf("failed to decompress ECDSA public key: %w", err)
+			return fmt.Errorf("failed to parse ECDSA public key: %w", err)
 		}
 
 		// Ethereum signatures include a recovery ID in the last byte

@@ -13,21 +13,28 @@
 
 SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based security framework for AI agent communication. It provides end-to-end encrypted, authenticated communication channels between AI agents using decentralized identity (DID) management, HPKE-based key agreement, and RFC 9421 HTTP Message Signatures.
 
-### ✨ What's New in v1.1.0 (2025-10-18)
+### ✨ What's New in v1.1.0 (2025-10-24)
 
-**Multi-Key Registry V4** - Major Feature Release
+**Multi-Key Registry V4 with Update Support** - Major Feature Release
 
 - **Multi-Key Support**: Register up to 10 cryptographic keys per agent (Ed25519, ECDSA/secp256k1)
+- **Agent Metadata Update**: Full support for updating agent information with automatic nonce management
+  - Update name, description, endpoint, and capabilities
+  - Nonce-based replay attack prevention
+  - Signature verification with registered keys
 - **Multi-Chain Ready**: Protocol-specific key selection for Ethereum (ECDSA), Solana (Ed25519), and more
 - **Enhanced Security**: Three critical CVE fixes (CVE-SAGE-2025-001, 002, 003)
   - Public key ownership verification prevents theft attacks
   - Atomic key rotation eliminates inconsistent states
   - Complete key revocation with storage deletion
-- **New APIs**: `ResolveAllPublicKeys()` and `ResolvePublicKeyByType()` for multi-key resolution
+- **New APIs**:
+  - `Update()` method for agent metadata updates
+  - `getNonce()` contract function for replay protection
+  - `ResolveAllPublicKeys()` and `ResolvePublicKeyByType()` for multi-key resolution
 - **DID Format Enhancement**: Owner address validation for off-chain verification
-- **Production Ready**: 201 passing contract tests, comprehensive Go test coverage
+- **Production Ready**: 201 passing contract tests, comprehensive Go test coverage, V4 Update fully tested
 
-See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
+See [CHANGELOG.md](CHANGELOG.md) for complete release notes and [V4_UPDATE_DEPLOYMENT_GUIDE.md](docs/V4_UPDATE_DEPLOYMENT_GUIDE.md) for deployment instructions.
 
 ### 🌐 Live Deployments
 
@@ -49,6 +56,7 @@ See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 - **Enhanced Security**: Public key ownership verification with on-chain validation and key revocation
 - **Multi-Algorithm Support**: Ed25519, Secp256k1, and X25519 cryptographic operations
 - **Multi-Key Agent Registry**: SageRegistryV4 with support for up to 10 keys per agent (Ed25519, ECDSA) and atomic key rotation
+- **Agent Metadata Management**: Update agent information (name, description, endpoint, capabilities) with nonce-based replay protection
 - **Session Management**: Automatic session creation, key rotation, nonce tracking, and replay protection
 - **Protocol-Agnostic Transport**: HTTP, WebSocket, and MockTransport implementations with pluggable architecture
 - **Zero External Dependencies**: Removed a2a-go dependency for better maintainability and independence
@@ -192,6 +200,7 @@ go mod download
 ```bash
 cd contracts/ethereum
 npm install
+cd ../..  # Return to root directory
 ```
 
 4. **Build the project**
@@ -348,7 +357,45 @@ SAGE uses two separate Hardhat installations for different purposes:
 ./build/bin/sage-did list --owner 0x...
 ```
 
-### 3. Transport Layer Selection
+### 3. Update Agent Metadata
+
+```bash
+# Update agent information (V4 only)
+./build/bin/sage-did update \
+  --did did:sage:ethereum:0x... \
+  --key keys/ethereum.key \
+  --name "Updated Agent Name" \
+  --endpoint "https://new-api.myagent.com" \
+  --capabilities "chat,code,analysis,vision"
+
+# Or use Go client
+```
+
+```go
+import (
+    "github.com/sage-x-project/sage/pkg/agent/did"
+    "github.com/sage-x-project/sage/pkg/agent/did/ethereum"
+)
+
+// Create V4 client
+client, err := ethereum.NewEthereumClientV4(config)
+
+// Update agent metadata
+updates := map[string]interface{}{
+    "name":        "Updated Agent Name",
+    "description": "New description",
+    "endpoint":    "https://new-api.myagent.com",
+    "capabilities": map[string]interface{}{
+        "version":  "2.0.0",
+        "features": []string{"chat", "code", "analysis", "vision"},
+    },
+}
+
+err = client.Update(ctx, agentDID, updates, keyPair)
+// Nonce is automatically managed - supports multiple sequential updates
+```
+
+### 4. Transport Layer Selection
 
 SAGE supports multiple transport protocols with automatic selection:
 
@@ -379,7 +426,7 @@ selector.AddTransport("ws", wsTransport)
 selectedTransport, _ := selector.SelectTransport(ctx, targetDID)
 ```
 
-### 4. Secure Handshake Protocol
+### 5. Secure Handshake Protocol
 
 The handshake establishes an end-to-end encrypted session between two agents:
 
@@ -398,7 +445,7 @@ ctxID := "ctx-" + uuid.NewString()
 kid, _ := client.Initialize(ctx, ctxID, clientDID, serverDID)
 ```
 
-### 5. HPKE Encryption/Decryption
+### 6. HPKE Encryption/Decryption
 
 ```go
 import (
@@ -416,7 +463,7 @@ cipher, _ := sess.Encrypt(body)
 plain, _ := sess.Decrypt(cipher)
 ```
 
-### 6. Create RFC 9421 Signed Messages
+### 7. Create RFC 9421 Signed Messages
 
 ```go
 import (
@@ -548,9 +595,14 @@ curl http://localhost:8080/health
 
 ### SageRegistryV4 - Multi-Key Registry (v1.1.0)
 
-The latest version introduces comprehensive multi-key support and critical security enhancements:
+The latest version introduces comprehensive multi-key support, agent metadata updates, and critical security enhancements:
 
 - **Multi-Key Support**: Up to 10 keys per agent with Ed25519 and ECDSA/secp256k1 algorithms
+- **Agent Metadata Updates**: Full support for updating agent information
+  - `updateAgent()`: Update name, description, endpoint, and capabilities
+  - `getNonce()`: Retrieve current nonce for replay protection
+  - Automatic nonce increment on each update
+  - Signature verification with registered keys
 - **Atomic Key Rotation**: Transaction-level atomic key replacement prevents incomplete rotation states
 - **Complete Key Revocation**: Full deletion from storage with nonce increment to invalidate old signatures
 - **Public Key Ownership Verification**: Dual verification (signature + address matching) prevents key theft attacks
@@ -564,7 +616,7 @@ The latest version introduces comprehensive multi-key support and critical secur
 - CVE-SAGE-2025-002: Atomic key rotation to prevent inconsistent states
 - CVE-SAGE-2025-003: Complete key revocation with storage deletion
 
-See [contracts/README.md](contracts/README.md) for detailed smart contract documentation.
+See [contracts/README.md](contracts/README.md) for detailed smart contract documentation and [V4_UPDATE_DEPLOYMENT_GUIDE.md](docs/V4_UPDATE_DEPLOYMENT_GUIDE.md) for deployment instructions.
 
 ## Gas Usage
 

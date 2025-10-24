@@ -22,49 +22,89 @@ import (
 	"testing"
 
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRSAKeyPair(t *testing.T) {
 	t.Run("GenerateKeyPair", func(t *testing.T) {
+		helpers.LogTestSection(t, "2.1.3", "RSA Key Pair Generation")
+
+		helpers.LogDetail(t, "Step 1: Generate RSA key pair")
 		keyPair, err := GenerateRSAKeyPair()
 		require.NoError(t, err)
 		assert.NotNil(t, keyPair)
+		helpers.LogSuccess(t, "RSA key pair generated successfully")
+
+		helpers.LogDetail(t, "Step 2: Validate key type")
 		assert.Equal(t, crypto.KeyTypeRSA, keyPair.Type())
+		helpers.LogSuccess(t, "Key type confirmed: RSA")
+
+		helpers.LogDetail(t, "Step 3: Validate key material")
 		assert.NotNil(t, keyPair.PublicKey())
 		assert.NotNil(t, keyPair.PrivateKey())
 		assert.NotEmpty(t, keyPair.ID())
+		helpers.LogSuccess(t, "Key material validated")
+		helpers.LogDetail(t, "  Key ID: %s", keyPair.ID())
+
+		helpers.LogPassCriteria(t, []string{
+			"RSA key pair generated",
+			"Key type = RSA",
+			"Public/Private keys exist",
+			"Key ID generated",
+		})
 	})
 
 	t.Run("SignAndVerify", func(t *testing.T) {
+		helpers.LogTestSection(t, "2.4.3", "RSA Signature and Verification")
+
+		helpers.LogDetail(t, "Step 1: Generate RSA key pair")
 		keyPair, err := GenerateRSAKeyPair()
 		require.NoError(t, err)
+		helpers.LogSuccess(t, "Key pair generated")
 
 		message := []byte("test message")
+		helpers.LogDetail(t, "Test message: %s", string(message))
 
 		// Sign message
+		helpers.LogDetail(t, "Step 2: Sign message")
 		signature, err := keyPair.Sign(message)
 		require.NoError(t, err)
 		assert.NotEmpty(t, signature)
+		helpers.LogSuccess(t, "Signature generated")
+		helpers.LogDetail(t, "  Signature size: %d bytes", len(signature))
 
 		// Verify signature
+		helpers.LogDetail(t, "Step 3: Verify signature")
 		err = keyPair.Verify(message, signature)
 		assert.NoError(t, err)
+		helpers.LogSuccess(t, "Signature verification successful")
 
 		// Verify with wrong message should fail
+		helpers.LogDetail(t, "Step 4: Test tamper detection - wrong message")
 		wrongMessage := []byte("wrong message")
 		err = keyPair.Verify(wrongMessage, signature)
 		assert.Error(t, err)
 		assert.Equal(t, crypto.ErrInvalidSignature, err)
+		helpers.LogSuccess(t, "Tamper detection: Wrong message rejected")
 
 		// Verify with wrong signature should fail
+		helpers.LogDetail(t, "Step 5: Test tamper detection - modified signature")
 		wrongSignature := make([]byte, len(signature))
 		copy(wrongSignature, signature)
 		wrongSignature[0] ^= 0xFF
 		err = keyPair.Verify(message, wrongSignature)
 		assert.Error(t, err)
 		assert.Equal(t, crypto.ErrInvalidSignature, err)
+		helpers.LogSuccess(t, "Tamper detection: Modified signature rejected")
+
+		helpers.LogPassCriteria(t, []string{
+			"Signature generation successful",
+			"Signature verification successful",
+			"Tamper detection (wrong message)",
+			"Tamper detection (modified signature)",
+		})
 	})
 
 	t.Run("MultipleKeyPairsHaveDifferentIDs", func(t *testing.T) {

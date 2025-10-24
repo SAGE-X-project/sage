@@ -463,9 +463,9 @@ test-integration:
 	@echo "Starting test environment..."
 	@bash ./tests/integration/setup_test_env.sh start
 	@echo "Running tests..."
+	@set -e; \
+	trap 'echo "Stopping test environment..."; bash ./tests/integration/setup_test_env.sh stop' EXIT; \
 	$(GO) test -v ./tests/integration/... -tags=integration -count=1
-	@echo "Stopping test environment..."
-	@bash ./tests/integration/setup_test_env.sh stop
 
 # Run integration tests without setup (assumes environment is ready)
 .PHONY: test-integration-only

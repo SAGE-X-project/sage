@@ -20,6 +20,8 @@ package handshake_test
 
 import (
 	"context"
+	"crypto/ed25519"
+	"encoding/hex"
 	"encoding/json"
 	"sync"
 	"sync/atomic"
@@ -27,6 +29,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -131,11 +134,19 @@ func setupTest(t *testing.T, cleanupInterval time.Duration) (*handshake.Client, 
 }
 
 func TestHandshake_Invitation(t *testing.T) {
+	// Specification Requirement: Handshake protocol Phase 1 - Invitation
+	helpers.LogTestSection(t, "10.1.1", "Handshake Server Invitation Phase")
+
 	alice, hs, aliceKeyPair, _, _, ethResolver, _ := setupTest(t, 0)
+	helpers.LogDetail(t, "Test setup complete:")
+	helpers.LogDetail(t, "  Client (Alice) initialized")
+	helpers.LogDetail(t, "  Server (Bob) initialized with MockTransport")
 
 	ctx := context.Background()
 	contextId := "ctx-" + uuid.NewString()
+	helpers.LogDetail(t, "Context ID generated: %s", contextId)
 
+	// Specification Requirement: Setup client DID and metadata
 	aliceDID := sagedid.AgentDID("did:sage:ethereum:agent001")
 	aliceMeta := &sagedid.AgentMetadata{
 		DID:       aliceDID,
@@ -143,30 +154,81 @@ func TestHandshake_Invitation(t *testing.T) {
 		IsActive:  true,
 		PublicKey: aliceKeyPair.PublicKey(),
 	}
+	helpers.LogDetail(t, "Alice metadata:")
+	helpers.LogDetail(t, "  DID: %s", aliceDID)
+	helpers.LogDetail(t, "  Name: %s", aliceMeta.Name)
+	helpers.LogDetail(t, "  Active: %v", aliceMeta.IsActive)
+	if pk, ok := aliceMeta.PublicKey.(ed25519.PublicKey); ok {
+		helpers.LogDetail(t, "  Public key (hex): %s", hex.EncodeToString(pk))
+	}
 
+	// Specification Requirement: Setup resolver mock for DID resolution
 	ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
+	helpers.LogDetail(t, "Resolver configured to return Alice's metadata")
 
+	// Specification Requirement: Create invitation message
 	invMsg := &handshake.InvitationMessage{
 		BaseMessage: message.BaseMessage{
 			ContextID: contextId,
 		},
 	}
+	helpers.LogDetail(t, "Invitation message created")
 
-	// Client sends Invitation to server
+	// Specification Requirement: Client sends invitation to server
+	helpers.LogDetail(t, "Sending invitation from Alice to Bob")
 	resp, err := alice.Invitation(ctx, *invMsg, string(aliceMeta.DID))
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.True(t, resp.Success)
+	helpers.LogSuccess(t, "Invitation sent and acknowledged")
+	helpers.LogDetail(t, "  Response success: %v", resp.Success)
 
-	// Verify server cached the peer
-	require.True(t, handshake.HasPeer(hs, contextId))
+	// Specification Requirement: Verify server cached the peer
+	helpers.LogDetail(t, "Verifying server cached Alice as peer")
+	hasPeer := handshake.HasPeer(hs, contextId)
+	require.True(t, hasPeer)
+	helpers.LogSuccess(t, "Server successfully cached peer")
+
+	// Pass criteria checklist
+	helpers.LogPassCriteria(t, []string{
+		"Client and server initialized with MockTransport",
+		"Context ID generated for handshake session",
+		"Alice DID and metadata configured",
+		"Resolver mock configured for DID resolution",
+		"Invitation message created with context ID",
+		"Invitation sent successfully via MockTransport",
+		"Server acknowledged invitation",
+		"Server cached Alice as peer for context",
+	})
+
+	// Save test data for CLI verification
+	testData := map[string]interface{}{
+		"test_case":  "10.1.1_Handshake_Invitation",
+		"context_id": contextId,
+		"alice": map[string]interface{}{
+			"did":       string(aliceDID),
+			"name":      aliceMeta.Name,
+			"is_active": aliceMeta.IsActive,
+		},
+		"response": map[string]interface{}{
+			"success": resp.Success,
+		},
+		"peer_cached": hasPeer,
+		"phase":       "invitation",
+	}
+	helpers.SaveTestData(t, "handshake/server_invitation.json", testData)
 }
 
 func TestHandshake_Request(t *testing.T) {
+	// Specification Requirement: Handshake protocol Phase 2 - Request with ephemeral key
+	helpers.LogTestSection(t, "10.1.2", "Handshake Server Request Phase")
+
 	alice, hs, aliceKeyPair, bobKeyPair, _, ethResolver, _ := setupTest(t, 0)
+	helpers.LogDetail(t, "Test setup complete with client and server")
 
 	ctx := context.Background()
 	contextId := "ctx-" + uuid.NewString()
+	helpers.LogDetail(t, "Context ID generated: %s", contextId)
 
 	aliceDID := sagedid.AgentDID("did:sage:ethereum:agent001")
 	aliceMeta := &sagedid.AgentMetadata{
@@ -175,43 +237,87 @@ func TestHandshake_Request(t *testing.T) {
 		IsActive:  true,
 		PublicKey: aliceKeyPair.PublicKey(),
 	}
+	helpers.LogDetail(t, "Alice DID: %s", aliceDID)
 
-	// First send invitation
+	// Specification Requirement: First send invitation to establish peer cache
 	ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
+	helpers.LogDetail(t, "Sending invitation (prerequisite for request)")
 	invMsg := &handshake.InvitationMessage{
 		BaseMessage: message.BaseMessage{ContextID: contextId},
 	}
 	_, err := alice.Invitation(ctx, *invMsg, string(aliceMeta.DID))
 	require.NoError(t, err)
+	helpers.LogSuccess(t, "Invitation phase completed")
 
-	// Generate ephemeral key
+	// Specification Requirement: Generate ephemeral X25519 key for ECDH
+	helpers.LogDetail(t, "Generating Alice's ephemeral X25519 key pair")
 	exporter := formats.NewJWKExporter()
 	aliceEphemeralKeyPair, err := keys.GenerateX25519KeyPair()
 	require.NoError(t, err)
 	alicePubKeyJWK, err := exporter.ExportPublic(aliceEphemeralKeyPair, sagecrypto.KeyFormatJWK)
 	require.NoError(t, err)
+	helpers.LogSuccess(t, "Ephemeral key pair generated")
+	helpers.LogDetail(t, "  Ephemeral public key (JWK): %d bytes", len(alicePubKeyJWK))
 
-	// Send request
+	// Specification Requirement: Send request with ephemeral public key
+	helpers.LogDetail(t, "Creating request message with ephemeral key")
 	reqMsg := &handshake.RequestMessage{
 		BaseMessage: message.BaseMessage{
 			ContextID: contextId,
 		},
 		EphemeralPubKey: json.RawMessage(alicePubKeyJWK),
 	}
+	helpers.LogDetail(t, "Sending request from Alice to Bob")
 	resp, err := alice.Request(ctx, *reqMsg, bobKeyPair.PublicKey(), string(aliceMeta.DID))
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.True(t, resp.Success)
+	helpers.LogSuccess(t, "Request sent and acknowledged")
+	helpers.LogDetail(t, "  Response success: %v", resp.Success)
 
-	// Verify server created pending state
-	require.True(t, handshake.HasPending(hs, contextId))
+	// Specification Requirement: Verify server created pending state for completion
+	helpers.LogDetail(t, "Verifying server created pending state")
+	hasPending := handshake.HasPending(hs, contextId)
+	require.True(t, hasPending)
+	helpers.LogSuccess(t, "Server created pending state for context")
+
+	// Pass criteria checklist
+	helpers.LogPassCriteria(t, []string{
+		"Client and server initialized",
+		"Invitation phase completed successfully",
+		"Ephemeral X25519 key pair generated",
+		"Ephemeral public key exported to JWK format",
+		"Request message created with ephemeral key",
+		"Request sent successfully via MockTransport",
+		"Server acknowledged request",
+		"Server created pending state for context",
+	})
+
+	// Save test data for CLI verification
+	testData := map[string]interface{}{
+		"test_case":          "10.1.2_Handshake_Request",
+		"context_id":         contextId,
+		"alice_did":          string(aliceDID),
+		"ephemeral_key_size": len(alicePubKeyJWK),
+		"response": map[string]interface{}{
+			"success": resp.Success,
+		},
+		"pending_created": hasPending,
+		"phase":           "request",
+	}
+	helpers.SaveTestData(t, "handshake/server_request.json", testData)
 }
 
 func TestHandshake_Complete(t *testing.T) {
+	// Specification Requirement: Handshake protocol Phase 3 - Complete and session establishment
+	helpers.LogTestSection(t, "10.1.3", "Handshake Server Complete Phase")
+
 	alice, hs, aliceKeyPair, bobKeyPair, _, ethResolver, _ := setupTest(t, 0)
+	helpers.LogDetail(t, "Test setup complete with client and server")
 
 	ctx := context.Background()
 	contextId := "ctx-" + uuid.NewString()
+	helpers.LogDetail(t, "Context ID generated: %s", contextId)
 
 	aliceDID := sagedid.AgentDID("did:sage:ethereum:agent001")
 	aliceMeta := &sagedid.AgentMetadata{
@@ -220,20 +326,25 @@ func TestHandshake_Complete(t *testing.T) {
 		IsActive:  true,
 		PublicKey: aliceKeyPair.PublicKey(),
 	}
+	helpers.LogDetail(t, "Alice DID: %s", aliceDID)
 
-	// First send invitation and request
+	// Specification Requirement: First send invitation and request (prerequisites)
 	ethResolver.On("Resolve", mock.Anything, aliceDID).Return(aliceMeta, nil).Once()
+	helpers.LogDetail(t, "Phase 1: Sending invitation")
 	invMsg := &handshake.InvitationMessage{
 		BaseMessage: message.BaseMessage{ContextID: contextId},
 	}
 	_, err := alice.Invitation(ctx, *invMsg, string(aliceMeta.DID))
 	require.NoError(t, err)
+	helpers.LogSuccess(t, "Invitation phase completed")
 
+	helpers.LogDetail(t, "Phase 2: Generating ephemeral key and sending request")
 	exporter := formats.NewJWKExporter()
 	aliceEphemeralKeyPair, err := keys.GenerateX25519KeyPair()
 	require.NoError(t, err)
 	alicePubKeyJWK, err := exporter.ExportPublic(aliceEphemeralKeyPair, sagecrypto.KeyFormatJWK)
 	require.NoError(t, err)
+	helpers.LogDetail(t, "  Ephemeral key generated and exported to JWK")
 
 	reqMsg := &handshake.RequestMessage{
 		BaseMessage:     message.BaseMessage{ContextID: contextId},
@@ -241,8 +352,10 @@ func TestHandshake_Complete(t *testing.T) {
 	}
 	_, err = alice.Request(ctx, *reqMsg, bobKeyPair.PublicKey(), string(aliceMeta.DID))
 	require.NoError(t, err)
+	helpers.LogSuccess(t, "Request phase completed")
 
-	// Send complete
+	// Specification Requirement: Send complete message to finalize handshake
+	helpers.LogDetail(t, "Phase 3: Sending complete message")
 	comMsg := &handshake.CompleteMessage{
 		BaseMessage: message.BaseMessage{
 			ContextID: contextId,
@@ -252,14 +365,46 @@ func TestHandshake_Complete(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.True(t, resp.Success)
+	helpers.LogSuccess(t, "Complete message sent and acknowledged")
+	helpers.LogDetail(t, "  Response success: %v", resp.Success)
 
-	// Verify server created session
+	// Specification Requirement: Verify session establishment
 	// Note: Session is created via events.OnComplete which uses sessionManager
-	// We can verify by checking the session manager
-	time.Sleep(10 * time.Millisecond) // Give time for async processing if any
+	// Give time for async processing if any
+	helpers.LogDetail(t, "Waiting for session creation (async)")
+	time.Sleep(10 * time.Millisecond)
 
-	// Check that pending state was consumed
-	require.False(t, handshake.HasPending(hs, contextId), "pending state should be consumed after Complete")
+	// Specification Requirement: Check that pending state was consumed after completion
+	helpers.LogDetail(t, "Verifying pending state consumed")
+	hasPending := handshake.HasPending(hs, contextId)
+	require.False(t, hasPending, "pending state should be consumed after Complete")
+	helpers.LogSuccess(t, "Pending state consumed successfully")
+
+	// Pass criteria checklist
+	helpers.LogPassCriteria(t, []string{
+		"Client and server initialized",
+		"Phase 1 (Invitation) completed",
+		"Phase 2 (Request) completed with ephemeral key",
+		"Phase 3 (Complete) message sent",
+		"Server acknowledged complete message",
+		"Pending state consumed after completion",
+		"Three-phase handshake completed successfully",
+	})
+
+	// Save test data for CLI verification
+	testData := map[string]interface{}{
+		"test_case":        "10.1.3_Handshake_Complete",
+		"context_id":       contextId,
+		"alice_did":        string(aliceDID),
+		"phases_completed": []string{"invitation", "request", "complete"},
+		"response": map[string]interface{}{
+			"success": resp.Success,
+		},
+		"pending_consumed": !hasPending,
+		"phase":            "complete",
+		"handshake_status": "finalized",
+	}
+	helpers.SaveTestData(t, "handshake/server_complete.json", testData)
 }
 
 func TestHandshake_cache(t *testing.T) {

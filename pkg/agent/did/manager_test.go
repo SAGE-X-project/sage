@@ -24,6 +24,7 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -138,6 +139,9 @@ func TestGenerateDID(t *testing.T) {
 }
 
 func TestParseDID(t *testing.T) {
+	// Specification Requirement: DID 파싱 (did:sage:chain:identifier 형식)
+	helpers.LogTestSection(t, "3.1.2", "DID 파싱 (ParseDID)")
+
 	tests := []struct {
 		name               string
 		did                AgentDID
@@ -203,21 +207,51 @@ func TestParseDID(t *testing.T) {
 		},
 	}
 
+	helpers.LogDetail(t, "Testing %d DID parsing scenarios", len(tests))
+
+	successCount := 0
+	errorCount := 0
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			helpers.LogDetail(t, "Testing: %s", tt.name)
+			helpers.LogDetail(t, "  Input DID: %s", tt.did)
+
 			chain, identifier, err := ParseDID(tt.did)
 
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Empty(t, chain)
 				assert.Empty(t, identifier)
+				helpers.LogSuccess(t, "Error case handled correctly")
+				helpers.LogDetail(t, "  Error: %v", err)
+				errorCount++
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedChain, chain)
 				assert.Equal(t, tt.expectedIdentifier, identifier)
+				helpers.LogSuccess(t, "DID parsed successfully")
+				helpers.LogDetail(t, "  Chain: %s", chain)
+				helpers.LogDetail(t, "  Identifier: %s", identifier)
+				successCount++
 			}
 		})
 	}
+
+	helpers.LogDetail(t, "")
+	helpers.LogDetail(t, "Test Summary:")
+	helpers.LogDetail(t, "  Valid cases: %d", successCount)
+	helpers.LogDetail(t, "  Error cases: %d", errorCount)
+	helpers.LogDetail(t, "  Total: %d", len(tests))
+
+	helpers.LogPassCriteria(t, []string{
+		"DID 파싱 성공 (SAGE ParseDID 사용)",
+		"Ethereum DID 파싱 (ethereum, eth)",
+		"Solana DID 파싱 (solana, sol)",
+		"복잡한 identifier 파싱",
+		"잘못된 DID 형식 거부",
+		"알 수 없는 체인 거부",
+	})
 }
 
 func TestManagerWithMockRegistry(t *testing.T) {

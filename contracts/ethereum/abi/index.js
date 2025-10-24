@@ -1,5 +1,5 @@
 // Auto-generated ABI exports
-// Generated: 2025-10-17T18:36:15.777Z
+// Generated: 2025-10-23T22:28:02.077Z
 
 module.exports = {
   SageRegistryV2: require('./SageRegistryV2.abi.json'),
