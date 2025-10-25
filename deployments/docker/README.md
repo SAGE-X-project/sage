@@ -7,6 +7,9 @@ Complete Docker containerization for SAGE with production-ready configurations.
 ### Using Docker Compose (Recommended)
 
 ```bash
+# Navigate to docker directory
+cd deployments/docker
+
 # Start all services (backend + blockchain + redis)
 docker-compose up -d
 
@@ -123,7 +126,7 @@ Metrics visualization dashboard.
 
 ## Environment Configuration
 
-Create a `.env` file in the project root:
+Create a `.env` file in the `deployments/docker/` directory:
 
 ```bash
 # SAGE Configuration
@@ -177,6 +180,9 @@ BUILD_DATE=
 ### Development
 
 ```bash
+# Navigate to docker directory
+cd deployments/docker
+
 # Start development environment
 docker-compose up
 
@@ -475,11 +481,11 @@ docker-build:
 
 ## Additional Resources
 
-- [Main Documentation](../README.md)
-- [Build Guide](../docs/BUILD.md)
-- [Deployment Guide](../docs/DEPLOYMENT.md)
-- [Dockerfile](../Dockerfile)
-- [docker-compose.yml](../docker-compose.yml)
+- [Main Documentation](../../README.md)
+- [Build Guide](../../docs/BUILD.md)
+- [Deployment Guide](../../docs/DEPLOYMENT.md)
+- [Dockerfile](./Dockerfile)
+- [docker-compose.yml](./docker-compose.yml)
 
 ## Support
 
