@@ -208,23 +208,49 @@
 
 ---
 
-### 8. 아키텍처 의사결정 기록 (ADR) 작성
+### 8. 아키텍처 의사결정 기록 (ADR) 작성 ✅ **완료**
 
-**대상:**
-- [ ] `docs/adr/001-transport-layer-abstraction.md`
-- [ ] `docs/adr/002-hpke-selection-rationale.md`
-- [ ] `docs/adr/003-did-method-selection.md`
+**완료 상태:**
+- ✅ `docs/adr/001-transport-layer-abstraction.md` (507줄)
+- ✅ `docs/adr/002-hpke-selection-rationale.md` (539줄)
+- ✅ `docs/adr/003-did-method-selection.md` (459줄)
+- ✅ 완료 일자: 2025-10-26
 
-**내용:**
-각 ADR에 포함할 내용:
-- Context (상황)
-- Decision (결정)
-- Consequences (결과)
-- Alternatives Considered (고려한 대안들)
+**완료 내용:**
+각 ADR에 포함된 내용:
+- [x] Context (상황) - 상세한 문제 진술 및 요구사항
+- [x] Decision (결정) - 선택한 아키텍처 및 구현 상세
+- [x] Consequences (결과) - 장단점 및 트레이드오프 분석
+- [x] Alternatives Considered (고려한 대안들) - 5-7개 대안 비교 분석
+- [x] Implementation Notes - 실제 사용 예제 및 가이드
+- [x] Related Documents - 관련 문서 링크
+- [x] References - 표준 및 참고 문헌
 
-**영향도:** ⭐⭐⭐ (중간 - 장기 유지보수)
-**소요시간:** ADR 당 2-3시간
-**ROI:** 중간
+**ADR 요약:**
+
+**ADR-001: Transport Layer Abstraction**
+- MessageTransport 인터페이스 기반 추상화
+- HTTP, WebSocket, gRPC/A2A 지원
+- 보안 로직과 전송 계층 분리
+- 대안 비교: 직접 gRPC, HTTP 전용, Noise 프레임워크, 메시지 브로커, 기능별 구현
+
+**ADR-002: HPKE Selection for E2E Encryption**
+- RFC 9180 HPKE 채택 (IETF 표준)
+- X25519 + ChaCha20-Poly1305 암호 스위트
+- 단일 RTT 키 합의, 전방향 보안성
+- 대안 비교: TLS 1.3, Signal Protocol, Noise Protocol, NaCl/libsodium, Age, 커스텀 암호화
+- Post-quantum 마이그레이션 경로 포함
+
+**ADR-003: DID Method Selection**
+- did:sage 커스텀 DID 메소드
+- 멀티체인 지원 (Ethereum, Solana)
+- W3C DID Core 1.0 준수
+- 블록체인 기반 에이전트 레지스트리
+- 대안 비교: X.509 PKI, OAuth/OIDC, did:key, did:web, did:ethr, Self-signed 인증서, IPFS/IPNS
+
+**영향도:** ⭐⭐⭐⭐ (높음 - 장기 유지보수 및 신규 개발자 온보딩)
+**실제 소요시간:** 7시간 (ADR 당 2-2.5시간)
+**ROI:** 높음
 
 ---
 
@@ -394,7 +420,7 @@
 | 🟡 중요 | A2A/gRPC Transport | 매우 높음 | 1-2주 | ⭐⭐⭐ |
 | 🟡 중요 | SDK 문서 개선 | 중간 | 4-8시간 | ⭐⭐⭐ |
 | 🟢 일반 | Internal 문서 | 낮음 | 1시간 | ⭐⭐ |
-| 🟢 일반 | ADR 작성 | 중간 | 6-9시간 | ⭐⭐ |
+| ✅ 완료 | ADR 작성 | 높음 | 7시간 | ⭐⭐⭐⭐ |
 | ✅ 완료 | 벤치마크 문서 | 중간 | 1시간 | ⭐⭐⭐ |
 | ✅ 완료 | 부하 테스트 확장 | 높음 | 2.5시간 | ⭐⭐⭐⭐ |
 | ✅ 완료 | 버전 동기화 스크립트 | 높음 | 1.5시간 | ⭐⭐⭐⭐ |
