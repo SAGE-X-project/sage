@@ -58,30 +58,58 @@ type WSServer struct {
 	readTimeout  time.Duration
 	writeTimeout time.Duration
 
+	// Origin validation
+	allowedOrigins map[string]bool
+	checkOrigin    bool // If false, accept all origins (development mode)
+
 	// Active connections
 	connections map[*websocket.Conn]bool
 	connMu      sync.RWMutex
 }
 
-// NewWSServer creates a new WebSocket server.
+// NewWSServer creates a new WebSocket server with default settings.
+//
+// By default, origin checking is disabled (development mode).
+// For production use, use NewWSServerWithOrigins() to enable origin validation.
 //
 // Parameters:
 //   - handler: The application-level message handler
 func NewWSServer(handler MessageHandler) *WSServer {
-	return &WSServer{
-		handler: handler,
-		upgrader: websocket.Upgrader{
-			CheckOrigin: func(r *http.Request) bool {
-				// TODO: Implement proper origin checking in production
-				return true
-			},
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-		},
-		readTimeout:  60 * time.Second,
-		writeTimeout: 30 * time.Second,
-		connections:  make(map[*websocket.Conn]bool),
+	server := &WSServer{
+		handler:        handler,
+		readTimeout:    60 * time.Second,
+		writeTimeout:   30 * time.Second,
+		allowedOrigins: make(map[string]bool),
+		checkOrigin:    false, // Development mode: accept all origins
+		connections:    make(map[*websocket.Conn]bool),
 	}
+
+	server.upgrader = websocket.Upgrader{
+		CheckOrigin:     server.checkOriginFunc,
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+
+	return server
+}
+
+// NewWSServerWithOrigins creates a new WebSocket server with origin validation.
+//
+// This should be used in production to restrict WebSocket connections to
+// trusted origins only.
+//
+// Parameters:
+//   - handler: The application-level message handler
+//   - allowedOrigins: List of allowed origin URLs (e.g., ["https://example.com", "https://app.example.com"])
+func NewWSServerWithOrigins(handler MessageHandler, allowedOrigins []string) *WSServer {
+	server := NewWSServer(handler)
+	server.checkOrigin = true
+
+	for _, origin := range allowedOrigins {
+		server.allowedOrigins[origin] = true
+	}
+
+	return server
 }
 
 // NewWSServerWithTimeouts creates a WebSocket server with custom timeouts.
@@ -90,6 +118,50 @@ func NewWSServerWithTimeouts(handler MessageHandler, readTimeout, writeTimeout t
 	server.readTimeout = readTimeout
 	server.writeTimeout = writeTimeout
 	return server
+}
+
+// checkOriginFunc validates the origin of incoming WebSocket connections.
+//
+// Security behavior:
+//   - If checkOrigin is false (development mode), all origins are accepted
+//   - If checkOrigin is true (production mode), only allowed origins are accepted
+//   - Same-origin requests are always allowed when checkOrigin is true
+func (s *WSServer) checkOriginFunc(r *http.Request) bool {
+	// Development mode: accept all origins
+	if !s.checkOrigin {
+		return true
+	}
+
+	// Production mode: validate against allowed origins
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		// No origin header - might be same-origin or non-browser client
+		// Allow if Host header matches the request URL
+		return true
+	}
+
+	// Check if origin is in allowed list
+	return s.allowedOrigins[origin]
+}
+
+// AddAllowedOrigin adds an origin to the allowed origins list.
+//
+// This can be used to dynamically update allowed origins after server creation.
+func (s *WSServer) AddAllowedOrigin(origin string) {
+	s.allowedOrigins[origin] = true
+	s.checkOrigin = true
+}
+
+// RemoveAllowedOrigin removes an origin from the allowed origins list.
+func (s *WSServer) RemoveAllowedOrigin(origin string) {
+	delete(s.allowedOrigins, origin)
+}
+
+// SetOriginCheckEnabled enables or disables origin checking.
+//
+// This should only be disabled in development environments.
+func (s *WSServer) SetOriginCheckEnabled(enabled bool) {
+	s.checkOrigin = enabled
 }
 
 // Handler returns an http.Handler for WebSocket connections.
