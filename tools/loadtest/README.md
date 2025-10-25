@@ -175,10 +175,12 @@ SOAK_DURATION=24h ./scripts/run-loadtest.sh soak
 
 ## Test Results
 
-Results are saved to `loadtest/reports/`:
+Results are saved to `tools/loadtest/reports/`:
+
+> **Note:** The `reports/` directory is auto-created during test execution and excluded from Git (`.gitignore`). Results are stored locally for analysis but not committed to the repository.
 
 ```
-loadtest/reports/
+tools/loadtest/reports/
 ├── baseline-results.json       # Full k6 metrics
 ├── baseline-summary.json       # Summary only
 ├── stress-results.json
@@ -193,13 +195,13 @@ loadtest/reports/
 
 ```bash
 # View summary
-cat loadtest/reports/baseline-summary.json | jq .
+cat tools/loadtest/reports/baseline-summary.json | jq .
 
 # View detailed metrics
-cat loadtest/reports/baseline-results.json | jq '.metrics'
+cat tools/loadtest/reports/baseline-results.json | jq '.metrics'
 
 # Extract specific metric
-cat loadtest/reports/baseline-summary.json | jq '.metrics.http_req_duration'
+cat tools/loadtest/reports/baseline-summary.json | jq '.metrics.http_req_duration'
 ```
 
 ---
@@ -221,7 +223,7 @@ export SOAK_DURATION=24h
 
 ### Custom Thresholds
 
-Edit `loadtest/config.js`:
+Edit `tools/loadtest/config.js`:
 
 ```javascript
 thresholds: {
@@ -289,21 +291,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: grafana/k6-action@v0.3.1
         with:
-          filename: loadtest/scenarios/baseline.js
+          filename: tools/loadtest/scenarios/baseline.js
 ```
 
 ---
 
 ## Analysis Tools
-
-### Performance Comparison
-
-```bash
-# Compare two test runs
-node loadtest/analysis/compare.js \
-  loadtest/reports/baseline-results-v1.json \
-  loadtest/reports/baseline-results-v2.json
-```
 
 ### Grafana Dashboard
 
@@ -319,7 +312,7 @@ k6 can export to Prometheus:
 
 ```bash
 k6 run --out experimental-prometheus-rw \
-  loadtest/scenarios/baseline.js
+  tools/loadtest/scenarios/baseline.js
 ```
 
 ---
@@ -391,7 +384,7 @@ ps aux | grep sage-server
 **Problem:** `WARN[0001] Request Failed error="dial: i/o timeout"`
 
 **Solutions:**
-1. Increase timeout in `loadtest/config.js`
+1. Increase timeout in `tools/loadtest/config.js`
 2. Reduce concurrent VUs
 3. Check server is running: `curl http://localhost:8080/debug/health`
 4. Check firewall rules
