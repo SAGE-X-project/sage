@@ -32,9 +32,9 @@ SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based securit
   - `getNonce()` contract function for replay protection
   - `ResolveAllPublicKeys()` and `ResolvePublicKeyByType()` for multi-key resolution
 - **DID Format Enhancement**: Owner address validation for off-chain verification
-- **Production Ready**: 201 passing contract tests, comprehensive Go test coverage, V4 Update fully tested
+- **Production Ready**: 201 passing contract tests, comprehensive Go test coverage, SageRegistryV4 fully tested
 
-See [CHANGELOG.md](CHANGELOG.md) for complete release notes and [V4_UPDATE_DEPLOYMENT_GUIDE.md](docs/V4_UPDATE_DEPLOYMENT_GUIDE.md) for deployment instructions.
+See [CHANGELOG.md](CHANGELOG.md) for complete release notes and [SageRegistryV4 Deployment Guide](docs/V4_UPDATE_DEPLOYMENT_GUIDE.md) for deployment instructions.
 
 ### 🌐 Live Deployments
 
