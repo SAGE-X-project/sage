@@ -607,6 +607,7 @@ clean:
 	@echo "Cleaning test artifacts..."
 	@rm -rf integration/tests/integration/
 	@rm -rf integration/tests/session/
+	@rm -rf testdata/
 	@echo "Cleaning loadtest results..."
 	@rm -rf tools/loadtest/analysis/*
 	@rm -rf tools/loadtest/reports/*
