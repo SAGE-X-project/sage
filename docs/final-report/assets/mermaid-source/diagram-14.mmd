@@ -1,0 +1,32 @@
+graph TB
+    subgraph "Application Layer"
+        APP[AI Agents<br/>ChatGPT, Gemini, Claude, etc.]
+    end
+
+    subgraph "SAGE Trust Layer"
+        SIGN[RFC-9421<br/>Message Signing]
+        ENCRYPT[RFC-9180<br/>HPKE Encryption]
+        DID[DID Management<br/>Blockchain]
+        CRYPTO[Crypto Engine<br/>Secp256k1, Ed25519]
+        SESSION[Session Manager]
+        STORAGE[Secure Storage<br/>Vault]
+
+        SIGN --- ENCRYPT
+        ENCRYPT --- DID
+        DID --- CRYPTO
+        CRYPTO --- SESSION
+        SESSION --- STORAGE
+    end
+
+    subgraph "Integration Layer"
+        BC[Blockchain<br/>Ethereum, ...]
+        SDK[Multi-Lang SDKs<br/>Go, Python, TS, Java]
+        CLI[CLI Tools<br/>sage-crypto, sage-did]
+    end
+
+    APP --> SIGN
+    SIGN --> BC
+    ENCRYPT --> SDK
+    DID --> CLI
+
+    style "SAGE Trust Layer" fill:#e3f2fd

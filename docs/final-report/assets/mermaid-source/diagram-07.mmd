@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant A as Agent A (SAGE)
+    participant G as Gateway/Proxy
+    participant B as Agent B (SAGE)
+
+    Note over A,B: ✅ SAGE는 종단간 보안 (End-to-End)
+
+    A->>A: 메시지 서명 + 암호화
+    A->>G: TLS + SAGE (이중 보호)
+    Note over G: 복호화 불가 (암호화됨)
+    Note over G: 변조 시도 시 서명 불일치
+    G->>B: 서명/암호화 그대로 전달
+    B->>B: 서명 검증 + 복호화
+
+    Note over A,B: 종단간 무결성 + 기밀성 보장

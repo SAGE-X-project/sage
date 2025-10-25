@@ -1,0 +1,13 @@
+sequenceDiagram
+    participant A as Agent A
+    participant G as Gateway/Proxy
+    participant B as Agent B
+
+    Note over A,B: ❌ TLS는 구간별 암호화 (Hop-by-Hop)
+
+    A->>G: TLS 연결 1 (암호화)
+    Note over G: 복호화 → 평문 노출
+    Note over G: ⚠️  메시지 변조 가능 지점!
+    G->>B: TLS 연결 2 (재암호화)
+
+    Note over A,B: 종단간 무결성 보장 안 됨

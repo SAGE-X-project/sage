@@ -1,0 +1,17 @@
+graph TB
+    subgraph "Without SAGE"
+        A1[User] -->|Plain HTTP| B1[Agent A]
+        B1 -->|Unprotected| C1[Gateway]
+        C1 -->|Vulnerable| D1[Agent B]
+        C1 -.->|Attack| E1[❌ Hacker]
+    end
+
+    subgraph "With SAGE"
+        A2[User] -->|SAGE Protected| B2[Agent A]
+        B2 -->|Signed & Encrypted| C2[Gateway]
+        C2 -->|Verified| D2[Agent B]
+        C2 -.->|Blocked| E2[✅ Hacker Blocked]
+    end
+
+    style E1 fill:#ff6b6b
+    style E2 fill:#51cf66

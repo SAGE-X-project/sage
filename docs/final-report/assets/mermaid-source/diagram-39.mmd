@@ -1,0 +1,22 @@
+graph TB
+    START[명세서 87개 항목] --> SEC1[Section 1: RFC-9421<br/>11/11 ✅]
+    START --> SEC2[Section 2: 암호화 키<br/>13/13 ✅]
+    START --> SEC3[Section 3: DID<br/>12/12 ✅]
+    START --> SEC4[Section 4: 블록체인<br/>10/10 ✅]
+    START --> SEC5[Section 5: 메시지<br/>10/10 ✅]
+    START --> SEC6[Section 6: CLI<br/>13/13 ✅]
+    START --> SEC7[Section 7: 세션<br/>6/6 ✅]
+    START --> SEC8[Section 8: HPKE<br/>5/5 ✅]
+    START --> SEC9[Section 9: 헬스체크<br/>3/3 ✅]
+
+    SEC1 --> COMPLETE[✅ 100% 검증 완료<br/>83/83 항목]
+    SEC2 --> COMPLETE
+    SEC3 --> COMPLETE
+    SEC4 --> COMPLETE
+    SEC5 --> COMPLETE
+    SEC6 --> COMPLETE
+    SEC7 --> COMPLETE
+    SEC8 --> COMPLETE
+    SEC9 --> COMPLETE
+
+    style COMPLETE fill:#51cf66,color:#fff

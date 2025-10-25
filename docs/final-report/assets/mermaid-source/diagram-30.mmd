@@ -1,0 +1,33 @@
+sequenceDiagram
+    autonumber
+    participant U as 사용자
+    participant A as SAGE Agent
+    participant G as Gateway
+    participant H as Health Agent (SAGE)
+
+    Note over U,H: 🔒 RFC-9180 HPKE 암호화
+
+    U->>A: "건강 상담 연결"
+    A->>H: Handshake Request
+    H->>H: Session Key 생성
+    H->>A: Handshake Response
+    A->>A: Session Key 유도
+
+    Note over A,H: 암호화 세션 수립
+
+    U->>A: "당뇨병 진단...<br/>혈당 180mg/dL..."
+    A->>A: ChaCha20Poly1305 암호화
+    A->>G: 암호화된 메시지
+
+    Note over G: Gateway는 내용을<br/>볼 수 없음 (암호화됨)
+
+    G->>H: 암호화된 메시지 전달
+    H->>H: ChaCha20Poly1305 복호화
+    H->>H: 상담 응답 생성
+    H->>A: 암호화된 응답
+    A->>A: 복호화
+    A->>U: "당뇨병 관리 안내..."
+
+    rect rgb(81, 207, 102, 0.3)
+        Note over U: 개인정보 보호 성공
+    end

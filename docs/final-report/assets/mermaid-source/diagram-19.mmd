@@ -1,0 +1,63 @@
+graph TB
+    subgraph "SAGE Core Engine"
+        direction TB
+
+        subgraph "Security Layer"
+            RFC9421[RFC-9421 Signer/Verifier]
+            RFC9180[RFC-9180 HPKE]
+            NONCE[Nonce Manager]
+        end
+
+        subgraph "Identity Layer"
+            DID[DID Manager]
+            DIDRES[DID Resolver]
+            META[Metadata Handler]
+        end
+
+        subgraph "Crypto Layer"
+            SECP[Secp256k1 Engine]
+            ED[Ed25519 Engine]
+            X25519[X25519 ECDH]
+            CHACHA[ChaCha20Poly1305]
+        end
+
+        subgraph "Storage Layer"
+            VAULT[Encrypted Vault]
+            CACHE[Cache Manager]
+            SESSION[Session Store]
+        end
+    end
+
+    subgraph "External Integration"
+        BC[Blockchain<br/>Ethereum]
+        RPC[RPC Provider<br/>Alchemy/Infura]
+    end
+
+    subgraph "Developer Interface"
+        SDK_GO[Go SDK]
+        SDK_PY[Python SDK]
+        SDK_TS[TypeScript SDK]
+        SDK_JAVA[Java SDK]
+        CLI[CLI Tools]
+    end
+
+    RFC9421 --> SECP
+    RFC9421 --> ED
+    RFC9180 --> X25519
+    RFC9180 --> CHACHA
+
+    DID --> BC
+    DIDRES --> RPC
+
+    RFC9421 --> VAULT
+    SESSION --> CACHE
+
+    SDK_GO --> RFC9421
+    SDK_PY --> RFC9180
+    SDK_TS --> DID
+    SDK_JAVA --> RFC9421
+    CLI --> DID
+
+    style "SAGE Core Engine" fill:#e3f2fd
+    style "Security Layer" fill:#fff3e0
+    style "Identity Layer" fill:#f3e5f5

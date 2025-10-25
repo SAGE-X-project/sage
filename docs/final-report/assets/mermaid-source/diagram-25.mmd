@@ -1,0 +1,25 @@
+graph TB
+    subgraph "SAGE-ADK (Agent Development Kit)"
+        UI[Agent Builder UI<br/>드래그 앤 드롭]
+        TEMPLATE[Agent Templates<br/>결제/예약/상담/...]
+        SAGE[Auto SAGE Integration<br/>보안 자동 적용]
+        A2A[A2A Support<br/>Multi-Agent]
+        TEST[Local Test Environment]
+    end
+
+    subgraph "개발자 경험"
+        DEV[개발자] --> UI
+        UI --> TEMPLATE
+        TEMPLATE --> SAGE
+        SAGE --> A2A
+        A2A --> TEST
+        TEST --> DEPLOY[One-Click Deploy]
+    end
+
+    subgraph "결과"
+        DEPLOY --> SECURE[보안이 적용된<br/>프로덕션 Agent]
+        SECURE --> MARKET[Agent Marketplace<br/>등록]
+    end
+
+    style SAGE fill:#51cf66,color:#fff
+    style SECURE fill:#51cf66,color:#fff

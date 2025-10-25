@@ -1,0 +1,26 @@
+sequenceDiagram
+    autonumber
+    participant A as Agent A
+    participant S as SAGE Signer
+    participant G as Gateway
+    participant V as SAGE Verifier
+    participant B as Agent B
+
+    Note over A,B: RFC-9421 HTTP Message Signatures
+
+    A->>S: 메시지 전송 요청
+    S->>S: 1. Signature Base 생성<br/>2. 개인키로 서명<br/>3. Signature-Input 헤더 생성<br/>4. Signature 헤더 생성
+    S->>G: HTTP Request<br/>+ Signature-Input<br/>+ Signature
+
+    Note over G: Gateway는 내용을<br/>변조할 수 있지만<br/>서명은 재생성 불가
+
+    G->>V: 메시지 전달
+    V->>V: 1. Signature Base 재생성<br/>2. 공개키로 서명 검증<br/>3. Timestamp 확인<br/>4. Nonce 검증
+
+    alt 검증 성공
+        V->>B: ✅ 메시지 전달
+    else 검증 실패
+        V->>A: ❌ 거부 (변조 감지)
+    end
+
+    style V fill:#51cf66

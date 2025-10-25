@@ -1,0 +1,16 @@
+flowchart LR
+    A[선택의 기로] --> B{언제 보안을 적용할까?}
+
+    B -->|사후 대응| C[보안 사고 발생]
+    C --> D[막대한 피해]
+    D --> E[뒤늦은 보안 적용]
+    E --> F[높은 사회적 비용]
+
+    B -->|선제 대응<br/>SAGE| G[안전한 생태계]
+    G --> H[신뢰 구축]
+    H --> I[낮은 사회적 비용]
+
+    style C fill:#ff6b6b,color:#fff
+    style F fill:#ff6b6b,color:#fff
+    style G fill:#51cf66,color:#fff
+    style I fill:#51cf66,color:#fff

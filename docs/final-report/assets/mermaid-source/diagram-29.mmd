@@ -1,0 +1,33 @@
+sequenceDiagram
+    autonumber
+    participant U as 사용자
+    participant F as Frontend
+    participant A as SAGE Agent
+    participant G as Gateway (MitM)
+    participant P as Payment Agent (SAGE)
+
+    Note over U,P: ✅ SAGE 적용 시나리오
+
+    U->>F: "iPhone 15 Pro 구매"
+    F->>A: 구매 요청
+    A->>U: 결제 정보 요청
+    U->>A: to: Apple Store<br/>amount: 1,500,000원
+
+    A->>A: RFC-9421 서명 생성
+
+    Note over G: ⚠️  메시지 변조 시도!
+    A->>G: 원본 메시지 + 서명
+    G->>G: to: Apple Store → Hacker<br/>(서명은 변경 불가)
+    G->>P: 변조된 메시지 + 원본 서명
+
+    P->>P: RFC-9421 서명 검증
+    P->>P: ❌ 서명 불일치!
+    P-->>G: ⛔ 거래 거부
+    G-->>A: 거래 거부 응답
+    A-->>U: "⚠️  보안 위협 감지"
+
+    Note over U,P: ✅ 공격 차단 성공!
+
+    rect rgb(81, 207, 102, 0.3)
+        Note over U: 자산 보호 성공
+    end

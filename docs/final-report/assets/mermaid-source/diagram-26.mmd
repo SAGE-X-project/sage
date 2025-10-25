@@ -1,0 +1,30 @@
+graph TB
+    subgraph "Agent Marketplace"
+        BC[Blockchain<br/>Agent Registry] --> DASH[Dashboard UI<br/>24/7 실시간]
+
+        DASH --> LIST[Agent 목록]
+        DASH --> SEARCH[검색/필터]
+        DASH --> VERIFY[검증 배지]
+        DASH --> REVIEW[평점/리뷰]
+
+        LIST --> DETAIL[Agent 상세 정보]
+        DETAIL --> DID_INFO[DID 정보]
+        DETAIL --> KEY_INFO[공개키]
+        DETAIL --> META_INFO[메타데이터]
+        DETAIL --> RATING[평점/사용자 리뷰]
+
+        VERIFY --> BADGE1[✅ SAGE 인증]
+        VERIFY --> BADGE2[🔒 보안 검증]
+        VERIFY --> BADGE3[⭐ 우수 Agent]
+    end
+
+    subgraph "사용자"
+        USER[사용자] --> SEARCH
+        USER --> LIST
+        DETAIL --> CHOOSE{선택}
+        CHOOSE -->|신뢰| USE[Agent 사용]
+        CHOOSE -->|불신| REPORT[신고/경고]
+    end
+
+    style BADGE1 fill:#51cf66
+    style USE fill:#51cf66

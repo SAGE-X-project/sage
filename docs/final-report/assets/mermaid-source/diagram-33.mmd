@@ -1,0 +1,22 @@
+graph TB
+    subgraph "보안 레벨"
+        L0[Level 0: HTTP<br/>❌ 보안 없음]
+        L1[Level 1: HTTPS<br/>⚠️  구간 암호화]
+        L2[Level 2: HTTPS + OAuth<br/>⚠️  인증 추가]
+        L3[Level 3: SAGE<br/>✅ 종단간 보안]
+    end
+
+    L0 -.->|진화| L1
+    L1 -.->|진화| L2
+    L2 -.->|진화| L3
+
+    L0 --> V0[중간자 공격 취약<br/>변조 가능<br/>도청 가능]
+    L1 --> V1[Gateway 변조 가능<br/>종단간 무결성 없음]
+    L2 --> V2[메시지 무결성 없음<br/>Gateway 신뢰 필요]
+    L3 --> V3[✅ 완전한 보호<br/>✅ 종단간 보안<br/>✅ 투명한 검증]
+
+    style L0 fill:#ff6b6b,color:#fff
+    style L1 fill:#ffd43b
+    style L2 fill:#74c0fc
+    style L3 fill:#51cf66,color:#fff
+    style V3 fill:#51cf66,color:#fff

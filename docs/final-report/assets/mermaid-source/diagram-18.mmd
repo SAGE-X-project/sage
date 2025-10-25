@@ -1,0 +1,21 @@
+graph TB
+    subgraph "Agent 등록 프로세스"
+        A1[1. Agent 생성] --> A2[2. 키쌍 생성<br/>Secp256k1/Ed25519]
+        A2 --> A3[3. DID 생성<br/>did:sage:ethereum:0x...]
+        A3 --> A4[4. DID Document 작성]
+        A4 --> A5[5. 블록체인 등록<br/>Smart Contract]
+    end
+
+    subgraph "Agent 검증 프로세스"
+        B1[1. Agent DID 수신] --> B2[2. 블록체인 조회]
+        B2 --> B3[3. DID Document 확인]
+        B3 --> B4[4. 공개키 검증]
+        B4 --> B5{등록 여부?}
+        B5 -->|Yes| B6[✅ 신뢰 가능]
+        B5 -->|No| B7[❌ 미등록 Agent]
+    end
+
+    A5 -.->|등록 완료| B2
+
+    style B6 fill:#51cf66
+    style B7 fill:#ff6b6b

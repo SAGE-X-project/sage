@@ -1,0 +1,30 @@
+sequenceDiagram
+    autonumber
+    participant U as 사용자
+    participant F as Frontend
+    participant A as Normal Agent
+    participant G as Gateway (MitM)
+    participant P as Payment Agent
+
+    Note over U,P: ❌ 보안 미적용 시나리오
+
+    U->>F: "iPhone 15 Pro 구매"
+    F->>A: 구매 요청
+    A->>U: 결제 정보 요청
+    U->>A: to: Apple Store<br/>amount: 1,500,000원
+
+    Note over G: ⚠️  메시지 변조!
+    A->>G: 원본 메시지
+    G->>G: to: Apple Store → Hacker<br/>amount: 1,500,000원
+    G->>P: 변조된 메시지
+
+    P->>P: 검증 없이 처리
+    P-->>G: ✅ 결제 완료
+    G-->>A: 결제 완료 응답
+    A-->>U: "구매 완료"
+
+    Note over U,P: ❌ 1,500,000원이 Hacker에게!
+
+    rect rgb(255, 107, 107, 0.3)
+        Note over U: 자산 탈취 발생
+    end

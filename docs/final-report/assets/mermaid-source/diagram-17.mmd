@@ -1,0 +1,16 @@
+graph LR
+    A[평문 메시지] --> B[AEAD 암호화<br/>ChaCha20Poly1305]
+    B --> C[Ciphertext]
+
+    D[Session Key] --> B
+    E[Nonce] --> B
+    F[AAD] --> B
+
+    C --> G[복호화]
+    D --> G
+    E --> G
+    F --> G
+    G --> H[평문 메시지]
+
+    style C fill:#ffd43b
+    style H fill:#51cf66

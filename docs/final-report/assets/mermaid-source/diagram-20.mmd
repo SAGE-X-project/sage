@@ -1,0 +1,45 @@
+graph TB
+    subgraph "SAGE Core"
+        CORE[Core Engine]
+        IFACE[Plugin Interfaces]
+    end
+
+    subgraph "Crypto Plugins"
+        CP1[Secp256k1 Plugin]
+        CP2[Ed25519 Plugin]
+        CP3[RSA Plugin]
+        CP4[Custom Crypto Plugin]
+    end
+
+    subgraph "Blockchain Plugins"
+        BP1[Ethereum Adapter]
+        BP2[Polygon Adapter]
+        BP3[Solana Adapter]
+        BP4[Custom Chain Adapter]
+    end
+
+    subgraph "Storage Plugins"
+        SP1[File Storage]
+        SP2[Vault Storage]
+        SP3[Cloud Storage]
+        SP4[Custom Storage]
+    end
+
+    CORE --> IFACE
+    IFACE --> CP1
+    IFACE --> CP2
+    IFACE --> CP3
+    IFACE --> CP4
+
+    IFACE --> BP1
+    IFACE --> BP2
+    IFACE --> BP3
+    IFACE --> BP4
+
+    IFACE --> SP1
+    IFACE --> SP2
+    IFACE --> SP3
+    IFACE --> SP4
+
+    style CORE fill:#4dabf7,color:#fff
+    style IFACE fill:#74c0fc

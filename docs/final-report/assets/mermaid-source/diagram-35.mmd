@@ -1,0 +1,33 @@
+graph TB
+    subgraph "프로그래밍 언어"
+        GO[Go 1.22+<br/>BSD-3-Clause]
+        SOL[Solidity<br/>GPL-3.0]
+    end
+
+    subgraph "블록체인"
+        ETH[Ethereum<br/>LGPL-3.0]
+        GETH[go-ethereum<br/>LGPL-3.0]
+    end
+
+    subgraph "암호화"
+        ECDSA[crypto/ecdsa<br/>BSD-3-Clause]
+        ED25519[crypto/ed25519<br/>BSD-3-Clause]
+        XCRYPTO[golang.org/x/crypto<br/>BSD-3-Clause]
+        CIRCL[cloudflare/circl<br/>BSD-3-Clause]
+    end
+
+    subgraph "웹 프레임워크"
+        HTTP[net/http<br/>BSD-3-Clause]
+        MUX[gorilla/mux<br/>BSD-3-Clause]
+    end
+
+    subgraph "개발 도구"
+        COBRA[spf13/cobra<br/>Apache-2.0]
+        VIPER[spf13/viper<br/>MIT]
+        TESTIFY[stretchr/testify<br/>MIT]
+    end
+
+    GO --> ECDSA
+    GO --> ED25519
+    ETH --> GETH
+    XCRYPTO --> CIRCL

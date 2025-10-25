@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAGE - Secure Agent Guarantee Engine - Final Report</title>
+    <style>
+        /* 인쇄용 스타일 */
+        @media print {
+            @page {
+                size: A4;
+                margin: 2cm;
+            }
+
+            body {
+                margin: 0;
+                padding: 0;
+            }
+
+            h1, h2, h3, h4 {
+                page-break-after: avoid;
+            }
+
+            img, table, pre {
+                page-break-inside: avoid;
+            }
+
+            a {
+                color: #4DABF7;
+                text-decoration: none;
+            }
+
+            /* 페이지 번호 */
+            @page {
+                @bottom-center {
+                    content: counter(page) " / " counter(pages);
+                    font-size: 10pt;
+                    color: #868E96;
+                }
+            }
+        }
+
+        /* 화면 및 인쇄 공통 스타일 */
+        body {
+            font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+            line-height: 1.8;
+            color: #343A40;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #FFFFFF;
+        }
+
+        h1 {
+            color: #4DABF7;
+            font-size: 32pt;
+            border-bottom: 4px solid #4DABF7;
+            padding-bottom: 12px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            color: #4DABF7;
+            font-size: 24pt;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #E3F2FD;
+            padding-bottom: 8px;
+        }
+
+        h3 {
+            color: #343A40;
+            font-size: 20pt;
+            margin-top: 25px;
+            margin-bottom: 12px;
+        }
+
+        h4 {
+            color: #343A40;
+            font-size: 16pt;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin: 12px 0;
+            text-align: justify;
+            font-size: 11pt;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 25px auto;
+            border: 1px solid #DEE2E6;
+            border-radius: 8px;
+            padding: 10px;
+            background: #F8F9FA;
+        }
+
+        code {
+            background-color: #F1F3F5;
+            padding: 3px 7px;
+            border-radius: 4px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.95em;
+            color: #E64980;
+        }
+
+        pre {
+            background-color: #F1F3F5;
+            padding: 18px;
+            border-radius: 6px;
+            overflow-x: auto;
+            border-left: 4px solid #4DABF7;
+            margin: 20px 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #343A40;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 25px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        table th {
+            background-color: #4DABF7;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            font-size: 11pt;
+        }
+
+        table td {
+            border: 1px solid #DEE2E6;
+            padding: 10px;
+            font-size: 10pt;
+        }
+
+        table tr:nth-child(even) {
+            background-color: #F8F9FA;
+        }
+
+        blockquote {
+            border-left: 5px solid #4DABF7;
+            margin: 25px 0;
+            padding: 15px 20px;
+            background-color: #E3F2FD;
+            color: #495057;
+            font-style: italic;
+            border-radius: 4px;
+        }
+
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 35px;
+        }
+
+        li {
+            margin: 8px 0;
+            font-size: 11pt;
+        }
+
+        hr {
+            border: none;
+            border-top: 3px solid #DEE2E6;
+            margin: 40px 0;
+        }
+
+        /* 링크 */
+        a {
+            color: #4DABF7;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        /* 강조 */
+        strong {
+            color: #343A40;
+            font-weight: bold;
+        }
+
+        em {
+            font-style: italic;
+            color: #495057;
+        }
+
+        /* 커버 페이지 */
+        .cover-page {
+            text-align: center;
+            padding: 100px 20px;
+            page-break-after: always;
+        }
+
+        .cover-page h1 {
+            font-size: 48pt;
+            color: #4DABF7;
+            margin-bottom: 20px;
+            border: none;
+        }
+
+        .cover-page .subtitle {
+            font-size: 24pt;
+            color: #343A40;
+            margin-bottom: 40px;
+        }
+
+        .cover-page .info {
+            font-size: 16pt;
+            color: #868E96;
+            margin-top: 60px;
+        }
+
+        /* 인쇄 버튼 (화면에만 표시) */
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 30px;
+            background-color: #4DABF7;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16pt;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .print-button:hover {
+            background-color: #339AF0;
+        }
+
+        @media print {
+            .print-button {
+                display: none;
+            }
+        }
+
+        /* 목차 스타일 */
+        .toc {
+            background-color: #F8F9FA;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+            border: 1px solid #DEE2E6;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            color: #4DABF7;
+            border: none;
+            padding-bottom: 0;
+        }
+
+        .toc ul {
+            list-style-type: none;
+            padding-left: 20px;
+        }
+
+        .toc li {
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button" onclick="window.print()">📄 PDF로 저장</button>
+
+    <div class="cover-page">
+        <h1>SAGE</h1>
+        <div class="subtitle">Secure Agent Guarantee Engine</div>
+        <div class="subtitle" style="font-size: 18pt; color: #4DABF7;">Trust Layer for AI Agent Era</div>
+        <div class="info">
+            <p>2025 오픈소스 개발자대회</p>
+            <p>최종 발표 자료</p>
+            <p style="margin-top: 40px;">SAGE-X Project Team</p>
+        </div>
+    </div>
+
+<h1 id="sage-secure-agent-guarantee-engine">SAGE (Secure Agent Guarantee Engine)</h1>
+<h2 id="2025">2025 오픈소스 개발자대회 최종 발표자료 (시각화 버전)</h2>
+<hr />
+<h2 id="_1">📊 목차</h2>
+<ol>
+<li><a href="#프로젝트-개요">프로젝트 개요</a></li>
+<li><a href="#팀-소개">팀 소개</a></li>
+<li><a href="#개발-배경-다가오는-위기">개발 배경: 다가오는 위기</a></li>
+<li><a href="#개발-목적">개발 목적</a></li>
+<li><a href="#프로젝트-구성-및-기능">프로젝트 구성 및 기능</a></li>
+<li><a href="#추후-활용-방안-및-계획">추후 활용 방안</a></li>
+<li><a href="#시연-계획">시연 계획</a></li>
+<li><a href="#appendix-사용된-오픈소스-목록">Appendix</a></li>
+</ol>
+<hr />
+<h2 id="_2">🎯 프로젝트 개요</h2>
+<h3 id="ai-agent">"AI Agent 시대, 보안은 선택이 아닌 필수입니다"</h3>
+<p><img alt="Diagram 1" src="assets/diagrams/diagram-01.png" /></p>
+<p><strong>핵심 메시지:</strong>
+- <strong>문제</strong>: AI Agent 간 통신의 보안 취약점 (중간자 공격, 메시지 변조, 신원 위조)
+- <strong>솔루션</strong>: RFC 표준 기반 메시지 서명/암호화 + 블록체인 기반 투명한 Agent 검증
+- <strong>임팩트</strong>: 개인정보 유출 방지, 금융 자산 보호, 신뢰할 수 있는 Agent 생태계 구축</p>
+<h3 id="_3">🔑 핵심 가치 제안</h3>
+<p><img alt="Diagram 2" src="assets/diagrams/diagram-02.png" /></p>
+<hr />
+<h2 id="_4">👥 팀 소개</h2>
+<p><strong>SAGE-X Project Team</strong></p>
+<p>(추후 팀원 정보 추가)</p>
+<hr />
+<h2 id="_5">🚨 개발 배경: 다가오는 위기</h2>
+<h3 id="1-ai-agent">1. AI Agent 시대의 도래</h3>
+<p><img alt="Diagram 3" src="assets/diagrams/diagram-03.png" /></p>
+<h4 id="11-agent">1.1 누구나 Agent를 만드는 시대</h4>
+<p><img alt="Diagram 4" src="assets/diagrams/diagram-04.png" /></p>
+<h4 id="12-agent">1.2 Agent 사용 확산 통계</h4>
+<p><img alt="Diagram 5" src="assets/diagrams/diagram-05.png" /></p>
+<h3 id="2">2. 현재 보안의 심각한 한계</h3>
+<h4 id="21-tlshttps">2.1 TLS/HTTPS의 근본적 한계</h4>
+<p><img alt="Diagram 6" src="assets/diagrams/diagram-06.png" /></p>
+<p><strong>vs SAGE의 종단간 보안:</strong></p>
+<p><img alt="Diagram 7" src="assets/diagrams/diagram-07.png" /></p>
+<h4 id="22">2.2 학술 논문이 경고하는 위험</h4>
+<p><img alt="Diagram 8" src="assets/diagrams/diagram-08.png" /></p>
+<h3 id="3">3. 예상되는 피해 규모</h3>
+<h4 id="31">3.1 보안 사고 비용 비교</h4>
+<p><img alt="Diagram 9" src="assets/diagrams/diagram-09.png" /></p>
+<h4 id="32-skt">3.2 실제 사례: SKT 해킹 사태</h4>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>피해 규모</strong></td>
+<td>약 1,200만 고객 정보 유출</td>
+</tr>
+<tr>
+<td><strong>직접 비용</strong></td>
+<td>수백억 원 (배상, 복구)</td>
+</tr>
+<tr>
+<td><strong>간접 비용</strong></td>
+<td>신뢰 상실, 브랜드 훼손</td>
+</tr>
+<tr>
+<td><strong>사회적 비용</strong></td>
+<td>개인정보 보호 인식 저하</td>
+</tr>
+<tr>
+<td><strong>교훈</strong></td>
+<td><strong>사전 예방 &gt; 사후 대응</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="4">4. 왜 지금 시작해야 하는가?</h3>
+<h4 id="41">4.1 역사는 반복된다</h4>
+<p><img alt="Diagram 10" src="assets/diagrams/diagram-10.png" /></p>
+<p><strong>핵심 메시지:</strong>
+- HTTP → HTTPS 전환: <strong>보안 사고 후 10년+ 소요</strong>
+- 모바일 앱 보안: <strong>수많은 피해 후 규제</strong>
+- AI Agent: <strong>🎯 지금 선제적 대응 필요!</strong></p>
+<h4 id="42">4.2 선제적 대응의 가치</h4>
+<p><img alt="Diagram 11" src="assets/diagrams/diagram-11.png" /></p>
+<hr />
+<h2 id="_6">🎯 개발 목적</h2>
+<h3 id="trust-layer-ai-agent">Trust Layer로 안전한 AI Agent 생태계 구축</h3>
+<p><img alt="Diagram 12" src="assets/diagrams/diagram-12.png" /></p>
+<h3 id="_7">핵심 목표</h3>
+<p><img alt="Diagram 13" src="assets/diagrams/diagram-13.png" /></p>
+<hr />
+<h2 id="_8">🏗️ 프로젝트 구성 및 기능</h2>
+<h3 id="1">1. 전체 아키텍처</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">graph</span><span class="w"> </span><span class="n">TB</span>
+<span class="w">    </span><span class="n">subgraph</span><span class="w"> </span><span class="s">&quot;Application Layer&quot;</span>
+<span class="w">        </span><span class="n">APP</span><span class="p">[</span><span class="n">AI</span><span class="w"> </span><span class="n">Agents</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">ChatGPT</span><span class="p">,</span><span class="w"> </span><span class="n">Gemini</span><span class="p">,</span><span class="w"> </span><span class="n">Claude</span><span class="p">,</span><span class="w"> </span><span class="n">etc</span><span class="p">.]</span>
+<span class="w">    </span><span class="n">end</span>
+
+<span class="w">    </span><span class="n">subgraph</span><span class="w"> </span><span class="s">&quot;SAGE Trust Layer&quot;</span>
+<span class="w">        </span><span class="n">SIGN</span><span class="p">[</span><span class="n">RFC</span><span class="mi">-9421</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">Message</span><span class="w"> </span><span class="n">Signing</span><span class="p">]</span>
+<span class="w">        </span><span class="n">ENCRYPT</span><span class="p">[</span><span class="n">RFC</span><span class="mi">-9180</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">HPKE</span><span class="w"> </span><span class="n">Encryption</span><span class="p">]</span>
+<span class="w">        </span><span class="n">DID</span><span class="p">[</span><span class="n">DID</span><span class="w"> </span><span class="n">Management</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">Blockchain</span><span class="p">]</span>
+<span class="w">        </span><span class="n">CRYPTO</span><span class="p">[</span><span class="n">Crypto</span><span class="w"> </span><span class="n">Engine</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">Secp256k1</span><span class="p">,</span><span class="w"> </span><span class="n">Ed25519</span><span class="p">]</span>
+<span class="w">        </span><span class="n">SESSION</span><span class="p">[</span><span class="n">Session</span><span class="w"> </span><span class="n">Manager</span><span class="p">]</span>
+<span class="w">        </span><span class="n">STORAGE</span><span class="p">[</span><span class="n">Secure</span><span class="w"> </span><span class="n">Storage</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">Vault</span><span class="p">]</span>
+
+<span class="w">        </span><span class="n">SIGN</span><span class="w"> </span><span class="o">---</span><span class="w"> </span><span class="n">ENCRYPT</span>
+<span class="w">        </span><span class="n">ENCRYPT</span><span class="w"> </span><span class="o">---</span><span class="w"> </span><span class="n">DID</span>
+<span class="w">        </span><span class="n">DID</span><span class="w"> </span><span class="o">---</span><span class="w"> </span><span class="n">CRYPTO</span>
+<span class="w">        </span><span class="n">CRYPTO</span><span class="w"> </span><span class="o">---</span><span class="w"> </span><span class="n">SESSION</span>
+<span class="w">        </span><span class="n">SESSION</span><span class="w"> </span><span class="o">---</span><span class="w"> </span><span class="n">STORAGE</span>
+<span class="w">    </span><span class="n">end</span>
+
+<span class="w">    </span><span class="n">subgraph</span><span class="w"> </span><span class="s">&quot;Integration Layer&quot;</span>
+<span class="w">        </span><span class="n">BC</span><span class="p">[</span><span class="n">Blockchain</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">Ethereum</span><span class="p">,</span><span class="w"> </span><span class="p">...]</span>
+<span class="w">        </span><span class="n">SDK</span><span class="p">[</span><span class="n">Multi</span><span class="o">-</span><span class="n">Lang</span><span class="w"> </span><span class="n">SDKs</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">Go</span><span class="p">,</span><span class="w"> </span><span class="n">Python</span><span class="p">,</span><span class="w"> </span><span class="n">TS</span><span class="p">,</span><span class="w"> </span><span class="n">Java</span><span class="p">]</span>
+<span class="w">        </span><span class="n">CLI</span><span class="p">[</span><span class="n">CLI</span><span class="w"> </span><span class="n">Tools</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">sage</span><span class="o">-</span><span class="n">crypto</span><span class="p">,</span><span class="w"> </span><span class="n">sage</span><span class="o">-</span><span class="n">did</span><span class="p">]</span>
+<span class="w">    </span><span class="n">end</span>
+
+<span class="w">    </span><span class="n">APP</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">SIGN</span>
+<span class="w">    </span><span class="n">SIGN</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">BC</span>
+<span class="w">    </span><span class="n">ENCRYPT</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">SDK</span>
+<span class="w">    </span><span class="n">DID</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">CLI</span>
+
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="s">&quot;SAGE Trust Layer&quot;</span><span class="w"> </span><span class="n">fill</span><span class="o">:</span><span class="err">#</span><span class="n">e3f2fd</span>
+</code></pre></div>
+
+<h3 id="2_1">2. 핵심 기능</h3>
+<h4 id="21-rfc-9421">2.1 RFC-9421 메시지 서명</h4>
+<div class="codehilite"><pre><span></span><code><span class="n">sequenceDiagram</span>
+<span class="w">    </span><span class="n">autonumber</span>
+<span class="w">    </span><span class="n">participant</span><span class="w"> </span><span class="n">A</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="n">Agent</span><span class="w"> </span><span class="n">A</span>
+<span class="w">    </span><span class="n">participant</span><span class="w"> </span><span class="n">S</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="n">SAGE</span><span class="w"> </span><span class="n">Signer</span>
+<span class="w">    </span><span class="n">participant</span><span class="w"> </span><span class="n">G</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="n">Gateway</span>
+<span class="w">    </span><span class="n">participant</span><span class="w"> </span><span class="n">V</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="n">SAGE</span><span class="w"> </span><span class="n">Verifier</span>
+<span class="w">    </span><span class="n">participant</span><span class="w"> </span><span class="n">B</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="n">Agent</span><span class="w"> </span><span class="n">B</span>
+
+<span class="w">    </span><span class="n">Note</span><span class="w"> </span><span class="n">over</span><span class="w"> </span><span class="n">A</span><span class="p">,</span><span class="n">B</span><span class="o">:</span><span class="w"> </span><span class="n">RFC</span><span class="o">-</span><span class="mi">9421</span><span class="w"> </span><span class="n">HTTP</span><span class="w"> </span><span class="n">Message</span><span class="w"> </span><span class="n">Signatures</span>
+
+<span class="w">    </span><span class="n">A</span><span class="o">-&gt;&gt;</span><span class="n">S</span><span class="o">:</span><span class="w"> </span><span class="err">메시지</span><span class="w"> </span><span class="err">전송</span><span class="w"> </span><span class="err">요청</span>
+<span class="w">    </span><span class="n">S</span><span class="o">-&gt;&gt;</span><span class="n">S</span><span class="o">:</span><span class="w"> </span><span class="mf">1.</span><span class="w"> </span><span class="n">Signature</span><span class="w"> </span><span class="n">Base</span><span class="w"> </span><span class="err">생성</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="mf">2.</span><span class="w"> </span><span class="err">개인키로</span><span class="w"> </span><span class="err">서명</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="mf">3.</span><span class="w"> </span><span class="n">Signature</span><span class="o">-</span><span class="n">Input</span><span class="w"> </span><span class="err">헤더</span><span class="w"> </span><span class="err">생성</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="mf">4.</span><span class="w"> </span><span class="n">Signature</span><span class="w"> </span><span class="err">헤더</span><span class="w"> </span><span class="err">생성</span>
+<span class="w">    </span><span class="n">S</span><span class="o">-&gt;&gt;</span><span class="n">G</span><span class="o">:</span><span class="w"> </span><span class="n">HTTP</span><span class="w"> </span><span class="n">Request</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;+</span><span class="w"> </span><span class="n">Signature</span><span class="o">-</span><span class="n">Input</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;+</span><span class="w"> </span><span class="n">Signature</span>
+
+<span class="w">    </span><span class="n">Note</span><span class="w"> </span><span class="n">over</span><span class="w"> </span><span class="n">G</span><span class="o">:</span><span class="w"> </span><span class="n">Gateway는</span><span class="w"> </span><span class="err">내용을</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="err">변조할</span><span class="w"> </span><span class="err">수</span><span class="w"> </span><span class="err">있지만</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="err">서명은</span><span class="w"> </span><span class="err">재생성</span><span class="w"> </span><span class="err">불가</span>
+
+<span class="w">    </span><span class="n">G</span><span class="o">-&gt;&gt;</span><span class="n">V</span><span class="o">:</span><span class="w"> </span><span class="err">메시지</span><span class="w"> </span><span class="err">전달</span>
+<span class="w">    </span><span class="n">V</span><span class="o">-&gt;&gt;</span><span class="n">V</span><span class="o">:</span><span class="w"> </span><span class="mf">1.</span><span class="w"> </span><span class="n">Signature</span><span class="w"> </span><span class="n">Base</span><span class="w"> </span><span class="err">재생성</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="mf">2.</span><span class="w"> </span><span class="err">공개키로</span><span class="w"> </span><span class="err">서명</span><span class="w"> </span><span class="err">검증</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="mf">3.</span><span class="w"> </span><span class="n">Timestamp</span><span class="w"> </span><span class="err">확인</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="mf">4.</span><span class="w"> </span><span class="n">Nonce</span><span class="w"> </span><span class="err">검증</span>
+
+<span class="w">    </span><span class="n">alt</span><span class="w"> </span><span class="err">검증</span><span class="w"> </span><span class="err">성공</span>
+<span class="w">        </span><span class="n">V</span><span class="o">-&gt;&gt;</span><span class="n">B</span><span class="o">:</span><span class="w"> </span><span class="err">✅</span><span class="w"> </span><span class="err">메시지</span><span class="w"> </span><span class="err">전달</span>
+<span class="w">    </span><span class="n">else</span><span class="w"> </span><span class="err">검증</span><span class="w"> </span><span class="err">실패</span>
+<span class="w">        </span><span class="n">V</span><span class="o">-&gt;&gt;</span><span class="n">A</span><span class="o">:</span><span class="w"> </span><span class="err">❌</span><span class="w"> </span><span class="err">거부</span><span class="w"> </span><span class="p">(</span><span class="err">변조</span><span class="w"> </span><span class="err">감지</span><span class="p">)</span>
+<span class="w">    </span><span class="kd">end</span>
+
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="n">V</span><span class="w"> </span><span class="n">fill</span><span class="o">:</span><span class="err">#</span><span class="mi">51</span><span class="n">cf66</span>
+</code></pre></div>
+
+<p><strong>서명 헤더 구조:</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="nx">Signature</span><span class="o">-</span><span class="nx">Input</span><span class="p">:</span><span class="w"> </span><span class="nx">sig1</span><span class="p">=(</span><span class="s">&quot;@method&quot;</span><span class="w"> </span><span class="s">&quot;@path&quot;</span><span class="w"> </span><span class="s">&quot;content-type&quot;</span><span class="w"> </span><span class="s">&quot;content-digest&quot;</span><span class="p">);</span>
+<span class="w">                 </span><span class="nx">created</span><span class="p">=</span><span class="mi">1618884473</span><span class="p">;</span>
+<span class="w">                 </span><span class="nx">expires</span><span class="p">=</span><span class="mi">1618884773</span><span class="p">;</span>
+<span class="w">                 </span><span class="nx">nonce</span><span class="p">=</span><span class="s">&quot;b3k6t4n7&quot;</span>
+
+<span class="nx">Signature</span><span class="p">:</span><span class="w"> </span><span class="nx">sig1</span><span class="p">=:</span><span class="nx">K2qGT5srn2OGbOIDzQ6kYT</span><span class="o">+</span><span class="nx">ruaycnDAAUpKv</span><span class="o">+</span><span class="nx">ePFfD6</span><span class="o">/...</span><span class="p">:</span>
+</code></pre></div>
+
+<h4 id="22-rfc-9180-hpke">2.2 RFC-9180 HPKE 암호화</h4>
+<p><img alt="Diagram 16" src="assets/diagrams/diagram-16.png" /></p>
+<p><strong>HPKE 암호화 과정:</strong></p>
+<p><img alt="Diagram 17" src="assets/diagrams/diagram-17.png" /></p>
+<h4 id="23-did">2.3 블록체인 기반 DID 관리</h4>
+<p><img alt="Diagram 18" src="assets/diagrams/diagram-18.png" /></p>
+<p><strong>DID Document 구조:</strong></p>
+<div class="codehilite"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;did:sage:ethereum:0x1234567890abcdef&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;publicKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;did:sage:ethereum:0x1234567890abcdef#keys-1&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Secp256k1VerificationKey2019&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;controller&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;did:sage:ethereum:0x1234567890abcdef&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;publicKeyHex&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;04abc123...&quot;</span>
+<span class="w">  </span><span class="p">}],</span>
+<span class="w">  </span><span class="nt">&quot;service&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span>
+<span class="w">    </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;did:sage:ethereum:0x1234567890abcdef#agent-service&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;AgentService&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;serviceEndpoint&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://agent.example.com&quot;</span>
+<span class="w">  </span><span class="p">}],</span>
+<span class="w">  </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Payment Agent&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Secure payment processing agent&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;category&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;finance&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+
+<h3 id="3_1">3. 시스템 구성도 (상세)</h3>
+<div class="codehilite"><pre><span></span><code><span class="n">graph</span><span class="w"> </span><span class="n">TB</span>
+<span class="w">    </span><span class="n">subgraph</span><span class="w"> </span><span class="s">&quot;SAGE Core Engine&quot;</span>
+<span class="w">        </span><span class="n">direction</span><span class="w"> </span><span class="n">TB</span>
+
+<span class="w">        </span><span class="n">subgraph</span><span class="w"> </span><span class="s">&quot;Security Layer&quot;</span>
+<span class="w">            </span><span class="n">RFC9421</span><span class="p">[</span><span class="n">RFC</span><span class="mi">-9421</span><span class="w"> </span><span class="n">Signer</span><span class="o">/</span><span class="n">Verifier</span><span class="p">]</span>
+<span class="w">            </span><span class="n">RFC9180</span><span class="p">[</span><span class="n">RFC</span><span class="mi">-9180</span><span class="w"> </span><span class="n">HPKE</span><span class="p">]</span>
+<span class="w">            </span><span class="n">NONCE</span><span class="p">[</span><span class="n">Nonce</span><span class="w"> </span><span class="n">Manager</span><span class="p">]</span>
+<span class="w">        </span><span class="n">end</span>
+
+<span class="w">        </span><span class="n">subgraph</span><span class="w"> </span><span class="s">&quot;Identity Layer&quot;</span>
+<span class="w">            </span><span class="n">DID</span><span class="p">[</span><span class="n">DID</span><span class="w"> </span><span class="n">Manager</span><span class="p">]</span>
+<span class="w">            </span><span class="n">DIDRES</span><span class="p">[</span><span class="n">DID</span><span class="w"> </span><span class="n">Resolver</span><span class="p">]</span>
+<span class="w">            </span><span class="n">META</span><span class="p">[</span><span class="n">Metadata</span><span class="w"> </span><span class="n">Handler</span><span class="p">]</span>
+<span class="w">        </span><span class="n">end</span>
+
+<span class="w">        </span><span class="n">subgraph</span><span class="w"> </span><span class="s">&quot;Crypto Layer&quot;</span>
+<span class="w">            </span><span class="n">SECP</span><span class="p">[</span><span class="n">Secp256k1</span><span class="w"> </span><span class="n">Engine</span><span class="p">]</span>
+<span class="w">            </span><span class="n">ED</span><span class="p">[</span><span class="n">Ed25519</span><span class="w"> </span><span class="n">Engine</span><span class="p">]</span>
+<span class="w">            </span><span class="n">X25519</span><span class="p">[</span><span class="n">X25519</span><span class="w"> </span><span class="n">ECDH</span><span class="p">]</span>
+<span class="w">            </span><span class="n">CHACHA</span><span class="p">[</span><span class="n">ChaCha20Poly1305</span><span class="p">]</span>
+<span class="w">        </span><span class="n">end</span>
+
+<span class="w">        </span><span class="n">subgraph</span><span class="w"> </span><span class="s">&quot;Storage Layer&quot;</span>
+<span class="w">            </span><span class="n">VAULT</span><span class="p">[</span><span class="n">Encrypted</span><span class="w"> </span><span class="n">Vault</span><span class="p">]</span>
+<span class="w">            </span><span class="n">CACHE</span><span class="p">[</span><span class="n">Cache</span><span class="w"> </span><span class="n">Manager</span><span class="p">]</span>
+<span class="w">            </span><span class="n">SESSION</span><span class="p">[</span><span class="n">Session</span><span class="w"> </span><span class="n">Store</span><span class="p">]</span>
+<span class="w">        </span><span class="n">end</span>
+<span class="w">    </span><span class="n">end</span>
+
+<span class="w">    </span><span class="n">subgraph</span><span class="w"> </span><span class="s">&quot;External Integration&quot;</span>
+<span class="w">        </span><span class="n">BC</span><span class="p">[</span><span class="n">Blockchain</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">Ethereum</span><span class="p">]</span>
+<span class="w">        </span><span class="n">RPC</span><span class="p">[</span><span class="n">RPC</span><span class="w"> </span><span class="n">Provider</span><span class="o">&lt;</span><span class="n">br</span><span class="o">/&gt;</span><span class="n">Alchemy</span><span class="o">/</span><span class="n">Infura</span><span class="p">]</span>
+<span class="w">    </span><span class="n">end</span>
+
+<span class="w">    </span><span class="n">subgraph</span><span class="w"> </span><span class="s">&quot;Developer Interface&quot;</span>
+<span class="w">        </span><span class="n">SDK_GO</span><span class="p">[</span><span class="n">Go</span><span class="w"> </span><span class="n">SDK</span><span class="p">]</span>
+<span class="w">        </span><span class="n">SDK_PY</span><span class="p">[</span><span class="n">Python</span><span class="w"> </span><span class="n">SDK</span><span class="p">]</span>
+<span class="w">        </span><span class="n">SDK_TS</span><span class="p">[</span><span class="n">TypeScript</span><span class="w"> </span><span class="n">SDK</span><span class="p">]</span>
+<span class="w">        </span><span class="n">SDK_JAVA</span><span class="p">[</span><span class="n">Java</span><span class="w"> </span><span class="n">SDK</span><span class="p">]</span>
+<span class="w">        </span><span class="n">CLI</span><span class="p">[</span><span class="n">CLI</span><span class="w"> </span><span class="n">Tools</span><span class="p">]</span>
+<span class="w">    </span><span class="n">end</span>
+
+<span class="w">    </span><span class="n">RFC9421</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">SECP</span>
+<span class="w">    </span><span class="n">RFC9421</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">ED</span>
+<span class="w">    </span><span class="n">RFC9180</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">X25519</span>
+<span class="w">    </span><span class="n">RFC9180</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">CHACHA</span>
+
+<span class="w">    </span><span class="n">DID</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">BC</span>
+<span class="w">    </span><span class="n">DIDRES</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">RPC</span>
+
+<span class="w">    </span><span class="n">RFC9421</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">VAULT</span>
+<span class="w">    </span><span class="n">SESSION</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">CACHE</span>
+
+<span class="w">    </span><span class="n">SDK_GO</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">RFC9421</span>
+<span class="w">    </span><span class="n">SDK_PY</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">RFC9180</span>
+<span class="w">    </span><span class="n">SDK_TS</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">DID</span>
+<span class="w">    </span><span class="n">SDK_JAVA</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">RFC9421</span>
+<span class="w">    </span><span class="n">CLI</span><span class="w"> </span><span class="o">--&gt;</span><span class="w"> </span><span class="n">DID</span>
+
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="s">&quot;SAGE Core Engine&quot;</span><span class="w"> </span><span class="n">fill</span><span class="o">:</span><span class="err">#</span><span class="n">e3f2fd</span>
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="s">&quot;Security Layer&quot;</span><span class="w"> </span><span class="n">fill</span><span class="o">:</span><span class="err">#</span><span class="n">fff3e0</span>
+<span class="w">    </span><span class="n">style</span><span class="w"> </span><span class="s">&quot;Identity Layer&quot;</span><span class="w"> </span><span class="n">fill</span><span class="o">:</span><span class="err">#</span><span class="n">f3e5f5</span>
+</code></pre></div>
+
+<h3 id="4_1">4. 플러그인 아키텍처</h3>
+<p><img alt="Diagram 20" src="assets/diagrams/diagram-20.png" /></p>
+<h3 id="5">5. 검증 및 품질 보증</h3>
+<h4 id="51">5.1 테스트 커버리지</h4>
+<p><img alt="Diagram 21" src="assets/diagrams/diagram-21.png" /></p>
+<h4 id="52">5.2 품질 메트릭</h4>
+<p><img alt="Diagram 22" src="assets/diagrams/diagram-22.png" /></p>
+<hr />
+<h2 id="_9">🌟 추후 활용 방안 및 계획</h2>
+<h3 id="_10">로드맵 타임라인</h3>
+<p><img alt="Diagram 23" src="assets/diagrams/diagram-23.png" /></p>
+<h3 id="_11">주요 마일스톤</h3>
+<p><img alt="Diagram 24" src="assets/diagrams/diagram-24.png" /></p>
+<h3 id="sage-adk">SAGE-ADK 개념도</h3>
+<p><img alt="Diagram 25" src="assets/diagrams/diagram-25.png" /></p>
+<h3 id="agent-marketplace">Agent Marketplace 개념도</h3>
+<p><img alt="Diagram 26" src="assets/diagrams/diagram-26.png" /></p>
+<hr />
+<h2 id="_12">🎬 시연 계획</h2>
+<h3 id="_13">시연 인프라 구성</h3>
+<p><img alt="Diagram 27" src="assets/diagrams/diagram-27.png" /></p>
+<h3 id="_14">시연 시나리오 플로우</h3>
+<h4 id="1_1">시나리오 1: 보안 미적용 (공격 성공)</h4>
+<p><img alt="Diagram 28" src="assets/diagrams/diagram-28.png" /></p>
+<h4 id="2-sage">시나리오 2: SAGE 적용 (공격 차단)</h4>
+<p><img alt="Diagram 29" src="assets/diagrams/diagram-29.png" /></p>
+<h4 id="3_2">시나리오 3: 개인정보 암호화</h4>
+<p><img alt="Diagram 30" src="assets/diagrams/diagram-30.png" /></p>
+<h4 id="4-agent">시나리오 4: Agent 신원 검증</h4>
+<p><img alt="Diagram 31" src="assets/diagrams/diagram-31.png" /></p>
+<h3 id="3_3">시연 영상 구성 (3분)</h3>
+<p><img alt="Diagram 32" src="assets/diagrams/diagram-32.png" /></p>
+<hr />
+<h2 id="sage">📊 SAGE의 차별성</h2>
+<h3 id="1_2">1. 기술 비교 매트릭스</h3>
+<table>
+<thead>
+<tr>
+<th>비교 항목</th>
+<th>HTTP</th>
+<th>HTTPS (TLS)</th>
+<th>SAGE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>전송 암호화</strong></td>
+<td>❌ 없음</td>
+<td>✅ 구간별</td>
+<td>✅ 종단간</td>
+</tr>
+<tr>
+<td><strong>메시지 무결성</strong></td>
+<td>❌ 없음</td>
+<td>⚠️  구간별</td>
+<td>✅ 종단간</td>
+</tr>
+<tr>
+<td><strong>메시지 서명</strong></td>
+<td>❌ 없음</td>
+<td>❌ 없음</td>
+<td>✅ RFC-9421</td>
+</tr>
+<tr>
+<td><strong>종단간 암호화</strong></td>
+<td>❌ 없음</td>
+<td>❌ 없음</td>
+<td>✅ RFC-9180</td>
+</tr>
+<tr>
+<td><strong>신원 검증</strong></td>
+<td>❌ 없음</td>
+<td>⚠️  인증서</td>
+<td>✅ 블록체인 DID</td>
+</tr>
+<tr>
+<td><strong>변조 탐지</strong></td>
+<td>❌ 불가능</td>
+<td>⚠️  구간별만</td>
+<td>✅ 즉시 탐지</td>
+</tr>
+<tr>
+<td><strong>투명성</strong></td>
+<td>N/A</td>
+<td>⚠️  CA 신뢰</td>
+<td>✅ 블록체인</td>
+</tr>
+<tr>
+<td><strong>표준 준수</strong></td>
+<td>RFC-1945</td>
+<td>RFC-8446</td>
+<td>RFC-9421, 9180, DID</td>
+</tr>
+</tbody>
+</table>
+<h3 id="2_2">2. 보안 레벨 비교</h3>
+<p><img alt="Diagram 33" src="assets/diagrams/diagram-33.png" /></p>
+<h3 id="3_4">3. 경쟁 우위</h3>
+<p><img alt="Diagram 34" src="assets/diagrams/diagram-34.png" /></p>
+<hr />
+<h2 id="appendix">📚 Appendix</h2>
+<h3 id="a">A. 사용된 오픈소스 목록</h3>
+<h4 id="a1">A.1 핵심 기술 스택</h4>
+<p><img alt="Diagram 35" src="assets/diagrams/diagram-35.png" /></p>
+<h4 id="a2">A.2 오픈소스 라이선스 분포</h4>
+<p><img alt="Diagram 36" src="assets/diagrams/diagram-36.png" /></p>
+<h3 id="b">B. 참조 표준</h3>
+<p><img alt="Diagram 37" src="assets/diagrams/diagram-37.png" /></p>
+<h3 id="c">C. 프로젝트 통계</h3>
+<h4 id="c1">C.1 코드 통계</h4>
+<p><img alt="Diagram 38" src="assets/diagrams/diagram-38.png" /></p>
+<h4 id="c2">C.2 검증 완료 현황</h4>
+<p><img alt="Diagram 39" src="assets/diagrams/diagram-39.png" /></p>
+<hr />
+<h2 id="_15">🎯 결론</h2>
+<h3 id="sage_1">SAGE의 비전</h3>
+<p><img alt="Diagram 40" src="assets/diagrams/diagram-40.png" /></p>
+<h3 id="_16">핵심 메시지</h3>
+<blockquote>
+<p><strong>"AI Agent 시대, 보안은 선택이 아닌 필수입니다"</strong></p>
+<p>HTTP에 HTTPS가 필요했듯이, AI Agent에는 SAGE가 필요합니다.</p>
+<p><strong>SAGE와 함께, 안전한 AI Agent 시대를 만들어갑니다.</strong></p>
+</blockquote>
+<hr />
+<h2 id="_17">📞 연락처</h2>
+<ul>
+<li><strong>GitHub</strong>: https://github.com/sage-x-project/sage</li>
+<li><strong>문의</strong>: (추후 추가)</li>
+<li><strong>데모</strong>: (시연용 도메인 추가 예정)</li>
+</ul>
+<hr />
+<p><em>본 프로젝트는 2025 오픈소스 개발자대회 출품작입니다.</em>
+<em>과학기술정보통신부 · 정보통신산업진흥원 주최</em></p>
+
+    <script>
+        // 자동 PDF 저장 안내
+        window.addEventListener('load', function() {
+            const printButton = document.querySelector('.print-button');
+            if (printButton) {
+                printButton.addEventListener('click', function() {
+                    alert('인쇄 대화상자에서:\n1. "대상"을 "PDF로 저장" 선택\n2. "저장" 버튼 클릭\n\n또는:\nCmd+P (Mac) / Ctrl+P (Windows)');
+                });
+            }
+        });
+    </script>
+</body>
+</html>

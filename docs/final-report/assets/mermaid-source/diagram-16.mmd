@@ -1,0 +1,24 @@
+sequenceDiagram
+    autonumber
+    participant A as Agent A
+    participant B as Agent B
+
+    Note over A,B: 1. Handshake Phase
+
+    A->>A: Ephemeral Key 생성
+    A->>B: Handshake Request<br/>(Ephemeral Public Key)
+
+    B->>B: 1. DHKEM (X25519) 키 교환<br/>2. Shared Secret 생성<br/>3. Session Key 유도
+    B->>A: Handshake Response<br/>(Encrypted Session Info)
+
+    A->>A: Session Key 유도
+
+    Note over A,B: 2. Encrypted Communication
+
+    loop 메시지 교환
+        A->>A: ChaCha20Poly1305 암호화
+        A->>B: Encrypted Message
+        B->>B: ChaCha20Poly1305 복호화
+    end
+
+    Note over A,B: Gateway는 내용을 볼 수 없음

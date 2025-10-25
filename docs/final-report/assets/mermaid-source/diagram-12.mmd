@@ -1,0 +1,18 @@
+graph TB
+    subgraph "기존 Agent (보안 부재)"
+        A1[Application Layer<br/>AI Agent]
+        A2[Transport Layer<br/>HTTP/HTTPS]
+        A1 --> A2
+    end
+
+    subgraph "SAGE Agent (Trust Layer 적용)"
+        B1[Application Layer<br/>AI Agent]
+        B2[🔒 SAGE Trust Layer<br/>✓ Message Signing<br/>✓ Encryption<br/>✓ DID Verification]
+        B3[Transport Layer<br/>HTTP/HTTPS]
+        B1 --> B2
+        B2 --> B3
+    end
+
+    A2 -.->|진화| B2
+
+    style B2 fill:#4dabf7,color:#fff

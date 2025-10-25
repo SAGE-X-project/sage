@@ -1,0 +1,36 @@
+graph TB
+    subgraph "Frontend"
+        FE[Chat UI<br/>Vercel 배포<br/>sage-demo.vercel.app]
+    end
+
+    subgraph "Agent Layer"
+        A1[Normal Agent<br/>보안 미적용<br/>Supabase/AWS]
+        A2[SAGE Agent<br/>보안 적용<br/>Supabase/AWS]
+    end
+
+    subgraph "Gateway (MitM)"
+        GW[Infected Gateway<br/>메시지 변조 시도<br/>Supabase/AWS]
+    end
+
+    subgraph "Payment Layer"
+        PAY[Payment Agent<br/>AP2 + SAGE<br/>Supabase/AWS]
+    end
+
+    subgraph "Blockchain"
+        BC[Ethereum Sepolia<br/>Testnet]
+        RPC[Alchemy RPC API]
+    end
+
+    FE --> A1
+    FE --> A2
+    A1 --> GW
+    A2 --> GW
+    GW --> PAY
+
+    A2 -.->|DID 검증| BC
+    PAY -.->|DID 검증| BC
+    BC --> RPC
+
+    style GW fill:#ff6b6b,color:#fff
+    style A2 fill:#51cf66,color:#fff
+    style PAY fill:#51cf66,color:#fff

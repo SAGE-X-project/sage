@@ -1,0 +1,26 @@
+flowchart TB
+    U[사용자: Agent 선택] --> SEARCH[Agent Marketplace 검색]
+
+    SEARCH --> A1[Official Payment Agent]
+    SEARCH --> A2[Fake Payment Agent]
+
+    A1 --> CHECK1{블록체인 검증}
+    A2 --> CHECK2{블록체인 검증}
+
+    CHECK1 -->|DID 등록 확인| BC1[✅ DID 존재<br/>공개키 검증 성공]
+    CHECK2 -->|DID 조회| BC2[❌ DID 미등록<br/>또는 비활성화]
+
+    BC1 --> TRUST[✅ 신뢰 가능<br/>★★★★★ 1,234 리뷰]
+    BC2 --> WARN[⚠️  경고: 미검증 Agent<br/>사용 불가]
+
+    TRUST --> SELECT[Agent 선택]
+    WARN --> BLOCK[사용 차단]
+
+    SELECT --> USE[안전하게 사용]
+
+    style BC1 fill:#51cf66
+    style TRUST fill:#51cf66
+    style USE fill:#51cf66
+    style BC2 fill:#ff6b6b
+    style WARN fill:#ff6b6b
+    style BLOCK fill:#ff6b6b
