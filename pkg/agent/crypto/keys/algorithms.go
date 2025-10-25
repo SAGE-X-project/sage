@@ -54,9 +54,19 @@ func init() {
 		log.Fatalf("Failed to register Secp256k1 algorithm: %v", err)
 	}
 
-	// Note: ECDSA P-256 (ecdsa-p256) is not registered separately
-	// The registry currently maps all ECDSA keys to Secp256k1
-	// TODO: Add support for distinguishing between different ECDSA curves (P-256, Secp256k1, etc.)
+	// Register P-256 (NIST secp256r1/prime256v1)
+	if err := sagecrypto.RegisterAlgorithm(sagecrypto.AlgorithmInfo{
+		KeyType:               sagecrypto.KeyTypeP256,
+		Name:                  "P-256",
+		Description:           "ECDSA with NIST P-256 curve (secp256r1, prime256v1)",
+		RFC9421Algorithm:      "ecdsa-p256-sha256",
+		SupportsRFC9421:       true,
+		SupportsKeyGeneration: true,
+		SupportsSignature:     true,
+		SupportsEncryption:    false,
+	}); err != nil {
+		log.Fatalf("Failed to register P-256 algorithm: %v", err)
+	}
 
 	// Register X25519 (key exchange only, not for signing)
 	if err := sagecrypto.RegisterAlgorithm(sagecrypto.AlgorithmInfo{

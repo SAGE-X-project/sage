@@ -30,6 +30,7 @@ func init() {
 	crypto.SetKeyGenerators(
 		func() (crypto.KeyPair, error) { return keys.GenerateEd25519KeyPair() },
 		func() (crypto.KeyPair, error) { return keys.GenerateSecp256k1KeyPair() },
+		func() (crypto.KeyPair, error) { return keys.GenerateP256KeyPair() },
 	)
 
 	// Register storage constructors

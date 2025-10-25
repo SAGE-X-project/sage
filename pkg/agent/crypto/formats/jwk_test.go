@@ -121,6 +121,54 @@ func TestJWKExporter(t *testing.T) {
 		assert.NotEmpty(t, jwk["kid"])
 	})
 
+	t.Run("ExportP256KeyPair", func(t *testing.T) {
+		keyPair, err := keys.GenerateP256KeyPair()
+		require.NoError(t, err)
+
+		// Export full key pair
+		exported, err := exporter.Export(keyPair, crypto.KeyFormatJWK)
+		require.NoError(t, err)
+		assert.NotEmpty(t, exported)
+
+		// Verify it's valid JSON
+		var jwk map[string]interface{}
+		err = json.Unmarshal(exported, &jwk)
+		require.NoError(t, err)
+
+		// Check required fields
+		assert.Equal(t, "EC", jwk["kty"])
+		assert.Equal(t, "P-256", jwk["crv"])
+		assert.Equal(t, "ES256", jwk["alg"])
+		assert.NotEmpty(t, jwk["x"])
+		assert.NotEmpty(t, jwk["y"])
+		assert.NotEmpty(t, jwk["d"]) // Private key component
+		assert.NotEmpty(t, jwk["kid"])
+	})
+
+	t.Run("ExportP256PublicKey", func(t *testing.T) {
+		keyPair, err := keys.GenerateP256KeyPair()
+		require.NoError(t, err)
+
+		// Export only public key
+		exported, err := exporter.ExportPublic(keyPair, crypto.KeyFormatJWK)
+		require.NoError(t, err)
+		assert.NotEmpty(t, exported)
+
+		// Verify it's valid JSON
+		var jwk map[string]interface{}
+		err = json.Unmarshal(exported, &jwk)
+		require.NoError(t, err)
+
+		// Check required fields
+		assert.Equal(t, "EC", jwk["kty"])
+		assert.Equal(t, "P-256", jwk["crv"])
+		assert.Equal(t, "ES256", jwk["alg"])
+		assert.NotEmpty(t, jwk["x"])
+		assert.NotEmpty(t, jwk["y"])
+		assert.Empty(t, jwk["d"]) // No private key component
+		assert.NotEmpty(t, jwk["kid"])
+	})
+
 	t.Run("ExportX25519KeyPair", func(t *testing.T) {
 		keyPair, err := keys.GenerateX25519KeyPair()
 		require.NoError(t, err)
@@ -275,6 +323,30 @@ func TestJWKImporter(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, importedKeyPair)
 		assert.Equal(t, crypto.KeyTypeSecp256k1, importedKeyPair.Type())
+
+		// Test signing with imported key
+		message := []byte("test message")
+		signature, err := importedKeyPair.Sign(message)
+		require.NoError(t, err)
+
+		// Verify with original public key
+		err = originalKeyPair.Verify(message, signature)
+		assert.NoError(t, err)
+	})
+
+	t.Run("ImportP256KeyPair", func(t *testing.T) {
+		// Generate and export a key pair
+		originalKeyPair, err := keys.GenerateP256KeyPair()
+		require.NoError(t, err)
+
+		exported, err := exporter.Export(originalKeyPair, crypto.KeyFormatJWK)
+		require.NoError(t, err)
+
+		// Import the key pair
+		importedKeyPair, err := importer.Import(exported, crypto.KeyFormatJWK)
+		require.NoError(t, err)
+		assert.NotNil(t, importedKeyPair)
+		assert.Equal(t, crypto.KeyTypeP256, importedKeyPair.Type())
 
 		// Test signing with imported key
 		message := []byte("test message")

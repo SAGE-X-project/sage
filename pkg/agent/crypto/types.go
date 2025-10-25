@@ -30,6 +30,7 @@ type KeyType string
 const (
 	KeyTypeEd25519   KeyType = "Ed25519"
 	KeyTypeSecp256k1 KeyType = "Secp256k1"
+	KeyTypeP256      KeyType = "P256"      // NIST P-256 (secp256r1, prime256v1)
 	KeyTypeX25519    KeyType = "X25519"
 	KeyTypeRSA       KeyType = "RSA256"
 )

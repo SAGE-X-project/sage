@@ -28,6 +28,9 @@ var (
 	// generateSecp256k1KeyPair is the implementation function for Secp256k1 key generation
 	generateSecp256k1KeyPair func() (KeyPair, error)
 
+	// generateP256KeyPair is the implementation function for P-256 key generation
+	generateP256KeyPair func() (KeyPair, error)
+
 	// newMemoryKeyStorage is the implementation function for memory storage creation
 	newMemoryKeyStorage func() KeyStorage
 
@@ -45,9 +48,10 @@ var (
 )
 
 // SetKeyGenerators sets the key generation functions
-func SetKeyGenerators(ed25519Gen, secp256k1Gen func() (KeyPair, error)) {
+func SetKeyGenerators(ed25519Gen, secp256k1Gen, p256Gen func() (KeyPair, error)) {
 	generateEd25519KeyPair = ed25519Gen
 	generateSecp256k1KeyPair = secp256k1Gen
+	generateP256KeyPair = p256Gen
 }
 
 // SetStorageConstructors sets the storage constructor functions
@@ -87,6 +91,19 @@ func GenerateEd25519KeyPair() (KeyPair, error) {
 // GenerateSecp256k1KeyPair is an alias for NewSecp256k1KeyPair
 func GenerateSecp256k1KeyPair() (KeyPair, error) {
 	return NewSecp256k1KeyPair()
+}
+
+// NewP256KeyPair generates a new P-256 key pair
+func NewP256KeyPair() (KeyPair, error) {
+	if generateP256KeyPair == nil {
+		panic("P-256 key generator not initialized")
+	}
+	return generateP256KeyPair()
+}
+
+// GenerateP256KeyPair is an alias for NewP256KeyPair
+func GenerateP256KeyPair() (KeyPair, error) {
+	return NewP256KeyPair()
 }
 
 // NewMemoryKeyStorage creates a new memory key storage

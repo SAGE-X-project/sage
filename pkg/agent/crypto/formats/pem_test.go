@@ -91,6 +91,36 @@ func TestPEMExporter(t *testing.T) {
 		assert.Contains(t, pemStr, "-----END PUBLIC KEY-----")
 	})
 
+	t.Run("ExportP256KeyPair", func(t *testing.T) {
+		keyPair, err := keys.GenerateP256KeyPair()
+		require.NoError(t, err)
+
+		// Export full key pair
+		exported, err := exporter.Export(keyPair, crypto.KeyFormatPEM)
+		require.NoError(t, err)
+		assert.NotEmpty(t, exported)
+
+		// Verify PEM format
+		pemStr := string(exported)
+		assert.Contains(t, pemStr, "-----BEGIN PRIVATE KEY-----")
+		assert.Contains(t, pemStr, "-----END PRIVATE KEY-----")
+	})
+
+	t.Run("ExportP256PublicKey", func(t *testing.T) {
+		keyPair, err := keys.GenerateP256KeyPair()
+		require.NoError(t, err)
+
+		// Export only public key
+		exported, err := exporter.ExportPublic(keyPair, crypto.KeyFormatPEM)
+		require.NoError(t, err)
+		assert.NotEmpty(t, exported)
+
+		// Verify PEM format
+		pemStr := string(exported)
+		assert.Contains(t, pemStr, "-----BEGIN PUBLIC KEY-----")
+		assert.Contains(t, pemStr, "-----END PUBLIC KEY-----")
+	})
+
 	t.Run("ExportRSAKeyPair", func(t *testing.T) {
 		keyPair, err := keys.GenerateRSAKeyPair()
 		require.NoError(t, err)
@@ -159,6 +189,30 @@ func TestPEMImporter(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, importedKeyPair)
 		assert.Equal(t, crypto.KeyTypeSecp256k1, importedKeyPair.Type())
+
+		// Test signing with imported key
+		message := []byte("test message")
+		signature, err := importedKeyPair.Sign(message)
+		require.NoError(t, err)
+
+		// Verify with original public key
+		err = originalKeyPair.Verify(message, signature)
+		assert.NoError(t, err)
+	})
+
+	t.Run("ImportP256KeyPair", func(t *testing.T) {
+		// Generate and export a key pair
+		originalKeyPair, err := keys.GenerateP256KeyPair()
+		require.NoError(t, err)
+
+		exported, err := exporter.Export(originalKeyPair, crypto.KeyFormatPEM)
+		require.NoError(t, err)
+
+		// Import the key pair
+		importedKeyPair, err := importer.Import(exported, crypto.KeyFormatPEM)
+		require.NoError(t, err)
+		assert.NotNil(t, importedKeyPair)
+		assert.Equal(t, crypto.KeyTypeP256, importedKeyPair.Type())
 
 		// Test signing with imported key
 		message := []byte("test message")

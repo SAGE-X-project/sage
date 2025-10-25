@@ -46,6 +46,8 @@ func (m *Manager) GenerateKeyPair(keyType KeyType) (KeyPair, error) {
 		return GenerateEd25519KeyPair()
 	case KeyTypeSecp256k1:
 		return GenerateSecp256k1KeyPair()
+	case KeyTypeP256:
+		return GenerateP256KeyPair()
 	default:
 		return nil, fmt.Errorf("unsupported key type: %s", keyType)
 	}
