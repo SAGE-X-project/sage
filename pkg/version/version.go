@@ -28,7 +28,7 @@ import (
 // Build information. Populated at build-time via ldflags.
 var (
 	// Version is the semantic version (set via ldflags or VERSION file).
-	Version = "1.0.1"
+	Version = "1.3.0"
 
 	// GitCommit is the git commit hash (set via ldflags).
 	GitCommit = ""
