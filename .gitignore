@@ -632,3 +632,5 @@ docs/Todo.md
 
 # Test output files - generated during test execution
 **/testdata/verification/
+**/testdata/fuzz/
+testdata/
