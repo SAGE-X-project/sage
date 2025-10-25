@@ -19,6 +19,7 @@
 package rfc9421
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -27,6 +28,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
@@ -170,6 +172,24 @@ func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicK
 		return fmt.Errorf("signature expired at %d (now %d)", params.Expires, now)
 	}
 
+	// verify body
+	if hasComponentCI(params.CoveredComponents, "content-digest") {
+		body, err := readBodyAndRestore(req)
+		if err != nil {
+			return fmt.Errorf("read body for content-digest: %w", err)
+		}
+
+		expected := computeSHA256DigestHeader(body)
+		actual := strings.TrimSpace(req.Header.Get("Content-Digest"))
+		if actual == "" {
+			return fmt.Errorf("content-digest header missing while covered by signature")
+		}
+
+		if !equalDigestHeader(actual, expected) {
+			return fmt.Errorf("content-digest mismatch: actual=%q expected=%q", actual, expected)
+		}
+	}
+
 	// Build signature base
 	signatureBase, err := v.canonicalizer.BuildSignatureBase(req, sigName, params)
 	if err != nil {
@@ -284,4 +304,48 @@ func parseECDSASignature(sig []byte) (r, s *big.Int, err error) {
 	}
 
 	return nil, nil, fmt.Errorf("ASN.1 parsing not implemented")
+}
+
+func hasComponentCI(covered []string, name string) bool {
+	n := strings.ToLower(strings.TrimSpace(name))
+	for _, c := range covered {
+		clean := strings.ToLower(strings.Trim(strings.TrimSpace(c), `"`))
+		if clean == n {
+			return true
+		}
+	}
+	return false
+}
+
+func readBodyAndRestore(req *http.Request) ([]byte, error) {
+	if req.Body == nil {
+		return []byte{}, nil
+	}
+	b, err := io.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
+	req.Body = io.NopCloser(bytes.NewReader(b))
+	req.ContentLength = int64(len(b))
+	req.GetBody = func() (io.ReadCloser, error) { return io.NopCloser(bytes.NewReader(b)), nil }
+	return b, nil
+}
+
+func computeSHA256DigestHeader(body []byte) string {
+	sum := sha256.Sum256(body)
+	return "sha-256=:" + base64.StdEncoding.EncodeToString(sum[:]) + ":"
+}
+
+func equalDigestHeader(actual string, expected string) bool {
+	if actual == expected {
+		return true
+	}
+	parts := strings.Split(actual, ",")
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if strings.HasPrefix(strings.ToLower(p), "sha-256=") {
+			return p == expected
+		}
+	}
+	return false
 }
