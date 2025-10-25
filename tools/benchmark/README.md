@@ -429,12 +429,12 @@ go test -bench=BenchmarkMemoryUsage -benchmem ./benchmark
 
 ```bash
 # Generate analysis report
-go run ./tools/benchmark/analyze.go \
+go run ./tools/analyze/analyze.go \
   -input tools/benchmark/results/benchmark_20250108.json \
   -output tools/benchmark/results/analysis_20250108.md
 
 # Compare with previous results
-go run ./tools/benchmark/analyze.go \
+go run ./tools/analyze/analyze.go \
   -input tools/benchmark/results/current.json \
   -compare tools/benchmark/results/previous.json \
   -output tools/benchmark/results/comparison.md

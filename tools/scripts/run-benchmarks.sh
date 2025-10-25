@@ -132,7 +132,7 @@ echo ""
 # For now, the raw text results can be analyzed manually
 
 # Generate analysis if analyze.go exists
-if [ -f "./tools/benchmark/analyze.go" ]; then
+if [ -f "./tools/analyze/analyze.go" ]; then
     echo -e "${YELLOW}Generating analysis...${NC}"
 
     ANALYZE_ARGS="-input $RESULTS_FILE -output $ANALYSIS_FILE"
@@ -140,7 +140,7 @@ if [ -f "./tools/benchmark/analyze.go" ]; then
         ANALYZE_ARGS="$ANALYZE_ARGS -compare $COMPARE_WITH"
     fi
 
-    go run ./tools/benchmark/analyze.go $ANALYZE_ARGS
+    go run ./tools/analyze/analyze.go $ANALYZE_ARGS
 
     if [ $? -eq 0 ]; then
         echo "Analysis saved to: $ANALYSIS_FILE"
