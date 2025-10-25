@@ -1,0 +1,53 @@
+# Codecov Configuration
+# https://docs.codecov.com/docs/codecov-yaml
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    # Overall project coverage
+    project:
+      default:
+        target: 80%
+        threshold: 1%
+        if_ci_failed: error
+
+    # PR diff coverage
+    patch:
+      default:
+        target: 75%
+        threshold: 2%
+        if_ci_failed: error
+
+  # Ignore paths
+  ignore:
+    - "**/*_test.go"
+    - "**/testdata/**"
+    - "**/examples/**"
+    - "contracts/ethereum/bindings/**"
+    - "tools/**"
+    - "docs/**"
+    - "sdk/**"
+
+comment:
+  # PR comment settings
+  layout: "reach,diff,flags,files,footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  branches:
+    - main
+    - dev
+
+github_checks:
+  annotations: true
+
+flags:
+  unittests:
+    paths:
+      - pkg/
+      - internal/
+    carryforward: true
