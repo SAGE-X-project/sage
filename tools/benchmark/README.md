@@ -80,7 +80,7 @@ This benchmark suite measures and compares the performance of SAGE's security fe
 ./scripts/run-benchmarks.sh --benchtime 30s --count 10
 
 # Compare with previous results
-./scripts/run-benchmarks.sh --compare benchmark/results/benchmark_20250108_120000.json
+./scripts/run-benchmarks.sh --compare tools/benchmark/results/benchmark_20250108_120000.json
 ```
 
 ### Manual Benchmark Execution
@@ -428,21 +428,16 @@ go test -bench=BenchmarkMemoryUsage -benchmem ./benchmark
 ### Running Analysis Tools
 
 ```bash
-# Parse raw benchmark output to JSON
-go run ./benchmark/tools/parse.go \
-  -input benchmark/results/benchmark_20250108.txt \
-  -output benchmark/results/benchmark_20250108.json
-
 # Generate analysis report
-go run ./benchmark/tools/analyze.go \
-  -input benchmark/results/benchmark_20250108.json \
-  -output benchmark/results/analysis_20250108.md
+go run ./tools/benchmark/analyze.go \
+  -input tools/benchmark/results/benchmark_20250108.json \
+  -output tools/benchmark/results/analysis_20250108.md
 
 # Compare with previous results
-go run ./benchmark/tools/analyze.go \
-  -input benchmark/results/current.json \
-  -compare benchmark/results/previous.json \
-  -output benchmark/results/comparison.md
+go run ./tools/benchmark/analyze.go \
+  -input tools/benchmark/results/current.json \
+  -compare tools/benchmark/results/previous.json \
+  -output tools/benchmark/results/comparison.md
 ```
 
 ### Interpreting Analysis
@@ -519,7 +514,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-results
-          path: benchmark/results/
+          path: tools/benchmark/results/
 ```
 
 ## Optimization Guidelines
