@@ -41,12 +41,12 @@ if [[ ! " ${VALID_SCENARIOS[@]} " =~ " ${SCENARIO} " ]]; then
 fi
 
 # Create reports directory
-mkdir -p loadtest/reports
+mkdir -p tools/loadtest/reports
 
 # Function to run a single test
 run_test() {
     local test_name=$1
-    local script_path="loadtest/scenarios/${test_name}.js"
+    local script_path="tools/loadtest/scenarios/${test_name}.js"
 
     if [ ! -f "$script_path" ]; then
         echo -e "${RED}Error: Test script not found: ${script_path}${NC}"
@@ -62,8 +62,8 @@ run_test() {
 
     # Run k6 test
     k6 run \
-        --out json="loadtest/reports/${test_name}-results.json" \
-        --summary-export="loadtest/reports/${test_name}-summary.json" \
+        --out json="tools/loadtest/reports/${test_name}-results.json" \
+        --summary-export="tools/loadtest/reports/${test_name}-summary.json" \
         "$script_path"
 
     local exit_code=$?
