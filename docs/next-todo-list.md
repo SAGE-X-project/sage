@@ -323,33 +323,37 @@
 
 ---
 
-### 13. 테스트 커버리지 리포팅
+### 13. 테스트 커버리지 리포팅 ✅ **완료**
 
-**현재 상태:**
-- 테스트는 잘 작성되어 있음
-- 커버리지 메트릭 없음
+**완료 상태:**
+- ✅ GitHub Actions에 coverage 리포팅 이미 구현됨
+- ✅ Codecov 통합 완료 (README 배지 포함)
+- ✅ codecov.yml 설정 파일 추가
+- ✅ 최소 커버리지 임계값 설정 (project: 80%, patch: 75%)
+- ✅ PR 코멘트 자동 설정
+- ✅ 완료 일자: 2025-10-26
 
-**작업:**
-- [ ] GitHub Actions에 coverage 리포팅 추가
-- [ ] Codecov 또는 Coveralls 통합
-- [ ] 최소 커버리지 임계값 설정 (예: 80%)
-- [ ] PR에 커버리지 변경사항 표시
+**구현 내용:**
+- GitHub Actions workflow (.github/workflows/test.yml)
+  - 커버리지 수집: `go test -coverprofile=coverage.out -covermode=atomic`
+  - Codecov 업로드: codecov-action@v5
+  - HTML 리포트 생성 및 artifact 업로드
+- Codecov 설정 (codecov.yml)
+  - Project 커버리지 목표: 80%
+  - PR diff 커버리지 목표: 75%
+  - 테스트 파일, examples, tools, contracts 제외
+  - PR 코멘트 자동 생성
+  - GitHub checks annotations 활성화
 
-**예시 설정:**
-```yaml
-# .github/workflows/test.yml
-- name: Test with coverage
-  run: go test -coverprofile=coverage.out ./...
-
-- name: Upload coverage
-  uses: codecov/codecov-action@v3
-  with:
-    files: ./coverage.out
-```
+**현재 커버리지:**
+- 핵심 crypto 패키지: 60-90%
+- Transport layer: 80-93%
+- Session management: 54.5%
+- DID operations: 70.1%
 
 **영향도:** ⭐⭐⭐ (중간)
-**소요시간:** 2-3시간
-**ROI:** 중간
+**실제 소요시간:** 30분 (이미 대부분 구현됨, 설정 파일만 추가)
+**ROI:** 높음
 
 ---
 
@@ -368,8 +372,8 @@
 | 🟢 일반 | 벤치마크 문서 | 낮음 | 1시간 | ⭐⭐ |
 | 🟢 일반 | 부하 테스트 확장 | 중간 | 2-4시간 | ⭐⭐ |
 | ✅ 완료 | 버전 동기화 스크립트 | 높음 | 1.5시간 | ⭐⭐⭐⭐ |
+| ✅ 완료 | 커버리지 리포팅 | 중간 | 30분 | ⭐⭐⭐⭐ |
 | ⚪ 유지보수 | 문서 정기 감사 | 중간 | 월 30분 | ⭐⭐⭐ |
-| ⚪ 유지보수 | 커버리지 리포팅 | 중간 | 2-3시간 | ⭐⭐⭐ |
 
 ---
 
