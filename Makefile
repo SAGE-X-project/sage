@@ -604,6 +604,12 @@ clean:
 	@echo "Cleaning Rust build artifacts..."
 	@rm -rf target/
 	@rm -rf contracts/solana/target/
+	@echo "Cleaning SDK artifacts..."
+	@find sdk/ -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find sdk/ -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find sdk/ -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
+	@find sdk/ -type d -name "target" -exec rm -rf {} + 2>/dev/null || true
+	@find sdk/ -type f -name "Cargo.lock" -delete 2>/dev/null || true
 	@echo "Cleaning test artifacts..."
 	@rm -rf integration/tests/integration/
 	@rm -rf integration/tests/session/
