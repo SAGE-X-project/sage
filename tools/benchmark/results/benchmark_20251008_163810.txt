@@ -1,2 +1,0 @@
-FAIL	github.com/sage-x-project/sage/benchmark [build failed]
-FAIL

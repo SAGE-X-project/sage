@@ -586,6 +586,7 @@ test_accounts.json
 
 # Test reports and coverage
 reports/
+tools/benchmark/results/
 *.out
 
 # Python build artifacts
