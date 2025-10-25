@@ -601,11 +601,28 @@ clean:
 	@find . -name "*.out" -type f -delete
 	@find . -name "*.log" -type f -delete
 	@find . -type d -name "__debug_bin*" -exec rm -rf {} + 2>/dev/null || true
+	@echo "Cleaning Rust build artifacts..."
+	@rm -rf target/
+	@rm -rf contracts/solana/target/
+	@echo "Cleaning test artifacts..."
+	@rm -rf integration/tests/integration/
+	@rm -rf integration/tests/session/
+	@echo "Cleaning loadtest results..."
+	@rm -rf tools/loadtest/analysis/*
+	@rm -rf tools/loadtest/reports/*
+	@echo "Cleaning user data and reports..."
+	@rm -rf keys/
+	@rm -rf logs/
+	@rm -rf reports/
+	@rm -rf testutil/
+	@rm -rf random/
+	@rm -rf handshake/
+	@rm -rf integration/
 	@echo "Clean complete"
 
 # Clean everything including reports
 .PHONY: clean-all
-clean-all: clean clean-reports
+clean-all: clean
 	@echo "Full clean complete"
 
 # Install binaries to GOPATH/bin
