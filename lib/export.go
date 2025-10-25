@@ -30,7 +30,7 @@ import (
 //
 //export SageVersion
 func SageVersion() *C.char {
-	return C.CString("1.0.0")
+	return C.CString("1.3.0")
 }
 
 // Initialize initializes the Sage library
