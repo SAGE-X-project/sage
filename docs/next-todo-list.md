@@ -220,20 +220,64 @@
 
 ## 🟢 일반 작업 (Low Priority)
 
-### 7. Internal 패키지 문서화
+### 7. Internal 패키지 문서화 ✅ **완료**
 
 **대상:**
-- [ ] `internal/utils/README.md`
-- [ ] `internal/testutils/README.md`
+- [x] `internal/cryptoinit/README.md` - 암호화 서브시스템 초기화 문서 (347줄)
+- [x] `internal/logger/README.md` - 구조화된 로깅 시스템 문서 (750줄)
+- [x] `internal/metrics/README.md` - Prometheus 메트릭 수집 문서 (900줄)
+- [x] `internal/sessioninit/README.md` - 핸드셰이크-세션 통합 문서 (620줄)
 
-**내용:**
-- 각 유틸리티 함수 설명
-- 사용 예제
-- 테스트 헬퍼 사용법
+**완료 일자:** 2025-10-26
 
-**영향도:** ⭐⭐ (낮음 - 내부 유지보수용)
-**소요시간:** 1시간
-**ROI:** 낮음
+**완료 내용:**
+
+**internal/cryptoinit (347줄):**
+- 패키지 목적 및 아키텍처 설명
+- 등록된 컴포넌트 (Ed25519, Secp256k1, P-256 키 생성기)
+- Storage 및 Format constructors (JWK, PEM)
+- 초기화 검증 및 사용 예제
+- 설계 결정 사항 (init() 함수 사용 이유)
+
+**internal/logger (750줄):**
+- 구조화된 로깅 인터페이스 (Logger, Field, Level)
+- Context 통합 및 영구 필드 관리
+- SageError 타입 사용법
+- 로그 레벨 제어 및 필드 타입
+- Best practices (적절한 로그 레벨, 타입 안전 필드, 컨텍스트 전파)
+- 성능 고려사항 (조건부 디버그 로깅, 필드 할당 최적화)
+- HTTP/Crypto/Session 로깅 패턴
+
+**internal/metrics (900줄):**
+- Prometheus 메트릭 카테고리 (crypto, handshake, message, session)
+- 메트릭 기록 예제 (Counter, Gauge, Histogram)
+- 커스텀 메트릭 수집기 (타이밍, 퍼센타일)
+- HTTP /metrics 엔드포인트 설정
+- Prometheus 쿼리 예제 및 Grafana 대시보드
+- 경고 규칙 (에러율, 리플레이 공격, 느린 연산)
+- Best practices (일관된 라벨링, 낮은 카디널리티)
+
+**internal/sessioninit (620줄):**
+- handshake.Events 인터페이스 구현
+- 임시 X25519 키 관리 (AskEphemeral, OnComplete)
+- 세션 생성 플로우 (핸드셰이크 → 세션)
+- Key ID 생성 및 바인딩 (IssueKeyID)
+- 설계 결정 사항 (결정론적 세션, 임시 키 저장)
+- 보안 고려사항 (키 수명주기, 컨텍스트 고유성)
+- 완전한 통합 예제 및 커스텀 이벤트 핸들링
+
+**총 통계:**
+- 총 라인 수: 2,617 lines
+- 평균 패키지당: ~654 lines
+- 모든 패키지에 아키텍처 다이어그램, 사용 예제, Best practices 포함
+
+**참고:**
+- 원래 계획된 `internal/utils`와 `internal/testutils`는 존재하지 않음
+- 실제 internal 디렉토리 구조를 분석하여 문서화
+
+**영향도:** ⭐⭐⭐ (중간 - 내부 개발자 온보딩 및 유지보수)
+**실제 소요시간:** 2시간
+**ROI:** 중간
 
 ---
 
@@ -448,7 +492,7 @@
 | ✅ 완료 | TODO/FIXME 처리 | 높음 | 3-4시간 | ⭐⭐⭐⭐ |
 | 🟡 중요 | A2A/gRPC Transport | 매우 높음 | 1-2주 | ⭐⭐⭐ |
 | ✅ 완료 | SDK 문서 개선 | 높음 | 5시간 | ⭐⭐⭐⭐ |
-| 🟢 일반 | Internal 문서 | 낮음 | 1시간 | ⭐⭐ |
+| ✅ 완료 | Internal 문서 | 중간 | 2시간 | ⭐⭐⭐ |
 | ✅ 완료 | ADR 작성 | 높음 | 7시간 | ⭐⭐⭐⭐ |
 | ✅ 완료 | 벤치마크 문서 | 중간 | 1시간 | ⭐⭐⭐ |
 | ✅ 완료 | 부하 테스트 확장 | 높음 | 2.5시간 | ⭐⭐⭐⭐ |
