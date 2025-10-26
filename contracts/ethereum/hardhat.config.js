@@ -1,5 +1,7 @@
-require("@nomicfoundation/hardhat-toolbox");
-require("dotenv").config();
+import hardhatToolboxMochaEthers from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // ============================================
 // CONFIGURATION VALIDATION
@@ -27,22 +29,26 @@ const parseGasPrice = (envKey, defaultGwei) => {
 const networks = {
   // Local Development Networks
   hardhat: {
+    type: "edr-simulated",
     chainId: 31337,
     blockGasLimit: 30000000, // 30M gas limit for complex governance operations
     mining: {
       auto: true,
       interval: 0
-    }
+    },
+    allowBlocksWithSameTimestamp: true
   },
-  
+
   localhost: {
+    type: "http",
     url: getEnvVariable("LOCALHOST_RPC_URL", "http://127.0.0.1:8545"),
     chainId: 31337,
     timeout: 60000
   },
-  
+
   // Kaia Testnet (Kairos)
   kairos: {
+    type: "http",
     url: getEnvVariable("KAIROS_RPC_URL", "https://public-en-kairos.node.kaia.io"),
     chainId: 1001,
     accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
@@ -51,26 +57,28 @@ const networks = {
     timeout: 60000,
     confirmations: 2
   },
-  
+
   // Kaia Mainnet (Cypress)
   kaia: {
+    type: "http",
     url: getEnvVariable("KAIA_RPC_URL", "https://public-en.node.kaia.io"),
     chainId: 8217,
-    accounts: process.env.MAINNET_PRIVATE_KEY 
-      ? [process.env.MAINNET_PRIVATE_KEY] 
+    accounts: process.env.MAINNET_PRIVATE_KEY
+      ? [process.env.MAINNET_PRIVATE_KEY]
       : (process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []),
     gasPrice: parseGasPrice("GAS_PRICE_GWEI", "250"),
     gas: parseInt(getEnvVariable("GAS_LIMIT", "3000000")),
     timeout: 60000,
     confirmations: 2
   },
-  
+
   // Alias for Kaia Mainnet
   cypress: {
+    type: "http",
     url: getEnvVariable("KAIA_RPC_URL", "https://public-en.node.kaia.io"),
     chainId: 8217,
-    accounts: process.env.MAINNET_PRIVATE_KEY 
-      ? [process.env.MAINNET_PRIVATE_KEY] 
+    accounts: process.env.MAINNET_PRIVATE_KEY
+      ? [process.env.MAINNET_PRIVATE_KEY]
       : (process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []),
     gasPrice: parseGasPrice("GAS_PRICE_GWEI", "250"),
     gas: parseInt(getEnvVariable("GAS_LIMIT", "3000000")),
@@ -82,9 +90,10 @@ const networks = {
 // Optional: Add Sepolia testnet support if configured
 if (process.env.SEPOLIA_RPC_URL) {
   networks.sepolia = {
+    type: "http",
     url: process.env.SEPOLIA_RPC_URL,
     chainId: 11155111,
-    accounts: process.env.SEPOLIA_PRIVATE_KEY 
+    accounts: process.env.SEPOLIA_PRIVATE_KEY
       ? [process.env.SEPOLIA_PRIVATE_KEY]
       : (process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []),
     gasPrice: "auto",
@@ -122,10 +131,11 @@ const solidityConfig = {
       bytecodeHash: "ipfs"
     }
   },
-  // Exclude deprecated contracts from compilation
+  // Exclude deprecated contracts and tests from compilation
   exclude: [
     "contracts/**/deprecated/**",
-    "contracts/**/archive/**"
+    "contracts/**/archive/**",
+    "test/**/deprecated/**"
   ]
 };
 
@@ -186,11 +196,13 @@ const gasReporterConfig = {
 // MAIN CONFIGURATION EXPORT
 // ============================================
 
-module.exports = {
+export default {
+  plugins: [hardhatToolboxMochaEthers],
+
   defaultNetwork: "hardhat",
-  
+
   solidity: solidityConfig,
-  
+
   networks: networks,
   
   etherscan: etherscanConfig,

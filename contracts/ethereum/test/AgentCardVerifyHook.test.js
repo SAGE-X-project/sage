@@ -15,8 +15,12 @@
  * @see VERIFICATION_MATRIX.md (Section: AgentCardVerifyHook)
  */
 
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import { parseEther, keccak256, AbiCoder, Wallet, ZeroAddress } from "ethers";
+import { network } from "hardhat";
+
+// Initialize ethers from network connection
+const { ethers } = await network.connect();
 
 describe("AgentCardVerifyHook", function () {
     let hook;
@@ -57,7 +61,7 @@ describe("AgentCardVerifyHook", function () {
             // THEN: Should not revert
             await expect(
                 hook.beforeRegister(validDID, user1.address, keys)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         /**
@@ -125,9 +129,9 @@ describe("AgentCardVerifyHook", function () {
 
             // WHEN: Validate DIDs
             // THEN: All should be accepted
-            await expect(hook.beforeRegister(did1, user1.address, keys)).to.not.be.reverted;
-            await expect(hook.beforeRegister(did2, user2.address, keys)).to.not.be.reverted;
-            await expect(hook.beforeRegister(did3, user3.address, keys)).to.not.be.reverted;
+            await expect(hook.beforeRegister(did1, user1.address, keys)).to.not.be.revert(ethers);
+            await expect(hook.beforeRegister(did2, user2.address, keys)).to.not.be.revert(ethers);
+            await expect(hook.beforeRegister(did3, user3.address, keys)).to.not.be.revert(ethers);
         });
 
         /**
@@ -145,7 +149,7 @@ describe("AgentCardVerifyHook", function () {
             // THEN: Should not revert
             await expect(
                 hook.beforeRegister(didWithAddress, user1.address, keys)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
     });
 
@@ -168,7 +172,7 @@ describe("AgentCardVerifyHook", function () {
             // THEN: Should not revert
             await expect(
                 hook.beforeRegister(did, user1.address, keys)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         /**
@@ -200,7 +204,7 @@ describe("AgentCardVerifyHook", function () {
             const keys = [validKey1];
 
             for (let i = 0; i < 24; i++) {
-                const keyHash = ethers.keccak256(ethers.randomBytes(65));
+                const keyHash = keccak256(ethers.randomBytes(65));
                 await hook.markKeyUsed(keyHash, user1.address);
             }
 
@@ -235,7 +239,7 @@ describe("AgentCardVerifyHook", function () {
             const newDID = "did:sage:ethereum:0xnew1234567890123456789012345678901234567";
             await expect(
                 hook.beforeRegister(newDID, user1.address, keys)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         /**
@@ -249,7 +253,7 @@ describe("AgentCardVerifyHook", function () {
 
             // WHEN: user1 registers 24 times (using markKeyUsed to update count)
             for (let i = 0; i < 24; i++) {
-                const keyHash = ethers.keccak256(ethers.randomBytes(65));
+                const keyHash = keccak256(ethers.randomBytes(65));
                 await hook.markKeyUsed(keyHash, user1.address);
             }
 
@@ -257,7 +261,7 @@ describe("AgentCardVerifyHook", function () {
             const user2DID = "did:sage:ethereum:user20000000000000000000000000000000000000";
             await expect(
                 hook.beforeRegister(user2DID, user2.address, keys)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
 
             // AND: user1 should be rate limited
             const user1Extra = "did:sage:ethereum:user1extra000000000000000000000000000";
@@ -325,7 +329,7 @@ describe("AgentCardVerifyHook", function () {
             // THEN: Should not revert
             await expect(
                 hook.beforeRegister(did, user1.address, keys)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         /**
@@ -368,7 +372,7 @@ describe("AgentCardVerifyHook", function () {
             const keys = [validKey1];
             await expect(
                 hook.beforeRegister(did, malicious.address, keys)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         /**
@@ -418,22 +422,22 @@ describe("AgentCardVerifyHook", function () {
             // WHEN/THEN: Attempting to add to blacklist should revert
             await expect(
                 hook.connect(user1).addToBlacklist(malicious.address)
-            ).to.be.reverted;
+            ).to.be.revert(ethers);
 
             // WHEN/THEN: Attempting to remove from blacklist should revert
             await expect(
                 hook.connect(user1).removeFromBlacklist(malicious.address)
-            ).to.be.reverted;
+            ).to.be.revert(ethers);
 
             // WHEN/THEN: Attempting to add to whitelist should revert
             await expect(
                 hook.connect(user1).addToWhitelist(user2.address)
-            ).to.be.reverted;
+            ).to.be.revert(ethers);
 
             // WHEN/THEN: Attempting to remove from whitelist should revert
             await expect(
                 hook.connect(user1).removeFromWhitelist(user2.address)
-            ).to.be.reverted;
+            ).to.be.revert(ethers);
         });
     });
 
@@ -454,7 +458,7 @@ describe("AgentCardVerifyHook", function () {
 
             // First registration - mark key as used
             await hook.beforeRegister(did1, user1.address, [sharedKey]);
-            await hook.markKeyUsed(ethers.keccak256(sharedKey), user1.address);
+            await hook.markKeyUsed(keccak256(sharedKey), user1.address);
 
             // WHEN: Different user tries to use same key
             const did2 = "did:sage:ethereum:user20000000000000000000000000000000000000";
@@ -473,7 +477,7 @@ describe("AgentCardVerifyHook", function () {
         it("H2.4.2: Should track key-to-owner mapping correctly", async function () {
             // GIVEN: Key registered to user1
             const key = validKey1;
-            const keyHash = ethers.keccak256(key);
+            const keyHash = keccak256(key);
 
             // WHEN: Mark key as used by user1
             await hook.markKeyUsed(keyHash, user1.address);
@@ -490,7 +494,7 @@ describe("AgentCardVerifyHook", function () {
         it("H2.4.3: Should allow same owner to reuse their own key", async function () {
             // GIVEN: Key already used by user1
             const key = validKey1;
-            const keyHash = ethers.keccak256(key);
+            const keyHash = keccak256(key);
             const did1 = "did:sage:ethereum:user1first00000000000000000000000000000";
 
             await hook.beforeRegister(did1, user1.address, [key]);
@@ -520,10 +524,10 @@ describe("AgentCardVerifyHook", function () {
         it("H2.5.1: Should allow marking key as used (test helper)", async function () {
             // GIVEN: A new key
             const key = validKey1;
-            const keyHash = ethers.keccak256(key);
+            const keyHash = keccak256(key);
 
             // Verify key not used initially
-            expect(await hook.keyToOwner(keyHash)).to.equal(ethers.ZeroAddress);
+            expect(await hook.keyToOwner(keyHash)).to.equal(ZeroAddress);
 
             // WHEN: Mark key as used
             await hook.markKeyUsed(keyHash, user1.address);

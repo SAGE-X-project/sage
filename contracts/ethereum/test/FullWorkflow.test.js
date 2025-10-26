@@ -1,5 +1,9 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import { parseEther, keccak256, AbiCoder, Wallet, ZeroAddress } from "ethers";
+import { network } from "hardhat";
+
+// Initialize ethers from network connection
+const { ethers } = await network.connect();
 
 /**
  * Full Workflow Integration Test Suite
@@ -18,7 +22,7 @@ describe("Full Workflow Integration", () => {
     let user1;
     let user2;
 
-    const STAKE = ethers.parseEther("0.01");
+    const STAKE = parseEther("0.01");
     const ACTIVATION_DELAY = 3600; // 1 hour
     let chainId;
     let registryAddress;
@@ -43,8 +47,8 @@ describe("Full Workflow Integration", () => {
     }
 
     async function commitAndAdvanceTime(user, did, keys, salt) {
-        const commitHash = ethers.keccak256(
-            ethers.AbiCoder.defaultAbiCoder().encode(
+        const commitHash = keccak256(
+            AbiCoder.defaultAbiCoder().encode(
                 ["string", "bytes[]", "address", "bytes32", "uint256"],
                 [did, keys, user.address, salt, chainId]
             )

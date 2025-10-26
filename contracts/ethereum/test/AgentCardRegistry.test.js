@@ -14,8 +14,12 @@
  * - REFACTOR: Optimize implementation
  */
 
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import { parseEther, keccak256, AbiCoder, Wallet, ZeroAddress } from "ethers";
+import { network } from "hardhat";
+
+// Initialize ethers from network connection
+const { ethers } = await network.connect();
 
 describe("AgentCardRegistry", function () {
     let registry;
@@ -29,7 +33,7 @@ describe("AgentCardRegistry", function () {
     let wallet1, wallet2, wallet3;
     let chainId, registryAddress;
 
-    const STAKE = ethers.parseEther("0.01");
+    const STAKE = parseEther("0.01");
     const MIN_DELAY = 60; // 1 minute
     const MAX_DELAY = 3600; // 1 hour
     const ACTIVATION_DELAY = 3600; // 1 hour
@@ -51,8 +55,8 @@ describe("AgentCardRegistry", function () {
 
     // Helper function to commit and advance time
     async function commitAndAdvanceTime(user, did, keys, salt) {
-        const commitHash = ethers.keccak256(
-            ethers.AbiCoder.defaultAbiCoder().encode(
+        const commitHash = keccak256(
+            AbiCoder.defaultAbiCoder().encode(
                 ["string", "bytes[]", "address", "bytes32", "uint256"],
                 [did, keys, user.address, salt, chainId]
             )
@@ -91,9 +95,9 @@ describe("AgentCardRegistry", function () {
         registryAddress = await registry.getAddress();
 
         // Create test wallets for key generation
-        wallet1 = ethers.Wallet.createRandom();
-        wallet2 = ethers.Wallet.createRandom();
-        wallet3 = ethers.Wallet.createRandom();
+        wallet1 = Wallet.createRandom();
+        wallet2 = Wallet.createRandom();
+        wallet3 = Wallet.createRandom();
 
         // Generate test data
         validDID1 = `did:sage:ethereum:${user1.address.toLowerCase()}`;
@@ -118,8 +122,8 @@ describe("AgentCardRegistry", function () {
 
         it("R3.1.1: Should require sufficient stake for commitment", async function () {
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )
@@ -127,19 +131,19 @@ describe("AgentCardRegistry", function () {
 
             // Insufficient stake
             await expect(
-                registry.connect(user1).commitRegistration(commitHash, { value: ethers.parseEther("0.005") })
+                registry.connect(user1).commitRegistration(commitHash, { value: parseEther("0.005") })
             ).to.be.revertedWith("Insufficient stake");
 
             // Sufficient stake
             await expect(
                 registry.connect(user1).commitRegistration(commitHash, { value: STAKE })
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         it("R3.1.2: Should store commitment correctly", async function () {
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )
@@ -154,8 +158,8 @@ describe("AgentCardRegistry", function () {
 
         it("R3.1.3: Should reject reveal if too soon (<1 min)", async function () {
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )
@@ -180,8 +184,8 @@ describe("AgentCardRegistry", function () {
 
         it("R3.1.4: Should reject reveal if too late (>1 hour)", async function () {
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )
@@ -211,8 +215,8 @@ describe("AgentCardRegistry", function () {
             const salt = ethers.randomBytes(32);
             const wrongSalt = ethers.randomBytes(32);
 
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )
@@ -244,8 +248,8 @@ describe("AgentCardRegistry", function () {
             const salt = ethers.randomBytes(32);
             const wrongSalt = ethers.randomBytes(32);
 
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )
@@ -274,8 +278,8 @@ describe("AgentCardRegistry", function () {
             const salt = ethers.randomBytes(32);
 
             // Create commitment with wrong chainId
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, 1] // Wrong chainId
                 )
@@ -303,8 +307,8 @@ describe("AgentCardRegistry", function () {
 
         it("R3.1.8: Should prevent front-running attack", async function () {
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )
@@ -315,8 +319,8 @@ describe("AgentCardRegistry", function () {
 
             // Attacker sees commitment and tries to commit same DID
             const attackerSalt = ethers.randomBytes(32);
-            const attackerCommitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const attackerCommitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey3], attacker.address, attackerSalt, chainId]
                 )
@@ -361,8 +365,8 @@ describe("AgentCardRegistry", function () {
 
         it("R3.1.9: Should emit CommitmentRecorded event", async function () {
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )
@@ -411,7 +415,7 @@ describe("AgentCardRegistry", function () {
             const sigs = [];
 
             for (let i = 0; i < 10; i++) {
-                const wallet = ethers.Wallet.createRandom();
+                const wallet = Wallet.createRandom();
                 keys.push(wallet.publicKey);
                 types.push(0); // ECDSA
                 sigs.push(await createSignature(user1));
@@ -463,7 +467,7 @@ describe("AgentCardRegistry", function () {
             const sigs = [];
 
             for (let i = 0; i < 11; i++) {
-                const wallet = ethers.Wallet.createRandom();
+                const wallet = Wallet.createRandom();
                 keys.push(wallet.publicKey);
                 types.push(0);
                 sigs.push(await createSignature(user1));
@@ -501,7 +505,7 @@ describe("AgentCardRegistry", function () {
 
             await expect(
                 registry.connect(user1).registerAgentWithParams(params)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         it("R3.2.6: Should support Ed25519 keys", async function () {
@@ -522,7 +526,7 @@ describe("AgentCardRegistry", function () {
 
             await expect(
                 registry.connect(user1).registerAgentWithParams(params)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         it("R3.2.7: Should support X25519 keys", async function () {
@@ -543,7 +547,7 @@ describe("AgentCardRegistry", function () {
 
             await expect(
                 registry.connect(user1).registerAgentWithParams(params)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         it("R3.2.8: Should support mixed key types", async function () {
@@ -622,8 +626,8 @@ describe("AgentCardRegistry", function () {
             await registry.connect(user1).registerAgentWithParams(params);
             const agentId = await registry.didToAgentId(validDID1);
 
-            const keyHash1 = ethers.keccak256(validKey1);
-            const keyHash2 = ethers.keccak256(validKey2);
+            const keyHash1 = keccak256(validKey1);
+            const keyHash2 = keccak256(validKey2);
 
             const key1 = await registry.getKey(keyHash1);
             const key2 = await registry.getKey(keyHash2);
@@ -730,7 +734,7 @@ describe("AgentCardRegistry", function () {
                     0, // ECDSA
                     sig
                 )
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
 
             const agent = await registry.getAgent(agentId);
             expect(agent.keyHashes.length).to.equal(2);
@@ -739,7 +743,7 @@ describe("AgentCardRegistry", function () {
         it("R3.3.2: Should reject addKey if max keys reached", async function () {
             // Add 9 more keys (total 10)
             for (let i = 0; i < 9; i++) {
-                const wallet = ethers.Wallet.createRandom();
+                const wallet = Wallet.createRandom();
                 const sig = await createSignature(user1);
 
                 await registry.connect(user1).addKey(
@@ -751,7 +755,7 @@ describe("AgentCardRegistry", function () {
             }
 
             // Try to add 11th key
-            const wallet11 = ethers.Wallet.createRandom();
+            const wallet11 = Wallet.createRandom();
             const sig11 = await createSignature(user1);
 
             await expect(
@@ -799,18 +803,18 @@ describe("AgentCardRegistry", function () {
             );
 
             // Now revoke first key
-            const keyHash1 = ethers.keccak256(validKey1);
+            const keyHash1 = keccak256(validKey1);
 
             await expect(
                 registry.connect(user1).revokeKey(agentId, keyHash1)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
 
             const agent = await registry.getAgent(agentId);
             expect(agent.keyHashes.length).to.equal(1);
         });
 
         it("R3.3.6: Should reject revokeKey if last key", async function () {
-            const keyHash1 = ethers.keccak256(validKey1);
+            const keyHash1 = keccak256(validKey1);
 
             await expect(
                 registry.connect(user1).revokeKey(agentId, keyHash1)
@@ -827,7 +831,7 @@ describe("AgentCardRegistry", function () {
                 sig
             );
 
-            const keyHash1 = ethers.keccak256(validKey1);
+            const keyHash1 = keccak256(validKey1);
 
             await expect(
                 registry.connect(user2).revokeKey(agentId, keyHash1)
@@ -850,14 +854,14 @@ describe("AgentCardRegistry", function () {
             expect(agent1.keyHashes.length).to.equal(2);
 
             // Revoke old key
-            const keyHash1 = ethers.keccak256(validKey1);
+            const keyHash1 = keccak256(validKey1);
             await registry.connect(user1).revokeKey(agentId, keyHash1);
 
             const agent2 = await registry.getAgent(agentId);
             expect(agent2.keyHashes.length).to.equal(1);
 
             // Verify only key2 remains
-            const keyHash2 = ethers.keccak256(validKey2);
+            const keyHash2 = keccak256(validKey2);
             expect(agent2.keyHashes[0]).to.equal(keyHash2);
         });
 
@@ -874,7 +878,7 @@ describe("AgentCardRegistry", function () {
             ).to.emit(registry, "KeyAdded");
 
             // Test KeyRevoked event
-            const keyHash1 = ethers.keccak256(validKey1);
+            const keyHash1 = keccak256(validKey1);
             await expect(
                 registry.connect(user1).revokeKey(agentId, keyHash1)
             ).to.emit(registry, "KeyRevoked");
@@ -991,7 +995,7 @@ describe("AgentCardRegistry", function () {
             // User2 (not owner) can activate
             await expect(
                 registry.connect(user2).activateAgent(agentId)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
 
             const agent = await registry.getAgent(agentId);
             expect(agent.active).to.be.true;
@@ -1066,13 +1070,13 @@ describe("AgentCardRegistry", function () {
             // Register normally
             await expect(
                 registry.connect(user1).registerAgentWithParams(params)
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         it("R3.5.2: Should allow emergency pause", async function () {
             await expect(
                 registry.connect(owner).pause()
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
 
             // Verify paused
             expect(await registry.paused()).to.be.true;
@@ -1082,8 +1086,8 @@ describe("AgentCardRegistry", function () {
             await registry.connect(owner).pause();
 
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )
@@ -1092,7 +1096,7 @@ describe("AgentCardRegistry", function () {
             // All pausable operations should revert
             await expect(
                 registry.connect(user1).commitRegistration(commitHash, { value: STAKE })
-            ).to.be.reverted; // Pausable: paused
+            ).to.be.revert(ethers); // Pausable: paused
         });
 
         it("R3.5.4: Should require two-step ownership transfer", async function () {
@@ -1114,7 +1118,7 @@ describe("AgentCardRegistry", function () {
         it("R3.5.5: Should only allow owner to pause", async function () {
             await expect(
                 registry.connect(user1).pause()
-            ).to.be.reverted; // Ownable: caller is not the owner
+            ).to.be.revert(ethers); // Ownable: caller is not the owner
         });
 
         it("R3.5.6: Should only allow owner to unpause", async function () {
@@ -1122,18 +1126,18 @@ describe("AgentCardRegistry", function () {
 
             await expect(
                 registry.connect(user1).unpause()
-            ).to.be.reverted; // Ownable: caller is not the owner
+            ).to.be.revert(ethers); // Ownable: caller is not the owner
 
             // Owner can unpause
             await expect(
                 registry.connect(owner).unpause()
-            ).to.not.be.reverted;
+            ).to.not.be.revert(ethers);
         });
 
         it("R3.5.7: Should manage stake correctly", async function () {
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )
@@ -1154,16 +1158,16 @@ describe("AgentCardRegistry", function () {
             const salt = ethers.randomBytes(32);
 
             // Commitment with chain 1
-            const commitHash1 = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHash1 = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, 1]
                 )
             );
 
             // Commitment with current chain
-            const commitHashCurrent = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
+            const commitHashCurrent = keccak256(
+                AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
                     [validDID1, [validKey1], user1.address, salt, chainId]
                 )

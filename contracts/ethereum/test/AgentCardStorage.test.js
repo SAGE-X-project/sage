@@ -1,5 +1,9 @@
-const { expect } = require("chai");
-const { ethers } = require("hardhat");
+import { expect } from "chai";
+import { parseEther, keccak256, AbiCoder, Wallet, ZeroAddress } from "ethers";
+import { network } from "hardhat";
+
+// Initialize ethers from network connection
+const { ethers } = await network.connect();
 
 /**
  * AgentCardStorage Test Suite
@@ -87,7 +91,7 @@ describe("AgentCardStorage", function () {
          */
         it("S1.1.2: Should create AgentKey with all 5 fields", async function () {
             const keyHash = ethers.id("test-key-1");
-            const wallet = ethers.Wallet.createRandom();
+            const wallet = Wallet.createRandom();
             const message = "Test message";
             const signature = await wallet.signMessage(message);
 
@@ -383,7 +387,7 @@ describe("AgentCardStorage", function () {
          */
         it("S1.2.8: Should prevent public key reuse", async function () {
             const publicKey = "0x04" + "a".repeat(128);
-            const keyHash = ethers.keccak256(ethers.toUtf8Bytes(publicKey));
+            const keyHash = keccak256(ethers.toUtf8Bytes(publicKey));
 
             // Initially key should not be used
             let isUsed = await storage.isPublicKeyUsed(keyHash);
