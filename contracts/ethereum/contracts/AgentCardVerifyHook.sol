@@ -151,15 +151,15 @@ contract AgentCardVerifyHook is Ownable2Step {
         // Check prefix "did:sage:" first (before length check)
         require(
             didBytes.length >= 9 &&
-            didBytes[0] == 'd' &&
-            didBytes[1] == 'i' &&
-            didBytes[2] == 'd' &&
-            didBytes[3] == ':' &&
-            didBytes[4] == 's' &&
-            didBytes[5] == 'a' &&
-            didBytes[6] == 'g' &&
-            didBytes[7] == 'e' &&
-            didBytes[8] == ':',
+            didBytes[0] == 0x64 && // "d"
+            didBytes[1] == 0x69 && // "i"
+            didBytes[2] == 0x64 && // "d"
+            didBytes[3] == 0x3a && // ":"
+            didBytes[4] == 0x73 && // "s"
+            didBytes[5] == 0x61 && // "a"
+            didBytes[6] == 0x67 && // "g"
+            didBytes[7] == 0x65 && // "e"
+            didBytes[8] == 0x3a,   // ":"
             "Invalid DID prefix"
         );
 
