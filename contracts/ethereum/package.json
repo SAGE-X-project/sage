@@ -78,7 +78,7 @@
     "hardhat": "^3.0.9",
     "prettier": "^2.8.0",
     "prettier-plugin-solidity": "^1.1.0",
-    "solhint": "^3.6.2",
+    "solhint": "^6.0.1",
     "solhint-plugin-prettier": "^0.0.5"
   },
   "dependencies": {
