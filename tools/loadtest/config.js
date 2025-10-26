@@ -17,6 +17,10 @@ export const config = {
     stress: 100,
     spike: 500,
     soak: 50,
+    'concurrent-sessions': 60,
+    'did-operations': 100,
+    'hpke-operations': 80,
+    'mixed-workload': 75,
   },
 
   // Performance thresholds
@@ -39,6 +43,26 @@ export const config = {
     spike: {
       http_req_duration: ['p(95)<2000', 'p(99)<5000'], // More lenient during spikes
       http_req_failed: ['rate<0.10'],                   // < 10% errors during spike
+    },
+    'concurrent-sessions': {
+      http_req_duration: ['p(95)<1000', 'p(99)<2000'],
+      http_req_failed: ['rate<0.02'],                   // < 2% errors
+      http_reqs: ['rate>20'],                            // > 20 req/s
+    },
+    'did-operations': {
+      http_req_duration: ['p(95)<800', 'p(99)<1500'],
+      http_req_failed: ['rate<0.02'],                   // < 2% errors
+      http_reqs: ['rate>30'],                            // > 30 req/s
+    },
+    'hpke-operations': {
+      http_req_duration: ['p(95)<1500', 'p(99)<3000'], // HPKE is CPU-intensive
+      http_req_failed: ['rate<0.03'],                   // < 3% errors
+      http_reqs: ['rate>15'],                            // > 15 req/s
+    },
+    'mixed-workload': {
+      http_req_duration: ['p(95)<1000', 'p(99)<2000'],
+      http_req_failed: ['rate<0.02'],                   // < 2% errors
+      http_reqs: ['rate>25'],                            // > 25 req/s
     },
   },
 

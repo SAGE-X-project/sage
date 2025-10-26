@@ -474,7 +474,7 @@ func Test_7_1_1_1_DuplicateSessionIDPrevention(t *testing.T) {
 	helpers.LogTestSection(t, "7.1.1.1", "중복된 세션 ID 생성 방지")
 
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	// Generate session ID using SAGE's ComputeSessionIDFromSeed
 	sharedSecret := b(chacha20poly1305.KeySize)
@@ -555,7 +555,7 @@ func Test_7_1_1_2_SessionIDFormatValidation(t *testing.T) {
 	helpers.LogTestSection(t, "7.1.1.2", "세션 ID 포맷 검증 확인")
 
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	helpers.LogDetail(t, "SAGE 세션 ID 생성 함수 테스트:")
 
@@ -629,7 +629,7 @@ func Test_7_1_1_3_SessionMetadataSetup(t *testing.T) {
 	helpers.LogTestSection(t, "7.1.1.3", "세션 데이터 메타데이터 설정 확인")
 
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	// Generate session ID
 	sharedSecret := b(chacha20poly1305.KeySize)
@@ -737,7 +737,7 @@ func Test_7_2_1_1_SessionTTLTime(t *testing.T) {
 	helpers.LogTestSection(t, "7.2.1.1", "세션 TTL 시간 확인")
 
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	// Test TTL configuration
 	testTTL := 100 * time.Millisecond
@@ -818,7 +818,7 @@ func Test_7_2_1_2_SessionInfoRetrieval(t *testing.T) {
 	helpers.LogTestSection(t, "7.2.1.2", "세션 정보 조회 성공")
 
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	// Create session
 	sharedSecret := b(chacha20poly1305.KeySize)
@@ -914,7 +914,7 @@ func Test_7_2_1_3_ExpiredSessionDeletion(t *testing.T) {
 	helpers.LogTestSection(t, "7.2.1.3", "만료 세션 삭제")
 
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	// Create sessions with short TTL
 	shortTTL := 50 * time.Millisecond
@@ -1021,7 +1021,7 @@ func TestSessionManager_ListSessions(t *testing.T) {
 	helpers.LogTestSection(t, "10.3.1", "세션 나열 (활성 세션 목록 조회)")
 
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	helpers.LogDetail(t, "세션 나열 테스트:")
 
@@ -1087,7 +1087,7 @@ func TestSessionStore(t *testing.T) {
 	helpers.LogTestSection(t, "10.3.2", "세션 데이터 저장 (세션별 데이터 저장)")
 
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	sessionID := "store-test-session"
 	sharedSecret := b(chacha20poly1305.KeySize)
@@ -1147,7 +1147,7 @@ func TestSessionEncryption(t *testing.T) {
 	helpers.LogTestSection(t, "10.3.3", "세션 데이터 암호화 (민감 데이터 암호화 저장)")
 
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	sessionID := "encryption-test"
 	sharedSecret := b(chacha20poly1305.KeySize)
@@ -1217,7 +1217,7 @@ func TestSessionConcurrency(t *testing.T) {
 	helpers.LogTestSection(t, "10.3.4", "동시성 제어 (멀티 스레드 환경 세션 안전성)")
 
 	mgr := NewManager()
-	defer mgr.Close()
+	defer func() { _ = mgr.Close() }()
 
 	helpers.LogDetail(t, "동시성 제어 테스트:")
 
@@ -1321,10 +1321,10 @@ func TestSessionSync(t *testing.T) {
 
 	// Create two managers (simulating distributed nodes)
 	mgr1 := NewManager()
-	defer mgr1.Close()
+	defer func() { _ = mgr1.Close() }()
 
 	mgr2 := NewManager()
-	defer mgr2.Close()
+	defer func() { _ = mgr2.Close() }()
 
 	helpers.LogSuccess(t, "두 개의 세션 관리자 생성 (분산 노드 시뮬레이션)")
 

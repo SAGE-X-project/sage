@@ -4,8 +4,8 @@ services:
   # SAGE Backend Service
   sage-backend:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: deployments/docker/Dockerfile
       args:
         - BUILD_DATE=${BUILD_DATE:-}
         - VERSION=${VERSION:-dev}
@@ -44,7 +44,7 @@ services:
     volumes:
       - sage-keys:/home/sage/.sage/keys
       - sage-data:/home/sage/.sage/data
-      - ./config.yaml:/home/sage/config.yaml:ro
+      - ../../config.yaml:/home/sage/config.yaml:ro
     networks:
       - sage-network
     depends_on:
@@ -109,7 +109,7 @@ services:
     ports:
       - "${PROMETHEUS_PORT:-9091}:9090"
     volumes:
-      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -131,8 +131,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
       - GF_INSTALL_PLUGINS=redis-datasource
     volumes:
-      - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
       - grafana-data:/var/lib/grafana
     networks:
       - sage-network
@@ -152,7 +152,7 @@ services:
       - SWAGGER_JSON=/api/openapi.yaml
       - BASE_URL=/
     volumes:
-      - ./api:/api:ro
+      - ../../api:/api:ro
     networks:
       - sage-network
     profiles:

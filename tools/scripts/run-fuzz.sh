@@ -11,8 +11,16 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Ensure we're in project root
+cd "$PROJECT_ROOT"
+
 echo -e "${GREEN}SAGE Fuzzing Test Suite${NC}"
 echo "================================"
+echo "Project root: $PROJECT_ROOT"
 echo ""
 
 # Parse arguments
@@ -62,6 +70,22 @@ echo "  Fuzz time: $FUZZ_TIME"
 echo "  Test type: $FUZZ_TYPE"
 echo ""
 
+# Create root testdata directory
+mkdir -p "$PROJECT_ROOT/testdata/fuzz"
+
+# Function to move testdata to root
+move_testdata_to_root() {
+    local package_path=$1
+    local package_name=$(basename "$package_path")
+
+    if [ -d "$PROJECT_ROOT/$package_path/testdata" ]; then
+        echo -e "${BLUE}Moving testdata from $package_path to root...${NC}"
+        mkdir -p "$PROJECT_ROOT/testdata/fuzz/$package_name"
+        cp -r "$PROJECT_ROOT/$package_path/testdata/"* "$PROJECT_ROOT/testdata/fuzz/$package_name/" 2>/dev/null || true
+        rm -rf "$PROJECT_ROOT/$package_path/testdata"
+    fi
+}
+
 # Run Go fuzzing tests
 if [ "$FUZZ_TYPE" = "all" ] || [ "$FUZZ_TYPE" = "go" ]; then
     echo -e "${BLUE}Running Go Fuzzing Tests${NC}"
@@ -70,22 +94,24 @@ if [ "$FUZZ_TYPE" = "all" ] || [ "$FUZZ_TYPE" = "go" ]; then
 
     # Crypto fuzzing
     echo -e "${YELLOW}Fuzzing crypto package...${NC}"
-    go test -fuzz=FuzzKeyPairGeneration -fuzztime=$FUZZ_TIME $PARALLEL ./crypto || true
-    go test -fuzz=FuzzSignAndVerify -fuzztime=$FUZZ_TIME $PARALLEL ./crypto || true
-    go test -fuzz=FuzzKeyExportImport -fuzztime=$FUZZ_TIME $PARALLEL ./crypto || true
-    go test -fuzz=FuzzSignatureWithDifferentKeys -fuzztime=$FUZZ_TIME $PARALLEL ./crypto || true
-    go test -fuzz=FuzzInvalidSignatureData -fuzztime=$FUZZ_TIME $PARALLEL ./crypto || true
-    go test -fuzz=FuzzKeyDerivation -fuzztime=$FUZZ_TIME $PARALLEL ./crypto || true
+    go test -fuzz=FuzzKeyPairGeneration -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/crypto || true
+    go test -fuzz=FuzzSignAndVerify -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/crypto || true
+    go test -fuzz=FuzzKeyExportImport -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/crypto || true
+    go test -fuzz=FuzzSignatureWithDifferentKeys -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/crypto || true
+    go test -fuzz=FuzzInvalidSignatureData -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/crypto || true
+    go test -fuzz=FuzzKeyGeneration -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/crypto || true
+    move_testdata_to_root "pkg/agent/crypto"
     echo ""
 
     # Session fuzzing
     echo -e "${YELLOW}Fuzzing session package...${NC}"
-    go test -fuzz=FuzzSessionCreation -fuzztime=$FUZZ_TIME $PARALLEL ./session || true
-    go test -fuzz=FuzzSessionEncryptDecrypt -fuzztime=$FUZZ_TIME $PARALLEL ./session || true
-    go test -fuzz=FuzzNonceValidation -fuzztime=$FUZZ_TIME $PARALLEL ./session || true
-    go test -fuzz=FuzzSessionExpiration -fuzztime=$FUZZ_TIME $PARALLEL ./session || true
-    go test -fuzz=FuzzConcurrentSessionAccess -fuzztime=$FUZZ_TIME $PARALLEL ./session || true
-    go test -fuzz=FuzzInvalidSessionData -fuzztime=$FUZZ_TIME $PARALLEL ./session || true
+    go test -fuzz=FuzzSessionCreation -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/session || true
+    go test -fuzz=FuzzSessionEncryptDecrypt -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/session || true
+    go test -fuzz=FuzzNonceValidation -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/session || true
+    go test -fuzz=FuzzSessionExpiration -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/session || true
+    go test -fuzz=FuzzInvalidEncryptedData -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/session || true
+    go test -fuzz=FuzzSessionMetadata -fuzztime=$FUZZ_TIME $PARALLEL ./pkg/agent/session || true
+    move_testdata_to_root "pkg/agent/session"
     echo ""
 
     echo -e "${GREEN}Go fuzzing complete${NC}"
@@ -125,17 +151,23 @@ echo -e "${GREEN}Fuzzing Summary${NC}"
 echo "================================"
 echo ""
 
-# Check for crash files
-CRASH_FILES=$(find . -name "testdata" -type d 2>/dev/null || true)
+# Check for crash files in root testdata
+if [ -d "$PROJECT_ROOT/testdata/fuzz" ]; then
+    CRASH_COUNT=$(find "$PROJECT_ROOT/testdata/fuzz" -name "crash-*" -type f 2>/dev/null | wc -l)
 
-if [ -z "$CRASH_FILES" ]; then
-    echo -e "${GREEN}No crashes found${NC}"
+    if [ "$CRASH_COUNT" -eq 0 ]; then
+        echo -e "${GREEN}No crashes found${NC}"
+    else
+        echo -e "${YELLOW}Found $CRASH_COUNT crash file(s) in testdata/fuzz/${NC}"
+        echo ""
+        echo "Crash files:"
+        find "$PROJECT_ROOT/testdata/fuzz" -name "crash-*" -type f
+        echo ""
+        echo "Review crash files with:"
+        echo "  go test -fuzz=FuzzTestName -run=FuzzTestName/CRASHHASH ./package"
+    fi
 else
-    echo -e "${YELLOW}Crash files found in:${NC}"
-    echo "$CRASH_FILES"
-    echo ""
-    echo "Review crash files with:"
-    echo "  go test -fuzz=FuzzTestName -run=FuzzTestName/CRASHHASH"
+    echo -e "${GREEN}No testdata directory (no crashes)${NC}"
 fi
 
 echo ""
@@ -143,6 +175,7 @@ echo -e "${GREEN}Fuzzing complete!${NC}"
 echo ""
 echo "Tips:"
 echo "  - Increase fuzz time for more thorough testing: --time 1h"
-echo "  - Use corpus from previous runs: testdata/fuzz/FuzzTestName/"
+echo "  - Fuzz corpus stored in: $PROJECT_ROOT/testdata/fuzz/"
 echo "  - Run specific fuzzer: go test -fuzz=FuzzTestName ./package"
 echo "  - Minimize crash: go test -fuzz=FuzzTestName -run=FuzzTestName/CRASHHASH"
+echo "  - Clean testdata: make clean (removes testdata/)"

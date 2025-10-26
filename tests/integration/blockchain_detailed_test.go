@@ -36,8 +36,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBlockchainChainID tests explicit Chain ID verification
-func TestBlockchainChainID(t *testing.T) {
+// TestBlockchainChainID_Integration tests Chain ID verification with actual blockchain connection
+func TestBlockchainChainID_Integration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
@@ -420,9 +420,9 @@ func TestGasEstimationAccuracy(t *testing.T) {
 	})
 }
 
-// TestContractDeployment tests smart contract deployment
+// TestContractDeployment_Integration tests smart contract deployment with actual blockchain connection
 // 명세서 요구사항: "AgentRegistry 컨트랙트 배포 성공, 컨트랙트 주소 반환"
-func TestContractDeployment(t *testing.T) {
+func TestContractDeployment_Integration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}

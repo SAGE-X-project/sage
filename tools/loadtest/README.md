@@ -38,11 +38,19 @@ go run tests/session/handshake/server/main.go
 # Run soak test (long-running, 2+ hours)
 ./scripts/run-loadtest.sh soak
 
+# Run new specialized tests
+./scripts/run-loadtest.sh concurrent-sessions
+./scripts/run-loadtest.sh did-operations
+./scripts/run-loadtest.sh hpke-operations
+./scripts/run-loadtest.sh mixed-workload
+
 # Run all tests
 ./scripts/run-loadtest.sh all
 ```
 
 ## Test Scenarios
+
+### Core Scenarios
 
 ### 1. Baseline Test
 
@@ -173,12 +181,169 @@ SOAK_DURATION=24h ./scripts/run-loadtest.sh soak
 
 ---
 
+### Specialized Scenarios
+
+### 5. Concurrent Sessions Test
+
+**Purpose:** Validate concurrent session management capabilities
+
+**Profile:**
+- **VUs:** Ramps up to 60 users
+- **Duration:** ~10 minutes
+- **Pattern:** Each user maintains 3-5 concurrent sessions
+- **Focus:** Session creation, management, and message routing
+
+**Phases:**
+1. Ramp to 30 users (1min)
+2. Hold at 30 (3min)
+3. Ramp to 60 users (2min)
+4. Hold at 60 (3min)
+5. Ramp down (1min)
+
+**Thresholds:**
+- 95% of requests < 1s
+- 99% of requests < 2s
+- Error rate < 2%
+- At least 100 sessions created
+
+**Run:**
+```bash
+./scripts/run-loadtest.sh concurrent-sessions
+```
+
+**Use Case:**
+- Multi-session agent scenarios
+- WebSocket connection management
+- Session isolation validation
+
+---
+
+### 6. DID Operations Test
+
+**Purpose:** Focus on DID registration and resolution performance
+
+**Profile:**
+- **VUs:** Ramps up to 100 users
+- **Duration:** ~9 minutes
+- **Pattern:** Heavy DID registration and lookup operations
+- **Focus:** DID registry performance
+
+**Phases:**
+1. Ramp to 20 users (30s)
+2. Hold at 20 (2min)
+3. Ramp to 50 users (1min)
+4. Hold at 50 (2min)
+5. Ramp to 100 users (1min)
+6. Hold at 100 (2min)
+7. Ramp down (30s)
+
+**Thresholds:**
+- 95% of requests < 800ms
+- 99% of requests < 1.5s
+- Error rate < 2%
+- At least 200 DID operations
+
+**Run:**
+```bash
+./scripts/run-loadtest.sh did-operations
+```
+
+**Use Case:**
+- DID registry capacity planning
+- Agent onboarding performance
+- Blockchain integration testing
+
+---
+
+### 7. HPKE Operations Test
+
+**Purpose:** Test HPKE encryption/decryption performance under load
+
+**Profile:**
+- **VUs:** Ramps up to 80 users
+- **Duration:** ~10 minutes
+- **Pattern:** Heavy handshake operations (HPKE-intensive)
+- **Focus:** Cryptographic operation performance
+
+**Phases:**
+1. Ramp to 15 users (30s)
+2. Hold at 15 (2min)
+3. Ramp to 40 users (1min)
+4. Hold at 40 (3min)
+5. Ramp to 80 users (1min)
+6. Hold at 80 (2min)
+7. Ramp down (30s)
+
+**Thresholds:**
+- 95% of requests < 1.5s (crypto is CPU-intensive)
+- 99% of requests < 3s
+- Error rate < 3%
+- HPKE success rate > 90%
+
+**Run:**
+```bash
+./scripts/run-loadtest.sh hpke-operations
+```
+
+**Use Case:**
+- CPU capacity planning
+- Crypto library performance validation
+- Handshake optimization testing
+
+---
+
+### 8. Mixed Workload Test
+
+**Purpose:** Simulate realistic production traffic patterns
+
+**Profile:**
+- **VUs:** Ramps up to 75 users
+- **Duration:** ~15 minutes
+- **Pattern:** Mixed operations simulating real-world usage
+- **Focus:** Overall system behavior under realistic load
+
+**Workload Distribution:**
+- 40% Full session flows (register + handshake + messages)
+- 25% DID operations (registration only)
+- 20% Message sending (active sessions)
+- 10% Health checks
+- 5% Burst operations
+
+**Phases:**
+1. Ramp to 25 users (1min)
+2. Hold at 25 (3min)
+3. Ramp to 50 users (1min)
+4. Hold at 50 (5min)
+5. Ramp to 75 users (1min)
+6. Hold at 75 (3min)
+7. Ramp down (1min)
+
+**Thresholds:**
+- 95% of requests < 1s
+- 99% of requests < 2s
+- Error rate < 2%
+- Overall success rate > 92%
+
+**Run:**
+```bash
+./scripts/run-loadtest.sh mixed-workload
+```
+
+**Use Case:**
+- Production capacity planning
+- Realistic performance benchmarking
+- Pre-deployment validation
+
+---
+
 ## Test Results
 
-Results are saved to `loadtest/reports/`:
+Results are saved to `tools/loadtest/reports/`:
+
+> **Note:** The `reports/` directory is auto-created during test execution and excluded from Git (`.gitignore`). Results are stored locally for analysis but not committed to the repository.
 
 ```
-loadtest/reports/
+tools/loadtest/reports/
 ├── baseline-results.json       # Full k6 metrics
 ├── baseline-summary.json       # Summary only
 ├── stress-results.json
@@ -193,13 +358,13 @@ loadtest/reports/
 
 ```bash
 # View summary
-cat loadtest/reports/baseline-summary.json | jq .
+cat tools/loadtest/reports/baseline-summary.json | jq .
 
 # View detailed metrics
-cat loadtest/reports/baseline-results.json | jq '.metrics'
+cat tools/loadtest/reports/baseline-results.json | jq '.metrics'
 
 # Extract specific metric
-cat loadtest/reports/baseline-summary.json | jq '.metrics.http_req_duration'
+cat tools/loadtest/reports/baseline-summary.json | jq '.metrics.http_req_duration'
 ```
 
 ---
@@ -221,7 +386,7 @@ export SOAK_DURATION=24h
 
 ### Custom Thresholds
 
-Edit `loadtest/config.js`:
+Edit `tools/loadtest/config.js`:
 
 ```javascript
 thresholds: {
@@ -289,21 +454,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: grafana/k6-action@v0.3.1
         with:
-          filename: loadtest/scenarios/baseline.js
+          filename: tools/loadtest/scenarios/baseline.js
 ```
 
 ---
 
 ## Analysis Tools
-
-### Performance Comparison
-
-```bash
-# Compare two test runs
-node loadtest/analysis/compare.js \
-  loadtest/reports/baseline-results-v1.json \
-  loadtest/reports/baseline-results-v2.json
-```
 
 ### Grafana Dashboard
 
@@ -319,7 +475,7 @@ k6 can export to Prometheus:
 
 ```bash
 k6 run --out experimental-prometheus-rw \
-  loadtest/scenarios/baseline.js
+  tools/loadtest/scenarios/baseline.js
 ```
 
 ---
@@ -391,7 +547,7 @@ ps aux | grep sage-server
 **Problem:** `WARN[0001] Request Failed error="dial: i/o timeout"`
 
 **Solutions:**
-1. Increase timeout in `loadtest/config.js`
+1. Increase timeout in `tools/loadtest/config.js`
 2. Reduce concurrent VUs
 3. Check server is running: `curl http://localhost:8080/debug/health`
 4. Check firewall rules

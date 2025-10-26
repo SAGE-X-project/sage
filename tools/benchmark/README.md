@@ -80,7 +80,7 @@ This benchmark suite measures and compares the performance of SAGE's security fe
 ./scripts/run-benchmarks.sh --benchtime 30s --count 10
 
 # Compare with previous results
-./scripts/run-benchmarks.sh --compare benchmark/results/benchmark_20250108_120000.json
+./scripts/run-benchmarks.sh --compare tools/benchmark/results/benchmark_20250108_120000.json
 ```
 
 ### Manual Benchmark Execution
@@ -428,21 +428,16 @@ go test -bench=BenchmarkMemoryUsage -benchmem ./benchmark
 ### Running Analysis Tools
 
 ```bash
-# Parse raw benchmark output to JSON
-go run ./benchmark/tools/parse.go \
-  -input benchmark/results/benchmark_20250108.txt \
-  -output benchmark/results/benchmark_20250108.json
-
 # Generate analysis report
-go run ./benchmark/tools/analyze.go \
-  -input benchmark/results/benchmark_20250108.json \
-  -output benchmark/results/analysis_20250108.md
+go run ./tools/analyze/analyze.go \
+  -input tools/benchmark/results/benchmark_20250108.json \
+  -output tools/benchmark/results/analysis_20250108.md
 
 # Compare with previous results
-go run ./benchmark/tools/analyze.go \
-  -input benchmark/results/current.json \
-  -compare benchmark/results/previous.json \
-  -output benchmark/results/comparison.md
+go run ./tools/analyze/analyze.go \
+  -input tools/benchmark/results/current.json \
+  -compare tools/benchmark/results/previous.json \
+  -output tools/benchmark/results/comparison.md
 ```
 
 ### Interpreting Analysis
@@ -464,23 +459,96 @@ The analysis tool generates:
 
 ### Production Targets
 
-| Operation | Target Latency | Target Throughput |
-|-----------|---------------|-------------------|
-| Key Generation | <200 μs | >5,000 ops/s |
-| Session Creation | <500 μs | >2,000 ops/s |
-| Message Encryption (1KB) | <20 μs | >50 MB/s |
-| Message Decryption (1KB) | <20 μs | >50 MB/s |
-| HTTP Signature Sign | <300 μs | >3,000 ops/s |
-| HTTP Signature Verify | <400 μs | >2,500 ops/s |
-| Full Handshake | <2 ms | >500 ops/s |
+| Operation | Target Latency | Target Throughput | Rationale |
+|-----------|---------------|-------------------|-----------|
+| Key Generation | <200 μs | >5,000 ops/s | Ed25519: ~50-100 μs typical, Secp256k1: ~100-200 μs typical. Target allows for diverse key types while maintaining sub-millisecond operation. |
+| Session Creation | <500 μs | >2,000 ops/s | Includes HPKE handshake (~120-160 μs) + key derivation. Target enables real-time agent-to-agent communication with <1ms overhead. |
+| Message Encryption (1KB) | <20 μs | >50 MB/s | AES-GCM hardware acceleration achieves ~5-10 μs. Target allows for 100,000+ messages/sec per core for high-throughput scenarios. |
+| Message Decryption (1KB) | <20 μs | >50 MB/s | Symmetric with encryption. Ensures bidirectional communication maintains consistent latency. |
+| HTTP Signature Sign | <300 μs | >3,000 ops/s | RFC 9421 signing includes canonicalization (~50-100 μs) + ECDSA signature (~60-120 μs). Supports 3,000+ HTTP requests/sec/core. |
+| HTTP Signature Verify | <400 μs | >2,500 ops/s | Verification is slower than signing for ECDSA (~150-300 μs). Target maintains <1ms for API gateway validation. |
+| Full Handshake | <2 ms | >500 ops/s | Complete protocol: initiation + response + finalization. Target allows 500 new agent connections/sec, sufficient for most deployment scales. |
 
-### Acceptable Overhead
+### Target Rationale & Industry Standards
 
-| Scenario | Baseline | SAGE | Overhead |
-|----------|----------|------|----------|
-| Message Passing (1KB) | 0.01 ms | 0.02 ms | 2x |
-| Throughput (1KB) | 10 GB/s | 100 MB/s | 100x |
-| Session Setup | N/A | 1 ms | N/A |
+**1. Key Generation Targets (<200 μs)**
+- **Industry Standard**:
+  - AWS KMS: ~100-500 ms (network overhead)
+  - Hardware Security Modules (HSM): ~10-50 ms
+  - Local crypto libraries: ~50-200 μs
+- **SAGE Rationale**: In-memory generation without HSM overhead. Target matches best-in-class libraries (libsodium, Go crypto).
+- **Production Context**: Agents generate keys during initialization (not hot path). Sub-200 μs ensures negligible startup time impact.
+
+**2. Session Creation (<500 μs)**
+- **Industry Standard**:
+  - TLS 1.3 handshake: ~1-2 RTT (~50-200 ms over network)
+  - WireGuard handshake: ~1-5 ms
+  - Noise Protocol: ~500 μs - 2 ms
+- **SAGE Rationale**: HPKE-based key agreement (~120-160 μs) + HKDF expansion. Target matches Noise Protocol Framework performance.
+- **Production Context**: Sessions established per agent pair. <500 μs enables thousands of concurrent agent connections on single server.
+
+**3. Message Encryption/Decryption (<20 μs)**
+- **Industry Standard**:
+  - TLS 1.3 AES-GCM: ~5-15 μs (1KB) with AES-NI
+  - WireGuard ChaCha20: ~10-20 μs (1KB)
+  - IPsec AES-GCM: ~10-25 μs (1KB)
+- **SAGE Rationale**: Uses AES-GCM with hardware acceleration. Target matches TLS 1.3 performance, ensuring minimal overhead vs. standard secure channels.
+- **Production Context**: Every message encrypted. <20 μs maintains >50 MB/s throughput, supporting high-frequency agent communication (100K+ msgs/sec).
+
+**4. HTTP Signature Operations (<300-400 μs)**
+- **Industry Standard**:
+  - HMAC-SHA256: ~5-15 μs (faster but symmetric)
+  - RSA-2048 signing: ~500-1000 μs
+  - ECDSA P-256 signing: ~60-120 μs
+  - JWT RS256 validation: ~1-2 ms (includes parsing + verification)
+- **SAGE Rationale**: RFC 9421 with ECDSA offers balance between security (asymmetric) and performance. Target 2-3x slower than raw ECDSA to account for canonicalization overhead.
+- **Production Context**: HTTP signatures authenticate API calls. <300 μs signing enables 3,000+ authenticated requests/sec, sufficient for API gateway scenarios.
+
+**5. Full Handshake (<2 ms)**
+- **Industry Standard**:
+  - TLS 1.3 full handshake: ~50-200 ms (network)
+  - TLS 1.3 0-RTT resume: ~10-50 ms (network)
+  - Noise XX pattern: ~1-3 ms (local)
+- **SAGE Rationale**: Complete protocol with DID verification + ephemeral key exchange + signature verification. Target allows 500 new connections/sec.
+- **Production Context**: New agent connections only (session reuse for subsequent messages). <2 ms ensures connection establishment doesn't bottleneck agent network scalability.
+
+### Acceptable Overhead vs. No Security
+
+| Scenario | Baseline | SAGE | Overhead | Justification |
+|----------|----------|------|----------|---------------|
+| Message Passing (1KB) | 0.01 ms | 0.02 ms | 2x | AES-GCM encryption (~10 μs) doubles latency. Acceptable for security guarantee: authenticity + confidentiality + integrity. |
+| Throughput (1KB) | 10 GB/s | 100 MB/s | 100x | Crypto operations are CPU-bound vs. memory copy. 100 MB/s still sufficient for most agent workloads (< 100K msgs/sec). |
+| Session Setup | N/A | 1 ms | N/A | One-time cost per agent pair. Amortized over thousands of messages. ~0.001 ms per message if session lasts 1000 messages. |
+
+**Security vs. Performance Trade-off Rationale:**
+- **2x latency overhead**: Acceptable for real-time systems (<100 ms total latency budget)
+- **100x throughput reduction**: Still meets production requirements (agents rarely exceed 10K msgs/sec)
+- **Zero security baseline**: Unacceptable for production. Overhead is cost of authenticity, confidentiality, and integrity guarantees.
+
+### Production Environment Requirements
+
+**High-Throughput API Gateway:**
+- Requirement: 10,000 requests/sec with HTTP signatures
+- SAGE Target: 3,000 ops/sec (signing) per core
+- Solution: 4 CPU cores = 12,000 ops/sec capacity (20% headroom)
+
+**Real-Time Agent Communication:**
+- Requirement: Sub-10ms end-to-end latency
+- SAGE Overhead: ~20 μs encryption + 20 μs decryption = 40 μs
+- Remaining Budget: 9.96 ms for network + application logic
+- Verdict: SAGE adds <0.5% to latency budget
+
+**Large-Scale Agent Networks:**
+- Requirement: 1,000 agents connecting simultaneously
+- SAGE Target: 500 handshakes/sec per core
+- Solution: 2 CPU cores = 1,000 connections/sec
+- Session Reuse: After initial connection, no additional handshake overhead
+
+**Data-Intensive Workloads:**
+- Requirement: 1 GB/s encrypted data throughput
+- SAGE Target: 50 MB/s per core (1KB messages)
+- Solution: 20 CPU cores = 1 GB/s capacity
+- Alternative: Batch larger messages (16KB avg) reduces per-message overhead
 
 ## Continuous Benchmarking
 
@@ -519,7 +587,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-results
-          path: benchmark/results/
+          path: tools/benchmark/results/
 ```
 
 ## Optimization Guidelines

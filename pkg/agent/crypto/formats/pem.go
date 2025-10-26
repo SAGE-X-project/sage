@@ -100,6 +100,25 @@ func (e *pemExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 
 		return pem.EncodeToMemory(block), nil
 
+	case sagecrypto.KeyTypeP256:
+		privateKey, ok := keyPair.PrivateKey().(*ecdsa.PrivateKey)
+		if !ok {
+			return nil, errors.New("invalid P-256 private key type")
+		}
+
+		// P-256 is a standard NIST curve, so we can use PKCS8 format
+		derBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal P-256 private key: %w", err)
+		}
+
+		block := &pem.Block{
+			Type:  "PRIVATE KEY",
+			Bytes: derBytes,
+		}
+
+		return pem.EncodeToMemory(block), nil
+
 	case sagecrypto.KeyTypeRSA:
 		privateKey, ok := keyPair.PrivateKey().(*rsa.PrivateKey)
 		if !ok {
@@ -171,6 +190,25 @@ func (e *pemExporter) ExportPublic(keyPair sagecrypto.KeyPair, format sagecrypto
 
 		return pem.EncodeToMemory(block), nil
 
+	case sagecrypto.KeyTypeP256:
+		publicKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
+		if !ok {
+			return nil, errors.New("invalid P-256 public key type")
+		}
+
+		// P-256 is a standard NIST curve, so we can use PKIX format
+		derBytes, err := x509.MarshalPKIXPublicKey(publicKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal P-256 public key: %w", err)
+		}
+
+		block := &pem.Block{
+			Type:  "PUBLIC KEY",
+			Bytes: derBytes,
+		}
+
+		return pem.EncodeToMemory(block), nil
+
 	case sagecrypto.KeyTypeRSA:
 		publicKey, ok := keyPair.PublicKey().(*rsa.PublicKey)
 		if !ok {
@@ -219,10 +257,17 @@ func (i *pemImporter) Import(data []byte, format sagecrypto.KeyFormat) (sagecryp
 		case ed25519.PrivateKey:
 			return keys.NewEd25519KeyPair(privateKey, "")
 		case *ecdsa.PrivateKey:
-			// Convert to secp256k1 private key
-			privKeyBytes := privateKey.D.Bytes()
-			secp256k1PrivKey := secp256k1.PrivKeyFromBytes(privKeyBytes)
-			return keys.NewSecp256k1KeyPair(secp256k1PrivKey, "")
+			// Check the curve to determine key type
+			if privateKey.Curve == secp256k1.S256() {
+				// Convert to secp256k1 private key
+				privKeyBytes := privateKey.D.Bytes()
+				secp256k1PrivKey := secp256k1.PrivKeyFromBytes(privKeyBytes)
+				return keys.NewSecp256k1KeyPair(secp256k1PrivKey, "")
+			} else if privateKey.Curve.Params().Name == "P-256" {
+				// P-256 key
+				return keys.NewP256KeyPair(privateKey, "")
+			}
+			return nil, fmt.Errorf("unsupported ECDSA curve: %s", privateKey.Curve.Params().Name)
 		default:
 			return nil, fmt.Errorf("unsupported private key type: %T", privateKey)
 		}

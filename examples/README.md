@@ -12,8 +12,12 @@ Shows how to add SAGE security to MCP (Model Context Protocol) tools:
 - **vulnerable-vs-secure/** - Security demonstration
 - **multi-agent/** - Agent-to-agent communication
 
-### 2. agent-communication/ (Coming Soon)
-Examples of secure agent-to-agent messaging patterns
+### 2. [a2a-integration/](./a2a-integration/) - A2A Protocol Integration
+Working examples of secure multi-key agent communication using A2A protocol:
+- **01-register-agent/** - Register multi-key agents (ECDSA, Ed25519, X25519)
+- **02-generate-card/** - Generate and export A2A Agent Cards
+- **03-exchange-cards/** - Exchange and verify cards between agents
+- **04-secure-message/** - Establish secure channels with HPKE encryption
 
 ### 3. policy-enforcement/ (Coming Soon)
 Capability-based access control examples
@@ -35,6 +39,19 @@ go run example_tool.go
 cd mcp-integration/client
 go run .
 # Make secure calls to SAGE-protected tools
+```
+
+### For A2A Protocol Integration
+```bash
+# Start local blockchain
+cd contracts/ethereum && npx hardhat node
+
+# Deploy registry (in another terminal)
+npx hardhat run scripts/deploy-v4-local.js --network localhost
+
+# Run A2A examples
+cd examples/a2a-integration/01-register-agent
+go run main.go
 ```
 
 ### Security Demo

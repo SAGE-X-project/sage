@@ -112,6 +112,7 @@ func TestSetKeyGenerators(t *testing.T) {
 		sagecrypto.SetKeyGenerators(
 			func() (sagecrypto.KeyPair, error) { return keys.GenerateEd25519KeyPair() },
 			func() (sagecrypto.KeyPair, error) { return keys.GenerateSecp256k1KeyPair() },
+			func() (sagecrypto.KeyPair, error) { return keys.GenerateP256KeyPair() },
 		)
 	}()
 
@@ -127,6 +128,10 @@ func TestSetKeyGenerators(t *testing.T) {
 		func() (sagecrypto.KeyPair, error) {
 			mockSecp256k1Called = true
 			return &mockKeyPair{id: "mock-secp256k1", keyType: sagecrypto.KeyTypeSecp256k1}, nil
+		},
+		func() (sagecrypto.KeyPair, error) {
+			// P-256 mock generator (not explicitly tested in this function)
+			return &mockKeyPair{id: "mock-p256", keyType: sagecrypto.KeyTypeP256}, nil
 		},
 	)
 
@@ -285,11 +290,12 @@ func TestPanicOnUninitializedGenerators(t *testing.T) {
 		sagecrypto.SetKeyGenerators(
 			func() (sagecrypto.KeyPair, error) { return keys.GenerateEd25519KeyPair() },
 			func() (sagecrypto.KeyPair, error) { return keys.GenerateSecp256k1KeyPair() },
+			func() (sagecrypto.KeyPair, error) { return keys.GenerateP256KeyPair() },
 		)
 	}()
 
 	// Set generators to nil
-	sagecrypto.SetKeyGenerators(nil, nil)
+	sagecrypto.SetKeyGenerators(nil, nil, nil)
 
 	t.Run("Panic on uninitialized Ed25519 generator", func(t *testing.T) {
 		assert.Panics(t, func() {
@@ -369,12 +375,16 @@ func TestWrappers_ErrorHandling(t *testing.T) {
 		sagecrypto.SetKeyGenerators(
 			func() (sagecrypto.KeyPair, error) { return keys.GenerateEd25519KeyPair() },
 			func() (sagecrypto.KeyPair, error) { return keys.GenerateSecp256k1KeyPair() },
+			func() (sagecrypto.KeyPair, error) { return keys.GenerateP256KeyPair() },
 		)
 	}()
 
 	// Set generators that return errors
 	expectedError := errors.New("test error")
 	sagecrypto.SetKeyGenerators(
+		func() (sagecrypto.KeyPair, error) {
+			return nil, expectedError
+		},
 		func() (sagecrypto.KeyPair, error) {
 			return nil, expectedError
 		},

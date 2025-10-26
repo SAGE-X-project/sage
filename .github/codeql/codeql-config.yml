@@ -1,0 +1,7 @@
+name: "CodeQL Config"
+
+# Exclude load testing files from security analysis
+# Math.random() is used for test scenario randomization, not cryptographic purposes
+paths-ignore:
+  - tools/loadtest/**/*.js
+  - tools/loadtest/**/*.ts

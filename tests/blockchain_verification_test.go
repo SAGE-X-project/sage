@@ -89,9 +89,9 @@ func TestBlockchainProviderConfiguration(t *testing.T) {
 	})
 }
 
-// TestBlockchainChainID tests chain ID verification
+// TestBlockchainChainID_SpecVerification tests chain ID specification verification (no blockchain connection required)
 // 명세서 요구사항: 4.1.1.2 체인 ID 확인 (로컬: 31337)
-func TestBlockchainChainID(t *testing.T) {
+func TestBlockchainChainID_SpecVerification(t *testing.T) {
 	helpers.LogTestSection(t, "4.1.1.2", "Chain ID Verification (Local: 31337)")
 
 	expectedChainID := big.NewInt(31337)
@@ -397,9 +397,9 @@ func TestGasEstimation(t *testing.T) {
 	})
 }
 
-// TestContractDeployment tests contract deployment functionality
+// TestContractDeployment_SpecVerification tests contract deployment configuration (no blockchain connection required)
 // 명세서 요구사항: 4.2.1.1 AgentRegistry 컨트랙트 배포 성공, 4.2.1.2 컨트랙트 주소 반환
-func TestContractDeployment(t *testing.T) {
+func TestContractDeployment_SpecVerification(t *testing.T) {
 	helpers.LogTestSection(t, "4.2.1", "AgentRegistry Contract Deployment")
 
 	t.Run("Contract deployment simulation", func(t *testing.T) {

@@ -12,8 +12,8 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Configuration
-BENCHMARK_DIR="benchmark"
-OUTPUT_DIR="benchmark/results"
+BENCHMARK_DIR="tools/benchmark"
+OUTPUT_DIR="tools/benchmark/results"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 RESULTS_FILE="$OUTPUT_DIR/benchmark_$TIMESTAMP.txt"
 JSON_FILE="$OUTPUT_DIR/benchmark_$TIMESTAMP.json"
@@ -128,37 +128,30 @@ echo -e "${GREEN}Benchmarks complete!${NC}"
 echo "Results saved to: $RESULTS_FILE"
 echo ""
 
-# Parse results to JSON
-echo -e "${YELLOW}Parsing results...${NC}"
+# Note: JSON parsing requires benchstat or custom parser
+# For now, the raw text results can be analyzed manually
 
-go run ./benchmark/tools/parse.go \
-    -input "$RESULTS_FILE" \
-    -output "$JSON_FILE"
+# Generate analysis if analyze.go exists
+if [ -f "./tools/analyze/analyze.go" ]; then
+    echo -e "${YELLOW}Generating analysis...${NC}"
 
-if [ $? -eq 0 ]; then
-    echo "JSON results saved to: $JSON_FILE"
+    ANALYZE_ARGS="-input $RESULTS_FILE -output $ANALYSIS_FILE"
+    if [ -n "$COMPARE_WITH" ]; then
+        ANALYZE_ARGS="$ANALYZE_ARGS -compare $COMPARE_WITH"
+    fi
+
+    go run ./tools/analyze/analyze.go $ANALYZE_ARGS
+
+    if [ $? -eq 0 ]; then
+        echo "Analysis saved to: $ANALYSIS_FILE"
+        echo ""
+        echo -e "${BLUE}Analysis Preview:${NC}"
+        head -50 "$ANALYSIS_FILE"
+    else
+        echo -e "${RED}Failed to generate analysis${NC}"
+    fi
 else
-    echo -e "${RED}Failed to parse results${NC}"
-fi
-
-# Generate analysis
-echo ""
-echo -e "${YELLOW}Generating analysis...${NC}"
-
-ANALYZE_ARGS="-input $JSON_FILE -output $ANALYSIS_FILE"
-if [ -n "$COMPARE_WITH" ]; then
-    ANALYZE_ARGS="$ANALYZE_ARGS -compare $COMPARE_WITH"
-fi
-
-go run ./benchmark/tools/analyze.go $ANALYZE_ARGS
-
-if [ $? -eq 0 ]; then
-    echo "Analysis saved to: $ANALYSIS_FILE"
-    echo ""
-    echo -e "${BLUE}Analysis Preview:${NC}"
-    head -50 "$ANALYSIS_FILE"
-else
-    echo -e "${RED}Failed to generate analysis${NC}"
+    echo -e "${YELLOW}Note: Analysis tool not available. Results saved to text file.${NC}"
 fi
 
 # Summary

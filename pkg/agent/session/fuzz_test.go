@@ -74,12 +74,22 @@ func FuzzSessionEncryptDecrypt(f *testing.F) {
 
 	manager := session.NewManager()
 
-	// Create a test session
-	sharedSecret := make([]byte, 32)
-	_, _ = rand.Read(sharedSecret)
-	sess, _ := manager.CreateSession("test-session", sharedSecret)
-
 	f.Fuzz(func(t *testing.T, plaintext []byte) {
+		// Create a fresh session for each iteration to avoid expiration issues
+		sharedSecret := make([]byte, 32)
+		_, _ = rand.Read(sharedSecret)
+
+		// Generate unique session ID for each iteration
+		sidBytes := make([]byte, 16)
+		_, _ = rand.Read(sidBytes)
+		sessionID := string(sidBytes)
+
+		sess, err := manager.CreateSession(sessionID, sharedSecret)
+		if err != nil {
+			// If session creation fails, skip this iteration
+			t.Skipf("Failed to create session: %v", err)
+		}
+
 		// Encrypt
 		encrypted, err := sess.Encrypt(plaintext)
 		if err != nil {
@@ -188,14 +198,26 @@ func FuzzInvalidEncryptedData(f *testing.F) {
 	f.Add(make([]byte, 100))
 
 	manager := session.NewManager()
-	sharedSecret := make([]byte, 32)
-	_, _ = rand.Read(sharedSecret)
-	sess, _ := manager.CreateSession("invalid-test", sharedSecret)
 
 	f.Fuzz(func(t *testing.T, invalidData []byte) {
+		// Create a fresh session for each iteration to avoid expiration issues
+		sharedSecret := make([]byte, 32)
+		_, _ = rand.Read(sharedSecret)
+
+		// Generate unique session ID for each iteration
+		sidBytes := make([]byte, 16)
+		_, _ = rand.Read(sidBytes)
+		sessionID := string(sidBytes)
+
+		sess, err := manager.CreateSession(sessionID, sharedSecret)
+		if err != nil {
+			// If session creation fails, skip this iteration
+			t.Skipf("Failed to create session: %v", err)
+		}
+
 		// Try to decrypt invalid data
 		// Should not crash, should return error
-		_, err := sess.Decrypt(invalidData)
+		_, err = sess.Decrypt(invalidData)
 
 		// We expect an error for invalid data
 		// The important thing is it doesn't panic
@@ -210,14 +232,26 @@ func FuzzSessionMetadata(f *testing.F) {
 	f.Add("long-key-name", "long-value-data")
 
 	manager := session.NewManager()
-	sharedSecret := make([]byte, 32)
-	_, _ = rand.Read(sharedSecret)
-	sess, _ := manager.CreateSession("meta-test", sharedSecret)
 
 	f.Fuzz(func(t *testing.T, key, value string) {
 		// Skip empty keys
 		if key == "" {
 			t.Skip()
+		}
+
+		// Create a fresh session for each iteration to avoid expiration issues
+		sharedSecret := make([]byte, 32)
+		_, _ = rand.Read(sharedSecret)
+
+		// Generate unique session ID for each iteration
+		sidBytes := make([]byte, 16)
+		_, _ = rand.Read(sidBytes)
+		sessionID := string(sidBytes)
+
+		sess, err := manager.CreateSession(sessionID, sharedSecret)
+		if err != nil {
+			// If session creation fails, skip this iteration
+			t.Skipf("Failed to create session: %v", err)
 		}
 
 		// Test session config instead

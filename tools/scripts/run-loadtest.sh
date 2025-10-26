@@ -33,7 +33,7 @@ echo "Environment: $SAGE_ENV"
 echo ""
 
 # Validate scenario
-VALID_SCENARIOS=("baseline" "stress" "soak" "spike" "all")
+VALID_SCENARIOS=("baseline" "stress" "soak" "spike" "concurrent-sessions" "did-operations" "hpke-operations" "mixed-workload" "all")
 if [[ ! " ${VALID_SCENARIOS[@]} " =~ " ${SCENARIO} " ]]; then
     echo -e "${RED}Error: Invalid scenario '${SCENARIO}'${NC}"
     echo "Valid scenarios: ${VALID_SCENARIOS[*]}"
@@ -41,12 +41,12 @@ if [[ ! " ${VALID_SCENARIOS[@]} " =~ " ${SCENARIO} " ]]; then
 fi
 
 # Create reports directory
-mkdir -p loadtest/reports
+mkdir -p tools/loadtest/reports
 
 # Function to run a single test
 run_test() {
     local test_name=$1
-    local script_path="loadtest/scenarios/${test_name}.js"
+    local script_path="tools/loadtest/scenarios/${test_name}.js"
 
     if [ ! -f "$script_path" ]; then
         echo -e "${RED}Error: Test script not found: ${script_path}${NC}"
@@ -62,8 +62,8 @@ run_test() {
 
     # Run k6 test
     k6 run \
-        --out json="loadtest/reports/${test_name}-results.json" \
-        --summary-export="loadtest/reports/${test_name}-summary.json" \
+        --out json="tools/loadtest/reports/${test_name}-results.json" \
+        --summary-export="tools/loadtest/reports/${test_name}-summary.json" \
         "$script_path"
 
     local exit_code=$?
@@ -85,9 +85,16 @@ if [ "$SCENARIO" = "all" ]; then
 
     FAILED=0
 
+    # Core tests
     run_test "baseline" || FAILED=$((FAILED + 1))
     run_test "stress" || FAILED=$((FAILED + 1))
     run_test "spike" || FAILED=$((FAILED + 1))
+
+    # New specialized tests
+    run_test "concurrent-sessions" || FAILED=$((FAILED + 1))
+    run_test "did-operations" || FAILED=$((FAILED + 1))
+    run_test "hpke-operations" || FAILED=$((FAILED + 1))
+    run_test "mixed-workload" || FAILED=$((FAILED + 1))
 
     # Ask before running soak test (it takes hours)
     echo -e "${YELLOW}Soak test takes 2+ hours. Run it? (y/N)${NC}"

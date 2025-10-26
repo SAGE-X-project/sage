@@ -96,11 +96,10 @@ type Response struct {
 - **Documentation:** [HTTP Transport README](./http/README.md)
 
 ### gRPC (A2A Protocol)
-- **Status:** ✅ Available
-- **Package:** `github.com/sage-x-project/sage/pkg/agent/transport/a2a`
-- **Build Tags:** `a2a` (optional dependency)
+- **Status:** 🚧 Planned
+- **Package:** `github.com/sage-x-project/sage/pkg/agent/transport/a2a` (not yet implemented)
 - **Use Case:** High-performance agent-to-agent communication
-- **Documentation:** A2A Protocol specification
+- **Documentation:** A2A Protocol specification (coming soon)
 
 ### WebSocket
 - **Status:** ✅ Available
@@ -134,9 +133,10 @@ client := handshake.NewClient(transport, keyPair)
 Supported URL schemes:
 - `http://` → HTTP transport
 - `https://` → HTTPS transport (same as HTTP with TLS)
-- `grpc://` → gRPC transport (requires `a2a` build tag)
-- `ws://` → WebSocket transport (when available)
-- `wss://` → WebSocket Secure (when available)
+- `ws://` → WebSocket transport
+- `wss://` → WebSocket Secure
+
+**Note:** gRPC transport (`grpc://`) is planned but not yet implemented.
 
 ## Usage Examples
 
@@ -231,68 +231,15 @@ func main() {
 }
 ```
 
-### Production with A2A Transport
+### Production with gRPC (A2A) - Coming Soon
 
-For gRPC/A2A communication (requires `a2a` build tag):
+gRPC transport for high-performance agent-to-agent communication is planned for a future release. The design will provide:
+- High throughput with HTTP/2
+- Bidirectional streaming
+- Low-latency communication
+- Full backward compatibility
 
-```go
-import (
-    "google.golang.org/grpc"
-    "github.com/sage-x-project/sage/pkg/agent/transport/a2a"
-    "github.com/sage-x-project/sage/pkg/agent/hpke"
-)
-
-func main() {
-    // Connect to A2A gRPC service
-    conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(creds))
-    if err != nil {
-        log.Fatal(err)
-    }
-    defer conn.Close()
-
-    // Create A2A transport adapter
-    transport := a2a.NewA2ATransport(conn)
-
-    // Use in HPKE client
-    client := hpke.NewClient(transport, resolver, keyPair, did, infoBuilder, sessMgr)
-
-    // Initialize secure session over A2A
-    kid, err := client.Initialize(ctx, contextID, clientDID, serverDID)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-    log.Printf("Session established: %s", kid)
-}
-```
-
-### Server-Side with A2A
-
-On the server side, wrap your SAGE handler with the A2A adapter:
-
-```go
-import (
-    a2apb "github.com/a2aproject/a2a/grpc"
-    "github.com/sage-x-project/sage/pkg/agent/transport/a2a"
-    "github.com/sage-x-project/sage/pkg/agent/hpke"
-)
-
-func main() {
-    // Create SAGE HPKE server
-    hpkeServer := hpke.NewServer(serverKeyPair, sessMgr, serverDID, resolver, opts)
-
-    // Wrap with A2A adapter
-    a2aAdapter := a2a.NewA2AServerAdapter(hpkeServer)
-
-    // Register with gRPC
-    grpcServer := grpc.NewServer()
-    a2apb.RegisterA2AServiceServer(grpcServer, a2aAdapter)
-
-    // Serve
-    listener, _ := net.Listen("tcp", ":18080")
-    grpcServer.Serve(listener)
-}
-```
+Stay tuned for updates!
 
 ## Implementing Custom Transports
 
@@ -394,10 +341,6 @@ pkg/agent/transport/
 │   ├── server.go      # HTTP server handler
 │   ├── register.go    # Auto-registration with selector
 │   └── http_test.go   # HTTP transport tests
-├── a2a/               # A2A (gRPC) transport adapter
-│   ├── client.go      # A2A client transport
-│   ├── server.go      # A2A server adapter
-│   └── adapter_test.go # A2A adapter tests
 └── websocket/         # WebSocket transport
     ├── README.md      # WebSocket transport documentation
     ├── client.go      # WebSocket client transport
@@ -438,37 +381,29 @@ All SAGE components that need transport:
 - Can be tested with `MockTransport`
 - Don't require network for unit tests
 
-## Migration Guide
+## Design Benefits
 
-### Before (Phase 1)
+The transport abstraction layer provides:
 
+**Protocol Independence:**
 ```go
-// Tightly coupled to A2A/gRPC
-import a2apb "github.com/a2aproject/a2a/grpc"
-
-func NewServer(...) *Server {
-    // Embedded gRPC service
-}
-
-func (s *Server) SendMessage(ctx, req *a2apb.SendMessageRequest) (*a2apb.SendMessageResponse, error) {
-    // A2A-specific logic mixed with security logic
-}
-```
-
-### After (Phase 3)
-
-```go
-// Protocol-agnostic
 import "github.com/sage-x-project/sage/pkg/agent/transport"
 
+// Security components accept transport interface
 func NewServer(..., t transport.MessageTransport) *Server {
-    // Optional transport parameter
+    // Works with any transport implementation
 }
 
+// Handle messages without knowing the underlying protocol
 func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
     // Pure security logic, no protocol coupling
 }
 ```
+
+**Flexible Deployment:**
+- Swap HTTP for WebSocket without code changes
+- Test with MockTransport
+- Add new transports without modifying core logic
 
 ## FAQ
 
@@ -493,18 +428,18 @@ A: Yes! Create multiple transport instances:
 
 ```go
 import _ "github.com/sage-x-project/sage/pkg/agent/transport/http"
-import _ "github.com/sage-x-project/sage/pkg/agent/transport/a2a"
+import _ "github.com/sage-x-project/sage/pkg/agent/transport/websocket"
 
 // Use selector for different endpoints
 httpTransport, _ := transport.SelectByURL("https://agent1.example.com")
-grpcTransport, _ := transport.SelectByURL("grpc://agent2.example.com:50051")
+wsTransport, _ := transport.SelectByURL("wss://agent2.example.com/ws")
 
 // Use different transports for different purposes
 client1 := handshake.NewClient(httpTransport, kp1)
-client2 := handshake.NewClient(grpcTransport, kp2)
+client2 := handshake.NewClient(wsTransport, kp2)
 ```
 
-### Q: How do I choose between HTTP and gRPC transport?
+### Q: How do I choose between HTTP and WebSocket transport?
 
 A: Consider your use case:
 
@@ -513,12 +448,7 @@ A: Consider your use case:
 - You want load balancer support
 - You need REST API compatibility
 - You're integrating with web infrastructure
-
-**Use gRPC when:**
-- You need high throughput
-- You want bidirectional streaming
-- You have low-latency requirements
-- You're doing agent-to-agent direct communication
+- You have request-response patterns
 
 **Use WebSocket when:**
 - You need persistent connections
@@ -526,13 +456,7 @@ A: Consider your use case:
 - You have frequent small messages
 - You need server-initiated messages
 - You want low connection overhead
-
-### Q: What about backward compatibility?
-
-A: The A2A transport adapter maintains full backward compatibility:
-- Wire format unchanged (still uses A2A protobuf)
-- Existing clients/servers work without modification
-- Integration tests verify compatibility
+- You have streaming data patterns
 
 ## See Also
 

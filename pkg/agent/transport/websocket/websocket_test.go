@@ -337,3 +337,146 @@ func TestWSServer_ConnectionCount(t *testing.T) {
 		t.Errorf("Expected 1 connection, got %d", count)
 	}
 }
+
+func TestWSServer_OriginChecking(t *testing.T) {
+	handler := func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		return &transport.Response{Success: true, MessageID: msg.ID}, nil
+	}
+
+	t.Run("Development mode - all origins allowed", func(t *testing.T) {
+		// Create server without origin checking (default/development mode)
+		server := NewWSServer(handler)
+
+		// Verify checkOrigin is disabled
+		if server.checkOrigin {
+			t.Error("Expected checkOrigin to be false in development mode")
+		}
+
+		// Create test request with different origins
+		testOrigins := []string{
+			"https://example.com",
+			"https://different-site.com",
+			"http://localhost:3000",
+			"", // Empty origin (same-origin or non-browser)
+		}
+
+		for _, origin := range testOrigins {
+			req := httptest.NewRequest("GET", "/ws", nil)
+			if origin != "" {
+				req.Header.Set("Origin", origin)
+			}
+
+			allowed := server.checkOriginFunc(req)
+			if !allowed {
+				t.Errorf("Development mode should allow origin '%s'", origin)
+			}
+		}
+	})
+
+	t.Run("Production mode - allowed origins only", func(t *testing.T) {
+		// Create server with specific allowed origins
+		allowedOrigins := []string{
+			"https://app.example.com",
+			"https://secure.example.com",
+		}
+		server := NewWSServerWithOrigins(handler, allowedOrigins)
+
+		// Verify checkOrigin is enabled
+		if !server.checkOrigin {
+			t.Error("Expected checkOrigin to be true in production mode")
+		}
+
+		// Test allowed origins
+		for _, origin := range allowedOrigins {
+			req := httptest.NewRequest("GET", "/ws", nil)
+			req.Header.Set("Origin", origin)
+
+			allowed := server.checkOriginFunc(req)
+			if !allowed {
+				t.Errorf("Should allow origin '%s'", origin)
+			}
+		}
+
+		// Test disallowed origins
+		disallowedOrigins := []string{
+			"https://malicious.com",
+			"https://different.example.com",
+			"http://app.example.com", // Different scheme
+		}
+
+		for _, origin := range disallowedOrigins {
+			req := httptest.NewRequest("GET", "/ws", nil)
+			req.Header.Set("Origin", origin)
+
+			allowed := server.checkOriginFunc(req)
+			if allowed {
+				t.Errorf("Should reject origin '%s'", origin)
+			}
+		}
+
+		// Test empty origin (same-origin or non-browser client)
+		req := httptest.NewRequest("GET", "/ws", nil)
+		allowed := server.checkOriginFunc(req)
+		if !allowed {
+			t.Error("Should allow requests without Origin header")
+		}
+	})
+
+	t.Run("Dynamic origin management", func(t *testing.T) {
+		// Start with no allowed origins
+		server := NewWSServer(handler)
+
+		// Add origin dynamically
+		server.AddAllowedOrigin("https://newsite.com")
+
+		// Verify origin is now allowed
+		req := httptest.NewRequest("GET", "/ws", nil)
+		req.Header.Set("Origin", "https://newsite.com")
+
+		allowed := server.checkOriginFunc(req)
+		if !allowed {
+			t.Error("Should allow dynamically added origin")
+		}
+
+		// Verify checkOrigin is now enabled
+		if !server.checkOrigin {
+			t.Error("Adding origin should enable origin checking")
+		}
+
+		// Remove origin
+		server.RemoveAllowedOrigin("https://newsite.com")
+
+		// Verify origin is now rejected
+		allowed = server.checkOriginFunc(req)
+		if allowed {
+			t.Error("Should reject removed origin")
+		}
+	})
+
+	t.Run("Enable/disable origin checking", func(t *testing.T) {
+		allowedOrigins := []string{"https://app.example.com"}
+		server := NewWSServerWithOrigins(handler, allowedOrigins)
+
+		// Initially enabled (production mode)
+		req := httptest.NewRequest("GET", "/ws", nil)
+		req.Header.Set("Origin", "https://malicious.com")
+
+		if server.checkOriginFunc(req) {
+			t.Error("Should reject unauthorized origin when checking enabled")
+		}
+
+		// Disable origin checking (switch to development mode)
+		server.SetOriginCheckEnabled(false)
+
+		if server.checkOriginFunc(req) != true {
+			t.Error("Should allow all origins when checking disabled")
+		}
+
+		// Re-enable origin checking
+		server.SetOriginCheckEnabled(true)
+
+		if server.checkOriginFunc(req) {
+			t.Error("Should reject unauthorized origin when checking re-enabled")
+		}
+	})
+}
