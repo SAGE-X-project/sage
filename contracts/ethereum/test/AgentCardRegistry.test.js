@@ -1,7 +1,7 @@
 /**
  * AgentCardRegistry Test Suite
  *
- * Tests: 48 total
+ * Tests: 47 total
  * - V3.1: Commit-Reveal Pattern (9 tests)
  * - V3.2: Multi-Key Registration (12 tests)
  * - V3.3: Key Management (8 tests)
@@ -27,11 +27,51 @@ describe("AgentCardRegistry", function () {
     let validKey1, validKey2, validKey3;
     let validSig1, validSig2, validSig3;
     let wallet1, wallet2, wallet3;
+    let chainId, registryAddress;
 
     const STAKE = ethers.parseEther("0.01");
     const MIN_DELAY = 60; // 1 minute
     const MAX_DELAY = 3600; // 1 hour
     const ACTIVATION_DELAY = 3600; // 1 hour
+
+    // Helper function to create registration params
+    function createRegistrationParams(did, name, keys, keyTypes, signatures, salt) {
+        return {
+            did: did,
+            name: name,
+            description: "Test Description",
+            endpoint: "https://example.com",
+            capabilities: '{"capabilities": []}',
+            keys: keys,
+            keyTypes: keyTypes,
+            signatures: signatures,
+            salt: salt
+        };
+    }
+
+    // Helper function to commit and advance time
+    async function commitAndAdvanceTime(user, did, keys, salt) {
+        const commitHash = ethers.keccak256(
+            ethers.AbiCoder.defaultAbiCoder().encode(
+                ["string", "bytes[]", "address", "bytes32", "uint256"],
+                [did, keys, user.address, salt, chainId]
+            )
+        );
+
+        await registry.connect(user).commitRegistration(commitHash, { value: STAKE });
+
+        await ethers.provider.send("evm_increaseTime", [61]);
+        await ethers.provider.send("evm_mine");
+    }
+
+    // Helper function to create signature
+    async function createSignature(signer) {
+        const message = ethers.solidityPackedKeccak256(
+            ["string", "uint256", "address", "address"],
+            ["SAGE Agent Registration:", chainId, registryAddress, signer.address]
+        );
+        return await signer.signMessage(ethers.getBytes(message));
+    }
 
     beforeEach(async function () {
         [owner, user1, user2, attacker] = await ethers.getSigners();
@@ -45,6 +85,10 @@ describe("AgentCardRegistry", function () {
         const Registry = await ethers.getContractFactory("AgentCardRegistry");
         registry = await Registry.deploy(await hook.getAddress());
         await registry.waitForDeployment();
+
+        // Store chain info
+        chainId = (await ethers.provider.getNetwork()).chainId;
+        registryAddress = await registry.getAddress();
 
         // Create test wallets for key generation
         wallet1 = ethers.Wallet.createRandom();
@@ -61,22 +105,9 @@ describe("AgentCardRegistry", function () {
         validKey3 = wallet3.publicKey;
 
         // Sign ownership proofs
-        const message1 = ethers.solidityPackedKeccak256(
-            ["string", "uint256", "address", "address"],
-            ["SAGE Agent Registration:", (await ethers.provider.getNetwork()).chainId, await registry.getAddress(), user1.address]
-        );
-        const message2 = ethers.solidityPackedKeccak256(
-            ["string", "uint256", "address", "address"],
-            ["SAGE Agent Registration:", (await ethers.provider.getNetwork()).chainId, await registry.getAddress(), user2.address]
-        );
-        const message3 = ethers.solidityPackedKeccak256(
-            ["string", "uint256", "address", "address"],
-            ["SAGE Agent Registration:", (await ethers.provider.getNetwork()).chainId, await registry.getAddress(), attacker.address]
-        );
-
-        validSig1 = await user1.signMessage(ethers.getBytes(message1));
-        validSig2 = await user2.signMessage(ethers.getBytes(message2));
-        validSig3 = await attacker.signMessage(ethers.getBytes(message3));
+        validSig1 = await createSignature(user1);
+        validSig2 = await createSignature(user2);
+        validSig3 = await createSignature(attacker);
     });
 
     // ========================================================================
@@ -90,7 +121,7 @@ describe("AgentCardRegistry", function () {
             const commitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
@@ -110,7 +141,7 @@ describe("AgentCardRegistry", function () {
             const commitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
@@ -126,25 +157,24 @@ describe("AgentCardRegistry", function () {
             const commitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
             await registry.connect(user1).commitRegistration(commitHash, { value: STAKE });
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [validKey1],
+                [0],
+                [validSig1],
+                salt
+            );
+
             // Try to reveal immediately
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [validKey1],
-                    [0], // ECDSA
-                    [validSig1],
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.be.revertedWith("Reveal too soon");
         });
 
@@ -153,7 +183,7 @@ describe("AgentCardRegistry", function () {
             const commitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
@@ -163,18 +193,17 @@ describe("AgentCardRegistry", function () {
             await ethers.provider.send("evm_increaseTime", [3601]);
             await ethers.provider.send("evm_mine");
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [validKey1],
+                [0],
+                [validSig1],
+                salt
+            );
+
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [validKey1],
-                    [0],
-                    [validSig1],
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.be.revertedWith("Commitment expired");
         });
 
@@ -185,7 +214,7 @@ describe("AgentCardRegistry", function () {
             const commitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
@@ -195,19 +224,18 @@ describe("AgentCardRegistry", function () {
             await ethers.provider.send("evm_increaseTime", [61]);
             await ethers.provider.send("evm_mine");
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [validKey1],
+                [0],
+                [validSig1],
+                wrongSalt  // Wrong salt
+            );
+
             // Try to reveal with wrong salt
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [validKey1],
-                    [0],
-                    [validSig1],
-                    wrongSalt // Wrong salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.be.revertedWith("Invalid reveal");
         });
 
@@ -219,7 +247,7 @@ describe("AgentCardRegistry", function () {
             const commitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
@@ -228,18 +256,17 @@ describe("AgentCardRegistry", function () {
             await ethers.provider.send("evm_increaseTime", [61]);
             await ethers.provider.send("evm_mine");
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [validKey1],
+                [0],
+                [validSig1],
+                wrongSalt
+            );
+
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [validKey1],
-                    [0],
-                    [validSig1],
-                    wrongSalt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.be.revertedWith("Invalid reveal");
         });
 
@@ -259,19 +286,18 @@ describe("AgentCardRegistry", function () {
             await ethers.provider.send("evm_increaseTime", [61]);
             await ethers.provider.send("evm_mine");
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [validKey1],
+                [0],
+                [validSig1],
+                salt
+            );
+
             // Try to reveal with correct chainId (will mismatch)
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [validKey1],
-                    [0],
-                    [validSig1],
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.be.revertedWith("Invalid reveal");
         });
 
@@ -280,7 +306,7 @@ describe("AgentCardRegistry", function () {
             const commitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
@@ -292,7 +318,7 @@ describe("AgentCardRegistry", function () {
             const attackerCommitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey3], attacker.address, attackerSalt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey3], attacker.address, attackerSalt, chainId]
                 )
             );
 
@@ -302,32 +328,30 @@ describe("AgentCardRegistry", function () {
             await ethers.provider.send("evm_increaseTime", [61]);
             await ethers.provider.send("evm_mine");
 
-            // User reveals first
-            await registry.connect(user1).registerAgent(
+            const params = createRegistrationParams(
                 validDID1,
                 "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
                 [validKey1],
                 [0],
                 [validSig1],
                 salt
             );
 
+            // User reveals first
+            await registry.connect(user1).registerAgent(params);
+
+            const attackerParams = createRegistrationParams(
+                validDID1,
+                "Attacker Agent",
+                [validKey3],
+                [0],
+                [validSig3],
+                attackerSalt
+            );
+
             // Attacker tries to reveal - should fail (DID already registered)
             await expect(
-                registry.connect(attacker).registerAgent(
-                    validDID1,
-                    "Attacker Agent",
-                    "Attacker Description",
-                    "https://attacker.com",
-                    '{"capabilities": []}',
-                    [validKey3],
-                    [0],
-                    [validSig3],
-                    attackerSalt
-                )
+                registry.connect(attacker).registerAgent(attackerParams)
             ).to.be.revertedWith("DID already registered");
 
             // Verify user owns the DID
@@ -340,7 +364,7 @@ describe("AgentCardRegistry", function () {
             const commitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
@@ -357,48 +381,22 @@ describe("AgentCardRegistry", function () {
 
     describe("V3.2: Multi-Key Registration", function () {
 
-        async function commitAndAdvanceTime(user, did, keys, salt) {
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
-                    ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [did, keys, user.address, salt, (await ethers.provider.getNetwork()).chainId]
-                )
-            );
-
-            await registry.connect(user).commitRegistration(commitHash, { value: STAKE });
-
-            await ethers.provider.send("evm_increaseTime", [61]);
-            await ethers.provider.send("evm_mine");
-        }
-
         it("R3.2.1: Should register agent with 1 key", async function () {
             const salt = ethers.randomBytes(32);
 
             await commitAndAdvanceTime(user1, validDID1, [validKey1], salt);
 
-            const agentId = await registry.connect(user1).registerAgent.staticCall(
+            const params = createRegistrationParams(
                 validDID1,
                 "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
                 [validKey1],
                 [0],
                 [validSig1],
                 salt
             );
 
-            await registry.connect(user1).registerAgent(
-                validDID1,
-                "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
-                [validKey1],
-                [0],
-                [validSig1],
-                salt
-            );
+            await registry.connect(user1).registerAgent(params);
+            const agentId = await registry.didToAgentId(validDID1);
 
             const agent = await registry.getAgent(agentId);
             expect(agent.keyHashes.length).to.equal(1);
@@ -416,39 +414,22 @@ describe("AgentCardRegistry", function () {
                 const wallet = ethers.Wallet.createRandom();
                 keys.push(wallet.publicKey);
                 types.push(0); // ECDSA
-
-                const message = ethers.solidityPackedKeccak256(
-                    ["string", "uint256", "address", "address"],
-                    ["SAGE Agent Registration:", (await ethers.provider.getNetwork()).chainId, await registry.getAddress(), user1.address]
-                );
-                sigs.push(await user1.signMessage(ethers.getBytes(message)));
+                sigs.push(await createSignature(user1));
             }
 
             await commitAndAdvanceTime(user1, validDID1, keys, salt);
 
-            const agentId = await registry.connect(user1).registerAgent.staticCall(
+            const params = createRegistrationParams(
                 validDID1,
                 "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
                 keys,
                 types,
                 sigs,
                 salt
             );
 
-            await registry.connect(user1).registerAgent(
-                validDID1,
-                "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
-                keys,
-                types,
-                sigs,
-                salt
-            );
+            await registry.connect(user1).registerAgent(params);
+            const agentId = await registry.didToAgentId(validDID1);
 
             const agent = await registry.getAgent(agentId);
             expect(agent.keyHashes.length).to.equal(10);
@@ -459,18 +440,17 @@ describe("AgentCardRegistry", function () {
 
             await commitAndAdvanceTime(user1, validDID1, [], salt);
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [],
+                [],
+                [],
+                salt
+            );
+
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [],
-                    [],
-                    [],
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.be.revertedWith("Invalid key count");
         });
 
@@ -486,28 +466,22 @@ describe("AgentCardRegistry", function () {
                 const wallet = ethers.Wallet.createRandom();
                 keys.push(wallet.publicKey);
                 types.push(0);
-
-                const message = ethers.solidityPackedKeccak256(
-                    ["string", "uint256", "address", "address"],
-                    ["SAGE Agent Registration:", (await ethers.provider.getNetwork()).chainId, await registry.getAddress(), user1.address]
-                );
-                sigs.push(await user1.signMessage(ethers.getBytes(message)));
+                sigs.push(await createSignature(user1));
             }
 
             await commitAndAdvanceTime(user1, validDID1, keys, salt);
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                keys,
+                types,
+                sigs,
+                salt
+            );
+
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    keys,
-                    types,
-                    sigs,
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.be.revertedWith("Invalid key count");
         });
 
@@ -516,18 +490,17 @@ describe("AgentCardRegistry", function () {
 
             await commitAndAdvanceTime(user1, validDID1, [validKey1], salt);
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [validKey1],
+                [0], // ECDSA
+                [validSig1],
+                salt
+            );
+
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [validKey1],
-                    [0], // ECDSA
-                    [validSig1],
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.not.be.reverted;
         });
 
@@ -538,18 +511,17 @@ describe("AgentCardRegistry", function () {
 
             await commitAndAdvanceTime(user1, validDID1, [ed25519Key], salt);
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [ed25519Key],
+                [1], // Ed25519
+                [ed25519Sig],
+                salt
+            );
+
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [ed25519Key],
-                    [1], // Ed25519
-                    [ed25519Sig],
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.not.be.reverted;
         });
 
@@ -560,18 +532,17 @@ describe("AgentCardRegistry", function () {
 
             await commitAndAdvanceTime(user1, validDID1, [x25519Key], salt);
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [x25519Key],
+                [2], // X25519
+                [x25519Sig],
+                salt
+            );
+
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [x25519Key],
-                    [2], // X25519
-                    [x25519Sig],
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.not.be.reverted;
         });
 
@@ -592,29 +563,17 @@ describe("AgentCardRegistry", function () {
 
             await commitAndAdvanceTime(user1, validDID1, keys, salt);
 
-            const agentId = await registry.connect(user1).registerAgent.staticCall(
+            const params = createRegistrationParams(
                 validDID1,
                 "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
                 keys,
                 types,
                 sigs,
                 salt
             );
 
-            await registry.connect(user1).registerAgent(
-                validDID1,
-                "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
-                keys,
-                types,
-                sigs,
-                salt
-            );
+            await registry.connect(user1).registerAgent(params);
+            const agentId = await registry.didToAgentId(validDID1);
 
             const agent = await registry.getAgent(agentId);
             expect(agent.keyHashes.length).to.equal(3);
@@ -628,18 +587,17 @@ describe("AgentCardRegistry", function () {
 
             await commitAndAdvanceTime(user1, validDID1, [validKey1], salt);
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [validKey1],
+                [0],
+                [wrongSig], // Wrong signature
+                salt
+            );
+
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [validKey1],
-                    [0],
-                    [wrongSig], // Wrong signature
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.be.revertedWith("Invalid ECDSA signature");
         });
 
@@ -648,40 +606,21 @@ describe("AgentCardRegistry", function () {
 
             const keys = [validKey1, validKey2];
             const types = [0, 0];
-            const sigs = [validSig1, validSig2];
-
-            // Need to update user2's signature
-            const message2 = ethers.solidityPackedKeccak256(
-                ["string", "uint256", "address", "address"],
-                ["SAGE Agent Registration:", (await ethers.provider.getNetwork()).chainId, await registry.getAddress(), user1.address]
-            );
-            const correctedSig2 = await user1.signMessage(ethers.getBytes(message2));
+            const sigs = [validSig1, validSig1]; // Both signed by user1
 
             await commitAndAdvanceTime(user1, validDID1, keys, salt);
 
-            const agentId = await registry.connect(user1).registerAgent.staticCall(
+            const params = createRegistrationParams(
                 validDID1,
                 "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
                 keys,
                 types,
-                [validSig1, correctedSig2],
+                sigs,
                 salt
             );
 
-            await registry.connect(user1).registerAgent(
-                validDID1,
-                "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
-                keys,
-                types,
-                [validSig1, correctedSig2],
-                salt
-            );
+            await registry.connect(user1).registerAgent(params);
+            const agentId = await registry.didToAgentId(validDID1);
 
             const keyHash1 = ethers.keccak256(validKey1);
             const keyHash2 = ethers.keccak256(validKey2);
@@ -703,18 +642,17 @@ describe("AgentCardRegistry", function () {
 
             await commitAndAdvanceTime(user1, validDID1, keys, salt);
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                keys,
+                types,
+                sigs,
+                salt
+            );
+
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    keys,
-                    types,
-                    sigs,
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.be.revertedWith("Public key already used");
         });
 
@@ -724,35 +662,33 @@ describe("AgentCardRegistry", function () {
 
             await commitAndAdvanceTime(user1, validDID1, [validKey1], salt1);
 
-            await registry.connect(user1).registerAgent(
+            const params1 = createRegistrationParams(
                 validDID1,
                 "Test Agent 1",
-                "Test Description 1",
-                "https://example.com",
-                '{"capabilities": []}',
                 [validKey1],
                 [0],
                 [validSig1],
                 salt1
             );
 
+            await registry.connect(user1).registerAgent(params1);
+
             // Try to register second agent with same key
             const salt2 = ethers.randomBytes(32);
 
             await commitAndAdvanceTime(user2, validDID2, [validKey1], salt2);
 
+            const params2 = createRegistrationParams(
+                validDID2,
+                "Test Agent 2",
+                [validKey1], // Reusing key1
+                [0],
+                [validSig2],
+                salt2
+            );
+
             await expect(
-                registry.connect(user2).registerAgent(
-                    validDID2,
-                    "Test Agent 2",
-                    "Test Description 2",
-                    "https://example2.com",
-                    '{"capabilities": []}',
-                    [validKey1], // Reusing key1
-                    [0],
-                    [validSig2],
-                    salt2
-                )
+                registry.connect(user2).registerAgent(params2)
             ).to.be.revertedWith("Public key already used");
         });
     });
@@ -767,50 +703,32 @@ describe("AgentCardRegistry", function () {
         beforeEach(async function () {
             // Register an agent first
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
-                    ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
-                )
-            );
 
-            await registry.connect(user1).commitRegistration(commitHash, { value: STAKE });
+            await commitAndAdvanceTime(user1, validDID1, [validKey1], salt);
 
-            await ethers.provider.send("evm_increaseTime", [61]);
-            await ethers.provider.send("evm_mine");
-
-            agentId = await registry.connect(user1).registerAgent.staticCall(
+            const params = createRegistrationParams(
                 validDID1,
                 "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
                 [validKey1],
                 [0],
                 [validSig1],
                 salt
             );
 
-            await registry.connect(user1).registerAgent(
-                validDID1,
-                "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
-                [validKey1],
-                [0],
-                [validSig1],
-                salt
-            );
+            await registry.connect(user1).registerAgent(params);
+            agentId = await registry.didToAgentId(validDID1);
         });
 
         it("R3.3.1: Should add new key successfully", async function () {
+            // Create signature for user1 (key owner)
+            const sig = await createSignature(user1);
+
             await expect(
                 registry.connect(user1).addKey(
                     agentId,
                     validKey2,
                     0, // ECDSA
-                    validSig2
+                    sig
                 )
             ).to.not.be.reverted;
 
@@ -822,11 +740,7 @@ describe("AgentCardRegistry", function () {
             // Add 9 more keys (total 10)
             for (let i = 0; i < 9; i++) {
                 const wallet = ethers.Wallet.createRandom();
-                const message = ethers.solidityPackedKeccak256(
-                    ["string", "uint256", "address", "address"],
-                    ["SAGE Agent Registration:", (await ethers.provider.getNetwork()).chainId, await registry.getAddress(), user1.address]
-                );
-                const sig = await user1.signMessage(ethers.getBytes(message));
+                const sig = await createSignature(user1);
 
                 await registry.connect(user1).addKey(
                     agentId,
@@ -838,11 +752,7 @@ describe("AgentCardRegistry", function () {
 
             // Try to add 11th key
             const wallet11 = ethers.Wallet.createRandom();
-            const message11 = ethers.solidityPackedKeccak256(
-                ["string", "uint256", "address", "address"],
-                ["SAGE Agent Registration:", (await ethers.provider.getNetwork()).chainId, await registry.getAddress(), user1.address]
-            );
-            const sig11 = await user1.signMessage(ethers.getBytes(message11));
+            const sig11 = await createSignature(user1);
 
             await expect(
                 registry.connect(user1).addKey(
@@ -880,11 +790,12 @@ describe("AgentCardRegistry", function () {
 
         it("R3.3.5: Should remove key successfully", async function () {
             // First add a second key
+            const sig = await createSignature(user1);
             await registry.connect(user1).addKey(
                 agentId,
                 validKey2,
                 0,
-                validSig2
+                sig
             );
 
             // Now revoke first key
@@ -908,11 +819,12 @@ describe("AgentCardRegistry", function () {
 
         it("R3.3.7: Should only allow owner to revoke key", async function () {
             // Add second key first
+            const sig = await createSignature(user1);
             await registry.connect(user1).addKey(
                 agentId,
                 validKey2,
                 0,
-                validSig2
+                sig
             );
 
             const keyHash1 = ethers.keccak256(validKey1);
@@ -926,11 +838,12 @@ describe("AgentCardRegistry", function () {
             // Manual key rotation: add new key, then revoke old key
 
             // Add new key
+            const sig = await createSignature(user1);
             await registry.connect(user1).addKey(
                 agentId,
                 validKey2,
                 0,
-                validSig2
+                sig
             );
 
             const agent1 = await registry.getAgent(agentId);
@@ -950,12 +863,13 @@ describe("AgentCardRegistry", function () {
 
         it("R3.3.9: Should emit key operation events", async function () {
             // Test KeyAdded event
+            const sig = await createSignature(user1);
             await expect(
                 registry.connect(user1).addKey(
                     agentId,
                     validKey2,
                     0,
-                    validSig2
+                    sig
                 )
             ).to.emit(registry, "KeyAdded");
 
@@ -977,41 +891,20 @@ describe("AgentCardRegistry", function () {
         beforeEach(async function () {
             // Register an agent
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
-                    ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
-                )
-            );
 
-            await registry.connect(user1).commitRegistration(commitHash, { value: STAKE });
+            await commitAndAdvanceTime(user1, validDID1, [validKey1], salt);
 
-            await ethers.provider.send("evm_increaseTime", [61]);
-            await ethers.provider.send("evm_mine");
-
-            agentId = await registry.connect(user1).registerAgent.staticCall(
+            const params = createRegistrationParams(
                 validDID1,
                 "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
                 [validKey1],
                 [0],
                 [validSig1],
                 salt
             );
 
-            await registry.connect(user1).registerAgent(
-                validDID1,
-                "Test Agent",
-                "Test Description",
-                "https://example.com",
-                '{"capabilities": []}',
-                [validKey1],
-                [0],
-                [validSig1],
-                salt
-            );
+            await registry.connect(user1).registerAgent(params);
+            agentId = await registry.didToAgentId(validDID1);
         });
 
         it("R3.4.1: Should update endpoint", async function () {
@@ -1158,32 +1051,21 @@ describe("AgentCardRegistry", function () {
             // modifier exists and is applied.
 
             const salt = ethers.randomBytes(32);
-            const commitHash = ethers.keccak256(
-                ethers.AbiCoder.defaultAbiCoder().encode(
-                    ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
-                )
+
+            await commitAndAdvanceTime(user1, validDID1, [validKey1], salt);
+
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [validKey1],
+                [0],
+                [validSig1],
+                salt
             );
-
-            // Commit
-            await registry.connect(user1).commitRegistration(commitHash, { value: STAKE });
-
-            await ethers.provider.send("evm_increaseTime", [61]);
-            await ethers.provider.send("evm_mine");
 
             // Register normally
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [validKey1],
-                    [0],
-                    [validSig1],
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.not.be.reverted;
         });
 
@@ -1203,7 +1085,7 @@ describe("AgentCardRegistry", function () {
             const commitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
@@ -1253,18 +1135,18 @@ describe("AgentCardRegistry", function () {
             const commitHash = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
             // Get contract balance before
-            const balanceBefore = await ethers.provider.getBalance(await registry.getAddress());
+            const balanceBefore = await ethers.provider.getBalance(registryAddress);
 
             // Commit with stake
             await registry.connect(user1).commitRegistration(commitHash, { value: STAKE });
 
             // Contract balance should increase
-            const balanceAfter = await ethers.provider.getBalance(await registry.getAddress());
+            const balanceAfter = await ethers.provider.getBalance(registryAddress);
             expect(balanceAfter).to.equal(balanceBefore + STAKE);
         });
 
@@ -1279,11 +1161,11 @@ describe("AgentCardRegistry", function () {
                 )
             );
 
-            // Commitment with current chain (31337)
+            // Commitment with current chain
             const commitHashCurrent = ethers.keccak256(
                 ethers.AbiCoder.defaultAbiCoder().encode(
                     ["string", "bytes[]", "address", "bytes32", "uint256"],
-                    [validDID1, [validKey1], user1.address, salt, (await ethers.provider.getNetwork()).chainId]
+                    [validDID1, [validKey1], user1.address, salt, chainId]
                 )
             );
 
@@ -1296,19 +1178,18 @@ describe("AgentCardRegistry", function () {
             await ethers.provider.send("evm_increaseTime", [61]);
             await ethers.provider.send("evm_mine");
 
+            const params = createRegistrationParams(
+                validDID1,
+                "Test Agent",
+                [validKey1],
+                [0],
+                [validSig1],
+                salt
+            );
+
             // Try to reveal - should fail (hash mismatch)
             await expect(
-                registry.connect(user1).registerAgent(
-                    validDID1,
-                    "Test Agent",
-                    "Test Description",
-                    "https://example.com",
-                    '{"capabilities": []}',
-                    [validKey1],
-                    [0],
-                    [validSig1],
-                    salt
-                )
+                registry.connect(user1).registerAgent(params)
             ).to.be.revertedWith("Invalid reveal");
         });
     });

@@ -144,7 +144,7 @@ abstract contract AgentCardStorage {
      * @dev Enables O(1) lookup by DID string
      *      Maps: DID string → agent ID (bytes32)
      */
-    mapping(string => bytes32) internal didToAgentId;
+    mapping(string => bytes32) public didToAgentId;
 
     /**
      * @notice Owner to agent IDs mapping
@@ -166,14 +166,14 @@ abstract contract AgentCardStorage {
      * @dev Maps committer address to their registration commitment
      *      Only one active commitment per address at a time
      */
-    mapping(address => RegistrationCommitment) internal registrationCommitments;
+    mapping(address => RegistrationCommitment) public registrationCommitments;
 
     /**
      * @notice Agent nonces for replay protection
      * @dev Incremented on each agent update
      *      Prevents replay attacks on update transactions
      */
-    mapping(bytes32 => uint256) internal agentNonce;
+    mapping(bytes32 => uint256) public agentNonce;
 
     /**
      * @notice Daily registration count tracking
