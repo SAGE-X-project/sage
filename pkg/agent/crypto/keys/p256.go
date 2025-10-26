@@ -78,8 +78,8 @@ func NewP256KeyPair(privateKey *ecdsa.PrivateKey, id string) (sagecrypto.KeyPair
 		// Use uncompressed point format: 0x04 || X || Y (manually marshal to avoid deprecated function)
 		pubKeyBytes := make([]byte, 1+32+32)
 		pubKeyBytes[0] = 0x04
-		privateKey.PublicKey.X.FillBytes(pubKeyBytes[1:33])
-		privateKey.PublicKey.Y.FillBytes(pubKeyBytes[33:65])
+		privateKey.X.FillBytes(pubKeyBytes[1:33])
+		privateKey.Y.FillBytes(pubKeyBytes[33:65])
 		hash := sha256.Sum256(pubKeyBytes)
 		id = hex.EncodeToString(hash[:8])
 	}
