@@ -27,6 +27,19 @@ echo ""
 
 FAILED=0
 
+# Step 0: Verify golangci-lint configuration (same as GitHub Actions)
+echo -e "${BLUE}[0/3] Verifying golangci-lint configuration...${NC}"
+echo "Command: golangci-lint config verify"
+echo ""
+
+if golangci-lint config verify; then
+    echo -e "${GREEN}✓ Configuration verification passed${NC}"
+else
+    echo -e "${RED}✗ Configuration verification failed${NC}"
+    FAILED=1
+fi
+echo ""
+
 # Step 1: golangci-lint (same as GitHub Actions)
 echo -e "${BLUE}[1/3] Running golangci-lint...${NC}"
 echo "Command: golangci-lint run --timeout=5m"
