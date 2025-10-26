@@ -66,6 +66,10 @@
   ],
   "author": "SAGE Team",
   "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-ethers": "^4.0.2",
     "@nomicfoundation/hardhat-ethers-chai-matchers": "^3.0.0",

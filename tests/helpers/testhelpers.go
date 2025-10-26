@@ -166,7 +166,7 @@ func LogDetail(t *testing.T, format string, args ...interface{}) {
 	if len(args) > 0 {
 		t.Logf("  "+message, args...)
 	} else {
-		t.Logf("  " + message)
+		t.Log("  " + message)
 	}
 }
 
