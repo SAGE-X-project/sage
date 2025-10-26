@@ -18,6 +18,7 @@ REPORTS_DIR=reports
 GO=go
 GOFLAGS=-v
 LDFLAGS=-w -s
+GOTOOLCHAIN=go1.24.0
 
 # Version information
 VERSION?=$(shell cat VERSION 2>/dev/null || echo "0.1.0")
@@ -232,15 +233,15 @@ build-binaries-all-platforms:
 build-platform:
 	@echo "Building binaries for $(GOOS)/$(GOARCH)..."
 	@mkdir -p $(DIST_DIR)/$(GOOS)-$(GOARCH)
-	@GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
+	@GOTOOLCHAIN=$(GOTOOLCHAIN) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
 		-ldflags "$(LDFLAGS) $(BUILD_LDFLAGS)" \
 		-o $(DIST_DIR)/$(GOOS)-$(GOARCH)/$(CRYPTO_BINARY)$(if $(filter windows,$(GOOS)),.exe,) \
 		./$(CMD_DIR)/$(CRYPTO_BINARY)
-	@GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
+	@GOTOOLCHAIN=$(GOTOOLCHAIN) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
 		-ldflags "$(LDFLAGS) $(BUILD_LDFLAGS)" \
 		-o $(DIST_DIR)/$(GOOS)-$(GOARCH)/$(DID_BINARY)$(if $(filter windows,$(GOOS)),.exe,) \
 		./$(CMD_DIR)/$(DID_BINARY)
-	@GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
+	@GOTOOLCHAIN=$(GOTOOLCHAIN) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
 		-ldflags "$(LDFLAGS) $(BUILD_LDFLAGS)" \
 		-o $(DIST_DIR)/$(GOOS)-$(GOARCH)/$(VERIFY_BINARY)$(if $(filter windows,$(GOOS)),.exe,) \
 		./$(CMD_DIR)/$(VERIFY_BINARY)
