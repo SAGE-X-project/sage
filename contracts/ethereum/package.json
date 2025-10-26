@@ -68,7 +68,7 @@
     "@typechain/hardhat": "^8.0.0",
     "@types/chai": "^4.2.0",
     "@types/mocha": ">=9.1.0",
-    "@types/node": ">=16.0.0",
+    "@types/node": ">=24.9.1",
     "chai": "^4.2.0",
     "dotenv": "^17.2.3",
     "ethers": "^6.4.0",
