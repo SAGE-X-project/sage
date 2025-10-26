@@ -5,7 +5,12 @@
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",
-    "clean": "hardhat clean",
+    "clean": "hardhat clean && npm run clean:generated",
+    "clean:generated": "rm -rf typechain-types coverage coverage.json .nyc_output test-results gas-report.txt *.log logs dist build out tmp temp && find . -name '*.tmp' -o -name '*.temp' -o -name '*.bak' -o -name '*.backup' -o -name '*.old' | grep -v node_modules | xargs rm -f 2>/dev/null || true",
+    "clean:bindings": "rm -rf bindings/go/*.go bindings/go/go.mod bindings/go/go.sum bindings/java/target bindings/java/build bindings/python/build bindings/python/dist bindings/python/__pycache__ bindings/rust/target && find bindings -name '*.pyc' -o -name '*.pyo' -o -name '*.class' | xargs rm -f 2>/dev/null || true",
+    "clean:deployments": "find deployments -name '*.json' ! -name 'example.json' ! -name '*-latest.json' -delete 2>/dev/null || true",
+    "clean:all": "npm run clean && npm run clean:bindings && npm run clean:deployments && rm -rf abi/*.min.json",
+    "clean:deep": "npm run clean:all && rm -rf node_modules",
     "lint": "solhint 'contracts/**/*.sol'",
     "lint:fix": "solhint 'contracts/**/*.sol' --fix",
     "test": "hardhat test",
