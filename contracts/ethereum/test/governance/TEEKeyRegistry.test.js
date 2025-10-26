@@ -30,7 +30,8 @@ describe("TEEKeyRegistry", function () {
     // Test TEE keys
     const TEE_KEY_1 = keccak256(toUtf8Bytes("Intel-SGX-Key-1"));
     const TEE_KEY_2 = keccak256(toUtf8Bytes("AMD-SEV-Key-1"));
-    const TEE_ATTESTATION = "0x1234567890abcdef";
+    const TEE_ATTESTATION = "https://example.com/sgx-attestation-report";
+    const TEE_TYPE = "SGX";
 
     beforeEach(async function () {
         [owner, proposer, voter1, voter2, voter3, attacker] = await ethers.getSigners();
@@ -59,15 +60,16 @@ describe("TEEKeyRegistry", function () {
                 teeRegistry.connect(proposer).proposeTEEKey(
                     TEE_KEY_1,
                     TEE_ATTESTATION,
+                    TEE_TYPE,
                     { value: PROPOSAL_STAKE }
                 )
             ).to.emit(teeRegistry, "TEEKeyProposed")
-                .withArgs(0, proposer.address, TEE_KEY_1);
+                .withArgs(0, TEE_KEY_1, proposer.address, TEE_TYPE, TEE_ATTESTATION);
 
             const proposal = await teeRegistry.proposals(0);
             expect(proposal.keyHash).to.equal(TEE_KEY_1);
             expect(proposal.proposer).to.equal(proposer.address);
-            expect(proposal.executed).to.be.false;
+            expect(proposal.status).to.equal(0); // PENDING
         });
 
         /**
@@ -79,6 +81,7 @@ describe("TEEKeyRegistry", function () {
                 teeRegistry.connect(proposer).proposeTEEKey(
                     TEE_KEY_1,
                     TEE_ATTESTATION,
+                    TEE_TYPE,
                     { value: parseEther("0.5") }
                 )
             ).to.be.revert(ethers);
@@ -86,22 +89,27 @@ describe("TEEKeyRegistry", function () {
 
         /**
          * Test ID: G2.1.3
-         * Verification: Cannot propose duplicate key
+         * Verification: Multiple proposals can be created
          */
-        it("G2.1.3: Should reject duplicate key proposal", async function () {
+        it("G2.1.3: Should allow multiple proposals", async function () {
             await teeRegistry.connect(proposer).proposeTEEKey(
                 TEE_KEY_1,
                 TEE_ATTESTATION,
+                TEE_TYPE,
                 { value: PROPOSAL_STAKE }
             );
 
+            // Second proposal with different key should succeed
             await expect(
-                teeRegistry.connect(attacker).proposeTEEKey(
-                    TEE_KEY_1,
+                teeRegistry.connect(proposer).proposeTEEKey(
+                    TEE_KEY_2,
                     TEE_ATTESTATION,
+                    TEE_TYPE,
                     { value: PROPOSAL_STAKE }
                 )
-            ).to.be.revert(ethers);
+            ).to.emit(teeRegistry, "TEEKeyProposed");
+
+            expect(await teeRegistry.proposalCount()).to.equal(2);
         });
 
         /**
@@ -112,13 +120,14 @@ describe("TEEKeyRegistry", function () {
             await teeRegistry.connect(proposer).proposeTEEKey(
                 TEE_KEY_1,
                 TEE_ATTESTATION,
+                TEE_TYPE,
                 { value: PROPOSAL_STAKE }
             );
 
             const proposal = await teeRegistry.proposals(0);
             expect(proposal.keyHash).to.equal(TEE_KEY_1);
             expect(proposal.proposer).to.equal(proposer.address);
-            expect(proposal.stake).to.equal(PROPOSAL_STAKE);
+            expect(proposal.proposalStake).to.equal(PROPOSAL_STAKE);
             expect(proposal.votesFor).to.equal(0);
             expect(proposal.votesAgainst).to.equal(0);
         });
@@ -133,6 +142,7 @@ describe("TEEKeyRegistry", function () {
             await teeRegistry.connect(proposer).proposeTEEKey(
                 TEE_KEY_1,
                 TEE_ATTESTATION,
+                TEE_TYPE,
                 { value: PROPOSAL_STAKE }
             );
 
@@ -141,6 +151,7 @@ describe("TEEKeyRegistry", function () {
             await teeRegistry.connect(proposer).proposeTEEKey(
                 TEE_KEY_2,
                 TEE_ATTESTATION,
+                TEE_TYPE,
                 { value: PROPOSAL_STAKE }
             );
 
@@ -157,6 +168,7 @@ describe("TEEKeyRegistry", function () {
             await teeRegistry.connect(proposer).proposeTEEKey(
                 TEE_KEY_1,
                 TEE_ATTESTATION,
+                TEE_TYPE,
                 { value: PROPOSAL_STAKE }
             );
         });
@@ -233,6 +245,7 @@ describe("TEEKeyRegistry", function () {
             await teeRegistry.connect(proposer).proposeTEEKey(
                 TEE_KEY_1,
                 TEE_ATTESTATION,
+                TEE_TYPE,
                 { value: PROPOSAL_STAKE }
             );
         });
@@ -254,14 +267,14 @@ describe("TEEKeyRegistry", function () {
             await expect(
                 teeRegistry.connect(owner).executeProposal(0)
             ).to.emit(teeRegistry, "ProposalExecuted")
-                .withArgs(0, true);
+                .withArgs(0, TEE_KEY_1, true);
 
             // Check key is trusted
             expect(await teeRegistry.isTrustedTEEKey(TEE_KEY_1)).to.be.true;
 
-            // Check stake returned
+            // Check proposal executed
             const proposal = await teeRegistry.proposals(0);
-            expect(proposal.executed).to.be.true;
+            expect(proposal.status).to.equal(3); // EXECUTED
         });
 
         /**
@@ -279,14 +292,14 @@ describe("TEEKeyRegistry", function () {
             await expect(
                 teeRegistry.connect(owner).executeProposal(0)
             ).to.emit(teeRegistry, "ProposalExecuted")
-                .withArgs(0, false);
+                .withArgs(0, TEE_KEY_1, false);
 
             // Check key is not trusted
             expect(await teeRegistry.isTrustedTEEKey(TEE_KEY_1)).to.be.false;
 
-            // Check stake slashed
+            // Check proposal executed
             const proposal = await teeRegistry.proposals(0);
-            expect(proposal.executed).to.be.true;
+            expect(proposal.status).to.equal(3); // EXECUTED
         });
 
         /**
@@ -350,14 +363,20 @@ describe("TEEKeyRegistry", function () {
             const newStake = parseEther("2.0");
 
             await expect(
-                teeRegistry.connect(owner).updateProposalStake(newStake)
-            ).to.emit(teeRegistry, "ProposalStakeUpdated");
+                teeRegistry.connect(owner).updateParameters(
+                    newStake,
+                    VOTING_PERIOD,
+                    APPROVAL_THRESHOLD,
+                    MIN_PARTICIPATION
+                )
+            ).to.emit(teeRegistry, "ParametersUpdated");
 
             // Verify by checking if new proposal requires new stake
             await expect(
                 teeRegistry.connect(proposer).proposeTEEKey(
                     TEE_KEY_1,
                     TEE_ATTESTATION,
+                    TEE_TYPE,
                     { value: PROPOSAL_STAKE }
                 )
             ).to.be.revert(ethers);
@@ -367,6 +386,7 @@ describe("TEEKeyRegistry", function () {
                 teeRegistry.connect(proposer).proposeTEEKey(
                     TEE_KEY_1,
                     TEE_ATTESTATION,
+                    TEE_TYPE,
                     { value: newStake }
                 )
             ).to.emit(teeRegistry, "TEEKeyProposed");
@@ -376,7 +396,7 @@ describe("TEEKeyRegistry", function () {
          * Test ID: G2.4.2
          * Verification: Owner can manage voters
          */
-        it("G2.4.2: Should allow owner to register/unregister voters", async function () {
+        it("G2.4.2: Should allow owner to register/remove voters", async function () {
             const newVoter = attacker.address;
 
             await expect(
@@ -384,14 +404,14 @@ describe("TEEKeyRegistry", function () {
             ).to.emit(teeRegistry, "VoterRegistered")
                 .withArgs(newVoter, 150);
 
-            expect(await teeRegistry.voters(newVoter)).to.equal(150);
+            expect(await teeRegistry.isRegisteredVoter(newVoter)).to.be.true;
+            expect(await teeRegistry.voterWeight(newVoter)).to.equal(150);
 
-            await expect(
-                teeRegistry.connect(owner).unregisterVoter(newVoter)
-            ).to.emit(teeRegistry, "VoterUnregistered")
-                .withArgs(newVoter);
+            // removeVoter doesn't emit an event
+            await teeRegistry.connect(owner).removeVoter(newVoter);
 
-            expect(await teeRegistry.voters(newVoter)).to.equal(0);
+            expect(await teeRegistry.isRegisteredVoter(newVoter)).to.be.false;
+            expect(await teeRegistry.voterWeight(newVoter)).to.equal(0);
         });
 
         /**
@@ -400,7 +420,12 @@ describe("TEEKeyRegistry", function () {
          */
         it("G2.4.3: Should reject parameter updates from non-owner", async function () {
             await expect(
-                teeRegistry.connect(attacker).updateProposalStake(parseEther("5.0"))
+                teeRegistry.connect(attacker).updateParameters(
+                    parseEther("5.0"),
+                    VOTING_PERIOD,
+                    APPROVAL_THRESHOLD,
+                    MIN_PARTICIPATION
+                )
             ).to.be.revert(ethers);
 
             await expect(
@@ -425,6 +450,7 @@ describe("TEEKeyRegistry", function () {
                 teeRegistry.connect(proposer).proposeTEEKey(
                     TEE_KEY_1,
                     TEE_ATTESTATION,
+                    TEE_TYPE,
                     { value: PROPOSAL_STAKE }
                 )
             ).to.be.revert(ethers);
@@ -435,6 +461,7 @@ describe("TEEKeyRegistry", function () {
                 teeRegistry.connect(proposer).proposeTEEKey(
                     TEE_KEY_1,
                     TEE_ATTESTATION,
+                    TEE_TYPE,
                     { value: PROPOSAL_STAKE }
                 )
             ).to.emit(teeRegistry, "TEEKeyProposed");

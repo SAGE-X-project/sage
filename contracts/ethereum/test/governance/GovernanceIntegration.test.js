@@ -51,14 +51,10 @@ describe("Governance Integration", function () {
         hook = await Hook.deploy();
         await hook.waitForDeployment();
 
-        // Deploy AgentCardRegistry
+        // Deploy AgentCardRegistry with owner as initial owner
         const Registry = await ethers.getContractFactory("AgentCardRegistry");
         registry = await Registry.deploy(await hook.getAddress());
         await registry.waitForDeployment();
-
-        // Transfer ownership of registry and hook to timelock
-        await registry.transferOwnership(await timelock.getAddress());
-        await hook.transferOwnership(await timelock.getAddress());
     });
 
     /**
@@ -117,6 +113,28 @@ describe("Governance Integration", function () {
     // ============================================================================
 
     describe("G4.1: Full Governance Flow", function () {
+        beforeEach(async function () {
+            // Transfer ownership to timelock for governance tests
+            await registry.transferOwnership(await timelock.getAddress());
+            await hook.transferOwnership(await timelock.getAddress());
+
+            // Accept ownership through governance mechanism
+            const registryAcceptData = registry.interface.encodeFunctionData("acceptOwnership");
+            await executeGovernanceAction(
+                await registry.getAddress(),
+                0,
+                registryAcceptData,
+                MIN_DELAY
+            );
+
+            const hookAcceptData = hook.interface.encodeFunctionData("acceptOwnership");
+            await executeGovernanceAction(
+                await hook.getAddress(),
+                0,
+                hookAcceptData,
+                MIN_DELAY
+            );
+        });
         /**
          * Test ID: G4.1.1
          * Verification: Update registry hook through governance
@@ -125,7 +143,7 @@ describe("Governance Integration", function () {
             const newHook = await (await ethers.getContractFactory("AgentCardVerifyHook")).deploy();
             await newHook.waitForDeployment();
 
-            const data = registry.interface.encodeFunctionData("setHook", [
+            const data = registry.interface.encodeFunctionData("setVerifyHook", [
                 await newHook.getAddress()
             ]);
 
@@ -136,7 +154,7 @@ describe("Governance Integration", function () {
                 MIN_DELAY
             );
 
-            expect(await registry.hook()).to.equal(await newHook.getAddress());
+            expect(await registry.verifyHook()).to.equal(await newHook.getAddress());
         });
 
         /**
@@ -155,7 +173,7 @@ describe("Governance Integration", function () {
                 MIN_DELAY
             );
 
-            expect(await hook.whitelist(signer1.address)).to.be.true;
+            expect(await hook.whitelisted(signer1.address)).to.be.true;
         });
 
         /**
@@ -164,7 +182,7 @@ describe("Governance Integration", function () {
          */
         it("G4.1.3: Should update stake amount through governance", async function () {
             const newStake = parseEther("0.02");
-            const data = registry.interface.encodeFunctionData("updateStakeAmount", [
+            const data = registry.interface.encodeFunctionData("setRegistrationStake", [
                 newStake
             ]);
 
@@ -175,7 +193,7 @@ describe("Governance Integration", function () {
                 MIN_DELAY
             );
 
-            expect(await registry.STAKE_AMOUNT()).to.equal(newStake);
+            expect(await registry.registrationStake()).to.equal(newStake);
         });
 
         /**
@@ -188,12 +206,12 @@ describe("Governance Integration", function () {
 
             // Try to update directly (should fail)
             await expect(
-                registry.connect(signer1).setHook(await newHook.getAddress())
+                registry.connect(signer1).setVerifyHook(await newHook.getAddress())
             ).to.be.revert(ethers);
 
             // Owner of registry is timelock, not signer1
             await expect(
-                registry.connect(owner).setHook(await newHook.getAddress())
+                registry.connect(owner).setVerifyHook(await newHook.getAddress())
             ).to.be.revert(ethers);
         });
 
@@ -240,6 +258,29 @@ describe("Governance Integration", function () {
     // ============================================================================
 
     describe("G4.2: Emergency Procedures", function () {
+        beforeEach(async function () {
+            // Transfer ownership to timelock for governance tests
+            await registry.transferOwnership(await timelock.getAddress());
+            await hook.transferOwnership(await timelock.getAddress());
+
+            // Accept ownership through governance mechanism
+            const registryAcceptData = registry.interface.encodeFunctionData("acceptOwnership");
+            await executeGovernanceAction(
+                await registry.getAddress(),
+                0,
+                registryAcceptData,
+                MIN_DELAY
+            );
+
+            const hookAcceptData = hook.interface.encodeFunctionData("acceptOwnership");
+            await executeGovernanceAction(
+                await hook.getAddress(),
+                0,
+                hookAcceptData,
+                MIN_DELAY
+            );
+        });
+
         /**
          * Test ID: G4.2.1
          * Verification: Emergency pause with reduced delay
@@ -327,20 +368,45 @@ describe("Governance Integration", function () {
     // ============================================================================
 
     describe("G4.3: Complex Scenarios", function () {
+        beforeEach(async function () {
+            // Transfer ownership to timelock for governance tests
+            await registry.transferOwnership(await timelock.getAddress());
+            await hook.transferOwnership(await timelock.getAddress());
+
+            // Accept ownership through governance mechanism
+            const registryAcceptData = registry.interface.encodeFunctionData("acceptOwnership");
+            await executeGovernanceAction(
+                await registry.getAddress(),
+                0,
+                registryAcceptData,
+                MIN_DELAY
+            );
+
+            const hookAcceptData = hook.interface.encodeFunctionData("acceptOwnership");
+            await executeGovernanceAction(
+                await hook.getAddress(),
+                0,
+                hookAcceptData,
+                MIN_DELAY
+            );
+        });
+
         /**
          * Test ID: G4.3.1
          * Verification: Multiple proposals in queue
          */
         it("G4.3.1: Should handle multiple queued proposals", async function () {
-            // Proposal 1: Update stake
-            const data1 = registry.interface.encodeFunctionData("updateStakeAmount", [
-                parseEther("0.02")
+            // Proposal 1: Update hook
+            const newHook1 = await (await ethers.getContractFactory("AgentCardVerifyHook")).deploy();
+            await newHook1.waitForDeployment();
+            const data1 = registry.interface.encodeFunctionData("setVerifyHook", [
+                await newHook1.getAddress()
             ]);
 
-            // Proposal 2: Update hook
+            // Proposal 2: Update another hook
             const newHook = await (await ethers.getContractFactory("AgentCardVerifyHook")).deploy();
             await newHook.waitForDeployment();
-            const data2 = registry.interface.encodeFunctionData("setHook", [
+            const data2 = registry.interface.encodeFunctionData("setVerifyHook", [
                 await newHook.getAddress()
             ]);
 
