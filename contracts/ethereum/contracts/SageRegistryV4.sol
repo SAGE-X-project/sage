@@ -34,6 +34,7 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
     uint256 private constant SECP256K1_COMPRESSED_LENGTH = 33;
     uint256 private constant SECP256K1_UNCOMPRESSED_LENGTH = 65;
     uint256 private constant SECP256K1_RAW_LENGTH = 64;
+    uint256 private constant X25519_KEY_LENGTH = 32;
 
     // Signature constants
     uint256 private constant ECDSA_SIGNATURE_LENGTH = 65;
@@ -542,7 +543,14 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
             bytes32 messageHash = keccak256(abi.encode(agentId, keyData, msg.sender, agentNonce[agentId]));
             verified = _verifyEcdsaSignature(messageHash, signature, keyData, msg.sender);
             require(verified, "ECDSA signature verification failed");
-        }
+        } else if (keyType == KeyType.X25519) {
+            // X25519/HPKE recipient key has NO on-chain signature verification.
+            // For safety and clarity, we REQUIRE an empty signature.
+            require(signature.length == 0, "X25519 must have empty signature");
+            // Mark as verified=true so it is treated as an active usable key material,
+            // while updateAgent still relies on a verified ECDSA key (no behavior change).
+            verified = true;
+        } 
         // Ed25519 keys remain unverified until owner approves
 
         // Store key
@@ -570,6 +578,11 @@ contract SageRegistryV4 is ISageRegistryV4, ReentrancyGuard {
                 keyData.length == SECP256K1_COMPRESSED_LENGTH,
                 "Invalid ECDSA key length"
             );
+        } else if (keyType == KeyType.X25519) {
+            // X25519/HPKE recipient public key is exactly 32 bytes
+            require(keyData.length == X25519_KEY_LENGTH, "Invalid X25519 key length");
+        } else {
+            revert("Unsupported key type");
         }
     }
 

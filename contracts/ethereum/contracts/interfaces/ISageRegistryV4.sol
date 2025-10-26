@@ -14,7 +14,8 @@ interface ISageRegistryV4 {
      */
     enum KeyType {
         Ed25519,  // Solana, Cardano, Polkadot (32 bytes)
-        ECDSA     // Ethereum, Bitcoin (33/65 bytes for secp256k1)
+        ECDSA,    // Ethereum, Bitcoin (33/65 bytes for secp256k1)
+        X25519    // HPKE recipient key (32-byte public key, no on-chain signature)
     }
 
     /**
