@@ -20,11 +20,14 @@ package hpke
 
 import (
 	"crypto"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"math/big"
 
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
+	"encoding/asn1"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
@@ -34,6 +37,7 @@ import (
 	"sync"
 	"time"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"golang.org/x/crypto/hkdf"
 )
 
@@ -140,6 +144,32 @@ func verifySignature(payload, signature []byte, senderPub crypto.PublicKey) erro
 			return errors.New("signature verify failed: invalid ed25519 signature")
 		}
 		return nil
+	case *ecdsa.PublicKey:
+		hash := ethcrypto.Keccak256(payload)
+
+		raw := signature
+		if len(raw) == 65 {
+			raw = raw[:64]
+		}
+		pubBytes := ethcrypto.FromECDSAPub(pk) // 0x04 || X(32) || Y(32)
+		if len(raw) == 64 && ethcrypto.VerifySignature(pubBytes, hash, raw) {
+			return nil
+		}
+		if len(raw) == 64 {
+			r := new(big.Int).SetBytes(raw[:32])
+			s := new(big.Int).SetBytes(raw[32:])
+			if ecdsa.Verify(pk, hash, r, s) {
+				return nil
+			}
+		} else {
+			var esig struct{ R, S *big.Int }
+			if _, err := asn1.Unmarshal(signature, &esig); err == nil && esig.R != nil && esig.S != nil {
+				if ecdsa.Verify(pk, hash, esig.R, esig.S) {
+					return nil
+				}
+			}
+		}
+		return fmt.Errorf("ecdsa(secp256k1) verify failed")
 	default:
 		return fmt.Errorf("unsupported public key type: %T", senderPub)
 	}

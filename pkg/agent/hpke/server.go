@@ -41,7 +41,7 @@ import (
 // Server accepts HPKE init, verifies DID-signature, derives secrets,
 // creates a session, and returns a signed response with kid/ephS/ackTag.
 type Server struct {
-	key       sagecrypto.KeyPair // Ed25519 for signing messages
+	key       sagecrypto.KeyPair // ED25519, ECDSA(Secp256k1)
 	kem       sagecrypto.KeyPair // X25519 KEM static key (HPKE Base recipient)
 	DID       string
 	resolver  did.Resolver
@@ -188,7 +188,6 @@ func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage
 		[]byte(pl.InitDID),
 		[]byte(pl.RespDID),
 	)
-
 	// Best-effort wipe local seed copy
 	zeroBytes(combined)
 

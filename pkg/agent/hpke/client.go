@@ -29,6 +29,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -150,6 +151,7 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
 	binds := [][]byte{
 		info, exportCtx, enc, ephCPubBytes, r.EphSBytes, []byte(initDID), []byte(peerDID),
 	}
+
 	if err := verifyAckTag(combined, ctxID, nonce, r.Kid, binds, r.AckTag); err != nil {
 		zeroBytes(combined)
 		return "", err
@@ -268,7 +270,20 @@ func (c *Client) sendAndGetSignedMsg(ctx context.Context, msg *transport.SecureM
 	if err != nil {
 		return nil, fmt.Errorf("transport send: %w", err)
 	}
-	if resp == nil || len(resp.Data) == 0 {
+	if resp == nil {
+		return nil, fmt.Errorf("nil response")
+	}
+	if !resp.Success {
+		if resp.Error != nil {
+			return nil, fmt.Errorf("handshake failed: %v", resp.Error)
+		}
+		if len(resp.Data) > 0 {
+			return nil, fmt.Errorf("handshake failed: %s", strings.TrimSpace(string(resp.Data)))
+		}
+		return nil, fmt.Errorf("handshake failed: empty response")
+	}
+
+	if len(resp.Data) == 0 {
 		return nil, fmt.Errorf("empty response data")
 	}
 	return resp, nil

@@ -20,14 +20,18 @@ package ethereum
 
 import (
 	"context"
+	"crypto/ecdh"
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -150,8 +154,12 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 	keyData := make([][]byte, len(keys))
 	signatures := make([][]byte, len(keys))
 
-	// Prepare capabilities as JSON string
-	capabilitiesJSON, err := json.Marshal(req.Capabilities)
+	// 3) Capabilities as JSON string
+	capabilities := req.Capabilities
+	if capabilities == nil {
+		capabilities = map[string]any{}
+	}
+	capabilitiesJSON, err := json.Marshal(capabilities)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal capabilities: %w", err)
 	}
@@ -215,9 +223,14 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 
 		// Priority 2: Check if signature is required based on key type and chain
 		if key.Type == did.KeyTypeEd25519 {
-			// Ed25519 keys on Ethereum: NO signature required
-			// Will be verified off-chain and approved by contract owner
-			signatures[i] = []byte{} // Empty signature
+			signatures[i] = []byte{} // empty
+			continue
+		}
+		if key.Type == did.KeyTypeX25519 {
+			if len(key.KeyData) != 32 {
+				return nil, fmt.Errorf("x25519 key %d must be 32 bytes, got %d", i, len(key.KeyData))
+			}
+			signatures[i] = []byte{} // empty
 			continue
 		}
 
@@ -238,12 +251,10 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 				{Type: addressType},
 				{Type: uint256Type},
 			}
-
 			messageData, err := messageArgs.Pack(agentId, keyData[i], ownerAddress, agentNonce)
 			if err != nil {
 				return nil, fmt.Errorf("failed to encode message for key %d: %w", i, err)
 			}
-
 			messageHash := crypto.Keccak256Hash(messageData)
 
 			// Apply Ethereum personal sign prefix (contract does this)
@@ -262,7 +273,6 @@ func (c *EthereumClientV4) Register(ctx context.Context, req *did.RegistrationRe
 			if sig[64] < 27 {
 				sig[64] += 27
 			}
-
 			signatures[i] = sig
 			continue
 		}
@@ -393,6 +403,40 @@ func (c *EthereumClientV4) ResolvePublicKey(ctx context.Context, agentDID did.Ag
 	return publicKey, nil
 }
 
+// ResolvePublicKey retrieves only the first public key for an agent (backward compatibility)
+func (c *EthereumClientV4) ResolveKEMKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
+	agent, err := c.contract.GetAgentByDID(&bind.CallOpts{Context: ctx}, string(agentDID))
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent: %w", err)
+	}
+
+	if agent.Did == "" {
+		return nil, did.ErrDIDNotFound
+	}
+
+	if len(agent.KeyHashes) == 0 {
+		return nil, fmt.Errorf("agent has no keys")
+	}
+	for _, h := range agent.KeyHashes {
+		k, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, h)
+		if err != nil {
+			continue
+		}
+		if did.KeyType(k.KeyType) == did.KeyTypeX25519 {
+			if len(k.KeyData) != 32 {
+				return nil, fmt.Errorf("x25519 keyData must be 32 bytes, got %d", len(k.KeyData))
+			}
+			pub, err := ecdh.X25519().NewPublicKey(k.KeyData)
+			if err != nil {
+				return nil, fmt.Errorf("ecdh.X25519 NewPublicKey: %w", err)
+			}
+			return pub, nil
+		}
+	}
+	return nil, fmt.Errorf("no x25519 key found for agent")
+}
+
 // ResolveAllPublicKeys retrieves all public keys for an agent
 // This enables multi-key resolution for scenarios where agents have multiple keys
 // for different purposes (e.g., ECDSA for Ethereum, Ed25519 for Solana)
@@ -417,6 +461,7 @@ func (c *EthereumClientV4) ResolveAllPublicKeys(
 
 	for _, keyHash := range agent.KeyHashes {
 		keyData, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, keyHash)
+		log.Println("[blockchain] Call get agent DID")
 		if err != nil {
 			// Skip keys that can't be retrieved
 			continue
@@ -999,4 +1044,130 @@ func (c *EthereumClientV4) RevokeKey(ctx context.Context, agentDID did.AgentDID,
 	// Wait for transaction confirmation
 	_, err = c.waitForTransaction(ctx, tx)
 	return err
+}
+
+// VerifyMetadata checks whether the provided metadata matches the on-chain state (V4 client).
+func (c *EthereumClientV4) VerifyMetadata(
+	ctx context.Context,
+	agentDID did.AgentDID,
+	metadata *did.AgentMetadata,
+) (*did.VerificationResult, error) {
+
+	// Resolve authoritative metadata from chain via the existing V4 resolve path.
+	onChain, err := c.Resolve(ctx, agentDID)
+	if err != nil {
+		if errors.Is(err, did.ErrDIDNotFound) {
+			return &did.VerificationResult{
+				Valid:      false,
+				Error:      "DID not found on chain",
+				VerifiedAt: time.Now(),
+			}, nil
+		}
+		return nil, err
+	}
+
+	// Field-by-field comparison (same semantics as previous client)
+	valid := true
+	var reason string
+
+	if metadata.Name != onChain.Name {
+		valid = false
+		reason = fmt.Sprintf("name mismatch: expected %s, got %s", onChain.Name, metadata.Name)
+	}
+	if metadata.Description != onChain.Description {
+		valid = false
+		if reason != "" {
+			reason += "; "
+		}
+		reason += "description mismatch"
+	}
+	if metadata.Endpoint != onChain.Endpoint {
+		valid = false
+		if reason != "" {
+			reason += "; "
+		}
+		reason += fmt.Sprintf("endpoint mismatch: expected %s, got %s", onChain.Endpoint, metadata.Endpoint)
+	}
+	if !compareCapabilities(metadata.Capabilities, onChain.Capabilities) {
+		valid = false
+		if reason != "" {
+			reason += "; "
+		}
+		reason += "capabilities mismatch"
+	}
+
+	res := &did.VerificationResult{
+		Valid:      valid,
+		Agent:      onChain,
+		VerifiedAt: time.Now(),
+	}
+	if !valid {
+		res.Error = reason
+	}
+	return res, nil
+}
+
+// ListAgentsByOwner returns all agents owned by a given EOA (V4 client).
+// This uses the abigen metadata ABI to pack/call/unpack `getAgentsByOwner(address)`.
+func (c *EthereumClientV4) ListAgentsByOwner(
+	ctx context.Context,
+	ownerAddress string,
+) ([]*did.AgentMetadata, error) {
+
+	// Basic address validation
+	if !common.IsHexAddress(ownerAddress) {
+		return nil, fmt.Errorf("invalid Ethereum address: %s", ownerAddress)
+	}
+	owner := common.HexToAddress(ownerAddress)
+
+	// Obtain ABI from abigen metadata
+	abiObj, err := registryv4.SageRegistryV4MetaData.GetAbi()
+	if err != nil {
+		return nil, fmt.Errorf("get ABI: %w", err)
+	}
+
+	// Pack call data for getAgentsByOwner(address)
+	data, err := abiObj.Pack("getAgentsByOwner", owner)
+	if err != nil {
+		return nil, fmt.Errorf("pack getAgentsByOwner: %w", err)
+	}
+
+	// eth_call
+	out, err := c.client.CallContract(ctx, ethereum.CallMsg{
+		To:   &c.contractAddress,
+		Data: data,
+	}, nil)
+	if err != nil {
+		return nil, fmt.Errorf("call getAgentsByOwner: %w", err)
+	}
+
+	// Unpack DID list
+	var dids []string
+	if err := abiObj.UnpackIntoInterface(&dids, "getAgentsByOwner", out); err != nil {
+		return nil, fmt.Errorf("unpack getAgentsByOwner: %w", err)
+	}
+
+	// Resolve each DID into AgentMetadata via existing V4 resolver
+	agents := make([]*did.AgentMetadata, 0, len(dids))
+	for _, d := range dids {
+		meta, err := c.Resolve(ctx, did.AgentDID(d))
+		if err != nil {
+			// best-effort: skip entries that fail to resolve
+			continue
+		}
+		agents = append(agents, meta)
+	}
+	return agents, nil
+}
+
+// Search is not supported without off-chain indexing. Return a descriptive error.
+func (c *EthereumClientV4) Search(
+	ctx context.Context,
+	criteria did.SearchCriteria,
+) ([]*did.AgentMetadata, error) {
+	// Production options:
+	// - Index events and build a local index
+	// - Use a Graph subgraph
+	// - Or an external indexing service
+	return nil, fmt.Errorf("search functionality requires off-chain indexing")
 }
