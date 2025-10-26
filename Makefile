@@ -419,6 +419,8 @@ test-crypto:
 	$(GO) test -v ./pkg/agent/crypto/...
 
 # Run Phase 1 complete test suite
+# NOTE: Original test_phase1.sh script has been deprecated.
+# This target now runs standard tests for all agent packages.
 .PHONY: test-phase1
 test-phase1:
 	@echo "Running Phase 1 complete test suite..."
@@ -426,6 +428,8 @@ test-phase1:
 	$(GO) test -v ./pkg/agent/...
 
 # Run quick tests for Phase 1 components
+# NOTE: Original run_tests.sh script has been deprecated.
+# This target now runs standard tests for core components.
 .PHONY: test-quick
 test-quick:
 	@echo "Running quick tests for Phase 1 components..."
@@ -461,10 +465,10 @@ test-health:
 test-integration:
 	@echo "Running integration tests..."
 	@echo "Starting test environment..."
-	@bash ./tests/integration/setup_test_env.sh start
+	@bash ./tools/scripts/setup_test_env.sh start
 	@echo "Running tests..."
 	@set -e; \
-	trap 'echo "Stopping test environment..."; bash ./tests/integration/setup_test_env.sh stop' EXIT; \
+	trap 'echo "Stopping test environment..."; bash ./tools/scripts/setup_test_env.sh stop' EXIT; \
 	$(GO) test -v ./tests/integration/... -tags=integration -count=1
 
 # Run integration tests without setup (assumes environment is ready)
@@ -501,32 +505,34 @@ test-e2e-coverage:
 	$(GO) tool cover -html=$(REPORTS_DIR)/e2e-coverage.out -o $(REPORTS_DIR)/e2e-coverage.html
 	@echo "Coverage report: $(REPORTS_DIR)/e2e-coverage.html"
 
-.PHONY: test-handshake
-test-handshake:
-	@echo "Running handshake scenario..."
-	@bash ./tests/integration/session/handshake/run_handshake.sh
-
-.PHONY: test-hpke
-test-hpke:
-	@echo "Running HPKE based handshake scenario..."
-	@bash ./tests/integration/session/hpke/run_hpke_handshake.sh
+# DEPRECATED: Handshake and HPKE test scripts have been removed/integrated into standard tests
+# Use 'make test-integration' or 'make test' instead
+# .PHONY: test-handshake
+# test-handshake:
+# 	@echo "Running handshake scenario..."
+# 	@bash ./tests/integration/session/handshake/run_handshake.sh
+#
+# .PHONY: test-hpke
+# test-hpke:
+# 	@echo "Running HPKE based handshake scenario..."
+# 	@bash ./tests/integration/session/hpke/run_hpke_handshake.sh
 
 # Start local blockchain for testing
 .PHONY: blockchain-start
 blockchain-start:
 	@echo "Starting local blockchain..."
-	@bash ./tests/integration/setup_test_env.sh start
+	@bash ./tools/scripts/setup_test_env.sh start
 
 # Stop local blockchain
 .PHONY: blockchain-stop
 blockchain-stop:
 	@echo "Stopping local blockchain..."
-	@bash ./tests/integration/setup_test_env.sh stop
+	@bash ./tools/scripts/setup_test_env.sh stop
 
 # Check blockchain status
 .PHONY: blockchain-status
 blockchain-status:
-	@bash ./tests/integration/setup_test_env.sh status
+	@bash ./tools/scripts/setup_test_env.sh status
 
 # Run benchmarks
 .PHONY: bench
@@ -576,11 +582,59 @@ verify-quick:
 	@echo "Running quick verification..."
 	@bash ./tools/scripts/quick_verify.sh
 
+# Additional verification targets
+.PHONY: verify-makefile
+verify-makefile:
+	@echo "Verifying Makefile consistency..."
+	@bash ./tools/scripts/verify_makefile.sh
+
+.PHONY: verify-rfc9421-ed25519
+verify-rfc9421-ed25519:
+	@echo "Verifying RFC 9421 Ed25519 implementation..."
+	@bash ./tools/scripts/verify_rfc9421_ed25519.sh
+
 # Cleanup test environment
 .PHONY: test-cleanup
 test-cleanup:
 	@echo "Cleaning up test environment..."
 	@bash ./tools/scripts/cleanup_test_env.sh
+
+# Database management targets
+.PHONY: db-backup
+db-backup:
+	@echo "Backing up database..."
+	@bash ./tools/scripts/backup-db.sh
+
+.PHONY: db-restore
+db-restore:
+	@echo "Restoring database..."
+	@bash ./tools/scripts/restore-db.sh
+
+.PHONY: db-seed
+db-seed:
+	@echo "Seeding database with test data..."
+	@bash ./tools/scripts/seed-db.sh
+
+.PHONY: db-migrate-up
+db-migrate-up:
+	@echo "Running database migrations (up)..."
+	@bash ./tools/scripts/migrate-up.sh
+
+.PHONY: db-migrate-down
+db-migrate-down:
+	@echo "Rolling back database migrations..."
+	@bash ./tools/scripts/migrate-down.sh
+
+# Docker targets
+.PHONY: docker-build
+docker-build:
+	@echo "Building Docker image..."
+	@bash ./tools/scripts/docker-build.sh
+
+.PHONY: docker-run
+docker-run:
+	@echo "Running Docker container..."
+	@bash ./tools/scripts/docker-run.sh
 
 # Clean build artifacts
 .PHONY: clean
@@ -661,6 +715,12 @@ fmt:
 tidy:
 	@echo "Running go mod tidy..."
 	$(GO) mod tidy
+
+# Version management
+.PHONY: update-version
+update-version:
+	@echo "Updating project version..."
+	@bash ./tools/scripts/update-version.sh
 
 # Build random-test binary
 .PHONY: build-random-test
@@ -871,22 +931,36 @@ help:
 	@echo "  make random-test-did     - Test DID only"
 	@echo ""
 	@echo "Verification targets:"
-	@echo "  make verify-features - Run comprehensive feature verification"
-	@echo "  make verify-quick    - Run quick feature verification"
-	@echo "  make test-full       - Run full test suite with all checks"
+	@echo "  make verify-features         - Run comprehensive feature verification"
+	@echo "  make verify-quick            - Run quick feature verification"
+	@echo "  make test-full               - Run full test suite with all checks"
+	@echo "  make verify-makefile         - Verify Makefile consistency"
+	@echo "  make verify-rfc9421-ed25519  - Verify RFC 9421 Ed25519 implementation"
 	@echo ""
 	@echo "Advanced test targets:"
 	@echo "  make fuzz         - Run fuzz tests"
 	@echo "  make loadtest     - Run load tests"
 	@echo "  make bench-full   - Run comprehensive benchmarks"
 	@echo ""
+	@echo "Database management targets:"
+	@echo "  make db-backup       - Backup database"
+	@echo "  make db-restore      - Restore database from backup"
+	@echo "  make db-seed         - Seed database with test data"
+	@echo "  make db-migrate-up   - Run database migrations (up)"
+	@echo "  make db-migrate-down - Roll back database migrations"
+	@echo ""
+	@echo "Docker targets:"
+	@echo "  make docker-build - Build Docker image"
+	@echo "  make docker-run   - Run Docker container"
+	@echo ""
 	@echo "Utility targets:"
-	@echo "  make clean         - Remove build artifacts"
-	@echo "  make clean-all     - Remove all build artifacts and reports"
-	@echo "  make clean-reports - Remove test reports only"
-	@echo "  make test-cleanup  - Cleanup test environment"
-	@echo "  make install       - Install binaries to GOPATH/bin"
-	@echo "  make lint          - Run linter"
-	@echo "  make fmt           - Format code"
-	@echo "  make tidy          - Run go mod tidy"
-	@echo "  make help          - Show this help message"
+	@echo "  make clean          - Remove build artifacts"
+	@echo "  make clean-all      - Remove all build artifacts and reports"
+	@echo "  make clean-reports  - Remove test reports only"
+	@echo "  make test-cleanup   - Cleanup test environment"
+	@echo "  make install        - Install binaries to GOPATH/bin"
+	@echo "  make lint           - Run linter"
+	@echo "  make fmt            - Format code"
+	@echo "  make tidy           - Run go mod tidy"
+	@echo "  make update-version - Update project version"
+	@echo "  make help           - Show this help message"
