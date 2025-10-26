@@ -14,12 +14,6 @@
     "lint:fix": "solhint 'contracts/**/*.sol' --fix",
     "test": "hardhat test",
     "test:kairos": "hardhat test --network kairos",
-    "deploy:local": "hardhat run scripts/deploy-v2.js --network localhost",
-    "deploy:kairos": "hardhat run scripts/deploy-v2.js --network kairos",
-    "deploy:kaia": "hardhat run scripts/deploy-v2.js --network cypress",
-    "verify:kairos": "hardhat run scripts/verify-contracts.js --network kairos",
-    "verify:kaia": "hardhat run scripts/verify-contracts.js --network kaia",
-    "verify:cypress": "hardhat run scripts/verify-contracts.js --network cypress",
     "flatten": "./scripts/flatten-contracts.sh",
     "node": "hardhat node",
     "node:stop": "./scripts/port-manager.sh clean --hardhat",
@@ -31,14 +25,7 @@
     "console:kairos": "hardhat console --network kairos",
     "coverage": "COVERAGE=true hardhat coverage",
     "size": "hardhat size-contracts",
-    "quick-test": "hardhat run scripts/quick-test.js",
-    "check-balance": "hardhat run scripts/check-balance.js",
-    "deploy:unified": "hardhat run scripts/deploy-unified.js",
-    "deploy:unified:local": "hardhat run scripts/deploy-unified.js --network localhost",
-    "deploy:unified:kairos": "hardhat run scripts/deploy-unified.js --network kairos",
-    "register:agents": "hardhat run scripts/register-agents.js",
-    "verify:deployment": "hardhat run scripts/verify-deployment.js",
-    "setup": "./bin/quick-start.sh"
+    "check-balance": "hardhat run scripts/check-balance.js"
   },
   "keywords": [
     "sage",
