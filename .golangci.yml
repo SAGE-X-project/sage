@@ -9,31 +9,24 @@ linters:
     - errcheck
     - staticcheck
     - ineffassign
-  exclusions:
-    paths:
-      - vendor
-      - node_modules
-      - .git
-      - contracts/ethereum/bindings/go/example.go
-    rules:
-      - path: _test\.go
-        linters:
-          - errcheck
-      - path: ".*\\.gen\\.go"
-        linters:
-          - govet
-          - errcheck
-          - staticcheck
-          - ineffassign
-      - path: "contracts/ethereum/bindings/go/"
-        text: "local import"
+  # Note: gofmt/gofumpt are formatters in v2, use 'make fmt' instead
 
-formatters:
-  enable:
-    - gofmt
-  exclusions:
-    paths:
-      - vendor
-      - node_modules
-      - .git
-      - contracts/ethereum/bindings/go/example.go
+issues:
+  exclude-dirs:
+    - vendor
+    - node_modules
+    - .git
+  exclude-files:
+    - contracts/ethereum/bindings/go/example.go
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+    - path: ".*\\.gen\\.go"
+      linters:
+        - govet
+        - errcheck
+        - staticcheck
+        - ineffassign
+    - path: "contracts/ethereum/bindings/go/"
+      text: "local import"
