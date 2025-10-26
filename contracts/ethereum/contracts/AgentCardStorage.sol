@@ -88,6 +88,26 @@ abstract contract AgentCardStorage {
     }
 
     /**
+     * @notice Registration parameters structure
+     * @dev Groups registerAgent parameters to avoid stack too deep errors
+     *
+     * This struct is used to pass registration data to registerAgent function.
+     * Grouping parameters into a struct reduces stack depth and enables
+     * compilation with complex functions.
+     */
+    struct RegistrationParams {
+        string did;
+        string name;
+        string description;
+        string endpoint;
+        string capabilities;
+        bytes[] keys;
+        KeyType[] keyTypes;
+        bytes[] signatures;
+        bytes32 salt;
+    }
+
+    /**
      * @notice Commit-reveal registration commitment
      * @dev Prevents front-running attacks on valuable DIDs
      *
