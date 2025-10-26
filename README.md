@@ -1,6 +1,6 @@
 # SAGE - Secure Agent Guarantee Engine
 
-[![Go Version](https://img.shields.io/badge/Go-1.23.0-blue.svg)](https://golang.org/dl/)
+[![Go Version](https://img.shields.io/badge/Go-1.24.0-blue.svg)](https://golang.org/dl/)
 [![Solidity Version](https://img.shields.io/badge/Solidity-0.8.19-red.svg)](https://soliditylang.org/)
 [![License](https://img.shields.io/badge/License-LGPL--3.0-blue.svg)](LICENSE)
 
@@ -13,26 +13,29 @@
 
 SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based security framework for AI agent communication. It provides end-to-end encrypted, authenticated communication channels between AI agents using decentralized identity (DID) management, HPKE-based key agreement, and RFC 9421 HTTP Message Signatures.
 
-### ✨ What's New in v1.3.1 (2025-10-26)
+### ✨ What's New in v1.4.0 (2025-10-27)
 
-**Multi-Key Registry V4 with Update Support** - Major Feature Release
+**Development Dependencies Upgrade & Governance Testing** - Minor Release
 
-- **Multi-Key Support**: Register up to 10 cryptographic keys per agent (Ed25519, ECDSA/secp256k1)
-- **Agent Metadata Update**: Full support for updating agent information with automatic nonce management
-  - Update name, description, endpoint, and capabilities
-  - Nonce-based replay attack prevention
-  - Signature verification with registered keys
-- **Multi-Chain Ready**: Protocol-specific key selection for Ethereum (ECDSA), Solana (Ed25519), and more
-- **Enhanced Security**: Three critical CVE fixes (CVE-SAGE-2025-001, 002, 003)
-  - Public key ownership verification prevents theft attacks
-  - Atomic key rotation eliminates inconsistent states
-  - Complete key revocation with storage deletion
-- **New APIs**:
-  - `Update()` method for agent metadata updates
-  - `getNonce()` contract function for replay protection
-  - `ResolveAllPublicKeys()` and `ResolvePublicKeyByType()` for multi-key resolution
-- **DID Format Enhancement**: Owner address validation for off-chain verification
-- **Production Ready**: 201 passing contract tests, comprehensive Go test coverage, SageRegistryV4 fully tested
+- **Hardhat v3 Upgrade**: Modern Ethereum development framework
+  - Node.js 22+ requirement for latest features
+  - ESM (ECMAScript Modules) support throughout
+  - 187 comprehensive governance integration tests
+  - Full TEEKeyRegistry and GovernanceIntegration test coverage
+- **Contract Development Tools**: Major dependency upgrades
+  - prettier 2.8.0 → 3.6.2 (code formatting)
+  - solhint 3.6.2 → 6.0.1 (linting)
+  - prettier-plugin-solidity 1.1.0 → 2.1.0
+  - Added 6 Hardhat toolbox peer dependencies for complete functionality
+- **Go 1.24.0**: Updated runtime and CI/CD
+  - golang.org/x/crypto v0.41.0 → v0.43.0 (security improvements)
+  - All GitHub Actions workflows updated
+  - Docker images updated to Go 1.24
+- **Dependency Updates**:
+  - go-ethereum v1.15.11 → v1.16.5 (latest blockchain client)
+  - GitHub Actions: setup-node v5→v6, codeql-action v3→v4, download-artifact v4→v5
+  - action-gh-release v1→v2 for improved release management
+- **Testing & Quality**: All 187 contract tests passing, comprehensive CI/CD validation
 
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes and [SageRegistryV4 Deployment Guide](docs/V4_UPDATE_DEPLOYMENT_GUIDE.md) for deployment instructions.
 
@@ -176,8 +179,8 @@ sage/
 
 ### Prerequisites
 
-- **Go 1.23.0 or higher** (see [GO_VERSION_REQUIREMENT.md](docs/GO_VERSION_REQUIREMENT.md))
-- **Node.js 18+** and npm (for smart contract development)
+- **Go 1.24.0 or higher** (see [GO_VERSION_REQUIREMENT.md](docs/GO_VERSION_REQUIREMENT.md))
+- **Node.js 22+** and npm (for smart contract development)
 - **Git**
 
 ### Quick Start
