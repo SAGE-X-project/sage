@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "./AgentCardStorage.sol";
 import "./AgentCardVerifyHook.sol";
 import "./erc-8004/interfaces/IERC8004IdentityRegistry.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
@@ -71,10 +71,9 @@ contract AgentCardRegistry is
 
     // ============ Constructor ============
 
-    constructor(address _verifyHook) {
+    constructor(address _verifyHook) Ownable(msg.sender) {
         require(_verifyHook != address(0), "Invalid hook address");
         verifyHook = AgentCardVerifyHook(_verifyHook);
-        _transferOwnership(msg.sender);
     }
 
     // ============ Registration Functions ============

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
@@ -82,8 +82,7 @@ contract AgentCardVerifyHook is Ownable2Step {
 
     // ============ Constructor ============
 
-    constructor() {
-        _transferOwnership(msg.sender);
+    constructor() Ownable(msg.sender) {
     }
 
     // ============ Main Validation Function ============
