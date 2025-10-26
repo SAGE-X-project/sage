@@ -29,16 +29,16 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
 
   # Dependency scanning
   dependency-review:
@@ -146,7 +146,7 @@ jobs:
 
       - name: Upload Gosec results to GitHub Security
         if: always() && hashFiles('gosec-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: gosec-results.sarif
           category: gosec
@@ -191,7 +191,7 @@ jobs:
 
       - name: Upload Slither results to GitHub Security
         continue-on-error: true  # Allow CI to pass if SARIF upload fails
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: slither-results.sarif
 
