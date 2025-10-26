@@ -52,7 +52,11 @@ contract AgentCardRegistry is
     // ============ Modifiers ============
 
     modifier onlyAgentOwner(bytes32 agentId) {
-        require(agents[agentId].owner == msg.sender, "Not agent owner");
+        require(
+            agents[agentId].owner == msg.sender ||
+            agentOperators[agentId][msg.sender],
+            "Not agent owner"
+        );
         _;
     }
 
@@ -450,6 +454,45 @@ contract AgentCardRegistry is
         require(v == 27 || v == 28, "Invalid signature 'v' value");
 
         return ecrecover(ethSignedHash, v, r, s);
+    }
+
+    // ============ Operator Management ============
+
+    /**
+     * @notice Set or revoke operator approval for an agent
+     * @dev Enables ERC-721/1155 style operator pattern
+     *      Operators can manage agents on behalf of owners
+     *
+     * @param agentId Agent identifier
+     * @param operator Address to grant/revoke approval
+     * @param approved True to approve, false to revoke
+     */
+    function setApprovalForAgent(
+        bytes32 agentId,
+        address operator,
+        bool approved
+    ) external {
+        require(agents[agentId].owner == msg.sender, "Not agent owner");
+        require(operator != address(0), "Invalid operator");
+        require(operator != msg.sender, "Cannot approve self");
+
+        agentOperators[agentId][operator] = approved;
+
+        emit ApprovalForAgent(agentId, msg.sender, operator, approved);
+    }
+
+    /**
+     * @notice Check if an address is approved operator for an agent
+     * @param agentId Agent identifier
+     * @param operator Address to check
+     * @return True if operator is approved
+     */
+    function isApprovedOperator(bytes32 agentId, address operator)
+        external
+        view
+        returns (bool)
+    {
+        return agentOperators[agentId][operator];
     }
 
     // ============ Admin Functions ============

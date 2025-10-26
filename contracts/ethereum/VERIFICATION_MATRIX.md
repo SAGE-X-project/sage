@@ -829,14 +829,14 @@ describe("AgentCardRegistry - Security", () => {
 
 | ID | Verification Criteria | Priority | Test File | Status |
 |----|----------------------|----------|-----------|--------|
-| E4.1.1 | Implements all IERC8004 functions | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ⏳ |
-| E4.1.2 | registerAgent function works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ⏳ |
-| E4.1.3 | resolveAgent returns correct data | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ⏳ |
-| E4.1.4 | resolveAgentByAddress works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ⏳ |
-| E4.1.5 | isAgentActive returns correct status | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ⏳ |
-| E4.1.6 | updateAgentEndpoint works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ⏳ |
-| E4.1.7 | deactivateAgent works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ⏳ |
-| E4.1.8 | Emits all required events | 🟡 P1 | `ERC8004IdentityRegistryV4.test.js` | ⏳ |
+| E4.1.1 | Implements all IERC8004 functions | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
+| E4.1.2 | registerAgent function works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
+| E4.1.3 | resolveAgent returns correct data | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
+| E4.1.4 | resolveAgentByAddress works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
+| E4.1.5 | isAgentActive returns correct status | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
+| E4.1.6 | updateAgentEndpoint works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
+| E4.1.7 | deactivateAgent works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
+| E4.1.8 | Emits all required events | 🟡 P1 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
 
 **Test Specification**:
 ```javascript
@@ -876,9 +876,9 @@ describe("ERC8004IdentityRegistryV4 - Compliance", () => {
 **Coverage Target**: 85%
 
 **Completion Criteria**:
-- [ ] All 8 tests passing
-- [ ] ERC-8004 compliance verified
-- [ ] Integration with other ERC-8004 contracts works
+- [x] All 8 tests passing (17 tests total including sub-tests)
+- [x] ERC-8004 compliance verified
+- [x] Integration with AgentCardRegistry via operator approval pattern
 
 ---
 

@@ -197,6 +197,14 @@ abstract contract AgentCardStorage {
      */
     mapping(bytes32 => bool) internal publicKeyUsed;
 
+    /**
+     * @notice Operator approval tracking
+     * @dev Maps: agent ID → operator address → approved
+     *      Enables ERC-721/1155 style operator pattern
+     *      Operators can manage agents on behalf of owners
+     */
+    mapping(bytes32 => mapping(address => bool)) public agentOperators;
+
     // ============ Constants ============
 
     /**
@@ -314,5 +322,19 @@ abstract contract AgentCardStorage {
         address indexed committer,
         bytes32 commitHash,
         uint256 timestamp
+    );
+
+    /**
+     * @notice Emitted when operator approval is granted or revoked
+     * @param agentId Agent identifier
+     * @param owner Agent owner address
+     * @param operator Operator address
+     * @param approved Approval status (true = approved, false = revoked)
+     */
+    event ApprovalForAgent(
+        bytes32 indexed agentId,
+        address indexed owner,
+        address indexed operator,
+        bool approved
     );
 }
