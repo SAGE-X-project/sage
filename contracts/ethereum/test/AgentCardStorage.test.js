@@ -536,15 +536,15 @@ describe("AgentCardStorage", function () {
 
         /**
          * Test ID: S1.4.5
-         * Verification: AgentDeactivated event has correct params
+         * Verification: AgentDeactivatedByHash event has correct params
          * Priority: P0 Critical
          */
-        it("S1.4.5: Should emit AgentDeactivated with correct params", async function () {
+        it("S1.4.5: Should emit AgentDeactivatedByHash with correct params", async function () {
             const agentId = ethers.id("event-test-5");
             const timestamp = Math.floor(Date.now() / 1000);
 
-            await expect(storage.emitAgentDeactivated(agentId, timestamp))
-                .to.emit(storage, "AgentDeactivated")
+            await expect(storage.emitAgentDeactivatedByHash(agentId, timestamp))
+                .to.emit(storage, "AgentDeactivatedByHash")
                 .withArgs(agentId, timestamp);
         });
 

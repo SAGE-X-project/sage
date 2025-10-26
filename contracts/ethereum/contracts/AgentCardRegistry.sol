@@ -3,14 +3,15 @@ pragma solidity 0.8.19;
 
 import "./AgentCardStorage.sol";
 import "./AgentCardVerifyHook.sol";
+import "./erc-8004/interfaces/IERC8004IdentityRegistry.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 /**
  * @title AgentCardRegistry
- * @notice Production SAGE registry with multi-key + commit-reveal + security
- * @dev Combines best features from V2, V3, V4 + ERC-8004 compliance
+ * @notice Production SAGE registry with multi-key + commit-reveal + ERC-8004 compliance
+ * @dev Combines best features from V2, V3, V4 + native ERC-8004 support
  *
  * Features:
  * - Multi-key support (ECDSA, Ed25519, X25519)
@@ -20,11 +21,13 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  * - Emergency pause mechanism
  * - Stake requirement
  * - Time-locked activation
+ * - ERC-8004 compliant interface (native implementation)
  *
  * @custom:security-contact security@sage.com
  */
 contract AgentCardRegistry is
     AgentCardStorage,
+    IERC8004IdentityRegistry,
     Pausable,
     ReentrancyGuard,
     Ownable2Step
@@ -113,11 +116,11 @@ contract AgentCardRegistry is
     }
 
     /**
-     * @notice Reveal and register agent (Phase 2)
-     * @dev Verifies commitment and registers agent
+     * @notice Reveal and register agent (Phase 2) - Secure commit-reveal flow
+     * @dev Verifies commitment and registers agent with full security
      * @param params RegistrationParams struct containing all registration data
      */
-    function registerAgent(RegistrationParams calldata params)
+    function registerAgentWithParams(RegistrationParams calldata params)
         external
         whenNotPaused
         nonReentrant
@@ -339,10 +342,10 @@ contract AgentCardRegistry is
     }
 
     /**
-     * @notice Deactivate agent
-     * @param agentId Agent identifier
+     * @notice Deactivate agent by hash
+     * @param agentId Agent identifier (bytes32 hash)
      */
-    function deactivateAgent(bytes32 agentId)
+    function deactivateAgentByHash(bytes32 agentId)
         external
         onlyAgentOwner(agentId)
         nonReentrant
@@ -359,13 +362,13 @@ contract AgentCardRegistry is
             }
         }
 
-        emit AgentDeactivated(agentId, block.timestamp);
+        emit AgentDeactivatedByHash(agentId, block.timestamp);
     }
 
     // ============ View Functions ============
 
     function getAgent(bytes32 agentId)
-        external
+        public
         view
         returns (AgentMetadata memory)
     {
@@ -373,7 +376,7 @@ contract AgentCardRegistry is
     }
 
     function getAgentByDID(string calldata did)
-        external
+        public
         view
         returns (AgentMetadata memory)
     {
@@ -382,7 +385,7 @@ contract AgentCardRegistry is
     }
 
     function getKey(bytes32 keyHash)
-        external
+        public
         view
         returns (AgentKey memory)
     {
@@ -390,7 +393,7 @@ contract AgentCardRegistry is
     }
 
     function getAgentsByOwner(address owner)
-        external
+        public
         view
         returns (bytes32[] memory)
     {
@@ -516,6 +519,192 @@ contract AgentCardRegistry is
 
     function unpause() external onlyOwner {
         _unpause();
+    }
+
+    // ============ ERC-8004 Interface Implementation ============
+
+    /**
+     * @notice ERC-8004 compliant agent registration
+     * @dev This is a simplified registration that bypasses commit-reveal
+     *      For production use with full security, use commitRegistration() + registerAgent()
+     *      This function is provided for ERC-8004 compatibility only
+     *
+     * @param agentId DID identifier (e.g., "did:sage:ethereum:0x...")
+     * @param endpoint AgentCard URL or IPFS hash
+     * @return success Always reverts with instruction message
+     */
+    function registerAgent(
+        string calldata agentId,
+        string calldata endpoint
+    ) external override returns (bool success) {
+        // Suppress unused variable warnings
+        agentId;
+        endpoint;
+
+        // ERC-8004 simplified registration bypasses commit-reveal security
+        // For production use: commitRegistration() → wait 1 min → registerAgent(params)
+        revert("Use commitRegistration() for secure registration");
+    }
+
+    /**
+     * @notice Resolve agent information by DID (ERC-8004 compliant)
+     * @dev Returns ERC-8004 compliant AgentInfo struct
+     *
+     * @param agentId The DID to look up
+     * @return info Agent information including DID, address, endpoint, status
+     */
+    function resolveAgent(string calldata agentId)
+        external
+        view
+        override
+        returns (AgentInfo memory info)
+    {
+        AgentMetadata memory metadata = getAgentByDID(agentId);
+
+        // Check if agent exists
+        require(metadata.owner != address(0), "Agent not found");
+
+        // Convert AgentMetadata to ERC-8004 AgentInfo
+        info = AgentInfo({
+            agentId: metadata.did,
+            agentAddress: metadata.owner,
+            endpoint: metadata.endpoint,
+            isActive: metadata.active,
+            registeredAt: metadata.registeredAt
+        });
+    }
+
+    /**
+     * @notice Resolve agent information by owner address (ERC-8004 compliant)
+     * @dev Returns first agent owned by the address
+     *
+     * @param agentAddress The owner address to look up
+     * @return info Agent information for first agent owned by address
+     */
+    function resolveAgentByAddress(address agentAddress)
+        external
+        view
+        override
+        returns (AgentInfo memory info)
+    {
+        bytes32[] memory agentIds = getAgentsByOwner(agentAddress);
+        require(agentIds.length > 0, "No agent found");
+
+        // Get first agent
+        AgentMetadata memory metadata = getAgent(agentIds[0]);
+
+        info = AgentInfo({
+            agentId: metadata.did,
+            agentAddress: metadata.owner,
+            endpoint: metadata.endpoint,
+            isActive: metadata.active,
+            registeredAt: metadata.registeredAt
+        });
+    }
+
+    /**
+     * @notice Check if an agent is active (ERC-8004 compliant)
+     * @dev Queries agent active status
+     *
+     * @param agentId The DID to check
+     * @return isActive True if agent is active, false otherwise
+     */
+    function isAgentActive(string calldata agentId)
+        external
+        view
+        override
+        returns (bool)
+    {
+        AgentMetadata memory metadata = getAgentByDID(agentId);
+
+        // Check if agent exists
+        require(metadata.owner != address(0), "Agent not found");
+
+        return metadata.active;
+    }
+
+    /**
+     * @notice Update agent's endpoint (ERC-8004 compliant)
+     * @dev Only callable by agent owner or approved operator
+     *
+     * @param agentId The DID of the agent to update
+     * @param newEndpoint New AgentCard URL or IPFS hash
+     * @return success True if update successful
+     */
+    function updateAgentEndpoint(
+        string calldata agentId,
+        string calldata newEndpoint
+    ) external override whenNotPaused nonReentrant returns (bool success) {
+        // Get agent ID hash
+        bytes32 agentIdHash = didToAgentId[agentId];
+        require(agentIdHash != bytes32(0), "Agent not found");
+
+        AgentMetadata storage agent = agents[agentIdHash];
+        require(agent.owner != address(0), "Agent not found");
+
+        // Check authorization (owner or operator)
+        require(
+            agent.owner == msg.sender || agentOperators[agentIdHash][msg.sender],
+            "Not authorized"
+        );
+
+        // Store old endpoint for event
+        string memory oldEndpoint = agent.endpoint;
+
+        // Update endpoint
+        agent.endpoint = newEndpoint;
+        agent.updatedAt = block.timestamp;
+        agentNonce[agentIdHash]++;
+
+        emit AgentEndpointUpdated(agentId, oldEndpoint, newEndpoint);
+        emit AgentUpdated(agentIdHash, block.timestamp);
+
+        return true;
+    }
+
+    /**
+     * @notice Deactivate an agent (ERC-8004 compliant)
+     * @dev Only callable by agent owner or approved operator
+     *
+     * @param agentId The DID of the agent to deactivate
+     * @return success True if deactivation successful
+     */
+    function deactivateAgent(string calldata agentId)
+        external
+        override
+        nonReentrant
+        returns (bool success)
+    {
+        // Get agent ID hash
+        bytes32 agentIdHash = didToAgentId[agentId];
+        require(agentIdHash != bytes32(0), "Agent not found");
+
+        AgentMetadata storage agent = agents[agentIdHash];
+        require(agent.owner != address(0), "Agent not found");
+
+        // Check authorization (owner or operator)
+        require(
+            agent.owner == msg.sender || agentOperators[agentIdHash][msg.sender],
+            "Not authorized"
+        );
+
+        // Deactivate
+        agent.active = false;
+
+        // Return stake after 30 days
+        if (block.timestamp >= agent.registeredAt + 30 days) {
+            uint256 stake = agentStakes[agentIdHash];
+            if (stake > 0) {
+                agentStakes[agentIdHash] = 0;
+                (bool sent, ) = msg.sender.call{value: stake}("");
+                require(sent, "Stake return failed");
+            }
+        }
+
+        emit AgentDeactivatedByHash(agentIdHash, block.timestamp);
+        emit AgentDeactivated(agentId, msg.sender);
+
+        return true;
     }
 
     // ============ Additional Events ============

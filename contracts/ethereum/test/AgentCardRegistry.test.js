@@ -174,7 +174,7 @@ describe("AgentCardRegistry", function () {
 
             // Try to reveal immediately
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.be.revertedWith("Reveal too soon");
         });
 
@@ -203,7 +203,7 @@ describe("AgentCardRegistry", function () {
             );
 
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.be.revertedWith("Commitment expired");
         });
 
@@ -235,7 +235,7 @@ describe("AgentCardRegistry", function () {
 
             // Try to reveal with wrong salt
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.be.revertedWith("Invalid reveal");
         });
 
@@ -266,7 +266,7 @@ describe("AgentCardRegistry", function () {
             );
 
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.be.revertedWith("Invalid reveal");
         });
 
@@ -297,7 +297,7 @@ describe("AgentCardRegistry", function () {
 
             // Try to reveal with correct chainId (will mismatch)
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.be.revertedWith("Invalid reveal");
         });
 
@@ -338,7 +338,7 @@ describe("AgentCardRegistry", function () {
             );
 
             // User reveals first
-            await registry.connect(user1).registerAgent(params);
+            await registry.connect(user1).registerAgentWithParams(params);
 
             const attackerParams = createRegistrationParams(
                 validDID1,
@@ -351,7 +351,7 @@ describe("AgentCardRegistry", function () {
 
             // Attacker tries to reveal - should fail (DID already registered)
             await expect(
-                registry.connect(attacker).registerAgent(attackerParams)
+                registry.connect(attacker).registerAgentWithParams(attackerParams)
             ).to.be.revertedWith("DID already registered");
 
             // Verify user owns the DID
@@ -395,7 +395,7 @@ describe("AgentCardRegistry", function () {
                 salt
             );
 
-            await registry.connect(user1).registerAgent(params);
+            await registry.connect(user1).registerAgentWithParams(params);
             const agentId = await registry.didToAgentId(validDID1);
 
             const agent = await registry.getAgent(agentId);
@@ -428,7 +428,7 @@ describe("AgentCardRegistry", function () {
                 salt
             );
 
-            await registry.connect(user1).registerAgent(params);
+            await registry.connect(user1).registerAgentWithParams(params);
             const agentId = await registry.didToAgentId(validDID1);
 
             const agent = await registry.getAgent(agentId);
@@ -450,7 +450,7 @@ describe("AgentCardRegistry", function () {
             );
 
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.be.revertedWith("Invalid key count");
         });
 
@@ -481,7 +481,7 @@ describe("AgentCardRegistry", function () {
             );
 
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.be.revertedWith("Invalid key count");
         });
 
@@ -500,7 +500,7 @@ describe("AgentCardRegistry", function () {
             );
 
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.not.be.reverted;
         });
 
@@ -521,7 +521,7 @@ describe("AgentCardRegistry", function () {
             );
 
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.not.be.reverted;
         });
 
@@ -542,7 +542,7 @@ describe("AgentCardRegistry", function () {
             );
 
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.not.be.reverted;
         });
 
@@ -572,7 +572,7 @@ describe("AgentCardRegistry", function () {
                 salt
             );
 
-            await registry.connect(user1).registerAgent(params);
+            await registry.connect(user1).registerAgentWithParams(params);
             const agentId = await registry.didToAgentId(validDID1);
 
             const agent = await registry.getAgent(agentId);
@@ -597,7 +597,7 @@ describe("AgentCardRegistry", function () {
             );
 
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.be.revertedWith("Invalid ECDSA signature");
         });
 
@@ -619,7 +619,7 @@ describe("AgentCardRegistry", function () {
                 salt
             );
 
-            await registry.connect(user1).registerAgent(params);
+            await registry.connect(user1).registerAgentWithParams(params);
             const agentId = await registry.didToAgentId(validDID1);
 
             const keyHash1 = ethers.keccak256(validKey1);
@@ -652,7 +652,7 @@ describe("AgentCardRegistry", function () {
             );
 
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.be.revertedWith("Public key already used");
         });
 
@@ -671,7 +671,7 @@ describe("AgentCardRegistry", function () {
                 salt1
             );
 
-            await registry.connect(user1).registerAgent(params1);
+            await registry.connect(user1).registerAgentWithParams(params1);
 
             // Try to register second agent with same key
             const salt2 = ethers.randomBytes(32);
@@ -688,7 +688,7 @@ describe("AgentCardRegistry", function () {
             );
 
             await expect(
-                registry.connect(user2).registerAgent(params2)
+                registry.connect(user2).registerAgentWithParams(params2)
             ).to.be.revertedWith("Public key already used");
         });
     });
@@ -715,7 +715,7 @@ describe("AgentCardRegistry", function () {
                 salt
             );
 
-            await registry.connect(user1).registerAgent(params);
+            await registry.connect(user1).registerAgentWithParams(params);
             agentId = await registry.didToAgentId(validDID1);
         });
 
@@ -903,7 +903,7 @@ describe("AgentCardRegistry", function () {
                 salt
             );
 
-            await registry.connect(user1).registerAgent(params);
+            await registry.connect(user1).registerAgentWithParams(params);
             agentId = await registry.didToAgentId(validDID1);
         });
 
@@ -1004,7 +1004,7 @@ describe("AgentCardRegistry", function () {
             await registry.activateAgent(agentId);
 
             // Deactivate
-            await registry.connect(user1).deactivateAgent(agentId);
+            await registry.connect(user1).deactivateAgentByHash(agentId);
 
             const agent = await registry.getAgent(agentId);
             expect(agent.active).to.be.false;
@@ -1012,7 +1012,7 @@ describe("AgentCardRegistry", function () {
 
         it("R3.4.9: Should return stake after 30 days deactivation", async function () {
             // Deactivate
-            await registry.connect(user1).deactivateAgent(agentId);
+            await registry.connect(user1).deactivateAgentByHash(agentId);
 
             // Advance 30 days + 1 second
             await ethers.provider.send("evm_increaseTime", [30 * 86400 + 1]);
@@ -1022,7 +1022,7 @@ describe("AgentCardRegistry", function () {
             const balanceBefore = await ethers.provider.getBalance(user1.address);
 
             // Deactivate again to trigger stake return
-            const tx = await registry.connect(user1).deactivateAgent(agentId);
+            const tx = await registry.connect(user1).deactivateAgentByHash(agentId);
             const receipt = await tx.wait();
             const gasUsed = receipt.gasUsed * receipt.gasPrice;
 
@@ -1034,7 +1034,7 @@ describe("AgentCardRegistry", function () {
 
         it("R3.4.10: Should only allow owner to deactivate", async function () {
             await expect(
-                registry.connect(user2).deactivateAgent(agentId)
+                registry.connect(user2).deactivateAgentByHash(agentId)
             ).to.be.revertedWith("Not agent owner");
         });
     });
@@ -1065,7 +1065,7 @@ describe("AgentCardRegistry", function () {
 
             // Register normally
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.not.be.reverted;
         });
 
@@ -1189,7 +1189,7 @@ describe("AgentCardRegistry", function () {
 
             // Try to reveal - should fail (hash mismatch)
             await expect(
-                registry.connect(user1).registerAgent(params)
+                registry.connect(user1).registerAgentWithParams(params)
             ).to.be.revertedWith("Invalid reveal");
         });
     });

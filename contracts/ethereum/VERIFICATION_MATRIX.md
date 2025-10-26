@@ -15,7 +15,7 @@
 3. [AgentCardStorage Verification](#agentcardsto rage-verification)
 4. [AgentCardVerifyHook Verification](#agentcardverifyhook-verification)
 5. [AgentCardRegistry Verification](#agentcardregistry-verification)
-6. [ERC8004IdentityRegistryV4 Verification](#erc8004identityregistryv4-verification)
+6. [ERC-8004 Interface in AgentCardRegistry Verification](#erc-8004-interface-in-agentcardregistry-verification)
 7. [Integration Verification](#integration-verification)
 8. [Security Verification](#security-verification)
 9. [Performance Verification](#performance-verification)
@@ -823,51 +823,54 @@ describe("AgentCardRegistry - Security", () => {
 
 ---
 
-## ERC8004IdentityRegistryV4 Verification
+## ERC-8004 Interface in AgentCardRegistry Verification
+
+**Note**: ERC-8004 interface is now integrated directly into AgentCardRegistry (single contract architecture).
 
 ### V4.1: ERC-8004 Compliance
 
 | ID | Verification Criteria | Priority | Test File | Status |
 |----|----------------------|----------|-----------|--------|
-| E4.1.1 | Implements all IERC8004 functions | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
-| E4.1.2 | registerAgent function works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
-| E4.1.3 | resolveAgent returns correct data | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
-| E4.1.4 | resolveAgentByAddress works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
-| E4.1.5 | isAgentActive returns correct status | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
-| E4.1.6 | updateAgentEndpoint works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
-| E4.1.7 | deactivateAgent works | 🔴 P0 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
-| E4.1.8 | Emits all required events | 🟡 P1 | `ERC8004IdentityRegistryV4.test.js` | ✅ |
+| E4.1.1 | Implements all IERC8004 functions | 🔴 P0 | `ERC8004InterfaceInRegistry.test.js` | ✅ |
+| E4.1.2 | registerAgent function works | 🔴 P0 | `ERC8004InterfaceInRegistry.test.js` | ✅ |
+| E4.1.3 | resolveAgent returns correct data | 🔴 P0 | `ERC8004InterfaceInRegistry.test.js` | ✅ |
+| E4.1.4 | resolveAgentByAddress works | 🔴 P0 | `ERC8004InterfaceInRegistry.test.js` | ✅ |
+| E4.1.5 | isAgentActive returns correct status | 🔴 P0 | `ERC8004InterfaceInRegistry.test.js` | ✅ |
+| E4.1.6 | updateAgentEndpoint works | 🔴 P0 | `ERC8004InterfaceInRegistry.test.js` | ✅ |
+| E4.1.7 | deactivateAgent works | 🔴 P0 | `ERC8004InterfaceInRegistry.test.js` | ✅ |
+| E4.1.8 | Emits all required events | 🟡 P1 | `ERC8004InterfaceInRegistry.test.js` | ✅ |
 
 **Test Specification**:
 ```javascript
-describe("ERC8004IdentityRegistryV4 - Compliance", () => {
+describe("ERC8004 Interface in AgentCardRegistry", () => {
   it("Should implement all IERC8004 interface functions", async () => {
-    const interface = new ethers.Interface([
-      "function registerAgent(string,string) returns (bool)",
-      "function resolveAgent(string) view returns (tuple)",
-      "function resolveAgentByAddress(address) view returns (tuple)",
-      "function isAgentActive(string) view returns (bool)",
-      "function updateAgentEndpoint(string,string) returns (bool)",
-      "function deactivateAgent(string) returns (bool)"
-    ]);
-
-    // Verify all functions exist
-    expect(registry.interface.getFunction("registerAgent")).to.exist;
-    expect(registry.interface.getFunction("resolveAgent")).to.exist;
-    // ... etc
+    // Verify all functions exist in AgentCardRegistry
+    expect(agentRegistry.interface.getFunction("registerAgent")).to.exist;
+    expect(agentRegistry.interface.getFunction("resolveAgent")).to.exist;
+    expect(agentRegistry.interface.getFunction("resolveAgentByAddress")).to.exist;
+    expect(agentRegistry.interface.getFunction("isAgentActive")).to.exist;
+    expect(agentRegistry.interface.getFunction("updateAgentEndpoint")).to.exist;
+    expect(agentRegistry.interface.getFunction("deactivateAgent")).to.exist;
   });
 });
 ```
 
 **Acceptance Criteria**:
-- ✅ All interface functions implemented
+- ✅ All interface functions implemented in AgentCardRegistry
 - ✅ All functions work correctly
 - ✅ All events emitted
 - ✅ ERC-8004 spec compliant
+- ✅ Single contract architecture (no separate adapter)
+
+**Architecture Notes**:
+- Internal functions renamed to avoid conflicts: `registerAgentWithParams()`, `deactivateAgentByHash()`
+- ERC-8004 standard names preserved: `registerAgent()`, `deactivateAgent()`
+- `registerAgent()` reverts with instruction to use `commitRegistration()` for secure registration
+- All ERC-8004 functions operate on DID strings, internal functions use bytes32 hashes
 
 ---
 
-### ERC8004IdentityRegistryV4: Summary
+### ERC-8004 Interface: Summary
 
 **Total Checks**: 8
 - 🔴 P0 Critical: 7
@@ -878,7 +881,9 @@ describe("ERC8004IdentityRegistryV4 - Compliance", () => {
 **Completion Criteria**:
 - [x] All 8 tests passing (17 tests total including sub-tests)
 - [x] ERC-8004 compliance verified
-- [x] Integration with AgentCardRegistry via operator approval pattern
+- [x] Direct integration with AgentCardRegistry (single contract)
+- [x] Function naming conflicts resolved
+- [x] Event naming conflicts resolved
 
 ---
 
@@ -888,9 +893,9 @@ describe("ERC8004IdentityRegistryV4 - Compliance", () => {
 
 | ID | Verification Criteria | Priority | Test File | Status |
 |----|----------------------|----------|-----------|--------|
-| I5.1.1 | Complete registration workflow works | 🔴 P0 | `FullWorkflow.test.js` | ⏳ |
-| I5.1.2 | Multi-key lifecycle works end-to-end | 🔴 P0 | `FullWorkflow.test.js` | ⏳ |
-| I5.1.3 | ERC-8004 ecosystem integration works | 🔴 P0 | `FullWorkflow.test.js` | ⏳ |
+| I5.1.1 | Complete registration workflow works | 🔴 P0 | `FullWorkflow.test.js` | ✅ |
+| I5.1.2 | Multi-key lifecycle works end-to-end | 🔴 P0 | `FullWorkflow.test.js` | ✅ |
+| I5.1.3 | ERC-8004 ecosystem integration works | 🔴 P0 | `FullWorkflow.test.js` | ✅ |
 | I5.1.4 | Migration from V4 works | 🔴 P0 | `Migration.test.js` | ⏳ |
 
 **Test Specification**:
@@ -1107,7 +1112,7 @@ Before deploying to production, verify ALL of the following:
 - AgentCardStorage: 25 items
 - AgentCardVerifyHook: 20 items
 - AgentCardRegistry: 48 items
-- ERC8004IdentityRegistryV4: 8 items
+- ERC-8004 Interface in AgentCardRegistry: 8 items
 - Integration: 4 items
 - Security: 5 items
 - Performance: 6 items

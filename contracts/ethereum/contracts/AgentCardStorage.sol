@@ -303,11 +303,11 @@ abstract contract AgentCardStorage {
     );
 
     /**
-     * @notice Emitted when an agent is deactivated
-     * @param agentId Agent identifier
+     * @notice Emitted when an agent is deactivated by hash
+     * @param agentId Agent identifier (bytes32)
      * @param timestamp Deactivation timestamp
      */
-    event AgentDeactivated(
+    event AgentDeactivatedByHash(
         bytes32 indexed agentId,
         uint256 timestamp
     );

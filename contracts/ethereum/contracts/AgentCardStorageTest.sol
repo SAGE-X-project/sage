@@ -277,12 +277,12 @@ contract AgentCardStorageTest is AgentCardStorage {
     }
 
     /**
-     * @notice Emit AgentDeactivated event (for testing)
+     * @notice Emit AgentDeactivatedByHash event (for testing)
      * @param agentId The agent identifier
      * @param timestamp The timestamp
      */
-    function emitAgentDeactivated(bytes32 agentId, uint256 timestamp) external {
-        emit AgentDeactivated(agentId, timestamp);
+    function emitAgentDeactivatedByHash(bytes32 agentId, uint256 timestamp) external {
+        emit AgentDeactivatedByHash(agentId, timestamp);
     }
 
     /**
