@@ -91,6 +91,14 @@ func UnmarshalPublicKey(data []byte, keyType string) (interface{}, error) {
 		// Convert to standard ecdsa.PublicKey for compatibility
 		return pk.ToECDSA(), nil
 
+	case "x25519":
+		if len(data) != 32 {
+			return nil, fmt.Errorf("invalid X25519 public key size: %d", len(data))
+		}
+		cp := make([]byte, 32)
+		copy(cp, data)
+		return cp, nil
+
 	default:
 		// Try to unmarshal as generic public key
 		block, _ := pem.Decode(data)
