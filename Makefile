@@ -704,6 +704,12 @@ lint:
 		echo "golangci-lint not installed. Run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
 	fi
 
+# Run CI lint checks (same as GitHub Actions)
+.PHONY: lint-ci
+lint-ci:
+	@echo "Running CI lint checks (same as GitHub Actions)..."
+	@bash ./tools/scripts/lint-ci.sh
+
 # Format code
 .PHONY: fmt
 fmt:
@@ -960,6 +966,7 @@ help:
 	@echo "  make test-cleanup   - Cleanup test environment"
 	@echo "  make install        - Install binaries to GOPATH/bin"
 	@echo "  make lint           - Run linter"
+	@echo "  make lint-ci        - Run CI lint checks (same as GitHub Actions)"
 	@echo "  make fmt            - Format code"
 	@echo "  make tidy           - Run go mod tidy"
 	@echo "  make update-version - Update project version"
