@@ -104,7 +104,7 @@ const optimizerRuns = process.env.COVERAGE
   : parseInt(getEnvVariable("OPTIMIZER_RUNS", "200"));
 
 const solidityConfig = {
-  version: "0.8.19",
+  version: "0.8.20",
   settings: {
     optimizer: {
       enabled: true,

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title TEEKeyRegistry
@@ -368,9 +368,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
     // CONSTRUCTOR
     // ============================================
 
-    constructor() {
-        _transferOwnership(msg.sender);
-
+    constructor() Ownable(msg.sender) {
         // Register owner as initial voter
         _registerVoter(msg.sender, 1);
     }
