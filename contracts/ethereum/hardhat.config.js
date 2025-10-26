@@ -121,7 +121,12 @@ const solidityConfig = {
     metadata: {
       bytecodeHash: "ipfs"
     }
-  }
+  },
+  // Exclude deprecated contracts from compilation
+  exclude: [
+    "contracts/**/deprecated/**",
+    "contracts/**/archive/**"
+  ]
 };
 
 // ============================================
