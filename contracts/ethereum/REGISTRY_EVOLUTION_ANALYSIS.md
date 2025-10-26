@@ -321,7 +321,7 @@ uint256 public constant ACTIVATION_DELAY = 1 hours;
 // Prevent spam attacks by limiting registrations per address per day
 mapping(address => uint256) public dailyRegistrationCount;
 mapping(address => uint256) public lastRegistrationDay;
-uint256 public constant MAX_DAILY_REGISTRATIONS = 5;
+uint256 public constant MAX_DAILY_REGISTRATIONS = 24;
 ```
 
 ---

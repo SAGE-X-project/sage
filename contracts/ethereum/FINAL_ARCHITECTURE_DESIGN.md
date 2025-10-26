@@ -178,7 +178,7 @@ abstract contract AgentCardStorage {
     uint256 internal constant COMMIT_MIN_DELAY = 1 minutes;
     uint256 internal constant COMMIT_MAX_DELAY = 1 hours;
     uint256 internal constant MAX_KEYS_PER_AGENT = 10;
-    uint256 internal constant MAX_DAILY_REGISTRATIONS = 5;
+    uint256 internal constant MAX_DAILY_REGISTRATIONS = 24;
 
     // ============ Events ============
 
@@ -1071,7 +1071,7 @@ function activateAgent(bytes32 agentId) external {
 
 **Mechanism**:
 ```solidity
-uint256 public constant MAX_DAILY_REGISTRATIONS = 5;
+uint256 public constant MAX_DAILY_REGISTRATIONS = 24;
 mapping(address => uint256) internal dailyRegistrationCount;
 
 function commitRegistration(...) external {
