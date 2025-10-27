@@ -195,7 +195,7 @@ jobs:
         run: go mod download
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: binaries-ubuntu-latest
           path: build/bin/
