@@ -431,7 +431,7 @@ sage-did deactivate did:sage:ethereum:my-agent --yes
 **A:** Existing agents registered via SageRegistryV4 will continue to work, but:
 - New features (operators, enhanced security) require AgentCardRegistry
 - We recommend migrating for better security
-- Migration tool: `sage-did migrate <old-did>`
+- **Note:** Automated migration tool is planned for a future release. For now, register a new agent using the three-phase flow.
 
 ### Q: What if registration fails in Phase 2 or 3?
 
@@ -547,7 +547,7 @@ AgentCardRegistry: TBD (not yet deployed)
 ```
 Deploy your own:
 cd contracts/ethereum
-npx hardhat run scripts/deploy-agentcard.ts --network localhost
+npx hardhat run scripts/deploy-agentcard.js --network localhost
 ```
 
 ## Version Compatibility
@@ -562,7 +562,7 @@ npx hardhat run scripts/deploy-agentcard.ts --network localhost
 If you encounter issues during migration:
 
 1. Check this guide for common solutions
-2. Review the [REFACTORING_PLAN_V4.md](./REFACTORING_PLAN_V4.md) for technical details
+2. Review the contract documentation in [docs/contracts/](./contracts/)
 3. Open an issue with:
    - SAGE version
    - Error message
