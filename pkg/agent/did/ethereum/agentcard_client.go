@@ -22,10 +22,12 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -272,8 +274,56 @@ func (c *AgentCardClient) GetCommitmentState(ctx context.Context, owner common.A
 
 // GetAgent retrieves agent metadata by agent ID
 func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.AgentMetadataV4, error) {
-	// TODO: Implement agent metadata retrieval
-	return nil, fmt.Errorf("not implemented")
+	// Call contract to get agent metadata
+	metadata, err := c.contract.GetAgent(&bind.CallOpts{Context: ctx}, agentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get agent: %w", err)
+	}
+
+	// Check if agent exists (DID not empty)
+	if metadata.Did == "" {
+		return nil, fmt.Errorf("agent not found")
+	}
+
+	// Convert contract metadata to AgentMetadataV4
+	agent := &did.AgentMetadataV4{
+		DID:          did.AgentDID(metadata.Did),
+		Name:         metadata.Name,
+		Description:  metadata.Description,
+		Endpoint:     metadata.Endpoint,
+		Keys:         make([]did.AgentKey, 0, len(metadata.KeyHashes)),
+		Capabilities: make(map[string]interface{}),
+		Owner:        metadata.Owner.Hex(),
+		IsActive:     metadata.Active,
+		CreatedAt:    time.Unix(metadata.RegisteredAt.Int64(), 0),
+		UpdatedAt:    time.Unix(metadata.UpdatedAt.Int64(), 0),
+	}
+
+	// Parse capabilities JSON
+	if metadata.Capabilities != "" {
+		var caps map[string]interface{}
+		if err := json.Unmarshal([]byte(metadata.Capabilities), &caps); err == nil {
+			agent.Capabilities = caps
+		}
+	}
+
+	// Fetch keys for each key hash
+	for _, keyHash := range metadata.KeyHashes {
+		keyData, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, keyHash)
+		if err != nil {
+			continue // Skip keys that can't be fetched
+		}
+
+		agent.Keys = append(agent.Keys, did.AgentKey{
+			Type:      did.KeyType(keyData.KeyType),
+			KeyData:   keyData.KeyData,
+			Signature: keyData.Signature,
+			Verified:  keyData.Verified,
+			CreatedAt: time.Unix(keyData.RegisteredAt.Int64(), 0),
+		})
+	}
+
+	return agent, nil
 }
 
 // GetAgentByDID retrieves agent metadata by DID string
@@ -282,12 +332,123 @@ func (c *AgentCardClient) GetAgentByDID(ctx context.Context, didStr string) (*di
 	return c.GetAgent(ctx, agentID)
 }
 
+// SetApprovalForAgent approves or revokes an operator for the agent
+func (c *AgentCardClient) SetApprovalForAgent(ctx context.Context, agentID [32]byte, operator common.Address, approved bool) error {
+	auth, err := c.getTransactor(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create transactor: %w", err)
+	}
+
+	tx, err := c.contract.SetApprovalForAgent(auth, agentID, operator, approved)
+	if err != nil {
+		return fmt.Errorf("failed to set approval: %w", err)
+	}
+
+	receipt, err := bind.WaitMined(ctx, c.client, tx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for approval: %w", err)
+	}
+
+	if receipt.Status != 1 {
+		return fmt.Errorf("approval transaction failed")
+	}
+
+	return nil
+}
+
+// IsApprovedOperator checks if an address is an approved operator for the agent
+func (c *AgentCardClient) IsApprovedOperator(ctx context.Context, agentID [32]byte, operator common.Address) (bool, error) {
+	return c.contract.IsApprovedOperator(&bind.CallOpts{Context: ctx}, agentID, operator)
+}
+
+// UpdateAgent updates agent endpoint and capabilities
+func (c *AgentCardClient) UpdateAgent(ctx context.Context, agentID [32]byte, endpoint, capabilities string) error {
+	auth, err := c.getTransactor(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create transactor: %w", err)
+	}
+
+	tx, err := c.contract.UpdateAgent(auth, agentID, endpoint, capabilities)
+	if err != nil {
+		return fmt.Errorf("failed to update agent: %w", err)
+	}
+
+	receipt, err := bind.WaitMined(ctx, c.client, tx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for update: %w", err)
+	}
+
+	if receipt.Status != 1 {
+		return fmt.Errorf("update transaction failed")
+	}
+
+	return nil
+}
+
+// DeactivateAgent deactivates an agent
+func (c *AgentCardClient) DeactivateAgent(ctx context.Context, agentID [32]byte) error {
+	auth, err := c.getTransactor(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create transactor: %w", err)
+	}
+
+	tx, err := c.contract.DeactivateAgentByHash(auth, agentID)
+	if err != nil {
+		return fmt.Errorf("failed to deactivate agent: %w", err)
+	}
+
+	receipt, err := bind.WaitMined(ctx, c.client, tx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for deactivation: %w", err)
+	}
+
+	if receipt.Status != 1 {
+		return fmt.Errorf("deactivation transaction failed")
+	}
+
+	return nil
+}
+
 // Helper functions
 
 func (c *AgentCardClient) computeCommitmentHash(params *did.RegistrationParams) ([32]byte, error) {
-	// TODO: Implement commitment hash calculation matching Solidity
-	// keccak256(abi.encode(params, salt))
-	return [32]byte{}, fmt.Errorf("not implemented")
+	// Must match Solidity: keccak256(abi.encode(did, keys, owner, salt, chainId))
+
+	owner := crypto.PubkeyToAddress(c.privateKey.PublicKey)
+
+	// Encode parameters using Ethereum ABI encoding
+	// This must exactly match the Solidity abi.encode() output
+
+	// Create ABI types
+	stringTy, _ := abi.NewType("string", "", nil)
+	bytesTy, _ := abi.NewType("bytes[]", "", nil)
+	addressTy, _ := abi.NewType("address", "", nil)
+	bytes32Ty, _ := abi.NewType("bytes32", "", nil)
+	uint256Ty, _ := abi.NewType("uint256", "", nil)
+
+	arguments := abi.Arguments{
+		{Type: stringTy},  // did
+		{Type: bytesTy},   // keys
+		{Type: addressTy}, // owner
+		{Type: bytes32Ty}, // salt
+		{Type: uint256Ty}, // chainId
+	}
+
+	// Encode
+	encoded, err := arguments.Pack(
+		params.DID,
+		params.Keys,
+		owner,
+		params.Salt,
+		c.chainID,
+	)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("failed to encode commitment: %w", err)
+	}
+
+	// Hash
+	hash := crypto.Keccak256Hash(encoded)
+	return hash, nil
 }
 
 func (c *AgentCardClient) computeAgentID(didStr string) [32]byte {
