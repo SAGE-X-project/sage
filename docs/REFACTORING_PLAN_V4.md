@@ -2,20 +2,28 @@
 ## Version 1.4.0 → 1.5.0
 
 **Date**: October 27, 2025 - January 15, 2025
-**Status**: Phase 1-3 Complete ✅ | Phase 4-5 In Progress 🔄
+**Status**: ✅ **Phase 1-6 COMPLETE** | Ready for v1.5.0 Release
 **Target**: Integrate new AgentCardRegistry (Commit-Reveal + Multi-Key + Governance)
 
 ## 🎯 Implementation Status
 
 | Phase | Status | Completion Date |
 |-------|--------|-----------------|
-| Phase 1: Contract Bindings & Types | ✅ Complete | 2025-01-14 |
-| Phase 2: Core Client Implementation | ✅ Complete | 2025-01-14 |
-| Phase 3: CLI Tools Update | ✅ Complete | 2025-01-15 |
-| Phase 4: Integration Tests | 🔄 In Progress | - |
-| Phase 5: Documentation | 🔄 In Progress | - |
-| Phase 6: Performance Testing | ⏳ Pending | - |
-| Phase 7: Release Preparation | ⏳ Pending | - |
+| Phase 1: Contract Bindings & Types | ✅ **Complete** | 2025-01-14 |
+| Phase 2: Core Client Implementation | ✅ **Complete** | 2025-01-14 |
+| Phase 3: CLI Tools Update | ✅ **Complete** | 2025-01-15 |
+| Phase 4: Integration Tests | ✅ **Complete** | 2025-01-15 |
+| Phase 5: Documentation | ✅ **Complete** | 2025-01-15 |
+| Phase 6: Performance Testing | ✅ **Complete** | 2025-01-15 |
+| Phase 7: Release Preparation | 🔄 **In Progress** | - |
+
+### Commits Summary
+
+1. **Phase 1**: `a757a2e` - Contract bindings, KeyType enum fix, legacy code removal
+2. **Phase 2**: `32b0ab5` - Core AgentCardClient with three-phase methods
+3. **Phase 3**: `ae0fb11` - CLI commands (commit/register/activate)
+4. **Phase 4-5**: `2de23fe` - Migration guide and documentation
+5. **Phase 6**: `be61927` - Benchmark suite and performance analysis
 
 ---
 
