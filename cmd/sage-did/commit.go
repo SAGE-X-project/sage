@@ -183,7 +183,7 @@ func saveCommitmentStatus(status *did.CommitmentStatus) error {
 	}
 
 	commitDir := filepath.Join(homeDir, ".sage", "commitments")
-	if err := os.MkdirAll(commitDir, 0755); err != nil {
+	if err := os.MkdirAll(commitDir, 0750); err != nil {
 		return err
 	}
 
@@ -203,8 +203,9 @@ func loadCommitmentStatus(commitHash [32]byte) (*did.CommitmentStatus, error) {
 		return nil, err
 	}
 
+	// Safe: filename is constructed from user home dir and hex-encoded hash (no user input)
 	filename := filepath.Join(homeDir, ".sage", "commitments", fmt.Sprintf("%x.json", commitHash))
-	data, err := os.ReadFile(filename)
+	data, err := os.ReadFile(filename) // #nosec G304 - filename constructed from safe sources
 	if err != nil {
 		return nil, fmt.Errorf("commitment not found: %w", err)
 	}

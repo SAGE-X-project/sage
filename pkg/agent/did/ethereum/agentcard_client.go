@@ -24,6 +24,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"math"
 	"math/big"
 	"time"
 
@@ -213,7 +214,12 @@ func (c *AgentCardClient) RegisterAgent(ctx context.Context, status *did.Commitm
 	// Update status
 	status.Phase = did.PhaseRegistered
 	status.AgentID = agentID
-	status.CanActivateAt = time.Now().Add(time.Duration(delay.Uint64()) * time.Second)
+	// Safe conversion: delay is typically small (e.g., 3600 seconds = 1 hour)
+	// Max int64 = 9,223,372,036,854,775,807 seconds ≈ 292 billion years
+	if delay.Cmp(big.NewInt(math.MaxInt64)) > 0 {
+		return nil, fmt.Errorf("activation delay too large: %s seconds", delay.String())
+	}
+	status.CanActivateAt = time.Now().Add(time.Duration(delay.Int64()) * time.Second)
 	status.Params = nil // Clear params for security
 
 	return status, nil
@@ -459,7 +465,11 @@ func (c *AgentCardClient) toContractParams(params *did.RegistrationParams) (*age
 	// Convert KeyType slice to uint8 slice
 	keyTypes := make([]uint8, len(params.KeyTypes))
 	for i, kt := range params.KeyTypes {
-		keyTypes[i] = uint8(kt)
+		// Validate KeyType is within valid uint8 range
+		if kt < 0 || kt > 255 {
+			return nil, fmt.Errorf("invalid KeyType value: %d (must be 0-255)", kt)
+		}
+		keyTypes[i] = uint8(kt) // #nosec G115 - validated above
 	}
 
 	return &agentcardregistry.AgentCardStorageRegistrationParams{
@@ -495,7 +505,11 @@ func (c *AgentCardClient) getTransactor(ctx context.Context, value *big.Int) (*b
 		return nil, fmt.Errorf("failed to create transactor: %w", err)
 	}
 
-	auth.Nonce = big.NewInt(int64(nonce))
+	// Safe conversion: nonce is always < math.MaxInt64 in practice
+	if nonce > math.MaxInt64 {
+		return nil, fmt.Errorf("nonce too large: %d", nonce)
+	}
+	auth.Nonce = big.NewInt(int64(nonce)) // #nosec G115 - validated above
 	auth.Value = value
 	auth.GasLimit = uint64(3000000) // TODO: Estimate gas
 	auth.GasPrice = gasPrice
