@@ -157,7 +157,8 @@ func TestIntegration(t *testing.T) {
 
 		currentTime := time.Now()
 		req.Header.Set("Date", currentTime.Format(http.TimeFormat))
-		req.Header.Set("Content-Digest", "sha-256=:RBsLjMq4VvLtwL6W0heDElJPTe2WbHL7gWRYYhHbAw0=:")
+		// Compute Content-Digest from actual body (PR #118 security fix)
+		req.Header.Set("Content-Digest", ComputeContentDigest([]byte(body)))
 		req.Header.Set("Content-Type", "application/json")
 
 		helpers.LogDetail(t, "Test request URL: %s", testURL)
@@ -258,7 +259,8 @@ func TestIntegration(t *testing.T) {
 
 		currentTime := time.Now()
 		req.Header.Set("Date", currentTime.Format(http.TimeFormat))
-		req.Header.Set("Content-Digest", "sha-256=:k8H1234567890abcdefghijklmnopqrstuvwxyz+/=:")
+		// Compute Content-Digest from actual body (PR #118 security fix)
+		req.Header.Set("Content-Digest", ComputeContentDigest([]byte(body)))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-Ethereum-Address", ethAddress)
 
