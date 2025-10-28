@@ -47,7 +47,7 @@ describe("AgentCardStorage", function () {
          * Verification: AgentMetadata struct has all 11 fields
          * Priority: P0 Critical
          */
-        it("S1.1.1: Should create AgentMetadata with all 11 fields", async function () {
+        it("S1.1.1: Should create AgentMetadata with all 12 fields", async function () {
             const agentId = ethers.id("test-agent-1");
             const metadata = {
                 did: "did:sage:ethereum:0x1234567890123456789012345678901234567890",
@@ -60,7 +60,8 @@ describe("AgentCardStorage", function () {
                 registeredAt: Math.floor(Date.now() / 1000),
                 updatedAt: Math.floor(Date.now() / 1000),
                 active: false,
-                chainId: 31337
+                chainId: 31337,
+                kmePublicKey: "0x"  // Empty KME key (optional field)
             };
 
             // Store test agent
@@ -82,6 +83,7 @@ describe("AgentCardStorage", function () {
             expect(retrieved.updatedAt).to.equal(metadata.updatedAt);
             expect(retrieved.active).to.equal(metadata.active);
             expect(retrieved.chainId).to.equal(metadata.chainId);
+            expect(retrieved.kmePublicKey).to.equal(metadata.kmePublicKey);  // ✅ Verify KME key
         });
 
         /**
@@ -208,7 +210,8 @@ describe("AgentCardStorage", function () {
                 registeredAt: 123456,                 // uint256
                 updatedAt: 123456,                    // uint256
                 active: true,                         // bool
-                chainId: 1                            // uint256
+                chainId: 1,                           // uint256
+                kmePublicKey: "0x"                    // bytes (optional)
             });
 
             const agent = await storage.getAgentMetadata(agentId);
@@ -245,7 +248,8 @@ describe("AgentCardStorage", function () {
                 registeredAt: 100,
                 updatedAt: 100,
                 active: false,
-                chainId: 31337
+                chainId: 31337,
+                kmePublicKey: "0x"  // Empty KME key (optional field)
             };
 
             await storage.setAgentMetadata(agentId, agentData);
