@@ -163,8 +163,10 @@ contract AgentCardRegistry is
         // 4. Generate agent ID
         agentId = keccak256(abi.encodePacked(params.did, msg.sender, block.timestamp));
 
-        // 5. Store keys
+        // 5. Store keys and extract X25519 KME key
         bytes32[] memory keyHashes = new bytes32[](params.keys.length);
+        bytes memory kmeKey;  // X25519 KME public key
+
         for (uint256 i = 0; i < params.keys.length; i++) {
             bytes32 keyHash = keccak256(params.keys[i]);
             keyHashes[i] = keyHash;
@@ -175,6 +177,12 @@ contract AgentCardRegistry is
 
             // Verify key ownership
             _verifyKeyOwnership(params.keyTypes[i], params.keys[i], params.signatures[i], msg.sender);
+
+            // Extract X25519 key for KME (only one X25519 key allowed)
+            if (params.keyTypes[i] == KeyType.X25519) {
+                require(kmeKey.length == 0, "Multiple X25519 keys not allowed");
+                kmeKey = params.keys[i];
+            }
 
             // Store key
             agentKeys[keyHash] = AgentKey({
@@ -200,7 +208,8 @@ contract AgentCardRegistry is
             registeredAt: block.timestamp,
             updatedAt: block.timestamp,
             active: false,  // Not active yet (time-locked)
-            chainId: block.chainid
+            chainId: block.chainid,
+            kmePublicKey: kmeKey  // X25519 KME key (can be empty if not provided)
         });
 
         didToAgentId[params.did] = agentId;
@@ -219,6 +228,11 @@ contract AgentCardRegistry is
         });
 
         emit AgentRegistered(agentId, params.did, msg.sender, block.timestamp);
+
+        // Emit KME key update if X25519 key was provided
+        if (kmeKey.length > 0) {
+            emit KMEKeyUpdated(agentId, keccak256(kmeKey), block.timestamp);
+        }
 
         return agentId;
     }
@@ -427,8 +441,26 @@ contract AgentCardRegistry is
             // In production, use Chainlink oracle or TEE for Ed25519 verification
             require(signature.length == 64, "Invalid Ed25519 signature");
         } else if (keyType == KeyType.X25519) {
-            // X25519 is encryption key, no signature verification needed
+            // X25519 ownership proof via ECDSA signature
+            // Prevents attackers from registering others' X25519 public keys
             require(keyData.length == 32, "Invalid X25519 key length");
+            require(signature.length == 65, "X25519 requires ECDSA signature for ownership proof");
+
+            // Message includes X25519 public key to prove ownership
+            bytes32 messageHash = keccak256(abi.encodePacked(
+                "SAGE X25519 Ownership:",
+                keyData,  // X25519 public key being registered
+                block.chainid,
+                address(this),
+                expectedOwner
+            ));
+            bytes32 ethSignedHash = keccak256(abi.encodePacked(
+                "\x19Ethereum Signed Message:\n32",
+                messageHash
+            ));
+
+            address recovered = _recoverSigner(ethSignedHash, signature);
+            require(recovered == expectedOwner, "Invalid X25519 ownership proof");
         }
     }
 
@@ -495,6 +527,55 @@ contract AgentCardRegistry is
         returns (bool)
     {
         return agentOperators[agentId][operator];
+    }
+
+    // ============ KME Key Management ============
+
+    /**
+     * @notice Get KME public key for an agent
+     * @dev Returns the X25519 public key used for HPKE encryption
+     * @param agentId Agent identifier
+     * @return KME public key (32 bytes X25519 key, or empty if not set)
+     */
+    function getKMEKey(bytes32 agentId)
+        external
+        view
+        returns (bytes memory)
+    {
+        require(agents[agentId].owner != address(0), "Agent not found");
+        return agents[agentId].kmePublicKey;
+    }
+
+    /**
+     * @notice Update agent's KME public key
+     * @dev Allows key rotation for HPKE encryption
+     *      Requires ECDSA signature proof of X25519 key ownership
+     * @param agentId Agent identifier
+     * @param newKmeKey New X25519 public key (32 bytes)
+     * @param signature ECDSA signature proving ownership of newKmeKey
+     */
+    function updateKMEKey(
+        bytes32 agentId,
+        bytes calldata newKmeKey,
+        bytes calldata signature
+    )
+        external
+        onlyAgentOwner(agentId)
+        whenNotPaused
+        nonReentrant
+    {
+        require(newKmeKey.length == 32, "Invalid X25519 key length");
+        require(signature.length == 65, "Invalid signature length");
+
+        // Verify X25519 key ownership
+        _verifyKeyOwnership(KeyType.X25519, newKmeKey, signature, msg.sender);
+
+        // Update KME key
+        agents[agentId].kmePublicKey = newKmeKey;
+        agents[agentId].updatedAt = block.timestamp;
+        agentNonce[agentId]++;
+
+        emit KMEKeyUpdated(agentId, keccak256(newKmeKey), block.timestamp);
     }
 
     // ============ Admin Functions ============
