@@ -592,6 +592,9 @@ func TestWaitForTransactionConfirmations(t *testing.T) {
 
 // TestAgentCardClient_GetKMEKey tests KME key retrieval
 func TestAgentCardClient_GetKMEKey(t *testing.T) {
+	// Skip if no local Ethereum node
+	t.Skip("Requires local Ethereum node with deployed AgentCardRegistry contract")
+
 	tests := []struct {
 		name      string
 		agentID   [32]byte
@@ -611,9 +614,6 @@ func TestAgentCardClient_GetKMEKey(t *testing.T) {
 			errMsg:    "", // Contract call will fail
 		},
 	}
-
-	// Skip if no local Ethereum node
-	t.Skip("Requires local Ethereum node with deployed AgentCardRegistry contract")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
