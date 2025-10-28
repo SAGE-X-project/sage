@@ -303,6 +303,7 @@ func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.
 		IsActive:     metadata.Active,
 		CreatedAt:    time.Unix(metadata.RegisteredAt.Int64(), 0),
 		UpdatedAt:    time.Unix(metadata.UpdatedAt.Int64(), 0),
+		PublicKEMKey: metadata.KmePublicKey, // ✅ Populate KME public key
 	}
 
 	// Parse capabilities JSON
@@ -410,6 +411,56 @@ func (c *AgentCardClient) DeactivateAgent(ctx context.Context, agentID [32]byte)
 
 	if receipt.Status != 1 {
 		return fmt.Errorf("deactivation transaction failed")
+	}
+
+	return nil
+}
+
+// GetKMEKey retrieves the KME (Key Management Encryption) public key for an agent
+// Returns the X25519 public key used for HPKE (RFC 9180) encryption
+func (c *AgentCardClient) GetKMEKey(ctx context.Context, agentID [32]byte) ([]byte, error) {
+	kmeKey, err := c.contract.GetKMEKey(&bind.CallOpts{Context: ctx}, agentID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get KME key: %w", err)
+	}
+
+	// Empty key means agent doesn't have X25519 key registered
+	if len(kmeKey) == 0 {
+		return nil, fmt.Errorf("agent does not have KME key registered")
+	}
+
+	return kmeKey, nil
+}
+
+// UpdateKMEKey updates the KME public key for an agent
+// The new key must be 32 bytes (X25519 public key)
+// Requires ECDSA signature for ownership proof
+func (c *AgentCardClient) UpdateKMEKey(ctx context.Context, agentID [32]byte, newKMEKey []byte, signature []byte) error {
+	if len(newKMEKey) != 32 {
+		return fmt.Errorf("invalid KME key length: expected 32 bytes, got %d", len(newKMEKey))
+	}
+
+	if len(signature) != 65 {
+		return fmt.Errorf("invalid signature length: expected 65 bytes, got %d", len(signature))
+	}
+
+	auth, err := c.getTransactor(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create transactor: %w", err)
+	}
+
+	tx, err := c.contract.UpdateKMEKey(auth, agentID, newKMEKey, signature)
+	if err != nil {
+		return fmt.Errorf("failed to update KME key: %w", err)
+	}
+
+	receipt, err := bind.WaitMined(ctx, c.client, tx)
+	if err != nil {
+		return fmt.Errorf("failed to wait for KME key update: %w", err)
+	}
+
+	if receipt.Status != 1 {
+		return fmt.Errorf("KME key update transaction failed")
 	}
 
 	return nil
