@@ -589,3 +589,172 @@ func TestWaitForTransactionConfirmations(t *testing.T) {
 		})
 	}
 }
+
+// TestAgentCardClient_GetKMEKey tests KME key retrieval
+func TestAgentCardClient_GetKMEKey(t *testing.T) {
+	tests := []struct {
+		name      string
+		agentID   [32]byte
+		expectErr bool
+		errMsg    string
+	}{
+		{
+			name:      "Valid agent ID",
+			agentID:   [32]byte{1, 2, 3}, // Mock agent ID
+			expectErr: true,              // Will fail without real contract
+			errMsg:    "no contract code",
+		},
+		{
+			name:      "Empty agent ID",
+			agentID:   [32]byte{},
+			expectErr: true,
+			errMsg:    "", // Contract call will fail
+		},
+	}
+
+	// Skip if no local Ethereum node
+	t.Skip("Requires local Ethereum node with deployed AgentCardRegistry contract")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// This test requires a real contract deployment
+			// Skipped in CI/CD, run manually with local node
+			config := &did.RegistryConfig{
+				Chain:           did.ChainEthereum,
+				ContractAddress: "0x1234567890123456789012345678901234567890",
+				RPCEndpoint:     "http://localhost:8545",
+			}
+
+			client, err := NewAgentCardClient(config)
+			if err != nil {
+				t.Skip("Cannot connect to local node")
+				return
+			}
+
+			ctx := context.Background()
+			_, err = client.GetKMEKey(ctx, tt.agentID)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestAgentCardClient_UpdateKMEKey tests KME key update validation
+func TestAgentCardClient_UpdateKMEKey(t *testing.T) {
+	tests := []struct {
+		name      string
+		agentID   [32]byte
+		newKey    []byte
+		signature []byte
+		expectErr bool
+		errMsg    string
+	}{
+		{
+			name:      "Invalid key length - too short",
+			agentID:   [32]byte{1, 2, 3},
+			newKey:    make([]byte, 16), // Should be 32 bytes
+			signature: make([]byte, 65),
+			expectErr: true,
+			errMsg:    "invalid KME key length: expected 32 bytes, got 16",
+		},
+		{
+			name:      "Invalid key length - too long",
+			agentID:   [32]byte{1, 2, 3},
+			newKey:    make([]byte, 64), // Should be 32 bytes
+			signature: make([]byte, 65),
+			expectErr: true,
+			errMsg:    "invalid KME key length: expected 32 bytes, got 64",
+		},
+		{
+			name:      "Invalid signature length - too short",
+			agentID:   [32]byte{1, 2, 3},
+			newKey:    make([]byte, 32),
+			signature: make([]byte, 32), // Should be 65 bytes
+			expectErr: true,
+			errMsg:    "invalid signature length: expected 65 bytes, got 32",
+		},
+		{
+			name:      "Invalid signature length - too long",
+			agentID:   [32]byte{1, 2, 3},
+			newKey:    make([]byte, 32),
+			signature: make([]byte, 128), // Should be 65 bytes
+			expectErr: true,
+			errMsg:    "invalid signature length: expected 65 bytes, got 128",
+		},
+		{
+			name:      "Valid inputs but no private key",
+			agentID:   [32]byte{1, 2, 3},
+			newKey:    make([]byte, 32),
+			signature: make([]byte, 65),
+			expectErr: true,
+			errMsg:    "no private key configured",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create client without private key for validation tests
+			config := &did.RegistryConfig{
+				Chain:           did.ChainEthereum,
+				ContractAddress: "0x1234567890123456789012345678901234567890",
+				RPCEndpoint:     "http://localhost:8545",
+				PrivateKey:      "", // No private key
+			}
+
+			client, err := NewAgentCardClient(config)
+			if err != nil {
+				// If we can't connect, skip the test
+				t.Skip("Cannot connect to create client")
+				return
+			}
+
+			ctx := context.Background()
+			err = client.UpdateKMEKey(ctx, tt.agentID, tt.newKey, tt.signature)
+
+			if tt.expectErr {
+				require.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestAgentMetadataV4_PublicKEMKey tests PublicKEMKey field in AgentMetadataV4
+func TestAgentMetadataV4_PublicKEMKey(t *testing.T) {
+	// Test that PublicKEMKey field exists and can be set
+	kmeKey := make([]byte, 32)
+	for i := range kmeKey {
+		kmeKey[i] = byte(i)
+	}
+
+	metadata := &did.AgentMetadataV4{
+		DID:          "did:sage:ethereum:test",
+		Name:         "Test Agent",
+		PublicKEMKey: kmeKey,
+	}
+
+	assert.NotNil(t, metadata.PublicKEMKey)
+	assert.Equal(t, 32, len(metadata.PublicKEMKey))
+	assert.Equal(t, kmeKey, metadata.PublicKEMKey)
+
+	// Test with empty KME key
+	metadata2 := &did.AgentMetadataV4{
+		DID:          "did:sage:ethereum:test2",
+		Name:         "Test Agent 2",
+		PublicKEMKey: []byte{}, // Empty
+	}
+
+	assert.NotNil(t, metadata2.PublicKEMKey)
+	assert.Equal(t, 0, len(metadata2.PublicKEMKey))
+}

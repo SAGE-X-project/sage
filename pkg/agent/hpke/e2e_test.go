@@ -470,3 +470,108 @@ func (r *e2eResolver) ListAgentsByOwner(ctx context.Context, owner string) ([]*s
 func (r *e2eResolver) Search(ctx context.Context, criteria sagedid.SearchCriteria) ([]*sagedid.AgentMetadata, error) {
 	return nil, nil
 }
+
+// TestE2E_HPKE_KEMKeyResolution tests KEM key resolution via DID resolver
+func TestE2E_HPKE_KEMKeyResolution(t *testing.T) {
+	ctx := context.Background()
+
+	// Generate test keypairs
+	clientKEMKP, err := keys.GenerateX25519KeyPair()
+	require.NoError(t, err)
+
+	serverKEMKP, err := keys.GenerateX25519KeyPair()
+	require.NoError(t, err)
+
+	clientDID := sagedid.GenerateDID(sagedid.ChainEthereum, "client-kem-test")
+	serverDID := sagedid.GenerateDID(sagedid.ChainEthereum, "server-kem-test")
+
+	t.Run("Resolve KEM key via DID", func(t *testing.T) {
+		// Create resolver with KEM keys
+		resolver := &e2eResolver{
+			dids: map[sagedid.AgentDID]*sagedid.AgentMetadata{
+				clientDID: {
+					DID:          clientDID,
+					IsActive:     true,
+					PublicKEMKey: clientKEMKP.PublicKey(),
+				},
+				serverDID: {
+					DID:          serverDID,
+					IsActive:     true,
+					PublicKEMKey: serverKEMKP.PublicKey(),
+				},
+			},
+		}
+
+		// Resolve client KEM key
+		clientKEM, err := resolver.ResolveKEMKey(ctx, clientDID)
+		require.NoError(t, err)
+		require.NotNil(t, clientKEM)
+
+		// Convert to *ecdh.PublicKey and verify
+		clientPubKey, ok := clientKEM.(*ecdh.PublicKey)
+		require.True(t, ok, "KEM key should be *ecdh.PublicKey")
+		require.Equal(t, clientKEMKP.PublicKey().(*ecdh.PublicKey).Bytes(), clientPubKey.Bytes())
+
+		// Resolve server KEM key
+		serverKEM, err := resolver.ResolveKEMKey(ctx, serverDID)
+		require.NoError(t, err)
+		require.NotNil(t, serverKEM)
+
+		serverPubKey, ok := serverKEM.(*ecdh.PublicKey)
+		require.True(t, ok, "KEM key should be *ecdh.PublicKey")
+		require.Equal(t, serverKEMKP.PublicKey().(*ecdh.PublicKey).Bytes(), serverPubKey.Bytes())
+	})
+
+	t.Run("Handle missing KEM key", func(t *testing.T) {
+		noKEMDID := sagedid.GenerateDID(sagedid.ChainEthereum, "no-kem")
+
+		resolver := &e2eResolver{
+			dids: map[sagedid.AgentDID]*sagedid.AgentMetadata{
+				noKEMDID: {
+					DID:          noKEMDID,
+					IsActive:     true,
+					PublicKEMKey: nil, // No KEM key
+				},
+			},
+		}
+
+		kemKey, err := resolver.ResolveKEMKey(ctx, noKEMDID)
+		require.NoError(t, err)
+		require.Nil(t, kemKey)
+	})
+
+	t.Run("Handle inactive agent", func(t *testing.T) {
+		inactiveDID := sagedid.GenerateDID(sagedid.ChainEthereum, "inactive")
+
+		resolver := &e2eResolver{
+			dids: map[sagedid.AgentDID]*sagedid.AgentMetadata{
+				inactiveDID: {
+					DID:          inactiveDID,
+					IsActive:     false, // Inactive
+					PublicKEMKey: clientKEMKP.PublicKey(),
+				},
+			},
+		}
+
+		// Resolve should succeed but return inactive agent
+		meta, err := resolver.Resolve(ctx, inactiveDID)
+		require.NoError(t, err)
+		require.NotNil(t, meta)
+		require.False(t, meta.IsActive)
+
+		// KEM key exists but agent is inactive
+		require.NotNil(t, meta.PublicKEMKey)
+	})
+
+	t.Run("Handle non-existent DID", func(t *testing.T) {
+		nonExistentDID := sagedid.GenerateDID(sagedid.ChainEthereum, "nonexistent")
+
+		resolver := &e2eResolver{
+			dids: map[sagedid.AgentDID]*sagedid.AgentMetadata{},
+		}
+
+		_, err := resolver.ResolveKEMKey(ctx, nonExistentDID)
+		require.Error(t, err)
+		require.Equal(t, sagedid.ErrDIDNotFound, err)
+	})
+}
