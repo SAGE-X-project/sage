@@ -70,6 +70,20 @@ describe("Full Workflow Integration", () => {
         return await signer.signMessage(ethers.getBytes(message));
     }
 
+    async function createX25519Signature(signer, x25519Key) {
+        const message = ethers.solidityPackedKeccak256(
+            ["string", "bytes", "uint256", "address", "address"],
+            [
+                "SAGE X25519 Ownership:",
+                x25519Key,
+                chainId,
+                registryAddress,
+                signer.address
+            ]
+        );
+        return await signer.signMessage(ethers.getBytes(message));
+    }
+
     beforeEach(async () => {
         [owner, user1, user2] = await ethers.getSigners();
 
@@ -162,7 +176,7 @@ describe("Full Workflow Integration", () => {
 
             const sig1 = await createSignature(user1);
             const sig2 = ethers.randomBytes(64); // Ed25519 sig (placeholder)
-            const sig3 = ethers.randomBytes(0);  // X25519 no sig needed
+            const sig3 = await createX25519Signature(user1, key3);  // ✅ X25519 ownership proof
 
             const salt = ethers.randomBytes(32);
 
@@ -296,7 +310,7 @@ describe("Full Workflow Integration", () => {
 
             // Add X25519 key
             const x25519Key = ethers.randomBytes(32);
-            const x25519Sig = ethers.randomBytes(0);
+            const x25519Sig = await createX25519Signature(user1, x25519Key);  // ✅ X25519 ownership proof
 
             await agentRegistry.connect(user1).addKey(
                 agentId,

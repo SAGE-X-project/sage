@@ -75,6 +75,7 @@ type AgentMetadataV4 struct {
 	IsActive     bool                   `json:"is_active"`
 	CreatedAt    time.Time              `json:"created_at"`
 	UpdatedAt    time.Time              `json:"updated_at"`
+	PublicKEMKey []byte                 `json:"public_kem_key"` // X25519 KME public key (32 bytes) for HPKE
 }
 
 // A2APublicKey represents a public key in A2A Agent Card format
