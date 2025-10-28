@@ -11,8 +11,8 @@ package main
 
 import (
 	"context"
-	"crypto/ed25519"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
@@ -29,12 +29,12 @@ import (
 
 // SimpleAgent represents a basic agent with automatic key management
 type SimpleAgent struct {
-	Name        string
-	DID         string
-	KeyDir      string
-	ECDSAKey    *ecdsa.PrivateKey
-	Ed25519Key  ed25519.PrivateKey
-	X25519Key   []byte
+	Name       string
+	DID        string
+	KeyDir     string
+	ECDSAKey   *ecdsa.PrivateKey
+	Ed25519Key ed25519.PrivateKey
+	X25519Key  []byte
 }
 
 // NewSimpleAgent creates a new agent with automatic key management
@@ -223,14 +223,14 @@ func (a *SimpleAgent) PrintInfo() {
 	fmt.Printf("DID:            %s\n", a.DID)
 	fmt.Printf("Key Directory:  %s\n", a.KeyDir)
 	fmt.Println()
-	
+
 	// Show key info
 	ecdsaPub, ed25519Pub, x25519Pub, err := a.GetPublicKeys()
 	if err != nil {
 		fmt.Printf("Error getting public keys: %v\n", err)
 		return
 	}
-	
+
 	fmt.Println("Keys:")
 	fmt.Printf("  ECDSA:        %d bytes (public key)\n", len(ecdsaPub))
 	fmt.Printf("  Ed25519:      %d bytes (private key)\n", len(a.Ed25519Key))
@@ -242,18 +242,18 @@ func (a *SimpleAgent) PrintInfo() {
 func (a *SimpleAgent) DemoSigning() {
 	fmt.Println("🔐 Testing Message Signing")
 	fmt.Println("─────────────────────────────────────────────────────────")
-	
+
 	message := []byte("Hello, SAGE World!")
 	fmt.Printf("Message: %s\n", string(message))
-	
+
 	// Sign message
 	signature := a.SignMessage(message)
 	fmt.Printf("Signature: %x\n", signature)
-	
+
 	// Verify signature
 	valid := a.VerifyMessage(message, signature)
 	fmt.Printf("Verification: %t\n", valid)
-	
+
 	if valid {
 		fmt.Println("✅ Message signing and verification successful!")
 	} else {

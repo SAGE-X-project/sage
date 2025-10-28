@@ -22,8 +22,8 @@ package main
 
 import (
 	"context"
-	"crypto/ed25519"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
@@ -40,12 +40,12 @@ import (
 
 // Agent represents a SAGE agent with cryptographic keys
 type Agent struct {
-	Name        string
-	DID         string
-	KeyDir      string
-	ECDSAKey    *ecdsa.PrivateKey
-	Ed25519Key  ed25519.PrivateKey
-	X25519Key   []byte
+	Name          string
+	DID           string
+	KeyDir        string
+	ECDSAKey      *ecdsa.PrivateKey
+	Ed25519Key    ed25519.PrivateKey
+	X25519Key     []byte
 	IsInitialized bool
 }
 
@@ -76,39 +76,39 @@ func (km *KeyManager) KeyExists(keyType string) bool {
 // SaveECDSAKey saves an ECDSA private key to file
 func (km *KeyManager) SaveECDSAKey(key *ecdsa.PrivateKey) error {
 	keyPath := filepath.Join(km.keyDir, "ecdsa.key")
-	
+
 	keyBytes, err := x509.MarshalECPrivateKey(key)
 	if err != nil {
 		return fmt.Errorf("failed to marshal ECDSA key: %w", err)
 	}
-	
+
 	keyPEM := pem.EncodeToMemory(&pem.Block{
 		Type:  "EC PRIVATE KEY",
 		Bytes: keyBytes,
 	})
-	
+
 	return os.WriteFile(keyPath, keyPEM, 0600)
 }
 
 // LoadECDSAKey loads an ECDSA private key from file
 func (km *KeyManager) LoadECDSAKey() (*ecdsa.PrivateKey, error) {
 	keyPath := filepath.Join(km.keyDir, "ecdsa.key")
-	
+
 	keyPEM, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read ECDSA key file: %w", err)
 	}
-	
+
 	block, _ := pem.Decode(keyPEM)
 	if block == nil {
 		return nil, fmt.Errorf("failed to decode PEM block")
 	}
-	
+
 	key, err := x509.ParseECPrivateKey(block.Bytes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse ECDSA key: %w", err)
 	}
-	
+
 	return key, nil
 }
 
@@ -121,16 +121,16 @@ func (km *KeyManager) SaveEd25519Key(key ed25519.PrivateKey) error {
 // LoadEd25519Key loads an Ed25519 private key from file
 func (km *KeyManager) LoadEd25519Key() (ed25519.PrivateKey, error) {
 	keyPath := filepath.Join(km.keyDir, "ed25519.key")
-	
+
 	keyBytes, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read Ed25519 key file: %w", err)
 	}
-	
+
 	if len(keyBytes) != ed25519.PrivateKeySize {
 		return nil, fmt.Errorf("invalid Ed25519 key size: expected %d, got %d", ed25519.PrivateKeySize, len(keyBytes))
 	}
-	
+
 	return ed25519.PrivateKey(keyBytes), nil
 }
 
@@ -143,16 +143,16 @@ func (km *KeyManager) SaveX25519Key(key []byte) error {
 // LoadX25519Key loads an X25519 private key from file
 func (km *KeyManager) LoadX25519Key() ([]byte, error) {
 	keyPath := filepath.Join(km.keyDir, "x25519.key")
-	
+
 	keyBytes, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read X25519 key file: %w", err)
 	}
-	
+
 	if len(keyBytes) != 32 {
 		return nil, fmt.Errorf("invalid X25519 key size: expected 32, got %d", len(keyBytes))
 	}
-	
+
 	return keyBytes, nil
 }
 
@@ -378,7 +378,7 @@ func (a *Agent) PrintInfo() {
 	fmt.Printf("Key Directory:  %s\n", a.KeyDir)
 	fmt.Printf("Initialized:    %t\n", a.IsInitialized)
 	fmt.Println()
-	
+
 	if a.IsInitialized {
 		fmt.Println("Keys:")
 		fmt.Printf("  ECDSA:        %d bytes\n", len(a.ECDSAKey.D.Bytes()))
@@ -423,7 +423,7 @@ func main() {
 	// Step 1: Create agent with key management
 	fmt.Println("🤖 Step 1: Initializing Agent")
 	fmt.Println("─────────────────────────────────────────────────────────")
-	
+
 	agent, err := NewAgent(agentName, keyDir)
 	if err != nil {
 		fmt.Printf("❌ Failed to initialize agent: %v\n", err)
@@ -435,7 +435,7 @@ func main() {
 	// Step 2: Register on blockchain (optional)
 	fmt.Println("🚀 Step 2: Blockchain Registration (Optional)")
 	fmt.Println("─────────────────────────────────────────────────────────")
-	
+
 	registerOnChain := os.Getenv("REGISTER_ON_CHAIN")
 	if registerOnChain == "true" {
 		err = agent.RegisterOnBlockchain(registryAddress, rpcURL, privateKeyHex)
