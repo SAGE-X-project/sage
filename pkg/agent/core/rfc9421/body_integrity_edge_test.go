@@ -127,10 +127,10 @@ func TestBodyIntegrityValidator_EdgeCases(t *testing.T) {
 
 	t.Run("Unicode and special characters in body", func(t *testing.T) {
 		bodies := [][]byte{
-			[]byte("Hello 世界 🌍"),                    // Unicode
-			[]byte("Line1\nLine2\rLine3\r\n"),        // Different line endings
-			[]byte("\x00\x01\x02\x03"),               // Binary data
-			[]byte(strings.Repeat("🔐", 1000)),        // Repeated emoji
+			[]byte("Hello 世界 🌍"),              // Unicode
+			[]byte("Line1\nLine2\rLine3\r\n"), // Different line endings
+			[]byte("\x00\x01\x02\x03"),        // Binary data
+			[]byte(strings.Repeat("🔐", 1000)), // Repeated emoji
 		}
 
 		for i, body := range bodies {
