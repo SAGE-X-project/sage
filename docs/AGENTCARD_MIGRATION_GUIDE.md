@@ -571,5 +571,5 @@ If you encounter issues during migration:
 
 ---
 
-**Last Updated:** 2025-01-15
-**SAGE Version:** v1.5.0-alpha
+**Last Updated:** 2025-10-30
+**SAGE Version:** v1.5.0

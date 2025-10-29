@@ -7,7 +7,106 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.1.0] - 2025-10-18
+## [1.5.0] - 2025-10-30
+
+### Added
+
+#### AgentCardRegistry: Three-Phase Secure Registration System
+
+- **Three-Phase Registration Flow**: Enhanced security via commit-reveal pattern
+  - **Phase 1 (Commit)**: Anti-front-running protection with commitment hash and 0.01 ETH stake
+  - **Phase 2 (Register)**: Time-windowed reveal (1-60 minutes) to prevent immediate exploitation
+  - **Phase 3 (Activate)**: Sybil-resistant activation delay (1+ hour) with stake refund
+  - Economic security through stake requirement (refunded upon successful activation)
+
+- **New CLI Commands**:
+  - `sage-did commit`: Initialize registration with commitment hash and stake
+  - `sage-did register`: Reveal commitment and register agent after delay
+  - `sage-did activate`: Activate agent after time-lock period
+  - Automatic commitment state management in `~/.sage/commitments/`
+
+- **Enhanced Security Features**:
+  - Commitment-based anti-front-running (prevents DID theft attacks)
+  - Time-locked activation prevents rapid spam registration
+  - Operator delegation system (ERC-721 style approval pattern)
+  - Rate limiting: 24 registrations per address per day
+  - Hook system for extensible pre/post-registration validation
+  - Multi-key support: ECDSA (Ethereum), Ed25519 (Solana), X25519 (HPKE)
+
+- **Smart Contract Infrastructure**:
+  - `AgentCardRegistry.sol`: Production registry with commit-reveal pattern
+  - `AgentCardStorage.sol`: Isolated storage layer for future upgradability
+  - `AgentCardVerifyHook.sol`: External validation and anti-fraud checks
+  - Gas-optimized storage patterns with efficient array operations
+
+- **KME (Key Management Extension) Support** (PR #123):
+  - Public key storage for X25519 keys used in HPKE handshakes
+  - Verification of X25519 public keys against stored values
+  - Enhanced security for key exchange operations
+  - Integration with AgentCardRegistry for multi-key management
+
+### Changed
+
+- **Breaking Changes**: Migration required from SageRegistryV4
+  - KeyType enum reordered (ECDSA=0, Ed25519=1, X25519=2)
+  - Registration flow changed from single-phase to three-phase
+  - New contract addresses required (AgentCardRegistry vs SageRegistryV4)
+  - See [AgentCardRegistry Migration Guide](docs/AGENTCARD_MIGRATION_GUIDE.md) for details
+
+- **Deprecated**:
+  - SageRegistryV4 single-phase registration (still functional but deprecated)
+  - Legacy registration CLI commands (replaced by commit/register/activate)
+
+### Security
+
+- **PR #118 Security Enhancements** (commit `620d6a0`):
+  - Improved architecture with enhanced security checks
+  - Enhanced validation logic for registration parameters
+  - Strengthened anti-Sybil mechanisms
+
+- **Anti-Front-Running Protection**:
+  - Commit-reveal pattern prevents attackers from stealing desired DIDs
+  - Cryptographic commitment binding: `keccak256(did, keys, owner, salt, chainId)`
+  - Time-window enforcement (1-60 minutes) prevents immediate attacks
+
+- **Economic Security**:
+  - 0.01 ETH stake requirement discourages spam registrations
+  - Stake forfeiture for expired/invalid registrations
+  - Automatic refund upon successful activation
+
+### Documentation
+
+- **Migration Guide**: Comprehensive guide for v1.4.0 → v1.5.0 migration
+  - Step-by-step migration instructions
+  - Code examples for three-phase flow
+  - CLI command reference
+  - Troubleshooting guide
+  - Contract deployment instructions
+
+- **Architecture Documentation**:
+  - Three-phase registration flow diagrams
+  - Security design rationale
+  - Gas optimization strategies
+  - Integration examples
+
+### Performance
+
+- **Benchmark Suite** (Phase 6 - commit `be61927`):
+  - Comprehensive performance testing for AgentCardRegistry
+  - Gas usage analysis for all operations
+  - Throughput measurements for concurrent registrations
+  - Memory allocation profiling
+
+### Testing
+
+- **Phase 4-5 Integration Tests** (commit `2de23fe`):
+  - End-to-end three-phase registration tests
+  - Multi-key management test scenarios
+  - Hook system integration tests
+  - Rate limiting validation tests
+  - Time-lock mechanism verification
+
+## [1.1.0] - 2024-10-18
 
 ### Added
 
@@ -453,7 +552,16 @@ SAGE v1.0.0 marks the first production-ready release of the Secure Agent Guarant
 
 ## Version History
 
-- **v1.1.0** (2025-10-18): Multi-Key Registry V4 - Major Feature Release
+- **v1.5.0** (2025-10-30): AgentCardRegistry - Major Security Release
+  - Three-phase registration with commit-reveal pattern
+  - Anti-front-running protection and economic security (0.01 ETH stake)
+  - Time-locked activation (1+ hour delay) for Sybil resistance
+  - New CLI commands: commit, register, activate
+  - KME (Key Management Extension) support for X25519 keys
+  - Breaking changes: Migration required from SageRegistryV4
+  - Comprehensive migration guide and documentation
+
+- **v1.1.0** (2024-10-18): Multi-Key Registry V4 - Major Feature Release
   - SageRegistryV4 with multi-key support (up to 10 keys per agent)
   - Multi-key resolution: ResolveAllPublicKeys() and ResolvePublicKeyByType()
   - Enhanced DID format with owner address validation
