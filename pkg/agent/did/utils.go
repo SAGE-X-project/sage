@@ -91,6 +91,16 @@ func UnmarshalPublicKey(data []byte, keyType string) (interface{}, error) {
 		// Convert to standard ecdsa.PublicKey for compatibility
 		return pk.ToECDSA(), nil
 
+	case "x25519":
+		// X25519 public key for HPKE/encryption (PR #118)
+		if len(data) != 32 {
+			return nil, fmt.Errorf("invalid X25519 public key size: expected 32 bytes, got %d", len(data))
+		}
+		// Return raw bytes for X25519 (can be wrapped in ecdh.PublicKey if needed)
+		keyCopy := make([]byte, 32)
+		copy(keyCopy, data)
+		return keyCopy, nil
+
 	default:
 		// Try to unmarshal as generic public key
 		block, _ := pem.Decode(data)
