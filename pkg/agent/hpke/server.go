@@ -41,7 +41,7 @@ import (
 // Server accepts HPKE init, verifies DID-signature, derives secrets,
 // creates a session, and returns a signed response with kid/ephS/ackTag.
 type Server struct {
-	key       sagecrypto.KeyPair // Ed25519 for signing messages
+	key       sagecrypto.KeyPair // Ed25519 or ECDSA(Secp256k1) for signing messages (PR #118)
 	kem       sagecrypto.KeyPair // X25519 KEM static key (HPKE Base recipient)
 	DID       string
 	resolver  did.Resolver
