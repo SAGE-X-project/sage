@@ -29,6 +29,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -263,14 +264,39 @@ func (c *Client) buildAndSignInitMsg(ctxID, initDID, peerDID string, info, expor
 }
 
 // Send and receive a server-signed message response.
+//
+// Enhanced error handling (PR #118):
+// - Checks resp.Success field for handshake failures
+// - Extracts detailed error messages from resp.Error
+// - Provides clear error context for debugging
 func (c *Client) sendAndGetSignedMsg(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
 	resp, err := c.transport.Send(ctx, msg)
 	if err != nil {
 		return nil, fmt.Errorf("transport send: %w", err)
 	}
-	if resp == nil || len(resp.Data) == 0 {
+
+	// Check for nil response
+	if resp == nil {
+		return nil, fmt.Errorf("nil response from server")
+	}
+
+	// Check response success status (PR #118 enhancement)
+	if !resp.Success {
+		// Try to extract detailed error message
+		if resp.Error != nil {
+			return nil, fmt.Errorf("handshake failed: %v", resp.Error)
+		}
+		if len(resp.Data) > 0 {
+			return nil, fmt.Errorf("handshake failed: %s", strings.TrimSpace(string(resp.Data)))
+		}
+		return nil, fmt.Errorf("handshake failed: no error details provided")
+	}
+
+	// Check for empty response data
+	if len(resp.Data) == 0 {
 		return nil, fmt.Errorf("empty response data")
 	}
+
 	return resp, nil
 }
 
