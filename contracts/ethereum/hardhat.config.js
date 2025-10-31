@@ -90,24 +90,130 @@ const networks = {
     gas: parseInt(getEnvVariable("GAS_LIMIT", "3000000")),
     timeout: 60000,
     confirmations: 2
-  }
-};
+  },
 
-// Optional: Add Sepolia testnet support if configured
-if (process.env.SEPOLIA_RPC_URL) {
-  networks.sepolia = {
+  // Ethereum Mainnet
+  mainnet: {
     type: "http",
-    url: process.env.SEPOLIA_RPC_URL,
-    chainId: 11155111,
-    accounts: process.env.SEPOLIA_PRIVATE_KEY
-      ? [process.env.SEPOLIA_PRIVATE_KEY]
-      : (process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []),
+    url: getEnvVariable("ETHEREUM_MAINNET_RPC_URL", ""),
+    chainId: 1,
+    accounts: process.env.MAINNET_PRIVATE_KEY
+      ? [process.env.MAINNET_PRIVATE_KEY]
+      : [],
     gasPrice: "auto",
     gas: "auto",
     timeout: 60000,
     confirmations: 2
-  };
-}
+  },
+
+  // Ethereum Sepolia Testnet
+  sepolia: {
+    type: "http",
+    url: getEnvVariable("ETHEREUM_SEPOLIA_RPC_URL", ""),
+    chainId: 11155111,
+    accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    gasPrice: "auto",
+    gas: "auto",
+    timeout: 60000,
+    confirmations: 2
+  },
+
+  // BSC Mainnet
+  bsc: {
+    type: "http",
+    url: getEnvVariable("BSC_MAINNET_RPC_URL", "https://bsc-dataseed1.binance.org"),
+    chainId: 56,
+    accounts: process.env.MAINNET_PRIVATE_KEY
+      ? [process.env.MAINNET_PRIVATE_KEY]
+      : [],
+    gasPrice: parseGasPrice("BSC_GAS_PRICE_GWEI", "3"),
+    timeout: 60000,
+    confirmations: 2
+  },
+
+  // BSC Testnet
+  bscTestnet: {
+    type: "http",
+    url: getEnvVariable("BSC_TESTNET_RPC_URL", "https://data-seed-prebsc-1-s1.binance.org:8545"),
+    chainId: 97,
+    accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    gasPrice: parseGasPrice("BSC_GAS_PRICE_GWEI", "10"),
+    timeout: 60000,
+    confirmations: 2
+  },
+
+  // Base Mainnet
+  base: {
+    type: "http",
+    url: getEnvVariable("BASE_MAINNET_RPC_URL", "https://mainnet.base.org"),
+    chainId: 8453,
+    accounts: process.env.MAINNET_PRIVATE_KEY
+      ? [process.env.MAINNET_PRIVATE_KEY]
+      : [],
+    gasPrice: "auto",
+    timeout: 60000,
+    confirmations: 2
+  },
+
+  // Base Sepolia Testnet
+  baseSepolia: {
+    type: "http",
+    url: getEnvVariable("BASE_TESTNET_RPC_URL", "https://sepolia.base.org"),
+    chainId: 84532,
+    accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    gasPrice: "auto",
+    timeout: 60000,
+    confirmations: 2
+  },
+
+  // Arbitrum One
+  arbitrum: {
+    type: "http",
+    url: getEnvVariable("ARBITRUM_MAINNET_RPC_URL", "https://arb1.arbitrum.io/rpc"),
+    chainId: 42161,
+    accounts: process.env.MAINNET_PRIVATE_KEY
+      ? [process.env.MAINNET_PRIVATE_KEY]
+      : [],
+    gasPrice: "auto",
+    timeout: 60000,
+    confirmations: 2
+  },
+
+  // Arbitrum Sepolia
+  arbitrumSepolia: {
+    type: "http",
+    url: getEnvVariable("ARBITRUM_TESTNET_RPC_URL", "https://sepolia-rollup.arbitrum.io/rpc"),
+    chainId: 421614,
+    accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    gasPrice: "auto",
+    timeout: 60000,
+    confirmations: 2
+  },
+
+  // Optimism Mainnet
+  optimism: {
+    type: "http",
+    url: getEnvVariable("OPTIMISM_MAINNET_RPC_URL", "https://mainnet.optimism.io"),
+    chainId: 10,
+    accounts: process.env.MAINNET_PRIVATE_KEY
+      ? [process.env.MAINNET_PRIVATE_KEY]
+      : [],
+    gasPrice: "auto",
+    timeout: 60000,
+    confirmations: 2
+  },
+
+  // Optimism Sepolia
+  optimismSepolia: {
+    type: "http",
+    url: getEnvVariable("OPTIMISM_TESTNET_RPC_URL", "https://sepolia.optimism.io"),
+    chainId: 11155420,
+    accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    gasPrice: "auto",
+    timeout: 60000,
+    confirmations: 2
+  }
+};
 
 // ============================================
 // SOLIDITY COMPILER CONFIGURATION
@@ -170,10 +276,30 @@ const solidityConfig = {
 
 const etherscanConfig = {
   apiKey: {
+    // Ethereum
+    mainnet: getEnvVariable("ETHERSCAN_API_KEY", ""),
+    sepolia: getEnvVariable("ETHERSCAN_API_KEY", ""),
+
+    // Kaia
     kairos: getEnvVariable("KAIROS_API_KEY", "unnecessary"),
     kaia: getEnvVariable("KAIA_API_KEY", "unnecessary"),
     cypress: getEnvVariable("KAIA_API_KEY", "unnecessary"),
-    sepolia: getEnvVariable("ETHERSCAN_API_KEY", "")
+
+    // BSC
+    bsc: getEnvVariable("BSCSCAN_API_KEY", ""),
+    bscTestnet: getEnvVariable("BSCSCAN_API_KEY", ""),
+
+    // Base
+    base: getEnvVariable("BASESCAN_API_KEY", ""),
+    baseSepolia: getEnvVariable("BASESCAN_API_KEY", ""),
+
+    // Arbitrum
+    arbitrum: getEnvVariable("ARBISCAN_API_KEY", ""),
+    arbitrumSepolia: getEnvVariable("ARBISCAN_API_KEY", ""),
+
+    // Optimism
+    optimism: getEnvVariable("OPTIMISTIC_ETHERSCAN_API_KEY", ""),
+    optimismSepolia: getEnvVariable("OPTIMISTIC_ETHERSCAN_API_KEY", "")
   },
   customChains: [
     {
@@ -198,6 +324,30 @@ const etherscanConfig = {
       urls: {
         apiURL: "https://api.kaiascan.io/api",
         browserURL: "https://kaiascan.io"
+      }
+    },
+    {
+      network: "baseSepolia",
+      chainId: 84532,
+      urls: {
+        apiURL: "https://api-sepolia.basescan.org/api",
+        browserURL: "https://sepolia.basescan.org"
+      }
+    },
+    {
+      network: "arbitrumSepolia",
+      chainId: 421614,
+      urls: {
+        apiURL: "https://api-sepolia.arbiscan.io/api",
+        browserURL: "https://sepolia.arbiscan.io"
+      }
+    },
+    {
+      network: "optimismSepolia",
+      chainId: 11155420,
+      urls: {
+        apiURL: "https://api-sepolia-optimistic.etherscan.io/api",
+        browserURL: "https://sepolia-optimistic.etherscan.io"
       }
     }
   ]
