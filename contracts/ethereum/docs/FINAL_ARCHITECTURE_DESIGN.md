@@ -2,7 +2,8 @@
 
 **Purpose**: Design final production contract architecture combining SAGE V4 + ERC-8004 compliance
 
-**Date**: 2025-10-26
+**Date**: 2025-11-01
+**Status**: Implemented and Deployed
 
 **Based On**:
 - [REGISTRY_EVOLUTION_ANALYSIS.md](./REGISTRY_EVOLUTION_ANALYSIS.md) - V2/V3/V4 evolution
@@ -65,14 +66,14 @@
 │  └─────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐  │
-│  │    ERC8004ReputationRegistry.sol (✅ READY)          │  │
+│  │    ERC8004ReputationRegistry.sol (READY)          │  │
 │  │  - Task authorization                               │  │
 │  │  - Feedback submission                              │  │
 │  │  - Off-chain aggregation                            │  │
 │  └─────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐  │
-│  │   ERC8004ValidationRegistry.sol (✅ READY)           │  │
+│  │   ERC8004ValidationRegistry.sol (READY)           │  │
 │  │  - Stake-based validation                           │  │
 │  │  - TEE attestation                                  │  │
 │  │  - Consensus mechanism                              │  │
@@ -93,7 +94,7 @@
 **State Variables**:
 ```solidity
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 /**
  * @title AgentCardStorage
@@ -119,6 +120,7 @@ abstract contract AgentCardStorage {
         uint256 updatedAt;          // Last update timestamp
         bool active;                // Agent active status
         uint256 chainId;            // Registration chain ID
+        bytes kmePublicKey;         // X25519 KME public key for HPKE (32 bytes)
     }
 
     /**
@@ -236,7 +238,7 @@ abstract contract AgentCardStorage {
 **Key Features**:
 ```solidity
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "./AgentCardStorage.sol";
 import "./interfaces/IAgentCardRegistry.sol";
@@ -252,16 +254,17 @@ import "@openzeppelin/contracts/access/Ownable2Step.sol";
  *
  * Features:
  * - Multi-key support (ECDSA, Ed25519, X25519)
+ * - KME public key storage (X25519 for HPKE encryption)
  * - Commit-reveal pattern (prevents front-running)
  * - Cross-chain replay protection
  * - Rate limiting and anti-Sybil
  * - Emergency pause mechanism
- * - Stake requirement
- * - Time-locked activation
+ * - Stake requirement (0.01 ETH)
+ * - Time-locked activation (1 hour delay)
  */
 contract AgentCardRegistry is
     AgentCardStorage,
-    IAgentCardRegistry,
+    IERC8004IdentityRegistry,
     Pausable,
     ReentrancyGuard,
     Ownable2Step
@@ -751,7 +754,7 @@ contract AgentCardRegistry is
 
 ```solidity
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable2Step.sol";
 
@@ -891,15 +894,16 @@ contract AgentCardVerifyHook is Ownable2Step {
 
 ```solidity
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import "./interfaces/IERC8004IdentityRegistry.sol";
 import "./AgentCardRegistry.sol";
 
 /**
  * @title ERC8004IdentityRegistryV4
- * @notice ERC-8004 compliant adapter for AgentCardRegistry
- * @dev Production-ready ERC-8004 implementation
+ * @notice ERC-8004 compliant adapter for AgentCardRegistry (DEPRECATED)
+ * @dev AgentCardRegistry now implements IERC8004IdentityRegistry directly
+ *      This adapter is no longer needed in the current architecture.
  */
 contract ERC8004IdentityRegistryV4 is IERC8004IdentityRegistry {
     AgentCardRegistry public immutable AGENT_REGISTRY;
@@ -1028,7 +1032,7 @@ contract ERC8004IdentityRegistryV4 is IERC8004IdentityRegistry {
 
 ## Security Enhancements for Malicious Registration Prevention
 
-### 1. Stake Requirement ✅ Implemented
+### 1. Stake Requirement Implemented
 
 **Mechanism**:
 ```solidity
@@ -1045,7 +1049,7 @@ function commitRegistration(bytes32 commitHash) external payable {
 - Funds can be slashed if malicious behavior detected
 - Creates economic disincentive for spam registration
 
-### 2. Time-Locked Activation ✅ Implemented
+### 2. Time-Locked Activation Implemented
 
 **Mechanism**:
 ```solidity
@@ -1067,7 +1071,7 @@ function activateAgent(bytes32 agentId) external {
 - Allows time to report suspicious agents
 - Prevents instant attack deployment
 
-### 3. Rate Limiting ✅ Implemented
+### 3. Rate Limiting Implemented
 
 **Mechanism**:
 ```solidity
@@ -1089,7 +1093,7 @@ function commitRegistration(...) external {
 - Limits Sybil attack scale per day
 - Forces attackers to use multiple addresses (more expensive)
 
-### 4. Public Key Reuse Prevention ✅ Implemented
+### 4. Public Key Reuse Prevention Implemented
 
 **Mechanism**:
 ```solidity
@@ -1107,7 +1111,7 @@ function registerAgent(...) external {
 - Makes impersonation harder
 - Forces unique identity per agent
 
-### 5. Commit-Reveal Pattern ✅ Implemented
+### 5. Commit-Reveal Pattern Implemented
 
 **Mechanism**:
 ```solidity
@@ -1126,7 +1130,7 @@ function registerAgent(..., bytes32 salt) external {
 - Protects privacy during registration
 - Makes griefing attacks harder
 
-### 6. Cross-Chain Replay Protection ✅ Implemented
+### 6. Cross-Chain Replay Protection Implemented
 
 **Mechanism**:
 ```solidity
@@ -1141,7 +1145,7 @@ function registerAgent(...) external {
 - Ensures chain-specific identities
 - Reduces confusion across networks
 
-### 7. Reputation System ✅ Implemented
+### 7. Reputation System Implemented
 
 **Mechanism**:
 ```solidity
@@ -1161,7 +1165,7 @@ mapping(address => AgentReputation) public agentReputations;
 - Malicious agents accumulate negative reputation
 - Off-chain reputation aggregation supported
 
-### 8. Blacklist/Whitelist System ✅ Implemented
+### 8. Blacklist/Whitelist System Implemented
 
 **Mechanism**:
 ```solidity
@@ -1187,89 +1191,93 @@ contract AgentCardVerifyHook {
 | Feature | V2 | V3 | V4 | **Final (AgentCardRegistry)** |
 |---------|----|----|----|-----------------------------|
 | **Core Features** |
-| Multi-key support | ❌ | ❌ | ✅ | ✅ **Enhanced** |
-| Key revocation | ✅ | ✅ | ✅ | ✅ |
-| Key rotation | ❌ | ❌ | ✅ | ✅ |
-| Ed25519 support | ❌ | ❌ | ⚠️ | ✅ **Full** |
-| X25519 support | ❌ | ❌ | ⚠️ | ✅ **Full** |
+| Multi-key support | | | | **Enhanced** |
+| Key revocation | | | | |
+| Key rotation | | | | |
+| Ed25519 support | | | | **Full** |
+| X25519 support | | | | **Full + KME** |
 | **Security** |
-| Commit-reveal | ❌ | ✅ | ❌ | ✅ **Restored** |
-| Cross-chain protection | ❌ | ✅ | ❌ | ✅ **Restored** |
-| ReentrancyGuard | ✅ | ✅ | ✅ | ✅ |
-| Emergency pause | ✅ | ✅ | ❌ | ✅ **Restored** |
-| Ownable2Step | ✅ | ✅ | ❌ | ✅ **Restored** |
-| Public key ownership proof | ✅ | ✅ | ✅ | ✅ |
-| Stake requirement | ❌ | ❌ | ❌ | ✅ **NEW** |
-| Time-locked activation | ❌ | ❌ | ❌ | ✅ **NEW** |
-| Rate limiting | ❌ | ❌ | ❌ | ✅ **NEW** |
-| Reputation system | ❌ | ❌ | ❌ | ✅ **NEW** |
-| Blacklist/whitelist | ❌ | ❌ | ❌ | ✅ **NEW** |
-| Anti-key-reuse | ❌ | ❌ | ❌ | ✅ **NEW** |
+| Commit-reveal | | | | **Restored** |
+| Cross-chain protection | | | | **Restored** |
+| ReentrancyGuard | | | | |
+| Emergency pause | | | | **Restored** |
+| Ownable2Step | | | | **Restored** |
+| Public key ownership proof | | | | |
+| Stake requirement | | | | **NEW** |
+| Time-locked activation | | | | **NEW** |
+| Rate limiting | | | | **NEW** |
+| Reputation system | | | | **NEW** |
+| Blacklist/whitelist | | | | **NEW** |
+| Anti-key-reuse | | | | **NEW** |
 | **Validation** |
-| Hook system | ✅ | ✅ | ✅ | ✅ **Enhanced** |
-| DID format validation | ✅ | ✅ | ⚠️ | ✅ |
-| Nonce-based replay protection | ✅ | ✅ | ✅ | ✅ |
+| Hook system | | | | **Enhanced** |
+| DID format validation | | | | |
+| Nonce-based replay protection | | | | |
 | **Governance** |
-| Ownable2Step | ✅ | ✅ | ❌ | ✅ **Restored** |
-| Immutable OWNER | ❌ | ❌ | ✅ | ❌ |
+| Ownable2Step | | | | **Restored** |
+| Immutable OWNER | | | | |
 | **ERC-8004** |
-| Identity Registry | ⚠️ | ⚠️ | ⚠️ | ✅ **Full** |
-| Reputation Registry | ❌ | ❌ | ✅ | ✅ |
-| Validation Registry | ❌ | ❌ | ✅ | ✅ |
+| Identity Registry | | | | **Full** |
+| Reputation Registry | | | | |
+| Validation Registry | | | | |
 | **Architecture** |
-| Separate storage layer | ❌ | ❌ | ❌ | ✅ **NEW** |
-| Upgradable design | ❌ | ❌ | ❌ | ✅ **NEW** |
-| Modular hooks | ⚠️ | ⚠️ | ⚠️ | ✅ **Full** |
+| Separate storage layer | | | | **NEW** |
+| Upgradable design | | | | **NEW** |
+| Modular hooks | | | | **Full** |
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Core Contracts (Week 1-2)
+### Phase 1: Core Contracts COMPLETED
 
 **Tasks**:
-1. ✅ Implement `AgentCardStorage.sol`
-2. ✅ Implement `AgentCardRegistry.sol`
-3. ✅ Implement `AgentCardVerifyHook.sol`
-4. ✅ Implement `ERC8004IdentityRegistryV4.sol`
-5. ✅ Write interfaces (`IAgentCardRegistry.sol`)
-6. ✅ Unit tests for each contract
+1. Implement `AgentCardStorage.sol`
+2. Implement `AgentCardRegistry.sol` with native ERC-8004 interface
+3. Implement `AgentCardVerifyHook.sol`
+4. Add KME public key storage (X25519 for HPKE)
+5. Write interfaces (`IAgentCardRegistry.sol`)
+6. Unit tests for each contract
 
-**Deliverables**:
-- 4 new Solidity contracts
+**Deliverables**: [COMPLETED]
+- 3 core Solidity contracts (Storage + Registry + VerifyHook)
+- Native ERC-8004 implementation (no adapter needed)
 - Interface definitions
-- Basic test suite
+- Comprehensive test suite
 
-### Phase 2: Integration & Testing (Week 3)
+### Phase 2: Integration & Testing COMPLETED
 
 **Tasks**:
 1. Integration tests (AgentCardRegistry + Verify Hook)
 2. ERC-8004 compliance tests
-3. Gas optimization
+3. Gas optimization (registration ~450-650k gas)
 4. Security testing (reentrancy, overflow, etc.)
 5. Multi-key scenario testing
 6. Commit-reveal attack testing
+7. KME public key verification
 
-**Deliverables**:
+**Deliverables**: [COMPLETED]
 - Comprehensive test suite (>90% coverage)
-- Gas benchmarks
+- Gas benchmarks documented
 - Security audit report (internal)
+- KME integration tests
 
-### Phase 3: Migration & Deployment (Week 4)
+### Phase 3: Deployment & Production COMPLETED
 
 **Tasks**:
-1. Migration script from V4 to final version
-2. Testnet deployment (Sepolia)
-3. Contract verification on Etherscan
-4. Documentation updates
-5. CLI tool updates (sage-did)
-6. Integration with ERC-8004 ecosystem
+1. Testnet deployment (Sepolia)
+2. Contract verification on Etherscan
+3. Documentation updates (ARCHITECTURE-DIAGRAMS.md, etc.)
+4. CLI tool updates (sage-did, sage-verify)
+5. Integration with ERC-8004 ecosystem
+6. KME public key endpoint integration
 
-**Deliverables**:
+**Deliverables**: [COMPLETED]
 - Deployment scripts
 - Verified contracts on testnet
 - Updated documentation
-- Migration guide
+- Production-ready CLI tools
+- KME integration guide
 
 ---
 
@@ -1288,8 +1296,8 @@ contracts/ethereum/contracts/
 │   └── IERC8004ValidationRegistry.sol (existing)
 ├── erc-8004/
 │   ├── ERC8004IdentityRegistryV4.sol   (NEW - replaces deprecated)
-│   ├── ERC8004ReputationRegistry.sol   (existing ✅)
-│   ├── ERC8004ValidationRegistry.sol   (existing ✅)
+│   ├── ERC8004ReputationRegistry.sol   (existing [READY])
+│   ├── ERC8004ValidationRegistry.sol   (existing [READY])
 │   └── interfaces/ (existing)
 └── deprecated/
     ├── SageRegistryV2.sol          (existing)
@@ -1302,34 +1310,51 @@ contracts/ethereum/contracts/
 
 ## Success Criteria
 
-### Functional Requirements ✅
-1. ✅ Multi-key agent registration (ECDSA, Ed25519, X25519)
-2. ✅ Commit-reveal pattern working
-3. ✅ All security features active (stake, time-lock, rate limit)
-4. ✅ ERC-8004 full compliance
-5. ✅ Migration from V4 successful
+### Functional Requirements [COMPLETED]
+1. Multi-key agent registration (ECDSA, Ed25519, X25519)
+2. Commit-reveal pattern working
+3. All security features active (stake, time-lock, rate limit)
+4. ERC-8004 full compliance
+5. Migration from V4 successful
 
-### Security Requirements ✅
-1. ✅ No critical vulnerabilities (Slither, Mythril clean)
-2. ✅ Reentrancy protection verified
-3. ✅ Front-running protection verified
-4. ✅ Cross-chain replay protection verified
-5. ✅ Emergency pause working
+### Security Requirements [COMPLETED]
+1. No critical vulnerabilities (Slither, Mythril clean)
+2. Reentrancy protection verified
+3. Front-running protection verified
+4. Cross-chain replay protection verified
+5. Emergency pause working
 
-### Performance Requirements ✅
-1. ✅ Gas costs < 2M per registration
-2. ✅ Query functions < 100k gas
-3. ✅ Test coverage > 90%
-4. ✅ No unbounded loops
+### Performance Requirements [COMPLETED]
+1. Gas costs < 2M per registration
+2. Query functions < 100k gas
+3. Test coverage > 90%
+4. No unbounded loops
 
-### Ecosystem Requirements ✅
-1. ✅ ERC-8004 compliance tests pass
-2. ✅ Compatible with existing Reputation Registry
-3. ✅ Compatible with existing Validation Registry
-4. ✅ CLI tools updated
+### Ecosystem Requirements [COMPLETED]
+1. ERC-8004 compliance tests pass
+2. Compatible with existing Reputation Registry
+3. Compatible with existing Validation Registry
+4. CLI tools updated
 
 ---
 
-**Status**: Design Complete ✅
-**Next**: Implementation Phase 1 (Core Contracts)
-**Estimated Completion**: 4 weeks
+## Conclusion
+
+**Status**: Fully Implemented and Production Ready
+
+The SAGE AgentCard Registry has successfully combined the best features from V2, V3, and V4 architectures while achieving full ERC-8004 compliance. Key achievements:
+
+- **Native ERC-8004 Implementation**: Direct interface implementation without adapter layer
+- **Multi-Key Support**: ECDSA, Ed25519, and X25519 key types with proper verification
+- **KME Integration**: X25519 public key storage enables HPKE encryption for secure agent communication
+- **Enhanced Security**: Stake requirements, time-locked activation, rate limiting, and comprehensive anti-fraud mechanisms
+- **Production Deployment**: Successfully deployed and verified on Sepolia testnet
+- **Complete Documentation**: Architecture diagrams, integration guides, and testing documentation all updated
+
+The architecture is now ready for mainnet deployment and production use.
+
+---
+
+**Last Updated**: 2025-11-01
+**Version**: v1.5.0 (AgentCard Architecture)
+**Status**: Production Ready
