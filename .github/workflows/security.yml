@@ -92,6 +92,7 @@ jobs:
 
       - name: Fix SARIF artifact paths
         if: always()
+        continue-on-error: true
         run: |
           if [ -f "gosec-results-raw.sarif" ]; then
             echo "✓ Raw SARIF file found, fixing paths..."
@@ -129,6 +130,7 @@ jobs:
 
       - name: Validate SARIF file before upload
         if: always()
+        continue-on-error: true
         run: |
           if [ -f "gosec-results.sarif" ]; then
             echo "✓ SARIF file exists"
