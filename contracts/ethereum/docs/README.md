@@ -8,16 +8,24 @@ This directory contains comprehensive documentation for SAGE Ethereum smart cont
 - **[ARCHITECTURE-DIAGRAMS.md](./ARCHITECTURE-DIAGRAMS.md)** - System architecture diagrams and flow charts
 - **[NATSPEC-GUIDE.md](./NATSPEC-GUIDE.md)** - NatSpec documentation standards and templates
 - **[INTEGRATION-GUIDE.md](./INTEGRATION-GUIDE.md)** - Integration guide for developers
+- **[FINAL_ARCHITECTURE_DESIGN.md](./FINAL_ARCHITECTURE_DESIGN.md)** - Final architecture design
 
 ### Deployment & Operations
-- **[DEPLOYMENT_GUIDE_V4.md](../DEPLOYMENT_GUIDE_V4.md)** - V4 deployment guide (root level)
-- **[DEPLOYMENT_CHECKLIST.md](../DEPLOYMENT_CHECKLIST.md)** - Pre-deployment checklist (root level)
+- **[DEPLOYMENT_GUIDE_V4.md](./DEPLOYMENT_GUIDE_V4.md)** - V4 deployment guide
+- **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - Pre-deployment checklist
+- **[CLEAN_GUIDE.md](./CLEAN_GUIDE.md)** - Clean deployment guide
 - **[LOCAL_TESTING_GUIDE.md](./LOCAL_TESTING_GUIDE.md)** - Local development and testing
 - **[VERIFICATION_GUIDE.md](./VERIFICATION_GUIDE.md)** - Contract verification on explorers
+- **[VERIFICATION_MATRIX.md](./VERIFICATION_MATRIX.md)** - Verification test matrix
 - **[QUERY_COMMANDS.md](./QUERY_COMMANDS.md)** - Common query commands
 
+### Planning & Analysis
+- **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** - Implementation planning
+- **[REGISTRY_EVOLUTION_ANALYSIS.md](./REGISTRY_EVOLUTION_ANALYSIS.md)** - Registry architecture evolution
+- **[ERC8004_COMPLIANCE_GAP_ANALYSIS.md](./ERC8004_COMPLIANCE_GAP_ANALYSIS.md)** - ERC-8004 compliance analysis
+
 ### Performance & Optimization
-- **[GAS_COST_ANALYSIS.md](../GAS_COST_ANALYSIS.md)** - Gas optimization analysis (root level)
+- **[GAS_COST_ANALYSIS.md](./GAS_COST_ANALYSIS.md)** - Gas optimization analysis
 
 ### Governance & Security
 - **[GOVERNANCE-SETUP.md](./GOVERNANCE-SETUP.md)** - Multi-sig and timelock setup guide
@@ -37,11 +45,6 @@ Legacy documentation has been moved to:
 - [../../README.md](../../README.md) - SAGE contracts main README
 - [../../STATUS.md](../../STATUS.md) - Current project status
 
-### Key Documents (Root Level)
-- [../DEPLOYMENT_GUIDE_V4.md](../DEPLOYMENT_GUIDE_V4.md) - V4 deployment instructions
-- [../DEPLOYMENT_CHECKLIST.md](../DEPLOYMENT_CHECKLIST.md) - Deployment checklist
-- [../GAS_COST_ANALYSIS.md](../GAS_COST_ANALYSIS.md) - Gas cost analysis
-
 ## 📖 Quick Start Guide
 
 ### For Developers
@@ -50,8 +53,8 @@ Legacy documentation has been moved to:
 3. **Architecture**: Review [ARCHITECTURE-DIAGRAMS.md](./ARCHITECTURE-DIAGRAMS.md)
 
 ### For Deployment
-1. **Preparation**: Follow [../DEPLOYMENT_CHECKLIST.md](../DEPLOYMENT_CHECKLIST.md)
-2. **Deployment**: Execute steps in [../DEPLOYMENT_GUIDE_V4.md](../DEPLOYMENT_GUIDE_V4.md)
+1. **Preparation**: Follow [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)
+2. **Deployment**: Execute steps in [DEPLOYMENT_GUIDE_V4.md](./DEPLOYMENT_GUIDE_V4.md)
 3. **Verification**: Use [VERIFICATION_GUIDE.md](./VERIFICATION_GUIDE.md)
 
 ### For Governance
@@ -70,6 +73,15 @@ Legacy documentation has been moved to:
 | LOCAL_TESTING_GUIDE.md | ✅ Current | 2025-10-10 |
 | VERIFICATION_GUIDE.md | ✅ Current | 2025-10-10 |
 | QUERY_COMMANDS.md | ✅ Current | 2025-10-10 |
+| DEPLOYMENT_GUIDE_V4.md | ✅ Current | 2025-10-26 |
+| DEPLOYMENT_CHECKLIST.md | ✅ Current | 2025-10-26 |
+| CLEAN_GUIDE.md | ✅ Current | 2025-10-26 |
+| VERIFICATION_MATRIX.md | ✅ Current | 2025-10-26 |
+| IMPLEMENTATION_PLAN.md | ✅ Current | 2025-10-26 |
+| REGISTRY_EVOLUTION_ANALYSIS.md | ✅ Current | 2025-10-26 |
+| ERC8004_COMPLIANCE_GAP_ANALYSIS.md | ✅ Current | 2025-10-26 |
+| FINAL_ARCHITECTURE_DESIGN.md | ✅ Current | 2025-10-26 |
+| GAS_COST_ANALYSIS.md | ✅ Current | 2025-10-26 |
 
 ## 🔄 Document Lifecycle
 
@@ -85,12 +97,12 @@ Legacy documents are moved to `../archive/docs-legacy/` when:
 ## 🆘 Getting Help
 
 - **General Questions**: See [../../README.md](../../README.md)
-- **Deployment Issues**: Check [../DEPLOYMENT_GUIDE_V4.md](../DEPLOYMENT_GUIDE_V4.md) troubleshooting section
+- **Deployment Issues**: Check [DEPLOYMENT_GUIDE_V4.md](./DEPLOYMENT_GUIDE_V4.md) troubleshooting section
 - **Integration Support**: Refer to [INTEGRATION-GUIDE.md](./INTEGRATION-GUIDE.md)
 - **GitHub Issues**: https://github.com/SAGE-X-project/sage/issues
 
 ---
 
-**Last Updated**: 2025-10-26
-**Version**: v1.3.1
+**Last Updated**: 2025-11-01
+**Version**: v1.4.0
 **Status**: ✅ Current
