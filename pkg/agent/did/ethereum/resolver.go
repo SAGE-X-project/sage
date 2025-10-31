@@ -20,7 +20,6 @@ package ethereum
 
 import (
 	"context"
-	"crypto"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,7 +33,7 @@ import (
 )
 
 // ResolvePublicKey retrieves only the public key for an agent
-func (c *EthereumClient) ResolvePublicKey(ctx context.Context, agentDID did.AgentDID) (crypto.PublicKey, error) {
+func (c *EthereumClient) ResolvePublicKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
 	metadata, err := c.Resolve(ctx, agentDID)
 	if err != nil {
 		return nil, err
@@ -45,6 +44,20 @@ func (c *EthereumClient) ResolvePublicKey(ctx context.Context, agentDID did.Agen
 	}
 
 	return metadata.PublicKey, nil
+}
+
+// ResolvePublicKey retrieves only the public key for an agent
+func (c *EthereumClient) ResolveKEMKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
+	metadata, err := c.Resolve(ctx, agentDID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !metadata.IsActive {
+		return nil, did.ErrInactiveAgent
+	}
+
+	return metadata.PublicKEMKey, nil
 }
 
 // VerifyMetadata checks if the provided metadata matches the on-chain data
