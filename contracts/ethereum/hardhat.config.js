@@ -95,7 +95,7 @@ const networks = {
   // Ethereum Mainnet
   mainnet: {
     type: "http",
-    url: getEnvVariable("ETHEREUM_MAINNET_RPC_URL", ""),
+    url: getEnvVariable("ETHEREUM_MAINNET_RPC_URL", "https://eth.llamarpc.com"),
     chainId: 1,
     accounts: process.env.MAINNET_PRIVATE_KEY
       ? [process.env.MAINNET_PRIVATE_KEY]
@@ -109,7 +109,7 @@ const networks = {
   // Ethereum Sepolia Testnet
   sepolia: {
     type: "http",
-    url: getEnvVariable("ETHEREUM_SEPOLIA_RPC_URL", ""),
+    url: getEnvVariable("ETHEREUM_SEPOLIA_RPC_URL", "https://ethereum-sepolia-rpc.publicnode.com"),
     chainId: 11155111,
     accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     gasPrice: "auto",
