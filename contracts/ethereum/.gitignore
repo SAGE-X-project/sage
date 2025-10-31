@@ -204,10 +204,9 @@ contract-sizes.txt
 # Deployment & Production
 # ============================================
 
-# Deployment files (keep examples and latest)
+# Deployment files (ignore all deployment JSONs including timestamped and latest)
 deployments/*.json
 !deployments/example.json
-!deployments/*-latest.json
 
 # Keep deployment guides
 !deployments/*.md

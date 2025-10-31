@@ -1,6 +1,14 @@
-const hre = require("hardhat");
-const fs = require("fs");
-const path = require("path");
+import hre from "hardhat";
+import { network } from "hardhat";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Initialize ethers from network connection (Hardhat 3.x pattern)
+const { ethers } = await network.connect();
 
 /**
  * AgentCard Multi-Chain Deployment Script
@@ -61,19 +69,19 @@ async function main() {
   console.log("=".repeat(80));
 
   // Get network info
-  const network = await hre.ethers.provider.getNetwork();
-  const networkName = hre.network.name;
+  const networkInfo = await ethers.provider.getNetwork();
+  const networkName = hre.network.name || "localhost";
   const deploymentNetworkName = NETWORK_NAME_MAP[networkName] || networkName;
 
-  console.log(`📍 Network: ${networkName} (Chain ID: ${network.chainId})`);
+  console.log(`📍 Network: ${networkName} (Chain ID: ${networkInfo.chainId})`);
   console.log(`📝 Deployment ID: ${deploymentNetworkName}`);
 
   // Get deployer account
-  const [deployer] = await hre.ethers.getSigners();
+  const [deployer] = await ethers.getSigners();
   console.log(`👤 Deployer: ${deployer.address}`);
 
-  const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log(`💰 Balance: ${hre.ethers.formatEther(balance)} ETH`);
+  const balance = await ethers.provider.getBalance(deployer.address);
+  console.log(`💰 Balance: ${ethers.formatEther(balance)} ETH`);
 
   if (balance === 0n) {
     console.error("\n❌ Error: Deployer has no balance!");
@@ -84,7 +92,7 @@ async function main() {
 
   // Deploy AgentCardVerifyHook first (required for Registry constructor)
   console.log("\n📦 [1/2] Deploying AgentCardVerifyHook...");
-  const AgentCardVerifyHook = await hre.ethers.getContractFactory("AgentCardVerifyHook");
+  const AgentCardVerifyHook = await ethers.getContractFactory("AgentCardVerifyHook");
   const hook = await AgentCardVerifyHook.deploy();
   await hook.waitForDeployment();
   const hookAddress = await hook.getAddress();
@@ -99,7 +107,7 @@ async function main() {
 
   // Deploy AgentCardRegistry with hook address
   console.log("\n📦 [2/2] Deploying AgentCardRegistry...");
-  const AgentCardRegistry = await hre.ethers.getContractFactory("AgentCardRegistry");
+  const AgentCardRegistry = await ethers.getContractFactory("AgentCardRegistry");
   const registry = await AgentCardRegistry.deploy(hookAddress);
   await registry.waitForDeployment();
   const registryAddress = await registry.getAddress();
@@ -119,7 +127,7 @@ async function main() {
   const timestamp = Date.now();
   const deploymentInfo = {
     network: deploymentNetworkName,
-    chainId: network.chainId.toString(),
+    chainId: networkInfo.chainId.toString(),
     timestamp: timestamp,
     deployedAt: new Date(timestamp).toISOString(),
     contracts: {
@@ -179,7 +187,7 @@ async function main() {
   console.log("=".repeat(80));
   console.log("\n📋 Summary:");
   console.log(`   Network:              ${deploymentNetworkName}`);
-  console.log(`   Chain ID:             ${network.chainId}`);
+  console.log(`   Chain ID:             ${networkInfo.chainId}`);
   console.log(`   AgentCardRegistry:    ${registryAddress}`);
   console.log(`   AgentCardVerifyHook:  ${hookAddress}`);
   console.log(`   Total Gas Used:       ${(registryReceipt.gasUsed + hookReceipt.gasUsed).toString()}`);
@@ -238,14 +246,12 @@ function getExplorerUrls(network, registryAddress, hookAddress) {
 }
 
 // Execute deployment
-if (require.main === module) {
-  main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error("\n❌ Deployment failed:");
-      console.error(error);
-      process.exit(1);
-    });
-}
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("\n❌ Deployment failed:");
+    console.error(error);
+    process.exit(1);
+  });
 
-module.exports = main;
+export default main;
