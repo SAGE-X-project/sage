@@ -71,7 +71,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.25.0'
           cache: false  # Disable cache to avoid tar extraction issues
 
       - name: Run Gosec Security Scanner
@@ -222,7 +222,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.25'
+          go-version: '1.25.0'
           cache: false  # Disable cache to avoid tar extraction issues
 
       - name: Install go-licenses v2
