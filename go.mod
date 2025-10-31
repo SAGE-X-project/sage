@@ -1,6 +1,6 @@
 module github.com/sage-x-project/sage
 
-go 1.25
+go 1.25.2
 
 require (
 	filippo.io/edwards25519 v1.1.0
