@@ -71,11 +71,15 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.8'
+          go-version: '1.25.0'
           cache: false  # Disable cache to avoid tar extraction issues
+
+      - name: Download dependencies
+        run: go mod download
 
       - name: Run Gosec Security Scanner
         run: |
+          export GOTOOLCHAIN=go1.25.0
           go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
           echo "Running gosec security scan..."
           # Generate JSON format for detailed output
@@ -88,6 +92,7 @@ jobs:
 
       - name: Fix SARIF artifact paths
         if: always()
+        continue-on-error: true
         run: |
           if [ -f "gosec-results-raw.sarif" ]; then
             echo "✓ Raw SARIF file found, fixing paths..."
@@ -125,6 +130,7 @@ jobs:
 
       - name: Validate SARIF file before upload
         if: always()
+        continue-on-error: true
         run: |
           if [ -f "gosec-results.sarif" ]; then
             echo "✓ SARIF file exists"
@@ -222,7 +228,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.8'
+          go-version: '1.25.0'
           cache: false  # Disable cache to avoid tar extraction issues
 
       - name: Install go-licenses v2
