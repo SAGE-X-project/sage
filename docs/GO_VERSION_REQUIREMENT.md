@@ -2,16 +2,22 @@
 
 ## Official Go Version Requirement
 
-**SAGE project requires Go 1.23.0 or higher.**
+**SAGE project requires Go 1.25.2 or higher.**
 
 ### Updated Specification
 
 **Current Requirements**:
-- **Development Environment**: Go 1.23.0+
-- **Core Library/CLI**: Go 1.23.0 or higher
-- **Recommended**: Go 1.23.0 or later
+- **Development Environment**: Go 1.25.2+
+- **Core Library/CLI**: Go 1.25.2 or higher
+- **Recommended**: Go 1.25.2 or later
 
 ### Change History
+
+#### 2025-11-01: Upgrade to Go 1.25.2
+- Updated to Go 1.25.2 for latest security patches and performance improvements
+- All dependencies compatible with Go 1.25.2
+- All tests pass with Go 1.25.2
+- GitHub Actions workflows updated to use Go 1.25.2
 
 #### 2025-01-11: Downgrade to Go 1.23.0
 - Removed `a2a-go` dependency which required Go 1.24.4+
@@ -23,30 +29,32 @@
 - Required by `github.com/a2aproject/a2a-go` dependency
 - Used for HPKE (RFC 9180), agent handshake, and session management
 
-### Rationale for Go 1.23.0
+### Rationale for Current Version (Go 1.25.2)
 
-SAGE now uses a transport-agnostic architecture that removes the hard dependency on `a2a-go`. Core features include:
+SAGE uses Go 1.25.2 for improved performance, security updates, and modern Go features. Core features include:
 - Transport abstraction layer (HTTP, WebSocket, A2A optional)
 - HPKE (RFC 9180) encryption using standard libraries
 - Session management with memory pooling optimizations
 - Agent-to-Agent handshake protocol
+- Enhanced cryptographic primitives
+- Better garbage collection performance
 
-The A2A transport is now optional and can be enabled with build tags when needed.
+The A2A transport is optional and can be enabled with build tags when needed.
 
 ## Current Configuration
 
 ### go.mod
 ```go
-go 1.23.0
+go 1.25.2
 ```
 
-- **Minimum Required Version**: Go 1.23.0
+- **Minimum Required Version**: Go 1.25.2
 - **No toolchain override**: Uses system Go version
 
 ### System Environment
 ```bash
 $ go version
-go version go1.23.0 darwin/arm64
+go version go1.25.2 darwin/arm64
 ```
 
 ## Test Environment Information
@@ -54,9 +62,9 @@ go version go1.23.0 darwin/arm64
 ### Software Information
 - **Software Name**: SAGE Core Library
 - **Software Type**: Go Library / Security Middleware
-- **Development Environment**: **Go 1.23.0+**
+- **Development Environment**: **Go 1.25.2+**
 - **Test Environment Details**:
-  - **Core Library/CLI**: Go 1.23.0 or higher
+  - **Core Library/CLI**: Go 1.25.2 or higher
   - **Smart Contract**: Solidity 0.8.19
   - **Blockchain Network**: Ethereum (Hardhat local node)
   - **Chain ID**: 31337 (local)
@@ -64,13 +72,13 @@ go version go1.23.0 darwin/arm64
   - **Web3 Library**: ethers v6.4.0
   - **Cryptographic Algorithms**: Secp256k1 (Ethereum), Ed25519 (EdDSA), X25519 (HPKE)
 
-### Core Dependencies (Go 1.23.0 Compatible)
+### Core Dependencies (Go 1.25.2 Compatible)
 - Go modules:
   - `github.com/ethereum/go-ethereum` v1.16.1
   - `github.com/decred/dcrd/dcrec/secp256k1/v4` v4.4.0
   - `github.com/gorilla/websocket` v1.5.3
-  - `golang.org/x/crypto` v0.41.0 (Go 1.23.0 compatible)
-  - `golang.org/x/sync` v0.16.0 (Go 1.23.0 compatible)
+  - `golang.org/x/crypto` v0.41.0 (Go 1.25.2 compatible)
+  - `golang.org/x/sync` v0.16.0 (Go 1.25.2 compatible)
 - Node.js packages:
   - `@nomicfoundation/hardhat-ethers` v4.0.0
   - `hardhat` v2.26.3
@@ -82,13 +90,12 @@ go version go1.23.0 darwin/arm64
 
 ## Installation
 
-### Go Installation (1.23.0 or higher)
+### Go Installation (1.25.2 or higher)
 
 **macOS (Homebrew)**:
 ```bash
 brew install go
-# or specific version
-brew install go@1.23
+# Go 1.25.2 or higher will be installed
 ```
 
 **macOS (gvm)**:
@@ -96,17 +103,17 @@ brew install go@1.23
 # Install gvm
 bash < <(curl -s -S -L https://raw.githubusercontent.com/moovweb/gvm/master/binscripts/gvm-installer)
 
-# Install Go 1.23.0
-gvm install go1.23.0
-gvm use go1.23.0 --default
+# Install Go 1.25.2
+gvm install go1.25.2
+gvm use go1.25.2 --default
 ```
 
 **Linux**:
 ```bash
 # Download from official site
-wget https://go.dev/dl/go1.23.0.linux-amd64.tar.gz
+wget https://go.dev/dl/go1.25.2.linux-amd64.tar.gz
 sudo rm -rf /usr/local/go
-sudo tar -C /usr/local -xzf go1.23.0.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.25.2.linux-amd64.tar.gz
 
 # Add to PATH
 echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
@@ -114,12 +121,12 @@ source ~/.bashrc
 ```
 
 **Windows**:
-- Download Go 1.23.0 installer from https://go.dev/dl/
+- Download Go 1.25.2 installer from https://go.dev/dl/
 
 ### Version Verification
 ```bash
 go version
-# Output: go version go1.23.0 darwin/arm64 (or 1.23.0+)
+# Output: go version go1.25.2 darwin/arm64 (or 1.25.2+)
 ```
 
 ### Project Build
@@ -137,7 +144,7 @@ go build -tags=a2a ./...
 
 ## Verification
 
-All tests pass with Go 1.23.0:
+All tests pass with Go 1.25.2:
 
 ```bash
 # Run all tests
@@ -156,10 +163,11 @@ go build ./...
 
 | Go Version | Status | Notes |
 |------------|--------|-------|
-| 1.22.x     |  Not tested | May work but not officially supported |
-| 1.23.0     |  Supported | Minimum required version |
-| 1.23.1+    |  Supported | Recommended |
-| 1.24.0+    |  Supported | Forward compatible |
+| 1.23.x     | Not tested | May work but not officially supported |
+| 1.24.x     | Not tested | May work but not officially supported |
+| 1.25.0     | Supported | Earlier 1.25.x version |
+| 1.25.2     | Supported | Minimum required version |
+| 1.25.3+    | Supported | Recommended |
 
 ## Transport Options
 
@@ -185,9 +193,9 @@ go build -tags=a2a ./...
 go test -tags=a2a ./...
 ```
 
-## Performance Optimizations (Go 1.23.0)
+## Performance Optimizations (Go 1.25.2)
 
-With Go 1.23.0, SAGE includes several performance improvements:
+With Go 1.25.2, SAGE includes several performance improvements:
 
 - **Session Memory Pooling**: 80% GC reduction using `sync.Pool`
 - **Pre-allocated Buffers**: 60-70% allocation reduction
@@ -196,15 +204,15 @@ With Go 1.23.0, SAGE includes several performance improvements:
 
 ## Migration Notes
 
-### From Go 1.24.4+ to Go 1.23.0
+### From Earlier Versions to Go 1.25.2
 
-If upgrading from a previous version that used Go 1.24.4+:
+If upgrading from a previous version:
 
 1. **Update Go version**:
    ```bash
-   # Install Go 1.23.0
-   gvm install go1.23.0
-   gvm use go1.23.0
+   # Install Go 1.25.2
+   gvm install go1.25.2
+   gvm use go1.25.2
    ```
 
 2. **Clean and rebuild**:
@@ -221,8 +229,9 @@ If upgrading from a previous version that used Go 1.24.4+:
 
 ## References
 
-- **README.md**: Updated to Go 1.23.0+ requirement
-- **go.mod**: Set to `go 1.23.0`
+- **README.md**: Updated to Go 1.25+ requirement
+- **go.mod**: Set to `go 1.25.2`
+- **GitHub Actions**: Updated to use Go 1.25.2
 - **Architecture Proposal**: Transport abstraction design
 - **Dependency Removal**: a2a-go dependency removal plan
 
@@ -235,6 +244,6 @@ For issues related to Go version compatibility:
 
 ---
 
-**Last Updated**: 2025-01-11
+**Last Updated**: 2025-11-01
 **Maintainer**: SAGE Development Team
 **Status**:  Active

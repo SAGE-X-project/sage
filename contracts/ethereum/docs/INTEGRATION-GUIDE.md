@@ -1,7 +1,8 @@
 # SAGE Smart Contract Integration Guide
 
-**Version**: 1.0
-**Date**: 2025-10-07
+**Version**: 2.0
+**Date**: 2025-11-01
+**Status**: Current (AgentCard Architecture)
 **Audience**: Developers integrating with SAGE smart contracts
 
 ---
@@ -77,7 +78,7 @@ const sageRegistry = new ethers.Contract(
 ```javascript
 // hardhat.config.js
 module.exports = {
-  solidity: "0.8.19",
+  solidity: "0.8.20",
   networks: {
     sepolia: {
       url: process.env.SEPOLIA_RPC_URL,
@@ -111,12 +112,15 @@ ETHERSCAN_API_KEY=your_etherscan_key
 
 ```javascript
 const SEPOLIA_CONTRACTS = {
-  SageRegistryV3: "0x...",
-  ERC8004IdentityRegistry: "0x...",
+  AgentCardRegistry: "0x...", // Main registry (replaces SageRegistryV3)
+  AgentCardVerifyHook: "0x...", // Validation hook
   ERC8004ValidationRegistry: "0x...",
   ERC8004ReputationRegistryV2: "0x...",
   TEEKeyRegistry: "0x...",
 };
+
+// Note: AgentCardRegistry implements IERC8004IdentityRegistry natively
+// No separate ERC8004IdentityRegistry adapter needed
 ```
 
 ### Mainnet (Coming Soon)
@@ -141,50 +145,79 @@ Or download from Etherscan after verification.
 
 ## Agent Registration
 
-### Step 1: Generate Key Pair
+### Overview
+
+AgentCardRegistry supports **multi-key registration** with three key types:
+- **ECDSA (secp256k1)**: Ethereum-compatible signatures
+- **Ed25519**: High-performance EdDSA signatures
+- **X25519**: Encryption and key exchange (KME public key for HPKE)
+
+### Step 1: Generate Key Pairs
 
 ```javascript
 const ethers = require("ethers");
+const { randomBytes } = require("crypto");
 
-// Generate new wallet (agent key pair)
-const agentWallet = ethers.Wallet.createRandom();
+// Generate ECDSA key (Ethereum wallet)
+const ecdsaWallet = ethers.Wallet.createRandom();
+console.log("ECDSA Address:", ecdsaWallet.address);
+console.log("ECDSA Public Key:", ecdsaWallet.publicKey);
 
-console.log("Agent Address:", agentWallet.address);
-console.log("Public Key:", agentWallet.publicKey);
-console.log("Private Key:", agentWallet.privateKey); // Keep secret!
+// Generate Ed25519 key (use @noble/ed25519 or similar)
+// For demo purposes, generate 32-byte keys
+const ed25519PrivateKey = randomBytes(32);
+const ed25519PublicKey = randomBytes(32); // Use proper Ed25519 lib in production
+
+// Generate X25519 key for HPKE/KME (use @noble/curves or similar)
+const x25519PrivateKey = randomBytes(32);
+const x25519PublicKey = randomBytes(32); // Use proper X25519 lib in production
+
+console.log("Ed25519 Public Key:", "0x" + ed25519PublicKey.toString("hex"));
+console.log("X25519 Public Key (KME):", "0x" + x25519PublicKey.toString("hex"));
 ```
 
 ### Step 2: Commit Registration
 
 ```javascript
 async function commitAgentRegistration(
-  sageRegistry,
+  agentCardRegistry,
   did,
-  publicKey,
+  keys,
   userAddress,
   wallet
 ) {
   // Generate random salt
-  const salt = ethers.randomBytes(32);
+  const salt = ethers.hexlify(ethers.randomBytes(32));
 
   // Get current chainId
   const network = await wallet.provider.getNetwork();
   const chainId = network.chainId;
 
+  // Encode keys array for commitment hash
+  // keys is an array of bytes: [ecdsaKey, ed25519Key, x25519Key]
+  const encodedKeys = ethers.AbiCoder.defaultAbiCoder().encode(
+    ["bytes[]"],
+    [keys]
+  );
+
   // Compute commitment hash
+  // keccak256(abi.encode(did, keys, owner, salt, chainId))
   const commitHash = ethers.keccak256(
-    ethers.solidityPacked(
-      ["string", "bytes", "address", "bytes32", "uint256"],
-      [did, publicKey, userAddress, salt, chainId]
+    ethers.AbiCoder.defaultAbiCoder().encode(
+      ["string", "bytes[]", "address", "bytes32", "uint256"],
+      [did, keys, userAddress, salt, chainId]
     )
   );
 
-  // Submit commitment
-  const tx = await sageRegistry.commitRegistration(commitHash);
+  // Submit commitment with stake (0.01 ETH)
+  const stake = ethers.parseEther("0.01");
+  const tx = await agentCardRegistry.commitRegistration(commitHash, {
+    value: stake,
+  });
   await tx.wait();
 
-  console.log("✅ Commitment submitted");
-  console.log("⏳ Wait 60 seconds before revealing...");
+  console.log("Commitment submitted with 0.01 ETH stake");
+  console.log("Wait 60 seconds before revealing...");
 
   // Store salt for reveal phase
   return { salt, commitHash };
@@ -195,8 +228,10 @@ async function commitAgentRegistration(
 
 ```javascript
 async function revealAgentRegistration(
-  sageRegistry,
-  agentWallet,
+  agentCardRegistry,
+  ecdsaWallet,
+  keys, // [ecdsaKey, ed25519Key, x25519Key]
+  keyTypes, // [0, 1, 2] for ECDSA, Ed25519, X25519
   salt,
   agentDetails
 ) {
@@ -204,58 +239,80 @@ async function revealAgentRegistration(
   await new Promise(resolve => setTimeout(resolve, 61000));
 
   // Prepare registration data
-  const did = agentDetails.did;
-  const name = agentDetails.name;
-  const description = agentDetails.description;
-  const endpoint = agentDetails.endpoint;
-  const publicKey = agentWallet.publicKey;
-  const capabilities = JSON.stringify(agentDetails.capabilities);
+  const { did, name, description, endpoint, capabilities } = agentDetails;
 
-  // Create signature for key ownership proof
-  const keyHash = ethers.keccak256(publicKey);
-  const network = await agentWallet.provider.getNetwork();
-  const challenge = ethers.keccak256(
-    ethers.solidityPacked(
-      ["string", "uint256", "address", "address", "bytes32"],
+  // Create signatures for key ownership proofs
+  const signatures = [];
+
+  // 1. ECDSA signature (sign with ecdsaWallet)
+  const network = await ecdsaWallet.provider.getNetwork();
+  const registryAddress = await agentCardRegistry.getAddress();
+
+  const messageHash = ethers.keccak256(
+    ethers.AbiCoder.defaultAbiCoder().encode(
+      ["string", "uint256", "address", "address"],
       [
-        "SAGE Key Registration:",
+        "SAGE Agent Registration:",
         network.chainId,
-        await sageRegistry.getAddress(),
-        agentWallet.address,
-        keyHash,
+        registryAddress,
+        ecdsaWallet.address,
       ]
     )
   );
 
-  // Sign with agent's private key
-  const signature = await agentWallet.signMessage(
-    ethers.getBytes(challenge)
-  );
+  const ecdsaSignature = await ecdsaWallet.signMessage(ethers.getBytes(messageHash));
+  signatures.push(ecdsaSignature);
 
-  // Reveal registration
-  const tx = await sageRegistry.registerAgentWithReveal(
+  // 2. Ed25519 signature (placeholder - requires owner pre-approval)
+  // In production, use proper Ed25519 signing
+  signatures.push(ethers.hexlify(randomBytes(64))); // 64-byte Ed25519 signature
+
+  // 3. X25519 signature (not needed for encryption key)
+  signatures.push("0x"); // Empty signature for X25519
+
+  // Create RegistrationParams struct
+  const params = {
     did,
     name,
     description,
     endpoint,
-    publicKey,
-    capabilities,
-    signature,
-    salt
-  );
+    capabilities: JSON.stringify(capabilities),
+    keys,
+    keyTypes,
+    signatures,
+    salt,
+  };
 
+  // Reveal registration
+  const tx = await agentCardRegistry.registerAgent(params);
   const receipt = await tx.wait();
 
-  // Extract agentId from event
+  // Extract agentId from AgentRegistered event
   const event = receipt.logs.find(
-    log => log.fragment && log.fragment.name === "AgentRegistered"
+    log => log.topics[0] === ethers.id("AgentRegistered(bytes32,string,address,uint256)")
   );
-  const agentId = event.args.agentId;
 
-  console.log("✅ Agent registered successfully!");
+  const agentId = event.topics[1]; // First indexed parameter
+
+  console.log("Agent registered successfully!");
   console.log("Agent ID:", agentId);
+  console.log("Agent will be activated after 1 hour time-lock");
 
   return agentId;
+}
+```
+
+### Step 4: Activate Agent
+
+After the 1-hour time-lock expires, activate the agent:
+
+```javascript
+async function activateAgent(agentCardRegistry, agentId) {
+  const tx = await agentCardRegistry.activateAgent(agentId);
+  await tx.wait();
+
+  console.log("Agent activated successfully!");
+  console.log("Agent is now live and can accept tasks");
 }
 ```
 
@@ -263,12 +320,22 @@ async function revealAgentRegistration(
 
 ```javascript
 async function registerAgent() {
-  // 1. Generate agent wallet
-  const agentWallet = ethers.Wallet.createRandom();
+  // 1. Generate agent keys
+  const ecdsaWallet = ethers.Wallet.createRandom();
+  const ed25519PublicKey = randomBytes(32); // Use proper Ed25519 lib
+  const x25519PublicKey = randomBytes(32);  // Use proper X25519 lib (KME)
+
+  const keys = [
+    ecdsaWallet.publicKey,                    // ECDSA (65 bytes uncompressed)
+    ethers.hexlify(ed25519PublicKey),         // Ed25519 (32 bytes)
+    ethers.hexlify(x25519PublicKey),          // X25519 (32 bytes) - KME for HPKE
+  ];
+
+  const keyTypes = [0, 1, 2]; // ECDSA, Ed25519, X25519
 
   // 2. Prepare agent details
   const agentDetails = {
-    did: "did:sage:my-ai-agent",
+    did: "did:sage:ethereum:0x1234...5678",
     name: "My AI Agent",
     description: "An intelligent assistant for task automation",
     endpoint: "https://my-agent.example.com/api",
@@ -281,22 +348,29 @@ async function registerAgent() {
 
   // 3. Commit registration
   const { salt } = await commitAgentRegistration(
-    sageRegistry,
+    agentCardRegistry,
     agentDetails.did,
-    agentWallet.publicKey,
-    wallet.address,
-    wallet
+    keys,
+    ecdsaWallet.address,
+    ecdsaWallet
   );
 
   // 4. Reveal registration
   const agentId = await revealAgentRegistration(
-    sageRegistry,
-    agentWallet,
+    agentCardRegistry,
+    ecdsaWallet,
+    keys,
+    keyTypes,
     salt,
     agentDetails
   );
 
-  return { agentId, agentWallet };
+  // 5. Wait 1 hour, then activate
+  setTimeout(async () => {
+    await activateAgent(agentCardRegistry, agentId);
+  }, 3600000); // 1 hour
+
+  return { agentId, ecdsaWallet, keys };
 }
 ```
 
@@ -341,7 +415,7 @@ async function requestTaskValidation(
   );
   const requestId = event.args.requestId;
 
-  console.log("✅ Validation requested");
+  console.log("Validation requested");
   console.log("Request ID:", requestId);
 
   return requestId;
@@ -376,7 +450,7 @@ async function submitValidation(
 
   await tx.wait();
 
-  console.log("✅ Validation submitted");
+  console.log("Validation submitted");
 }
 ```
 
@@ -410,7 +484,7 @@ async function monitorValidationRequests(validationRegistry) {
     result,
     consensusReached
   ) => {
-    console.log("\n✅ Validation finalized:");
+    console.log("\nValidation finalized:");
     console.log("  Request ID:", requestId);
     console.log("  Result:", result ? "SUCCESS" : "FAIL");
     console.log("  Consensus:", consensusReached ? "YES" : "NO");
@@ -434,7 +508,7 @@ async function withdrawValidationRewards(validationRegistry, wallet) {
     const tx = await validationRegistry.withdraw();
     await tx.wait();
 
-    console.log("✅ Rewards withdrawn");
+    console.log("Rewards withdrawn");
   } else {
     console.log("No pending rewards");
   }
@@ -474,7 +548,7 @@ async function commitTaskAuthorization(
   const tx = await reputationRegistry.commitTaskAuthorization(commitHash);
   await tx.wait();
 
-  console.log("✅ Task authorization committed");
+  console.log("Task authorization committed");
 
   return { salt, commitHash };
 }
@@ -504,7 +578,7 @@ async function revealTaskAuthorization(
 
   await tx.wait();
 
-  console.log("✅ Task authorization revealed");
+  console.log("Task authorization revealed");
 }
 ```
 
@@ -585,9 +659,9 @@ async function proposeTEEKey(
   );
   const proposalId = event.args.proposalId;
 
-  console.log("✅ TEE key proposed");
+  console.log("TEE key proposed");
   console.log("Proposal ID:", proposalId);
-  console.log("⏳ Voting period: 7 days");
+  console.log("Voting period: 7 days");
 
   return proposalId;
 }
@@ -601,7 +675,7 @@ async function voteOnProposal(teeRegistry, proposalId, support, wallet) {
   const voteInfo = await teeRegistry.getVoteInfo(proposalId, wallet.address);
 
   if (voteInfo.hasVoted) {
-    console.log("⚠️  You have already voted on this proposal");
+    console.log("You have already voted on this proposal");
     return;
   }
 
@@ -609,7 +683,7 @@ async function voteOnProposal(teeRegistry, proposalId, support, wallet) {
   const tx = await teeRegistry.vote(proposalId, support);
   await tx.wait();
 
-  console.log("✅ Vote cast");
+  console.log("Vote cast");
   console.log("  Support:", support ? "FOR" : "AGAINST");
 }
 ```
@@ -629,7 +703,7 @@ async function executeProposal(teeRegistry, proposalId) {
   console.log("  Can Execute:", status.canExecute);
 
   if (!status.canExecute) {
-    console.log("⚠️  Cannot execute yet. Voting period not ended.");
+    console.log("Cannot execute yet. Voting period not ended.");
     return;
   }
 
@@ -644,9 +718,9 @@ async function executeProposal(teeRegistry, proposalId) {
   const approved = event.args.approved;
 
   if (approved) {
-    console.log("✅ Proposal APPROVED - TEE key is now trusted");
+    console.log("Proposal APPROVED - TEE key is now trusted");
   } else {
-    console.log("❌ Proposal REJECTED - Stake slashed");
+    console.log("Proposal REJECTED - Stake slashed");
   }
 
   return approved;
@@ -707,7 +781,7 @@ async function main() {
   console.log("\nStep 5: Checking validation result...");
   // Event listeners will notify when finalized
 
-  console.log("\n✅ Complete flow executed successfully!");
+  console.log("\nComplete flow executed successfully!");
 }
 
 main().catch(console.error);
@@ -764,7 +838,7 @@ async function validatorMain() {
         validatorWallet
       );
 
-      console.log("✅ Validation submitted successfully");
+      console.log("Validation submitted successfully");
 
     } catch (error) {
       console.error("Error processing validation:", error);
@@ -776,7 +850,7 @@ async function validatorMain() {
     await withdrawValidationRewards(validationRegistry, validatorWallet);
   }, 3600000); // Every hour
 
-  console.log("✅ Validator is now active and listening...");
+  console.log("Validator is now active and listening...");
 }
 
 validatorMain().catch(console.error);
@@ -790,16 +864,16 @@ validatorMain().catch(console.error);
 
 1. **Never expose private keys**
    ```javascript
-   // ❌ Bad
+   // Bad
    const PRIVATE_KEY = "0x1234...";
 
-   // ✅ Good
+   // Good
    const PRIVATE_KEY = process.env.PRIVATE_KEY;
    ```
 
 2. **Always use commit-reveal for sensitive operations**
    ```javascript
-   // ✅ Register agents with commit-reveal
+   // Register agents with commit-reveal
    await commitRegistration(hash);
    await sleep(61000); // Wait minimum delay
    await registerWithReveal(params, salt);
@@ -807,7 +881,7 @@ validatorMain().catch(console.error);
 
 3. **Validate all inputs before submitting transactions**
    ```javascript
-   // ✅ Validate before submission
+   // Validate before submission
    if (!ethers.isAddress(serverAgent)) {
      throw new Error("Invalid server agent address");
    }
@@ -834,11 +908,11 @@ validatorMain().catch(console.error);
 
 1. **Batch read operations**
    ```javascript
-   // ❌ Multiple calls
+   // Multiple calls
    const agent1 = await registry.getAgent(id1);
    const agent2 = await registry.getAgent(id2);
 
-   // ✅ Batch with multicall
+   // Batch with multicall
    const [agent1, agent2] = await Promise.all([
      registry.getAgent(id1),
      registry.getAgent(id2),
@@ -984,25 +1058,49 @@ try {
 
 This integration guide covers:
 
-✅ **Environment Setup**: Tools and configuration
-✅ **Agent Registration**: Complete commit-reveal flow
-✅ **Task Validation**: Request, submit, and monitor
-✅ **Reputation Management**: Authorization and queries
-✅ **Governance**: TEE key proposals and voting
-✅ **Code Examples**: Complete client and validator flows
-✅ **Best Practices**: Security, gas optimization, testing
-✅ **Troubleshooting**: Common issues and solutions
+**Environment Setup**: Tools and configuration
+**Agent Registration**: Complete commit-reveal flow
+**Task Validation**: Request, submit, and monitor
+**Reputation Management**: Authorization and queries
+**Governance**: TEE key proposals and voting
+**Code Examples**: Complete client and validator flows
+**Best Practices**: Security, gas optimization, testing
+**Troubleshooting**: Common issues and solutions
 
 **Next Steps**:
 1. Set up your development environment
-2. Register a test agent on Sepolia
-3. Submit a validation request
-4. Monitor events and withdraw rewards
+2. Generate multi-key pairs (ECDSA, Ed25519, X25519)
+3. Register a test agent on Sepolia with KME public key
+4. Wait for 1-hour activation time-lock
+5. Activate your agent and start accepting tasks
+6. Submit validation requests and monitor events
 
 For detailed API documentation, see the NatSpec comments in the contract source code.
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-10-07
-**Status**: ✅ Complete
+## Key Changes in v2.0 (AgentCard Architecture)
+
+### Major Updates
+- **Multi-Key Support**: Register agents with ECDSA, Ed25519, and X25519 keys
+- **KME Integration**: X25519 public key storage for HPKE encryption
+- **RegistrationParams Struct**: Simplified registration API
+- **Native ERC-8004**: Direct interface implementation, no adapter needed
+- **Time-Locked Activation**: 1-hour delay for community review
+- **Stake Requirement**: 0.01 ETH stake for registration
+- **Rate Limiting**: 24 registrations per day per address
+
+### Migration from SageRegistryV3
+If migrating from V3, note these changes:
+1. Contract name: `SageRegistryV3` → `AgentCardRegistry`
+2. Registration: Single-key → Multi-key (array of keys)
+3. Activation: Immediate → Time-locked (1 hour)
+4. Stake: Optional → Required (0.01 ETH)
+5. API: Direct function calls → RegistrationParams struct
+
+---
+
+**Document Version**: 2.0 (AgentCard Architecture)
+**Last Updated**: 2025-11-01
+**Status**: Current
+**Solidity Version**: 0.8.20

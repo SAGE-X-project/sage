@@ -1,8 +1,8 @@
 # SAGE Smart Contract Architecture Diagrams
 
-**Version**: 1.0
-**Date**: 2025-10-07
-**Status**: Complete
+**Version**: 2.0
+**Date**: 2025-11-01
+**Status**: Current - AgentCard Architecture
 
 ---
 
@@ -25,7 +25,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        SAGE Ecosystem                           │
+│                     SAGE AgentCard Ecosystem                    │
 │                                                                 │
 │  ┌───────────────┐  ┌───────────────┐  ┌──────────────────┐  │
 │  │   Clients     │  │  AI Agents    │  │   Validators     │  │
@@ -37,30 +37,45 @@
 │  ┌──────────────────────────▼──────────────────────────────┐  │
 │  │           Smart Contract Layer (Ethereum)               │  │
 │  │                                                          │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │  │
-│  │  │   Identity   │  │  Validation  │  │  Reputation  │ │  │
-│  │  │   Registry   │  │   Registry   │  │   Registry   │ │  │
-│  │  │ (SageV3/ERC) │  │   (ERC8004)  │  │   (ERC8004)  │ │  │
-│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘ │  │
-│  │         │                  │                  │         │  │
-│  │         └──────────────────┼──────────────────┘         │  │
-│  │                            │                            │  │
-│  │                   ┌────────▼────────┐                  │  │
-│  │                   │  TEE Key        │                  │  │
-│  │                   │  Governance     │                  │  │
-│  │                   └─────────────────┘                  │  │
+│  │  ┌──────────────────┐  ┌────────────┐  ┌──────────┐   │  │
+│  │  │  AgentCard       │  │ Validation │  │ Reputation│   │  │
+│  │  │  Registry        │  │ Registry   │  │ Registry  │   │  │
+│  │  │ (Native ERC-8004)│  │ (ERC-8004) │  │(ERC-8004) │   │  │
+│  │  └────────┬─────────┘  └─────┬──────┘  └─────┬─────┘   │  │
+│  │           │                   │                │         │  │
+│  │           │  ┌────────────────▼────────────────▼───┐    │  │
+│  │           │  │     AgentCardVerifyHook            │    │  │
+│  │           │  │  (DID validation, Rate limiting)   │    │  │
+│  │           │  └────────────────────────────────────┘    │  │
+│  │           │                                             │  │
+│  │           │  ┌────────────────┐                        │  │
+│  │           └─►│ AgentCard      │                        │  │
+│  │              │ Storage        │                        │  │
+│  │              └────────────────┘                        │  │
+│  │                                                          │  │
+│  │  ┌──────────────────────────────────────────────────┐  │  │
+│  │  │            Governance Layer                       │  │
+│  │  │  ┌──────────────┐  ┌───────────┐  ┌──────────┐ │  │
+│  │  │  │ TEEKey       │  │ MultiSig  │  │ Timelock │ │  │
+│  │  │  │ Registry     │  │           │  │          │ │  │
+│  │  │  └──────────────┘  └───────────┘  └──────────┘ │  │
+│  │  └──────────────────────────────────────────────────┘  │  │
 │  └──────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Components
 
-| Component | Purpose | Dependencies |
-|-----------|---------|--------------|
-| **SageRegistryV3** | Agent identity & DID management | None |
-| **ERC8004ValidationRegistry** | Task validation coordination | Identity, Reputation |
-| **ERC8004ReputationRegistry** | Agent reputation tracking | Identity, Validation |
-| **TEEKeyRegistry** | Decentralized TEE key approval | None |
+| Component | Purpose | Type |
+|-----------|---------|------|
+| **AgentCardRegistry** | Main agent identity & multi-key management | Core Contract |
+| **AgentCardStorage** | Isolated storage layer for upgradability | Abstract Contract |
+| **AgentCardVerifyHook** | Pre-registration validation & security | Hook Contract |
+| **ERC8004ValidationRegistry** | Task validation coordination | Standalone |
+| **ERC8004ReputationRegistry** | Agent reputation tracking | Standalone |
+| **TEEKeyRegistry** | Decentralized TEE key approval | Governance |
+| **SimpleMultiSig** | Multi-signature wallet | Governance |
+| **TimelockController** | Time-delayed execution | Governance |
 
 ---
 
@@ -69,68 +84,104 @@
 ### Detailed Component Interaction
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Contract Dependencies                        │
-│                                                                 │
-│                   ┌─────────────────────┐                      │
-│                   │  SageRegistryV3     │                      │
-│                   │  (Identity Core)    │                      │
-│                   └──────────┬──────────┘                      │
-│                              │                                  │
-│                              │ resolveAgent()                   │
-│                              │ isAgentActive()                  │
-│                              │                                  │
-│         ┌────────────────────┼────────────────────┐           │
-│         │                    │                    │           │
-│         │                    │                    │           │
-│  ┌──────▼──────┐      ┌──────▼──────┐     ┌──────▼──────┐   │
-│  │  ERC8004    │      │  ERC8004    │     │  ERC8004    │   │
-│  │  Identity   │◄─────┤  Validation │────►│  Reputation │   │
-│  │  Registry   │      │  Registry   │     │  Registry   │   │
-│  │  (Adapter)  │      │             │     │             │   │
-│  └─────────────┘      └──────┬──────┘     └──────┬──────┘   │
-│                              │                    │           │
-│                              │                    │           │
-│                              │ isTrustedKey()     │           │
-│                              │                    │           │
-│                       ┌──────▼────────────────────▼──┐       │
-│                       │   TEEKeyRegistry            │       │
-│                       │   (Governance)              │       │
-│                       └─────────────────────────────┘       │
-│                                                               │
-└───────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                  AgentCard Architecture                      │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │          AgentCardRegistry.sol                     │    │
+│  │  (Main Logic + Native ERC-8004 Implementation)     │    │
+│  │                                                     │    │
+│  │  • Multi-key support (ECDSA, Ed25519, X25519)     │    │
+│  │  • Commit-reveal pattern                           │    │
+│  │  • Stake & time-lock activation                    │    │
+│  │  • KME public key storage (X25519)                 │    │
+│  │  • ERC-8004 compliant interface                    │    │
+│  └──────────────┬─────────────────────────────────────┘    │
+│                 │ inherits                                  │
+│  ┌──────────────▼─────────────────────────────────────┐    │
+│  │          AgentCardStorage.sol                      │    │
+│  │  (Isolated Storage Layer)                          │    │
+│  │                                                     │    │
+│  │  • Agent metadata mapping                          │    │
+│  │  • Multi-key storage                               │    │
+│  │  • Commit-reveal data                              │    │
+│  │  • Nonce & rate limiting                           │    │
+│  │  • Public key reuse prevention                     │    │
+│  └──────────────┬─────────────────────────────────────┘    │
+│                 │ validates with                            │
+│  ┌──────────────▼─────────────────────────────────────┐    │
+│  │        AgentCardVerifyHook.sol                     │    │
+│  │  (Pre-registration Validation)                     │    │
+│  │                                                     │    │
+│  │  • DID format validation                           │    │
+│  │  • Rate limiting (24/day)                          │    │
+│  │  • Blacklist/whitelist                             │    │
+│  │  • Public key reuse check                          │    │
+│  └────────────────────────────────────────────────────┘    │
+│                                                              │
+├──────────────────────────────────────────────────────────────┤
+│                   ERC-8004 Ecosystem                         │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │     ERC8004ValidationRegistry.sol                  │    │
+│  │  (Standalone - Task Validation)                    │    │
+│  │                                                     │    │
+│  │  • Stake-based validation                          │    │
+│  │  • TEE attestation support                         │    │
+│  │  • Consensus mechanism (66% threshold)             │    │
+│  │  • Automatic finalization                          │    │
+│  └────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │     ERC8004ReputationRegistry.sol                  │    │
+│  │  (Standalone - Reputation Management)              │    │
+│  │                                                     │    │
+│  │  • Task authorization (commit-reveal)              │    │
+│  │  • Feedback submission                             │    │
+│  │  • Off-chain aggregation support                   │    │
+│  └────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌────────────────────────────────────────────────────┐    │
+│  │     ERC8004IdentityRegistry.sol                    │    │
+│  │  (Standalone - Alternative Implementation)         │    │
+│  │                                                     │    │
+│  │  Note: AgentCardRegistry provides native ERC-8004  │    │
+│  │  This standalone version is for reference only     │    │
+│  └────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ### Contract Interface Relationships
 
 ```
                   ┌──────────────────────────┐
-                  │  ISageRegistry           │
-                  │  (Interface)             │
+                  │  IERC8004IdentityRegistry│
+                  │  (ERC-8004 Interface)    │
                   └─────────────┬────────────┘
                                 │
-                                │ implements
+                                │ implements (native)
                                 │
                   ┌─────────────▼────────────┐
-                  │  SageRegistryV3          │
-                  │  (Implementation)        │
-                  └──────────────────────────┘
-                                │
-                                │ wraps
-                                │
-                  ┌─────────────▼────────────┐
-                  │  ERC8004IdentityRegistry │
-                  │  (ERC-8004 Adapter)      │
-                  └──────────────────────────┘
-                                │
-                                │ used by
-                                │
-         ┌──────────────────────┴──────────────────────┐
-         │                                              │
-┌────────▼──────────┐                      ┌───────────▼─────────┐
-│ ERC8004Validation │                      │ ERC8004Reputation   │
-│ Registry          │                      │ Registry            │
-└───────────────────┘                      └─────────────────────┘
+                  │  AgentCardRegistry       │
+                  │  (Main Implementation)   │
+                  │                          │
+                  │  • Multi-key support     │
+                  │  • Commit-reveal         │
+                  │  • KME key storage       │
+                  │  • Native ERC-8004       │
+                  └────────┬─────────────────┘
+                           │
+                           │ uses
+                           │
+         ┌─────────────────┼─────────────────┐
+         │                 │                 │
+         │                 │                 │
+┌────────▼──────┐  ┌───────▼────────┐  ┌────▼──────────┐
+│ Validation    │  │  Reputation    │  │  VerifyHook   │
+│ Registry      │  │  Registry      │  │  (Validation) │
+│ (Standalone)  │  │  (Standalone)  │  │               │
+└───────────────┘  └────────────────┘  └───────────────┘
 ```
 
 ---
@@ -140,103 +191,115 @@
 ### Commit-Reveal Registration Process
 
 ```
-┌─────────┐                                    ┌──────────────┐
-│  Client │                                    │ SageRegistryV3│
-└────┬────┘                                    └──────┬───────┘
+┌─────────┐                                    ┌──────────────────┐
+│  Client │                                    │ AgentCardRegistry│
+└────┬────┘                                    └──────┬───────────┘
      │                                                │
      │ 1. Generate salt & compute hash                │
-     │    hash = keccak256(did, pubKey,              │
-     │           sender, salt, chainId)               │
+     │    hash = keccak256(did, keys,                 │
+     │           owner, salt, chainId)                │
      │                                                │
-     │ 2. commitRegistration(hash)                    │
+     │ 2. commitRegistration(hash) + 0.01 ETH         │
      ├───────────────────────────────────────────────►│
      │                                                │
      │                                          Store │
      │                                          ┌─────┤
      │                                          │     │
-     │                                          │  { │
-     │                                          │   commitHash,│
-     │                                          │   timestamp, │
-     │                                          │   revealed   │
-     │                                          │  }           │
+     │                                    commitHash, │
+     │                                    timestamp,  │
+     │                                    revealed=false
      │                                          └─────┤
      │                                                │
      │ ◄──emit RegistrationCommitted()───────────────┤
      │                                                │
      │                                                │
      │ 3. Wait 1 minute (MIN_DELAY)                   │
-     │    ⏱️  [60 seconds]                            │
+     │    [60 seconds]                                 │
      │                                                │
      │                                                │
-     │ 4. registerAgentWithReveal(                    │
-     │      did, name, desc, endpoint,                │
-     │      publicKey, capabilities,                  │
-     │      signature, salt                           │
+     │ 4. registerAgent(                              │
+     │      RegistrationParams {                      │
+     │        did, name, description,                 │
+     │        endpoint, keys[], keyTypes[],           │
+     │        signatures[], capabilities,             │
+     │        kmePublicKey (optional)                 │
+     │      },                                        │
+     │      salt                                      │
      │    )                                           │
      ├───────────────────────────────────────────────►│
      │                                                │
      │                                          Verify│
      │                                          ┌─────┤
      │                                          │     │
-     │                                  ✓ Timing OK   │
      │                                  ✓ Hash match  │
-     │                                  ✓ Signature   │
-     │                                  ✓ DID unique  │
+     │                                  ✓ Timing OK   │
+     │                                  ✓ Call hook   │
+     │                                  ✓ Verify keys │
+     │                                  ✓ Store data  │
      │                                          │     │
      │                                          └─────┤
      │                                                │
      │                                       Register │
      │                                       agentId  │
+     │                                       Set activation
+     │                                       time = now + 1h
      │                                                │
      │ ◄──emit AgentRegistered(agentId)──────────────┤
      │                                                │
      │ ◄──return agentId──────────────────────────────┤
      │                                                │
+     │                                                │
+     │ 5. Wait 1 hour for activation                  │
+     │    [activation delay]                           │
+     │                                                │
+     │ 6. activateAgent(agentId)                      │
+     ├───────────────────────────────────────────────►│
+     │                                                │
+     │                                    Set active=true
+     │                                                │
+     │ ◄──emit AgentActivated(agentId)───────────────┤
+     │                                                │
 ```
 
-### Attack Prevention
+### Multi-Key Support
 
 ```
-WITHOUT COMMIT-REVEAL:
-┌─────────┐                ┌──────────────┐
-│  Alice  │                │   Attacker   │
-└────┬────┘                └──────┬───────┘
-     │                             │
-     │ registerAgent("alice")      │
-     ├─────────────►               │
-     │              │               │
-     │              │ Sees in       │
-     │              │ mempool       │
-     │              └──────────────►│
-     │                             │
-     │              ◄──────────────┤
-     │              Front-runs with │
-     │              higher gas!     │
-     │                             │
-     │              registerAgent("alice")
-     │              (Attacker wins) ❌
-     │
-
-WITH COMMIT-REVEAL:
-┌─────────┐                ┌──────────────┐
-│  Alice  │                │   Attacker   │
-└────┬────┘                └──────┬───────┘
-     │                             │
-     │ commit(hash)                │
-     ├─────────────►               │
-     │              │               │
-     │              │ Sees hash     │
-     │              │ (can't decode)│
-     │              └──────────────►│
-     │              ◄──────────────┤
-     │              Can't predict   │
-     │              DID without salt│
-     │                             │
-     │ Wait 1 min                   │
-     │                             │
-     │ reveal("alice", salt)        │
-     ├─────────────►               │
-     │ (Alice wins) ✅              │
+┌────────────────────────────────────────────────────────┐
+│  Agent with Multiple Keys (up to 10)                   │
+│                                                        │
+│  Agent ID: 0x5c7c...                                  │
+│  DID: did:sage:ethereum:0x123...                      │
+│  Owner: 0x123...                                      │
+│                                                        │
+│  ┌──────────────────────────────────────────────────┐ │
+│  │ Key 1: ECDSA (secp256k1)                         │ │
+│  │  • Public Key: 0x04... (65 bytes uncompressed)   │ │
+│  │  • Signature: 0x...                              │ │
+│  │  • Verified: Yes (on-chain ecrecover)            │ │
+│  │  • Use: Ethereum transactions                    │ │
+│  └──────────────────────────────────────────────────┘ │
+│                                                        │
+│  ┌──────────────────────────────────────────────────┐ │
+│  │ Key 2: Ed25519                                    │ │
+│  │  • Public Key: 0x... (32 bytes)                  │ │
+│  │  • Signature: 0x... (64 bytes)                   │ │
+│  │  • Verified: Yes (owner pre-approved)            │ │
+│  │  • Use: High-performance signing (did:key)       │ │
+│  └──────────────────────────────────────────────────┘ │
+│                                                        │
+│  ┌──────────────────────────────────────────────────┐ │
+│  │ Key 3: X25519 (KME Public Key)                   │ │
+│  │  • Public Key: 0x... (32 bytes)                  │ │
+│  │  • Signature: N/A (encryption key)               │ │
+│  │  • Verified: Yes (no signature needed)           │ │
+│  │  • Use: HPKE encryption, ECDH key exchange       │ │
+│  │  • Stored in: agent.kmePublicKey field           │ │
+│  └──────────────────────────────────────────────────┘ │
+│                                                        │
+│  Total Keys: 3/10                                     │
+│  Storage: 3 x keyHash in keyHashes[]                  │
+│           + 1 kmePublicKey in metadata                │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -318,9 +381,11 @@ WITH COMMIT-REVEAL:
     │    └─────┬──────┘    └────┬─────┘    └┬────────────┘          │
     │          │                │            │                        │
     │          │                │            │                        │
-    │          │ 9. updateReputation(        │                        │
+    │          │ 9. submitFeedback(          │                        │
+    │          │      taskId,                │                        │
     │          │      serverAgent,           │                        │
-    │          │      result                 │                        │
+    │          │      rating,                │                        │
+    │          │      success                │                        │
     │          │    )                        │                        │
     │          └───────────────────────────────────────────────────►  │
     │                           │                                      │
@@ -329,47 +394,6 @@ WITH COMMIT-REVEAL:
     │                           │                                      │
     │ ◄──emit ValidationFinalized(requestId, result)──────────────────┤
     │                           │                                      │
-```
-
-### Consensus Calculation
-
-```
-┌──────────────────────────────────────────────────────────┐
-│  Consensus Algorithm (Byzantine Fault Tolerant)          │
-│                                                          │
-│  Input: N validator responses                           │
-│         - Each response has: success (bool) + stake     │
-│                                                          │
-│  Step 1: Count votes                                    │
-│    successVotes = Σ(stake where success = true)        │
-│    failVotes = Σ(stake where success = false)          │
-│    totalVotes = successVotes + failVotes                │
-│                                                          │
-│  Step 2: Calculate rate                                 │
-│    successRate = (successVotes / totalVotes) × 100      │
-│                                                          │
-│  Step 3: Determine outcome                              │
-│    if successRate ≥ 66%:                                │
-│      → VALIDATED (task correct)                         │
-│      → Reward SUCCESS voters                            │
-│      → Slash FAIL voters                                │
-│    else if successRate ≤ 33%:                           │
-│      → FAILED (task incorrect)                          │
-│      → Reward FAIL voters                               │
-│      → Slash SUCCESS voters                             │
-│    else:                                                │
-│      → DISPUTED (no consensus)                          │
-│      → Return all stakes                                │
-│      → No rewards, no slashing                          │
-│                                                          │
-│  Example:                                               │
-│    10 validators, 0.1 ETH each                          │
-│    7 vote SUCCESS, 3 vote FAIL                          │
-│    successRate = 70% ≥ 66% → VALIDATED ✓                │
-│    7 validators: 0.1 + (1.0 × 0.1 / 7) ≈ 0.114 ETH     │
-│    3 validators: 0 ETH (slashed)                        │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -402,7 +426,7 @@ WITH COMMIT-REVEAL:
     │                                    │
     │                                    │
     │ 3. Wait 30 seconds                 │
-    │    ⏱️  [MIN_DELAY]                 │
+    │    [MIN_DELAY]                      │
     │                                    │
     │                                    │
     │ 4. authorizeTaskWithReveal(        │
@@ -424,44 +448,6 @@ WITH COMMIT-REVEAL:
     │                                    │
     │ ◄─return success───────────────────┤
     │                                    │
-```
-
-### Reputation Update Flow
-
-```
-┌─────────────┐          ┌────────────┐          ┌─────────────┐
-│ Validation  │          │ Reputation │          │  Agent      │
-│ Registry    │          │ Registry   │          │  (on-chain) │
-└──────┬──────┘          └─────┬──────┘          └──────┬──────┘
-       │                       │                        │
-       │ 1. Validation complete│                        │
-       │    (consensus reached)│                        │
-       │                       │                        │
-       │ 2. submitFeedback(    │                        │
-       │      taskId,          │                        │
-       │      serverAgent,     │                        │
-       │      rating,          │                        │
-       │      success          │                        │
-       │    )                  │                        │
-       ├──────────────────────►│                        │
-       │                       │                        │
-       │                 Store │                        │
-       │                 feedback                       │
-       │                       │                        │
-       │                       │ 3. Query reputation    │
-       │                       │◄───────────────────────┤
-       │                       │                        │
-       │                       │ 4. getAgentReputation( │
-       │                       │      agent             │
-       │                       │    )                   │
-       │                       │                        │
-       │                Calculate                       │
-       │                average                         │
-       │                rating                          │
-       │                       │                        │
-       │                       │ return reputation      │
-       │                       ├───────────────────────►│
-       │                       │                        │
 ```
 
 ---
@@ -509,11 +495,8 @@ WITH COMMIT-REVEAL:
       │            │ ◄──emit VoteCast()────────────┤
       │            │               │               │
       │            │               │               │
-      │            │  (Repeat for multiple voters) │
-      │            │               │               │
-      │            │               │               │
       │ 5. Wait 7 days             │               │
-      │    ⏱️                       │               │
+      │    [wait]                   │               │
       │                            │               │
       │                            │ 6. executeProposal(
       │                            │      proposalId
@@ -542,44 +525,6 @@ WITH COMMIT-REVEAL:
       │    │                       │                      │
       │ ◄──┴───emit ProposalExecuted()──┴───────────────┤
       │                            │                      │
-```
-
-### Voting Weight Distribution
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  Voter Registration & Weight Assignment                 │
-│                                                         │
-│  Owner (initially) can register voters:                │
-│                                                         │
-│  ┌──────────┐                                          │
-│  │  Owner   │                                          │
-│  └────┬─────┘                                          │
-│       │                                                │
-│       │ registerVoter(address, weight)                │
-│       │                                                │
-│       ├──────────────┐                                 │
-│       │              │                                 │
-│       ▼              ▼                                 │
-│  ┌────────┐    ┌────────┐                             │
-│  │Voter 1 │    │Voter 2 │    ...                      │
-│  │Weight: │    │Weight: │                             │
-│  │  100   │    │  50    │                             │
-│  └────────┘    └────────┘                             │
-│                                                        │
-│  Total Weight = Σ(all voter weights)                  │
-│                                                        │
-│  Participation = (Σ votes cast / Total Weight) × 100  │
-│  Approval = (Σ FOR votes / Σ all votes) × 100         │
-│                                                        │
-│  Example:                                             │
-│    Total Weight: 300 (3 voters: 100, 100, 100)       │
-│    Votes Cast: 200 (2 voters voted)                  │
-│    Participation: 66.7% ≥ 10% ✓                       │
-│    FOR votes: 150                                     │
-│    Approval: 75% ≥ 66% ✓ → APPROVED                   │
-│                                                        │
-└─────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -661,8 +606,23 @@ WITH COMMIT-REVEAL:
 │            │                                               │
 │            ▼                                               │
 │  ┌───────────────────┐                                    │
-│  │ registerWithReveal│ ~250k gas (first)                 │
-│  │                   │ ~150k gas (subsequent)             │
+│  │ registerAgent     │ ~650k gas (multi-key)              │
+│  │                   │ ~450k gas (single key)             │
+│  └─────────┬─────────┘                                    │
+│            │                                               │
+│            ▼                                               │
+│  ┌───────────────────┐                                    │
+│  │ activateAgent     │ ~45k gas                           │
+│  └───────────────────┘                                    │
+│                                                            │
+│  Key Management:                                           │
+│  ┌───────────────────┐                                    │
+│  │ addKey            │ ~100k gas                          │
+│  └─────────┬─────────┘                                    │
+│            │                                               │
+│            ▼                                               │
+│  ┌───────────────────┐                                    │
+│  │ revokeKey         │ ~70k gas                           │
 │  └───────────────────┘                                    │
 │                                                            │
 │  Validation Flow:                                         │
@@ -712,10 +672,11 @@ WITH COMMIT-REVEAL:
 │                                                          │
 │  Layer 1: Identity & Access Control                     │
 │  ┌────────────────────────────────────────────────────┐ │
-│  │ • DID-based authentication                         │ │
-│  │ • Public key signature verification               │ │
+│  │ • DID-based authentication (W3C compliant)         │ │
+│  │ • Multi-key signature verification               │ │
 │  │ • Active agent status checks                      │ │
-│  │ • Owner/governance role separation                │ │
+│  │ • Owner/operator role separation                  │ │
+│  │ • KME public key verification (X25519)            │ │
 │  └────────────────────────────────────────────────────┘ │
 │                           ▼                              │
 │  Layer 2: Transaction Security                          │
@@ -724,11 +685,13 @@ WITH COMMIT-REVEAL:
 │  │ • ChainId inclusion (cross-chain replay)          │ │
 │  │ • Nonce tracking (replay attacks)                 │ │
 │  │ • Timing constraints (MEV protection)             │ │
+│  │ • Stake requirement (0.01 ETH)                    │ │
 │  └────────────────────────────────────────────────────┘ │
 │                           ▼                              │
 │  Layer 3: Economic Security                             │
 │  ┌────────────────────────────────────────────────────┐ │
-│  │ • Stake requirements (Sybil resistance)           │ │
+│  │ • Registration stake (Sybil resistance)           │ │
+│  │ • Time-locked activation (1 hour delay)           │ │
 │  │ • Slashing mechanisms (misbehavior penalty)       │ │
 │  │ • Reward distribution (honest incentives)         │ │
 │  │ • Pull payment pattern (griefing prevention)      │ │
@@ -738,8 +701,9 @@ WITH COMMIT-REVEAL:
 │  ┌────────────────────────────────────────────────────┐ │
 │  │ • Array bounds checking (gas limits)              │ │
 │  │ • Maximum validators per request (100)            │ │
+│  │ • Rate limiting (24 registrations/day)            │ │
+│  │ • Maximum keys per agent (10)                     │ │
 │  │ • Deadline enforcement (resource locking)         │ │
-│  │ • Gas limit controls on hooks                     │ │
 │  └────────────────────────────────────────────────────┘ │
 │                           ▼                              │
 │  Layer 5: Smart Contract Security                       │
@@ -748,6 +712,7 @@ WITH COMMIT-REVEAL:
 │  │ • Pausable contracts (emergency stops)            │ │
 │  │ • Two-step ownership transfer (Ownable2Step)      │ │
 │  │ • Custom errors (gas optimization)                │ │
+│  │ • Public key reuse prevention                     │ │
 │  └────────────────────────────────────────────────────┘ │
 │                                                          │
 └──────────────────────────────────────────────────────────┘
@@ -768,26 +733,30 @@ WITH COMMIT-REVEAL:
 │  on different network           Network-specific commits │
 │                                                           │
 │  Sybil Attack                                            │
-│  Attacker creates many      →   Stake requirements       │
-│  identities to manipulate       Economic cost per vote   │
-│  validation                                              │
+│  Attacker creates many      →   Stake requirement        │
+│  identities to manipulate       Rate limiting (24/day)   │
+│  validation                     Economic cost per agent  │
 │                                                           │
 │  DoS via Gas                                             │
-│  Attacker submits 1000+     →   Max 100 validators       │
-│  validators to exceed gas       Array bounds checking    │
-│  limit                          ~5.2M gas max            │
+│  Attacker submits 1000+     →   Max 10 keys per agent    │
+│  keys to exceed gas limit       Max 100 validators       │
+│                                 Array bounds checking    │
 │                                                           │
 │  Reentrancy                                              │
 │  Attacker calls back into   →   ReentrancyGuard on all   │
 │  contract during execution      payable functions        │
 │                                                           │
 │  MEV Exploitation                                        │
-│  Sandwich attacks on        →   Timing constraints       │
-│  validator submissions          Commit delays (30s-1h)   │
+│  Sandwich attacks on        →   Commit-reveal delays     │
+│  validator submissions          (1 min - 1 hour window)  │
 │                                                           │
-│  Centralization Risk                                     │
-│  Owner controls trusted     →   Community governance     │
-│  TEE keys                       Proposal→Vote→Execute    │
+│  Key Reuse Attack                                        │
+│  Attacker reuses public key →   Key hash tracking        │
+│  across multiple agents         Prevent reuse globally   │
+│                                                           │
+│  Time-based Attack                                       │
+│  Instant malicious agent    →   1-hour activation delay  │
+│  registration & usage           Community review period  │
 │                                                           │
 └──────────────────────────────────────────────────────────┘
 ```
@@ -802,12 +771,16 @@ WITH COMMIT-REVEAL:
 ┌─────────────────────────────────────────────────────────┐
 │  Contract Sizes (Approximate)                           │
 │                                                         │
-│  SageRegistryV3.sol:             ~15 KB                 │
-│  ERC8004ValidationRegistry.sol:  ~20 KB                 │
-│  ERC8004ReputationRegistryV2.sol: ~12 KB                │
-│  TEEKeyRegistry.sol:             ~18 KB                 │
+│  AgentCardRegistry.sol:             ~18 KB              │
+│  AgentCardStorage.sol:              ~8 KB               │
+│  AgentCardVerifyHook.sol:           ~6 KB               │
+│  ERC8004ValidationRegistry.sol:     ~20 KB              │
+│  ERC8004ReputationRegistry.sol:     ~12 KB              │
+│  TEEKeyRegistry.sol:                ~18 KB              │
+│  SimpleMultiSig.sol:                ~8 KB               │
+│  TimelockController.sol:            ~12 KB              │
 │                                                         │
-│  Total System Size:              ~65 KB                 │
+│  Total System Size:                 ~102 KB             │
 │                                                         │
 │  Optimization Techniques:                               │
 │  • Custom errors instead of strings (-30% gas)          │
@@ -815,6 +788,7 @@ WITH COMMIT-REVEAL:
 │  • View functions for off-chain queries                │
 │  • Events for historical data tracking                 │
 │  • Pull payment pattern for withdrawals                │
+│  • Struct parameters to avoid stack too deep           │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -822,17 +796,17 @@ WITH COMMIT-REVEAL:
 ### Deployment Sequence
 
 ```
-1. Deploy SageRegistryV3
+1. Deploy AgentCardVerifyHook
    └─ No dependencies
 
-2. Deploy ERC8004IdentityRegistry(SageRegistryV3)
-   └─ Depends on: SageRegistryV3
+2. Deploy AgentCardRegistry(verifyHookAddress)
+   └─ Depends on: AgentCardVerifyHook
 
-3. Deploy ERC8004ReputationRegistryV2(IdentityRegistry)
-   └─ Depends on: IdentityRegistry
+3. Deploy ERC8004ReputationRegistry(identityRegistry)
+   └─ Depends on: AgentCardRegistry (as identity registry)
 
-4. Deploy ERC8004ValidationRegistry(IdentityRegistry, ReputationRegistry)
-   └─ Depends on: IdentityRegistry, ReputationRegistry
+4. Deploy ERC8004ValidationRegistry(identityRegistry, reputationRegistry)
+   └─ Depends on: AgentCardRegistry, ReputationRegistry
 
 5. Link ReputationRegistry.setValidationRegistry(ValidationRegistry)
    └─ Enable ValidationRegistry to submit feedback
@@ -840,7 +814,14 @@ WITH COMMIT-REVEAL:
 6. Deploy TEEKeyRegistry
    └─ No dependencies (standalone governance)
 
-7. (Optional) Register initial TEE keys via governance
+7. (Optional) Deploy SimpleMultiSig
+   └─ Multi-signature wallet for governance
+
+8. (Optional) Deploy TimelockController
+   └─ Time-delayed execution for critical operations
+
+9. (Optional) Transfer AgentCardRegistry ownership to governance
+   └─ Multi-sig or timelock for decentralized control
 ```
 
 ---
@@ -849,19 +830,27 @@ WITH COMMIT-REVEAL:
 
 This architecture provides:
 
-✅ **Decentralized Identity**: DID-based agent registration with ownership proofs
-✅ **Trustless Validation**: Crypto-economic incentives for honest verification
-✅ **Byzantine Fault Tolerance**: 66% consensus threshold
-✅ **Front-Running Protection**: Commit-reveal pattern on sensitive operations
-✅ **DoS Resistance**: Array bounds and gas limit controls
-✅ **Community Governance**: Decentralized TEE key approval
-✅ **Modular Design**: Independent contracts with clear interfaces
-✅ **Audit Ready**: Comprehensive documentation and test coverage
+- **Multi-Key Support**: ECDSA, Ed25519, X25519 in a single agent
+- **Native ERC-8004**: Direct implementation, no adapter needed
+- **KME Integration**: X25519 public key storage for HPKE
+- **Front-Running Protection**: Commit-reveal pattern
+- **Sybil Resistance**: Stake + rate limiting + time-lock
+- **DoS Resistance**: Array bounds and gas limit controls
+- **Community Governance**: Decentralized TEE key approval
+- **Modular Design**: Independent contracts with clear interfaces
+- **Upgradable**: Separate storage layer enables future upgrades
+- **Audit Ready**: Comprehensive documentation and test coverage
 
-**Next Steps**: Integration guide and deployment procedures
+**Key Improvements over V2/V3/V4**:
+- Native ERC-8004 implementation (no adapter)
+- Multi-key support with key lifecycle management
+- KME public key storage for HPKE encryption
+- Time-locked activation for community review
+- Public key reuse prevention
+- Enhanced rate limiting and anti-Sybil measures
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-10-07
-**Status**: ✅ Complete
+**Document Version**: 2.0
+**Last Updated**: 2025-11-01
+**Status**: Current - Reflects AgentCard Architecture

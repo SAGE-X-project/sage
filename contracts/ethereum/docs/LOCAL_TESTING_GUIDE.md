@@ -1,4 +1,7 @@
-# 📚 SAGE Contracts Local Testing Guide
+# SAGE Contracts Local Testing Guide
+
+**Version**: 2.0 (AgentCard Architecture)
+**Last Updated**: 2025-11-01
 
 로컬 환경에서 SAGE 컨트랙트를 배포하고 테스트하는 방법입니다.
 
@@ -24,7 +27,7 @@
 
 ##  Step-by-Step Guide
 
-### 1️⃣ Hardhat 로컬 노드 시작
+### 1. Hardhat 로컬 노드 시작
 
 ```bash
 ./bin/deploy-local.sh
@@ -41,7 +44,7 @@ npx hardhat node
 - 로컬 블록체인이 `http://localhost:8545`에서 실행됩니다
 - 10개의 테스트 계정이 생성됩니다 (각각 10,000 ETH 보유)
 
-### 2️⃣ 컨트랙트 배포
+### 2. 컨트랙트 배포
 
 새 터미널에서:
 
@@ -57,10 +60,13 @@ npx hardhat run scripts/deploy-local.js --network localhost
 ```
 
 배포되는 컨트랙트:
-- **SageRegistryV2**: 향상된 공개키 검증 기능이 있는 메인 레지스트리
-- **SageVerificationHook**: DID 검증 및 rate limiting 기능
+- **AgentCardRegistry**: Multi-key 지원 및 ERC-8004 네이티브 구현
+- **AgentCardStorage**: 분리된 스토리지 레이어
+- **AgentCardVerifyHook**: DID 검증, rate limiting, blacklist 기능
+- **ERC8004ValidationRegistry**: Task 검증 레지스트리
+- **ERC8004ReputationRegistryV2**: Reputation 관리
 
-### 3️⃣ 컨트랙트와 상호작용
+### 3. 컨트랙트와 상호작용
 
 ```bash
 ./bin/deploy-local.sh
@@ -83,7 +89,7 @@ npx hardhat run scripts/interact-local.js --network localhost
 7. **Check Hooks**: Hook 설정 확인
 8. **Test Signature**: 서명 생성 테스트
 
-### 4️⃣ 자동화된 테스트 시나리오
+### 4. 자동화된 테스트 시나리오
 
 ```bash
 ./bin/deploy-local.sh
@@ -92,59 +98,102 @@ npx hardhat run scripts/interact-local.js --network localhost
 
 이렇게 하면 전체 통합 테스트가 실행됩니다.
 
-##  Example: Agent Registration
+##  Example: Agent Registration (Multi-Key)
 
 ```javascript
-// 1. 에이전트 데이터 준비
-const agentData = {
-  did: "did:sage:test:0x123...",
+// 1. Multi-key 데이터 준비
+const ecdsaWallet = ethers.Wallet.createRandom();
+const ed25519Key = ethers.hexlify(ethers.randomBytes(32)); // 실제로는 proper Ed25519 lib 사용
+const x25519Key = ethers.hexlify(ethers.randomBytes(32));   // KME public key for HPKE
+
+const keys = [
+  ecdsaWallet.publicKey,  // ECDSA (65 bytes uncompressed)
+  ed25519Key,             // Ed25519 (32 bytes)
+  x25519Key,              // X25519 (32 bytes)
+];
+
+const keyTypes = [0, 1, 2]; // ECDSA, Ed25519, X25519
+
+// 2. Commit 생성
+const salt = ethers.hexlify(ethers.randomBytes(32));
+const network = await provider.getNetwork();
+const commitHash = ethers.keccak256(
+  ethers.AbiCoder.defaultAbiCoder().encode(
+    ["string", "bytes[]", "address", "bytes32", "uint256"],
+    [did, keys, ecdsaWallet.address, salt, network.chainId]
+  )
+);
+
+// 3. Commit 제출 (0.01 ETH stake)
+await registry.commitRegistration(commitHash, {
+  value: ethers.parseEther("0.01")
+});
+
+// 4. 60초 대기 후 Reveal
+await new Promise(resolve => setTimeout(resolve, 61000));
+
+// 5. 서명 생성 (ECDSA만)
+const messageHash = ethers.keccak256(
+  ethers.AbiCoder.defaultAbiCoder().encode(
+    ["string", "uint256", "address", "address"],
+    ["SAGE Agent Registration:", network.chainId, registryAddress, ecdsaWallet.address]
+  )
+);
+const ecdsaSignature = await ecdsaWallet.signMessage(ethers.getBytes(messageHash));
+
+// 6. Registration params 준비
+const params = {
+  did: "did:sage:ethereum:0x123...",
   name: "My AI Assistant",
   description: "A helpful AI agent",
   endpoint: "https://myagent.ai",
-  publicKey: "0x04...", // 64 bytes for uncompressed secp256k1
-  capabilities: '["chat", "code", "analysis"]'
+  capabilities: JSON.stringify(["chat", "code", "analysis"]),
+  keys,
+  keyTypes,
+  signatures: [ecdsaSignature, ethers.hexlify(ethers.randomBytes(64)), "0x"],
+  salt
 };
 
-// 2. 서명 생성
-const messageHash = ethers.keccak256(
-  ethers.solidityPacked(
-    ["string", "string", "string", "string", "bytes", "string", "address", "uint256"],
-    [did, name, description, endpoint, publicKey, capabilities, signerAddress, 0]
-  )
-);
-const signature = await signer.signMessage(ethers.getBytes(messageHash));
+// 7. 에이전트 등록
+const tx = await registry.registerAgent(params);
+await tx.wait();
 
-// 3. 에이전트 등록
-await registry.registerAgent(
-  did, name, description, endpoint, 
-  publicKey, capabilities, signature
-);
+// 8. 1시간 후 활성화
+setTimeout(async () => {
+  await registry.activateAgent(agentId);
+}, 3600000);
 ```
 
 ##  Testing Features
 
-### V2 향상된 기능들:
+### AgentCard 아키텍처 주요 기능:
 
-1. **공개키 검증 (5단계)**
-   - 길이 검증 (33, 64, 65 bytes)
-   - 형식 검증 (0x04, 0x02, 0x03 prefix)
-   - Zero key 방지
-   - 소유권 증명 (서명 검증)
-   - 취소된 키 확인
+1. **Multi-Key 지원**
+   - ECDSA (secp256k1): Ethereum 호환 서명
+   - Ed25519: 고성능 EdDSA 서명
+   - X25519: HPKE 암호화 (KME public key)
+   - 최대 10개 키 등록 가능
 
-2. **키 취소 기능**
-   - 키 소유자만 취소 가능
-   - 취소 시 관련 에이전트 자동 비활성화
-   - 이중 취소 방지
+2. **강화된 보안**
+   - Commit-reveal 패턴 (front-running 방지)
+   - 0.01 ETH stake 요구사항
+   - 1시간 time-lock 활성화
+   - Rate limiting (하루 24개 제한)
+   - Public key 재사용 방지
+   - Blacklist/Whitelist
 
-3. **Hook 시스템**
-   - BeforeRegisterHook: 등록 전 검증
-   - AfterRegisterHook: 등록 후 처리
-   - DID 형식 검증
-   - Rate limiting (하루 5개 제한)
-   - Blacklist 기능
+3. **ERC-8004 네이티브 구현**
+   - Identity Registry (native)
+   - Validation Registry
+   - Reputation Registry
+   - AgentDomain 지원
 
-## 🛠️ Troubleshooting
+4. **스토리지 분리**
+   - AgentCardStorage: 독립된 스토리지 레이어
+   - 가스 최적화
+   - 업그레이드 용이성
+
+## Troubleshooting
 
 ### 문제: "Hardhat node is not running"
 ```bash
@@ -173,11 +222,14 @@ lsof -ti:8545 | xargs kill -9
 
 ##  Gas Usage
 
-대략적인 가스 사용량:
-- Agent Registration: ~620,000 gas
-- Agent Update: ~80,000 gas
-- Key Revocation: ~66,000 gas
-- Agent Deactivation: ~50,000 gas
+대략적인 가스 사용량 (AgentCard):
+- Commit Registration: ~50,000 gas
+- Register Agent (3 keys): ~450,000-650,000 gas
+- Activate Agent: ~50,000 gas
+- Add Key: ~100,000 gas
+- Revoke Key: ~70,000 gas
+- Update Agent: ~80,000 gas
+- Deactivate Agent: ~50,000 gas
 
 ##  Monitoring
 
@@ -188,11 +240,11 @@ tail -f hardhat-node.log
 
 # 트랜잭션 모니터링
 npx hardhat console --network localhost
-> const registry = await ethers.getContractAt("SageRegistryV2", "0x...")
+> const registry = await ethers.getContractAt("AgentCardRegistry", "0x...")
 > await registry.queryFilter(registry.filters.AgentRegistered())
 ```
 
-## 📚 Advanced Usage
+## Advanced Usage
 
 ### Custom Scripts
 
@@ -204,11 +256,14 @@ const hre = require("hardhat");
 
 async function main() {
   const registry = await hre.ethers.getContractAt(
-    "SageRegistryV2", 
+    "AgentCardRegistry",
     "0x5FbDB2315678afecb367f032d93F642f64180aa3"
   );
-  
+
   // Your custom logic here
+  // Example: Query agent by DID
+  const agent = await registry.getAgentByDID("did:sage:ethereum:0x...");
+  console.log("Agent:", agent);
 }
 
 main().catch(console.error);
@@ -226,8 +281,10 @@ npx hardhat run scripts/my-test.js --network localhost
 npx hardhat console --network localhost
 
 > const [owner, agent1] = await ethers.getSigners()
-> const registry = await ethers.getContractAt("SageRegistryV2", "0x...")
+> const registry = await ethers.getContractAt("AgentCardRegistry", "0x...")
 > await registry.owner()
+> await registry.registrationStake() // 0.01 ETH
+> await registry.activationDelay()   // 3600 seconds (1 hour)
 ```
 
 ##  Next Steps
@@ -237,7 +294,7 @@ npx hardhat console --network localhost
 3. 추가 Hook 구현 (예: AI 모델 검증)
 4. 성능 최적화 및 가스 효율성 개선
 
-## 📞 Support
+## Support
 
 문제가 있으신가요?
 - GitHub Issues: [프로젝트 저장소]
