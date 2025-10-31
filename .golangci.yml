@@ -1,5 +1,6 @@
 version: "2"
 
+# Force cache invalidation for build tag fix
 linters:
   default: none
   enable:

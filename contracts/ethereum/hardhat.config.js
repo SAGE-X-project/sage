@@ -1,4 +1,5 @@
-import hardhatToolboxMochaEthers from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
+import hardhatEthers from "@nomicfoundation/hardhat-ethers";
+import hardhatToolbox from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -13,13 +14,18 @@ function getEnvVariable(key, defaultValue) {
   if (!value && !defaultValue) {
     console.warn(`  Warning: ${key} is not set in environment variables`);
   }
-  return value || defaultValue;
+  return value || defaultValue || "";
 }
 
 // Parse gas settings
 const parseGasPrice = (envKey, defaultGwei) => {
   const gweiValue = getEnvVariable(envKey, defaultGwei);
   return gweiValue ? parseInt(gweiValue) * 1000000000 : undefined;
+};
+
+// Parse integer settings
+const parseIntSetting = (envKey, defaultValue) => {
+  return parseInt(getEnvVariable(envKey, defaultValue.toString()));
 };
 
 // ============================================
@@ -110,7 +116,12 @@ if (process.env.SEPOLIA_RPC_URL) {
 // Adjust optimizer runs for coverage to handle deep stacks
 const optimizerRuns = process.env.COVERAGE
   ? 800  // Higher runs for coverage to reduce stack depth
-  : parseInt(getEnvVariable("OPTIMIZER_RUNS", "200"));
+  : parseIntSetting("OPTIMIZER_RUNS", 200);
+
+// viaIR setting: Enable only when needed to avoid verification issues
+// Note: viaIR can cause Etherscan/block explorer verification failures
+// Enable with VIA_IR=true environment variable if you need it for stack depth issues
+const useViaIR = process.env.VIA_IR === "true" || process.env.COVERAGE === "true";
 
 const solidityConfig = {
   version: "0.8.20",
@@ -126,9 +137,23 @@ const solidityConfig = {
         }
       }
     },
-    viaIR: true,  // Enable IR-based compilation to avoid stack too deep errors
+    viaIR: useViaIR,  // Conditional: only enable when explicitly needed
+    evmVersion: "shanghai",
     metadata: {
-      bytecodeHash: "ipfs"
+      bytecodeHash: "ipfs",
+      appendCBOR: true
+    },
+    outputSelection: {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata"
+        ],
+        "": ["ast"]
+      }
     }
   },
   // Exclude deprecated contracts and tests from compilation
@@ -196,27 +221,27 @@ const gasReporterConfig = {
 // MAIN CONFIGURATION EXPORT
 // ============================================
 
-export default {
-  plugins: [hardhatToolboxMochaEthers],
+const config = {
+  plugins: [hardhatEthers, hardhatToolbox],
 
   defaultNetwork: "hardhat",
 
   solidity: solidityConfig,
 
   networks: networks,
-  
+
   etherscan: etherscanConfig,
-  
+
   // Sourcify verification support
   sourcify: {
     enabled: process.env.SOURCIFY_ENABLED !== "false",
     apiUrl: "https://sourcify.dev/server",
     browserUrl: "https://sourcify.dev"
   },
-  
+
   // Gas reporting
   gasReporter: gasReporterConfig,
-  
+
   // Path configuration
   paths: {
     sources: "./contracts",
@@ -225,13 +250,13 @@ export default {
     artifacts: "./artifacts",
     scripts: "./scripts"
   },
-  
+
   // Test configuration
   mocha: {
-    timeout: parseInt(getEnvVariable("TEST_TIMEOUT", "60000")),
+    timeout: parseIntSetting("TEST_TIMEOUT", 60000),
     reporter: getEnvVariable("TEST_REPORTER", "spec")
   },
-  
+
   // TypeChain configuration
   typechain: {
     outDir: "typechain-types",
@@ -262,3 +287,5 @@ if (activeNetwork !== "hardhat") {
     console.log(`   RPC URL: ${networks[activeNetwork].url}\n`);
   }
 }
+
+export default config;

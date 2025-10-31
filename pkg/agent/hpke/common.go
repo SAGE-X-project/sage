@@ -20,8 +20,6 @@ package hpke
 
 import (
 	"crypto"
-	"crypto/ed25519"
-
 	"crypto/hmac"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -118,31 +116,39 @@ func DeriveTrafficKeys(seed []byte) TrafficKeys {
 	}
 }
 
-// verifySignature verifies a detached signature in a constant-time friendly way.
+// verifySignature verifies a detached signature using the appropriate verifier.
+//
+// Supported key types (via CompositeVerifier):
+// - Ed25519: EdDSA signatures
+// - ECDSA: Secp256k1 signatures (Ethereum-compatible)
+// - Custom Verify interface: Extensible verification
+//
+// This function now uses the Strategy Pattern to support multiple signature algorithms.
+// PR #118: Added ECDSA support for Ethereum agent compatibility.
 func verifySignature(payload, signature []byte, senderPub crypto.PublicKey) error {
 	if len(signature) == 0 {
 		return errors.New("missing signature")
 	}
 
-	// Support either a custom Verify interface or raw ed25519.PublicKey
+	// Support custom Verify interface for extensibility
 	type verifyKey interface {
 		Verify(msg, sig []byte) error
 	}
 
-	switch pk := senderPub.(type) {
-	case verifyKey:
+	if pk, ok := senderPub.(verifyKey); ok {
 		if err := pk.Verify(payload, signature); err != nil {
 			return fmt.Errorf("signature verify failed: %w", err)
 		}
 		return nil
-	case ed25519.PublicKey:
-		if !ed25519.Verify(pk, payload, signature) {
-			return errors.New("signature verify failed: invalid ed25519 signature")
-		}
-		return nil
-	default:
-		return fmt.Errorf("unsupported public key type: %T", senderPub)
 	}
+
+	// Use CompositeVerifier for standard crypto algorithms (Ed25519, ECDSA)
+	composite := NewCompositeVerifier()
+	if err := composite.Verify(payload, signature, senderPub); err != nil {
+		return fmt.Errorf("signature verify failed: %w", err)
+	}
+
+	return nil
 }
 
 type nonceStore struct {

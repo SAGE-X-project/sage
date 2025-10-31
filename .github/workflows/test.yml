@@ -111,6 +111,7 @@ jobs:
         with:
           version: latest
           args: --timeout=5m
+          skip-cache: true
 
       - name: Run go vet
         run: go vet ./...

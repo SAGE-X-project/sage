@@ -1,5 +1,4 @@
 //go:build e2e
-// +build e2e
 
 // SAGE - Secure Agent Guarantee Engine
 // Copyright (C) 2025 SAGE-X-project

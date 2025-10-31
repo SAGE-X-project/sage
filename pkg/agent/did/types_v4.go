@@ -22,13 +22,21 @@ import (
 	"time"
 )
 
+// This file contains types for multi-key agent support.
+//
+// TERMINOLOGY NOTE:
+//   - "V4" in this filename means "multi-key support" (multiple key types per agent)
+//   - These types are used by AgentCardRegistry contract
+//   - KeyType values MUST match Solidity enum in AgentCardStorage.sol
+
 // KeyType represents the type of cryptographic key
+// CRITICAL: Values MUST match Solidity enum in AgentCardStorage.sol
 type KeyType int
 
 const (
-	KeyTypeEd25519 KeyType = iota // Solana, Cardano, Polkadot
-	KeyTypeECDSA                  // Ethereum, Bitcoin (secp256k1)
-	KeyTypeX25519                 // HPKE key exchange
+	KeyTypeECDSA   KeyType = 0 // Ethereum, Bitcoin (secp256k1) - MUST be 0
+	KeyTypeEd25519 KeyType = 1 // Solana, Cardano, Polkadot - MUST be 1
+	KeyTypeX25519  KeyType = 2 // HPKE key exchange - MUST be 2
 )
 
 // String returns the string representation of KeyType
@@ -67,6 +75,7 @@ type AgentMetadataV4 struct {
 	IsActive     bool                   `json:"is_active"`
 	CreatedAt    time.Time              `json:"created_at"`
 	UpdatedAt    time.Time              `json:"updated_at"`
+	PublicKEMKey []byte                 `json:"public_kem_key"` // X25519 KME public key (32 bytes) for HPKE
 }
 
 // A2APublicKey represents a public key in A2A Agent Card format
@@ -194,3 +203,46 @@ func FromAgentMetadata(legacy *AgentMetadata) *AgentMetadataV4 {
 
 	return v4
 }
+
+// RegistrationParams represents parameters for AgentCardRegistry registration
+// This matches the Solidity struct AgentCardStorage.RegistrationParams
+type RegistrationParams struct {
+	DID          string    `json:"did"`
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	Endpoint     string    `json:"endpoint"`
+	Capabilities string    `json:"capabilities"` // JSON-encoded capabilities
+	Keys         [][]byte  `json:"keys"`         // Public key bytes
+	KeyTypes     []KeyType `json:"key_types"`    // Type of each key
+	Signatures   [][]byte  `json:"signatures"`   // Ownership proof signatures
+	Salt         [32]byte  `json:"salt"`         // Salt for commit-reveal
+}
+
+// CommitmentState represents the state of a registration commitment
+// This matches the return value of AgentCardRegistry.registrationCommitments()
+type CommitmentState struct {
+	CommitHash [32]byte  `json:"commit_hash"` // Hash of commitment
+	Timestamp  time.Time `json:"timestamp"`   // When commitment was made
+	Revealed   bool      `json:"revealed"`    // Whether commitment has been revealed
+}
+
+// CommitmentStatus represents the local tracking state for three-phase registration
+type CommitmentStatus struct {
+	Phase           RegistrationPhase   `json:"phase"`            // Current phase
+	CommitHash      [32]byte            `json:"commit_hash"`      // Commitment hash
+	CommitTimestamp time.Time           `json:"commit_timestamp"` // When committed
+	Params          *RegistrationParams `json:"params,omitempty"` // Original params (cleared after reveal)
+	AgentID         [32]byte            `json:"agent_id"`         // Set after registration
+	CanActivateAt   time.Time           `json:"can_activate_at"`  // Earliest activation time
+}
+
+// RegistrationPhase represents the current phase of three-phase registration
+type RegistrationPhase int
+
+const (
+	PhaseNotStarted RegistrationPhase = iota // Not yet committed
+	PhaseCommitted                           // Committed, waiting to register
+	PhaseRegistered                          // Registered, waiting activation delay
+	PhaseActivated                           // Fully active
+	PhaseFailed                              // Registration failed
+)

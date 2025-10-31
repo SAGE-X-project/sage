@@ -170,6 +170,14 @@ func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicK
 		return fmt.Errorf("signature expired at %d (now %d)", params.Expires, now)
 	}
 
+	// Validate body integrity if Content-Digest is covered by signature
+	// This prevents body tampering attacks where the body is modified but
+	// the Content-Digest header remains unchanged (PR #118 security fix)
+	bodyValidator := NewBodyIntegrityValidator()
+	if err := bodyValidator.ValidateContentDigest(req, params.CoveredComponents); err != nil {
+		return fmt.Errorf("body integrity validation failed: %w", err)
+	}
+
 	// Build signature base
 	signatureBase, err := v.canonicalizer.BuildSignatureBase(req, sigName, params)
 	if err != nil {

@@ -17,7 +17,6 @@
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 //go:build integration
-// +build integration
 
 package main
 

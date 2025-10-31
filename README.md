@@ -13,31 +13,33 @@
 
 SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based security framework for AI agent communication. It provides end-to-end encrypted, authenticated communication channels between AI agents using decentralized identity (DID) management, HPKE-based key agreement, and RFC 9421 HTTP Message Signatures.
 
-### ✨ What's New in v1.4.0 (2025-10-27)
+### ✨ What's New in v1.5.0 (2025-10-30)
+
+**AgentCardRegistry: Three-Phase Secure Registration** - Major Release
+
+- **Three-Phase Registration Flow**: Enhanced security via commit-reveal pattern
+  - **Phase 1 (Commit)**: Anti-front-running protection with commitment hash
+  - **Phase 2 (Register)**: Time-windowed reveal (1-60 minutes)
+  - **Phase 3 (Activate)**: Sybil-resistant activation delay (1+ hour)
+  - **Economic Security**: 0.01 ETH stake requirement (refunded upon activation)
+- **New CLI Commands**:
+  - `sage-did commit` - Initialize registration with stake
+  - `sage-did register` - Reveal commitment and register agent
+  - `sage-did activate` - Activate agent after delay
+- **Enhanced Security Features**:
+  - Commitment-based anti-front-running
+  - Time-locked activation prevents rapid spam
+  - Operator delegation system (ERC-721 style)
+  - Multi-key support (ECDSA, Ed25519, X25519)
+- **Breaking Changes**: Migration required from SageRegistryV4
+  - See [AgentCardRegistry Migration Guide](docs/AGENTCARD_MIGRATION_GUIDE.md)
+  - Legacy SageRegistryV4 deprecated but still functional
+
+### Previous Release: v1.4.0 (2024-10-27)
 
 **Development Dependencies Upgrade & Governance Testing** - Minor Release
 
-- **Hardhat v3 Upgrade**: Modern Ethereum development framework
-  - Node.js 22+ requirement for latest features
-  - ESM (ECMAScript Modules) support throughout
-  - 187 comprehensive governance integration tests
-  - Full TEEKeyRegistry and GovernanceIntegration test coverage
-- **Contract Development Tools**: Major dependency upgrades
-  - prettier 2.8.0 → 3.6.2 (code formatting)
-  - solhint 3.6.2 → 6.0.1 (linting)
-  - prettier-plugin-solidity 1.1.0 → 2.1.0
-  - Added 6 Hardhat toolbox peer dependencies for complete functionality
-- **Go 1.24.0**: Updated runtime and CI/CD
-  - golang.org/x/crypto v0.41.0 → v0.43.0 (security improvements)
-  - All GitHub Actions workflows updated
-  - Docker images updated to Go 1.24
-- **Dependency Updates**:
-  - go-ethereum v1.15.11 → v1.16.5 (latest blockchain client)
-  - GitHub Actions: setup-node v5→v6, codeql-action v3→v4, download-artifact v4→v5
-  - action-gh-release v1→v2 for improved release management
-- **Testing & Quality**: All 187 contract tests passing, comprehensive CI/CD validation
-
-See [CHANGELOG.md](CHANGELOG.md) for complete release notes and [SageRegistryV4 Deployment Guide](docs/V4_UPDATE_DEPLOYMENT_GUIDE.md) for deployment instructions.
+See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
 ### 🌐 Live Deployments
 
