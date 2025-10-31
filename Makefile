@@ -18,7 +18,7 @@ REPORTS_DIR=reports
 GO=go
 GOFLAGS=-v
 LDFLAGS=-w -s
-GOTOOLCHAIN=go1.24.8
+GOTOOLCHAIN=go1.25
 
 # Version information
 VERSION?=$(shell cat VERSION 2>/dev/null || echo "0.1.0")
