@@ -83,7 +83,7 @@ describe("AgentCardStorage", function () {
             expect(retrieved.updatedAt).to.equal(metadata.updatedAt);
             expect(retrieved.active).to.equal(metadata.active);
             expect(retrieved.chainId).to.equal(metadata.chainId);
-            expect(retrieved.kmePublicKey).to.equal(metadata.kmePublicKey);  // ✅ Verify KME key
+            expect(retrieved.kmePublicKey).to.equal(metadata.kmePublicKey);  //  Verify KME key
         });
 
         /**
@@ -608,11 +608,11 @@ describe("AgentCardStorage", function () {
  * Test Results Summary
  *
  * Verification Matrix Coverage:
- * - V1.1 Struct Definitions: 5/5 tests ✓
- * - V1.2 Storage Mappings: 8/8 tests ✓
- * - V1.3 Constants: 5/5 tests ✓
- * - V1.4 Events: 6/6 tests ✓
- * - V1.5 Additional: 1/1 test ✓
+ * - V1.1 Struct Definitions: 5/5 tests 
+ * - V1.2 Storage Mappings: 8/8 tests 
+ * - V1.3 Constants: 5/5 tests 
+ * - V1.4 Events: 6/6 tests 
+ * - V1.5 Additional: 1/1 test 
  *
  * Total: 25/25 verification items
  *

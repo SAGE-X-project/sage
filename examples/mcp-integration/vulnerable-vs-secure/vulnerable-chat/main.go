@@ -42,7 +42,7 @@ type ChatResponse struct {
 func processMessage(msg ChatMessage) ChatResponse {
 	// In a real system, this could execute commands, access databases, etc.
 	fmt.Printf("  Received message from: %s\n", msg.AgentID)
-	fmt.Printf("💬 Message: %s\n", msg.Message)
+	fmt.Printf(" Message: %s\n", msg.Message)
 
 	// Simulate some processing
 	time.Sleep(100 * time.Millisecond)
@@ -79,9 +79,9 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fmt.Println("🚨 VULNERABLE Chat Server (NO SECURITY)")
+	fmt.Println(" VULNERABLE Chat Server (NO SECURITY)")
 	fmt.Println("  DO NOT USE IN PRODUCTION!")
-	fmt.Println("📍 Listening on http://localhost:8082")
+	fmt.Println(" Listening on http://localhost:8082")
 	fmt.Println("")
 	fmt.Println("Problems with this server:")
 	fmt.Println("   No identity verification")

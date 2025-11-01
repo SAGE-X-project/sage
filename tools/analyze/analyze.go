@@ -182,16 +182,16 @@ func generateComparison(current, previous BenchmarkReport) string {
 	for _, curr := range current.Results {
 		prev, exists := prevMap[curr.Name]
 		if !exists {
-			sb.WriteString(fmt.Sprintf("| %s | %.2f | - | NEW | ✨ |\n", curr.Name, curr.NsPerOp))
+			sb.WriteString(fmt.Sprintf("| %s | %.2f | - | NEW |  |\n", curr.Name, curr.NsPerOp))
 			continue
 		}
 
 		change := ((curr.NsPerOp - prev.NsPerOp) / prev.NsPerOp) * 100
-		status := "✅"
+		status := ""
 		if change > 10 {
-			status = "⚠️"
+			status = ""
 		} else if change > 20 {
-			status = "❌"
+			status = ""
 		}
 
 		sb.WriteString(fmt.Sprintf("| %s | %.2f | %.2f | %.1f%% | %s |\n",
@@ -205,10 +205,10 @@ func generateComparison(current, previous BenchmarkReport) string {
 
 	sb.WriteString("\n")
 	sb.WriteString("Legend:\n")
-	sb.WriteString("- ✅ Performance within 10% (acceptable)\n")
-	sb.WriteString("- ⚠️ Performance degraded 10-20% (review needed)\n")
-	sb.WriteString("- ❌ Performance degraded >20% (action required)\n")
-	sb.WriteString("- ✨ New benchmark\n\n")
+	sb.WriteString("-  Performance within 10% (acceptable)\n")
+	sb.WriteString("-  Performance degraded 10-20% (review needed)\n")
+	sb.WriteString("-  Performance degraded >20% (action required)\n")
+	sb.WriteString("-  New benchmark\n\n")
 
 	return sb.String()
 }

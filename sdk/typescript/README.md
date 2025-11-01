@@ -4,14 +4,14 @@ Official TypeScript/JavaScript SDK for SAGE (Secure Agent Guarantee Engine).
 
 ## Features
 
-- 🔐 **End-to-End Encryption**: Secure agent-to-agent communication
-- 🔑 **Cryptographic Operations**: Ed25519, Secp256k1, X25519 key management
-- 🤝 **Handshake Protocol**: Secure session establishment with DID verification
-- 📝 **Message Signing**: RFC 9421 HTTP message signatures
-- ⚛️ **React Hooks**: Ready-to-use hooks for React applications
-- 🌐 **Blockchain Integration**: Ethereum/EVM-compatible DID registry
-- 📦 **Zero Dependencies**: Core crypto operations use well-audited libraries
-- 🎯 **TypeScript First**: Full type safety and IntelliSense support
+-  **End-to-End Encryption**: Secure agent-to-agent communication
+-  **Cryptographic Operations**: Ed25519, Secp256k1, X25519 key management
+-  **Handshake Protocol**: Secure session establishment with DID verification
+-  **Message Signing**: RFC 9421 HTTP message signatures
+-  **React Hooks**: Ready-to-use hooks for React applications
+-  **Blockchain Integration**: Ethereum/EVM-compatible DID registry
+-  **Zero Dependencies**: Core crypto operations use well-audited libraries
+-  **TypeScript First**: Full type safety and IntelliSense support
 
 ## Installation
 
@@ -562,20 +562,20 @@ globalThis.crypto = webcrypto as Crypto;
 
 **Solutions:**
 ```typescript
-// ❌ BAD - Using hooks outside component
+//  BAD - Using hooks outside component
 const client = useSAGE();
 
 export function MyComponent() {
   return <div>...</div>;
 }
 
-// ✅ GOOD - Use hooks inside component
+//  GOOD - Use hooks inside component
 export function MyComponent() {
   const { client, isInitialized } = useSAGE();
   return <div>...</div>;
 }
 
-// ✅ GOOD - Use class component with HOC
+//  GOOD - Use class component with HOC
 class MyComponent extends React.Component {
   // Use withSAGE HOC instead
 }
@@ -629,7 +629,7 @@ useEffect(() => {
 
 **Solutions:**
 ```typescript
-// ✅ Clean up event listeners
+//  Clean up event listeners
 useEffect(() => {
   const handler = (event) => console.log('Session created:', event);
   client.on('session:created', handler);
@@ -639,14 +639,14 @@ useEffect(() => {
   };
 }, [client]);
 
-// ✅ Close sessions on unmount
+//  Close sessions on unmount
 useEffect(() => {
   return () => {
     sessions.forEach(session => client.closeSession(session.id));
   };
 }, [sessions]);
 
-// ✅ Use cleanup in custom hooks
+//  Use cleanup in custom hooks
 function useSession(clientDID: string) {
   const [session, setSession] = useState<Session | null>(null);
 
@@ -770,13 +770,13 @@ async function benchmark() {
 #### 1. Never Expose Private Keys
 
 ```typescript
-// ❌ BAD - Logging private keys
+//  BAD - Logging private keys
 console.log('Private key:', keyPair.privateKey);
 
-// ❌ BAD - Storing in localStorage
+//  BAD - Storing in localStorage
 localStorage.setItem('privateKey', bytesToHex(keyPair.privateKey));
 
-// ✅ GOOD - Use secure storage
+//  GOOD - Use secure storage
 // Browser: IndexedDB with encryption
 import { openDB } from 'idb';
 
@@ -788,14 +788,14 @@ const db = await openDB('sage-keys', 1, {
 
 await db.put('keys', keyPair.privateKey, 'identity');
 
-// ✅ GOOD - Node.js: Use OS keychain
+//  GOOD - Node.js: Use OS keychain
 // macOS: Keychain, Windows: Credential Manager, Linux: Secret Service
 ```
 
 #### 2. Validate All Inputs
 
 ```typescript
-// ✅ Validate DIDs
+//  Validate DIDs
 function validateDID(did: string): boolean {
   const didRegex = /^did:sage:(ethereum|solana):0x[a-fA-F0-9]{40}$/;
   return didRegex.test(did);
@@ -808,7 +808,7 @@ function processDID(did: string) {
   // Proceed with valid DID
 }
 
-// ✅ Validate message size
+//  Validate message size
 const MAX_MESSAGE_SIZE = 1024 * 1024; // 1MB
 
 function sendMessage(sessionID: string, message: Uint8Array) {
@@ -822,7 +822,7 @@ function sendMessage(sessionID: string, message: Uint8Array) {
 #### 3. Use Timeouts for Network Operations
 
 ```typescript
-// ✅ Add timeout wrapper
+//  Add timeout wrapper
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
     promise,
@@ -848,7 +848,7 @@ try {
 #### 4. Implement Exponential Backoff for Retries
 
 ```typescript
-// ✅ Retry with exponential backoff
+//  Retry with exponential backoff
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries = 3,
@@ -879,19 +879,19 @@ const session = await retryWithBackoff(() =>
 #### 1. Reuse Sessions
 
 ```typescript
-// ❌ BAD - New session for each message
+//  BAD - New session for each message
 for (const message of messages) {
   const session = await client.initiateHandshake(serverPublicKey);
   await client.sendMessage(session.id, message);
 }
 
-// ✅ GOOD - Reuse session
+//  GOOD - Reuse session
 const session = await client.initiateHandshake(serverPublicKey);
 for (const message of messages) {
   await client.sendMessage(session.id, message);
 }
 
-// ✅ BETTER - Session pool
+//  BETTER - Session pool
 class SessionPool {
   private sessions = new Map<string, Session>();
 
@@ -918,7 +918,7 @@ class SessionPool {
 #### 2. Batch Operations
 
 ```typescript
-// ✅ Send multiple messages in parallel
+//  Send multiple messages in parallel
 async function broadcastMessage(dids: string[], message: Uint8Array) {
   // Establish sessions in parallel
   const sessions = await Promise.all(
@@ -937,7 +937,7 @@ async function broadcastMessage(dids: string[], message: Uint8Array) {
 #### 3. Optimize React Rendering
 
 ```typescript
-// ✅ Use useMemo for expensive computations
+//  Use useMemo for expensive computations
 const { client } = useSAGE();
 
 const sessionMap = useMemo(() => {
@@ -947,13 +947,13 @@ const sessionMap = useMemo(() => {
   }, {} as Record<string, Session>);
 }, [sessions]);
 
-// ✅ Use useCallback for event handlers
+//  Use useCallback for event handlers
 const handleSendMessage = useCallback(async (message: string) => {
   const encoded = new TextEncoder().encode(message);
   await client.sendMessage(sessionID, encoded);
 }, [client, sessionID]);
 
-// ✅ Memoize components
+//  Memoize components
 const SessionList = React.memo(({ sessions }: { sessions: Session[] }) => {
   return (
     <ul>
@@ -966,14 +966,14 @@ const SessionList = React.memo(({ sessions }: { sessions: Session[] }) => {
 #### 4. Clean Up Resources
 
 ```typescript
-// ✅ Close client on unmount
+//  Close client on unmount
 useEffect(() => {
   return () => {
     client.close();
   };
 }, [client]);
 
-// ✅ Cancel pending operations
+//  Cancel pending operations
 useEffect(() => {
   const controller = new AbortController();
 
@@ -998,7 +998,7 @@ useEffect(() => {
 #### 1. Use Context for Global Client
 
 ```typescript
-// ✅ Create context
+//  Create context
 import { createContext, useContext, ReactNode } from 'react';
 
 const SAGEContext = createContext<SAGEClient | null>(null);
@@ -1041,7 +1041,7 @@ function MessageComponent() {
 #### 2. Separate Business Logic from UI
 
 ```typescript
-// ✅ Custom hooks for business logic
+//  Custom hooks for business logic
 function useAgentMessaging(targetDID: string) {
   const client = useSAGEClient();
   const [session, setSession] = useState<Session | null>(null);
@@ -1090,7 +1090,7 @@ function ChatComponent({ targetDID }: { targetDID: string }) {
 #### 1. Unit Tests with Jest
 
 ```typescript
-// ✅ Mock SAGE client
+//  Mock SAGE client
 import { SAGEClient } from '@sage-x/sdk';
 
 jest.mock('@sage-x/sdk');
@@ -1122,7 +1122,7 @@ describe('AgentService', () => {
 #### 2. React Testing Library
 
 ```typescript
-// ✅ Test React components
+//  Test React components
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SAGEProvider } from './SAGEProvider';
@@ -1207,7 +1207,7 @@ const responses = await coordinator.broadcast(
 ### Custom Event System
 
 ```typescript
-// ✅ Type-safe event emitter
+//  Type-safe event emitter
 interface SAGEEvents {
   'session:created': Session;
   'session:expired': { sessionID: string };
@@ -1250,7 +1250,7 @@ events.on('message:sent', ({ sessionID, size }) => {
 ### WebSocket Integration
 
 ```typescript
-// ✅ Real-time messaging with WebSocket
+//  Real-time messaging with WebSocket
 class SAGEWebSocket {
   private ws: WebSocket;
   private client: SAGEClient;
@@ -1287,7 +1287,7 @@ class SAGEWebSocket {
 ### Monitoring and Metrics
 
 ```typescript
-// ✅ Performance monitoring
+//  Performance monitoring
 class SAGEMetrics {
   private metrics = {
     handshakes: 0,

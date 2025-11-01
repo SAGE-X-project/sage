@@ -708,7 +708,7 @@ func TestCrossChainMessaging(t *testing.T) {
 		err = verifier.VerifyRequest(req, ethKeyPair.PublicKey(), nil)
 		assert.NoError(t, err, "Solana agent should verify Ethereum signature")
 
-		t.Logf("✅ Cross-chain message verified successfully!")
+		t.Logf(" Cross-chain message verified successfully!")
 		t.Logf("Key types: Ethereum(%s) → Solana(%s)", ethKeyType, solKeyType)
 	})
 }
@@ -801,7 +801,7 @@ func TestKeyRotation(t *testing.T) {
 		err = verifier.VerifyRequest(req2, newKeyPair.PublicKey(), nil)
 		assert.NoError(t, err, "New message should verify with new key")
 
-		t.Logf("✅ Key rotation successful!")
+		t.Logf(" Key rotation successful!")
 		t.Logf("Old key can still verify old messages")
 		t.Logf("New key verifies new messages")
 	})
@@ -877,10 +877,10 @@ func TestMultiChainAgent(t *testing.T) {
 			err = identity.KeyPair.Verify(message, signature)
 			assert.NoError(t, err)
 
-			t.Logf("✅ %s identity verified", chainType)
+			t.Logf(" %s identity verified", chainType)
 		}
 
-		t.Logf("✅ Multi-chain agent successfully created with %d identities", len(identities))
+		t.Logf(" Multi-chain agent successfully created with %d identities", len(identities))
 	})
 }
 

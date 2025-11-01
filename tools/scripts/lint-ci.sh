@@ -33,9 +33,9 @@ echo "Command: golangci-lint config verify"
 echo ""
 
 if golangci-lint config verify; then
-    echo -e "${GREEN}✓ Configuration verification passed${NC}"
+    echo -e "${GREEN} Configuration verification passed${NC}"
 else
-    echo -e "${RED}✗ Configuration verification failed${NC}"
+    echo -e "${RED} Configuration verification failed${NC}"
     FAILED=1
 fi
 echo ""
@@ -46,9 +46,9 @@ echo "Command: golangci-lint run --timeout=5m"
 echo ""
 
 if golangci-lint run --timeout=5m; then
-    echo -e "${GREEN}✓ golangci-lint passed${NC}"
+    echo -e "${GREEN} golangci-lint passed${NC}"
 else
-    echo -e "${RED}✗ golangci-lint failed${NC}"
+    echo -e "${RED} golangci-lint failed${NC}"
     FAILED=1
 fi
 echo ""
@@ -59,9 +59,9 @@ echo "Command: go vet ./..."
 echo ""
 
 if go vet ./...; then
-    echo -e "${GREEN}✓ go vet passed${NC}"
+    echo -e "${GREEN} go vet passed${NC}"
 else
-    echo -e "${RED}✗ go vet failed${NC}"
+    echo -e "${RED} go vet failed${NC}"
     FAILED=1
 fi
 echo ""
@@ -73,24 +73,24 @@ echo ""
 
 UNFORMATTED=$(gofmt -l . | grep -v "contracts/ethereum/bindings/go/example.go" || true)
 if [ -n "$UNFORMATTED" ]; then
-    echo -e "${RED}✗ Go code is not formatted:${NC}"
+    echo -e "${RED} Go code is not formatted:${NC}"
     echo "$UNFORMATTED"
     echo ""
     echo "Run 'make fmt' to format the code"
     FAILED=1
 else
-    echo -e "${GREEN}✓ Code formatting check passed${NC}"
+    echo -e "${GREEN} Code formatting check passed${NC}"
 fi
 echo ""
 
 # Summary
 echo -e "${GREEN}==================================${NC}"
 if [ $FAILED -eq 0 ]; then
-    echo -e "${GREEN}All CI lint checks passed! ✓${NC}"
+    echo -e "${GREEN}All CI lint checks passed! ${NC}"
     echo -e "${GREEN}Safe to commit.${NC}"
     exit 0
 else
-    echo -e "${RED}Some CI lint checks failed! ✗${NC}"
+    echo -e "${RED}Some CI lint checks failed! ${NC}"
     echo -e "${YELLOW}Please fix the issues above before committing.${NC}"
     exit 1
 fi

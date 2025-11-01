@@ -140,25 +140,25 @@ test_connectivity() {
     if curl -s -X POST -H "Content-Type: application/json" \
         --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
         http://localhost:8545 | grep -q "result"; then
-        log_success "Ethereum RPC: http://localhost:8545 ✓"
+        log_success "Ethereum RPC: http://localhost:8545 "
     else
-        log_warn "Ethereum RPC: http://localhost:8545 ✗"
+        log_warn "Ethereum RPC: http://localhost:8545 "
     fi
 
     # Test Solana RPC
     if curl -s -X POST -H "Content-Type: application/json" \
         --data '{"jsonrpc":"2.0","id":1,"method":"getHealth"}' \
         http://localhost:8899 | grep -q "result"; then
-        log_success "Solana RPC: http://localhost:8899 ✓"
+        log_success "Solana RPC: http://localhost:8899 "
     else
-        log_warn "Solana RPC: http://localhost:8899 ✗"
+        log_warn "Solana RPC: http://localhost:8899 "
     fi
 
     # Test Redis
     if docker exec sage-test-redis redis-cli ping | grep -q "PONG"; then
-        log_success "Redis: localhost:6380 ✓"
+        log_success "Redis: localhost:6380 "
     else
-        log_warn "Redis: localhost:6380 ✗"
+        log_warn "Redis: localhost:6380 "
     fi
 }
 

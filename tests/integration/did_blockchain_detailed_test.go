@@ -63,8 +63,8 @@ func TestDIDRegistrationTransactionHash(t *testing.T) {
 		assert.Len(t, mockTxHash.Bytes(), 32, "Transaction hash should be 32 bytes")
 		assert.Regexp(t, "^0x[0-9a-fA-F]{64}$", mockTxHash.Hex(), "Transaction hash should match format")
 
-		t.Logf("✓ Transaction hash: %s", mockTxHash.Hex())
-		t.Logf("✓ Agent DID: did:sage:ethereum:%s", agentAddress.Hex())
+		t.Logf(" Transaction hash: %s", mockTxHash.Hex())
+		t.Logf(" Agent DID: did:sage:ethereum:%s", agentAddress.Hex())
 	})
 
 	t.Run("Verify transaction receipt", func(t *testing.T) {
@@ -79,8 +79,8 @@ func TestDIDRegistrationTransactionHash(t *testing.T) {
 		// 2. Wait for receipt: receipt, err := bind.WaitMined(ctx, client, tx)
 		// 3. Verify receipt status: assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status)
 
-		t.Logf("✓ Latest block number: %d", blockNumber)
-		t.Logf("✓ Transaction receipt verification implemented (requires deployed contract)")
+		t.Logf(" Latest block number: %d", blockNumber)
+		t.Logf(" Transaction receipt verification implemented (requires deployed contract)")
 	})
 }
 
@@ -132,11 +132,11 @@ func TestDIDRegistrationGasCost(t *testing.T) {
 		deviation := float64(simulatedGasEstimate) / float64(targetGas)
 		assert.InDelta(t, 1.0, deviation, 0.1, "Gas cost should be within ±10%% of target")
 
-		t.Logf("✓ Estimated gas: %d", simulatedGasEstimate)
-		t.Logf("✓ Target gas (spec): %d", targetGas)
-		t.Logf("✓ Deviation: %.2f%%", (deviation-1.0)*100)
-		t.Logf("✓ Agent address: %s", agentAddress.Hex())
-		t.Logf("✓ Public key length: %d bytes", len(pubKeyBytes))
+		t.Logf(" Estimated gas: %d", simulatedGasEstimate)
+		t.Logf(" Target gas (spec): %d", targetGas)
+		t.Logf(" Deviation: %.2f%%", (deviation-1.0)*100)
+		t.Logf(" Agent address: %s", agentAddress.Hex())
+		t.Logf(" Public key length: %d bytes", len(pubKeyBytes))
 		_ = ctx // use ctx to avoid unused warning
 	})
 
@@ -158,10 +158,10 @@ func TestDIDRegistrationGasCost(t *testing.T) {
 			big.NewFloat(1e18),
 		)
 
-		t.Logf("✓ Gas price: %s Wei", gasPrice.String())
-		t.Logf("✓ Gas limit: %d", gasLimit)
-		t.Logf("✓ Total cost: %s Wei", totalCostWei.String())
-		t.Logf("✓ Total cost: %s ETH", ethValue.Text('f', 18))
+		t.Logf(" Gas price: %s Wei", gasPrice.String())
+		t.Logf(" Gas limit: %d", gasLimit)
+		t.Logf(" Total cost: %s Wei", totalCostWei.String())
+		t.Logf(" Total cost: %s ETH", ethValue.Text('f', 18))
 
 		// Verify cost is reasonable for local testnet
 		assert.NotNil(t, totalCostWei)
@@ -198,10 +198,10 @@ func TestDIDMetadataUpdate(t *testing.T) {
 		// Verify endpoints are different
 		assert.NotEqual(t, originalEndpoint, newEndpoint)
 
-		t.Logf("✓ DID: %s", did)
-		t.Logf("✓ Original endpoint: %s", originalEndpoint)
-		t.Logf("✓ New endpoint: %s", newEndpoint)
-		t.Logf("✓ Endpoint update implemented (requires deployed contract)")
+		t.Logf(" DID: %s", did)
+		t.Logf(" Original endpoint: %s", originalEndpoint)
+		t.Logf(" New endpoint: %s", newEndpoint)
+		t.Logf(" Endpoint update implemented (requires deployed contract)")
 	})
 
 	t.Run("Update DID metadata", func(t *testing.T) {
@@ -234,10 +234,10 @@ func TestDIDMetadataUpdate(t *testing.T) {
 		assert.NotEqual(t, originalMetadata["version"], updatedMetadata["version"])
 		assert.NotEqual(t, originalMetadata["description"], updatedMetadata["description"])
 
-		t.Logf("✓ DID: %s", did)
-		t.Logf("✓ Original metadata: %+v", originalMetadata)
-		t.Logf("✓ Updated metadata: %+v", updatedMetadata)
-		t.Logf("✓ Metadata update implemented (requires deployed contract)")
+		t.Logf(" DID: %s", did)
+		t.Logf(" Original metadata: %+v", originalMetadata)
+		t.Logf(" Updated metadata: %+v", updatedMetadata)
+		t.Logf(" Metadata update implemented (requires deployed contract)")
 	})
 
 	t.Run("Verify metadata update gas cost", func(t *testing.T) {
@@ -255,9 +255,9 @@ func TestDIDMetadataUpdate(t *testing.T) {
 		assert.Less(t, simulatedUpdateGas, uint64(registrationGas),
 			"Update should cost less than registration")
 
-		t.Logf("✓ Registration gas (spec): %d", registrationGas)
-		t.Logf("✓ Update gas (estimated): %d", simulatedUpdateGas)
-		t.Logf("✓ Savings: %d gas (%.1f%%)",
+		t.Logf(" Registration gas (spec): %d", registrationGas)
+		t.Logf(" Update gas (estimated): %d", simulatedUpdateGas)
+		t.Logf(" Savings: %d gas (%.1f%%)",
 			registrationGas-int(simulatedUpdateGas),
 			float64(registrationGas-int(simulatedUpdateGas))/float64(registrationGas)*100)
 	})
@@ -291,10 +291,10 @@ func TestDIDDeactivation(t *testing.T) {
 
 		assert.NotEqual(t, initialState, deactivatedState)
 
-		t.Logf("✓ DID: %s", did)
-		t.Logf("✓ Initial state: %s", initialState)
-		t.Logf("✓ After deactivation: %s", deactivatedState)
-		t.Logf("✓ Deactivation implemented (requires deployed contract)")
+		t.Logf(" DID: %s", did)
+		t.Logf(" Initial state: %s", initialState)
+		t.Logf(" After deactivation: %s", deactivatedState)
+		t.Logf(" Deactivation implemented (requires deployed contract)")
 	})
 
 	t.Run("Prevent operations on deactivated DID", func(t *testing.T) {
@@ -307,8 +307,8 @@ func TestDIDDeactivation(t *testing.T) {
 
 		did := fmt.Sprintf("did:sage:ethereum:%s", agentAddress.Hex())
 
-		t.Logf("✓ DID: %s", did)
-		t.Logf("✓ Deactivated DID operations properly restricted (requires deployed contract)")
+		t.Logf(" DID: %s", did)
+		t.Logf(" Deactivated DID operations properly restricted (requires deployed contract)")
 	})
 }
 
@@ -337,9 +337,9 @@ func TestDIDQueryByDID(t *testing.T) {
 		assert.Len(t, pubKeyBytes, 65, "Uncompressed secp256k1 public key should be 65 bytes")
 		assert.Equal(t, byte(0x04), pubKeyBytes[0], "Should have 0x04 prefix for uncompressed key")
 
-		t.Logf("✓ DID: %s", did)
-		t.Logf("✓ Public key length: %d bytes", len(pubKeyBytes))
-		t.Logf("✓ Public key prefix: 0x%02x", pubKeyBytes[0])
+		t.Logf(" DID: %s", did)
+		t.Logf(" Public key length: %d bytes", len(pubKeyBytes))
+		t.Logf(" Public key prefix: 0x%02x", pubKeyBytes[0])
 	})
 
 	t.Run("Query metadata from DID", func(t *testing.T) {
@@ -360,8 +360,8 @@ func TestDIDQueryByDID(t *testing.T) {
 			"registeredAt",
 		}
 
-		t.Logf("✓ DID: %s", did)
-		t.Logf("✓ Expected metadata fields: %v", expectedFields)
+		t.Logf(" DID: %s", did)
+		t.Logf(" Expected metadata fields: %v", expectedFields)
 	})
 
 	t.Run("Error on inactive DID query", func(t *testing.T) {
@@ -373,7 +373,7 @@ func TestDIDQueryByDID(t *testing.T) {
 		agentAddress := crypto.PubkeyToAddress(*ecdsaPubKey)
 		did := fmt.Sprintf("did:sage:ethereum:%s", agentAddress.Hex())
 
-		t.Logf("✓ DID: %s", did)
-		t.Logf("✓ Inactive DID query handling implemented (requires deployed contract)")
+		t.Logf(" DID: %s", did)
+		t.Logf(" Inactive DID query handling implemented (requires deployed contract)")
 	})
 }

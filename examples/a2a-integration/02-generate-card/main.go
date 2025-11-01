@@ -66,7 +66,7 @@ func main() {
 		rpcURL = "http://localhost:8545"
 	}
 	if agentDIDStr == "" {
-		fmt.Println("❌ Error: AGENT_DID environment variable not set")
+		fmt.Println(" Error: AGENT_DID environment variable not set")
 		fmt.Println("   Please run example 01 first to register an agent")
 		fmt.Println("   Then set: export AGENT_DID=did:sage:ethereum:...")
 		os.Exit(1)
@@ -74,7 +74,7 @@ func main() {
 
 	agentDID := did.AgentDID(agentDIDStr)
 
-	fmt.Println("📋 Configuration")
+	fmt.Println(" Configuration")
 	fmt.Println("─────────────────────────────────────────────────────────")
 	fmt.Println("Registry Address:", registryAddress)
 	fmt.Println("RPC URL:         ", rpcURL)
@@ -82,7 +82,7 @@ func main() {
 	fmt.Println()
 
 	// Step 1: Connect to blockchain
-	fmt.Println("🔗 Step 1: Connecting to Blockchain")
+	fmt.Println(" Step 1: Connecting to Blockchain")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	manager := did.NewManager()
@@ -97,14 +97,14 @@ func main() {
 
 	err := manager.Configure(did.ChainEthereum, config)
 	if err != nil {
-		fmt.Printf("❌ Failed to configure manager: %v\n", err)
+		fmt.Printf(" Failed to configure manager: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("✓ Connected to Ethereum (localhost)")
+	fmt.Println(" Connected to Ethereum (localhost)")
 	fmt.Println()
 
 	// Step 2: Resolve agent metadata
-	fmt.Println("🔍 Step 2: Resolving Agent from Blockchain")
+	fmt.Println(" Step 2: Resolving Agent from Blockchain")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -112,7 +112,7 @@ func main() {
 
 	agent, err := manager.ResolveAgent(ctx, agentDID)
 	if err != nil {
-		fmt.Printf("❌ Failed to resolve agent: %v\n", err)
+		fmt.Printf(" Failed to resolve agent: %v\n", err)
 		fmt.Println()
 		fmt.Println("Make sure:")
 		fmt.Println("  1. The agent DID is correct")
@@ -129,7 +129,7 @@ func main() {
 	fmt.Println()
 
 	// Step 3: Generate A2A Agent Card
-	fmt.Println("🎴 Step 3: Generating A2A Agent Card")
+	fmt.Println(" Step 3: Generating A2A Agent Card")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	// Convert AgentMetadata to AgentMetadataV4 for card generation
@@ -137,11 +137,11 @@ func main() {
 
 	card, err := did.GenerateA2ACard(metadataV4)
 	if err != nil {
-		fmt.Printf("❌ Failed to generate A2A card: %v\n", err)
+		fmt.Printf(" Failed to generate A2A card: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("✓ A2A Agent Card generated successfully!")
+	fmt.Println(" A2A Agent Card generated successfully!")
 	fmt.Println()
 	fmt.Println("Card Details:")
 	fmt.Println("  Type:        ", card.Type)
@@ -167,15 +167,15 @@ func main() {
 	}
 
 	// Step 4: Validate card
-	fmt.Println("✅ Step 4: Validating A2A Card")
+	fmt.Println(" Step 4: Validating A2A Card")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	err = did.ValidateA2ACard(card)
 	if err != nil {
-		fmt.Printf("❌ Card validation failed: %v\n", err)
+		fmt.Printf(" Card validation failed: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("✓ Card validation passed!")
+	fmt.Println(" Card validation passed!")
 	fmt.Println("  - Type and version are valid")
 	fmt.Println("  - DID format is correct")
 	fmt.Println("  - Required fields are present")
@@ -183,23 +183,23 @@ func main() {
 	fmt.Println()
 
 	// Step 5: Export to JSON
-	fmt.Println("💾 Step 5: Exporting Card to JSON")
+	fmt.Println(" Step 5: Exporting Card to JSON")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	cardJSON, err := json.MarshalIndent(card, "", "  ")
 	if err != nil {
-		fmt.Printf("❌ Failed to marshal card to JSON: %v\n", err)
+		fmt.Printf(" Failed to marshal card to JSON: %v\n", err)
 		os.Exit(1)
 	}
 
 	filename := "agent-card.json"
 	err = os.WriteFile(filename, cardJSON, 0644)
 	if err != nil {
-		fmt.Printf("❌ Failed to write card file: %v\n", err)
+		fmt.Printf(" Failed to write card file: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("✓ Card exported to: %s\n", filename)
+	fmt.Printf(" Card exported to: %s\n", filename)
 	fmt.Printf("  File size: %d bytes\n", len(cardJSON))
 	fmt.Println()
 
@@ -218,7 +218,7 @@ func main() {
 	fmt.Println("║     Card Generation Complete!                             ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")
 	fmt.Println()
-	fmt.Println("🎉 Success! Your A2A Agent Card is ready.")
+	fmt.Println(" Success! Your A2A Agent Card is ready.")
 	fmt.Println()
 	fmt.Println("What you can do with this card:")
 	fmt.Println("  1. Share it with other agents for discovery")

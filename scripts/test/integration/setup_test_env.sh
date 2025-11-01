@@ -39,7 +39,7 @@ wait_for_service() {
     while [ $attempt -lt $max_attempts ]; do
         if curl -s -X POST "$url" -H "Content-Type: application/json" \
            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' >/dev/null 2>&1; then
-            echo -e " ${GREEN}✓${NC}"
+            echo -e " ${GREEN}${NC}"
             return 0
         fi
         echo -n "."
@@ -47,7 +47,7 @@ wait_for_service() {
         attempt=$((attempt + 1))
     done
 
-    echo -e " ${RED}✗${NC}"
+    echo -e " ${RED}${NC}"
     return 1
 }
 
@@ -319,7 +319,7 @@ main() {
         status)
             if curl -s -X POST "$RPC_URL" -H "Content-Type: application/json" \
                -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' >/dev/null 2>&1; then
-                echo -e "${GREEN}✓${NC} Local blockchain is running at $RPC_URL"
+                echo -e "${GREEN}${NC} Local blockchain is running at $RPC_URL"
 
                 # Get block number
                 BLOCK=$(curl -s -X POST "$RPC_URL" -H "Content-Type: application/json" \
@@ -327,7 +327,7 @@ main() {
                     | grep -o '"result":"[^"]*"' | cut -d'"' -f4)
                 echo "  Current block: $((16#${BLOCK#0x}))"
             else
-                echo -e "${RED}✗${NC} Local blockchain is not running"
+                echo -e "${RED}${NC} Local blockchain is not running"
             fi
             ;;
 

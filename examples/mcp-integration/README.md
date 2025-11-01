@@ -5,10 +5,10 @@ This directory contains examples showing how to integrate SAGE (Secure Agent Gua
 ## Why SAGE?
 
 Without SAGE, MCP tools are vulnerable to:
-- 🚨 **Identity spoofing** - Any agent can pretend to be another
-- 🚨 **Message tampering** - Requests can be modified in transit  
-- 🚨 **Replay attacks** - Old requests can be resent
-- 🚨 **Unauthorized access** - No verification of agent capabilities
+-  **Identity spoofing** - Any agent can pretend to be another
+-  **Message tampering** - Requests can be modified in transit  
+-  **Replay attacks** - Old requests can be resent
+-  **Unauthorized access** - No verification of agent capabilities
 
 SAGE solves these problems by adding:
 -  **Cryptographic signatures** on every request

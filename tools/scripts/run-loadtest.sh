@@ -69,9 +69,9 @@ run_test() {
     local exit_code=$?
 
     if [ $exit_code -eq 0 ]; then
-        echo -e "${GREEN}✅ ${test_name} test completed successfully${NC}"
+        echo -e "${GREEN} ${test_name} test completed successfully${NC}"
     else
-        echo -e "${RED}❌ ${test_name} test failed${NC}"
+        echo -e "${RED} ${test_name} test failed${NC}"
     fi
 
     echo ""
@@ -108,10 +108,10 @@ if [ "$SCENARIO" = "all" ]; then
     echo ""
     echo "================================"
     if [ $FAILED -eq 0 ]; then
-        echo -e "${GREEN}✅ All tests passed${NC}"
+        echo -e "${GREEN} All tests passed${NC}"
         exit 0
     else
-        echo -e "${RED}❌ ${FAILED} test(s) failed${NC}"
+        echo -e "${RED} ${FAILED} test(s) failed${NC}"
         exit 1
     fi
 else

@@ -173,7 +173,7 @@ grep -E "PASS|FAIL" "$RESULTS_FILE" || echo "All tests passed"
 if [ -n "$COMPARE_WITH" ]; then
     echo ""
     echo -e "${YELLOW}Performance Changes:${NC}"
-    grep -E "⚠️|❌" "$ANALYSIS_FILE" | wc -l | xargs echo "Regressions found:"
+    grep -E "|" "$ANALYSIS_FILE" | wc -l | xargs echo "Regressions found:"
 fi
 
 echo ""

@@ -658,11 +658,11 @@ publicKey := didDoc.PublicKeys[0]
 This ADR has been reviewed and accepted by the SAGE core team. DID implementation is complete and in production use.
 
 **Acceptance Criteria Met:**
-- ✅ `did:sage` method specified and implemented
-- ✅ Ethereum and Solana blockchain support
-- ✅ W3C DID Core 1.0 compliant
-- ✅ SageRegistryV4 smart contract deployed
-- ✅ Solana agent registry program deployed
-- ✅ DID resolution working (<100ms cached)
-- ✅ Multi-key support (up to 10 keys)
-- ✅ Comprehensive test coverage
+-  `did:sage` method specified and implemented
+-  Ethereum and Solana blockchain support
+-  W3C DID Core 1.0 compliant
+-  SageRegistryV4 smart contract deployed
+-  Solana agent registry program deployed
+-  DID resolution working (<100ms cached)
+-  Multi-key support (up to 10 keys)
+-  Comprehensive test coverage

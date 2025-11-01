@@ -77,42 +77,42 @@ go run main.go
 ║     SAGE Example 01: Multi-Key Agent Registration        ║
 ╚═══════════════════════════════════════════════════════════╝
 
-📋 Configuration
+ Configuration
 ─────────────────────────────────────────────────────────
 Registry Address: 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
 RPC URL:          http://localhost:8545
 
-🔑 Step 1: Generating Cryptographic Keys
+ Step 1: Generating Cryptographic Keys
 ─────────────────────────────────────────────────────────
 Generating ECDSA (secp256k1) key...
-✓ ECDSA key generated (33 bytes)
+ ECDSA key generated (33 bytes)
 Generating Ed25519 key...
-✓ Ed25519 key generated (32 bytes)
+ Ed25519 key generated (32 bytes)
 Generating X25519 key...
-✓ X25519 key generated (32 bytes)
+ X25519 key generated (32 bytes)
 
-🔗 Step 2: Connecting to Blockchain
+ Step 2: Connecting to Blockchain
 ─────────────────────────────────────────────────────────
-✓ Connected to Ethereum (localhost)
+ Connected to Ethereum (localhost)
 
-📝 Step 3: Preparing Registration Request
+ Step 3: Preparing Registration Request
 ─────────────────────────────────────────────────────────
 Agent DID:    did:sage:ethereum:example-agent-20250119123456
 Agent Name:   Multi-Key Example Agent
 Endpoint:     https://agent.example.com
 Keys:         3 (ECDSA + Ed25519 + X25519)
 
-🚀 Step 4: Registering Agent on Blockchain
+ Step 4: Registering Agent on Blockchain
 ─────────────────────────────────────────────────────────
-⏳ Submitting transaction...
+ Submitting transaction...
 
-✅ Agent Registered Successfully!
+ Agent Registered Successfully!
 ─────────────────────────────────────────────────────────
 Transaction Hash: 0x1234...
 Block Number:     42
 Gas Used:         524288
 
-🔍 Step 5: Verifying Registration
+ Step 5: Verifying Registration
 ─────────────────────────────────────────────────────────
 Agent DID:        did:sage:ethereum:example-agent-20250119123456
 Agent Name:       Multi-Key Example Agent
@@ -120,7 +120,7 @@ Agent Endpoint:   https://agent.example.com
 Owner Address:    0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 Active:           true
 
-⚠️  Step 6: Ed25519 Key Approval Required
+  Step 6: Ed25519 Key Approval Required
 ─────────────────────────────────────────────────────────
 Ed25519 keys require approval by the registry contract owner.
 Until approved, the Ed25519 key will be marked as 'unverified'.
@@ -136,7 +136,7 @@ To approve (as contract owner):
 ║     Registration Complete!                                ║
 ╚═══════════════════════════════════════════════════════════╝
 
-🎉 Success! Your multi-key agent is now registered on-chain.
+ Success! Your multi-key agent is now registered on-chain.
 
 Next steps:
   1. Approve the Ed25519 key (see command above)

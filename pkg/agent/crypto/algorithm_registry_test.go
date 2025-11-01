@@ -124,13 +124,13 @@ func TestAlgorithmRegistry(t *testing.T) {
 
 		helpers.LogDetail(t, "필수 알고리즘 포함 여부 확인 중...")
 		assert.Contains(t, found, KeyTypeEd25519)
-		helpers.LogDetail(t, "  ✓ Ed25519 포함")
+		helpers.LogDetail(t, "   Ed25519 포함")
 
 		assert.Contains(t, found, KeyTypeSecp256k1)
-		helpers.LogDetail(t, "  ✓ Secp256k1 포함")
+		helpers.LogDetail(t, "   Secp256k1 포함")
 
 		assert.Contains(t, found, KeyTypeRSA)
-		helpers.LogDetail(t, "  ✓ RSA 포함")
+		helpers.LogDetail(t, "   RSA 포함")
 
 		helpers.LogSuccess(t, "모든 필수 알고리즘 포함 확인")
 
@@ -274,13 +274,13 @@ func TestAlgorithmRegistry(t *testing.T) {
 		// Should include RFC 9421 algorithm names
 		helpers.LogDetail(t, "서명 알고리즘 포함 여부 확인...")
 		assert.Contains(t, algorithms, "ed25519")
-		helpers.LogDetail(t, "  ✓ ed25519 포함")
+		helpers.LogDetail(t, "   ed25519 포함")
 
 		assert.Contains(t, algorithms, "es256k")
-		helpers.LogDetail(t, "  ✓ es256k 포함")
+		helpers.LogDetail(t, "   es256k 포함")
 
 		assert.Contains(t, algorithms, "rsa-pss-sha256")
-		helpers.LogDetail(t, "  ✓ rsa-pss-sha256 포함")
+		helpers.LogDetail(t, "   rsa-pss-sha256 포함")
 
 		// X25519 should NOT be in RFC 9421 list (it's for key exchange, not signing)
 		helpers.LogDetail(t, "키 교환 전용 알고리즘 제외 확인...")
@@ -353,7 +353,7 @@ func TestAlgorithmRegistry(t *testing.T) {
 			supported := SupportsKeyGeneration(kt)
 			assert.True(t, supported, "%s should support key generation", kt)
 			supportMap[string(kt)] = supported
-			helpers.LogDetail(t, "  ✓ %s 키 생성 지원", kt)
+			helpers.LogDetail(t, "   %s 키 생성 지원", kt)
 		}
 
 		helpers.LogSuccess(t, "모든 등록된 알고리즘이 키 생성 지원")
@@ -387,21 +387,21 @@ func TestAlgorithmRegistry(t *testing.T) {
 
 		assert.True(t, SupportsSignature(KeyTypeEd25519))
 		supportMap["Ed25519"] = true
-		helpers.LogDetail(t, "  ✓ Ed25519 서명 지원")
+		helpers.LogDetail(t, "   Ed25519 서명 지원")
 
 		assert.True(t, SupportsSignature(KeyTypeSecp256k1))
 		supportMap["Secp256k1"] = true
-		helpers.LogDetail(t, "  ✓ Secp256k1 서명 지원")
+		helpers.LogDetail(t, "   Secp256k1 서명 지원")
 
 		assert.True(t, SupportsSignature(KeyTypeRSA))
 		supportMap["RSA"] = true
-		helpers.LogDetail(t, "  ✓ RSA 서명 지원")
+		helpers.LogDetail(t, "   RSA 서명 지원")
 
 		// X25519 does NOT support signatures (key exchange only)
 		helpers.LogDetail(t, "키 교환 전용 알고리즘 확인...")
 		assert.False(t, SupportsSignature(KeyTypeX25519))
 		supportMap["X25519"] = false
-		helpers.LogDetail(t, "  ✓ X25519 서명 미지원 (키 교환 전용)")
+		helpers.LogDetail(t, "   X25519 서명 미지원 (키 교환 전용)")
 
 		// Unknown key type should return false
 		helpers.LogDetail(t, "미등록 알고리즘 확인...")
@@ -436,19 +436,19 @@ func TestAlgorithmRegistry(t *testing.T) {
 
 		assert.True(t, IsAlgorithmSupported(KeyTypeEd25519))
 		supportMap["Ed25519"] = true
-		helpers.LogDetail(t, "  ✓ Ed25519 지원됨")
+		helpers.LogDetail(t, "   Ed25519 지원됨")
 
 		assert.True(t, IsAlgorithmSupported(KeyTypeSecp256k1))
 		supportMap["Secp256k1"] = true
-		helpers.LogDetail(t, "  ✓ Secp256k1 지원됨")
+		helpers.LogDetail(t, "   Secp256k1 지원됨")
 
 		assert.True(t, IsAlgorithmSupported(KeyTypeRSA))
 		supportMap["RSA"] = true
-		helpers.LogDetail(t, "  ✓ RSA 지원됨")
+		helpers.LogDetail(t, "   RSA 지원됨")
 
 		assert.True(t, IsAlgorithmSupported(KeyTypeX25519))
 		supportMap["X25519"] = true
-		helpers.LogDetail(t, "  ✓ X25519 지원됨")
+		helpers.LogDetail(t, "   X25519 지원됨")
 
 		// Unknown algorithm should return false
 		helpers.LogDetail(t, "미등록 알고리즘 확인...")

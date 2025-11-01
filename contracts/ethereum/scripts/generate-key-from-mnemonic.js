@@ -26,14 +26,14 @@ async function main() {
   const mnemonic = await promptMnemonic();
 
   if (!mnemonic || mnemonic.split(' ').length < 12) {
-    console.error('❌ Invalid mnemonic. Please provide a valid 12 or 24 word phrase.');
+    console.error(' Invalid mnemonic. Please provide a valid 12 or 24 word phrase.');
     process.exit(1);
   }
 
   try {
     const wallet = hre.ethers.Wallet.fromPhrase(mnemonic);
 
-    console.log('\n✅ Wallet generated successfully!\n');
+    console.log('\n Wallet generated successfully!\n');
     console.log('Address:     ', wallet.address);
     console.log('Private Key: ', wallet.privateKey);
 
@@ -55,12 +55,12 @@ async function main() {
         // Read existing .env or use .env.example as template
         if (fs.existsSync(envPath)) {
           envContent = fs.readFileSync(envPath, 'utf8');
-          console.log('\n📝 Updating existing .env file...');
+          console.log('\n Updating existing .env file...');
         } else if (fs.existsSync(envExamplePath)) {
           envContent = fs.readFileSync(envExamplePath, 'utf8');
-          console.log('\n📝 Creating .env from .env.example template...');
+          console.log('\n Creating .env from .env.example template...');
         } else {
-          console.error('❌ No .env.example found. Creating basic .env file...');
+          console.error(' No .env.example found. Creating basic .env file...');
           envContent = '# SAGE Smart Contract Configuration\n\n';
         }
 
@@ -80,19 +80,19 @@ async function main() {
 
         // Write .env file
         fs.writeFileSync(envPath, envContent);
-        console.log('✅ .env file updated successfully!');
+        console.log(' .env file updated successfully!');
         console.log(`   Location: ${envPath}`);
-        console.log('\n⚠️  IMPORTANT: .env file is in .gitignore and will NOT be committed to git.');
+        console.log('\n  IMPORTANT: .env file is in .gitignore and will NOT be committed to git.');
       }
 
-      console.log('\n⚠️  Security Reminders:');
+      console.log('\n  Security Reminders:');
       console.log('   1. Never share your mnemonic or private key');
       console.log('   2. Never commit .env file to git');
       console.log('   3. Use separate keys for testnet and mainnet');
       console.log('   4. Keep backups in secure offline storage\n');
     });
   } catch (error) {
-    console.error('\n❌ Failed to generate wallet:', error.message);
+    console.error('\n Failed to generate wallet:', error.message);
     process.exit(1);
   }
 }

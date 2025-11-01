@@ -2,7 +2,7 @@
 
 Guide for cleaning generated files and build artifacts in the Ethereum contracts directory.
 
-## 📋 Available Clean Commands
+##  Available Clean Commands
 
 ### Basic Clean Commands
 
@@ -133,7 +133,7 @@ npm run clean:all
 npm run clean:deep
 ```
 
-**⚠️ Warning**: After this command, you must run `npm install` to restore dependencies.
+**- -  Warning**: After this command, you must run `npm install` to restore dependencies.
 
 **When to use**:
 - Resolving dependency conflicts
@@ -148,7 +148,7 @@ npm install
 
 ---
 
-## 🔄 Typical Workflows
+##  Typical Workflows
 
 ### Development Workflow
 
@@ -197,7 +197,7 @@ npm test              # Test everything
 
 ---
 
-## 📊 Disk Space Recovered
+## -  Disk Space Recovered
 
 Approximate disk space recovered by each command:
 
@@ -213,7 +213,7 @@ Approximate disk space recovered by each command:
 
 ---
 
-## 🔐 What's Preserved
+##  What's Preserved
 
 These files are **never** deleted by clean commands:
 
@@ -239,7 +239,7 @@ These files are **never** deleted by clean commands:
 
 ---
 
-## ⚙️ Git Integration
+## -  Git Integration
 
 The `.gitignore` is configured to automatically ignore all files cleaned by these commands:
 
@@ -296,7 +296,7 @@ rm -rf artifacts cache typechain-types coverage
 
 ---
 
-## 📝 Script Details
+## -  Script Details
 
 All clean scripts use:
 - `rm -rf` for directory removal
@@ -306,10 +306,10 @@ All clean scripts use:
 - `! -name` to preserve specific files
 
 This ensures:
-✅ Safe execution even if directories don't exist
-✅ No errors if files are already deleted
-✅ Preserved files are never touched
-✅ Cross-platform compatibility
+-  Safe execution even if directories don't exist
+-  No errors if files are already deleted
+-  Preserved files are never touched
+-  Cross-platform compatibility
 
 ---
 

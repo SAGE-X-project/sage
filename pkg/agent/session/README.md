@@ -71,11 +71,11 @@ After agents complete a handshake (using HPKE key agreement), they establish a s
 - IETF variant (96-bit nonce)
 
 **Why ChaCha20-Poly1305?**
-- ✅ Constant-time (side-channel resistant)
-- ✅ Fast on all platforms (no hardware dependency)
-- ✅ Widely deployed (TLS 1.3, WireGuard, Signal)
-- ✅ Proven security (formal verification)
-- ❌ Not hardware-accelerated like AES-GCM
+-  Constant-time (side-channel resistant)
+-  Fast on all platforms (no hardware dependency)
+-  Widely deployed (TLS 1.3, WireGuard, Signal)
+-  Proven security (formal verification)
+-  Not hardware-accelerated like AES-GCM
 
 ### HKDF-SHA256 (Key Derivation)
 
@@ -115,10 +115,10 @@ HPKE Exporter Secret (from handshake)
 - **Inbound**: C2S encryption + C2S signing
 
 **Why separate directions?**
-- ✅ Prevent key reuse across different contexts
-- ✅ Enable unidirectional rate limiting
-- ✅ Support asymmetric security levels
-- ✅ Simplify concurrent read/write
+-  Prevent key reuse across different contexts
+-  Enable unidirectional rate limiting
+-  Support asymmetric security levels
+-  Simplify concurrent read/write
 
 ## Core Components
 
@@ -639,19 +639,19 @@ fmt.Printf("Client received: %s\n", string(replyPlain))
 ### Key Derivation
 
 **Best Practices:**
-- ✅ Use HPKE exporter secrets (not raw ECDH output)
-- ✅ Separate encryption and signing keys
-- ✅ Use direction-separated keys (C2S, S2C)
-- ❌ Never reuse keys across different sessions
-- ❌ Never use encryption keys for signing
+-  Use HPKE exporter secrets (not raw ECDH output)
+-  Separate encryption and signing keys
+-  Use direction-separated keys (C2S, S2C)
+-  Never reuse keys across different sessions
+-  Never use encryption keys for signing
 
 ### Replay Attack Prevention
 
 **Nonce Requirements:**
-- ✅ Unique per message
-- ✅ Unpredictable (cryptographically random)
-- ✅ Checked before processing message
-- ✅ TTL: 5-10 minutes (configurable)
+-  Unique per message
+-  Unpredictable (cryptographically random)
+-  Checked before processing message
+-  TTL: 5-10 minutes (configurable)
 
 **Example Secure Nonce:**
 ```go
@@ -670,18 +670,18 @@ nonceStr := base64.StdEncoding.EncodeToString(nonce)
 - **Production servers**: `MaxAge: 30 minutes`, `IdleTimeout: 5 minutes`
 
 **Why expire sessions?**
-- ✅ Limit key exposure time
-- ✅ Prevent stale session accumulation
-- ✅ Force re-authentication periodically
-- ✅ Reduce memory usage
+-  Limit key exposure time
+-  Prevent stale session accumulation
+-  Force re-authentication periodically
+-  Reduce memory usage
 
 ### Direction-Separated Keys
 
 **Why separate keys?**
-- ✅ Prevent key reuse across contexts
-- ✅ Enable asymmetric security levels (e.g., client stronger than server)
-- ✅ Support unidirectional rate limiting
-- ✅ Simplify concurrent access (no lock contention)
+-  Prevent key reuse across contexts
+-  Enable asymmetric security levels (e.g., client stronger than server)
+-  Support unidirectional rate limiting
+-  Simplify concurrent access (no lock contention)
 
 ### Memory Safety
 
@@ -816,10 +816,10 @@ if manager.nonceCache.Seen(keyID, nonce) {
 ```
 
 **Nonce best practices:**
-- ✅ 16+ bytes of randomness
-- ✅ Include in every message
-- ✅ Check before decryption
-- ✅ TTL: 5-10 minutes
+-  16+ bytes of randomness
+-  Include in every message
+-  Check before decryption
+-  TTL: 5-10 minutes
 
 ### Q: Can I use the same session for multiple agents?
 

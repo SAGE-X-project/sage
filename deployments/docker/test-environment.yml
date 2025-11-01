@@ -109,7 +109,7 @@ services:
           echo "Waiting for Solana node...";
           sleep 2;
         done &&
-        echo "✅ All test services are ready!" &&
+        echo " All test services are ready!" &&
         tail -f /dev/null
       '
     depends_on:

@@ -373,8 +373,8 @@ handshake := NewHandshake(httpTransport)
 This ADR has been reviewed and accepted by the SAGE core team. Implementation is complete and in production use.
 
 **Acceptance Criteria Met:**
-- ✅ HTTP and WebSocket transports implemented
-- ✅ Mock transport for testing
-- ✅ All security tests pass with abstraction
-- ✅ No performance regression
-- ✅ Documentation complete
+-  HTTP and WebSocket transports implemented
+-  Mock transport for testing
+-  All security tests pass with abstraction
+-  No performance regression
+-  Documentation complete

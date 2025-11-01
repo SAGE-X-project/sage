@@ -2,7 +2,7 @@
 
 > 블록체인 DID 기반 AI 에이전트 신뢰 통신 프레임워크
 
-> ️ **NOTE**: This README contains some outdated information from initial planning phase.
+>  **NOTE**: This README contains some outdated information from initial planning phase.
 >
 > **Current implementation**:
 > -  HPKE handshake, session encryption, RFC 9421 signatures

@@ -303,7 +303,7 @@ func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.
 		IsActive:     metadata.Active,
 		CreatedAt:    time.Unix(metadata.RegisteredAt.Int64(), 0),
 		UpdatedAt:    time.Unix(metadata.UpdatedAt.Int64(), 0),
-		PublicKEMKey: metadata.KmePublicKey, // ✅ Populate KME public key
+		PublicKEMKey: metadata.KmePublicKey, //  Populate KME public key
 	}
 
 	// Parse capabilities JSON

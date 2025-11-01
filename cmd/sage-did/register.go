@@ -146,7 +146,7 @@ func runRegister(cmd *cobra.Command, args []string) error {
 	}
 
 	// Success
-	fmt.Println("✓ Registration successful!")
+	fmt.Println(" Registration successful!")
 	fmt.Printf("  Agent ID: %x\n", updatedStatus.AgentID)
 	fmt.Printf("  Can activate at: %s\n", updatedStatus.CanActivateAt.Format(time.RFC3339))
 	fmt.Println()

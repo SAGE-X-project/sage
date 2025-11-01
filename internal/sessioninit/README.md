@@ -353,7 +353,7 @@ Key IDs provide:
 ### 1. Ephemeral Key Lifecycle
 
 ```go
-// ✅ Correct - keys cleaned up after use
+//  Correct - keys cleaned up after use
 func (c *Creator) OnComplete(...) error {
     // Use key
     shared, err := ephKey.DeriveSharedSecret(peerPub)
@@ -364,7 +364,7 @@ func (c *Creator) OnComplete(...) error {
     // ...
 }
 
-// ❌ Wrong - keys leaked
+//  Wrong - keys leaked
 func (c *Creator) OnComplete(...) error {
     shared, err := ephKey.DeriveSharedSecret(peerPub)
     // Forgot to delete ephKey!
@@ -377,11 +377,11 @@ func (c *Creator) OnComplete(...) error {
 Each handshake must have unique context ID:
 
 ```go
-// ✅ Correct - unique per handshake
+//  Correct - unique per handshake
 ctxID1 := generateUniqueID()
 ctxID2 := generateUniqueID()
 
-// ❌ Wrong - reused context ID
+//  Wrong - reused context ID
 ctxID := "fixed-id"  // Collisions!
 ```
 
@@ -390,7 +390,7 @@ ctxID := "fixed-id"  // Collisions!
 The Creator is thread-safe:
 
 ```go
-// ✅ Safe - concurrent handshakes
+//  Safe - concurrent handshakes
 go handleHandshake1(creator, ctxID1)
 go handleHandshake2(creator, ctxID2)
 
@@ -543,11 +543,11 @@ func TestCreator_IssueKeyID(t *testing.T) {
 ### 1. Single Creator Per Session Manager
 
 ```go
-// ✅ Correct - one creator per manager
+//  Correct - one creator per manager
 sessionMgr := session.NewManager()
 creator := sessioninit.NewCreator(sessionMgr)
 
-// ❌ Wrong - multiple creators (causes conflicts)
+//  Wrong - multiple creators (causes conflicts)
 creator1 := sessioninit.NewCreator(sessionMgr)
 creator2 := sessioninit.NewCreator(sessionMgr)  // Don't do this
 ```
@@ -555,35 +555,35 @@ creator2 := sessioninit.NewCreator(sessionMgr)  // Don't do this
 ### 2. Unique Context IDs
 
 ```go
-// ✅ Correct - unique per handshake
+//  Correct - unique per handshake
 import "github.com/google/uuid"
 
 ctxID := uuid.New().String()
 
-// ❌ Wrong - predictable or reused
+//  Wrong - predictable or reused
 ctxID := "handshake-1"  // Not unique
 ```
 
 ### 3. Don't Access Internal Maps Directly
 
 ```go
-// ✅ Correct - use public methods
+//  Correct - use public methods
 keyID, ok := creator.IssueKeyID(ctxID)
 
-// ❌ Wrong - internal access
+//  Wrong - internal access
 sessionID := creator.sidByCtx[ctxID]  // Private field!
 ```
 
 ### 4. Handle All Errors
 
 ```go
-// ✅ Correct - check all errors
+//  Correct - check all errors
 if err := creator.OnComplete(ctx, ctxID, comp, params); err != nil {
     log.Error("Handshake completion failed", logger.Error(err))
     return err
 }
 
-// ❌ Wrong - ignore errors
+//  Wrong - ignore errors
 creator.OnComplete(ctx, ctxID, comp, params)  // Error unchecked!
 ```
 

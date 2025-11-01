@@ -151,7 +151,7 @@ export function handleSummary(data) {
     return true;
   });
 
-  console.log(`\nConcurrent Sessions Test Result: ${passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  console.log(`\nConcurrent Sessions Test Result: ${passed ? ' PASSED' : ' FAILED'}\n`);
 
   // Print session statistics
   if (data.metrics.sage_sessions_created) {

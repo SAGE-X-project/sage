@@ -51,10 +51,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'Test_7_1_1_1_D
 
 **통과 기준**:
 
-- ✅ SAGE ComputeSessionIDFromSeed 사용
-- ✅ 중복 세션 ID 생성 시 에러 발생
-- ✅ 세션 카운트 증가하지 않음
-- ✅ EnsureSessionWithParams 멱등성 확인
+-  SAGE ComputeSessionIDFromSeed 사용
+-  중복 세션 ID 생성 시 에러 발생
+-  세션 카운트 증가하지 않음
+-  EnsureSessionWithParams 멱등성 확인
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -133,11 +133,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'Test_7_1_1_2_S
 
 **통과 기준**:
 
-- ✅ SAGE ComputeSessionIDFromSeed 사용
-- ✅ Base64url 포맷 검증 (RFC 4648)
-- ✅ 고정 길이 22 characters
-- ✅ 결정론적 생성 확인
-- ✅ 세션 생성 성공
+-  SAGE ComputeSessionIDFromSeed 사용
+-  Base64url 포맷 검증 (RFC 4648)
+-  고정 길이 22 characters
+-  결정론적 생성 확인
+-  세션 생성 성공
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -225,13 +225,13 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'Test_7_1_1_3_S
 
 **통과 기준**:
 
-- ✅ 세션 ID 메타데이터 설정
-- ✅ 생성 시간 (CreatedAt) 설정
-- ✅ 마지막 사용 시간 (LastUsedAt) 설정
-- ✅ 메시지 카운트 초기화
-- ✅ 세션 설정 (Config) 저장
-- ✅ 만료 상태 초기화
-- ✅ 활동 시 메타데이터 자동 갱신
+-  세션 ID 메타데이터 설정
+-  생성 시간 (CreatedAt) 설정
+-  마지막 사용 시간 (LastUsedAt) 설정
+-  메시지 카운트 초기화
+-  세션 설정 (Config) 저장
+-  만료 상태 초기화
+-  활동 시 메타데이터 자동 갱신
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -318,11 +318,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'Test_7_2_1_1_S
 
 **통과 기준**:
 
-- ✅ 세션 TTL (MaxAge) 설정 가능
-- ✅ TTL 설정값 확인 가능
-- ✅ TTL 경과 전 세션 유효
-- ✅ TTL 경과 후 세션 만료
-- ✅ 만료 세션 자동 무효화
+-  세션 TTL (MaxAge) 설정 가능
+-  TTL 설정값 확인 가능
+-  TTL 경과 전 세션 유효
+-  TTL 경과 후 세션 만료
+-  만료 세션 자동 무효화
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -406,14 +406,14 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'Test_7_2_1_2_S
 
 **통과 기준**:
 
-- ✅ 세션 조회 성공 (GetSession)
-- ✅ 세션 ID 조회 가능
-- ✅ 생성 시간 조회 가능
-- ✅ 마지막 사용 시간 조회 가능
-- ✅ 메시지 카운트 조회 가능
-- ✅ 만료 상태 조회 가능
-- ✅ 세션 설정 조회 가능
-- ✅ 존재하지 않는 세션 처리
+-  세션 조회 성공 (GetSession)
+-  세션 ID 조회 가능
+-  생성 시간 조회 가능
+-  마지막 사용 시간 조회 가능
+-  메시지 카운트 조회 가능
+-  만료 상태 조회 가능
+-  세션 설정 조회 가능
+-  존재하지 않는 세션 처리
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -493,11 +493,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'Test_7_2_1_3_E
 
 **통과 기준**:
 
-- ✅ 만료 세션 자동 감지
-- ✅ cleanupExpiredSessions 실행
-- ✅ 만료 세션 모두 삭제
-- ✅ 삭제된 세션 조회 불가
-- ✅ 수동 삭제 (RemoveSession) 동작
+-  만료 세션 자동 감지
+-  cleanupExpiredSessions 실행
+-  만료 세션 모두 삭제
+-  삭제된 세션 조회 불가
+-  수동 삭제 (RemoveSession) 동작
 
 **실제 테스트 결과** (2025-10-24):
 

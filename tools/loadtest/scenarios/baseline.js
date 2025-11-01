@@ -118,7 +118,7 @@ export function handleSummary(data) {
     return true;
   });
 
-  console.log(`\nBaseline Test Result: ${passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  console.log(`\nBaseline Test Result: ${passed ? ' PASSED' : ' FAILED'}\n`);
 
   return {
     'stdout': JSON.stringify(data, null, 2),

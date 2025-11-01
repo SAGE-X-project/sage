@@ -108,9 +108,9 @@ export function teardown(data) {
   // Check if server is still healthy
   const healthRes = healthCheck(data.baseUrl);
   if (healthRes && healthRes.status === 200) {
-    console.log('✅ Server survived stress test and is healthy');
+    console.log(' Server survived stress test and is healthy');
   } else {
-    console.log('⚠️  Server may be degraded after stress test');
+    console.log('  Server may be degraded after stress test');
   }
 
   console.log('============================\n');
@@ -130,10 +130,10 @@ export function handleSummary(data) {
   console.log(`Error Rate: ${(errorRate * 100).toFixed(2)}%`);
 
   const passed = errorRate < 0.05 && p95Duration < 1000;
-  console.log(`\nStress Test Result: ${passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  console.log(`\nStress Test Result: ${passed ? ' PASSED' : ' FAILED'}\n`);
 
   if (!passed) {
-    console.log('⚠️  System showed signs of stress:');
+    console.log('  System showed signs of stress:');
     if (errorRate >= 0.05) {
       console.log(`   - High error rate: ${(errorRate * 100).toFixed(2)}%`);
     }

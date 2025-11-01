@@ -36,10 +36,10 @@ cat /tmp/test-secp256k1.jwk | jq '.'
 
 **통과 기준**:
 
-- ✅ Secp256k1 키 생성 성공
-- ✅ 개인키 = 32 bytes
-- ✅ 공개키 형식 정확
-- ✅ Ethereum 호환
+-  Secp256k1 키 생성 성공
+-  개인키 = 32 bytes
+-  공개키 형식 정확
+-  Ethereum 호환
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -65,7 +65,7 @@ cat /tmp/test-secp256k1.jwk | jq '.'
 
 **검증 데이터**:
 - 테스트 데이터 파일: `testdata/keys/secp256k1_key_generation.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - Private key: 32 bytes (verified)
 - Uncompressed public key: 65 bytes (verified)
 - Signature size: 65 bytes (Ethereum format with recovery byte)
@@ -110,10 +110,10 @@ cat /tmp/test-ed25519.jwk | jq '.'
 
 **통과 기준**:
 
-- ✅ Ed25519 키 생성 성공
-- ✅ 공개키 = 32 bytes
-- ✅ 비밀키 = 64 bytes
-- ✅ JWK 형식 정확
+-  Ed25519 키 생성 성공
+-  공개키 = 32 bytes
+-  비밀키 = 64 bytes
+-  JWK 형식 정확
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -138,7 +138,7 @@ cat /tmp/test-ed25519.jwk | jq '.'
 
 **검증 데이터**:
 - 테스트 데이터 파일: `testdata/keys/ed25519_key_generation.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - Public key: 32 bytes (verified)
 - Private key: 64 bytes (verified)
 - Signature size: 64 bytes (Ed25519 standard)
@@ -184,23 +184,23 @@ cat /tmp/test.pem
 
 **통과 기준**:
 
-- ✅ PEM 형식 저장 성공
-- ✅ PEM 형식 로드 성공
-- ✅ 키 일치 확인
+-  PEM 형식 저장 성공
+-  PEM 형식 로드 성공
+-  키 일치 확인
 
 ---
 
 **실제 테스트 결과** (2025-10-23):
 
-✅ **Ed25519 - PASS** (`TestEd25519KeyPairPEM`)
+ **Ed25519 - PASS** (`TestEd25519KeyPairPEM`)
 - PEM format: PKCS#8 DER encoding
 - File permissions: 0600 (verified)
-- Custom path support: ✅ (via `os.WriteFile(customPath, ...)`)
-- Load and verify: ✅ (signature validation passed)
-- Public key PEM export: ✅
+- Custom path support:  (via `os.WriteFile(customPath, ...)`)
+- Load and verify:  (signature validation passed)
+- Public key PEM export: 
 - Data file: `testdata/keys/ed25519_pem_storage.json`
 
-⚠️ **Secp256k1 - NOT SUPPORTED**
+ **Secp256k1 - NOT SUPPORTED**
 - **Reason**: x509 package only supports NIST curves (P-256, P-384, P-521)
 - **Alternative**: Use FileVault encrypted storage (see 2.2.2)
 - **Error**: `x509: unknown curve while marshaling to PKCS#8`
@@ -235,34 +235,34 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Encr
 
 **통과 기준**:
 
-- ✅ 암호화 저장 성공
-- ✅ 올바른 패스워드로 로드 성공
-- ✅ 잘못된 패스워드 거부
-- ✅ 키 재사용 가능
+-  암호화 저장 성공
+-  올바른 패스워드로 로드 성공
+-  잘못된 패스워드 거부
+-  키 재사용 가능
 
 ---
 
 **실제 테스트 결과** (2025-10-23):
 
-✅ **Secp256k1 - PASS** (`TestSecp256k1KeyPairEncrypted`)
+ **Secp256k1 - PASS** (`TestSecp256k1KeyPairEncrypted`)
 - Encryption: AES-256-GCM + PBKDF2 (100,000 iterations)
 - File permissions: 0600 (verified)
-- Custom path: ✅ (via `vault.NewFileVault(customPath)`)
-- Correct passphrase: ✅ (decryption successful)
-- Wrong passphrase: ✅ (correctly rejected)
-- Key reconstruction: ✅ (32 bytes private key)
-- Signature verification: ✅ (65 bytes Ethereum format)
-- Ethereum address consistency: ✅
+- Custom path:  (via `vault.NewFileVault(customPath)`)
+- Correct passphrase:  (decryption successful)
+- Wrong passphrase:  (correctly rejected)
+- Key reconstruction:  (32 bytes private key)
+- Signature verification:  (65 bytes Ethereum format)
+- Ethereum address consistency: 
 - Data file: `testdata/keys/secp256k1_encrypted_storage.json`
 
-✅ **Ed25519 - PASS** (`TestEd25519KeyPairEncrypted`)
+ **Ed25519 - PASS** (`TestEd25519KeyPairEncrypted`)
 - Encryption: AES-256-GCM + PBKDF2 (100,000 iterations)
 - File permissions: 0600 (verified)
-- Custom path: ✅ (via `vault.NewFileVault(customPath)`)
-- Correct passphrase: ✅ (decryption successful)
-- Wrong passphrase: ✅ (correctly rejected)
-- Key reconstruction: ✅ (64 bytes private key)
-- Signature verification: ✅ (64 bytes signature)
+- Custom path:  (via `vault.NewFileVault(customPath)`)
+- Correct passphrase:  (decryption successful)
+- Wrong passphrase:  (correctly rejected)
+- Key reconstruction:  (64 bytes private key)
+- Signature verification:  (64 bytes signature)
 - Data file: `testdata/keys/ed25519_encrypted_storage.json`
 
 **암호화 저장 기능:**
@@ -271,10 +271,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Encr
 - Key derivation: PBKDF2 with SHA-256 (100,000 iterations)
 - Salt: 32 bytes random
 - File permissions: 0600 (owner read/write only)
-- Custom path support: ✅
-- Empty passphrase: ✅ (handled correctly)
-- Key overwrite: ✅ (with new passphrase)
-- Key deletion: ✅
+- Custom path support: 
+- Empty passphrase:  (handled correctly)
+- Key overwrite:  (with new passphrase)
+- Key deletion: 
 
 **Note**: 2.1.1 및 2.1.2의 Complete Lifecycle 테스트에도 암호화 저장이 포함되어 있으며, 2.2.2는 암호화 저장에 특화된 전용 테스트입니다.
 
@@ -292,7 +292,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'Test.*Encr
 go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestSecp256k1KeyPair/SignAndVerify'
 ```
 
-**CLI 검증** (✅ 실제 동작 확인됨):
+**CLI 검증** ( 실제 동작 확인됨):
 
 ```bash
 # 1. Secp256k1 키 생성
@@ -330,23 +330,23 @@ echo "test message for secp256k1" > message.txt
 
 **통과 기준**:
 
-- ✅ Secp256k1 서명 생성 (65 bytes)
-- ✅ 검증 성공
-- ✅ Ethereum 호환 (주소 복구)
-- ✅ 변조 탐지
+-  Secp256k1 서명 생성 (65 bytes)
+-  검증 성공
+-  Ethereum 호환 (주소 복구)
+-  변조 탐지
 
 ---
 
 **실제 테스트 결과** (2025-10-23):
 
-✅ **Secp256k1 - PASS** (`TestSecp256k1KeyPair/SignAndVerify`)
-- Signature generation: ✅ (using `keyPair.Sign()` → ECDSA)
+ **Secp256k1 - PASS** (`TestSecp256k1KeyPair/SignAndVerify`)
+- Signature generation:  (using `keyPair.Sign()` → ECDSA)
 - Signature size: 65 bytes (64 bytes ECDSA + 1 byte recovery v)
-- Signature verification: ✅ (using `keyPair.Verify()`)
-- Address recovery: ✅ (Ethereum compatible via `ethcrypto.SigToPub()`)
+- Signature verification:  (using `keyPair.Verify()`)
+- Address recovery:  (Ethereum compatible via `ethcrypto.SigToPub()`)
 - Tamper detection:
-  - Wrong message: ✅ (correctly rejected with `crypto.ErrInvalidSignature`)
-  - Modified signature: ✅ (correctly rejected with `crypto.ErrInvalidSignature`)
+  - Wrong message:  (correctly rejected with `crypto.ErrInvalidSignature`)
+  - Modified signature:  (correctly rejected with `crypto.ErrInvalidSignature`)
 - Data file: `testdata/keys/secp256k1_sign_verify.json`
 
 **기능 구현:**
@@ -369,7 +369,7 @@ echo "test message for secp256k1" > message.txt
 go test -v github.com/sage-x-project/sage/pkg/agent/crypto/keys -run 'TestEd25519KeyPair/SignAndVerify'
 ```
 
-**CLI 검증** (✅ 실제 동작 확인됨):
+**CLI 검증** ( 실제 동작 확인됨):
 
 ```bash
 # 1. Ed25519 키 생성
@@ -407,21 +407,21 @@ echo "test message" > message.txt
 
 **통과 기준**:
 
-- ✅ 서명 생성 성공 (64 bytes)
-- ✅ 검증 성공
-- ✅ 변조 탐지
+-  서명 생성 성공 (64 bytes)
+-  검증 성공
+-  변조 탐지
 
 ---
 
 **실제 테스트 결과** (2025-10-23):
 
-✅ **Ed25519 - PASS** (`TestEd25519KeyPair/SignAndVerify`)
-- Signature generation: ✅ (using `keyPair.Sign()` → EdDSA)
+ **Ed25519 - PASS** (`TestEd25519KeyPair/SignAndVerify`)
+- Signature generation:  (using `keyPair.Sign()` → EdDSA)
 - Signature size: 64 bytes (exactly)
-- Signature verification: ✅ (using `keyPair.Verify()`)
+- Signature verification:  (using `keyPair.Verify()`)
 - Tamper detection:
-  - Wrong message: ✅ (correctly rejected with `crypto.ErrInvalidSignature`)
-  - Modified signature: ✅ (correctly rejected with `crypto.ErrInvalidSignature`)
+  - Wrong message:  (correctly rejected with `crypto.ErrInvalidSignature`)
+  - Modified signature:  (correctly rejected with `crypto.ErrInvalidSignature`)
 - Data file: `testdata/keys/ed25519_sign_verify.json`
 
 **기능 구현:**

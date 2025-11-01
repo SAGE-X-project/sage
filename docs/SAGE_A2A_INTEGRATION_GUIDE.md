@@ -26,24 +26,24 @@
 
 SAGE is a **DID Registry and Cryptographic Infrastructure** that provides:
 
-- ✅ Decentralized Identity (DID) registration on blockchain
-- ✅ Multi-key support (ECDSA for Ethereum, Ed25519 for Solana)
-- ✅ Public key resolution by DID and key type
-- ✅ Cryptographic operations (sign/verify)
-- ✅ Owner address validation in DID format
-- ✅ DID generation helpers (`GenerateAgentDIDWithAddress`, `GenerateAgentDIDWithNonce`, `DeriveEthereumAddress`)
-- ✅ Public key marshaling/unmarshaling (`MarshalPublicKey`, `UnmarshalPublicKey`)
-- ✅ A2A Agent Card generation (`GenerateA2ACard`, `ValidateA2ACard`, `MergeA2ACard`)
+-  Decentralized Identity (DID) registration on blockchain
+-  Multi-key support (ECDSA for Ethereum, Ed25519 for Solana)
+-  Public key resolution by DID and key type
+-  Cryptographic operations (sign/verify)
+-  Owner address validation in DID format
+-  DID generation helpers (`GenerateAgentDIDWithAddress`, `GenerateAgentDIDWithNonce`, `DeriveEthereumAddress`)
+-  Public key marshaling/unmarshaling (`MarshalPublicKey`, `UnmarshalPublicKey`)
+-  A2A Agent Card generation (`GenerateA2ACard`, `ValidateA2ACard`, `MergeA2ACard`)
 
 ### What sage-a2a-go Will Provide
 
 sage-a2a-go is an **A2A Protocol Integration Layer** that will provide:
 
-- ⏸️ RFC9421 HTTP Message Signatures for A2A
-- ⏸️ DIDVerifier (SAGE DID → RFC9421 integration)
-- ⏸️ Agent-to-Agent communication routing
-- ⏸️ A2A protocol implementation
-- ⏸️ Multi-key selection for different chains/protocols
+-  RFC9421 HTTP Message Signatures for A2A
+-  DIDVerifier (SAGE DID → RFC9421 integration)
+-  Agent-to-Agent communication routing
+-  A2A protocol implementation
+-  Multi-key selection for different chains/protocols
 
 ### Integration Point
 
@@ -70,10 +70,10 @@ sage-a2a-go is an **A2A Protocol Integration Layer** that will provide:
 ┌──────────────────▼──────────────────────┐
 │         SAGE Core (this project)        │
 │                                         │
-│  ✅ DID Registry (SageRegistryV4)      │
-│  ✅ Multi-key Resolution               │
-│  ✅ Crypto Primitives                  │
-│  ✅ Blockchain Integration             │
+│   DID Registry (SageRegistryV4)      │
+│   Multi-key Resolution               │
+│   Crypto Primitives                  │
+│   Blockchain Integration             │
 └─────────────────────────────────────────┘
 ```
 
@@ -85,25 +85,25 @@ sage-a2a-go is an **A2A Protocol Integration Layer** that will provide:
 
 | Component | Description | Status |
 |-----------|-------------|--------|
-| DID Registry | Smart contract for DID registration | ✅ Complete |
-| Multi-key Support | ECDSA + Ed25519 key management | ✅ Complete |
-| Public Key Resolution | `ResolveAllPublicKeys()`, `ResolvePublicKeyByType()` | ✅ Complete |
-| Owner Validation | DID format with owner address | ✅ Complete |
-| Crypto Operations | Sign/Verify with different key types | ✅ Complete |
-| Blockchain Client | Ethereum V4 client | ✅ Complete |
-| DID Helper Functions | `GenerateAgentDIDWithAddress()`, `GenerateAgentDIDWithNonce()`, `DeriveEthereumAddress()` | ✅ Complete |
-| Key Marshaling | `MarshalPublicKey()`, `UnmarshalPublicKey()` | ✅ Complete |
-| A2A Agent Card | `GenerateA2ACard()`, `ValidateA2ACard()`, `MergeA2ACard()` | ✅ Complete |
+| DID Registry | Smart contract for DID registration |  Complete |
+| Multi-key Support | ECDSA + Ed25519 key management |  Complete |
+| Public Key Resolution | `ResolveAllPublicKeys()`, `ResolvePublicKeyByType()` |  Complete |
+| Owner Validation | DID format with owner address |  Complete |
+| Crypto Operations | Sign/Verify with different key types |  Complete |
+| Blockchain Client | Ethereum V4 client |  Complete |
+| DID Helper Functions | `GenerateAgentDIDWithAddress()`, `GenerateAgentDIDWithNonce()`, `DeriveEthereumAddress()` |  Complete |
+| Key Marshaling | `MarshalPublicKey()`, `UnmarshalPublicKey()` |  Complete |
+| A2A Agent Card | `GenerateA2ACard()`, `ValidateA2ACard()`, `MergeA2ACard()` |  Complete |
 
 ### sage-a2a-go Responsibilities
 
 | Component | Description | Status |
 |-----------|-------------|--------|
-| DIDVerifier | RFC9421 integration for SAGE DIDs | ⏸️ To Implement |
-| Multi-key Selection | Choose appropriate key for chain/protocol | ⏸️ To Implement |
-| A2A Protocol | Agent-to-Agent communication | ⏸️ To Implement |
-| HTTP Message Signing | RFC9421 implementation | ⏸️ To Implement |
-| Agent Routing | Message routing between agents | ⏸️ To Implement |
+| DIDVerifier | RFC9421 integration for SAGE DIDs |  To Implement |
+| Multi-key Selection | Choose appropriate key for chain/protocol |  To Implement |
+| A2A Protocol | Agent-to-Agent communication |  To Implement |
+| HTTP Message Signing | RFC9421 implementation |  To Implement |
+| Agent Routing | Message routing between agents |  To Implement |
 
 ---
 
@@ -135,11 +135,11 @@ type AgentMetadata struct {
 }
 ```
 
-### 2. Multi-Key Resolution (✅ Implemented in V4)
+### 2. Multi-Key Resolution ( Implemented in V4)
 
 **Package**: `github.com/sage-x-project/sage/pkg/agent/did/ethereum`
 
-**Status**: ✅ Available
+**Status**:  Available
 
 ```go
 // EthereumClientV4 interface
@@ -168,11 +168,11 @@ const (
 )
 ```
 
-### 3. DID Format & Helper Functions (✅ Implemented in V4)
+### 3. DID Format & Helper Functions ( Implemented in V4)
 
 **Package**: `github.com/sage-x-project/sage/pkg/agent/did`
 
-**Status**: ✅ Available (exported as public API)
+**Status**:  Available (exported as public API)
 
 **Enhanced DID Format with Owner Validation**:
 
@@ -186,7 +186,7 @@ Solana:
 - Format 2: did:sage:solana:{address}:{nonce}
 ```
 
-**Helper Functions** (✅ Public API in `pkg/agent/did/utils.go`):
+**Helper Functions** ( Public API in `pkg/agent/did/utils.go`):
 
 ```go
 // Generate DID with owner address (Ethereum or Solana)
@@ -231,11 +231,11 @@ func GenerateSecp256k1KeyPair() (KeyPair, error)
 func GenerateEd25519KeyPair() (KeyPair, error)
 ```
 
-### 5. DID Marshaling/Unmarshaling (✅ Implemented)
+### 5. DID Marshaling/Unmarshaling ( Implemented)
 
 **Package**: `github.com/sage-x-project/sage/pkg/agent/did`
 
-**Status**: ✅ Available (public API in `pkg/agent/did/utils.go`)
+**Status**:  Available (public API in `pkg/agent/did/utils.go`)
 
 ```go
 // Marshal public key to bytes

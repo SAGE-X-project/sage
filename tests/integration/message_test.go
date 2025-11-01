@@ -172,7 +172,7 @@ func Test_5_1_1_2_SignatureVerificationSuccess(t *testing.T) {
 	// Verify the signature (should succeed)
 	err = verifier.VerifyRequest(req, publicKey, nil)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "서명 검증 성공 ✓")
+	helpers.LogSuccess(t, "서명 검증 성공 ")
 	helpers.LogDetail(t, "  검증 결과: 유효한 서명")
 
 	// Verify multiple times (idempotent)
@@ -253,7 +253,7 @@ func Test_5_1_1_3_TamperedMessageVerificationFailure(t *testing.T) {
 
 	err = verifier.VerifyRequest(req, publicKey, nil)
 	require.Error(t, err, "Tampered message should fail verification")
-	helpers.LogSuccess(t, "변조된 Date 헤더 검증 실패 확인 ✓")
+	helpers.LogSuccess(t, "변조된 Date 헤더 검증 실패 확인 ")
 	helpers.LogDetail(t, "  검증 오류: %v", err)
 
 	// Restore original Date
@@ -268,7 +268,7 @@ func Test_5_1_1_3_TamperedMessageVerificationFailure(t *testing.T) {
 
 	err = verifier.VerifyRequest(req, publicKey, nil)
 	require.Error(t, err, "Tampered message should fail verification")
-	helpers.LogSuccess(t, "변조된 Host 헤더 검증 실패 확인 ✓")
+	helpers.LogSuccess(t, "변조된 Host 헤더 검증 실패 확인 ")
 	helpers.LogDetail(t, "  검증 오류: %v", err)
 
 	// Restore original Host
@@ -283,10 +283,10 @@ func Test_5_1_1_3_TamperedMessageVerificationFailure(t *testing.T) {
 
 	err = verifier.VerifyRequest(req, publicKey, nil)
 	require.Error(t, err, "Tampered signature should fail verification")
-	helpers.LogSuccess(t, "변조된 Signature 헤더 검증 실패 확인 ✓")
+	helpers.LogSuccess(t, "변조된 Signature 헤더 검증 실패 확인 ")
 	helpers.LogDetail(t, "  검증 오류: %v", err)
 
-	helpers.LogSuccess(t, "모든 변조 감지 테스트 통과 ✓")
+	helpers.LogSuccess(t, "모든 변조 감지 테스트 통과 ")
 
 	// Save verification data
 	data := map[string]interface{}{
@@ -396,7 +396,7 @@ func Test_5_1_2_1_TimestampValidation(t *testing.T) {
 	helpers.LogDetail(t, "  타임스탬프: %s", futureTime.Format(time.RFC3339))
 	helpers.LogDetail(t, "  시간 차이: +2분")
 
-	helpers.LogSuccess(t, "타임스탬프 검증 테스트 완료 ✓")
+	helpers.LogSuccess(t, "타임스탬프 검증 테스트 완료 ")
 
 	// Save verification data
 	data := map[string]interface{}{
@@ -458,7 +458,7 @@ func Test_5_1_2_2_ExpiredSignatureRejection(t *testing.T) {
 	// Verify with default options (5-minute max skew)
 	err = verifier.VerifyRequest(req1, publicKey, nil)
 	require.Error(t, err, "Expired signature (10 minutes old) should be rejected")
-	helpers.LogSuccess(t, "만료된 서명 거부 확인 ✓")
+	helpers.LogSuccess(t, "만료된 서명 거부 확인 ")
 	helpers.LogDetail(t, "  검증 오류: %v", err)
 
 	// Test Case 2: Very old signature (1 hour ago, definitely expired)
@@ -484,10 +484,10 @@ func Test_5_1_2_2_ExpiredSignatureRejection(t *testing.T) {
 
 	err = verifier.VerifyRequest(req2, publicKey, nil)
 	require.Error(t, err, "Very old signature (1 hour) should be rejected")
-	helpers.LogSuccess(t, "1시간 전 서명 거부 확인 ✓")
+	helpers.LogSuccess(t, "1시간 전 서명 거부 확인 ")
 	helpers.LogDetail(t, "  검증 오류: %v", err)
 
-	helpers.LogSuccess(t, "만료 서명 거부 테스트 완료 ✓")
+	helpers.LogSuccess(t, "만료 서명 거부 테스트 완료 ")
 
 	// Save verification data
 	data := map[string]interface{}{

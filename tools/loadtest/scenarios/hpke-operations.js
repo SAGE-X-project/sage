@@ -173,7 +173,7 @@ export function handleSummary(data) {
     return true;
   });
 
-  console.log(`\nHPKE Operations Test Result: ${passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  console.log(`\nHPKE Operations Test Result: ${passed ? ' PASSED' : ' FAILED'}\n`);
 
   // Print HPKE operation statistics
   if (data.metrics.sage_hpke_operations_total) {

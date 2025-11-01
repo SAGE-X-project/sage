@@ -20,14 +20,14 @@
 Running health checks...
 
 Blockchain:
-✓ Connection: OK
-✓ Chain ID: 31337
-✓ Block Number: 125
+ Connection: OK
+ Chain ID: 31337
+ Block Number: 125
 
 System:
-✓ Memory: 245 MB
-✓ Disk: 12.5 GB
-✓ Goroutines: 15
+ Memory: 245 MB
+ Disk: 12.5 GB
+ Goroutines: 15
 
 Overall Status: Healthy
 ```
@@ -66,10 +66,10 @@ Overall Status: Healthy
 
 **통과 기준**:
 
-- ✅ 통합 체크 성공
-- ✅ 모든 의존성 확인
-- ✅ JSON 출력 가능
-- ✅ 상태 판정 정확
+-  통합 체크 성공
+-  모든 의존성 확인
+-  JSON 출력 가능
+-  상태 판정 정확
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -83,7 +83,7 @@ RPC URL:     http://localhost:8545
 타임스탬프:   2025-10-23 21:22:15
 
 블록체인:
-  ✗ 연결 끊김 (Disconnected)
+   연결 끊김 (Disconnected)
     에러:      Chain ID 조회 실패
                Post "http://localhost:8545": dial tcp 127.0.0.1:8545
                connect: connection refused
@@ -93,7 +93,7 @@ RPC URL:     http://localhost:8545
   디스크:       189 GB / 228 GB (82.9%)
   Goroutines:  1
 
-✗ 전체 상태: 비정상 (unhealthy)
+ 전체 상태: 비정상 (unhealthy)
 
 에러 목록:
   • 블록체인: Chain ID 조회 실패
@@ -105,13 +105,13 @@ RPC URL:     http://localhost:8545
 **검증 데이터**:
 - CLI 도구: `cmd/sage-verify/main.go`
 - 빌드 위치: `./build/bin/sage-verify`
-- 상태: ✅ CLI 도구가 정상 동작
+- 상태:  CLI 도구가 정상 동작
 - 기능 검증:
-  - ✅ 통합 헬스체크 실행
-  - ✅ 블록체인 및 시스템 상태 확인
-  - ✅ 전체 상태 판정 (unhealthy)
-  - ✅ 에러 목록 표시
-  - ✅ JSON 출력 옵션 (`--json`) 지원
+  -  통합 헬스체크 실행
+  -  블록체인 및 시스템 상태 확인
+  -  전체 상태 판정 (unhealthy)
+  -  에러 목록 표시
+  -  JSON 출력 옵션 (`--json`) 지원
 - 환경 변수 지원:
   - `SAGE_NETWORK` - 네트워크 설정 (기본값: local)
   - `SAGE_RPC_URL` - RPC URL 오버라이드
@@ -135,11 +135,11 @@ RPC URL:     http://localhost:8545
 
 ```
 Checking blockchain connection...
-✓ Blockchain Connection: OK
-✓ RPC URL: http://localhost:8545
-✓ Chain ID: 31337
-✓ Block Number: 125
-✓ Response Time: 45ms
+ Blockchain Connection: OK
+ RPC URL: http://localhost:8545
+ Chain ID: 31337
+ Block Number: 125
+ Response Time: 45ms
 
 Status: Healthy
 ```
@@ -153,10 +153,10 @@ Status: Healthy
 
 **통과 기준**:
 
-- ✅ 연결 성공
-- ✅ Chain ID = 31337
-- ✅ 블록 조회 가능
-- ✅ 응답 시간 < 1초
+-  연결 성공
+-  Chain ID = 31337
+-  블록 조회 가능
+-  응답 시간 < 1초
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -168,7 +168,7 @@ Status: Healthy
 네트워크:    local
 RPC URL:    http://localhost:8545
 
-✗ 상태:      연결 끊김 (DISCONNECTED)
+ 상태:      연결 끊김 (DISCONNECTED)
   에러:      Chain ID 조회 실패
              Post "http://localhost:8545": dial tcp 127.0.0.1:8545
              connect: connection refused
@@ -178,12 +178,12 @@ RPC URL:    http://localhost:8545
 **검증 데이터**:
 - CLI 도구: `cmd/sage-verify/main.go`
 - 빌드 위치: `./build/bin/sage-verify`
-- 상태: ✅ CLI 도구가 정상 동작 (연결 실패 올바르게 감지)
+- 상태:  CLI 도구가 정상 동작 (연결 실패 올바르게 감지)
 - 기능 검증:
-  - ✅ 블록체인 연결 시도
-  - ✅ RPC URL 설정 확인 (http://localhost:8545)
-  - ✅ 연결 실패 시 명확한 에러 메시지 출력
-  - ✅ 연결 거부 상태 올바르게 감지
+  -  블록체인 연결 시도
+  -  RPC URL 설정 확인 (http://localhost:8545)
+  -  연결 실패 시 명확한 에러 메시지 출력
+  -  연결 거부 상태 올바르게 감지
 - 환경 변수 지원:
   - `SAGE_NETWORK` - 네트워크 설정 (기본값: local)
   - `SAGE_RPC_URL` - RPC URL 오버라이드
@@ -208,9 +208,9 @@ RPC URL:    http://localhost:8545
 
 ```
 Checking system resources...
-✓ Memory Usage: 245 MB
-✓ Disk Usage: 12.5 GB
-✓ Goroutines: 15
+ Memory Usage: 245 MB
+ Disk Usage: 12.5 GB
+ Goroutines: 15
 
 Status: Healthy
 ```
@@ -224,10 +224,10 @@ Status: Healthy
 
 **통과 기준**:
 
-- ✅ 메모리 사용량 표시
-- ✅ 디스크 사용량 표시
-- ✅ Goroutine 수 표시
-- ✅ 상태 판정 정확
+-  메모리 사용량 표시
+-  디스크 사용량 표시
+-  Goroutine 수 표시
+-  상태 판정 정확
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -240,19 +240,19 @@ Status: Healthy
 디스크:       189 GB / 228 GB (82.9%)
 Goroutines:  1
 
-⚠ 전체 상태:  성능 저하 (degraded)
+ 전체 상태:  성능 저하 (degraded)
 ═══════════════════════════════════════════════════════════
 ```
 
 **검증 데이터**:
 - CLI 도구: `cmd/sage-verify/main.go`
 - 빌드 위치: `./build/bin/sage-verify`
-- 상태: ✅ CLI 도구가 정상 동작
+- 상태:  CLI 도구가 정상 동작
 - 기능 검증:
-  - ✅ 메모리 사용량 측정 (0 MB / 8 MB)
-  - ✅ 디스크 사용량 측정 (189 GB / 228 GB = 82.9%)
-  - ✅ Goroutine 수 확인 (1개 - CLI 도구로 정상)
-  - ✅ 시스템 상태 판정 (degraded - 디스크 사용률 높음으로 인한 경고)
+  -  메모리 사용량 측정 (0 MB / 8 MB)
+  -  디스크 사용량 측정 (189 GB / 228 GB = 82.9%)
+  -  Goroutine 수 확인 (1개 - CLI 도구로 정상)
+  -  시스템 상태 판정 (degraded - 디스크 사용률 높음으로 인한 경고)
 - 상태 판정 기준:
   - healthy: 모든 리소스가 정상 범위
   - degraded: 일부 리소스가 경고 수준 (디스크 > 80%)

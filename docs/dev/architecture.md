@@ -1,11 +1,11 @@
 # SAGE 아키텍처 문서
 
-> ️ **OUTDATED WARNING**: 이 문서는 초기 계획 단계에서 작성되었습니다.
+>  **OUTDATED WARNING**: 이 문서는 초기 계획 단계에서 작성되었습니다.
 >
 > **현재 상태**:
 > -  구현됨: handshake/, session/, hpke/, crypto/, did/, rfc9421/
 > -  미구현: Gateway, Policy Engine, Rust 암호화 엔진
-> - ️ 디렉터리 구조가 이 문서와 크게 달라졌습니다
+> -  디렉터리 구조가 이 문서와 크게 달라졌습니다
 >
 > 정확한 현재 아키텍처는 `/handshake`, `/session`, `/hpke` 패키지 코드를 참조하세요.
 

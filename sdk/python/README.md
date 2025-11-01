@@ -4,12 +4,12 @@ Python client library for SAGE (Secure Agent Guarantee Engine) - providing secur
 
 ## Features
 
-- ✅ **Ed25519 Signatures**: Cryptographic signing and verification
-- ✅ **HPKE Encryption**: Hybrid Public Key Encryption for secure sessions
-- ✅ **DID Support**: Decentralized identifiers for agent identity
-- ✅ **Session Management**: Efficient stateful communication
-- ✅ **Async/Await**: Full async support with `httpx`
-- ✅ **Type Hints**: Complete type annotations for better IDE support
+-  **Ed25519 Signatures**: Cryptographic signing and verification
+-  **HPKE Encryption**: Hybrid Public Key Encryption for secure sessions
+-  **DID Support**: Decentralized identifiers for agent identity
+-  **Session Management**: Efficient stateful communication
+-  **Async/Await**: Full async support with `httpx`
+-  **Type Hints**: Complete type annotations for better IDE support
 
 ## Installation
 
@@ -489,10 +489,10 @@ print(f"Message took: {time.time() - start:.2f}s")
 
 1. **Never log or expose private keys**
    ```python
-   # ❌ BAD
+   #  BAD
    print(f"Private key: {keypair.private_key.hex()}")
 
-   # ✅ GOOD
+   #  GOOD
    print(f"Public key: {keypair.public_key.hex()}")
    ```
 
@@ -539,12 +539,12 @@ print(f"Message took: {time.time() - start:.2f}s")
 
 1. **Reuse sessions**
    ```python
-   # ❌ BAD - Creates new session for each message
+   #  BAD - Creates new session for each message
    for msg in messages:
        session_id = await client.handshake(server_did)
        await client.send_message(session_id, msg)
 
-   # ✅ GOOD - Reuse session
+   #  GOOD - Reuse session
    session_id = await client.handshake(server_did)
    for msg in messages:
        await client.send_message(session_id, msg)
@@ -552,7 +552,7 @@ print(f"Message took: {time.time() - start:.2f}s")
 
 2. **Close client properly**
    ```python
-   # ✅ Use context manager (auto-close)
+   #  Use context manager (auto-close)
    async with SAGEClient("http://localhost:8080") as client:
        # Client automatically closed
        pass
@@ -905,4 +905,4 @@ open docs/sage_client/index.html
 
 ---
 
-**Made with ❤️ by the SAGE Team**
+**Made with  by the SAGE Team**

@@ -4,7 +4,7 @@
 
 This directory contains the AgentCard smart contracts for SAGE (Secure Agent Guarantee Engine) - a multi-chain EVM implementation for decentralized AI agent identity management with ERC-8004 compliance.
 
-**Current Status**: ✅ Production Ready - V4.1 (AgentCard Architecture)
+**Current Status**: -  Production Ready - V4.1 (AgentCard Architecture)
 
 ### Key Features
 
@@ -117,7 +117,7 @@ npm run compile
 npm test
 ```
 
-Expected output: **124 passing tests** ✅
+Expected output: **124 passing tests** - 
 
 ## Deployment
 
@@ -179,17 +179,17 @@ After successful deployment, you'll see:
 
 ```
 ================================================================================
-✅ Deployment Complete!
+-  Deployment Complete!
 ================================================================================
 
-📋 Summary:
+ Summary:
    Network:              kaia-kairos
    Chain ID:             1001
    AgentCardRegistry:    0x...
    AgentCardVerifyHook:  0x...
    Total Gas Used:       ~5,000,000
 
-📝 Next Steps:
+-  Next Steps:
    1. Verify contracts on block explorer
    2. Run: npx hardhat run scripts/verify-agentcard.js --network kairos
    3. Test agent registration
@@ -204,33 +204,33 @@ Deployment information is saved in:
 ```
 contracts/ethereum/
 ├── contracts/               # Smart contracts
-│   ├── AgentCardRegistry.sol       ✅ Main registry with ERC-8004
-│   ├── AgentCardStorage.sol        ✅ Storage layer
-│   ├── AgentCardVerifyHook.sol     ✅ Validation hook
-│   ├── erc-8004/                   ✅ ERC-8004 interfaces
-│   └── deprecated/                 ⚠️  Legacy contracts
+│   ├── AgentCardRegistry.sol       -  Main registry with ERC-8004
+│   ├── AgentCardStorage.sol        -  Storage layer
+│   ├── AgentCardVerifyHook.sol     -  Validation hook
+│   ├── erc-8004/                   -  ERC-8004 interfaces
+│   └── deprecated/                 - -   Legacy contracts
 │
 ├── scripts/                 # Deployment scripts
-│   ├── deploy-agentcard.js         ✅ Multi-chain deployment
-│   ├── verify-agentcard.js         ✅ Contract verification
-│   ├── check-balance.js            ✅ Balance checker
-│   ├── flatten-contracts.sh        ✅ Contract flattening
-│   ├── generate-key-from-mnemonic.js ✅ Key generation
-│   ├── port-manager.sh             ✅ Local node management
-│   └── deprecated/                 ⚠️  Legacy scripts
+│   ├── deploy-agentcard.js         -  Multi-chain deployment
+│   ├── verify-agentcard.js         -  Contract verification
+│   ├── check-balance.js            -  Balance checker
+│   ├── flatten-contracts.sh        -  Contract flattening
+│   ├── generate-key-from-mnemonic.js -  Key generation
+│   ├── port-manager.sh             -  Local node management
+│   └── deprecated/                 - -   Legacy scripts
 │
 ├── test/                    # Test files
-│   ├── AgentCardRegistry.test.js   ✅ 47 tests
-│   ├── AgentCardStorage.test.js    ✅ 25 tests
-│   ├── AgentCardVerifyHook.test.js ✅ 36 tests
-│   ├── ERC8004InterfaceInRegistry.test.js ✅ 8 tests
-│   ├── FullWorkflow.test.js        ✅ 8 tests
-│   └── deprecated/                 ⚠️  Legacy tests (22 failing - expected)
+│   ├── AgentCardRegistry.test.js   -  47 tests
+│   ├── AgentCardStorage.test.js    -  25 tests
+│   ├── AgentCardVerifyHook.test.js -  36 tests
+│   ├── ERC8004InterfaceInRegistry.test.js -  8 tests
+│   ├── FullWorkflow.test.js        -  8 tests
+│   └── deprecated/                 - -   Legacy tests (22 failing - expected)
 │
 ├── deployments/             # Deployment records
-│   ├── README.md                   📝 Multi-chain deployment guide
-│   ├── {network}-latest.json       📂 Latest deployment per network
-│   └── {network}-agentcard-{timestamp}.json 📂 Historical deployments
+│   ├── README.md                   -  Multi-chain deployment guide
+│   ├── {network}-latest.json        Latest deployment per network
+│   └── {network}-agentcard-{timestamp}.json  Historical deployments
 │
 ├── hardhat.config.js        # Hardhat configuration
 ├── package.json             # NPM scripts and dependencies
@@ -328,19 +328,19 @@ npm run clean:deep        # Clean + remove node_modules
 | Phase 4 | ERC8004InterfaceInRegistry.test.js | 8 | ERC-8004 compliance |
 | Phase 5 | FullWorkflow.test.js | 8 | Integration workflows |
 
-**Total**: 124/124 passing ✅
+**Total**: 124/124 passing - 
 
 ### Key Test Areas
 
-- ✅ Commit-reveal pattern (9 tests)
-- ✅ Multi-key registration (12 tests)
-- ✅ Key management (9 tests)
-- ✅ Agent lifecycle (10 tests)
-- ✅ Security features (8 tests)
-- ✅ DID validation (10 tests)
-- ✅ Key verification (13 tests)
-- ✅ ERC-8004 interface (8 tests)
-- ✅ Full workflows (8 tests)
+- -  Commit-reveal pattern (9 tests)
+- -  Multi-key registration (12 tests)
+- -  Key management (9 tests)
+- -  Agent lifecycle (10 tests)
+- -  Security features (8 tests)
+- -  DID validation (10 tests)
+- -  Key verification (13 tests)
+- -  ERC-8004 interface (8 tests)
+- -  Full workflows (8 tests)
 
 ## Gas Costs
 
@@ -401,20 +401,20 @@ If you're migrating from SageRegistryV2 or SageRegistryV4:
 
 ### Security Features
 
-- ✅ Commit-reveal pattern (front-running protection)
-- ✅ Reentrancy guards
-- ✅ Pausable functionality
-- ✅ Two-step ownership transfer
-- ✅ DID format validation
-- ✅ Public key validation
-- ✅ Zero-key prevention
-- ✅ Key ownership verification
+- -  Commit-reveal pattern (front-running protection)
+- -  Reentrancy guards
+- -  Pausable functionality
+- -  Two-step ownership transfer
+- -  DID format validation
+- -  Public key validation
+- -  Zero-key prevention
+- -  Key ownership verification
 
 ### Audit Status
 
-- Code review: ✅ Complete
-- Test coverage: ✅ 124/124 tests passing
-- Security audit: ⏳ Pending external audit
+- Code review: -  Complete
+- Test coverage: -  124/124 tests passing
+- Security audit:  Pending external audit
 
 **Important**: Use testnets for initial deployment and testing. Deploy to mainnet only after thorough testing.
 
@@ -510,4 +510,4 @@ See [LICENSE](../../LICENSE) for details.
 
 **Last Updated**: 2025-10-26
 **Version**: 4.1 (AgentCard Architecture)
-**Status**: ✅ Production Ready
+**Status**: -  Production Ready

@@ -27,10 +27,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 
 **통과 기준**:
 
-- ✅ Ed25519 서명 생성 성공
-- ✅ 서명 길이 = 64 bytes
-- ✅ Signature-Input 헤더 포맷 정확
-- ✅ RFC 9421 표준 준수
+-  Ed25519 서명 생성 성공
+-  서명 길이 = 64 bytes
+-  Signature-Input 헤더 포맷 정확
+-  RFC 9421 표준 준수
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -48,7 +48,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 
 **검증 데이터**:
 - 테스트 데이터 파일: `testdata/rfc9421/ed25519_signature.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - Public key (hex): `f69a3ac3e13f6f8c7e142b13eb3953947eb7fba81b4e490ac1ba411b14806cd5`
 - Private key size: 64 bytes (verified)
 - Test URL: `https://sage.dev/resource/123?user=alice`
@@ -80,9 +80,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 
 **통과 기준**:
 
-- ✅ ECDSA P-256 서명 생성 성공
-- ✅ 알고리즘 = es256
-- ✅ RFC 9421 표준 준수
+-  ECDSA P-256 서명 생성 성공
+-  알고리즘 = es256
+-  RFC 9421 표준 준수
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -102,7 +102,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 
 **검증 데이터**:
 - 테스트 데이터 파일: `testdata/rfc9421/ecdsa_p256_signature.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - Curve: P-256 (NIST)
 - Private key D size: 32 bytes
 - Content-Digest: Covered in signature
@@ -138,10 +138,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 
 **통과 기준**:
 
-- ✅ Secp256k1 서명 생성 성공
-- ✅ Ethereum 주소 파생 성공
-- ✅ 알고리즘 = es256k
-- ✅ RFC 9421 표준 준수
+-  Secp256k1 서명 생성 성공
+-  Ethereum 주소 파생 성공
+-  알고리즘 = es256k
+-  RFC 9421 표준 준수
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -163,7 +163,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 
 **검증 데이터**:
 - 테스트 데이터 파일: `testdata/rfc9421/ecdsa_secp256k1_signature.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - Curve: Secp256k1 (Ethereum compatible)
 - Ethereum address: `0xbE64a57487bC287368167B05502262B89A827862`
 - Algorithm: es256k (RFC 9421 compliant)
@@ -199,10 +199,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
 
 **통과 기준**:
 
-- ✅ Signature-Input 헤더 생성
-- ✅ created 타임스탬프 포함
-- ✅ keyid 파라미터 포함
-- ✅ nonce 파라미터 포함
+-  Signature-Input 헤더 생성
+-  created 타임스탬프 포함
+-  keyid 파라미터 포함
+-  nonce 파라미터 포함
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -229,7 +229,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessa
   - `testdata/rfc9421/message_builder_default_fields.json`
   - `testdata/rfc9421/message_builder_minimal.json`
   - `testdata/rfc9421/message_builder_set_body.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - Signature-Input 헤더: keyid, created, nonce 모두 포함
 - Default SignedFields: agent_did, message_id, timestamp, nonce, body
 - Builder pattern: 정상 작동
@@ -260,10 +260,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestSigne
 
 **통과 기준**:
 
-- ✅ keyid 파라미터 존재
-- ✅ created 파라미터 존재
-- ✅ nonce 파라미터 존재
-- ✅ 각 파라미터 형식 정확
+-  keyid 파라미터 존재
+-  created 파라미터 존재
+-  nonce 파라미터 존재
+-  각 파라미터 형식 정확
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -284,7 +284,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestSigne
 
 **검증 데이터**:
 - 테스트 데이터 파일: `testdata/rfc9421/signer_parameters.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - KeyID: DID format (did:key:...) verified
 - Created: Unix timestamp format verified
 - Nonce: Custom nonce format verified
@@ -317,9 +317,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 **통과 기준**:
 
-- ✅ 유효한 서명 검증 성공
-- ✅ 에러 없음
-- ✅ RFC 9421 검증 프로세스 준수
+-  유효한 서명 검증 성공
+-  에러 없음
+-  RFC 9421 검증 프로세스 준수
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -338,7 +338,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 **검증 데이터**:
 - 테스트 데이터 파일: `testdata/rfc9421/verify_ed25519.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - Algorithm: EdDSA (RFC 9421 compliant)
 - Signature length: 64 bytes (verified)
 - Verification result: Success without errors
@@ -371,9 +371,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 **통과 기준**:
 
-- ✅ ECDSA P-256 서명 검증 성공
-- ✅ 서명 형식 정확
-- ✅ 에러 없음
+-  ECDSA P-256 서명 검증 성공
+-  서명 형식 정확
+-  에러 없음
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -388,7 +388,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 **검증 데이터**:
 - 테스트 데이터 파일: `testdata/rfc9421/verify_ecdsa.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - Algorithm: ECDSA (RFC 9421 recognized)
 - Signature base: 149 bytes (verified)
 - Note: Full ECDSA P-256/Secp256k1 verification completed in tests 1.1.2 and 1.1.3
@@ -419,9 +419,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 
 **통과 기준**:
 
-- ✅ Secp256k1 서명 검증 성공
-- ✅ Ethereum 주소 일치
-- ✅ 에러 없음
+-  Secp256k1 서명 검증 성공
+-  Ethereum 주소 일치
+-  에러 없음
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -431,7 +431,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestInteg
 > - Ethereum 주소 파생 및 검증 완료
 > - es256k 알고리즘 RFC 9421 준수 확인
 > - 테스트 데이터: `testdata/rfc9421/ecdsa_secp256k1_signature.json`
-> - 상태: ✅ PASS
+> - 상태:  PASS
 
 ---
 
@@ -457,11 +457,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 **통과 기준**:
 
-- ✅ 실제 서명 알고리즘으로 유효한 서명 생성
-- ✅ 원본 메시지 검증 성공
-- ✅ 메시지 변조 후 검증 실패
-- ✅ 에러 메시지에 'signature verification failed' 포함
-- ✅ 보안 검증 기능 정상 동작 (Ed25519 & Secp256k1)
+-  실제 서명 알고리즘으로 유효한 서명 생성
+-  원본 메시지 검증 성공
+-  메시지 변조 후 검증 실패
+-  에러 메시지에 'signature verification failed' 포함
+-  보안 검증 기능 정상 동작 (Ed25519 & Secp256k1)
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -505,7 +505,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 **검증 데이터 (Ed25519)**:
 - 테스트 데이터 파일: `testdata/rfc9421/verify_tampered_message.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - Original verification: Success
 - Tampered verification: Failed (correctly detected)
 - Error message: "signature verification failed: EdDSA signature verification failed"
@@ -552,7 +552,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 **검증 데이터 (Secp256k1)**:
 - 테스트 데이터 파일: `testdata/rfc9421/verify_tampered_message_secp256k1.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - Algorithm: ECDSA (Secp256k1 - Ethereum compatible)
 - Ethereum address: Verified
 - Original verification: Success
@@ -588,16 +588,16 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 **통과 기준**:
 
-- ✅ SAGE GenerateNonce로 암호학적으로 안전한 Nonce 생성
-- ✅ Nonce를 포함한 메시지 생성 (SignedFields)
-- ✅ SAGE ConstructSignatureBase로 서명 베이스 구성
-- ✅ Ed25519로 메시지 서명
-- ✅ 첫 번째 메시지 검증 성공
-- ✅ Nonce 자동 'used' 마킹 (SAGE NonceManager)
-- ✅ 동일 Nonce로 두 번째 메시지 생성
-- ✅ Replay Attack 탐지 (nonce replay attack detected)
-- ✅ 두 번째 검증 실패
-- ✅ **SAGE 핵심 기능에 의한 Replay 방어 동작 확인**
+-  SAGE GenerateNonce로 암호학적으로 안전한 Nonce 생성
+-  Nonce를 포함한 메시지 생성 (SignedFields)
+-  SAGE ConstructSignatureBase로 서명 베이스 구성
+-  Ed25519로 메시지 서명
+-  첫 번째 메시지 검증 성공
+-  Nonce 자동 'used' 마킹 (SAGE NonceManager)
+-  동일 Nonce로 두 번째 메시지 생성
+-  Replay Attack 탐지 (nonce replay attack detected)
+-  두 번째 검증 실패
+-  **SAGE 핵심 기능에 의한 Replay 방어 동작 확인**
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -658,7 +658,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
 
 **검증 데이터**:
 - 테스트 데이터 파일: `testdata/rfc9421/nonce_replay_attack_prevention.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - **Generated Nonce**: nAnLbQTxYlXOQC9VgZ-uWg (22 characters)
 - **First Message**:
   - AgentDID: did:sage:ethereum:agent-nonce-test
@@ -676,10 +676,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerif
   - Detected: true
   - Error: "nonce replay attack detected: nonce nAnLbQTxYlXOQC9VgZ-uWg has already been used"
 - **SAGE 핵심 기능 확인**:
-  - ✅ GenerateNonce: 암호학적으로 안전한 Nonce 생성
-  - ✅ ConstructSignatureBase: Nonce를 서명 베이스에 포함
-  - ✅ Verifier: 첫 검증 후 NonceManager에 자동 마킹
-  - ✅ NonceManager: Replay Attack 탐지 및 차단
+  -  GenerateNonce: 암호학적으로 안전한 Nonce 생성
+  -  ConstructSignatureBase: Nonce를 서명 베이스에 포함
+  -  Verifier: 첫 검증 후 NonceManager에 자동 마킹
+  -  NonceManager: Replay Attack 탐지 및 차단
 
 ---
 

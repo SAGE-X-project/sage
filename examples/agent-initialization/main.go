@@ -170,14 +170,14 @@ func (km *KeyManager) GenerateOrLoadKeys() (*ecdsa.PrivateKey, ed25519.PrivateKe
 
 	// ECDSA Key
 	if km.KeyExists("ecdsa") {
-		fmt.Println("🔑 Loading existing ECDSA key...")
+		fmt.Println(" Loading existing ECDSA key...")
 		ecdsaKey, err = km.LoadECDSAKey()
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to load ECDSA key: %w", err)
 		}
-		fmt.Println("✓ ECDSA key loaded from file")
+		fmt.Println(" ECDSA key loaded from file")
 	} else {
-		fmt.Println("🔑 Generating new ECDSA key...")
+		fmt.Println(" Generating new ECDSA key...")
 		ecdsaKey, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to generate ECDSA key: %w", err)
@@ -185,19 +185,19 @@ func (km *KeyManager) GenerateOrLoadKeys() (*ecdsa.PrivateKey, ed25519.PrivateKe
 		if err := km.SaveECDSAKey(ecdsaKey); err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to save ECDSA key: %w", err)
 		}
-		fmt.Println("✓ ECDSA key generated and saved")
+		fmt.Println(" ECDSA key generated and saved")
 	}
 
 	// Ed25519 Key
 	if km.KeyExists("ed25519") {
-		fmt.Println("🔑 Loading existing Ed25519 key...")
+		fmt.Println(" Loading existing Ed25519 key...")
 		ed25519Key, err = km.LoadEd25519Key()
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to load Ed25519 key: %w", err)
 		}
-		fmt.Println("✓ Ed25519 key loaded from file")
+		fmt.Println(" Ed25519 key loaded from file")
 	} else {
-		fmt.Println("🔑 Generating new Ed25519 key...")
+		fmt.Println(" Generating new Ed25519 key...")
 		_, ed25519Key, err = ed25519.GenerateKey(rand.Reader)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to generate Ed25519 key: %w", err)
@@ -205,19 +205,19 @@ func (km *KeyManager) GenerateOrLoadKeys() (*ecdsa.PrivateKey, ed25519.PrivateKe
 		if err := km.SaveEd25519Key(ed25519Key); err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to save Ed25519 key: %w", err)
 		}
-		fmt.Println("✓ Ed25519 key generated and saved")
+		fmt.Println(" Ed25519 key generated and saved")
 	}
 
 	// X25519 Key
 	if km.KeyExists("x25519") {
-		fmt.Println("🔑 Loading existing X25519 key...")
+		fmt.Println(" Loading existing X25519 key...")
 		x25519Key, err = km.LoadX25519Key()
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to load X25519 key: %w", err)
 		}
-		fmt.Println("✓ X25519 key loaded from file")
+		fmt.Println(" X25519 key loaded from file")
 	} else {
-		fmt.Println("🔑 Generating new X25519 key...")
+		fmt.Println(" Generating new X25519 key...")
 		x25519Key = make([]byte, 32)
 		if _, err := rand.Read(x25519Key); err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to generate X25519 key: %w", err)
@@ -225,7 +225,7 @@ func (km *KeyManager) GenerateOrLoadKeys() (*ecdsa.PrivateKey, ed25519.PrivateKe
 		if err := km.SaveX25519Key(x25519Key); err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to save X25519 key: %w", err)
 		}
-		fmt.Println("✓ X25519 key generated and saved")
+		fmt.Println(" X25519 key generated and saved")
 	}
 
 	return ecdsaKey, ed25519Key, x25519Key, nil
@@ -286,7 +286,7 @@ func (a *Agent) RegisterOnBlockchain(registryAddress, rpcURL, privateKeyHex stri
 		return fmt.Errorf("agent not initialized")
 	}
 
-	fmt.Println("🔗 Registering agent on blockchain...")
+	fmt.Println(" Registering agent on blockchain...")
 
 	// Create DID manager
 	manager := did.NewManager()
@@ -359,7 +359,7 @@ func (a *Agent) RegisterOnBlockchain(registryAddress, rpcURL, privateKeyHex stri
 		return fmt.Errorf("registration failed: %w", err)
 	}
 
-	fmt.Printf("✅ Agent registered successfully!\n")
+	fmt.Printf(" Agent registered successfully!\n")
 	fmt.Printf("   Transaction Hash: %s\n", result.TransactionHash)
 	fmt.Printf("   Block Number: %d\n", result.BlockNumber)
 	fmt.Printf("   Gas Used: %d\n", result.GasUsed)
@@ -412,7 +412,7 @@ func main() {
 		privateKeyHex = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 	}
 
-	fmt.Println("📋 Configuration")
+	fmt.Println(" Configuration")
 	fmt.Println("─────────────────────────────────────────────────────────")
 	fmt.Printf("Agent Name:      %s\n", agentName)
 	fmt.Printf("Key Directory:   %s\n", keyDir)
@@ -421,26 +421,26 @@ func main() {
 	fmt.Println()
 
 	// Step 1: Create agent with key management
-	fmt.Println("🤖 Step 1: Initializing Agent")
+	fmt.Println(" Step 1: Initializing Agent")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	agent, err := NewAgent(agentName, keyDir)
 	if err != nil {
-		fmt.Printf("❌ Failed to initialize agent: %v\n", err)
+		fmt.Printf(" Failed to initialize agent: %v\n", err)
 		os.Exit(1)
 	}
 
 	agent.PrintInfo()
 
 	// Step 2: Register on blockchain (optional)
-	fmt.Println("🚀 Step 2: Blockchain Registration (Optional)")
+	fmt.Println(" Step 2: Blockchain Registration (Optional)")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	registerOnChain := os.Getenv("REGISTER_ON_CHAIN")
 	if registerOnChain == "true" {
 		err = agent.RegisterOnBlockchain(registryAddress, rpcURL, privateKeyHex)
 		if err != nil {
-			fmt.Printf("⚠️  Registration failed: %v\n", err)
+			fmt.Printf("  Registration failed: %v\n", err)
 			fmt.Println("   Agent keys are still available for local use")
 		}
 	} else {
@@ -453,7 +453,7 @@ func main() {
 	fmt.Println("║                    Initialization Complete!               ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")
 	fmt.Println()
-	fmt.Println("🎉 Your agent is ready to use!")
+	fmt.Println(" Your agent is ready to use!")
 	fmt.Println()
 	fmt.Println("Key files saved in:", keyDir)
 	fmt.Println("  - ecdsa.key    (ECDSA private key)")

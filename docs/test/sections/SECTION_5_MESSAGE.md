@@ -35,10 +35,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 
 **통과 기준**:
 
-- ✅ Nonce 생성 성공
-- ✅ 생성된 Nonce 길이 충분
-- ✅ 두 Nonce가 서로 다름 (중복 없음)
-- ✅ 암호학적으로 안전한 생성
+-  Nonce 생성 성공
+-  생성된 Nonce 길이 충분
+-  두 Nonce가 서로 다름 (중복 없음)
+-  암호학적으로 안전한 생성
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -58,11 +58,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/core/message/nonce/manager_test.go:35-83`
 - 테스트 데이터: `testdata/verification/nonce/nonce_generation.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수: `nonce.GenerateNonce()`
 - Nonce 1: 22 characters (base64url 인코딩)
 - Nonce 2: 22 characters (중복 없음 확인)
-- 고유성: ✅ 검증 완료
+- 고유성:  검증 완료
 
 ---
 
@@ -97,10 +97,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 
 **통과 기준**:
 
-- ✅ 첫 사용 정상 처리
-- ✅ 중복 Nonce 탐지
-- ✅ Replay 공격 방어
-- ✅ 사용된 Nonce 추적
+-  첫 사용 정상 처리
+-  중복 Nonce 탐지
+-  Replay 공격 방어
+-  사용된 Nonce 추적
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -121,14 +121,14 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/core/message/nonce/manager_test.go:242-294`
 - 테스트 데이터: `testdata/verification/nonce/nonce_check_replay.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수:
   - `nonce.GenerateNonce()` - Nonce 생성
   - `nonce.Manager.MarkNonceUsed()` - 사용 표시
   - `nonce.Manager.IsNonceUsed()` - 사용 여부 확인
 - 첫 사용: false → 정상 처리
 - 두 번째 사용: true → Replay 탐지
-- 보안: ✅ Replay 공격 방어
+- 보안:  Replay 공격 방어
 
 ---
 
@@ -165,11 +165,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 
 **통과 기준**:
 
-- ✅ TTL 설정 가능
-- ✅ TTL 경과 전 Nonce 추적
-- ✅ TTL 경과 후 만료 처리
-- ✅ 만료 Nonce 자동 제거
-- ✅ 메모리 효율적 관리
+-  TTL 설정 가능
+-  TTL 경과 전 Nonce 추적
+-  TTL 경과 후 만료 처리
+-  만료 Nonce 자동 제거
+-  메모리 효율적 관리
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -193,7 +193,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/core/message/nonce/manager_test.go:297-361`
 - 테스트 데이터: `testdata/verification/nonce/nonce_expiration.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수:
   - `nonce.NewManager(ttl, cleanupInterval)` - TTL 기반 관리자
   - `nonce.Manager.MarkNonceUsed()` - Nonce 사용 표시
@@ -201,7 +201,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/nonce -run 'Tes
 - 테스트 TTL: 50ms (실제는 5분 = 300,000ms)
 - 만료 전: 추적됨 (count=1)
 - 만료 후: 제거됨 (count=0)
-- 메모리: ✅ 효율적 관리
+- 메모리:  효율적 관리
 
 ---
 
@@ -239,10 +239,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 
 **통과 기준**:
 
-- ✅ 첫 메시지 수락 (seq=1)
-- ✅ 중복 Sequence 거부
-- ✅ 증가하는 Sequence 수락 (seq=2)
-- ✅ Replay 공격 방어
+-  첫 메시지 수락 (seq=1)
+-  중복 Sequence 거부
+-  증가하는 Sequence 수락 (seq=2)
+-  Replay 공격 방어
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -265,12 +265,12 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/core/message/order/manager_test.go:133-193`
 - 테스트 데이터: `testdata/verification/message/order/sequence_monotonicity.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수: `order.Manager.ProcessMessage()`
-- Sequence 1: ✅ 수락
-- Sequence 1 (중복): ✅ 거부
-- Sequence 2: ✅ 수락
-- 단조 증가: ✅ 검증 완료
+- Sequence 1:  수락
+- Sequence 1 (중복):  거부
+- Sequence 2:  수락
+- 단조 증가:  검증 완료
 
 ---
 
@@ -304,10 +304,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 
 **통과 기준**:
 
-- ✅ 기준 타임스탬프 설정
-- ✅ 이전 타임스탬프 거부
-- ✅ 이후 타임스탬프 수락
-- ✅ 시간 순서 일관성 유지
+-  기준 타임스탬프 설정
+-  이전 타임스탬프 거부
+-  이후 타임스탬프 수락
+-  시간 순서 일관성 유지
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -330,12 +330,12 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/core/message/order/manager_test.go:195-262`
 - 테스트 데이터: `testdata/verification/message/order/timestamp_ordering.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수: `order.Manager.ProcessMessage()`
 - 기준 타임스탬프: 2025-10-24T02:33:53
-- 이전 타임스탬프 (-1초): ✅ 거부
-- 이후 타임스탬프 (+1초): ✅ 수락
-- 시간 순서: ✅ 일관성 유지
+- 이전 타임스탬프 (-1초):  거부
+- 이후 타임스탬프 (+1초):  수락
+- 시간 순서:  일관성 유지
 
 **참고**: 타임스탬프는 메시지 생성 시점의 현재 시간을 사용하며, 테스트는 2025년에 실행되었습니다. 시간 순서 검증 로직 자체는 연도에 무관하게 동작합니다.
 
@@ -384,11 +384,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 
 **통과 기준**:
 
-- ✅ 올바른 순서 수락
-- ✅ 잘못된 순서 거부
-- ✅ Sequence 역행 탐지
-- ✅ 타임스탬프 역행 탐지
-- ✅ 중복 메시지 자동 거부
+-  올바른 순서 수락
+-  잘못된 순서 거부
+-  Sequence 역행 탐지
+-  타임스탬프 역행 탐지
+-  중복 메시지 자동 거부
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -421,11 +421,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'Tes
 - 테스트 데이터:
   - `testdata/verification/message/order/sequence_validation.json`
   - `testdata/verification/message/order/out_of_order_detection.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수: `order.Manager.ProcessMessage()`
-- Sequence 검증: ✅ 동일/역행 거부
-- Out-of-order 탐지: ✅ 메시지 거부
-- 보안: ✅ 중복 메시지 자동 거부
+- Sequence 검증:  동일/역행 거부
+- Out-of-order 탐지:  메시지 거부
+- 보안:  중복 메시지 자동 거부
 
 ---
 
@@ -462,10 +462,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'Te
 
 **통과 기준**:
 
-- ✅ 메시지 추적 성공
-- ✅ 중복 메시지 탐지
-- ✅ Replay 공격 방어
-- ✅ 메시지 카운트 정확
+-  메시지 추적 성공
+-  중복 메시지 탐지
+-  Replay 공격 방어
+-  메시지 카운트 정확
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -489,14 +489,14 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'Te
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/core/message/dedupe/detector_test.go:106-171`
 - 테스트 데이터: `testdata/verification/message/dedupe/deduplication_detection.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수:
   - `dedupe.NewDetector()` - 중복 탐지기 생성
   - `dedupe.Detector.MarkPacketSeen()` - 메시지 추적
   - `dedupe.Detector.IsDuplicate()` - 중복 확인
 - 첫 메시지: 추적됨 (count=1)
-- 중복 메시지: ✅ 탐지됨
-- Replay 방어: ✅ 성공
+- 중복 메시지:  탐지됨
+- Replay 방어:  성공
 
 ---
 
@@ -529,10 +529,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 
 **통과 기준**:
 
-- ✅ 첫 메시지 검증 성공
-- ✅ Replay 탐지 (같은 Nonce)
-- ✅ 에러 메시지 정확
-- ✅ 통계 추적 정확
+-  첫 메시지 검증 성공
+-  Replay 탐지 (같은 Nonce)
+-  에러 메시지 정확
+-  통계 추적 정확
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -554,12 +554,12 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/core/message/validator/validator_test.go:232-333`
 - 테스트 데이터: `testdata/verification/message/validator/replay_detection.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수: `validator.MessageValidator.ValidateMessage()`
-- 첫 메시지: ✅ 검증 성공
-- Replay 시도: ✅ 탐지 및 거부
+- 첫 메시지:  검증 성공
+- Replay 시도:  탐지 및 거부
 - 에러: "nonce has been used before (replay attack detected)"
-- 보안: ✅ Replay 공격 방어
+- 보안:  Replay 공격 방어
 
 ---
 
@@ -594,10 +594,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 
 **통과 기준**:
 
-- ✅ 검증자 초기화 성공
-- ✅ 유효한 메시지 검증 성공
-- ✅ Replay, Duplicate, Out-of-order 플래그 확인
-- ✅ 통계 추적 정확 (tracked_nonces, tracked_packets)
+-  검증자 초기화 성공
+-  유효한 메시지 검증 성공
+-  Replay, Duplicate, Out-of-order 플래그 확인
+-  통계 추적 정확 (tracked_nonces, tracked_packets)
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -627,14 +627,14 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/core/message/validator/validator_test.go:44-137`
 - 테스트 데이터: `testdata/verification/message/validator/valid_stats.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수:
   - `validator.NewMessageValidator()` - 검증자 생성
   - `validator.MessageValidator.ValidateMessage()` - 종합 검증
   - `validator.MessageValidator.GetStats()` - 통계 조회
-- 검증 결과: ✅ Valid, No replay, No duplicate, In order
+- 검증 결과:  Valid, No replay, No duplicate, In order
 - 통계: tracked_nonces=1, tracked_packets=1
-- 종합 검증: ✅ 성공
+- 종합 검증:  성공
 
 ---
 
@@ -668,11 +668,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 
 **통과 기준**:
 
-- ✅ 검증자 초기화 (strict order window)
-- ✅ 첫 메시지 기준 설정
-- ✅ Out-of-order 메시지 거부
-- ✅ 에러 메시지 정확
-- ✅ Order 보호 동작
+-  검증자 초기화 (strict order window)
+-  첫 메시지 기준 설정
+-  Out-of-order 메시지 거부
+-  에러 메시지 정확
+-  Order 보호 동작
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -696,13 +696,13 @@ go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/core/message/validator/validator_test.go:335-448`
 - 테스트 데이터: `testdata/verification/message/validator/out_of_order.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수: `validator.MessageValidator.ValidateMessage()`
 - Order window: 50ms (strict)
-- 첫 메시지: ✅ 기준 설정
-- Out-of-order (100ms 차이): ✅ 거부
+- 첫 메시지:  기준 설정
+- Out-of-order (100ms 차이):  거부
 - 에러: "order validation failed: out-of-order"
-- 종합 검증: ✅ 메시지 검증 완료
+- 종합 검증:  메시지 검증 완료
 
 ---
 

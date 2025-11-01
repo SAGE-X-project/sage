@@ -32,10 +32,10 @@ test_target() {
     echo -n "Testing: make $target ... "
 
     if make $target > /tmp/make_test_$$.log 2>&1; then
-        echo -e "${GREEN}✓ PASS${NC}"
+        echo -e "${GREEN} PASS${NC}"
         ((PASSED++))
     else
-        echo -e "${RED}✗ FAIL${NC}"
+        echo -e "${RED} FAIL${NC}"
         echo "  Error output:"
         tail -5 /tmp/make_test_$$.log | sed 's/^/    /'
         ((FAILED++))

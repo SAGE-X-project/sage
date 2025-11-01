@@ -282,7 +282,7 @@ func PrintValidationErrors(errors []ValidationError) {
 	// Finally info
 	for _, e := range errors {
 		if e.Level == "info" {
-			fmt.Printf("ℹ️  INFO: %s - %s\n", e.Field, e.Message)
+			fmt.Printf("ℹ  INFO: %s - %s\n", e.Field, e.Message)
 		}
 	}
 }

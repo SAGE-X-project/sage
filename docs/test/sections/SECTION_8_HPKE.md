@@ -33,10 +33,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_HPKE_Base_Ex
 
 **통과 기준**:
 
-- ✅ X25519 키 생성 성공
-- ✅ Encapsulated key = 32 bytes
-- ✅ HPKE 키 파생 성공
-- ✅ HPKE 키 개봉 성공
+-  X25519 키 생성 성공
+-  Encapsulated key = 32 bytes
+-  HPKE 키 파생 성공
+-  HPKE 키 개봉 성공
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -55,11 +55,11 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_HPKE_Base_Ex
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/hpke/hpke_test.go:33-181`
 - 테스트 데이터 파일: `testdata/verification/hpke/hpke_key_exchange_session.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수 사용:
-  - ✅ `keys.GenerateX25519KeyPair()` - X25519 KEM 키 쌍 생성
-  - ✅ `keys.HPKEDeriveSharedSecretToPeer()` - HPKE Sender 키 파생
-  - ✅ `keys.HPKEOpenSharedSecretWithPriv()` - HPKE Receiver 키 개봉
+  -  `keys.GenerateX25519KeyPair()` - X25519 KEM 키 쌍 생성
+  -  `keys.HPKEDeriveSharedSecretToPeer()` - HPKE Sender 키 파생
+  -  `keys.HPKEOpenSharedSecretWithPriv()` - HPKE Receiver 키 개봉
 - Encapsulated key: 32 bytes (X25519 공개키)
 - Exporter secret: 32 bytes
 - 모든 암호화 기능은 SAGE 내부 구현 사용
@@ -98,10 +98,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_HPKE_Base_Ex
 
 **통과 기준**:
 
-- ✅ Shared secret = 32 bytes
-- ✅ Sender와 Receiver의 Shared secret 일치
-- ✅ Session ID 결정적 파생 성공
-- ✅ 양쪽 Session ID 일치
+-  Shared secret = 32 bytes
+-  Sender와 Receiver의 Shared secret 일치
+-  Session ID 결정적 파생 성공
+-  양쪽 Session ID 일치
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -116,10 +116,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_HPKE_Base_Ex
 
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/hpke/hpke_test.go:68-90`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수 사용:
-  - ✅ `keys.HPKEOpenSharedSecretWithPriv()` - Shared secret 복원
-  - ✅ `session.ComputeSessionIDFromSeed()` - 결정적 Session ID 파생
+  -  `keys.HPKEOpenSharedSecretWithPriv()` - Shared secret 복원
+  -  `session.ComputeSessionIDFromSeed()` - 결정적 Session ID 파생
 - Shared secret: 32 bytes (일치 확인)
 - Session ID: Base64 인코딩 (양쪽 동일)
 - 검증: `bytes.Equal(expA, expB)` 및 `sidA == sidB`
@@ -160,9 +160,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_HPKE_Base_Ex
 
 **통과 기준**:
 
-- ✅ 보안 세션 생성 성공
-- ✅ AEAD 암호화 성공
-- ✅ 암호문 생성 확인 (크기 > 평문 크기)
+-  보안 세션 생성 성공
+-  AEAD 암호화 성공
+-  암호문 생성 확인 (크기 > 평문 크기)
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -178,10 +178,10 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_HPKE_Base_Ex
 
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/hpke/hpke_test.go:93-111`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수 사용:
-  - ✅ `session.NewSecureSessionFromExporter()` - HPKE exporter로부터 AEAD 세션 생성
-  - ✅ `session.Encrypt()` - ChaCha20Poly1305 AEAD 암호화
+  -  `session.NewSecureSessionFromExporter()` - HPKE exporter로부터 AEAD 세션 생성
+  -  `session.Encrypt()` - ChaCha20Poly1305 AEAD 암호화
 - 평문: "hello, secure world" (19 bytes)
 - 암호문: 47 bytes (19 bytes 평문 + AEAD 오버헤드)
 - 알고리즘: ChaCha20Poly1305 (HPKE 기본 AEAD)
@@ -216,9 +216,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_HPKE_Base_Ex
 
 **통과 기준**:
 
-- ✅ AEAD 복호화 성공
-- ✅ 복호화된 평문이 원본 메시지와 정확히 일치
-- ✅ AEAD 인증 성공 (무결성 검증)
+-  AEAD 복호화 성공
+-  복호화된 평문이 원본 메시지와 정확히 일치
+-  AEAD 인증 성공 (무결성 검증)
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -230,9 +230,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_HPKE_Base_Ex
 
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/hpke/hpke_test.go:113-118`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수 사용:
-  - ✅ `session.Decrypt()` - ChaCha20Poly1305 AEAD 복호화
+  -  `session.Decrypt()` - ChaCha20Poly1305 AEAD 복호화
 - 복호화 결과: "hello, secure world" (원본과 일치)
 - 검증: `bytes.Equal(pt, msg)` = true
 - AEAD 인증: Poly1305 MAC 검증 성공
@@ -266,9 +266,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_HPKE_Base_Ex
 
 **통과 기준**:
 
-- ✅ 암호문 크기 = 평문 크기 + AEAD 오버헤드
-- ✅ 암호문이 유효한 AEAD 형식
-- ✅ 복호화 가능
+-  암호문 크기 = 평문 크기 + AEAD 오버헤드
+-  암호문이 유효한 AEAD 형식
+-  복호화 가능
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -280,9 +280,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_HPKE_Base_Ex
 
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/hpke/hpke_test.go:103-111`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수 사용:
-  - ✅ `session.Encrypt()` - AEAD 암호화 및 형식화
+  -  `session.Encrypt()` - AEAD 암호화 및 형식화
 - 평문: 19 bytes
 - 암호문: 47 bytes
 - AEAD 오버헤드: 28 bytes (Nonce 12 bytes + Poly1305 Tag 16 bytes)
@@ -320,9 +320,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_ServerSignat
 
 **통과 기준**:
 
-- ✅ 핸드셰이크 성공
-- ✅ Ed25519 서명 검증
-- ✅ Ack Tag 유효
+-  핸드셰이크 성공
+-  Ed25519 서명 검증
+-  Ack Tag 유효
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -345,12 +345,12 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_ServerSignat
 
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/hpke/security_test.go`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수 사용:
-  - ✅ `keys.GenerateEd25519KeyPair()` - Ed25519 키 쌍 생성
-  - ✅ `keys.GenerateX25519KeyPair()` - X25519 KEM 키 쌍 생성
-  - ✅ `Client.Initialize()` - HPKE 클라이언트 핸드셰이크 초기화
-  - ✅ `Server.HandleMessage()` - HPKE 서버 메시지 처리
+  -  `keys.GenerateEd25519KeyPair()` - Ed25519 키 쌍 생성
+  -  `keys.GenerateX25519KeyPair()` - X25519 KEM 키 쌍 생성
+  -  `Client.Initialize()` - HPKE 클라이언트 핸드셰이크 초기화
+  -  `Server.HandleMessage()` - HPKE 서버 메시지 처리
 - Ed25519 서명 길이: 64 bytes (verified)
 - Ack Tag: Base64 인코딩된 키 확인 태그
 - Mock 사용: DID Resolver만 mock (블록체인 의존성 제거), 모든 암호화 기능은 실제 구현 사용
@@ -384,9 +384,9 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Client_Resol
 
 **통과 기준**:
 
-- ✅ 잘못된 키 거부
-- ✅ "ack tag mismatch" 에러 반환
-- ✅ 핸드셰이크 실패로 보안 유지
+-  잘못된 키 거부
+-  "ack tag mismatch" 에러 반환
+-  핸드셰이크 실패로 보안 유지
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -408,15 +408,15 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke -run 'Test_Client_Resol
 
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/hpke/security_test.go`
-- 상태: ✅ PASS
+- 상태:  PASS
 - SAGE 함수 사용:
-  - ✅ `keys.GenerateX25519KeyPair()` - 공격자의 잘못된 X25519 KEM 키 생성
-  - ✅ `Client.Initialize()` - HPKE 클라이언트 핸드셰이크 초기화 시도
-  - ✅ `Server.HandleMessage()` - HPKE 서버 메시지 처리
+  -  `keys.GenerateX25519KeyPair()` - 공격자의 잘못된 X25519 KEM 키 생성
+  -  `Client.Initialize()` - HPKE 클라이언트 핸드셰이크 초기화 시도
+  -  `Server.HandleMessage()` - HPKE 서버 메시지 처리
 - 보안 기능: Ack Tag를 통한 키 확인 (Key Confirmation)
 - 공격 시나리오: MITM/UKS (Man-in-the-Middle / Unknown Key-Share) 공격
 - 에러 메시지: "ack tag mismatch" - 올바른 거부 동작 확인
-- 보안 결과: ✅ 잘못된 KEM 키 사용 시 핸드셰이크 실패로 공격 방지
+- 보안 결과:  잘못된 KEM 키 사용 시 핸드셰이크 실패로 공격 방지
 
 ---
 

@@ -90,7 +90,7 @@ npx hardhat verify --network kairos [CONTRACT_ADDRESS] --contract contracts/Sage
 
 ### How to Check Verification Status:
 1. Go to the contract address on Klaytnscope
-2. Look for the green checkmark ✓ next to "Contract"
+2. Look for the green checkmark  next to "Contract"
 3. Verified contracts will show:
    - Source code in the "Contract" tab
    - Read/Write functions interface

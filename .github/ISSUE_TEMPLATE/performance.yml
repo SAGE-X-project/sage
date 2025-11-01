@@ -1,4 +1,4 @@
-name: ⚡ Performance Issue
+name:  Performance Issue
 description: Report performance problems or suggest optimizations
 title: "[Performance]: "
 labels: ["performance", "needs-triage"]

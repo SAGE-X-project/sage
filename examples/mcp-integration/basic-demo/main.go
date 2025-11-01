@@ -299,7 +299,7 @@ Untrusted agents:
 
 	// Start server
 	fmt.Println(" SAGE-Secured Calculator Tool")
-	fmt.Println("📍 Listening on http://localhost:8080")
+	fmt.Println(" Listening on http://localhost:8080")
 	fmt.Println("")
 	fmt.Printf("Trusted agents:\n")
 	fmt.Printf("  - %s\n", alice.did)

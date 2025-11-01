@@ -63,7 +63,7 @@ func verifyRequest(r *http.Request) error {
 // Same message processing logic
 func processMessage(msg ChatMessage, verifiedAgentDID string) ChatResponse {
 	fmt.Printf(" Verified message from: %s\n", verifiedAgentDID)
-	fmt.Printf("💬 Message: %s\n", msg.Message)
+	fmt.Printf(" Message: %s\n", msg.Message)
 
 	// Now we KNOW this is really from the claimed agent!
 	time.Sleep(100 * time.Millisecond)
@@ -114,7 +114,7 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	fmt.Println(" SECURE Chat Server (SAGE PROTECTED)")
-	fmt.Println("📍 Listening on http://localhost:8083")
+	fmt.Println(" Listening on http://localhost:8083")
 	fmt.Println("")
 	fmt.Println("Security features:")
 	fmt.Println("   Agent identity verified via blockchain DID")

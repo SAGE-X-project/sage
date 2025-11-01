@@ -95,7 +95,7 @@ func runDebug(cmd *cobra.Command, args []string) error {
 		fmt.Printf("\n  Warning: Address is not a valid Ethereum address\n")
 	} else {
 		addr := common.HexToAddress(parsedDID.Address)
-		fmt.Printf("\n📍 Ethereum Address (checksummed): %s\n", addr.Hex())
+		fmt.Printf("\n Ethereum Address (checksummed): %s\n", addr.Hex())
 	}
 
 	if parseOnly {
@@ -136,7 +136,7 @@ func runDebug(cmd *cobra.Command, args []string) error {
 
 	// Check cache if requested
 	if checkCache {
-		fmt.Println("\n💾 Checking cache...")
+		fmt.Println("\n Checking cache...")
 
 		// Try to resolve from cache (it should be instant if cached)
 		start := time.Now()
@@ -150,7 +150,7 @@ func runDebug(cmd *cobra.Command, args []string) error {
 			if duration < 1*time.Millisecond {
 				fmt.Printf(" DID is cached (resolution time: %v)\n", duration)
 			} else {
-				fmt.Printf("ℹ️  DID not in cache (resolution time: %v)\n", duration)
+				fmt.Printf("ℹ  DID not in cache (resolution time: %v)\n", duration)
 			}
 		}
 	}

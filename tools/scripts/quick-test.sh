@@ -31,10 +31,10 @@ run_test() {
     TOTAL=$((TOTAL + 1))
 
     if go test -short -timeout 10s "$package" > /dev/null 2>&1; then
-        echo -e "${GREEN}✓${NC}"
+        echo -e "${GREEN}${NC}"
         PASSED=$((PASSED + 1))
     else
-        echo -e "${RED}✗${NC}"
+        echo -e "${RED}${NC}"
         FAILED=$((FAILED + 1))
     fi
 }
@@ -61,9 +61,9 @@ echo "================================================"
 echo -e "Total: ${TOTAL}, Passed: ${GREEN}${PASSED}${NC}, Failed: ${RED}${FAILED}${NC}"
 
 if [ $FAILED -eq 0 ]; then
-    echo -e "${GREEN}✓ All essential tests passed!${NC}"
+    echo -e "${GREEN} All essential tests passed!${NC}"
     exit 0
 else
-    echo -e "${RED}✗ Some tests failed${NC}"
+    echo -e "${RED} Some tests failed${NC}"
     exit 1
 fi

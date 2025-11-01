@@ -31,9 +31,9 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  *     trustedTEEKeys[keyHash] = true;
  * }
  * ```
- * ❌ Single point of failure
- * ❌ Owner can add malicious keys
- * ❌ No community input
+ * - Single point of failure
+ * - Owner can add malicious keys
+ * - No community input
  *
  * **Decentralized Approach (V2 - This Contract)**:
  * ```
@@ -41,8 +41,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  *   ↓
  * Community → vote(proposalId, support)
  *   ↓
- * 66% approval → Key trusted ✅
- * <66% approval → Stake slashed ❌
+ * 66% approval → Key trusted (approved)
+ * <66% approval → Stake slashed (rejected)
  * ```
  *
  * ## Architecture

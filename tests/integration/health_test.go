@@ -74,7 +74,7 @@ func Test_9_1_1_1_HealthEndpointResponse(t *testing.T) {
 		helpers.LogDetail(t, "  Errors: none")
 	}
 
-	helpers.LogSuccess(t, "/health 엔드포인트 응답 검증 완료 ✓")
+	helpers.LogSuccess(t, "/health 엔드포인트 응답 검증 완료 ")
 
 	// Save verification data
 	data := map[string]interface{}{
@@ -156,7 +156,7 @@ func Test_9_1_1_2_BlockchainConnectionStatus(t *testing.T) {
 		}
 	}
 
-	helpers.LogSuccess(t, "블록체인 연결 상태 확인 완료 ✓")
+	helpers.LogSuccess(t, "블록체인 연결 상태 확인 완료 ")
 
 	// Save verification data
 	data := map[string]interface{}{
@@ -248,7 +248,7 @@ func Test_9_1_1_3_SystemResourceMonitoring(t *testing.T) {
 		helpers.LogDetail(t, "  Errors: none")
 	}
 
-	helpers.LogSuccess(t, "시스템 리소스 모니터링 완료 ✓")
+	helpers.LogSuccess(t, "시스템 리소스 모니터링 완료 ")
 
 	// Save verification data
 	data := map[string]interface{}{

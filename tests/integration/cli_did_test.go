@@ -445,34 +445,34 @@ func Test_6_2_3_3_VerifyDID(t *testing.T) {
 	// 1. Check DID prefix
 	hasValidPrefix := strings.HasPrefix(didStr, "did:sage:")
 	require.True(t, hasValidPrefix, "DID should start with did:sage:")
-	helpers.LogSuccess(t, "✓ DID prefix 검증 완료")
+	helpers.LogSuccess(t, " DID prefix 검증 완료")
 
 	// 2. Check DID structure
 	parts := strings.Split(didStr, ":")
 	hasValidStructure := len(parts) >= 4
 	require.True(t, hasValidStructure, "DID should have valid structure")
-	helpers.LogSuccess(t, "✓ DID 구조 검증 완료")
+	helpers.LogSuccess(t, " DID 구조 검증 완료")
 
 	// 3. Check lowercase
 	isLowercase := strings.ToLower(didStr) == didStr
 	require.True(t, isLowercase, "DID should be lowercase")
-	helpers.LogSuccess(t, "✓ 소문자 형식 검증 완료")
+	helpers.LogSuccess(t, " 소문자 형식 검증 완료")
 
 	// 4. Verify address consistency
 	extractedAddress := parts[3]
 	addressMatches := extractedAddress == address
 	require.True(t, addressMatches, "DID should contain correct address")
-	helpers.LogSuccess(t, "✓ 주소 일관성 검증 완료")
+	helpers.LogSuccess(t, " 주소 일관성 검증 완료")
 
 	// 5. Verify chain
 	chain := parts[2]
 	isValidChain := chain == "ethereum" || chain == "solana"
 	require.True(t, isValidChain, "Chain should be valid")
-	helpers.LogSuccess(t, "✓ Chain 검증 완료")
+	helpers.LogSuccess(t, " Chain 검증 완료")
 
 	// Overall verification result
 	allValid := hasValidPrefix && hasValidStructure && isLowercase && addressMatches && isValidChain
-	helpers.LogSuccess(t, "전체 DID 검증 완료 ✓")
+	helpers.LogSuccess(t, "전체 DID 검증 완료 ")
 
 	// Save verification data
 	data := map[string]interface{}{

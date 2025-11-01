@@ -25,10 +25,10 @@ go test -v ./tests -run TestBlockchainProviderConfiguration
 - Chain ID가 31337로 설정됨
 - Gas Limit, Max Gas Price 등 모든 설정 필드가 유효함
 
-**실제 결과**: ✅ PASSED
+**실제 결과**:  PASSED
 ```
 === 테스트: Provider 설정 검증 ===
-✓ 모든 Provider 설정이 올바르게 검증됨
+ 모든 Provider 설정이 올바르게 검증됨
 
 Configuration:
 - Network RPC: http://localhost:8545
@@ -65,10 +65,10 @@ go test -v ./tests -run TestBlockchainChainID
 - Hardhat 로컬 네트워크의 Chain ID는 31337
 - Chain ID가 양수값으로 반환됨
 
-**실제 결과**: ✅ PASSED
+**실제 결과**:  PASSED
 ```
 === 테스트: Chain ID 검증 (로컬 Hardhat: 31337) ===
-✓ Chain ID 31337 검증 완료
+ Chain ID 31337 검증 완료
 
 Chain ID Details:
 - Expected Chain ID: 31337
@@ -101,11 +101,11 @@ go test -v ./tests -run TestTransactionSigning
 - 서명자 주소 복구 성공
 - 서명 검증 완료 (v, r, s 값 확인)
 
-**실제 결과**: ✅ PASSED
+**실제 결과**:  PASSED
 ```
 === 테스트: 트랜잭션 서명 ===
-✓ 트랜잭션 서명 성공: from=0x694162689bf1386618F6Ca43c2cf18064755E33C
-✓ 서명 검증 완료
+ 트랜잭션 서명 성공: from=0x694162689bf1386618F6Ca43c2cf18064755E33C
+ 서명 검증 완료
 
 Transaction Details:
 - From: 0x694162689bf1386618F6Ca43c2cf18064755E33C
@@ -160,19 +160,19 @@ go test -v ./tests -run TestTransactionSendAndConfirm
 - Receipt 상태가 성공 (1)
 - Gas 사용량이 21000 (단순 전송)
 
-**실제 결과**: ✅ PASSED
+**실제 결과**:  PASSED
 ```
 === 테스트: 트랜잭션 전송 및 확인 ===
-✓ 블록체인 연결 성공: Chain ID=31337
-✓ 트랜잭션 생성 및 서명 완료
+ 블록체인 연결 성공: Chain ID=31337
+ 트랜잭션 생성 및 서명 완료
   From: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
   To: 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
   Value: 1000000000000000 Wei (0.001 ETH)
   Gas: 21000, Gas Price: 1875000000 (1.875 Gwei)
 
-✓ 트랜잭션 전송 성공: 0x994d5729e7ad586363f4589df4825ffe48dc8ebb48c59ffb224f2181dabdcf15
+ 트랜잭션 전송 성공: 0x994d5729e7ad586363f4589df4825ffe48dc8ebb48c59ffb224f2181dabdcf15
 
-✓ 트랜잭션 확인 완료
+ 트랜잭션 확인 완료
   상태: 1 (성공)
   블록: 1
   Gas 사용: 21000
@@ -225,12 +225,12 @@ go test -v ./tests -run TestGasEstimation
 - 예측 가스가 ±10% 범위 내에 있음
 - Gas Limit을 초과하는 경우 캡핑됨
 
-**실제 결과**: ✅ PASSED
+**실제 결과**:  PASSED
 ```
 === 테스트: 가스 예측 정확도 ===
-✓ 가스 예측 정확도 검증 완료
-✓ 기본 가스: 100000, 버퍼 포함: 120000 (20.0% 증가)
-✓ 가스 한도 캡핑: 3600000 -> 3000000
+ 가스 예측 정확도 검증 완료
+ 기본 가스: 100000, 버퍼 포함: 120000 (20.0% 증가)
+ 가스 한도 캡핑: 3600000 -> 3000000
 
 Gas Estimation Details:
 - Base Gas: 100000
@@ -274,12 +274,12 @@ go test -v ./tests -run TestContractDeployment
 - 컨트랙트 주소가 생성됨 (20바이트)
 - 주소 형식이 올바름 (0x + 40 hex characters)
 
-**실제 결과**: ✅ PASSED
+**실제 결과**:  PASSED
 ```
 === 테스트: AgentRegistry 컨트랙트 배포 시뮬레이션 ===
-✓ 컨트랙트 배포 시뮬레이션 성공
-✓ 배포자 주소: 0x3A9c4f7cf061191127B1DB3B39cA92adB1eb0770
-✓ 컨트랙트 주소: 0x00DcFC21e92174245C1Fa1C10Efc8Bbe1C5D4Dc3
+ 컨트랙트 배포 시뮬레이션 성공
+ 배포자 주소: 0x3A9c4f7cf061191127B1DB3B39cA92adB1eb0770
+ 컨트랙트 주소: 0x00DcFC21e92174245C1Fa1C10Efc8Bbe1C5D4Dc3
 
 Deployment Details:
 - Contract Name: AgentRegistry
@@ -306,7 +306,7 @@ Verification:
 - 컨트랙트 주소가 반환됨
 - 주소가 유효한 Ethereum 주소 형식
 
-**실제 결과**: ✅ PASSED (4.2.1.1에서 검증 완료)
+**실제 결과**:  PASSED (4.2.1.1에서 검증 완료)
 
 #### 4.2.2 호출
 
@@ -331,12 +331,12 @@ go test -v ./tests -run TestContractInteraction
 - 공개키가 33바이트로 압축됨
 - registerAgent 호출 성공
 
-**실제 결과**: ✅ PASSED
+**실제 결과**:  PASSED
 ```
 === 테스트: AgentRegistry 함수 호출 시뮬레이션 ===
-✓ registerAgent 시뮬레이션: DID=did:sage:ethereum:0xcf8525B25FB9C1311013FceEd42146d06d449c6c
-✓ Agent 주소: 0xcf8525B25FB9C1311013FceEd42146d06d449c6c
-✓ 공개키 길이: 33 bytes
+ registerAgent 시뮬레이션: DID=did:sage:ethereum:0xcf8525B25FB9C1311013FceEd42146d06d449c6c
+ Agent 주소: 0xcf8525B25FB9C1311013FceEd42146d06d449c6c
+ 공개키 길이: 33 bytes
 
 Register Agent Details:
 - Agent DID: did:sage:ethereum:0xcf8525B25FB9C1311013FceEd42146d06d449c6c
@@ -366,9 +366,9 @@ Verification:
 - DID, 공개키, 상태 정보 반환
 - registered 및 active 상태 확인
 
-**실제 결과**: ✅ PASSED
+**실제 결과**:  PASSED
 ```
-✓ getAgent 시뮬레이션 성공: Agent 정보 조회 완료
+ getAgent 시뮬레이션 성공: Agent 정보 조회 완료
 
 Get Agent Details:
 - Agent Address: 0xcf8525B25FB9C1311013FceEd42146d06d449c6c
@@ -401,14 +401,14 @@ go test -v ./tests -run TestContractEvents
 - 이벤트에 Agent 주소, DID, 공개키 포함
 - 블록 번호 및 트랜잭션 해시 확인
 
-**실제 결과**: ✅ PASSED
+**실제 결과**:  PASSED
 ```
 === 테스트: 컨트랙트 이벤트 로그 시뮬레이션 ===
-✓ 이벤트 로그 시뮬레이션 성공
-✓ 이벤트: AgentRegistered
-✓ Agent: 0xa64Ad1Fb36754Ed048a24C7a9b7adE80816f3B60
-✓ DID: did:sage:ethereum:0xa64Ad1Fb36754Ed048a24C7a9b7adE80816f3B60
-✓ 블록: 12345, 트랜잭션: 0xc5c085cf57a18a1f1e3af9c4c626cda449fe8b7255296f5c3aa4aa4a7f1f41d7
+ 이벤트 로그 시뮬레이션 성공
+ 이벤트: AgentRegistered
+ Agent: 0xa64Ad1Fb36754Ed048a24C7a9b7adE80816f3B60
+ DID: did:sage:ethereum:0xa64Ad1Fb36754Ed048a24C7a9b7adE80816f3B60
+ 블록: 12345, 트랜잭션: 0xc5c085cf57a18a1f1e3af9c4c626cda449fe8b7255296f5c3aa4aa4a7f1f41d7
 
 Event Details:
 - Event Name: AgentRegistered
@@ -436,12 +436,12 @@ Verification:
 **완료**: 100%
 
 **테스트 커버리지**:
-- ✅ Provider 설정 및 Chain ID 검증
-- ✅ 트랜잭션 서명 및 가스 예측
-- ✅ 트랜잭션 전송 및 Receipt 확인
-- ✅ 컨트랙트 배포 및 주소 생성
-- ✅ 컨트랙트 함수 호출 (registerAgent, getAgent)
-- ✅ 이벤트 로그 검증
+-  Provider 설정 및 Chain ID 검증
+-  트랜잭션 서명 및 가스 예측
+-  트랜잭션 전송 및 Receipt 확인
+-  컨트랙트 배포 및 주소 생성
+-  컨트랙트 함수 호출 (registerAgent, getAgent)
+-  이벤트 로그 검증
 
 **노트**:
 - 모든 블록체인 기능이 완전히 검증되었습니다.

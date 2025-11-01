@@ -205,7 +205,7 @@ go test -v -run TestKeyGeneration
 If crypto components aren't available:
 
 ```go
-// ❌ Wrong - package not imported
+//  Wrong - package not imported
 package main
 
 import "github.com/sage-x-project/sage/pkg/agent/crypto"
@@ -214,7 +214,7 @@ func main() {
     crypto.GenerateKeyPair(crypto.KeyTypeEd25519) // May fail
 }
 
-// ✅ Correct - explicit import
+//  Correct - explicit import
 package main
 
 import (
@@ -244,10 +244,10 @@ import (
 ### 1. Always Use Blank Import
 
 ```go
-// ✅ Correct - blank import for side effects
+//  Correct - blank import for side effects
 import _ "github.com/sage-x-project/sage/internal/cryptoinit"
 
-// ❌ Wrong - no need for named import
+//  Wrong - no need for named import
 import cryptoinit "github.com/sage-x-project/sage/internal/cryptoinit"
 ```
 
@@ -270,10 +270,10 @@ import (
 This package has no public API - all work is done in `init()`:
 
 ```go
-// ❌ Wrong - package has no public functions
+//  Wrong - package has no public functions
 cryptoinit.Initialize()
 
-// ✅ Correct - just import
+//  Correct - just import
 import _ "github.com/sage-x-project/sage/internal/cryptoinit"
 ```
 

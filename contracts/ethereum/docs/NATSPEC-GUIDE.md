@@ -490,14 +490,14 @@ uint256 private constant MAX_RESPONSES_PER_QUERY = 100;
 
 ### When to Use Inline Comments
 
-✅ **DO comment:**
+-  **DO comment:**
 - Complex algorithms
 - Non-obvious security checks
 - Gas optimization tricks
 - Invariant enforcement
 - Business logic reasoning
 
-❌ **DON'T comment:**
+-  **DON'T comment:**
 - Obvious code (`x = x + 1` doesn't need a comment)
 - What the code does (use function NatSpec instead)
 - Commented-out code (remove it)
@@ -605,7 +605,7 @@ npx solhint 'contracts/**/*.sol'
 
 ## Examples from SAGE Contracts
 
-### ✅ Good Example: SageRegistryV3
+### -  Good Example: SageRegistryV3
 
 ```solidity
 /**
@@ -626,7 +626,7 @@ npx solhint 'contracts/**/*.sol'
  */
 ```
 
-### ✅ Good Example: Error with Context
+### -  Good Example: Error with Context
 
 ```solidity
 /**
@@ -638,7 +638,7 @@ npx solhint 'contracts/**/*.sol'
 error RevealTooSoon(uint256 currentTime, uint256 minTime);
 ```
 
-### ❌ Bad Example: Insufficient Documentation
+### -  Bad Example: Insufficient Documentation
 
 ```solidity
 // Bad - no NatSpec

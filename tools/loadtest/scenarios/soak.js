@@ -54,7 +54,7 @@ export function setup() {
   }
 
   console.log(`Server DID: ${serverDID}\n`);
-  console.log('⏰ Starting long-running soak test...');
+  console.log(' Starting long-running soak test...');
   console.log('   Monitor for:');
   console.log('   - Memory leaks (increasing memory usage)');
   console.log('   - Performance degradation (increasing latency)');
@@ -76,7 +76,7 @@ export default function (data) {
   if (iteration % 50 === 0) {
     const healthRes = healthCheck(data.baseUrl);
     if (!healthRes || healthRes.status !== 200) {
-      console.warn(`⚠️  Health check failed at iteration ${iteration}`);
+      console.warn(`  Health check failed at iteration ${iteration}`);
     }
   }
 
@@ -123,12 +123,12 @@ export function teardown(data) {
   // Final health check
   const healthRes = healthCheck(data.baseUrl);
   if (healthRes && healthRes.status === 200) {
-    console.log('✅ Server is healthy after soak test');
+    console.log(' Server is healthy after soak test');
   } else {
-    console.log('❌ Server health degraded after soak test');
+    console.log(' Server health degraded after soak test');
   }
 
-  console.log('\n⚠️  Post-Test Checks:');
+  console.log('\n  Post-Test Checks:');
   console.log('   1. Check server memory usage (should be stable)');
   console.log('   2. Check database size (should not grow excessively)');
   console.log('   3. Check connection pool metrics');
@@ -154,10 +154,10 @@ export function handleSummary(data) {
   // Check for degradation indicators
   const passed = errorRate < 0.01 && p95Duration < 500;
 
-  console.log(`\nSoak Test Result: ${passed ? '✅ PASSED' : '❌ FAILED'}`);
+  console.log(`\nSoak Test Result: ${passed ? ' PASSED' : ' FAILED'}`);
 
   if (!passed) {
-    console.log('\n⚠️  Potential Issues Detected:');
+    console.log('\n  Potential Issues Detected:');
     if (errorRate >= 0.01) {
       console.log(`   - Error rate too high: ${(errorRate * 100).toFixed(2)}%`);
       console.log('     → Check logs for error patterns');
@@ -171,7 +171,7 @@ export function handleSummary(data) {
     }
   }
 
-  console.log('\n💡 Next Steps:');
+  console.log('\n Next Steps:');
   console.log('   - Compare metrics with baseline test');
   console.log('   - Review Prometheus metrics for trends');
   console.log('   - Check database for cleanup job effectiveness');

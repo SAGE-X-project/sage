@@ -287,7 +287,7 @@ echo "End time: $(date)"
 echo ""
 
 # Deployment information output
-echo "📍 Deployment Information:"
+echo " Deployment Information:"
 echo "  - Registry: $REGISTRY_ADDR"
 echo "  - Hook: $HOOK_ADDR"
 echo ""

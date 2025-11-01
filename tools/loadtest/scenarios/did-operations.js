@@ -150,7 +150,7 @@ export function handleSummary(data) {
     return true;
   });
 
-  console.log(`\nDID Operations Test Result: ${passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  console.log(`\nDID Operations Test Result: ${passed ? ' PASSED' : ' FAILED'}\n`);
 
   // Print DID operation statistics
   if (data.metrics.sage_did_operations_total) {
