@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Code Scanning Alerts Resolution**:
+  - Added `.gosec.json` configuration to exclude false-positive G115 alerts from CGO-generated code
+  - Improved CI/CD workflow for better Slither error logging and debugging
+  - All existing security issues were already resolved in previous commits
+  - GitHub Code Scanning alerts are based on older commits and will be auto-closed upon next workflow run
+
 ## [1.5.0] - 2025-10-30
+
+### Summary
+
+Re-added KME (Key Management Extension) public key storage to AgentCardRegistry with enhanced security validation. This release restores the `kmePublicKey` field that was present in v1.3.1 but removed in v1.4.0, now with critical security improvements for HPKE (Hybrid Public Key Encryption) support per RFC 9180.
 
 ### Added
 
@@ -39,23 +50,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `AgentCardVerifyHook.sol`: External validation and anti-fraud checks
   - Gas-optimized storage patterns with efficient array operations
 
-- **KME (Key Management Extension) Support** (PR #123):
-  - Public key storage for X25519 keys used in HPKE handshakes
-  - Verification of X25519 public keys against stored values
-  - Enhanced security for key exchange operations
-  - Integration with AgentCardRegistry for multi-key management
+#### KME (Key Management Extension) Support
+
+**Contract Layer:**
+- Added `kmePublicKey` field to `AgentMetadata` struct (32-byte X25519 keys)
+- Added `getKMEKey(bytes32 agentId)` view function for O(1) access
+- Added `updateKMEKey(bytes32, bytes, bytes)` function with owner-only access
+- Added `KMEKeyUpdated` event for key rotation tracking
+- Enforced single X25519 key per agent policy
+
+**Go Integration:**
+- Added `PublicKEMKey` field to `AgentMetadataV4` struct
+- Added `GetKMEKey(ctx, agentID)` client method
+- Added `UpdateKMEKey(ctx, agentID, newKey, signature)` client method
+- Updated `GetAgent()` to populate `PublicKEMKey` field
+- `ResolveKEMKey()` already implemented in DID resolver
+
+**X25519 Ownership Verification:**
+- All X25519 keys must be proven owned by registering account
+- ECDSA signature verification using ecrecover
+- Signature includes chain ID and registry address (replay protection)
+- Prevents Sybil attacks and key theft
+
+**HPKE Integration:**
+- KEM key resolution via DID
+- Integration with HPKE client
+- Support for RFC 9180 hybrid encryption
+- Seamless integration with existing DID infrastructure
 
 ### Changed
 
-- **Breaking Changes**: Migration required from SageRegistryV4
-  - KeyType enum reordered (ECDSA=0, Ed25519=1, X25519=2)
-  - Registration flow changed from single-phase to three-phase
-  - New contract addresses required (AgentCardRegistry vs SageRegistryV4)
-  - See [AgentCardRegistry Migration Guide](docs/AGENTCARD_MIGRATION_GUIDE.md) for details
+#### Breaking Changes
 
-- **Deprecated**:
-  - SageRegistryV4 single-phase registration (still functional but deprecated)
-  - Legacy registration CLI commands (replaced by commit/register/activate)
+**X25519 Signature Requirement** (HIGH Impact):
+
+All X25519 key registrations now require ECDSA signatures to prevent key theft attacks.
+
+**Before (v1.3.1 and earlier):**
+```javascript
+const params = {
+    keys: [ecdsaKey, ed25519Key, x25519Key],
+    keyTypes: [0, 1, 2],
+    signatures: [ecdsaSig, ed25519Sig, "0x"]  // Empty X25519 signature
+};
+```
+
+**After (v1.5.0):**
+```javascript
+const x25519Sig = await createX25519Signature(signer, x25519Key);
+const params = {
+    keys: [ecdsaKey, ed25519Key, x25519Key],
+    keyTypes: [0, 1, 2],
+    signatures: [ecdsaSig, ed25519Sig, x25519Sig]  // Required ECDSA signature
+};
+```
+
+**Other Breaking Changes:**
+- KeyType enum reordered (ECDSA=0, Ed25519=1, X25519=2)
+- Registration flow changed from single-phase to three-phase
+- New contract addresses required (AgentCardRegistry vs SageRegistryV4)
+- See [AgentCardRegistry Migration Guide](docs/AGENTCARD_MIGRATION_GUIDE.md) for details
+
+**Deprecated:**
+- SageRegistryV4 single-phase registration (still functional but deprecated)
+- Legacy registration CLI commands (replaced by commit/register/activate)
 
 #### PR #118 Security Enhancements (PR #124 Implementation)
 
@@ -103,6 +161,26 @@ Comprehensive security improvements addressing body tampering, ECDSA support, an
 
 ### Security
 
+#### KME Security Enhancements
+
+- **X25519 Ownership Verification**:
+  - Prevents attackers from registering others' public keys
+  - ECDSA signature required for all X25519 keys
+  - Chain ID and registry address in signature (replay protection)
+  - Signature format: `keccak256("SAGE X25519 Ownership:", x25519PublicKey, chainId, registryAddress, ownerAddress)`
+
+- **Access Control**:
+  - Only agent owner can update KME key
+  - `onlyAgentOwner` modifier enforcement
+  - Reentrancy protection on updates
+  - Pause mechanism support
+
+- **Inactive Agent Protection**:
+  - `ResolveKEMKey()` rejects inactive agents
+  - Prevents usage of compromised agents
+
+#### Registry Security
+
 - **Anti-Front-Running Protection**:
   - Commit-reveal pattern prevents attackers from stealing desired DIDs
   - Cryptographic commitment binding: `keccak256(did, keys, owner, salt, chainId)`
@@ -112,6 +190,8 @@ Comprehensive security improvements addressing body tampering, ECDSA support, an
   - 0.01 ETH stake requirement discourages spam registrations
   - Stake forfeiture for expired/invalid registrations
   - Automatic refund upon successful activation
+
+#### Protocol Security
 
 - **Body Integrity Validation** (PR #118/#124):
   - SHA-256 Content-Digest validation prevents body tampering
@@ -123,10 +203,23 @@ Comprehensive security improvements addressing body tampering, ECDSA support, an
 
 ### Documentation
 
+#### New Documentation
+
+- **KME Integration Guide**: [KME Public Key Integration](docs/KME_PUBLIC_KEY_INTEGRATION.md)
+  - Architecture overview
+  - API reference (Solidity + Go)
+  - Usage examples
+  - Security considerations
+  - Migration guide from v1.3.1
+  - Troubleshooting
+
+#### Updated Documentation
+
 - **Migration Guide**: [AgentCardRegistry Migration Guide](docs/AGENTCARD_MIGRATION_GUIDE.md)
   - Step-by-step migration instructions from SageRegistryV4
   - Code examples for three-phase flow
   - CLI command reference (commit/register/activate)
+  - X25519 signature requirement updates
   - Troubleshooting guide with common errors
   - Contract deployment instructions
   - Fixed broken references and file extensions (commit `ed3674d`)
@@ -145,6 +238,8 @@ Comprehensive security improvements addressing body tampering, ECDSA support, an
   - Gas optimization strategies
   - Integration examples
 
+#### Documentation Cleanup
+
 - **Documentation Cleanup** (commits `e2239ae`, `333c15a`, `0107563`):
   - Removed obsolete guides: V4_UPDATE_DEPLOYMENT_GUIDE.md, REFACTORING_PLAN_V4.md, SAGE_A2A_GO_IMPLEMENTATION_GUIDE.md, OPTIONAL_DEPENDENCY_STRATEGY.md
   - Removed archive folder: docs/test/archive/ (15,712 lines, 12 files)
@@ -153,6 +248,16 @@ Comprehensive security improvements addressing body tampering, ECDSA support, an
 
 ### Performance
 
+#### KME Key Retrieval Optimization
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| KME key retrieval | ~80,000 gas (O(N) array) | ~5,000 gas (O(1) field) | 94% reduction |
+| Storage overhead | N/A | +32 bytes/agent | Minimal |
+| Registration cost | ~449,000 gas | ~450,000 gas | +1,000 gas |
+
+#### Benchmark Suite
+
 - **Benchmark Suite** (Phase 6 - commit `be61927`):
   - Comprehensive performance testing for AgentCardRegistry
   - Gas usage analysis for all operations
@@ -160,6 +265,38 @@ Comprehensive security improvements addressing body tampering, ECDSA support, an
   - Memory allocation profiling
 
 ### Testing
+
+#### Test Coverage Summary
+
+**Solidity Tests:** 202/202 passing (6s)
+- 15 new KME-specific tests (R3.6.1-R3.6.15)
+- 2 fixed legacy tests with X25519 signatures
+- Comprehensive ownership verification coverage
+
+**Go Tests:** All packages passing
+- `pkg/agent/did`: KME client methods
+- `pkg/agent/did/ethereum`: AgentCard client integration
+- `pkg/agent/hpke`: End-to-end HPKE with KME resolution
+- All other packages: 100% pass rate
+
+#### New Tests Added
+
+**Solidity (17 tests):**
+- R3.6.1-R3.6.5: KME Key Registration (5 tests)
+- R3.6.6-R3.6.8: X25519 Ownership Verification (3 tests)
+- R3.6.9-R3.6.12: KME Key Retrieval (4 tests)
+- R3.6.13-R3.6.15: KME Key Updates (3 tests)
+- R3.2.7: Multi-key registration with proper X25519 signatures (fixed)
+- R3.2.8: Invalid key type handling with X25519 signatures (fixed)
+
+**Go Tests:**
+- `TestAgentCardClient_GetKMEKey`: KME key retrieval
+- `TestAgentCardClient_UpdateKMEKey`: KME key updates
+- `TestAgentMetadataV4_PublicKEMKey`: Metadata field validation
+- `TestMultiChainResolver_ResolveKEMKey`: 5 resolution scenarios
+- `TestE2E_HPKE_KEMKeyResolution`: 4 end-to-end scenarios
+
+#### Integration Tests
 
 - **Phase 4-5 Integration Tests** (commit `2de23fe`):
   - End-to-end three-phase registration tests
