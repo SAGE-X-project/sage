@@ -91,6 +91,12 @@ def main():
                     break
 
                 artifact_loc = phys_loc.get("artifactLocation", {})
+
+                # Ensure artifactLocation is a dict (not None or other type)
+                if not isinstance(artifact_loc, dict):
+                    valid_result = False
+                    removed_count += 1
+                    break
                 uri = artifact_loc.get("uri", "")
 
                 # Get line number for precise matching
