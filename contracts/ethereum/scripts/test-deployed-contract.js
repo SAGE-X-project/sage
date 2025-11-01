@@ -94,7 +94,14 @@ async function main() {
 
   // Wait for commit delay (1 minute in production, but we'll test immediately for demo)
   console.log(' Waiting 61 seconds for commit delay...');
-  await new Promise((resolve) => setTimeout(resolve, 61000));
+  console.log('    (This is a security feature - commit-reveal pattern prevents front-running)');
+
+  // Show progress during wait
+  for (let i = 0; i < 61; i++) {
+    process.stdout.write(`\r    Progress: ${i + 1}/61 seconds elapsed...`);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  console.log('\n');
 
   // Step 2: Reveal
   console.log('\n Step 2: Reveal and Register');
@@ -155,9 +162,17 @@ async function main() {
   const agentId = await registry.didToAgentId(agentDID);
 
   const activationDelay = await registry.activationDelay();
-  console.log(` Activation Delay: ${activationDelay} seconds`);
+  const delaySeconds = Number(activationDelay);
+  console.log(` Activation Delay: ${delaySeconds} seconds`);
   console.log('   Waiting for activation delay...');
-  await new Promise((resolve) => setTimeout(resolve, Number(activationDelay) * 1000 + 1000));
+  console.log('    (This is a security feature - prevents immediate activation)');
+
+  // Show progress during wait
+  for (let i = 0; i < delaySeconds + 1; i++) {
+    process.stdout.write(`\r    Progress: ${i + 1}/${delaySeconds + 1} seconds elapsed...`);
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  console.log('\n');
 
   const activateTx = await registry.activateAgent(agentId);
   await activateTx.wait();
