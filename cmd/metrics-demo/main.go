@@ -35,7 +35,7 @@ import (
 )
 
 func main() {
-	fmt.Println("🚀 SAGE Metrics Demo Server")
+	fmt.Println(" SAGE Metrics Demo Server")
 	fmt.Println("==============================")
 	fmt.Println()
 
@@ -55,7 +55,7 @@ func main() {
 
 	// Start HTTP server in goroutine
 	go func() {
-		fmt.Printf("📊 Metrics server listening on http://localhost%s/metrics\n", metricsAddr)
+		fmt.Printf(" Metrics server listening on http://localhost%s/metrics\n", metricsAddr)
 		if err := server.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatalf("Metrics server error: %v", err)
 		}
@@ -66,17 +66,17 @@ func main() {
 	fmt.Println()
 
 	// Simulate some activity to generate metrics
-	fmt.Println("📈 Generating sample metrics...")
+	fmt.Println(" Generating sample metrics...")
 	fmt.Println()
 
 	simulateActivity()
 
 	// Print access instructions
 	fmt.Println()
-	fmt.Println("✅ Demo running! Access metrics at:")
+	fmt.Println(" Demo running! Access metrics at:")
 	fmt.Printf("   http://localhost%s/metrics\n", metricsAddr)
 	fmt.Println()
-	fmt.Println("📋 Sample queries:")
+	fmt.Println(" Sample queries:")
 	fmt.Printf("   curl localhost%s/metrics | grep sage_handshakes\n", metricsAddr)
 	fmt.Printf("   curl localhost%s/metrics | grep sage_sessions\n", metricsAddr)
 	fmt.Printf("   curl localhost%s/metrics | grep sage_crypto\n", metricsAddr)
@@ -89,7 +89,7 @@ func main() {
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	<-sigChan
 
-	fmt.Println("\n🛑 Shutting down...")
+	fmt.Println("\n Shutting down...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -97,12 +97,12 @@ func main() {
 		log.Printf("Server shutdown error: %v", err)
 	}
 
-	fmt.Println("👋 Goodbye!")
+	fmt.Println(" Goodbye!")
 }
 
 func simulateActivity() {
 	// Simulate handshake metrics
-	fmt.Println("  🤝 Simulating handshakes...")
+	fmt.Println("   Simulating handshakes...")
 	for i := 0; i < 5; i++ {
 		metrics.HandshakesInitiated.WithLabelValues("client").Inc()
 		metrics.HandshakeDuration.WithLabelValues("invitation").Observe(0.1)
@@ -117,7 +117,7 @@ func simulateActivity() {
 	metrics.HandshakesFailed.WithLabelValues("timeout").Inc()
 
 	// Simulate session creation
-	fmt.Println("  💼 Creating test sessions...")
+	fmt.Println("   Creating test sessions...")
 	mgr := session.NewManager()
 	defer func() { _ = mgr.Close() }()
 
@@ -127,7 +127,7 @@ func simulateActivity() {
 
 		sess, err := mgr.CreateSession(sessionID, sharedSecret)
 		if err != nil {
-			fmt.Printf("    ⚠️  Failed to create session %d: %v\n", i, err)
+			fmt.Printf("      Failed to create session %d: %v\n", i, err)
 			continue
 		}
 
@@ -137,20 +137,20 @@ func simulateActivity() {
 		// Encrypt
 		ciphertext, err := sess.Encrypt(plaintext)
 		if err != nil {
-			fmt.Printf("    ⚠️  Encryption failed: %v\n", err)
+			fmt.Printf("      Encryption failed: %v\n", err)
 			continue
 		}
 
 		// Decrypt
 		_, err = sess.Decrypt(ciphertext)
 		if err != nil {
-			fmt.Printf("    ⚠️  Decryption failed: %v\n", err)
+			fmt.Printf("      Decryption failed: %v\n", err)
 		}
 	}
 
-	fmt.Println("  ✅ Sample metrics generated!")
+	fmt.Println("   Sample metrics generated!")
 	fmt.Println()
-	fmt.Println("📊 Current metrics summary:")
+	fmt.Println(" Current metrics summary:")
 	fmt.Println("   - Handshakes initiated: 7 (5 client, 2 server)")
 	fmt.Println("   - Handshakes completed: 5")
 	fmt.Println("   - Handshakes failed: 2")

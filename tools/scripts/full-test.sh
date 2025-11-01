@@ -44,10 +44,10 @@ run_test() {
 
     # Check for test failures in output as well
     if [ $TEST_EXIT_CODE -eq 0 ] && ! grep -q "^FAIL" test_output.tmp; then
-        echo -e "${GREEN}✓ PASSED${NC}: $description\n"
+        echo -e "${GREEN} PASSED${NC}: $description\n"
         PASSED_PACKAGES=$((PASSED_PACKAGES + 1))
     else
-        echo -e "${RED}✗ FAILED${NC}: $description\n"
+        echo -e "${RED} FAILED${NC}: $description\n"
         FAILED_PACKAGES=$((FAILED_PACKAGES + 1))
         FAILED_LIST+=("$package - $description")
     fi
@@ -235,7 +235,7 @@ if check_package "./tests/integration"; then
             # Don't count as failed since they were properly skipped
             PASSED_PACKAGES=$((PASSED_PACKAGES + 1))
         else
-            echo -e "${GREEN}✓ Integration tests passed${NC}"
+            echo -e "${GREEN} Integration tests passed${NC}"
             PASSED_PACKAGES=$((PASSED_PACKAGES + 1))
         fi
     else
@@ -245,7 +245,7 @@ if check_package "./tests/integration"; then
             # Don't count as completely failed if blockchain is not available
             PASSED_PACKAGES=$((PASSED_PACKAGES + 1))
         else
-            echo -e "${RED}✗ Integration tests failed${NC}"
+            echo -e "${RED} Integration tests failed${NC}"
             FAILED_PACKAGES=$((FAILED_PACKAGES + 1))
             FAILED_LIST+=("./tests/integration - Integration tests")
         fi
@@ -279,13 +279,13 @@ if [ ${TOTAL_PACKAGES} -gt 0 ]; then
     echo -e "Success Rate: ${SUCCESS_RATE}%"
 
     if [ ${SUCCESS_RATE} -ge 95 ]; then
-        echo -e "${GREEN}✓ Excellent! Tests PASSED with ${SUCCESS_RATE}% success rate${NC}"
+        echo -e "${GREEN} Excellent! Tests PASSED with ${SUCCESS_RATE}% success rate${NC}"
     elif [ ${SUCCESS_RATE} -ge 80 ]; then
-        echo -e "${GREEN}✓ Good! Tests PASSED with ${SUCCESS_RATE}% success rate${NC}"
+        echo -e "${GREEN} Good! Tests PASSED with ${SUCCESS_RATE}% success rate${NC}"
     elif [ ${SUCCESS_RATE} -ge 70 ]; then
-        echo -e "${YELLOW}⚠ Tests PARTIALLY PASSED with ${SUCCESS_RATE}% success rate${NC}"
+        echo -e "${YELLOW} Tests PARTIALLY PASSED with ${SUCCESS_RATE}% success rate${NC}"
     else
-        echo -e "${RED}✗ Tests FAILED with only ${SUCCESS_RATE}% success rate${NC}"
+        echo -e "${RED} Tests FAILED with only ${SUCCESS_RATE}% success rate${NC}"
     fi
 fi
 
@@ -321,14 +321,14 @@ echo -e "${BLUE}SAGE CORE LIBRARY STATUS${NC}"
 echo -e "${BLUE}================================================${NC}"
 
 echo "Core Features:"
-echo "  • RFC 9421 HTTP Message Signatures ✓"
-echo "  • Ed25519 & Secp256k1 cryptography ✓"
-echo "  • Blockchain integration (Ethereum, Solana) ✓"
-echo "  • DID management ✓"
-echo "  • Secure key storage with AES-256 ✓"
-echo "  • Message validation & deduplication ✓"
-echo "  • Health monitoring ✓"
-echo "  • Structured logging ✓"
+echo "  • RFC 9421 HTTP Message Signatures "
+echo "  • Ed25519 & Secp256k1 cryptography "
+echo "  • Blockchain integration (Ethereum, Solana) "
+echo "  • DID management "
+echo "  • Secure key storage with AES-256 "
+echo "  • Message validation & deduplication "
+echo "  • Health monitoring "
+echo "  • Structured logging "
 
 # Final exit code based on test results
 if [ ${FAILED_PACKAGES} -eq 0 ]; then
@@ -337,6 +337,6 @@ if [ ${FAILED_PACKAGES} -eq 0 ]; then
     exit 0
 else
     echo ""
-    echo -e "${YELLOW}⚠ Some tests failed. Please review the failures above.${NC}"
+    echo -e "${YELLOW} Some tests failed. Please review the failures above.${NC}"
     exit 1
 fi

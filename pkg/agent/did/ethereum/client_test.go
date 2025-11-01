@@ -258,7 +258,7 @@ func TestV2DIDLifecycleWithFundedKey(t *testing.T) {
 		t.Fatal("Failed to cast public key to ECDSA")
 	}
 	agentAddress := ethcrypto.PubkeyToAddress(*ecdsaPubKey)
-	t.Logf("✓ Agent keypair generated")
+	t.Logf(" Agent keypair generated")
 	t.Logf("  Agent address: %s", agentAddress.Hex())
 
 	// Check initial balance (should be 0)
@@ -276,7 +276,7 @@ func TestV2DIDLifecycleWithFundedKey(t *testing.T) {
 		t.Fatalf("Failed to transfer ETH: %v", err)
 	}
 
-	t.Logf("✓ ETH transfer successful")
+	t.Logf(" ETH transfer successful")
 	t.Logf("  Transaction hash: %s", receipt.TxHash.Hex())
 	t.Logf("  Block number: %d", receipt.BlockNumber.Uint64())
 	t.Logf("  Gas used: %d", receipt.GasUsed)
@@ -316,7 +316,7 @@ func TestV2DIDLifecycleWithFundedKey(t *testing.T) {
 		t.Fatalf("Failed to register DID: %v", err)
 	}
 
-	t.Logf("✓ DID registered successfully on V2 contract")
+	t.Logf(" DID registered successfully on V2 contract")
 	t.Logf("  Transaction hash: %s", regResult.TransactionHash)
 	t.Logf("  Block number: %d", regResult.BlockNumber)
 	t.Logf("  Gas used: %d", regResult.GasUsed)
@@ -337,7 +337,7 @@ func TestV2DIDLifecycleWithFundedKey(t *testing.T) {
 		t.Fatalf("Failed to resolve DID: %v", err)
 	}
 
-	t.Logf("✓ DID resolved successfully from V2 contract")
+	t.Logf(" DID resolved successfully from V2 contract")
 	t.Logf("  DID: %s", agent.DID)
 	t.Logf("  Name: %s", agent.Name)
 	t.Logf("  Owner: %s", agent.Owner)
@@ -357,11 +357,11 @@ func TestV2DIDLifecycleWithFundedKey(t *testing.T) {
 
 	// Summary
 	t.Log("\n=== V2 Contract Test Summary ===")
-	t.Log("✓ New Secp256k1 keypair generated")
-	t.Log("✓ Agent address funded with 10 ETH")
-	t.Logf("✓ DID registered on V2 contract (gas: %d)", regResult.GasUsed)
-	t.Log("✓ DID resolved and verified from V2 contract")
-	t.Log("✓ All metadata matches registration request")
+	t.Log(" New Secp256k1 keypair generated")
+	t.Log(" Agent address funded with 10 ETH")
+	t.Logf(" DID registered on V2 contract (gas: %d)", regResult.GasUsed)
+	t.Log(" DID resolved and verified from V2 contract")
+	t.Log(" All metadata matches registration request")
 	t.Log("\nV2 Contract Characteristics:")
 	t.Log("  - Single Secp256k1 key per agent")
 	t.Log("  - Signature-based registration")
@@ -420,7 +420,7 @@ func TestV2RegistrationWithUpdate(t *testing.T) {
 		t.Fatalf("Failed to transfer ETH: %v", err)
 	}
 
-	t.Log("✓ Agent key generated and funded with 5 ETH")
+	t.Log(" Agent key generated and funded with 5 ETH")
 
 	// Register agent
 	testDID := did.AgentDID("did:sage:ethereum:" + uuid.New().String())
@@ -441,7 +441,7 @@ func TestV2RegistrationWithUpdate(t *testing.T) {
 		t.Fatalf("Failed to register: %v", err)
 	}
 
-	t.Logf("✓ Agent registered (gas: %d)", regResult.GasUsed)
+	t.Logf(" Agent registered (gas: %d)", regResult.GasUsed)
 
 	// Verify initial state
 	agent, err := client.Resolve(ctx, testDID)
@@ -466,7 +466,7 @@ func TestV2RegistrationWithUpdate(t *testing.T) {
 		t.Fatalf("Failed to update: %v", err)
 	}
 
-	t.Log("✓ Agent updated successfully")
+	t.Log(" Agent updated successfully")
 
 	// Verify update
 	updatedAgent, err := client.Resolve(ctx, testDID)
@@ -481,11 +481,11 @@ func TestV2RegistrationWithUpdate(t *testing.T) {
 		t.Errorf("Updated endpoint mismatch: got %s, want %s", updatedAgent.Endpoint, "http://localhost:9090")
 	}
 
-	t.Log("✓ Update verified successfully")
+	t.Log(" Update verified successfully")
 	t.Log("\n=== V2 Update Test Summary ===")
-	t.Logf("✓ Registration gas: %d", regResult.GasUsed)
-	t.Log("✓ Update operation completed successfully")
-	t.Log("✓ All update operations working correctly")
+	t.Logf(" Registration gas: %d", regResult.GasUsed)
+	t.Log(" Update operation completed successfully")
+	t.Log(" All update operations working correctly")
 }
 
 // transferETHForV2 transfers ETH from the client's account to a destination address

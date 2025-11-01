@@ -63,17 +63,17 @@ go run main.go
 ║     SAGE Example 02: A2A Agent Card Generation           ║
 ╚═══════════════════════════════════════════════════════════╝
 
-📋 Configuration
+ Configuration
 ─────────────────────────────────────────────────────────
 Registry Address: 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9
 RPC URL:          http://localhost:8545
 Agent DID:        did:sage:ethereum:example-agent-20250119123456
 
-🔗 Step 1: Connecting to Blockchain
+ Step 1: Connecting to Blockchain
 ─────────────────────────────────────────────────────────
-✓ Connected to Ethereum (localhost)
+ Connected to Ethereum (localhost)
 
-🔍 Step 2: Resolving Agent from Blockchain
+ Step 2: Resolving Agent from Blockchain
 ─────────────────────────────────────────────────────────
 Agent resolved successfully!
   Name:        Multi-Key Example Agent
@@ -81,9 +81,9 @@ Agent resolved successfully!
   Owner:       0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
   Active:      true
 
-🎴 Step 3: Generating A2A Agent Card
+ Step 3: Generating A2A Agent Card
 ─────────────────────────────────────────────────────────
-✓ A2A Agent Card generated successfully!
+ A2A Agent Card generated successfully!
 
 Card Details:
   Type:         AgentCard
@@ -111,24 +111,24 @@ Public Keys:
       Key Length: 32 bytes
       Purpose:    keyAgreement
 
-✅ Step 4: Validating A2A Card
+ Step 4: Validating A2A Card
 ─────────────────────────────────────────────────────────
-✓ Card validation passed!
+ Card validation passed!
   - Type and version are valid
   - DID format is correct
   - Required fields are present
   - Public keys are well-formed
 
-💾 Step 5: Exporting Card to JSON
+ Step 5: Exporting Card to JSON
 ─────────────────────────────────────────────────────────
-✓ Card exported to: agent-card.json
+ Card exported to: agent-card.json
   File size: 1234 bytes
 
 ╔═══════════════════════════════════════════════════════════╗
 ║     Card Generation Complete!                             ║
 ╚═══════════════════════════════════════════════════════════╝
 
-🎉 Success! Your A2A Agent Card is ready.
+ Success! Your A2A Agent Card is ready.
 ```
 
 ## Generated File

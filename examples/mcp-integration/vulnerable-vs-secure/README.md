@@ -44,18 +44,18 @@ go run . --secure
 
 ### Vulnerable Server Output:
 ```
-🚨 VULNERABLE Chat Server (NO SECURITY)
-📍 Listening on http://localhost:8082
+ VULNERABLE Chat Server (NO SECURITY)
+ Listening on http://localhost:8082
 
   Received message from: evil-hacker-bot
-💬 Message: DELETE * FROM users; --
+ Message: DELETE * FROM users; --
  Processed successfully (THIS IS BAD!)
 ```
 
 ### Secure Server Output:
 ```
  SECURE Chat Server (SAGE PROTECTED)
-📍 Listening on http://localhost:8083
+ Listening on http://localhost:8083
 
  Request rejected: SAGE verification failed: missing X-Agent-DID header
   Attack blocked!

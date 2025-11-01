@@ -127,7 +127,7 @@ echo "  -v, --verbose          실패 로그 상세 출력"
 echo "  --skip-integration     블록체인 통합 테스트 건너뛰기 (9.2)"
 if [ "$SKIP_INTEGRATION" = "1" ]; then
     echo ""
-    echo "⚠️  블록체인 통합 테스트 건너뜀 (--skip-integration)"
+    echo "  블록체인 통합 테스트 건너뜀 (--skip-integration)"
 fi
 echo ""
 

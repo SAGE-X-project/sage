@@ -85,61 +85,61 @@ Once verified, Agent B can trust Agent A and:
 ║     SAGE Example 03: A2A Card Exchange                   ║
 ╚═══════════════════════════════════════════════════════════╝
 
-👤 AGENT A: Registering and Generating Card
+ AGENT A: Registering and Generating Card
 ═════════════════════════════════════════════════════════
-✓ Agent A registered: did:sage:ethereum:Agent-A-123456
-💾 Agent A's card saved to: agent-a-card.json
+ Agent A registered: did:sage:ethereum:Agent-A-123456
+ Agent A's card saved to: agent-a-card.json
 
-👤 AGENT B: Registering and Generating Card
+ AGENT B: Registering and Generating Card
 ═════════════════════════════════════════════════════════
-✓ Agent B registered: did:sage:ethereum:Agent-B-123456
-💾 Agent B's card saved to: agent-b-card.json
+ Agent B registered: did:sage:ethereum:Agent-B-123456
+ Agent B's card saved to: agent-b-card.json
 
-📨 Step 1: Agent B Receives Agent A's Card
+ Step 1: Agent B Receives Agent A's Card
 ═════════════════════════════════════════════════════════
-✓ Agent B received Agent A's card
+ Agent B received Agent A's card
   From:         Agent-A
   DID:          did:sage:ethereum:Agent-A-123456
   Endpoint:     https://Agent-A.example.com
   Public Keys:  3
 
-✅ Step 2: Validating Card Structure
+ Step 2: Validating Card Structure
 ═════════════════════════════════════════════════════════
-✓ Card structure is valid
+ Card structure is valid
   - Correct type and version
   - Valid DID format
   - All required fields present
   - Public keys are well-formed
 
-🔗 Step 3: Verifying Card Against Blockchain
+ Step 3: Verifying Card Against Blockchain
 ═════════════════════════════════════════════════════════
-✓ Agent resolved from blockchain
+ Agent resolved from blockchain
   Name:      Agent-A
   Endpoint:  https://Agent-A.example.com
   Owner:     0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
   Active:    true
 
-🔍 Cross-checking card with blockchain data...
-✓ Name matches
-✓ Endpoint matches
-✓ Agent is active
+ Cross-checking card with blockchain data...
+ Name matches
+ Endpoint matches
+ Agent is active
 
-✅ Card verification successful!
+ Card verification successful!
    The card matches blockchain data.
 
-🤝 Step 4: Establishing Trust
+ Step 4: Establishing Trust
 ═════════════════════════════════════════════════════════
 Agent B now trusts Agent A because:
-  1. ✓ Card structure is valid (proper format)
-  2. ✓ DID is registered on blockchain
-  3. ✓ Card data matches blockchain data
-  4. ✓ Agent is active and not revoked
+  1.  Card structure is valid (proper format)
+  2.  DID is registered on blockchain
+  3.  Card data matches blockchain data
+  4.  Agent is active and not revoked
 
 ╔═══════════════════════════════════════════════════════════╗
 ║     Card Exchange Complete!                               ║
 ╚═══════════════════════════════════════════════════════════╝
 
-🎉 Success! Agents A and B have exchanged and verified cards.
+ Success! Agents A and B have exchanged and verified cards.
 ```
 
 ## Security Checks Performed

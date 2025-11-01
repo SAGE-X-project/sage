@@ -146,7 +146,7 @@ func runCommit(cmd *cobra.Command, args []string) error {
 	}
 
 	// Print success
-	fmt.Println("✓ Commitment successful!")
+	fmt.Println(" Commitment successful!")
 	fmt.Printf("  Commit Hash: %x\n", status.CommitHash)
 	fmt.Printf("  Timestamp: %s\n", status.CommitTimestamp.Format(time.RFC3339))
 	fmt.Println()

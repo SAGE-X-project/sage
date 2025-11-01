@@ -177,7 +177,7 @@ main() {
     esac
     
     echo ""
-    print_success "All done! 🎉"
+    print_success "All done! "
 }
 
 # Run main function with all arguments

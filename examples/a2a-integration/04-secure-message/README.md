@@ -69,59 +69,59 @@ go run main.go
 ║     SAGE Example 04: Secure Message Exchange             ║
 ╚═══════════════════════════════════════════════════════════╝
 
-👥 Setup: Creating Agent A and Agent B
+ Setup: Creating Agent A and Agent B
 ═════════════════════════════════════════════════════════
 Generating keys for Agent A...
 Generating keys for Agent B...
 
 Registering Agent A...
-✓ Agent A registered: did:sage:ethereum:SecureAgent-A-123456
+ Agent A registered: did:sage:ethereum:SecureAgent-A-123456
 
 Registering Agent B...
-✓ Agent B registered: did:sage:ethereum:SecureAgent-B-123456
+ Agent B registered: did:sage:ethereum:SecureAgent-B-123456
 
-📨 Step 1: Agent A Sends Encrypted Message
+ Step 1: Agent A Sends Encrypted Message
 ═════════════════════════════════════════════════════════
 
 Plaintext message: Hello Agent B! This is a confidential message...
 Message length: 89 bytes
 
-🔐 Encrypting message with HPKE...
+ Encrypting message with HPKE...
    Using Agent B's X25519 public key
-✓ Message encrypted
+ Message encrypted
   Ciphertext length: 89 bytes
 
-✍️  Signing encrypted message...
+  Signing encrypted message...
    Using Agent A's Ed25519 private key
-✓ Message signed
+ Message signed
   Signature length: 64 bytes
 
-📤 Message ready for transmission
+ Message ready for transmission
   From:       did:sage:ethereum:SecureAgent-A-123456
   To:         did:sage:ethereum:SecureAgent-B-123456
   Timestamp:  2025-01-19T12:34:56Z
   Total size: 456 bytes
 
-💾 Message saved to: secure-message.json
+ Message saved to: secure-message.json
 
-📬 Step 2: Agent B Receives and Processes Message
+ Step 2: Agent B Receives and Processes Message
 ═════════════════════════════════════════════════════════
 
-✓ Message received
+ Message received
   From:       did:sage:ethereum:SecureAgent-A-123456
   To:         did:sage:ethereum:SecureAgent-B-123456
   Timestamp:  2025-01-19T12:34:56Z
 
-🔍 Verifying signature...
+ Verifying signature...
    Using Agent A's Ed25519 public key
-✓ Signature verified!
+ Signature verified!
   The message is authentic and from Agent A
 
-🔓 Decrypting message...
+ Decrypting message...
    Using Agent B's X25519 private key
-✓ Message decrypted!
+ Message decrypted!
 
-💬 Step 3: Decrypted Message
+ Step 3: Decrypted Message
 ═════════════════════════════════════════════════════════
 
 From: did:sage:ethereum:SecureAgent-A-123456
@@ -131,13 +131,13 @@ Message: Hello Agent B! This is a confidential message...
 ║     Secure Messaging Complete!                            ║
 ╚═══════════════════════════════════════════════════════════╝
 
-🎉 Success! Agent A and Agent B exchanged a secure message.
+ Success! Agent A and Agent B exchanged a secure message.
 
 Security guarantees achieved:
-  1. ✓ Confidentiality - Only Agent B can decrypt
-  2. ✓ Authentication - Signature proves sender is Agent A
-  3. ✓ Integrity - Any tampering breaks the signature
-  4. ✓ Non-repudiation - Agent A can't deny sending
+  1.  Confidentiality - Only Agent B can decrypt
+  2.  Authentication - Signature proves sender is Agent A
+  3.  Integrity - Any tampering breaks the signature
+  4.  Non-repudiation - Agent A can't deny sending
 ```
 
 ## Message Format

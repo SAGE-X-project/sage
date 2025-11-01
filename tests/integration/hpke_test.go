@@ -140,7 +140,7 @@ func Test_8_1_1_2_SharedSecretGeneration(t *testing.T) {
 
 	// Verify both sides derived the same shared secret
 	require.True(t, bytes.Equal(exporterAlice, exporterBob), "Shared secrets must match")
-	helpers.LogSuccess(t, "양쪽의 공유 비밀 일치 확인 ✓")
+	helpers.LogSuccess(t, "양쪽의 공유 비밀 일치 확인 ")
 	helpers.LogDetail(t, "  Alice secret == Bob secret: %v", bytes.Equal(exporterAlice, exporterBob))
 	helpers.LogDetail(t, "  Secret length: %d bytes", len(exporterAlice))
 
@@ -232,7 +232,7 @@ func Test_8_1_2_1_ChaCha20Poly1305Encryption(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, ciphertext)
 	require.Greater(t, len(ciphertext), len(plaintext), "Ciphertext should be larger (includes auth tag)")
-	helpers.LogSuccess(t, "ChaCha20-Poly1305 암호화 성공 ✓")
+	helpers.LogSuccess(t, "ChaCha20-Poly1305 암호화 성공 ")
 	helpers.LogDetail(t, "  암호문 크기: %d bytes", len(ciphertext))
 	helpers.LogDetail(t, "  암호문 (hex): %s...", hex.EncodeToString(ciphertext)[:32])
 	helpers.LogDetail(t, "  오버헤드: %d bytes (nonce + auth tag)", len(ciphertext)-len(plaintext))
@@ -321,7 +321,7 @@ func Test_8_1_2_2_DecryptionPlaintextMatch(t *testing.T) {
 
 	// Verify plaintext matches original
 	require.True(t, bytes.Equal(originalPlaintext, decryptedPlaintext), "Decrypted plaintext must match original")
-	helpers.LogSuccess(t, "평문 일치 검증 성공 ✓")
+	helpers.LogSuccess(t, "평문 일치 검증 성공 ")
 	helpers.LogDetail(t, "  원본 == 복호화: %v", bytes.Equal(originalPlaintext, decryptedPlaintext))
 	helpers.LogDetail(t, "  크기 일치: %v", len(originalPlaintext) == len(decryptedPlaintext))
 	helpers.LogDetail(t, "  내용 일치: %v", string(originalPlaintext) == string(decryptedPlaintext))
@@ -424,7 +424,7 @@ func Test_8_1_2_3_CiphertextConsistency(t *testing.T) {
 
 	// Verify both decrypt to same plaintext
 	require.True(t, bytes.Equal(decrypted1, decrypted2), "Both decryptions must match")
-	helpers.LogSuccess(t, "두 복호화 결과 동일 확인 ✓")
+	helpers.LogSuccess(t, "두 복호화 결과 동일 확인 ")
 	helpers.LogDetail(t, "  복호문 1 == 복호문 2: %v", bytes.Equal(decrypted1, decrypted2))
 
 	// Save verification data

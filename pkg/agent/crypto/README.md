@@ -675,26 +675,26 @@ go test -bench=. -benchmem ./tools/benchmark -run=^$ -bench="Key|Sign|Verif"
 ### Key Storage
 
 **Development:**
-- ✅ Use file storage with 0600 permissions
-- ✅ Encrypt keys at rest
-- ❌ Never commit keys to version control
+-  Use file storage with 0600 permissions
+-  Encrypt keys at rest
+-  Never commit keys to version control
 
 **Production:**
-- ✅ Use vault storage (OS keychain)
-- ✅ Enable hardware-backed encryption
-- ✅ Implement key rotation policy
-- ✅ Monitor key access logs
+-  Use vault storage (OS keychain)
+-  Enable hardware-backed encryption
+-  Implement key rotation policy
+-  Monitor key access logs
 
 ### Algorithm Selection
 
 **For DID Signing:**
-- ✅ Ed25519 (recommended for new implementations)
-- ✅ Secp256k1 (required for Ethereum)
-- ❌ RS256 (legacy only, avoid for new systems)
+-  Ed25519 (recommended for new implementations)
+-  Secp256k1 (required for Ethereum)
+-  RS256 (legacy only, avoid for new systems)
 
 **For Key Agreement:**
-- ✅ X25519 (HPKE, RFC 9180)
-- ❌ Never use signing keys for encryption
+-  X25519 (HPKE, RFC 9180)
+-  Never use signing keys for encryption
 
 ### Best Practices
 

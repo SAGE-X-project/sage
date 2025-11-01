@@ -50,7 +50,7 @@ export function setup() {
   }
 
   console.log(`Server DID: ${serverDID}\n`);
-  console.log('⚡ Preparing spike test...');
+  console.log(' Preparing spike test...');
   console.log('   This will simulate sudden traffic surge');
   console.log('   Watch for:');
   console.log('   - Response time spikes');
@@ -73,13 +73,13 @@ export default function (data) {
   // Track spike phase
   if (currentVU > 100 && !data.spikeStart) {
     data.spikeStart = Date.now();
-    console.log('⚡ SPIKE STARTED');
+    console.log(' SPIKE STARTED');
   }
 
   if (currentVU <= 100 && data.spikeStart && !data.spikeEnd) {
     data.spikeEnd = Date.now();
     const spikeDuration = ((data.spikeEnd - data.spikeStart) / 1000).toFixed(2);
-    console.log(`⚡ SPIKE ENDED (duration: ${spikeDuration}s)`);
+    console.log(` SPIKE ENDED (duration: ${spikeDuration}s)`);
   }
 
   // During spike: aggressive behavior
@@ -150,9 +150,9 @@ export function teardown(data) {
 
   const healthRes = healthCheck(data.baseUrl);
   if (healthRes && healthRes.status === 200) {
-    console.log('✅ System recovered from spike');
+    console.log(' System recovered from spike');
   } else {
-    console.log('⚠️  System may need time to recover');
+    console.log('  System may need time to recover');
   }
 
   console.log('===========================\n');
@@ -169,7 +169,7 @@ export function handleSummary(data) {
   const maxDuration = metrics.http_req_duration.values.max;
   const errorRate = metrics.http_req_failed ? metrics.http_req_failed.values.rate : 0;
 
-  console.log('\n📊 Performance During Spike:');
+  console.log('\n Performance During Spike:');
   console.log(`   Average: ${avgDuration.toFixed(2)}ms`);
   console.log(`   95th Percentile: ${p95Duration.toFixed(2)}ms`);
   console.log(`   99th Percentile: ${p99Duration.toFixed(2)}ms`);
@@ -179,10 +179,10 @@ export function handleSummary(data) {
   // Spike resilience criteria
   const passed = errorRate < 0.10 && p95Duration < 2000;
 
-  console.log(`\nSpike Test Result: ${passed ? '✅ PASSED' : '❌ FAILED'}`);
+  console.log(`\nSpike Test Result: ${passed ? ' PASSED' : ' FAILED'}`);
 
   if (!passed) {
-    console.log('\n⚠️  System Struggled with Spike:');
+    console.log('\n  System Struggled with Spike:');
     if (errorRate >= 0.10) {
       console.log(`   - High error rate: ${(errorRate * 100).toFixed(2)}%`);
       console.log('     → May need rate limiting');
@@ -196,13 +196,13 @@ export function handleSummary(data) {
       console.log('     → Consider caching strategy');
     }
   } else {
-    console.log('\n✅ System Handled Spike Well:');
+    console.log('\n System Handled Spike Well:');
     console.log('   - Error rate acceptable during extreme load');
     console.log('   - Response times remained reasonable');
     console.log('   - System appears resilient to traffic spikes');
   }
 
-  console.log('\n💡 Recommendations:');
+  console.log('\n Recommendations:');
   console.log('   - Monitor auto-scaling triggers');
   console.log('   - Review connection pool settings');
   console.log('   - Consider implementing rate limiting');

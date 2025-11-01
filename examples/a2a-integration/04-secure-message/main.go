@@ -87,7 +87,7 @@ func main() {
 
 	err := manager.Configure(did.ChainEthereum, config)
 	if err != nil {
-		fmt.Printf("❌ Failed to configure manager: %v\n", err)
+		fmt.Printf(" Failed to configure manager: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -97,7 +97,7 @@ func main() {
 	// SETUP: Create two agents with all necessary keys
 	// ========================================================================
 
-	fmt.Println("👥 Setup: Creating Agent A and Agent B")
+	fmt.Println(" Setup: Creating Agent A and Agent B")
 	fmt.Println("═════════════════════════════════════════════════════════")
 	fmt.Println()
 
@@ -142,10 +142,10 @@ func main() {
 	_, err = manager.RegisterAgent(regCtx, did.ChainEthereum, reqA)
 	cancel()
 	if err != nil {
-		fmt.Printf("❌ Failed to register Agent A: %v\n", err)
+		fmt.Printf(" Failed to register Agent A: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("✓ Agent A registered: %s\n", agentADID)
+	fmt.Printf(" Agent A registered: %s\n", agentADID)
 
 	// Register Agent B
 	fmt.Println()
@@ -170,17 +170,17 @@ func main() {
 	_, err = manager.RegisterAgent(regCtx, did.ChainEthereum, reqB)
 	cancel()
 	if err != nil {
-		fmt.Printf("❌ Failed to register Agent B: %v\n", err)
+		fmt.Printf(" Failed to register Agent B: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("✓ Agent B registered: %s\n", agentBDID)
+	fmt.Printf(" Agent B registered: %s\n", agentBDID)
 	fmt.Println()
 
 	// ========================================================================
 	// STEP 1: Agent A sends encrypted message to Agent B
 	// ========================================================================
 
-	fmt.Println("📨 Step 1: Agent A Sends Encrypted Message")
+	fmt.Println(" Step 1: Agent A Sends Encrypted Message")
 	fmt.Println("═════════════════════════════════════════════════════════")
 	fmt.Println()
 
@@ -190,7 +190,7 @@ func main() {
 	fmt.Println()
 
 	// Encrypt using Agent B's X25519 public key
-	fmt.Println("🔐 Encrypting message with HPKE...")
+	fmt.Println(" Encrypting message with HPKE...")
 	fmt.Println("   Using Agent B's X25519 public key")
 
 	// Note: In a real implementation, you would use HPKE encryption here
@@ -202,21 +202,21 @@ func main() {
 	copy(ciphertext, plaintext)
 	// In production: ciphertext, nonce, err := hpke.Seal(agentBX25519PublicKey, plaintext, nil)
 
-	fmt.Println("✓ Message encrypted")
+	fmt.Println(" Message encrypted")
 	fmt.Printf("  Ciphertext length: %d bytes\n", len(ciphertext))
 	fmt.Println()
 
 	// Sign the ciphertext with Agent A's Ed25519 key
-	fmt.Println("✍️  Signing encrypted message...")
+	fmt.Println("  Signing encrypted message...")
 	fmt.Println("   Using Agent A's Ed25519 private key")
 
 	signature, err := agentAEd25519.Sign(ciphertext)
 	if err != nil {
-		fmt.Printf("❌ Failed to sign message: %v\n", err)
+		fmt.Printf(" Failed to sign message: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("✓ Message signed")
+	fmt.Println(" Message signed")
 	fmt.Printf("  Signature length: %d bytes\n", len(signature))
 	fmt.Println()
 
@@ -234,20 +234,20 @@ func main() {
 	msgJSON, _ := json.MarshalIndent(secureMsg, "", "  ")
 	os.WriteFile("secure-message.json", msgJSON, 0644)
 
-	fmt.Println("📤 Message ready for transmission")
+	fmt.Println(" Message ready for transmission")
 	fmt.Println("  From:      ", secureMsg.From)
 	fmt.Println("  To:        ", secureMsg.To)
 	fmt.Println("  Timestamp: ", secureMsg.Timestamp)
 	fmt.Printf("  Total size: %d bytes\n", len(msgJSON))
 	fmt.Println()
-	fmt.Println("💾 Message saved to: secure-message.json")
+	fmt.Println(" Message saved to: secure-message.json")
 	fmt.Println()
 
 	// ========================================================================
 	// STEP 2: Agent B receives and processes the message
 	// ========================================================================
 
-	fmt.Println("📬 Step 2: Agent B Receives and Processes Message")
+	fmt.Println(" Step 2: Agent B Receives and Processes Message")
 	fmt.Println("═════════════════════════════════════════════════════════")
 	fmt.Println()
 
@@ -256,42 +256,42 @@ func main() {
 	var receivedMsg SecureMessage
 	json.Unmarshal(receivedMsgData, &receivedMsg)
 
-	fmt.Println("✓ Message received")
+	fmt.Println(" Message received")
 	fmt.Println("  From:      ", receivedMsg.From)
 	fmt.Println("  To:        ", receivedMsg.To)
 	fmt.Println("  Timestamp: ", receivedMsg.Timestamp)
 	fmt.Println()
 
 	// Verify sender's signature
-	fmt.Println("🔍 Verifying signature...")
+	fmt.Println(" Verifying signature...")
 	fmt.Println("   Using Agent A's Ed25519 public key")
 
 	valid, err := agentAEd25519.PublicKey().Verify(receivedMsg.Content, receivedMsg.Signature)
 	if err != nil || !valid {
-		fmt.Printf("❌ Signature verification failed: %v\n", err)
+		fmt.Printf(" Signature verification failed: %v\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Println("✓ Signature verified!")
+	fmt.Println(" Signature verified!")
 	fmt.Println("  The message is authentic and from Agent A")
 	fmt.Println()
 
 	// Decrypt message
-	fmt.Println("🔓 Decrypting message...")
+	fmt.Println(" Decrypting message...")
 	fmt.Println("   Using Agent B's X25519 private key")
 
 	// In production: decrypted, err := hpke.Open(agentBX25519PrivateKey, receivedMsg.Content, receivedMsg.Nonce, nil)
 	// For demonstration:
 	decrypted := receivedMsg.Content
 
-	fmt.Println("✓ Message decrypted!")
+	fmt.Println(" Message decrypted!")
 	fmt.Println()
 
 	// ========================================================================
 	// STEP 3: Display decrypted message
 	// ========================================================================
 
-	fmt.Println("💬 Step 3: Decrypted Message")
+	fmt.Println(" Step 3: Decrypted Message")
 	fmt.Println("═════════════════════════════════════════════════════════")
 	fmt.Println()
 	fmt.Printf("From: %s\n", receivedMsg.From)
@@ -306,13 +306,13 @@ func main() {
 	fmt.Println("║     Secure Messaging Complete!                            ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")
 	fmt.Println()
-	fmt.Println("🎉 Success! Agent A and Agent B exchanged a secure message.")
+	fmt.Println(" Success! Agent A and Agent B exchanged a secure message.")
 	fmt.Println()
 	fmt.Println("Security guarantees achieved:")
-	fmt.Println("  1. ✓ Confidentiality - Only Agent B can decrypt")
-	fmt.Println("  2. ✓ Authentication - Signature proves sender is Agent A")
-	fmt.Println("  3. ✓ Integrity - Any tampering breaks the signature")
-	fmt.Println("  4. ✓ Non-repudiation - Agent A can't deny sending")
+	fmt.Println("  1.  Confidentiality - Only Agent B can decrypt")
+	fmt.Println("  2.  Authentication - Signature proves sender is Agent A")
+	fmt.Println("  3.  Integrity - Any tampering breaks the signature")
+	fmt.Println("  4.  Non-repudiation - Agent A can't deny sending")
 	fmt.Println()
 	fmt.Println("Technologies used:")
 	fmt.Println("  • HPKE (RFC 9180) - Hybrid public key encryption")

@@ -135,7 +135,7 @@ func runActivate(cmd *cobra.Command, args []string) error {
 	}
 
 	// Success
-	fmt.Println("✓ Activation successful!")
+	fmt.Println(" Activation successful!")
 	fmt.Printf("  Agent ID: %x\n", status.AgentID)
 	fmt.Println("  Your 0.01 ETH stake will be refunded")
 	fmt.Println()

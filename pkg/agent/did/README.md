@@ -608,13 +608,13 @@ fmt.Println("Key rotated successfully!")
 |---------|-------------|------------------|
 | Keys per agent | 1 | Up to 10 |
 | Key types | Secp256k1 only | Ed25519 + ECDSA |
-| Metadata updates | ❌ Not supported | ✅ Full support |
-| Replay protection | ❌ None | ✅ Nonce-based |
-| Key rotation | ❌ Manual (new agent) | ✅ Atomic rotation |
-| Ownership verification | ⚠️ Basic | ✅ Enhanced (CVE fixes) |
-| Multi-chain agents | ⚠️ Workaround | ✅ Native support |
+| Metadata updates |  Not supported |  Full support |
+| Replay protection |  None |  Nonce-based |
+| Key rotation |  Manual (new agent) |  Atomic rotation |
+| Ownership verification |  Basic |  Enhanced (CVE fixes) |
+| Multi-chain agents |  Workaround |  Native support |
 | Gas cost (registration) | ~500k | ~653k |
-| Production ready | ✅ Yes (Sepolia) | ✅ Yes (pending deployment) |
+| Production ready |  Yes (Sepolia) |  Yes (pending deployment) |
 
 **Migration Guide**: See [V4 Deployment Guide](../../../docs/V4_UPDATE_DEPLOYMENT_GUIDE.md)
 
@@ -695,28 +695,28 @@ go test ./pkg/agent/did -run=^$ -bench=BenchmarkDID
 ### DID Generation
 
 **Best Practices:**
-- ✅ Use cryptographically secure key generation
-- ✅ Derive DID from owner address for verification
-- ✅ Use nonces for multiple agents per owner
-- ❌ Never reuse keys across different agents
-- ❌ Never share private keys
+-  Use cryptographically secure key generation
+-  Derive DID from owner address for verification
+-  Use nonces for multiple agents per owner
+-  Never reuse keys across different agents
+-  Never share private keys
 
 ### Registration
 
 **Security Checklist:**
-- ✅ Verify DID ownership before registration
-- ✅ Sign registration with private key
-- ✅ Use V4 for production (enhanced security)
-- ✅ Enable replay protection (V4 nonces)
-- ✅ Verify public key ownership (CVE-SAGE-2025-001 fix)
+-  Verify DID ownership before registration
+-  Sign registration with private key
+-  Use V4 for production (enhanced security)
+-  Enable replay protection (V4 nonces)
+-  Verify public key ownership (CVE-SAGE-2025-001 fix)
 
 ### Resolution
 
 **Cache Safety:**
-- ✅ Cache TTL: 5 minutes (configurable)
-- ✅ Invalidate cache on updates
-- ✅ Fall back to on-chain query on cache miss
-- ⚠️ Don't cache inactive agents
+-  Cache TTL: 5 minutes (configurable)
+-  Invalidate cache on updates
+-  Fall back to on-chain query on cache miss
+-  Don't cache inactive agents
 
 ### Verification
 

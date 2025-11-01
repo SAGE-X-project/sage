@@ -81,9 +81,9 @@ func main() {
 
 ### Security Benefits
 
-- ✅ **Prevents body tampering**: Attackers cannot modify request body without detection
-- ✅ **Cryptographic guarantee**: SHA-256 hash ensures body integrity
-- ✅ **RFC 9421 compliant**: Standard HTTP message signatures
+-  **Prevents body tampering**: Attackers cannot modify request body without detection
+-  **Cryptographic guarantee**: SHA-256 hash ensures body integrity
+-  **RFC 9421 compliant**: Standard HTTP message signatures
 
 ---
 
@@ -207,10 +207,10 @@ func main() {
 
 ### Security Benefits
 
-- ✅ **Ethereum compatibility**: Use Secp256k1 keys for blockchain integration
-- ✅ **Flexible architecture**: Strategy Pattern allows easy algorithm extension
-- ✅ **Multiple formats**: Supports 64-byte raw, 65-byte Ethereum, and DER-encoded signatures
-- ✅ **Backward compatible**: Existing Ed25519 code works unchanged
+-  **Ethereum compatibility**: Use Secp256k1 keys for blockchain integration
+-  **Flexible architecture**: Strategy Pattern allows easy algorithm extension
+-  **Multiple formats**: Supports 64-byte raw, 65-byte Ethereum, and DER-encoded signatures
+-  **Backward compatible**: Existing Ed25519 code works unchanged
 
 ---
 
@@ -238,12 +238,12 @@ func main() {
         fmt.Printf("Handshake failed: %v\n", err)
 
         // Possible error messages:
-        // ❌ "transport send: network timeout"
-        // ❌ "nil response from server"
-        // ❌ "handshake failed: authentication failed"
-        // ❌ "handshake failed: Invalid signature"
-        // ❌ "handshake failed: no error details provided"
-        // ❌ "empty response data"
+        //  "transport send: network timeout"
+        //  "nil response from server"
+        //  "handshake failed: authentication failed"
+        //  "handshake failed: Invalid signature"
+        //  "handshake failed: no error details provided"
+        //  "empty response data"
 
         return
     }
@@ -295,9 +295,9 @@ func handleHandshakeError(err error) {
 
 ### Benefits
 
-- ✅ **Clear diagnostics**: Know exactly what went wrong
-- ✅ **Faster debugging**: Specific error messages guide troubleshooting
-- ✅ **Production-ready**: Better logging for monitoring and alerting
+-  **Clear diagnostics**: Know exactly what went wrong
+-  **Faster debugging**: Specific error messages guide troubleshooting
+-  **Production-ready**: Better logging for monitoring and alerting
 
 ---
 
@@ -395,8 +395,8 @@ func validateX25519Key(keyBytes []byte) error {
         fmt.Printf("Key validation failed: %v\n", err)
 
         // Example errors:
-        // ❌ "invalid X25519 public key size: expected 32 bytes, got 0"
-        // ❌ "invalid X25519 public key size: expected 32 bytes, got 64"
+        //  "invalid X25519 public key size: expected 32 bytes, got 0"
+        //  "invalid X25519 public key size: expected 32 bytes, got 64"
 
         return err
     }
@@ -407,10 +407,10 @@ func validateX25519Key(keyBytes []byte) error {
 
 ### Benefits
 
-- ✅ **HPKE support**: Use X25519 keys for hybrid encryption
-- ✅ **Memory safety**: Returns copy of key bytes, not reference
-- ✅ **Better errors**: Actual key size shown in error messages
-- ✅ **Registry integration**: Seamless blockchain key resolution
+-  **HPKE support**: Use X25519 keys for hybrid encryption
+-  **Memory safety**: Returns copy of key bytes, not reference
+-  **Better errors**: Actual key size shown in error messages
+-  **Registry integration**: Seamless blockchain key resolution
 
 ---
 
@@ -508,7 +508,7 @@ func main() {
         return
     }
 
-    fmt.Println("✅ Secure communication established!")
+    fmt.Println(" Secure communication established!")
     fmt.Printf("Session ID: %s\n", resp.SessionID)
     fmt.Printf("Key ID: %s\n", resp.KeyID)
 
@@ -548,16 +548,16 @@ go tool cover -func=coverage.out
 ## Architecture Benefits
 
 ### SOLID Principles
-- ✅ **Single Responsibility**: Each component has one clear purpose
-- ✅ **Open/Closed**: New algorithms can be added without modifying existing code
-- ✅ **Liskov Substitution**: SignatureVerifier implementations are interchangeable
-- ✅ **Interface Segregation**: Small, focused interfaces
-- ✅ **Dependency Inversion**: Depend on abstractions, not concrete implementations
+-  **Single Responsibility**: Each component has one clear purpose
+-  **Open/Closed**: New algorithms can be added without modifying existing code
+-  **Liskov Substitution**: SignatureVerifier implementations are interchangeable
+-  **Interface Segregation**: Small, focused interfaces
+-  **Dependency Inversion**: Depend on abstractions, not concrete implementations
 
 ### Design Patterns
-- ✅ **Strategy Pattern**: Algorithm selection (BodyIntegrityValidator, SignatureVerifier)
-- ✅ **Composite Pattern**: Multiple verifiers in CompositeVerifier
-- ✅ **Factory Pattern**: NewBodyIntegrityValidator(), NewCompositeVerifier()
+-  **Strategy Pattern**: Algorithm selection (BodyIntegrityValidator, SignatureVerifier)
+-  **Composite Pattern**: Multiple verifiers in CompositeVerifier
+-  **Factory Pattern**: NewBodyIntegrityValidator(), NewCompositeVerifier()
 
 ---
 
@@ -566,17 +566,17 @@ go tool cover -func=coverage.out
 If you're migrating from the original PR #118 implementation, **no code changes are required**. The current implementation is 100% backward compatible while offering additional features:
 
 ### What Stays the Same
-- ✅ All public APIs unchanged
-- ✅ Same function signatures
-- ✅ Same error messages
-- ✅ Same behavior
+-  All public APIs unchanged
+-  Same function signatures
+-  Same error messages
+-  Same behavior
 
 ### What's Better
-- ✅ Independent module usage (optional)
-- ✅ Better error messages with actual sizes
-- ✅ Strategy Pattern for extensibility
-- ✅ 100+ edge case tests
-- ✅ Security validation (timing attacks, replay attacks)
+-  Independent module usage (optional)
+-  Better error messages with actual sizes
+-  Strategy Pattern for extensibility
+-  100+ edge case tests
+-  Security validation (timing attacks, replay attacks)
 
 ---
 

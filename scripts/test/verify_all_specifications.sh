@@ -44,10 +44,10 @@ print_section() {
     echo -e "${BOLD}${PURPLE}═══ $1 ═══${NC}"
 }
 
-print_pass() { echo -e "${GREEN}✅ PASS:${NC} $1"; }
-print_fail() { echo -e "${RED}❌ FAIL:${NC} $1"; }
-print_skip() { echo -e "${YELLOW}⏭️  SKIP:${NC} $1"; }
-print_info() { echo -e "${CYAN}ℹ️  INFO:${NC} $1"; }
+print_pass() { echo -e "${GREEN} PASS:${NC} $1"; }
+print_fail() { echo -e "${RED} FAIL:${NC} $1"; }
+print_skip() { echo -e "${YELLOW}  SKIP:${NC} $1"; }
+print_info() { echo -e "${CYAN}ℹ  INFO:${NC} $1"; }
 
 # Check prerequisites
 check_prereqs() {
@@ -150,9 +150,9 @@ generate_report() {
 
 \`\`\`
 Total Chapters:     $TOTAL_CHAPTERS
-✅ Passed:          $PASSED
-❌ Failed:          $FAILED
-⏭️  Skipped:         $SKIPPED
+ Passed:          $PASSED
+ Failed:          $FAILED
+  Skipped:         $SKIPPED
 Success Rate:       ${success_rate}%
 \`\`\`
 

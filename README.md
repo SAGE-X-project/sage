@@ -13,7 +13,7 @@
 
 SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based security framework for AI agent communication. It provides end-to-end encrypted, authenticated communication channels between AI agents using decentralized identity (DID) management, HPKE-based key agreement, and RFC 9421 HTTP Message Signatures.
 
-### ✨ What's New in v1.5.0 (2025-10-30)
+###  What's New in v1.5.0 (2025-10-30)
 
 **AgentCardRegistry: Three-Phase Secure Registration** - Major Release
 
@@ -41,7 +41,7 @@ SAGE (Secure Agent Guarantee Engine) is a comprehensive blockchain-based securit
 
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
-### 🌐 Live Deployments
+###  Live Deployments
 
 **Sepolia Testnet** (SageRegistryV2 - Legacy):
 
@@ -856,10 +856,10 @@ This project is licensed under the **GNU Lesser General Public License v3.0** - 
 
 **You MUST:**
 
-- ❗ Provide SAGE source code if you distribute it (modified or not)
-- ❗ Allow users to replace/relink the SAGE library
-- ❗ Maintain LGPL-3.0 license notices
-- ❗ Provide installation/build instructions (see [INSTALL.md](INSTALL.md))
+-  Provide SAGE source code if you distribute it (modified or not)
+-  Allow users to replace/relink the SAGE library
+-  Maintain LGPL-3.0 license notices
+-  Provide installation/build instructions (see [INSTALL.md](INSTALL.md))
 
 **You DON'T Need To:**
 
