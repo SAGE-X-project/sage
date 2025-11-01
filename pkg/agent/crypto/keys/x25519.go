@@ -305,9 +305,9 @@ func convertEd25519PrivToX25519(privKey crypto.PrivateKey) ([]byte, error) {
 	seed := edPriv.Seed()    // 32-byte seed
 	h := sha512.Sum512(seed) // RFC8032 §5.1.5, returns [64]byte
 	// #nosec G602 - sha512.Sum512 always returns 64 bytes, indices 0 and 31 are safe
-	h[0] &= 248
-	h[31] &= 127
-	h[31] |= 64
+	h[0] &= 248  // #nosec G602
+	h[31] &= 127 // #nosec G602
+	h[31] |= 64  // #nosec G602
 
 	var xPriv [32]byte
 	copy(xPriv[:], h[:32])
