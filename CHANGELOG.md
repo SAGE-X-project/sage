@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Code Scanning Alerts Resolution**:
+  - Added `.gosec.json` configuration to exclude false-positive G115 alerts from CGO-generated code
+  - Improved CI/CD workflow for better Slither error logging and debugging
+  - All existing security issues were already resolved in previous commits
+  - GitHub Code Scanning alerts are based on older commits and will be auto-closed upon next workflow run
+
 ## [1.5.0] - 2025-10-30
 
 ### Summary
