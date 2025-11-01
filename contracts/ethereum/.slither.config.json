@@ -8,6 +8,5 @@
   "filter_paths": "node_modules|test|deprecated",
   "legacy_ast": false,
   "disable_color": false,
-  "json": "-",
-  "markdown_root": "."
+  "json": "-"
 }
