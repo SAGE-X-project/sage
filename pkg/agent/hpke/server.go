@@ -28,7 +28,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -127,9 +126,7 @@ func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage
 	if err != nil {
 		return nil, err
 	}
-	if pk, ok := any(s.kem.PublicKey()).(interface{ Bytes() []byte }); ok {
-		log.Printf("[KEM][server-local] %x\n", pk.Bytes()) // 32바이트 hex
-	}
+
 	// 3) Parse HPKE init payload (HPKE Base + client ephC).
 	pl, err := ParseHPKEInitPayloadWithEphCFromJSON(msg.Payload)
 	if err != nil {

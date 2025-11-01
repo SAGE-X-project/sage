@@ -29,7 +29,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -198,12 +197,7 @@ func (c *Client) resolvePeerKEM(ctx context.Context, peerDID string) (*ecdh.Publ
 		return nil, fmt.Errorf("nil Resolver")
 	}
 	peerPub, err := c.resolver.ResolveKEMKey(ctx, did.AgentDID(peerDID))
-	switch v := peerPub.(type) {
-	case []byte:
-		log.Printf("[KEM][resolver] %x\n", v)
-	case interface{ Bytes() []byte }:
-		log.Printf("[KEM][resolver] %x\n", v.Bytes())
-	}
+
 	if err != nil || peerPub == nil {
 		return nil, fmt.Errorf("cannot resolve receiver KEM pubkey: %w", err)
 	}
