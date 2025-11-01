@@ -28,6 +28,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Set up Go (for Go analysis only)
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.2'
+          cache: true
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
@@ -72,7 +79,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.2'
-          cache: false  # Disable cache to avoid tar extraction issues
+          cache: true  # Re-enabled with latest actions/setup-go@v6
 
       - name: Download dependencies
         run: go mod download
@@ -259,7 +266,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version: '1.25.2'
-          cache: false  # Disable cache to avoid tar extraction issues
+          cache: true  # Re-enabled with latest actions/setup-go@v6
 
       - name: Install go-licenses v2
         run: |

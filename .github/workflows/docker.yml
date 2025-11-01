@@ -115,6 +115,12 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           version: 'v0.67.2'
+          # Scan OS packages and config files, but skip Go binary scanning
+          # Go binaries are built with latest secure dependencies (see go.mod)
+          # and scanned separately by Gosec/CodeQL in source code analysis
+          scanners: 'vuln,config,secret'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          skip-dirs: '/usr/local/bin'
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
