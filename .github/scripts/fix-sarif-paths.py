@@ -97,8 +97,8 @@ def main():
                 region = phys_loc.get("region", {})
                 line = str(region.get("startLine", ""))
 
-                # Skip results with empty or missing URI
-                if not uri:
+                # Skip results with empty, missing, or invalid URI
+                if not uri or uri == "undefined" or uri == "null":
                     valid_result = False
                     removed_count += 1
                     break
