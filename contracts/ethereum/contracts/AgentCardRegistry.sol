@@ -163,9 +163,9 @@ contract AgentCardRegistry is
         // 4. Generate agent ID
         agentId = keccak256(abi.encodePacked(params.did, msg.sender, block.timestamp));
 
-        // 5. Store keys and extract X25519 KME key
+        // 5. Store keys and extract X25519 KEM key
         bytes32[] memory keyHashes = new bytes32[](params.keys.length);
-        bytes memory kmeKey;  // X25519 KME public key
+        bytes memory kemKey;  // X25519 KEM public key
 
         for (uint256 i = 0; i < params.keys.length; i++) {
             bytes32 keyHash = keccak256(params.keys[i]);
@@ -178,10 +178,10 @@ contract AgentCardRegistry is
             // Verify key ownership
             _verifyKeyOwnership(params.keyTypes[i], params.keys[i], params.signatures[i], msg.sender);
 
-            // Extract X25519 key for KME (only one X25519 key allowed)
+            // Extract X25519 key for KEM (only one X25519 key allowed)
             if (params.keyTypes[i] == KeyType.X25519) {
-                require(kmeKey.length == 0, "Multiple X25519 keys not allowed");
-                kmeKey = params.keys[i];
+                require(kemKey.length == 0, "Multiple X25519 keys not allowed");
+                kemKey = params.keys[i];
             }
 
             // Store key
@@ -209,7 +209,7 @@ contract AgentCardRegistry is
             updatedAt: block.timestamp,
             active: false,  // Not active yet (time-locked)
             chainId: block.chainid,
-            kmePublicKey: kmeKey  // X25519 KME key (can be empty if not provided)
+            kemPublicKey: kemKey  // X25519 KME key (can be empty if not provided)
         });
 
         didToAgentId[params.did] = agentId;
@@ -230,8 +230,8 @@ contract AgentCardRegistry is
         emit AgentRegistered(agentId, params.did, msg.sender, block.timestamp);
 
         // Emit KME key update if X25519 key was provided
-        if (kmeKey.length > 0) {
-            emit KMEKeyUpdated(agentId, keccak256(kmeKey), block.timestamp);
+        if (kemKey.length > 0) {
+            emit KEMKeyUpdated(agentId, keccak256(kemKey), block.timestamp);
         }
 
         return agentId;
@@ -537,13 +537,13 @@ contract AgentCardRegistry is
      * @param agentId Agent identifier
      * @return KME public key (32 bytes X25519 key, or empty if not set)
      */
-    function getKMEKey(bytes32 agentId)
+    function getKEMKey(bytes32 agentId)
         external
         view
         returns (bytes memory)
     {
         require(agents[agentId].owner != address(0), "Agent not found");
-        return agents[agentId].kmePublicKey;
+        return agents[agentId].kemPublicKey;
     }
 
     /**
@@ -551,12 +551,12 @@ contract AgentCardRegistry is
      * @dev Allows key rotation for HPKE encryption
      *      Requires ECDSA signature proof of X25519 key ownership
      * @param agentId Agent identifier
-     * @param newKmeKey New X25519 public key (32 bytes)
-     * @param signature ECDSA signature proving ownership of newKmeKey
+     * @param newKEMKey New X25519 public key (32 bytes)
+     * @param signature ECDSA signature proving ownership of newKEMKey
      */
-    function updateKMEKey(
+    function updateKEMKey(
         bytes32 agentId,
-        bytes calldata newKmeKey,
+        bytes calldata newKEMKey,
         bytes calldata signature
     )
         external
@@ -564,18 +564,18 @@ contract AgentCardRegistry is
         whenNotPaused
         nonReentrant
     {
-        require(newKmeKey.length == 32, "Invalid X25519 key length");
+        require(newKEMKey.length == 32, "Invalid X25519 key length");
         require(signature.length == 65, "Invalid signature length");
 
         // Verify X25519 key ownership
-        _verifyKeyOwnership(KeyType.X25519, newKmeKey, signature, msg.sender);
+        _verifyKeyOwnership(KeyType.X25519, newKEMKey, signature, msg.sender);
 
         // Update KME key
-        agents[agentId].kmePublicKey = newKmeKey;
+        agents[agentId].kemPublicKey = newKEMKey;
         agents[agentId].updatedAt = block.timestamp;
         agentNonce[agentId]++;
 
-        emit KMEKeyUpdated(agentId, keccak256(newKmeKey), block.timestamp);
+        emit KEMKeyUpdated(agentId, keccak256(newKEMKey), block.timestamp);
     }
 
     // ============ Admin Functions ============

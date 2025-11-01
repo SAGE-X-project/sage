@@ -6,7 +6,7 @@
 
 ## Summary
 
-Re-added KME (Key Management Encryption) public key storage to AgentCardRegistry with enhanced security validation. This release restores the `kmePublicKey` field that was present in v1.3.1 but removed in v1.4.0, now with critical security improvements for HPKE (Hybrid Public Key Encryption) support per RFC 9180.
+Re-added KME (Key Management Encryption) public key storage to AgentCardRegistry with enhanced security validation. This release restores the `kemPublicKey` field that was present in v1.3.1 but removed in v1.4.0, now with critical security improvements for HPKE (Hybrid Public Key Encryption) support per RFC 9180.
 
 ## Breaking Changes
 
@@ -15,21 +15,23 @@ Re-added KME (Key Management Encryption) public key storage to AgentCardRegistry
 **Impact:** HIGH - All X25519 key registrations now require ECDSA signatures
 
 **Before (v1.3.1 and earlier):**
+
 ```javascript
 const params = {
-    keys: [ecdsaKey, ed25519Key, x25519Key],
-    keyTypes: [0, 1, 2],
-    signatures: [ecdsaSig, ed25519Sig, "0x"]  // Empty X25519 signature
+  keys: [ecdsaKey, ed25519Key, x25519Key],
+  keyTypes: [0, 1, 2],
+  signatures: [ecdsaSig, ed25519Sig, "0x"], // Empty X25519 signature
 };
 ```
 
 **After (v1.5.0):**
+
 ```javascript
 const x25519Sig = await createX25519Signature(signer, x25519Key);
 const params = {
-    keys: [ecdsaKey, ed25519Key, x25519Key],
-    keyTypes: [0, 1, 2],
-    signatures: [ecdsaSig, ed25519Sig, x25519Sig]  // Required ECDSA signature
+  keys: [ecdsaKey, ed25519Key, x25519Key],
+  keyTypes: [0, 1, 2],
+  signatures: [ecdsaSig, ed25519Sig, x25519Sig], // Required ECDSA signature
 };
 ```
 
@@ -42,28 +44,32 @@ const params = {
 ### 1. KME Public Key Storage
 
 **Contract Layer:**
-- ✅ Added `kmePublicKey` field to `AgentMetadata` struct (32-byte X25519 keys)
-- ✅ Added `getKMEKey(bytes32 agentId)` view function for O(1) access
-- ✅ Added `updateKMEKey(bytes32, bytes, bytes)` function with owner-only access
-- ✅ Added `KMEKeyUpdated` event for key rotation tracking
+
+- ✅ Added `kemPublicKey` field to `AgentMetadata` struct (32-byte X25519 keys)
+- ✅ Added `getKEMKey(bytes32 agentId)` view function for O(1) access
+- ✅ Added `updateKEMKey(bytes32, bytes, bytes)` function with owner-only access
+- ✅ Added `KEMKeyUpdated` event for key rotation tracking
 - ✅ Enforced single X25519 key per agent policy
 
 **Go Integration:**
+
 - ✅ Added `PublicKEMKey` field to `AgentMetadataV4` struct
-- ✅ Added `GetKMEKey(ctx, agentID)` client method
-- ✅ Added `UpdateKMEKey(ctx, agentID, newKey, signature)` client method
+- ✅ Added `GetKEMKey(ctx, agentID)` client method
+- ✅ Added `UpdateKEMKey(ctx, agentID, newKey, signature)` client method
 - ✅ Updated `GetAgent()` to populate `PublicKEMKey` field
 - ✅ `ResolveKEMKey()` already implemented in DID resolver
 
 ### 2. X25519 Ownership Verification
 
 **Security Enhancement:**
+
 - ✅ All X25519 keys must be proven owned by registering account
 - ✅ ECDSA signature verification using ecrecover
 - ✅ Signature includes chain ID and registry address (replay protection)
 - ✅ Prevents Sybil attacks and key theft
 
 **Signature Format:**
+
 ```solidity
 bytes32 messageHash = keccak256(abi.encodePacked(
     "SAGE X25519 Ownership:",
@@ -77,6 +83,7 @@ bytes32 messageHash = keccak256(abi.encodePacked(
 ### 3. HPKE Integration
 
 **End-to-End Support:**
+
 - ✅ KEM key resolution via DID
 - ✅ Integration with HPKE client
 - ✅ Support for RFC 9180 hybrid encryption
@@ -86,11 +93,11 @@ bytes32 messageHash = keccak256(abi.encodePacked(
 
 ### Performance
 
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
+| Metric            | Before                   | After                   | Improvement   |
+| ----------------- | ------------------------ | ----------------------- | ------------- |
 | KME key retrieval | ~80,000 gas (O(N) array) | ~5,000 gas (O(1) field) | 94% reduction |
-| Storage overhead | N/A | +32 bytes/agent | Minimal |
-| Registration cost | ~449,000 gas | ~450,000 gas | +1,000 gas |
+| Storage overhead  | N/A                      | +32 bytes/agent         | Minimal       |
+| Registration cost | ~449,000 gas             | ~450,000 gas            | +1,000 gas    |
 
 ### Code Quality
 
@@ -104,18 +111,21 @@ bytes32 messageHash = keccak256(abi.encodePacked(
 ### New Tests Added
 
 **Solidity (15 new tests):**
+
 - R3.6.1-R3.6.5: KME Key Registration (5 tests)
 - R3.6.6-R3.6.8: X25519 Ownership Verification (3 tests)
 - R3.6.9-R3.6.12: KME Key Retrieval (4 tests)
 - R3.6.13-R3.6.15: KME Key Updates (3 tests)
 
 **Fixed Legacy Tests (2 tests):**
+
 - R3.2.7: Multi-key registration with proper X25519 signatures
 - R3.2.8: Invalid key type handling with X25519 signatures
 
 **Go Tests:**
-- Added `TestAgentCardClient_GetKMEKey` in client_unit_test.go
-- Added `TestAgentCardClient_UpdateKMEKey` in client_unit_test.go
+
+- Added `TestAgentCardClient_GetKEMKey` in client_unit_test.go
+- Added `TestAgentCardClient_UpdateKEMKey` in client_unit_test.go
 - Added `TestAgentMetadataV4_PublicKEMKey` in client_unit_test.go
 - Added `TestMultiChainResolver_ResolveKEMKey` (5 scenarios) in resolver_test.go
 - Added `TestE2E_HPKE_KEMKeyResolution` (4 scenarios) in hpke/e2e_test.go
@@ -136,11 +146,13 @@ Go: All packages passing
 ### Enhancements
 
 1. **X25519 Ownership Verification**
+
    - Prevents attackers from registering others' public keys
    - ECDSA signature required for all X25519 keys
    - Chain ID and registry address in signature (replay protection)
 
 2. **Access Control**
+
    - Only agent owner can update KME key
    - `onlyAgentOwner` modifier enforcement
    - Reentrancy protection on updates
@@ -164,13 +176,13 @@ Go: All packages passing
 
 ```solidity
 // Get KME public key for an agent
-function getKMEKey(bytes32 agentId)
+function getKEMKey(bytes32 agentId)
     external view returns (bytes memory);
 
 // Update KME public key (owner only)
-function updateKMEKey(
+function updateKEMKey(
     bytes32 agentId,
-    bytes calldata newKmeKey,
+    bytes calldata newKEMKey,
     bytes calldata signature
 ) external;
 ```
@@ -179,16 +191,16 @@ function updateKMEKey(
 
 ```go
 // Get KME public key for an agent
-func (c *AgentCardClient) GetKMEKey(
+func (c *AgentCardClient) GetKEMKey(
     ctx context.Context,
     agentID [32]byte,
 ) ([]byte, error)
 
 // Update KME public key
-func (c *AgentCardClient) UpdateKMEKey(
+func (c *AgentCardClient) UpdateKEMKey(
     ctx context.Context,
     agentID [32]byte,
-    newKMEKey []byte,
+    newKEMKey []byte,
     signature []byte,
 ) error
 ```
@@ -196,7 +208,7 @@ func (c *AgentCardClient) UpdateKMEKey(
 ### New Events
 
 ```solidity
-event KMEKeyUpdated(
+event KEMKeyUpdated(
     bytes32 indexed agentId,
     bytes32 indexed keyHash,
     uint256 timestamp
@@ -225,23 +237,25 @@ event KMEKeyUpdated(
 
 ### For Users of v1.3.1
 
-**No action required for existing agents** - The `kmePublicKey` field has been restored with same structure.
+**No action required for existing agents** - The `kemPublicKey` field has been restored with same structure.
 
 **Required changes for new registrations:**
 
 1. Update X25519 signature generation:
+
    ```javascript
    const x25519Sig = await createX25519Signature(signer, x25519Key);
    ```
 
 2. Include signature in registration params:
+
    ```javascript
-   signatures: [ecdsaSig, ed25519Sig, x25519Sig]  // Not empty anymore
+   signatures: [ecdsaSig, ed25519Sig, x25519Sig]; // Not empty anymore
    ```
 
 3. Use new accessor methods for better gas efficiency:
    ```javascript
-   const kmeKey = await registry.getKMEKey(agentId);  // 94% cheaper
+   const KEMKey = await registry.getKEMKey(agentId); // 94% cheaper
    ```
 
 ### For Users Without KME Support
@@ -252,7 +266,7 @@ event KMEKeyUpdated(
 
 1. Generate X25519 key pair
 2. Create ECDSA ownership signature
-3. Call `updateKMEKey()` to add KME support
+3. Call `updateKEMKey()` to add KME support
 4. HPKE functionality now available
 
 ## Known Issues

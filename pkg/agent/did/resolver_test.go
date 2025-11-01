@@ -307,16 +307,16 @@ func TestMultiChainResolver_ResolveKEMKey(t *testing.T) {
 
 	t.Run("ResolveKEMKey with active agent", func(t *testing.T) {
 		did := AgentDID("did:sage:eth:agent001")
-		kmeKey := make([]byte, 32) // X25519 public key
-		for i := range kmeKey {
-			kmeKey[i] = byte(i)
+		KEMKey := make([]byte, 32) // X25519 public key
+		for i := range KEMKey {
+			KEMKey[i] = byte(i)
 		}
 
 		activeMetadata := &AgentMetadata{
 			DID:          did,
 			Name:         "KME Test Agent",
 			IsActive:     true,
-			PublicKEMKey: kmeKey,
+			PublicKEMKey: KEMKey,
 		}
 
 		ethResolver.On("Resolve", ctx, did).Return(activeMetadata, nil).Once()
@@ -324,20 +324,20 @@ func TestMultiChainResolver_ResolveKEMKey(t *testing.T) {
 		kemKey, err := multiResolver.ResolveKEMKey(ctx, did)
 		require.NoError(t, err)
 		assert.NotNil(t, kemKey)
-		assert.Equal(t, kmeKey, kemKey)
+		assert.Equal(t, KEMKey, kemKey)
 
 		ethResolver.AssertExpectations(t)
 	})
 
 	t.Run("ResolveKEMKey with inactive agent", func(t *testing.T) {
 		did := AgentDID("did:sage:eth:agent002")
-		kmeKey := make([]byte, 32)
+		KEMKey := make([]byte, 32)
 
 		inactiveMetadata := &AgentMetadata{
 			DID:          did,
 			Name:         "Inactive KME Agent",
 			IsActive:     false,
-			PublicKEMKey: kmeKey,
+			PublicKEMKey: KEMKey,
 		}
 
 		ethResolver.On("Resolve", ctx, did).Return(inactiveMetadata, nil).Once()

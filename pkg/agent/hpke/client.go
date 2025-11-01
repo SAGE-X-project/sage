@@ -29,6 +29,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -146,12 +147,18 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
 	if err != nil {
 		return "", fmt.Errorf("combine: %w", err)
 	}
-
+	ih := sha256.Sum256(info)
+	eh := sha256.Sum256(exportCtx)
+	if subtle.ConstantTimeCompare(ih[:], r.InfoHash) != 1 ||
+		subtle.ConstantTimeCompare(eh[:], r.ExportCtxHash) != 1 {
+		zeroBytes(combined)
+		return "", fmt.Errorf("pre-ack mismatch: info/exportCtx")
+	}
 	// 10) Verify ackTag first (HMAC with combined secret)
 	binds := [][]byte{
 		info, exportCtx, enc, ephCPubBytes, r.EphSBytes, []byte(initDID), []byte(peerDID),
 	}
-	if err := verifyAckTag(combined, ctxID, nonce, r.Kid, binds, r.AckTag); err != nil {
+	if err := verifyAckTag(combined, r.Ctx, nonce, r.Kid, binds, r.AckTag); err != nil {
 		zeroBytes(combined)
 		return "", err
 	}
@@ -171,7 +178,7 @@ func (c *Client) Initialize(ctx context.Context, ctxID, initDID, peerDID string)
 	}
 
 	// 11) Verify server Ed25519 signature over canonical envelope
-	if err := c.verifySignature(ctx, peerDID, r, ctxID, info, exportCtx, enc, ephCPubBytes); err != nil {
+	if err := c.verifySignature(ctx, peerDID, r, info, exportCtx, enc, ephCPubBytes); err != nil {
 		zeroBytes(combined)
 		return "", err
 	}
@@ -191,17 +198,32 @@ func (c *Client) resolvePeerKEM(ctx context.Context, peerDID string) (*ecdh.Publ
 		return nil, fmt.Errorf("nil Resolver")
 	}
 	peerPub, err := c.resolver.ResolveKEMKey(ctx, did.AgentDID(peerDID))
+	switch v := peerPub.(type) {
+	case []byte:
+		log.Printf("[KEM][resolver] %x\n", v)
+	case interface{ Bytes() []byte }:
+		log.Printf("[KEM][resolver] %x\n", v.Bytes())
+	}
 	if err != nil || peerPub == nil {
 		return nil, fmt.Errorf("cannot resolve receiver KEM pubkey: %w", err)
 	}
 
 	// Type assert to *ecdh.PublicKey
-	kemPub, ok := peerPub.(*ecdh.PublicKey)
-	if !ok {
-		return nil, fmt.Errorf("expected *ecdh.PublicKey, got %T", peerPub)
+	switch v := peerPub.(type) {
+	case *ecdh.PublicKey:
+		return v, nil
+	case []byte:
+		if len(v) != 32 {
+			return nil, fmt.Errorf("invalid KEM key length: got %d, want 32", len(v))
+		}
+		pk, err := ecdh.X25519().NewPublicKey(v)
+		if err != nil {
+			return nil, fmt.Errorf("x25519 public key decode: %w", err)
+		}
+		return pk, nil
+	default:
+		return nil, fmt.Errorf("unexpected KEM key type %T", v)
 	}
-
-	return kemPub, nil
 }
 
 // HPKE sender-side derivation: returns enc and exporter.
@@ -399,7 +421,7 @@ func parseServerSignedResponse(data []byte) (*serverSignedResponse, error) {
 	}, nil
 }
 
-func (c *Client) verifySignature(ctx context.Context, serverDID string, r *serverSignedResponse, ctxID string, info, exportCtx, enc, ephC []byte) error {
+func (c *Client) verifySignature(ctx context.Context, serverDID string, r *serverSignedResponse, info, exportCtx, enc, ephC []byte) error {
 	if r.V != "v1" || r.Task != TaskHPKEComplete {
 		return fmt.Errorf("unsupported version/task: %s/%s", r.V, r.Task)
 	}
@@ -430,7 +452,7 @@ func (c *Client) verifySignature(ctx context.Context, serverDID string, r *serve
 	env := serverSigEnvelope{
 		V:             r.V,
 		Task:          r.Task,
-		Ctx:           ctxID, // prefer local ctxID
+		Ctx:           r.Ctx, // prefer local ctxID
 		Kid:           r.Kid,
 		EphS:          base64.RawURLEncoding.EncodeToString(r.EphSBytes),
 		AckTagB64:     base64.RawURLEncoding.EncodeToString(r.AckTag),

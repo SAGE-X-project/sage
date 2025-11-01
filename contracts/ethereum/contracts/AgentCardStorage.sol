@@ -50,7 +50,7 @@ abstract contract AgentCardStorage {
      * - Slot 5: capabilities (string - dynamic)
      * - Slot 6: owner (address - 20 bytes) + registeredAt (uint256 - 32 bytes)
      * - Slot 7: updatedAt (uint256 - 32 bytes) + active (bool - 1 byte) + chainId (uint256 - 32 bytes)
-     * - Slot 8: kmePublicKey (bytes - dynamic, 32 bytes for X25519)
+     * - Slot 8: kemPublicKey (bytes - dynamic, 32 bytes for X25519)
      */
     struct AgentMetadata {
         string did;                 // W3C DID identifier (e.g., "did:sage:ethereum:0x...")
@@ -64,7 +64,7 @@ abstract contract AgentCardStorage {
         uint256 updatedAt;          // Last update timestamp
         bool active;                // Agent active status (time-locked on registration)
         uint256 chainId;            // Chain ID where agent was registered (replay protection)
-        bytes kmePublicKey;         // X25519 KME public key for HPKE (32 bytes, optional)
+        bytes kemPublicKey;         // X25519 KME public key for HPKE (32 bytes, optional)
     }
 
     /**
@@ -343,10 +343,10 @@ abstract contract AgentCardStorage {
     /**
      * @notice Emitted when KME public key is updated
      * @param agentId Agent identifier
-     * @param keyHash Hash of the new KME key (keccak256(kmePublicKey))
+     * @param keyHash Hash of the new KME key (keccak256(kemPublicKey))
      * @param timestamp Update timestamp
      */
-    event KMEKeyUpdated(
+    event KEMKeyUpdated(
         bytes32 indexed agentId,
         bytes32 indexed keyHash,
         uint256 timestamp
