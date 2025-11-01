@@ -292,14 +292,14 @@ Output:
 ### 1. Use Appropriate Log Levels
 
 ```go
-// ✅ Correct usage
+//  Correct usage
 log.Debug("Detailed crypto operation", logger.Bytes("signature", sig))
 log.Info("Session created", logger.String("session_id", sid))
 log.Warn("Cache miss rate high", logger.Float64("rate", 0.85))
 log.Error("Failed to verify signature", logger.Error(err))
 log.Fatal("Cannot start server", logger.Error(err)) // Exits application
 
-// ❌ Wrong usage
+//  Wrong usage
 log.Info("Detailed loop iteration i=42")  // Too verbose, use Debug
 log.Error("User logged out")              // Not an error, use Info
 ```
@@ -307,13 +307,13 @@ log.Error("User logged out")              // Not an error, use Info
 ### 2. Use Typed Fields
 
 ```go
-// ✅ Correct - type-safe fields
+//  Correct - type-safe fields
 log.Info("Request completed",
     logger.Int("status_code", 200),
     logger.Duration("duration", elapsed),
 )
 
-// ❌ Wrong - untyped fields
+//  Wrong - untyped fields
 log.Info("Request completed",
     logger.String("status_code", "200"),  // Should be Int
     logger.String("duration", "150ms"),   // Should be Duration
@@ -323,14 +323,14 @@ log.Info("Request completed",
 ### 3. Consistent Field Names
 
 ```go
-// ✅ Correct - snake_case, consistent naming
+//  Correct - snake_case, consistent naming
 log.Info("DID resolved",
     logger.String("did", did),
     logger.String("chain_id", chainID),
     logger.Duration("resolve_time", elapsed),
 )
 
-// ❌ Wrong - inconsistent naming
+//  Wrong - inconsistent naming
 log.Info("DID resolved",
     logger.String("DID", did),           // Use lowercase
     logger.String("chainID", chainID),   // Use snake_case
@@ -341,7 +341,7 @@ log.Info("DID resolved",
 ### 4. Context Propagation
 
 ```go
-// ✅ Correct - propagate context
+//  Correct - propagate context
 func ProcessRequest(ctx context.Context) error {
     log := logger.New().WithContext(ctx)
 
@@ -362,7 +362,7 @@ func step1(ctx context.Context) error {
     // ...
 }
 
-// ❌ Wrong - no context propagation
+//  Wrong - no context propagation
 func ProcessRequest(ctx context.Context) error {
     log := logger.New()  // Missing context
     log.Info("Processing started")
@@ -373,7 +373,7 @@ func ProcessRequest(ctx context.Context) error {
 ### 5. Error Logging
 
 ```go
-// ✅ Correct - include context
+//  Correct - include context
 log.Error("Database query failed",
     logger.Error(err),
     logger.String("query", "SELECT * FROM users"),
@@ -381,7 +381,7 @@ log.Error("Database query failed",
     logger.Int("retry_attempt", 2),
 )
 
-// ❌ Wrong - insufficient context
+//  Wrong - insufficient context
 log.Error("Error", logger.Error(err))
 ```
 
@@ -401,13 +401,13 @@ if log.GetLevel() == logger.DebugLevel {
 ### Field Allocation
 
 ```go
-// ✅ Efficient - reuse field slices
+//  Efficient - reuse field slices
 fields := make([]logger.Field, 0, 5)
 fields = append(fields, logger.String("key1", val1))
 fields = append(fields, logger.String("key2", val2))
 log.Info("Message", fields...)
 
-// ❌ Less efficient - many small allocations
+//  Less efficient - many small allocations
 log.Info("Message",
     logger.String("key1", val1),
     logger.String("key2", val2),
