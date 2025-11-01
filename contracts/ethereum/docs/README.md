@@ -5,45 +5,26 @@ This directory contains comprehensive documentation for SAGE Ethereum smart cont
 ## 📚 Documentation Index
 
 ### Architecture & Design
-- **[ARCHITECTURE-DIAGRAMS.md](./ARCHITECTURE-DIAGRAMS.md)** - System architecture diagrams and flow charts
+- **[ARCHITECTURE-DIAGRAMS.md](./ARCHITECTURE-DIAGRAMS.md)** - System architecture diagrams and flow charts (v2.0)
+- **[INTEGRATION-GUIDE.md](./INTEGRATION-GUIDE.md)** - Integration guide for developers (v2.0)
 - **[NATSPEC-GUIDE.md](./NATSPEC-GUIDE.md)** - NatSpec documentation standards and templates
-- **[INTEGRATION-GUIDE.md](./INTEGRATION-GUIDE.md)** - Integration guide for developers
-- **[FINAL_ARCHITECTURE_DESIGN.md](./FINAL_ARCHITECTURE_DESIGN.md)** - Final architecture design
 
-### Deployment & Operations
-- **[DEPLOYMENT_GUIDE_V4.md](./DEPLOYMENT_GUIDE_V4.md)** - V4 deployment guide
-- **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - Pre-deployment checklist
-- **[CLEAN_GUIDE.md](./CLEAN_GUIDE.md)** - Clean deployment guide
-- **[LOCAL_TESTING_GUIDE.md](./LOCAL_TESTING_GUIDE.md)** - Local development and testing
-- **[VERIFICATION_GUIDE.md](./VERIFICATION_GUIDE.md)** - Contract verification on explorers
-- **[VERIFICATION_MATRIX.md](./VERIFICATION_MATRIX.md)** - Verification test matrix
-- **[QUERY_COMMANDS.md](./QUERY_COMMANDS.md)** - Common query commands
+### Development & Testing
+- **[LOCAL_TESTING_GUIDE.md](./LOCAL_TESTING_GUIDE.md)** - Local development and testing guide (v2.0)
+- **[QUERY_COMMANDS.md](./QUERY_COMMANDS.md)** - Common agent query commands (v2.0)
+- **[CLEAN_GUIDE.md](./CLEAN_GUIDE.md)** - Build artifacts cleanup guide
 
-### Planning & Analysis
-- **[IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md)** - Implementation planning
-- **[REGISTRY_EVOLUTION_ANALYSIS.md](./REGISTRY_EVOLUTION_ANALYSIS.md)** - Registry architecture evolution
-- **[ERC8004_COMPLIANCE_GAP_ANALYSIS.md](./ERC8004_COMPLIANCE_GAP_ANALYSIS.md)** - ERC-8004 compliance analysis
-
-### Performance & Optimization
-- **[GAS_COST_ANALYSIS.md](./GAS_COST_ANALYSIS.md)** - Gas optimization analysis
+### Deployment & Verification
+- **[VERIFICATION_GUIDE.md](./VERIFICATION_GUIDE.md)** - Contract verification on Kaia network explorers
 
 ### Governance & Security
 - **[GOVERNANCE-SETUP.md](./GOVERNANCE-SETUP.md)** - Multi-sig and timelock setup guide
-
-## 🗂️ Archived Documentation
-
-Legacy documentation has been moved to:
-- **[../archive/docs-legacy/](../archive/docs-legacy/)** - Archived documentation files
-  - `DOCUMENTATION-STATUS_2025-10-07.md` - Legacy documentation status tracker
-  - `DEPLOYMENT_GUIDE_V2_Korean.md` - V2 deployment guide (Korean)
-  - `COMMUNITY-TESTING-GUIDE_2025-10-06.md` - Community testing guide (Oct 2025)
 
 ## 🔗 External References
 
 ### Main Documentation
 - [../README.md](../README.md) - Ethereum contracts overview
 - [../../README.md](../../README.md) - SAGE contracts main README
-- [../../STATUS.md](../../STATUS.md) - Current project status
 
 ## 📖 Quick Start Guide
 
@@ -53,8 +34,8 @@ Legacy documentation has been moved to:
 3. **Architecture**: Review [ARCHITECTURE-DIAGRAMS.md](./ARCHITECTURE-DIAGRAMS.md)
 
 ### For Deployment
-1. **Preparation**: Follow [DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)
-2. **Deployment**: Execute steps in [DEPLOYMENT_GUIDE_V4.md](./DEPLOYMENT_GUIDE_V4.md)
+1. **Testing**: Follow [LOCAL_TESTING_GUIDE.md](./LOCAL_TESTING_GUIDE.md)
+2. **Deployment**: See main [../README.md](../README.md) deployment section
 3. **Verification**: Use [VERIFICATION_GUIDE.md](./VERIFICATION_GUIDE.md)
 
 ### For Governance
@@ -64,45 +45,42 @@ Legacy documentation has been moved to:
 
 ## 📊 Documentation Status
 
-| Document | Status | Last Updated |
-|----------|--------|--------------|
-| ARCHITECTURE-DIAGRAMS.md | ✅ Current | 2025-10-11 |
-| INTEGRATION-GUIDE.md | ✅ Current | 2025-10-11 |
-| NATSPEC-GUIDE.md | ✅ Current | 2025-10-11 |
-| GOVERNANCE-SETUP.md | ✅ Current | 2025-10-11 |
-| LOCAL_TESTING_GUIDE.md | ✅ Current | 2025-10-10 |
-| VERIFICATION_GUIDE.md | ✅ Current | 2025-10-10 |
-| QUERY_COMMANDS.md | ✅ Current | 2025-10-10 |
-| DEPLOYMENT_GUIDE_V4.md | ✅ Current | 2025-10-26 |
-| DEPLOYMENT_CHECKLIST.md | ✅ Current | 2025-10-26 |
-| CLEAN_GUIDE.md | ✅ Current | 2025-10-26 |
-| VERIFICATION_MATRIX.md | ✅ Current | 2025-10-26 |
-| IMPLEMENTATION_PLAN.md | ✅ Current | 2025-10-26 |
-| REGISTRY_EVOLUTION_ANALYSIS.md | ✅ Current | 2025-10-26 |
-| ERC8004_COMPLIANCE_GAP_ANALYSIS.md | ✅ Current | 2025-10-26 |
-| FINAL_ARCHITECTURE_DESIGN.md | ✅ Current | 2025-10-26 |
-| GAS_COST_ANALYSIS.md | ✅ Current | 2025-10-26 |
+| Document | Status | Version | Last Updated |
+|----------|--------|---------|--------------|
+| ARCHITECTURE-DIAGRAMS.md | ✅ Current | v2.0 | 2025-11-01 |
+| INTEGRATION-GUIDE.md | ✅ Current | v2.0 | 2025-11-01 |
+| LOCAL_TESTING_GUIDE.md | ✅ Current | v2.0 | 2025-11-01 |
+| QUERY_COMMANDS.md | ✅ Current | v2.0 | 2025-11-01 |
+| NATSPEC-GUIDE.md | ✅ Current | v1.0 | 2025-10-07 |
+| GOVERNANCE-SETUP.md | ✅ Current | v1.0 | 2025-10-07 |
+| VERIFICATION_GUIDE.md | ✅ Current | v1.0 | 2025-10-07 |
+| CLEAN_GUIDE.md | ✅ Current | v1.0 | 2025-10-26 |
 
 ## 🔄 Document Lifecycle
 
 ### Active Documents
-Documents in this directory are actively maintained and reflect the current state of the project.
+All documents in this directory are actively maintained and reflect the current AgentCard v4.1 architecture.
 
-### Archived Documents
-Legacy documents are moved to `../archive/docs-legacy/` when:
-- They reference deprecated versions (V1, V2, V3)
-- They document completed time-specific activities
-- They are superseded by newer documentation
+### Removed Documents
+The following development/planning documents have been removed as they are no longer needed:
+- `DEPLOYMENT_GUIDE_V4.md` - Superseded by main README deployment section
+- `DEPLOYMENT_CHECKLIST.md` - Development checklist, no longer needed
+- `ERC8004_COMPLIANCE_GAP_ANALYSIS.md` - Analysis completed, ERC-8004 implemented
+- `FINAL_ARCHITECTURE_DESIGN.md` - Design finalized and implemented
+- `GAS_COST_ANALYSIS.md` - Historical analysis, costs documented in main README
+- `IMPLEMENTATION_PLAN.md` - Implementation completed
+- `REGISTRY_EVOLUTION_ANALYSIS.md` - Historical analysis completed
+- `VERIFICATION_MATRIX.md` - TDD checklist, implementation completed
 
 ## 🆘 Getting Help
 
 - **General Questions**: See [../../README.md](../../README.md)
-- **Deployment Issues**: Check [DEPLOYMENT_GUIDE_V4.md](./DEPLOYMENT_GUIDE_V4.md) troubleshooting section
+- **Deployment Issues**: Check main [../README.md](../README.md) troubleshooting section
 - **Integration Support**: Refer to [INTEGRATION-GUIDE.md](./INTEGRATION-GUIDE.md)
 - **GitHub Issues**: https://github.com/SAGE-X-project/sage/issues
 
 ---
 
 **Last Updated**: 2025-11-01
-**Version**: v1.4.0
-**Status**: ✅ Current
+**Version**: v2.0
+**Status**: ✅ Current - AgentCard Architecture
