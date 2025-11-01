@@ -138,14 +138,10 @@ async function main() {
   console.log(`   Capabilities: ${agentInfo.capabilities}`);
   console.log(`   Active: ${agentInfo.active}`);
   console.log(`   Keys Count: ${agentInfo.keys.length}`);
-  console.log(`   Created At: ${new Date(Number(agentInfo.createdAt) * 1000).toISOString()}\n`);
-
-  // Verify key
-  const storedKey = agentInfo.keys[0];
-  console.log('🔑 Stored Key Info:');
-  console.log(`   Type: ${storedKey.keyType === 0n ? 'ECDSA' : 'Unknown'}`);
-  console.log(`   Public Key: ${storedKey.publicKey.slice(0, 22)}...`);
-  console.log(`   Added At: ${new Date(Number(storedKey.addedAt) * 1000).toISOString()}\n`);
+  if (agentInfo.createdAt > 0n) {
+    console.log(`   Created At: ${new Date(Number(agentInfo.createdAt) * 1000).toISOString()}`);
+  }
+  console.log();
 
   console.log('================================================================================');
   console.log('TEST 4: Agent 활성화 (Time-lock 후)');
