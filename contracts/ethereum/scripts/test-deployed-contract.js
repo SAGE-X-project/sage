@@ -92,9 +92,10 @@ async function main() {
   console.log('   ✅ Commitment recorded');
   console.log(`   📜 Tx: ${commitTx.hash}\n`);
 
-  // Wait for commit delay (1 minute in production, but we'll test immediately for demo)
-  console.log('⏳ Waiting 61 seconds for commit delay...');
-  await new Promise((resolve) => setTimeout(resolve, 61000));
+  // Wait for commit delay (1 minute)
+  console.log('⏳ Fast-forwarding time for commit delay (61 seconds)...');
+  await network.ethers.provider.send('evm_increaseTime', [61]);
+  await network.ethers.provider.send('evm_mine');
 
   // Step 2: Reveal
   console.log('\n📝 Step 2: Reveal and Register');
@@ -152,8 +153,10 @@ async function main() {
 
   const activationDelay = await registry.activationDelay();
   console.log(`⏳ Activation Delay: ${activationDelay} seconds`);
-  console.log('   Waiting for activation delay...');
-  await new Promise((resolve) => setTimeout(resolve, Number(activationDelay) * 1000 + 1000));
+  console.log('   Fast-forwarding time on local network...');
+  // Use EVM time manipulation on local network
+  await network.ethers.provider.send('evm_increaseTime', [Number(activationDelay) + 1]);
+  await network.ethers.provider.send('evm_mine');
 
   const activateTx = await registry.activateAgent(agentId);
   await activateTx.wait();
