@@ -56,21 +56,11 @@ This directory contains comprehensive documentation for SAGE Ethereum smart cont
 | VERIFICATION_GUIDE.md | -  Current | v1.0 | 2025-10-07 |
 | CLEAN_GUIDE.md | -  Current | v1.0 | 2025-10-26 |
 
-##  Document Lifecycle
+##  Documentation Notes
 
-### Active Documents
 All documents in this directory are actively maintained and reflect the current AgentCard v4.1 architecture.
 
-### Removed Documents
-The following development/planning documents have been removed as they are no longer needed:
-- `DEPLOYMENT_GUIDE_V4.md` - Superseded by main README deployment section
-- `DEPLOYMENT_CHECKLIST.md` - Development checklist, no longer needed
-- `ERC8004_COMPLIANCE_GAP_ANALYSIS.md` - Analysis completed, ERC-8004 implemented
-- `FINAL_ARCHITECTURE_DESIGN.md` - Design finalized and implemented
-- `GAS_COST_ANALYSIS.md` - Historical analysis, costs documented in main README
-- `IMPLEMENTATION_PLAN.md` - Implementation completed
-- `REGISTRY_EVOLUTION_ANALYSIS.md` - Historical analysis completed
-- `VERIFICATION_MATRIX.md` - TDD checklist, implementation completed
+For document change history, see Git commit logs.
 
 ## 🆘 Getting Help
 
@@ -81,6 +71,6 @@ The following development/planning documents have been removed as they are no lo
 
 ---
 
-**Last Updated**: 2025-11-01
-**Version**: v2.0
-**Status**: -  Current - AgentCard Architecture
+**Last Updated**: 2025-11-02
+**Version**: v2.1
+**Status**: Current - AgentCard Architecture
