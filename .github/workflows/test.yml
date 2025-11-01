@@ -8,6 +8,7 @@ on:
 
 env:
   GO_VERSION: '1.25.2'
+  GOTOOLCHAIN: auto
 
 jobs:
   # Go backend tests
