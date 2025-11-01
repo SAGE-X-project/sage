@@ -231,11 +231,11 @@
      │                                          Verify│
      │                                          ┌─────┤
      │                                          │     │
-     │                                  ✓ Hash match  │
-     │                                  ✓ Timing OK   │
-     │                                  ✓ Call hook   │
-     │                                  ✓ Verify keys │
-     │                                  ✓ Store data  │
+     │                                   Hash match  │
+     │                                   Timing OK   │
+     │                                   Call hook   │
+     │                                   Verify keys │
+     │                                   Store data  │
      │                                          │     │
      │                                          └─────┤
      │                                                │
@@ -454,7 +454,7 @@
 
 ## TEE Key Governance Flow
 
-### Proposal → Vote → Execute
+### Proposal -> Vote -> Execute
 
 ```
 ┌──────────┐  ┌─────────┐  ┌──────────────┐  ┌──────────┐
@@ -725,37 +725,37 @@
 │  Attack Vector                  Mitigation               │
 ├──────────────────────────────────────────────────────────┤
 │  Front-Running                                           │
-│  Attacker sees transaction  →   Commit-reveal pattern    │
+│  Attacker sees transaction  ->   Commit-reveal pattern    │
 │  and submits with higher gas    Hides intent until reveal│
 │                                                           │
 │  Cross-Chain Replay                                      │
-│  Attacker replays signature →   ChainId in all hashes    │
+│  Attacker replays signature ->   ChainId in all hashes    │
 │  on different network           Network-specific commits │
 │                                                           │
 │  Sybil Attack                                            │
-│  Attacker creates many      →   Stake requirement        │
+│  Attacker creates many      ->   Stake requirement        │
 │  identities to manipulate       Rate limiting (24/day)   │
 │  validation                     Economic cost per agent  │
 │                                                           │
 │  DoS via Gas                                             │
-│  Attacker submits 1000+     →   Max 10 keys per agent    │
+│  Attacker submits 1000+     ->   Max 10 keys per agent    │
 │  keys to exceed gas limit       Max 100 validators       │
 │                                 Array bounds checking    │
 │                                                           │
 │  Reentrancy                                              │
-│  Attacker calls back into   →   ReentrancyGuard on all   │
+│  Attacker calls back into   ->   ReentrancyGuard on all   │
 │  contract during execution      payable functions        │
 │                                                           │
 │  MEV Exploitation                                        │
-│  Sandwich attacks on        →   Commit-reveal delays     │
+│  Sandwich attacks on        ->   Commit-reveal delays     │
 │  validator submissions          (1 min - 1 hour window)  │
 │                                                           │
 │  Key Reuse Attack                                        │
-│  Attacker reuses public key →   Key hash tracking        │
+│  Attacker reuses public key ->   Key hash tracking        │
 │  across multiple agents         Prevent reuse globally   │
 │                                                           │
 │  Time-based Attack                                       │
-│  Instant malicious agent    →   1-hour activation delay  │
+│  Instant malicious agent    ->   1-hour activation delay  │
 │  registration & usage           Community review period  │
 │                                                           │
 └──────────────────────────────────────────────────────────┘

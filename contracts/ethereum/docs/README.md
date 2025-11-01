@@ -2,7 +2,7 @@
 
 This directory contains comprehensive documentation for SAGE Ethereum smart contracts.
 
-## 📚 Documentation Index
+##  Documentation Index
 
 ### Architecture & Design
 - **[ARCHITECTURE-DIAGRAMS.md](./ARCHITECTURE-DIAGRAMS.md)** - System architecture diagrams and flow charts (v2.0)
@@ -20,13 +20,13 @@ This directory contains comprehensive documentation for SAGE Ethereum smart cont
 ### Governance & Security
 - **[GOVERNANCE-SETUP.md](./GOVERNANCE-SETUP.md)** - Multi-sig and timelock setup guide
 
-## 🔗 External References
+##  External References
 
 ### Main Documentation
 - [../README.md](../README.md) - Ethereum contracts overview
 - [../../README.md](../../README.md) - SAGE contracts main README
 
-## 📖 Quick Start Guide
+##  Quick Start Guide
 
 ### For Developers
 1. **Setup**: Read [LOCAL_TESTING_GUIDE.md](./LOCAL_TESTING_GUIDE.md)
@@ -43,20 +43,20 @@ This directory contains comprehensive documentation for SAGE Ethereum smart cont
 2. **Multi-sig**: Configure multi-signature wallet
 3. **Timelock**: Set up timelock for critical operations
 
-## 📊 Documentation Status
+## -  Documentation Status
 
 | Document | Status | Version | Last Updated |
 |----------|--------|---------|--------------|
-| ARCHITECTURE-DIAGRAMS.md | ✅ Current | v2.0 | 2025-11-01 |
-| INTEGRATION-GUIDE.md | ✅ Current | v2.0 | 2025-11-01 |
-| LOCAL_TESTING_GUIDE.md | ✅ Current | v2.0 | 2025-11-01 |
-| QUERY_COMMANDS.md | ✅ Current | v2.0 | 2025-11-01 |
-| NATSPEC-GUIDE.md | ✅ Current | v1.0 | 2025-10-07 |
-| GOVERNANCE-SETUP.md | ✅ Current | v1.0 | 2025-10-07 |
-| VERIFICATION_GUIDE.md | ✅ Current | v1.0 | 2025-10-07 |
-| CLEAN_GUIDE.md | ✅ Current | v1.0 | 2025-10-26 |
+| ARCHITECTURE-DIAGRAMS.md | -  Current | v2.0 | 2025-11-01 |
+| INTEGRATION-GUIDE.md | -  Current | v2.0 | 2025-11-01 |
+| LOCAL_TESTING_GUIDE.md | -  Current | v2.0 | 2025-11-01 |
+| QUERY_COMMANDS.md | -  Current | v2.0 | 2025-11-01 |
+| NATSPEC-GUIDE.md | -  Current | v1.0 | 2025-10-07 |
+| GOVERNANCE-SETUP.md | -  Current | v1.0 | 2025-10-07 |
+| VERIFICATION_GUIDE.md | -  Current | v1.0 | 2025-10-07 |
+| CLEAN_GUIDE.md | -  Current | v1.0 | 2025-10-26 |
 
-## 🔄 Document Lifecycle
+##  Document Lifecycle
 
 ### Active Documents
 All documents in this directory are actively maintained and reflect the current AgentCard v4.1 architecture.
@@ -83,4 +83,4 @@ The following development/planning documents have been removed as they are no lo
 
 **Last Updated**: 2025-11-01
 **Version**: v2.0
-**Status**: ✅ Current - AgentCard Architecture
+**Status**: -  Current - AgentCard Architecture

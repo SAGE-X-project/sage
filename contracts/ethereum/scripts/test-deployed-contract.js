@@ -8,13 +8,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 async function main() {
-  console.log('\n🧪 Testing Deployed AgentCard Contracts');
+  console.log('\n Testing Deployed AgentCard Contracts');
   console.log('================================================================================\n');
 
   // Load deployment info
   const deploymentPath = path.join(__dirname, '..', 'deployments', 'localhost-latest.json');
   if (!fs.existsSync(deploymentPath)) {
-    console.error('❌ No deployment found. Run deploy-agentcard.js first.');
+    console.error(' No deployment found. Run deploy-agentcard.js first.');
     process.exit(1);
   }
 
@@ -22,7 +22,7 @@ async function main() {
   const registryAddress = deployment.contracts.AgentCardRegistry.address;
   const hookAddress = deployment.contracts.AgentCardVerifyHook.address;
 
-  console.log('📋 Deployment Info:');
+  console.log(' Deployment Info:');
   console.log(`   Network: ${deployment.network}`);
   console.log(`   Chain ID: ${deployment.chainId}`);
   console.log(`   Registry: ${registryAddress}`);
@@ -32,7 +32,7 @@ async function main() {
   const network = await hre.network.connect();
   const [deployer, user1, user2] = await network.ethers.getSigners();
 
-  console.log('👥 Test Accounts:');
+  console.log(' Test Accounts:');
   console.log(`   Deployer: ${deployer.address}`);
   console.log(`   User1: ${user1.address}`);
   console.log(`   User2: ${user2.address}\n`);
@@ -49,12 +49,12 @@ async function main() {
   const hookAddr = await registry.verifyHook();
   const minStake = await registry.registrationStake();
 
-  console.log('✅ Owner:', owner);
-  console.log('✅ Hook Address:', hookAddr);
-  console.log('✅ Min Stake:', network.ethers.formatEther(minStake), 'ETH\n');
+  console.log(' Owner:', owner);
+  console.log(' Hook Address:', hookAddr);
+  console.log(' Min Stake:', network.ethers.formatEther(minStake), 'ETH\n');
 
   if (hookAddr !== hookAddress) {
-    console.error('❌ Hook address mismatch!');
+    console.error(' Hook address mismatch!');
     process.exit(1);
   }
 
@@ -69,7 +69,7 @@ async function main() {
   const uniqueId = `${user1.address.toLowerCase()}_${Date.now()}`;
   const agentDID = `did:sage:ethereum:${uniqueId}`;
 
-  console.log('🔑 Generated Test Key:');
+  console.log(' Generated Test Key:');
   console.log(`   Public Key: ${network.ethers.hexlify(publicKey).slice(0, 22)}...`);
   console.log(`   Agent Owner: ${user1.address}`);
   console.log(`   Agent DID: ${agentDID}\n`);
@@ -86,18 +86,18 @@ async function main() {
   );
   const commitHash = network.ethers.keccak256(encoded);
 
-  console.log('📝 Step 1: Commit');
+  console.log(' Step 1: Commit');
   const commitTx = await registry.connect(user1).commitRegistration(commitHash, { value: minStake });
   await commitTx.wait();
-  console.log('   ✅ Commitment recorded');
-  console.log(`   📜 Tx: ${commitTx.hash}\n`);
+  console.log('    Commitment recorded');
+  console.log(`    Tx: ${commitTx.hash}\n`);
 
   // Wait for commit delay (1 minute in production, but we'll test immediately for demo)
-  console.log('⏳ Waiting 61 seconds for commit delay...');
+  console.log(' Waiting 61 seconds for commit delay...');
   await new Promise((resolve) => setTimeout(resolve, 61000));
 
   // Step 2: Reveal
-  console.log('\n📝 Step 2: Reveal and Register');
+  console.log('\n Step 2: Reveal and Register');
 
   // Sign with ECDSA - must match contract's expected message format
   // Message format: keccak256("SAGE Agent Registration:" + chainId + registryAddress + signerAddress)
@@ -121,9 +121,9 @@ async function main() {
 
   const revealTx = await registry.connect(user1).registerAgentWithParams(params);
   const revealReceipt = await revealTx.wait();
-  console.log('   ✅ Agent registered successfully');
-  console.log(`   📜 Tx: ${revealTx.hash}`);
-  console.log(`   📊 Gas Used: ${revealReceipt.gasUsed.toString()}\n`);
+  console.log('    Agent registered successfully');
+  console.log(`    Tx: ${revealTx.hash}`);
+  console.log(`    Gas Used: ${revealReceipt.gasUsed.toString()}\n`);
 
   console.log('================================================================================');
   console.log('TEST 3: Agent 정보 조회');
@@ -131,7 +131,7 @@ async function main() {
 
   // Get agent by DID
   const agentInfo = await registry.getAgentByDID(agentDID);
-  console.log('✅ Agent Info Retrieved:');
+  console.log(' Agent Info Retrieved:');
   console.log(`   DID: ${agentInfo.did}`);
   console.log(`   Owner: ${agentInfo.owner}`);
   console.log(`   Endpoint: ${agentInfo.endpoint}`);
@@ -142,7 +142,7 @@ async function main() {
 
   // Verify key
   const storedKey = agentInfo.keys[0];
-  console.log('🔑 Stored Key Info:');
+  console.log(' Stored Key Info:');
   console.log(`   Type: ${storedKey.keyType === 0n ? 'ECDSA' : 'Unknown'}`);
   console.log(`   Public Key: ${storedKey.publicKey.slice(0, 22)}...`);
   console.log(`   Added At: ${new Date(Number(storedKey.addedAt) * 1000).toISOString()}\n`);
@@ -155,17 +155,17 @@ async function main() {
   const agentId = await registry.didToAgentId(agentDID);
 
   const activationDelay = await registry.activationDelay();
-  console.log(`⏳ Activation Delay: ${activationDelay} seconds`);
+  console.log(` Activation Delay: ${activationDelay} seconds`);
   console.log('   Waiting for activation delay...');
   await new Promise((resolve) => setTimeout(resolve, Number(activationDelay) * 1000 + 1000));
 
   const activateTx = await registry.activateAgent(agentId);
   await activateTx.wait();
-  console.log('   ✅ Agent activated successfully');
-  console.log(`   📜 Tx: ${activateTx.hash}\n`);
+  console.log('    Agent activated successfully');
+  console.log(`    Tx: ${activateTx.hash}\n`);
 
   const activeAgent = await registry.getAgentByDID(agentDID);
-  console.log(`✅ Agent Active Status: ${activeAgent.active}\n`);
+  console.log(` Agent Active Status: ${activeAgent.active}\n`);
 
   console.log('================================================================================');
   console.log('TEST 5: ERC-8004 인터페이스 테스트');
@@ -173,34 +173,34 @@ async function main() {
 
   // Test ERC-8004 functions
   const isActive = await registry.isAgentActive(agentDID);
-  console.log(`✅ isAgentActive(): ${isActive}`);
+  console.log(` isAgentActive(): ${isActive}`);
 
   const resolvedAgent = await registry.resolveAgent(agentDID);
-  console.log(`✅ resolveAgent():`);
+  console.log(` resolveAgent():`);
   console.log(`   DID: ${resolvedAgent[0]}`);
   console.log(`   Owner: ${resolvedAgent[1]}`);
   console.log(`   Endpoint: ${resolvedAgent[2]}\n`);
 
   const agentByAddress = await registry.resolveAgentByAddress(user1.address);
-  console.log(`✅ resolveAgentByAddress():`);
+  console.log(` resolveAgentByAddress():`);
   console.log(`   DID: ${agentByAddress[0]}`);
   console.log(`   Endpoint: ${agentByAddress[2]}\n`);
 
   console.log('================================================================================');
-  console.log('✅ All Tests Passed!');
+  console.log(' All Tests Passed!');
   console.log('================================================================================\n');
 
-  console.log('📊 Summary:');
-  console.log(`   ✅ Contract configuration verified`);
-  console.log(`   ✅ Agent registration (commit-reveal) successful`);
-  console.log(`   ✅ Agent information retrieval working`);
-  console.log(`   ✅ Agent activation successful`);
-  console.log(`   ✅ ERC-8004 interface compliant\n`);
+  console.log(' Summary:');
+  console.log(`    Contract configuration verified`);
+  console.log(`    Agent registration (commit-reveal) successful`);
+  console.log(`    Agent information retrieval working`);
+  console.log(`    Agent activation successful`);
+  console.log(`    ERC-8004 interface compliant\n`);
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error('\n❌ Test failed:', error);
+    console.error('\n Test failed:', error);
     process.exit(1);
   });
