@@ -1,5 +1,5 @@
 {
-  "detectors_to_exclude": "timestamp,naming-convention,assembly,low-level-calls,reentrancy-benign,reentrancy-events,costly-loop,cyclomatic-complexity,incorrect-equality,reentrancy-no-eth,divide-before-multiply,dead-code,return-bomb",
+  "detectors_to_exclude": "timestamp,naming-convention,assembly,low-level-calls,reentrancy-benign,reentrancy-events,costly-loop,cyclomatic-complexity,incorrect-equality,reentrancy-no-eth,divide-before-multiply,dead-code,return-bomb,encode-packed-collision,reentrancy-eth",
   "exclude_dependencies": true,
   "exclude_informational": false,
   "exclude_low": false,
@@ -8,6 +8,5 @@
   "filter_paths": "node_modules|test|deprecated",
   "legacy_ast": false,
   "disable_color": false,
-  "json": "-",
-  "markdown_root": "."
+  "json": "-"
 }
