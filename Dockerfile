@@ -2,7 +2,7 @@
 # Optimized for production with minimal image size
 
 # Stage 1: Builder
-FROM golang:1.24-alpine AS builder
+FROM golang:1.25.2-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \

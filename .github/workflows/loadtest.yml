@@ -68,7 +68,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.0'
+          go-version: '1.25.2'
           cache: true
 
       - name: Install dependencies
@@ -130,7 +130,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: baseline-test-results
           path: tools/loadtest/reports/baseline-*.json
@@ -192,7 +192,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.0'
+          go-version: '1.25.2'
           cache: true
 
       - name: Install dependencies
@@ -236,7 +236,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: stress-test-results
           path: tools/loadtest/reports/stress-*.json
@@ -280,7 +280,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.0'
+          go-version: '1.25.2'
           cache: true
 
       - name: Setup and run test
@@ -318,7 +318,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: spike-test-results
           path: tools/loadtest/reports/spike-*.json

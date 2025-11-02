@@ -64,18 +64,18 @@ async function main() {
           envContent = '# SAGE Smart Contract Configuration\n\n';
         }
 
-        // Update or add SEPOLIA_PRIVATE_KEY
+        // Update or add PRIVATE_KEY
         const privateKeyWithout0x = wallet.privateKey.startsWith('0x')
           ? wallet.privateKey.slice(2)
           : wallet.privateKey;
 
-        if (envContent.includes('SEPOLIA_PRIVATE_KEY=')) {
+        if (envContent.includes('PRIVATE_KEY=')) {
           envContent = envContent.replace(
-            /SEPOLIA_PRIVATE_KEY=.*/,
-            `SEPOLIA_PRIVATE_KEY=${privateKeyWithout0x}`
+            /^PRIVATE_KEY=.*/m,
+            `PRIVATE_KEY=${privateKeyWithout0x}`
           );
         } else {
-          envContent += `\n# Generated from mnemonic\nSEPOLIA_PRIVATE_KEY=${privateKeyWithout0x}\n`;
+          envContent += `\n# Generated from mnemonic\nPRIVATE_KEY=${privateKeyWithout0x}\n`;
         }
 
         // Write .env file

@@ -69,8 +69,27 @@ def main():
         for result in original_results:
             valid_result = True
 
-            for location in result.get("locations", []):
+            # Skip results with no locations array
+            locations = result.get("locations", [])
+            if not locations:
+                removed_count += 1
+                continue
+
+            for location in locations:
+                # Skip locations with no physicalLocation
+                if "physicalLocation" not in location:
+                    valid_result = False
+                    removed_count += 1
+                    break
+
                 phys_loc = location.get("physicalLocation", {})
+
+                # Skip if no artifactLocation
+                if "artifactLocation" not in phys_loc:
+                    valid_result = False
+                    removed_count += 1
+                    break
+
                 artifact_loc = phys_loc.get("artifactLocation", {})
                 uri = artifact_loc.get("uri", "")
 

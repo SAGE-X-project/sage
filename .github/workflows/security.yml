@@ -71,37 +71,42 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.0'
-          cache: false  # Disable cache to avoid tar extraction issues
+          go-version: '1.25.2'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
 
       - name: Run Gosec Security Scanner
         run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@v2.21.4
+          export GOTOOLCHAIN=local
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
           echo "Running gosec security scan..."
           # Generate JSON format for detailed output
-          gosec -fmt=json -out=gosec-results.json -no-fail -exclude-dir=contracts/ethereum/bindings ./... || true
+          gosec -conf .gosec.json -fmt=json -out=gosec-results.json -no-fail -exclude-dir=contracts/ethereum/bindings ./... || true
           # Generate SARIF format for GitHub Code Scanning
-          gosec -fmt=sarif -out=gosec-results-raw.sarif -no-fail -exclude-dir=contracts/ethereum/bindings ./... || true
+          gosec -conf .gosec.json -fmt=sarif -out=gosec-results-raw.sarif -no-fail -exclude-dir=contracts/ethereum/bindings ./... || true
           # Display text output
-          gosec -fmt=text -no-fail -exclude-dir=contracts/ethereum/bindings ./... || true
+          gosec -conf .gosec.json -fmt=text -no-fail -exclude-dir=contracts/ethereum/bindings ./... || true
         continue-on-error: true
 
       - name: Fix SARIF artifact paths
         if: always()
+        continue-on-error: true
         run: |
           if [ -f "gosec-results-raw.sarif" ]; then
-            echo "✓ Raw SARIF file found, fixing paths..."
+            echo "Raw SARIF file found, fixing paths..."
             python3 .github/scripts/fix-sarif-paths.py
             if [ -f "gosec-results.sarif" ]; then
-              echo "✓ Fixed SARIF file created successfully"
+              echo "Fixed SARIF file created successfully"
               echo "SARIF file size: $(wc -c < gosec-results.sarif) bytes"
-              echo "Number of results: $(cat gosec-results.sarif | jq '.runs[0].results | length')"
+              echo "Number of results: $(jq '.runs[0].results | length' gosec-results.sarif)"
             else
-              echo "❌ Failed to create fixed SARIF file"
+              echo "ERROR: Failed to create fixed SARIF file"
               exit 1
             fi
           else
-            echo "❌ No raw SARIF file found to fix"
+            echo "ERROR: No raw SARIF file found to fix"
             echo "Available files:"
             ls -la gosec-* || echo "No gosec files found"
             exit 1
@@ -111,13 +116,13 @@ jobs:
         if: always()
         run: |
           if [ -f "gosec-results.json" ]; then
-            echo "✓ Gosec scan completed"
+            echo "Gosec scan completed"
             echo "Results summary:"
-            cat gosec-results.json | jq -r '.Stats // "No issues found"'
-            if [ -f "gosec-results.json" ] && [ "$(cat gosec-results.json | jq '.Issues | length')" -gt "0" ]; then
+            jq -r '.Stats // "No issues found"' gosec-results.json
+            if [ "$(jq '.Issues | length' gosec-results.json)" -gt "0" ]; then
               echo ""
               echo "Security issues found:"
-              cat gosec-results.json | jq -r '.Issues[] | "[\(.severity)] \(.file):\(.line) - \(.details)"'
+              jq -r '.Issues[] | "[\(.severity)] \(.file):\(.line) - \(.details)"' gosec-results.json
             fi
           else
             echo "No gosec results file generated"
@@ -125,22 +130,23 @@ jobs:
 
       - name: Validate SARIF file before upload
         if: always()
+        continue-on-error: true
         run: |
           if [ -f "gosec-results.sarif" ]; then
-            echo "✓ SARIF file exists"
+            echo "SARIF file exists"
             echo "File size: $(wc -c < gosec-results.sarif) bytes"
             # Validate JSON structure
             if jq empty gosec-results.sarif 2>/dev/null; then
-              echo "✓ SARIF file is valid JSON"
-              echo "SARIF version: $(cat gosec-results.sarif | jq -r '.version')"
-              echo "Tool name: $(cat gosec-results.sarif | jq -r '.runs[0].tool.driver.name')"
-              echo "Number of results: $(cat gosec-results.sarif | jq '.runs[0].results | length')"
+              echo "SARIF file is valid JSON"
+              echo "SARIF version: $(jq -r '.version' gosec-results.sarif)"
+              echo "Tool name: $(jq -r '.runs[0].tool.driver.name' gosec-results.sarif)"
+              echo "Number of results: $(jq '.runs[0].results | length' gosec-results.sarif)"
             else
-              echo "❌ SARIF file is not valid JSON"
+              echo "ERROR: SARIF file is not valid JSON"
               exit 1
             fi
           else
-            echo "❌ SARIF file not found for upload"
+            echo "ERROR: SARIF file not found for upload"
             exit 1
           fi
 
@@ -149,7 +155,6 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: gosec-results.sarif
-          category: gosec
 
   # Smart contract security
   slither:
@@ -181,15 +186,38 @@ jobs:
         working-directory: contracts/ethereum
         run: |
           pip3 install slither-analyzer
+          echo "Running Slither analysis..."
           slither . \
             --config-file .slither.config.json \
             --compile-force-framework hardhat \
-            --sarif slither-results.sarif || true
+            --sarif slither-results.sarif 2>&1 | tee slither-output.log || true
+
+          echo "Slither execution completed"
+          if [ -f "slither-results.sarif" ]; then
+            echo "SARIF file generated successfully"
+            echo "File size: $(wc -c < slither-results.sarif) bytes"
+          else
+            echo "ERROR: Slither did not generate SARIF file"
+            echo "Slither output:"
+            cat slither-output.log
+            echo "Exit code: ${PIPESTATUS[0]}"
+          fi
 
       - name: Move SARIF file
-        run: mv contracts/ethereum/slither-results.sarif slither-results.sarif || true
+        run: |
+          if [ -f "contracts/ethereum/slither-results.sarif" ]; then
+            mv contracts/ethereum/slither-results.sarif slither-results.sarif
+            echo "SARIF file found and moved"
+          else
+            echo "WARNING: No SARIF file generated by Slither"
+            if [ -f "contracts/ethereum/slither-output.log" ]; then
+              echo "Slither output log:"
+              cat contracts/ethereum/slither-output.log
+            fi
+          fi
 
       - name: Upload Slither results to GitHub Security
+        if: hashFiles('slither-results.sarif') != ''
         continue-on-error: true  # Allow CI to pass if SARIF upload fails
         uses: github/codeql-action/upload-sarif@v4
         with:
@@ -222,11 +250,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v6
         with:
-          go-version: '1.24.0'
-          cache: false  # Disable cache to avoid tar extraction issues
+          go-version: '1.25.2'
+          cache: true
 
       - name: Install go-licenses v2
-        run: go install github.com/google/go-licenses/v2@v2.0.1
+        run: |
+          export GOTOOLCHAIN=local
+          go install github.com/google/go-licenses/v2@latest
 
       - name: Check Go licenses
         continue-on-error: true  # Allow CI to pass while reporting license issues

@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 env:
-  GO_VERSION: '1.23.0'
+  GO_VERSION: '1.25.2'
 
 jobs:
   # Build and release binaries
@@ -85,7 +85,7 @@ jobs:
           fi
 
       - name: Upload release artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-${{ matrix.goos }}-${{ matrix.goarch }}
           path: |
@@ -106,7 +106,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           pattern: release-*
           path: artifacts

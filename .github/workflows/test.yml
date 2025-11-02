@@ -7,7 +7,7 @@ on:
     branches: [main, dev]
 
 env:
-  GO_VERSION: '1.24.0'
+  GO_VERSION: '1.25.2'
 
 jobs:
   # Go backend tests
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.24.0']
+        go-version: ['1.25.2']
 
     steps:
       - name: Checkout code
@@ -31,15 +31,10 @@ jobs:
       - name: Install dependencies
         run: go mod download
 
-      - name: Run tests
-        run: make test
-
-      - name: Run tests with race detector
-        run: go test -race ./...
-
-      - name: Generate coverage report
+      - name: Run tests with coverage and race detector
         run: |
-          go test -coverprofile=coverage.out -covermode=atomic ./...
+          # Combine test execution to avoid redundant runs
+          go test -race -coverprofile=coverage.out -covermode=atomic ./...
           go tool cover -html=coverage.out -o coverage.html
 
       - name: Upload coverage to Codecov
@@ -51,7 +46,7 @@ jobs:
           fail_ci_if_error: false
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-report
           path: coverage.html
@@ -86,7 +81,7 @@ jobs:
       #   run: npm run coverage
       #
       # - name: Upload coverage artifact
-      #   uses: actions/upload-artifact@v4
+      #   uses: actions/upload-artifact@v5
       #   with:
       #     name: contracts-coverage
       #     path: contracts/ethereum/coverage
@@ -169,7 +164,7 @@ jobs:
           ./build/bin/sage-verify help || true
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: binaries-${{ matrix.os }}
           path: build/bin/
@@ -196,7 +191,7 @@ jobs:
         run: go mod download
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v6
         with:
           name: binaries-ubuntu-latest
           path: build/bin/
@@ -211,7 +206,7 @@ jobs:
 
       - name: Upload test logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: feature-verification-logs
           path: /tmp/sage-test-logs/

@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  GO_VERSION: '1.24.0'
+  GO_VERSION: '1.25.2'
 
 jobs:
   integration-test:
@@ -97,7 +97,7 @@ jobs:
             -coverprofile=integration-coverage.out
 
       - name: Upload integration test coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: integration-coverage
           path: integration-coverage.out
@@ -154,7 +154,7 @@ jobs:
 
       - name: Upload E2E test logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: e2e-logs
           path: |
