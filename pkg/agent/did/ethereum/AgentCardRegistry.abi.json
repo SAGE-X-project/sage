@@ -282,7 +282,7 @@
         "type": "uint256"
       }
     ],
-    "name": "KMEKeyUpdated",
+    "name": "KEMKeyUpdated",
     "type": "event"
   },
   {
@@ -714,7 +714,7 @@
           },
           {
             "internalType": "bytes",
-            "name": "kmePublicKey",
+            "name": "kemPublicKey",
             "type": "bytes"
           }
         ],
@@ -795,7 +795,7 @@
           },
           {
             "internalType": "bytes",
-            "name": "kmePublicKey",
+            "name": "kemPublicKey",
             "type": "bytes"
           }
         ],
@@ -834,7 +834,7 @@
         "type": "bytes32"
       }
     ],
-    "name": "getKMEKey",
+    "name": "getKEMKey",
     "outputs": [
       {
         "internalType": "bytes",
@@ -1367,7 +1367,7 @@
       },
       {
         "internalType": "bytes",
-        "name": "newKmeKey",
+        "name": "newKEMKey",
         "type": "bytes"
       },
       {
@@ -1376,7 +1376,7 @@
         "type": "bytes"
       }
     ],
-    "name": "updateKMEKey",
+    "name": "updateKEMKey",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

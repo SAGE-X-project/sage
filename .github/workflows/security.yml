@@ -150,11 +150,18 @@ jobs:
             exit 1
           fi
 
-      - name: Upload Gosec results to GitHub Security
+      - name: Upload Gosec results to GitHub Security (auto-generated category)
         if: always() && hashFiles('gosec-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: gosec-results.sarif
+
+      - name: Upload Gosec results to GitHub Security (legacy category)
+        if: always() && hashFiles('gosec-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: gosec-results.sarif
+          category: "gosec"
 
   # Smart contract security
   slither:

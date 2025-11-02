@@ -6,43 +6,50 @@
 
 ## Overview
 
-This document describes the integration of KME (Key Management Encryption) public key storage in the SAGE AgentCardRegistry system. The `kmePublicKey` field was originally present in v1.3.1, removed due to perceived lack of necessity, and has now been re-added with enhanced security validation for HPKE (Hybrid Public Key Encryption) support per RFC 9180.
+This document describes the integration of KME (Key Management Encryption) public key storage in the SAGE AgentCardRegistry system. The `kemPublicKey` field was originally present in v1.3.1, removed due to perceived lack of necessity, and has now been re-added with enhanced security validation for HPKE (Hybrid Public Key Encryption) support per RFC 9180.
 
 ## Changes Summary
 
 ### Contract Layer (Solidity)
 
 **AgentCardStorage.sol:**
-- Added `kmePublicKey` field to `AgentMetadata` struct (bytes type, 32 bytes for X25519)
-- Added `KMEKeyUpdated` event
+
+- Added `kemPublicKey` field to `AgentMetadata` struct (bytes type, 32 bytes for X25519)
+- Added `KEMKeyUpdated` event
 
 **AgentCardRegistry.sol:**
+
 - Implemented X25519 ownership verification using ECDSA signatures
-- Added `getKMEKey(bytes32 agentId)` view function
-- Added `updateKMEKey(bytes32, bytes, bytes)` function with owner-only access
+- Added `getKEMKey(bytes32 agentId)` view function
+- Added `updateKEMKey(bytes32, bytes, bytes)` function with owner-only access
 - Modified registration to extract and store X25519 key from multi-key params
 - Enforced single X25519 key per agent policy
 
 ### Go Integration Layer
 
 **pkg/agent/did/types_v4.go:**
+
 - Added `PublicKEMKey []byte` field to `AgentMetadataV4` struct
 
 **pkg/agent/did/ethereum/abi.go:**
+
 - Embedded AgentCardRegistry ABI
 - Added `GetAgentCardRegistryABI()` function
 
 **pkg/agent/did/ethereum/agentcard_client.go:**
+
 - Updated `GetAgent()` to populate `PublicKEMKey` field
-- Added `GetKMEKey(ctx, agentID)` method
-- Added `UpdateKMEKey(ctx, agentID, newKey, signature)` method
+- Added `GetKEMKey(ctx, agentID)` method
+- Added `UpdateKEMKey(ctx, agentID, newKey, signature)` method
 
 **pkg/agent/did/resolver.go:**
+
 - `ResolveKEMKey()` already implemented correctly
 
 ### Test Coverage
 
 **Solidity Tests:** 202/202 passing
+
 - Added 15 new tests (R3.6.1-R3.6.15) covering:
   - KME key registration (5 tests)
   - X25519 ownership verification (3 tests)
@@ -51,6 +58,7 @@ This document describes the integration of KME (Key Management Encryption) publi
 - Fixed 2 legacy tests (R3.2.7, R3.2.8) for X25519 signatures
 
 **Go Tests:** All passing
+
 - Added 3 test functions in `client_unit_test.go`
 - Added 5 test scenarios in `resolver_test.go`
 - Added 4 test scenarios in `hpke/e2e_test.go`
@@ -72,7 +80,7 @@ struct AgentMetadata {
     uint256 updatedAt;
     bool active;
     uint256 chainId;
-    bytes kmePublicKey;  // NEW: 32-byte X25519 public key
+    bytes kemPublicKey;  // NEW: 32-byte X25519 public key
 }
 ```
 
@@ -115,7 +123,7 @@ The original assumption that X25519 keys don't need signatures was incorrect. Wi
         │ AgentCardRegistry.register()          │
         │   - Verify all key signatures         │
         │   - Extract X25519 key                │
-        │   - Store in kmePublicKey field       │
+        │   - Store in kemPublicKey field       │
         └───────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
@@ -131,8 +139,8 @@ The original assumption that X25519 keys don't need signatures was incorrect. Wi
 │                                                               │
 │  Method 2: Direct KME Key Access                             │
 │  ───────────────────────────────                             │
-│  Client → agentcard_client.GetKMEKey(agentID)                │
-│         → Contract.getKMEKey(agentID)                        │
+│  Client → agentcard_client.GetKEMKey(agentID)                │
+│         → Contract.getKEMKey(agentID)                        │
 │         → Return 32-byte X25519 key                          │
 │                                                               │
 │  Method 3: Via DID Resolution                                │
@@ -148,11 +156,11 @@ The original assumption that X25519 keys don't need signatures was incorrect. Wi
 ┌─────────────────────────────────────────────────────────────┐
 │                    KME Key Update                            │
 ├─────────────────────────────────────────────────────────────┤
-│  Owner → agentcard_client.UpdateKMEKey(agentID, newKey, sig) │
+│  Owner → agentcard_client.UpdateKEMKey(agentID, newKey, sig) │
 │        → Verify caller is owner                              │
 │        → Verify X25519 signature                             │
-│        → Update agents[agentID].kmePublicKey                 │
-│        → Emit KMEKeyUpdated event                            │
+│        → Update agents[agentID].kemPublicKey                 │
+│        → Emit KEMKeyUpdated event                            │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -160,10 +168,10 @@ The original assumption that X25519 keys don't need signatures was incorrect. Wi
 
 ### Solidity API
 
-#### getKMEKey
+#### getKEMKey
 
 ```solidity
-function getKMEKey(bytes32 agentId)
+function getKEMKey(bytes32 agentId)
     external
     view
     returns (bytes memory)
@@ -172,22 +180,25 @@ function getKMEKey(bytes32 agentId)
 **Description:** Retrieves the KME public key for a registered agent.
 
 **Parameters:**
+
 - `agentId`: The unique identifier of the agent (keccak256 hash of DID)
 
 **Returns:**
+
 - `bytes`: The 32-byte X25519 public key, or empty bytes if no key registered
 
 **Reverts:**
+
 - "Agent not found" if agent doesn't exist
 
 **Gas Cost:** ~5,000 gas (O(1) direct field access)
 
-#### updateKMEKey
+#### updateKEMKey
 
 ```solidity
-function updateKMEKey(
+function updateKEMKey(
     bytes32 agentId,
-    bytes calldata newKmeKey,
+    bytes calldata newKEMKey,
     bytes calldata signature
 ) external onlyAgentOwner(agentId) whenNotPaused nonReentrant
 ```
@@ -195,14 +206,17 @@ function updateKMEKey(
 **Description:** Updates the KME public key for an agent. Only the agent owner can call this.
 
 **Parameters:**
+
 - `agentId`: The unique identifier of the agent
-- `newKmeKey`: The new 32-byte X25519 public key
+- `newKEMKey`: The new 32-byte X25519 public key
 - `signature`: 65-byte ECDSA signature proving ownership of new X25519 key
 
 **Events Emitted:**
-- `KMEKeyUpdated(agentId, keyHash, timestamp)`
+
+- `KEMKeyUpdated(agentId, keyHash, timestamp)`
 
 **Reverts:**
+
 - "Invalid X25519 key length" if key is not 32 bytes
 - "Invalid signature length" if signature is not 65 bytes
 - "Invalid X25519 ownership proof" if signature verification fails
@@ -211,6 +225,7 @@ function updateKMEKey(
 **Access Control:** Owner only (via `onlyAgentOwner` modifier)
 
 **Security Features:**
+
 - Reentrancy protection
 - Pause mechanism support
 - Nonce increment for replay protection
@@ -218,10 +233,10 @@ function updateKMEKey(
 
 ### Go API
 
-#### GetKMEKey
+#### GetKEMKey
 
 ```go
-func (c *AgentCardClient) GetKMEKey(
+func (c *AgentCardClient) GetKEMKey(
     ctx context.Context,
     agentID [32]byte
 ) ([]byte, error)
@@ -230,30 +245,33 @@ func (c *AgentCardClient) GetKMEKey(
 **Description:** Retrieves the KME public key for a registered agent.
 
 **Parameters:**
+
 - `ctx`: Context for cancellation and timeout
 - `agentID`: 32-byte agent identifier
 
 **Returns:**
+
 - `[]byte`: 32-byte X25519 public key
 - `error`: Error if agent not found or has no KME key
 
 **Example:**
+
 ```go
 agentID := [32]byte{/* agent ID bytes */}
-kmeKey, err := client.GetKMEKey(ctx, agentID)
+KEMKey, err := client.GetKEMKey(ctx, agentID)
 if err != nil {
     return fmt.Errorf("failed to get KME key: %w", err)
 }
-// kmeKey is 32-byte X25519 public key
+// KEMKey is 32-byte X25519 public key
 ```
 
-#### UpdateKMEKey
+#### UpdateKEMKey
 
 ```go
-func (c *AgentCardClient) UpdateKMEKey(
+func (c *AgentCardClient) UpdateKEMKey(
     ctx context.Context,
     agentID [32]byte,
-    newKMEKey []byte,
+    newKEMKey []byte,
     signature []byte
 ) error
 ```
@@ -261,33 +279,37 @@ func (c *AgentCardClient) UpdateKMEKey(
 **Description:** Updates the KME public key for an agent.
 
 **Parameters:**
+
 - `ctx`: Context for cancellation and timeout
 - `agentID`: 32-byte agent identifier
-- `newKMEKey`: 32-byte X25519 public key
+- `newKEMKey`: 32-byte X25519 public key
 - `signature`: 65-byte ECDSA signature
 
 **Returns:**
+
 - `error`: Error if validation fails or transaction fails
 
 **Validation:**
-- newKMEKey must be exactly 32 bytes
+
+- newKEMKey must be exactly 32 bytes
 - signature must be exactly 65 bytes
 - Caller must be agent owner
 - Signature must prove ownership of new X25519 key
 
 **Example:**
+
 ```go
 // Generate new X25519 key pair
 x25519KeyPair, err := keys.GenerateX25519KeyPair()
 if err != nil {
     return err
 }
-newKMEKey := x25519KeyPair.PublicKey().([]byte)
+newKEMKey := x25519KeyPair.PublicKey().([]byte)
 
 // Create ownership signature
 signature, err := createX25519OwnershipSignature(
     signer,
-    newKMEKey,
+    newKEMKey,
     chainID,
     registryAddress,
 )
@@ -296,7 +318,7 @@ if err != nil {
 }
 
 // Update KME key
-err = client.UpdateKMEKey(ctx, agentID, newKMEKey, signature)
+err = client.UpdateKEMKey(ctx, agentID, newKEMKey, signature)
 if err != nil {
     return fmt.Errorf("failed to update KME key: %w", err)
 }
@@ -314,19 +336,23 @@ func (m *MultiChainResolver) ResolveKEMKey(
 **Description:** Resolves KEM key for a DID, used by HPKE client.
 
 **Parameters:**
+
 - `ctx`: Context for cancellation and timeout
 - `did`: Agent DID (e.g., "did:sage:eth:agent001")
 
 **Returns:**
-- `interface{}`: X25519 public key (type assert to *ecdh.PublicKey)
+
+- `interface{}`: X25519 public key (type assert to \*ecdh.PublicKey)
 - `error`: Error if resolution fails or agent inactive
 
 **Errors:**
+
 - `ErrDIDNotFound`: DID does not exist
 - `ErrInactiveAgent`: Agent exists but is inactive
 - `nil`: Agent has no KME key registered (PublicKEMKey is nil)
 
 **Example:**
+
 ```go
 did := sagedid.AgentDID("did:sage:eth:agent001")
 
@@ -368,45 +394,47 @@ const chainId = (await ethers.provider.getNetwork()).chainId;
 const registryAddress = await registry.getAddress();
 
 const message = ethers.solidityPackedKeccak256(
-    ["string", "bytes", "uint256", "address", "address"],
-    [
-        "SAGE X25519 Ownership:",
-        x25519KeyPair,
-        chainId,
-        registryAddress,
-        signer.address
-    ]
+  ["string", "bytes", "uint256", "address", "address"],
+  [
+    "SAGE X25519 Ownership:",
+    x25519KeyPair,
+    chainId,
+    registryAddress,
+    signer.address,
+  ]
 );
 const x25519Signature = await signer.signMessage(ethers.getBytes(message));
 
 // Registration parameters
 const params = {
-    did: "did:sage:ethereum:0x123...",
-    name: "My Agent",
-    description: "Agent with KME support",
-    endpoint: "https://agent.example.com",
-    capabilities: JSON.stringify({ chat: true, hpke: true }),
-    keys: [
-        ecdsaPublicKey,    // 65 bytes
-        ed25519PublicKey,  // 32 bytes
-        x25519KeyPair      // 32 bytes (KME key)
-    ],
-    keyTypes: [0, 1, 2],  // ECDSA, Ed25519, X25519
-    signatures: [
-        ecdsaSignature,
-        ed25519Signature,
-        x25519Signature
-    ],
-    salt: ethers.randomBytes(32)
+  did: "did:sage:ethereum:0x123...",
+  name: "My Agent",
+  description: "Agent with KME support",
+  endpoint: "https://agent.example.com",
+  capabilities: JSON.stringify({ chat: true, hpke: true }),
+  keys: [
+    ecdsaPublicKey, // 65 bytes
+    ed25519PublicKey, // 32 bytes
+    x25519KeyPair, // 32 bytes (KME key)
+  ],
+  keyTypes: [0, 1, 2], // ECDSA, Ed25519, X25519
+  signatures: [ecdsaSignature, ed25519Signature, x25519Signature],
+  salt: ethers.randomBytes(32),
 };
 
 // Commit phase
-const commitHash = await registry.connect(user).commitRegistration(
-    ethers.keccak256(ethers.AbiCoder.defaultAbiCoder().encode(
-        ["tuple(string,string,string,string,string,bytes[],uint8[],bytes[],bytes32)"],
+const commitHash = await registry
+  .connect(user)
+  .commitRegistration(
+    ethers.keccak256(
+      ethers.AbiCoder.defaultAbiCoder().encode(
+        [
+          "tuple(string,string,string,string,string,bytes[],uint8[],bytes[],bytes32)",
+        ],
         [Object.values(params)]
-    ))
-);
+      )
+    )
+  );
 await commitHash.wait();
 
 // Wait for commit delay
@@ -418,8 +446,8 @@ const registerTx = await registry.connect(user).register(params);
 const receipt = await registerTx.wait();
 
 // Get agent ID from event
-const event = receipt.logs.find(log =>
-    log.fragment?.name === "AgentRegistered"
+const event = receipt.logs.find(
+  (log) => log.fragment?.name === "AgentRegistered"
 );
 const agentId = event.args.agentId;
 
@@ -497,12 +525,12 @@ func main() {
     fmt.Printf("Agent registered with ID: %x\n", agentID)
 
     // Verify KME key stored
-    kmeKey, err := client.GetKMEKey(ctx, agentID)
+    KEMKey, err := client.GetKEMKey(ctx, agentID)
     if err != nil {
         panic(err)
     }
 
-    fmt.Printf("KME key retrieved: %x\n", kmeKey)
+    fmt.Printf("KME key retrieved: %x\n", KEMKey)
 }
 ```
 
@@ -553,12 +581,12 @@ func main() {
 
 ### Gas Costs
 
-| Operation | Gas Cost | Optimization |
-|-----------|----------|--------------|
-| Registration with KME | ~450,000 | +1,000 for KME storage |
-| getKMEKey() | ~5,000 | O(1) direct field access |
-| updateKMEKey() | ~35,000 | Includes signature verification |
-| Legacy array iteration | ~80,000 | 94% slower than direct access |
+| Operation              | Gas Cost | Optimization                    |
+| ---------------------- | -------- | ------------------------------- |
+| Registration with KME  | ~450,000 | +1,000 for KME storage          |
+| getKEMKey()            | ~5,000   | O(1) direct field access        |
+| updateKEMKey()         | ~35,000  | Includes signature verification |
+| Legacy array iteration | ~80,000  | 94% slower than direct access   |
 
 ### Storage Overhead
 
@@ -569,37 +597,37 @@ func main() {
 
 ### From v1.3.1
 
-If you were using the `kmePublicKey` field in v1.3.1:
+If you were using the `kemPublicKey` field in v1.3.1:
 
 1. **No action required for existing agents** - The field has been restored with the same structure
 2. **X25519 signatures now required** - Update registration code to include ECDSA signatures for X25519 keys
-3. **Use new accessor methods** - `getKMEKey()` and `updateKMEKey()` for better gas efficiency
+3. **Use new accessor methods** - `getKEMKey()` and `updateKEMKey()` for better gas efficiency
 
 **Code Changes:**
 
 ```javascript
 // OLD (v1.3.1): X25519 without signature
 const params = {
-    keys: [ecdsaKey, ed25519Key, x25519Key],
-    keyTypes: [0, 1, 2],
-    signatures: [ecdsaSig, ed25519Sig, "0x"]  // Empty X25519 sig
+  keys: [ecdsaKey, ed25519Key, x25519Key],
+  keyTypes: [0, 1, 2],
+  signatures: [ecdsaSig, ed25519Sig, "0x"], // Empty X25519 sig
 };
 
 // NEW (v1.5.0): X25519 with ECDSA signature
 const x25519Sig = await createX25519Signature(signer, x25519Key);
 const params = {
-    keys: [ecdsaKey, ed25519Key, x25519Key],
-    keyTypes: [0, 1, 2],
-    signatures: [ecdsaSig, ed25519Sig, x25519Sig]  // Required sig
+  keys: [ecdsaKey, ed25519Key, x25519Key],
+  keyTypes: [0, 1, 2],
+  signatures: [ecdsaSig, ed25519Sig, x25519Sig], // Required sig
 };
 ```
 
 ### From Versions Without KME Support
 
-If you're upgrading from a version without `kmePublicKey`:
+If you're upgrading from a version without `kemPublicKey`:
 
 1. **Agents without X25519 keys continue to work** - The field is optional
-2. **Add X25519 key during next update** - Use `updateKMEKey()` to add encryption support
+2. **Add X25519 key during next update** - Use `updateKEMKey()` to add encryption support
 3. **HPKE functionality** - Only available for agents with registered KME keys
 
 ## Security Considerations
@@ -607,11 +635,13 @@ If you're upgrading from a version without `kmePublicKey`:
 ### X25519 Ownership Verification
 
 **Why it's critical:**
+
 - Without signature verification, anyone could register your X25519 public key
 - Attacker could then decrypt messages intended for you
 - Man-in-the-middle attacks become trivial
 
 **Implementation:**
+
 - All X25519 keys must be signed by the agent owner's ECDSA key
 - Signature includes chain ID and registry address to prevent replay attacks
 - Signature verification happens both during registration and updates
@@ -622,12 +652,13 @@ To rotate your KME key:
 
 1. Generate new X25519 key pair
 2. Create ECDSA signature proving ownership
-3. Call `updateKMEKey()` with new key and signature
+3. Call `updateKEMKey()` with new key and signature
 4. Old key is immediately replaced (no grace period)
 
 **Best Practices:**
+
 - Rotate keys periodically (e.g., every 90 days)
-- Monitor `KMEKeyUpdated` events for unauthorized changes
+- Monitor `KEMKeyUpdated` events for unauthorized changes
 - Keep private keys in secure hardware (HSM/TPM)
 
 ### Access Control
@@ -642,12 +673,14 @@ To rotate your KME key:
 ### Running Tests
 
 **Solidity tests:**
+
 ```bash
 cd contracts/ethereum
 npm test
 ```
 
 **Go tests:**
+
 ```bash
 # All tests
 go test ./pkg/...
@@ -670,30 +703,36 @@ go test ./pkg/agent/hpke/...
 ### Common Issues
 
 **Error: "X25519 requires ECDSA signature for ownership proof"**
+
 - Cause: Missing or invalid signature for X25519 key
 - Solution: Generate proper ECDSA signature using `createX25519Signature()` helper
 
 **Error: "Agent does not have KME key registered"**
+
 - Cause: Agent registered without X25519 key, or key retrieval on wrong agent
-- Solution: Verify agent has X25519 key in registration params, or use `updateKMEKey()` to add
+- Solution: Verify agent has X25519 key in registration params, or use `updateKEMKey()` to add
 
 **Error: "Invalid X25519 key length"**
+
 - Cause: Key data is not exactly 32 bytes
 - Solution: X25519 public keys must be 32 bytes, verify key generation
 
 **Error: "Caller is not the agent owner"**
+
 - Cause: Non-owner trying to update KME key
 - Solution: Only the agent owner can update KME key, check transaction signer
 
 ### Debug Tips
 
 1. **Check agent registration:**
+
    ```javascript
    const agent = await registry.agents(agentId);
-   console.log("KME key:", ethers.hexlify(agent.kmePublicKey));
+   console.log("KME key:", ethers.hexlify(agent.kemPublicKey));
    ```
 
 2. **Verify signature:**
+
    ```javascript
    const recovered = ethers.verifyMessage(messageHash, signature);
    console.log("Recovered address:", recovered);
@@ -702,8 +741,8 @@ go test ./pkg/agent/hpke/...
 
 3. **Monitor events:**
    ```javascript
-   registry.on("KMEKeyUpdated", (agentId, keyHash, timestamp) => {
-       console.log(`KME key updated for ${agentId}`);
+   registry.on("KEMKeyUpdated", (agentId, keyHash, timestamp) => {
+     console.log(`KME key updated for ${agentId}`);
    });
    ```
 

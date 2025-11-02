@@ -26,11 +26,13 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 
@@ -203,7 +205,10 @@ func (c *AgentCardClient) RegisterAgent(ctx context.Context, status *did.Commitm
 	}
 
 	// Extract agent ID from logs (TODO: parse AgentRegistered event)
-	agentID := c.computeAgentID(status.Params.DID)
+	agentID, regTs, err := c.extractRegisteredIDAndTs(receipt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract agent ID: %w", err)
+	}
 
 	// Get activation delay
 	delay, err := c.contract.ActivationDelay(&bind.CallOpts{Context: ctx})
@@ -219,7 +224,7 @@ func (c *AgentCardClient) RegisterAgent(ctx context.Context, status *did.Commitm
 	if delay.Cmp(big.NewInt(math.MaxInt64)) > 0 {
 		return nil, fmt.Errorf("activation delay too large: %s seconds", delay.String())
 	}
-	status.CanActivateAt = time.Now().Add(time.Duration(delay.Int64()) * time.Second)
+	status.CanActivateAt = time.Unix(regTs.Int64()+delay.Int64(), 0)
 	status.Params = nil // Clear params for security
 
 	return status, nil
@@ -264,6 +269,32 @@ func (c *AgentCardClient) ActivateAgent(ctx context.Context, status *did.Commitm
 	return nil
 }
 
+func (c *AgentCardClient) GetActivationDelay(ctx context.Context) (time.Duration, error) {
+	d, err := c.contract.ActivationDelay(&bind.CallOpts{Context: ctx})
+	if err != nil {
+		return 0, fmt.Errorf("ActivationDelay(): %w", err)
+	}
+	if d.Cmp(big.NewInt(math.MaxInt64)) > 0 {
+		return 0, fmt.Errorf("activation delay too large: %s", d.String())
+	}
+	return time.Duration(d.Int64()) * time.Second, nil
+}
+
+func (c *AgentCardClient) SetActivationDelay(ctx context.Context, secs uint64) error {
+	auth, err := c.getTransactor(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("tx signer: %w", err)
+	}
+	tx, err := c.contract.SetActivationDelay(auth, new(big.Int).SetUint64(secs))
+	if err != nil {
+		return fmt.Errorf("SetActivationDelay call: %w", err)
+	}
+	if _, err := bind.WaitMined(ctx, c.client, tx); err != nil {
+		return fmt.Errorf("wait mined: %w", err)
+	}
+	return nil
+}
+
 // GetCommitmentState queries on-chain commitment state
 func (c *AgentCardClient) GetCommitmentState(ctx context.Context, owner common.Address) (*did.CommitmentState, error) {
 	result, err := c.contract.RegistrationCommitments(&bind.CallOpts{Context: ctx}, owner)
@@ -303,7 +334,7 @@ func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.
 		IsActive:     metadata.Active,
 		CreatedAt:    time.Unix(metadata.RegisteredAt.Int64(), 0),
 		UpdatedAt:    time.Unix(metadata.UpdatedAt.Int64(), 0),
-		PublicKEMKey: metadata.KmePublicKey, //  Populate KME public key
+		PublicKEMKey: metadata.KemPublicKey, // ✅ Populate KME public key
 	}
 
 	// Parse capabilities JSON
@@ -335,8 +366,56 @@ func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.
 
 // GetAgentByDID retrieves agent metadata by DID string
 func (c *AgentCardClient) GetAgentByDID(ctx context.Context, didStr string) (*did.AgentMetadataV4, error) {
-	agentID := c.computeAgentID(didStr)
-	return c.GetAgent(ctx, agentID)
+	// 1) Call on-chain view
+	md, err := c.contract.GetAgentByDID(&bind.CallOpts{Context: ctx}, didStr)
+	if err != nil {
+		return nil, fmt.Errorf("getAgentByDID: %w", err)
+	}
+	// Check existence
+	if md.Owner == (common.Address{}) || md.Did == "" {
+		return nil, fmt.Errorf("agent not found")
+	}
+
+	// 2) Convert to local struct
+	agent := &did.AgentMetadataV4{
+		DID:          did.AgentDID(md.Did),
+		Name:         md.Name,
+		Description:  md.Description,
+		Endpoint:     md.Endpoint,
+		Keys:         make([]did.AgentKey, 0, len(md.KeyHashes)),
+		Capabilities: map[string]interface{}{},
+		Owner:        md.Owner.Hex(),
+		IsActive:     md.Active,
+		CreatedAt:    time.Unix(md.RegisteredAt.Int64(), 0),
+		UpdatedAt:    time.Unix(md.UpdatedAt.Int64(), 0),
+		PublicKEMKey: md.KemPublicKey, // raw 32-byte X25519 key
+	}
+
+	// 3) Parse capabilities JSON if present
+	if s := strings.TrimSpace(md.Capabilities); s != "" {
+		var caps map[string]interface{}
+		if err := json.Unmarshal([]byte(s), &caps); err == nil {
+			agent.Capabilities = caps
+		}
+	}
+
+	// 4) Resolve each keyHash with getKey and append to result
+	for _, kh := range md.KeyHashes {
+		k, err := c.contract.GetKey(&bind.CallOpts{Context: ctx}, kh)
+		if err != nil {
+			// Skip keys that cannot be fetched
+			continue
+		}
+		agent.Keys = append(agent.Keys, did.AgentKey{
+			Type:      did.KeyType(k.KeyType),
+			KeyData:   k.KeyData,
+			Signature: k.Signature,
+			Verified:  k.Verified,
+			CreatedAt: time.Unix(k.RegisteredAt.Int64(), 0),
+		})
+	}
+
+	return agent, nil
 }
 
 // SetApprovalForAgent approves or revokes an operator for the agent
@@ -416,28 +495,28 @@ func (c *AgentCardClient) DeactivateAgent(ctx context.Context, agentID [32]byte)
 	return nil
 }
 
-// GetKMEKey retrieves the KME (Key Management Encryption) public key for an agent
+// GetKEMKey retrieves the KME (Key Management Encryption) public key for an agent
 // Returns the X25519 public key used for HPKE (RFC 9180) encryption
-func (c *AgentCardClient) GetKMEKey(ctx context.Context, agentID [32]byte) ([]byte, error) {
-	kmeKey, err := c.contract.GetKMEKey(&bind.CallOpts{Context: ctx}, agentID)
+func (c *AgentCardClient) GetKEMKey(ctx context.Context, agentID [32]byte) ([]byte, error) {
+	KEMKey, err := c.contract.GetKEMKey(&bind.CallOpts{Context: ctx}, agentID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get KME key: %w", err)
 	}
 
 	// Empty key means agent doesn't have X25519 key registered
-	if len(kmeKey) == 0 {
+	if len(KEMKey) == 0 {
 		return nil, fmt.Errorf("agent does not have KME key registered")
 	}
 
-	return kmeKey, nil
+	return KEMKey, nil
 }
 
-// UpdateKMEKey updates the KME public key for an agent
+// UpdateKEMKey updates the KME public key for an agent
 // The new key must be 32 bytes (X25519 public key)
 // Requires ECDSA signature for ownership proof
-func (c *AgentCardClient) UpdateKMEKey(ctx context.Context, agentID [32]byte, newKMEKey []byte, signature []byte) error {
-	if len(newKMEKey) != 32 {
-		return fmt.Errorf("invalid KME key length: expected 32 bytes, got %d", len(newKMEKey))
+func (c *AgentCardClient) UpdateKEMKey(ctx context.Context, agentID [32]byte, newKEMKey []byte, signature []byte) error {
+	if len(newKEMKey) != 32 {
+		return fmt.Errorf("invalid KME key length: expected 32 bytes, got %d", len(newKEMKey))
 	}
 
 	if len(signature) != 65 {
@@ -449,7 +528,7 @@ func (c *AgentCardClient) UpdateKMEKey(ctx context.Context, agentID [32]byte, ne
 		return fmt.Errorf("failed to create transactor: %w", err)
 	}
 
-	tx, err := c.contract.UpdateKMEKey(auth, agentID, newKMEKey, signature)
+	tx, err := c.contract.UpdateKEMKey(auth, agentID, newKEMKey, signature)
 	if err != nil {
 		return fmt.Errorf("failed to update KME key: %w", err)
 	}
@@ -567,4 +646,17 @@ func (c *AgentCardClient) getTransactor(ctx context.Context, value *big.Int) (*b
 	auth.Context = ctx
 
 	return auth, nil
+}
+
+func (c *AgentCardClient) extractRegisteredIDAndTs(receipt *types.Receipt) ([32]byte, *big.Int, error) {
+	for _, lg := range receipt.Logs {
+		if lg.Address != c.contractAddress {
+			continue
+		}
+		ev, err := c.contract.ParseAgentRegistered(*lg) // event AgentRegistered(bytes32 agentId, string did, address owner, uint256 timestamp)
+		if err == nil {
+			return ev.AgentId, ev.Timestamp, nil
+		}
+	}
+	return [32]byte{}, nil, fmt.Errorf("AgentRegistered event not found")
 }

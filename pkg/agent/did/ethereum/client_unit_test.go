@@ -590,8 +590,8 @@ func TestWaitForTransactionConfirmations(t *testing.T) {
 	}
 }
 
-// TestAgentCardClient_GetKMEKey tests KME key retrieval
-func TestAgentCardClient_GetKMEKey(t *testing.T) {
+// TestAgentCardClient_GetKEMKey tests KME key retrieval
+func TestAgentCardClient_GetKEMKey(t *testing.T) {
 	// Skip if no local Ethereum node
 	t.Skip("Requires local Ethereum node with deployed AgentCardRegistry contract")
 
@@ -632,7 +632,7 @@ func TestAgentCardClient_GetKMEKey(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			_, err = client.GetKMEKey(ctx, tt.agentID)
+			_, err = client.GetKEMKey(ctx, tt.agentID)
 
 			if tt.expectErr {
 				assert.Error(t, err)
@@ -646,8 +646,8 @@ func TestAgentCardClient_GetKMEKey(t *testing.T) {
 	}
 }
 
-// TestAgentCardClient_UpdateKMEKey tests KME key update validation
-func TestAgentCardClient_UpdateKMEKey(t *testing.T) {
+// TestAgentCardClient_UpdateKEMKey tests KME key update validation
+func TestAgentCardClient_UpdateKEMKey(t *testing.T) {
 	tests := []struct {
 		name      string
 		agentID   [32]byte
@@ -716,7 +716,7 @@ func TestAgentCardClient_UpdateKMEKey(t *testing.T) {
 			}
 
 			ctx := context.Background()
-			err = client.UpdateKMEKey(ctx, tt.agentID, tt.newKey, tt.signature)
+			err = client.UpdateKEMKey(ctx, tt.agentID, tt.newKey, tt.signature)
 
 			if tt.expectErr {
 				require.Error(t, err)
@@ -733,20 +733,20 @@ func TestAgentCardClient_UpdateKMEKey(t *testing.T) {
 // TestAgentMetadataV4_PublicKEMKey tests PublicKEMKey field in AgentMetadataV4
 func TestAgentMetadataV4_PublicKEMKey(t *testing.T) {
 	// Test that PublicKEMKey field exists and can be set
-	kmeKey := make([]byte, 32)
-	for i := range kmeKey {
-		kmeKey[i] = byte(i)
+	KEMKey := make([]byte, 32)
+	for i := range KEMKey {
+		KEMKey[i] = byte(i)
 	}
 
 	metadata := &did.AgentMetadataV4{
 		DID:          "did:sage:ethereum:test",
 		Name:         "Test Agent",
-		PublicKEMKey: kmeKey,
+		PublicKEMKey: KEMKey,
 	}
 
 	assert.NotNil(t, metadata.PublicKEMKey)
 	assert.Equal(t, 32, len(metadata.PublicKEMKey))
-	assert.Equal(t, kmeKey, metadata.PublicKEMKey)
+	assert.Equal(t, KEMKey, metadata.PublicKEMKey)
 
 	// Test with empty KME key
 	metadata2 := &did.AgentMetadataV4{
