@@ -554,11 +554,11 @@ groups:
 ### 1. Consistent Labeling
 
 ```go
-// ✅ Correct - consistent label values
+//  Correct - consistent label values
 metrics.CryptoOperations.WithLabelValues("sign", "ed25519").Inc()
 metrics.CryptoOperations.WithLabelValues("verify", "ed25519").Inc()
 
-// ❌ Wrong - inconsistent label values
+//  Wrong - inconsistent label values
 metrics.CryptoOperations.WithLabelValues("SIGN", "Ed25519").Inc()  // Wrong case
 metrics.CryptoOperations.WithLabelValues("signing", "ed25519").Inc()  // Different term
 ```
@@ -566,11 +566,11 @@ metrics.CryptoOperations.WithLabelValues("signing", "ed25519").Inc()  // Differe
 ### 2. Avoid High Cardinality Labels
 
 ```go
-// ❌ Wrong - unbounded label values
+//  Wrong - unbounded label values
 metrics.SomeMetric.WithLabelValues(userID).Inc()  // Could be millions of users
 metrics.SomeMetric.WithLabelValues(sessionID).Inc()  // Thousands of sessions
 
-// ✅ Correct - bounded label values
+//  Correct - bounded label values
 metrics.SomeMetric.WithLabelValues("user_activity").Inc()
 metrics.SomeMetric.WithLabelValues("session_created").Inc()
 ```
@@ -578,12 +578,12 @@ metrics.SomeMetric.WithLabelValues("session_created").Inc()
 ### 3. Use Appropriate Metric Types
 
 ```go
-// ✅ Correct
+//  Correct
 metrics.SessionsActive.Inc()                    // Gauge - can go up/down
 metrics.SessionsCreated.Inc()                   // Counter - only increases
 metrics.SessionDuration.Observe(duration)       // Histogram - distribution
 
-// ❌ Wrong
+//  Wrong
 metrics.SessionsActive.Observe(45)              // Should be Gauge, not Histogram
 metrics.SessionDuration.Inc()                   // Should be Histogram, not Counter
 ```
@@ -591,12 +591,12 @@ metrics.SessionDuration.Inc()                   // Should be Histogram, not Coun
 ### 4. Timing Measurements
 
 ```go
-// ✅ Correct - measure around operation
+//  Correct - measure around operation
 start := time.Now()
 result, err := performOperation()
 metrics.OperationDuration.Observe(time.Since(start).Seconds())
 
-// ❌ Wrong - missing failure case
+//  Wrong - missing failure case
 start := time.Now()
 result, err := performOperation()
 if err == nil {  // Only records successful operations!
@@ -631,10 +631,10 @@ for i := 0; i < 1000; i++ {
 // Each unique label combination creates a new time series
 // Cardinality = product of all label value counts
 
-// ✅ Low cardinality (3 operations × 3 algorithms = 9 time series)
+//  Low cardinality (3 operations × 3 algorithms = 9 time series)
 metrics.CryptoOperations.WithLabelValues(operation, algorithm).Inc()
 
-// ❌ High cardinality (unlimited)
+//  High cardinality (unlimited)
 metrics.SomeMetric.WithLabelValues(userID, sessionID, requestID).Inc()
 ```
 

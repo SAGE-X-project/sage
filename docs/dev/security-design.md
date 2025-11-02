@@ -1,6 +1,6 @@
 # SAGE 보안 설계서
 
-> ️ **PARTIALLY IMPLEMENTED**: 일부 보안 컴포넌트가 미구현 상태입니다.
+>  **PARTIALLY IMPLEMENTED**: 일부 보안 컴포넌트가 미구현 상태입니다.
 >
 > **구현 상태**:
 > -  구현됨: HPKE 핸드셰이크, 세션 암호화, RFC 9421 서명, Replay Guard

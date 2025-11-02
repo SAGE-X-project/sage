@@ -61,66 +61,66 @@ func main() {
 		rpcURL = "http://localhost:8545"
 	}
 	if privateKeyHex == "" {
-		fmt.Println("❌ Error: PRIVATE_KEY environment variable not set")
+		fmt.Println(" Error: PRIVATE_KEY environment variable not set")
 		fmt.Println("   export PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80")
 		os.Exit(1)
 	}
 
-	fmt.Println("📋 Configuration")
+	fmt.Println(" Configuration")
 	fmt.Println("─────────────────────────────────────────────────────────")
 	fmt.Println("Registry Address:", registryAddress)
 	fmt.Println("RPC URL:         ", rpcURL)
 	fmt.Println()
 
 	// Step 1: Generate cryptographic keys
-	fmt.Println("🔑 Step 1: Generating Cryptographic Keys")
+	fmt.Println(" Step 1: Generating Cryptographic Keys")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	// Generate ECDSA key (primary key for Ethereum)
 	fmt.Println("Generating ECDSA (secp256k1) key...")
 	ecdsaKeyPair, err := crypto.GenerateSecp256k1KeyPair()
 	if err != nil {
-		fmt.Printf("❌ Failed to generate ECDSA key: %v\n", err)
+		fmt.Printf(" Failed to generate ECDSA key: %v\n", err)
 		os.Exit(1)
 	}
 	ecdsaPubKey, err := did.MarshalPublicKey(ecdsaKeyPair.PublicKey())
 	if err != nil {
-		fmt.Printf("❌ Failed to marshal ECDSA public key: %v\n", err)
+		fmt.Printf(" Failed to marshal ECDSA public key: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("✓ ECDSA key generated (%d bytes)\n", len(ecdsaPubKey))
+	fmt.Printf(" ECDSA key generated (%d bytes)\n", len(ecdsaPubKey))
 
 	// Generate Ed25519 key (for signing)
 	fmt.Println("Generating Ed25519 key...")
 	ed25519KeyPair, err := crypto.GenerateEd25519KeyPair()
 	if err != nil {
-		fmt.Printf("❌ Failed to generate Ed25519 key: %v\n", err)
+		fmt.Printf(" Failed to generate Ed25519 key: %v\n", err)
 		os.Exit(1)
 	}
 	ed25519PubKey, err := did.MarshalPublicKey(ed25519KeyPair.PublicKey())
 	if err != nil {
-		fmt.Printf("❌ Failed to marshal Ed25519 public key: %v\n", err)
+		fmt.Printf(" Failed to marshal Ed25519 public key: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("✓ Ed25519 key generated (%d bytes)\n", len(ed25519PubKey))
+	fmt.Printf(" Ed25519 key generated (%d bytes)\n", len(ed25519PubKey))
 
 	// Generate X25519 key (for encryption/key agreement)
 	fmt.Println("Generating X25519 key...")
 	x25519KeyPair, err := crypto.GenerateX25519KeyPair()
 	if err != nil {
-		fmt.Printf("❌ Failed to generate X25519 key: %v\n", err)
+		fmt.Printf(" Failed to generate X25519 key: %v\n", err)
 		os.Exit(1)
 	}
 	x25519PubKey, err := did.MarshalPublicKey(x25519KeyPair.PublicKey())
 	if err != nil {
-		fmt.Printf("❌ Failed to marshal X25519 public key: %v\n", err)
+		fmt.Printf(" Failed to marshal X25519 public key: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("✓ X25519 key generated (%d bytes)\n", len(x25519PubKey))
+	fmt.Printf(" X25519 key generated (%d bytes)\n", len(x25519PubKey))
 	fmt.Println()
 
 	// Step 2: Create DID manager and configure chain
-	fmt.Println("🔗 Step 2: Connecting to Blockchain")
+	fmt.Println(" Step 2: Connecting to Blockchain")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	manager := did.NewManager()
@@ -135,14 +135,14 @@ func main() {
 
 	err = manager.Configure(did.ChainEthereum, config)
 	if err != nil {
-		fmt.Printf("❌ Failed to configure manager: %v\n", err)
+		fmt.Printf(" Failed to configure manager: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Println("✓ Connected to Ethereum (localhost)")
+	fmt.Println(" Connected to Ethereum (localhost)")
 	fmt.Println()
 
 	// Step 3: Prepare registration request
-	fmt.Println("📝 Step 3: Preparing Registration Request")
+	fmt.Println(" Step 3: Preparing Registration Request")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	agentDID := did.GenerateDID(did.ChainEthereum, "example-agent-"+time.Now().Format("20060102150405"))
@@ -183,21 +183,21 @@ func main() {
 	fmt.Println()
 
 	// Step 4: Register agent
-	fmt.Println("🚀 Step 4: Registering Agent on Blockchain")
+	fmt.Println(" Step 4: Registering Agent on Blockchain")
 	fmt.Println("─────────────────────────────────────────────────────────")
-	fmt.Println("⏳ Submitting transaction...")
+	fmt.Println(" Submitting transaction...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	result, err := manager.RegisterAgent(ctx, did.ChainEthereum, req)
 	if err != nil {
-		fmt.Printf("❌ Registration failed: %v\n", err)
+		fmt.Printf(" Registration failed: %v\n", err)
 		os.Exit(1)
 	}
 
 	fmt.Println()
-	fmt.Println("✅ Agent Registered Successfully!")
+	fmt.Println(" Agent Registered Successfully!")
 	fmt.Println("─────────────────────────────────────────────────────────")
 	fmt.Println("Transaction Hash:", result.TransactionHash)
 	fmt.Println("Block Number:    ", result.BlockNumber)
@@ -205,12 +205,12 @@ func main() {
 	fmt.Println()
 
 	// Step 5: Verify registration
-	fmt.Println("🔍 Step 5: Verifying Registration")
+	fmt.Println(" Step 5: Verifying Registration")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	agent, err := manager.ResolveAgent(ctx, agentDID)
 	if err != nil {
-		fmt.Printf("❌ Failed to resolve agent: %v\n", err)
+		fmt.Printf(" Failed to resolve agent: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -222,7 +222,7 @@ func main() {
 	fmt.Println()
 
 	// Step 6: Ed25519 key approval notice
-	fmt.Println("⚠️  Step 6: Ed25519 Key Approval Required")
+	fmt.Println("  Step 6: Ed25519 Key Approval Required")
 	fmt.Println("─────────────────────────────────────────────────────────")
 	fmt.Println("Ed25519 keys require approval by the registry contract owner.")
 	fmt.Println("Until approved, the Ed25519 key will be marked as 'unverified'.")
@@ -240,7 +240,7 @@ func main() {
 	fmt.Println("║     Registration Complete!                                ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")
 	fmt.Println()
-	fmt.Println("🎉 Success! Your multi-key agent is now registered on-chain.")
+	fmt.Println(" Success! Your multi-key agent is now registered on-chain.")
 	fmt.Println()
 	fmt.Println("Next steps:")
 	fmt.Println("  1. Approve the Ed25519 key (see command above)")

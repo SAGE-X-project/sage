@@ -7,12 +7,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.1] - 2025-11-02
+
+### Summary
+
+Maintenance release focusing on Go 1.25.2 upgrade for security patches, dependency updates, and enhanced contract deployment tooling.
+
+### Added
+
+- **Enhanced Contract Deployment Tooling**:
+  - **Multi-Network Deployment Scripts**: Comprehensive deployment automation for 12 blockchain networks
+    - Ethereum: Mainnet, Sepolia testnet
+    - Kaia: Cypress (Mainnet), Kairos (Testnet)
+    - BSC: Mainnet, Testnet
+    - Base: Mainnet, Sepolia
+    - Arbitrum: One (Mainnet), Sepolia
+    - Optimism: Mainnet, Sepolia
+  - **deploy-all-contracts.js**: Complete contract suite deployment script (11,997 bytes)
+    - Deploys AgentCardStorage, AgentCardVerifyHook, and AgentCardRegistry
+    - Network detection and automatic RPC configuration
+    - Deployment verification with comprehensive validation
+    - JSON deployment records with timestamps
+  - **test-deployed-contract-quick.js**: Fast contract validation (3,941 bytes)
+    - Configuration verification (owner, hook address, min stake)
+    - Read-only function testing without blockchain delays
+    - Quick smoke testing for deployment validation
+  - **QUICK_START.md**: Quick reference guide (9,385 bytes)
+    - Network-specific deployment commands
+    - Contract verification procedures
+    - Common deployment scenarios
+    - Troubleshooting guide
+
+- **Enhanced Testing Scripts**:
+  - **Progress Indicators**: Real-time progress bars during time-lock waits
+    - Shows elapsed time during 61-second security delays
+    - Improves developer experience with visual feedback
+  - **NPM Script Additions** (package.json):
+    - `deploy:all:*`: 12 network-specific deployment commands
+    - `test:deployed`: Full integration test with security features
+    - `test:deployed:quick`: Fast deployment validation
+
+### Changed
+
+- **Go Version Upgrade to 1.25.2**:
+  - Upgraded from Go 1.23.0 to Go 1.25.2 for latest security patches and performance improvements
+  - Updated all dependencies to Go 1.25.2-compatible versions
+  - Updated CI/CD workflows to use Go 1.25.2
+  - All tests passing with Go 1.25.2 (100% compatibility)
+
+- **Dependency Updates (24 libraries)**:
+  - `github.com/benbjohnson/clock`: v1.1.0 → v1.3.5
+  - `github.com/bits-and-blooms/bitset`: v1.20.0 → v1.24.3
+  - `github.com/consensys/gnark-crypto`: v0.18.1 → v0.19.2
+  - `github.com/deckarep/golang-set/v2`: v2.6.0 → v2.8.0
+  - `github.com/ethereum/c-kzg-4844/v2`: v2.1.3 → v2.1.5
+  - `github.com/fatih/color`: v1.16.0 → v1.18.0
+  - `github.com/fsnotify/fsnotify`: v1.6.0 → v1.9.0
+  - `github.com/klauspost/compress`: v1.18.0 → v1.18.1
+  - `github.com/mattn/go-colorable`: v0.1.13 → v0.1.14
+  - `github.com/prometheus/common`: v0.66.1 → v0.67.2
+  - `github.com/prometheus/procfs`: v0.16.1 → v0.19.2
+  - `github.com/shirou/gopsutil`: v3.21.4 → v3.21.11
+  - `github.com/spf13/pflag`: v1.0.9 → v1.0.10
+  - `github.com/streamingfast/logging`: updated to v0.0.0-20250918142248
+  - `github.com/supranational/blst`: v0.3.16-0.20250831170142 → v0.3.16
+  - `github.com/tklauser/go-sysconf`: v0.3.12 → v0.3.15
+  - `github.com/tklauser/numcpus`: v0.6.1 → v0.10.0
+  - `go.mongodb.org/mongo-driver`: v1.12.2 → v1.17.6
+  - `go.uber.org/atomic`: v1.7.0 → v1.11.0
+  - `go.uber.org/multierr`: v1.6.0 → v1.11.0
+  - `go.uber.org/ratelimit`: v0.2.0 → v0.3.1
+  - `go.uber.org/zap`: v1.21.0 → v1.27.0
+  - `go.yaml.in/yaml/v2`: v2.4.2 → v2.4.3
+  - `golang.org/x/time`: v0.9.0 → v0.14.0
+
 ### Fixed
 - **Code Scanning Alerts Resolution**:
   - Added `.gosec.json` configuration to exclude false-positive G115 alerts from CGO-generated code
   - Improved CI/CD workflow for better Slither error logging and debugging
   - All existing security issues were already resolved in previous commits
   - GitHub Code Scanning alerts are based on older commits and will be auto-closed upon next workflow run
+
+### Documentation
+
+- **Contract Documentation Cleanup**:
+  - Removed duplicate DEPLOYMENT_GUIDE.md (80-90% overlap with existing guides)
+  - Moved to archive: `contracts/ethereum/docs/archive/DEPLOYMENT_GUIDE.md.deprecated`
+  - Updated contracts/ethereum/docs/README.md (v2.0 → v2.1)
+  - Replaced verbose "Removed Documents" section with concise "Documentation Notes"
+  - Improved documentation structure for better maintainability
+
+- **Version Documentation Updates**:
+  - Updated README.md "What's New" section for v1.5.1
+  - Updated package.json version: 1.4.0 → 1.5.0 (contracts)
+  - Updated version.go version: 1.5.0 → 1.5.1 (Go package)
+  - Comprehensive CHANGELOG.md entry with all changes documented
 
 ## [1.5.0] - 2025-10-30
 
@@ -154,10 +243,10 @@ Comprehensive security improvements addressing body tampering, ECDSA support, an
   - `docs/QUICKSTART_PR118.md` (596 lines): Comprehensive guide with end-to-end examples
 
 - **Quality Assurance**:
-  - ✅ 100+ new test cases
-  - ✅ golangci-lint: 0 issues
-  - ✅ gosec: 0 vulnerabilities
-  - ✅ Production-ready code quality
+  -  100+ new test cases
+  -  golangci-lint: 0 issues
+  -  gosec: 0 vulnerabilities
+  -  Production-ready code quality
 
 ### Security
 
@@ -549,7 +638,7 @@ Comprehensive security improvements addressing body tampering, ECDSA support, an
 
 ## [1.0.0] - 2025-10-11
 
-### 🎉 First Production Release
+###  First Production Release
 
 SAGE v1.0.0 marks the first production-ready release of the Secure Agent Guarantee Engine. This release provides a complete blockchain-based security framework for AI agent communication with end-to-end encryption, decentralized identity management, and RFC-compliant message signatures.
 

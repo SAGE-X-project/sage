@@ -4,14 +4,14 @@ Enterprise-grade Java client library for SAGE (Secure Agent Guarantee Engine) - 
 
 ## Features
 
-- ✅ **Ed25519 Signatures**: Fast cryptographic signing and verification
-- ✅ **X25519 Key Exchange**: Elliptic curve Diffie-Hellman
-- ✅ **HPKE Encryption**: Hybrid Public Key Encryption for secure sessions
-- ✅ **DID Support**: Decentralized identifiers for agent identity
-- ✅ **Session Management**: Efficient stateful communication
-- ✅ **Type Safety**: Strong typing with comprehensive error handling
-- ✅ **Thread Safety**: Concurrent session management
-- ✅ **Enterprise Ready**: Maven build, comprehensive tests, Javadoc
+-  **Ed25519 Signatures**: Fast cryptographic signing and verification
+-  **X25519 Key Exchange**: Elliptic curve Diffie-Hellman
+-  **HPKE Encryption**: Hybrid Public Key Encryption for secure sessions
+-  **DID Support**: Decentralized identifiers for agent identity
+-  **Session Management**: Efficient stateful communication
+-  **Type Safety**: Strong typing with comprehensive error handling
+-  **Thread Safety**: Concurrent session management
+-  **Enterprise Ready**: Maven build, comprehensive tests, Javadoc
 
 ## Requirements
 
@@ -472,7 +472,7 @@ public class SessionManager {
 
 **Solutions:**
 ```java
-// ✅ SageClient is thread-safe, but sessions need protection
+//  SageClient is thread-safe, but sessions need protection
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -491,7 +491,7 @@ public class ThreadSafeSageClient {
     }
 }
 
-// ✅ Use thread pool for parallel operations
+//  Use thread pool for parallel operations
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -633,13 +633,13 @@ logger.info("Message took: {} ms", messageTime);  // Expected: 20-100ms
 #### 1. Never Expose Private Keys
 
 ```java
-// ❌ BAD - Logging private keys
+//  BAD - Logging private keys
 logger.info("Private key: {}", Hex.toHexString(privateKey));
 
-// ❌ BAD - Storing in properties file
+//  BAD - Storing in properties file
 properties.setProperty("privateKey", Hex.toHexString(privateKey));
 
-// ✅ GOOD - Use Java Keystore
+//  GOOD - Use Java Keystore
 import java.security.KeyStore;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -657,7 +657,7 @@ try (FileOutputStream fos = new FileOutputStream("sage-keystore.p12")) {
     keyStore.store(fos, password.toCharArray());
 }
 
-// ✅ GOOD - Use environment variables
+//  GOOD - Use environment variables
 String privateKeyHex = System.getenv("SAGE_PRIVATE_KEY");
 if (privateKeyHex == null) {
     throw new IllegalStateException("SAGE_PRIVATE_KEY not set");
@@ -667,7 +667,7 @@ if (privateKeyHex == null) {
 #### 2. Validate All Inputs
 
 ```java
-// ✅ Validate DIDs
+//  Validate DIDs
 import java.util.regex.Pattern;
 
 private static final Pattern DID_PATTERN =
@@ -679,7 +679,7 @@ public void validateDID(String did) {
     }
 }
 
-// ✅ Validate message size
+//  Validate message size
 private static final int MAX_MESSAGE_SIZE = 1024 * 1024; // 1MB
 
 public byte[] sendMessage(String sessionId, byte[] message) throws SageException {
@@ -695,7 +695,7 @@ public byte[] sendMessage(String sessionId, byte[] message) throws SageException
 #### 3. Implement Proper Exception Handling
 
 ```java
-// ✅ Use try-with-resources
+//  Use try-with-resources
 try (SageClient client = new SageClient(config)) {
     String sessionId = client.handshake(serverDid);
     byte[] response = client.sendMessage(sessionId, message);
@@ -705,7 +705,7 @@ try (SageClient client = new SageClient(config)) {
     throw new RuntimeException("Failed to send secure message", e);
 }
 
-// ✅ Custom exception handling
+//  Custom exception handling
 import com.sage.client.exceptions.*;
 
 try {
@@ -727,7 +727,7 @@ try {
 #### 4. Use Dependency Injection
 
 ```java
-// ✅ Interface-based design
+//  Interface-based design
 public interface SAGEService {
     byte[] sendSecureMessage(String targetDid, byte[] message) throws SageException;
 }
@@ -767,19 +767,19 @@ void testSendMessage() throws SageException {
 #### 1. Reuse Sessions
 
 ```java
-// ❌ BAD - New session for each message
+//  BAD - New session for each message
 for (byte[] message : messages) {
     String sessionId = client.handshake(serverDid);
     client.sendMessage(sessionId, message);
 }
 
-// ✅ GOOD - Reuse session
+//  GOOD - Reuse session
 String sessionId = client.handshake(serverDid);
 for (byte[] message : messages) {
     client.sendMessage(sessionId, message);
 }
 
-// ✅ BETTER - Session pool
+//  BETTER - Session pool
 public class SessionPool {
     private final Map<String, String> sessions = new ConcurrentHashMap<>();
     private final SageClient client;
@@ -806,7 +806,7 @@ public class SessionPool {
 #### 2. Use Parallel Processing
 
 ```java
-// ✅ Parallel message sending with CompletableFuture
+//  Parallel message sending with CompletableFuture
 import java.util.concurrent.CompletableFuture;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -832,7 +832,7 @@ public List<byte[]> broadcastMessage(List<String> targetDids, byte[] message) {
 #### 3. Optimize Memory Usage
 
 ```java
-// ✅ Process large data in chunks
+//  Process large data in chunks
 public void sendLargeFile(String sessionId, File file) throws SageException, IOException {
     int chunkSize = 1024 * 1024; // 1MB chunks
     byte[] buffer = new byte[chunkSize];
@@ -846,7 +846,7 @@ public void sendLargeFile(String sessionId, File file) throws SageException, IOE
     }
 }
 
-// ✅ Use try-with-resources for auto-cleanup
+//  Use try-with-resources for auto-cleanup
 try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
     // Process data
 }

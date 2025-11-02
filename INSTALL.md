@@ -349,9 +349,9 @@ If you use SAGE as a library in your application:
 
 -  **You CAN**: Use SAGE in proprietary applications
 -  **You CAN**: Distribute your application under any license
-- ❗ **You MUST**: Provide SAGE source code (if modified)
-- ❗ **You MUST**: Allow users to replace SAGE library
-- ❗ **You MUST**: Include SAGE's LICENSE and NOTICE files
+-  **You MUST**: Provide SAGE source code (if modified)
+-  **You MUST**: Allow users to replace SAGE library
+-  **You MUST**: Include SAGE's LICENSE and NOTICE files
 
 #### Recommended Distribution Method
 

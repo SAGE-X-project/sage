@@ -13,6 +13,10 @@ on:
   schedule:
     - cron: '0 2 * * *'  # Daily at 2 AM UTC
   workflow_dispatch:
+
+env:
+  GO_VERSION: '1.25.2'
+  GOTOOLCHAIN: auto
     inputs:
       scenario:
         description: 'Test scenario to run'
@@ -141,10 +145,10 @@ jobs:
         run: |
           # Parse summary and check if thresholds passed
           if jq -e '.metrics | to_entries | map(select(.value.thresholds)) | map(.value.thresholds | to_entries | map(.value.ok)) | flatten | all' tools/loadtest/reports/baseline-summary.json > /dev/null 2>&1; then
-            echo "✅ Baseline test passed"
+            echo " Baseline test passed"
             exit 0
           else
-            echo "❌ Baseline test failed"
+            echo " Baseline test failed"
             exit 1
           fi
 

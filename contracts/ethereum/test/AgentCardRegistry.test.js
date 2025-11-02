@@ -586,7 +586,7 @@ describe("AgentCardRegistry", function () {
             const sigs = [
                 validSig1,
                 "0x" + "b".repeat(128),
-                x25519Sig  // ✅ Use proper ECDSA ownership signature
+                x25519Sig  //  Use proper ECDSA ownership signature
             ];
 
             await commitAndAdvanceTime(user1, validDID1, keys, salt);

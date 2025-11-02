@@ -212,13 +212,13 @@ func runCardGenerate(cmd *cobra.Command, args []string) error {
 		if err := os.WriteFile(cardGenerateOutput, data, 0600); err != nil {
 			return fmt.Errorf("failed to write output: %w", err)
 		}
-		fmt.Printf("✓ A2A Agent Card saved to %s\n", cardGenerateOutput)
+		fmt.Printf(" A2A Agent Card saved to %s\n", cardGenerateOutput)
 	} else {
 		fmt.Println("\n" + string(data))
 	}
 
 	// Display summary
-	fmt.Printf("\n✓ Generated A2A Agent Card\n")
+	fmt.Printf("\n Generated A2A Agent Card\n")
 	fmt.Printf("  Agent: %s\n", card.Name)
 	fmt.Printf("  DID: %s\n", card.ID)
 	fmt.Printf("  Public Keys: %d\n", len(card.PublicKeys))
@@ -252,33 +252,33 @@ func runCardValidate(cmd *cobra.Command, args []string) error {
 		// Validate with proof
 		fmt.Printf("  [1/3] Basic structure validation... ")
 		if err := did.ValidateA2ACard(&cardWithProof.A2AAgentCard); err != nil {
-			fmt.Printf("✗ FAILED\n")
+			fmt.Printf(" FAILED\n")
 			return fmt.Errorf("basic validation failed: %w", err)
 		}
-		fmt.Printf("✓ PASSED\n")
+		fmt.Printf(" PASSED\n")
 
 		// Level 2: Cryptographic proof validation
 		fmt.Printf("  [2/3] Cryptographic proof verification... ")
 		if err := did.ValidateA2ACardWithProof(&cardWithProof); err != nil {
-			fmt.Printf("✗ FAILED\n")
+			fmt.Printf(" FAILED\n")
 			return fmt.Errorf("proof verification failed: %w", err)
 		}
-		fmt.Printf("✓ PASSED\n")
+		fmt.Printf(" PASSED\n")
 
 		// Level 3: DID cross-validation (optional)
 		if cardValidateVerifyDID {
 			fmt.Printf("  [3/3] On-chain DID cross-validation... ")
 			if err := validateCardWithDID(ctx, &cardWithProof.A2AAgentCard); err != nil {
-				fmt.Printf("✗ FAILED\n")
+				fmt.Printf(" FAILED\n")
 				return fmt.Errorf("DID validation failed: %w", err)
 			}
-			fmt.Printf("✓ PASSED\n")
+			fmt.Printf(" PASSED\n")
 		} else {
 			fmt.Printf("  [3/3] On-chain DID cross-validation... ⊘ SKIPPED\n")
 		}
 
 		// Success message
-		fmt.Printf("\n✓ A2A Agent Card is valid")
+		fmt.Printf("\n A2A Agent Card is valid")
 		if cardWithProof.Proof != nil {
 			fmt.Printf(" (with cryptographic proof)")
 		}
@@ -308,24 +308,24 @@ func runCardValidate(cmd *cobra.Command, args []string) error {
 
 		fmt.Printf("  [1/2] Basic structure validation... ")
 		if err := did.ValidateA2ACard(&card); err != nil {
-			fmt.Printf("✗ FAILED\n")
+			fmt.Printf(" FAILED\n")
 			return fmt.Errorf("validation failed: %w", err)
 		}
-		fmt.Printf("✓ PASSED\n")
+		fmt.Printf(" PASSED\n")
 
 		// DID cross-validation (optional)
 		if cardValidateVerifyDID {
 			fmt.Printf("  [2/2] On-chain DID cross-validation... ")
 			if err := validateCardWithDID(ctx, &card); err != nil {
-				fmt.Printf("✗ FAILED\n")
+				fmt.Printf(" FAILED\n")
 				return fmt.Errorf("DID validation failed: %w", err)
 			}
-			fmt.Printf("✓ PASSED\n")
+			fmt.Printf(" PASSED\n")
 		} else {
 			fmt.Printf("  [2/2] On-chain DID cross-validation... ⊘ SKIPPED\n")
 		}
 
-		fmt.Printf("\n✓ A2A Agent Card is valid")
+		fmt.Printf("\n A2A Agent Card is valid")
 		if cardValidateVerifyDID {
 			fmt.Printf(" (verified against blockchain)")
 		}

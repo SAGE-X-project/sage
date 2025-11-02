@@ -64,9 +64,9 @@ go run tests/session/handshake/server/main.go
 ./scripts/run-loadtest.sh baseline
 
 # Expected output:
-# ✓ http_req_duration..........: avg=45.23ms  p(95)=123.45ms
-# ✓ http_req_failed............: 0.00%
-# ✓ sage_success_rate..........: 100.00%
+#  http_req_duration..........: avg=45.23ms  p(95)=123.45ms
+#  http_req_failed............: 0.00%
+#  sage_success_rate..........: 100.00%
 ```
 
 ### Expected Results
@@ -468,10 +468,10 @@ rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0
 ### Reading k6 Output
 
 ```
-✓ http_req_duration..........: avg=123.45ms min=45.12ms med=98.23ms max=987.65ms p(90)=234.56ms p(95)=345.67ms
-✓ http_req_failed............: 0.12% ✓ 12 ✗ 9988
-✓ http_reqs..................: 10000 166.67/s
-✓ iterations.................: 1000 16.67/s
+ http_req_duration..........: avg=123.45ms min=45.12ms med=98.23ms max=987.65ms p(90)=234.56ms p(95)=345.67ms
+ http_req_failed............: 0.12%  12  9988
+ http_reqs..................: 10000 166.67/s
+ iterations.................: 1000 16.67/s
   sage_handshake_duration....: avg=234.56ms min=123.45ms med=198.76ms max=1234.56ms p(90)=345.67ms p(95)=456.78ms
   sage_sessions_created......: 987 16.45/s
   vus........................: 10 min=0 max=10

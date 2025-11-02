@@ -59,7 +59,7 @@ sleep 5
 
 # 노드 상태 확인
 if ! kill -0 $BLOCKCHAIN_PID 2>/dev/null; then
-    echo -e "${RED}✗ 블록체인 노드 시작 실패${NC}"
+    echo -e "${RED} 블록체인 노드 시작 실패${NC}"
     cat "$BLOCKCHAIN_LOG"
     exit 1
 fi
@@ -71,12 +71,12 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
     if curl -s -X POST -H "Content-Type: application/json" \
         --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
         http://localhost:8545 > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ 블록체인 노드 준비 완료${NC}"
+        echo -e "${GREEN} 블록체인 노드 준비 완료${NC}"
         break
     fi
     RETRY_COUNT=$((RETRY_COUNT + 1))
     if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-        echo -e "${RED}✗ 블록체인 노드 연결 실패 (타임아웃)${NC}"
+        echo -e "${RED} 블록체인 노드 연결 실패 (타임아웃)${NC}"
         exit 1
     fi
     sleep 1
@@ -94,9 +94,9 @@ if [ ! -f "./build/bin/sage-verify" ]; then
 fi
 
 if [ -f "./build/bin/sage-verify" ]; then
-    echo -e "${GREEN}✓ sage-verify CLI 도구 준비 완료${NC}"
+    echo -e "${GREEN} sage-verify CLI 도구 준비 완료${NC}"
 else
-    echo -e "${RED}✗ sage-verify 빌드 실패${NC}"
+    echo -e "${RED} sage-verify 빌드 실패${NC}"
     exit 1
 fi
 
@@ -128,17 +128,17 @@ echo ""
 
 # 검증
 if echo "$HEALTH_OUTPUT" | grep -q "Overall Status"; then
-    echo -e "${GREEN}✓ 9.1.1.1 통합 헬스체크 동작 확인${NC}"
+    echo -e "${GREEN} 9.1.1.1 통합 헬스체크 동작 확인${NC}"
 else
-    echo -e "${RED}✗ 9.1.1.1 통합 헬스체크 실패${NC}"
+    echo -e "${RED} 9.1.1.1 통합 헬스체크 실패${NC}"
     exit 1
 fi
 
 # JSON 형식 검증
 if echo "$HEALTH_JSON" | python3 -c "import sys, json; json.load(sys.stdin)" 2>/dev/null; then
-    echo -e "${GREEN}✓ JSON 출력 형식 확인${NC}"
+    echo -e "${GREEN} JSON 출력 형식 확인${NC}"
 else
-    echo -e "${RED}✗ JSON 출력 형식 오류${NC}"
+    echo -e "${RED} JSON 출력 형식 오류${NC}"
     exit 1
 fi
 
@@ -159,21 +159,21 @@ echo ""
 
 # 검증
 if echo "$BLOCKCHAIN_OUTPUT" | grep -q "CONNECTED\|OK"; then
-    echo -e "${GREEN}✓ 9.1.1.2 블록체인 연결 성공${NC}"
+    echo -e "${GREEN} 9.1.1.2 블록체인 연결 성공${NC}"
 
     # Chain ID 확인
     if echo "$BLOCKCHAIN_OUTPUT" | grep -q "31337"; then
-        echo -e "${GREEN}✓ Chain ID 확인 (31337)${NC}"
+        echo -e "${GREEN} Chain ID 확인 (31337)${NC}"
     else
-        echo -e "${YELLOW}⚠ Chain ID 확인 불가${NC}"
+        echo -e "${YELLOW} Chain ID 확인 불가${NC}"
     fi
 
     # 블록 번호 확인
     if echo "$BLOCKCHAIN_OUTPUT" | grep -q "Block"; then
-        echo -e "${GREEN}✓ 블록 번호 조회 성공${NC}"
+        echo -e "${GREEN} 블록 번호 조회 성공${NC}"
     fi
 else
-    echo -e "${RED}✗ 9.1.1.2 블록체인 연결 실패${NC}"
+    echo -e "${RED} 9.1.1.2 블록체인 연결 실패${NC}"
     exit 1
 fi
 
@@ -194,23 +194,23 @@ echo ""
 
 # 검증
 if echo "$SYSTEM_OUTPUT" | grep -q "Memory"; then
-    echo -e "${GREEN}✓ 메모리 사용량 표시 확인${NC}"
+    echo -e "${GREEN} 메모리 사용량 표시 확인${NC}"
 else
-    echo -e "${RED}✗ 메모리 사용량 표시 실패${NC}"
+    echo -e "${RED} 메모리 사용량 표시 실패${NC}"
     exit 1
 fi
 
 if echo "$SYSTEM_OUTPUT" | grep -q "Disk"; then
-    echo -e "${GREEN}✓ 디스크 사용량 표시 확인${NC}"
+    echo -e "${GREEN} 디스크 사용량 표시 확인${NC}"
 else
-    echo -e "${RED}✗ 디스크 사용량 표시 실패${NC}"
+    echo -e "${RED} 디스크 사용량 표시 실패${NC}"
     exit 1
 fi
 
 if echo "$SYSTEM_OUTPUT" | grep -q "Goroutines"; then
-    echo -e "${GREEN}✓ Goroutine 수 표시 확인${NC}"
+    echo -e "${GREEN} Goroutine 수 표시 확인${NC}"
 else
-    echo -e "${RED}✗ Goroutine 수 표시 실패${NC}"
+    echo -e "${RED} Goroutine 수 표시 실패${NC}"
     exit 1
 fi
 
@@ -220,22 +220,22 @@ echo ""
 echo -e "${BLUE}[6/6] 검증 결과 요약${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
 echo ""
-echo -e "${GREEN}✓ 챕터 9: 헬스체크 검증 완료${NC}"
+echo -e "${GREEN} 챕터 9: 헬스체크 검증 완료${NC}"
 echo ""
 echo "  9.1.1.1 /health 엔드포인트:"
-echo "    ✓ 통합 헬스체크 응답 확인"
-echo "    ✓ JSON 출력 형식 확인"
-echo "    ✓ 블록체인 및 시스템 상태 포함"
+echo "     통합 헬스체크 응답 확인"
+echo "     JSON 출력 형식 확인"
+echo "     블록체인 및 시스템 상태 포함"
 echo ""
 echo "  9.1.1.2 블록체인 연결 상태:"
-echo "    ✓ 로컬 노드 연결 성공"
-echo "    ✓ Chain ID 확인 (31337)"
-echo "    ✓ 블록 번호 조회 성공"
+echo "     로컬 노드 연결 성공"
+echo "     Chain ID 확인 (31337)"
+echo "     블록 번호 조회 성공"
 echo ""
 echo "  9.1.1.3 메모리/CPU 사용률:"
-echo "    ✓ 메모리 사용량 표시"
-echo "    ✓ 디스크 사용량 표시"
-echo "    ✓ Goroutine 수 표시"
+echo "     메모리 사용량 표시"
+echo "     디스크 사용량 표시"
+echo "     Goroutine 수 표시"
 echo ""
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
 echo ""

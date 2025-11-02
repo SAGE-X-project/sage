@@ -429,7 +429,7 @@ This implementation follows:
 | Ed25519 |  Fully Supported | `ed25519` | Recommended for new implementations |
 | ES256K (Secp256k1) |  Fully Supported | `es256k` | Ethereum-compatible |
 | RSA-PSS-SHA256 |  Fully Supported | `rsa-pss-sha256` | RSA with PSS padding |
-| ECDSA P-256 | ️ Crypto Only | N/A | Cryptographic operations work, not registered as distinct algorithm |
+| ECDSA P-256 |  Crypto Only | N/A | Cryptographic operations work, not registered as distinct algorithm |
 | RSA-PKCS#1 v1.5 |  Not Supported | `rsa-v1_5-sha256` | Legacy RSA (planned) |
 
 ## Implementation Status & Roadmap
@@ -440,8 +440,8 @@ This implementation follows:
 -  **Comprehensive test coverage** - 100% coverage of documented test plan (26/26 tests passing)
 
 ### Partially Implemented
-- ️ **Response signature support** - `@status` component detection implemented, signing/verification methods pending
-- ️ **ECDSA P-256 support** - Cryptographic operations fully functional and tested, algorithm registration as distinct identifier pending
+-  **Response signature support** - `@status` component detection implemented, signing/verification methods pending
+-  **ECDSA P-256 support** - Cryptographic operations fully functional and tested, algorithm registration as distinct identifier pending
 
 ### Planned Enhancements
 - **RSA-PKCS#1 v1.5 support** - Legacy RSA algorithm (`rsa-v1_5-sha256`)

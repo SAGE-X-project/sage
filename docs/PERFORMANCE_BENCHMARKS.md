@@ -65,10 +65,10 @@ Total:               ~730k gas  + temporary stake
 ## Conclusion
 
 The three-phase system provides:
-- ✅ Acceptable performance overhead (~18% gas increase)
-- ✅ Significantly improved security
-- ✅ Production-ready with 99%+ success rate
-- ✅ Thread-safe and scalable
+-  Acceptable performance overhead (~18% gas increase)
+-  Significantly improved security
+-  Production-ready with 99%+ success rate
+-  Thread-safe and scalable
 
 ---
 

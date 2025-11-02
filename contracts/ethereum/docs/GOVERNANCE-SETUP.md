@@ -125,8 +125,8 @@ npx hardhat verify --network sepolia TIMELOCK_ADDRESS
 
 **Expected Output:**
 ```
-✅ Multi-sig deployed at: 0x...
-✅ Timelock deployed at: 0x...
+-  Multi-sig deployed at: 0x...
+-  Timelock deployed at: 0x...
    Threshold: 3 of 5
    Min Delay: 48 hours
 ```
@@ -151,7 +151,7 @@ Test checklist:
 
 ### Step 5: Transfer SAGE Contract Ownership
 
-⚠️ **CRITICAL: Test on testnet first!**
+- -  **CRITICAL: Test on testnet first!**
 
 ```bash
 # Transfer ownership to Timelock
@@ -238,7 +238,7 @@ const tx = await timelock.schedule(
 - Signer 1 approves
 - Signer 2 approves
 - Signer 3 approves
-- ✅ Threshold reached
+- -  Threshold reached
 
 #### 4. Wait 48 Hours
 
@@ -260,7 +260,7 @@ await timelock.execute(
 );
 ```
 
-✅ Parameter changed!
+-  Parameter changed!
 
 ---
 
@@ -310,7 +310,7 @@ For major upgrades:
 
 ### Hardware Wallet Management
 
-✅ **DO:**
+-  **DO:**
 - Use hardware wallets for all signers
 - Store seed phrases in multiple secure locations
 - Test signatures on testnet first
@@ -318,7 +318,7 @@ For major upgrades:
 - Use strong PINs
 - Geographic distribution of signers
 
-❌ **DON'T:**
+-  **DON'T:**
 - Store seed phrases digitally
 - Use same device for multiple signers
 - Share seed phrases
@@ -327,7 +327,7 @@ For major upgrades:
 
 ### Operational Security
 
-✅ **DO:**
+-  **DO:**
 - Verify all addresses before signing
 - Double-check transaction data
 - Review proposals on Etherscan
@@ -335,7 +335,7 @@ For major upgrades:
 - Keep contact info updated
 - Have backup signers identified
 
-❌ **DON'T:**
+-  **DON'T:**
 - Sign without verifying
 - Use public WiFi for signing
 - Share private keys
@@ -487,11 +487,11 @@ Before deploying to mainnet:
 
 Decentralized governance is **CRITICAL** for mainnet security. The multi-sig + timelock setup:
 
-✅ Eliminates single point of failure
-✅ Requires 3/5 agreement for changes
-✅ Gives community 48-hour review period
-✅ Prevents rushed malicious changes
-✅ Allows emergency response (24h pause)
+-  Eliminates single point of failure
+-  Requires 3/5 agreement for changes
+-  Gives community 48-hour review period
+-  Prevents rushed malicious changes
+-  Allows emergency response (24h pause)
 
 **Timeline:**
 - Day 1: Deploy multi-sig and timelock

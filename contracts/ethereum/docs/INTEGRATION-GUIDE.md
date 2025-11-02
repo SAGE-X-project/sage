@@ -467,7 +467,7 @@ async function monitorValidationRequests(validationRegistry) {
     validationType,
     stake
   ) => {
-    console.log("\n🔔 New validation request:");
+    console.log("\n New validation request:");
     console.log("  Request ID:", requestId);
     console.log("  Task ID:", taskId);
     console.log("  Server Agent:", serverAgent);
@@ -820,7 +820,7 @@ async function validatorMain() {
     dataHash
   ) => {
     try {
-      console.log(`\n🔔 New validation request: ${requestId}`);
+      console.log(`\n New validation request: ${requestId}`);
 
       // 4. Fetch task parameters (from off-chain source)
       const taskParams = await fetchTaskParameters(taskId);
@@ -1092,11 +1092,11 @@ For detailed API documentation, see the NatSpec comments in the contract source 
 
 ### Migration from SageRegistryV3
 If migrating from V3, note these changes:
-1. Contract name: `SageRegistryV3` → `AgentCardRegistry`
-2. Registration: Single-key → Multi-key (array of keys)
-3. Activation: Immediate → Time-locked (1 hour)
-4. Stake: Optional → Required (0.01 ETH)
-5. API: Direct function calls → RegistrationParams struct
+1. Contract name: `SageRegistryV3` -> `AgentCardRegistry`
+2. Registration: Single-key -> Multi-key (array of keys)
+3. Activation: Immediate -> Time-locked (1 hour)
+4. Stake: Optional -> Required (0.01 ETH)
+5. API: Direct function calls -> RegistrationParams struct
 
 ---
 

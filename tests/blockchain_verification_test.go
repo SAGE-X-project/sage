@@ -62,7 +62,7 @@ func TestBlockchainProviderConfiguration(t *testing.T) {
 		assert.Equal(t, 3, cfg.MaxRetries, "최대 재시도 횟수가 3으로 설정되어야 함")
 		assert.Equal(t, time.Second, cfg.RetryDelay, "재시도 지연시간이 1초로 설정되어야 함")
 
-		t.Log("✓ 모든 Provider 설정이 올바르게 검증됨")
+		t.Log(" 모든 Provider 설정이 올바르게 검증됨")
 
 		// Save test data
 		testData := map[string]interface{}{
@@ -106,7 +106,7 @@ func TestBlockchainChainID_SpecVerification(t *testing.T) {
 		assert.NotNil(t, expectedChainID, "Chain ID가 설정되어야 함")
 		assert.True(t, expectedChainID.Sign() > 0, "Chain ID는 양수여야 함")
 
-		t.Log("✓ Chain ID 31337 검증 완료")
+		t.Log(" Chain ID 31337 검증 완료")
 
 		// Save test data
 		testData := map[string]interface{}{
@@ -168,8 +168,8 @@ func TestTransactionSigning(t *testing.T) {
 		assert.NotNil(t, r, "r 값이 있어야 함")
 		assert.NotNil(t, s, "s 값이 있어야 함")
 
-		t.Logf("✓ 트랜잭션 서명 성공: from=%s", from.Hex())
-		t.Logf("✓ 서명 검증 완료: v=%s, r=%s, s=%s", v.String(), r.String(), s.String())
+		t.Logf(" 트랜잭션 서명 성공: from=%s", from.Hex())
+		t.Logf(" 서명 검증 완료: v=%s, r=%s, s=%s", v.String(), r.String(), s.String())
 
 		// Save test data
 		testData := map[string]interface{}{
@@ -229,7 +229,7 @@ func TestTransactionSendAndConfirm(t *testing.T) {
 		}
 		assert.Equal(t, int64(31337), chainID.Int64(), "Chain ID가 31337이어야 함")
 
-		t.Logf("✓ 블록체인 연결 성공: Chain ID=%d", chainID.Int64())
+		t.Logf(" 블록체인 연결 성공: Chain ID=%d", chainID.Int64())
 
 		// Use Hardhat test account
 		privateKeyHex := "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80" // First Hardhat account
@@ -261,7 +261,7 @@ func TestTransactionSendAndConfirm(t *testing.T) {
 		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
 		require.NoError(t, err, "트랜잭션 서명 실패")
 
-		t.Logf("✓ 트랜잭션 생성 및 서명 완료")
+		t.Logf(" 트랜잭션 생성 및 서명 완료")
 		t.Logf("  From: %s", fromAddress.Hex())
 		t.Logf("  To: %s", toAddress.Hex())
 		t.Logf("  Value: %s Wei", signedTx.Value().String())
@@ -272,7 +272,7 @@ func TestTransactionSendAndConfirm(t *testing.T) {
 		require.NoError(t, err, "트랜잭션 전송 실패")
 
 		txHash := signedTx.Hash()
-		t.Logf("✓ 트랜잭션 전송 성공: %s", txHash.Hex())
+		t.Logf(" 트랜잭션 전송 성공: %s", txHash.Hex())
 
 		// Wait for transaction receipt
 		var receipt *types.Receipt
@@ -293,7 +293,7 @@ func TestTransactionSendAndConfirm(t *testing.T) {
 		assert.Greater(t, receipt.BlockNumber.Uint64(), uint64(0), "블록 번호가 0보다 커야 함")
 		assert.Equal(t, uint64(21000), receipt.GasUsed, "Gas 사용량이 21000이어야 함")
 
-		t.Logf("✓ 트랜잭션 확인 완료")
+		t.Logf(" 트랜잭션 확인 완료")
 		t.Logf("  상태: %d (성공)", receipt.Status)
 		t.Logf("  블록: %d", receipt.BlockNumber.Uint64())
 		t.Logf("  Gas 사용: %d", receipt.GasUsed)
@@ -367,9 +367,9 @@ func TestGasEstimation(t *testing.T) {
 
 		assert.Equal(t, gasLimit, cappedGas, "예측 가스가 설정된 가스 한도를 초과하지 않아야 함")
 
-		t.Log("✓ 가스 예측 정확도 검증 완료")
-		t.Logf("✓ 기본 가스: %d, 버퍼 포함: %d (%.1f%% 증가)", baseGas, estimatedGas, float64(bufferPercent))
-		t.Logf("✓ 가스 한도 캡핑: %d -> %d", 3600000, cappedGas)
+		t.Log(" 가스 예측 정확도 검증 완료")
+		t.Logf(" 기본 가스: %d, 버퍼 포함: %d (%.1f%% 증가)", baseGas, estimatedGas, float64(bufferPercent))
+		t.Logf(" 가스 한도 캡핑: %d -> %d", 3600000, cappedGas)
 
 		// Save test data
 		testData := map[string]interface{}{
@@ -425,9 +425,9 @@ func TestContractDeployment_SpecVerification(t *testing.T) {
 		assert.Len(t, contractAddress.Bytes(), 20, "컨트랙트 주소는 20바이트여야 함")
 		assert.Regexp(t, "^0x[0-9a-fA-F]{40}$", contractAddress.Hex(), "컨트랙트 주소 형식이 올바라야 함")
 
-		t.Logf("✓ 컨트랙트 배포 시뮬레이션 성공")
-		t.Logf("✓ 배포자 주소: %s", deployerAddress.Hex())
-		t.Logf("✓ 컨트랙트 주소: %s", contractAddress.Hex())
+		t.Logf(" 컨트랙트 배포 시뮬레이션 성공")
+		t.Logf(" 배포자 주소: %s", deployerAddress.Hex())
+		t.Logf(" 컨트랙트 주소: %s", contractAddress.Hex())
 
 		// Save test data
 		testData := map[string]interface{}{
@@ -471,9 +471,9 @@ func TestContractInteraction(t *testing.T) {
 		agentDID := "did:sage:ethereum:" + agentAddress.Hex()
 		publicKeyBytes := crypto.CompressPubkey(ecdsaKey)
 
-		t.Logf("✓ registerAgent 시뮬레이션: DID=%s", agentDID)
-		t.Logf("✓ Agent 주소: %s", agentAddress.Hex())
-		t.Logf("✓ 공개키 길이: %d bytes", len(publicKeyBytes))
+		t.Logf(" registerAgent 시뮬레이션: DID=%s", agentDID)
+		t.Logf(" Agent 주소: %s", agentAddress.Hex())
+		t.Logf(" 공개키 길이: %d bytes", len(publicKeyBytes))
 
 		// Verify data format for registerAgent
 		assert.NotEmpty(t, agentDID, "Agent DID가 설정되어야 함")
@@ -493,7 +493,7 @@ func TestContractInteraction(t *testing.T) {
 		assert.True(t, retrievedAgent["registered"].(bool), "Agent가 등록되어야 함")
 		assert.True(t, retrievedAgent["active"].(bool), "Agent가 활성화되어야 함")
 
-		t.Log("✓ getAgent 시뮬레이션 성공: Agent 정보 조회 완료")
+		t.Log(" getAgent 시뮬레이션 성공: Agent 정보 조회 완료")
 
 		// Save test data
 		testData := map[string]interface{}{
@@ -561,11 +561,11 @@ func TestContractEvents(t *testing.T) {
 		assert.Greater(t, event["block_number"], 0, "블록 번호가 0보다 커야 함")
 		assert.Regexp(t, "^0x[0-9a-fA-F]{64}$", event["tx_hash"], "트랜잭션 해시 형식이 올바라야 함")
 
-		t.Logf("✓ 이벤트 로그 시뮬레이션 성공")
-		t.Logf("✓ 이벤트: %s", event["event_name"])
-		t.Logf("✓ Agent: %s", event["agent_address"])
-		t.Logf("✓ DID: %s", event["did"])
-		t.Logf("✓ 블록: %d, 트랜잭션: %s", event["block_number"], event["tx_hash"])
+		t.Logf(" 이벤트 로그 시뮬레이션 성공")
+		t.Logf(" 이벤트: %s", event["event_name"])
+		t.Logf(" Agent: %s", event["agent_address"])
+		t.Logf(" DID: %s", event["did"])
+		t.Logf(" 블록: %d, 트랜잭션: %s", event["block_number"], event["tx_hash"])
 
 		// Save test data
 		testData := map[string]interface{}{

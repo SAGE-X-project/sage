@@ -220,7 +220,7 @@ curl -X POST http://localhost:8082/weather-secure \
 	})
 
 	fmt.Println(" SAGE Integration Demo Server")
-	fmt.Println("📍 Listening on http://localhost:8082")
+	fmt.Println(" Listening on http://localhost:8082")
 	fmt.Println("")
 	fmt.Println("Endpoints:")
 	fmt.Println("  POST /weather-insecure - No security (anyone can call)")
@@ -230,7 +230,7 @@ curl -X POST http://localhost:8082/weather-secure \
 	// Start a goroutine to make a demo request after 2 seconds
 	go func() {
 		time.Sleep(2 * time.Second)
-		fmt.Println("\n📡 Making a signed request...")
+		fmt.Println("\n Making a signed request...")
 		makeSAGERequest()
 	}()
 

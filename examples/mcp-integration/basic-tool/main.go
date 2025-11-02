@@ -53,7 +53,7 @@ func main() {
 	})
 
 	fmt.Println(" SAGE-secured MCP Calculator Tool Server")
-	fmt.Println("📍 Listening on http://localhost:8080")
+	fmt.Println(" Listening on http://localhost:8080")
 	fmt.Println("")
 	fmt.Println("Available endpoints:")
 	fmt.Println("  GET  /tools                    - List available tools")

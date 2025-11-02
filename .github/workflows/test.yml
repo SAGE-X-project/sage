@@ -8,6 +8,7 @@ on:
 
 env:
   GO_VERSION: '1.25.2'
+  GOTOOLCHAIN: auto
 
 jobs:
   # Go backend tests
@@ -218,9 +219,9 @@ jobs:
           echo "### Feature Verification Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [ -f "/tmp/sage-test-logs/test_all_units.log" ]; then
-            echo "✅ Feature verification completed" >> $GITHUB_STEP_SUMMARY
+            echo " Feature verification completed" >> $GITHUB_STEP_SUMMARY
             echo "- 88 automated tests executed" >> $GITHUB_STEP_SUMMARY
             echo "- Blockchain integration tests run separately in integration-test workflow" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Feature verification failed" >> $GITHUB_STEP_SUMMARY
+            echo " Feature verification failed" >> $GITHUB_STEP_SUMMARY
           fi

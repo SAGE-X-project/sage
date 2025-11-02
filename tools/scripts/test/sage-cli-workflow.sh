@@ -29,19 +29,19 @@ log_section() {
 }
 
 log_step() {
-    echo -e "${YELLOW}📌 $1${NC}"
+    echo -e "${YELLOW} $1${NC}"
 }
 
 log_success() {
-    echo -e "${GREEN}✅ $1${NC}"
+    echo -e "${GREEN} $1${NC}"
 }
 
 log_error() {
-    echo -e "${RED}❌ $1${NC}"
+    echo -e "${RED} $1${NC}"
 }
 
 log_info() {
-    echo -e "${NC}ℹ️  $1${NC}"
+    echo -e "${NC}ℹ  $1${NC}"
 }
 
 # 환경 변수 설정

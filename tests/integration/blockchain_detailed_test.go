@@ -476,7 +476,7 @@ func TestContractDeployment_Integration(t *testing.T) {
 		}
 
 		// 명세서: 컨트랙트 배포 성공
-		t.Logf("✓ Contract deployment transaction sent")
+		t.Logf(" Contract deployment transaction sent")
 		t.Logf("  Tx Hash: %s", signedTx.Hash().Hex())
 
 		// Wait for transaction
@@ -497,7 +497,7 @@ func TestContractDeployment_Integration(t *testing.T) {
 		assert.NotNil(t, receipt.ContractAddress, "Contract address should be returned")
 		assert.NotEqual(t, common.Address{}, receipt.ContractAddress, "Contract address should not be zero")
 
-		t.Logf("✓ Contract deployed successfully")
+		t.Logf(" Contract deployed successfully")
 		t.Logf("  Contract Address: %s", receipt.ContractAddress.Hex())
 		t.Logf("  Block Number: %d", receipt.BlockNumber.Uint64())
 		t.Logf("  Gas Used: %d", receipt.GasUsed)

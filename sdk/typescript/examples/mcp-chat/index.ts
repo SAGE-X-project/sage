@@ -58,9 +58,9 @@ async function main() {
 
     // Verify messages match
     if (message === receivedMessage) {
-      console.log('✓ Success: Secure communication established!');
+      console.log(' Success: Secure communication established!');
     } else {
-      console.log('✗ Error: Messages do not match');
+      console.log(' Error: Messages do not match');
     }
   } catch (error) {
     console.error('Error during secure communication:', error);

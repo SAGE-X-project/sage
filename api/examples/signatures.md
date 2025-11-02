@@ -391,11 +391,11 @@ func resolveDIDPublicKey(did string) (ed25519.PublicKey, error) {
 - Performance: ~70,000 signatures/sec, ~25,000 verifications/sec (single core)
 
 **Why Ed25519?**
-- ✅ Fast signature and verification
-- ✅ Small keys and signatures
-- ✅ Deterministic (no random number generation required)
-- ✅ Collision-resistant
-- ✅ Side-channel attack resistant
+-  Fast signature and verification
+-  Small keys and signatures
+-  Deterministic (no random number generation required)
+-  Collision-resistant
+-  Side-channel attack resistant
 
 ---
 

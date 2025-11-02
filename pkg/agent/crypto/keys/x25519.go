@@ -282,7 +282,7 @@ func DecryptWithEd25519Peer(privateKey crypto.PrivateKey, packet []byte) ([]byte
 
 // deriveHKDFKey derives a 32-byte AES key using HKDF-SHA256.
 // The transcript is used as both salt and info string.
-// deriveHKDFKey  ➜  raw DH → HKDF-SHA-256(salt = transcript) → 32B AES key
+// deriveHKDFKey    raw DH → HKDF-SHA-256(salt = transcript) → 32B AES key
 func deriveHKDFKey(raw, transcript []byte) ([]byte, error) {
 	h := hkdf.New(sha256.New, raw, transcript, []byte("Noise-IK-AES256GCM"))
 	key := make([]byte, 32)
