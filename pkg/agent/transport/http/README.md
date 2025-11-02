@@ -8,12 +8,12 @@ The HTTP transport enables SAGE agents to communicate over standard HTTP protoco
 
 ## Features
 
-- ✅ RESTful HTTP/HTTPS communication
-- ✅ JSON wire format for messages
-- ✅ Custom metadata via HTTP headers
-- ✅ Configurable HTTP client (timeout, TLS, etc.)
-- ✅ Standard HTTP error handling
-- ✅ Compatible with any HTTP server framework
+-  RESTful HTTP/HTTPS communication
+-  JSON wire format for messages
+-  Custom metadata via HTTP headers
+-  Configurable HTTP client (timeout, TLS, etc.)
+-  Standard HTTP error handling
+-  Compatible with any HTTP server framework
 
 ## Usage
 
@@ -188,12 +188,12 @@ The HTTP transport simply delivers the encrypted payloads.
 
 | Feature | HTTP | gRPC (A2A) | WebSocket |
 |---------|------|------------|-----------|
-| Firewall-friendly | ✅ | ⚠️ | ✅ |
-| Load balancer support | ✅ | ⚠️ | ⚠️ |
-| Bidirectional streaming | ❌ | ✅ | ✅ |
-| Simple integration | ✅ | ❌ | ⚠️ |
-| Performance | ⚠️ | ✅ | ✅ |
-| REST API compatible | ✅ | ❌ | ❌ |
+| Firewall-friendly |  |  |  |
+| Load balancer support |  |  |  |
+| Bidirectional streaming |  |  |  |
+| Simple integration |  |  |  |
+| Performance |  |  |  |
+| REST API compatible |  |  |  |
 
 ## Performance
 

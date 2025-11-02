@@ -392,17 +392,17 @@ ChaCha20-Poly1305 (1KB)      8 μs       125,000 msg/sec
 ### Threat Model
 
 **Protected Against:**
-- ✅ Eavesdropping (confidentiality)
-- ✅ Message tampering (integrity)
-- ✅ Impersonation (authentication)
-- ✅ Replay attacks (nonces + timestamps)
-- ✅ Forward secrecy (ephemeral keys)
+-  Eavesdropping (confidentiality)
+-  Message tampering (integrity)
+-  Impersonation (authentication)
+-  Replay attacks (nonces + timestamps)
+-  Forward secrecy (ephemeral keys)
 
 **Not Protected Against:**
-- ❌ Traffic analysis (message sizes visible)
-- ❌ Denial of service (must handle at application layer)
-- ❌ Key compromise (if attacker steals private keys)
-- ❌ Side-channel attacks (timing, cache, power analysis)
+-  Traffic analysis (message sizes visible)
+-  Denial of service (must handle at application layer)
+-  Key compromise (if attacker steals private keys)
+-  Side-channel attacks (timing, cache, power analysis)
 
 ### Key Management
 
@@ -449,9 +449,9 @@ ChaCha20-Poly1305 (1KB)      8 μs       125,000 msg/sec
 This ADR has been reviewed and accepted by the SAGE core team. HPKE implementation is complete and in production use.
 
 **Acceptance Criteria Met:**
-- ✅ HPKE (RFC 9180) implemented with Cloudflare CIRCL
-- ✅ X25519 + ChaCha20-Poly1305 cipher suite
-- ✅ Both Base and Auth modes supported
-- ✅ Comprehensive test suite with RFC test vectors
-- ✅ Benchmarks demonstrate acceptable performance
-- ✅ Integration with DID-based key distribution
+-  HPKE (RFC 9180) implemented with Cloudflare CIRCL
+-  X25519 + ChaCha20-Poly1305 cipher suite
+-  Both Base and Auth modes supported
+-  Comprehensive test suite with RFC test vectors
+-  Benchmarks demonstrate acceptable performance
+-  Integration with DID-based key distribution

@@ -249,7 +249,7 @@ func registerAgent() error {
     if err != nil {
         return fmt.Errorf("commit failed: %w", err)
     }
-    fmt.Printf("✓ Committed. Hash: %x\n", status.CommitHash)
+    fmt.Printf(" Committed. Hash: %x\n", status.CommitHash)
 
     // Save commitment status
     if err := saveCommitmentStatus(status); err != nil {
@@ -266,7 +266,7 @@ func registerAgent() error {
     if err != nil {
         return fmt.Errorf("registration failed: %w", err)
     }
-    fmt.Printf("✓ Registered. Agent ID: %x\n", status.AgentID)
+    fmt.Printf(" Registered. Agent ID: %x\n", status.AgentID)
 
     // Update commitment status
     if err := saveCommitmentStatus(status); err != nil {
@@ -282,7 +282,7 @@ func registerAgent() error {
     if err := client.ActivateAgent(ctx, status); err != nil {
         return fmt.Errorf("activation failed: %w", err)
     }
-    fmt.Println("✓ Agent activated successfully!")
+    fmt.Println(" Agent activated successfully!")
 
     return nil
 }
@@ -346,7 +346,7 @@ sage-did commit \
   --private-key 0x...
 
 # Output:
-# ✓ Commitment successful!
+#  Commitment successful!
 #   Commit Hash: abc123def456...
 #   Timestamp: 2025-01-15T10:00:00Z
 #
@@ -364,7 +364,7 @@ sage-did register abc123def456... \
   --private-key 0x...
 
 # Output:
-# ✓ Registration successful!
+#  Registration successful!
 #   Agent ID: def456abc789...
 #   Can activate at: 2025-01-15T11:05:00Z
 #
@@ -382,7 +382,7 @@ sage-did activate abc123def456... \
   --private-key 0x...
 
 # Output:
-# ✓ Activation successful!
+#  Activation successful!
 #   Agent ID: def456abc789...
 #   Your 0.01 ETH stake will be refunded
 #

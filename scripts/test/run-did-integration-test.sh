@@ -64,7 +64,7 @@ if [ ! -d "$CONTRACT_DIR" ]; then
     echo -e "${RED}Error: Contract directory not found: $CONTRACT_DIR${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓${NC} Contract directory found"
+echo -e "${GREEN}${NC} Contract directory found"
 echo ""
 
 # Step 2: Install npm dependencies if needed
@@ -73,9 +73,9 @@ if [ ! -d "$CONTRACT_DIR/node_modules" ]; then
     echo "Installing npm dependencies..."
     cd "$CONTRACT_DIR"
     npm install > /dev/null 2>&1
-    echo -e "${GREEN}✓${NC} Dependencies installed"
+    echo -e "${GREEN}${NC} Dependencies installed"
 else
-    echo -e "${GREEN}✓${NC} Dependencies already installed"
+    echo -e "${GREEN}${NC} Dependencies already installed"
 fi
 echo ""
 
@@ -97,7 +97,7 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
         -H "Content-Type: application/json" \
         -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
         > /dev/null 2>&1; then
-        echo -e "${GREEN}✓${NC} Hardhat node is ready"
+        echo -e "${GREEN}${NC} Hardhat node is ready"
         break
     fi
     RETRY_COUNT=$((RETRY_COUNT + 1))
@@ -115,7 +115,7 @@ echo -e "${YELLOW}[Step 4/5]${NC} Deploying V4 contract..."
 cd "$CONTRACT_DIR"
 npx hardhat run scripts/deploy_v4.js --network localhost > "$DEPLOY_LOG" 2>&1
 if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓${NC} V4 contract deployed"
+    echo -e "${GREEN}${NC} V4 contract deployed"
     echo "Logs: $DEPLOY_LOG"
 
     # Extract contract address from deploy log
@@ -147,10 +147,10 @@ TEST_EXIT_CODE=${PIPESTATUS[0]}
 echo ""
 echo "========================================"
 if [ $TEST_EXIT_CODE -eq 0 ]; then
-    echo -e "${GREEN}✓ All tests passed${NC}"
+    echo -e "${GREEN} All tests passed${NC}"
     echo "Test logs: $TEST_LOG"
 else
-    echo -e "${RED}✗ Tests failed (exit code: $TEST_EXIT_CODE)${NC}"
+    echo -e "${RED} Tests failed (exit code: $TEST_EXIT_CODE)${NC}"
     echo "Test logs: $TEST_LOG"
     exit $TEST_EXIT_CODE
 fi

@@ -160,7 +160,7 @@ func runBlockchainCheck() {
 	fmt.Println()
 
 	if blockchainStatus.Connected {
-		fmt.Println("✓ 상태:      연결됨 (CONNECTED)")
+		fmt.Println(" 상태:      연결됨 (CONNECTED)")
 		fmt.Printf("  Chain ID:   %s\n", blockchainStatus.ChainID)
 		fmt.Printf("  Block:      %d\n", blockchainStatus.BlockNumber)
 		fmt.Printf("  지연시간:    %s\n", blockchainStatus.Latency)
@@ -168,7 +168,7 @@ func runBlockchainCheck() {
 		statusColor := getStatusSymbol(blockchainStatus.Status)
 		fmt.Printf("\n%s 전체 상태:  %s\n", statusColor, blockchainStatus.Status)
 	} else {
-		fmt.Println("✗ 상태:      연결 끊김 (DISCONNECTED)")
+		fmt.Println(" 상태:      연결 끊김 (DISCONNECTED)")
 		fmt.Printf("  에러:      %s\n", blockchainStatus.Error)
 	}
 
@@ -235,11 +235,11 @@ func printHealthStatus(status *health.HealthStatus, network, rpcURL string) {
 	if status.BlockchainStatus != nil {
 		fmt.Println("블록체인:")
 		if status.BlockchainStatus.Connected {
-			fmt.Printf("  ✓ 연결됨   Chain ID: %s, Block: %d\n",
+			fmt.Printf("   연결됨   Chain ID: %s, Block: %d\n",
 				status.BlockchainStatus.ChainID, status.BlockchainStatus.BlockNumber)
 			fmt.Printf("    지연시간:    %s\n", status.BlockchainStatus.Latency)
 		} else {
-			fmt.Printf("  ✗ 연결 끊김 (Disconnected)\n")
+			fmt.Printf("   연결 끊김 (Disconnected)\n")
 			fmt.Printf("    에러:      %s\n", status.BlockchainStatus.Error)
 		}
 		fmt.Println()
@@ -276,11 +276,11 @@ func printHealthStatus(status *health.HealthStatus, network, rpcURL string) {
 func getStatusSymbol(status health.Status) string {
 	switch status {
 	case health.StatusHealthy:
-		return "✓"
+		return ""
 	case health.StatusDegraded:
-		return "⚠"
+		return ""
 	case health.StatusUnhealthy:
-		return "✗"
+		return ""
 	default:
 		return "?"
 	}

@@ -4,7 +4,7 @@ This directory contains the OpenAPI specification and documentation for the SAGE
 
 ## Contents
 
-### 📄 OpenAPI Specification
+###  OpenAPI Specification
 
 - **`openapi.yaml`** (351 lines)
   - Complete OpenAPI 3.0.3 specification for SAGE HTTP API
@@ -12,7 +12,7 @@ This directory contains the OpenAPI specification and documentation for the SAGE
   - Includes request/response schemas for A2A messaging
   - Server configurations: Production, Staging, Development
 
-### 📚 Usage Examples
+###  Usage Examples
 
 The `examples/` directory contains detailed usage examples:
 
@@ -20,7 +20,7 @@ The `examples/` directory contains detailed usage examples:
 - **`sessions.md`** - Session lifecycle management
 - **`signatures.md`** - RFC 9421 HTTP message signatures
 
-### 🗂️ Schemas
+###  Schemas
 
 The `schemas/` directory is currently empty. All component schemas are defined inline in `openapi.yaml` under the `components.schemas` section.
 
@@ -167,10 +167,10 @@ The OpenAPI spec is referenced and served by:
 ### When to Update
 
 Update `openapi.yaml` when:
-- ✅ Adding new API endpoints
-- ✅ Changing request/response schemas
-- ✅ Modifying authentication requirements
-- ✅ Adding new error codes
+-  Adding new API endpoints
+-  Changing request/response schemas
+-  Modifying authentication requirements
+-  Adding new error codes
 
 ### Validation Checklist
 

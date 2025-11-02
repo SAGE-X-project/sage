@@ -206,6 +206,9 @@ func (c *AgentCardClient) RegisterAgent(ctx context.Context, status *did.Commitm
 
 	// Extract agent ID from logs (TODO: parse AgentRegistered event)
 	agentID, regTs, err := c.extractRegisteredIDAndTs(receipt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract agent ID: %w", err)
+	}
 
 	// Get activation delay
 	delay, err := c.contract.ActivationDelay(&bind.CallOpts{Context: ctx})

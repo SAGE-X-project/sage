@@ -376,13 +376,13 @@ go test -v github.com/sage-x-project/sage/pkg/agent/hpke
 
 ```bash
 ./build/bin/sage-crypto generate --type ed25519 --format jwk --output /tmp/test-ed25519.jwk
-test -f /tmp/test-ed25519.jwk && echo "✓ 키 생성 성공"
+test -f /tmp/test-ed25519.jwk && echo " 키 생성 성공"
 cat /tmp/test-ed25519.jwk | jq -r '.private_key.kty, .private_key.crv'
 ```
 
 **예상 결과**:
 ```
-✓ 키 생성 성공
+ 키 생성 성공
 OKP
 Ed25519
 ```
@@ -405,14 +405,14 @@ echo "test message" > /tmp/msg.txt
 ./build/bin/sage-crypto sign --key /tmp/test-ed25519.jwk --message-file /tmp/msg.txt --output /tmp/sig.bin
 
 # 확인
-test -f /tmp/sig.bin && echo "✓ 서명 생성 성공"
+test -f /tmp/sig.bin && echo " 서명 생성 성공"
 ls -lh /tmp/sig.bin
 ```
 
 **예상 결과**:
 ```
 Signature saved to: /tmp/sig.bin
-✓ 서명 생성 성공
+ 서명 생성 성공
 -rw-r--r-- 1 user group 190 Oct 22 10:00 /tmp/sig.bin
 ```
 

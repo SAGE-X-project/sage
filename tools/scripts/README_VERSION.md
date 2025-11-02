@@ -82,17 +82,17 @@ Update version to 1.4.0? (y/N) y
 Updating version files...
 
 [1/6] Updating VERSION...
-      ✓ VERSION updated
+       VERSION updated
 [2/6] Updating README.md...
-      ✓ README.md updated
+       README.md updated
 [3/6] Updating contracts/ethereum/package.json...
-      ✓ package.json updated
+       package.json updated
 [4/6] Updating contracts/ethereum/package-lock.json...
-      ✓ package-lock.json updated
+       package-lock.json updated
 [5/6] Updating pkg/version/version.go...
-      ✓ version.go updated
+       version.go updated
 [6/6] Updating lib/export.go...
-      ✓ export.go updated
+       export.go updated
 
 Version update complete!
 
@@ -250,20 +250,20 @@ vim <file>
 
 ## Script Features
 
-### ✅ Safety Features
+###  Safety Features
 
 - **Version format validation** - Rejects invalid semver
 - **Confirmation prompt** - Asks before making changes
 - **Automatic verification** - Checks all files after update
 - **Backup files** - Creates .bak files during sed operations (auto-deleted)
 
-### ✅ Smart Updates
+###  Smart Updates
 
 - **README.md date** - Automatically updates to current date
 - **JSON formatting** - Uses jq if available for clean JSON
 - **Cross-platform** - Works on macOS and Linux
 
-### ✅ User-Friendly
+###  User-Friendly
 
 - **Color output** - Green (success), Yellow (warning), Red (error), Blue (info)
 - **Progress indicators** - Shows [1/6], [2/6], etc.
@@ -343,17 +343,17 @@ make bump-version-ci VERSION=1.4.0
 
 ### Before Version Update
 
-1. ✅ Ensure all tests pass
-2. ✅ Update CHANGELOG.md
-3. ✅ Review pending PRs
-4. ✅ Check for breaking changes
+1.  Ensure all tests pass
+2.  Update CHANGELOG.md
+3.  Review pending PRs
+4.  Check for breaking changes
 
 ### After Version Update
 
-1. ✅ Run full test suite
-2. ✅ Update deployment documentation
-3. ✅ Create GitHub release
-4. ✅ Announce release (Discord, Twitter, etc.)
+1.  Run full test suite
+2.  Update deployment documentation
+3.  Create GitHub release
+4.  Announce release (Discord, Twitter, etc.)
 
 ### Version Numbering Guidelines
 

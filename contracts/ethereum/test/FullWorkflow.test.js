@@ -176,7 +176,7 @@ describe("Full Workflow Integration", () => {
 
             const sig1 = await createSignature(user1);
             const sig2 = ethers.randomBytes(64); // Ed25519 sig (placeholder)
-            const sig3 = await createX25519Signature(user1, key3);  // ✅ X25519 ownership proof
+            const sig3 = await createX25519Signature(user1, key3);  //  X25519 ownership proof
 
             const salt = ethers.randomBytes(32);
 
@@ -310,7 +310,7 @@ describe("Full Workflow Integration", () => {
 
             // Add X25519 key
             const x25519Key = ethers.randomBytes(32);
-            const x25519Sig = await createX25519Signature(user1, x25519Key);  // ✅ X25519 ownership proof
+            const x25519Sig = await createX25519Signature(user1, x25519Key);  //  X25519 ownership proof
 
             await agentRegistry.connect(user1).addKey(
                 agentId,

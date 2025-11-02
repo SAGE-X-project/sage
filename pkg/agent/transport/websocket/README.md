@@ -8,13 +8,13 @@ The WebSocket transport enables persistent, bidirectional communication between 
 
 ## Features
 
-- ✅ Persistent bidirectional connections
-- ✅ Real-time message delivery
-- ✅ Automatic reconnection support
-- ✅ JSON wire format
-- ✅ Connection pooling
-- ✅ Configurable timeouts
-- ✅ Secure WebSocket (WSS) support
+-  Persistent bidirectional connections
+-  Real-time message delivery
+-  Automatic reconnection support
+-  JSON wire format
+-  Connection pooling
+-  Configurable timeouts
+-  Secure WebSocket (WSS) support
 
 ## Usage
 
@@ -239,14 +239,14 @@ WebSocket only provides transport-level security (WSS/TLS).
 
 | Feature | WebSocket | HTTP | gRPC |
 |---------|-----------|------|------|
-| Persistent connection | ✅ | ❌ | ✅ |
-| Bidirectional | ✅ | ❌ | ✅ |
-| Real-time | ✅ | ❌ | ✅ |
-| Firewall-friendly | ✅ | ✅ | ⚠️ |
-| Load balancer support | ⚠️ | ✅ | ⚠️ |
-| Simple integration | ⚠️ | ✅ | ❌ |
+| Persistent connection |  |  |  |
+| Bidirectional |  |  |  |
+| Real-time |  |  |  |
+| Firewall-friendly |  |  |  |
+| Load balancer support |  |  |  |
+| Simple integration |  |  |  |
 | Connection overhead | Low | High | Low |
-| Browser support | ✅ | ✅ | ⚠️ |
+| Browser support |  |  |  |
 
 ### When to Use WebSocket
 

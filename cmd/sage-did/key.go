@@ -314,12 +314,12 @@ func runKeyAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to add key: %w", err)
 	}
 
-	fmt.Println("\n✓ Key added successfully!")
+	fmt.Println("\n Key added successfully!")
 	fmt.Printf("Key Hash: %s\n", keyHash)
 
 	// Show approval notice for Ed25519
 	if detectedKeyType == did.KeyTypeEd25519 && chain == did.ChainEthereum {
-		fmt.Println("\n⚠ IMPORTANT: Ed25519 Key Approval Required")
+		fmt.Println("\n IMPORTANT: Ed25519 Key Approval Required")
 		fmt.Println("This Ed25519 key requires off-chain approval by the contract owner.")
 		fmt.Println("Please contact the registry owner to approve this key:")
 		fmt.Printf("  sage-did key approve %s --chain ethereum --private-key <owner-key>\n", keyHash)
@@ -393,7 +393,7 @@ func runKeyRevoke(cmd *cobra.Command, args []string) error {
 	}
 
 	// Confirm deletion
-	fmt.Printf("⚠ WARNING: You are about to revoke key %s from agent %s\n", keyHash, agentDID)
+	fmt.Printf(" WARNING: You are about to revoke key %s from agent %s\n", keyHash, agentDID)
 	fmt.Println("This operation is irreversible and may break existing integrations.")
 	fmt.Print("Are you sure you want to continue? (yes/no): ")
 
@@ -435,7 +435,7 @@ func runKeyRevoke(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to revoke key: %w", err)
 	}
 
-	fmt.Println("\n✓ Key revoked successfully!")
+	fmt.Println("\n Key revoked successfully!")
 	return nil
 }
 
@@ -476,7 +476,7 @@ func runKeyApprove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to approve key: %w", err)
 	}
 
-	fmt.Println("\n✓ Key approved successfully!")
+	fmt.Println("\n Key approved successfully!")
 	fmt.Println("The Ed25519 key is now verified and fully functional.")
 	return nil
 }
@@ -616,7 +616,7 @@ func runKeyVerifyPop(cmd *cobra.Command, args []string) error {
 				i+1,
 				keyHash,
 				key.Type.String(),
-				"✗ FAILED",
+				" FAILED",
 				errMsg)
 		} else {
 			verifiedKeys++
@@ -624,7 +624,7 @@ func runKeyVerifyPop(cmd *cobra.Command, args []string) error {
 				i+1,
 				keyHash,
 				key.Type.String(),
-				"✓ VALID",
+				" VALID",
 				"Proof-of-possession verified")
 		}
 	}
@@ -650,6 +650,6 @@ func runKeyVerifyPop(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("proof-of-possession verification failed for %d keys", failedKeys)
 	}
 
-	fmt.Printf("\n✓ All %d signing keys have valid proof-of-possession\n", verifiedKeys)
+	fmt.Printf("\n All %d signing keys have valid proof-of-possession\n", verifiedKeys)
 	return nil
 }

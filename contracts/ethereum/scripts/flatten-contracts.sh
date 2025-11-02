@@ -7,14 +7,14 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🔧 Flattening Smart Contracts for Verification${NC}"
+echo -e "${BLUE} Flattening Smart Contracts for Verification${NC}"
 echo "================================================"
 
 # Create flattened directory if it doesn't exist
 mkdir -p flattened
 
 # Flatten AgentCardRegistry
-echo -e "\n${YELLOW}📄 Flattening AgentCardRegistry.sol...${NC}"
+echo -e "\n${YELLOW} Flattening AgentCardRegistry.sol...${NC}"
 npx hardhat flatten contracts/AgentCardRegistry.sol > flattened/AgentCardRegistry_flat.sol
 
 # Remove duplicate SPDX license identifiers (explorers don't like multiple)
@@ -23,10 +23,10 @@ sed -i.bak '/SPDX-License-Identifier/d' flattened/AgentCardRegistry_flat.sol
 sed -i.bak '1s/^/\/\/ SPDX-License-Identifier: MIT\n/' flattened/AgentCardRegistry_flat.sol
 rm flattened/AgentCardRegistry_flat.sol.bak
 
-echo -e "${GREEN}✅ AgentCardRegistry flattened${NC}"
+echo -e "${GREEN} AgentCardRegistry flattened${NC}"
 
 # Flatten AgentCardVerifyHook
-echo -e "\n${YELLOW}📄 Flattening AgentCardVerifyHook.sol...${NC}"
+echo -e "\n${YELLOW} Flattening AgentCardVerifyHook.sol...${NC}"
 npx hardhat flatten contracts/AgentCardVerifyHook.sol > flattened/AgentCardVerifyHook_flat.sol
 
 # Remove duplicate SPDX license identifiers
@@ -35,10 +35,10 @@ sed -i.bak '/SPDX-License-Identifier/d' flattened/AgentCardVerifyHook_flat.sol
 sed -i.bak '1s/^/\/\/ SPDX-License-Identifier: MIT\n/' flattened/AgentCardVerifyHook_flat.sol
 rm flattened/AgentCardVerifyHook_flat.sol.bak
 
-echo -e "${GREEN}✅ AgentCardVerifyHook flattened${NC}"
+echo -e "${GREEN} AgentCardVerifyHook flattened${NC}"
 
 # Flatten AgentCardStorage
-echo -e "\n${YELLOW}📄 Flattening AgentCardStorage.sol...${NC}"
+echo -e "\n${YELLOW} Flattening AgentCardStorage.sol...${NC}"
 npx hardhat flatten contracts/AgentCardStorage.sol > flattened/AgentCardStorage_flat.sol
 
 # Remove duplicate SPDX license identifiers
@@ -47,7 +47,7 @@ sed -i.bak '/SPDX-License-Identifier/d' flattened/AgentCardStorage_flat.sol
 sed -i.bak '1s/^/\/\/ SPDX-License-Identifier: MIT\n/' flattened/AgentCardStorage_flat.sol
 rm flattened/AgentCardStorage_flat.sol.bak
 
-echo -e "${GREEN}✅ AgentCardStorage flattened${NC}"
+echo -e "${GREEN} AgentCardStorage flattened${NC}"
 
 # Create verification instructions
 cat > flattened/VERIFICATION_INSTRUCTIONS.md << 'EOF'
@@ -193,8 +193,8 @@ For AgentCardRegistry, encode:
 **AgentCard Version**: v4.1
 EOF
 
-echo -e "\n${GREEN}✅ All contracts flattened successfully!${NC}"
-echo -e "${BLUE}📁 Flattened contracts saved to: flattened/${NC}"
+echo -e "\n${GREEN} All contracts flattened successfully!${NC}"
+echo -e "${BLUE} Flattened contracts saved to: flattened/${NC}"
 echo ""
 echo "Files created:"
 echo "  - flattened/AgentCardRegistry_flat.sol"
@@ -202,7 +202,7 @@ echo "  - flattened/AgentCardVerifyHook_flat.sol"
 echo "  - flattened/AgentCardStorage_flat.sol"
 echo "  - flattened/VERIFICATION_INSTRUCTIONS.md"
 echo ""
-echo -e "${YELLOW}ℹ️  For verification, use:${NC}"
+echo -e "${YELLOW}ℹ  For verification, use:${NC}"
 echo "  1. Automated: npx hardhat run scripts/verify-agentcard.js --network <network>"
 echo "  2. Manual: Follow instructions in flattened/VERIFICATION_INSTRUCTIONS.md"
 echo ""

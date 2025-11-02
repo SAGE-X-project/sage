@@ -1,6 +1,6 @@
 ## 6. CLI 도구
 
-**상태**: ✅ 완료 (13/13 항목)
+**상태**:  완료 (13/13 항목)
 **최종 검증**: 2025-10-25
 
 ### 검증 요약
@@ -8,21 +8,21 @@
 모든 CLI 도구 테스트가 성공적으로 통과되었습니다:
 
 #### 6.1 sage-crypto (6/6 완료)
-- ✅ 6.1.1.1 generate 명령으로 키쌍 생성 성공
-- ✅ 6.1.1.2 --type secp256k1 옵션 동작
-- ✅ 6.1.1.3 --type ed25519 옵션 동작
-- ✅ 6.1.2.1 sign 명령으로 메시지 서명
-- ✅ 6.1.2.2 verify 명령으로 서명 검증
-- ✅ 6.1.3.1 address 명령으로 Ethereum 주소 생성
+-  6.1.1.1 generate 명령으로 키쌍 생성 성공
+-  6.1.1.2 --type secp256k1 옵션 동작
+-  6.1.1.3 --type ed25519 옵션 동작
+-  6.1.2.1 sign 명령으로 메시지 서명
+-  6.1.2.2 verify 명령으로 서명 검증
+-  6.1.3.1 address 명령으로 Ethereum 주소 생성
 
 #### 6.2 sage-did (7/7 완료)
-- ✅ 6.2.1.1 register 명령으로 DID 등록 성공
-- ✅ 6.2.1.2 --chain ethereum 옵션 동작
-- ✅ 6.2.2.1 resolve 명령으로 DID 조회
-- ✅ 6.2.2.2 list 명령으로 DID 목록 조회
-- ✅ 6.2.3.1 update 명령으로 메타데이터 수정
-- ✅ 6.2.3.2 revoke 명령으로 DID 비활성화
-- ✅ 6.2.3.3 verify 명령으로 DID 검증
+-  6.2.1.1 register 명령으로 DID 등록 성공
+-  6.2.1.2 --chain ethereum 옵션 동작
+-  6.2.2.1 resolve 명령으로 DID 조회
+-  6.2.2.2 list 명령으로 DID 목록 조회
+-  6.2.3.1 update 명령으로 메타데이터 수정
+-  6.2.3.2 revoke 명령으로 DID 비활성화
+-  6.2.3.3 verify 명령으로 DID 검증
 
 **테스트 실행 명령어**:
 ```bash
@@ -43,14 +43,14 @@ go test -v github.com/sage-x-project/sage/tests/integration -run "Test_6"
 
 ```bash
 ./build/bin/sage-crypto generate --type ed25519 --format jwk --output /tmp/test-ed25519.jwk
-test -f /tmp/test-ed25519.jwk && echo "✓ 키 생성 성공"
+test -f /tmp/test-ed25519.jwk && echo " 키 생성 성공"
 cat /tmp/test-ed25519.jwk | jq -r '.private_key.kty, .private_key.crv'
 ```
 
 **예상 결과**:
 
 ```
-✓ 키 생성 성공
+ 키 생성 성공
 OKP
 Ed25519
 ```
@@ -63,9 +63,9 @@ Ed25519
 
 **통과 기준**:
 
-- ✅ 키 파일 생성
-- ✅ JWK 형식 정확
-- ✅ Ed25519 키
+-  키 파일 생성
+-  JWK 형식 정확
+-  Ed25519 키
 
 ---
 
@@ -85,7 +85,7 @@ echo "test message" > /tmp/msg.txt
 ./build/bin/sage-crypto sign --key /tmp/test-ed25519.jwk --message-file /tmp/msg.txt --output /tmp/sig.bin
 
 # 확인
-test -f /tmp/sig.bin && echo "✓ 서명 생성 성공"
+test -f /tmp/sig.bin && echo " 서명 생성 성공"
 ls -lh /tmp/sig.bin
 ```
 
@@ -93,7 +93,7 @@ ls -lh /tmp/sig.bin
 
 ```
 Signature saved to: /tmp/sig.bin
-✓ 서명 생성 성공
+ 서명 생성 성공
 -rw-r--r-- 1 user group 190 Oct 22 10:00 /tmp/sig.bin
 ```
 
@@ -104,9 +104,9 @@ Signature saved to: /tmp/sig.bin
 
 **통과 기준**:
 
-- ✅ 서명 파일 생성
-- ✅ 서명 데이터 정상 저장
-- ✅ CLI 동작 정상
+-  서명 파일 생성
+-  서명 데이터 정상 저장
+-  CLI 동작 정상
 
 ---
 
@@ -137,9 +137,9 @@ Key ID: 67afcf6c322beb76
 
 **통과 기준**:
 
-- ✅ 올바른 서명 검증 성공
-- ✅ 변조된 서명 검증 실패
-- ✅ CLI 동작 정상
+-  올바른 서명 검증 성공
+-  변조된 서명 검증 실패
+-  CLI 동작 정상
 
 ---
 
@@ -173,10 +173,10 @@ Ethereum Address: 0x742d35Cc6634C0532925a3b844Bc9e7595f2bd80
 
 **통과 기준**:
 
-- ✅ Ethereum 주소 생성
-- ✅ 형식: 0x + 40 hex
-- ✅ EIP-55 체크섬 정확
-- ✅ CLI 동작 정상
+-  Ethereum 주소 생성
+-  형식: 0x + 40 hex
+-  EIP-55 체크섬 정확
+-  CLI 동작 정상
 
 ---
 
@@ -210,9 +210,9 @@ Ed25519
 
 **통과 기준**:
 
-- ✅ DID 키 생성
-- ✅ JWK 형식
-- ✅ CLI 동작 정상
+-  DID 키 생성
+-  JWK 형식
+-  CLI 동작 정상
 
 ---
 
@@ -246,9 +246,9 @@ Active: true
 
 **통과 기준**:
 
-- ✅ DID 조회 성공
-- ✅ 정보 출력 정확
-- ✅ CLI 동작 정상
+-  DID 조회 성공
+-  정보 출력 정확
+-  CLI 동작 정상
 
 ---
 
@@ -283,10 +283,10 @@ DID registered successfully: did:sage:ethereum:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxx
 
 **통과 기준**:
 
-- ✅ DID 등록 성공
-- ✅ 트랜잭션 해시 반환
-- ✅ --chain ethereum 동작
-- ✅ CLI 동작 정상
+-  DID 등록 성공
+-  트랜잭션 해시 반환
+-  --chain ethereum 동작
+-  CLI 동작 정상
 
 ---
 
@@ -320,10 +320,10 @@ Total: 2 DIDs
 
 **통과 기준**:
 
-- ✅ 목록 조회 성공
-- ✅ DID 출력 정확
-- ✅ 상태 표시
-- ✅ CLI 동작 정상
+-  목록 조회 성공
+-  DID 출력 정확
+-  상태 표시
+-  CLI 동작 정상
 
 ---
 
@@ -356,10 +356,10 @@ New endpoint: https://new-endpoint.com
 
 **통과 기준**:
 
-- ✅ 업데이트 성공
-- ✅ 트랜잭션 해시 반환
-- ✅ 엔드포인트 변경 확인
-- ✅ CLI 동작 정상
+-  업데이트 성공
+-  트랜잭션 해시 반환
+-  엔드포인트 변경 확인
+-  CLI 동작 정상
 
 ---
 
@@ -392,10 +392,10 @@ Status: Inactive
 
 **통과 기준**:
 
-- ✅ 비활성화 성공
-- ✅ 트랜잭션 해시 반환
-- ✅ 상태 = Inactive
-- ✅ CLI 동작 정상
+-  비활성화 성공
+-  트랜잭션 해시 반환
+-  상태 = Inactive
+-  CLI 동작 정상
 
 ---
 
@@ -416,10 +416,10 @@ Status: Inactive
 
 ```
 Verifying DID...
-✓ DID exists on blockchain
-✓ DID is active
-✓ Public key valid
-✓ Signature valid
+ DID exists on blockchain
+ DID is active
+ Public key valid
+ Signature valid
 DID verification: PASSED
 ```
 
@@ -431,9 +431,9 @@ DID verification: PASSED
 
 **통과 기준**:
 
-- ✅ DID 검증 성공
-- ✅ 모든 체크 통과
-- ✅ CLI 동작 정상
+-  DID 검증 성공
+-  모든 체크 통과
+-  CLI 동작 정상
 
 ---
 

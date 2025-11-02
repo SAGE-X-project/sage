@@ -82,19 +82,19 @@ echo ""
 # 1. Update VERSION file
 echo -e "${YELLOW}[1/6]${NC} Updating VERSION..."
 echo "$NEW_VERSION" > "$VERSION_FILE"
-echo -e "      ${GREEN}✓${NC} VERSION updated"
+echo -e "      ${GREEN}${NC} VERSION updated"
 
 # 2. Update README.md
 echo -e "${YELLOW}[2/6]${NC} Updating README.md..."
 if [ -f "$README_FILE" ]; then
     # Update version in "What's New" section
-    # Pattern: ### ✨ What's New in v1.3.0 (YYYY-MM-DD)
+    # Pattern: ###  What's New in v1.3.0 (YYYY-MM-DD)
     TODAY=$(date +%Y-%m-%d)
-    sed -i.bak -E "s/### ✨ What's New in v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)? \([0-9]{4}-[0-9]{2}-[0-9]{2}\)/### ✨ What's New in v${NEW_VERSION} (${TODAY})/" "$README_FILE"
+    sed -i.bak -E "s/###  What's New in v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)? \([0-9]{4}-[0-9]{2}-[0-9]{2}\)/###  What's New in v${NEW_VERSION} (${TODAY})/" "$README_FILE"
     rm -f "$README_FILE.bak"
-    echo -e "      ${GREEN}✓${NC} README.md updated"
+    echo -e "      ${GREEN}${NC} README.md updated"
 else
-    echo -e "      ${YELLOW}⚠${NC}  README.md not found, skipping"
+    echo -e "      ${YELLOW}${NC}  README.md not found, skipping"
 fi
 
 # 3. Update contracts/ethereum/package.json
@@ -109,9 +109,9 @@ if [ -f "$PACKAGE_JSON" ]; then
         sed -i.bak -E "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?\"/\"version\": \"${NEW_VERSION}\"/" "$PACKAGE_JSON"
         rm -f "$PACKAGE_JSON.bak"
     fi
-    echo -e "      ${GREEN}✓${NC} package.json updated"
+    echo -e "      ${GREEN}${NC} package.json updated"
 else
-    echo -e "      ${YELLOW}⚠${NC}  package.json not found, skipping"
+    echo -e "      ${YELLOW}${NC}  package.json not found, skipping"
 fi
 
 # 4. Update contracts/ethereum/package-lock.json
@@ -126,9 +126,9 @@ if [ -f "$PACKAGE_LOCK" ]; then
         sed -i.bak -E "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?\"/\"version\": \"${NEW_VERSION}\"/" "$PACKAGE_LOCK"
         rm -f "$PACKAGE_LOCK.bak"
     fi
-    echo -e "      ${GREEN}✓${NC} package-lock.json updated"
+    echo -e "      ${GREEN}${NC} package-lock.json updated"
 else
-    echo -e "      ${YELLOW}⚠${NC}  package-lock.json not found, skipping"
+    echo -e "      ${YELLOW}${NC}  package-lock.json not found, skipping"
 fi
 
 # 5. Update pkg/version/version.go
@@ -136,9 +136,9 @@ echo -e "${YELLOW}[5/6]${NC} Updating pkg/version/version.go..."
 if [ -f "$VERSION_GO" ]; then
     sed -i.bak -E "s/Version = \"[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?\"/Version = \"${NEW_VERSION}\"/" "$VERSION_GO"
     rm -f "$VERSION_GO.bak"
-    echo -e "      ${GREEN}✓${NC} version.go updated"
+    echo -e "      ${GREEN}${NC} version.go updated"
 else
-    echo -e "      ${YELLOW}⚠${NC}  version.go not found, skipping"
+    echo -e "      ${YELLOW}${NC}  version.go not found, skipping"
 fi
 
 # 6. Update lib/export.go
@@ -146,9 +146,9 @@ echo -e "${YELLOW}[6/6]${NC} Updating lib/export.go..."
 if [ -f "$EXPORT_GO" ]; then
     sed -i.bak -E "s/C\.CString\(\"[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?\"\)/C.CString(\"${NEW_VERSION}\")/" "$EXPORT_GO"
     rm -f "$EXPORT_GO.bak"
-    echo -e "      ${GREEN}✓${NC} export.go updated"
+    echo -e "      ${GREEN}${NC} export.go updated"
 else
-    echo -e "      ${YELLOW}⚠${NC}  export.go not found, skipping"
+    echo -e "      ${YELLOW}${NC}  export.go not found, skipping"
 fi
 
 echo ""

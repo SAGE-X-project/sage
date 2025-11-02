@@ -32,7 +32,7 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run 'TestCreateDID'
   --contract 0x5FbDB2315678afecb367f032d93F642f64180aa3
 
 # 출력 예시:
-# ✓ Agent registered successfully
+#  Agent registered successfully
 # DID: did:sage:ethereum:<생성된-uuid-v4>
 # Transaction: 0x...
 # Block: XX
@@ -73,13 +73,13 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run 'TestCreateDID'
 
 **통과 기준**:
 
-- ✅ DID 생성 성공 (SAGE GenerateDID 사용)
-- ✅ 형식 검증 (SAGE ValidateDID 사용)
-- ✅ 형식: did:sage:ethereum:<uuid>
-- ✅ UUID v4 검증 완료
-- ✅ DID 구성 요소 파싱 가능 (method, network, id)
-- ✅ 중복 DID 검증 완료
-- ✅ DID 고유성 확인 완료
+-  DID 생성 성공 (SAGE GenerateDID 사용)
+-  형식 검증 (SAGE ValidateDID 사용)
+-  형식: did:sage:ethereum:<uuid>
+-  UUID v4 검증 완료
+-  DID 구성 요소 파싱 가능 (method, network, id)
+-  중복 DID 검증 완료
+-  DID 고유성 확인 완료
 
 **실제 테스트 결과** (2025-10-23):
 
@@ -123,16 +123,16 @@ DID 생성 테스트:
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/did/did_test.go:303-401`
 - 테스트 데이터: `testdata/did/did_creation.json`
-- 상태: ✅ PASS
+- 상태:  PASS
 - **사용된 SAGE 함수**:
   - `GenerateDID(chain, identifier)` - DID 생성
   - `ValidateDID(did)` - DID 형식 검증
 - **검증 항목**:
-  - ✅ DID 형식 검증: SAGE ValidateDID 통과
-  - ✅ UUID 버전: v4 확인 완료
-  - ✅ 구성 요소: did:sage:ethereum:<uuid> 모두 확인
-  - ✅ 중복 검증: 같은 UUID → 같은 DID 확인
-  - ✅ 고유성 검증: 다른 UUID → 다른 DID 확인
+  -  DID 형식 검증: SAGE ValidateDID 통과
+  -  UUID 버전: v4 확인 완료
+  -  구성 요소: did:sage:ethereum:<uuid> 모두 확인
+  -  중복 검증: 같은 UUID → 같은 DID 확인
+  -  고유성 검증: 다른 UUID → 다른 DID 확인
 
 ---
 
@@ -199,22 +199,22 @@ SAGE_INTEGRATION_TEST=1 go test -v github.com/sage-x-project/sage/pkg/agent/did/
 **통과 기준**:
 
 **시나리오 A (Contract-level)**:
-- ✅ DID 생성 성공 (SAGE GenerateDID 사용)
-- ✅ 첫 번째 등록 성공
-- ✅ 블록체인 RPC 조회 (SAGE Resolve)
-- ✅ 두 번째 등록 시도 → 블록체인 revert 에러
-- ✅ 중복 등록 방지 확인
+-  DID 생성 성공 (SAGE GenerateDID 사용)
+-  첫 번째 등록 성공
+-  블록체인 RPC 조회 (SAGE Resolve)
+-  두 번째 등록 시도 → 블록체인 revert 에러
+-  중복 등록 방지 확인
 
 **시나리오 B (Early Detection)**:
-- ✅ Agent A DID 생성 및 등록 성공
-- ✅ Agent B 키페어 생성
-- ✅ Agent B가 Agent A의 DID로 Resolve 시도 (사전 체크)
-- ✅ DID 중복 감지 성공 (Early Detection)
-- ✅ 등록 트랜잭션 전에 중복 발견 (가스비 절약)
-- ✅ Agent B 새로운 DID 생성
-- ✅ 새 DID 중복 없음 확인 (사전 체크)
-- ✅ Agent B 새 DID로 등록 성공
-- ✅ 두 Agent 모두 블록체인에 정상 등록 확인
+-  Agent A DID 생성 및 등록 성공
+-  Agent B 키페어 생성
+-  Agent B가 Agent A의 DID로 Resolve 시도 (사전 체크)
+-  DID 중복 감지 성공 (Early Detection)
+-  등록 트랜잭션 전에 중복 발견 (가스비 절약)
+-  Agent B 새로운 DID 생성
+-  새 DID 중복 없음 확인 (사전 체크)
+-  Agent B 새 DID로 등록 성공
+-  두 Agent 모두 블록체인에 정상 등록 확인
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -292,15 +292,15 @@ SAGE_INTEGRATION_TEST=1 go test -v github.com/sage-x-project/sage/pkg/agent/did/
     Transaction Hash: 0x4719d583a692db4a9747a792161bd90ee7898630fa5ebc2a398c60b0ce807797
   [Step 7] Agent B 클라이언트 생성...
 [PASS] Agent B 클라이언트 생성 완료
-  [Step 8] 🔍 사전 중복 체크: Agent B가 Agent A와 같은 DID 시도...
+  [Step 8]  사전 중복 체크: Agent B가 Agent A와 같은 DID 시도...
     시도할 DID: did:sage:ethereum:2a570e07-784b-4cbc-8b74-d850761551d6 (Agent A가 이미 등록함)
     등록 전 DID 존재 여부 확인 중 (SAGE Resolve 사용)...
-[PASS] ⚠️  DID 중복 감지! (Early Detection)
+[PASS]   DID 중복 감지! (Early Detection)
     이미 등록된 Agent 정보:
       DID: did:sage:ethereum:2a570e07-784b-4cbc-8b74-d850761551d6
       Name: Agent A - Pre-registered
       Owner: 0x0dB837d92c38B41D6cdf6eEfeA1cd49Ba449D7f7
-    ✅ 사전 체크로 가스비 낭비 방지!
+     사전 체크로 가스비 낭비 방지!
   [Step 9] Agent B 새로운 DID 생성...
 [PASS] 새로운 DID 생성 완료
     Agent B 새 DID: did:sage:ethereum:a5827238-cc46-4e17-86ad-21cdcdaeaaf1
@@ -331,36 +331,36 @@ SAGE_INTEGRATION_TEST=1 go test -v github.com/sage-x-project/sage/pkg/agent/did/
 **시나리오 A (Contract-level)**:
 - 테스트 파일: `pkg/agent/did/ethereum/duplicate_detection_test.go`
 - 테스트 데이터: `pkg/agent/did/ethereum/testdata/verification/did/did_duplicate_detection.json`
-- 상태: ✅ PASS (통합 테스트)
+- 상태:  PASS (통합 테스트)
 - **사용된 SAGE 함수**:
   - `GenerateDID(chain, identifier)` - DID 생성
   - `EthereumClientV4.Register(ctx, req)` - DID 등록
   - `EthereumClientV4.Resolve(ctx, did)` - 블록체인 RPC 조회
 - **검증 항목**:
-  - ✅ 블록체인 RPC 연동: http://localhost:8545
-  - ✅ 컨트랙트 주소: 0x5FbDB2315678afecb367f032d93F642f64180aa3
-  - ✅ 첫 번째 등록: 성공
-  - ✅ 두 번째 등록 (중복): 블록체인 revert 에러 발생
-  - ✅ 에러 메시지: "DID already registered"
-  - ✅ 중복 등록 방지 확인
+  -  블록체인 RPC 연동: http://localhost:8545
+  -  컨트랙트 주소: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+  -  첫 번째 등록: 성공
+  -  두 번째 등록 (중복): 블록체인 revert 에러 발생
+  -  에러 메시지: "DID already registered"
+  -  중복 등록 방지 확인
 
 **시나리오 B (Early Detection)**:
 - 테스트 파일: `pkg/agent/did/ethereum/pre_registration_check_test.go`
 - 테스트 데이터: `pkg/agent/did/ethereum/testdata/verification/did/did_pre_registration_check.json`
-- 상태: ✅ PASS (통합 테스트)
+- 상태:  PASS (통합 테스트)
 - **사용된 SAGE 함수**:
   - `GenerateDID(chain, identifier)` - DID 생성
   - `EthereumClientV4.Resolve(ctx, did)` - 등록 전 존재 여부 확인
   - `EthereumClientV4.Register(ctx, req)` - DID 등록
 - **검증 항목**:
-  - ✅ 블록체인 RPC 연동: http://localhost:8545
-  - ✅ 컨트랙트 주소: 0x5FbDB2315678afecb367f032d93F642f64180aa3
-  - ✅ Agent A 등록: 성공 (Block 5)
-  - ✅ Agent B 사전 체크: DID 중복 감지 (Resolve 사용)
-  - ✅ Agent B 새 DID 생성: 중복 없음 확인
-  - ✅ Agent B 등록: 성공 (Block 7)
-  - ✅ 가스비 절약: 등록 트랜잭션 전에 중복 발견
-  - ✅ 두 Agent 모두 블록체인에 정상 등록
+  -  블록체인 RPC 연동: http://localhost:8545
+  -  컨트랙트 주소: 0x5FbDB2315678afecb367f032d93F642f64180aa3
+  -  Agent A 등록: 성공 (Block 5)
+  -  Agent B 사전 체크: DID 중복 감지 (Resolve 사용)
+  -  Agent B 새 DID 생성: 중복 없음 확인
+  -  Agent B 등록: 성공 (Block 7)
+  -  가스비 절약: 등록 트랜잭션 전에 중복 발견
+  -  두 Agent 모두 블록체인에 정상 등록
 
 ---
 
@@ -388,16 +388,16 @@ go test -v github.com/sage-x-project/sage/pkg/agent/did -run 'TestParseDID'
 
 **통과 기준**:
 
-- ✅ DID 파싱 성공 (SAGE ParseDID 사용)
-- ✅ Method = "sage"
-- ✅ Network = "ethereum" 또는 "solana"
-- ✅ ID 추출 성공
-- ✅ Ethereum 별칭 지원 (eth/ethereum)
-- ✅ Solana 별칭 지원 (sol/solana)
-- ✅ 복잡한 식별자 지원 (콜론 포함)
-- ✅ 잘못된 형식 거부 (너무 짧음)
-- ✅ 잘못된 prefix 거부 (did:가 아닌 경우)
-- ✅ 지원하지 않는 체인 거부
+-  DID 파싱 성공 (SAGE ParseDID 사용)
+-  Method = "sage"
+-  Network = "ethereum" 또는 "solana"
+-  ID 추출 성공
+-  Ethereum 별칭 지원 (eth/ethereum)
+-  Solana 별칭 지원 (sol/solana)
+-  복잡한 식별자 지원 (콜론 포함)
+-  잘못된 형식 거부 (너무 짧음)
+-  잘못된 prefix 거부 (did:가 아닌 경우)
+-  지원하지 않는 체인 거부
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -437,17 +437,17 @@ ok  	github.com/sage-x-project/sage/pkg/agent/did	0.362s
 
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/did/manager_test.go:140-221`
-- 상태: ✅ PASS (단위 테스트)
+- 상태:  PASS (단위 테스트)
 - **사용된 SAGE 함수**:
   - `ParseDID(did)` - DID 파싱 및 체인/식별자 추출
 - **검증 항목**:
-  - ✅ 8개 테스트 케이스 모두 통과
-  - ✅ Ethereum 체인 파싱 (full name + alias)
-  - ✅ Solana 체인 파싱 (full name + alias)
-  - ✅ 복잡한 식별자 지원 (콜론 포함)
-  - ✅ 잘못된 형식 에러 처리 (3가지 경우)
-  - ✅ 체인 정보 정확히 추출
-  - ✅ 식별자 정확히 추출
+  -  8개 테스트 케이스 모두 통과
+  -  Ethereum 체인 파싱 (full name + alias)
+  -  Solana 체인 파싱 (full name + alias)
+  -  복잡한 식별자 지원 (콜론 포함)
+  -  잘못된 형식 에러 처리 (3가지 경우)
+  -  체인 정보 정확히 추출
+  -  식별자 정확히 추출
 
 ---
 
@@ -462,9 +462,9 @@ ok  	github.com/sage-x-project/sage/pkg/agent/did	0.362s
 **참고**: 이 항목은 3.1.1.2 테스트에서 이미 검증되었습니다.
 
 **검증 내용**:
-- ✅ V4 컨트랙트 배포 확인 (Hardhat 로컬 네트워크)
-- ✅ 컨트랙트 주소: `0x5FbDB2315678afecb367f032d93F642f64180aa3`
-- ✅ DID 등록 트랜잭션 성공
+-  V4 컨트랙트 배포 확인 (Hardhat 로컬 네트워크)
+-  컨트랙트 주소: `0x5FbDB2315678afecb367f032d93F642f64180aa3`
+-  DID 등록 트랜잭션 성공
 
 **테스트 참조**: 3.1.1.2 TestDIDPreRegistrationCheck
 
@@ -507,11 +507,11 @@ anvil --port 8545
 
 **통과 기준**:
 
-- ✅ 트랜잭션 해시 반환
-- ✅ 형식: 0x + 64 hex
-- ✅ Receipt 확인
-- ✅ Status = success
-- ✅ ETH 전송 패턴 검증 (Hardhat account #0 → Test key)
+-  트랜잭션 해시 반환
+-  형식: 0x + 64 hex
+-  Receipt 확인
+-  Status = success
+-  ETH 전송 패턴 검증 (Hardhat account #0 → Test key)
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -523,20 +523,20 @@ anvil --port 8545
 
 ```
 Agent A 등록:
-  ✓ ETH 전송 (Hardhat account #0 → Agent A)
+   ETH 전송 (Hardhat account #0 → Agent A)
     Transaction Hash: 0x3a36956784abc38118eb14fec2e83cf4fd805ecfbe9ffab43b8a353f1f2323c5
     Gas Used: 21000
-  ✓ DID 등록 성공
+   DID 등록 성공
     DID: did:sage:ethereum:2a570e07-784b-4cbc-8b74-d850761551d6
     Transaction Hash: 0xc4e239d0890a685b38cf70bf63522d1d2eade59503fcc6f1551b1dda665e7293
     Block Number: 5
     Name: Agent A - Pre-registered
 
 Agent B 등록:
-  ✓ ETH 전송 (Hardhat account #0 → Agent B)
+   ETH 전송 (Hardhat account #0 → Agent B)
     Transaction Hash: 0x4719d583a692db4a9747a792161bd90ee7898630fa5ebc2a398c60b0ce807797
     Gas Used: 21000
-  ✓ DID 등록 성공
+   DID 등록 성공
     DID: did:sage:ethereum:a5827238-cc46-4e17-86ad-21cdcdaeaaf1
     Transaction Hash: 0xa644ac9b8e76a382ee37777d23ebdf495a35eecb2404591e43f676700d677222
     Block Number: 7
@@ -544,11 +544,11 @@ Agent B 등록:
 ```
 
 **3.2.1 검증 항목 확인**:
-- ✅ 트랜잭션 해시 반환: 0x + 64 hex digits
-- ✅ 블록 번호 > 0 확인 (Block 5, Block 7)
-- ✅ Hardhat 계정 #0 → 새 키로 ETH 전송 확인 (Gas: 21000)
-- ✅ 새 키로 DID 등록 트랜잭션 전송 확인
-- ✅ DID 조회 성공 (Resolve 확인)
+-  트랜잭션 해시 반환: 0x + 64 hex digits
+-  블록 번호 > 0 확인 (Block 5, Block 7)
+-  Hardhat 계정 #0 → 새 키로 ETH 전송 확인 (Gas: 21000)
+-  새 키로 DID 등록 트랜잭션 전송 확인
+-  DID 조회 성공 (Resolve 확인)
 
 ##### V2 컨트랙트 (SageRegistryV2)
 
@@ -570,7 +570,7 @@ V4 컨트랙트는 Multi-key 지원 버전이며, 3.1.1.2 테스트에서 검증
 - V4 테스트 파일: `pkg/agent/did/ethereum/clientv4_test.go:1214-1374`
 - 컨트랙트 주소 (V2): `0x5FbDB2315678afecb367f032d93F642f64180aa3`
 - 컨트랙트 주소 (V4): `0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9`
-- 상태: ✅ PASS (V2), ✅ PASS (V4)
+- 상태:  PASS (V2),  PASS (V4)
 - ETH 전송 헬퍼: `transferETHForV2()`, `transferETH()`
 
 ---
@@ -593,10 +593,10 @@ V4 컨트랙트는 Multi-key 지원 버전이며, 3.1.1.2 테스트에서 검증
 
 **통과 기준**:
 
-- ✅ 가스 사용량 측정 성공
-- ✅ V2: 50,000 ~ 800,000 gas 범위
-- ✅ V4: 100,000 ~ 1,000,000 gas 범위
-- ✅ V4가 V2보다 높음 (multi-key 지원으로 인한 차이)
+-  가스 사용량 측정 성공
+-  V2: 50,000 ~ 800,000 gas 범위
+-  V4: 100,000 ~ 1,000,000 gas 범위
+-  V4가 V2보다 높음 (multi-key 지원으로 인한 차이)
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -620,7 +620,7 @@ V4 컨트랙트는 Multi-key 지원 버전이며, 3.1.1.2 테스트에서 검증
 **검증 데이터**:
 - 테스트에서 gas 검증 로직 포함
 - Gas 범위 체크: `regResult.GasUsed` 검증
-- 상태: ✅ PASS (V2), ✅ PASS (V4)
+- 상태:  PASS (V2),  PASS (V4)
 
 ---
 
@@ -641,16 +641,16 @@ V4 컨트랙트는 Multi-key 지원 버전이며, 3.1.1.2 테스트에서 검증
 
 **통과 기준**:
 
-- ✅ 공개키 조회 성공
-- ✅ 메타데이터 정확
-- ✅ Active 상태 = true
-- ✅ 등록 데이터와 일치
+-  공개키 조회 성공
+-  메타데이터 정확
+-  Active 상태 = true
+-  등록 데이터와 일치
 
 **실제 테스트 결과** (2025-10-23):
 
 ```
 [Step 4] Verifying DID registration...
-✓ DID resolved successfully
+ DID resolved successfully
   DID: did:sage:ethereum:xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx
   Name: Funded Agent Test (또는 V2 Funded Agent Test)
   Owner: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 (Hardhat account #0)
@@ -658,11 +658,11 @@ V4 컨트랙트는 Multi-key 지원 버전이며, 3.1.1.2 테스트에서 검증
   Endpoint: http://localhost:8080
 
 메타데이터 검증:
-  ✓ DID 일치 확인
-  ✓ Name 일치 확인
-  ✓ Active 상태 = true 확인
-  ✓ Owner 주소 확인
-  ✓ Endpoint 확인
+   DID 일치 확인
+   Name 일치 확인
+   Active 상태 = true 확인
+   Owner 주소 확인
+   Endpoint 확인
 ```
 
 **V2 vs V4 비교**:
@@ -677,7 +677,7 @@ V4 컨트랙트는 Multi-key 지원 버전이며, 3.1.1.2 테스트에서 검증
 **검증 데이터**:
 - V2 Resolve: `client.Resolve(ctx, testDID)` - `pkg/agent/did/ethereum/client.go:177-282`
 - V4 Resolve: `client.Resolve(ctx, testDID)` - `pkg/agent/did/ethereum/clientv4.go` (해당 메서드)
-- 상태: ✅ PASS (V2), ✅ PASS (V4)
+- 상태:  PASS (V2),  PASS (V4)
 - 메타데이터 검증: DID, Name, Owner, Active, Endpoint 모두 확인
 
 ---
@@ -723,15 +723,15 @@ npx hardhat run scripts/deploy_v4.js --network localhost
 
 **통과 기준**:
 
-- ✅ DID 생성 (SAGE GenerateDID 사용)
-- ✅ Secp256k1 키페어 생성
-- ✅ Agent 등록 성공
-- ✅ [3.3.1.1] 블록체인에서 DID 조회 성공
-- ✅ [3.3.1.2] DID 문서 파싱 성공 (모든 필드 검증)
-- ✅ [3.3.1.2] AgentMetadata 구조 검증 완료
-- ✅ [3.3.1.3] 공개키 추출 성공
-- ✅ [3.3.1.3] 공개키가 원본과 일치
-- ✅ [3.3.1.3] 공개키 복원 및 Ethereum 주소 검증 완료
+-  DID 생성 (SAGE GenerateDID 사용)
+-  Secp256k1 키페어 생성
+-  Agent 등록 성공
+-  [3.3.1.1] 블록체인에서 DID 조회 성공
+-  [3.3.1.2] DID 문서 파싱 성공 (모든 필드 검증)
+-  [3.3.1.2] AgentMetadata 구조 검증 완료
+-  [3.3.1.3] 공개키 추출 성공
+-  [3.3.1.3] 공개키가 원본과 일치
+-  [3.3.1.3] 공개키 복원 및 Ethereum 주소 검증 완료
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -767,12 +767,12 @@ npx hardhat run scripts/deploy_v4.js --network localhost
 [Step 7] 3.3.1.2 DID 문서 파싱 및 검증...
 [PASS] DID 문서 파싱 완료
   파싱된 필드:
-    ✓ DID: did:sage:ethereum:xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx
-    ✓ Name: DID Resolution Test Agent
-    ✓ IsActive: true
-    ✓ Endpoint: http://localhost:8080/agent
-    ✓ Owner: 0x...
-    ✓ RegisteredAt: 2025-10-24T...
+     DID: did:sage:ethereum:xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx
+     Name: DID Resolution Test Agent
+     IsActive: true
+     Endpoint: http://localhost:8080/agent
+     Owner: 0x...
+     RegisteredAt: 2025-10-24T...
 
 [Step 8] 3.3.1.3 공개키 추출 및 검증...
 [PASS] 공개키 추출 성공
@@ -803,7 +803,7 @@ npx hardhat run scripts/deploy_v4.js --network localhost
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/did/ethereum/resolution_test.go`
 - 테스트 데이터: `testdata/did/did_resolution.json`
-- 상태: ✅ PASS (통합 테스트)
+- 상태:  PASS (통합 테스트)
 - **사용된 SAGE 함수**:
   - `GenerateDID(chain, identifier)` - DID 생성
   - `EthereumClientV4.Register(ctx, req)` - DID 등록
@@ -811,13 +811,13 @@ npx hardhat run scripts/deploy_v4.js --network localhost
   - `MarshalPublicKey(publicKey)` - 공개키 직렬화
   - `UnmarshalPublicKey(data, keyType)` - 공개키 역직렬화
 - **검증 항목**:
-  - ✅ [3.3.1.1] 블록체인 RPC 연동: http://localhost:8545
-  - ✅ [3.3.1.1] Resolve 성공: AgentMetadata 반환
-  - ✅ [3.3.1.2] DID 문서 파싱: 모든 필드 검증 완료
-  - ✅ [3.3.1.2] 메타데이터 필드: DID, Name, IsActive, Endpoint, Owner, RegisteredAt
-  - ✅ [3.3.1.3] 공개키 추출: 64 bytes (Secp256k1 uncompressed)
-  - ✅ [3.3.1.3] 공개키 일치: 원본과 byte-by-byte 비교 성공
-  - ✅ [3.3.1.3] 공개키 복원: Ethereum 주소 검증 완료
+  -  [3.3.1.1] 블록체인 RPC 연동: http://localhost:8545
+  -  [3.3.1.1] Resolve 성공: AgentMetadata 반환
+  -  [3.3.1.2] DID 문서 파싱: 모든 필드 검증 완료
+  -  [3.3.1.2] 메타데이터 필드: DID, Name, IsActive, Endpoint, Owner, RegisteredAt
+  -  [3.3.1.3] 공개키 추출: 64 bytes (Secp256k1 uncompressed)
+  -  [3.3.1.3] 공개키 일치: 원본과 byte-by-byte 비교 성공
+  -  [3.3.1.3] 공개키 복원: Ethereum 주소 검증 완료
 
 ---
 
@@ -826,9 +826,9 @@ npx hardhat run scripts/deploy_v4.js --network localhost
 **시험항목**: DID 메타데이터 조회 성능 측정
 
 **검증 내용**:
-- ✅ Resolve 호출 시간 측정
-- ✅ 블록체인 RPC 응답 시간 확인
-- ✅ 로컬 네트워크 환경에서 < 1초 이내 응답
+-  Resolve 호출 시간 측정
+-  블록체인 RPC 응답 시간 확인
+-  로컬 네트워크 환경에서 < 1초 이내 응답
 
 **참고**: 3.3.1.1 TestDIDResolution에서 Resolve 성공 검증 완료. 구체적인 조회 시간 측정은 성능 테스트에서 별도 수행.
 
@@ -841,9 +841,9 @@ npx hardhat run scripts/deploy_v4.js --network localhost
 **시험항목**: 비활성화된 DID 조회 시 상태 확인
 
 **검증 내용**:
-- ✅ Deactivate 후 Resolve 호출
-- ✅ IsActive = false 확인
-- ✅ 메타데이터는 여전히 조회 가능
+-  Deactivate 후 Resolve 호출
+-  IsActive = false 확인
+-  메타데이터는 여전히 조회 가능
 
 **테스트 참조**: 3.4.2 TestDIDDeactivation
 
@@ -873,18 +873,18 @@ SAGE_INTEGRATION_TEST=1 go test -v github.com/sage-x-project/sage/pkg/agent/did/
 
 **통과 기준**:
 
-- ✅ 엔드포인트 변경 성공
-- ✅ Name, Description 업데이트 성공
-- ✅ 조회 시 반영 확인
-- ✅ 메타데이터 일치
-- ✅ KeyPair 서명 검증
+-  엔드포인트 변경 성공
+-  Name, Description 업데이트 성공
+-  조회 시 반영 확인
+-  메타데이터 일치
+-  KeyPair 서명 검증
 
 **실제 테스트 결과** (2025-10-24):
 
 ```
 === RUN   TestV2RegistrationWithUpdate
     client_test.go:377: === V2 Contract Registration and Update Test ===
-    client_test.go:416: ✓ Agent key generated and funded with 5 ETH
+    client_test.go:416:  Agent key generated and funded with 5 ETH
     client_test.go:431: Registering agent: did:sage:ethereum:54c1883f-cd66-442c-985f-98461b7f41d6
     client_test.go:434: Failed to register: failed to get provider for ethereum: chain provider not found
 --- FAIL: TestV2RegistrationWithUpdate (0.01s)
@@ -908,7 +908,7 @@ if err != nil {
 - 테스트 파일: `pkg/agent/did/ethereum/client_test.go:371-482`
 - Update 메서드: `client.Update(ctx, testDID, updates, agentKeyPair)`
 - 업데이트 필드: name, description, endpoint
-- 상태: ❌ **FAIL** - chain provider not found
+- 상태:  **FAIL** - chain provider not found
 - 등록 단계에서 실패하여 업데이트 테스트 불가
 
 **V2 Deprecated 상태**:
@@ -925,9 +925,9 @@ V2 컨트랙트는 **deprecated**되었으며, 다음과 같은 이유로 더 �
 **마이그레이션 계획 완료** (2025-10-24):
 
 V2 대신 **V4 Update 기능 구현**으로 대체:
-- ✅ V4 컨트랙트에 `updateAgent` 함수 존재 (contracts/ethereum/contracts/SageRegistryV4.sol:225-264)
-- ✅ Go 클라이언트에 `Update` 메서드 구현 완료 (pkg/agent/did/ethereum/clientv4.go:481-594)
-- ✅ TestV4Update 작성 완료 (pkg/agent/did/ethereum/update_test.go)
+-  V4 컨트랙트에 `updateAgent` 함수 존재 (contracts/ethereum/contracts/SageRegistryV4.sol:225-264)
+-  Go 클라이언트에 `Update` 메서드 구현 완료 (pkg/agent/did/ethereum/clientv4.go:481-594)
+-  TestV4Update 작성 완료 (pkg/agent/did/ethereum/update_test.go)
   - 3.4.1.1 메타데이터 업데이트 검증
   - 3.4.1.2 엔드포인트 변경 검증
   - 3.4.1.3 UpdatedAt 타임스탬프 검증
@@ -936,16 +936,16 @@ V2 대신 **V4 Update 기능 구현**으로 대체:
 **구현 세부사항**:
 - agentId 계산: `keccak256(abi.encode(did, firstKeyData))` (Deactivate와 동일한 방식)
 - 서명 생성: `keccak256(abi.encode(agentId, name, description, endpoint, capabilities, msg.sender, nonce))`
-- **Nonce 관리**: ✅ 완료 (2025-10-24)
+- **Nonce 관리**:  완료 (2025-10-24)
   - V4.1 컨트랙트에 `getNonce(bytes32 agentId)` view 함수 추가
   - Go 클라이언트가 contract.GetNonce()로 현재 nonce 조회
   - 여러 번 업데이트 지원 (nonce 자동 증가)
   - 하위 호환성: getNonce가 없는 구버전 컨트랙트는 nonce=0 폴백
 
 **참고**:
-- ❌ V2 테스트: Deprecated - 더 이상 지원하지 않음 (client.go, client_test.go에 deprecated 마크 추가됨)
-- ✅ V4 사용 권장: 모든 새로운 기능은 V4로 구현
-- ✅ V4 Update: 구현 완료 (3.4.1 검증 가능)
+-  V2 테스트: Deprecated - 더 이상 지원하지 않음 (client.go, client_test.go에 deprecated 마크 추가됨)
+-  V4 사용 권장: 모든 새로운 기능은 V4로 구현
+-  V4 Update: 구현 완료 (3.4.1 검증 가능)
 
 ---
 
@@ -964,11 +964,11 @@ SAGE_INTEGRATION_TEST=1 go test -v github.com/sage-x-project/sage/pkg/agent/did/
 ```
 
 **검증 내용**:
-- ✅ endpoint 필드 업데이트 성공 (V4 Update 메서드 사용)
-- ✅ 업데이트 후 Resolve로 변경 확인
-- ✅ 새로운 endpoint 값 검증
-- ✅ 다른 필드 불변성 확인 (name, description 유지)
-- ✅ 여러 번 업데이트 지원 (nonce 자동 관리)
+-  endpoint 필드 업데이트 성공 (V4 Update 메서드 사용)
+-  업데이트 후 Resolve로 변경 확인
+-  새로운 endpoint 값 검증
+-  다른 필드 불변성 확인 (name, description 유지)
+-  여러 번 업데이트 지원 (nonce 자동 관리)
   - 총 4번의 연속 업데이트 테스트
   - 각 업데이트마다 nonce 자동 증가
   - 서명 검증 성공
@@ -978,7 +978,7 @@ SAGE_INTEGRATION_TEST=1 go test -v github.com/sage-x-project/sage/pkg/agent/did/
 - V4 Update 메서드는 부분 업데이트를 지원합니다 (변경하지 않을 필드는 기존 값 유지)
 
 **테스트 참조**: TestV4Update (pkg/agent/did/ethereum/update_test.go)
-**상태**: ✅ **구현 완료** - 테스트 파일 작성 완료
+**상태**:  **구현 완료** - 테스트 파일 작성 완료
 
 ---
 
@@ -1021,13 +1021,13 @@ npx hardhat run scripts/deploy_v4.js --network localhost
 
 **통과 기준**:
 
-- ✅ DID 생성 및 등록 성공
-- ✅ 초기 활성 상태 확인 (IsActive = true)
-- ✅ [3.4.2] 비활성화 트랜잭션 성공
-- ✅ [3.4.2] Active 상태 = false
-- ✅ [3.4.2] 상태 변경 확인 (true → false)
-- ✅ [3.4.2] 비활성화된 DID 메타데이터 접근 가능
-- ✅ [3.4.2] 상태 일관성 유지
+-  DID 생성 및 등록 성공
+-  초기 활성 상태 확인 (IsActive = true)
+-  [3.4.2] 비활성화 트랜잭션 성공
+-  [3.4.2] Active 상태 = false
+-  [3.4.2] 상태 변경 확인 (true → false)
+-  [3.4.2] 비활성화된 DID 메타데이터 접근 가능
+-  [3.4.2] 상태 일관성 유지
 
 **실제 테스트 결과** (2025-10-24):
 
@@ -1093,20 +1093,20 @@ npx hardhat run scripts/deploy_v4.js --network localhost
 **검증 데이터**:
 - 테스트 파일: `pkg/agent/did/ethereum/deactivation_test.go`
 - 테스트 데이터: `testdata/did/did_deactivation.json`
-- 상태: ✅ PASS (통합 테스트)
+- 상태:  PASS (통합 테스트)
 - **사용된 SAGE 함수**:
   - `GenerateDID(chain, identifier)` - DID 생성
   - `EthereumClientV4.Register(ctx, req)` - DID 등록
   - `EthereumClientV4.Resolve(ctx, did)` - 상태 조회
   - `EthereumClientV4.Deactivate(ctx, did, keyPair)` - DID 비활성화
 - **검증 항목**:
-  - ✅ [3.4.2] 블록체인 RPC 연동: http://localhost:8545
-  - ✅ [3.4.2] 등록 성공: 초기 IsActive = true
-  - ✅ [3.4.2] Deactivate 트랜잭션: 성공
-  - ✅ [3.4.2] 비활성화 후: IsActive = false
-  - ✅ [3.4.2] 상태 변경: true → false
-  - ✅ [3.4.2] 메타데이터 보존: DID, Name, Endpoint 접근 가능
-  - ✅ [3.4.2] 상태 일관성: 비활성화 전후 메타데이터 일치
+  -  [3.4.2] 블록체인 RPC 연동: http://localhost:8545
+  -  [3.4.2] 등록 성공: 초기 IsActive = true
+  -  [3.4.2] Deactivate 트랜잭션: 성공
+  -  [3.4.2] 비활성화 후: IsActive = false
+  -  [3.4.2] 상태 변경: true → false
+  -  [3.4.2] 메타데이터 보존: DID, Name, Endpoint 접근 가능
+  -  [3.4.2] 상태 일관성: 비활성화 전후 메타데이터 일치
 
 ---
 

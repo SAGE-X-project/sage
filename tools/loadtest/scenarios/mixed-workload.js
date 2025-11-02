@@ -224,7 +224,7 @@ export function handleSummary(data) {
     return true;
   });
 
-  console.log(`\nMixed Workload Test Result: ${passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  console.log(`\nMixed Workload Test Result: ${passed ? ' PASSED' : ' FAILED'}\n`);
 
   // Print workload statistics
   console.log('=== Workload Distribution ===');

@@ -40,7 +40,7 @@ curl -X POST http://localhost:8082/weather-secure \
 # This fails with "Unauthorized" - as it should!
 ```
 
-## 📚 More Examples
+##  More Examples
 
 ### Security Demonstration
 See real attacks and how SAGE stops them:
@@ -92,7 +92,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 3. **Verification** - Tools verify signatures before processing
 4. **Trust** - Only registered agents are accepted
 
-## 📖 Learn More
+##  Learn More
 
 - [Full Documentation](../../../docs/)
 - [RFC-9421 Details](../../../docs/core/rfc9421-en.md)

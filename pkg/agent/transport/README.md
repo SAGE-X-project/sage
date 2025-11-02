@@ -90,25 +90,25 @@ type Response struct {
 ## Available Transports
 
 ### HTTP/HTTPS (REST)
-- **Status:** ✅ Available
+- **Status:**  Available
 - **Package:** `github.com/sage-x-project/sage/pkg/agent/transport/http`
 - **Use Case:** Web-friendly, firewall-friendly, load balancer support
 - **Documentation:** [HTTP Transport README](./http/README.md)
 
 ### gRPC (A2A Protocol)
-- **Status:** 🚧 Planned
+- **Status:**  Planned
 - **Package:** `github.com/sage-x-project/sage/pkg/agent/transport/a2a` (not yet implemented)
 - **Use Case:** High-performance agent-to-agent communication
 - **Documentation:** A2A Protocol specification (coming soon)
 
 ### WebSocket
-- **Status:** ✅ Available
+- **Status:**  Available
 - **Package:** `github.com/sage-x-project/sage/pkg/agent/transport/websocket`
 - **Use Case:** Bidirectional streaming, persistent connections, real-time communication
 - **Documentation:** [WebSocket Transport README](./websocket/README.md)
 
 ### Mock (Testing)
-- **Status:** ✅ Available
+- **Status:**  Available
 - **Package:** `github.com/sage-x-project/sage/pkg/agent/transport`
 - **Use Case:** Unit testing without network
 

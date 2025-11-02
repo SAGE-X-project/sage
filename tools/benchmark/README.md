@@ -450,10 +450,10 @@ The analysis tool generates:
 4. **Comparison**: Performance changes vs. previous run
 
 **Performance Change Indicators:**
-- ✅ Green: Within 10% (acceptable)
-- ⚠️ Yellow: 10-20% degradation (review needed)
-- ❌ Red: >20% degradation (action required)
-- ✨ New: New benchmark added
+-  Green: Within 10% (acceptable)
+-  Yellow: 10-20% degradation (review needed)
+-  Red: >20% degradation (action required)
+-  New: New benchmark added
 
 ## Performance Targets
 

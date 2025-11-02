@@ -62,7 +62,7 @@ func NewSimpleAgent(name, keyDir string) (*SimpleAgent, error) {
 
 // initializeKeys loads existing keys or generates new ones
 func (a *SimpleAgent) initializeKeys() error {
-	fmt.Println("🔑 Initializing cryptographic keys...")
+	fmt.Println(" Initializing cryptographic keys...")
 
 	// ECDSA Key
 	if err := a.loadOrGenerateECDSAKey(); err != nil {
@@ -79,7 +79,7 @@ func (a *SimpleAgent) initializeKeys() error {
 		return fmt.Errorf("X25519 key error: %w", err)
 	}
 
-	fmt.Println("✅ All keys initialized successfully")
+	fmt.Println(" All keys initialized successfully")
 	return nil
 }
 
@@ -93,14 +93,14 @@ func (a *SimpleAgent) loadOrGenerateECDSAKey() error {
 		if block != nil {
 			if key, err := x509.ParseECPrivateKey(block.Bytes); err == nil {
 				a.ECDSAKey = key
-				fmt.Println("  ✓ ECDSA key loaded from file")
+				fmt.Println("   ECDSA key loaded from file")
 				return nil
 			}
 		}
 	}
 
 	// Generate new key
-	fmt.Println("  🔄 Generating new ECDSA key...")
+	fmt.Println("   Generating new ECDSA key...")
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return fmt.Errorf("failed to generate ECDSA key: %w", err)
@@ -122,7 +122,7 @@ func (a *SimpleAgent) loadOrGenerateECDSAKey() error {
 	}
 
 	a.ECDSAKey = key
-	fmt.Println("  ✓ ECDSA key generated and saved")
+	fmt.Println("   ECDSA key generated and saved")
 	return nil
 }
 
@@ -134,13 +134,13 @@ func (a *SimpleAgent) loadOrGenerateEd25519Key() error {
 	if keyData, err := os.ReadFile(keyPath); err == nil {
 		if len(keyData) == ed25519.PrivateKeySize {
 			a.Ed25519Key = ed25519.PrivateKey(keyData)
-			fmt.Println("  ✓ Ed25519 key loaded from file")
+			fmt.Println("   Ed25519 key loaded from file")
 			return nil
 		}
 	}
 
 	// Generate new key
-	fmt.Println("  🔄 Generating new Ed25519 key...")
+	fmt.Println("   Generating new Ed25519 key...")
 	_, key, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return fmt.Errorf("failed to generate Ed25519 key: %w", err)
@@ -152,7 +152,7 @@ func (a *SimpleAgent) loadOrGenerateEd25519Key() error {
 	}
 
 	a.Ed25519Key = key
-	fmt.Println("  ✓ Ed25519 key generated and saved")
+	fmt.Println("   Ed25519 key generated and saved")
 	return nil
 }
 
@@ -164,13 +164,13 @@ func (a *SimpleAgent) loadOrGenerateX25519Key() error {
 	if keyData, err := os.ReadFile(keyPath); err == nil {
 		if len(keyData) == 32 {
 			a.X25519Key = keyData
-			fmt.Println("  ✓ X25519 key loaded from file")
+			fmt.Println("   X25519 key loaded from file")
 			return nil
 		}
 	}
 
 	// Generate new key
-	fmt.Println("  🔄 Generating new X25519 key...")
+	fmt.Println("   Generating new X25519 key...")
 	key := make([]byte, 32)
 	if _, err := rand.Read(key); err != nil {
 		return fmt.Errorf("failed to generate X25519 key: %w", err)
@@ -182,7 +182,7 @@ func (a *SimpleAgent) loadOrGenerateX25519Key() error {
 	}
 
 	a.X25519Key = key
-	fmt.Println("  ✓ X25519 key generated and saved")
+	fmt.Println("   X25519 key generated and saved")
 	return nil
 }
 
@@ -240,7 +240,7 @@ func (a *SimpleAgent) PrintInfo() {
 
 // DemoSigning demonstrates message signing and verification
 func (a *SimpleAgent) DemoSigning() {
-	fmt.Println("🔐 Testing Message Signing")
+	fmt.Println(" Testing Message Signing")
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	message := []byte("Hello, SAGE World!")
@@ -255,9 +255,9 @@ func (a *SimpleAgent) DemoSigning() {
 	fmt.Printf("Verification: %t\n", valid)
 
 	if valid {
-		fmt.Println("✅ Message signing and verification successful!")
+		fmt.Println(" Message signing and verification successful!")
 	} else {
-		fmt.Println("❌ Message verification failed!")
+		fmt.Println(" Message verification failed!")
 	}
 	fmt.Println()
 }
@@ -272,17 +272,17 @@ func main() {
 	agentName := "simple-agent"
 	keyDir := "./keys"
 
-	fmt.Println("📋 Configuration")
+	fmt.Println(" Configuration")
 	fmt.Println("─────────────────────────────────────────────────────────")
 	fmt.Printf("Agent Name:      %s\n", agentName)
 	fmt.Printf("Key Directory:   %s\n", keyDir)
 	fmt.Println()
 
 	// Create agent
-	fmt.Println("🤖 Creating Agent...")
+	fmt.Println(" Creating Agent...")
 	agent, err := NewSimpleAgent(agentName, keyDir)
 	if err != nil {
-		fmt.Printf("❌ Failed to create agent: %v\n", err)
+		fmt.Printf(" Failed to create agent: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -293,7 +293,7 @@ func main() {
 	agent.DemoSigning()
 
 	// Show key files
-	fmt.Println("📁 Key Files")
+	fmt.Println(" Key Files")
 	fmt.Println("─────────────────────────────────────────────────────────")
 	files, err := os.ReadDir(keyDir)
 	if err != nil {
@@ -312,13 +312,13 @@ func main() {
 	fmt.Println("║                    Initialization Complete!               ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")
 	fmt.Println()
-	fmt.Println("🎉 Your agent is ready!")
+	fmt.Println(" Your agent is ready!")
 	fmt.Println()
 	fmt.Println("Key management features:")
-	fmt.Println("  ✓ Automatic key detection")
-	fmt.Println("  ✓ Key generation when needed")
-	fmt.Println("  ✓ Persistent key storage")
-	fmt.Println("  ✓ Message signing capability")
+	fmt.Println("   Automatic key detection")
+	fmt.Println("   Key generation when needed")
+	fmt.Println("   Persistent key storage")
+	fmt.Println("   Message signing capability")
 	fmt.Println()
 	fmt.Println("Run this program again to see it load existing keys!")
 	fmt.Println()

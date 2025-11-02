@@ -4,14 +4,14 @@ High-performance Rust client library for SAGE (Secure Agent Guarantee Engine) - 
 
 ## Features
 
-- ✅ **Ed25519 Signatures**: Fast cryptographic signing and verification
-- ✅ **X25519 Key Exchange**: Elliptic curve Diffie-Hellman
-- ✅ **HPKE Encryption**: Hybrid Public Key Encryption for secure sessions
-- ✅ **DID Support**: Decentralized identifiers for agent identity
-- ✅ **Session Management**: Efficient stateful communication
-- ✅ **Async/Await**: Full async support with `tokio`
-- ✅ **Type Safety**: Strong typing with zero-cost abstractions
-- ✅ **Performance**: Optimized for high-throughput applications
+-  **Ed25519 Signatures**: Fast cryptographic signing and verification
+-  **X25519 Key Exchange**: Elliptic curve Diffie-Hellman
+-  **HPKE Encryption**: Hybrid Public Key Encryption for secure sessions
+-  **DID Support**: Decentralized identifiers for agent identity
+-  **Session Management**: Efficient stateful communication
+-  **Async/Await**: Full async support with `tokio`
+-  **Type Safety**: Strong typing with zero-cost abstractions
+-  **Performance**: Optimized for high-throughput applications
 
 ## Installation
 
@@ -309,20 +309,20 @@ rustup update stable
 
 **Solutions:**
 ```rust
-// ❌ BAD - Nested runtime
+//  BAD - Nested runtime
 #[tokio::main]
 async fn main() {
     tokio::runtime::Runtime::new().unwrap(); // Error!
 }
 
-// ✅ GOOD - Use existing runtime
+//  GOOD - Use existing runtime
 #[tokio::main]
 async fn main() {
     let config = ClientConfig::new("http://localhost:8080");
     let mut client = Client::new(config).await.unwrap();
 }
 
-// ✅ GOOD - Spawn blocking tasks correctly
+//  GOOD - Spawn blocking tasks correctly
 use tokio::task;
 
 async fn blocking_operation() {
@@ -338,18 +338,18 @@ async fn blocking_operation() {
 
 **Solutions:**
 ```rust
-// ❌ BAD - Temporary value dropped
+//  BAD - Temporary value dropped
 let session_id = client.handshake(&server_did).await?;
 let message = b"Hello";
 client.send_message(&session_id, message).await?;  // May cause lifetime issues
 
-// ✅ GOOD - Proper ownership
+//  GOOD - Proper ownership
 let server_did = "did:sage:ethereum:0xServer".to_string();
 let session_id = client.handshake(&server_did).await?;
 let message = b"Hello".to_vec();
 client.send_message(&session_id, &message).await?;
 
-// ✅ GOOD - Use references correctly
+//  GOOD - Use references correctly
 async fn send_secure_message(
     client: &mut Client,
     session_id: &str,
@@ -369,7 +369,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-// ✅ Session pool with automatic renewal
+//  Session pool with automatic renewal
 pub struct SessionPool {
     client: Arc<RwLock<Client>>,
     sessions: Arc<RwLock<HashMap<String, String>>>,
@@ -509,13 +509,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 #### 1. Never Expose Private Keys
 
 ```rust
-// ❌ BAD - Logging private keys
+//  BAD - Logging private keys
 println!("Private key: {:?}", private_key);
 
-// ❌ BAD - Storing in plain text
+//  BAD - Storing in plain text
 std::fs::write("key.txt", private_key)?;
 
-// ✅ GOOD - Use secure storage
+//  GOOD - Use secure storage
 use keyring::Entry;
 
 let entry = Entry::new("sage-client", "identity-key")?;
@@ -525,7 +525,7 @@ entry.set_password(&hex::encode(private_key))?;
 let private_key_hex = entry.get_password()?;
 let private_key = hex::decode(private_key_hex)?;
 
-// ✅ GOOD - Use environment variables
+//  GOOD - Use environment variables
 let private_key_hex = std::env::var("SAGE_PRIVATE_KEY")
     .expect("SAGE_PRIVATE_KEY not set");
 ```
@@ -535,7 +535,7 @@ let private_key_hex = std::env::var("SAGE_PRIVATE_KEY")
 ```rust
 use regex::Regex;
 
-// ✅ Validate DIDs
+//  Validate DIDs
 fn validate_did(did: &str) -> Result<(), String> {
     let did_regex = Regex::new(r"^did:sage:(ethereum|solana):0x[a-fA-F0-9]{40}$")
         .unwrap();
@@ -547,7 +547,7 @@ fn validate_did(did: &str) -> Result<(), String> {
     Ok(())
 }
 
-// ✅ Validate message size
+//  Validate message size
 const MAX_MESSAGE_SIZE: usize = 1024 * 1024; // 1MB
 
 pub async fn send_message(
@@ -572,7 +572,7 @@ pub async fn send_message(
 ```rust
 use thiserror::Error;
 
-// ✅ Custom error types
+//  Custom error types
 #[derive(Error, Debug)]
 pub enum SageError {
     #[error("Network error: {0}")]
@@ -610,7 +610,7 @@ async fn send_secure_message(
 #### 4. Use Type Safety
 
 ```rust
-// ✅ Newtype pattern for IDs
+//  Newtype pattern for IDs
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SessionId(String);
 
@@ -653,14 +653,14 @@ async fn send_message(
 #### 1. Reuse Connections and Sessions
 
 ```rust
-// ❌ BAD - New client for each request
+//  BAD - New client for each request
 for target_did in target_dids {
     let client = Client::new(config.clone()).await?;
     let session_id = client.handshake(target_did).await?;
     client.send_message(&session_id, message).await?;
 }
 
-// ✅ GOOD - Reuse client and sessions
+//  GOOD - Reuse client and sessions
 let mut client = Client::new(config).await?;
 let session_id = client.handshake(server_did).await?;
 
@@ -668,7 +668,7 @@ for message in messages {
     client.send_message(&session_id, message).await?;
 }
 
-// ✅ BETTER - Connection pool with session caching
+//  BETTER - Connection pool with session caching
 use deadpool::managed::{Manager, Pool};
 
 struct ClientManager {
@@ -695,7 +695,7 @@ impl Manager for ClientManager {
 ```rust
 use futures::future::join_all;
 
-// ✅ Send messages in parallel
+//  Send messages in parallel
 pub async fn broadcast_message(
     client: &mut Client,
     target_dids: Vec<String>,
@@ -726,7 +726,7 @@ pub async fn broadcast_message(
 #### 3. Optimize Memory Usage
 
 ```rust
-// ✅ Use iterators to avoid allocations
+//  Use iterators to avoid allocations
 pub async fn send_large_file(
     client: &mut Client,
     session_id: &str,
@@ -749,7 +749,7 @@ pub async fn send_large_file(
     Ok(())
 }
 
-// ✅ Use zero-copy where possible
+//  Use zero-copy where possible
 use bytes::Bytes;
 
 pub async fn send_bytes(
@@ -781,17 +781,17 @@ opt-level = 3
 #### 1. Avoid Blocking the Executor
 
 ```rust
-// ❌ BAD - Blocking in async context
+//  BAD - Blocking in async context
 async fn bad_example() {
     std::thread::sleep(std::time::Duration::from_secs(1));  // Blocks executor!
 }
 
-// ✅ GOOD - Use async sleep
+//  GOOD - Use async sleep
 async fn good_example() {
     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 }
 
-// ✅ GOOD - Use spawn_blocking for CPU-intensive work
+//  GOOD - Use spawn_blocking for CPU-intensive work
 use tokio::task;
 
 async fn cpu_intensive_work(data: Vec<u8>) -> Vec<u8> {
@@ -807,7 +807,7 @@ async fn cpu_intensive_work(data: Vec<u8>) -> Vec<u8> {
 ```rust
 use tokio::task::JoinHandle;
 
-// ✅ Spawn tasks correctly
+//  Spawn tasks correctly
 pub async fn spawn_agents(
     client_configs: Vec<ClientConfig>
 ) -> Vec<JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>>> {
@@ -1123,4 +1123,4 @@ open target/doc/sage_client/index.html
 
 ---
 
-**Built with ⚡ by the SAGE Team**
+**Built with  by the SAGE Team**

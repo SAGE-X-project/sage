@@ -65,7 +65,7 @@ const NETWORK_NAME_MAP = {
 };
 
 async function main() {
-  console.log("\n🚀 AgentCard Multi-Chain Deployment");
+  console.log("\n AgentCard Multi-Chain Deployment");
   console.log("=".repeat(80));
 
   // Get network info
@@ -73,55 +73,55 @@ async function main() {
   const networkName = hre.network.name || "localhost";
   const deploymentNetworkName = NETWORK_NAME_MAP[networkName] || networkName;
 
-  console.log(`📍 Network: ${networkName} (Chain ID: ${networkInfo.chainId})`);
-  console.log(`📝 Deployment ID: ${deploymentNetworkName}`);
+  console.log(` Network: ${networkName} (Chain ID: ${networkInfo.chainId})`);
+  console.log(` Deployment ID: ${deploymentNetworkName}`);
 
   // Get deployer account
   const [deployer] = await ethers.getSigners();
-  console.log(`👤 Deployer: ${deployer.address}`);
+  console.log(` Deployer: ${deployer.address}`);
 
   const balance = await ethers.provider.getBalance(deployer.address);
-  console.log(`💰 Balance: ${ethers.formatEther(balance)} ETH`);
+  console.log(` Balance: ${ethers.formatEther(balance)} ETH`);
 
   if (balance === 0n) {
-    console.error("\n❌ Error: Deployer has no balance!");
+    console.error("\n Error: Deployer has no balance!");
     process.exit(1);
   }
 
   console.log("=".repeat(80));
 
   // Deploy AgentCardVerifyHook first (required for Registry constructor)
-  console.log("\n📦 [1/2] Deploying AgentCardVerifyHook...");
+  console.log("\n [1/2] Deploying AgentCardVerifyHook...");
   const AgentCardVerifyHook = await ethers.getContractFactory("AgentCardVerifyHook");
   const hook = await AgentCardVerifyHook.deploy();
   await hook.waitForDeployment();
   const hookAddress = await hook.getAddress();
 
-  console.log(`   ✅ AgentCardVerifyHook: ${hookAddress}`);
+  console.log(`    AgentCardVerifyHook: ${hookAddress}`);
 
   const hookDeployTx = hook.deploymentTransaction();
   const hookReceipt = await hookDeployTx.wait();
-  console.log(`   📊 Gas used: ${hookReceipt.gasUsed.toString()}`);
-  console.log(`   🔗 Block: ${hookReceipt.blockNumber}`);
-  console.log(`   📜 Tx: ${hookReceipt.hash}`);
+  console.log(`    Gas used: ${hookReceipt.gasUsed.toString()}`);
+  console.log(`    Block: ${hookReceipt.blockNumber}`);
+  console.log(`    Tx: ${hookReceipt.hash}`);
 
   // Deploy AgentCardRegistry with hook address
-  console.log("\n📦 [2/2] Deploying AgentCardRegistry...");
+  console.log("\n [2/2] Deploying AgentCardRegistry...");
   const AgentCardRegistry = await ethers.getContractFactory("AgentCardRegistry");
   const registry = await AgentCardRegistry.deploy(hookAddress);
   await registry.waitForDeployment();
   const registryAddress = await registry.getAddress();
 
-  console.log(`   ✅ AgentCardRegistry: ${registryAddress}`);
+  console.log(`    AgentCardRegistry: ${registryAddress}`);
 
   // Get deployment transaction info
   const registryDeployTx = registry.deploymentTransaction();
   const registryReceipt = await registryDeployTx.wait();
-  console.log(`   📊 Gas used: ${registryReceipt.gasUsed.toString()}`);
-  console.log(`   🔗 Block: ${registryReceipt.blockNumber}`);
-  console.log(`   📜 Tx: ${registryReceipt.hash}`);
+  console.log(`    Gas used: ${registryReceipt.gasUsed.toString()}`);
+  console.log(`    Block: ${registryReceipt.blockNumber}`);
+  console.log(`    Tx: ${registryReceipt.hash}`);
 
-  console.log("\n✅ Hook configured in constructor");
+  console.log("\n Hook configured in constructor");
 
   // Prepare deployment info
   const timestamp = Date.now();
@@ -173,32 +173,32 @@ async function main() {
   const fileName = `${deploymentNetworkName}-agentcard-${timestamp}.json`;
   const filePath = path.join(deploymentPath, fileName);
   fs.writeFileSync(filePath, JSON.stringify(deploymentInfo, null, 2));
-  console.log(`\n💾 Deployment info saved: deployments/${fileName}`);
+  console.log(`\n Deployment info saved: deployments/${fileName}`);
 
   // Save latest deployment file
   const latestFileName = `${deploymentNetworkName}-latest.json`;
   const latestFilePath = path.join(deploymentPath, latestFileName);
   fs.writeFileSync(latestFilePath, JSON.stringify(deploymentInfo, null, 2));
-  console.log(`💾 Latest deployment: deployments/${latestFileName}`);
+  console.log(` Latest deployment: deployments/${latestFileName}`);
 
   // Print summary
   console.log("\n" + "=".repeat(80));
-  console.log("✅ Deployment Complete!");
+  console.log(" Deployment Complete!");
   console.log("=".repeat(80));
-  console.log("\n📋 Summary:");
+  console.log("\n Summary:");
   console.log(`   Network:              ${deploymentNetworkName}`);
   console.log(`   Chain ID:             ${networkInfo.chainId}`);
   console.log(`   AgentCardRegistry:    ${registryAddress}`);
   console.log(`   AgentCardVerifyHook:  ${hookAddress}`);
   console.log(`   Total Gas Used:       ${(registryReceipt.gasUsed + hookReceipt.gasUsed).toString()}`);
 
-  console.log("\n📝 Next Steps:");
+  console.log("\n Next Steps:");
   console.log(`   1. Verify contracts on block explorer`);
   console.log(`   2. Run: npx hardhat run scripts/verify-agentcard.js --network ${networkName}`);
   console.log(`   3. Test agent registration`);
 
   if (networkName !== 'localhost' && networkName !== 'hardhat') {
-    console.log("\n🔍 Block Explorer URLs:");
+    console.log("\n Block Explorer URLs:");
     const explorerUrls = getExplorerUrls(deploymentNetworkName, registryAddress, hookAddress);
     console.log(`   Registry:  ${explorerUrls.registry}`);
     console.log(`   Hook:      ${explorerUrls.hook}`);
@@ -249,7 +249,7 @@ function getExplorerUrls(network, registryAddress, hookAddress) {
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("\n❌ Deployment failed:");
+    console.error("\n Deployment failed:");
     console.error(error);
     process.exit(1);
   });

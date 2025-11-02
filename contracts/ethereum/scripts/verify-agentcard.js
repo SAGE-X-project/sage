@@ -40,18 +40,18 @@ const NETWORK_NAME_MAP = {
 };
 
 async function main() {
-  console.log("\n🔍 AgentCard Contract Verification");
+  console.log("\n AgentCard Contract Verification");
   console.log("=".repeat(80));
 
   const networkName = hre.network.name;
   const deploymentNetworkName = NETWORK_NAME_MAP[networkName] || networkName;
 
-  console.log(`📍 Network: ${networkName}`);
-  console.log(`📝 Deployment ID: ${deploymentNetworkName}`);
+  console.log(` Network: ${networkName}`);
+  console.log(` Deployment ID: ${deploymentNetworkName}`);
 
   // Skip verification for local networks
   if (networkName === 'localhost' || networkName === 'hardhat') {
-    console.log("\n⚠️  Skipping verification for local network");
+    console.log("\n  Skipping verification for local network");
     console.log("   Local networks don't have block explorers");
     process.exit(0);
   }
@@ -62,20 +62,20 @@ async function main() {
   const latestFilePath = path.join(deploymentPath, latestFileName);
 
   if (!fs.existsSync(latestFilePath)) {
-    console.error(`\n❌ Error: Deployment file not found: ${latestFileName}`);
+    console.error(`\n Error: Deployment file not found: ${latestFileName}`);
     console.error("   Please deploy contracts first using:");
     console.error(`   npx hardhat run scripts/deploy-agentcard.js --network ${networkName}`);
     process.exit(1);
   }
 
   const deploymentInfo = JSON.parse(fs.readFileSync(latestFilePath, 'utf8'));
-  console.log(`📂 Loaded deployment from: ${latestFileName}`);
+  console.log(` Loaded deployment from: ${latestFileName}`);
   console.log(`   Deployed at: ${deploymentInfo.deployedAt}`);
 
   console.log("=".repeat(80));
 
   // Verify AgentCardRegistry
-  console.log("\n🔍 [1/2] Verifying AgentCardRegistry...");
+  console.log("\n [1/2] Verifying AgentCardRegistry...");
   const registryAddress = deploymentInfo.contracts.AgentCardRegistry.address;
   const hookAddress = deploymentInfo.contracts.AgentCardVerifyHook.address;
   console.log(`   Address: ${registryAddress}`);
@@ -88,21 +88,21 @@ async function main() {
       contract: "contracts/AgentCardRegistry.sol:AgentCardRegistry"
     });
 
-    console.log("   ✅ AgentCardRegistry verified!");
+    console.log("    AgentCardRegistry verified!");
     deploymentInfo.contracts.AgentCardRegistry.verified = true;
   } catch (error) {
     if (error.message.includes("Already Verified")) {
-      console.log("   ℹ️  Already verified");
+      console.log("   ℹ  Already verified");
       deploymentInfo.contracts.AgentCardRegistry.verified = true;
     } else {
-      console.error("   ❌ Verification failed:");
+      console.error("    Verification failed:");
       console.error("   " + error.message);
       deploymentInfo.contracts.AgentCardRegistry.verificationError = error.message;
     }
   }
 
   // Verify AgentCardVerifyHook
-  console.log("\n🔍 [2/2] Verifying AgentCardVerifyHook...");
+  console.log("\n [2/2] Verifying AgentCardVerifyHook...");
   console.log(`   Address: ${hookAddress}`);
 
   try {
@@ -112,14 +112,14 @@ async function main() {
       contract: "contracts/AgentCardVerifyHook.sol:AgentCardVerifyHook"
     });
 
-    console.log("   ✅ AgentCardVerifyHook verified!");
+    console.log("    AgentCardVerifyHook verified!");
     deploymentInfo.contracts.AgentCardVerifyHook.verified = true;
   } catch (error) {
     if (error.message.includes("Already Verified")) {
-      console.log("   ℹ️  Already verified");
+      console.log("   ℹ  Already verified");
       deploymentInfo.contracts.AgentCardVerifyHook.verified = true;
     } else {
-      console.error("   ❌ Verification failed:");
+      console.error("    Verification failed:");
       console.error("   " + error.message);
       deploymentInfo.contracts.AgentCardVerifyHook.verificationError = error.message;
     }
@@ -138,25 +138,25 @@ async function main() {
 
   // Print summary
   console.log("\n" + "=".repeat(80));
-  console.log("✅ Verification Complete!");
+  console.log(" Verification Complete!");
   console.log("=".repeat(80));
 
   const registryVerified = deploymentInfo.contracts.AgentCardRegistry.verified;
   const hookVerified = deploymentInfo.contracts.AgentCardVerifyHook.verified;
 
-  console.log("\n📋 Summary:");
+  console.log("\n Summary:");
   console.log(`   Network:              ${deploymentNetworkName}`);
-  console.log(`   AgentCardRegistry:    ${registryVerified ? '✅ Verified' : '❌ Failed'}`);
-  console.log(`   AgentCardVerifyHook:  ${hookVerified ? '✅ Verified' : '❌ Failed'}`);
+  console.log(`   AgentCardRegistry:    ${registryVerified ? ' Verified' : ' Failed'}`);
+  console.log(`   AgentCardVerifyHook:  ${hookVerified ? ' Verified' : ' Failed'}`);
 
   if (registryVerified && hookVerified) {
-    console.log("\n🎉 All contracts verified successfully!");
-    console.log("\n🔗 Block Explorer URLs:");
+    console.log("\n All contracts verified successfully!");
+    console.log("\n Block Explorer URLs:");
     const explorerUrls = getExplorerUrls(deploymentNetworkName, registryAddress, hookAddress);
     console.log(`   Registry:  ${explorerUrls.registry}`);
     console.log(`   Hook:      ${explorerUrls.hook}`);
   } else {
-    console.log("\n⚠️  Some contracts failed verification");
+    console.log("\n  Some contracts failed verification");
     console.log("   Check the errors above and ensure:");
     console.log("   - Correct API key is configured in .env");
     console.log("   - Network configuration is correct in hardhat.config.js");
@@ -198,7 +198,7 @@ if (require.main === module) {
   main()
     .then(() => process.exit(0))
     .catch((error) => {
-      console.error("\n❌ Verification failed:");
+      console.error("\n Verification failed:");
       console.error(error);
       process.exit(1);
     });
