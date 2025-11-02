@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.5.2] - 2025-11-02
+
+### Summary
+
+Patch release fixing KME/KEM naming inconsistency and synchronizing HPKE client behavior.
+
+### Fixed
+
+- **KME → KEM Naming Correction**:
+  - Fixed naming typo throughout codebase: KME (Key Management Extension) → KEM (Key Encapsulation Mechanism)
+  - Aligns with RFC 9180 terminology for HPKE implementation
+  - Updated smart contract field: `kmePublicKey` → `kemPublicKey`
+  - Updated getter functions: `getKmePublicKey()` → `getKemPublicKey()`
+  - Updated events: `KmePublicKeyUpdated` → `KemPublicKeyUpdated`
+
+- **HPKE Client Synchronization**:
+  - Synchronized HPKE client with corrected KEM key resolution
+  - Fixed ineffassign lint error in `agentcard_client.go`
+  - Improved error handling in agent ID extraction
+
+### Changed
+
+- **Smart Contract Interface Updates** (14 files changed):
+  - `AgentCardRegistry.sol`: Updated KEM key registration logic
+  - `AgentCardStorage.sol`: Corrected field and function names
+  - Updated ABI JSON with correct naming conventions
+  - Regenerated Go bindings for smart contracts
+
+- **Go Package Updates**:
+  - `pkg/agent/did/ethereum/agentcard_client.go`: Fixed struct fields (119 changes)
+  - `pkg/agent/did/ethereum/client.go`: Updated getter/setter methods (352 changes)
+  - `pkg/agent/did/ethereum/resolver.go`: Updated KEM key resolution (15 changes)
+  - `pkg/agent/hpke/client.go`: Synchronized with resolver (42 changes)
+
+- **Test Files**:
+  - Updated 160+ contract test cases (AgentCardRegistry.test.js)
+  - Updated 70+ storage test cases (AgentCardStorage.test.js)
+  - All 202 tests passing
+
+### Documentation
+
+- Updated `docs/KME_PUBLIC_KEY_INTEGRATION.md` (219 changes)
+  - Corrected all KME → KEM references
+  - Updated code examples
+  - Clarified RFC 9180 terminology
+
+### Impact
+
+- ✅ Improved code clarity and RFC 9180 compliance
+- ✅ Enhanced maintainability with consistent naming
+- ✅ All tests passing (100%)
+
 ## [1.5.1] - 2025-11-02
 
 ### Summary
