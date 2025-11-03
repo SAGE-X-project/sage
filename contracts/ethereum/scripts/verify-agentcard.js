@@ -1,6 +1,11 @@
-const hre = require("hardhat");
-const fs = require("fs");
-const path = require("path");
+import hre from "hardhat";
+import { network } from "hardhat";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * AgentCard Contract Verification Script
@@ -194,14 +199,12 @@ function getExplorerUrls(network, registryAddress, hookAddress) {
 }
 
 // Execute verification
-if (require.main === module) {
-  main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      console.error("\n Verification failed:");
-      console.error(error);
-      process.exit(1);
-    });
-}
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error("\n Verification failed:");
+    console.error(error);
+    process.exit(1);
+  });
 
-module.exports = main;
+export default main;

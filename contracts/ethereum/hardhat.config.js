@@ -1,5 +1,6 @@
 import hardhatEthers from "@nomicfoundation/hardhat-ethers";
 import hardhatToolbox from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
+import "@nomicfoundation/hardhat-verify";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -274,33 +275,39 @@ const solidityConfig = {
 // ETHERSCAN/EXPLORER CONFIGURATION
 // ============================================
 
+// Hardhat v3 Etherscan configuration
+// For multi-network projects, use object format with network-specific keys
 const etherscanConfig = {
   apiKey: {
-    // Ethereum
+    // Ethereum networks - use same Etherscan API key
     mainnet: getEnvVariable("ETHERSCAN_API_KEY", ""),
     sepolia: getEnvVariable("ETHERSCAN_API_KEY", ""),
 
-    // Kaia
+    // Kaia networks
     kairos: getEnvVariable("KAIROS_API_KEY", "unnecessary"),
     kaia: getEnvVariable("KAIA_API_KEY", "unnecessary"),
     cypress: getEnvVariable("KAIA_API_KEY", "unnecessary"),
 
-    // BSC
+    // BSC networks
     bsc: getEnvVariable("BSCSCAN_API_KEY", ""),
     bscTestnet: getEnvVariable("BSCSCAN_API_KEY", ""),
 
-    // Base
+    // Base networks
     base: getEnvVariable("BASESCAN_API_KEY", ""),
     baseSepolia: getEnvVariable("BASESCAN_API_KEY", ""),
 
-    // Arbitrum
+    // Arbitrum networks
+    arbitrumOne: getEnvVariable("ARBISCAN_API_KEY", ""),
     arbitrum: getEnvVariable("ARBISCAN_API_KEY", ""),
     arbitrumSepolia: getEnvVariable("ARBISCAN_API_KEY", ""),
 
-    // Optimism
+    // Optimism networks
     optimism: getEnvVariable("OPTIMISTIC_ETHERSCAN_API_KEY", ""),
+    optimisticEthereum: getEnvVariable("OPTIMISTIC_ETHERSCAN_API_KEY", ""),
     optimismSepolia: getEnvVariable("OPTIMISTIC_ETHERSCAN_API_KEY", "")
   },
+
+  // Custom chains for networks not natively supported
   customChains: [
     {
       network: "kairos",
@@ -380,6 +387,7 @@ const config = {
 
   networks: networks,
 
+  // Etherscan verification configuration (Hardhat v3)
   etherscan: etherscanConfig,
 
   // Sourcify verification support
