@@ -4,7 +4,7 @@
 
 This directory contains the AgentCard smart contracts for SAGE (Secure Agent Guarantee Engine) - a multi-chain EVM implementation for decentralized AI agent identity management with ERC-8004 compliance.
 
-**Current Status**: -  Production Ready - V4.1 (AgentCard Architecture)
+**Current Version**: V4.1 (AgentCard Architecture)
 
 ### Key Features
 
@@ -198,6 +198,28 @@ After successful deployment, you'll see:
 Deployment information is saved in:
 - `deployments/{network}-agentcard-{timestamp}.json` - Timestamped deployment
 - `deployments/{network}-latest.json` - Latest deployment (for verification)
+
+## Deployed Contracts
+
+### Ethereum Sepolia Testnet
+
+#### AgentCard Contracts
+- **AgentCardRegistry**: [`0xC7eCF7Ad6ee71CB0d94f0eb00F46f1DDf432a808`](https://sepolia.etherscan.io/address/0xC7eCF7Ad6ee71CB0d94f0eb00F46f1DDf432a808)
+- **AgentCardVerifyHook**: [`0xf3be150cd4EC0819bef95890DeeE0B71d9C94F6b`](https://sepolia.etherscan.io/address/0xf3be150cd4EC0819bef95890DeeE0B71d9C94F6b)
+
+#### ERC-8004 Standalone Contracts
+- **ERC8004IdentityRegistry**: [`0x5B0763c3649eee889966dF478a73e53Df0420C84`](https://sepolia.etherscan.io/address/0x5B0763c3649eee889966dF478a73e53Df0420C84)
+- **ERC8004ReputationRegistry**: [`0xE953B278fd2378BA4987FE07f71575dd3353C9a8`](https://sepolia.etherscan.io/address/0xE953B278fd2378BA4987FE07f71575dd3353C9a8)
+- **ERC8004ValidationRegistry**: [`0x97291e2D3023d166878ed45BBD176F92E5Fda098`](https://sepolia.etherscan.io/address/0x97291e2D3023d166878ed45BBD176F92E5Fda098)
+
+**Deployment Date**: November 3, 2025
+**Network**: Sepolia Testnet (Chain ID: 11155111)
+**Verification Status**: ✅ All contracts verified on Etherscan and Blockscout
+
+**ERC8004ValidationRegistry Configuration**:
+- Minimum Stake: 0.01 ETH
+- Minimum Validators: 3
+- Consensus Threshold: 66%
 
 ## Project Structure
 
@@ -508,6 +530,5 @@ See [LICENSE](../../LICENSE) for details.
 
 ---
 
-**Last Updated**: 2025-10-26
+**Last Updated**: 2025-11-03
 **Version**: 4.1 (AgentCard Architecture)
-**Status**: -  Production Ready
