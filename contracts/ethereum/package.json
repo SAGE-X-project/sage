@@ -98,7 +98,7 @@
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-typechain": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^3.0.4",
-    "@nomicfoundation/ignition-core": "^3.0.3",
+    "@nomicfoundation/ignition-core": "^3.0.5",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
     "chai": "^5.3.3",
