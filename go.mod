@@ -15,7 +15,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/mr-tron/base58 v1.2.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/test-go/testify v1.1.4
 	golang.org/x/crypto v0.43.0
