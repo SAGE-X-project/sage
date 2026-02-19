@@ -35,8 +35,8 @@ Thank you for your interest in contributing to SAGE (Secure Agent Guarantee Engi
 
 ### Prerequisites
 
-- **Go 1.23.0+**: Required for backend development (see [docs/GO_VERSION_REQUIREMENT.md](docs/GO_VERSION_REQUIREMENT.md))
-- **Node.js 18+**: Required for smart contract development
+- **Go 1.25.2+**: Required for backend development (see [docs/GO_VERSION_REQUIREMENT.md](docs/GO_VERSION_REQUIREMENT.md))
+- **Node.js 22+**: Required for smart contract development
 - **Git**: Version control
 - **Make**: Build automation
 - **Docker** (optional): For containerized development and testing

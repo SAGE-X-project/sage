@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- **Dependabot Alerts Resolved**: Upgraded vulnerable dependencies (jwt, circl, pgx, cobra, crypto, edwards25519, go-ethereum)
+- **Code Scanning Fixes**: Resolved gosec and Slither code scanning configuration errors
+
+### Changed
+
+- **Dependencies (Go)**:
+  - Upgraded `github.com/ethereum/go-ethereum`, `golang.org/x/crypto`, `filippo.io/edwards25519`, `github.com/spf13/cobra`, `github.com/jackc/pgx`, `github.com/cloudflare/circl`, `github.com/golang-jwt/jwt`
+- **Dependencies (npm)**:
+  - Upgraded `@nomicfoundation/hardhat-ignition-ethers` and `@nomicfoundation/hardhat-ignition` to v3.0.5
+  - Upgraded `prettier-plugin-solidity` and Hardhat ecosystem packages
+- **Docker**: Updated base image to `golang:1.25.6-alpine`
+
+### Fixed
+
+- **CI/CD**: Fixed gosec SARIF output configuration and Slither empty SARIF handling
+- **Lint**: Replaced `WriteString(fmt.Sprintf(...))` with `fmt.Fprintf` (QF1012)
+- **Solhint**: Removed `ajv` override that broke solhint compatibility
+
 ## [1.5.2] - 2025-11-02
 
 ### Summary

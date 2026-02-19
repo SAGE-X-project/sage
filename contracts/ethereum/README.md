@@ -12,7 +12,7 @@ This directory contains the AgentCard smart contracts for SAGE (Secure Agent Gua
 - **Multi-Chain Support**: Deployable on 12 EVM-compatible networks
 - **Multi-Key Architecture**: Support for ECDSA, Ed25519, and X25519 keys
 - **Commit-Reveal Pattern**: Front-running protection for agent registration
-- **Comprehensive Testing**: 124 passing tests across 5 test phases
+- **Comprehensive Testing**: 202 passing tests across 6 test phases
 
 ## Architecture
 
@@ -26,6 +26,10 @@ contracts/
 ├── erc-8004/                  # ERC-8004 standard interfaces
 │   └── interfaces/
 │       └── IERC8004IdentityRegistry.sol
+├── governance/                # Governance contracts
+│   ├── SimpleMultiSig.sol     # Multi-signature governance
+│   ├── TimelockController.sol # Time-locked execution
+│   └── TEEKeyRegistry.sol     # TEE key management
 └── deprecated/                # Legacy contracts (DO NOT USE)
 ```
 
@@ -117,7 +121,7 @@ npm run compile
 npm test
 ```
 
-Expected output: **124 passing tests** - 
+Expected output: **202 passing tests** -
 
 ## Deployment
 
@@ -265,7 +269,7 @@ contracts/ethereum/
 
 ```bash
 npm run compile          # Compile contracts
-npm test                 # Run all tests (124 passing)
+npm test                 # Run all tests (202 passing)
 npm run test:kairos      # Run tests on Kairos network
 npm run coverage         # Generate coverage report
 npm run lint             # Lint Solidity code
@@ -340,7 +344,7 @@ npm run clean:deep        # Clean + remove node_modules
 
 ## Test Coverage
 
-### Test Phases (124 Tests Total)
+### Test Phases (202 Tests Total)
 
 | Phase | Test File | Tests | Coverage |
 |-------|-----------|-------|----------|
@@ -349,8 +353,18 @@ npm run clean:deep        # Clean + remove node_modules
 | Phase 3 | AgentCardRegistry.test.js | 47 | Registration, key mgmt, security |
 | Phase 4 | ERC8004InterfaceInRegistry.test.js | 8 | ERC-8004 compliance |
 | Phase 5 | FullWorkflow.test.js | 8 | Integration workflows |
+| Phase 6 | Governance tests | 78 | Multi-sig, TEE keys, timelock, integration |
 
-**Total**: 124/124 passing - 
+**Phase 6 - Governance Tests:**
+
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| SimpleMultiSig.test.js | 23 | Multi-signature proposals and execution |
+| TEEKeyRegistry.test.js | 37 | TEE key registration and attestation |
+| TimelockController.test.js | 30 | Time-locked governance operations |
+| GovernanceIntegration.test.js | 15 | End-to-end governance workflows |
+
+**Total**: 202/202 passing
 
 ### Key Test Areas
 
@@ -435,7 +449,7 @@ If you're migrating from SageRegistryV2 or SageRegistryV4:
 ### Audit Status
 
 - Code review: -  Complete
-- Test coverage: -  124/124 tests passing
+- Test coverage: -  202/202 tests passing
 - Security audit:  Pending external audit
 
 **Important**: Use testnets for initial deployment and testing. Deploy to mainnet only after thorough testing.
@@ -530,5 +544,5 @@ See [LICENSE](../../LICENSE) for details.
 
 ---
 
-**Last Updated**: 2025-11-03
+**Last Updated**: 2026-02-20
 **Version**: 4.1 (AgentCard Architecture)
