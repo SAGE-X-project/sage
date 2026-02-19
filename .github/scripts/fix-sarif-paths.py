@@ -57,6 +57,29 @@ def main():
         print(f"Loaded {len(file_line_map)} file mappings from JSON")
         print(f"Valid files in repository: {len(valid_files)}")
 
+    # Sanitize invalid relationships in tool driver rules
+    # gosec outputs null entries in relationships arrays which violates SARIF schema
+    sanitized_rules = 0
+    for run in sarif.get("runs", []):
+        driver = run.get("tool", {}).get("driver", {})
+        for rule in driver.get("rules", []):
+            if "relationships" in rule:
+                original = rule["relationships"]
+                if isinstance(original, list):
+                    cleaned = [r for r in original if r is not None and isinstance(r, dict)]
+                    if len(cleaned) != len(original):
+                        sanitized_rules += 1
+                    if cleaned:
+                        rule["relationships"] = cleaned
+                    else:
+                        del rule["relationships"]
+                elif original is None:
+                    del rule["relationships"]
+                    sanitized_rules += 1
+
+    if sanitized_rules > 0:
+        print(f"Sanitized {sanitized_rules} rules with invalid relationships entries")
+
     # Fix artifact locations in SARIF and filter invalid results
     fixed_count = 0
     removed_count = 0
