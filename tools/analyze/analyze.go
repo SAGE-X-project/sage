@@ -95,9 +95,9 @@ func generateAnalysis(report BenchmarkReport) string {
 	var sb strings.Builder
 
 	sb.WriteString("# SAGE Benchmark Analysis\n\n")
-	sb.WriteString(fmt.Sprintf("**Generated**: %s\n", report.Timestamp))
-	sb.WriteString(fmt.Sprintf("**Go Version**: %s\n", report.GoVersion))
-	sb.WriteString(fmt.Sprintf("**Platform**: %s/%s\n\n", report.OS, report.Arch))
+	fmt.Fprintf(&sb, "**Generated**: %s\n", report.Timestamp)
+	fmt.Fprintf(&sb, "**Go Version**: %s\n", report.GoVersion)
+	fmt.Fprintf(&sb, "**Platform**: %s/%s\n\n", report.OS, report.Arch)
 
 	// Group results by category
 	categories := make(map[string][]BenchmarkResult)
@@ -115,7 +115,7 @@ func generateAnalysis(report BenchmarkReport) string {
 
 	// Generate tables for each category
 	for _, category := range categoryNames {
-		sb.WriteString(fmt.Sprintf("## %s\n\n", category))
+		fmt.Fprintf(&sb, "## %s\n\n", category)
 		sb.WriteString("| Benchmark | ns/op | MB/s | Allocs/op | Bytes/op |\n")
 		sb.WriteString("|-----------|-------|------|-----------|----------|\n")
 
@@ -131,13 +131,13 @@ func generateAnalysis(report BenchmarkReport) string {
 				mbPerSec = fmt.Sprintf("%.2f", result.MBPerSec)
 			}
 
-			sb.WriteString(fmt.Sprintf("| %s | %.2f | %s | %d | %d |\n",
+			fmt.Fprintf(&sb, "| %s | %.2f | %s | %d | %d |\n",
 				name,
 				result.NsPerOp,
 				mbPerSec,
 				result.AllocsPerOp,
 				result.BytesPerOp,
-			))
+			)
 		}
 		sb.WriteString("\n")
 	}
@@ -152,14 +152,14 @@ func generateAnalysis(report BenchmarkReport) string {
 		totalAllocs += result.AllocsPerOp * result.Iterations
 	}
 
-	sb.WriteString(fmt.Sprintf("- **Total Benchmarks**: %d\n", len(report.Results)))
-	sb.WriteString(fmt.Sprintf("- **Total Operations**: %d\n", totalOps))
-	sb.WriteString(fmt.Sprintf("- **Total Allocations**: %d\n\n", totalAllocs))
+	fmt.Fprintf(&sb, "- **Total Benchmarks**: %d\n", len(report.Results))
+	fmt.Fprintf(&sb, "- **Total Operations**: %d\n", totalOps)
+	fmt.Fprintf(&sb, "- **Total Allocations**: %d\n\n", totalAllocs)
 
 	// Find fastest/slowest operations
 	fastest, slowest := findExtremes(report.Results)
-	sb.WriteString(fmt.Sprintf("**Fastest Operation**: %s (%.2f ns/op)\n", fastest.Name, fastest.NsPerOp))
-	sb.WriteString(fmt.Sprintf("**Slowest Operation**: %s (%.2f ns/op)\n\n", slowest.Name, slowest.NsPerOp))
+	fmt.Fprintf(&sb, "**Fastest Operation**: %s (%.2f ns/op)\n", fastest.Name, fastest.NsPerOp)
+	fmt.Fprintf(&sb, "**Slowest Operation**: %s (%.2f ns/op)\n\n", slowest.Name, slowest.NsPerOp)
 
 	return sb.String()
 }
@@ -168,7 +168,7 @@ func generateComparison(current, previous BenchmarkReport) string {
 	var sb strings.Builder
 
 	sb.WriteString("## Performance Comparison\n\n")
-	sb.WriteString(fmt.Sprintf("Comparing current (%s) vs previous (%s)\n\n", current.Timestamp, previous.Timestamp))
+	fmt.Fprintf(&sb, "Comparing current (%s) vs previous (%s)\n\n", current.Timestamp, previous.Timestamp)
 
 	// Create lookup map for previous results
 	prevMap := make(map[string]BenchmarkResult)
@@ -182,7 +182,7 @@ func generateComparison(current, previous BenchmarkReport) string {
 	for _, curr := range current.Results {
 		prev, exists := prevMap[curr.Name]
 		if !exists {
-			sb.WriteString(fmt.Sprintf("| %s | %.2f | - | NEW |  |\n", curr.Name, curr.NsPerOp))
+			fmt.Fprintf(&sb, "| %s | %.2f | - | NEW |  |\n", curr.Name, curr.NsPerOp)
 			continue
 		}
 
@@ -194,13 +194,13 @@ func generateComparison(current, previous BenchmarkReport) string {
 			status = ""
 		}
 
-		sb.WriteString(fmt.Sprintf("| %s | %.2f | %.2f | %.1f%% | %s |\n",
+		fmt.Fprintf(&sb, "| %s | %.2f | %.2f | %.1f%% | %s |\n",
 			curr.Name,
 			curr.NsPerOp,
 			prev.NsPerOp,
 			change,
 			status,
-		))
+		)
 	}
 
 	sb.WriteString("\n")
