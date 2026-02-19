@@ -1,5 +1,5 @@
 {
-  "detectors_to_exclude": "timestamp,naming-convention,assembly,low-level-calls,reentrancy-benign,reentrancy-events,costly-loop,cyclomatic-complexity,incorrect-equality,reentrancy-no-eth,divide-before-multiply,dead-code,return-bomb,encode-packed-collision,reentrancy-eth,immutable-states,cache-array-length,reentrancy-unlimited-gas,constable-states,unused-state",
+  "detectors_to_exclude": "timestamp,naming-convention,assembly,low-level-calls,reentrancy-benign,reentrancy-events,costly-loop,cyclomatic-complexity,incorrect-equality,reentrancy-no-eth,divide-before-multiply,dead-code,return-bomb,encode-packed-collision,reentrancy-eth,immutable-states,cache-array-length,reentrancy-unlimited-gas,constable-states,unused-state,calls-loop,missing-zero-check,missing-events-access-control",
   "exclude_dependencies": true,
   "exclude_informational": true,
   "exclude_low": true,

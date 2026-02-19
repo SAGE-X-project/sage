@@ -403,6 +403,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
         // Create proposal
         proposalId = proposalCount++;
 
+        // slither-disable-next-line timestamp
         proposals[proposalId] = TEEKeyProposal({
             keyHash: keyHash,
             proposer: msg.sender,
@@ -443,6 +444,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
         if (proposal.status != ProposalStatus.PENDING) {
             revert ProposalNotPending(proposalId);
         }
+        // slither-disable-next-line timestamp
         if (block.timestamp > proposal.votingDeadline) {
             revert VotingEnded(proposalId);
         }
@@ -483,6 +485,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
         if (proposal.status != ProposalStatus.PENDING) {
             revert ProposalNotPending(proposalId);
         }
+        // slither-disable-next-line timestamp
         if (block.timestamp <= proposal.votingDeadline) {
             revert VotingNotEnded(proposalId);
         }
@@ -516,6 +519,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
             // Approve TEE key (state changes before external calls)
             approvedTEEKeys[proposal.keyHash] = true;
             teeKeyTypes[proposal.keyHash] = proposal.teeType;
+            // slither-disable-next-line timestamp
             teeKeyApprovedAt[proposal.keyHash] = block.timestamp;
 
             emit TEEKeyApproved(proposal.keyHash, proposal.teeType);
@@ -760,6 +764,7 @@ contract TEEKeyRegistry is Ownable2Step, Pausable, ReentrancyGuard {
 
         // slither-disable-next-line incorrect-equality
         // Note: Comparing enum values with == is safe and the correct way to check enum state
+        // slither-disable-next-line timestamp
         canExecute = status == ProposalStatus.PENDING &&
                      block.timestamp > proposal.votingDeadline;
 

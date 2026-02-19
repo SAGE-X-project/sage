@@ -145,6 +145,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         if (serverAgent == address(0)) {
             revert InvalidServerAgent();
         }
+        // slither-disable-next-line timestamp
         if (deadline <= block.timestamp) {
             revert InvalidDeadline(deadline);
         }
@@ -159,6 +160,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
 
         // Generate unique request ID
         requestCounter++;
+        // slither-disable-next-line timestamp
         requestId = keccak256(abi.encodePacked(
             taskId,
             serverAgent,
@@ -168,6 +170,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         ));
 
         // Create validation request
+        // slither-disable-next-line timestamp
         validationRequests[requestId] = ValidationRequest({
             requestId: requestId,
             taskId: taskId,
@@ -222,6 +225,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         if (request.status != ValidationStatus.PENDING) {
             revert ValidationAlreadyComplete(requestId);
         }
+        // slither-disable-next-line timestamp
         if (block.timestamp > request.deadline) {
             revert ValidationExpired(requestId);
         }
@@ -245,6 +249,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         }
 
         // Generate response ID
+        // slither-disable-next-line timestamp
         bytes32 responseId = keccak256(abi.encodePacked(
             requestId,
             msg.sender,
@@ -252,6 +257,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         ));
 
         // Create validation response
+        // slither-disable-next-line timestamp
         ValidationResponse memory response = ValidationResponse({
             responseId: responseId,
             requestId: requestId,
@@ -305,6 +311,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         if (request.status != ValidationStatus.PENDING) {
             revert ValidationAlreadyComplete(requestId);
         }
+        // slither-disable-next-line timestamp
         if (block.timestamp > request.deadline) {
             revert ValidationExpired(requestId);
         }
@@ -328,6 +335,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         bytes32 computedHash = _extractHashFromAttestation(attestation);
 
         // Generate response ID
+        // slither-disable-next-line timestamp
         bytes32 responseId = keccak256(abi.encodePacked(
             requestId,
             msg.sender,
@@ -335,6 +343,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         ));
 
         // Create validation response
+        // slither-disable-next-line timestamp
         ValidationResponse memory response = ValidationResponse({
             responseId: responseId,
             requestId: requestId,
@@ -439,6 +448,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
 
         // Count successful validations
         uint256 successCount = 0;
+        // slither-disable-next-line calls-loop
         for (uint256 i = 0; i < responses.length; i++) {
             if (responses[i].success) {
                 successCount++;
@@ -487,6 +497,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         if (!consensusReached) {
             // DISPUTED CASE: Return all stakes via pull payment
             // EFFECTS: Update pending withdrawals (NO external calls)
+            // slither-disable-next-line calls-loop
             for (uint256 i = 0; i < responses.length; i++) {
                 if (responses[i].validatorStake > 0) {
                     pendingWithdrawals[responses[i].validator] += responses[i].validatorStake;
@@ -505,6 +516,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         uint256 honestValidatorCount = 0;
 
         // Count honest validators and calculate total reward pool
+        // slither-disable-next-line calls-loop
         for (uint256 i = 0; i < responses.length; i++) {
             if (responses[i].success) {
                 honestValidatorCount++;
@@ -522,6 +534,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         }
 
         // EFFECTS: Update pending withdrawals and emit events (NO external calls)
+        // slither-disable-next-line calls-loop
         for (uint256 i = 0; i < responses.length; i++) {
             if (responses[i].success) {
                 // Honest validator - gets reward

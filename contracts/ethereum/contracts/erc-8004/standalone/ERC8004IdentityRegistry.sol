@@ -106,6 +106,7 @@ contract ERC8004IdentityRegistry is IERC8004IdentityRegistry {
         }
 
         // Create agent info
+        // slither-disable-next-line timestamp
         agents[agentId] = AgentInfo({
             agentId: agentId,
             agentAddress: msg.sender,

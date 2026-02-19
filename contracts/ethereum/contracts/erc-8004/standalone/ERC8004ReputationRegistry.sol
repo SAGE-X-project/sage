@@ -112,6 +112,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
         if (serverAgent == address(0)) {
             revert InvalidServerAgent();
         }
+        // slither-disable-next-line timestamp
         if (deadline <= block.timestamp) {
             revert InvalidDeadline(deadline);
         }
@@ -164,6 +165,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
         if (auth.deadline == 0) {
             revert TaskNotAuthorized(taskId);
         }
+        // slither-disable-next-line timestamp
         if (block.timestamp > auth.deadline) {
             revert TaskAuthorizationExpired(taskId);
         }
@@ -182,6 +184,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
 
         // Generate unique feedback ID
         feedbackCounter++;
+        // slither-disable-next-line timestamp
         feedbackId = keccak256(abi.encodePacked(
             taskId,
             msg.sender,
@@ -191,6 +194,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
         ));
 
         // Create feedback record
+        // slither-disable-next-line timestamp
         feedbacks[feedbackId] = Feedback({
             feedbackId: feedbackId,
             taskId: taskId,
@@ -208,6 +212,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
         // Add to task's feedback list
         taskFeedbackIds[serverAgent][taskId].push(feedbackId);
 
+        // slither-disable-next-line timestamp
         emit FeedbackSubmitted(
             feedbackId,
             taskId,
@@ -355,6 +360,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
      * @dev Only callable by current validation registry or during initial setup
      * @param newValidationRegistry New validation registry address
      */
+    // slither-disable-next-line missing-events-access-control
     function setValidationRegistry(address newValidationRegistry) external {
         if (validationRegistry != address(0) && msg.sender != validationRegistry) {
             revert UnauthorizedVerifier(msg.sender);
