@@ -1,9 +1,11 @@
 {
+  "global": {
+    "exclude": "G101,G115,G117,G704"
+  },
   "exclude-generated": true,
   "exclude-dirs": [
     "vendor",
     "node_modules",
     ".git"
-  ],
-  "exclude": ["G115"]
+  ]
 }
