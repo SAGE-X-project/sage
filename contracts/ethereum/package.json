@@ -101,7 +101,7 @@
     "@nomicfoundation/ignition-core": "^3.0.5",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
-    "chai": "^5.3.3",
+    "chai": "^6.2.2",
     "dotenv": "^17.2.3",
     "ethers": "^6.15.0",
     "hardhat": "^3.0.9",
