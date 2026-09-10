@@ -258,7 +258,7 @@ func (i *pemImporter) Import(data []byte, format sagecrypto.KeyFormat) (sagecryp
 			return keys.NewEd25519KeyPair(privateKey, "")
 		case *ecdsa.PrivateKey:
 			// Check the curve to determine key type
-			if privateKey.Curve == secp256k1.S256() {
+			if privateKey.Curve == keys.Secp256k1Curve() {
 				// Convert to secp256k1 private key
 				privKeyBytes := privateKey.D.Bytes()
 				secp256k1PrivKey := secp256k1.PrivKeyFromBytes(privKeyBytes)
@@ -323,7 +323,7 @@ func (i *pemImporter) ImportPublic(data []byte, format sagecrypto.KeyFormat) (cr
 		yBytes := block.Bytes[32:]
 
 		pubKey := &ecdsa.PublicKey{
-			Curve: secp256k1.S256(),
+			Curve: keys.Secp256k1Curve(),
 			X:     new(big.Int).SetBytes(xBytes),
 			Y:     new(big.Int).SetBytes(yBytes),
 		}

@@ -329,7 +329,7 @@ func (i *jwkImporter) ImportPublic(data []byte, format sagecrypto.KeyFormat) (cr
 		switch jwk.Crv {
 		case "secp256k1":
 			pubKey := &ecdsa.PublicKey{
-				Curve: secp256k1.S256(),
+				Curve: keys.Secp256k1Curve(),
 				X:     new(big.Int).SetBytes(xBytes),
 				Y:     new(big.Int).SetBytes(yBytes),
 			}
