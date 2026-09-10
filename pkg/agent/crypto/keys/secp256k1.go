@@ -21,6 +21,7 @@ package keys
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/hex"
 	"math/big"
@@ -130,4 +131,13 @@ func deserializeSignature(data []byte) (*big.Int, *big.Int, error) {
 	s := new(big.Int).SetBytes(data[32:])
 
 	return r, s, nil
+}
+
+// Secp256k1Curve returns the secp256k1 curve as an elliptic.Curve so that
+// crypto/ecdsa key structs can be built from decred key material.
+// decred v4.4.1 deprecates S256 in favour of its specialised API, but
+// crypto/ecdsa still requires an elliptic.Curve value; keep the single
+// suppression here so every caller shares one source.
+func Secp256k1Curve() elliptic.Curve {
+	return secp256k1.S256() //nolint:staticcheck // SA1019: crypto/ecdsa needs elliptic.Curve
 }
