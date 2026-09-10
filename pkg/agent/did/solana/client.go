@@ -155,7 +155,7 @@ func (c *SolanaClient) Register(ctx context.Context, req *did.RegistrationReques
 	}
 
 	// Build the transaction
-	recentBlockhash, err := c.client.GetRecentBlockhash(ctx, rpc.CommitmentFinalized)
+	recentBlockhash, err := c.client.GetLatestBlockhash(ctx, rpc.CommitmentFinalized)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get recent blockhash: %w", err)
 	}
