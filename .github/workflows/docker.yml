@@ -115,7 +115,9 @@ jobs:
           image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_LOWER }}:${{ env.VERSION }}
           format: 'sarif'
           output: 'trivy-results.sarif'
-          version: 'v0.67.2'
+          # Trivy version is left to the action default (v0.70.0 for trivy-action
+          # v0.36.0): the previously pinned v0.67.2 release was withdrawn upstream
+          # and its install now fails with 404.
           # Scan OS packages and config files, but skip Go binary scanning
           # Go binaries are built with latest secure dependencies (see go.mod)
           # and scanned separately by Gosec/CodeQL in source code analysis
