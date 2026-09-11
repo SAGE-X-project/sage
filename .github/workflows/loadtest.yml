@@ -20,8 +20,9 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: '1.25.2'
+  GO_VERSION: '1.26.8'
   GOTOOLCHAIN: auto
+  GOFLAGS: -mod=readonly
 
 jobs:
   baseline:
@@ -66,11 +67,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.25.2'
+          go-version: '1.26.8'
           cache: true
 
       - name: Install dependencies
-        run: go mod download
+        run: go mod download && go mod verify
 
       - name: Build SAGE server
         run: |
@@ -190,11 +191,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.25.2'
+          go-version: '1.26.8'
           cache: true
 
       - name: Install dependencies
-        run: go mod download
+        run: go mod download && go mod verify
 
       - name: Build and start server
         env:
@@ -278,7 +279,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.25.2'
+          go-version: '1.26.8'
           cache: true
 
       - name: Setup and run test
@@ -287,7 +288,7 @@ jobs:
           SAGE_BASE_URL: http://localhost:8080
           SAGE_ENV: ci
         run: |
-          go mod download
+          go mod download && go mod verify
           go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
           migrate -path ./deployments/migrations -database "postgres://sage:sage@localhost:5432/sage_test?sslmode=disable" up
           go run tests/handshake/server/main.go &

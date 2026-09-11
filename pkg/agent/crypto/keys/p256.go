@@ -49,12 +49,11 @@ func GenerateP256KeyPair() (sagecrypto.KeyPair, error) {
 
 	publicKey := &privateKey.PublicKey
 
-	// Generate ID from public key hash
-	// Use uncompressed point format: 0x04 || X || Y (manually marshal to avoid deprecated function)
-	pubKeyBytes := make([]byte, 1+32+32)
-	pubKeyBytes[0] = 0x04
-	publicKey.X.FillBytes(pubKeyBytes[1:33])
-	publicKey.Y.FillBytes(pubKeyBytes[33:65])
+	// Generate ID from the SHA-256 of the uncompressed point 0x04 || X || Y
+	pubKeyBytes, err := publicKey.Bytes()
+	if err != nil {
+		return nil, err
+	}
 	hash := sha256.Sum256(pubKeyBytes)
 	id := hex.EncodeToString(hash[:8])
 
@@ -74,12 +73,11 @@ func NewP256KeyPair(privateKey *ecdsa.PrivateKey, id string) (sagecrypto.KeyPair
 	}
 
 	if id == "" {
-		// Generate ID from public key hash
-		// Use uncompressed point format: 0x04 || X || Y (manually marshal to avoid deprecated function)
-		pubKeyBytes := make([]byte, 1+32+32)
-		pubKeyBytes[0] = 0x04
-		privateKey.X.FillBytes(pubKeyBytes[1:33])
-		privateKey.Y.FillBytes(pubKeyBytes[33:65])
+		// Generate ID from the SHA-256 of the uncompressed point 0x04 || X || Y
+		pubKeyBytes, err := privateKey.PublicKey.Bytes()
+		if err != nil {
+			return nil, err
+		}
 		hash := sha256.Sum256(pubKeyBytes)
 		id = hex.EncodeToString(hash[:8])
 	}

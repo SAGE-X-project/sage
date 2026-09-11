@@ -2,16 +2,22 @@
 
 ## Official Go Version Requirement
 
-**SAGE project requires Go 1.25.2 or higher.**
+**SAGE project requires Go 1.26 or higher; the pinned toolchain is go1.26.8.**
 
 ### Updated Specification
 
 **Current Requirements**:
-- **Development Environment**: Go 1.25.2+
-- **Core Library/CLI**: Go 1.25.2 or higher
-- **Recommended**: Go 1.25.2 or later
+- **Development Environment**: Go 1.26.8+
+- **Core Library/CLI**: Go 1.26 or higher
+- **Recommended**: Go 1.26.8 (pinned toolchain)
 
 ### Change History
+
+#### 2026-09-11: Upgrade to Go 1.26.8
+- Go 1.25 left the two-release support window (go.dev lists go1.27.x and go1.26.x only), so it no longer receives standard-library security fixes; `govulncheck` reported 22 reachable stdlib vulnerabilities on 1.25.2.
+- `go.mod` now declares `go 1.26.0` with `toolchain go1.26.8`; CI, the Docker builder image and `govulncheck` (now a blocking job) use 1.26.8.
+- `golang.org/x/crypto` 0.57.0 and `golang.org/x/sync` 0.23.0, previously held back because they require Go 1.26, are applied.
+- Consumers of this module need Go 1.26 or newer (or `GOTOOLCHAIN=auto`).
 
 #### 2025-11-01: Upgrade to Go 1.25.2
 - Updated to Go 1.25.2 for latest security patches and performance improvements

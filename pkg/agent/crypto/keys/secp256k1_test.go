@@ -165,9 +165,8 @@ func TestSecp256k1KeyPair(t *testing.T) {
 		helpers.LogSuccess(t, "Secp256k1 key pair reconstructed from stored data")
 
 		helpers.LogDetail(t, "Step 3-5: Verify reconstructed keys match original")
-		assert.Equal(t, ecdsaPrivKey.D, reconstructedPrivKey.D)
-		assert.Equal(t, ecdsaPubKey.X, reconstructedPubKey.X)
-		assert.Equal(t, ecdsaPubKey.Y, reconstructedPubKey.Y)
+		assert.Equal(t, ethcrypto.FromECDSA(ecdsaPrivKey), ethcrypto.FromECDSA(reconstructedPrivKey))
+		assert.Equal(t, ethcrypto.FromECDSAPub(ecdsaPubKey), ethcrypto.FromECDSAPub(reconstructedPubKey))
 		helpers.LogSuccess(t, "Reconstructed keys match original keys perfectly")
 
 		helpers.LogDetail(t, "Step 3-6: Verify Ethereum address consistency")
@@ -197,8 +196,7 @@ func TestSecp256k1KeyPair(t *testing.T) {
 		helpers.LogDetail(t, "Step 4-2: Verify signature with original public key")
 		recoveredPubKey, err := ethcrypto.SigToPub(hash.Bytes(), signature2)
 		require.NoError(t, err)
-		assert.Equal(t, ecdsaPubKey.X, recoveredPubKey.X)
-		assert.Equal(t, ecdsaPubKey.Y, recoveredPubKey.Y)
+		assert.Equal(t, ethcrypto.FromECDSAPub(ecdsaPubKey), ethcrypto.FromECDSAPub(recoveredPubKey))
 		helpers.LogSuccess(t, "Signature verified with original public key")
 
 		helpers.LogDetail(t, "Step 4-3: Verify address recovery from signature")
@@ -247,8 +245,8 @@ func TestSecp256k1KeyPair(t *testing.T) {
 				"private_key_size":             len(privKeyBytes),
 				"uncompressed_public_key_size": len(uncompressedPubKey),
 				"ethereum_address":             ethAddress.Hex(),
-				"public_key_x":                 hex.EncodeToString(ecdsaPubKey.X.Bytes()),
-				"public_key_y":                 hex.EncodeToString(ecdsaPubKey.Y.Bytes()),
+				"public_key_x":                 hex.EncodeToString(ethcrypto.FromECDSAPub(ecdsaPubKey)[1:33]),
+				"public_key_y":                 hex.EncodeToString(ethcrypto.FromECDSAPub(ecdsaPubKey)[33:]),
 			},
 			"storage": map[string]interface{}{
 				"vault_type":       "FileVault",
@@ -364,7 +362,7 @@ func TestSecp256k1KeyPair(t *testing.T) {
 			"test_case":               "2.4.2_Secp256k1_Sign_Verify",
 			"message":                 string(message),
 			"message_hex":             hex.EncodeToString(message),
-			"private_key_d":           hex.EncodeToString(privKey.D.Bytes()),
+			"private_key_d":           hex.EncodeToString(ethcrypto.FromECDSA(privKey)),
 			"public_key_uncompressed": hex.EncodeToString(uncompressedPubKey),
 			"ethereum_address":        expectedAddress.Hex(),
 			"signature_hex":           hex.EncodeToString(signature),
@@ -481,14 +479,13 @@ func TestSecp256k1KeyPairBytes(t *testing.T) {
 	// Decompress the compressed public key and verify it matches
 	decompressedPubKey, err := ethcrypto.DecompressPubkey(compressedPubKey)
 	require.NoError(t, err)
-	assert.Equal(t, pubKey.X, decompressedPubKey.X)
-	assert.Equal(t, pubKey.Y, decompressedPubKey.Y)
+	assert.Equal(t, ethcrypto.FromECDSAPub(pubKey), ethcrypto.FromECDSAPub(decompressedPubKey))
 	helpers.LogSuccess(t, "Decompressed public key matches original")
 
 	// Reconstruct private key from bytes
 	reconstructedPrivKey, err := ethcrypto.ToECDSA(privKeyBytes)
 	require.NoError(t, err)
-	assert.Equal(t, privKey.D, reconstructedPrivKey.D)
+	assert.Equal(t, ethcrypto.FromECDSA(privKey), ethcrypto.FromECDSA(reconstructedPrivKey))
 	helpers.LogSuccess(t, "Private key reconstructed from bytes")
 
 	// Verify reconstructed key can sign
@@ -502,8 +499,7 @@ func TestSecp256k1KeyPairBytes(t *testing.T) {
 	// Verify signature with original public key
 	recoveredPubKey, err := ethcrypto.SigToPub(hash.Bytes(), signature)
 	require.NoError(t, err)
-	assert.Equal(t, pubKey.X, recoveredPubKey.X)
-	assert.Equal(t, pubKey.Y, recoveredPubKey.Y)
+	assert.Equal(t, ethcrypto.FromECDSAPub(pubKey), ethcrypto.FromECDSAPub(recoveredPubKey))
 	helpers.LogSuccess(t, "Signature verified with original public key")
 
 	// Test Ethereum address from compressed vs uncompressed
@@ -625,9 +621,8 @@ func TestSecp256k1KeyPairEncrypted(t *testing.T) {
 	helpers.LogSuccess(t, "Key pair reconstructed from decrypted data")
 
 	// Verify reconstructed keys match original
-	assert.Equal(t, privKey.D, reconstructedPrivKey.D)
-	assert.Equal(t, pubKey.X, reconstructedPubKey.X)
-	assert.Equal(t, pubKey.Y, reconstructedPubKey.Y)
+	assert.Equal(t, ethcrypto.FromECDSA(privKey), ethcrypto.FromECDSA(reconstructedPrivKey))
+	assert.Equal(t, ethcrypto.FromECDSAPub(pubKey), ethcrypto.FromECDSAPub(reconstructedPubKey))
 	helpers.LogSuccess(t, "Reconstructed keys match original keys")
 
 	// Verify Ethereum address consistency
@@ -650,8 +645,7 @@ func TestSecp256k1KeyPairEncrypted(t *testing.T) {
 	// Verify signature by recovering public key
 	recoveredPubKey, err := ethcrypto.SigToPub(hash.Bytes(), signature)
 	require.NoError(t, err)
-	assert.Equal(t, pubKey.X, recoveredPubKey.X)
-	assert.Equal(t, pubKey.Y, recoveredPubKey.Y)
+	assert.Equal(t, ethcrypto.FromECDSAPub(pubKey), ethcrypto.FromECDSAPub(recoveredPubKey))
 	helpers.LogSuccess(t, "Signature verified with original key")
 
 	// Test empty passphrase handling

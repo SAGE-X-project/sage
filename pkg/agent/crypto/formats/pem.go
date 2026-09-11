@@ -27,7 +27,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"math/big"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
@@ -75,8 +74,11 @@ func (e *pemExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 		}
 
 		// For secp256k1, we'll use PKCS8 format with custom OID
-		// First convert to a generic private key structure
-		privKeyBytes := privateKey.D.Bytes()
+		// First convert to a generic private key structure (32-byte scalar)
+		privKeyBytes, err := keys.ECDSAPrivateScalar(privateKey)
+		if err != nil {
+			return nil, err
+		}
 
 		// Ensure the private key is 32 bytes
 		if len(privKeyBytes) < 32 {
@@ -163,8 +165,10 @@ func (e *pemExporter) ExportPublic(keyPair sagecrypto.KeyPair, format sagecrypto
 
 		// For secp256k1, we'll store the raw public key bytes
 		// X and Y coordinates, 32 bytes each
-		xBytes := publicKey.X.Bytes()
-		yBytes := publicKey.Y.Bytes()
+		xBytes, yBytes, err := keys.ECDSAPublicCoordinates(publicKey)
+		if err != nil {
+			return nil, err
+		}
 
 		// Ensure each coordinate is 32 bytes
 		if len(xBytes) < 32 {
@@ -258,9 +262,12 @@ func (i *pemImporter) Import(data []byte, format sagecrypto.KeyFormat) (sagecryp
 			return keys.NewEd25519KeyPair(privateKey, "")
 		case *ecdsa.PrivateKey:
 			// Check the curve to determine key type
-			if privateKey.Curve == keys.Secp256k1Curve() {
+			if keys.IsSecp256k1Curve(privateKey.Curve) {
 				// Convert to secp256k1 private key
-				privKeyBytes := privateKey.D.Bytes()
+				privKeyBytes, err := keys.ECDSAPrivateScalar(privateKey)
+				if err != nil {
+					return nil, err
+				}
 				secp256k1PrivKey := secp256k1.PrivKeyFromBytes(privKeyBytes)
 				return keys.NewSecp256k1KeyPair(secp256k1PrivKey, "")
 			} else if privateKey.Curve.Params().Name == "P-256" {
@@ -319,13 +326,9 @@ func (i *pemImporter) ImportPublic(data []byte, format sagecrypto.KeyFormat) (cr
 			return nil, fmt.Errorf("invalid secp256k1 public key length: %d", len(block.Bytes))
 		}
 
-		xBytes := block.Bytes[:32]
-		yBytes := block.Bytes[32:]
-
-		pubKey := &ecdsa.PublicKey{
-			Curve: keys.Secp256k1Curve(),
-			X:     new(big.Int).SetBytes(xBytes),
-			Y:     new(big.Int).SetBytes(yBytes),
+		pubKey, err := keys.ParseECDSAPublicKey(keys.Secp256k1Curve(), block.Bytes[:32], block.Bytes[32:])
+		if err != nil {
+			return nil, fmt.Errorf("invalid secp256k1 public key: %w", err)
 		}
 		return pubKey, nil
 	}

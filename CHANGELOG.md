@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Go toolchain raised to 1.26 (`go 1.26.0`, `toolchain go1.26.8`): Go 1.25 is out of the support window and no longer receives standard-library security fixes. CI, the Docker builder image and the new blocking `govulncheck` job use go1.26.8. Consumers need Go 1.26 or newer.
+- `golang.org/x/crypto` 0.57.0 and `golang.org/x/sync` 0.23.0.
+- ECDSA key material is encoded through `keys.ECDSAPrivateScalar`, `ECDSAPublicCoordinates`, `ECDSAPublicUncompressed` and `ParseECDSAPublicKey` (fixed-length, curve-aware) instead of the `D`/`X`/`Y` fields deprecated in Go 1.26. JWK exports of secp256k1 and P-256 keys now always carry 32-byte `x`, `y` and `d` values (RFC 7518), and importing a P-256 JWK verifies that `x`/`y` match `d`.
+- CI installs npm packages with `--ignore-scripts`, verifies Go modules against `go.sum` (`go mod verify`, `GOFLAGS=-mod=readonly`), and Trivy now scans the Go binaries inside the image.
+
 ### Security
 - Contracts: `ERC8004ValidationRegistry` and `ERC8004ReputationRegistry` now inherit `Ownable2Step`; the six administrative setters on the validation registry (`addTrustedTeeKey`, `removeTrustedTeeKey`, `setMinStake`, `setMinValidators`, `setConsensusThreshold`, `setMaxValidatorsPerRequest`) are `onlyOwner`, and `setValidationRegistry` may only be called by the owner or the current validation registry. Previously anyone could call them. Existing Sepolia deployments must be redeployed to pick this up.
 - secp256k1 signatures now use the Ethereum convention on every path (Keccak-256, RFC 6979, `r || s || v`): the RFC 9421 envelope verifier and the RFC 9421 HTTP signer/verifier previously hashed with SHA-256, so signatures made with `KeyPair.Sign` or an Ethereum wallet failed there. Signatures over SHA-256 made by older releases for secp256k1 keys are no longer accepted.

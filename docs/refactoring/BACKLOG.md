@@ -19,8 +19,8 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 | A-07 | `SECURITY.md`; align `CONTRIBUTING.md` with the ruleset | [권장] | F25, F26 | PR #220 |
 | A-08 | SHA-pin all 44 remaining action references; require SHA pinning in repo settings; Dependabot `actions` group | [중요] | F05 | Done (#224; `sha_pinning_required` enabled 2026-09-11) |
 | A-09 | Pin run-time tool installs (gosec, slither, gitleaks, go-licenses, golangci-lint) and make scanners blocking (remove `\|\| true`, `-no-fail`, `continue-on-error`); triage existing findings first | [중요] | F09, F10 | PR (gosec v2.29.0 blocking, 0 findings; gitleaks v8.30.1 by digest over full history with `.gitleaks.toml` allowlist, 0 findings; Slither 0.11.6 + crytic-compile 0.4.2 `--fail-high`; go-licenses v2.0.1 and license-checker 25.0.1 blocking; golangci-lint v2.13.2) |
-| A-10 | `npm ci --ignore-scripts`; `go mod verify`; `GOFLAGS=-mod=readonly`; `govulncheck` (source + binary mode) | [중요] | F11, F15 | Open |
-| A-11 | Pin `alpine`/`golang` images by digest; align Docker Go version with `go.mod`; remove `make build-lib \|\| true` | [중요] | F12, F13, F14 | Open |
+| A-10 | `npm ci --ignore-scripts`; `go mod verify`; `GOFLAGS=-mod=readonly`; `govulncheck` (source + binary mode) | [중요] | F11, F15 | PR (all four workflows + Dockerfile; govulncheck blocking job; Trivy now scans the Go binaries in the image) |
+| A-11 | Pin `alpine`/`golang` images by digest; align Docker Go version with `go.mod`; remove `make build-lib \|\| true` | [중요] | F12, F13, F14 | Partly in PR (builder image = toolchain go1.26.8); digest pins and `build-lib` removal open |
 | A-12 | Dependabot coverage for `tools/codegraph`, `sdk/typescript`, maven, cargo, pip; commit `Cargo.lock`; add TS lockfile; fix nonexistent reviewers team | [권장] | F16, F17 | Open |
 | A-13 | Signed, attested, reproducible releases (GoReleaser + cosign keyless + SLSA provenance + SBOM; `-trimpath`, `CGO_ENABLED=0`) | [중요] | F06, F07, F08 | Open |
 | A-14 | Gitleaks over history; remove stale `contracts/ethereum/bindings` exclusions; fix `./test/e2e` path | [권장] | F20, F23, F24 | Partly in PR (history scan, gosec exclusion removed); gofmt/golangci exclusions and `./test/e2e` still open |
@@ -28,6 +28,7 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 | A-16 | License consistency (LGPL vs MIT across SDKs/contracts); decide Apache-2.0 relicense | [권장] | F27, `STRATEGY.md` §7 | Decision |
 | A-17 | Single version source (`pkg/version` read by every binary); CHANGELOG gaps; release-please or equivalent tagging | [권장] | F28, F29, F30 | Open |
 | A-18 | Pin images in `deployments/docker/*.yml` | [권장] | F31 | Open |
+| A-19 | Go toolchain policy: track the newest supported Go minor (`go.mod` `toolchain` directive, CI, Docker builder in lock-step); Go 1.25 was EOL with 22 reachable stdlib vulnerabilities | [중요] | govulncheck 2026-09-11 | PR (1.26.8) |
 
 ## B. Security controls not wired (Go)
 
@@ -73,7 +74,7 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 | D-06 | Phase 5: delete `handshake` (deprecate v1.6, remove v1.7), `core/message/*`, `crypto/vault`, `lib/`, `tests/random`+`cmd/random-test`, dead exports | [권장] | Phase 5, `DECISIONS.md` 1, 3 | Open |
 | D-07 | Phase 6: `ARCHITECTURE.md` rewrite, `INDEX.md`, CI dead paths, Dockerfile Go version | [권장] | Phase 6 | Open |
 | D-08 | Mark `sdk/*` experimental; remove interoperability claims; add build CI; TS to 0.x | [중요] | `DECISIONS.md` 4 | Open |
-| D-09 | `pkg/health` Windows build; P-256 key-type detection; JWK coordinate padding; RSA PSS vs PKCS#1 naming | [권장] | D6, D8 | Open |
+| D-09 | `pkg/health` Windows build; P-256 key-type detection; JWK coordinate padding; RSA PSS vs PKCS#1 naming | [권장] | D6, D8 | Partly in PR (JWK coordinates fixed-length via the new `keys` encoders); Windows build, P-256 detection, RSA naming open |
 
 ## E. Documentation
 

@@ -28,6 +28,7 @@ import (
 
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -66,10 +67,12 @@ func (p *Provider) GenerateAddress(publicKey crypto.PublicKey, network chain.Net
 		return nil, chain.ErrNetworkNotSupported
 	}
 
-	// Convert public key to uncompressed format (remove 0x04 prefix if present)
-	pubKeyBytes := make([]byte, 64)
-	ecdsaPubKey.X.FillBytes(pubKeyBytes[:32])
-	ecdsaPubKey.Y.FillBytes(pubKeyBytes[32:])
+	// Uncompressed point without the 0x04 prefix: X || Y (32 bytes each)
+	uncompressed, err := keys.ECDSAPublicUncompressed(ecdsaPubKey)
+	if err != nil || len(uncompressed) != 65 {
+		return nil, chain.ErrInvalidPublicKey
+	}
+	pubKeyBytes := uncompressed[1:]
 
 	// Keccak256 hash of the public key
 	hash := sha3.NewLegacyKeccak256()
