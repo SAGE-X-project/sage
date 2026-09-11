@@ -1,0 +1,146 @@
+# GoReleaser configuration for SAGE release binaries.
+#
+# Releases are reproducible (CGO disabled, -trimpath, commit timestamp as the
+# only time source), and every archive is covered by SHA256SUMS, a CycloneDX
+# SBOM, a keyless Sigstore signature of the checksum file, and SLSA build
+# provenance attached by the release workflow. See SECURITY.md, "Verifying
+# releases", for how to check them.
+version: 2
+
+project_name: sage
+
+before:
+  hooks:
+    - go mod verify
+
+env:
+  - CGO_ENABLED=0
+  - GOFLAGS=-mod=readonly
+
+builds:
+  - id: sage-crypto
+    main: ./cmd/sage-crypto
+    binary: sage-crypto
+    flags: [-trimpath]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    ldflags: &ldflags
+      - -s -w
+      - -X github.com/sage-x-project/sage/pkg/version.Version={{ .Version }}
+      - -X github.com/sage-x-project/sage/pkg/version.GitCommit={{ .FullCommit }}
+      - -X github.com/sage-x-project/sage/pkg/version.BuildDate={{ .CommitDate }}
+      - -X main.Version={{ .Version }}
+      - -X main.Commit={{ .FullCommit }}
+      - -X main.BuildTime={{ .CommitDate }}
+    goos: &goos [linux, darwin, windows]
+    goarch: &goarch [amd64, arm64]
+    ignore: &ignore
+      - goos: windows
+        goarch: arm64
+  - id: sage-did
+    main: ./cmd/sage-did
+    binary: sage-did
+    flags: [-trimpath]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    ldflags: *ldflags
+    goos: *goos
+    goarch: *goarch
+    ignore: *ignore
+  - id: deployment-verify
+    main: ./cmd/deployment-verify
+    binary: deployment-verify
+    flags: [-trimpath]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    ldflags: *ldflags
+    goos: *goos
+    goarch: *goarch
+    ignore: *ignore
+
+archives:
+  - id: binaries
+    formats: [tar.gz]
+    # Same layout as the previous hand-rolled release packages.
+    name_template: "sage-{{ .Tag }}-{{ .Os }}-{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - README.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: SHA256SUMS
+  algorithm: sha256
+
+sboms:
+  - id: archives
+    artifacts: archive
+    documents: ["{{ .ArtifactName }}.cdx.json"]
+    cmd: syft
+    args: ["$artifact", "--output", "cyclonedx-json=$document"]
+
+signs:
+  # Keyless Sigstore signature of the checksum file; the checksum file in
+  # turn covers every archive. Verify with cosign verify-blob (SECURITY.md).
+  - id: checksums
+    cmd: cosign
+    artifacts: checksum
+    certificate: "${artifact}.pem"
+    signature: "${artifact}.sig"
+    output: true
+    args:
+      - sign-blob
+      - --yes
+      - --oidc-issuer=https://token.actions.githubusercontent.com
+      - --output-certificate=${certificate}
+      - --output-signature=${signature}
+      - ${artifact}
+
+changelog:
+  use: github
+  sort: asc
+  groups:
+    - title: Security
+      regexp: '^.*?(fix|feat)\(security\)|^.*?[Ss]ecurity'
+      order: 0
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Fixes
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - "^chore\\(deps\\)"
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+
+release:
+  github:
+    owner: SAGE-X-project
+    name: sage
+  draft: false
+  prerelease: auto
+  footer: |
+    ## Verification
+
+    Every archive is listed in `SHA256SUMS`, which is signed with Sigstore
+    (keyless, GitHub Actions identity) and accompanied by SLSA build
+    provenance and a CycloneDX SBOM per archive.
+
+    ```bash
+    # 1. Signature of the checksum file
+    cosign verify-blob SHA256SUMS \
+      --signature SHA256SUMS.sig --certificate SHA256SUMS.pem \
+      --certificate-identity-regexp '^https://github.com/SAGE-X-project/sage/\.github/workflows/release\.yml@refs/tags/v' \
+      --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+    # 2. Checksums of the archives you downloaded
+    sha256sum --ignore-missing -c SHA256SUMS
+
+    # 3. Build provenance (GitHub attestation)
+    gh attestation verify sage-{{ .Tag }}-linux-amd64.tar.gz --repo SAGE-X-project/sage
+    ```
