@@ -4,10 +4,128 @@ version: "2"
 linters:
   default: none
   enable:
+    - depguard
     - errcheck
     - govet
     - ineffassign
     - staticcheck
+  settings:
+    # Layer boundaries (docs/refactoring/REFACTORING_DESIGN.md, Phase 0).
+    # Allowed import direction: cmd -> internal -> pkg; nothing imports
+    # examples/, tests/ or tools/. Inside pkg the clusters are
+    # L0 crypto -> L1 did / session / transport -> L2 hpke / core -> L3 handshake.
+    # Baseline exceptions are listed per rule with the backlog item that removes them.
+    depguard:
+      rules:
+        pkg-is-the-public-api:
+          # pkg/** may import only pkg/** and third-party code.
+          # Exceptions (D-02, Phase 1: metrics/logger contracts move to pkg/telemetry,
+          # internal/cryptoinit is removed): pkg/agent/core, pkg/agent/handshake,
+          # pkg/agent/session, pkg/health. Test files may use tests/helpers until
+          # internal/testutil exists (D-05).
+          files:
+            - "**/pkg/**/*.go"
+            - "!**/*_test.go"
+            - "!**/pkg/agent/core/*.go"
+            - "!**/pkg/agent/handshake/*.go"
+            - "!**/pkg/agent/session/*.go"
+            - "!**/pkg/health/*.go"
+          deny:
+            - pkg: github.com/sage-x-project/sage/internal
+              desc: pkg must not depend on internal (composition roots and CLI plumbing)
+            - pkg: github.com/sage-x-project/sage/cmd
+              desc: pkg must not depend on cmd
+            - pkg: github.com/sage-x-project/sage/examples
+              desc: nothing imports examples
+            - pkg: github.com/sage-x-project/sage/tests
+              desc: nothing imports tests
+            - pkg: github.com/sage-x-project/sage/tools
+              desc: nothing imports tools
+        pkg-baseline-exceptions:
+          # The four packages above may still import internal/metrics, internal/logger
+          # and internal/cryptoinit (D-02) but nothing else from the forbidden layers.
+          files:
+            - "**/pkg/agent/core/*.go"
+            - "**/pkg/agent/handshake/*.go"
+            - "**/pkg/agent/session/*.go"
+            - "**/pkg/health/*.go"
+            - "!**/*_test.go"
+          allow:
+            - $gostd
+            - github.com/sage-x-project/sage/pkg
+            - github.com/sage-x-project/sage/internal/metrics
+            - github.com/sage-x-project/sage/internal/logger
+            - github.com/sage-x-project/sage/internal/cryptoinit
+          deny:
+            - pkg: github.com/sage-x-project/sage/cmd
+              desc: pkg must not depend on cmd
+            - pkg: github.com/sage-x-project/sage/examples
+              desc: nothing imports examples
+            - pkg: github.com/sage-x-project/sage/tests
+              desc: nothing imports tests
+            - pkg: github.com/sage-x-project/sage/tools
+              desc: nothing imports tools
+          list-mode: lax
+        internal-does-not-know-cmd:
+          files:
+            - "**/internal/**/*.go"
+          deny:
+            - pkg: github.com/sage-x-project/sage/cmd
+              desc: internal must not depend on cmd
+            - pkg: github.com/sage-x-project/sage/examples
+              desc: nothing imports examples
+            - pkg: github.com/sage-x-project/sage/tests
+              desc: nothing imports tests
+            - pkg: github.com/sage-x-project/sage/tools
+              desc: nothing imports tools
+        cmd-is-thin:
+          files:
+            - "**/cmd/**/*.go"
+          deny:
+            - pkg: github.com/sage-x-project/sage/examples
+              desc: nothing imports examples
+            - pkg: github.com/sage-x-project/sage/tests
+              desc: nothing imports tests
+            - pkg: github.com/sage-x-project/sage/tools
+              desc: nothing imports tools
+        l0-crypto-is-a-leaf:
+          files:
+            - "**/pkg/agent/crypto/**/*.go"
+            - "!**/*_test.go"
+          deny:
+            - pkg: github.com/sage-x-project/sage/pkg/agent/did
+              desc: crypto (L0) must not depend on did (L1)
+            - pkg: github.com/sage-x-project/sage/pkg/agent/session
+              desc: crypto (L0) must not depend on session (L1)
+            - pkg: github.com/sage-x-project/sage/pkg/agent/transport
+              desc: crypto (L0) must not depend on transport (L1)
+            - pkg: github.com/sage-x-project/sage/pkg/agent/hpke
+              desc: crypto (L0) must not depend on hpke (L2)
+            - pkg: github.com/sage-x-project/sage/pkg/agent/core
+              desc: crypto (L0) must not depend on core (L2)
+            - pkg: github.com/sage-x-project/sage/pkg/agent/handshake
+              desc: crypto (L0) must not depend on handshake (L3)
+        l1-identity-and-channel:
+          files:
+            - "**/pkg/agent/did/**/*.go"
+            - "**/pkg/agent/session/*.go"
+            - "**/pkg/agent/transport/**/*.go"
+            - "!**/*_test.go"
+          deny:
+            - pkg: github.com/sage-x-project/sage/pkg/agent/hpke
+              desc: L1 (did/session/transport) must not depend on hpke (L2)
+            - pkg: github.com/sage-x-project/sage/pkg/agent/core
+              desc: L1 (did/session/transport) must not depend on core (L2)
+            - pkg: github.com/sage-x-project/sage/pkg/agent/handshake
+              desc: L1 (did/session/transport) must not depend on handshake (L3)
+        l2-protocol:
+          files:
+            - "**/pkg/agent/hpke/*.go"
+            - "**/pkg/agent/core/**/*.go"
+            - "!**/*_test.go"
+          deny:
+            - pkg: github.com/sage-x-project/sage/pkg/agent/handshake
+              desc: L2 (hpke/core) must not depend on handshake (L3)
   exclusions:
     generated: lax
     rules:

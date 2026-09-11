@@ -706,6 +706,18 @@ lint:
 		echo "golangci-lint not installed. Run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
 	fi
 
+# Regenerate the AST-based code graph (docs/refactoring/graph)
+.PHONY: codegraph
+codegraph:
+	@echo "Building code graph..."
+	@cd tools/codegraph && GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) run . -dir ../.. -out ../../docs/refactoring/graph
+
+# Fail on layer violations that are not in tools/codegraph/layer-baseline.txt
+.PHONY: codegraph-check
+codegraph-check:
+	@echo "Checking layer boundaries..."
+	@cd tools/codegraph && GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) run . -dir ../.. -out $(REPORTS_DIR)/codegraph -layer-baseline layer-baseline.txt
+
 # Run CI lint checks (same as GitHub Actions)
 .PHONY: lint-ci
 lint-ci:

@@ -96,6 +96,7 @@ func main() {
 	dir := flag.String("dir", ".", "module root directory")
 	out := flag.String("out", "./out", "output directory")
 	diff := flag.String("diff", "", "previous graph.json to diff against")
+	baseline := flag.String("layer-baseline", "", "file listing tolerated layer violations (one 'from -> to' per line); exit 2 on any other violation")
 	flag.Parse()
 
 	root, err := filepath.Abs(*dir)
@@ -116,6 +117,76 @@ func main() {
 	}
 	fmt.Printf("codegraph: %d packages, %d symbols, %d edges -> %s\n",
 		len(g.Packages), len(g.Symbols), len(g.Edges), *out)
+
+	if *baseline != "" {
+		if unexpected := checkLayerBaseline(g, *baseline); len(unexpected) > 0 {
+			fmt.Fprintln(os.Stderr, "codegraph: layer violations not in baseline:")
+			for _, v := range unexpected {
+				fmt.Fprintln(os.Stderr, "  -", v)
+			}
+			fmt.Fprintf(os.Stderr, "codegraph: fix the import or, if it is an accepted debt, add it to %s with a tracking item\n", *baseline)
+			os.Exit(2)
+		}
+	}
+}
+
+// layerViolations returns every module-internal import that crosses a layer
+// boundary in the forbidden direction, formatted as "from (kind) -> to (kind)".
+//
+// Rule: pkg must not import cmd/internal; internal must not import cmd;
+// examples/tests/tools must not be imported by pkg/internal/cmd.
+func layerViolations(g *Graph) []string {
+	pkgByPath := map[string]*PackageNode{}
+	for i := range g.Packages {
+		pkgByPath[g.Packages[i].Path] = &g.Packages[i]
+	}
+	var out []string
+	for _, e := range g.Edges {
+		if e.Kind != "import" {
+			continue
+		}
+		from, to := pkgByPath[e.From], pkgByPath[e.To]
+		if from == nil || to == nil {
+			continue
+		}
+		fk, tk := from.Kind, to.Kind
+		bad := false
+		switch fk {
+		case "pkg":
+			bad = tk == "cmd" || tk == "internal" || tk == "examples" || tk == "tests" || tk == "tools"
+		case "internal":
+			bad = tk == "cmd" || tk == "examples" || tk == "tests" || tk == "tools"
+		case "cmd":
+			bad = tk == "examples" || tk == "tests" || tk == "tools"
+		}
+		if bad {
+			out = append(out, fmt.Sprintf("%s (%s) -> %s (%s)", short(g.Module, e.From), fk, short(g.Module, e.To), tk))
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// checkLayerBaseline returns the violations that are not listed in the
+// baseline file. Blank lines and lines starting with '#' are ignored.
+func checkLayerBaseline(g *Graph, path string) []string {
+	b, err := os.ReadFile(path)
+	must(err)
+	allowed := map[string]bool{}
+	for _, line := range strings.Split(string(b), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		allowed[line] = true
+	}
+	var unexpected []string
+	for _, v := range layerViolations(g) {
+		if !allowed[v] {
+			unexpected = append(unexpected, v)
+		}
+	}
+	return unexpected
 }
 
 func must(err error) {
@@ -680,27 +751,11 @@ func summarize(g *Graph) string {
 
 	w("## Layer violations\n\n")
 	w("Rule: pkg must not import cmd/internal; internal must not import cmd; examples/tests/tools must not be imported by pkg/internal/cmd.\n\n")
-	viol := 0
-	for _, e := range g.Edges {
-		if e.Kind != "import" {
-			continue
-		}
-		fk, tk := pkgByPath[e.From].Kind, pkgByPath[e.To].Kind
-		bad := false
-		switch fk {
-		case "pkg":
-			bad = tk == "cmd" || tk == "internal" || tk == "examples" || tk == "tests" || tk == "tools"
-		case "internal":
-			bad = tk == "cmd" || tk == "examples" || tk == "tests" || tk == "tools"
-		case "cmd":
-			bad = tk == "examples" || tk == "tests" || tk == "tools"
-		}
-		if bad {
-			viol++
-			w("- %s (%s) -> %s (%s)\n", short(g.Module, e.From), fk, short(g.Module, e.To), tk)
-		}
+	viols := layerViolations(g)
+	for _, v := range viols {
+		w("- %s\n", v)
 	}
-	if viol == 0 {
+	if len(viols) == 0 {
 		w("None.\n")
 	}
 	w("\n")

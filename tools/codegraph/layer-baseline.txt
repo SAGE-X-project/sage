@@ -1,0 +1,12 @@
+# Tolerated layer violations (REFACTORING_DESIGN.md Phase 0 safety net).
+# Every line is an existing import that crosses a layer boundary in the
+# forbidden direction. New violations fail CI; these are removed as the
+# tracked items land. Format: "<from> (<kind>) -> <to> (<kind>)".
+#
+# D-02 (Phase 1): metrics/logger contracts move to consumer-side interfaces
+# with the Prometheus adapter in pkg/telemetry; internal/cryptoinit is removed.
+pkg/agent/core (pkg) -> internal/cryptoinit (internal)
+pkg/agent/handshake (pkg) -> internal/metrics (internal)
+pkg/agent/session (pkg) -> internal/metrics (internal)
+pkg/health (pkg) -> internal/logger (internal)
+pkg/health (pkg) -> internal/metrics (internal)

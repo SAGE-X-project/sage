@@ -68,7 +68,7 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 
 | ID | Item | Severity | Source | Status |
 |---|---|---|---|---|
-| D-01 | Phase 0 safety net: `depguard`, `make codegraph`, CI gate on layer violations; storage conformance test | [권장] | `REFACTORING_DESIGN.md` Phase 0 | Open |
+| D-01 | Phase 0 safety net: `depguard`, `make codegraph`, CI gate on layer violations; storage conformance test | [권장] | `REFACTORING_DESIGN.md` Phase 0 | PR (`depguard` layer rules in `.golangci.yml` with the five D-02 exceptions; `make codegraph` / `make codegraph-check`; codegraph `-layer-baseline` gate in the Lint job with `tools/codegraph/layer-baseline.txt`; `pkg/storage/storagetest.RunConformance` run by the memory backend) |
 | D-02 | Phase 1: remove `crypto.Manager`/`internal/cryptoinit` (keep `Set*Constructors` as deprecated no-ops), metrics interfaces + `pkg/telemetry`, `pkg/health` decoupling, `EnhancedProvider` move, no `init()` registration | [중요] | Phase 1, `DECISIONS.md` 2 | Open |
 | D-03 | Phase 2: single sources of truth (chain enum/presets, DID parser, key ID helper, algorithm table, wire codec, replay guard, `AgentMetadata`, version, key-file loader) | [중요] | Phase 2 | Open |
 | D-04 | Phase 3: `did` interfaces (`Registry`/`Resolver`/`Lister`), `EthereumClient` as deprecated wrapper over `AgentCardClient`, `KeyIDBinder` single definition, `SignatureVerifier` in `crypto` | [중요] | Phase 3, `DECISIONS.md` 2, 5 | Open |

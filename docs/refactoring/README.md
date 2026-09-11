@@ -32,3 +32,8 @@ go run . -dir ../.. -out ../../docs/refactoring/graph -diff /path/to/previous/gr
 ```
 
 `tools/codegraph` is its own Go module so the main module does not depend on `golang.org/x/tools`.
+
+## Keeping the graph and the gate current
+
+- `make codegraph` regenerates `graph/` (graph.json, summary.md, entrypoints.md) from the current tree. Run it after every merged PR.
+- `make codegraph-check` fails when an import crosses a layer boundary that is not listed in `tools/codegraph/layer-baseline.txt`. The Lint job runs the same check; `depguard` rules in `.golangci.yml` enforce the same boundaries per file.
