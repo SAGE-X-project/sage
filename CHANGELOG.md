@@ -68,6 +68,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `internal/cli.LoadKeyPair`, shared by the CLIs.
 
 ### Removed
+- The cgo library `lib/` (exported only a hard-coded version string and two no-op functions; never built in CI) with its Makefile targets and the library sections of `docs/BUILD.md` and `INSTALL.md`; `make package` / `make release` no longer depend on it. The simulation-only random tester (`cmd/random-test`, `tests/random`) and the unused message-validation packages `core/message/{dedupe,order,validator}` (replaced by `session.ReplayGuard` and the RFC 9421 verifiers).
+
+### Deprecated
+- `pkg/agent/handshake` (four-phase handshake) and `internal/sessioninit`: retained for existing integrations, scheduled for removal; use `pkg/agent/hpke`.
 - The mock `ethereum.Resolver`, `DIDCache`, `DIDDocument` and `ParsedDID` types, which returned `"mock-public-key"` for every DID and were reachable from `sage-did debug`. `sage-did debug` now parses the DID with `did.ParseDID` and resolves it through the configured Ethereum client (`--did`, `--parse`, `--resolve`, `--rpc`, `--contract`).
 
 

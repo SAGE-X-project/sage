@@ -301,7 +301,6 @@ make test                # All tests
 make test-quick          # Exclude slow integration tests
 make test-integration    # Integration tests (starts Hardhat node)
 make bench               # Benchmark tests
-make random-test         # Random fuzzing tests
 go test -race ./...      # Race detection
 go test -cover ./...     # Coverage
 ```

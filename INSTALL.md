@@ -1,7 +1,5 @@
 # SAGE Installation and Build Instructions
 
-> **Status note (2026-09-12).** The "Modification and Relinking" and LGPL sections describe the cgo library under `lib/`, which is scheduled for removal (`docs/refactoring/DECISIONS.md`, Decision 3): it exports no usable API and is not built in CI. Building the Go binaries and consuming the Go module are unaffected.
-
 This document provides detailed instructions for building, installing, and modifying SAGE (Secure Agent Guarantee Engine) in compliance with LGPL-3.0 license requirements.
 
 ## Table of Contents
@@ -9,7 +7,6 @@ This document provides detailed instructions for building, installing, and modif
 - [Prerequisites](#prerequisites)
 - [Building from Source](#building-from-source)
 - [Installation](#installation)
-- [Modification and Relinking](#modification-and-relinking)
 - [LGPL-3.0 Compliance](#lgpl-30-compliance)
 
 ## Prerequisites
@@ -178,122 +175,9 @@ sage-crypto --help
 sage-did --help
 ```
 
-## Modification and Relinking
-
-This section describes how to modify SAGE and relink it with your application, as required by LGPL-3.0.
-
-### Modifying SAGE Source Code
-
-#### 1. Fork and Clone
-
-```bash
-# Fork the repository on GitHub
-# Then clone your fork
-git clone https://github.com/YOUR_USERNAME/sage.git
-cd sage
-```
-
-#### 2. Create a Feature Branch
-
-```bash
-git checkout -b my-feature
-```
-
-#### 3. Make Your Changes
-
-Edit the source files as needed. All `.go` files must retain the LGPL-3.0 header:
-
-```go
-// Copyright (C) 2025 sage-x-project
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
-//
-// SPDX-License-Identifier: LGPL-3.0-or-later
-```
-
-#### 4. Test Your Changes
-
-```bash
-# Run tests
-go test ./...
-
-# Build to verify
-go build ./...
-```
-
-#### 5. Document Modifications
-
-Create a `MODIFICATIONS.md` file documenting your changes:
-
-```markdown
-# Modifications to SAGE
-
-## Date: 2025-XX-XX
-## Modified by: Your Name/Organization
-
-### Changes Made:
-- Description of modification 1
-- Description of modification 2
-
-### Files Modified:
-- path/to/file1.go
-- path/to/file2.go
-```
-
-### Relinking Modified SAGE
-
-#### Using SAGE as a Library
-
-If you're using SAGE as a Go library in your application:
-
-```bash
-# In your application's directory
-
-# Use your modified version
-go mod edit -replace github.com/sage-x-project/sage=../path/to/your/modified/sage
-
-# Download dependencies
-go mod download
-
-# Build your application
-go build ./...
-```
-
-#### Example go.mod with Modified SAGE
-
-```go
-module yourapp
-
-go 1.21
-
-require (
-    github.com/sage-x-project/sage v0.1.0
-)
-
-// Point to your modified version
-replace github.com/sage-x-project/sage => ../your-modified-sage
-```
-
-#### Rebuild Process
-
-```bash
-# Clean build cache
-go clean -cache
-
-# Download dependencies
-go mod download
-
-# Verify modules
-go mod verify
-
-# Build your application with modified SAGE
-go build -o myapp ./...
-```
-
 ## LGPL-3.0 Compliance
+
+SAGE is consumed as a Go module (and as the `sage-crypto`, `sage-did`, `sage-verify` binaries); there is no separate C library. Under LGPL-3.0 a user who modifies SAGE relinks by rebuilding their Go program against the modified module (`replace` directive or a fork), which the sections below describe in terms of source provision and installation information.
 
 ### Source Code Provision
 
