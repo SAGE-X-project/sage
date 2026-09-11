@@ -12,7 +12,7 @@ Artifacts produced for the 2026-09 dependency update and refactoring design.
 | `REFACTORING_DESIGN.md` | Target architecture, SSOT table, call conventions, phased migration plan, gates, open decisions. |
 | `DECISIONS.md` | Proposed answers to the five open decisions (handshake, import paths, cgo lib, SDKs, V2 registry) with evidence from external consumers. |
 | `FEATURE_MAP.md` | What each binary, example and external consumer actually reaches; feature-by-feature working/broken status. |
-| `analysis/01-crypto.md` | `pkg/agent/crypto/**`, `internal/cryptoinit` |
+| `analysis/01-crypto.md` | `pkg/agent/crypto/**` (`internal/cryptoinit` removed in D-02) |
 | `analysis/02-did-blockchain-config.md` | `pkg/agent/did/**`, `pkg/blockchain/**`, `deployments/config`, `cmd/sage-did` |
 | `analysis/03-handshake-hpke-session-transport.md` | `pkg/agent/{handshake,hpke,session,transport}/**`, `internal/session_creator.go` |
 | `analysis/04-core-storage-health-oidc-internal.md` | `pkg/agent/core/**`, `pkg/{storage,health,oidc,version}`, `internal/{logger,metrics}` |

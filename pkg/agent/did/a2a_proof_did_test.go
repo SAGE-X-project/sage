@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 )
@@ -26,7 +25,7 @@ const testCardDID = "did:sage:ethereum:0x1234567890abcdef1234567890abcdef1234567
 // key, together with the public key bytes as they would be stored on-chain.
 func signedEd25519Card(t *testing.T) (*A2AAgentCardWithProof, ed25519.PublicKey) {
 	t.Helper()
-	kp, err := crypto.GenerateEd25519KeyPair()
+	kp, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 	pub := kp.PublicKey().(ed25519.PublicKey)
 	now := time.Now()
@@ -62,7 +61,7 @@ func TestVerifyA2ACardProofWithDID_AcceptsKeyVerifiedOnChain(t *testing.T) {
 // self-attested check passes; the chain-bound check must not.
 func TestVerifyA2ACardProofWithDID_RejectsSelfSignedForgery(t *testing.T) {
 	forged, _ := signedEd25519Card(t)
-	victimKP, err := crypto.GenerateEd25519KeyPair()
+	victimKP, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 	resolver := new(MockResolver)
 	resolver.On("Resolve", mock.Anything, AgentDID(testCardDID)).Return(onChain(victimKP.PublicKey(), true), nil)
@@ -114,7 +113,7 @@ func TestVerifyA2ACardProofWithDID_ResolveFailure(t *testing.T) {
 // The resolver returns the secp256k1 key as *ecdsa.PublicKey; the card carries
 // the 64-byte x||y encoding. Both must compare equal.
 func TestVerifyA2ACardProofWithDID_ECDSAParsedKey(t *testing.T) {
-	kp, err := crypto.GenerateSecp256k1KeyPair()
+	kp, err := keys.GenerateSecp256k1KeyPair()
 	require.NoError(t, err)
 	keyData, err := MarshalPublicKey(kp.PublicKey())
 	require.NoError(t, err)
@@ -136,7 +135,7 @@ func TestVerifyA2ACardProofWithDID_ECDSAParsedKey(t *testing.T) {
 // A card that carries only publicKeyHex must verify (the hex field used to be
 // decoded as Base58).
 func TestVerifyA2ACardProof_HexOnlyECDSAKey(t *testing.T) {
-	kp, err := crypto.GenerateSecp256k1KeyPair()
+	kp, err := keys.GenerateSecp256k1KeyPair()
 	require.NoError(t, err)
 	keyData, err := MarshalPublicKey(kp.PublicKey())
 	require.NoError(t, err)
@@ -164,14 +163,14 @@ func TestVerifyA2ACardProof_HexOnlyECDSAKey(t *testing.T) {
 }
 
 func TestFromAgentMetadata_ParsedKeys(t *testing.T) {
-	edKP, err := crypto.GenerateEd25519KeyPair()
+	edKP, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 	v4 := FromAgentMetadata(&AgentMetadata{DID: testCardDID, PublicKey: edKP.PublicKey()})
 	require.Len(t, v4.Keys, 1)
 	assert.Equal(t, KeyTypeEd25519, v4.Keys[0].Type)
 	assert.Equal(t, []byte(edKP.PublicKey().(ed25519.PublicKey)), v4.Keys[0].KeyData)
 
-	ecKP, err := crypto.GenerateSecp256k1KeyPair()
+	ecKP, err := keys.GenerateSecp256k1KeyPair()
 	require.NoError(t, err)
 	v4 = FromAgentMetadata(&AgentMetadata{DID: testCardDID, PublicKey: ecKP.PublicKey()})
 	require.Len(t, v4.Keys, 1)

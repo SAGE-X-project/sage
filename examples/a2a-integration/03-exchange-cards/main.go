@@ -27,8 +27,8 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/sage-x-project/sage/internal/cryptoinit"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
@@ -288,8 +288,8 @@ func main() {
 // registerAndGenerateCard is a helper function that registers an agent and generates its card
 func registerAndGenerateCard(manager *did.Manager, ctx context.Context, name string) (*did.AgentMetadata, *did.A2AAgentCard) {
 	// Generate keys
-	ecdsaKey, _ := crypto.GenerateSecp256k1KeyPair()
-	ed25519Key, _ := crypto.GenerateEd25519KeyPair()
+	ecdsaKey, _ := keys.GenerateSecp256k1KeyPair()
+	ed25519Key, _ := keys.GenerateEd25519KeyPair()
 	x25519Key, _ := crypto.GenerateX25519KeyPair()
 
 	ed25519Pub, _ := did.MarshalPublicKey(ed25519Key.PublicKey())

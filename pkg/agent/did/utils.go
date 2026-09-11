@@ -200,7 +200,7 @@ func GenerateAgentDIDWithNonce(chain Chain, ownerAddress string, nonce uint64) A
 //
 // Example:
 //
-//	keyPair, _ := crypto.GenerateSecp256k1KeyPair()
+//	keyPair, _ := keys.GenerateSecp256k1KeyPair()
 //	address, _ := DeriveEthereumAddress(keyPair)
 //	// address: "0x742d35cc6634c0532925a3b844bc9e7595f0beef"
 //	agentDID := GenerateAgentDIDWithAddress(ChainEthereum, address)

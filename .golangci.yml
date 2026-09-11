@@ -19,12 +19,10 @@ linters:
       rules:
         pkg-is-the-public-api:
           # pkg/** may import only pkg/** and third-party code.
-          # Exception (D-02 step 1.1, internal/cryptoinit is removed): pkg/agent/core.
           # Test files may use tests/helpers until internal/testutil exists (D-05).
           files:
             - "**/pkg/**/*.go"
             - "!**/*_test.go"
-            - "!**/pkg/agent/core/*.go"
           deny:
             - pkg: github.com/sage-x-project/sage/internal
               desc: pkg must not depend on internal (composition roots and CLI plumbing)
@@ -36,26 +34,6 @@ linters:
               desc: nothing imports tests
             - pkg: github.com/sage-x-project/sage/tools
               desc: nothing imports tools
-        pkg-baseline-exceptions:
-          # pkg/agent/core may still import internal/cryptoinit (D-02 step 1.1) but
-          # nothing else from the forbidden layers.
-          files:
-            - "**/pkg/agent/core/*.go"
-            - "!**/*_test.go"
-          allow:
-            - $gostd
-            - github.com/sage-x-project/sage/pkg
-            - github.com/sage-x-project/sage/internal/cryptoinit
-          deny:
-            - pkg: github.com/sage-x-project/sage/cmd
-              desc: pkg must not depend on cmd
-            - pkg: github.com/sage-x-project/sage/examples
-              desc: nothing imports examples
-            - pkg: github.com/sage-x-project/sage/tests
-              desc: nothing imports tests
-            - pkg: github.com/sage-x-project/sage/tools
-              desc: nothing imports tools
-          list-mode: lax
         internal-does-not-know-cmd:
           files:
             - "**/internal/**/*.go"

@@ -22,8 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	_ "github.com/sage-x-project/sage/internal/cryptoinit"
-	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
@@ -141,7 +140,7 @@ func TestGenerateAgentDIDWithNonce(t *testing.T) {
 func TestDeriveEthereumAddress(t *testing.T) {
 	t.Run("Should derive address from secp256k1 keypair", func(t *testing.T) {
 		// Generate a secp256k1 keypair
-		keyPair, err := crypto.GenerateSecp256k1KeyPair()
+		keyPair, err := keys.GenerateSecp256k1KeyPair()
 		if err != nil {
 			t.Fatalf("Failed to generate keypair: %v", err)
 		}
@@ -179,7 +178,7 @@ func TestDeriveEthereumAddress(t *testing.T) {
 
 	t.Run("Should fail for non-secp256k1 keypair", func(t *testing.T) {
 		// Generate an Ed25519 keypair
-		keyPair, err := crypto.GenerateEd25519KeyPair()
+		keyPair, err := keys.GenerateEd25519KeyPair()
 		if err != nil {
 			t.Fatalf("Failed to generate Ed25519 keypair: %v", err)
 		}
@@ -197,7 +196,7 @@ func TestDeriveEthereumAddress(t *testing.T) {
 
 	t.Run("Should generate consistent address for same keypair", func(t *testing.T) {
 		// Generate a keypair
-		keyPair, err := crypto.GenerateSecp256k1KeyPair()
+		keyPair, err := keys.GenerateSecp256k1KeyPair()
 		if err != nil {
 			t.Fatalf("Failed to generate keypair: %v", err)
 		}
@@ -223,7 +222,7 @@ func TestDeriveEthereumAddress(t *testing.T) {
 func TestDIDGenerationIntegration(t *testing.T) {
 	t.Run("Complete DID generation flow with derived address", func(t *testing.T) {
 		// Generate keypair
-		keyPair, err := crypto.GenerateSecp256k1KeyPair()
+		keyPair, err := keys.GenerateSecp256k1KeyPair()
 		if err != nil {
 			t.Fatalf("Failed to generate keypair: %v", err)
 		}

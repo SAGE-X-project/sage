@@ -51,7 +51,7 @@ func SageCleanup() {
 // These are placeholder references to ensure packages are included in the library
 var (
 	_ = core.NewVerificationService
-	_ = crypto.NewManager
+	_ = crypto.KeyTypeEd25519
 	_ = did.NewManager
 )
 

@@ -23,15 +23,14 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/sage-x-project/sage/internal/cryptoinit" // Initialize crypto wrappers
-	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGenerateA2ACardWithProof_Ed25519(t *testing.T) {
 	// Generate Ed25519 key pair
-	keyPair, err := crypto.GenerateEd25519KeyPair()
+	keyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
 	pubKey, ok := keyPair.PublicKey().(ed25519.PublicKey)
@@ -83,7 +82,7 @@ func TestGenerateA2ACardWithProof_Ed25519(t *testing.T) {
 
 func TestGenerateA2ACardWithProof_ECDSA(t *testing.T) {
 	// Generate ECDSA key pair
-	keyPair, err := crypto.GenerateSecp256k1KeyPair()
+	keyPair, err := keys.GenerateSecp256k1KeyPair()
 	require.NoError(t, err)
 
 	pubKeyBytes, err := MarshalPublicKey(keyPair.PublicKey())
@@ -146,10 +145,10 @@ func TestVerifyA2ACardProof_NoProof(t *testing.T) {
 
 func TestVerifyA2ACardProof_InvalidSignature(t *testing.T) {
 	// Generate two different key pairs
-	keyPair1, err := crypto.GenerateEd25519KeyPair()
+	keyPair1, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
-	keyPair2, err := crypto.GenerateEd25519KeyPair()
+	keyPair2, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
 	pubKey1 := keyPair1.PublicKey().(ed25519.PublicKey)
@@ -187,7 +186,7 @@ func TestVerifyA2ACardProof_InvalidSignature(t *testing.T) {
 
 func TestValidateA2ACardWithProof(t *testing.T) {
 	// Generate key pair
-	keyPair, err := crypto.GenerateEd25519KeyPair()
+	keyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
 	pubKey := keyPair.PublicKey().(ed25519.PublicKey)

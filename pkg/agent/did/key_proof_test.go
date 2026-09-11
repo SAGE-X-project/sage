@@ -23,15 +23,14 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/sage-x-project/sage/internal/cryptoinit" // Initialize crypto wrappers
-	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGenerateKeyProofOfPossession_Ed25519(t *testing.T) {
 	// Generate key pair
-	keyPair, err := crypto.GenerateEd25519KeyPair()
+	keyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
 	pubKey := keyPair.PublicKey().(ed25519.PublicKey)
@@ -59,7 +58,7 @@ func TestGenerateKeyProofOfPossession_Ed25519(t *testing.T) {
 
 func TestGenerateKeyProofOfPossession_ECDSA(t *testing.T) {
 	// Generate key pair
-	keyPair, err := crypto.GenerateSecp256k1KeyPair()
+	keyPair, err := keys.GenerateSecp256k1KeyPair()
 	require.NoError(t, err)
 
 	pubKeyBytes, err := MarshalPublicKey(keyPair.PublicKey())
@@ -97,10 +96,10 @@ func TestGenerateKeyProofOfPossession_X25519(t *testing.T) {
 
 func TestVerifyKeyProofOfPossession_InvalidSignature(t *testing.T) {
 	// Generate two different key pairs
-	keyPair1, err := crypto.GenerateEd25519KeyPair()
+	keyPair1, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
-	keyPair2, err := crypto.GenerateEd25519KeyPair()
+	keyPair2, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
 	pubKey1 := keyPair1.PublicKey().(ed25519.PublicKey)
@@ -127,7 +126,7 @@ func TestVerifyKeyProofOfPossession_InvalidSignature(t *testing.T) {
 }
 
 func TestVerifyKeyProofOfPossession_NoSignature(t *testing.T) {
-	keyPair, err := crypto.GenerateEd25519KeyPair()
+	keyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
 	pubKey := keyPair.PublicKey().(ed25519.PublicKey)
@@ -149,10 +148,10 @@ func TestVerifyKeyProofOfPossession_NoSignature(t *testing.T) {
 
 func TestVerifyAllKeyProofs(t *testing.T) {
 	// Generate key pairs
-	ed25519KeyPair, err := crypto.GenerateEd25519KeyPair()
+	ed25519KeyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
-	ecdsaKeyPair, err := crypto.GenerateSecp256k1KeyPair()
+	ecdsaKeyPair, err := keys.GenerateSecp256k1KeyPair()
 	require.NoError(t, err)
 
 	ed25519PubKey := ed25519KeyPair.PublicKey().(ed25519.PublicKey)
@@ -211,10 +210,10 @@ func TestVerifyAllKeyProofs(t *testing.T) {
 
 func TestVerifyAllKeyProofs_OneInvalid(t *testing.T) {
 	// Generate two key pairs
-	keyPair1, err := crypto.GenerateEd25519KeyPair()
+	keyPair1, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
-	keyPair2, err := crypto.GenerateEd25519KeyPair()
+	keyPair2, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
 	pubKey1 := keyPair1.PublicKey().(ed25519.PublicKey)
@@ -262,7 +261,7 @@ func TestVerifyAllKeyProofs_OneInvalid(t *testing.T) {
 
 func TestValidateKeyWithPoP(t *testing.T) {
 	// Generate key pair
-	keyPair, err := crypto.GenerateEd25519KeyPair()
+	keyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 
 	pubKey := keyPair.PublicKey().(ed25519.PublicKey)

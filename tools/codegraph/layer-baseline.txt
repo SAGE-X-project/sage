@@ -3,5 +3,5 @@
 # forbidden direction. New violations fail CI; these are removed as the
 # tracked items land. Format: "<from> (<kind>) -> <to> (<kind>)".
 #
-# D-02 (Phase 1, step 1.1): crypto.Manager and internal/cryptoinit are removed.
-pkg/agent/core (pkg) -> internal/cryptoinit (internal)
+# No tolerated violations at present. Add a line only together with the
+# backlog item that removes it again.

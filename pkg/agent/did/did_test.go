@@ -29,7 +29,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -444,7 +444,7 @@ func TestDIDDuplicateDetection(t *testing.T) {
 
 	// Step 2: Generate Secp256k1 keypair for Agent
 	helpers.LogDetail(t, "[Step 1] Secp256k1 키페어 생성...")
-	agentKeyPair, err := crypto.GenerateSecp256k1KeyPair()
+	agentKeyPair, err := keys.GenerateSecp256k1KeyPair()
 	require.NoError(t, err, "Failed to generate keypair")
 	helpers.LogSuccess(t, "키페어 생성 완료")
 

@@ -33,8 +33,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
-	_ "github.com/sage-x-project/sage/internal/cryptoinit" // Initialize crypto wrappers
-	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
@@ -247,7 +246,7 @@ func TestV2DIDLifecycleWithFundedKey(t *testing.T) {
 
 	// Step 2: Generate new Secp256k1 keypair for the agent
 	t.Log("\n[Step 1] Generating new Secp256k1 keypair...")
-	agentKeyPair, err := crypto.GenerateSecp256k1KeyPair()
+	agentKeyPair, err := keys.GenerateSecp256k1KeyPair()
 	if err != nil {
 		t.Fatalf("Failed to generate agent keypair: %v", err)
 	}
@@ -402,7 +401,7 @@ func TestV2RegistrationWithUpdate(t *testing.T) {
 	defer cancel()
 
 	// Generate and fund agent key
-	agentKeyPair, err := crypto.GenerateSecp256k1KeyPair()
+	agentKeyPair, err := keys.GenerateSecp256k1KeyPair()
 	if err != nil {
 		t.Fatalf("Failed to generate keypair: %v", err)
 	}
