@@ -53,6 +53,13 @@ func (s *VerificationService) VerifyAgentMessage(
 	message *rfc9421.Message,
 	opts *rfc9421.VerificationOptions,
 ) (*VerificationResult, error) {
+	if message == nil {
+		return nil, fmt.Errorf("message cannot be nil")
+	}
+	if opts == nil {
+		opts = rfc9421.DefaultVerificationOptions()
+	}
+
 	// Resolve agent metadata from DID
 	agentMetadata, err := s.didResolver.ResolveAgent(ctx, did.AgentDID(message.AgentDID))
 	if err != nil {

@@ -392,3 +392,24 @@ func TestVerificationService(t *testing.T) {
 		mockDIDManager.AssertExpectations(t)
 	})
 }
+
+// A nil options pointer must select the defaults instead of panicking, and a
+// nil message must be rejected.
+func TestVerifyAgentMessage_NilOptionsAndMessage(t *testing.T) {
+	mockDIDManager := new(MockDIDManager)
+	service := NewVerificationService(mockDIDManager)
+
+	_, err := service.VerifyAgentMessage(context.Background(), nil, nil)
+	require.Error(t, err)
+
+	agentDID := "did:sage:ethereum:0xnilopts"
+	mockDIDManager.On("ResolveAgent", mock.Anything, did.AgentDID(agentDID)).
+		Return(&did.AgentMetadata{DID: did.AgentDID(agentDID), IsActive: false}, nil)
+
+	require.NotPanics(t, func() {
+		result, err := service.VerifyAgentMessage(context.Background(), &rfc9421.Message{AgentDID: agentDID}, nil)
+		require.NoError(t, err)
+		// Defaults require an active agent, so a deactivated agent is reported invalid.
+		assert.False(t, result.Valid)
+	})
+}

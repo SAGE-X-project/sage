@@ -21,6 +21,7 @@ package session
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
@@ -409,4 +410,25 @@ func rb(n int) []byte {
 	b := make([]byte, n)
 	_, _ = rand.Read(b)
 	return b
+}
+
+// SetDefaultConfig must be safe to call while sessions are being created.
+func TestManager_SetDefaultConfigConcurrent(t *testing.T) {
+	mgr := NewManager()
+	defer func() { _ = mgr.Close() }()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 20; i++ {
+		wg.Add(2)
+		go func(i int) {
+			defer wg.Done()
+			mgr.SetDefaultConfig(Config{MaxAge: time.Duration(i+1) * time.Minute, IdleTimeout: time.Minute, MaxMessages: 10 + i})
+		}(i)
+		go func(i int) {
+			defer wg.Done()
+			_, err := mgr.CreateSession(fmt.Sprintf("concurrent-%d", i), []byte("seed-seed-seed-seed-seed-seed-32"))
+			require.NoError(t, err)
+		}(i)
+	}
+	wg.Wait()
 }

@@ -70,7 +70,7 @@ func NewManager() *Manager {
 
 // CreateSession creates a new session with the given shared secret
 func (m *Manager) CreateSession(sessionID string, sharedSecret []byte) (Session, error) {
-	return m.CreateSessionWithConfig(sessionID, sharedSecret, m.defaultConfig)
+	return m.CreateSessionWithConfig(sessionID, sharedSecret, m.getDefaultConfig())
 }
 
 // Add to: package session
@@ -104,7 +104,7 @@ func (m *Manager) EnsureSessionFromExporterWithRole(
 	}
 	m.mu.RUnlock()
 
-	newCfg := m.defaultConfig
+	newCfg := m.getDefaultConfig()
 	if cfg != nil {
 		newCfg = withDefaults(*cfg)
 	}
@@ -169,7 +169,7 @@ func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, strin
 	}
 	m.mu.RUnlock()
 
-	newCfg := m.defaultConfig
+	newCfg := m.getDefaultConfig()
 	if cfg != nil {
 		newCfg = withDefaults(*cfg)
 	}
@@ -381,7 +381,16 @@ func (m *Manager) GetSessionStats() Status {
 
 // SetDefaultConfig updates the default session configuration
 func (m *Manager) SetDefaultConfig(config Config) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.defaultConfig = config
+}
+
+// getDefaultConfig returns a copy of the default configuration under the lock.
+func (m *Manager) getDefaultConfig() Config {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.defaultConfig
 }
 
 // Close stops the manager and cleans up all sessions and caches.
