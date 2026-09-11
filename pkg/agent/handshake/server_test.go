@@ -34,7 +34,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	sessioninit "github.com/sage-x-project/sage/internal"
+	sessioninit "github.com/sage-x-project/sage/internal" //nolint:staticcheck // legacy adapter under test
 	"github.com/sage-x-project/sage/pkg/agent/core/message"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"

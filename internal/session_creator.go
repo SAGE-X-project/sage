@@ -16,6 +16,11 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
+// Package sessioninit adapts the legacy handshake package's events to the
+// session manager.
+//
+// Deprecated: it exists only for pkg/agent/handshake and goes away with it
+// (docs/refactoring/BACKLOG.md, D-06).
 package sessioninit
 
 import (
@@ -30,7 +35,7 @@ import (
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"github.com/sage-x-project/sage/pkg/agent/handshake"
+	"github.com/sage-x-project/sage/pkg/agent/handshake" //nolint:staticcheck // legacy adapter, removed together with handshake (D-06)
 	"github.com/sage-x-project/sage/pkg/agent/session"
 )
 

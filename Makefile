@@ -3,13 +3,11 @@
 # Variables
 CRYPTO_BINARY=sage-crypto
 DID_BINARY=sage-did
-RANDOM_TEST_BINARY=random-test
 VERIFY_BINARY=deployment-verify
 TEST_CLIENT_BINARY=test-client
 TEST_SERVER_BINARY=test-server
 BUILD_DIR=build
 BIN_DIR=$(BUILD_DIR)/bin
-LIB_DIR=$(BUILD_DIR)/lib
 CMD_DIR=cmd
 EXAMPLES_DIR=examples
 REPORTS_DIR=reports
@@ -41,10 +39,6 @@ MAIN_BUILD_LDFLAGS=$(BUILD_LDFLAGS) \
 	-X 'main.BuildTime=$(BUILD_DATE)'
 
 # Library build variables
-LIB_NAME=libsage.a
-LIB_SO_NAME=libsage.so
-LIB_DYLIB_NAME=libsage.dylib
-LIB_DLL_NAME=libsage.dll
 
 # Platform detection
 UNAME_S := $(shell uname -s)
@@ -75,142 +69,6 @@ build: build-binaries build-examples
 # Build core binaries
 .PHONY: build-binaries
 build-binaries: build-crypto build-did build-verify
-
-# Build libraries
-.PHONY: build-lib
-build-lib: build-lib-static build-lib-shared
-
-# Build static library (.a) for current platform
-.PHONY: build-lib-static
-build-lib-static: $(LIB_DIR)/$(LIB_NAME)
-
-$(LIB_DIR)/$(LIB_NAME):
-	@echo "Building static library $(LIB_NAME) for current platform..."
-	@mkdir -p $(LIB_DIR)
-	$(GO) build -buildmode=c-archive -o $(LIB_DIR)/$(LIB_NAME) ./lib
-	@echo "Build complete: $(LIB_DIR)/$(LIB_NAME)"
-
-# Build shared library for current platform
-.PHONY: build-lib-shared
-build-lib-shared:
-	@echo "Building shared library for current platform..."
-	@mkdir -p $(LIB_DIR)
-ifeq ($(UNAME_S),Darwin)
-	@echo "Building macOS dylib..."
-	$(GO) build -buildmode=c-shared -o $(LIB_DIR)/$(LIB_DYLIB_NAME) ./lib
-	@echo "Build complete: $(LIB_DIR)/$(LIB_DYLIB_NAME)"
-else ifeq ($(UNAME_S),Linux)
-	@echo "Building Linux shared library..."
-	$(GO) build -buildmode=c-shared -o $(LIB_DIR)/$(LIB_SO_NAME) ./lib
-	@echo "Build complete: $(LIB_DIR)/$(LIB_SO_NAME)"
-else
-	@echo "Windows DLL build not supported directly from Makefile. Use build-lib-all-platforms instead."
-endif
-
-# Build libraries for all platforms and architectures
-.PHONY: build-lib-all
-build-lib-all:
-	@echo "Building libraries for all platforms and architectures..."
-	@echo "Note: Cross-platform library builds require platform-specific C toolchains."
-	@echo "Some builds may fail if cross-compilation toolchains are not installed."
-	@echo ""
-	@$(MAKE) build-lib-linux-amd64 || echo "Warning: Linux amd64 build failed (may need cross-compiler)"
-	@$(MAKE) build-lib-linux-arm64 || echo "Warning: Linux arm64 build failed (may need cross-compiler)"
-	@$(MAKE) build-lib-darwin-amd64 || echo "Warning: macOS amd64 build failed (may need cross-compiler)"
-	@$(MAKE) build-lib-darwin-arm64 || echo "Warning: macOS arm64 build failed (may need cross-compiler)"
-	@$(MAKE) build-lib-windows-amd64 || echo "Warning: Windows amd64 build failed (may need cross-compiler)"
-	@echo ""
-	@echo "Library builds complete! (check for warnings above)"
-
-# Build Linux static library (amd64)
-.PHONY: build-lib-linux-amd64
-build-lib-linux-amd64:
-	@echo "Building Linux amd64 static library..."
-	@mkdir -p $(LIB_DIR)/linux-amd64
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GO) build -buildmode=c-archive \
-		-o $(LIB_DIR)/linux-amd64/libsage.a ./lib
-	@echo "Build complete: $(LIB_DIR)/linux-amd64/libsage.a"
-
-# Build Linux static library (arm64)
-.PHONY: build-lib-linux-arm64
-build-lib-linux-arm64:
-	@echo "Building Linux arm64 static library..."
-	@mkdir -p $(LIB_DIR)/linux-arm64
-	CGO_ENABLED=1 GOOS=linux GOARCH=arm64 $(GO) build -buildmode=c-archive \
-		-o $(LIB_DIR)/linux-arm64/libsage.a ./lib
-	@echo "Build complete: $(LIB_DIR)/linux-arm64/libsage.a"
-
-# Build macOS static library (amd64)
-.PHONY: build-lib-darwin-amd64
-build-lib-darwin-amd64:
-	@echo "Building macOS amd64 static library..."
-	@mkdir -p $(LIB_DIR)/darwin-amd64
-	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build -buildmode=c-archive \
-		-o $(LIB_DIR)/darwin-amd64/libsage.a ./lib
-	@echo "Build complete: $(LIB_DIR)/darwin-amd64/libsage.a"
-
-# Build macOS static library (arm64/Apple Silicon)
-.PHONY: build-lib-darwin-arm64
-build-lib-darwin-arm64:
-	@echo "Building macOS arm64 static library..."
-	@mkdir -p $(LIB_DIR)/darwin-arm64
-	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build -buildmode=c-archive \
-		-o $(LIB_DIR)/darwin-arm64/libsage.a ./lib
-	@echo "Build complete: $(LIB_DIR)/darwin-arm64/libsage.a"
-
-# Build Windows static library (amd64)
-.PHONY: build-lib-windows-amd64
-build-lib-windows-amd64:
-	@echo "Building Windows amd64 static library..."
-	@mkdir -p $(LIB_DIR)/windows-amd64
-	CGO_ENABLED=1 GOOS=windows GOARCH=amd64 $(GO) build -buildmode=c-archive \
-		-o $(LIB_DIR)/windows-amd64/libsage.a ./lib
-	@echo "Build complete: $(LIB_DIR)/windows-amd64/libsage.a"
-
-# Build Linux shared library (amd64)
-.PHONY: build-lib-linux-amd64-shared
-build-lib-linux-amd64-shared:
-	@echo "Building Linux amd64 shared library..."
-	@mkdir -p $(LIB_DIR)/linux-amd64
-	CGO_ENABLED=1 GOOS=linux GOARCH=amd64 $(GO) build -buildmode=c-shared \
-		-o $(LIB_DIR)/linux-amd64/libsage.so ./lib
-	@echo "Build complete: $(LIB_DIR)/linux-amd64/libsage.so"
-
-# Build Linux shared library (arm64)
-.PHONY: build-lib-linux-arm64-shared
-build-lib-linux-arm64-shared:
-	@echo "Building Linux arm64 shared library..."
-	@mkdir -p $(LIB_DIR)/linux-arm64
-	CGO_ENABLED=1 GOOS=linux GOARCH=arm64 $(GO) build -buildmode=c-shared \
-		-o $(LIB_DIR)/linux-arm64/libsage.so ./lib
-	@echo "Build complete: $(LIB_DIR)/linux-arm64/libsage.so"
-
-# Build macOS shared library (amd64)
-.PHONY: build-lib-darwin-amd64-shared
-build-lib-darwin-amd64-shared:
-	@echo "Building macOS amd64 shared library..."
-	@mkdir -p $(LIB_DIR)/darwin-amd64
-	CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 $(GO) build -buildmode=c-shared \
-		-o $(LIB_DIR)/darwin-amd64/libsage.dylib ./lib
-	@echo "Build complete: $(LIB_DIR)/darwin-amd64/libsage.dylib"
-
-# Build macOS shared library (arm64/Apple Silicon)
-.PHONY: build-lib-darwin-arm64-shared
-build-lib-darwin-arm64-shared:
-	@echo "Building macOS arm64 shared library..."
-	@mkdir -p $(LIB_DIR)/darwin-arm64
-	CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 $(GO) build -buildmode=c-shared \
-		-o $(LIB_DIR)/darwin-arm64/libsage.dylib ./lib
-	@echo "Build complete: $(LIB_DIR)/darwin-arm64/libsage.dylib"
-
-# Build Windows shared library (amd64)
-.PHONY: build-lib-windows-amd64-shared
-build-lib-windows-amd64-shared:
-	@echo "Building Windows amd64 DLL..."
-	@mkdir -p $(LIB_DIR)/windows-amd64
-	GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc $(GO) build -buildmode=c-shared \
-		-o $(LIB_DIR)/windows-amd64/libsage.dll ./lib
-	@echo "Build complete: $(LIB_DIR)/windows-amd64/libsage.dll"
 
 # Build all binaries for all platforms
 .PHONY: build-all-platforms
@@ -645,7 +503,7 @@ clean:
 	@rm -rf $(BUILD_DIR)
 	@rm -rf $(DIST_DIR)
 	@rm -f $(BINARY_NAME)
-	@rm -f sage-crypto sage-did deployment-verify random-test
+	@rm -f sage-crypto sage-did deployment-verify
 	@rm -f test_output.tmp
 	@rm -f coverage.out coverage.html
 	@rm -f *.test
@@ -678,7 +536,6 @@ clean:
 	@rm -rf logs/
 	@rm -rf reports/
 	@rm -rf testutil/
-	@rm -rf random/
 	@rm -rf handshake/
 	@rm -rf integration/
 	@echo "Clean complete"
@@ -774,63 +631,6 @@ update-version:
 	@echo "Updating project version..."
 	@bash ./tools/scripts/update-version.sh
 
-# Build random-test binary
-.PHONY: build-random-test
-build-random-test: $(BIN_DIR)/$(RANDOM_TEST_BINARY)
-
-$(BIN_DIR)/$(RANDOM_TEST_BINARY):
-	@echo "Building $(RANDOM_TEST_BINARY)..."
-	@mkdir -p $(BIN_DIR)
-	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/$(RANDOM_TEST_BINARY) ./$(CMD_DIR)/$(RANDOM_TEST_BINARY)
-	@echo "Build complete: $(BIN_DIR)/$(RANDOM_TEST_BINARY)"
-
-# Run random tests with default settings (100 iterations)
-.PHONY: random-test
-random-test: build-random-test
-	@echo "Running random tests (100 iterations)..."
-	@mkdir -p $(REPORTS_DIR)
-	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=100 -parallel=4
-
-# Run quick random tests (10 iterations for validation)
-.PHONY: random-test-quick
-random-test-quick: build-random-test
-	@echo "Running quick random tests (10 iterations)..."
-	@mkdir -p $(REPORTS_DIR)
-	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=10 -parallel=2 -verbose
-
-# Run full random tests (1000 iterations for evaluation)
-.PHONY: random-test-full
-random-test-full: build-random-test
-	@echo "Running full random tests (1000 iterations)..."
-	@mkdir -p $(REPORTS_DIR)
-	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=1000 -parallel=10 -report=$(REPORTS_DIR)/random-test-full.html
-
-# Run evaluation random tests (10000 iterations for maximum score)
-.PHONY: random-test-eval
-random-test-eval: build-random-test
-	@echo "Running evaluation random tests (10000 iterations)..."
-	@mkdir -p $(REPORTS_DIR)
-	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=10000 -parallel=20 -report=$(REPORTS_DIR)/random-test-evaluation.html
-
-# Run random tests for specific category
-.PHONY: random-test-rfc9421
-random-test-rfc9421: build-random-test
-	@echo "Running RFC 9421 random tests..."
-	@mkdir -p $(REPORTS_DIR)
-	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=500 -categories=rfc9421 -parallel=5
-
-.PHONY: random-test-crypto
-random-test-crypto: build-random-test
-	@echo "Running crypto random tests..."
-	@mkdir -p $(REPORTS_DIR)
-	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=500 -categories=crypto -parallel=5
-
-.PHONY: random-test-did
-random-test-did: build-random-test
-	@echo "Running DID random tests..."
-	@mkdir -p $(REPORTS_DIR)
-	$(BIN_DIR)/$(RANDOM_TEST_BINARY) -iterations=500 -categories=did -parallel=5
-
 # Clean test reports
 .PHONY: clean-reports
 clean-reports:
@@ -839,7 +639,7 @@ clean-reports:
 
 # Create release packages for all platforms
 .PHONY: package
-package: build-all-platforms build-lib-all
+package: build-all-platforms
 	@echo "Creating release packages..."
 	@mkdir -p $(DIST_DIR)/packages
 	@for platform in $(PLATFORMS); do \
@@ -864,9 +664,9 @@ checksums:
 	@echo "Checksums generated: $(DIST_DIR)/packages/SHA256SUMS"
 	@cat $(DIST_DIR)/packages/SHA256SUMS
 
-# Full release build (binaries + libraries + packages + checksums)
+# Full release build (binaries + packages + checksums)
 .PHONY: release
-release: clean build-all-platforms build-lib-all package checksums
+release: clean build-all-platforms package checksums
 	@echo "===================="
 	@echo "Release build complete!"
 	@echo "===================="
@@ -875,7 +675,6 @@ release: clean build-all-platforms build-lib-all package checksums
 	@find $(DIST_DIR) -type f \( -name "sage-*" -o -name "*.exe" \) -exec ls -lh {} \;
 	@echo ""
 	@echo "Libraries:"
-	@find $(LIB_DIR) -type f \( -name "*.a" -o -name "*.so" -o -name "*.dylib" -o -name "*.dll" \) -exec ls -lh {} \;
 	@echo ""
 	@echo "Packages:"
 	@ls -lh $(DIST_DIR)/packages/
@@ -890,7 +689,6 @@ help:
 	@echo "Quick Start:"
 	@echo "  make                    - Build all binaries and examples (default)"
 	@echo "  make build-all-platforms - Build for Linux, macOS, Windows (x86/ARM)"
-	@echo "  make build-lib-all      - Build libraries for all platforms"
 	@echo "  make release            - Full release build with packages"
 	@echo ""
 	@echo "Build targets:"
@@ -905,22 +703,7 @@ help:
 	@echo "  make build-platform GOOS=linux GOARCH=amd64  - Build for specific platform"
 	@echo ""
 	@echo "Library build targets:"
-	@echo "  make build-lib                   - Build library for current platform"
-	@echo "  make build-lib-static            - Build static library (.a)"
-	@echo "  make build-lib-shared            - Build shared library (.so/.dylib)"
-	@echo "  make build-lib-all               - Build libraries for all platforms"
 	@echo ""
-	@echo "Platform-specific library builds:"
-	@echo "  make build-lib-linux-amd64       - Linux x86_64 static library"
-	@echo "  make build-lib-linux-arm64       - Linux ARM64 static library"
-	@echo "  make build-lib-darwin-amd64      - macOS Intel static library"
-	@echo "  make build-lib-darwin-arm64      - macOS Apple Silicon static library"
-	@echo "  make build-lib-windows-amd64     - Windows x86_64 static library"
-	@echo "  make build-lib-linux-amd64-shared   - Linux x86_64 shared library (.so)"
-	@echo "  make build-lib-linux-arm64-shared   - Linux ARM64 shared library (.so)"
-	@echo "  make build-lib-darwin-amd64-shared  - macOS Intel shared library (.dylib)"
-	@echo "  make build-lib-darwin-arm64-shared  - macOS Apple Silicon shared library (.dylib)"
-	@echo "  make build-lib-windows-amd64-shared - Windows x86_64 DLL (requires MinGW)"
 	@echo ""
 	@echo "Release targets:"
 	@echo "  make package            - Create release packages (tar.gz)"
@@ -974,13 +757,6 @@ help:
 	@echo "  make bench-integration - Run integration benchmarks"
 	@echo ""
 	@echo "Random Test targets:"
-	@echo "  make random-test         - Run random tests (100 iterations)"
-	@echo "  make random-test-quick   - Run quick validation (10 iterations)"
-	@echo "  make random-test-full    - Run full tests (1000 iterations)"
-	@echo "  make random-test-eval    - Run evaluation tests (10000 iterations)"
-	@echo "  make random-test-rfc9421 - Test RFC 9421 only"
-	@echo "  make random-test-crypto  - Test crypto only"
-	@echo "  make random-test-did     - Test DID only"
 	@echo ""
 	@echo "Verification targets:"
 	@echo "  make verify-features         - Run comprehensive feature verification"

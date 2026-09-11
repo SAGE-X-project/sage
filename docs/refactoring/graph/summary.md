@@ -4,13 +4,13 @@ Module: `github.com/sage-x-project/sage`
 
 | Metric | Value |
 |---|---|
-| Packages | 64 |
-| Symbols | 2251 |
-| Edges | 1782 |
-| Non-test LOC | 45422 |
-| Test LOC | 38453 |
-| Funcs+methods | 1817 |
-| Types | 434 |
+| Packages | 60 |
+| Symbols | 2163 |
+| Edges | 1707 |
+| Non-test LOC | 43726 |
+| Test LOC | 36779 |
+| Funcs+methods | 1753 |
+| Types | 410 |
 
 ## Packages
 
@@ -25,35 +25,31 @@ Module: `github.com/sage-x-project/sage`
 | examples/mcp-integration/basic-demo | examples | 1 | 376 | 0 | 9 | 4 | 0 | 0 | 2 | 10 |
 | examples/mcp-integration/basic-tool | examples | 2 | 298 | 0 | 6 | 3 | 0 | 0 | 4 | 5 |
 | examples/mcp-integration/client | examples | 2 | 281 | 0 | 5 | 1 | 0 | 0 | 2 | 11 |
-| examples/mcp-integration/simple-standalone | examples | 1 | 262 | 0 | 6 | 2 | 0 | 0 | 2 | 9 |
+| examples/mcp-integration/simple-standalone | examples | 1 | 294 | 0 | 7 | 2 | 0 | 0 | 2 | 10 |
 | examples/mcp-integration/vulnerable-vs-secure/attacker | examples | 1 | 156 | 0 | 4 | 1 | 0 | 0 | 0 | 7 |
-| examples/mcp-integration/vulnerable-vs-secure/secure-chat | examples | 1 | 138 | 0 | 4 | 2 | 0 | 0 | 0 | 5 |
+| examples/mcp-integration/vulnerable-vs-secure/secure-chat | examples | 1 | 170 | 0 | 5 | 2 | 0 | 0 | 1 | 9 |
 | examples/mcp-integration/vulnerable-vs-secure/vulnerable-chat | examples | 1 | 103 | 0 | 3 | 2 | 0 | 0 | 0 | 5 |
-| internal | other | 1 | 149 | 0 | 8 | 1 | 0 | 0 | 5 | 7 |
+| internal | other | 1 | 154 | 0 | 8 | 1 | 0 | 0 | 5 | 7 |
 | internal/app | internal | 1 | 43 | 0 | 1 | 0 | 0 | 2 | 6 | 0 |
 | internal/cli | internal | 1 | 71 | 70 | 1 | 1 | 0 | 2 | 3 | 3 |
-| lib | other | 1 | 61 | 0 | 4 | 0 | 0 | 0 | 4 | 3 |
-| pkg/agent/core | pkg | 2 | 317 | 748 | 17 | 4 | 1 | 2 | 4 | 3 |
-| pkg/agent/core/message | pkg | 1 | 42 | 0 | 0 | 3 | 1 | 4 | 0 | 1 |
-| pkg/agent/core/message/dedupe | pkg | 1 | 124 | 422 | 7 | 1 | 0 | 1 | 1 | 5 |
-| pkg/agent/core/message/nonce | pkg | 1 | 147 | 362 | 9 | 1 | 0 | 2 | 0 | 5 |
-| pkg/agent/core/message/order | pkg | 2 | 153 | 830 | 9 | 3 | 0 | 1 | 1 | 4 |
-| pkg/agent/core/message/validator | pkg | 2 | 175 | 450 | 5 | 3 | 0 | 0 | 4 | 3 |
-| pkg/agent/core/rfc9421 | pkg | 8 | 2224 | 4257 | 91 | 17 | 0 | 5 | 4 | 18 |
-| pkg/agent/crypto | pkg | 4 | 671 | 1684 | 28 | 11 | 6 | 20 | 0 | 9 |
+| pkg/agent/core | pkg | 2 | 317 | 748 | 17 | 4 | 1 | 1 | 4 | 3 |
+| pkg/agent/core/message | pkg | 1 | 42 | 0 | 0 | 3 | 1 | 1 | 0 | 1 |
+| pkg/agent/core/message/nonce | pkg | 1 | 147 | 362 | 9 | 1 | 0 | 1 | 0 | 5 |
+| pkg/agent/core/rfc9421 | pkg | 8 | 2224 | 4257 | 91 | 17 | 0 | 6 | 4 | 18 |
+| pkg/agent/crypto | pkg | 4 | 671 | 1684 | 28 | 11 | 6 | 19 | 0 | 9 |
 | pkg/agent/crypto/chain | pkg | 5 | 729 | 640 | 28 | 10 | 4 | 7 | 2 | 10 |
 | pkg/agent/crypto/chain/ethereum | pkg | 2 | 218 | 149 | 12 | 3 | 0 | 2 | 5 | 7 |
 | pkg/agent/crypto/chain/solana | pkg | 1 | 174 | 170 | 12 | 1 | 0 | 2 | 2 | 5 |
 | pkg/agent/crypto/formats | pkg | 2 | 891 | 786 | 19 | 5 | 0 | 6 | 2 | 16 |
 | pkg/agent/crypto/jcs | pkg | 1 | 225 | 62 | 6 | 0 | 0 | 2 | 0 | 10 |
-| pkg/agent/crypto/keys | pkg | 10 | 1491 | 2722 | 85 | 7 | 0 | 15 | 1 | 24 |
+| pkg/agent/crypto/keys | pkg | 10 | 1496 | 2750 | 85 | 7 | 0 | 15 | 1 | 24 |
 | pkg/agent/crypto/rotation | pkg | 1 | 145 | 198 | 4 | 1 | 0 | 1 | 2 | 3 |
 | pkg/agent/crypto/storage | pkg | 2 | 312 | 824 | 13 | 3 | 0 | 2 | 2 | 7 |
 | pkg/agent/crypto/vault | pkg | 1 | 407 | 324 | 15 | 4 | 1 | 0 | 0 | 14 |
-| pkg/agent/did | pkg | 13 | 2982 | 5423 | 111 | 35 | 5 | 8 | 4 | 20 |
+| pkg/agent/did | pkg | 13 | 2982 | 5423 | 111 | 35 | 5 | 7 | 4 | 20 |
 | pkg/agent/did/ethereum | pkg | 5 | 1708 | 2028 | 42 | 3 | 0 | 3 | 4 | 19 |
 | pkg/agent/did/solana | pkg | 2 | 798 | 393 | 16 | 2 | 0 | 1 | 4 | 9 |
-| pkg/agent/handshake | pkg | 4 | 948 | 825 | 36 | 13 | 1 | 1 | 9 | 11 |
+| pkg/agent/handshake | pkg | 5 | 976 | 825 | 36 | 13 | 1 | 1 | 9 | 11 |
 | pkg/agent/hpke | pkg | 5 | 1501 | 2994 | 47 | 17 | 5 | 1 | 6 | 20 |
 | pkg/agent/session | pkg | 7 | 1835 | 2604 | 90 | 15 | 3 | 5 | 0 | 15 |
 | pkg/agent/transport | pkg | 4 | 469 | 363 | 16 | 9 | 1 | 4 | 0 | 5 |
@@ -71,12 +67,12 @@ Module: `github.com/sage-x-project/sage`
 | pkg/telemetry | pkg | 1 | 23 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | pkg/telemetry/logger | pkg | 1 | 361 | 263 | 30 | 5 | 1 | 0 | 0 | 9 |
 | pkg/telemetry/metrics | pkg | 9 | 786 | 111 | 23 | 3 | 0 | 2 | 0 | 8 |
-| pkg/version | pkg | 1 | 143 | 215 | 7 | 1 | 0 | 2 | 0 | 3 |
+| pkg/version | pkg | 1 | 143 | 215 | 7 | 1 | 0 | 1 | 0 | 3 |
 | reports/bindings | other | 3 | 5554 | 0 | 321 | 82 | 0 | 0 | 0 | 11 |
+| sdk/typescript/node_modules/flatted/golang/pkg/flatted | other | 1 | 279 | 0 | 7 | 1 | 0 | 0 | 0 | 5 |
 | tests | root | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | tests/helpers | tests | 1 | 206 | 0 | 10 | 0 | 0 | 0 | 0 | 7 |
 | tests/integration | tests | 1 | 79 | 5248 | 4 | 0 | 0 | 0 | 0 | 4 |
-| tests/random | tests | 4 | 1564 | 0 | 48 | 18 | 0 | 0 | 0 | 15 |
 | tests/testutil | tests | 1 | 271 | 0 | 15 | 2 | 0 | 0 | 0 | 7 |
 | tools/analyze | tools | 1 | 243 | 0 | 5 | 2 | 0 | 0 | 0 | 6 |
 | tools/benchmark | root | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -117,6 +113,7 @@ graph LR
   examples_mcp_integration_client --> pkg_agent_crypto_keys
   examples_mcp_integration_simple_standalone --> pkg_agent_core_rfc9421
   examples_mcp_integration_simple_standalone --> pkg_agent_crypto_keys
+  examples_mcp_integration_vulnerable_vs_secure_secure_chat --> pkg_agent_core_rfc9421
   internal --> pkg_agent_crypto
   internal --> pkg_agent_crypto_formats
   internal --> pkg_agent_crypto_keys
@@ -131,20 +128,10 @@ graph LR
   internal_cli --> pkg_agent_crypto
   internal_cli --> pkg_agent_crypto_formats
   internal_cli --> pkg_agent_crypto_storage
-  lib --> pkg_agent_core
-  lib --> pkg_agent_crypto
-  lib --> pkg_agent_did
-  lib --> pkg_version
   pkg_agent_core --> pkg_agent_core_rfc9421
   pkg_agent_core --> pkg_agent_crypto
   pkg_agent_core --> pkg_agent_crypto_keys
   pkg_agent_core --> pkg_agent_did
-  pkg_agent_core_message_dedupe --> pkg_agent_core_message
-  pkg_agent_core_message_order --> pkg_agent_core_message
-  pkg_agent_core_message_validator --> pkg_agent_core_message
-  pkg_agent_core_message_validator --> pkg_agent_core_message_dedupe
-  pkg_agent_core_message_validator --> pkg_agent_core_message_nonce
-  pkg_agent_core_message_validator --> pkg_agent_core_message_order
   pkg_agent_core_rfc9421 --> pkg_agent_core_message_nonce
   pkg_agent_core_rfc9421 --> pkg_agent_crypto
   pkg_agent_core_rfc9421 --> pkg_agent_crypto_keys
@@ -258,9 +245,9 @@ None.
 | Function | Callers |
 |---|---|
 | pkg/agent/crypto.KeyPair.Type | 20 |
-| pkg/agent/did.NewManager | 18 |
 | pkg/agent/did.Manager.Configure | 17 |
-| pkg/agent/crypto.KeyPair.PublicKey | 15 |
+| pkg/agent/did.NewManager | 17 |
+| pkg/agent/crypto.KeyPair.PublicKey | 16 |
 | cmd/sage-did.getDefaultContractAddress | 14 |
 | pkg/agent/crypto.KeyPair.Sign | 14 |
 | pkg/agent/did.ParseDID | 14 |
@@ -268,11 +255,10 @@ None.
 | pkg/agent/crypto.KeyPair.ID | 12 |
 | pkg/agent/crypto/keys.IsSecp256k1Curve | 12 |
 | pkg/agent/did.Manager.ResolveAgent | 10 |
+| pkg/agent/core/rfc9421.NewHTTPVerifier | 9 |
 | pkg/agent/crypto.KeyPair.PrivateKey | 9 |
 | pkg/agent/did/ethereum.AgentCardClient.getTransactor | 8 |
 | pkg/agent/session.SecureSession.UpdateLastUsed | 8 |
-| tests/random.TestCaseGenerator.randomInt | 8 |
-| pkg/agent/core/rfc9421.NewHTTPVerifier | 7 |
 | pkg/agent/crypto/chain.GetProvider | 7 |
 | pkg/agent/core/rfc9421.ComputeContentDigest | 6 |
 | pkg/agent/crypto/formats.NewJWKImporter | 6 |
@@ -280,8 +266,9 @@ None.
 | pkg/agent/did.FromAgentMetadata | 6 |
 | pkg/agent/did.Resolver.Resolve | 6 |
 | pkg/agent/transport.MessageTransport.Send | 6 |
-| tests/random.TestCaseGenerator.randomString | 6 |
 | cmd/sage-did.parseChain | 5 |
+| pkg/agent/core/rfc9421.HTTPVerifier.VerifyRequest | 5 |
+| pkg/agent/crypto.GetAlgorithmInfo | 5 |
 
 ## Largest functions (top 25 by lines)
 
@@ -290,11 +277,11 @@ None.
 | pkg/agent/did/ethereum.EthereumClient.Resolve | 219 | pkg/agent/did/ethereum/client.go:213 |
 | pkg/agent/handshake.Server.HandleMessage | 197 | pkg/agent/handshake/server.go:142 |
 | pkg/agent/did/solana.SolanaClient.Register | 131 | pkg/agent/did/solana/client.go:107 |
+| sdk/typescript/node_modules/flatted/golang/pkg/flatted.Stringify | 128 | sdk/typescript/node_modules/flatted/golang/pkg/flatted/flatted.go:16 |
 | cmd/deployment-verify.main | 127 | cmd/deployment-verify/main.go:33 |
-| cmd/sage-did.runCardValidate | 125 | cmd/sage-did/card.go:230 |
 | pkg/agent/did/solana.SolanaClient.Update | 125 | pkg/agent/did/solana/client.go:288 |
+| cmd/sage-did.runCardValidate | 125 | cmd/sage-did/card.go:230 |
 | cmd/sage-did.runKeyVerifyPop | 120 | cmd/sage-did/key.go:536 |
-| tests/random.ResultReporter.saveHTML | 120 | tests/random/reporter.go:164 |
 | pkg/agent/hpke.Client.Initialize | 114 | pkg/agent/hpke/client.go:80 |
 | pkg/agent/did/solana.SolanaClient.Deactivate | 102 | pkg/agent/did/solana/client.go:415 |
 | examples/mcp-integration/basic-demo.main | 101 | examples/mcp-integration/basic-demo/main.go:267 |
@@ -304,13 +291,13 @@ None.
 | pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
 | pkg/agent/crypto/formats.pemExporter.ExportPublic | 93 | pkg/agent/crypto/formats/pem.go:139 |
 | pkg/agent/crypto/formats.pemExporter.Export | 92 | pkg/agent/crypto/formats/pem.go:45 |
-| pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
 | cmd/sage-did.runKeyAdd | 91 | cmd/sage-did/key.go:239 |
+| pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
 | deployments/config.validateBlockchainConfig | 88 | deployments/config/validator.go:61 |
-| pkg/agent/crypto/formats.jwkExporter.ExportPublic | 84 | pkg/agent/crypto/formats/jwk.go:166 |
 | pkg/agent/did/ethereum.EthereumClient.Register | 84 | pkg/agent/did/ethereum/client.go:126 |
-| pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:137 |
+| pkg/agent/crypto/formats.jwkExporter.ExportPublic | 84 | pkg/agent/crypto/formats/jwk.go:166 |
 | cmd/sage-did.runRegister | 83 | cmd/sage-did/register.go:77 |
+| pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:137 |
 | examples/mcp-integration/client.SAGEClient.CallTool | 81 | examples/mcp-integration/client/sage_client.go:79 |
 
 ## Duplicate function bodies
