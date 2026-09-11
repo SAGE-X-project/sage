@@ -4,9 +4,11 @@
 package agentcardregistry
 
 import (
+	"context"
 	"errors"
 	"math/big"
 	"strings"
+	"time"
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -27,6 +29,8 @@ var (
 	_ = types.BloomLookup
 	_ = event.NewSubscription
 	_ = abi.ConvertType
+	_ = time.Tick
+	_ = context.Background
 )
 
 // AgentCardStorageAgentKey is an auto generated low-level Go binding around an user-defined struct.
@@ -561,7 +565,7 @@ func (_AgentCardRegistry *AgentCardRegistryCallerSession) GetAgentsByOwner(owner
 	return _AgentCardRegistry.Contract.GetAgentsByOwner(&_AgentCardRegistry.CallOpts, owner)
 }
 
-// GetKEMKey is a free data retrieval call binding the contract method 0x16ba1d5c.
+// GetKEMKey is a free data retrieval call binding the contract method 0x1d1a1b7b.
 //
 // Solidity: function getKEMKey(bytes32 agentId) view returns(bytes)
 func (_AgentCardRegistry *AgentCardRegistryCaller) GetKEMKey(opts *bind.CallOpts, agentId [32]byte) ([]byte, error) {
@@ -578,14 +582,14 @@ func (_AgentCardRegistry *AgentCardRegistryCaller) GetKEMKey(opts *bind.CallOpts
 
 }
 
-// GetKEMKey is a free data retrieval call binding the contract method 0x16ba1d5c.
+// GetKEMKey is a free data retrieval call binding the contract method 0x1d1a1b7b.
 //
 // Solidity: function getKEMKey(bytes32 agentId) view returns(bytes)
 func (_AgentCardRegistry *AgentCardRegistrySession) GetKEMKey(agentId [32]byte) ([]byte, error) {
 	return _AgentCardRegistry.Contract.GetKEMKey(&_AgentCardRegistry.CallOpts, agentId)
 }
 
-// GetKEMKey is a free data retrieval call binding the contract method 0x16ba1d5c.
+// GetKEMKey is a free data retrieval call binding the contract method 0x1d1a1b7b.
 //
 // Solidity: function getKEMKey(bytes32 agentId) view returns(bytes)
 func (_AgentCardRegistry *AgentCardRegistryCallerSession) GetKEMKey(agentId [32]byte) ([]byte, error) {
@@ -1351,21 +1355,21 @@ func (_AgentCardRegistry *AgentCardRegistryTransactorSession) UpdateAgentEndpoin
 	return _AgentCardRegistry.Contract.UpdateAgentEndpoint(&_AgentCardRegistry.TransactOpts, agentId, newEndpoint)
 }
 
-// UpdateKEMKey is a paid mutator transaction binding the contract method 0x32d5d493.
+// UpdateKEMKey is a paid mutator transaction binding the contract method 0x0765f9e2.
 //
 // Solidity: function updateKEMKey(bytes32 agentId, bytes newKEMKey, bytes signature) returns()
 func (_AgentCardRegistry *AgentCardRegistryTransactor) UpdateKEMKey(opts *bind.TransactOpts, agentId [32]byte, newKEMKey []byte, signature []byte) (*types.Transaction, error) {
 	return _AgentCardRegistry.contract.Transact(opts, "updateKEMKey", agentId, newKEMKey, signature)
 }
 
-// UpdateKEMKey is a paid mutator transaction binding the contract method 0x32d5d493.
+// UpdateKEMKey is a paid mutator transaction binding the contract method 0x0765f9e2.
 //
 // Solidity: function updateKEMKey(bytes32 agentId, bytes newKEMKey, bytes signature) returns()
 func (_AgentCardRegistry *AgentCardRegistrySession) UpdateKEMKey(agentId [32]byte, newKEMKey []byte, signature []byte) (*types.Transaction, error) {
 	return _AgentCardRegistry.Contract.UpdateKEMKey(&_AgentCardRegistry.TransactOpts, agentId, newKEMKey, signature)
 }
 
-// UpdateKEMKey is a paid mutator transaction binding the contract method 0x32d5d493.
+// UpdateKEMKey is a paid mutator transaction binding the contract method 0x0765f9e2.
 //
 // Solidity: function updateKEMKey(bytes32 agentId, bytes newKEMKey, bytes signature) returns()
 func (_AgentCardRegistry *AgentCardRegistryTransactorSession) UpdateKEMKey(agentId [32]byte, newKEMKey []byte, signature []byte) (*types.Transaction, error) {
@@ -2807,7 +2811,7 @@ type AgentCardRegistryKEMKeyUpdated struct {
 	Raw       types.Log // Blockchain specific contextual infos
 }
 
-// FilterKEMKeyUpdated is a free log retrieval operation binding the contract event 0xe81db0f174ab8a1015816d79768cb3de679372bea7420f1c1d25df6562c612ef.
+// FilterKEMKeyUpdated is a free log retrieval operation binding the contract event 0x07503a4a2a6c8c30a97e767dafbb94ece0f2dd92d167a6e4a7a5bd333812f5e4.
 //
 // Solidity: event KEMKeyUpdated(bytes32 indexed agentId, bytes32 indexed keyHash, uint256 timestamp)
 func (_AgentCardRegistry *AgentCardRegistryFilterer) FilterKEMKeyUpdated(opts *bind.FilterOpts, agentId [][32]byte, keyHash [][32]byte) (*AgentCardRegistryKEMKeyUpdatedIterator, error) {
@@ -2828,7 +2832,7 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) FilterKEMKeyUpdated(opts *b
 	return &AgentCardRegistryKEMKeyUpdatedIterator{contract: _AgentCardRegistry.contract, event: "KEMKeyUpdated", logs: logs, sub: sub}, nil
 }
 
-// WatchKEMKeyUpdated is a free log subscription operation binding the contract event 0xe81db0f174ab8a1015816d79768cb3de679372bea7420f1c1d25df6562c612ef.
+// WatchKEMKeyUpdated is a free log subscription operation binding the contract event 0x07503a4a2a6c8c30a97e767dafbb94ece0f2dd92d167a6e4a7a5bd333812f5e4.
 //
 // Solidity: event KEMKeyUpdated(bytes32 indexed agentId, bytes32 indexed keyHash, uint256 timestamp)
 func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchKEMKeyUpdated(opts *bind.WatchOpts, sink chan<- *AgentCardRegistryKEMKeyUpdated, agentId [][32]byte, keyHash [][32]byte) (event.Subscription, error) {
@@ -2874,7 +2878,7 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchKEMKeyUpdated(opts *bi
 	}), nil
 }
 
-// ParseKEMKeyUpdated is a log parse operation binding the contract event 0xe81db0f174ab8a1015816d79768cb3de679372bea7420f1c1d25df6562c612ef.
+// ParseKEMKeyUpdated is a log parse operation binding the contract event 0x07503a4a2a6c8c30a97e767dafbb94ece0f2dd92d167a6e4a7a5bd333812f5e4.
 //
 // Solidity: event KEMKeyUpdated(bytes32 indexed agentId, bytes32 indexed keyHash, uint256 timestamp)
 func (_AgentCardRegistry *AgentCardRegistryFilterer) ParseKEMKeyUpdated(log types.Log) (*AgentCardRegistryKEMKeyUpdated, error) {

@@ -706,6 +706,22 @@ lint:
 		echo "golangci-lint not installed. Run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
 	fi
 
+# Regenerate the Go contract bindings from the Hardhat artifacts
+.PHONY: bindings
+bindings:
+	@echo "Compiling contracts and generating Go bindings..."
+	@cd contracts/ethereum && npx hardhat compile >/dev/null
+	@GOTOOLCHAIN=$(GOTOOLCHAIN) tools/scripts/gen-bindings.sh
+
+# Fail when the committed bindings differ from freshly generated ones
+.PHONY: bindings-check
+bindings-check:
+	@echo "Checking Go contract bindings for drift..."
+	@rm -rf $(REPORTS_DIR)/bindings && GOTOOLCHAIN=$(GOTOOLCHAIN) tools/scripts/gen-bindings.sh $(REPORTS_DIR)/bindings >/dev/null
+	@diff -r $(REPORTS_DIR)/bindings pkg/blockchain/ethereum/contracts/agentcardregistry \
+		|| { echo "Go bindings are out of date: run 'make bindings' and commit the result"; exit 1; }
+	@echo "Bindings are up to date"
+
 # Regenerate the AST-based code graph (docs/refactoring/graph)
 .PHONY: codegraph
 codegraph:
