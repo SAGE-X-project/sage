@@ -18,12 +18,12 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 | A-06 | Fix `loadtest.yml` invalid YAML; manual-only until harness exists | [권장] | F19 | PR #220 |
 | A-07 | `SECURITY.md`; align `CONTRIBUTING.md` with the ruleset | [권장] | F25, F26 | PR #220 |
 | A-08 | SHA-pin all 44 remaining action references; require SHA pinning in repo settings; Dependabot `actions` group | [중요] | F05 | Done (#224; `sha_pinning_required` enabled 2026-09-11) |
-| A-09 | Pin run-time tool installs (gosec, slither, gitleaks, go-licenses, golangci-lint) and make scanners blocking (remove `\|\| true`, `-no-fail`, `continue-on-error`); triage existing findings first | [중요] | F09, F10 | Open |
+| A-09 | Pin run-time tool installs (gosec, slither, gitleaks, go-licenses, golangci-lint) and make scanners blocking (remove `\|\| true`, `-no-fail`, `continue-on-error`); triage existing findings first | [중요] | F09, F10 | PR (gosec v2.29.0 blocking, 0 findings; gitleaks v8.30.1 by digest over full history with `.gitleaks.toml` allowlist, 0 findings; Slither 0.11.6 + crytic-compile 0.4.2 `--fail-high`; go-licenses v2.0.1 and license-checker 25.0.1 blocking; golangci-lint v2.13.2) |
 | A-10 | `npm ci --ignore-scripts`; `go mod verify`; `GOFLAGS=-mod=readonly`; `govulncheck` (source + binary mode) | [중요] | F11, F15 | Open |
 | A-11 | Pin `alpine`/`golang` images by digest; align Docker Go version with `go.mod`; remove `make build-lib \|\| true` | [중요] | F12, F13, F14 | Open |
 | A-12 | Dependabot coverage for `tools/codegraph`, `sdk/typescript`, maven, cargo, pip; commit `Cargo.lock`; add TS lockfile; fix nonexistent reviewers team | [권장] | F16, F17 | Open |
 | A-13 | Signed, attested, reproducible releases (GoReleaser + cosign keyless + SLSA provenance + SBOM; `-trimpath`, `CGO_ENABLED=0`) | [중요] | F06, F07, F08 | Open |
-| A-14 | Gitleaks over history; remove stale `contracts/ethereum/bindings` exclusions; fix `./test/e2e` path | [권장] | F20, F23, F24 | Open |
+| A-14 | Gitleaks over history; remove stale `contracts/ethereum/bindings` exclusions; fix `./test/e2e` path | [권장] | F20, F23, F24 | Partly in PR (history scan, gosec exclusion removed); gofmt/golangci exclusions and `./test/e2e` still open |
 | A-15 | `CODEOWNERS`, `CODE_OF_CONDUCT.md`, `.editorconfig`, pre-commit | [권장] | F25 | Open |
 | A-16 | License consistency (LGPL vs MIT across SDKs/contracts); decide Apache-2.0 relicense | [권장] | F27, `STRATEGY.md` §7 | Decision |
 | A-17 | Single version source (`pkg/version` read by every binary); CHANGELOG gaps; release-please or equivalent tagging | [권장] | F28, F29, F30 | Open |
@@ -56,6 +56,7 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 |---|---|---|---|---|
 | C-01 | `ERC8004ValidationRegistry`: access control on `addTrustedTeeKey`, `removeTrustedTeeKey`, `setMinStake`, `setMinValidators`, `setConsensusThreshold`, `setMaxValidatorsPerRequest`; `ERC8004ReputationRegistry.setValidationRegistry` initial-set gating; re-enable Slither `missing-events-access-control`; redeploy on Sepolia | [치명] | `DOCS_GRAPH.md` headline, verified 2026-09-11 | PR (both contracts inherit `Ownable2Step`, 17 tests); **Sepolia redeploy still open** (needs the deployer key); Slither exclusion unchanged |
 | C-05 | `scripts/deploy-all-contracts.js` deploys `ERC8004ReputationRegistry` with no constructor argument although the constructor takes the validation registry address | [권장] | found while fixing C-01 | Open |
+| C-06 | Slither Medium `uninitialized-local`: `AgentCardRegistry.registerAgentWithParams(...).kemKey` (`contracts/AgentCardRegistry.sol:168`) is never initialised; only High findings block CI | [권장] | Slither 0.11.6 run 2026-09-11 | Open |
 | C-02 | Go bindings generated in CI from Hardhat artifacts (`make bindings`) with drift check; `KEMKeyUpdated` event missing today | [중요] | `analysis/05` §5 | Open |
 | C-03 | Drop `SageRegistryV2` support: delete `SageRegistryABI`, rename config key, fix Kaia preset (needs AgentCard address on Kaia) | [권장] | `DECISIONS.md` 5 | Decision (address) |
 | C-04 | Solana program: placeholder program IDs, no `Anchor.toml`, never built in CI | [권장] | `analysis/05` §5 | Open |
