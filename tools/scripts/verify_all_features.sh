@@ -488,26 +488,26 @@ print_category "5.2 메시지 순서"
 TEST_NUM=1
 
 print_test $TEST_NUM 4 "메시지 ID 생성"
-run_test "유니크 메시지 ID" \
-    "go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'TestOrderManager/FirstMessage'" \
+run_test "세션 시퀀스 번호 헤더" \
+    "go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSession_WireFormatCarriesSequence'" \
     "/tmp/sage-test-logs/order_id.log"
 TEST_NUM=$((TEST_NUM + 1))
 
 print_test $TEST_NUM 4 "순서 보장"
 run_test "시퀀스 단조 증가" \
-    "go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'TestOrderManager/SeqMonotonicity'" \
+    "go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSession_WireFormatCarriesSequence|TestReplayWindow'" \
     "/tmp/sage-test-logs/order_seq.log"
 TEST_NUM=$((TEST_NUM + 1))
 
 print_test $TEST_NUM 4 "중복 감지"
-run_test "중복 메시지 감지" \
-    "go test -v github.com/sage-x-project/sage/pkg/agent/core/message/dedupe -run 'TestDetector'" \
+run_test "재생 암호문 거부" \
+    "go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSession_RejectsReplayedCiphertext|TestMemoryReplayGuard_CheckAndMark'" \
     "/tmp/sage-test-logs/order_dedupe.log"
 TEST_NUM=$((TEST_NUM + 1))
 
 print_test $TEST_NUM 4 "타임스탬프 관리"
-run_test "타임스탬프 순서 정렬" \
-    "go test -v github.com/sage-x-project/sage/pkg/agent/core/message/order -run 'TestOrderManager/TimestampOrder'" \
+run_test "타임스탬프 허용 스큐" \
+    "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifyRequest_AllowsSmallForwardSkew'" \
     "/tmp/sage-test-logs/order_timestamp.log"
 
 ## 5.3 검증 서비스
@@ -515,26 +515,26 @@ print_category "5.3 검증 서비스"
 TEST_NUM=1
 
 print_test $TEST_NUM 4 "통합 검증 파이프라인"
-run_test "메시지 검증 파이프라인" \
-    "go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run 'TestValidateMessage'" \
+run_test "RFC 9421 필수 구성요소·본문 digest 검증" \
+    "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifyRequest_StrictOptionsRejectBodySwap|TestVerifyRequest_EnforcesRequiredComponents'" \
     "/tmp/sage-test-logs/validate_pipeline.log"
 TEST_NUM=$((TEST_NUM + 1))
 
 print_test $TEST_NUM 4 "타임스탬프 허용 범위 검증"
 run_test "타임스탬프 범위 체크" \
-    "go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run '.*TimestampOutside'" \
+    "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifyRequest_RejectsCreatedInTheFuture'" \
     "/tmp/sage-test-logs/validate_time.log"
 TEST_NUM=$((TEST_NUM + 1))
 
 print_test $TEST_NUM 4 "재전송 공격 감지"
 run_test "재전송 공격 감지" \
-    "go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run '.*ReplayDetection'" \
+    "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifyRequest_RejectsReplayedNonce'" \
     "/tmp/sage-test-logs/validate_replay.log"
 TEST_NUM=$((TEST_NUM + 1))
 
 print_test $TEST_NUM 4 "순서 위반 감지"
 run_test "Out-of-order 감지" \
-    "go test -v github.com/sage-x-project/sage/pkg/agent/core/message/validator -run '.*OutOfOrder'" \
+    "go test -v github.com/sage-x-project/sage/pkg/agent/session -run 'TestSession_OutOfOrderWithinWindowAccepted|TestSession_StaleBeyondWindowRejected'" \
     "/tmp/sage-test-logs/validate_order.log"
 
 #==============================================================================
