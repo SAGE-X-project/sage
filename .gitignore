@@ -454,6 +454,7 @@ integration.test
 # Rust build artifacts
 target/
 Cargo.lock
+!sdk/rust/sage-client/Cargo.lock
 **/*.rs.bk
 *.pdb
 

@@ -1,5 +1,13 @@
 # SAGE Rust Client
 
+> **Status: experimental.** This client is an independent implementation that is
+> **not yet interoperable with the Go core** in this repository: it does not
+> implement RFC 9421 HTTP message signatures or the Go core's HPKE handshake, and
+> no SAGE server currently serves the endpoints it calls. It is kept buildable
+> and tested in CI so it can be brought to the protocol once the specification
+> (`sage-spec`) and its test vectors exist. Do not rely on it for security
+> guarantees today. See `docs/refactoring/DECISIONS.md`, Decision 4.
+
 High-performance Rust client library for SAGE (Secure Agent Guarantee Engine) - providing secure, decentralized identity and communication for AI agents.
 
 ## Features
