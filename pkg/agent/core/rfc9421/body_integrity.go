@@ -106,17 +106,45 @@ func (v *BodyIntegrityValidator) ValidateContentDigest(req *http.Request, covere
 // Returns:
 //   - bool: true if component is covered, false otherwise
 func IsComponentCovered(coveredComponents []string, componentName string) bool {
-	targetName := strings.ToLower(strings.TrimSpace(componentName))
+	target := normalizeComponentIdentifier(componentName)
 
 	for _, component := range coveredComponents {
-		// Normalize: lowercase, trim spaces and quotes
-		normalized := strings.ToLower(strings.Trim(strings.TrimSpace(component), `"`))
-		if normalized == targetName {
+		if normalizeComponentIdentifier(component) == target {
 			return true
 		}
 	}
 
 	return false
+}
+
+// ValidateResponseContentDigest validates that the Content-Digest header of a
+// response matches its body when "content-digest" is covered by the signature.
+// The body is read fully and restored.
+func (v *BodyIntegrityValidator) ValidateResponseContentDigest(resp *http.Response, coveredComponents []string) error {
+	if !IsComponentCovered(coveredComponents, "content-digest") {
+		return nil
+	}
+
+	var body []byte
+	if resp.Body != nil && resp.Body != http.NoBody {
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read response body for content-digest validation: %w", err)
+		}
+		_ = resp.Body.Close()
+		resp.Body = io.NopCloser(bytes.NewReader(b))
+		resp.ContentLength = int64(len(b))
+		body = b
+	}
+
+	actualDigest := strings.TrimSpace(resp.Header.Get("Content-Digest"))
+	if actualDigest == "" {
+		return fmt.Errorf("content-digest header missing while covered by signature")
+	}
+	if !equalDigestHeader(actualDigest, ComputeContentDigest(body)) {
+		return fmt.Errorf("content-digest mismatch: actual=%q expected=%q (body tampering detected)", actualDigest, ComputeContentDigest(body))
+	}
+	return nil
 }
 
 // ComputeContentDigest computes the RFC 9421 Content-Digest header value for a body.

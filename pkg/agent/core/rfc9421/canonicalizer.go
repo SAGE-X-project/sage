@@ -21,6 +21,7 @@ package rfc9421
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -32,13 +33,42 @@ func NewCanonicalizer() *Canonicalizer {
 	return &Canonicalizer{}
 }
 
+// httpMessage is the message a signature base is built over: a request, or a
+// response together with the request it answers. For a response, components
+// carrying the ";req" parameter (RFC 9421 Section 2.4) are taken from the
+// request, which binds the response to that exact request.
+type httpMessage struct {
+	req  *http.Request
+	resp *http.Response
+}
+
 // BuildSignatureBase creates the signature base string for the given request and components
 func (c *Canonicalizer) BuildSignatureBase(req *http.Request, sigName string, params *SignatureInputParams) (string, error) {
+	if req == nil {
+		return "", fmt.Errorf("request is nil")
+	}
+	return c.buildSignatureBase(httpMessage{req: req}, sigName, params)
+}
+
+// BuildResponseSignatureBase creates the signature base string for a response.
+// req is the request the response answers and may be nil when no covered
+// component carries the ";req" parameter.
+func (c *Canonicalizer) BuildResponseSignatureBase(resp *http.Response, req *http.Request, sigName string, params *SignatureInputParams) (string, error) {
+	if resp == nil {
+		return "", fmt.Errorf("response is nil")
+	}
+	if req == nil {
+		req = resp.Request
+	}
+	return c.buildSignatureBase(httpMessage{req: req, resp: resp}, sigName, params)
+}
+
+func (c *Canonicalizer) buildSignatureBase(m httpMessage, sigName string, params *SignatureInputParams) (string, error) {
 	var lines []string
 
 	// Process each covered component
 	for _, component := range params.CoveredComponents {
-		line, err := c.canonicalizeComponent(req, component)
+		line, err := c.canonicalizeComponent(m, component)
 		if err != nil {
 			return "", err
 		}
@@ -52,29 +82,115 @@ func (c *Canonicalizer) BuildSignatureBase(req *http.Request, sigName string, pa
 	return strings.Join(lines, "\n"), nil
 }
 
-// canonicalizeComponent processes a single component
-func (c *Canonicalizer) canonicalizeComponent(req *http.Request, component string) (string, error) {
+// splitComponentIdentifier separates a component identifier such as
+// `"@query-param";name="id"` or `"@method";req` into the unquoted component
+// name and the raw parameter suffix (including the leading ';', or "").
+func splitComponentIdentifier(component string) (name, paramStr string) {
 	component = strings.TrimSpace(component)
-
-	// Check for @query-param
-	if strings.Contains(component, "@query-param") {
-		return c.canonicalizeQueryParam(req, component)
+	if strings.HasPrefix(component, `"`) {
+		if end := strings.Index(component[1:], `"`); end >= 0 {
+			return component[1 : end+1], component[end+2:]
+		}
+		return strings.Trim(component, `"`), ""
 	}
-
-	// Remove quotes if present for lookup
-	lookupComponent := strings.Trim(component, `"`)
-
-	// Handle HTTP signature components
-	if strings.HasPrefix(lookupComponent, "@") {
-		return c.canonicalizeHTTPComponent(req, lookupComponent)
+	if i := strings.Index(component, ";"); i >= 0 {
+		return component[:i], component[i:]
 	}
-
-	// Handle regular headers
-	return c.canonicalizeHeader(req, lookupComponent)
+	return component, ""
 }
 
-// canonicalizeHTTPComponent handles @-prefixed components
-func (c *Canonicalizer) canonicalizeHTTPComponent(req *http.Request, component string) (string, error) {
+// hasComponentParam reports whether the raw parameter suffix carries the
+// given flag parameter (for example "req").
+func hasComponentParam(paramStr, flag string) bool {
+	for _, p := range strings.Split(paramStr, ";") {
+		if strings.TrimSpace(p) == flag {
+			return true
+		}
+	}
+	return false
+}
+
+// normalizeComponentIdentifier returns the canonical spelling of a component
+// identifier: the lowercased name in quotes followed by its parameters with
+// surrounding whitespace removed. Used to compare identifiers.
+func normalizeComponentIdentifier(component string) string {
+	name, paramStr := splitComponentIdentifier(component)
+	out := `"` + strings.ToLower(strings.TrimSpace(name)) + `"`
+	for _, p := range strings.Split(paramStr, ";") {
+		if p = strings.TrimSpace(p); p != "" {
+			out += ";" + p
+		}
+	}
+	return out
+}
+
+// canonicalizeComponent processes a single component
+func (c *Canonicalizer) canonicalizeComponent(m httpMessage, component string) (string, error) {
+	component = strings.TrimSpace(component)
+	name, paramStr := splitComponentIdentifier(component)
+	identifier := `"` + strings.ToLower(name) + `"` + paramStr
+	fromRequest := hasComponentParam(paramStr, "req")
+
+	// Decide which message the value comes from.
+	var req *http.Request
+	var resp *http.Response
+	switch {
+	case m.resp == nil:
+		if fromRequest {
+			return "", fmt.Errorf("component %s: the req parameter is only valid in response signatures", component)
+		}
+		req = m.req
+	case fromRequest:
+		if m.req == nil {
+			return "", fmt.Errorf("component %s: response has no associated request", component)
+		}
+		req = m.req
+	default:
+		resp = m.resp
+	}
+
+	// @query-param carries its own parameter; keep the identifier exactly as given.
+	if name == "@query-param" {
+		if req == nil {
+			return "", fmt.Errorf("component not found: @query-param (only available from the request)")
+		}
+		value, err := c.queryParamValue(req, component)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf(`%s: %s`, component, value), nil
+	}
+
+	var value string
+	var err error
+	switch {
+	case strings.HasPrefix(name, "@") && resp != nil:
+		value, err = responseComponentValue(resp, name)
+	case strings.HasPrefix(name, "@"):
+		value, err = requestComponentValue(req, name)
+	case resp != nil:
+		value, err = headerValue(resp.Header, name)
+	default:
+		value, err = headerValue(req.Header, name)
+	}
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf(`%s: %s`, identifier, value), nil
+}
+
+// responseComponentValue returns the value of a derived component of a response.
+func responseComponentValue(resp *http.Response, component string) (string, error) {
+	switch component {
+	case "@status":
+		return strconv.Itoa(resp.StatusCode), nil
+	default:
+		return "", fmt.Errorf("component not found: %s (only available from the request; add the req parameter)", component)
+	}
+}
+
+// requestComponentValue returns the value of a derived component of a request.
+func requestComponentValue(req *http.Request, component string) (string, error) {
 	var value string
 
 	switch component {
@@ -145,29 +261,24 @@ func (c *Canonicalizer) canonicalizeHTTPComponent(req *http.Request, component s
 		return "", fmt.Errorf("unknown HTTP component: %s", component)
 	}
 
-	return fmt.Sprintf(`"%s": %s`, component, value), nil
+	return value, nil
 }
 
-// canonicalizeHeader handles regular HTTP headers
-func (c *Canonicalizer) canonicalizeHeader(req *http.Request, headerName string) (string, error) {
+// headerValue returns the canonical value of a header field.
+func headerValue(h http.Header, headerName string) (string, error) {
 	// Headers are case-insensitive
-	values := req.Header[http.CanonicalHeaderKey(headerName)]
+	values := h[http.CanonicalHeaderKey(headerName)]
 	if len(values) == 0 {
 		return "", fmt.Errorf("component not found: header %s", headerName)
 	}
 
-	// Join multiple values with comma and space
-	value := strings.Join(values, ", ")
-
-	// Trim leading and trailing whitespace
-	value = strings.TrimSpace(value)
-
-	// Format as lowercase header name
-	return fmt.Sprintf(`"%s": %s`, strings.ToLower(headerName), value), nil
+	// Join multiple values with comma and space, trimmed
+	return strings.TrimSpace(strings.Join(values, ", ")), nil
 }
 
-// canonicalizeQueryParam handles @query-param components
-func (c *Canonicalizer) canonicalizeQueryParam(req *http.Request, component string) (string, error) {
+// queryParamValue returns the value of the query parameter named in an
+// @query-param component.
+func (c *Canonicalizer) queryParamValue(req *http.Request, component string) (string, error) {
 	// Parse the parameter name
 	paramName, err := parseQueryParam(component)
 	if err != nil {
@@ -182,10 +293,7 @@ func (c *Canonicalizer) canonicalizeQueryParam(req *http.Request, component stri
 	}
 
 	// Use the first value if multiple exist
-	value := values[0]
-
-	// The component identifier includes the parameter
-	return fmt.Sprintf(`%s: %s`, component, value), nil
+	return values[0], nil
 }
 
 // buildSignatureParams creates the @signature-params line

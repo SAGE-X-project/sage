@@ -247,6 +247,21 @@ func (v *Verifier) SignHTTPRequest(req *http.Request, sigName string, params *Si
 	return v.httpVerifier.SignRequest(req, sigName, params, signer)
 }
 
+// VerifyHTTPResponse verifies an HTTP response signature according to RFC-9421.
+// req is the request the response answers (resp.Request when nil).
+func (v *Verifier) VerifyHTTPResponse(resp *http.Response, req *http.Request, publicKey interface{}, opts *HTTPVerificationOptions) error {
+	return v.httpVerifier.VerifyResponse(resp, req, publicKey, opts)
+}
+
+// SignHTTPResponse signs an HTTP response according to RFC-9421, binding it to req.
+func (v *Verifier) SignHTTPResponse(resp *http.Response, req *http.Request, sigName string, params *SignatureInputParams, privateKey interface{}) error {
+	signer, ok := privateKey.(crypto.Signer)
+	if !ok {
+		return fmt.Errorf("private key must implement crypto.Signer interface")
+	}
+	return v.httpVerifier.SignResponse(resp, req, sigName, params, signer)
+}
+
 // Helper functions
 
 func hasRequiredCapabilities(agentCaps map[string]interface{}, required []string) bool {
