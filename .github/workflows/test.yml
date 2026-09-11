@@ -134,6 +134,9 @@ jobs:
       - name: Check that pkg has no init() registrations
         run: bash tools/scripts/check-no-init.sh
 
+      - name: Check that docs/INDEX.md is generated from the current documents
+        run: python3 tools/scripts/gen-docs-index.py --check
+
       - name: Check formatting
         run: |
           UNFORMATTED=$(gofmt -l . || true)

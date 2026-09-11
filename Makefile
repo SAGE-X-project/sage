@@ -722,6 +722,16 @@ bindings-check:
 		|| { echo "Go bindings are out of date: run 'make bindings' and commit the result"; exit 1; }
 	@echo "Bindings are up to date"
 
+# Regenerate docs/INDEX.md from the Markdown files in the repository
+.PHONY: docs-index
+docs-index:
+	@python3 tools/scripts/gen-docs-index.py
+
+# Fail when docs/INDEX.md differs from the generated index
+.PHONY: docs-index-check
+docs-index-check:
+	@python3 tools/scripts/gen-docs-index.py --check
+
 # Fail if a library package registers itself in init()
 .PHONY: check-no-init
 check-no-init:
