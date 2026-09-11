@@ -20,13 +20,12 @@ package core
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
-
-	// Initialize crypto implementations
-	_ "github.com/sage-x-project/sage/internal/cryptoinit"
 )
 
 // Version of the core module
@@ -34,7 +33,6 @@ const Version = "0.1.0"
 
 // Core represents the main entry point for SAGE core functionality
 type Core struct {
-	cryptoManager       *crypto.Manager
 	didManager          *did.Manager
 	verificationService *VerificationService
 }
@@ -44,7 +42,6 @@ func New() *Core {
 	didManager := did.NewManager()
 
 	return &Core{
-		cryptoManager:       crypto.NewManager(),
 		didManager:          didManager,
 		verificationService: NewVerificationService(didManager),
 	}
@@ -55,9 +52,18 @@ func (c *Core) ConfigureDID(chain did.Chain, config *did.RegistryConfig) error {
 	return c.didManager.Configure(chain, config)
 }
 
-// GenerateKeyPair generates a new cryptographic key pair
+// GenerateKeyPair generates a new cryptographic key pair of the given type.
 func (c *Core) GenerateKeyPair(keyType crypto.KeyType) (crypto.KeyPair, error) {
-	return c.cryptoManager.GenerateKeyPair(keyType)
+	switch keyType {
+	case crypto.KeyTypeEd25519:
+		return keys.GenerateEd25519KeyPair()
+	case crypto.KeyTypeSecp256k1:
+		return keys.GenerateSecp256k1KeyPair()
+	case crypto.KeyTypeP256:
+		return keys.GenerateP256KeyPair()
+	default:
+		return nil, fmt.Errorf("unsupported key type: %s", keyType)
+	}
 }
 
 // RegisterAgent registers a new AI agent on the blockchain
@@ -100,11 +106,6 @@ func (c *Core) CreateRFC9421Message(agentDID string, body []byte) *rfc9421.Messa
 // GetSupportedChains returns the list of configured blockchain chains
 func (c *Core) GetSupportedChains() []did.Chain {
 	return c.didManager.GetSupportedChains()
-}
-
-// GetCryptoManager returns the crypto manager for advanced operations
-func (c *Core) GetCryptoManager() *crypto.Manager {
-	return c.cryptoManager
 }
 
 // GetDIDManager returns the DID manager for advanced operations

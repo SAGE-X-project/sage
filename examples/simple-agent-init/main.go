@@ -22,7 +22,6 @@ import (
 	"path/filepath"
 	"time"
 
-	_ "github.com/sage-x-project/sage/internal/cryptoinit"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )

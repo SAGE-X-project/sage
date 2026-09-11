@@ -26,8 +26,8 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/sage-x-project/sage/internal/cryptoinit"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
@@ -78,7 +78,7 @@ func main() {
 
 	// Generate ECDSA key (primary key for Ethereum)
 	fmt.Println("Generating ECDSA (secp256k1) key...")
-	ecdsaKeyPair, err := crypto.GenerateSecp256k1KeyPair()
+	ecdsaKeyPair, err := keys.GenerateSecp256k1KeyPair()
 	if err != nil {
 		fmt.Printf(" Failed to generate ECDSA key: %v\n", err)
 		os.Exit(1)
@@ -92,7 +92,7 @@ func main() {
 
 	// Generate Ed25519 key (for signing)
 	fmt.Println("Generating Ed25519 key...")
-	ed25519KeyPair, err := crypto.GenerateEd25519KeyPair()
+	ed25519KeyPair, err := keys.GenerateEd25519KeyPair()
 	if err != nil {
 		fmt.Printf(" Failed to generate Ed25519 key: %v\n", err)
 		os.Exit(1)

@@ -18,48 +18,50 @@
 
 package crypto
 
+import "errors"
+
 // This file provides wrapper functions that will be implemented by a separate
 // initialization package to avoid circular dependencies.
 
+// ErrNotConfigured is returned by the deprecated generator wrappers when no
+// generator was registered with SetKeyGenerators.
+var ErrNotConfigured = errors.New("crypto: no implementation registered; use the keys, storage and formats packages directly")
+
 var (
-	// generateEd25519KeyPair is the implementation function for Ed25519 key generation
-	generateEd25519KeyPair func() (KeyPair, error)
-
-	// generateSecp256k1KeyPair is the implementation function for Secp256k1 key generation
+	generateEd25519KeyPair   func() (KeyPair, error)
 	generateSecp256k1KeyPair func() (KeyPair, error)
-
-	// generateP256KeyPair is the implementation function for P-256 key generation
-	generateP256KeyPair func() (KeyPair, error)
-
-	// newMemoryKeyStorage is the implementation function for memory storage creation
-	newMemoryKeyStorage func() KeyStorage
-
-	// newJWKExporter is the implementation function for JWK exporter creation
-	newJWKExporter func() KeyExporter
-
-	// newPEMExporter is the implementation function for PEM exporter creation
-	newPEMExporter func() KeyExporter
-
-	// newJWKImporter is the implementation function for JWK importer creation
-	newJWKImporter func() KeyImporter
-
-	// newPEMImporter is the implementation function for PEM importer creation
-	newPEMImporter func() KeyImporter
+	generateP256KeyPair      func() (KeyPair, error)
+	newMemoryKeyStorage      func() KeyStorage
+	newJWKExporter           func() KeyExporter
+	newPEMExporter           func() KeyExporter
+	newJWKImporter           func() KeyImporter
+	newPEMImporter           func() KeyImporter
 )
 
-// SetKeyGenerators sets the key generation functions
+// SetKeyGenerators registers the functions behind the deprecated generator
+// wrappers.
+//
+// Deprecated: call keys.GenerateEd25519KeyPair, keys.GenerateSecp256k1KeyPair
+// and keys.GenerateP256KeyPair directly. Kept for consumers that still
+// register implementations; it will be removed two minor releases after
+// v1.6.0.
 func SetKeyGenerators(ed25519Gen, secp256k1Gen, p256Gen func() (KeyPair, error)) {
 	generateEd25519KeyPair = ed25519Gen
 	generateSecp256k1KeyPair = secp256k1Gen
 	generateP256KeyPair = p256Gen
 }
 
-// SetStorageConstructors sets the storage constructor functions
+// SetStorageConstructors registers the function behind NewMemoryKeyStorage.
+//
+// Deprecated: call storage.NewMemoryKeyStorage directly.
 func SetStorageConstructors(memoryStorage func() KeyStorage) {
 	newMemoryKeyStorage = memoryStorage
 }
 
-// SetFormatConstructors sets the format constructor functions
+// SetFormatConstructors registers the functions behind the format wrappers.
+//
+// Deprecated: call formats.NewJWKExporter, formats.NewPEMExporter,
+// formats.NewJWKImporter and formats.NewPEMImporter directly.
 func SetFormatConstructors(jwkExp, pemExp func() KeyExporter, jwkImp, pemImp func() KeyImporter) {
 	newJWKExporter = jwkExp
 	newPEMExporter = pemExp
@@ -67,81 +69,90 @@ func SetFormatConstructors(jwkExp, pemExp func() KeyExporter, jwkImp, pemImp fun
 	newPEMImporter = pemImp
 }
 
-// NewEd25519KeyPair generates a new Ed25519 key pair
-func NewEd25519KeyPair() (KeyPair, error) {
-	if generateEd25519KeyPair == nil {
-		panic("Ed25519 key generator not initialized")
+func generate(gen func() (KeyPair, error)) (KeyPair, error) {
+	if gen == nil {
+		return nil, ErrNotConfigured
 	}
-	return generateEd25519KeyPair()
+	return gen()
 }
 
-// NewSecp256k1KeyPair generates a new Secp256k1 key pair
-func NewSecp256k1KeyPair() (KeyPair, error) {
-	if generateSecp256k1KeyPair == nil {
-		panic("Secp256k1 key generator not initialized")
-	}
-	return generateSecp256k1KeyPair()
-}
+// NewEd25519KeyPair generates an Ed25519 key pair through the registered generator.
+//
+// Deprecated: use keys.GenerateEd25519KeyPair.
+func NewEd25519KeyPair() (KeyPair, error) { return generate(generateEd25519KeyPair) }
 
-// GenerateEd25519KeyPair is an alias for NewEd25519KeyPair
-func GenerateEd25519KeyPair() (KeyPair, error) {
-	return NewEd25519KeyPair()
-}
+// NewSecp256k1KeyPair generates a secp256k1 key pair through the registered generator.
+//
+// Deprecated: use keys.GenerateSecp256k1KeyPair.
+func NewSecp256k1KeyPair() (KeyPair, error) { return generate(generateSecp256k1KeyPair) }
 
-// GenerateSecp256k1KeyPair is an alias for NewSecp256k1KeyPair
-func GenerateSecp256k1KeyPair() (KeyPair, error) {
-	return NewSecp256k1KeyPair()
-}
+// NewP256KeyPair generates a P-256 key pair through the registered generator.
+//
+// Deprecated: use keys.GenerateP256KeyPair.
+func NewP256KeyPair() (KeyPair, error) { return generate(generateP256KeyPair) }
 
-// NewP256KeyPair generates a new P-256 key pair
-func NewP256KeyPair() (KeyPair, error) {
-	if generateP256KeyPair == nil {
-		panic("P-256 key generator not initialized")
-	}
-	return generateP256KeyPair()
-}
+// GenerateEd25519KeyPair is an alias of NewEd25519KeyPair.
+//
+// Deprecated: use keys.GenerateEd25519KeyPair.
+func GenerateEd25519KeyPair() (KeyPair, error) { return NewEd25519KeyPair() }
 
-// GenerateP256KeyPair is an alias for NewP256KeyPair
-func GenerateP256KeyPair() (KeyPair, error) {
-	return NewP256KeyPair()
-}
+// GenerateSecp256k1KeyPair is an alias of NewSecp256k1KeyPair.
+//
+// Deprecated: use keys.GenerateSecp256k1KeyPair.
+func GenerateSecp256k1KeyPair() (KeyPair, error) { return NewSecp256k1KeyPair() }
 
-// NewMemoryKeyStorage creates a new memory key storage
+// GenerateP256KeyPair is an alias of NewP256KeyPair.
+//
+// Deprecated: use keys.GenerateP256KeyPair.
+func GenerateP256KeyPair() (KeyPair, error) { return NewP256KeyPair() }
+
+// NewMemoryKeyStorage returns the registered in-memory key storage, or nil
+// when none was registered.
+//
+// Deprecated: use storage.NewMemoryKeyStorage.
 func NewMemoryKeyStorage() KeyStorage {
 	if newMemoryKeyStorage == nil {
-		panic("Memory key storage constructor not initialized")
+		return nil
 	}
 	return newMemoryKeyStorage()
 }
 
-// NewJWKExporter creates a new JWK exporter
+// NewJWKExporter returns the registered JWK exporter, or nil.
+//
+// Deprecated: use formats.NewJWKExporter.
 func NewJWKExporter() KeyExporter {
 	if newJWKExporter == nil {
-		panic("JWK exporter constructor not initialized")
+		return nil
 	}
 	return newJWKExporter()
 }
 
-// NewPEMExporter creates a new PEM exporter
+// NewPEMExporter returns the registered PEM exporter, or nil.
+//
+// Deprecated: use formats.NewPEMExporter.
 func NewPEMExporter() KeyExporter {
 	if newPEMExporter == nil {
-		panic("PEM exporter constructor not initialized")
+		return nil
 	}
 	return newPEMExporter()
 }
 
-// NewJWKImporter creates a new JWK importer
+// NewJWKImporter returns the registered JWK importer, or nil.
+//
+// Deprecated: use formats.NewJWKImporter.
 func NewJWKImporter() KeyImporter {
 	if newJWKImporter == nil {
-		panic("JWK importer constructor not initialized")
+		return nil
 	}
 	return newJWKImporter()
 }
 
-// NewPEMImporter creates a new PEM importer
+// NewPEMImporter returns the registered PEM importer, or nil.
+//
+// Deprecated: use formats.NewPEMImporter.
 func NewPEMImporter() KeyImporter {
 	if newPEMImporter == nil {
-		panic("PEM importer constructor not initialized")
+		return nil
 	}
 	return newPEMImporter()
 }

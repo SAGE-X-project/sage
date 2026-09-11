@@ -42,9 +42,6 @@ func TestCore(t *testing.T) {
 		helpers.LogSuccess(t, "Core 인스턴스 생성 완료")
 
 		helpers.LogDetail(t, "내부 매니저 초기화 검증 중...")
-		assert.NotNil(t, core.cryptoManager)
-		helpers.LogSuccess(t, "Crypto Manager 초기화 완료")
-
 		assert.NotNil(t, core.didManager)
 		helpers.LogSuccess(t, "DID Manager 초기화 완료")
 
@@ -288,11 +285,6 @@ func TestCore(t *testing.T) {
 		helpers.LogDetail(t, "Core 인스턴스 생성...")
 		core := New()
 
-		helpers.LogDetail(t, "Crypto Manager 접근 테스트...")
-		cryptoMgr := core.GetCryptoManager()
-		assert.NotNil(t, cryptoMgr)
-		helpers.LogSuccess(t, "Crypto Manager 접근 성공")
-
 		helpers.LogDetail(t, "DID Manager 접근 테스트...")
 		didMgr := core.GetDIDManager()
 		assert.NotNil(t, didMgr)
@@ -305,7 +297,6 @@ func TestCore(t *testing.T) {
 
 		// 통과 기준 체크리스트
 		helpers.LogPassCriteria(t, []string{
-			"GetCryptoManager()가 nil이 아닌 매니저 반환",
 			"GetDIDManager()가 nil이 아닌 매니저 반환",
 			"GetVerificationService()가 nil이 아닌 서비스 반환",
 			"모든 내부 컴포넌트에 접근 가능",
@@ -315,7 +306,6 @@ func TestCore(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case": "16.1.6_매니저_접근자",
 			"managers": map[string]bool{
-				"crypto_manager":       cryptoMgr != nil,
 				"did_manager":          didMgr != nil,
 				"verification_service": verifyService != nil,
 			},

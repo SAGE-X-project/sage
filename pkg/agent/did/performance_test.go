@@ -23,8 +23,7 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/sage-x-project/sage/internal/cryptoinit" // Initialize crypto wrappers
-	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 )
 
 // BenchmarkKeyGeneration measures key generation performance for different algorithms
@@ -36,14 +35,14 @@ func BenchmarkKeyGeneration(b *testing.B) {
 		{
 			name: "Ed25519KeyGeneration",
 			fn: func() error {
-				_, err := crypto.GenerateEd25519KeyPair()
+				_, err := keys.GenerateEd25519KeyPair()
 				return err
 			},
 		},
 		{
 			name: "ECDSAKeyGeneration",
 			fn: func() error {
-				_, err := crypto.GenerateSecp256k1KeyPair()
+				_, err := keys.GenerateSecp256k1KeyPair()
 				return err
 			},
 		},
@@ -64,11 +63,11 @@ func BenchmarkKeyGeneration(b *testing.B) {
 // BenchmarkProofOfPossession measures PoP signature generation and verification
 func BenchmarkProofOfPossession(b *testing.B) {
 	// Pre-generate keys for testing
-	ed25519KeyPair, _ := crypto.GenerateEd25519KeyPair()
+	ed25519KeyPair, _ := keys.GenerateEd25519KeyPair()
 	ed25519PubKey := ed25519KeyPair.PublicKey().(ed25519.PublicKey)
 	ed25519PrivKey := ed25519KeyPair.PrivateKey().(ed25519.PrivateKey)
 
-	ecdsaKeyPair, _ := crypto.GenerateSecp256k1KeyPair()
+	ecdsaKeyPair, _ := keys.GenerateSecp256k1KeyPair()
 	ecdsaPubKeyBytes, _ := MarshalPublicKey(ecdsaKeyPair.PublicKey())
 
 	did := AgentDID("did:sage:ethereum:0x1234567890abcdef")
@@ -134,7 +133,7 @@ func BenchmarkProofOfPossession(b *testing.B) {
 // BenchmarkA2ACardProof measures A2A card proof generation and verification
 func BenchmarkA2ACardProof(b *testing.B) {
 	// Pre-generate test metadata with Ed25519 key
-	ed25519KeyPair, _ := crypto.GenerateEd25519KeyPair()
+	ed25519KeyPair, _ := keys.GenerateEd25519KeyPair()
 	ed25519PubKey := ed25519KeyPair.PublicKey().(ed25519.PublicKey)
 	ed25519PrivKey := ed25519KeyPair.PrivateKey().(ed25519.PrivateKey)
 
@@ -200,14 +199,14 @@ func BenchmarkMultiKeyOperations(b *testing.B) {
 
 	for _, count := range keyCounts {
 		// Generate keys
-		keys := make([]AgentKey, count)
+		agentKeys := make([]AgentKey, count)
 		for i := 0; i < count; i++ {
-			keyPair, _ := crypto.GenerateEd25519KeyPair()
+			keyPair, _ := keys.GenerateEd25519KeyPair()
 			pubKey := keyPair.PublicKey().(ed25519.PublicKey)
 			privKey := keyPair.PrivateKey().(ed25519.PrivateKey)
 
 			sig, _ := GenerateKeyProofOfPossession(did, pubKey, privKey, KeyTypeEd25519)
-			keys[i] = AgentKey{
+			agentKeys[i] = AgentKey{
 				Type:      KeyTypeEd25519,
 				KeyData:   pubKey,
 				Signature: sig,
@@ -220,7 +219,7 @@ func BenchmarkMultiKeyOperations(b *testing.B) {
 			DID:       did,
 			Name:      "Multi-Key Agent",
 			Endpoint:  "https://multikey.agent.com",
-			Keys:      keys,
+			Keys:      agentKeys,
 			Owner:     "0x1234567890abcdef",
 			IsActive:  true,
 			CreatedAt: time.Now(),
@@ -396,8 +395,8 @@ func BenchmarkA2ACardValidation(b *testing.B) {
 // BenchmarkKeyMarshalUnmarshal measures key serialization performance
 func BenchmarkKeyMarshalUnmarshal(b *testing.B) {
 	// Generate test keys
-	ecdsaKeyPair, _ := crypto.GenerateSecp256k1KeyPair()
-	ed25519KeyPair, _ := crypto.GenerateEd25519KeyPair()
+	ecdsaKeyPair, _ := keys.GenerateSecp256k1KeyPair()
+	ed25519KeyPair, _ := keys.GenerateEd25519KeyPair()
 
 	b.Run("MarshalPublicKey_ECDSA", func(b *testing.B) {
 		b.ReportAllocs()

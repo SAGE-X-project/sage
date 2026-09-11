@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	_ "github.com/sage-x-project/sage/internal/cryptoinit" // Initialize wrappers
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
@@ -34,6 +33,23 @@ import (
 )
 
 // Mock implementations for testing
+// The deprecated wrappers need explicit registration now that
+// internal/cryptoinit is gone; production code calls keys/storage/formats directly.
+func init() {
+	sagecrypto.SetKeyGenerators(
+		func() (sagecrypto.KeyPair, error) { return keys.GenerateEd25519KeyPair() },
+		func() (sagecrypto.KeyPair, error) { return keys.GenerateSecp256k1KeyPair() },
+		func() (sagecrypto.KeyPair, error) { return keys.GenerateP256KeyPair() },
+	)
+	sagecrypto.SetStorageConstructors(func() sagecrypto.KeyStorage { return storage.NewMemoryKeyStorage() })
+	sagecrypto.SetFormatConstructors(
+		func() sagecrypto.KeyExporter { return formats.NewJWKExporter() },
+		func() sagecrypto.KeyExporter { return formats.NewPEMExporter() },
+		func() sagecrypto.KeyImporter { return formats.NewJWKImporter() },
+		func() sagecrypto.KeyImporter { return formats.NewPEMImporter() },
+	)
+}
+
 type mockKeyPair struct {
 	id         string
 	keyType    sagecrypto.KeyType
@@ -284,7 +300,7 @@ func TestNewPEMImporter(t *testing.T) {
 	assert.NotNil(t, importer)
 }
 
-func TestPanicOnUninitializedGenerators(t *testing.T) {
+func TestUnconfiguredGeneratorsReturnError(t *testing.T) {
 	// Restore original generators at the end
 	defer func() {
 		sagecrypto.SetKeyGenerators(
@@ -297,20 +313,18 @@ func TestPanicOnUninitializedGenerators(t *testing.T) {
 	// Set generators to nil
 	sagecrypto.SetKeyGenerators(nil, nil, nil)
 
-	t.Run("Panic on uninitialized Ed25519 generator", func(t *testing.T) {
-		assert.Panics(t, func() {
-			_, _ = sagecrypto.NewEd25519KeyPair()
-		})
+	t.Run("Unconfigured Ed25519 generator returns ErrNotConfigured", func(t *testing.T) {
+		_, err := sagecrypto.NewEd25519KeyPair()
+		assert.ErrorIs(t, err, sagecrypto.ErrNotConfigured)
 	})
 
-	t.Run("Panic on uninitialized Secp256k1 generator", func(t *testing.T) {
-		assert.Panics(t, func() {
-			_, _ = sagecrypto.NewSecp256k1KeyPair()
-		})
+	t.Run("Unconfigured Secp256k1 generator returns ErrNotConfigured", func(t *testing.T) {
+		_, err := sagecrypto.NewSecp256k1KeyPair()
+		assert.ErrorIs(t, err, sagecrypto.ErrNotConfigured)
 	})
 }
 
-func TestPanicOnUninitializedStorage(t *testing.T) {
+func TestUnconfiguredStorageReturnsNil(t *testing.T) {
 	// Restore original constructor at the end
 	defer func() {
 		sagecrypto.SetStorageConstructors(
@@ -321,14 +335,12 @@ func TestPanicOnUninitializedStorage(t *testing.T) {
 	// Set constructor to nil
 	sagecrypto.SetStorageConstructors(nil)
 
-	t.Run("Panic on uninitialized storage constructor", func(t *testing.T) {
-		assert.Panics(t, func() {
-			_ = sagecrypto.NewMemoryKeyStorage()
-		})
+	t.Run("Unconfigured storage constructor", func(t *testing.T) {
+		assert.Nil(t, sagecrypto.NewMemoryKeyStorage())
 	})
 }
 
-func TestPanicOnUninitializedFormatConstructors(t *testing.T) {
+func TestUnconfiguredFormatConstructorsReturnNil(t *testing.T) {
 	// Restore original constructors at the end
 	defer func() {
 		sagecrypto.SetFormatConstructors(
@@ -342,28 +354,20 @@ func TestPanicOnUninitializedFormatConstructors(t *testing.T) {
 	// Set all format constructors to nil
 	sagecrypto.SetFormatConstructors(nil, nil, nil, nil)
 
-	t.Run("Panic on uninitialized JWK exporter", func(t *testing.T) {
-		assert.Panics(t, func() {
-			_ = sagecrypto.NewJWKExporter()
-		})
+	t.Run("Unconfigured JWK exporter", func(t *testing.T) {
+		assert.Nil(t, sagecrypto.NewJWKExporter())
 	})
 
-	t.Run("Panic on uninitialized PEM exporter", func(t *testing.T) {
-		assert.Panics(t, func() {
-			_ = sagecrypto.NewPEMExporter()
-		})
+	t.Run("Unconfigured PEM exporter", func(t *testing.T) {
+		assert.Nil(t, sagecrypto.NewPEMExporter())
 	})
 
-	t.Run("Panic on uninitialized JWK importer", func(t *testing.T) {
-		assert.Panics(t, func() {
-			_ = sagecrypto.NewJWKImporter()
-		})
+	t.Run("Unconfigured JWK importer", func(t *testing.T) {
+		assert.Nil(t, sagecrypto.NewJWKImporter())
 	})
 
-	t.Run("Panic on uninitialized PEM importer", func(t *testing.T) {
-		assert.Panics(t, func() {
-			_ = sagecrypto.NewPEMImporter()
-		})
+	t.Run("Unconfigured PEM importer", func(t *testing.T) {
+		assert.Nil(t, sagecrypto.NewPEMImporter())
 	})
 }
 

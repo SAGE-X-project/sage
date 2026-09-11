@@ -27,8 +27,8 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/sage-x-project/sage/internal/cryptoinit"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
@@ -103,8 +103,8 @@ func main() {
 
 	// Agent A keys
 	fmt.Println("Generating keys for Agent A...")
-	agentAECDSA, _ := crypto.GenerateSecp256k1KeyPair()
-	agentAEd25519, _ := crypto.GenerateEd25519KeyPair()
+	agentAECDSA, _ := keys.GenerateSecp256k1KeyPair()
+	agentAEd25519, _ := keys.GenerateEd25519KeyPair()
 	agentAX25519, _ := crypto.GenerateX25519KeyPair()
 
 	agentAEd25519Pub, _ := did.MarshalPublicKey(agentAEd25519.PublicKey())
@@ -112,8 +112,8 @@ func main() {
 
 	// Agent B keys
 	fmt.Println("Generating keys for Agent B...")
-	agentBECDSA, _ := crypto.GenerateSecp256k1KeyPair()
-	agentBEd25519, _ := crypto.GenerateEd25519KeyPair()
+	agentBECDSA, _ := keys.GenerateSecp256k1KeyPair()
+	agentBEd25519, _ := keys.GenerateEd25519KeyPair()
 	agentBX25519, _ := crypto.GenerateX25519KeyPair()
 
 	agentBEd25519Pub, _ := did.MarshalPublicKey(agentBEd25519.PublicKey())

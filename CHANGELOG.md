@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- `crypto.Manager`, `internal/cryptoinit` and `core.Core.GetCryptoManager` are removed. `Core.GenerateKeyPair` calls the `keys` package directly, so importing `pkg/agent/core` no longer requires a blank import to avoid a panic. The registration wrappers `crypto.SetKeyGenerators`, `SetStorageConstructors`, `SetFormatConstructors` and the `crypto.New*` / `Generate*KeyPair` wrappers stay for two minor releases as `Deprecated`; unregistered generators now return `crypto.ErrNotConfigured` instead of panicking, and unregistered constructors return nil. Use `keys.Generate*KeyPair`, `storage.NewMemoryKeyStorage` and `formats.New*` directly.
 - `internal/metrics` and `internal/logger` moved to `pkg/telemetry/metrics` and `pkg/telemetry/logger` (same API; the unused `logger.SageError` was dropped). The public packages `session`, `handshake`, `hpke` and `health` no longer import `internal/`, which was invisible to external modules and inverted the layer direction. Only `pkg/agent/core -> internal/cryptoinit` remains and is tracked in D-02.
 - Go toolchain raised to 1.26 (`go 1.26.0`, `toolchain go1.26.8`): Go 1.25 is out of the support window and no longer receives standard-library security fixes. CI, the Docker builder image and the new blocking `govulncheck` job use go1.26.8. Consumers need Go 1.26 or newer.
 - `golang.org/x/crypto` 0.57.0 and `golang.org/x/sync` 0.23.0.
