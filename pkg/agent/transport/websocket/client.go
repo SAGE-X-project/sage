@@ -49,7 +49,7 @@ type WSTransport struct {
 	writeTimeout time.Duration
 
 	// Response handling
-	pendingResponses map[string]chan *wireResponse
+	pendingResponses map[string]chan *transport.WireResponse
 	pendingMu        sync.RWMutex
 
 	// Connection state
@@ -67,7 +67,7 @@ func NewWSTransport(url string) *WSTransport {
 		dialTimeout:      30 * time.Second,
 		readTimeout:      60 * time.Second,
 		writeTimeout:     30 * time.Second,
-		pendingResponses: make(map[string]chan *wireResponse),
+		pendingResponses: make(map[string]chan *transport.WireResponse),
 	}
 }
 
@@ -78,7 +78,7 @@ func NewWSTransportWithTimeouts(url string, dialTimeout, readTimeout, writeTimeo
 		dialTimeout:      dialTimeout,
 		readTimeout:      readTimeout,
 		writeTimeout:     writeTimeout,
-		pendingResponses: make(map[string]chan *wireResponse),
+		pendingResponses: make(map[string]chan *transport.WireResponse),
 	}
 }
 
@@ -129,10 +129,10 @@ func (t *WSTransport) Send(ctx context.Context, msg *transport.SecureMessage) (*
 	}
 
 	// Convert to wire format
-	wireMsg := toWireMessage(msg)
+	wireMsg := transport.ToWireMessage(msg)
 
 	// Create response channel
-	respChan := make(chan *wireResponse, 1)
+	respChan := make(chan *transport.WireResponse, 1)
 	t.pendingMu.Lock()
 	t.pendingResponses[msg.ID] = respChan
 	t.pendingMu.Unlock()
@@ -165,7 +165,7 @@ func (t *WSTransport) Send(ctx context.Context, msg *transport.SecureMessage) (*
 			Error:     ctx.Err(),
 		}, ctx.Err()
 	case wireResp := <-respChan:
-		return fromWireResponse(wireResp, msg.ID, msg.TaskID), nil
+		return transport.FromWireResponse(wireResp, msg.ID, msg.TaskID), nil
 	case <-time.After(t.readTimeout):
 		return &transport.Response{
 			Success:   false,
@@ -185,7 +185,7 @@ func (t *WSTransport) ensureConnected(ctx context.Context) error {
 }
 
 // writeMessage writes a message to the WebSocket
-func (t *WSTransport) writeMessage(msg *wireMessage) error {
+func (t *WSTransport) writeMessage(msg *transport.WireMessage) error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -231,7 +231,7 @@ func (t *WSTransport) readResponses() {
 		}
 
 		// Read message
-		var wireResp wireResponse
+		var wireResp transport.WireResponse
 		if err := conn.ReadJSON(&wireResp); err != nil {
 			// Check if it's a normal close
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
@@ -291,65 +291,4 @@ func (t *WSTransport) setConnected(connected bool) {
 	t.connMu.Lock()
 	defer t.connMu.Unlock()
 	t.connected = connected
-}
-
-// wireMessage is the WebSocket wire format for SecureMessage
-type wireMessage struct {
-	ID        string            `json:"id"`
-	ContextID string            `json:"context_id,omitempty"`
-	TaskID    string            `json:"task_id,omitempty"`
-	Payload   []byte            `json:"payload"`
-	DID       string            `json:"did"`
-	Signature []byte            `json:"signature"`
-	Metadata  map[string]string `json:"metadata,omitempty"`
-	Role      string            `json:"role,omitempty"`
-}
-
-// wireResponse is the WebSocket wire format for Response
-type wireResponse struct {
-	Success   bool   `json:"success"`
-	MessageID string `json:"message_id"`
-	TaskID    string `json:"task_id,omitempty"`
-	Data      []byte `json:"data,omitempty"`
-	Error     string `json:"error,omitempty"`
-}
-
-// toWireMessage converts transport.SecureMessage to WebSocket wire format
-func toWireMessage(msg *transport.SecureMessage) *wireMessage {
-	return &wireMessage{
-		ID:        msg.ID,
-		ContextID: msg.ContextID,
-		TaskID:    msg.TaskID,
-		Payload:   msg.Payload,
-		DID:       msg.DID,
-		Signature: msg.Signature,
-		Metadata:  msg.Metadata,
-		Role:      msg.Role,
-	}
-}
-
-// fromWireResponse converts WebSocket wire response to transport.Response
-func fromWireResponse(resp *wireResponse, msgID, taskID string) *transport.Response {
-	result := &transport.Response{
-		Success:   resp.Success,
-		MessageID: resp.MessageID,
-		TaskID:    resp.TaskID,
-		Data:      resp.Data,
-	}
-
-	// Use provided IDs if response doesn't include them
-	if result.MessageID == "" {
-		result.MessageID = msgID
-	}
-	if result.TaskID == "" {
-		result.TaskID = taskID
-	}
-
-	// Convert error string to error type
-	if resp.Error != "" {
-		result.Error = fmt.Errorf("%s", resp.Error)
-		result.Success = false
-	}
-
-	return result
 }

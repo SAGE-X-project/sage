@@ -24,13 +24,14 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/core"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	"github.com/sage-x-project/sage/pkg/version"
 )
 
 // Version returns the library version
 //
 //export SageVersion
 func SageVersion() *C.char {
-	return C.CString("1.3.1")
+	return C.CString(version.Version)
 }
 
 // Initialize initializes the Sage library

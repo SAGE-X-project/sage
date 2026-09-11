@@ -118,7 +118,7 @@ func (s *HTTPServer) MessagesHandler() http.Handler {
 		}()
 
 		// Parse wire message
-		var wireMsg wireMessage
+		var wireMsg transport.WireMessage
 		if err := json.Unmarshal(body, &wireMsg); err != nil {
 			s.sendErrorResponse(w, "", "", fmt.Errorf("invalid JSON: %w", err))
 			return
@@ -163,22 +163,8 @@ func (s *HTTPServer) MessagesHandler() http.Handler {
 // context id, task id). The X-SAGE-* identity headers the client also sends
 // are accepted only when they agree with the body; a header that contradicts
 // the body is rejected rather than allowed to override the signed payload.
-func fromWireMessage(wire *wireMessage, headers http.Header) (*transport.SecureMessage, error) {
-	msg := &transport.SecureMessage{
-		ID:        wire.ID,
-		ContextID: wire.ContextID,
-		TaskID:    wire.TaskID,
-		Payload:   wire.Payload,
-		DID:       wire.DID,
-		Signature: wire.Signature,
-		Metadata:  wire.Metadata,
-		Role:      wire.Role,
-	}
-
-	// Extract metadata from headers if not in body
-	if msg.Metadata == nil {
-		msg.Metadata = make(map[string]string)
-	}
+func fromWireMessage(wire *transport.WireMessage, headers http.Header) (*transport.SecureMessage, error) {
+	msg := transport.FromWireMessage(wire)
 
 	// Identity headers must match the body; they never override it.
 	for header, bodyValue := range map[string]string{
@@ -203,32 +189,15 @@ func fromWireMessage(wire *wireMessage, headers http.Header) (*transport.SecureM
 	return msg, nil
 }
 
-// toWireResponse converts transport.Response to HTTP wire format
-func toWireResponse(resp *transport.Response) *wireResponse {
-	wire := &wireResponse{
-		Success:   resp.Success,
-		MessageID: resp.MessageID,
-		TaskID:    resp.TaskID,
-		Data:      resp.Data,
-	}
-
-	if resp.Error != nil {
-		wire.Error = resp.Error.Error()
-		wire.Success = false
-	}
-
-	return wire
-}
-
 // sendSuccessResponse sends a successful response
 func (s *HTTPServer) sendSuccessResponse(w http.ResponseWriter, resp *transport.Response) {
-	wire := toWireResponse(resp)
+	wire := transport.ToWireResponse(resp)
 	s.sendJSONResponse(w, http.StatusOK, wire)
 }
 
 // sendErrorResponse sends an error response
 func (s *HTTPServer) sendErrorResponse(w http.ResponseWriter, msgID, taskID string, err error) {
-	wire := &wireResponse{
+	wire := &transport.WireResponse{
 		Success:   false,
 		MessageID: msgID,
 		TaskID:    taskID,

@@ -309,23 +309,36 @@ func GenerateDID(chain Chain, identifier string) AgentDID {
 	return AgentDID(fmt.Sprintf("did:sage:%s:%s", chain, identifier))
 }
 
-// ParseDID parses a DID and extracts chain and identifier
+// ParseChain maps a chain name as it appears in DIDs and CLI flags
+// ("ethereum"/"eth", "solana"/"sol", case-insensitive) to a Chain. It is the
+// single place where chain aliases are defined.
+func ParseChain(name string) (Chain, error) {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "ethereum", "eth":
+		return ChainEthereum, nil
+	case "solana", "sol":
+		return ChainSolana, nil
+	default:
+		return "", fmt.Errorf("unsupported chain: %s", name)
+	}
+}
+
+// ParseDID parses a "did:sage:<chain>:<identifier>" DID into its chain and
+// identifier. It is the only DID parser in the module; ValidateDID and the
+// resolver's chain lookup are built on it.
 func ParseDID(did AgentDID) (chain Chain, identifier string, err error) {
 	parts := strings.Split(string(did), ":")
 	if len(parts) < 4 || parts[0] != "did" || parts[1] != "sage" {
 		return "", "", fmt.Errorf("invalid DID format")
 	}
-
-	switch parts[2] {
-	case "ethereum", "eth":
-		chain = ChainEthereum
-	case "solana", "sol":
-		chain = ChainSolana
-	default:
+	chain, err = ParseChain(parts[2])
+	if err != nil {
 		return "", "", fmt.Errorf("unknown chain: %s", parts[2])
 	}
-
 	identifier = strings.Join(parts[3:], ":")
+	if identifier == "" {
+		return "", "", fmt.Errorf("invalid DID format: empty identifier")
+	}
 	return chain, identifier, nil
 }
 

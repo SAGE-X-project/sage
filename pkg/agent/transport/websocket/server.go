@@ -235,7 +235,7 @@ func (s *WSServer) handleConnection(ctx context.Context, conn *websocket.Conn) {
 		}
 
 		// Read message
-		var wireMsg wireMessage
+		var wireMsg transport.WireMessage
 		if err := conn.ReadJSON(&wireMsg); err != nil {
 			// Check if it's a normal close
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
@@ -245,7 +245,7 @@ func (s *WSServer) handleConnection(ctx context.Context, conn *websocket.Conn) {
 		}
 
 		// Convert to SecureMessage
-		secureMsg := fromWireMessage(&wireMsg)
+		secureMsg := transport.FromWireMessage(&wireMsg)
 
 		// Validate required fields
 		if secureMsg.ID == "" {
@@ -273,46 +273,15 @@ func (s *WSServer) handleConnection(ctx context.Context, conn *websocket.Conn) {
 	}
 }
 
-// fromWireMessage converts WebSocket wire format to transport.SecureMessage
-func fromWireMessage(wire *wireMessage) *transport.SecureMessage {
-	return &transport.SecureMessage{
-		ID:        wire.ID,
-		ContextID: wire.ContextID,
-		TaskID:    wire.TaskID,
-		Payload:   wire.Payload,
-		DID:       wire.DID,
-		Signature: wire.Signature,
-		Metadata:  wire.Metadata,
-		Role:      wire.Role,
-	}
-}
-
-// toWireResponse converts transport.Response to WebSocket wire format
-func toWireResponse(resp *transport.Response) *wireResponse {
-	wire := &wireResponse{
-		Success:   resp.Success,
-		MessageID: resp.MessageID,
-		TaskID:    resp.TaskID,
-		Data:      resp.Data,
-	}
-
-	if resp.Error != nil {
-		wire.Error = resp.Error.Error()
-		wire.Success = false
-	}
-
-	return wire
-}
-
 // sendSuccessResponse sends a successful response
 func (s *WSServer) sendSuccessResponse(conn *websocket.Conn, resp *transport.Response) {
-	wire := toWireResponse(resp)
+	wire := transport.ToWireResponse(resp)
 	s.sendResponse(conn, wire)
 }
 
 // sendErrorResponse sends an error response
 func (s *WSServer) sendErrorResponse(conn *websocket.Conn, msgID, taskID string, err error) {
-	wire := &wireResponse{
+	wire := &transport.WireResponse{
 		Success:   false,
 		MessageID: msgID,
 		TaskID:    taskID,
@@ -322,7 +291,7 @@ func (s *WSServer) sendErrorResponse(conn *websocket.Conn, msgID, taskID string,
 }
 
 // sendResponse sends a response over WebSocket
-func (s *WSServer) sendResponse(conn *websocket.Conn, resp *wireResponse) {
+func (s *WSServer) sendResponse(conn *websocket.Conn, resp *transport.WireResponse) {
 	// Set write deadline
 	if err := conn.SetWriteDeadline(time.Now().Add(s.writeTimeout)); err != nil {
 		fmt.Printf("Failed to set write deadline: %v\n", err)

@@ -28,9 +28,6 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
-// Version of the core module
-const Version = "0.1.0"
-
 // Core represents the main entry point for SAGE core functionality
 type Core struct {
 	didManager          *did.Manager

@@ -21,13 +21,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/sage-x-project/sage/pkg/version"
 	"os"
 
 	"github.com/sage-x-project/sage/deployments/config"
 	"github.com/sage-x-project/sage/pkg/health"
 )
-
-const version = "1.0.0"
 
 func main() {
 	if len(os.Args) < 2 {
@@ -45,7 +44,7 @@ func main() {
 	case "system":
 		runSystemCheck()
 	case "version", "--version", "-v":
-		fmt.Printf("sage-verify version %s\n", version)
+		fmt.Printf("sage-verify version %s\n", version.Version)
 	case "help", "--help", "-h":
 		printUsage()
 	default:
