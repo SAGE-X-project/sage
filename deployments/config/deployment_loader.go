@@ -21,6 +21,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 	"os"
 	"path/filepath"
 )
@@ -114,15 +115,17 @@ func GetContractAddress(network string) (string, error) {
 	// Try to load from deployment file
 	info, err := LoadDeploymentInfo(network)
 	if err != nil {
-		// Fallback to known addresses
-		switch network {
-		case "kairos":
-			return "0x4Ba6Fc825775eD9756104901b3d16DF1A1076545", nil
-		case "local", "localhost", "hardhat":
-			// For local network, must be set via environment variable
-			return "", fmt.Errorf("local network contract address must be set via SAGE_REGISTRY_ADDRESS environment variable")
-		default:
+		// Fallback to the shared preset table
+		preset, ok := chain.PresetFor(network)
+		switch {
+		case !ok:
 			return "", fmt.Errorf("unknown network %s and no deployment info found", network)
+		case preset.Local:
+			return "", fmt.Errorf("local network contract address must be set via SAGE_REGISTRY_ADDRESS environment variable")
+		case preset.RegistryAddress() == "":
+			return "", fmt.Errorf("no SAGE registry deployed on %s and no deployment info found", network)
+		default:
+			return preset.RegistryAddress(), nil
 		}
 	}
 

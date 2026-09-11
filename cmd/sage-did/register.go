@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"time"
 
+	chainpkg "github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/spf13/cobra"
 )
@@ -168,32 +169,30 @@ var (
 
 // Helper functions (shared with other commands)
 
-func getDefaultRPCEndpoint(chain did.Chain) string {
-	switch chain {
+// defaultPreset is the network used when --rpc / --contract are not given:
+// Sepolia for Ethereum (where AgentCardRegistry is deployed) and devnet for
+// Solana. Both come from the shared preset table.
+func defaultPreset(c did.Chain) (chainpkg.Preset, bool) {
+	switch c {
 	case did.ChainEthereum:
-		return "https://eth-mainnet.g.alchemy.com/v2/your-api-key"
+		return chainpkg.PresetFor("sepolia")
 	case did.ChainSolana:
-		return "https://api.mainnet-beta.solana.com"
+		return chainpkg.PresetFor("solana-devnet")
 	default:
-		return ""
+		return chainpkg.Preset{}, false
 	}
 }
 
-func getDefaultContractAddress(chain did.Chain) string {
-	// Default contract addresses for AgentCardRegistry
-	// These are placeholder addresses. For production deployments:
-	// 1. Use --contract-address flag with the actual deployed address
-	// 2. Refer to contracts/DEPLOYED_ADDRESSES.md for network-specific addresses
-	// 3. For local testing, use the address from deployment output
-	switch chain {
-	case did.ChainEthereum:
-		// Placeholder - Update after mainnet/testnet deployment
-		// See: contracts/DEPLOYED_ADDRESSES.md
-		return "0x0000000000000000000000000000000000000000"
-	case did.ChainSolana:
-		// Placeholder for future Solana support
-		return "11111111111111111111111111111111"
-	default:
-		return ""
+func getDefaultRPCEndpoint(c did.Chain) string {
+	if p, ok := defaultPreset(c); ok {
+		return p.RPCURL
 	}
+	return ""
+}
+
+func getDefaultContractAddress(c did.Chain) string {
+	if p, ok := defaultPreset(c); ok {
+		return p.RegistryAddress()
+	}
+	return ""
 }

@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 	"github.com/sage-x-project/sage/pkg/blockchain/ethereum"
 )
 
@@ -42,34 +43,33 @@ type BlockchainConfig struct {
 }
 
 // NetworkPresets defines preset configurations for different networks
-var NetworkPresets = map[string]*BlockchainConfig{
-	"local": {
-		NetworkRPC:     "http://localhost:8545",
-		ChainID:        big.NewInt(31337),
-		GasLimit:       3000000,
-		MaxGasPrice:    big.NewInt(20000000000), // 20 Gwei
-		MaxRetries:     3,
-		RetryDelay:     time.Second,
-		RequestTimeout: 30 * time.Second,
-	},
-	"kairos": {
-		NetworkRPC:     "https://public-en-kairos.node.kaia.io",
-		ChainID:        big.NewInt(1001),
-		GasLimit:       5000000,
-		MaxGasPrice:    big.NewInt(50000000000), // 50 Gwei
-		MaxRetries:     5,
-		RetryDelay:     2 * time.Second,
-		RequestTimeout: 60 * time.Second,
-	},
-	"mainnet": {
-		NetworkRPC:     "https://public-en-cypress.klaytn.net",
-		ChainID:        big.NewInt(8217),
-		GasLimit:       8000000,
-		MaxGasPrice:    big.NewInt(100000000000), // 100 Gwei
-		MaxRetries:     5,
-		RetryDelay:     3 * time.Second,
-		RequestTimeout: 90 * time.Second,
-	},
+// networkGas holds the gas and retry parameters per preset name; chain id and
+// RPC endpoint come from chain.PresetFor so they exist in one place.
+var networkGas = map[string]BlockchainConfig{
+	"local":   {GasLimit: 3000000, MaxGasPrice: big.NewInt(20000000000), MaxRetries: 3, RetryDelay: time.Second, RequestTimeout: 30 * time.Second},
+	"sepolia": {GasLimit: 5000000, MaxGasPrice: big.NewInt(50000000000), MaxRetries: 5, RetryDelay: 2 * time.Second, RequestTimeout: 60 * time.Second},
+	"kairos":  {GasLimit: 5000000, MaxGasPrice: big.NewInt(50000000000), MaxRetries: 5, RetryDelay: 2 * time.Second, RequestTimeout: 60 * time.Second},
+	"mainnet": {GasLimit: 8000000, MaxGasPrice: big.NewInt(100000000000), MaxRetries: 5, RetryDelay: 3 * time.Second, RequestTimeout: 90 * time.Second},
+}
+
+// NetworkPresets is the deployment view of chain.Presets: chain id and RPC
+// from the shared table, gas parameters from networkGas.
+var NetworkPresets = buildNetworkPresets()
+
+func buildNetworkPresets() map[string]*BlockchainConfig {
+	out := make(map[string]*BlockchainConfig, len(networkGas))
+	for name, gas := range networkGas {
+		preset, ok := chain.PresetFor(name)
+		if !ok {
+			continue
+		}
+		cfg := gas
+		cfg.NetworkRPC = preset.RPCURL
+		cfg.ChainID = new(big.Int).Set(preset.ChainID)
+		cfg.ContractAddr = preset.RegistryAddress()
+		out[name] = &cfg
+	}
+	return out
 }
 
 // LoadConfig loads blockchain configuration from environment variables or uses defaults
@@ -83,6 +83,7 @@ func LoadConfig(env string) (*BlockchainConfig, error) {
 	// Create a copy to avoid modifying the preset
 	cfg := &BlockchainConfig{
 		NetworkRPC:     config.NetworkRPC,
+		ContractAddr:   config.ContractAddr,
 		ChainID:        new(big.Int).Set(config.ChainID),
 		GasLimit:       config.GasLimit,
 		MaxGasPrice:    new(big.Int).Set(config.MaxGasPrice),
