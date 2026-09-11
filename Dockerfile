@@ -32,8 +32,11 @@ RUN make build-lib || true
 # Stage 2: Runtime
 FROM alpine:latest
 
-# Install runtime dependencies
-RUN apk add --no-cache \
+# Upgrade the base packages first so the image does not ship OS-level CVEs
+# already fixed in the Alpine repositories (e.g. OpenSSL), then install
+# runtime dependencies.
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
     ca-certificates \
     tzdata
 
