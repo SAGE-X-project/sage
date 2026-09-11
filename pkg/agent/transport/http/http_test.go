@@ -19,7 +19,9 @@
 package http
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -269,4 +271,54 @@ func TestHTTPServer_Validation(t *testing.T) {
 			t.Errorf("Expected status %d, got %d", http.StatusMethodNotAllowed, resp.StatusCode)
 		}
 	})
+}
+
+func TestHTTPServer_RejectsOversizedBody(t *testing.T) {
+	handler := func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		t.Fatal("handler must not run for an oversized request")
+		return nil, nil
+	}
+	server := NewHTTPServer(handler)
+	server.SetMaxBodyBytes(64)
+
+	body := bytes.Repeat([]byte("a"), 65)
+	req := httptest.NewRequest(http.MethodPost, "/messages", bytes.NewReader(body))
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected 413, got %d", rec.Code)
+	}
+}
+
+func TestHTTPServer_IdentityHeadersCannotOverrideBody(t *testing.T) {
+	var got *transport.SecureMessage
+	handler := func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		got = msg
+		return &transport.Response{Success: true, MessageID: msg.ID}, nil
+	}
+	server := NewHTTPServer(handler)
+	body := `{"id":"m1","did":"did:sage:ethereum:0xabc","payload":"cGF5bG9hZA==","context_id":"c1"}`
+
+	// A header that contradicts the body is rejected before the handler runs.
+	req := httptest.NewRequest(http.MethodPost, "/messages", bytes.NewBufferString(body))
+	req.Header.Set("X-SAGE-DID", "did:sage:ethereum:0xattacker")
+	rec := httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	var wire wireResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &wire); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if wire.Success || got != nil {
+		t.Fatalf("mismatching X-SAGE-DID header must be rejected (success=%v handler=%v)", wire.Success, got != nil)
+	}
+
+	// Headers equal to the body (what the SAGE client sends) are fine.
+	req = httptest.NewRequest(http.MethodPost, "/messages", bytes.NewBufferString(body))
+	req.Header.Set("X-SAGE-DID", "did:sage:ethereum:0xabc")
+	req.Header.Set("X-SAGE-Message-ID", "m1")
+	rec = httptest.NewRecorder()
+	server.ServeHTTP(rec, req)
+	if got == nil || got.DID != "did:sage:ethereum:0xabc" || got.ID != "m1" {
+		t.Fatalf("matching headers must be accepted, got %+v", got)
+	}
 }

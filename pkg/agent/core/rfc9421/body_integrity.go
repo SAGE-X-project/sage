@@ -39,6 +39,11 @@ type BodyIntegrityValidator struct {
 	// Future: Injectable hasher for testing and algorithm flexibility
 }
 
+// MaxBodyBytes bounds how much of a message body the content-digest check
+// will buffer. Larger bodies fail verification instead of being read into
+// memory in full.
+var MaxBodyBytes int64 = 16 << 20 // 16 MiB
+
 // NewBodyIntegrityValidator creates a new body integrity validator.
 func NewBodyIntegrityValidator() *BodyIntegrityValidator {
 	return &BodyIntegrityValidator{}
@@ -127,9 +132,12 @@ func (v *BodyIntegrityValidator) ValidateResponseContentDigest(resp *http.Respon
 
 	var body []byte
 	if resp.Body != nil && resp.Body != http.NoBody {
-		b, err := io.ReadAll(resp.Body)
+		b, err := io.ReadAll(io.LimitReader(resp.Body, MaxBodyBytes+1))
 		if err != nil {
 			return fmt.Errorf("failed to read response body for content-digest validation: %w", err)
+		}
+		if int64(len(b)) > MaxBodyBytes {
+			return fmt.Errorf("response body exceeds %d bytes", MaxBodyBytes)
 		}
 		_ = resp.Body.Close()
 		resp.Body = io.NopCloser(bytes.NewReader(b))
@@ -188,10 +196,13 @@ func readBodyAndRestore(req *http.Request) ([]byte, error) {
 		return []byte{}, nil
 	}
 
-	// Read entire body
-	bodyBytes, err := io.ReadAll(req.Body)
+	// Read entire body, bounded by MaxBodyBytes
+	bodyBytes, err := io.ReadAll(io.LimitReader(req.Body, MaxBodyBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read request body: %w", err)
+	}
+	if int64(len(bodyBytes)) > MaxBodyBytes {
+		return nil, fmt.Errorf("request body exceeds %d bytes", MaxBodyBytes)
 	}
 
 	// Restore body for subsequent reads

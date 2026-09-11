@@ -21,6 +21,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -54,17 +55,32 @@ type MessageHandler func(ctx context.Context, msg *transport.SecureMessage) (*tr
 //	// Register with HTTP router
 //	router.Handle("/messages", server.MessagesHandler())
 type HTTPServer struct {
-	handler MessageHandler
+	handler      MessageHandler
+	maxBodyBytes int64
 }
 
+// DefaultMaxBodyBytes is the request body limit applied by NewHTTPServer.
+const DefaultMaxBodyBytes int64 = 1 << 20 // 1 MiB
+
 // NewHTTPServer creates a new HTTP server that processes SecureMessages.
+// Request bodies are limited to DefaultMaxBodyBytes; see SetMaxBodyBytes.
 //
 // Parameters:
 //   - handler: The application-level message handler
 func NewHTTPServer(handler MessageHandler) *HTTPServer {
 	return &HTTPServer{
-		handler: handler,
+		handler:      handler,
+		maxBodyBytes: DefaultMaxBodyBytes,
 	}
+}
+
+// SetMaxBodyBytes changes the request body limit. Requests with a larger body
+// are rejected with 413 before being parsed. Values <= 0 restore the default.
+func (s *HTTPServer) SetMaxBodyBytes(n int64) {
+	if n <= 0 {
+		n = DefaultMaxBodyBytes
+	}
+	s.maxBodyBytes = n
 }
 
 // MessagesHandler returns an http.Handler for the /messages endpoint.
@@ -82,10 +98,16 @@ func (s *HTTPServer) MessagesHandler() http.Handler {
 			return
 		}
 
-		// Read request body
+		// Read request body, bounded so an oversized request cannot exhaust memory
+		r.Body = http.MaxBytesReader(w, r.Body, s.maxBodyBytes)
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
-			s.sendErrorResponse(w, "", "", fmt.Errorf("failed to read request body: %w", err))
+			var tooLarge *http.MaxBytesError
+			if errors.As(err, &tooLarge) {
+				http.Error(w, "request body too large", http.StatusRequestEntityTooLarge)
+				return
+			}
+			s.sendErrorResponse(w, "", "", fmt.Errorf("failed to read request body"))
 			return
 		}
 		defer func() {
@@ -103,7 +125,11 @@ func (s *HTTPServer) MessagesHandler() http.Handler {
 		}
 
 		// Convert to SecureMessage
-		secureMsg := fromWireMessage(&wireMsg, r.Header)
+		secureMsg, err := fromWireMessage(&wireMsg, r.Header)
+		if err != nil {
+			s.sendErrorResponse(w, wireMsg.ID, wireMsg.TaskID, err)
+			return
+		}
 
 		// Validate required fields
 		if secureMsg.ID == "" {
@@ -131,8 +157,13 @@ func (s *HTTPServer) MessagesHandler() http.Handler {
 	})
 }
 
-// fromWireMessage converts HTTP wire format to transport.SecureMessage
-func fromWireMessage(wire *wireMessage, headers http.Header) *transport.SecureMessage {
+// fromWireMessage converts HTTP wire format to transport.SecureMessage.
+//
+// The JSON body is authoritative for the message identity (DID, message id,
+// context id, task id). The X-SAGE-* identity headers the client also sends
+// are accepted only when they agree with the body; a header that contradicts
+// the body is rejected rather than allowed to override the signed payload.
+func fromWireMessage(wire *wireMessage, headers http.Header) (*transport.SecureMessage, error) {
 	msg := &transport.SecureMessage{
 		ID:        wire.ID,
 		ContextID: wire.ContextID,
@@ -149,18 +180,16 @@ func fromWireMessage(wire *wireMessage, headers http.Header) *transport.SecureMe
 		msg.Metadata = make(map[string]string)
 	}
 
-	// Override with headers if present
-	if did := headers.Get("X-SAGE-DID"); did != "" {
-		msg.DID = did
-	}
-	if id := headers.Get("X-SAGE-Message-ID"); id != "" {
-		msg.ID = id
-	}
-	if ctxID := headers.Get("X-SAGE-Context-ID"); ctxID != "" {
-		msg.ContextID = ctxID
-	}
-	if taskID := headers.Get("X-SAGE-Task-ID"); taskID != "" {
-		msg.TaskID = taskID
+	// Identity headers must match the body; they never override it.
+	for header, bodyValue := range map[string]string{
+		"X-SAGE-DID":        msg.DID,
+		"X-SAGE-Message-ID": msg.ID,
+		"X-SAGE-Context-ID": msg.ContextID,
+		"X-SAGE-Task-ID":    msg.TaskID,
+	} {
+		if v := headers.Get(header); v != "" && v != bodyValue {
+			return nil, fmt.Errorf("%s header does not match the message body", header)
+		}
 	}
 
 	// Extract custom metadata from X-SAGE-Meta- headers
@@ -171,7 +200,7 @@ func fromWireMessage(wire *wireMessage, headers http.Header) *transport.SecureMe
 		}
 	}
 
-	return msg
+	return msg, nil
 }
 
 // toWireResponse converts transport.Response to HTTP wire format
