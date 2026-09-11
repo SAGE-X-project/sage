@@ -28,7 +28,6 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/sage-x-project/sage/deployments/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -165,10 +164,10 @@ func TestRetryWithBackoff(t *testing.T) {
 }
 
 // Test enhanced provider creation and configuration
-func TestNewEnhancedProvider(t *testing.T) {
+func TestNewProvider(t *testing.T) {
 	t.Run("Valid configuration with mock", func(t *testing.T) {
-		cfg := &config.BlockchainConfig{
-			NetworkRPC:     "http://localhost:8545",
+		cfg := &Endpoint{
+			RPCURL:         "http://localhost:8545",
 			ChainID:        big.NewInt(31337),
 			GasLimit:       3000000,
 			MaxGasPrice:    big.NewInt(20000000000),
@@ -181,20 +180,20 @@ func TestNewEnhancedProvider(t *testing.T) {
 			networkID: big.NewInt(31337),
 		}
 
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		assert.NoError(t, err)
 		assert.NotNil(t, provider)
-		assert.Equal(t, cfg, provider.GetConfig())
+		assert.Equal(t, *cfg, provider.Endpoint())
 	})
 
 	t.Run("Invalid configuration", func(t *testing.T) {
 		testCases := []struct {
 			name string
-			cfg  *config.BlockchainConfig
+			cfg  *Endpoint
 		}{
 			{
 				name: "Missing RPC URL",
-				cfg: &config.BlockchainConfig{
+				cfg: &Endpoint{
 					ChainID:     big.NewInt(31337),
 					GasLimit:    3000000,
 					MaxGasPrice: big.NewInt(20000000000),
@@ -202,16 +201,16 @@ func TestNewEnhancedProvider(t *testing.T) {
 			},
 			{
 				name: "Invalid Chain ID",
-				cfg: &config.BlockchainConfig{
-					NetworkRPC:  "http://localhost:8545",
+				cfg: &Endpoint{
+					RPCURL:      "http://localhost:8545",
 					GasLimit:    3000000,
 					MaxGasPrice: big.NewInt(20000000000),
 				},
 			},
 			{
 				name: "Zero Gas Limit",
-				cfg: &config.BlockchainConfig{
-					NetworkRPC:  "http://localhost:8545",
+				cfg: &Endpoint{
+					RPCURL:      "http://localhost:8545",
 					ChainID:     big.NewInt(31337),
 					MaxGasPrice: big.NewInt(20000000000),
 				},
@@ -220,7 +219,7 @@ func TestNewEnhancedProvider(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				_, err := NewEnhancedProviderWithClient(nil, tc.cfg)
+				_, err := NewProviderWithClient(nil, *tc.cfg)
 				assert.Error(t, err, "Should fail with invalid configuration")
 			})
 		}
@@ -229,8 +228,8 @@ func TestNewEnhancedProvider(t *testing.T) {
 
 // Test gas estimation with buffer and capping
 func TestEstimateGas(t *testing.T) {
-	cfg := &config.BlockchainConfig{
-		NetworkRPC:     "http://localhost:8545",
+	cfg := &Endpoint{
+		RPCURL:         "http://localhost:8545",
 		ChainID:        big.NewInt(31337),
 		GasLimit:       3000000,
 		MaxGasPrice:    big.NewInt(20000000000),
@@ -243,7 +242,7 @@ func TestEstimateGas(t *testing.T) {
 		mockClient := &MockEthClient{
 			gasEstimate: 100000,
 		}
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -262,7 +261,7 @@ func TestEstimateGas(t *testing.T) {
 		mockClient := &MockEthClient{
 			gasEstimate: 3000000, // Will exceed limit with buffer
 		}
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -281,7 +280,7 @@ func TestEstimateGas(t *testing.T) {
 			maxFails:    2,
 		}
 
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -297,8 +296,8 @@ func TestEstimateGas(t *testing.T) {
 
 // Test gas price suggestion with capping
 func TestSuggestGasPrice(t *testing.T) {
-	cfg := &config.BlockchainConfig{
-		NetworkRPC:     "http://localhost:8545",
+	cfg := &Endpoint{
+		RPCURL:         "http://localhost:8545",
 		ChainID:        big.NewInt(31337),
 		GasLimit:       3000000,
 		MaxGasPrice:    big.NewInt(50000000000), // 50 Gwei
@@ -312,7 +311,7 @@ func TestSuggestGasPrice(t *testing.T) {
 		mockClient := &MockEthClient{
 			gasPrice: suggestedPrice,
 		}
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -327,7 +326,7 @@ func TestSuggestGasPrice(t *testing.T) {
 		mockClient := &MockEthClient{
 			gasPrice: suggestedPrice,
 		}
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -340,8 +339,8 @@ func TestSuggestGasPrice(t *testing.T) {
 
 // Test health check functionality
 func TestHealthCheck(t *testing.T) {
-	cfg := &config.BlockchainConfig{
-		NetworkRPC:     "http://localhost:8545",
+	cfg := &Endpoint{
+		RPCURL:         "http://localhost:8545",
 		ChainID:        big.NewInt(31337),
 		GasLimit:       3000000,
 		MaxGasPrice:    big.NewInt(20000000000),
@@ -354,7 +353,7 @@ func TestHealthCheck(t *testing.T) {
 		mockClient := &MockEthClient{
 			blockNumber: 12345,
 		}
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -370,7 +369,7 @@ func TestHealthCheck(t *testing.T) {
 			maxFails:    2,
 		}
 
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -385,7 +384,7 @@ func TestHealthCheck(t *testing.T) {
 			shouldFail:    true,
 			failPermanent: true,
 		}
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -398,8 +397,8 @@ func TestHealthCheck(t *testing.T) {
 
 // Test transaction waiting with confirmations
 func TestWaitForTransaction(t *testing.T) {
-	cfg := &config.BlockchainConfig{
-		NetworkRPC:     "http://localhost:8545",
+	cfg := &Endpoint{
+		RPCURL:         "http://localhost:8545",
 		ChainID:        big.NewInt(31337),
 		GasLimit:       3000000,
 		MaxGasPrice:    big.NewInt(20000000000),
@@ -418,7 +417,7 @@ func TestWaitForTransaction(t *testing.T) {
 			receipt:     receipt,
 			blockNumber: 105,
 		}
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -442,7 +441,7 @@ func TestWaitForTransaction(t *testing.T) {
 			blockNumber: 103, // 3 confirmations
 		}
 
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -458,7 +457,7 @@ func TestWaitForTransaction(t *testing.T) {
 		mockClient := &MockEthClient{
 			receipt: nil, // Transaction not mined
 		}
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		// Use a very short timeout for testing
@@ -477,8 +476,8 @@ func TestWaitForTransaction(t *testing.T) {
 
 // Test ExecuteWithRetry wrapper
 func TestExecuteWithRetry(t *testing.T) {
-	cfg := &config.BlockchainConfig{
-		NetworkRPC:     "http://localhost:8545",
+	cfg := &Endpoint{
+		RPCURL:         "http://localhost:8545",
 		ChainID:        big.NewInt(31337),
 		GasLimit:       3000000,
 		MaxGasPrice:    big.NewInt(20000000000),
@@ -487,9 +486,9 @@ func TestExecuteWithRetry(t *testing.T) {
 		RequestTimeout: 30 * time.Second,
 	}
 
-	provider := &EnhancedProvider{
-		client: &MockEthClient{},
-		config: cfg,
+	provider := &Provider{
+		client:   &MockEthClient{},
+		endpoint: *cfg,
 	}
 
 	t.Run("Successful execution", func(t *testing.T) {
@@ -538,8 +537,8 @@ func TestExecuteWithRetry(t *testing.T) {
 
 // Test GetTransactionOpts
 func TestGetTransactionOpts(t *testing.T) {
-	cfg := &config.BlockchainConfig{
-		NetworkRPC:     "http://localhost:8545",
+	cfg := &Endpoint{
+		RPCURL:         "http://localhost:8545",
 		ChainID:        big.NewInt(31337),
 		GasLimit:       3000000,
 		MaxGasPrice:    big.NewInt(20000000000),
@@ -554,7 +553,7 @@ func TestGetTransactionOpts(t *testing.T) {
 			gasPrice: big.NewInt(15000000000),
 		}
 
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()
@@ -578,7 +577,7 @@ func TestGetTransactionOpts(t *testing.T) {
 			maxFails:   2,
 		}
 
-		provider, err := NewEnhancedProviderWithClient(mockClient, cfg)
+		provider, err := NewProviderWithClient(mockClient, *cfg)
 		require.NoError(t, err)
 
 		ctx := context.Background()

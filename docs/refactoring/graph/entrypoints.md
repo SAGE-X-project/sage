@@ -66,6 +66,7 @@ Reachability follows call and ref edges from each entry point, including dynamic
 - pkg/agent/transport (12 funcs, 355 LOC)
 - pkg/agent/transport/http (15 funcs, 520 LOC)
 - pkg/agent/transport/websocket (33 funcs, 766 LOC)
+- pkg/blockchain/ethereum (13 funcs, 355 LOC)
 - pkg/oidc (0 funcs, 40 LOC)
 - pkg/oidc/auth0 (13 funcs, 490 LOC)
 - pkg/storage (0 funcs, 155 LOC)
