@@ -224,6 +224,11 @@ func (s *Server) validateInitEnvelope(msg *transport.SecureMessage, pl HPKEInitP
 	if senderDID != "" && senderDID != pl.InitDID {
 		return fmt.Errorf("authentication failed")
 	}
+	// Audience binding: an init addressed to another agent must not create a
+	// session here even though its signature is valid.
+	if s.DID != "" && pl.RespDID != s.DID {
+		return fmt.Errorf("respDid mismatch: init is not addressed to this server")
+	}
 	now := time.Now()
 	if pl.Timestamp.Before(now.Add(-s.maxSkew)) || pl.Timestamp.After(now.Add(s.maxSkew)) {
 		return fmt.Errorf("ts out of window")
