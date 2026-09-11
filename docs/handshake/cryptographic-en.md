@@ -88,8 +88,8 @@ This section describes the recommended way SAGE combines the **DID identity laye
 
 - `kid`: session key identifier
 - `ackTagB64`: key-confirmation tag
-  `ackKey = HKDF(seed, "ack-key", 32)`  
-  `ackTag = HMAC(ackKey, "hpke-ack|" + ctxID + "|" + nonce + "|" + kid)`
+  `ackKey = HKDF-Expand(seed, "SAGE-ack-key-v1", 32)`  
+  `ackTag = HMAC(ackKey, "SAGE-ack-msg|v1|" || len(ctxID)||ctxID || len(nonce)||nonce || len(kid)||kid || SHA256(transcript))`
 - `ephS` _(optional, PFS add-on)_: server ephemeral X25519 public key (32 B)
 
 ### Seed derivation (HPKE Base + PFS add-on)

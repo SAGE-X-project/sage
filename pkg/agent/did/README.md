@@ -1,5 +1,7 @@
 # SAGE Decentralized Identity (DID) Management
 
+> **Status note (2026-09-12).** This README predates the AgentCardRegistry migration: it recommends SageRegistryV4, lists `ethereum/clientv4.go` and documents Manager/Verifier methods and configuration fields that do not exist. Use the code and these sources instead: `pkg/agent/did/ethereum/agentcard_client.go` (commit-reveal registration, key management), `pkg/agent/did/manager.go` (`Configure` requires `ethereum.Register()` to have run, which `internal/app.RegisterDefaults` does), `types_v4.go`, `docs/AGENTCARD_MIGRATION_GUIDE.md`. The DID format section and the A2A card functions remain accurate.
+
 The `did` package provides comprehensive decentralized identity management for AI agents using blockchain-based registries. It implements the W3C DID standard with multi-chain support for Ethereum and Solana, enabling verifiable agent authentication and discovery.
 
 ## Overview
@@ -835,7 +837,7 @@ A: **Google A2A (Agent-to-Agent)** is a protocol for AI agent interoperability. 
 - `ValidateA2ACard()` - Validate incoming A2A cards
 - `MergeA2ACard()` - Import A2A capabilities
 
-See [A2A Integration Guide](../../../docs/SAGE_A2A_INTEGRATION_GUIDE.md)
+See [A2A Integration Guide](../../../docs/archive/2026-09/SAGE_A2A_INTEGRATION_GUIDE.md)
 
 ## See Also
 
@@ -843,7 +845,7 @@ See [A2A Integration Guide](../../../docs/SAGE_A2A_INTEGRATION_GUIDE.md)
 - [Session Management](../session/README.md) - Secure agent sessions
 - [Handshake Protocol](../handshake/) - Session establishment
 - [V4 Deployment Guide](../../../docs/V4_UPDATE_DEPLOYMENT_GUIDE.md) - V4 migration
-- [A2A Integration Guide](../../../docs/SAGE_A2A_INTEGRATION_GUIDE.md) - A2A protocol
+- [A2A Integration Guide](../../../docs/archive/2026-09/SAGE_A2A_INTEGRATION_GUIDE.md) - A2A protocol
 
 ## References
 

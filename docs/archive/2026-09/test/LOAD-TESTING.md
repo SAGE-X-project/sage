@@ -1,5 +1,7 @@
 # SAGE Load Testing Guide
 
+> **Archived on 2026-09-12** (formerly `docs/test/LOAD-TESTING.md`). This document is kept for history only: targets cmd/sage-server and /debug routes that no Go code implements; the load-test workflow is disabled (.github/workflows/loadtest.yml, if: false). The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 **Last Updated:** 2025-10-10
 **Tool:** k6 (https://k6.io/)
 **Version:** v0.48.0+

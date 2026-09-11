@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 
-**Date:** 2024-10-26
+**Date:** 2025-10-26
 
 **Decision Makers:** SAGE Core Team
 
@@ -440,7 +440,7 @@ ChaCha20-Poly1305 (1KB)      8 μs       125,000 msg/sec
 
 | Date | Version | Author | Changes |
 |------|---------|--------|---------|
-| 2024-10-26 | 1.0 | SAGE Team | Initial ADR |
+| 2025-10-26 | 1.0 | SAGE Team | Initial ADR |
 
 ---
 

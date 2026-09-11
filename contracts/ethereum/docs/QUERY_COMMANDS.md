@@ -37,7 +37,7 @@ curl -X POST http://localhost:8545 \
     "jsonrpc": "2.0",
     "method": "eth_call",
     "params": [{
-      "to": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "to": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
       "data": "0x4b9f0cea00000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c8"
     }, "latest"],
     "id": 1
@@ -55,7 +55,7 @@ curl -X POST http://localhost:8545 \
     "params": [{
       "fromBlock": "0x0",
       "toBlock": "latest",
-      "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+      "address": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
       "topics": ["0x8a5c4c6e2f7a3b1d7e9c8f5a2b4d6e8f1a3c5e7b9d2f4a6c8e0a2c4e6a8c0e2a4e"]
     }],
     "id": 1
@@ -72,7 +72,7 @@ npx hardhat console --network localhost
 Console에서:
 ```javascript
 // 컨트랙트 연결
-const registry = await ethers.getContractAt("AgentCardRegistry", "0x5FbDB2315678afecb367f032d93F642f64180aa3")
+const registry = await ethers.getContractAt("AgentCardRegistry", "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512")
 
 // Test Account 1의 agents 조회
 const agents = await registry.getAgentsByOwner("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
@@ -119,7 +119,7 @@ node -e "
 const ethers = require('ethers');
 const provider = new ethers.JsonRpcProvider('http://localhost:8545');
 const abi = [{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"name\":\"agentId\",\"type\":\"bytes32\"},{\"indexed\":true,\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":false,\"name\":\"did\",\"type\":\"string\"},{\"indexed\":false,\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"AgentRegistered\",\"type\":\"event\"}];
-const registry = new ethers.Contract('0x5FbDB2315678afecb367f032d93F642f64180aa3', abi, provider);
+const registry = new ethers.Contract('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', abi, provider);
 registry.queryFilter(registry.filters.AgentRegistered()).then(events => {
   console.log('Total agents registered:', events.length);
   events.forEach((e, i) => {
@@ -138,7 +138,7 @@ const ethers = require('ethers');
 const fs = require('fs');
 const provider = new ethers.JsonRpcProvider('http://localhost:8545');
 const abi = JSON.parse(fs.readFileSync('./artifacts/contracts/AgentCardRegistry.sol/AgentCardRegistry.json')).abi;
-const registry = new ethers.Contract('0x5FbDB2315678afecb367f032d93F642f64180aa3', abi, provider);
+const registry = new ethers.Contract('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', abi, provider);
 registry.getAgentsByOwner('0x70997970C51812dc3A010C7d01b50e0d17dc79C8').then(async (ids) => {
   console.log('Found', ids.length, 'agent(s)');
   for(let id of ids) {

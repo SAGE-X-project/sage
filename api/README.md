@@ -1,5 +1,7 @@
 # SAGE API Specification
 
+> **Status note (2026-09-12).** This OpenAPI description covers a planned HTTP server. No Go code in this repository serves these routes; the shipped surface is the Go packages under `pkg/agent` and the CLIs. It is kept as the target for the gateway planned in `docs/refactoring/STRATEGY.md` (section 2.5).
+
 This directory contains the OpenAPI specification and documentation for the SAGE HTTP API.
 
 ## Contents

@@ -1,5 +1,7 @@
 # SAGE Security Audit Package
 
+> **Archived on 2026-09-12** (formerly `docs/audit/README.md`). This document is kept for history only: describes the SageRegistryV2 + UUPS contracts and HMAC-based signatures of an earlier release; the current contracts are AgentCardRegistry and the ERC-8004 registries, signatures are Ed25519/secp256k1/P-256. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 **Version**: 1.0.0
 **Date**: October 2025
 **Project**: SAGE (Secure Agent Guarantee Engine)
@@ -13,7 +15,7 @@ This directory contains comprehensive security audit documentation for SAGE v1.0
 
 ## Document Index
 
-### 1. [AUDIT-SCOPE.md](./AUDIT-SCOPE.md)
+### 1. [AUDIT-SCOPE.md](AUDIT-SCOPE.md)
 **Purpose**: Defines what is in scope for the security audit
 
 **Contents**:
@@ -28,7 +30,7 @@ This directory contains comprehensive security audit documentation for SAGE v1.0
 
 **Target Audience**: Security auditors, project managers
 
-### 2. [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md)
+### 2. [ARCHITECTURE-OVERVIEW.md](ARCHITECTURE-OVERVIEW.md)
 **Purpose**: High-level system architecture and component interactions
 
 **Contents**:
@@ -42,7 +44,7 @@ This directory contains comprehensive security audit documentation for SAGE v1.0
 
 **Target Audience**: Security engineers, architects
 
-### 3. [SECURITY-CONSIDERATIONS.md](./SECURITY-CONSIDERATIONS.md)
+### 3. [SECURITY-CONSIDERATIONS.md](SECURITY-CONSIDERATIONS.md)
 **Purpose**: Detailed security analysis and mitigations
 
 **Contents**:
@@ -60,21 +62,21 @@ This directory contains comprehensive security audit documentation for SAGE v1.0
 ## Quick Start for Auditors
 
 ### Step 1: Read Audit Scope
-Start with [AUDIT-SCOPE.md](./AUDIT-SCOPE.md) to understand:
+Start with [AUDIT-SCOPE.md](AUDIT-SCOPE.md) to understand:
 - What components are in scope
 - What to focus on
 - Testing coverage
 - Expected deliverables
 
 ### Step 2: Review Architecture
-Read [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md) to understand:
+Read [ARCHITECTURE-OVERVIEW.md](ARCHITECTURE-OVERVIEW.md) to understand:
 - How components interact
 - Data flow through the system
 - Security boundaries
 - Cryptographic design
 
 ### Step 3: Analyze Security
-Study [SECURITY-CONSIDERATIONS.md](./SECURITY-CONSIDERATIONS.md) for:
+Study [SECURITY-CONSIDERATIONS.md](SECURITY-CONSIDERATIONS.md) for:
 - Critical security features
 - Known attack vectors
 - Mitigations in place
@@ -117,7 +119,7 @@ go test -race ./...
 
 ## Key Security Features to Audit
 
-This section highlights critical security features. For detailed analysis and code examples, see [SECURITY-CONSIDERATIONS.md](./SECURITY-CONSIDERATIONS.md#1-critical-security-features).
+This section highlights critical security features. For detailed analysis and code examples, see [SECURITY-CONSIDERATIONS.md](SECURITY-CONSIDERATIONS.md#1-critical-security-features).
 
 ### 1. Public Key Validation (Smart Contract)
 - **Location**: `SageRegistryV2.sol::_validatePublicKey()`
@@ -154,8 +156,8 @@ This section highlights critical security features. For detailed analysis and co
 ## Critical Attack Scenarios
 
 For detailed attack vectors, mitigations, and threat analysis, see:
-- [SECURITY-CONSIDERATIONS.md](./SECURITY-CONSIDERATIONS.md#2-attack-vectors--mitigations)
-- [ARCHITECTURE-OVERVIEW.md](./ARCHITECTURE-OVERVIEW.md#5-threat-model)
+- [SECURITY-CONSIDERATIONS.md](SECURITY-CONSIDERATIONS.md#2-attack-vectors--mitigations)
+- [ARCHITECTURE-OVERVIEW.md](ARCHITECTURE-OVERVIEW.md#5-threat-model)
 
 **Key Scenarios**:
 1. **Agent Impersonation**: DID-based authentication, on-chain verification
@@ -188,13 +190,13 @@ core/rfc9421: 88% coverage
 hpke/:        90% coverage
 ```
 
-**Note**: See [AUDIT-SCOPE.md](./AUDIT-SCOPE.md#4-testing-coverage) for detailed test types and methodology.
+**Note**: See [AUDIT-SCOPE.md](AUDIT-SCOPE.md#4-testing-coverage) for detailed test types and methodology.
 
 ---
 
 ## Known Issues and Limitations
 
-For complete details, see [SECURITY-CONSIDERATIONS.md](./SECURITY-CONSIDERATIONS.md#3-known-limitations) and [AUDIT-SCOPE.md](./AUDIT-SCOPE.md#5-known-issues--limitations).
+For complete details, see [SECURITY-CONSIDERATIONS.md](SECURITY-CONSIDERATIONS.md#3-known-limitations) and [AUDIT-SCOPE.md](AUDIT-SCOPE.md#5-known-issues--limitations).
 
 **Summary**:
 1. **Cross-Platform Builds**: Low severity, build-time only
@@ -321,10 +323,10 @@ We welcome proposals from:
 ## Additional Resources
 
 ### Documentation
-- [Main README](../../README.md)
-- [Build Guide](../BUILD.md)
-- [Handshake Protocol](../handshake/handshake-en.md)
-- [Smart Contracts README](../../contracts/README.md)
+- [Main README](../../../../README.md)
+- [Build Guide](../../../BUILD.md)
+- [Handshake Protocol](../../../handshake/handshake-en.md)
+- [Smart Contracts README](../../../../contracts/README.md)
 - [Sepolia Deployment](../../contracts/ethereum/docs/PHASE7-SEPOLIA-DEPLOYMENT-COMPLETE.md)
 
 ### Test Reports
@@ -334,7 +336,7 @@ We welcome proposals from:
 
 ### Architecture
 - [ERC-8004 Architecture](../../contracts/ethereum/docs/ERC-8004-ARCHITECTURE.md)
-- [Security Design](../dev/security-design.md)
+- [Security Design](../../../dev/security-design.md)
 
 ---
 

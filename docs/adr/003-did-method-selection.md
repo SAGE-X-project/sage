@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 
-**Date:** 2024-10-26
+**Date:** 2025-10-26
 
 **Decision Makers:** SAGE Core Team
 
@@ -631,7 +631,7 @@ publicKey := didDoc.PublicKeys[0]
 - [SageRegistryV4 Smart Contract](../../contracts/ethereum/contracts/SageRegistryV4.sol)
 - [Solana Agent Program](../../contracts/solana/programs/agent_registry/)
 - [W3C DID Core Specification](https://www.w3.org/TR/did-core/)
-- [A2A Integration Guide](../SAGE_A2A_INTEGRATION_GUIDE.md)
+- [A2A Integration Guide](../archive/2026-09/SAGE_A2A_INTEGRATION_GUIDE.md)
 
 ---
 
@@ -649,7 +649,7 @@ publicKey := didDoc.PublicKeys[0]
 
 | Date | Version | Author | Changes |
 |------|---------|--------|---------|
-| 2024-10-26 | 1.0 | SAGE Team | Initial ADR |
+| 2025-10-26 | 1.0 | SAGE Team | Initial ADR |
 
 ---
 

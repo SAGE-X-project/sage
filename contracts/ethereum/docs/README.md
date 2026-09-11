@@ -53,7 +53,7 @@ This directory contains comprehensive documentation for SAGE Ethereum smart cont
 | QUERY_COMMANDS.md | -  Current | v2.0 | 2025-11-01 |
 | NATSPEC-GUIDE.md | -  Current | v1.0 | 2025-10-07 |
 | GOVERNANCE-SETUP.md | Draft, not executable (scripts missing; see banner) | v1.0 | 2025-10-07 |
-| VERIFICATION_GUIDE.md | -  Current | v1.0 | 2025-10-07 |
+| VERIFICATION_GUIDE.md | Stale (SageRegistryV2 era; see banner) | v1.0 | 2025-10-07 |
 | CLEAN_GUIDE.md | -  Current | v1.0 | 2025-10-26 |
 
 ##  Documentation Notes

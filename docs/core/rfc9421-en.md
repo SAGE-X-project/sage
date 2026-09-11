@@ -39,7 +39,7 @@ The RFC-9421 implementation integrates with SAGE's centralized cryptographic alg
 ```go
 // Get list of supported algorithms
 algorithms := rfc9421.GetSupportedAlgorithms()
-// Returns: ["ed25519", "es256k", "rsa-pss-sha256"]
+// Returns: ["ecdsa-p256-sha256", "ed25519", "es256k", "rsa-pss-sha256"]
 
 // Check if algorithm is supported
 if rfc9421.IsAlgorithmSupported("ed25519") {
@@ -52,7 +52,7 @@ if rfc9421.IsAlgorithmSupported("ed25519") {
 - **es256k**: ECDSA with secp256k1 curve (Ethereum-compatible)
 - **rsa-pss-sha256**: RSA with PSS padding and SHA-256
 
-**Note**: ECDSA P-256 cryptographic operations are fully functional and tested, but the algorithm is not yet registered as a distinct RFC-9421 algorithm identifier. Currently, all ECDSA operations are mapped to `es256k` (secp256k1) in the algorithm registry. See `crypto/keys/algorithms.go` for implementation status.
+**Note**: P-256 is registered as `ecdsa-p256-sha256` and secp256k1 as `es256k`; the verifier tells them apart by curve (`crypto.GetKeyTypeFromPublicKey`). secp256k1 signatures follow the Ethereum convention (Keccak-256, `r || s || v`), P-256 uses SHA-256 with raw or DER `r || s`. The built-in table lives in `pkg/agent/crypto/algorithm_registry.go`.
 
 ### Core Components
 
@@ -126,7 +126,7 @@ func main() {
             `"date"`,
         },
         KeyID:     "agent-key-1",
-        Algorithm: "ed25519",  // Use registry algorithm names
+        Algorithm: string(rfc9421.AlgorithmEdDSA), // envelope path: "EdDSA", "ES256K", "ECDSA-secp256k1"; HTTP path uses registry names ("ed25519", "es256k", "ecdsa-p256-sha256")
         Created:   time.Now().Unix(),
     }
 
@@ -222,7 +222,7 @@ message := &rfc9421.Message{
     AgentDID:  "did:sage:ethereum:0x123...",
     Body:      []byte("AI response"),
     Signature: signature,
-    Algorithm: "ed25519",
+    Algorithm: string(rfc9421.AlgorithmEdDSA),
 }
 
 result, err := verificationService.VerifyAgentMessage(
@@ -429,7 +429,7 @@ This implementation follows:
 | Ed25519 |  Fully Supported | `ed25519` | Recommended for new implementations |
 | ES256K (Secp256k1) |  Fully Supported | `es256k` | Ethereum-compatible |
 | RSA-PSS-SHA256 |  Fully Supported | `rsa-pss-sha256` | RSA with PSS padding |
-| ECDSA P-256 |  Crypto Only | N/A | Cryptographic operations work, not registered as distinct algorithm |
+| ECDSA P-256 |  Fully Supported | `ecdsa-p256-sha256` | SHA-256, raw or DER signature |
 | RSA-PKCS#1 v1.5 |  Not Supported | `rsa-v1_5-sha256` | Legacy RSA (planned) |
 
 ## Implementation Status & Roadmap
@@ -441,16 +441,14 @@ This implementation follows:
 
 ### Partially Implemented
 -  **Response signature support** - `@status` component detection implemented, signing/verification methods pending
--  **ECDSA P-256 support** - Cryptographic operations fully functional and tested, algorithm registration as distinct identifier pending
+-  **ECDSA P-256 support** - registered as `ecdsa-p256-sha256`
 
 ### Planned Enhancements
 - **RSA-PKCS#1 v1.5 support** - Legacy RSA algorithm (`rsa-v1_5-sha256`)
-- **Complete ECDSA P-256 registration** - Register as distinct algorithm (`ecdsa-p256-sha256`) separate from secp256k1
 - **Response signing methods** - `SignResponse()` and `VerifyResponse()` for HTTP responses
 - **Signature negotiation** - Accept-Signature header, algorithm capability advertisement
 - **Performance optimizations** - Buffer pooling, goroutine pools, pre-allocation strategies
 - **Caching layer** - Public key cache, DID resolution cache, parsed signature cache
 
 ### Technical Debt
-- Complete ECDSA P-256 registration in algorithm registry (see `crypto/keys/algorithms.go:58-60`)
 - Implement response canonicalization for `@status` component

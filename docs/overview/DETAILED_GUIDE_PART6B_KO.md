@@ -1,5 +1,7 @@
 # SAGE 프로젝트 상세 가이드 - Part 6B: 실전 통합 가이드
 
+> **Status note (2026-09-12).** 이 문서의 CLI 플래그(`sage-did register --chain --name --endpoint --key`)와 외부 SDK 예제는 현재 바이너리(`commit` -> `register [commit-hash]` -> `activate`)와 실험 단계인 `sdk/` 클라이언트의 상태와 다릅니다. CLI는 `sage-did --help`, SDK 상태는 루트 README의 "Multi-Language Bindings"를 기준으로 하세요.
+
 ## 목차
 1. [시작하기 전에](#1-시작하기-전에)
 2. [CLI 도구 사용법](#2-cli-도구-사용법)

@@ -1,5 +1,7 @@
 # SAGE Deployment Configurations
 
+> **Status note (2026-09-12).** The Go snippets below name `config.LoadFromFile`, `LoadFromEnv` and `cfg.Validate()`; the package exposes `config.Load(opts ...LoaderOptions)` (see `deployments/config/loader.go`) and `config.ValidateConfiguration(cfg)` (`validator.go`). Network presets (chain id, RPC, registry address) now come from `pkg/agent/crypto/chain.Presets`.
+
 This directory contains deployment configurations, infrastructure setup, and environment management for SAGE.
 
 ## Directory Structure

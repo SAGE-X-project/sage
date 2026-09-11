@@ -1,5 +1,7 @@
 # SAGE 프로젝트 상세 가이드 - Part 3: DID 및 블록체인 통합
 
+> **Status note (2026-09-12).** 이 문서는 SageRegistryV2 시대의 DID 설계(단일 단계 등록, `did.ChainKaia`, `NewEthereumClient(rpc, addr, key)` 등)를 설명합니다. 현재 코드는 AgentCardRegistry의 commit-reveal 등록과 `pkg/agent/did/ethereum.AgentCardClient`를 사용합니다. 최신 내용은 `docs/AGENTCARD_MIGRATION_GUIDE.md`와 `pkg/agent/did` 패키지 문서를 참고하세요.
+
 > **대상 독자**: 프로그래밍 초급자부터 중급 개발자까지
 > **작성일**: 2025-10-07
 > **버전**: 1.0

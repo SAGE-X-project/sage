@@ -1,5 +1,7 @@
 # Contract Verification Guide for Kaia Network
 
+> **Status note (2026-09-12).** Written for SageRegistry/SageRegistryV2 with compiler 0.8.19/london; the current contracts compile with solc 0.8.20 (evm target shanghai, see `hardhat.config.js`) and some npm scripts named here no longer exist. Use `npx hardhat verify` with the constructor arguments recorded in `deployments/<network>-complete-latest.json`.
+
 ## Overview
 This guide explains how to verify smart contracts on Kaia (mainnet) and Kairos (testnet) networks using Klaytnscope explorer.
 

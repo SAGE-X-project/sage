@@ -1,5 +1,7 @@
 # SAGE 성능 최적화 로드맵
 
+> **Archived on 2026-09-12** (formerly `docs/planning/PERFORMANCE_OPTIMIZATION_ROADMAP.md`). This document is kept for history only: performance roadmap whose measurements and plans predate session pooling and the current session layer. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 **작성일:** 2025년 10월 11일
 **문서 버전:** 1.0
 **상태:** 계획 단계

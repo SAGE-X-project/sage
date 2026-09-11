@@ -1,5 +1,7 @@
 # SAGE Installation and Build Instructions
 
+> **Status note (2026-09-12).** The "Modification and Relinking" and LGPL sections describe the cgo library under `lib/`, which is scheduled for removal (`docs/refactoring/DECISIONS.md`, Decision 3): it exports no usable API and is not built in CI. Building the Go binaries and consuming the Go module are unaffected.
+
 This document provides detailed instructions for building, installing, and modifying SAGE (Secure Agent Guarantee Engine) in compliance with LGPL-3.0 license requirements.
 
 ## Table of Contents

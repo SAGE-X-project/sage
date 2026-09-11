@@ -332,6 +332,8 @@ make bump-version-ci VERSION=1.4.0
 
 ## Version History
 
+The rows below are an **illustrative example** of the table format; the real release history is in `CHANGELOG.md`.
+
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.3.0 | 2025-10-25 | SageRegistryV4 multi-key support |

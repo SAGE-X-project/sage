@@ -1,5 +1,7 @@
 # SAGE Security Audit Scope
 
+> **Archived on 2026-09-12** (formerly `docs/audit/AUDIT-SCOPE.md`). This document is kept for history only: scope of an audit package written for the SageRegistryV2 release. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 **Version**: 1.0.0
 **Date**: October 2025
 **Audit Target**: SAGE v1.0 (Phase 7.5 Complete)

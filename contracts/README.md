@@ -18,7 +18,7 @@ The SAGE contracts provide a decentralized registry for AI agents with ERC-8004 
 - **Agent Lifecycle**: Complete lifecycle management (registration, updates, deactivation)
 - **DID-Based Identity**: Decentralized identifiers with format validation
 - **Gas Optimized**: Efficient storage patterns and streamlined operations
-- **Comprehensive Testing**: 124 passing tests across 5 test phases
+- **Comprehensive Testing**: 219 passing tests (`npx hardhat test`)
 
 ## Architecture
 
@@ -67,7 +67,7 @@ npm install
 # Compile contracts
 npm run compile
 
-# Run tests (124 tests)
+# Run tests (219 tests)
 npm test
 ```
 
@@ -199,7 +199,7 @@ Deployment records saved in:
 ### Audit Status
 
 - Code review: Complete
-- Test coverage: 124/124 tests passing
+- Test coverage: 219/219 tests passing
 - Security audit: Pending external audit
 
 **Important**: Use testnets for initial deployment and testing. Deploy to mainnet only after thorough testing.
@@ -233,7 +233,7 @@ Approximate gas costs on Kaia network:
 
 ## Testing
 
-### Test Coverage (124 Tests Total)
+### Test Coverage (219 Tests Total)
 
 ```bash
 cd contracts/ethereum
@@ -241,7 +241,7 @@ cd contracts/ethereum
 # Run all tests
 npm test
 
-# Expected output: 124 passing
+# Expected output: 219 passing
 
 # Run with coverage
 npm run coverage

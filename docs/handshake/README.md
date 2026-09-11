@@ -8,7 +8,7 @@ This folder contains documentation for SAGE's secure handshake protocols for est
 
 1. **Start here**: [Cryptographic Overview](./cryptographic-en.md) - Understand SAGE's security foundations
 2. **Choose your approach**:
-   - **Traditional**: [4-Phase Handshake Guide](./handshake-en.md) - Mature, battle-tested
+   - **Legacy**: [4-Phase Handshake Guide](./handshake-en.md) - kept for existing integrations; the server does not check its nonce/timestamp fields and the package is scheduled for removal (`docs/refactoring/BACKLOG.md`, D-06)
    - **Modern**: [HPKE-Based Handshake Guide](./hpke-based-handshake-en.md) - 1-RTT, recommended for new projects
 
 ### For Developers

@@ -590,9 +590,10 @@ creator.OnComplete(ctx, ctxID, comp, params)  // Error unchecked!
 ## File Structure
 
 ```
-internal/sessioninit/
-├── README.md           # This file (you're creating it)
-└── session_creator.go  # Creator implementation
+internal/
+├── session_creator.go  # Creator implementation (declares package sessioninit)
+└── sessioninit/
+    └── README.md       # This file
 ```
 
 ## Related Packages

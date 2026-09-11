@@ -1,5 +1,7 @@
 # SAGE 아키텍처 문서
 
+> **Archived on 2026-09-12** (formerly `docs/dev/architecture.md`). This document is kept for history only: planning-era architecture (Gateway, gRPC handshake) that was never built; docs/ARCHITECTURE.md describes the code. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 >  **OUTDATED WARNING**: 이 문서는 초기 계획 단계에서 작성되었습니다.
 >
 > **현재 상태**:

@@ -1,5 +1,7 @@
 # SAGE 개발 가이드
 
+> **Archived on 2026-09-12** (formerly `docs/dev/development-guide.md`). This document is kept for history only: planning-era development guide with root-level package paths; see CONTRIBUTING.md and docs/BUILD.md. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 >  **PARTIALLY OUTDATED**: 일부 내용이 오래되었습니다.
 >
 > **주의사항**:

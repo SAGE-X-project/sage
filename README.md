@@ -96,7 +96,7 @@ sage/
 │   ├── keys/               # Ed25519, Secp256k1, X25519 key pair implementations
 │   ├── chain/              # Blockchain-specific providers (Ethereum, Solana)
 │   ├── storage/            # Secure key storage (file, memory)
-│   ├── vault/              # Hardware-backed secure storage with OS keychain integration
+│   ├── vault/              # Passphrase-encrypted file vault and in-memory vault
 │   └── formats/            # JWK, PEM key format converters
 ├── did/                     # Decentralized Identity
 │   ├── ethereum/           # Ethereum DID client with enhanced provider
@@ -245,7 +245,7 @@ msg := builder.
     Body([]byte(cipherRequestBody)).
     Build()
 
-verifier := rfc9421.NewHTTPVerifier(sess, sessionManager)
+verifier := rfc9421.NewHTTPVerifier() // in-memory replay guard; use NewHTTPVerifierWithReplayGuard to share one
 signature, _ := verifier.SignRequest(msg, sigName, []string{
     "@method", "@authority", "@path", "content-type", "content-digest",
 }, privKey)
@@ -264,10 +264,10 @@ ownerAddr, _ := did.DeriveEthereumAddress(keyPair)
 agentDID := did.GenerateAgentDIDWithAddress(did.ChainEthereum, ownerAddr)
 
 // Export as A2A-compliant agent card
-card := did.GenerateA2ACard(agentDID, metadata)
+card, err := did.GenerateA2ACard(metadataV4) // *did.AgentMetadataV4 with verified keys
 ```
 
-For detailed A2A integration, see [SAGE A2A Integration Guide](docs/SAGE_A2A_INTEGRATION_GUIDE.md) and [sage-a2a-go](https://github.com/sage-x-project/sage-a2a-go).
+For detailed A2A integration, see [SAGE A2A Integration Guide](docs/archive/2026-09/SAGE_A2A_INTEGRATION_GUIDE.md) and [sage-a2a-go](https://github.com/sage-x-project/sage-a2a-go).
 
 ### Configuration
 

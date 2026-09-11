@@ -1,5 +1,7 @@
 # Documentation Audit Report
 
+> **Archived on 2026-09-12** (formerly `docs/maintenance/DOCUMENTATION_AUDIT_2025-10-26.md`). This document is kept for history only: snapshot of the documentation state at v1.3.0; superseded by docs/refactoring/DOCS_GRAPH.md. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 **Date:** 2025-10-26
 **Auditor:** Claude (AI Assistant)
 **SAGE Version:** 1.3.0
