@@ -4,20 +4,20 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/ed25519"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"testing"
 	"time"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/mr-tron/base58"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 )
 
 const testCardDID = "did:sage:ethereum:0x1234567890abcdef1234567890abcdef12345678"
@@ -149,10 +149,9 @@ func TestVerifyA2ACardProof_HexOnlyECDSAKey(t *testing.T) {
 		}},
 		Endpoints: []A2AEndpoint{{Type: "MessageService", URI: "https://agent.example"}},
 	}
-	raw, err := json.Marshal(card)
+	canonical, err := jcs.Marshal(card)
 	require.NoError(t, err)
-	digest := sha256.Sum256(raw)
-	sig, err := ethcrypto.Sign(digest[:], kp.PrivateKey().(*ecdsa.PrivateKey))
+	sig, err := keys.SignSecp256k1Keccak(kp.PrivateKey().(*ecdsa.PrivateKey), canonical)
 	require.NoError(t, err)
 	withProof := &A2AAgentCardWithProof{A2AAgentCard: card, Proof: &A2AProof{
 		Type: "EcdsaSecp256k1Signature2019", Created: time.Now(), VerificationMethod: testCardDID + "#key-1",
@@ -178,4 +177,33 @@ func TestFromAgentMetadata_ParsedKeys(t *testing.T) {
 	require.Len(t, v4.Keys, 1)
 	assert.Equal(t, KeyTypeECDSA, v4.Keys[0].Type)
 	assert.Len(t, v4.Keys[0].KeyData, 64)
+}
+
+// A signed card must verify after any JSON-preserving rewrite (whitespace,
+// member order, escaping), because the proof covers the RFC 8785 canonical form.
+func TestVerifyA2ACardProof_CanonicalFormSurvivesReformatting(t *testing.T) {
+	card, _ := signedEd25519Card(t)
+	wire, err := json.Marshal(card)
+	require.NoError(t, err)
+
+	var generic map[string]interface{}
+	require.NoError(t, json.Unmarshal(wire, &generic))
+	reordered, err := json.MarshalIndent(generic, "", "  ") // Go sorts map keys: different order and whitespace
+	require.NoError(t, err)
+	require.NotEqual(t, string(wire), string(reordered))
+
+	parsed, err := ParseA2AAgentCardWithProof(reordered)
+	require.NoError(t, err)
+	valid, err := VerifyA2ACardProof(parsed)
+	require.NoError(t, err)
+	assert.True(t, valid)
+
+	// Changing any covered member breaks the proof even when the struct still parses.
+	generic["name"] = "Other Agent"
+	tampered, err := json.Marshal(generic)
+	require.NoError(t, err)
+	parsed, err = ParseA2AAgentCardWithProof(tampered)
+	require.NoError(t, err)
+	_, err = VerifyA2ACardProof(parsed)
+	require.Error(t, err)
 }
