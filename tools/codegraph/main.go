@@ -78,6 +78,16 @@ type Graph struct {
 	Packages []PackageNode `json:"packages"`
 	Symbols  []SymbolNode  `json:"symbols"`
 	Edges    []Edge        `json:"edges"`
+	Commands []CLICommand  `json:"commands,omitempty"`
+}
+
+// CLICommand is a cobra.Command literal found in a cmd package.
+type CLICommand struct {
+	Package string `json:"package"`
+	Use     string `json:"use"`
+	Handler string `json:"handler,omitempty"` // symbol id of Run/RunE
+	File    string `json:"file"`
+	Line    int    `json:"line"`
 }
 
 // ---- main ------------------------------------------------------------------
@@ -100,6 +110,7 @@ func main() {
 	must(os.MkdirAll(*out, 0o755))
 	writeJSON(filepath.Join(*out, "graph.json"), g)
 	must(os.WriteFile(filepath.Join(*out, "summary.md"), []byte(summarize(g)), 0o644))
+	must(os.WriteFile(filepath.Join(*out, "entrypoints.md"), []byte(entrypoints(g)), 0o644))
 	if prev != nil {
 		must(os.WriteFile(filepath.Join(*out, "delta.md"), []byte(delta(prev, g)), 0o644))
 	}
@@ -340,6 +351,61 @@ func build(root string) *Graph {
 					return true
 				})
 			}
+		}
+	}
+
+	// cobra.Command literals -> CLI command inventory
+	for _, p := range pkgs {
+		if !isInternal(p.PkgPath) {
+			continue
+		}
+		for _, file := range p.Syntax {
+			fname, _ := filepath.Rel(root, p.Fset.Position(file.Pos()).Filename)
+			ast.Inspect(file, func(n ast.Node) bool {
+				cl, ok := n.(*ast.CompositeLit)
+				if !ok {
+					return true
+				}
+				t := p.TypesInfo.TypeOf(cl)
+				nt, ok := deref(t).(*types.Named)
+				if !ok || nt.Obj().Pkg() == nil || nt.Obj().Pkg().Path() != "github.com/spf13/cobra" || nt.Obj().Name() != "Command" {
+					return true
+				}
+				c := CLICommand{Package: p.PkgPath, File: fname, Line: p.Fset.Position(cl.Pos()).Line}
+				for _, el := range cl.Elts {
+					kv, ok := el.(*ast.KeyValueExpr)
+					if !ok {
+						continue
+					}
+					key, _ := kv.Key.(*ast.Ident)
+					if key == nil {
+						continue
+					}
+					switch key.Name {
+					case "Use":
+						if lit, ok := kv.Value.(*ast.BasicLit); ok {
+							c.Use = strings.Trim(lit.Value, "`\"")
+						}
+					case "Run", "RunE":
+						var id *ast.Ident
+						switch v := kv.Value.(type) {
+						case *ast.Ident:
+							id = v
+						case *ast.SelectorExpr:
+							id = v.Sel
+						}
+						if id != nil {
+							if fn, ok := p.TypesInfo.Uses[id].(*types.Func); ok {
+								c.Handler = objID[fn]
+							}
+						}
+					}
+				}
+				if c.Use != "" {
+					g.Commands = append(g.Commands, c)
+				}
+				return true
+			})
 		}
 	}
 
@@ -868,4 +934,136 @@ func list(b *strings.Builder, items []string, mod string) {
 	for _, it := range items {
 		fmt.Fprintf(b, "- %s\n", strings.ReplaceAll(it, mod+"/", ""))
 	}
+}
+
+// ---- entrypoints ------------------------------------------------------------
+
+// entrypoints reports, for every cmd/lib/examples package and every cobra
+// command, which module packages are reachable through call/ref edges, and
+// which pkg packages no binary reaches at all.
+func entrypoints(g *Graph) string {
+	var b strings.Builder
+	w := func(f string, a ...any) { fmt.Fprintf(&b, f, a...) }
+
+	symPkg := map[string]string{}
+	pkgKindOf := map[string]string{}
+	for _, s := range g.Symbols {
+		symPkg[s.ID] = s.Package
+	}
+	for _, p := range g.Packages {
+		pkgKindOf[p.Path] = p.Kind
+	}
+	adj := map[string][]string{}
+	for _, e := range g.Edges {
+		if e.Kind == "call" || e.Kind == "ref" {
+			adj[e.From] = append(adj[e.From], e.To)
+		}
+	}
+	// interface method ids (pkg.Iface.Method) map to every implementer's method
+	implOf := map[string][]string{}
+	for _, e := range g.Edges {
+		if e.Kind == "implements" {
+			implOf[e.To] = append(implOf[e.To], e.From)
+		}
+	}
+	reach := func(starts []string) map[string]bool {
+		seen := map[string]bool{}
+		stack := append([]string(nil), starts...)
+		for len(stack) > 0 {
+			v := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			if seen[v] {
+				continue
+			}
+			seen[v] = true
+			for _, n := range adj[v] {
+				stack = append(stack, n)
+			}
+			// dynamic dispatch: pkg.Iface.Method -> pkg2.Impl.Method
+			if i := strings.LastIndex(v, "."); i > 0 {
+				iface, meth := v[:i], v[i+1:]
+				for _, impl := range implOf[iface] {
+					stack = append(stack, impl+"."+meth)
+				}
+			}
+		}
+		return seen
+	}
+	pkgsOf := func(seen map[string]bool, exclude string) []string {
+		set := map[string]int{}
+		for id := range seen {
+			if p := symPkg[id]; p != "" && p != exclude {
+				set[p]++
+			}
+		}
+		out := make([]string, 0, len(set))
+		for p, n := range set {
+			out = append(out, fmt.Sprintf("%s(%d)", short(g.Module, p), n))
+		}
+		sort.Strings(out)
+		return out
+	}
+
+	w("# Entry points and feature reachability\n\n")
+	w("Reachability follows call and ref edges from each entry point, including dynamic dispatch through module-internal interfaces (interface method -> every implementer). Numbers in parentheses are reachable functions per package.\n\n")
+
+	// per-binary
+	w("## Binaries, cgo library and examples\n\n| Entry package | Kind | Reachable module packages |\n|---|---|---|\n")
+	reachedByAny := map[string]bool{}
+	for _, p := range g.Packages {
+		if p.Kind != "cmd" && p.Kind != "lib" && p.Kind != "examples" && !(p.Kind == "other" && strings.HasPrefix(p.Dir, "lib")) {
+			continue
+		}
+		var starts []string
+		for _, s := range g.Symbols {
+			if s.Package == p.Path && (s.Kind == "func" || s.Kind == "method") {
+				starts = append(starts, s.ID)
+			}
+		}
+		seen := reach(starts)
+		for id := range seen {
+			reachedByAny[symPkg[id]] = true
+		}
+		w("| %s | %s | %s |\n", short(g.Module, p.Path), p.Kind, strings.Join(pkgsOf(seen, p.Path), ", "))
+	}
+
+	// per cobra command
+	w("\n## CLI commands (cobra)\n\n| Binary | Command | Handler | Reachable pkg packages |\n|---|---|---|---|\n")
+	cmds := append([]CLICommand(nil), g.Commands...)
+	sort.Slice(cmds, func(i, j int) bool {
+		if cmds[i].Package != cmds[j].Package {
+			return cmds[i].Package < cmds[j].Package
+		}
+		return cmds[i].Use < cmds[j].Use
+	})
+	for _, c := range cmds {
+		var pk []string
+		if c.Handler != "" {
+			seen := reach([]string{c.Handler})
+			for _, s := range pkgsOf(seen, c.Package) {
+				if !strings.HasPrefix(s, "cmd/") {
+					pk = append(pk, s)
+				}
+			}
+		}
+		h := "-"
+		if c.Handler != "" {
+			h = short(g.Module, c.Handler)
+		}
+		w("| %s | `%s` | %s | %s |\n", short(g.Module, c.Package), c.Use, h, strings.Join(pk, ", "))
+	}
+
+	// pkg packages not reachable from any binary
+	w("\n## pkg packages not reachable from any cmd/lib/example\n\n")
+	n := 0
+	for _, p := range g.Packages {
+		if (p.Kind == "pkg" || p.Kind == "internal") && !reachedByAny[p.Path] {
+			n++
+			w("- %s (%d funcs, %d LOC)\n", short(g.Module, p.Path), p.Funcs, p.LOC)
+		}
+	}
+	if n == 0 {
+		w("None.\n")
+	}
+	return b.String()
 }
