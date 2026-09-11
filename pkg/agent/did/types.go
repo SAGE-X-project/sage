@@ -112,4 +112,5 @@ var (
 	ErrInactiveAgent     = DIDError{Code: "INACTIVE_AGENT", Message: "agent is deactivated"}
 	ErrUnauthorized      = DIDError{Code: "UNAUTHORIZED", Message: "unauthorized operation"}
 	ErrChainNotSupported = DIDError{Code: "CHAIN_NOT_SUPPORTED", Message: "blockchain not supported"}
+	ErrNoSigningKey      = DIDError{Code: "NO_SIGNING_KEY", Message: "agent has no verified signing key"}
 )

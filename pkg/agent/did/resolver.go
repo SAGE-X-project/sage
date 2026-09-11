@@ -114,6 +114,10 @@ func (m *MultiChainResolver) ResolvePublicKey(ctx context.Context, did AgentDID)
 		return nil, ErrInactiveAgent
 	}
 
+	if metadata.PublicKey == nil {
+		return nil, ErrNoSigningKey
+	}
+
 	return metadata.PublicKey, nil
 }
 

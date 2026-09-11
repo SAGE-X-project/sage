@@ -42,6 +42,9 @@ func (c *EthereumClient) ResolvePublicKey(ctx context.Context, agentDID did.Agen
 	if !metadata.IsActive {
 		return nil, did.ErrInactiveAgent
 	}
+	if metadata.PublicKey == nil {
+		return nil, did.ErrNoSigningKey
+	}
 
 	return metadata.PublicKey, nil
 }
