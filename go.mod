@@ -7,7 +7,7 @@ require (
 	github.com/cloudflare/circl v1.6.3
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1
 	github.com/ethereum/go-ethereum v1.17.3
-	github.com/gagliardetto/solana-go v1.20.0
+	github.com/gagliardetto/solana-go v1.23.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
