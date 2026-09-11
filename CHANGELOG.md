@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Security
+- secp256k1 signatures now use the Ethereum convention on every path (Keccak-256, RFC 6979, `r || s || v`): the RFC 9421 envelope verifier and the RFC 9421 HTTP signer/verifier previously hashed with SHA-256, so signatures made with `KeyPair.Sign` or an Ethereum wallet failed there. Signatures over SHA-256 made by older releases for secp256k1 keys are no longer accepted.
 - RFC 9421 HTTP verification now rejects replayed nonces (per keyid), signatures dated in the future beyond a clock-skew bound, and, with `StrictHTTPVerificationOptions`, signatures that do not cover `@method`, `@target-uri`, `@authority` and (for requests with a body) `content-digest`; signature selection no longer depends on map order.
 - Sessions created from an HPKE exporter secret now derive the single-key material used by `SignCovered`, `VerifyCovered`, `EncryptAndSign` and `DecryptAndVerify`; previously the signing key was all zeros and the AEAD nil.
 - `sage-did update` and `sage-did deactivate` load the key file given with `--key` instead of generating a new random key.

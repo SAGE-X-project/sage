@@ -44,7 +44,7 @@ func init() {
 	if err := sagecrypto.RegisterAlgorithm(sagecrypto.AlgorithmInfo{
 		KeyType:               sagecrypto.KeyTypeSecp256k1,
 		Name:                  "Secp256k1",
-		Description:           "ECDSA with secp256k1 curve (used by Bitcoin and Ethereum)",
+		Description:           "ECDSA with secp256k1 curve, Ethereum convention (Keccak-256, r||s||v)",
 		RFC9421Algorithm:      "es256k",
 		SupportsRFC9421:       true,
 		SupportsKeyGeneration: true,

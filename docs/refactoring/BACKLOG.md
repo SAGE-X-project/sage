@@ -35,7 +35,7 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 |---|---|---|---|---|
 | B-01 | RFC 9421 HTTP path: replay check on `nonce`; enforce `RequiredComponents` (make `content-digest`, `@method`, `@target-uri`, `@authority` mandatory); forward skew bound on `created` | [치명] | §11 a1, a2, b1 | PR (replay guard, skew bound, `RequiredComponents`, `StrictHTTPVerificationOptions`; examples use strict mode) |
 | B-02 | HPKE-derived sessions: derive `encryptKey`/`signingKey`, initialise `aead`; regression test | [치명] | §11 a3, D2 | PR |
-| B-03 | secp256k1 signing convention: one hash per key type (Keccak-256 vs SHA-256) across `KeyPair.Sign`, envelope verifier, HTTP verifier, HPKE verifier | [치명] | §11 c1 | Decision |
+| B-03 | secp256k1 signing convention: one hash per key type (Keccak-256 vs SHA-256) across `KeyPair.Sign`, envelope verifier, HTTP verifier, HPKE verifier | [치명] | §11 c1 | PR (decided 2026-09-11: Keccak-256 / r\|\|s\|\|v everywhere for Ethereum compatibility; `keys.SignSecp256k1Keccak`/`VerifySecp256k1Keccak` shared by KeyPair, envelope and HTTP paths) |
 | B-04 | `did.Manager.Configure` installs a real chain client; `sage-did resolve/list/verify/update/deactivate/card/key` work | [치명] | D1, `DECISIONS.md` 1 | PR (`did/ethereum` registers the creator; `Manager.HasClient`; actionable error when unwired) |
 | B-05 | `sage-did update/deactivate` load the given key file instead of generating a random key | [치명] | D3 | PR (`internal/cli.LoadKeyPair` shared by sage-did and sage-crypto) |
 | B-06 | Resolver honours on-chain `verified` flag and revocation; returns Ed25519 keys; replaces the `"mock-public-key"` resolver used by `sage-did debug` | [중요] | §11 a5, c5 | Open |
@@ -100,7 +100,7 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 
 | Decision | Options | Recommendation |
 |---|---|---|
-| secp256k1 hash convention (B-03) | Keccak-256 (Ethereum-native) vs SHA-256 (RFC 9421 `es256k` registry semantics) | one identifier per convention in the spec table; Keccak-256 for `did:sage:ethereum` keys, documented in `sage-spec` |
+| secp256k1 hash convention (B-03) | decided: Keccak-256, RFC 6979, r\|\|s\|\|v (Ethereum convention) for every secp256k1 path | record in `sage-spec` as the `es256k` profile; SHA-256 remains for P-256 only |
 | Mandatory session AEAD (F-01) | AES-256-GCM vs ChaCha20-Poly1305 | AES-256-GCM mandatory (broadest library reach), ChaCha20 optional |
 | Rust core owner (F-03) | maintainer / new contributor | required before step 5 |
 | Kaia AgentCard address (C-03) | known / unknown | leave preset empty until confirmed |

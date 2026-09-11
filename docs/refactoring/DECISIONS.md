@@ -108,3 +108,14 @@ Release shape: v1.6.0 = Phase 0 defect fixes + deprecations + SDK banners + lib 
 - [Mid] Wrapping `EthereumClient` over `AgentCardClient` preserves compilation for both consumers; behavioural differences in `Register` (commit-reveal needs three transactions) may still require small changes on their side.
 - [Mid] The SDKs will not become interoperable without a reference server; marking them experimental is the honest state until that server is scoped.
 - [Low] A Kaia AgentCard deployment may exist outside this repository; if so the preset can be filled in Phase 2.1.
+
+---
+
+## Decision 6 (2026-09-11). secp256k1 signatures use the Ethereum convention everywhere
+
+**Maintainer decision.** SAGE must support Ethereum-based chains, so secp256k1 is the primary key type and its signatures must be verifiable by Ethereum tooling (`ecrecover`, wallets).
+
+**Rule.** For secp256k1 keys every SAGE path hashes the message with Keccak-256, signs with RFC 6979 deterministic ECDSA, and emits `r || s || v` (65 bytes); verifiers accept 64-byte `r || s` as well. P-256 keeps SHA-256 with raw `r || s`. One implementation, `keys.SignSecp256k1Keccak` / `keys.VerifySecp256k1Keccak`, is used by `KeyPair`, the RFC 9421 envelope verifier, the RFC 9421 HTTP signer/verifier and (already) the HPKE verifier.
+
+**Consequence for the spec.** The `es256k` entry of the algorithm table in `sage-spec` is defined as this profile; test vectors for it are generated from the Go implementation and must be reproduced by the Rust core.
+
