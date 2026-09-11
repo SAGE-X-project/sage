@@ -96,11 +96,12 @@
     "@nomicfoundation/hardhat-mocha": "^3.0.11",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.2",
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.1",
-    "@nomicfoundation/hardhat-typechain": "^3.0.3",
+    "@nomicfoundation/hardhat-typechain": "^3.1.1",
     "@nomicfoundation/hardhat-verify": "^3.1.0",
     "@nomicfoundation/ignition-core": "^3.0.5",
     "@typechain/ethers-v6": "^0.5.1",
     "@typechain/hardhat": "^9.1.0",
+    "axios": "^1.18.0",
     "chai": "^6.2.2",
     "dotenv": "^17.2.3",
     "ethers": "^6.15.0",
@@ -110,8 +111,7 @@
     "prettier-plugin-solidity": "^2.2.0",
     "solhint": "^6.0.1",
     "solhint-plugin-prettier": "^0.1.0",
-    "solidity-coverage": "^0.8.16",
-    "axios": "^1.18.0"
+    "solidity-coverage": "^0.8.16"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.4.0"
