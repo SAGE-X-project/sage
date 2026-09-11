@@ -33,7 +33,6 @@ import (
 
 	"io"
 
-	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 )
@@ -80,6 +79,26 @@ type SecureSession struct {
 	recv    replayWindow // inbound sliding window
 	genMu   sync.Mutex
 	genAEAD map[genKey]cipher.AEAD // AEADs for key generations > 0
+
+	// metrics receives encrypt/decrypt events; never nil (NopMetrics by default).
+	metrics Metrics
+}
+
+// SetMetrics sets the sink for this session's events. A nil value restores NopMetrics.
+func (s *SecureSession) SetMetrics(m Metrics) {
+	if m == nil {
+		m = NopMetrics{}
+	}
+	s.metrics = m
+}
+
+// metricsSink returns the configured sink, defaulting to NopMetrics for
+// sessions constructed without one (for example zero values from a pool).
+func (s *SecureSession) metricsSink() Metrics {
+	if s.metrics == nil {
+		return NopMetrics{}
+	}
+	return s.metrics
 }
 
 // Wire format of every ciphertext produced by this package:
@@ -206,6 +225,7 @@ func NewSecureSession(sid string, sessionSeed []byte, config Config) (*SecureSes
 		messageCount: 0,
 		config:       config,
 		sessionSeed:  sessionSeed,
+		metrics:      NopMetrics{},
 	}
 
 	// Derive encryption and signing keys using HKDF
@@ -624,16 +644,16 @@ func (s *SecureSession) GetConfig() Config {
 // sessions use the single shared key.
 func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
 	if s.IsExpired() {
-		metrics.CryptoOperations.WithLabelValues("encrypt", "expired").Inc()
+		s.metricsSink().CryptoOperation("encrypt", "expired")
 		return nil, fmt.Errorf("session expired")
 	}
 	out, err := s.EncryptWithAAD(plaintext, nil)
 	if err != nil {
-		metrics.CryptoOperations.WithLabelValues("encrypt", "failure").Inc()
+		s.metricsSink().CryptoOperation("encrypt", "failure")
 		return nil, err
 	}
-	metrics.CryptoOperations.WithLabelValues("encrypt", "success").Inc()
-	metrics.SessionMessageSize.WithLabelValues("encrypted").Observe(float64(len(out)))
+	s.metricsSink().CryptoOperation("encrypt", "success")
+	s.metricsSink().MessageSize("encrypted", len(out))
 	return out, nil
 }
 
@@ -641,16 +661,16 @@ func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
 // replay window.
 func (s *SecureSession) Decrypt(data []byte) ([]byte, error) {
 	if s.IsExpired() {
-		metrics.CryptoOperations.WithLabelValues("decrypt", "expired").Inc()
+		s.metricsSink().CryptoOperation("decrypt", "expired")
 		return nil, fmt.Errorf("session expired")
 	}
 	pt, err := s.DecryptWithAAD(data, nil)
 	if err != nil {
-		metrics.CryptoOperations.WithLabelValues("decrypt", "failure").Inc()
+		s.metricsSink().CryptoOperation("decrypt", "failure")
 		return nil, err
 	}
-	metrics.CryptoOperations.WithLabelValues("decrypt", "success").Inc()
-	metrics.SessionMessageSize.WithLabelValues("decrypted").Observe(float64(len(pt)))
+	s.metricsSink().CryptoOperation("decrypt", "success")
+	s.metricsSink().MessageSize("decrypted", len(pt))
 	return pt, nil
 }
 

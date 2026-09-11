@@ -22,29 +22,44 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
-	"os"
 	"time"
-
-	"github.com/sage-x-project/sage/pkg/telemetry/logger"
-	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 )
+
+// Logger is the logging surface this package needs. *slog.Logger satisfies
+// it; any logger with the same two methods can be passed instead.
+type Logger interface {
+	Info(msg string, args ...any)
+	Error(msg string, args ...any)
+}
 
 // Server represents the health check HTTP server
 type Server struct {
-	checker *Checker
-	logger  logger.Logger
-	port    int
-	server  *http.Server
+	checker        *Checker
+	logger         Logger
+	port           int
+	server         *http.Server
+	metricsHandler http.Handler
 }
 
-// NewServer creates a new health check server
-func NewServer(checker *Checker, logger logger.Logger, port int) *Server {
+// NewServer creates a new health check server. A nil logger selects
+// slog.Default(). The /metrics endpoint answers 404 until SetMetricsHandler
+// installs a handler (for example metrics.Handler() from pkg/telemetry/metrics).
+func NewServer(checker *Checker, logger Logger, port int) *Server {
+	if logger == nil {
+		logger = slog.Default()
+	}
 	return &Server{
 		checker: checker,
 		logger:  logger,
 		port:    port,
 	}
+}
+
+// SetMetricsHandler installs the handler served at /metrics.
+func (s *Server) SetMetricsHandler(h http.Handler) {
+	s.metricsHandler = h
 }
 
 // Start starts the health check server
@@ -66,11 +81,11 @@ func (s *Server) Start() error {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	s.logger.Info("Starting health check server")
+	s.logger.Info("starting health check server", "port", s.port)
 
 	go func() {
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.logger.Error("Health check server error: " + err.Error())
+			s.logger.Error("health check server error", "error", err)
 		}
 	}()
 
@@ -143,46 +158,13 @@ func (s *Server) handleReadiness(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(response)
 }
 
-// handleMetrics handles the metrics endpoint
+// handleMetrics serves the installed metrics handler, or 404 when none is set.
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	collector := metrics.GetGlobalCollector()
-	snapshot := collector.GetSnapshot()
-
-	// Convert to JSON-friendly format
-	response := map[string]interface{}{
-		"timestamp": snapshot.Timestamp.UTC().Format(time.RFC3339),
-		"uptime":    snapshot.Uptime.String(),
-		"counters": map[string]int64{
-			"signatures":          snapshot.SignatureCount,
-			"verifications":       snapshot.VerificationCount,
-			"successful_verifies": snapshot.SuccessfulVerifies,
-			"failed_verifies":     snapshot.FailedVerifies,
-			"did_resolutions":     snapshot.DIDResolutions,
-			"cache_hits":          snapshot.CacheHits,
-			"cache_misses":        snapshot.CacheMisses,
-			"blockchain_calls":    snapshot.BlockchainCalls,
-			"blockchain_errors":   snapshot.BlockchainErrors,
-		},
-		"timings": map[string]interface{}{
-			"avg_signature_time_us":      snapshot.AvgSignatureTime,
-			"avg_verification_time_us":   snapshot.AvgVerificationTime,
-			"avg_blockchain_time_us":     snapshot.AvgBlockchainTime,
-			"avg_did_resolution_time_us": snapshot.AvgDIDResolutionTime,
-			"p95_signature_time_us":      snapshot.P95SignatureTime,
-			"p95_verification_time_us":   snapshot.P95VerificationTime,
-			"p95_blockchain_time_us":     snapshot.P95BlockchainTime,
-			"p95_did_resolution_time_us": snapshot.P95DIDResolutionTime,
-		},
-		"rates": map[string]float64{
-			"cache_hit_rate":            snapshot.GetCacheHitRate(),
-			"verification_success_rate": snapshot.GetVerificationSuccessRate(),
-			"blockchain_error_rate":     snapshot.GetBlockchainErrorRate(),
-		},
+	if s.metricsHandler == nil {
+		http.Error(w, "metrics handler not configured", http.StatusNotFound)
+		return
 	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(response)
+	s.metricsHandler.ServeHTTP(w, r)
 }
 
 // StartHealthServer is a convenience function to start a health server
@@ -190,11 +172,8 @@ func StartHealthServer(port int, rpcURL string) (*Server, error) {
 	// Create health checker
 	checker := NewChecker(rpcURL)
 
-	// Create logger
-	log := logger.NewLogger(os.Stdout, logger.InfoLevel)
-
-	// Create and start server
-	server := NewServer(checker, log, port)
+	// Create and start server with the default logger and no metrics endpoint
+	server := NewServer(checker, nil, port)
 	if err := server.Start(); err != nil {
 		return nil, err
 	}
