@@ -44,7 +44,7 @@ Notes:
 
 ## Batch 2 (2026-09-11, integration/dependabot-2026-09-11)
 
-Same procedure as batch 1. Dependabot opened 20 PRs after the security workflow and action pinning changes; 18 were applied (7 re-applied after lockfile/go.sum conflicts, pinned to the PR version) and 2 were closed because the target release requires Go 1.26 (Dependabot ignore rules added).
+Same procedure as batch 1. Dependabot opened 20 PRs after the security workflow and action pinning changes; 18 were applied (6 re-applied after lockfile/go.sum conflicts, pinned to the PR version) and 2 were closed because the target release requires Go 1.26 (Dependabot ignore rules added).
 
 | PR | Title | Result | Symbols / edges | External import changes |
 |---|---|---|---|---|
