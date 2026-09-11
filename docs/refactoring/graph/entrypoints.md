@@ -7,7 +7,7 @@ Reachability follows call and ref edges from each entry point, including dynamic
 | Entry package | Kind | Reachable module packages |
 |---|---|---|
 | cmd/deployment-verify | cmd | deployments/config(6) |
-| cmd/metrics-demo | cmd | pkg/agent/session(34), pkg/telemetry/metrics(1) |
+| cmd/metrics-demo | cmd | pkg/agent/session(42), pkg/telemetry/metrics(6) |
 | cmd/sage-crypto | cmd | internal/cli(1), pkg/agent/crypto/chain(12), pkg/agent/crypto/chain/ethereum(5), pkg/agent/crypto/chain/solana(7), pkg/agent/crypto/formats(18), pkg/agent/crypto/keys(61), pkg/agent/crypto/rotation(4), pkg/agent/crypto/storage(8) |
 | cmd/sage-did | cmd | internal/cli(1), pkg/agent/crypto/chain(2), pkg/agent/crypto/chain/ethereum(3), pkg/agent/crypto/chain/solana(4), pkg/agent/crypto/formats(11), pkg/agent/crypto/jcs(6), pkg/agent/crypto/keys(29), pkg/agent/crypto/storage(4), pkg/agent/did(46), pkg/agent/did/ethereum(16), pkg/agent/did/solana(5), pkg/blockchain/ethereum/contracts/agentcardregistry(8) |
 | cmd/sage-verify | cmd | deployments/config(6), pkg/health(4) |

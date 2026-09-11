@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
-	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 )
 
 // Manager handles session lifecycle, storage, and cleanup
@@ -35,6 +33,7 @@ type Manager struct {
 	cleanupTicker *time.Ticker
 	stopCleanup   chan struct{}
 	defaultConfig Config
+	metrics       Metrics     // event sink for the manager and the sessions it creates
 	nonceCache    *NonceCache // replay guard
 	sessionPool   sync.Pool   // Pool for session object reuse
 }
@@ -51,6 +50,7 @@ func NewManager() *Manager {
 			RekeyInterval: DefaultRekeyInterval,
 		},
 		nonceCache: NewNonceCache(10 * time.Minute), // replay TTL
+		metrics:    NopMetrics{},
 		sessionPool: sync.Pool{
 			New: func() interface{} {
 				// Pre-allocate a session with keyMaterial buffer
@@ -111,9 +111,10 @@ func (m *Manager) EnsureSessionFromExporterWithRole(
 
 	s, err := NewSecureSessionFromExporterWithRole(sid, exporter, initiator, newCfg)
 	if err != nil {
-		metrics.SessionsCreated.WithLabelValues("failure").Inc()
+		m.metrics.SessionCreated(false)
 		return nil, "", false, fmt.Errorf("new secure session: %w", err)
 	}
+	s.SetMetrics(m.metrics)
 
 	// Double-checked put
 	m.mu.Lock()
@@ -123,8 +124,8 @@ func (m *Manager) EnsureSessionFromExporterWithRole(
 		return exist, sid, true, nil
 	}
 	m.sessions[sid] = s
-	metrics.SessionsCreated.WithLabelValues("success").Inc()
-	metrics.SessionsActive.Inc()
+	m.metrics.SessionCreated(true)
+	m.metrics.ActiveSessions(1)
 	m.mu.Unlock()
 
 	return s, sid, false, nil
@@ -175,9 +176,10 @@ func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, strin
 	}
 	s, err := NewSecureSession(sid, seed, newCfg)
 	if err != nil {
-		metrics.SessionsCreated.WithLabelValues("failure").Inc()
+		m.metrics.SessionCreated(false)
 		return nil, "", false, fmt.Errorf("new secure session: %w", err)
 	}
+	s.SetMetrics(m.metrics)
 
 	// Double-checked put
 	m.mu.Lock()
@@ -187,8 +189,8 @@ func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, strin
 		return exist, sid, true, nil
 	}
 	m.sessions[sid] = s
-	metrics.SessionsCreated.WithLabelValues("success").Inc()
-	metrics.SessionsActive.Inc()
+	m.metrics.SessionCreated(true)
+	m.metrics.ActiveSessions(1)
 	m.mu.Unlock()
 
 	return s, sid, false, nil
@@ -202,7 +204,7 @@ func (m *Manager) CreateSessionWithConfig(sessionID string, sharedSecret []byte,
 
 	// Check if session already exists
 	if _, exists := m.sessions[sessionID]; exists {
-		metrics.SessionsCreated.WithLabelValues("failure").Inc()
+		m.metrics.SessionCreated(false)
 		return nil, fmt.Errorf("session %s already exists", sessionID)
 	}
 
@@ -214,14 +216,15 @@ func (m *Manager) CreateSessionWithConfig(sessionID string, sharedSecret []byte,
 		// Return to pool on failure
 		sess.Reset()
 		m.sessionPool.Put(sess)
-		metrics.SessionsCreated.WithLabelValues("failure").Inc()
+		m.metrics.SessionCreated(false)
 		return nil, fmt.Errorf("failed to initialize session: %w", err)
 	}
 
 	// Store in manager
+	sess.SetMetrics(m.metrics)
 	m.sessions[sessionID] = sess
-	metrics.SessionsCreated.WithLabelValues("success").Inc()
-	metrics.SessionsActive.Inc()
+	m.metrics.SessionCreated(true)
+	m.metrics.ActiveSessions(1)
 
 	return sess, nil
 }
@@ -308,7 +311,7 @@ func (m *Manager) RemoveSession(sessionID string) {
 			fmt.Printf("Warning: error closing session %s: %v\n", sessionID, err)
 		}
 		delete(m.sessions, sessionID)
-		metrics.SessionsActive.Dec()
+		m.metrics.ActiveSessions(-1)
 
 		// Return session to pool
 		if secSess, ok := sess.(*SecureSession); ok {
@@ -386,6 +389,17 @@ func (m *Manager) SetDefaultConfig(config Config) {
 	m.defaultConfig = config
 }
 
+// SetMetrics sets the event sink used by the manager and by every session it
+// creates afterwards. A nil value restores NopMetrics.
+func (m *Manager) SetMetrics(metrics Metrics) {
+	if metrics == nil {
+		metrics = NopMetrics{}
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.metrics = metrics
+}
+
 // getDefaultConfig returns a copy of the default configuration under the lock.
 func (m *Manager) getDefaultConfig() Config {
 	m.mu.RLock()
@@ -445,8 +459,8 @@ func (m *Manager) cleanupExpiredSessions() {
 				fmt.Printf("Warning: error closing expired session %s: %v\n", id, err)
 			}
 			delete(m.sessions, id)
-			metrics.SessionsExpired.Inc()
-			metrics.SessionsActive.Dec()
+			m.metrics.SessionExpired()
+			m.metrics.ActiveSessions(-1)
 
 			// Return session to pool
 			if secSess, ok := sess.(*SecureSession); ok {

@@ -119,6 +119,7 @@ func simulateActivity() {
 	// Simulate session creation
 	fmt.Println("   Creating test sessions...")
 	mgr := session.NewManager()
+	mgr.SetMetrics(metrics.PrometheusSessionMetrics{}) // session events -> Prometheus vectors
 	defer func() { _ = mgr.Close() }()
 
 	for i := 0; i < 3; i++ {

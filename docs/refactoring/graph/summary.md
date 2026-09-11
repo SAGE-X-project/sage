@@ -5,19 +5,19 @@ Module: `github.com/sage-x-project/sage`
 | Metric | Value |
 |---|---|
 | Packages | 62 |
-| Symbols | 2212 |
-| Edges | 1697 |
-| Non-test LOC | 44981 |
-| Test LOC | 38179 |
-| Funcs+methods | 1786 |
-| Types | 426 |
+| Symbols | 2231 |
+| Edges | 1714 |
+| Non-test LOC | 45164 |
+| Test LOC | 38297 |
+| Funcs+methods | 1801 |
+| Types | 430 |
 
 ## Packages
 
 | Package | Kind | Files | LOC | Test LOC | Funcs | Types | Ifaces | Fan-in | Fan-out | Ext deps |
 |---|---|---|---|---|---|---|---|---|---|---|
 | cmd/deployment-verify | cmd | 1 | 159 | 0 | 1 | 0 | 0 | 0 | 1 | 7 |
-| cmd/metrics-demo | cmd | 1 | 160 | 0 | 2 | 0 | 0 | 0 | 2 | 8 |
+| cmd/metrics-demo | cmd | 1 | 161 | 0 | 2 | 0 | 0 | 0 | 2 | 8 |
 | cmd/sage-crypto | cmd | 7 | 1209 | 0 | 28 | 0 | 0 | 0 | 9 | 14 |
 | cmd/sage-did | cmd | 13 | 2967 | 256 | 52 | 0 | 0 | 0 | 4 | 16 |
 | cmd/sage-verify | cmd | 1 | 305 | 0 | 9 | 0 | 0 | 0 | 2 | 3 |
@@ -54,12 +54,12 @@ Module: `github.com/sage-x-project/sage`
 | pkg/agent/did/solana | pkg | 2 | 793 | 393 | 16 | 2 | 0 | 0 | 3 | 9 |
 | pkg/agent/handshake | pkg | 4 | 951 | 825 | 36 | 13 | 2 | 1 | 8 | 11 |
 | pkg/agent/hpke | pkg | 5 | 1569 | 2994 | 49 | 18 | 5 | 0 | 6 | 24 |
-| pkg/agent/session | pkg | 5 | 1669 | 2450 | 77 | 11 | 1 | 4 | 1 | 15 |
+| pkg/agent/session | pkg | 6 | 1752 | 2538 | 85 | 13 | 2 | 4 | 0 | 15 |
 | pkg/agent/transport | pkg | 3 | 355 | 363 | 12 | 7 | 1 | 4 | 0 | 5 |
 | pkg/agent/transport/http | pkg | 3 | 520 | 324 | 15 | 5 | 0 | 0 | 1 | 8 |
 | pkg/agent/transport/websocket | pkg | 3 | 766 | 496 | 33 | 5 | 0 | 0 | 1 | 8 |
 | pkg/blockchain/ethereum/contracts/agentcardregistry | pkg | 3 | 5554 | 0 | 321 | 82 | 0 | 1 | 0 | 11 |
-| pkg/health | pkg | 5 | 508 | 123 | 12 | 6 | 0 | 1 | 2 | 9 |
+| pkg/health | pkg | 5 | 487 | 153 | 13 | 7 | 1 | 1 | 0 | 9 |
 | pkg/oidc | pkg | 1 | 40 | 0 | 0 | 0 | 0 | 1 | 0 | 1 |
 | pkg/oidc/auth0 | pkg | 2 | 490 | 613 | 13 | 4 | 0 | 0 | 4 | 17 |
 | pkg/storage | pkg | 2 | 155 | 0 | 0 | 7 | 4 | 3 | 0 | 2 |
@@ -67,8 +67,8 @@ Module: `github.com/sage-x-project/sage`
 | pkg/storage/postgres | pkg | 4 | 688 | 42 | 26 | 5 | 0 | 0 | 1 | 6 |
 | pkg/storage/storagetest | pkg | 1 | 201 | 0 | 6 | 0 | 0 | 0 | 1 | 5 |
 | pkg/telemetry | pkg | 1 | 23 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-| pkg/telemetry/logger | pkg | 1 | 361 | 263 | 30 | 5 | 1 | 1 | 0 | 9 |
-| pkg/telemetry/metrics | pkg | 7 | 666 | 111 | 17 | 2 | 0 | 4 | 0 | 7 |
+| pkg/telemetry/logger | pkg | 1 | 361 | 263 | 30 | 5 | 1 | 0 | 0 | 9 |
+| pkg/telemetry/metrics | pkg | 9 | 786 | 111 | 23 | 3 | 0 | 2 | 0 | 8 |
 | pkg/version | pkg | 1 | 143 | 215 | 7 | 1 | 0 | 0 | 0 | 3 |
 | reports/bindings | other | 3 | 5554 | 0 | 321 | 82 | 0 | 0 | 0 | 11 |
 | tests | root | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
@@ -173,11 +173,8 @@ graph LR
   pkg_agent_hpke --> pkg_agent_did
   pkg_agent_hpke --> pkg_agent_session
   pkg_agent_hpke --> pkg_agent_transport
-  pkg_agent_session --> pkg_telemetry_metrics
   pkg_agent_transport_http --> pkg_agent_transport
   pkg_agent_transport_websocket --> pkg_agent_transport
-  pkg_health --> pkg_telemetry_logger
-  pkg_health --> pkg_telemetry_metrics
   pkg_oidc_auth0 --> pkg_agent_crypto
   pkg_oidc_auth0 --> pkg_agent_crypto_formats
   pkg_oidc_auth0 --> pkg_agent_crypto_keys
@@ -228,8 +225,10 @@ None.
 | pkg/agent/hpke.InfoBuilder | 2 | pkg/agent/hpke.DefaultInfoBuilder |
 | pkg/agent/hpke.KeyIDBinder | 1 | internal.Creator |
 | pkg/agent/hpke.SignatureVerifier | 2 | pkg/agent/hpke.CompositeVerifier, pkg/agent/hpke.ECDSAVerifier, pkg/agent/hpke.Ed25519Verifier |
+| pkg/agent/session.Metrics | 5 | pkg/agent/session.NopMetrics, pkg/telemetry/metrics.PrometheusSessionMetrics |
 | pkg/agent/session.Session | 14 | pkg/agent/session.SecureSession |
 | pkg/agent/transport.MessageTransport | 1 | pkg/agent/transport.MockTransport, pkg/agent/transport/http.HTTPTransport, pkg/agent/transport/websocket.WSTransport |
+| pkg/health.Logger | 2 |  |
 | pkg/storage.DIDStore | 7 | pkg/storage/memory.DIDStore, pkg/storage/postgres.DIDStore |
 | pkg/storage.NonceStore | 4 | pkg/storage/memory.NonceStore, pkg/storage/postgres.NonceStore |
 | pkg/storage.SessionStore | 8 | pkg/storage/memory.SessionStore, pkg/storage/postgres.SessionStore |
@@ -276,24 +275,24 @@ None.
 | cmd/deployment-verify.main | 127 | cmd/deployment-verify/main.go:33 |
 | pkg/agent/did/solana.SolanaClient.Update | 125 | pkg/agent/did/solana/client.go:283 |
 | cmd/sage-did.runCardValidate | 125 | cmd/sage-did/card.go:230 |
-| tests/random.ResultReporter.saveHTML | 120 | tests/random/reporter.go:164 |
 | cmd/sage-did.runKeyVerifyPop | 120 | cmd/sage-did/key.go:536 |
+| tests/random.ResultReporter.saveHTML | 120 | tests/random/reporter.go:164 |
 | pkg/agent/hpke.Client.Initialize | 114 | pkg/agent/hpke/client.go:80 |
 | pkg/agent/did/solana.SolanaClient.Deactivate | 102 | pkg/agent/did/solana/client.go:410 |
 | examples/mcp-integration/basic-demo.main | 101 | examples/mcp-integration/basic-demo/main.go:267 |
 | pkg/agent/crypto/formats.jwkExporter.Export | 100 | pkg/agent/crypto/formats/jwk.go:64 |
 | cmd/sage-did.runVerify | 98 | cmd/sage-did/verify.go:64 |
 | pkg/agent/did/ethereum.toKeyHashes | 97 | pkg/agent/did/ethereum/client.go:575 |
-| pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
 | pkg/agent/crypto/formats.pemExporter.ExportPublic | 93 | pkg/agent/crypto/formats/pem.go:139 |
+| pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
 | pkg/agent/crypto/formats.pemExporter.Export | 92 | pkg/agent/crypto/formats/pem.go:45 |
-| pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
 | cmd/sage-did.runKeyAdd | 91 | cmd/sage-did/key.go:239 |
+| pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
 | deployments/config.validateBlockchainConfig | 88 | deployments/config/validator.go:61 |
 | pkg/agent/did/ethereum.EthereumClient.Register | 84 | pkg/agent/did/ethereum/client.go:121 |
 | pkg/agent/crypto/formats.jwkExporter.ExportPublic | 84 | pkg/agent/crypto/formats/jwk.go:166 |
-| pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:133 |
 | cmd/sage-did.runRegister | 83 | cmd/sage-did/register.go:76 |
+| pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:133 |
 | examples/mcp-integration/client.SAGEClient.CallTool | 81 | examples/mcp-integration/client/sage_client.go:79 |
 
 ## Duplicate function bodies
