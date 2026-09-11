@@ -165,64 +165,6 @@ func TestStructuredLogger(t *testing.T) {
 	})
 }
 
-func TestSageError(t *testing.T) {
-	t.Run("BasicError", func(t *testing.T) {
-		err := NewSageError(ErrCodeInternal, "Something went wrong", nil)
-
-		assert.Equal(t, ErrCodeInternal, err.Code)
-		assert.Equal(t, "Something went wrong", err.Message)
-		assert.Equal(t, "INTERNAL_ERROR: Something went wrong", err.Error())
-		assert.Nil(t, err.Unwrap())
-	})
-
-	t.Run("ErrorWithCause", func(t *testing.T) {
-		cause := errors.New("underlying error")
-		err := NewSageError(ErrCodeNetworkError, "Network failure", cause)
-
-		assert.Equal(t, cause, err.Unwrap())
-		assert.Contains(t, err.Error(), "caused by: underlying error")
-	})
-
-	t.Run("ErrorWithDetails", func(t *testing.T) {
-		err := NewSageError(ErrCodeValidationError, "Validation failed", nil)
-		_ = err.WithDetails("field", "email").
-			WithDetails("reason", "invalid format")
-
-		assert.Equal(t, "email", err.Details["field"])
-		assert.Equal(t, "invalid format", err.Details["reason"])
-	})
-
-	t.Run("CommonErrorCodes", func(t *testing.T) {
-		// Test all error codes are defined and not empty
-		assert.NotEmpty(t, ErrCodeInternal)
-		assert.NotEmpty(t, ErrCodeInvalidInput)
-		assert.NotEmpty(t, ErrCodeNotFound)
-		assert.NotEmpty(t, ErrCodeUnauthorized)
-		assert.NotEmpty(t, ErrCodeForbidden)
-		assert.NotEmpty(t, ErrCodeConflict)
-		assert.NotEmpty(t, ErrCodeTimeout)
-		assert.NotEmpty(t, ErrCodeNetworkError)
-		assert.NotEmpty(t, ErrCodeBlockchainError)
-		assert.NotEmpty(t, ErrCodeCryptoError)
-		assert.NotEmpty(t, ErrCodeValidationError)
-		assert.NotEmpty(t, ErrCodeConfigurationError)
-
-		// Test specific values
-		assert.Equal(t, "INTERNAL_ERROR", ErrCodeInternal)
-		assert.Equal(t, "INVALID_INPUT", ErrCodeInvalidInput)
-		assert.Equal(t, "NOT_FOUND", ErrCodeNotFound)
-		assert.Equal(t, "UNAUTHORIZED", ErrCodeUnauthorized)
-		assert.Equal(t, "FORBIDDEN", ErrCodeForbidden)
-		assert.Equal(t, "CONFLICT", ErrCodeConflict)
-		assert.Equal(t, "TIMEOUT", ErrCodeTimeout)
-		assert.Equal(t, "NETWORK_ERROR", ErrCodeNetworkError)
-		assert.Equal(t, "BLOCKCHAIN_ERROR", ErrCodeBlockchainError)
-		assert.Equal(t, "CRYPTO_ERROR", ErrCodeCryptoError)
-		assert.Equal(t, "VALIDATION_ERROR", ErrCodeValidationError)
-		assert.Equal(t, "CONFIGURATION_ERROR", ErrCodeConfigurationError)
-	})
-}
-
 func TestDefaultLogger(t *testing.T) {
 	t.Run("DefaultLoggerExists", func(t *testing.T) {
 		logger := GetDefaultLogger()

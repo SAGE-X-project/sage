@@ -26,8 +26,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/sage-x-project/sage/internal/logger"
-	"github.com/sage-x-project/sage/internal/metrics"
+	"github.com/sage-x-project/sage/pkg/telemetry/logger"
+	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 )
 
 // Server represents the health check HTTP server

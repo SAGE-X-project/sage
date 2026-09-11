@@ -91,7 +91,7 @@ type Field struct {
 ```go
 package main
 
-import "github.com/sage-x-project/sage/internal/logger"
+import "github.com/sage-x-project/sage/pkg/telemetry/logger"
 
 func main() {
     log := logger.New()
@@ -133,7 +133,7 @@ Output:
 ```go
 import (
     "context"
-    "github.com/sage-x-project/sage/internal/logger"
+    "github.com/sage-x-project/sage/pkg/telemetry/logger"
 )
 
 func HandleRequest(ctx context.Context, requestID string) {
@@ -252,7 +252,7 @@ func (e *SageError) Unwrap() error
 ### Using SageError
 
 ```go
-import "github.com/sage-x-project/sage/internal/logger"
+import "github.com/sage-x-project/sage/pkg/telemetry/logger"
 
 // Create structured error
 err := &logger.SageError{
@@ -428,7 +428,7 @@ import (
     "encoding/json"
     "testing"
 
-    "github.com/sage-x-project/sage/internal/logger"
+    "github.com/sage-x-project/sage/pkg/telemetry/logger"
 )
 
 func TestLogging(t *testing.T) {
@@ -581,7 +581,7 @@ func LoggingMiddleware(next http.Handler) http.Handler {
 ## File Structure
 
 ```
-internal/logger/
+pkg/telemetry/logger/
 ├── README.md           # This file
 ├── logger.go           # Logger interface and implementation
 ├── fields.go           # Field constructors
@@ -591,7 +591,7 @@ internal/logger/
 
 ## Related Packages
 
-- `internal/metrics` - Metrics collection (complements logging)
+- `pkg/telemetry/metrics` - Metrics collection (complements logging)
 - `pkg/agent` - Uses logger for agent operations
 - `pkg/server` - HTTP server logging
 

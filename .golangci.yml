@@ -19,17 +19,12 @@ linters:
       rules:
         pkg-is-the-public-api:
           # pkg/** may import only pkg/** and third-party code.
-          # Exceptions (D-02, Phase 1: metrics/logger contracts move to pkg/telemetry,
-          # internal/cryptoinit is removed): pkg/agent/core, pkg/agent/handshake,
-          # pkg/agent/session, pkg/health. Test files may use tests/helpers until
-          # internal/testutil exists (D-05).
+          # Exception (D-02 step 1.1, internal/cryptoinit is removed): pkg/agent/core.
+          # Test files may use tests/helpers until internal/testutil exists (D-05).
           files:
             - "**/pkg/**/*.go"
             - "!**/*_test.go"
             - "!**/pkg/agent/core/*.go"
-            - "!**/pkg/agent/handshake/*.go"
-            - "!**/pkg/agent/session/*.go"
-            - "!**/pkg/health/*.go"
           deny:
             - pkg: github.com/sage-x-project/sage/internal
               desc: pkg must not depend on internal (composition roots and CLI plumbing)
@@ -42,19 +37,14 @@ linters:
             - pkg: github.com/sage-x-project/sage/tools
               desc: nothing imports tools
         pkg-baseline-exceptions:
-          # The four packages above may still import internal/metrics, internal/logger
-          # and internal/cryptoinit (D-02) but nothing else from the forbidden layers.
+          # pkg/agent/core may still import internal/cryptoinit (D-02 step 1.1) but
+          # nothing else from the forbidden layers.
           files:
             - "**/pkg/agent/core/*.go"
-            - "**/pkg/agent/handshake/*.go"
-            - "**/pkg/agent/session/*.go"
-            - "**/pkg/health/*.go"
             - "!**/*_test.go"
           allow:
             - $gostd
             - github.com/sage-x-project/sage/pkg
-            - github.com/sage-x-project/sage/internal/metrics
-            - github.com/sage-x-project/sage/internal/logger
             - github.com/sage-x-project/sage/internal/cryptoinit
           deny:
             - pkg: github.com/sage-x-project/sage/cmd

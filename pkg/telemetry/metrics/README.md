@@ -199,7 +199,7 @@ process_cpu_seconds_total 123.45
 ```go
 import (
     "time"
-    "github.com/sage-x-project/sage/internal/metrics"
+    "github.com/sage-x-project/sage/pkg/telemetry/metrics"
 )
 
 func SignMessage(data []byte) ([]byte, error) {
@@ -335,7 +335,7 @@ func DetectReplayAttack(msgID string) bool {
 The package provides a custom collector for high-level metrics:
 
 ```go
-import "github.com/sage-x-project/sage/internal/metrics"
+import "github.com/sage-x-project/sage/pkg/telemetry/metrics"
 
 func main() {
     collector := metrics.GetGlobalCollector()
@@ -365,7 +365,7 @@ func main() {
 ```go
 import (
     "net/http"
-    "github.com/sage-x-project/sage/internal/metrics"
+    "github.com/sage-x-project/sage/pkg/telemetry/metrics"
 )
 
 func main() {
@@ -385,7 +385,7 @@ func main() {
 #### Standalone Metrics Server
 
 ```go
-import "github.com/sage-x-project/sage/internal/metrics"
+import "github.com/sage-x-project/sage/pkg/telemetry/metrics"
 
 func main() {
     // Run metrics server on separate port
@@ -646,7 +646,7 @@ package mypackage_test
 import (
     "testing"
     "github.com/prometheus/client_golang/prometheus/testutil"
-    "github.com/sage-x-project/sage/internal/metrics"
+    "github.com/sage-x-project/sage/pkg/telemetry/metrics"
 )
 
 func TestMetrics(t *testing.T) {
@@ -671,7 +671,7 @@ func TestMetrics(t *testing.T) {
 ## File Structure
 
 ```
-internal/metrics/
+pkg/telemetry/metrics/
 ├── README.md           # This file
 ├── registry.go         # Prometheus registry setup
 ├── collector.go        # Custom metrics collector
@@ -685,7 +685,7 @@ internal/metrics/
 
 ## Related Packages
 
-- `internal/logger` - Structured logging (complements metrics)
+- `pkg/telemetry/logger` - Structured logging (complements metrics)
 - `pkg/agent` - Uses metrics for agent operations
 - `pkg/server` - Exposes metrics endpoint
 
