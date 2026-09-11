@@ -53,7 +53,7 @@ type Server struct {
 	info    InfoBuilder
 
 	maxSkew time.Duration
-	nonces  *nonceStore
+	nonces  session.ReplayGuard // init nonce replay protection, scoped by context id
 
 	binder        KeyIDBinder
 	cookies       CookieVerifier // optional anti-DoS
@@ -81,7 +81,8 @@ type ServerOpts struct {
 	KEM           sagecrypto.KeyPair         // X25519 KEM static key
 	Transport     transport.MessageTransport // Optional transport for responses
 	Cookies       CookieVerifier
-	Logger        *log.Logger // Optional: receives the reason for each rejected init
+	Logger        *log.Logger         // Optional: receives the reason for each rejected init
+	ReplayGuard   session.ReplayGuard // Optional: shared/persistent nonce store; default in-memory, 10 minutes
 }
 
 // serverSigEnvelope holds the members of the handshake response that the
@@ -112,6 +113,9 @@ func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, didStr string, 
 	if opts.MaxSkew == 0 {
 		opts.MaxSkew = 2 * time.Minute
 	}
+	if opts.ReplayGuard == nil {
+		opts.ReplayGuard = session.NewMemoryReplayGuard(10 * time.Minute)
+	}
 	return &Server{
 		key:           key,
 		kem:           opts.KEM,
@@ -121,7 +125,7 @@ func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, didStr string, 
 		info:          opts.Info,
 		DID:           didStr,
 		maxSkew:       opts.MaxSkew,
-		nonces:        newNonceStore(10 * time.Minute),
+		nonces:        opts.ReplayGuard,
 		binder:        opts.Binder,
 		cookies:       opts.Cookies,
 		allowedSuites: opts.AllowedSuites,
@@ -254,7 +258,7 @@ func (s *Server) validateInitEnvelope(msg *transport.SecureMessage, pl HPKEInitP
 	if pl.Timestamp.Before(now.Add(-s.maxSkew)) || pl.Timestamp.After(now.Add(s.maxSkew)) {
 		return s.reject("timestamp out of window")
 	}
-	if !s.nonces.checkAndMark(msg.ContextID + "|" + pl.Nonce) {
+	if !s.nonces.CheckAndMark(msg.ContextID, pl.Nonce) {
 		return s.reject("replay detected")
 	}
 	cInfo := s.info.BuildInfo(msg.ContextID, pl.InitDID, pl.RespDID)

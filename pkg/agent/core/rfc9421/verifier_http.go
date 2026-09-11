@@ -33,9 +33,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sage-x-project/sage/pkg/agent/core/message/nonce"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
+	"github.com/sage-x-project/sage/pkg/agent/session"
 )
 
 // DefaultMaxClockSkew bounds how far in the future a "created" parameter may
@@ -43,35 +43,20 @@ import (
 // (5 minutes either side of the verifier's clock).
 const DefaultMaxClockSkew = 5 * time.Minute
 
-// ReplayGuard remembers (keyID, nonce) pairs for the verification window and
-// reports reuse. CheckAndMark returns true when the pair has not been seen and
-// records it; it returns false when the pair was already presented.
-type ReplayGuard interface {
-	CheckAndMark(keyID, nonce string) bool
-}
+// ReplayGuard is the replay-protection contract shared across SAGE
+// (session.ReplayGuard). The HTTP verifier scopes nonces by keyid.
+type ReplayGuard = session.ReplayGuard
 
 // NonceReplayGuard is the in-memory ReplayGuard used by NewHTTPVerifier.
-type NonceReplayGuard struct {
-	m *nonce.Manager
-}
+//
+// Deprecated: it is session.MemoryReplayGuard; use that name.
+type NonceReplayGuard = session.MemoryReplayGuard
 
 // NewNonceReplayGuard returns an in-memory replay guard that forgets nonces
-// after ttl. Call Close to stop its cleanup goroutine.
+// after ttl. Call Close to stop its sweeper.
 func NewNonceReplayGuard(ttl time.Duration) *NonceReplayGuard {
-	cleanup := ttl / 2
-	if cleanup < time.Second {
-		cleanup = time.Second
-	}
-	return &NonceReplayGuard{m: nonce.NewManager(ttl, cleanup)}
+	return session.NewMemoryReplayGuard(ttl)
 }
-
-// CheckAndMark implements ReplayGuard.
-func (g *NonceReplayGuard) CheckAndMark(keyID, n string) bool {
-	return g.m.CheckAndMark(keyID + "\x00" + n)
-}
-
-// Close stops the guard's cleanup goroutine.
-func (g *NonceReplayGuard) Close() { g.m.Close() }
 
 // HTTPVerifier provides RFC-9421 HTTP message signature verification
 type HTTPVerifier struct {

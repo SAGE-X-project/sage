@@ -33,9 +33,9 @@ type Manager struct {
 	cleanupTicker *time.Ticker
 	stopCleanup   chan struct{}
 	defaultConfig Config
-	metrics       Metrics     // event sink for the manager and the sessions it creates
-	nonceCache    *NonceCache // replay guard
-	sessionPool   sync.Pool   // Pool for session object reuse
+	metrics       Metrics            // event sink for the manager and the sessions it creates
+	nonceCache    *MemoryReplayGuard // replay guard for RFC 9421 nonces, scoped by key id
+	sessionPool   sync.Pool          // Pool for session object reuse
 }
 
 // NewManager creates a new session manager with default configuration
@@ -49,7 +49,7 @@ func NewManager() *Manager {
 			MaxMessages:   1000,
 			RekeyInterval: DefaultRekeyInterval,
 		},
-		nonceCache: NewNonceCache(10 * time.Minute), // replay TTL
+		nonceCache: NewMemoryReplayGuard(10 * time.Minute), // replay TTL
 		metrics:    NopMetrics{},
 		sessionPool: sync.Pool{
 			New: func() interface{} {
@@ -265,7 +265,7 @@ func (m *Manager) UnbindKeyID(keyid string) bool {
 	}
 	// drop replay entries for this key
 	if m.nonceCache != nil {
-		m.nonceCache.DeleteKey(keyid)
+		m.nonceCache.Forget(keyid)
 	}
 	return true
 }
@@ -324,7 +324,7 @@ func (m *Manager) RemoveSession(sessionID string) {
 		for kid := range set {
 			delete(m.byKeyID, kid)
 			if m.nonceCache != nil {
-				m.nonceCache.DeleteKey(kid)
+				m.nonceCache.Forget(kid)
 			}
 		}
 		delete(m.keyIDsBySID, sessionID)
@@ -350,7 +350,10 @@ func (m *Manager) ReplayGuardSeenOnce(keyid, nonce string) bool {
 	if m.nonceCache == nil {
 		return false
 	}
-	return m.nonceCache.Seen(keyid, nonce)
+	if keyid == "" || nonce == "" {
+		return false
+	}
+	return !m.nonceCache.CheckAndMark(keyid, nonce)
 }
 
 // GetSessionCount returns the number of active sessions
@@ -473,7 +476,7 @@ func (m *Manager) cleanupExpiredSessions() {
 			for kid := range set {
 				delete(m.byKeyID, kid)
 				if m.nonceCache != nil {
-					m.nonceCache.DeleteKey(kid)
+					m.nonceCache.Forget(kid)
 				}
 			}
 			delete(m.keyIDsBySID, id)
