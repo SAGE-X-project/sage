@@ -428,7 +428,7 @@ thresholds: {
 
 ### GitHub Actions
 
-Load tests are currently **disabled** in CI (`.github/workflows/loadtest.yml`, `if: false`: the load-test server depends on a2a packages not in this module). The schedule below is the intended one once re-enabled:
+There is no CI workflow for load tests: the previous one was disabled because the load-test server it started (`tests/handshake/server/main.go`) does not exist in this module, and it has been removed. Run the scenarios manually with k6 as described above. The schedule below is the intended one for a future workflow:
 
 **Schedule:**
 - Baseline: Every push to main

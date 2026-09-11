@@ -1,0 +1,35 @@
+# Local pre-commit hooks (https://pre-commit.com): `pre-commit install`.
+# Only repository-local commands are used so the hook set needs no network
+# access and cannot pull unpinned third-party code.
+repos:
+  - repo: local
+    hooks:
+      - id: gofmt
+        name: gofmt
+        entry: bash -c 'out=$(gofmt -l "$@"); if [ -n "$out" ]; then echo "$out"; exit 1; fi' --
+        language: system
+        types: [go]
+      - id: go-vet
+        name: go vet
+        entry: bash -c 'go vet ./...'
+        language: system
+        pass_filenames: false
+        types: [go]
+      - id: no-init-in-pkg
+        name: no init() in pkg/
+        entry: bash tools/scripts/check-no-init.sh
+        language: system
+        pass_filenames: false
+        types: [go]
+      - id: go-version-consistency
+        name: Go version consistent across go.mod, Dockerfiles and workflows
+        entry: bash tools/scripts/check-go-version.sh
+        language: system
+        pass_filenames: false
+        files: ^(go\.mod|Dockerfile|deployments/docker/Dockerfile|\.github/workflows/.*\.yml)$
+      - id: docs-index
+        name: docs/INDEX.md is current
+        entry: python3 tools/scripts/gen-docs-index.py --check
+        language: system
+        pass_filenames: false
+        types: [markdown]

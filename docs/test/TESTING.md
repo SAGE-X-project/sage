@@ -156,6 +156,9 @@ cargo test
 
 ### End-to-End Tests
 
+> Not present: the `test/e2e` suite described below was never added and its CI job has been removed; see `tests/integration` for the closest coverage.
+
+
 ```bash
 # Full test suite
 ./tools/scripts/full-test.sh

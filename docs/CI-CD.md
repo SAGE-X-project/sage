@@ -75,6 +75,12 @@ go test -coverprofile=coverage.out ./...
 - Uploads integration coverage reports
 
 #### End-to-End Tests
+
+> Not present: the `test/e2e` suite described below was never added and its CI job has been removed; see `tests/integration` for the closest coverage.
+
+
+> Not present: the `test/e2e` suite this section described was never added and its disabled CI job has been removed. Integration coverage lives in `tests/integration` (Hardhat node) and `tests/blockchain_verification_test.go`.
+
 - Full Docker-based test environment
 - Uses automated setup scripts:
   - `tools/scripts/setup_test_env.sh`
