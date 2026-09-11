@@ -22,12 +22,8 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
-	"encoding/asn1"
-	"errors"
 	"fmt"
-	"math/big"
-
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 )
 
 // SignatureVerifier defines the interface for signature verification algorithms.
@@ -36,6 +32,10 @@ import (
 // - Each verifier implements a specific algorithm
 // - New algorithms can be added without modifying existing code
 // - CompositeVerifier selects appropriate verifier at runtime
+// SignatureVerifier is the HPKE-local verification contract.
+//
+// Deprecated: call keys.VerifySignature directly; the implementations below
+// delegate to it and remain for one release.
 type SignatureVerifier interface {
 	// Verify verifies a signature against a payload using the provided public key
 	Verify(payload, signature []byte, publicKey crypto.PublicKey) error
@@ -74,49 +74,10 @@ func NewECDSAVerifier() *ECDSAVerifier {
 // Returns:
 //   - error: nil if valid, error describing failure otherwise
 func (e *ECDSAVerifier) Verify(payload, signature []byte, publicKey crypto.PublicKey) error {
-	ecdsaPub, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
+	if _, ok := publicKey.(*ecdsa.PublicKey); !ok {
 		return fmt.Errorf("expected *ecdsa.PublicKey, got %T", publicKey)
 	}
-
-	// Hash payload with Keccak256 (Ethereum standard)
-	hash := ethcrypto.Keccak256(payload)
-
-	// Handle 65-byte Ethereum signature format (strip recovery ID)
-	rawSig := signature
-	if len(rawSig) == 65 {
-		rawSig = rawSig[:64] // Remove last byte (recovery ID)
-	}
-
-	// Convert ECDSA public key to Ethereum format (uncompressed, with 0x04 prefix)
-	pubBytes := ethcrypto.FromECDSAPub(ecdsaPub)
-
-	// Try Method 1: Ethereum's VerifySignature (raw 64-byte format)
-	if len(rawSig) == 64 && ethcrypto.VerifySignature(pubBytes, hash, rawSig) {
-		return nil
-	}
-
-	// Try Method 2: Standard ECDSA with r, s split (raw 64-byte)
-	if len(rawSig) == 64 {
-		r := new(big.Int).SetBytes(rawSig[:32])
-		s := new(big.Int).SetBytes(rawSig[32:])
-		if ecdsa.Verify(ecdsaPub, hash, r, s) {
-			return nil
-		}
-	}
-
-	// Try Method 3: ASN.1 DER encoded signature
-	type ecdsaSignature struct {
-		R, S *big.Int
-	}
-	var derSig ecdsaSignature
-	if _, err := asn1.Unmarshal(signature, &derSig); err == nil && derSig.R != nil && derSig.S != nil {
-		if ecdsa.Verify(ecdsaPub, hash, derSig.R, derSig.S) {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("ecdsa(secp256k1) signature verification failed")
+	return keys.VerifySignature(publicKey, payload, signature)
 }
 
 // Supports checks if the public key is an ECDSA key.
@@ -137,16 +98,10 @@ func NewEd25519Verifier() *Ed25519Verifier {
 
 // Verify verifies an Ed25519 signature against the payload.
 func (e *Ed25519Verifier) Verify(payload, signature []byte, publicKey crypto.PublicKey) error {
-	ed25519Pub, ok := publicKey.(ed25519.PublicKey)
-	if !ok {
+	if _, ok := publicKey.(ed25519.PublicKey); !ok {
 		return fmt.Errorf("expected ed25519.PublicKey, got %T", publicKey)
 	}
-
-	if !ed25519.Verify(ed25519Pub, payload, signature) {
-		return errors.New("ed25519 signature verification failed")
-	}
-
-	return nil
+	return keys.VerifySignature(publicKey, payload, signature)
 }
 
 // Supports checks if the public key is an Ed25519 key.

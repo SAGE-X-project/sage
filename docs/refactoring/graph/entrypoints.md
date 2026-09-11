@@ -8,7 +8,7 @@ Reachability follows call and ref edges from each entry point, including dynamic
 |---|---|---|
 | cmd/deployment-verify | cmd | deployments/config(6), pkg/agent/crypto/chain(2) |
 | cmd/metrics-demo | cmd | pkg/agent/session(42), pkg/telemetry/metrics(6) |
-| cmd/sage-crypto | cmd | internal/app(1), internal/cli(1), pkg/agent/crypto/chain(14), pkg/agent/crypto/chain/ethereum(8), pkg/agent/crypto/chain/solana(10), pkg/agent/crypto/formats(18), pkg/agent/crypto/keys(63), pkg/agent/crypto/rotation(4), pkg/agent/crypto/storage(8), pkg/agent/did(3), pkg/agent/did/ethereum(2), pkg/agent/did/solana(2), pkg/agent/transport(1), pkg/agent/transport/http(2), pkg/agent/transport/websocket(2) |
+| cmd/sage-crypto | cmd | internal/app(1), internal/cli(1), pkg/agent/crypto/chain(14), pkg/agent/crypto/chain/ethereum(8), pkg/agent/crypto/chain/solana(10), pkg/agent/crypto/formats(18), pkg/agent/crypto/keys(65), pkg/agent/crypto/rotation(4), pkg/agent/crypto/storage(8), pkg/agent/did(3), pkg/agent/did/ethereum(2), pkg/agent/did/solana(2), pkg/agent/transport(1), pkg/agent/transport/http(2), pkg/agent/transport/websocket(2) |
 | cmd/sage-did | cmd | internal/app(1), internal/cli(1), pkg/agent/crypto/chain(6), pkg/agent/crypto/chain/ethereum(6), pkg/agent/crypto/chain/solana(7), pkg/agent/crypto/formats(11), pkg/agent/crypto/jcs(6), pkg/agent/crypto/keys(31), pkg/agent/crypto/storage(4), pkg/agent/did(50), pkg/agent/did/ethereum(18), pkg/agent/did/solana(7), pkg/agent/transport(1), pkg/agent/transport/http(2), pkg/agent/transport/websocket(2), pkg/blockchain/ethereum/contracts/agentcardregistry(8) |
 | cmd/sage-verify | cmd | deployments/config(6), pkg/agent/crypto/chain(2), pkg/health(4) |
 | examples/mcp-integration/basic-demo | examples | pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(45), pkg/agent/crypto(5), pkg/agent/crypto/keys(22), pkg/agent/session(3) |
@@ -32,7 +32,7 @@ Reachability follows call and ref edges from each entry point, including dynamic
 | cmd/sage-crypto | `rotate` | cmd/sage-crypto.runRotate | pkg/agent/crypto/formats(12), pkg/agent/crypto/keys(35), pkg/agent/crypto/rotation(4), pkg/agent/crypto/storage(6) |
 | cmd/sage-crypto | `sage-crypto` | - |  |
 | cmd/sage-crypto | `sign` | cmd/sage-crypto.runSign | internal/cli(1), pkg/agent/crypto/formats(11), pkg/agent/crypto/keys(36), pkg/agent/crypto/storage(4) |
-| cmd/sage-crypto | `verify` | cmd/sage-crypto.runVerify | pkg/agent/crypto/formats(12), pkg/agent/crypto/keys(43) |
+| cmd/sage-crypto | `verify` | cmd/sage-crypto.runVerify | pkg/agent/crypto/formats(12), pkg/agent/crypto/keys(45) |
 | cmd/sage-did | `activate <commit-hash>` | cmd/sage-did.runActivate | pkg/agent/did/ethereum(3), pkg/blockchain/ethereum/contracts/agentcardregistry(3) |
 | cmd/sage-did | `add <did> <keyfile>` | cmd/sage-did.runKeyAdd | pkg/agent/crypto/chain(2), pkg/agent/did(12) |
 | cmd/sage-did | `approve <keyhash>` | cmd/sage-did.runKeyApprove | pkg/agent/crypto/chain(2), pkg/agent/did(12) |
@@ -61,15 +61,15 @@ Reachability follows call and ref edges from each entry point, including dynamic
 - pkg/agent/core/message/order (9 funcs, 153 LOC)
 - pkg/agent/core/message/validator (5 funcs, 175 LOC)
 - pkg/agent/crypto/vault (15 funcs, 407 LOC)
-- pkg/agent/handshake (36 funcs, 951 LOC)
-- pkg/agent/hpke (47 funcs, 1546 LOC)
+- pkg/agent/handshake (36 funcs, 948 LOC)
+- pkg/agent/hpke (47 funcs, 1501 LOC)
 - pkg/blockchain/ethereum (13 funcs, 355 LOC)
 - pkg/oidc (0 funcs, 40 LOC)
 - pkg/oidc/auth0 (13 funcs, 490 LOC)
-- pkg/storage (0 funcs, 155 LOC)
+- pkg/storage (0 funcs, 165 LOC)
 - pkg/storage/memory (26 funcs, 477 LOC)
 - pkg/storage/postgres (26 funcs, 688 LOC)
-- pkg/storage/storagetest (6 funcs, 201 LOC)
+- pkg/storage/storagetest (6 funcs, 202 LOC)
 - pkg/telemetry (0 funcs, 23 LOC)
 - pkg/telemetry/logger (30 funcs, 361 LOC)
 - pkg/version (7 funcs, 143 LOC)

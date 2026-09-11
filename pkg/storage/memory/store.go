@@ -107,7 +107,7 @@ func (s *SessionStore) Create(ctx context.Context, session *storage.Session) err
 	defer s.store.sessionsMu.Unlock()
 
 	if _, exists := s.store.sessions[session.ID]; exists {
-		return fmt.Errorf("session already exists: %s", session.ID)
+		return fmt.Errorf("%w: session %s", storage.ErrAlreadyExists, session.ID)
 	}
 
 	// Deep copy to avoid external modifications
@@ -133,12 +133,12 @@ func (s *SessionStore) Get(ctx context.Context, id string) (*storage.Session, er
 
 	session, exists := s.store.sessions[id]
 	if !exists {
-		return nil, fmt.Errorf("session not found: %s", id)
+		return nil, fmt.Errorf("%w: session %s", storage.ErrNotFound, id)
 	}
 
 	// Check expiration
 	if time.Now().After(session.ExpiresAt) {
-		return nil, fmt.Errorf("session expired: %s", id)
+		return nil, fmt.Errorf("%w: session %s", storage.ErrExpired, id)
 	}
 
 	// Return copy
@@ -151,7 +151,7 @@ func (s *SessionStore) Update(ctx context.Context, session *storage.Session) err
 	defer s.store.sessionsMu.Unlock()
 
 	if _, exists := s.store.sessions[session.ID]; !exists {
-		return fmt.Errorf("session not found: %s", session.ID)
+		return fmt.Errorf("%w: session %s", storage.ErrNotFound, session.ID)
 	}
 
 	sessionCopy := *session
@@ -164,7 +164,7 @@ func (s *SessionStore) Delete(ctx context.Context, id string) error {
 	defer s.store.sessionsMu.Unlock()
 
 	if _, exists := s.store.sessions[id]; !exists {
-		return fmt.Errorf("session not found: %s", id)
+		return fmt.Errorf("%w: session %s", storage.ErrNotFound, id)
 	}
 
 	delete(s.store.sessions, id)
@@ -221,7 +221,7 @@ func (s *SessionStore) UpdateActivity(ctx context.Context, id string) error {
 
 	session, exists := s.store.sessions[id]
 	if !exists {
-		return fmt.Errorf("session not found: %s", id)
+		return fmt.Errorf("%w: session %s", storage.ErrNotFound, id)
 	}
 
 	session.LastActivity = time.Now()
