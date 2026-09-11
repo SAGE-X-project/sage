@@ -41,3 +41,36 @@ Notes:
 - #186 (x/sync 0.20.0) and #200 (follow-redirects 1.16.0): already pulled in by #214/#212 and #213 respectively; squash-applying them produced no diff. Dependabot closes such PRs once main carries the version.
 - Conflicting PRs (#211, #206, #180, #179, #176, #175) were re-applied by running the equivalent `go get` / `npm install` pinned to the PR's target version, because their branches were based on an older main.
 - Symbol/edge counts do not change for pure dependency bumps; the +1 symbol / +3 edges at #180 are the new `Secp256k1Curve` helper and its three callers.
+
+## Batch 2 (2026-09-11, integration/dependabot-2026-09-11)
+
+Same procedure as batch 1. Dependabot opened 20 PRs after the security workflow and action pinning changes; 18 were applied (6 re-applied after lockfile/go.sum conflicts, pinned to the PR version) and 2 were closed because the target release requires Go 1.26 (Dependabot ignore rules added).
+
+| PR | Title | Result | Symbols / edges | External import changes |
+|---|---|---|---|---|
+| #225 | chore(docker)(deps): bump golang from 1.26.3-alpine to 1.27.1-alpine | OK | 1752->1752 / 1457->1457 | none |
+| #226 | chore(deps)(deps-dev): bump prettier from 3.8.1 to 3.9.6 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #227 | chore(deps)(deps): bump github.com/stretchr/testify from 1.11.1 to 1.12.1 | OK | 1731->1752 / 1426->1457 | none |
+| #228 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-ignition-ethers from 3.0.8 to 3.1.6 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #229 | chore(deps)(deps): bump github.com/gagliardetto/solana-go from 1.20.0 to 1.23.0 | OK | 1752->1752 / 1457->1457 | none |
+| #230 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-chai-matchers from 2.1.0 to 3.0.0 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #231 | chore(deps)(deps): bump golang.org/x/crypto from 0.55.0 to 0.56.0 | CLOSED (requires Go 1.26; Dependabot ignore added) | - | - |
+| #232 | chore(deps)(deps): bump github.com/prometheus/client_golang from 1.23.2 to 1.24.1 | OK (re-applied) | 1752->1752 / 1457->1457 | none |
+| #233 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-verify from 3.0.11 to 3.1.0 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #234 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-typechain from 3.0.3 to 3.1.1 in /contracts/ethereum | OK (re-applied) | 1752->1752 / 1457->1457 | none |
+| #235 | chore(deps)(deps): bump github.com/ethereum/go-ethereum from 1.17.3 to 1.17.5 | OK (re-applied) | 1752->1752 / 1457->1457 | none |
+| #236 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-ignition from 3.0.8 to 3.1.8 in /contracts/ethereum | OK (re-applied) | 1752->1752 / 1457->1457 | none |
+| #237 | chore(deps)(deps): bump github.com/cloudflare/circl from 1.6.3 to 1.6.5 | OK | 1752->1752 / 1457->1457 | none |
+| #238 | chore(deps)(deps): bump golang.org/x/sync from 0.22.0 to 0.23.0 | CLOSED (requires Go 1.26; Dependabot ignore added) | - | - |
+| #239 | chore(deps)(deps-dev): bump ethers from 6.16.0 to 6.17.0 in /contracts/ethereum | OK (re-applied) | 1752->1752 / 1457->1457 | none |
+| #240 | chore(deps)(deps): bump github.com/jackc/pgx/v5 from 5.9.2 to 5.11.0 | OK | 1752->1752 / 1457->1457 | none |
+| #241 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-keystore from 3.0.5 to 3.0.13 in /contracts/ethereum | OK (re-applied) | 1752->1752 / 1457->1457 | none |
+| #242 | chore(deps)(deps-dev): bump hardhat from 3.1.10 to 3.16.0 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #243 | chore(deps)(deps): bump @openzeppelin/contracts from 5.4.0 to 5.6.1 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #244 | chore(ci)(deps): bump the actions group with 14 updates | OK | 1752->1752 / 1457->1457 | none |
+
+Notes:
+
+- #244 (actions group) moves every pinned action to a new major (checkout v7, setup-go v7, upload-artifact v7, download-artifact v8, codecov v7, golangci-lint-action v9, docker/* v4/v6/v7, action-gh-release v3); the consolidating PR's own CI run is the verification.
+- #242 (hardhat 3.16.0) and #230 (hardhat-chai-matchers 3.0.0) resolve the peer-range mismatch that previously kept hardhat 2 plugins in the tree; all Hardhat plugin bumps that conflicted (#234, #236, #241) were re-applied at the exact PR versions.
+- #231 (x/crypto 0.56.0) and #238 (x/sync 0.23.0) require Go 1.26 and were closed; `.github/dependabot.yml` now ignores those ranges until the toolchain moves.

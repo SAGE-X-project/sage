@@ -11,6 +11,14 @@ updates:
       day: "monday"
       time: "00:00"
     open-pull-requests-limit: 10
+    # These releases set "go 1.26" in their go.mod and would raise this
+    # module's go directive above the supported toolchain (Go 1.25.2).
+    # Remove once the toolchain is upgraded.
+    ignore:
+      - dependency-name: "golang.org/x/crypto"
+        versions: [">=0.56.0"]
+      - dependency-name: "golang.org/x/sync"
+        versions: [">=0.23.0"]
     reviewers:
       - "sage-x-project/maintainers"
     labels:
