@@ -95,7 +95,7 @@
     "@nomicfoundation/hardhat-keystore": "^3.0.13",
     "@nomicfoundation/hardhat-mocha": "^3.0.11",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.2",
-    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.1",
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.7",
     "@nomicfoundation/hardhat-typechain": "^3.1.1",
     "@nomicfoundation/hardhat-verify": "^3.1.0",
     "@nomicfoundation/ignition-core": "^3.0.5",
