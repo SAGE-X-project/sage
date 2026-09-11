@@ -1,5 +1,7 @@
 # SAGE Security Considerations
 
+> **Archived on 2026-09-12** (formerly `docs/audit/SECURITY-CONSIDERATIONS.md`). This document is kept for history only: security analysis of the SageRegistryV2 release; for example it lists commit-reveal as future work although AgentCardRegistry implements it. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 **Version**: 1.0.0
 **Date**: October 2025
 **Purpose**: Security Audit Reference

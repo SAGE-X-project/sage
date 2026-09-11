@@ -1,5 +1,7 @@
 # Contract Verification Instructions for Klaytnscope
 
+> **Status note (2026-09-12).** Form values below are for the SageRegistryV2 deployment; regenerate them for AgentCardRegistry (solc 0.8.20, shanghai) before use.
+
 ## Prerequisites
 - Contract addresses from deployment
 - Klaytnscope explorer access

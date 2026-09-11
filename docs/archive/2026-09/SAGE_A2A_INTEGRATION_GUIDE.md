@@ -1,5 +1,7 @@
 # SAGE-A2A Integration Guide
 
+> **Archived on 2026-09-12** (formerly `docs/SAGE_A2A_INTEGRATION_GUIDE.md`). This document is kept for history only: built on SageRegistryV4, EthereumClientV4 and pkg/verifier, none of which exist; the A2A card functions now live in pkg/agent/did (a2a.go, a2a_proof.go). The current documentation is listed in [`docs/INDEX.md`](../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 **Target Project**: `sage-a2a-go`
 **Purpose**: Integrate SAGE DID system with A2A (Agent-to-Agent) protocol
 **SAGE Version**: v4 (Multi-key Registry)
@@ -915,7 +917,7 @@ func handleAgentRequest(w http.ResponseWriter, r *http.Request) {
 - [SAGE Architecture](../ARCHITECTURE.md)
 - [DID Registry V4 Contract](../contracts/ethereum/contracts/SageRegistryV4.sol)
 - [Multi-Key Resolution Tests](../pkg/agent/did/ethereum/clientv4_multikey_resolution_test.go)
-- [RFC9421 Verifier](../pkg/agent/core/rfc9421/verifier.go)
+- [RFC9421 Verifier](../../../pkg/agent/core/rfc9421/verifier.go)
 
 ### External Specifications
 

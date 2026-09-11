@@ -1,5 +1,7 @@
 # SAGE Performance Baseline Report
 
+> **Archived on 2026-09-12** (formerly `docs/test/PERFORMANCE-BASELINE.md`). This document is kept for history only: benchmark snapshot of an earlier release. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 **Date:** 2025-10-08
 **Platform:** macOS (Apple M2 Max, ARM64)
 **Go Version:** 1.22+

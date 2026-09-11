@@ -1,5 +1,7 @@
 # SAGE 프로젝트 상세 가이드 - Part 5: 스마트 컨트랙트 및 온체인 레지스트리
 
+> **Status note (2026-09-12).** 이 문서는 SageRegistry/SageRegistryV2 컨트랙트 내부와 배포 절차를 설명합니다. 현재 컨트랙트는 `contracts/ethereum/contracts/AgentCardRegistry.sol`과 ERC-8004 레지스트리이며, 배포는 `scripts/deploy-all-contracts.js`, Go 바인딩은 `make bindings`로 생성합니다.
+
 ## 목차
 1. [스마트 컨트랙트 개요](#1-스마트-컨트랙트-개요)
 2. [SageRegistry 컨트랙트 상세 분석](#2-sageregistry-컨트랙트-상세-분석)

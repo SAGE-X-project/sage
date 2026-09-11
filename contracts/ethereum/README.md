@@ -12,7 +12,7 @@ This directory contains the AgentCard smart contracts for SAGE (Secure Agent Gua
 - **Multi-Chain Support**: Deployable on 12 EVM-compatible networks
 - **Multi-Key Architecture**: Support for ECDSA, Ed25519, and X25519 keys
 - **Commit-Reveal Pattern**: Front-running protection for agent registration
-- **Comprehensive Testing**: 202 passing tests across 6 test phases
+- **Comprehensive Testing**: 219 passing tests across 6 test phases
 
 ## Architecture
 
@@ -121,7 +121,7 @@ npm run compile
 npm test
 ```
 
-Expected output: **202 passing tests** -
+Expected output: **219 passing tests** -
 
 ## Deployment
 

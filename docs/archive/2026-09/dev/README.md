@@ -1,5 +1,7 @@
 # SAGE (Secure Agent Guarantee Engine)
 
+> **Archived on 2026-09-12** (formerly `docs/dev/README.md`). This document is kept for history only: planning-era Gateway/Rust/WASM design that was never built. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 > 블록체인 DID 기반 AI 에이전트 신뢰 통신 프레임워크
 
 >  **NOTE**: This README contains some outdated information from initial planning phase.
@@ -107,7 +109,7 @@ go run cmd/agent-peer/main.go -config config/example.yaml
 - [아키텍처 문서](architecture.md) - 시스템 설계 및 모듈 구조
 - [개발 가이드](development-guide.md) - 개발 환경 설정 및 코드 구조
 - [API 명세서](api-spec.md) - SDK 및 Gateway API 문서
-- [보안 설계서](security-design.md) - 보안 아키텍처 및 위협 모델
+- [보안 설계서](../../../dev/security-design.md) - 보안 아키텍처 및 위협 모델
 
 ## 기여하기
 

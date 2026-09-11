@@ -2,7 +2,7 @@
 
 **Status:** Accepted
 
-**Date:** 2024-10-26
+**Date:** 2025-10-26
 
 **Decision Makers:** SAGE Core Team
 
@@ -364,7 +364,7 @@ handshake := NewHandshake(httpTransport)
 
 | Date | Version | Author | Changes |
 |------|---------|--------|---------|
-| 2024-10-26 | 1.0 | SAGE Team | Initial ADR |
+| 2025-10-26 | 1.0 | SAGE Team | Initial ADR |
 
 ---
 

@@ -68,8 +68,6 @@ jobs:
   java:
     name: Java client
     runs-on: ubuntu-latest
-    # Not yet verified locally (no Maven here); made blocking once the first run is green.
-    continue-on-error: true
     defaults:
       run:
         working-directory: sdk/java/sage-client

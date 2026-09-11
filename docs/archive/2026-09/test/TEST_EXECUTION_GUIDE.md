@@ -1,5 +1,7 @@
 # SAGE Complete Test Execution Guide
 
+> **Archived on 2026-09-12** (formerly `docs/test/TEST_EXECUTION_GUIDE.md`). This document is kept for history only: cites clientv4.go, SageRegistryV4.sol and npm scripts that were removed. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 ## IMPORTANT: Pre-test Requirements
 
 ### Port Status Check and Cleanup

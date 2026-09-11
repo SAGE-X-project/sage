@@ -1,5 +1,7 @@
 # SAGE Authentication Example
 
+> **Status note (2026-09-12).** The `/debug/*` routes, `tests/session/handshake` programs and `pkg/crypto/hpke` paths referenced here do not exist. The implemented handshake is `pkg/agent/hpke` (see `docs/handshake/hpke-based-handshake-en.md`); the ad-hoc `sender|receiver|message|ts` signature described below is not what the Go core verifies.
+
 This example demonstrates the HPKE-based authentication and session establishment flow in SAGE.
 
 ## Overview

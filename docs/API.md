@@ -1,5 +1,7 @@
 # SAGE API Documentation
 
+> **Status note (2026-09-12).** The HTTP API server described in the first part of this document (`cmd/sage-server`, `/debug/*` routes) is not implemented in this repository. The transport-layer API in the second part matches `pkg/agent/transport`; the wire format is `transport.WireMessage` / `WireResponse`.
+
 **Version:** 1.0.0
 **Last Updated:** 2025-10-10
 **License:** LGPL-3.0

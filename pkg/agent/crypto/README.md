@@ -9,10 +9,10 @@ SAGE requires robust cryptographic operations for agent authentication, message 
 ### Key Benefits
 
 - **Multi-Algorithm Support**: Ed25519, Secp256k1 (Ethereum), X25519 (HPKE), RS256
-- **Flexible Storage**: Memory, file-based, and OS keychain integration via Vault
+- **Flexible Storage**: in-memory, plain-file (0600) and a passphrase-encrypted file vault
 - **Blockchain Ready**: Native Ethereum and Solana provider support
 - **Format Agnostic**: Import/export keys in JWK and PEM formats
-- **Production Secure**: File permissions (0600), secure key rotation, hardware-backed storage
+- **Production Secure**: file permissions (0600), key rotation; no OS keychain or hardware-backed storage is implemented
 
 ## Architecture
 
@@ -208,23 +208,23 @@ storage := storage.NewFileKeyStorage("/path/to/keys")
 
 **Security:**
 - Files stored with 0600 permissions (owner read/write only)
-- Keys encrypted at rest
+- Keys stored as plain JSON with mode 0600 (not encrypted; use the vault for encryption at rest)
 - Configurable directory location
 
 #### 3. Vault Storage (Production)
 - **Package**: `github.com/sage-x-project/sage/pkg/agent/crypto/vault`
 - **Use Case**: Production deployments
-- **Persistence**: OS keychain (Keychain on macOS, GNOME Keyring on Linux, Credential Manager on Windows)
-- **Hardware**: Supports hardware-backed secure enclaves (e.g., Secure Enclave on macOS)
+- **Persistence**: passphrase-encrypted files under a directory (`vault.NewFileVault(basePath)`) or memory (`vault.NewMemoryVault()`)
+- **Hardware**: no hardware-backed or OS keychain storage; integrate an external KMS behind `crypto.KeyStorage` if required
 
 ```go
 import "github.com/sage-x-project/sage/pkg/agent/crypto/vault"
 
-storage := vault.NewSecureStorage("sage-agent-keys")
+storage, err := vault.NewFileVault("./sage-agent-keys")
 ```
 
 **Security:**
-- Hardware-backed encryption (when available)
+- Passphrase-derived encryption of key files
 - OS-level access control
 - Tamper-resistant storage
 - Automatic key escrow and recovery

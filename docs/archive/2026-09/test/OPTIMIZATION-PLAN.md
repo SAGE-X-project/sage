@@ -1,5 +1,7 @@
 # SAGE Performance Optimization Plan
 
+> **Archived on 2026-09-12** (formerly `docs/test/OPTIMIZATION-PLAN.md`). This document is kept for history only: session allocation figures that no longer hold (pooling is implemented); superseded by the benchmarks in tools/benchmark. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 **Date:** 2025-10-08
 **Target:** Reduce session creation allocations from 38 to <10
 **Based on:** Profiling results and performance baseline

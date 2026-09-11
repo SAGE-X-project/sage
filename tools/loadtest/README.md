@@ -428,7 +428,7 @@ thresholds: {
 
 ### GitHub Actions
 
-Load tests run automatically:
+Load tests are currently **disabled** in CI (`.github/workflows/loadtest.yml`, `if: false`: the load-test server depends on a2a packages not in this module). The schedule below is the intended one once re-enabled:
 
 **Schedule:**
 - Baseline: Every push to main

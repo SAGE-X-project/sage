@@ -295,7 +295,7 @@ ackTag = HMAC-SHA256(ackKey, ackMsg)
 ```json
 {
   "kid": "kid-uuid",
-  "ackTagB64": "<base64url HMAC(ackKey, 'hpke-ack|ctxID|nonce|kid')>",
+  "ackTagB64": "<base64url HMAC(ackKey, 'SAGE-ack-msg|v1|' || len(ctxID)||ctxID || len(nonce)||nonce || len(kid)||kid || SHA256(transcript))>",
   "ephS": "<base64url 32B>", // PFS add-on
   "ts": "RFC3339Nano"
 }
@@ -455,7 +455,7 @@ exporter := hpke.OpenWithPriv(skR, enc, info, exportCtx)
 if hasEphC { ephS, ssE2E := ECDH() }
 seed := exporter or Combine(...)
 kid := IssueKeyID(ctxID)
-ackTag := HMAC(HKDF(seed,"ack-key"), "hpke-ack|ctx|nonce|kid")
+ackTag := HMAC(HKDF-Expand(seed, "SAGE-ack-key-v1", 32), "SAGE-ack-msg|v1|" || ctx || nonce || kid || SHA256(transcript))
 return {kid, ackTag, ephS?}
 ```
 

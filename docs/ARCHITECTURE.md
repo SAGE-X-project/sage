@@ -187,7 +187,7 @@ session/
 **Session Management:**
 - **Creation**: Derive session keys from HPKE shared secret
 - **Encryption**: ChaCha20-Poly1305 AEAD for message confidentiality
-- **Nonce Tracking**: 64-bit nonces with LRU cache for replay protection
+- **Replay protection**: 8-byte per-direction sequence numbers bound as AEAD associated data with a 1024-entry sliding window; AEAD nonces are 96-bit (12-byte) random values
 - **Expiration**: Automatic cleanup of expired sessions
 - **Key Rotation**: Time-based and message-count-based rotation
 
@@ -442,7 +442,7 @@ contracts/solana/programs/sage-registry/src/
 Sender                                             Receiver
 ──────                                             ────────
 1. Retrieve session by key ID
-2. Generate 64-bit nonce
+2. Assign the next sequence number and a random 96-bit nonce
 3. Encrypt with ChaCha20-Poly1305
    ciphertext = Encrypt(plaintext, session_key, nonce, AAD)
 4. Increment message counter

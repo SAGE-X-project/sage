@@ -31,7 +31,7 @@ Signature-Input: sig1=("@method" "@path" "@authority" "content-type"
 - `("@method" ...)`: List of covered components
 - `created`: Unix timestamp when signature was created
 - `keyid`: DID of the signing agent
-- `alg`: Signature algorithm (always "ed25519" in SAGE)
+- `alg`: Signature algorithm: `ed25519`, `es256k` (secp256k1, Ethereum convention) or `ecdsa-p256-sha256`
 
 ### Signature Header
 

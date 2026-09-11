@@ -1,3 +1,5 @@
+> **Status note (2026-09-12).** 이 기록은 `clientv4.go`, `SageRegistryV4.sol`, `deploy_v4.js` 등 삭제된 파일과 테스트를 인용합니다. 현재 DID 테스트는 `pkg/agent/did`와 `tests/integration`에 있으며, 검증 매트릭스는 `docs/test/SPECIFICATION_VERIFICATION_MATRIX.md`를 따릅니다.
+
 ## 3. DID 관리
 
 ### 3.1 DID 생성

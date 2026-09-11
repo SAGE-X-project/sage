@@ -38,15 +38,10 @@ System design, decisions and rationale.
 | [`docs/KME_PUBLIC_KEY_INTEGRATION.md`](KME_PUBLIC_KEY_INTEGRATION.md) | KME Public Key Integration Documentation (KEM (X25519) key on AgentCardRegistry) | MIXED |
 | [`docs/PERFORMANCE_BENCHMARKS.md`](PERFORMANCE_BENCHMARKS.md) | AgentCardRegistry Performance Benchmarks (AgentCardRegistry Go client benchmarks) | MIXED |
 | [`docs/QUICKSTART_PR118.md`](QUICKSTART_PR118.md) | Quick Start Guide: PR #118 Security Enhancements (PR #118 features (Content-Digest, HPKE ECDSA, DID X25519)) | MIXED |
-| [`docs/SAGE_A2A_INTEGRATION_GUIDE.md`](SAGE_A2A_INTEGRATION_GUIDE.md) | SAGE-A2A Integration Guide (sage-a2a-go DID/RFC 9421 integration plan) | STALE |
 | [`docs/adr/001-transport-layer-abstraction.md`](adr/001-transport-layer-abstraction.md) | ADR-001: Transport Layer Abstraction (Transport layer abstraction decision) | MIXED |
 | [`docs/adr/002-hpke-selection-rationale.md`](adr/002-hpke-selection-rationale.md) | ADR-002: HPKE Selection for End-to-End Encryption (HPKE (RFC 9180) selection) | MIXED |
 | [`docs/adr/003-did-method-selection.md`](adr/003-did-method-selection.md) | ADR-003: DID Method Selection for Agent Identity (did:sage method selection) | MIXED |
-| [`docs/dev/README.md`](dev/README.md) | SAGE (Secure Agent Guarantee Engine) (Project overview and dev doc index (planning era)) | STALE |
 | [`docs/dev/SAGE-secure-session-communication-ko.md`](dev/SAGE-secure-session-communication-ko.md) | Secure Session Communication (HPKE secure session communication overview) | CURRENT |
-| [`docs/dev/api-spec.md`](dev/api-spec.md) | SAGE API 명세서 (API spec (current modules + planned SDK/Gateway)) | STALE |
-| [`docs/dev/architecture.md`](dev/architecture.md) | SAGE 아키텍처 문서 (System architecture (Direct P2P vs Gateway, ADRs)) | STALE |
-| [`docs/dev/development-guide.md`](dev/development-guide.md) | SAGE 개발 가이드 (Development environment, structure, build/test) | STALE |
 | [`docs/dev/security-design.md`](dev/security-design.md) | SAGE 보안 설계서 (Security design (threat model, DID auth, session, RFC 9421)) | MIXED |
 
 ## Protocols: handshake, HPKE, RFC 9421
@@ -135,7 +130,6 @@ AgentCardRegistry, ERC-8004 registries, deployment and verification.
 | [`docs/contracts/ERC-8004-Analysis.md`](contracts/ERC-8004-Analysis.md) | EIP-8004 (ERC-8004): Trustless Agents 상세 분석 리포트 (ERC-8004 standard analysis and SAGE roadmap) | MIXED |
 | [`docs/contracts/SAGE-vs-ERC8004-Comparison.md`](contracts/SAGE-vs-ERC8004-Comparison.md) | SAGE vs ERC-8004: 핵심 차이점 분석 (SAGE vs ERC-8004 scope comparison) | MIXED |
 | [`docs/contracts/SOLIDITY_CONTRACTS_ANALYSIS.md`](contracts/SOLIDITY_CONTRACTS_ANALYSIS.md) | SAGE Smart Contracts Analysis (Solidity contract system analysis / Go client signatures) | MIXED |
-| [`docs/contracts/contracts-submodule-setup.md`](contracts/contracts-submodule-setup.md) | Setting Up SAGE Contracts as Git Submodule (Splitting contracts/ into a git submodule) | STALE |
 
 ## Examples
 
@@ -153,8 +147,6 @@ Runnable demonstrations. Their READMEs state what each demo checks and what it d
 | [`examples/mcp-integration/QUICKSTART.md`](../examples/mcp-integration/QUICKSTART.md) | Quick Start Guide - MCP + SAGE Integration (MCP demo fast path) | MIXED |
 | [`examples/mcp-integration/README.md`](../examples/mcp-integration/README.md) | MCP + SAGE Integration Examples (MCP tool security examples overview) | MIXED |
 | [`examples/mcp-integration/basic-demo/README.md`](../examples/mcp-integration/basic-demo/README.md) | Basic SAGE + MCP Demo (Calculator MCP tool with RFC 9421-verified agents) | MIXED |
-| [`examples/mcp-integration/multi-agent/README.md`](../examples/mcp-integration/multi-agent/README.md) | Multi-Agent Secure Communication Example (Planned multi-agent capability demo) | STALE |
-| [`examples/mcp-integration/performance-benchmark/README.md`](../examples/mcp-integration/performance-benchmark/README.md) | Performance Benchmark Example (Secured vs insecure endpoint benchmark) | STALE |
 | [`examples/mcp-integration/simple-standalone/README.md`](../examples/mcp-integration/simple-standalone/README.md) | Simple Standalone SAGE Integration Example (Insecure vs SAGE-gated weather endpoints) | MIXED |
 | [`examples/mcp-integration/vulnerable-vs-secure/README.md`](../examples/mcp-integration/vulnerable-vs-secure/README.md) | Vulnerable vs Secure AI Chat Example (Attack demo vs header-gated server) | MIXED |
 | [`examples/simple-agent-init/README.md`](../examples/simple-agent-init/README.md) | Simple Agent Initialization (Minimal agent initialization example) | CURRENT |
@@ -167,13 +159,9 @@ Test guides and specification verification records.
 |---|---|---|
 | [`docs/test/FUZZING.md`](test/FUZZING.md) | SAGE Fuzzing Guide (Go and Foundry fuzzing) | MIXED |
 | [`docs/test/GO_TEST_COMMANDS.md`](test/GO_TEST_COMMANDS.md) | Go 테스트 명령어 모음 (Go test and CLI command reference for spec verification) | MIXED |
-| [`docs/test/LOAD-TESTING.md`](test/LOAD-TESTING.md) | SAGE Load Testing Guide (k6 load test scenarios and procedure) | STALE |
-| [`docs/test/OPTIMIZATION-PLAN.md`](test/OPTIMIZATION-PLAN.md) | SAGE Performance Optimization Plan (Session allocation reduction plan) | STALE |
-| [`docs/test/PERFORMANCE-BASELINE.md`](test/PERFORMANCE-BASELINE.md) | SAGE Performance Baseline Report (Crypto/session benchmark baseline report) | STALE |
 | [`docs/test/SPECIFICATION_VERIFICATION_MATRIX.md`](test/SPECIFICATION_VERIFICATION_MATRIX.md) | SAGE 명세서 검증 매트릭스 (Specification verification matrix (83 items) TOC) | MIXED |
 | [`docs/test/TESTING.md`](test/TESTING.md) | SAGE Testing Guide (Test environment and execution guide) | MIXED |
 | [`docs/test/TESTING_GUIDE.md`](test/TESTING_GUIDE.md) | SAGE Testing Guide (Running tests without skips (env setup)) | STALE |
-| [`docs/test/TEST_EXECUTION_GUIDE.md`](test/TEST_EXECUTION_GUIDE.md) | SAGE Complete Test Execution Guide (Hardhat node → Go deployment verification procedure) | STALE |
 | [`docs/test/sage-cli-commands-copy-paste.md`](test/sage-cli-commands-copy-paste.md) | SAGE CLI 명령어 - 복사 붙여넣기 버전 (CLI copy-paste command set) | MIXED |
 | [`docs/test/sections/SECTION_1_RFC9421.md`](test/sections/SECTION_1_RFC9421.md) | SECTION_1_RFC9421 (RFC 9421 test items 1.x verification record) | CURRENT |
 | [`docs/test/sections/SECTION_2_CRYPTO.md`](test/sections/SECTION_2_CRYPTO.md) | 출력: -----BEGIN PRIVATE KEY----- ... (Key management test items 2.x record) | CURRENT |
@@ -254,9 +242,19 @@ Historical material kept for reference.
 
 | Document | Title | Freshness |
 |---|---|---|
-| [`docs/audit/ARCHITECTURE-OVERVIEW.md`](audit/ARCHITECTURE-OVERVIEW.md) | SAGE Architecture Overview (Audit architecture overview (SageRegistryV2 era)) | STALE |
-| [`docs/audit/AUDIT-SCOPE.md`](audit/AUDIT-SCOPE.md) | SAGE Security Audit Scope (Security audit scope v1.0) | STALE |
-| [`docs/audit/README.md`](audit/README.md) | SAGE Security Audit Package (Security audit package index) | STALE |
-| [`docs/audit/SECURITY-CONSIDERATIONS.md`](audit/SECURITY-CONSIDERATIONS.md) | SAGE Security Considerations (Security analysis (attack vectors, mitigations, limits)) | STALE |
-| [`docs/maintenance/DOCUMENTATION_AUDIT_2025-10-26.md`](maintenance/DOCUMENTATION_AUDIT_2025-10-26.md) | Documentation Audit Report (Documentation audit snapshot (v1.3.0)) | STALE |
-| [`docs/planning/PERFORMANCE_OPTIMIZATION_ROADMAP.md`](planning/PERFORMANCE_OPTIMIZATION_ROADMAP.md) | SAGE 성능 최적화 로드맵 (Session/HPKE performance optimization roadmap) | STALE |
+| [`docs/archive/2026-09/SAGE_A2A_INTEGRATION_GUIDE.md`](archive/2026-09/SAGE_A2A_INTEGRATION_GUIDE.md) | SAGE-A2A Integration Guide |  |
+| [`docs/archive/2026-09/audit/ARCHITECTURE-OVERVIEW.md`](archive/2026-09/audit/ARCHITECTURE-OVERVIEW.md) | SAGE Architecture Overview |  |
+| [`docs/archive/2026-09/audit/AUDIT-SCOPE.md`](archive/2026-09/audit/AUDIT-SCOPE.md) | SAGE Security Audit Scope |  |
+| [`docs/archive/2026-09/audit/README.md`](archive/2026-09/audit/README.md) | SAGE Security Audit Package |  |
+| [`docs/archive/2026-09/audit/SECURITY-CONSIDERATIONS.md`](archive/2026-09/audit/SECURITY-CONSIDERATIONS.md) | SAGE Security Considerations |  |
+| [`docs/archive/2026-09/contracts/contracts-submodule-setup.md`](archive/2026-09/contracts/contracts-submodule-setup.md) | Setting Up SAGE Contracts as Git Submodule |  |
+| [`docs/archive/2026-09/dev/README.md`](archive/2026-09/dev/README.md) | SAGE (Secure Agent Guarantee Engine) |  |
+| [`docs/archive/2026-09/dev/api-spec.md`](archive/2026-09/dev/api-spec.md) | SAGE API 명세서 |  |
+| [`docs/archive/2026-09/dev/architecture.md`](archive/2026-09/dev/architecture.md) | SAGE 아키텍처 문서 |  |
+| [`docs/archive/2026-09/dev/development-guide.md`](archive/2026-09/dev/development-guide.md) | SAGE 개발 가이드 |  |
+| [`docs/archive/2026-09/maintenance/DOCUMENTATION_AUDIT_2025-10-26.md`](archive/2026-09/maintenance/DOCUMENTATION_AUDIT_2025-10-26.md) | Documentation Audit Report |  |
+| [`docs/archive/2026-09/planning/PERFORMANCE_OPTIMIZATION_ROADMAP.md`](archive/2026-09/planning/PERFORMANCE_OPTIMIZATION_ROADMAP.md) | SAGE 성능 최적화 로드맵 |  |
+| [`docs/archive/2026-09/test/LOAD-TESTING.md`](archive/2026-09/test/LOAD-TESTING.md) | SAGE Load Testing Guide |  |
+| [`docs/archive/2026-09/test/OPTIMIZATION-PLAN.md`](archive/2026-09/test/OPTIMIZATION-PLAN.md) | SAGE Performance Optimization Plan |  |
+| [`docs/archive/2026-09/test/PERFORMANCE-BASELINE.md`](archive/2026-09/test/PERFORMANCE-BASELINE.md) | SAGE Performance Baseline Report |  |
+| [`docs/archive/2026-09/test/TEST_EXECUTION_GUIDE.md`](archive/2026-09/test/TEST_EXECUTION_GUIDE.md) | SAGE Complete Test Execution Guide |  |

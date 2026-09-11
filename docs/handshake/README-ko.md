@@ -8,7 +8,7 @@
 
 1. **여기서 시작**: [암호학적 개요](./cryptographic-ko.md) - SAGE의 보안 기반 이해
 2. **접근 방식 선택**:
-   - **전통적 방식**: [4단계 핸드셰이크 가이드](./handshake-ko.md) - 성숙하고 검증된 방식
+   - **레거시**: [4단계 핸드셰이크 가이드](./handshake-ko.md) - 기존 연동용으로만 유지; 서버가 nonce/timestamp를 검사하지 않으며 제거 예정(`docs/refactoring/BACKLOG.md`, D-06)
    - **현대적 방식**: [HPKE 기반 핸드셰이크 가이드](./hpke-based-handshake-ko.md) - 1-RTT, 신규 프로젝트 권장
 
 ### 개발자용

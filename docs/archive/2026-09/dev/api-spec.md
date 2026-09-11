@@ -1,5 +1,7 @@
 # SAGE API 명세서
 
+> **Archived on 2026-09-12** (formerly `docs/dev/api-spec.md`). This document is kept for history only: planning-era API specification for a server that does not exist in this repository. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 >  **WARNING**: This document contains BOTH implemented and planned features.
 >
 > - **Section 1**: Currently implemented APIs (handshake, session, hpke, rfc9421, crypto, did)

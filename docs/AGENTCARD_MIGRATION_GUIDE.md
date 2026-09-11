@@ -535,7 +535,7 @@ params := &did.RegistrationParams{
 
 ### Mainnet
 ```
-AgentCardRegistry: TBD (not yet deployed)
+AgentCardRegistry: 0xC7eCF7Ad6ee71CB0d94f0eb00F46f1DDf432a808  (see pkg/agent/crypto/chain/presets.go; a redeploy is pending for the Ownable2Step ERC-8004 registries, backlog C-01)
 ```
 
 ### Sepolia Testnet

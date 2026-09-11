@@ -1,5 +1,7 @@
 # Setting Up SAGE Contracts as Git Submodule
 
+> **Archived on 2026-09-12** (formerly `docs/contracts/contracts-submodule-setup.md`). This document is kept for history only: proposal to split contracts/ into a submodule that was not adopted; the repository split is planned in docs/refactoring/STRATEGY.md instead. The current documentation is listed in [`docs/INDEX.md`](../../../INDEX.md); the assessment that led to archiving is in `docs/refactoring/DOCS_GRAPH.md`, section 5.
+
 This guide explains how to separate the SAGE smart contracts into their own repository and link them via git submodule.
 
 ## Step 1: Create Contracts Repository
