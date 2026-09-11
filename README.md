@@ -135,7 +135,7 @@ sage/
 ├── cmd/                     # CLI applications
 │   ├── sage-crypto/        # Cryptographic operations CLI
 │   ├── sage-did/           # DID management CLI
-│   └── deployment-verify/  # Blockchain deployment verification CLI
+│   └── sage-verify/        # Health, blockchain, system and deployment checks
 ├── examples/                # Usage examples
 │   └── mcp-integration/    # Model Context Protocol integration examples
 ├── tests/                   # Testing infrastructure

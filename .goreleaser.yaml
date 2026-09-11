@@ -45,9 +45,9 @@ builds:
     goos: *goos
     goarch: *goarch
     ignore: *ignore
-  - id: deployment-verify
-    main: ./cmd/deployment-verify
-    binary: deployment-verify
+  - id: sage-verify
+    main: ./cmd/sage-verify
+    binary: sage-verify
     flags: [-trimpath]
     mod_timestamp: "{{ .CommitTimestamp }}"
     ldflags: *ldflags

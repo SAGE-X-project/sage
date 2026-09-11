@@ -10,8 +10,8 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/sage-x-project/sage/pkg/agent/transport"
-	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +32,7 @@ func (m *mockTransport) Send(ctx context.Context, msg *transport.SecureMessage) 
 
 // Test sendAndGetSignedMsg error handling paths (PR #118)
 func TestClient_SendAndGetSignedMsg_ErrorHandling(t *testing.T) {
-	helpers.LogTestSection(t, "6.3.1", "HPKE Client Error Handling - Enhanced Error Messages")
+	testutil.LogTestSection(t, "6.3.1", "HPKE Client Error Handling - Enhanced Error Messages")
 
 	ctx := context.Background()
 	msg := &transport.SecureMessage{
@@ -52,7 +52,7 @@ func TestClient_SendAndGetSignedMsg_ErrorHandling(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "transport send")
 		assert.Contains(t, err.Error(), "network timeout")
-		helpers.LogSuccess(t, "Transport error handled with context")
+		testutil.LogSuccess(t, "Transport error handled with context")
 	})
 
 	t.Run("Nil response from server", func(t *testing.T) {
@@ -67,7 +67,7 @@ func TestClient_SendAndGetSignedMsg_ErrorHandling(t *testing.T) {
 		assert.Nil(t, resp)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "nil response")
-		helpers.LogSuccess(t, "Nil response detected")
+		testutil.LogSuccess(t, "Nil response detected")
 	})
 
 	t.Run("Response with Success=false and Error field", func(t *testing.T) {
@@ -86,7 +86,7 @@ func TestClient_SendAndGetSignedMsg_ErrorHandling(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "handshake failed")
 		assert.Contains(t, err.Error(), "authentication failed")
-		helpers.LogSuccess(t, "Error field extracted and reported")
+		testutil.LogSuccess(t, "Error field extracted and reported")
 	})
 
 	t.Run("Response with Success=false and error in Data", func(t *testing.T) {
@@ -106,7 +106,7 @@ func TestClient_SendAndGetSignedMsg_ErrorHandling(t *testing.T) {
 		assert.Contains(t, err.Error(), "handshake failed")
 		assert.Contains(t, err.Error(), "Invalid signature")
 		assert.NotContains(t, err.Error(), "  ", "Should trim whitespace")
-		helpers.LogSuccess(t, "Error message from Data field extracted")
+		testutil.LogSuccess(t, "Error message from Data field extracted")
 	})
 
 	t.Run("Response with Success=false but no error details", func(t *testing.T) {
@@ -124,7 +124,7 @@ func TestClient_SendAndGetSignedMsg_ErrorHandling(t *testing.T) {
 		assert.Nil(t, resp)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "no error details provided")
-		helpers.LogSuccess(t, "Generic error for missing details")
+		testutil.LogSuccess(t, "Generic error for missing details")
 	})
 
 	t.Run("Response with Success=true but empty Data", func(t *testing.T) {
@@ -142,7 +142,7 @@ func TestClient_SendAndGetSignedMsg_ErrorHandling(t *testing.T) {
 		assert.Nil(t, resp)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "empty response data")
-		helpers.LogSuccess(t, "Empty data detected despite Success=true")
+		testutil.LogSuccess(t, "Empty data detected despite Success=true")
 	})
 
 	t.Run("Valid successful response", func(t *testing.T) {
@@ -161,7 +161,7 @@ func TestClient_SendAndGetSignedMsg_ErrorHandling(t *testing.T) {
 		assert.NotNil(t, resp)
 		assert.True(t, resp.Success)
 		assert.Equal(t, "valid response data", string(resp.Data))
-		helpers.LogSuccess(t, "Valid response accepted")
+		testutil.LogSuccess(t, "Valid response accepted")
 	})
 
 	t.Run("Multiple consecutive calls", func(t *testing.T) {
@@ -182,13 +182,13 @@ func TestClient_SendAndGetSignedMsg_ErrorHandling(t *testing.T) {
 		}
 
 		assert.Equal(t, 3, mockTransport.sendCallCount, "Should call transport 3 times")
-		helpers.LogSuccess(t, "Multiple calls handled correctly")
+		testutil.LogSuccess(t, "Multiple calls handled correctly")
 	})
 }
 
 // Test error handling with context cancellation
 func TestClient_SendAndGetSignedMsg_ContextCancellation(t *testing.T) {
-	helpers.LogTestSection(t, "6.3.2", "HPKE Client - Context Handling")
+	testutil.LogTestSection(t, "6.3.2", "HPKE Client - Context Handling")
 
 	t.Run("Context already cancelled", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
@@ -205,7 +205,7 @@ func TestClient_SendAndGetSignedMsg_ContextCancellation(t *testing.T) {
 
 		assert.Nil(t, resp)
 		assert.Error(t, err)
-		helpers.LogSuccess(t, "Cancelled context handled")
+		testutil.LogSuccess(t, "Cancelled context handled")
 	})
 
 	t.Run("Context deadline exceeded", func(t *testing.T) {
@@ -221,13 +221,13 @@ func TestClient_SendAndGetSignedMsg_ContextCancellation(t *testing.T) {
 		assert.Nil(t, resp)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "deadline")
-		helpers.LogSuccess(t, "Deadline exceeded handled")
+		testutil.LogSuccess(t, "Deadline exceeded handled")
 	})
 }
 
 // Test edge cases with response data
 func TestClient_SendAndGetSignedMsg_ResponseDataEdgeCases(t *testing.T) {
-	helpers.LogTestSection(t, "6.3.3", "HPKE Client - Response Data Edge Cases")
+	testutil.LogTestSection(t, "6.3.3", "HPKE Client - Response Data Edge Cases")
 
 	ctx := context.Background()
 	msg := &transport.SecureMessage{TaskID: "test"}
@@ -246,7 +246,7 @@ func TestClient_SendAndGetSignedMsg_ResponseDataEdgeCases(t *testing.T) {
 		assert.Nil(t, resp)
 		assert.Error(t, err)
 		// After trimming whitespace, should be treated as empty
-		helpers.LogSuccess(t, "Whitespace-only data handled")
+		testutil.LogSuccess(t, "Whitespace-only data handled")
 	})
 
 	t.Run("Response with very large Data", func(t *testing.T) {
@@ -268,7 +268,7 @@ func TestClient_SendAndGetSignedMsg_ResponseDataEdgeCases(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 		assert.Equal(t, len(largeData), len(resp.Data))
-		helpers.LogSuccess(t, "Large response data handled")
+		testutil.LogSuccess(t, "Large response data handled")
 	})
 
 	t.Run("Response with binary data in error message", func(t *testing.T) {
@@ -287,7 +287,7 @@ func TestClient_SendAndGetSignedMsg_ResponseDataEdgeCases(t *testing.T) {
 		assert.Nil(t, resp)
 		assert.Error(t, err)
 		// Should not panic with binary data
-		helpers.LogSuccess(t, "Binary data in error handled")
+		testutil.LogSuccess(t, "Binary data in error handled")
 	})
 }
 

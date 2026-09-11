@@ -30,9 +30,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/vault"
-	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,24 +40,24 @@ import (
 func TestEd25519KeyPair(t *testing.T) {
 	t.Run("GenerateKeyPair", func(t *testing.T) {
 		// Specification Requirement: Complete key lifecycle - generation, secure storage, loading, and verification
-		helpers.LogTestSection(t, "2.1.2", "Ed25519 Complete Key Lifecycle (Generation + Secure Storage + Verification)")
+		testutil.LogTestSection(t, "2.1.2", "Ed25519 Complete Key Lifecycle (Generation + Secure Storage + Verification)")
 
 		// ====================
 		// PART 1: 키 생성 (Key Generation)
 		// ====================
-		helpers.LogDetail(t, "PART 1: 키 생성 (Key Generation using SAGE core functions)")
-		helpers.LogDetail(t, "Step 1-1: Generate Ed25519 key pair (SAGE GenerateEd25519KeyPair)")
-		helpers.LogDetail(t, "  Using crypto/ed25519.GenerateKey() - cryptographically secure random")
+		testutil.LogDetail(t, "PART 1: 키 생성 (Key Generation using SAGE core functions)")
+		testutil.LogDetail(t, "Step 1-1: Generate Ed25519 key pair (SAGE GenerateEd25519KeyPair)")
+		testutil.LogDetail(t, "  Using crypto/ed25519.GenerateKey() - cryptographically secure random")
 		keyPair, err := GenerateEd25519KeyPair()
 		require.NoError(t, err)
 		require.NotNil(t, keyPair)
-		helpers.LogSuccess(t, "Ed25519 key pair generated successfully")
+		testutil.LogSuccess(t, "Ed25519 key pair generated successfully")
 
-		helpers.LogDetail(t, "Step 1-2: Validate generated key type")
+		testutil.LogDetail(t, "Step 1-2: Validate generated key type")
 		assert.Equal(t, crypto.KeyTypeEd25519, keyPair.Type())
-		helpers.LogSuccess(t, "Key type confirmed: Ed25519")
+		testutil.LogSuccess(t, "Key type confirmed: Ed25519")
 
-		helpers.LogDetail(t, "Step 1-3: Extract and validate key material")
+		testutil.LogDetail(t, "Step 1-3: Extract and validate key material")
 		pubKey := keyPair.PublicKey()
 		require.NotNil(t, pubKey)
 		privKey := keyPair.PrivateKey()
@@ -66,134 +66,134 @@ func TestEd25519KeyPair(t *testing.T) {
 		pubKeyBytes, ok := pubKey.(ed25519.PublicKey)
 		require.True(t, ok, "Public key must be ed25519.PublicKey type")
 		assert.Equal(t, 32, len(pubKeyBytes), "Public key must be exactly 32 bytes")
-		helpers.LogSuccess(t, "Public key size validated: 32 bytes")
+		testutil.LogSuccess(t, "Public key size validated: 32 bytes")
 
 		privKeyBytes, ok := privKey.(ed25519.PrivateKey)
 		require.True(t, ok, "Private key must be ed25519.PrivateKey type")
 		assert.Equal(t, 64, len(privKeyBytes), "Private key must be exactly 64 bytes")
-		helpers.LogSuccess(t, "Private key size validated: 64 bytes")
-		helpers.LogDetail(t, "  Public key (hex): %x", pubKeyBytes)
+		testutil.LogSuccess(t, "Private key size validated: 64 bytes")
+		testutil.LogDetail(t, "  Public key (hex): %x", pubKeyBytes)
 
 		keyID := keyPair.ID()
 		assert.NotEmpty(t, keyID)
-		helpers.LogDetail(t, "  Key ID (from public key hash): %s", keyID)
+		testutil.LogDetail(t, "  Key ID (from public key hash): %s", keyID)
 
-		helpers.LogDetail(t, "Step 1-4: Test cryptographic functionality - Sign message")
+		testutil.LogDetail(t, "Step 1-4: Test cryptographic functionality - Sign message")
 		testMessage := []byte("SAGE test message for Ed25519 key verification")
 		signature, err := keyPair.Sign(testMessage)
 		require.NoError(t, err)
 		require.NotEmpty(t, signature)
 		assert.Equal(t, 64, len(signature), "Ed25519 signature must be 64 bytes")
-		helpers.LogSuccess(t, "Signature generated: 64 bytes (Ed25519 format)")
+		testutil.LogSuccess(t, "Signature generated: 64 bytes (Ed25519 format)")
 
-		helpers.LogDetail(t, "Step 1-5: Verify generated signature")
+		testutil.LogDetail(t, "Step 1-5: Verify generated signature")
 		err = keyPair.Verify(testMessage, signature)
 		require.NoError(t, err)
-		helpers.LogSuccess(t, "Signature verification successful - Key is cryptographically valid")
+		testutil.LogSuccess(t, "Signature verification successful - Key is cryptographically valid")
 
 		// ====================
 		// PART 2: 안전한 저장 (Secure Storage)
 		// ====================
-		helpers.LogDetail(t, "")
-		helpers.LogDetail(t, "PART 2: 안전한 저장 (Secure Storage using SAGE FileVault)")
+		testutil.LogDetail(t, "")
+		testutil.LogDetail(t, "PART 2: 안전한 저장 (Secure Storage using SAGE FileVault)")
 
-		helpers.LogDetail(t, "Step 2-1: Create temporary directory for FileVault")
+		testutil.LogDetail(t, "Step 2-1: Create temporary directory for FileVault")
 		tempDir, err := os.MkdirTemp("", "ed25519_encrypted_test")
 		require.NoError(t, err)
 		defer func() { _ = os.RemoveAll(tempDir) }()
-		helpers.LogSuccess(t, "Temporary vault directory created")
-		helpers.LogDetail(t, "  Vault directory: %s", tempDir)
+		testutil.LogSuccess(t, "Temporary vault directory created")
+		testutil.LogDetail(t, "  Vault directory: %s", tempDir)
 
-		helpers.LogDetail(t, "Step 2-2: Initialize SAGE FileVault for encrypted storage")
+		testutil.LogDetail(t, "Step 2-2: Initialize SAGE FileVault for encrypted storage")
 		v, err := vault.NewFileVault(tempDir)
 		require.NoError(t, err)
-		helpers.LogSuccess(t, "FileVault initialized (AES-256-GCM + PBKDF2)")
+		testutil.LogSuccess(t, "FileVault initialized (AES-256-GCM + PBKDF2)")
 
-		helpers.LogDetail(t, "Step 2-3: Store key with encryption (password-based)")
+		testutil.LogDetail(t, "Step 2-3: Store key with encryption (password-based)")
 		storedKeyID := "test_ed25519_encrypted"
 		correctPassphrase := "strong_ed25519_passphrase_123!@#"
 		wrongPassphrase := "wrong_passphrase"
 
-		helpers.LogDetail(t, "  Encrypting with AES-256-GCM (PBKDF2 100,000 iterations)")
+		testutil.LogDetail(t, "  Encrypting with AES-256-GCM (PBKDF2 100,000 iterations)")
 		err = v.StoreEncrypted(storedKeyID, []byte(privKeyBytes), correctPassphrase)
 		require.NoError(t, err)
-		helpers.LogSuccess(t, "Key encrypted and stored securely")
-		helpers.LogDetail(t, "  Stored key ID: %s", storedKeyID)
+		testutil.LogSuccess(t, "Key encrypted and stored securely")
+		testutil.LogDetail(t, "  Stored key ID: %s", storedKeyID)
 
-		helpers.LogDetail(t, "Step 2-4: Verify encrypted file was created")
+		testutil.LogDetail(t, "Step 2-4: Verify encrypted file was created")
 		assert.True(t, v.Exists(storedKeyID))
-		helpers.LogSuccess(t, "Encrypted key file exists in FileVault")
+		testutil.LogSuccess(t, "Encrypted key file exists in FileVault")
 
-		helpers.LogDetail(t, "Step 2-5: Verify file permissions (security requirement)")
+		testutil.LogDetail(t, "Step 2-5: Verify file permissions (security requirement)")
 		keyFilePath := filepath.Join(tempDir, storedKeyID+".json")
 		fileInfo, err := os.Stat(keyFilePath)
 		require.NoError(t, err)
 		assert.Equal(t, os.FileMode(0600), fileInfo.Mode().Perm())
-		helpers.LogSuccess(t, "File permissions verified: 0600 (owner read/write only)")
-		helpers.LogDetail(t, "  File path: %s", keyFilePath)
+		testutil.LogSuccess(t, "File permissions verified: 0600 (owner read/write only)")
+		testutil.LogDetail(t, "  File path: %s", keyFilePath)
 
 		// ====================
 		// PART 3: 키 로드 및 재사용 (Key Loading and Reuse)
 		// ====================
-		helpers.LogDetail(t, "")
-		helpers.LogDetail(t, "PART 3: 키 로드 및 재사용 (Key Loading and Reuse)")
+		testutil.LogDetail(t, "")
+		testutil.LogDetail(t, "PART 3: 키 로드 및 재사용 (Key Loading and Reuse)")
 
-		helpers.LogDetail(t, "Step 3-1: Load and decrypt with correct passphrase")
+		testutil.LogDetail(t, "Step 3-1: Load and decrypt with correct passphrase")
 		decryptedKeyBytes, err := v.LoadDecrypted(storedKeyID, correctPassphrase)
 		require.NoError(t, err)
 		require.NotEmpty(t, decryptedKeyBytes)
-		helpers.LogSuccess(t, "Key decrypted successfully with correct passphrase")
+		testutil.LogSuccess(t, "Key decrypted successfully with correct passphrase")
 
-		helpers.LogDetail(t, "Step 3-2: Verify decrypted key matches original")
+		testutil.LogDetail(t, "Step 3-2: Verify decrypted key matches original")
 		assert.Equal(t, []byte(privKeyBytes), decryptedKeyBytes)
-		helpers.LogSuccess(t, "Decrypted key matches original (integrity verified)")
-		helpers.LogDetail(t, "  Decrypted key size: %d bytes", len(decryptedKeyBytes))
+		testutil.LogSuccess(t, "Decrypted key matches original (integrity verified)")
+		testutil.LogDetail(t, "  Decrypted key size: %d bytes", len(decryptedKeyBytes))
 
-		helpers.LogDetail(t, "Step 3-3: Test wrong passphrase rejection (security requirement)")
+		testutil.LogDetail(t, "Step 3-3: Test wrong passphrase rejection (security requirement)")
 		_, err = v.LoadDecrypted(storedKeyID, wrongPassphrase)
 		assert.Error(t, err)
 		assert.Equal(t, vault.ErrInvalidPassphrase, err)
-		helpers.LogSuccess(t, "Wrong passphrase correctly rejected - Security validated")
+		testutil.LogSuccess(t, "Wrong passphrase correctly rejected - Security validated")
 
-		helpers.LogDetail(t, "Step 3-4: Reconstruct Ed25519 key pair from decrypted data")
+		testutil.LogDetail(t, "Step 3-4: Reconstruct Ed25519 key pair from decrypted data")
 		reconstructedPrivKey := ed25519.PrivateKey(decryptedKeyBytes)
 		reconstructedPubKey := reconstructedPrivKey.Public().(ed25519.PublicKey)
-		helpers.LogSuccess(t, "Ed25519 key pair reconstructed from stored data")
+		testutil.LogSuccess(t, "Ed25519 key pair reconstructed from stored data")
 
-		helpers.LogDetail(t, "Step 3-5: Verify reconstructed keys match original")
+		testutil.LogDetail(t, "Step 3-5: Verify reconstructed keys match original")
 		assert.Equal(t, privKeyBytes, reconstructedPrivKey)
 		assert.Equal(t, pubKeyBytes, reconstructedPubKey)
-		helpers.LogSuccess(t, "Reconstructed keys match original keys perfectly")
+		testutil.LogSuccess(t, "Reconstructed keys match original keys perfectly")
 
 		// ====================
 		// PART 4: 재사용 검증 (Reuse Verification)
 		// ====================
-		helpers.LogDetail(t, "")
-		helpers.LogDetail(t, "PART 4: 재사용 검증 (Reuse Verification - Sign and Verify)")
+		testutil.LogDetail(t, "")
+		testutil.LogDetail(t, "PART 4: 재사용 검증 (Reuse Verification - Sign and Verify)")
 
-		helpers.LogDetail(t, "Step 4-1: Sign message with reconstructed key")
+		testutil.LogDetail(t, "Step 4-1: Sign message with reconstructed key")
 		testMessage2 := []byte("test message for reconstructed Ed25519 key")
 		signature2 := ed25519.Sign(reconstructedPrivKey, testMessage2)
 		require.NotEmpty(t, signature2)
 		assert.Equal(t, 64, len(signature2))
-		helpers.LogSuccess(t, "Signature generated with reconstructed key")
-		helpers.LogDetail(t, "  Test message: %s", string(testMessage2))
-		helpers.LogDetail(t, "  Signature length: %d bytes", len(signature2))
+		testutil.LogSuccess(t, "Signature generated with reconstructed key")
+		testutil.LogDetail(t, "  Test message: %s", string(testMessage2))
+		testutil.LogDetail(t, "  Signature length: %d bytes", len(signature2))
 
-		helpers.LogDetail(t, "Step 4-2: Verify signature with original public key")
+		testutil.LogDetail(t, "Step 4-2: Verify signature with original public key")
 		valid := ed25519.Verify(pubKeyBytes, testMessage2, signature2)
 		assert.True(t, valid)
-		helpers.LogSuccess(t, "Signature verified with original public key")
+		testutil.LogSuccess(t, "Signature verified with original public key")
 
-		helpers.LogDetail(t, "Step 4-3: Verify signature with reconstructed public key")
+		testutil.LogDetail(t, "Step 4-3: Verify signature with reconstructed public key")
 		valid2 := ed25519.Verify(reconstructedPubKey, testMessage2, signature2)
 		assert.True(t, valid2)
-		helpers.LogSuccess(t, "Signature verified with reconstructed public key - Key fully functional after storage/loading")
+		testutil.LogSuccess(t, "Signature verified with reconstructed public key - Key fully functional after storage/loading")
 
 		// ====================
 		// Pass Criteria Checklist
 		// ====================
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			" PART 1: 키 생성 (Key Generation)",
 			"  - SAGE GenerateEd25519KeyPair() 사용",
 			"  - 암호학적으로 안전한 random 생성 (crypto/ed25519.GenerateKey)",
@@ -259,19 +259,19 @@ func TestEd25519KeyPair(t *testing.T) {
 				"signature":   64,
 			},
 		}
-		helpers.SaveTestData(t, "keys/ed25519_key_generation.json", testData)
+		testutil.SaveTestData(t, "keys/ed25519_key_generation.json", testData)
 	})
 
 	t.Run("SignAndVerify", func(t *testing.T) {
 		// Specification Requirement: Ed25519 signature/verification (64-byte signature)
-		helpers.LogTestSection(t, "2.4.1", "Ed25519 Signature and Verification")
+		testutil.LogTestSection(t, "2.4.1", "Ed25519 Signature and Verification")
 
 		keyPair, err := GenerateEd25519KeyPair()
 		require.NoError(t, err)
 
 		message := []byte("test message for ed25519 signature")
-		helpers.LogDetail(t, "Test message: %s", string(message))
-		helpers.LogDetail(t, "Message size: %d bytes", len(message))
+		testutil.LogDetail(t, "Test message: %s", string(message))
+		testutil.LogDetail(t, "Message size: %d bytes", len(message))
 
 		// Sign message
 		signature, err := keyPair.Sign(message)
@@ -281,21 +281,21 @@ func TestEd25519KeyPair(t *testing.T) {
 		// Specification Requirement: Signature size must be 64 bytes
 		assert.Equal(t, 64, len(signature), "Ed25519 signature must be 64 bytes")
 
-		helpers.LogSuccess(t, "Signature generation successful")
-		helpers.LogDetail(t, "Signature size: %d bytes (expected: 64 bytes)", len(signature))
-		helpers.LogDetail(t, "Signature (hex): %x", signature)
+		testutil.LogSuccess(t, "Signature generation successful")
+		testutil.LogDetail(t, "Signature size: %d bytes (expected: 64 bytes)", len(signature))
+		testutil.LogDetail(t, "Signature (hex): %x", signature)
 
 		// Verify signature
 		err = keyPair.Verify(message, signature)
 		assert.NoError(t, err)
-		helpers.LogSuccess(t, "Signature verification successful")
+		testutil.LogSuccess(t, "Signature verification successful")
 
 		// Specification Requirement: Tamper detection - wrong message should fail
 		wrongMessage := []byte("wrong message")
 		err = keyPair.Verify(wrongMessage, signature)
 		assert.Error(t, err)
 		assert.Equal(t, crypto.ErrInvalidSignature, err)
-		helpers.LogSuccess(t, "Tamper detection: Wrong message rejected (expected behavior)")
+		testutil.LogSuccess(t, "Tamper detection: Wrong message rejected (expected behavior)")
 
 		// Specification Requirement: Tamper detection - modified signature should fail
 		wrongSignature := make([]byte, len(signature))
@@ -304,10 +304,10 @@ func TestEd25519KeyPair(t *testing.T) {
 		err = keyPair.Verify(message, wrongSignature)
 		assert.Error(t, err)
 		assert.Equal(t, crypto.ErrInvalidSignature, err)
-		helpers.LogSuccess(t, "Tamper detection: Modified signature rejected (expected behavior)")
+		testutil.LogSuccess(t, "Tamper detection: Modified signature rejected (expected behavior)")
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"Signature generation successful",
 			"Signature size = 64 bytes",
 			"Verification successful",
@@ -329,7 +329,7 @@ func TestEd25519KeyPair(t *testing.T) {
 			"signature_size":  len(signature),
 			"expected_size":   64,
 		}
-		helpers.SaveTestData(t, "keys/ed25519_sign_verify.json", testData)
+		testutil.SaveTestData(t, "keys/ed25519_sign_verify.json", testData)
 	})
 
 	t.Run("MultipleKeyPairsHaveDifferentIDs", func(t *testing.T) {
@@ -378,13 +378,13 @@ func TestEd25519KeyPair(t *testing.T) {
 // Test 2.2.1: PEM 형식 저장
 func TestEd25519KeyPairPEM(t *testing.T) {
 	// Specification Requirement: PEM format key storage and loading
-	helpers.LogTestSection(t, "2.2.1", "PEM Format Key Storage")
+	testutil.LogTestSection(t, "2.2.1", "PEM Format Key Storage")
 
 	// Generate Ed25519 key pair
 	keyPair, err := GenerateEd25519KeyPair()
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Key pair generated")
-	helpers.LogDetail(t, "Key ID: %s", keyPair.ID())
+	testutil.LogSuccess(t, "Key pair generated")
+	testutil.LogDetail(t, "Key ID: %s", keyPair.ID())
 
 	// Get private key
 	privKey := keyPair.PrivateKey().(ed25519.PrivateKey)
@@ -393,7 +393,7 @@ func TestEd25519KeyPairPEM(t *testing.T) {
 	// Export private key to PKCS#8 DER format, then PEM
 	privKeyDER, err := x509.MarshalPKCS8PrivateKey(privKey)
 	require.NoError(t, err)
-	helpers.LogDetail(t, "Private key marshaled to PKCS#8 DER format")
+	testutil.LogDetail(t, "Private key marshaled to PKCS#8 DER format")
 
 	// Create PEM block for private key
 	privKeyPEM := pem.EncodeToMemory(&pem.Block{
@@ -401,16 +401,16 @@ func TestEd25519KeyPairPEM(t *testing.T) {
 		Bytes: privKeyDER,
 	})
 	require.NotEmpty(t, privKeyPEM)
-	helpers.LogSuccess(t, "Private key exported to PEM format")
+	testutil.LogSuccess(t, "Private key exported to PEM format")
 
 	// Verify PEM format structure
 	pemStr := string(privKeyPEM)
 	assert.Contains(t, pemStr, "-----BEGIN PRIVATE KEY-----")
 	assert.Contains(t, pemStr, "-----END PRIVATE KEY-----")
-	helpers.LogSuccess(t, "PEM format structure validated")
-	helpers.LogDetail(t, "PEM header: -----BEGIN PRIVATE KEY-----")
-	helpers.LogDetail(t, "PEM footer: -----END PRIVATE KEY-----")
-	helpers.LogDetail(t, "PEM data length: %d bytes", len(privKeyPEM))
+	testutil.LogSuccess(t, "PEM format structure validated")
+	testutil.LogDetail(t, "PEM header: -----BEGIN PRIVATE KEY-----")
+	testutil.LogDetail(t, "PEM footer: -----END PRIVATE KEY-----")
+	testutil.LogDetail(t, "PEM data length: %d bytes", len(privKeyPEM))
 
 	// Create temporary file for storage test
 	tempDir, err := os.MkdirTemp("", "pem_test")
@@ -420,60 +420,60 @@ func TestEd25519KeyPairPEM(t *testing.T) {
 	pemFile := filepath.Join(tempDir, "test.pem")
 	err = os.WriteFile(pemFile, privKeyPEM, 0600)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "PEM data saved to file")
-	helpers.LogDetail(t, "File path: %s", pemFile)
+	testutil.LogSuccess(t, "PEM data saved to file")
+	testutil.LogDetail(t, "File path: %s", pemFile)
 
 	// Verify file permissions
 	fileInfo, err := os.Stat(pemFile)
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0600), fileInfo.Mode().Perm())
-	helpers.LogSuccess(t, "File permissions verified (0600)")
+	testutil.LogSuccess(t, "File permissions verified (0600)")
 
 	// Load PEM from file
 	loadedPEM, err := os.ReadFile(pemFile)
 	require.NoError(t, err)
 	assert.Equal(t, privKeyPEM, loadedPEM)
-	helpers.LogSuccess(t, "PEM data loaded from file")
+	testutil.LogSuccess(t, "PEM data loaded from file")
 
 	// Import PEM to key pair
 	block, _ := pem.Decode(loadedPEM)
 	require.NotNil(t, block)
 	require.Equal(t, "PRIVATE KEY", block.Type)
-	helpers.LogDetail(t, "PEM block decoded successfully")
+	testutil.LogDetail(t, "PEM block decoded successfully")
 
 	// Parse PKCS#8 private key
 	parsedKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "PKCS#8 private key parsed")
+	testutil.LogSuccess(t, "PKCS#8 private key parsed")
 
 	// Convert to Ed25519 private key
 	importedPrivKey, ok := parsedKey.(ed25519.PrivateKey)
 	require.True(t, ok, "Parsed key should be Ed25519 private key")
 	importedPubKey := importedPrivKey.Public().(ed25519.PublicKey)
-	helpers.LogSuccess(t, "Key pair imported from PEM")
+	testutil.LogSuccess(t, "Key pair imported from PEM")
 
 	// Verify keys match
 	assert.Equal(t, privKey, importedPrivKey)
 	assert.Equal(t, pubKey, importedPubKey)
-	helpers.LogSuccess(t, "Imported keys match original keys")
+	testutil.LogSuccess(t, "Imported keys match original keys")
 
 	// Test signing with imported key
 	message := []byte("test message for PEM imported key")
 	signature := ed25519.Sign(importedPrivKey, message)
 	require.NotEmpty(t, signature)
-	helpers.LogSuccess(t, "Signature generated with imported key")
-	helpers.LogDetail(t, "Message: %s", string(message))
-	helpers.LogDetail(t, "Signature length: %d bytes", len(signature))
+	testutil.LogSuccess(t, "Signature generated with imported key")
+	testutil.LogDetail(t, "Message: %s", string(message))
+	testutil.LogDetail(t, "Signature length: %d bytes", len(signature))
 
 	// Verify signature with original key
 	valid := ed25519.Verify(pubKey, message, signature)
 	assert.True(t, valid)
-	helpers.LogSuccess(t, "Signature verified with original key")
+	testutil.LogSuccess(t, "Signature verified with original key")
 
 	// Verify signature with imported key
 	validImported := ed25519.Verify(importedPubKey, message, signature)
 	assert.True(t, validImported)
-	helpers.LogSuccess(t, "Signature verified with imported key")
+	testutil.LogSuccess(t, "Signature verified with imported key")
 
 	// Export public key only
 	pubKeyDER, err := x509.MarshalPKIXPublicKey(pubKey)
@@ -483,13 +483,13 @@ func TestEd25519KeyPairPEM(t *testing.T) {
 		Bytes: pubKeyDER,
 	})
 	require.NotEmpty(t, publicPEM)
-	helpers.LogSuccess(t, "Public key exported to PEM")
+	testutil.LogSuccess(t, "Public key exported to PEM")
 
 	// Verify public key PEM format
 	publicPEMStr := string(publicPEM)
 	assert.Contains(t, publicPEMStr, "-----BEGIN PUBLIC KEY-----")
 	assert.Contains(t, publicPEMStr, "-----END PUBLIC KEY-----")
-	helpers.LogSuccess(t, "Public key PEM format validated")
+	testutil.LogSuccess(t, "Public key PEM format validated")
 
 	// Verify PEM is base64 encoded
 	lines := strings.Split(pemStr, "\n")
@@ -497,14 +497,14 @@ func TestEd25519KeyPairPEM(t *testing.T) {
 	for _, line := range lines {
 		if !strings.HasPrefix(line, "-----") && len(strings.TrimSpace(line)) > 0 {
 			hasBase64Content = true
-			helpers.LogDetail(t, "Sample PEM content (base64): %s...", line[:min(len(line), 40)])
+			testutil.LogDetail(t, "Sample PEM content (base64): %s...", line[:min(len(line), 40)])
 			break
 		}
 	}
 	assert.True(t, hasBase64Content, "PEM should contain base64 encoded data")
 
 	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
+	testutil.LogPassCriteria(t, []string{
 		"PEM 형식으로 키 저장 성공",
 		"PEM 헤더/푸터 검증",
 		"파일 권한 설정 (0600)",
@@ -529,25 +529,25 @@ func TestEd25519KeyPairPEM(t *testing.T) {
 			"verified":      true,
 		},
 	}
-	helpers.SaveTestData(t, "keys/ed25519_pem_storage.json", testData)
+	testutil.SaveTestData(t, "keys/ed25519_pem_storage.json", testData)
 }
 
 // Test 2.2.2: 암호화 저장
 func TestEd25519KeyPairEncrypted(t *testing.T) {
 	// Specification Requirement: Password-encrypted key storage
-	helpers.LogTestSection(t, "2.2.2", "Encrypted Key Storage with Password")
+	testutil.LogTestSection(t, "2.2.2", "Encrypted Key Storage with Password")
 
 	// Generate Ed25519 key pair
 	keyPair, err := GenerateEd25519KeyPair()
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Key pair generated")
-	helpers.LogDetail(t, "Key ID: %s", keyPair.ID())
+	testutil.LogSuccess(t, "Key pair generated")
+	testutil.LogDetail(t, "Key ID: %s", keyPair.ID())
 
 	// Get private and public keys
 	privKey := keyPair.PrivateKey().(ed25519.PrivateKey)
 	pubKey := keyPair.PublicKey().(ed25519.PublicKey)
 	keyData := []byte(privKey)
-	helpers.LogDetail(t, "Private key size: %d bytes", len(keyData))
+	testutil.LogDetail(t, "Private key size: %d bytes", len(keyData))
 
 	// Create temporary directory for file vault
 	tempDir, err := os.MkdirTemp("", "encrypted_key_test")
@@ -557,88 +557,88 @@ func TestEd25519KeyPairEncrypted(t *testing.T) {
 	// Create vault for encrypted storage
 	v, err := vault.NewFileVault(tempDir)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Vault created")
-	helpers.LogDetail(t, "Vault directory: %s", tempDir)
+	testutil.LogSuccess(t, "Vault created")
+	testutil.LogDetail(t, "Vault directory: %s", tempDir)
 
 	// Store key with encryption
 	keyID := "test_ed25519_encrypted"
 	correctPassphrase := "strong_passphrase_123!@#"
 	wrongPassphrase := "wrong_passphrase"
 
-	helpers.LogDetail(t, "Encrypting key with passphrase...")
+	testutil.LogDetail(t, "Encrypting key with passphrase...")
 	err = v.StoreEncrypted(keyID, keyData, correctPassphrase)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Key encrypted and stored")
-	helpers.LogDetail(t, "Key ID: %s", keyID)
+	testutil.LogSuccess(t, "Key encrypted and stored")
+	testutil.LogDetail(t, "Key ID: %s", keyID)
 
 	// Verify file was created
 	assert.True(t, v.Exists(keyID))
-	helpers.LogSuccess(t, "Encrypted key file exists")
+	testutil.LogSuccess(t, "Encrypted key file exists")
 
 	// Verify file permissions (should be 0600)
 	keyFilePath := filepath.Join(tempDir, keyID+".json")
 	fileInfo, err := os.Stat(keyFilePath)
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0600), fileInfo.Mode().Perm())
-	helpers.LogSuccess(t, "File permissions verified (0600)")
-	helpers.LogDetail(t, "File path: %s", keyFilePath)
+	testutil.LogSuccess(t, "File permissions verified (0600)")
+	testutil.LogDetail(t, "File path: %s", keyFilePath)
 
 	// Load and decrypt with correct passphrase
-	helpers.LogDetail(t, "Decrypting with correct passphrase...")
+	testutil.LogDetail(t, "Decrypting with correct passphrase...")
 	decryptedKey, err := v.LoadDecrypted(keyID, correctPassphrase)
 	require.NoError(t, err)
 	require.NotEmpty(t, decryptedKey)
-	helpers.LogSuccess(t, "Key decrypted successfully")
+	testutil.LogSuccess(t, "Key decrypted successfully")
 
 	// Verify decrypted key matches original
 	assert.Equal(t, keyData, decryptedKey)
-	helpers.LogSuccess(t, "Decrypted key matches original")
-	helpers.LogDetail(t, "Decrypted key size: %d bytes", len(decryptedKey))
+	testutil.LogSuccess(t, "Decrypted key matches original")
+	testutil.LogDetail(t, "Decrypted key size: %d bytes", len(decryptedKey))
 
 	// Try to load with wrong passphrase (should fail)
-	helpers.LogDetail(t, "Testing with wrong passphrase...")
+	testutil.LogDetail(t, "Testing with wrong passphrase...")
 	_, err = v.LoadDecrypted(keyID, wrongPassphrase)
 	assert.Error(t, err)
 	assert.Equal(t, vault.ErrInvalidPassphrase, err)
-	helpers.LogSuccess(t, "Wrong passphrase correctly rejected")
-	helpers.LogDetail(t, "Error: %v", err)
+	testutil.LogSuccess(t, "Wrong passphrase correctly rejected")
+	testutil.LogDetail(t, "Error: %v", err)
 
 	// Reconstruct key pair from decrypted data
-	helpers.LogDetail(t, "Reconstructing key pair from decrypted data...")
+	testutil.LogDetail(t, "Reconstructing key pair from decrypted data...")
 	reconstructedPrivKey := ed25519.PrivateKey(decryptedKey)
 	reconstructedPubKey := reconstructedPrivKey.Public().(ed25519.PublicKey)
-	helpers.LogSuccess(t, "Key pair reconstructed from decrypted data")
+	testutil.LogSuccess(t, "Key pair reconstructed from decrypted data")
 
 	// Verify reconstructed keys match original
 	assert.Equal(t, privKey, reconstructedPrivKey)
 	assert.Equal(t, pubKey, reconstructedPubKey)
-	helpers.LogSuccess(t, "Reconstructed keys match original keys")
+	testutil.LogSuccess(t, "Reconstructed keys match original keys")
 
 	// Test signing with reconstructed key
 	message := []byte("test message for encrypted key")
 	signature := ed25519.Sign(reconstructedPrivKey, message)
 	require.NotEmpty(t, signature)
-	helpers.LogSuccess(t, "Signature generated with reconstructed key")
-	helpers.LogDetail(t, "Message: %s", string(message))
-	helpers.LogDetail(t, "Signature length: %d bytes", len(signature))
+	testutil.LogSuccess(t, "Signature generated with reconstructed key")
+	testutil.LogDetail(t, "Message: %s", string(message))
+	testutil.LogDetail(t, "Signature length: %d bytes", len(signature))
 
 	// Verify signature with original public key
 	valid := ed25519.Verify(pubKey, message, signature)
 	assert.True(t, valid)
-	helpers.LogSuccess(t, "Signature verified with original key")
+	testutil.LogSuccess(t, "Signature verified with original key")
 
 	// Test empty passphrase handling
-	helpers.LogDetail(t, "Testing empty passphrase...")
+	testutil.LogDetail(t, "Testing empty passphrase...")
 	emptyKeyID := "test_empty_pass"
 	err = v.StoreEncrypted(emptyKeyID, keyData, "")
 	require.NoError(t, err)
 	loadedEmpty, err := v.LoadDecrypted(emptyKeyID, "")
 	require.NoError(t, err)
 	assert.Equal(t, keyData, loadedEmpty)
-	helpers.LogSuccess(t, "Empty passphrase handled correctly")
+	testutil.LogSuccess(t, "Empty passphrase handled correctly")
 
 	// Test key overwrite with different passphrase
-	helpers.LogDetail(t, "Testing key overwrite...")
+	testutil.LogDetail(t, "Testing key overwrite...")
 	newPassphrase := "new_passphrase_456"
 	err = v.StoreEncrypted(keyID, keyData, newPassphrase)
 	require.NoError(t, err)
@@ -646,23 +646,23 @@ func TestEd25519KeyPairEncrypted(t *testing.T) {
 	// Old passphrase should fail
 	_, err = v.LoadDecrypted(keyID, correctPassphrase)
 	assert.Error(t, err)
-	helpers.LogSuccess(t, "Old passphrase fails after overwrite")
+	testutil.LogSuccess(t, "Old passphrase fails after overwrite")
 
 	// New passphrase should work
 	reloadedKey, err := v.LoadDecrypted(keyID, newPassphrase)
 	require.NoError(t, err)
 	assert.Equal(t, keyData, reloadedKey)
-	helpers.LogSuccess(t, "New passphrase works after overwrite")
+	testutil.LogSuccess(t, "New passphrase works after overwrite")
 
 	// Test key deletion
-	helpers.LogDetail(t, "Testing key deletion...")
+	testutil.LogDetail(t, "Testing key deletion...")
 	err = v.Delete(keyID)
 	require.NoError(t, err)
 	assert.False(t, v.Exists(keyID))
-	helpers.LogSuccess(t, "Key deleted successfully")
+	testutil.LogSuccess(t, "Key deleted successfully")
 
 	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
+	testutil.LogPassCriteria(t, []string{
 		"패스워드로 키 암호화",
 		"올바른 패스워드로 복호화 성공",
 		"잘못된 패스워드로 복호화 실패",
@@ -693,19 +693,19 @@ func TestEd25519KeyPairEncrypted(t *testing.T) {
 			"verified":      true,
 		},
 	}
-	helpers.SaveTestData(t, "keys/ed25519_encrypted_storage.json", testData)
+	testutil.SaveTestData(t, "keys/ed25519_encrypted_storage.json", testData)
 }
 
 // Test 10.2.3: DER 형식 저장
 func TestEd25519KeyPairDER(t *testing.T) {
 	// Specification Requirement: DER format key storage and loading
-	helpers.LogTestSection(t, "10.2.3", "DER Format Key Storage")
+	testutil.LogTestSection(t, "10.2.3", "DER Format Key Storage")
 
 	// Generate Ed25519 key pair
 	keyPair, err := GenerateEd25519KeyPair()
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Key pair generated")
-	helpers.LogDetail(t, "Key ID: %s", keyPair.ID())
+	testutil.LogSuccess(t, "Key pair generated")
+	testutil.LogDetail(t, "Key ID: %s", keyPair.ID())
 
 	// Get keys
 	privKey := keyPair.PrivateKey().(ed25519.PrivateKey)
@@ -715,51 +715,51 @@ func TestEd25519KeyPairDER(t *testing.T) {
 	privKeyDER, err := x509.MarshalPKCS8PrivateKey(privKey)
 	require.NoError(t, err)
 	require.NotEmpty(t, privKeyDER)
-	helpers.LogSuccess(t, "Private key exported to DER format")
-	helpers.LogDetail(t, "DER private key size: %d bytes", len(privKeyDER))
+	testutil.LogSuccess(t, "Private key exported to DER format")
+	testutil.LogDetail(t, "DER private key size: %d bytes", len(privKeyDER))
 
 	// Export public key to PKIX DER format
 	pubKeyDER, err := x509.MarshalPKIXPublicKey(pubKey)
 	require.NoError(t, err)
 	require.NotEmpty(t, pubKeyDER)
-	helpers.LogSuccess(t, "Public key exported to DER format")
-	helpers.LogDetail(t, "DER public key size: %d bytes", len(pubKeyDER))
+	testutil.LogSuccess(t, "Public key exported to DER format")
+	testutil.LogDetail(t, "DER public key size: %d bytes", len(pubKeyDER))
 
 	// Import private key from DER
 	parsedPrivKey, err := x509.ParsePKCS8PrivateKey(privKeyDER)
 	require.NoError(t, err)
 	importedPrivKey, ok := parsedPrivKey.(ed25519.PrivateKey)
 	require.True(t, ok, "Parsed key should be Ed25519 private key")
-	helpers.LogSuccess(t, "Private key imported from DER")
+	testutil.LogSuccess(t, "Private key imported from DER")
 
 	// Verify imported private key matches
 	assert.Equal(t, privKey, importedPrivKey)
-	helpers.LogSuccess(t, "Imported private key matches original")
+	testutil.LogSuccess(t, "Imported private key matches original")
 
 	// Import public key from DER
 	parsedPubKey, err := x509.ParsePKIXPublicKey(pubKeyDER)
 	require.NoError(t, err)
 	importedPubKey, ok := parsedPubKey.(ed25519.PublicKey)
 	require.True(t, ok, "Parsed key should be Ed25519 public key")
-	helpers.LogSuccess(t, "Public key imported from DER")
+	testutil.LogSuccess(t, "Public key imported from DER")
 
 	// Verify imported public key matches
 	assert.Equal(t, pubKey, importedPubKey)
-	helpers.LogSuccess(t, "Imported public key matches original")
+	testutil.LogSuccess(t, "Imported public key matches original")
 
 	// Test signing with imported key
 	message := []byte("test message for DER imported key")
 	signature := ed25519.Sign(importedPrivKey, message)
 	require.NotEmpty(t, signature)
-	helpers.LogSuccess(t, "Signature generated with imported key")
+	testutil.LogSuccess(t, "Signature generated with imported key")
 
 	// Verify signature
 	valid := ed25519.Verify(importedPubKey, message, signature)
 	assert.True(t, valid)
-	helpers.LogSuccess(t, "Signature verified")
+	testutil.LogSuccess(t, "Signature verified")
 
 	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
+	testutil.LogPassCriteria(t, []string{
 		"DER 형식으로 키 저장",
 		"DER 형식에서 키 로드",
 		"비밀키 DER 변환 (PKCS#8)",
@@ -778,18 +778,18 @@ func TestEd25519KeyPairDER(t *testing.T) {
 		"public_key_hex": hex.EncodeToString(pubKey),
 		"signature_hex":  hex.EncodeToString(signature),
 	}
-	helpers.SaveTestData(t, "keys/ed25519_der_format.json", testData)
+	testutil.SaveTestData(t, "keys/ed25519_der_format.json", testData)
 }
 
 // Test 10.2.5: Ed25519 바이트 변환
 func TestEd25519KeyPairBytes(t *testing.T) {
 	// Specification Requirement: Public/private key byte array conversion
-	helpers.LogTestSection(t, "10.2.5", "Ed25519 Byte Array Conversion")
+	testutil.LogTestSection(t, "10.2.5", "Ed25519 Byte Array Conversion")
 
 	// Generate Ed25519 key pair
 	keyPair, err := GenerateEd25519KeyPair()
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Key pair generated")
+	testutil.LogSuccess(t, "Key pair generated")
 
 	// Get keys
 	privKey := keyPair.PrivateKey().(ed25519.PrivateKey)
@@ -798,43 +798,43 @@ func TestEd25519KeyPairBytes(t *testing.T) {
 	// Convert to bytes
 	privKeyBytes := []byte(privKey)
 	pubKeyBytes := []byte(pubKey)
-	helpers.LogSuccess(t, "Keys converted to byte arrays")
-	helpers.LogDetail(t, "Private key size: %d bytes", len(privKeyBytes))
-	helpers.LogDetail(t, "Public key size: %d bytes", len(pubKeyBytes))
+	testutil.LogSuccess(t, "Keys converted to byte arrays")
+	testutil.LogDetail(t, "Private key size: %d bytes", len(privKeyBytes))
+	testutil.LogDetail(t, "Public key size: %d bytes", len(pubKeyBytes))
 
 	// Verify sizes
 	assert.Equal(t, 64, len(privKeyBytes), "Ed25519 private key should be 64 bytes")
 	assert.Equal(t, 32, len(pubKeyBytes), "Ed25519 public key should be 32 bytes")
-	helpers.LogSuccess(t, "Key sizes verified")
+	testutil.LogSuccess(t, "Key sizes verified")
 
 	// Reconstruct keys from bytes
 	reconstructedPrivKey := ed25519.PrivateKey(privKeyBytes)
 	reconstructedPubKey := ed25519.PublicKey(pubKeyBytes)
-	helpers.LogSuccess(t, "Keys reconstructed from bytes")
+	testutil.LogSuccess(t, "Keys reconstructed from bytes")
 
 	// Verify reconstructed keys match originals
 	assert.Equal(t, privKey, reconstructedPrivKey)
 	assert.Equal(t, pubKey, reconstructedPubKey)
-	helpers.LogSuccess(t, "Reconstructed keys match originals")
+	testutil.LogSuccess(t, "Reconstructed keys match originals")
 
 	// Test signing with reconstructed key
 	message := []byte("test message for byte conversion")
 	signature := ed25519.Sign(reconstructedPrivKey, message)
 	require.NotEmpty(t, signature)
-	helpers.LogSuccess(t, "Signature generated with reconstructed key")
+	testutil.LogSuccess(t, "Signature generated with reconstructed key")
 
 	// Verify signature
 	valid := ed25519.Verify(reconstructedPubKey, message, signature)
 	assert.True(t, valid)
-	helpers.LogSuccess(t, "Signature verified")
+	testutil.LogSuccess(t, "Signature verified")
 
 	// Test public key derivation from private key
 	derivedPubKey := reconstructedPrivKey.Public().(ed25519.PublicKey)
 	assert.Equal(t, pubKey, derivedPubKey)
-	helpers.LogSuccess(t, "Public key derived from private key")
+	testutil.LogSuccess(t, "Public key derived from private key")
 
 	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
+	testutil.LogPassCriteria(t, []string{
 		"공개키 바이트 변환",
 		"비밀키 바이트 변환",
 		"Ed25519 키 크기 검증 (32/64 bytes)",
@@ -853,18 +853,18 @@ func TestEd25519KeyPairBytes(t *testing.T) {
 		"public_key_hex":  hex.EncodeToString(pubKeyBytes),
 		"signature_hex":   hex.EncodeToString(signature),
 	}
-	helpers.SaveTestData(t, "keys/ed25519_byte_conversion.json", testData)
+	testutil.SaveTestData(t, "keys/ed25519_byte_conversion.json", testData)
 }
 
 // Test 10.2.7: Hex 인코딩
 func TestEd25519KeyHexEncoding(t *testing.T) {
 	// Specification Requirement: Hexadecimal string conversion
-	helpers.LogTestSection(t, "10.2.7", "Ed25519 Hex Encoding")
+	testutil.LogTestSection(t, "10.2.7", "Ed25519 Hex Encoding")
 
 	// Generate Ed25519 key pair
 	keyPair, err := GenerateEd25519KeyPair()
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Key pair generated")
+	testutil.LogSuccess(t, "Key pair generated")
 
 	// Get keys
 	privKey := keyPair.PrivateKey().(ed25519.PrivateKey)
@@ -873,48 +873,48 @@ func TestEd25519KeyHexEncoding(t *testing.T) {
 	// Encode to hex
 	privKeyHex := hex.EncodeToString(privKey)
 	pubKeyHex := hex.EncodeToString(pubKey)
-	helpers.LogSuccess(t, "Keys encoded to hex")
-	helpers.LogDetail(t, "Private key hex length: %d characters", len(privKeyHex))
-	helpers.LogDetail(t, "Public key hex length: %d characters", len(pubKeyHex))
-	helpers.LogDetail(t, "Public key hex: %s", pubKeyHex)
+	testutil.LogSuccess(t, "Keys encoded to hex")
+	testutil.LogDetail(t, "Private key hex length: %d characters", len(privKeyHex))
+	testutil.LogDetail(t, "Public key hex length: %d characters", len(pubKeyHex))
+	testutil.LogDetail(t, "Public key hex: %s", pubKeyHex)
 
 	// Verify hex lengths (64 bytes = 128 hex chars, 32 bytes = 64 hex chars)
 	assert.Equal(t, 128, len(privKeyHex), "Private key hex should be 128 characters")
 	assert.Equal(t, 64, len(pubKeyHex), "Public key hex should be 64 characters")
-	helpers.LogSuccess(t, "Hex lengths verified")
+	testutil.LogSuccess(t, "Hex lengths verified")
 
 	// Decode from hex
 	decodedPrivKey, err := hex.DecodeString(privKeyHex)
 	require.NoError(t, err)
 	decodedPubKey, err := hex.DecodeString(pubKeyHex)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Keys decoded from hex")
+	testutil.LogSuccess(t, "Keys decoded from hex")
 
 	// Verify decoded keys match originals
 	assert.Equal(t, []byte(privKey), decodedPrivKey)
 	assert.Equal(t, []byte(pubKey), decodedPubKey)
-	helpers.LogSuccess(t, "Decoded keys match originals")
+	testutil.LogSuccess(t, "Decoded keys match originals")
 
 	// Test signing with decoded key
 	message := []byte("test message for hex encoding")
 	reconstructedPrivKey := ed25519.PrivateKey(decodedPrivKey)
 	signature := ed25519.Sign(reconstructedPrivKey, message)
 	require.NotEmpty(t, signature)
-	helpers.LogSuccess(t, "Signature generated with decoded key")
+	testutil.LogSuccess(t, "Signature generated with decoded key")
 
 	// Verify signature
 	reconstructedPubKey := ed25519.PublicKey(decodedPubKey)
 	valid := ed25519.Verify(reconstructedPubKey, message, signature)
 	assert.True(t, valid)
-	helpers.LogSuccess(t, "Signature verified")
+	testutil.LogSuccess(t, "Signature verified")
 
 	// Test invalid hex handling
 	_, err = hex.DecodeString("invalid_hex_string_with_non_hex_chars!!")
 	assert.Error(t, err)
-	helpers.LogSuccess(t, "Invalid hex correctly rejected")
+	testutil.LogSuccess(t, "Invalid hex correctly rejected")
 
 	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
+	testutil.LogPassCriteria(t, []string{
 		"Hex 인코딩 성공",
 		"Hex 디코딩 성공",
 		"키 크기 검증 (128/64 chars)",
@@ -934,18 +934,18 @@ func TestEd25519KeyHexEncoding(t *testing.T) {
 		},
 		"signature_hex": hex.EncodeToString(signature),
 	}
-	helpers.SaveTestData(t, "keys/ed25519_hex_encoding.json", testData)
+	testutil.SaveTestData(t, "keys/ed25519_hex_encoding.json", testData)
 }
 
 // Test 10.2.8: Base64 인코딩
 func TestEd25519KeyBase64Encoding(t *testing.T) {
 	// Specification Requirement: Base64 string conversion
-	helpers.LogTestSection(t, "10.2.8", "Ed25519 Base64 Encoding")
+	testutil.LogTestSection(t, "10.2.8", "Ed25519 Base64 Encoding")
 
 	// Generate Ed25519 key pair
 	keyPair, err := GenerateEd25519KeyPair()
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Key pair generated")
+	testutil.LogSuccess(t, "Key pair generated")
 
 	// Get keys
 	privKey := keyPair.PrivateKey().(ed25519.PrivateKey)
@@ -954,62 +954,62 @@ func TestEd25519KeyBase64Encoding(t *testing.T) {
 	// Encode to standard base64
 	privKeyB64 := base64.StdEncoding.EncodeToString(privKey)
 	pubKeyB64 := base64.StdEncoding.EncodeToString(pubKey)
-	helpers.LogSuccess(t, "Keys encoded to base64 (standard)")
-	helpers.LogDetail(t, "Private key base64 length: %d characters", len(privKeyB64))
-	helpers.LogDetail(t, "Public key base64 length: %d characters", len(pubKeyB64))
-	helpers.LogDetail(t, "Public key base64: %s", pubKeyB64)
+	testutil.LogSuccess(t, "Keys encoded to base64 (standard)")
+	testutil.LogDetail(t, "Private key base64 length: %d characters", len(privKeyB64))
+	testutil.LogDetail(t, "Public key base64 length: %d characters", len(pubKeyB64))
+	testutil.LogDetail(t, "Public key base64: %s", pubKeyB64)
 
 	// Encode to URL-safe base64
 	privKeyB64URL := base64.URLEncoding.EncodeToString(privKey)
 	pubKeyB64URL := base64.URLEncoding.EncodeToString(pubKey)
-	helpers.LogSuccess(t, "Keys encoded to base64 (URL-safe)")
-	helpers.LogDetail(t, "URL-safe private key: %d characters", len(privKeyB64URL))
-	helpers.LogDetail(t, "URL-safe public key: %d characters", len(pubKeyB64URL))
+	testutil.LogSuccess(t, "Keys encoded to base64 (URL-safe)")
+	testutil.LogDetail(t, "URL-safe private key: %d characters", len(privKeyB64URL))
+	testutil.LogDetail(t, "URL-safe public key: %d characters", len(pubKeyB64URL))
 
 	// Decode standard base64
 	decodedPrivKey, err := base64.StdEncoding.DecodeString(privKeyB64)
 	require.NoError(t, err)
 	decodedPubKey, err := base64.StdEncoding.DecodeString(pubKeyB64)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Keys decoded from base64 (standard)")
+	testutil.LogSuccess(t, "Keys decoded from base64 (standard)")
 
 	// Verify decoded keys match originals
 	assert.Equal(t, []byte(privKey), decodedPrivKey)
 	assert.Equal(t, []byte(pubKey), decodedPubKey)
-	helpers.LogSuccess(t, "Decoded keys match originals")
+	testutil.LogSuccess(t, "Decoded keys match originals")
 
 	// Decode URL-safe base64
 	decodedPrivKeyURL, err := base64.URLEncoding.DecodeString(privKeyB64URL)
 	require.NoError(t, err)
 	decodedPubKeyURL, err := base64.URLEncoding.DecodeString(pubKeyB64URL)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Keys decoded from base64 (URL-safe)")
+	testutil.LogSuccess(t, "Keys decoded from base64 (URL-safe)")
 
 	// Verify URL-safe decoded keys match
 	assert.Equal(t, []byte(privKey), decodedPrivKeyURL)
 	assert.Equal(t, []byte(pubKey), decodedPubKeyURL)
-	helpers.LogSuccess(t, "URL-safe decoded keys match originals")
+	testutil.LogSuccess(t, "URL-safe decoded keys match originals")
 
 	// Test signing with decoded key
 	message := []byte("test message for base64 encoding")
 	reconstructedPrivKey := ed25519.PrivateKey(decodedPrivKey)
 	signature := ed25519.Sign(reconstructedPrivKey, message)
 	require.NotEmpty(t, signature)
-	helpers.LogSuccess(t, "Signature generated with decoded key")
+	testutil.LogSuccess(t, "Signature generated with decoded key")
 
 	// Verify signature
 	reconstructedPubKey := ed25519.PublicKey(decodedPubKey)
 	valid := ed25519.Verify(reconstructedPubKey, message, signature)
 	assert.True(t, valid)
-	helpers.LogSuccess(t, "Signature verified")
+	testutil.LogSuccess(t, "Signature verified")
 
 	// Test invalid base64 handling
 	_, err = base64.StdEncoding.DecodeString("invalid base64 with spaces!!")
 	assert.Error(t, err)
-	helpers.LogSuccess(t, "Invalid base64 correctly rejected")
+	testutil.LogSuccess(t, "Invalid base64 correctly rejected")
 
 	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
+	testutil.LogPassCriteria(t, []string{
 		"Base64 표준 인코딩",
 		"Base64 URL-safe 인코딩",
 		"Base64 디코딩 성공",
@@ -1033,18 +1033,18 @@ func TestEd25519KeyBase64Encoding(t *testing.T) {
 		},
 		"signature_hex": hex.EncodeToString(signature),
 	}
-	helpers.SaveTestData(t, "keys/ed25519_base64_encoding.json", testData)
+	testutil.SaveTestData(t, "keys/ed25519_base64_encoding.json", testData)
 }
 
 // Test 10.2.10: 잘못된 서명 거부
 func TestEd25519InvalidSignatureRejection(t *testing.T) {
 	// Specification Requirement: Tampered signature verification failure
-	helpers.LogTestSection(t, "10.2.10", "Invalid Signature Rejection")
+	testutil.LogTestSection(t, "10.2.10", "Invalid Signature Rejection")
 
 	// Generate Ed25519 key pair
 	keyPair, err := GenerateEd25519KeyPair()
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Key pair generated")
+	testutil.LogSuccess(t, "Key pair generated")
 
 	// Get keys
 	privKey := keyPair.PrivateKey().(ed25519.PrivateKey)
@@ -1054,21 +1054,21 @@ func TestEd25519InvalidSignatureRejection(t *testing.T) {
 	message := []byte("original message for signature testing")
 	signature := ed25519.Sign(privKey, message)
 	require.NotEmpty(t, signature)
-	helpers.LogSuccess(t, "Valid signature generated")
-	helpers.LogDetail(t, "Message: %s", string(message))
-	helpers.LogDetail(t, "Signature length: %d bytes", len(signature))
+	testutil.LogSuccess(t, "Valid signature generated")
+	testutil.LogDetail(t, "Message: %s", string(message))
+	testutil.LogDetail(t, "Signature length: %d bytes", len(signature))
 
 	// Test 1: Verify valid signature works
 	valid := ed25519.Verify(pubKey, message, signature)
 	assert.True(t, valid)
-	helpers.LogSuccess(t, "Valid signature verified correctly")
+	testutil.LogSuccess(t, "Valid signature verified correctly")
 
 	// Test 2: Tampered message should fail
 	tamperedMessage := []byte("tampered message for signature testing")
 	valid = ed25519.Verify(pubKey, tamperedMessage, signature)
 	assert.False(t, valid, "Tampered message should fail verification")
-	helpers.LogSuccess(t, "Tampered message correctly rejected")
-	helpers.LogDetail(t, "Tampered message: %s", string(tamperedMessage))
+	testutil.LogSuccess(t, "Tampered message correctly rejected")
+	testutil.LogDetail(t, "Tampered message: %s", string(tamperedMessage))
 
 	// Test 3: Tampered signature (flip one bit)
 	tamperedSig := make([]byte, len(signature))
@@ -1076,7 +1076,7 @@ func TestEd25519InvalidSignatureRejection(t *testing.T) {
 	tamperedSig[0] ^= 0x01 // Flip first bit
 	valid = ed25519.Verify(pubKey, message, tamperedSig)
 	assert.False(t, valid, "Tampered signature should fail verification")
-	helpers.LogSuccess(t, "Tampered signature (bit flip) correctly rejected")
+	testutil.LogSuccess(t, "Tampered signature (bit flip) correctly rejected")
 
 	// Test 4: Tampered signature (flip multiple bytes)
 	tamperedSig2 := make([]byte, len(signature))
@@ -1086,7 +1086,7 @@ func TestEd25519InvalidSignatureRejection(t *testing.T) {
 	tamperedSig2[63] ^= 0xFF
 	valid = ed25519.Verify(pubKey, message, tamperedSig2)
 	assert.False(t, valid, "Multiple byte tampering should fail verification")
-	helpers.LogSuccess(t, "Tampered signature (multiple bytes) correctly rejected")
+	testutil.LogSuccess(t, "Tampered signature (multiple bytes) correctly rejected")
 
 	// Test 5: Wrong key should fail
 	wrongKeyPair, err := GenerateEd25519KeyPair()
@@ -1094,41 +1094,41 @@ func TestEd25519InvalidSignatureRejection(t *testing.T) {
 	wrongPubKey := wrongKeyPair.PublicKey().(ed25519.PublicKey)
 	valid = ed25519.Verify(wrongPubKey, message, signature)
 	assert.False(t, valid, "Wrong public key should fail verification")
-	helpers.LogSuccess(t, "Wrong public key correctly rejected")
+	testutil.LogSuccess(t, "Wrong public key correctly rejected")
 
 	// Test 6: Empty signature should fail
 	emptySig := []byte{}
 	valid = ed25519.Verify(pubKey, message, emptySig)
 	assert.False(t, valid, "Empty signature should fail verification")
-	helpers.LogSuccess(t, "Empty signature correctly rejected")
+	testutil.LogSuccess(t, "Empty signature correctly rejected")
 
 	// Test 7: Short signature should fail
 	shortSig := signature[:32] // Only half
 	valid = ed25519.Verify(pubKey, message, shortSig)
 	assert.False(t, valid, "Short signature should fail verification")
-	helpers.LogSuccess(t, "Short signature correctly rejected")
+	testutil.LogSuccess(t, "Short signature correctly rejected")
 
 	// Test 8: Long signature should fail
 	longSig := append(signature, 0x00, 0x01, 0x02)
 	valid = ed25519.Verify(pubKey, message, longSig)
 	assert.False(t, valid, "Long signature should fail verification")
-	helpers.LogSuccess(t, "Long signature correctly rejected")
+	testutil.LogSuccess(t, "Long signature correctly rejected")
 
 	// Test 9: Null message with valid signature should fail
 	nullMessage := []byte{}
 	validNullSig := ed25519.Sign(privKey, nullMessage)
 	valid = ed25519.Verify(pubKey, message, validNullSig)
 	assert.False(t, valid, "Null message signature should not verify different message")
-	helpers.LogSuccess(t, "Null message signature correctly rejected for non-null message")
+	testutil.LogSuccess(t, "Null message signature correctly rejected for non-null message")
 
 	// Test 10: Verify using KeyPair interface methods
 	err = keyPair.Verify(tamperedMessage, signature)
 	assert.Error(t, err)
 	assert.Equal(t, crypto.ErrInvalidSignature, err)
-	helpers.LogSuccess(t, "KeyPair.Verify correctly returns error")
+	testutil.LogSuccess(t, "KeyPair.Verify correctly returns error")
 
 	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
+	testutil.LogPassCriteria(t, []string{
 		"유효한 서명 검증 성공",
 		"변조된 메시지 거부",
 		"변조된 서명 거부 (1 bit)",
@@ -1158,18 +1158,18 @@ func TestEd25519InvalidSignatureRejection(t *testing.T) {
 			"interface_error":    true,
 		},
 	}
-	helpers.SaveTestData(t, "keys/ed25519_invalid_signature.json", testData)
+	testutil.SaveTestData(t, "keys/ed25519_invalid_signature.json", testData)
 }
 
 // Test 10.2.4: JWK 형식
 func TestEd25519KeyPairJWK(t *testing.T) {
 	// Specification Requirement: JSON Web Key format support for Ed25519
-	helpers.LogTestSection(t, "10.2.4", "JWK Format (JSON Web Key)")
+	testutil.LogTestSection(t, "10.2.4", "JWK Format (JSON Web Key)")
 
 	// Generate Ed25519 key pair
 	keyPair, err := GenerateEd25519KeyPair()
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Key pair generated")
+	testutil.LogSuccess(t, "Key pair generated")
 
 	// Get keys
 	privKey := keyPair.PrivateKey().(ed25519.PrivateKey)
@@ -1184,17 +1184,17 @@ func TestEd25519KeyPairJWK(t *testing.T) {
 		"x":   pubKeyB64,
 		"kid": keyPair.ID(),
 	}
-	helpers.LogSuccess(t, "Public key converted to JWK format")
-	helpers.LogDetail(t, "  kty: %v", publicJWK["kty"])
-	helpers.LogDetail(t, "  crv: %v", publicJWK["crv"])
-	helpers.LogDetail(t, "  kid: %v", publicJWK["kid"])
+	testutil.LogSuccess(t, "Public key converted to JWK format")
+	testutil.LogDetail(t, "  kty: %v", publicJWK["kty"])
+	testutil.LogDetail(t, "  crv: %v", publicJWK["crv"])
+	testutil.LogDetail(t, "  kid: %v", publicJWK["kid"])
 
 	// Verify JWK structure
 	assert.Equal(t, "OKP", publicJWK["kty"], "Key type should be OKP for Ed25519")
 	assert.Equal(t, "Ed25519", publicJWK["crv"], "Curve should be Ed25519")
 	assert.NotEmpty(t, publicJWK["x"], "x coordinate should be present")
 	assert.NotEmpty(t, publicJWK["kid"], "Key ID should be present")
-	helpers.LogSuccess(t, "JWK public key structure verified")
+	testutil.LogSuccess(t, "JWK public key structure verified")
 
 	// Create JWK format for private key (includes both public and private parts)
 	// Ed25519 private key is 64 bytes, but we only need the seed (first 32 bytes) for JWK
@@ -1207,26 +1207,26 @@ func TestEd25519KeyPairJWK(t *testing.T) {
 		"d":   privKeyB64,
 		"kid": keyPair.ID(),
 	}
-	helpers.LogSuccess(t, "Private key converted to JWK format")
+	testutil.LogSuccess(t, "Private key converted to JWK format")
 
 	// Verify private JWK contains both public and private parts
 	assert.Equal(t, "OKP", privateJWK["kty"])
 	assert.Equal(t, "Ed25519", privateJWK["crv"])
 	assert.NotEmpty(t, privateJWK["x"], "x coordinate should be present in private JWK")
 	assert.NotEmpty(t, privateJWK["d"], "d (private key) should be present in private JWK")
-	helpers.LogSuccess(t, "JWK private key structure verified")
-	helpers.LogDetail(t, "  d present: %v", privateJWK["d"] != nil)
+	testutil.LogSuccess(t, "JWK private key structure verified")
+	testutil.LogDetail(t, "  d present: %v", privateJWK["d"] != nil)
 
 	// Test JSON serialization
 	publicJWKJSON, err := json.Marshal(publicJWK)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Public JWK serialized to JSON")
-	helpers.LogDetail(t, "  JSON length: %d bytes", len(publicJWKJSON))
+	testutil.LogSuccess(t, "Public JWK serialized to JSON")
+	testutil.LogDetail(t, "  JSON length: %d bytes", len(publicJWKJSON))
 
 	privateJWKJSON, err := json.Marshal(privateJWK)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Private JWK serialized to JSON")
-	helpers.LogDetail(t, "  JSON length: %d bytes", len(privateJWKJSON))
+	testutil.LogSuccess(t, "Private JWK serialized to JSON")
+	testutil.LogDetail(t, "  JSON length: %d bytes", len(privateJWKJSON))
 
 	// Test round-trip: Parse JWK back to key
 	// Parse public key from JWK
@@ -1234,37 +1234,37 @@ func TestEd25519KeyPairJWK(t *testing.T) {
 	require.NoError(t, err)
 	importedPubKey := ed25519.PublicKey(xBytes)
 	assert.Equal(t, []byte(pubKey), []byte(importedPubKey))
-	helpers.LogSuccess(t, "Public key imported from JWK")
+	testutil.LogSuccess(t, "Public key imported from JWK")
 
 	// Parse private key from JWK
 	dBytes, err := base64.RawURLEncoding.DecodeString(privateJWK["d"].(string))
 	require.NoError(t, err)
 	importedPrivKey := ed25519.NewKeyFromSeed(dBytes)
-	helpers.LogSuccess(t, "Private key imported from JWK")
+	testutil.LogSuccess(t, "Private key imported from JWK")
 
 	// Verify imported private key works by signing
 	message := []byte("test message for JWK round-trip")
 	signature := ed25519.Sign(importedPrivKey, message)
 	require.NotEmpty(t, signature)
-	helpers.LogSuccess(t, "Signature generated with imported private key")
+	testutil.LogSuccess(t, "Signature generated with imported private key")
 
 	// Verify signature with original public key
 	valid := ed25519.Verify(pubKey, message, signature)
 	assert.True(t, valid)
-	helpers.LogSuccess(t, "Signature verified with original public key")
+	testutil.LogSuccess(t, "Signature verified with original public key")
 
 	// Verify signature with imported public key
 	valid = ed25519.Verify(importedPubKey, message, signature)
 	assert.True(t, valid)
-	helpers.LogSuccess(t, "Signature verified with imported public key")
+	testutil.LogSuccess(t, "Signature verified with imported public key")
 
 	// Verify the imported private key's public key matches
 	importedPubFromPriv := importedPrivKey.Public().(ed25519.PublicKey)
 	assert.Equal(t, []byte(pubKey), []byte(importedPubFromPriv))
-	helpers.LogSuccess(t, "Imported private key's public key matches original")
+	testutil.LogSuccess(t, "Imported private key's public key matches original")
 
 	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
+	testutil.LogPassCriteria(t, []string{
 		"JWK 형식으로 공개키 변환",
 		"JWK 형식으로 비밀키 변환",
 		"kty=OKP, crv=Ed25519 검증",
@@ -1293,7 +1293,7 @@ func TestEd25519KeyPairJWK(t *testing.T) {
 		"round_trip_success": true,
 		"signature_hex":      hex.EncodeToString(signature),
 	}
-	helpers.SaveTestData(t, "keys/ed25519_jwk_format.json", testData)
+	testutil.SaveTestData(t, "keys/ed25519_jwk_format.json", testData)
 }
 
 // Helper function to get minimum of two integers

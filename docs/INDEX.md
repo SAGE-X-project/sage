@@ -90,14 +90,13 @@ Package-level READMEs under pkg/ and internal/.
 
 ## Command-line tools
 
-sage-crypto, sage-did, sage-verify and deployment-verify.
+sage-crypto, sage-did and sage-verify.
 
 | Binary | Purpose |
 |---|---|
 | `sage-crypto` (`cmd/sage-crypto`) | key generation, import/export (JWK, PEM), signing, verification and address derivation |
 | `sage-did` (`cmd/sage-did`) | agent registration (commit -> register -> activate), resolution, key and A2A card management |
-| `sage-verify` (`cmd/sage-verify`) | health checks against a configured network and contract |
-| `deployment-verify` (`cmd/deployment-verify`) | prints the blockchain configuration and deployment record for a network and tests the RPC connection |
+| `sage-verify` (`cmd/sage-verify`) | health, blockchain and system checks; `deployment` prints the configuration and deployment record for a network and tests the RPC and registry code |
 
 Guides:
 

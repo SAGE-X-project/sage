@@ -19,7 +19,7 @@ linters:
       rules:
         pkg-is-the-public-api:
           # pkg/** may import only pkg/** and third-party code.
-          # Test files may use tests/helpers until internal/testutil exists (D-05).
+          # Test files may use internal/testutil until internal/testutil exists (D-05).
           files:
             - "**/pkg/**/*.go"
             - "!**/*_test.go"

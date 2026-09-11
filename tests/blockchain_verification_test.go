@@ -29,9 +29,9 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/sage-x-project/sage/deployments/config"
+	"github.com/sage-x-project/sage/internal/config"
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +39,7 @@ import (
 // TestBlockchainProviderConfiguration tests provider creation and configuration
 // 명세서 요구사항: 4.1.1.1 Web3 Provider 연결 성공
 func TestBlockchainProviderConfiguration(t *testing.T) {
-	helpers.LogTestSection(t, "4.1.1.1", "Web3 Provider Configuration Validation")
+	testutil.LogTestSection(t, "4.1.1.1", "Web3 Provider Configuration Validation")
 
 	cfg := &config.BlockchainConfig{
 		NetworkRPC:     "http://localhost:8545",
@@ -85,14 +85,14 @@ func TestBlockchainProviderConfiguration(t *testing.T) {
 			},
 		}
 
-		helpers.SaveTestData(t, "blockchain/provider_configuration.json", testData)
+		testutil.SaveTestData(t, "blockchain/provider_configuration.json", testData)
 	})
 }
 
 // TestBlockchainChainID_SpecVerification tests chain ID specification verification (no blockchain connection required)
 // 명세서 요구사항: 4.1.1.2 체인 ID 확인 (로컬: 31337)
 func TestBlockchainChainID_SpecVerification(t *testing.T) {
-	helpers.LogTestSection(t, "4.1.1.2", "Chain ID Verification (Local: 31337)")
+	testutil.LogTestSection(t, "4.1.1.2", "Chain ID Verification (Local: 31337)")
 
 	expectedChainID := big.NewInt(31337)
 
@@ -120,14 +120,14 @@ func TestBlockchainChainID_SpecVerification(t *testing.T) {
 			},
 		}
 
-		helpers.SaveTestData(t, "blockchain/chain_id_verification.json", testData)
+		testutil.SaveTestData(t, "blockchain/chain_id_verification.json", testData)
 	})
 }
 
 // TestTransactionSigning tests transaction signing functionality
 // 명세서 요구사항: 4.1.2.1 트랜잭션 서명 성공
 func TestTransactionSigning(t *testing.T) {
-	helpers.LogTestSection(t, "4.1.2.1", "Transaction Signing with ECDSA Secp256k1")
+	testutil.LogTestSection(t, "4.1.2.1", "Transaction Signing with ECDSA Secp256k1")
 
 	t.Run("Sign transaction with private key", func(t *testing.T) {
 		t.Log("=== 테스트: 트랜잭션 서명 ===")
@@ -195,14 +195,14 @@ func TestTransactionSigning(t *testing.T) {
 			},
 		}
 
-		helpers.SaveTestData(t, "blockchain/transaction_signing.json", testData)
+		testutil.SaveTestData(t, "blockchain/transaction_signing.json", testData)
 	})
 }
 
 // TestTransactionSendAndConfirm tests transaction sending and confirmation with real blockchain
 // 명세서 요구사항: 4.1.2.2 트랜잭션 전송 및 확인
 func TestTransactionSendAndConfirm(t *testing.T) {
-	helpers.LogTestSection(t, "4.1.2.2", "Transaction Send and Confirmation")
+	testutil.LogTestSection(t, "4.1.2.2", "Transaction Send and Confirmation")
 
 	// Skip if short mode or no blockchain
 	if testing.Short() {
@@ -329,14 +329,14 @@ func TestTransactionSendAndConfirm(t *testing.T) {
 			},
 		}
 
-		helpers.SaveTestData(t, "blockchain/transaction_send_confirm.json", testData)
+		testutil.SaveTestData(t, "blockchain/transaction_send_confirm.json", testData)
 	})
 }
 
 // TestGasEstimation tests gas estimation accuracy
 // 명세서 요구사항: 4.1.2.3 가스 예측 정확도 (±10%)
 func TestGasEstimation(t *testing.T) {
-	helpers.LogTestSection(t, "4.1.2.3", "Gas Estimation Accuracy (±10%)")
+	testutil.LogTestSection(t, "4.1.2.3", "Gas Estimation Accuracy (±10%)")
 
 	t.Run("Gas estimation with buffer", func(t *testing.T) {
 		t.Log("=== 테스트: 가스 예측 정확도 ===")
@@ -393,14 +393,14 @@ func TestGasEstimation(t *testing.T) {
 			},
 		}
 
-		helpers.SaveTestData(t, "blockchain/gas_estimation.json", testData)
+		testutil.SaveTestData(t, "blockchain/gas_estimation.json", testData)
 	})
 }
 
 // TestContractDeployment_SpecVerification tests contract deployment configuration (no blockchain connection required)
 // 명세서 요구사항: 4.2.1.1 AgentRegistry 컨트랙트 배포 성공, 4.2.1.2 컨트랙트 주소 반환
 func TestContractDeployment_SpecVerification(t *testing.T) {
-	helpers.LogTestSection(t, "4.2.1", "AgentRegistry Contract Deployment")
+	testutil.LogTestSection(t, "4.2.1", "AgentRegistry Contract Deployment")
 
 	t.Run("Contract deployment simulation", func(t *testing.T) {
 		t.Log("=== 테스트: AgentRegistry 컨트랙트 배포 시뮬레이션 ===")
@@ -446,14 +446,14 @@ func TestContractDeployment_SpecVerification(t *testing.T) {
 			},
 		}
 
-		helpers.SaveTestData(t, "blockchain/contract_deployment.json", testData)
+		testutil.SaveTestData(t, "blockchain/contract_deployment.json", testData)
 	})
 }
 
 // TestContractInteraction tests contract function calls
 // 명세서 요구사항: 4.2.2.1 registerAgent 함수 호출 성공, 4.2.2.2 getAgent 함수 호출 성공
 func TestContractInteraction(t *testing.T) {
-	helpers.LogTestSection(t, "4.2.2", "AgentRegistry Contract Interaction")
+	testutil.LogTestSection(t, "4.2.2", "AgentRegistry Contract Interaction")
 
 	t.Run("Contract function call simulation", func(t *testing.T) {
 		t.Log("=== 테스트: AgentRegistry 함수 호출 시뮬레이션 ===")
@@ -519,14 +519,14 @@ func TestContractInteraction(t *testing.T) {
 			},
 		}
 
-		helpers.SaveTestData(t, "blockchain/contract_interaction.json", testData)
+		testutil.SaveTestData(t, "blockchain/contract_interaction.json", testData)
 	})
 }
 
 // TestContractEvents tests event log verification
 // 명세서 요구사항: 4.2.2.3 이벤트 로그 확인
 func TestContractEvents(t *testing.T) {
-	helpers.LogTestSection(t, "4.2.2.3", "Contract Event Log Verification")
+	testutil.LogTestSection(t, "4.2.2.3", "Contract Event Log Verification")
 
 	t.Run("Event log simulation", func(t *testing.T) {
 		t.Log("=== 테스트: 컨트랙트 이벤트 로그 시뮬레이션 ===")
@@ -582,6 +582,6 @@ func TestContractEvents(t *testing.T) {
 			},
 		}
 
-		helpers.SaveTestData(t, "blockchain/event_log.json", testData)
+		testutil.SaveTestData(t, "blockchain/event_log.json", testData)
 	})
 }

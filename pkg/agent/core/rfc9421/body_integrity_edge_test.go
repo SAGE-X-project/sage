@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sage-x-project/sage/tests/helpers"
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +29,7 @@ func TestBodyIntegrityValidator_EdgeCases(t *testing.T) {
 		// This should panic or return error - testing defensive programming
 		defer func() {
 			if r := recover(); r != nil {
-				helpers.LogSuccess(t, "Nil request handled with panic (expected)")
+				testutil.LogSuccess(t, "Nil request handled with panic (expected)")
 			}
 		}()
 
@@ -37,7 +37,7 @@ func TestBodyIntegrityValidator_EdgeCases(t *testing.T) {
 		// If no panic, should return error
 		if err != nil {
 			assert.Error(t, err)
-			helpers.LogSuccess(t, "Nil request handled with error")
+			testutil.LogSuccess(t, "Nil request handled with error")
 		}
 	})
 
@@ -53,7 +53,7 @@ func TestBodyIntegrityValidator_EdgeCases(t *testing.T) {
 
 		err = validator.ValidateContentDigest(req, coveredComponents)
 		assert.NoError(t, err, "Nil body should be treated as empty")
-		helpers.LogSuccess(t, "Nil body handled correctly")
+		testutil.LogSuccess(t, "Nil body handled correctly")
 	})
 
 	t.Run("Extremely large body (memory stress test)", func(t *testing.T) {
@@ -78,7 +78,7 @@ func TestBodyIntegrityValidator_EdgeCases(t *testing.T) {
 		readBody, err := io.ReadAll(req.Body)
 		require.NoError(t, err)
 		assert.Equal(t, len(largeBody), len(readBody), "Body should be fully restored")
-		helpers.LogSuccess(t, "Large body (10MB) validated and restored")
+		testutil.LogSuccess(t, "Large body (10MB) validated and restored")
 	})
 
 	t.Run("Malformed Content-Digest header", func(t *testing.T) {
@@ -107,7 +107,7 @@ func TestBodyIntegrityValidator_EdgeCases(t *testing.T) {
 				assert.Contains(t, err.Error(), "mismatch", "Error should indicate mismatch")
 			})
 		}
-		helpers.LogSuccess(t, "Malformed Content-Digest headers rejected")
+		testutil.LogSuccess(t, "Malformed Content-Digest headers rejected")
 	})
 
 	t.Run("Body read error simulation", func(t *testing.T) {
@@ -122,7 +122,7 @@ func TestBodyIntegrityValidator_EdgeCases(t *testing.T) {
 		err = validator.ValidateContentDigest(req, coveredComponents)
 		assert.Error(t, err, "Read error should propagate")
 		assert.Contains(t, err.Error(), "read body", "Error should mention read failure")
-		helpers.LogSuccess(t, "Body read error handled correctly")
+		testutil.LogSuccess(t, "Body read error handled correctly")
 	})
 
 	t.Run("Unicode and special characters in body", func(t *testing.T) {
@@ -145,7 +145,7 @@ func TestBodyIntegrityValidator_EdgeCases(t *testing.T) {
 			err = validator.ValidateContentDigest(req, coveredComponents)
 			assert.NoError(t, err, "Body %d should validate", i)
 		}
-		helpers.LogSuccess(t, "Unicode and special characters handled correctly")
+		testutil.LogSuccess(t, "Unicode and special characters handled correctly")
 	})
 }
 
@@ -207,7 +207,7 @@ func TestIsComponentCovered_EdgeCases(t *testing.T) {
 			assert.Equal(t, tt.expected, result)
 		})
 	}
-	helpers.LogSuccess(t, "Component matching edge cases handled")
+	testutil.LogSuccess(t, "Component matching edge cases handled")
 }
 
 // TestComputeContentDigest_EdgeCases tests digest computation edge cases
@@ -248,7 +248,7 @@ func TestComputeContentDigest_EdgeCases(t *testing.T) {
 			assert.Equal(t, digest, digest2, "Same input should produce same digest")
 		})
 	}
-	helpers.LogSuccess(t, "Digest computation edge cases validated")
+	testutil.LogSuccess(t, "Digest computation edge cases validated")
 }
 
 // Helper: errorReadCloser simulates read errors
@@ -285,7 +285,7 @@ func TestBodyIntegrityValidator_SecurityCases(t *testing.T) {
 
 		err := validator.ValidateContentDigest(req, []string{"content-digest"})
 		assert.Error(t, err, "Mismatched digest should fail")
-		helpers.LogSuccess(t, "Timing attack resistance validated")
+		testutil.LogSuccess(t, "Timing attack resistance validated")
 	})
 
 	t.Run("Collision attempt - similar bodies", func(t *testing.T) {
@@ -297,7 +297,7 @@ func TestBodyIntegrityValidator_SecurityCases(t *testing.T) {
 		digest2 := ComputeContentDigest(body2)
 
 		assert.NotEqual(t, digest1, digest2, "Similar bodies should have different digests")
-		helpers.LogSuccess(t, "Collision resistance validated")
+		testutil.LogSuccess(t, "Collision resistance validated")
 	})
 
 	t.Run("Replay attack - reusing old digest", func(t *testing.T) {
@@ -313,6 +313,6 @@ func TestBodyIntegrityValidator_SecurityCases(t *testing.T) {
 		err := validator.ValidateContentDigest(req, []string{"content-digest"})
 		assert.Error(t, err, "Old digest should not validate new body")
 		assert.Contains(t, err.Error(), "tampering detected")
-		helpers.LogSuccess(t, "Replay attack prevented")
+		testutil.LogSuccess(t, "Replay attack prevented")
 	})
 }

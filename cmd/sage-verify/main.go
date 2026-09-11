@@ -19,13 +19,17 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/sage-x-project/sage/pkg/version"
 	"os"
 
-	"github.com/sage-x-project/sage/deployments/config"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
+
+	"github.com/sage-x-project/sage/internal/config"
 	"github.com/sage-x-project/sage/pkg/health"
+	"github.com/sage-x-project/sage/pkg/version"
 )
 
 func main() {
@@ -43,6 +47,8 @@ func main() {
 		runBlockchainCheck()
 	case "system":
 		runSystemCheck()
+	case "deployment":
+		runDeploymentCheck()
 	case "version", "--version", "-v":
 		fmt.Printf("sage-verify version %s\n", version.Version)
 	case "help", "--help", "-h":
@@ -301,4 +307,104 @@ func outputJSON(data interface{}) {
 		os.Exit(1)
 	}
 	fmt.Println(string(jsonData))
+}
+
+// runDeploymentCheck prints the blockchain configuration and deployment record
+// for SAGE_NETWORK (default "local"), tests the RPC connection and checks that
+// code exists at the configured registry address. It replaces the former
+// deployment-verify binary; pass --json for machine-readable output.
+func runDeploymentCheck() {
+	network := os.Getenv("SAGE_NETWORK")
+	if network == "" {
+		network = "local"
+	}
+	fmt.Println("SAGE Deployment Verification")
+	fmt.Printf("Network: %s\n", network)
+
+	cfg, err := config.LoadConfig(network)
+	if err != nil {
+		fmt.Printf("Failed to load config: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("\nBlockchain configuration:")
+	fmt.Printf("  RPC URL:          %s\n", cfg.NetworkRPC)
+	fmt.Printf("  Chain ID:         %s\n", cfg.ChainID)
+	fmt.Printf("  Contract address: %s\n", cfg.ContractAddr)
+
+	deployInfo, derr := config.LoadDeploymentInfo(network)
+	if derr != nil {
+		fmt.Printf("\nDeployment record: not available (%v)\n", derr)
+	} else {
+		fmt.Println("\nDeployment record:")
+		fmt.Printf("  Deployer:  %s\n", deployInfo.Deployer)
+		fmt.Printf("  Timestamp: %s\n", deployInfo.Timestamp)
+		fmt.Printf("  Registry:  %s\n", deployInfo.Contracts.SageRegistryV2.Address)
+		fmt.Printf("  Hook:      %s\n", deployInfo.Contracts.SageVerificationHook.Address)
+		fmt.Printf("  Agents:    %d\n", len(deployInfo.Agents))
+		for _, agent := range deployInfo.Agents {
+			fmt.Printf("    - %s (%s)\n", agent.Name, agent.DID)
+		}
+	}
+
+	fmt.Println("\nBlockchain connection:")
+	ctx := context.Background()
+	connected := false
+	codeSize := 0
+	client, err := ethclient.Dial(cfg.NetworkRPC)
+	if err != nil {
+		fmt.Printf("  connection failed: %v\n", err)
+	} else {
+		defer client.Close()
+		if chainID, cerr := client.ChainID(ctx); cerr != nil {
+			fmt.Printf("  chain id: error: %v\n", cerr)
+		} else {
+			connected = true
+			fmt.Printf("  chain id:     %s\n", chainID)
+		}
+		if block, berr := client.BlockNumber(ctx); berr == nil {
+			fmt.Printf("  latest block: %d\n", block)
+		}
+		if cfg.ContractAddr != "" {
+			code, cerr := client.CodeAt(ctx, common.HexToAddress(cfg.ContractAddr), nil)
+			switch {
+			case cerr != nil:
+				fmt.Printf("  contract code: error: %v\n", cerr)
+			case len(code) == 0:
+				fmt.Println("  contract code: none at the configured address")
+			default:
+				codeSize = len(code)
+				fmt.Printf("  contract code: %d bytes\n", codeSize)
+			}
+		}
+	}
+
+	fmt.Println("\nEnvironment:")
+	for _, name := range []string{"SAGE_REGISTRY_ADDRESS", "SAGE_CONTRACT_ADDRESS", "SAGE_NETWORK", "SAGE_CHAIN_ID", "DEPLOYED_CONTRACT_ADDRESS"} {
+		if v := os.Getenv(name); v != "" {
+			fmt.Printf("  %s = %s\n", name, v)
+		} else {
+			fmt.Printf("  %s (not set)\n", name)
+		}
+	}
+
+	ok := connected && cfg.ContractAddr != "" && codeSize > 0
+	if ok {
+		fmt.Println("\nResult: registry reachable and deployed")
+	} else {
+		fmt.Println("\nResult: verification incomplete (check network, contract address and environment)")
+	}
+
+	if hasJSONFlag() {
+		outputJSON(map[string]interface{}{
+			"network":            network,
+			"config":             cfg,
+			"deployment":         deployInfo,
+			"connected":          connected,
+			"contract_code_size": codeSize,
+			"ok":                 ok,
+		})
+	}
+	if !ok {
+		os.Exit(1)
+	}
 }

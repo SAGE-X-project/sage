@@ -27,19 +27,19 @@ import (
 	"testing"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/sage-x-project/sage/tests/helpers"
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestECDSAVerifier_Verify_RawSignature(t *testing.T) {
 	// 사양 요구사항: ECDSA (Secp256k1) 서명 검증 지원
-	helpers.LogTestSection(t, "6.2.1", "HPKE ECDSA Signature Verification - Raw 64-byte Format")
+	testutil.LogTestSection(t, "6.2.1", "HPKE ECDSA Signature Verification - Raw 64-byte Format")
 
 	// Generate Ethereum-compatible ECDSA key
 	privateKey, err := ethcrypto.GenerateKey()
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "ECDSA Secp256k1 key pair generated")
+	testutil.LogSuccess(t, "ECDSA Secp256k1 key pair generated")
 
 	payload := []byte("HPKE handshake data for ECDSA verification")
 	hash := ethcrypto.Keccak256(payload)
@@ -55,12 +55,12 @@ func TestECDSAVerifier_Verify_RawSignature(t *testing.T) {
 	verifier := NewECDSAVerifier()
 	err = verifier.Verify(payload, rawSignature, &privateKey.PublicKey)
 	assert.NoError(t, err, "Valid ECDSA raw signature should verify")
-	helpers.LogSuccess(t, "Raw 64-byte ECDSA signature verified successfully")
+	testutil.LogSuccess(t, "Raw 64-byte ECDSA signature verified successfully")
 }
 
 func TestECDSAVerifier_Verify_DERSignature(t *testing.T) {
 	// 사양 요구사항: ASN.1 DER 인코딩 ECDSA 서명 지원
-	helpers.LogTestSection(t, "6.2.2", "HPKE ECDSA Signature Verification - DER Format")
+	testutil.LogTestSection(t, "6.2.2", "HPKE ECDSA Signature Verification - DER Format")
 
 	privateKey, err := ethcrypto.GenerateKey()
 	require.NoError(t, err)
@@ -82,12 +82,12 @@ func TestECDSAVerifier_Verify_DERSignature(t *testing.T) {
 	verifier := NewECDSAVerifier()
 	err = verifier.Verify(payload, derSignature, &privateKey.PublicKey)
 	assert.NoError(t, err, "Valid ECDSA DER signature should verify")
-	helpers.LogSuccess(t, "DER-encoded ECDSA signature verified successfully")
+	testutil.LogSuccess(t, "DER-encoded ECDSA signature verified successfully")
 }
 
 func TestECDSAVerifier_Verify_InvalidSignature(t *testing.T) {
 	// 사양 요구사항: 잘못된 서명 거부
-	helpers.LogTestSection(t, "6.2.3", "HPKE ECDSA Signature Verification - Invalid Signature")
+	testutil.LogTestSection(t, "6.2.3", "HPKE ECDSA Signature Verification - Invalid Signature")
 
 	privateKey, err := ethcrypto.GenerateKey()
 	require.NoError(t, err)
@@ -106,12 +106,12 @@ func TestECDSAVerifier_Verify_InvalidSignature(t *testing.T) {
 	err = verifier.Verify(tamperedPayload, rawSignature, &privateKey.PublicKey)
 	assert.Error(t, err, "Invalid signature should fail verification")
 	assert.Contains(t, err.Error(), "verification failed", "Error should indicate verification failure")
-	helpers.LogSuccess(t, "Invalid signature correctly rejected")
+	testutil.LogSuccess(t, "Invalid signature correctly rejected")
 }
 
 func TestECDSAVerifier_Supports(t *testing.T) {
 	// 사양 요구사항: ECDSA 공개키 타입 지원 확인
-	helpers.LogTestSection(t, "6.2.4", "HPKE ECDSA Verifier - Key Type Support")
+	testutil.LogTestSection(t, "6.2.4", "HPKE ECDSA Verifier - Key Type Support")
 
 	verifier := NewECDSAVerifier()
 
@@ -152,12 +152,12 @@ func TestECDSAVerifier_Supports(t *testing.T) {
 			assert.Equal(t, tt.supported, result, "Support check should match expected")
 		})
 	}
-	helpers.LogSuccess(t, "Key type support validation passed")
+	testutil.LogSuccess(t, "Key type support validation passed")
 }
 
 func TestCompositeVerifier_SelectsCorrectVerifier(t *testing.T) {
 	// 사양 요구사항: 키 타입에 따라 올바른 검증기 선택
-	helpers.LogTestSection(t, "6.2.5", "HPKE Composite Verifier - Strategy Pattern")
+	testutil.LogTestSection(t, "6.2.5", "HPKE Composite Verifier - Strategy Pattern")
 
 	composite := NewCompositeVerifier()
 
@@ -170,7 +170,7 @@ func TestCompositeVerifier_SelectsCorrectVerifier(t *testing.T) {
 
 		err = composite.Verify(payload, signature, publicKey)
 		assert.NoError(t, err, "Ed25519 signature should verify through composite")
-		helpers.LogSuccess(t, "Ed25519 verifier selected correctly")
+		testutil.LogSuccess(t, "Ed25519 verifier selected correctly")
 	})
 
 	t.Run("ECDSA key uses ECDSA verifier", func(t *testing.T) {
@@ -185,20 +185,20 @@ func TestCompositeVerifier_SelectsCorrectVerifier(t *testing.T) {
 
 		err = composite.Verify(payload, rawSignature, &privateKey.PublicKey)
 		assert.NoError(t, err, "ECDSA signature should verify through composite")
-		helpers.LogSuccess(t, "ECDSA verifier selected correctly")
+		testutil.LogSuccess(t, "ECDSA verifier selected correctly")
 	})
 
 	t.Run("Unsupported key type returns error", func(t *testing.T) {
 		err := composite.Verify([]byte("test"), []byte("sig"), "invalid-key")
 		assert.Error(t, err, "Unsupported key type should return error")
 		assert.Contains(t, err.Error(), "unsupported", "Error should indicate unsupported key")
-		helpers.LogSuccess(t, "Unsupported key type handled correctly")
+		testutil.LogSuccess(t, "Unsupported key type handled correctly")
 	})
 }
 
 func TestVerifySignature_WithECDSA(t *testing.T) {
 	// 사양 요구사항: verifySignature 함수가 ECDSA 지원
-	helpers.LogTestSection(t, "6.2.6", "HPKE verifySignature Integration - ECDSA Support")
+	testutil.LogTestSection(t, "6.2.6", "HPKE verifySignature Integration - ECDSA Support")
 
 	privateKey, err := ethcrypto.GenerateKey()
 	require.NoError(t, err)
@@ -213,12 +213,12 @@ func TestVerifySignature_WithECDSA(t *testing.T) {
 	// Test the global verifySignature function
 	err = verifySignature(payload, rawSignature, &privateKey.PublicKey)
 	assert.NoError(t, err, "verifySignature should support ECDSA keys")
-	helpers.LogSuccess(t, "verifySignature function supports ECDSA")
+	testutil.LogSuccess(t, "verifySignature function supports ECDSA")
 }
 
 func TestECDSAVerifier_Verify_With65ByteSignature(t *testing.T) {
 	// 사양 요구사항: 65바이트 Ethereum 서명 처리 (recovery ID 포함)
-	helpers.LogTestSection(t, "6.2.7", "HPKE ECDSA Signature - 65-byte Ethereum Format")
+	testutil.LogTestSection(t, "6.2.7", "HPKE ECDSA Signature - 65-byte Ethereum Format")
 
 	privateKey, err := ethcrypto.GenerateKey()
 	require.NoError(t, err)
@@ -236,7 +236,7 @@ func TestECDSAVerifier_Verify_With65ByteSignature(t *testing.T) {
 	// Should handle 65-byte format by stripping last byte
 	err = verifier.Verify(payload, signature65, &privateKey.PublicKey)
 	assert.NoError(t, err, "65-byte signature should be handled automatically")
-	helpers.LogSuccess(t, "65-byte Ethereum signature format handled correctly")
+	testutil.LogSuccess(t, "65-byte Ethereum signature format handled correctly")
 }
 
 func BenchmarkECDSAVerifier_Verify(b *testing.B) {
