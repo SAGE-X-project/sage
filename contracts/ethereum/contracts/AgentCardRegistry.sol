@@ -165,7 +165,7 @@ contract AgentCardRegistry is
 
         // 5. Store keys and extract X25519 KEM key
         bytes32[] memory keyHashes = new bytes32[](params.keys.length);
-        bytes memory kemKey;  // X25519 KEM public key
+        bytes memory kemKey = new bytes(0);  // X25519 KEM public key; stays empty when none is supplied
 
         for (uint256 i = 0; i < params.keys.length; i++) {
             bytes32 keyHash = keccak256(params.keys[i]);

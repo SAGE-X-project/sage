@@ -154,31 +154,15 @@ async function main() {
     constructorArgs: []
   };
 
-  // 2.2 ERC8004ReputationRegistry
-  console.log("\n [4/7] Deploying ERC8004ReputationRegistry...");
-  const ERC8004ReputationRegistry = await ethers.getContractFactory("ERC8004ReputationRegistry");
-  const reputationRegistry = await ERC8004ReputationRegistry.deploy();
-  await reputationRegistry.waitForDeployment();
-  const reputationRegistryAddress = await reputationRegistry.getAddress();
-
-  console.log(`    Address: ${reputationRegistryAddress}`);
-  const reputationRegistryTx = reputationRegistry.deploymentTransaction();
-  const reputationRegistryReceipt = await reputationRegistryTx.wait();
-  console.log(`    Gas: ${reputationRegistryReceipt.gasUsed.toString()}`);
-  console.log(`    Block: ${reputationRegistryReceipt.blockNumber}`);
-
-  deploymentInfo.contracts.ERC8004ReputationRegistry = {
-    address: reputationRegistryAddress,
-    blockNumber: reputationRegistryReceipt.blockNumber,
-    transactionHash: reputationRegistryReceipt.hash,
-    gasUsed: reputationRegistryReceipt.gasUsed.toString(),
-    constructorArgs: []
-  };
-
-  // 2.3 ERC8004ValidationRegistry
-  console.log("\n [5/7] Deploying ERC8004ValidationRegistry...");
+  // 2.2 ERC8004ValidationRegistry (deployed before the reputation registry,
+  // whose constructor takes this address)
+  console.log("\n [4/7] Deploying ERC8004ValidationRegistry...");
+  const minStake = ethers.parseEther("0.01"); // 0.01 ETH minimum validator stake
+  const minValidators = 3; // minimum validators per request
+  const consensusThreshold = 66; // percent
+  console.log(`    Constructor args: minStake=${ethers.formatEther(minStake)} ETH, minValidators=${minValidators}, consensusThreshold=${consensusThreshold}%`);
   const ERC8004ValidationRegistry = await ethers.getContractFactory("ERC8004ValidationRegistry");
-  const validationRegistry = await ERC8004ValidationRegistry.deploy();
+  const validationRegistry = await ERC8004ValidationRegistry.deploy(minStake, minValidators, consensusThreshold);
   await validationRegistry.waitForDeployment();
   const validationRegistryAddress = await validationRegistry.getAddress();
 
@@ -193,7 +177,28 @@ async function main() {
     blockNumber: validationRegistryReceipt.blockNumber,
     transactionHash: validationRegistryReceipt.hash,
     gasUsed: validationRegistryReceipt.gasUsed.toString(),
-    constructorArgs: []
+    constructorArgs: [minStake.toString(), minValidators, consensusThreshold]
+  };
+
+  // 2.3 ERC8004ReputationRegistry (constructor: validation registry address)
+  console.log("\n [5/7] Deploying ERC8004ReputationRegistry...");
+  const ERC8004ReputationRegistry = await ethers.getContractFactory("ERC8004ReputationRegistry");
+  const reputationRegistry = await ERC8004ReputationRegistry.deploy(validationRegistryAddress);
+  await reputationRegistry.waitForDeployment();
+  const reputationRegistryAddress = await reputationRegistry.getAddress();
+
+  console.log(`    Address: ${reputationRegistryAddress}`);
+  const reputationRegistryTx = reputationRegistry.deploymentTransaction();
+  const reputationRegistryReceipt = await reputationRegistryTx.wait();
+  console.log(`    Gas: ${reputationRegistryReceipt.gasUsed.toString()}`);
+  console.log(`    Block: ${reputationRegistryReceipt.blockNumber}`);
+
+  deploymentInfo.contracts.ERC8004ReputationRegistry = {
+    address: reputationRegistryAddress,
+    blockNumber: reputationRegistryReceipt.blockNumber,
+    transactionHash: reputationRegistryReceipt.hash,
+    gasUsed: reputationRegistryReceipt.gasUsed.toString(),
+    constructorArgs: [validationRegistryAddress]
   };
 
   // ============================================

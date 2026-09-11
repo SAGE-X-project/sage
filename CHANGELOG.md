@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `nonce.Manager` gained an atomic `CheckAndMark` and a `Close` that stops its cleanup goroutine.
 - `SecureSession.Close` sets the closed flag under the session lock (it raced with `IsExpired`).
 - `session.Manager.SetDefaultConfig` and the reads of the default configuration now hold the manager lock. `core.VerificationService.VerifyAgentMessage` no longer panics on nil options (defaults are used) and rejects a nil message.
+- `scripts/deploy-all-contracts.js` deployed `ERC8004ValidationRegistry` and `ERC8004ReputationRegistry` without their constructor arguments, so the combined deployment failed; the validation registry is now deployed first (0.01 ETH stake, 3 validators, 66 percent) and its address passed to the reputation registry. `AgentCardRegistry.registerAgentWithParams` initialises its `kemKey` local (Slither `uninitialized-local`).
 - `did.ValidateA2ACardWithDID` always failed against a real resolver: `FromAgentMetadata` only accepted `[]byte` public keys, while the Ethereum resolver returns parsed `*ecdsa.PublicKey` / `ed25519.PublicKey` values, so no card key was ever "found on-chain". Parsed keys are now encoded with `MarshalPublicKey` and typed correctly.
 - `VerifyA2ACardProof` decoded `publicKeyHex` as Base58; hex-only cards now verify. `MarshalPublicKey` detects secp256k1 by curve parameters, so go-ethereum keys (empty curve name) are encoded as 64-byte `x || y` like decred keys.
 
