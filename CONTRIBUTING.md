@@ -167,11 +167,13 @@ solana-test-validator
 
 ### Branch Protection Rules
 
-**`main` branch:**
-- Requires pull request reviews (2 approvals)
-- Requires status checks to pass
-- Requires up-to-date branch before merging
-- No force pushes allowed
+**`main` branch** (enforced by a repository ruleset):
+- Changes only through pull requests; 1 approving review (administrators may bypass for their own PRs)
+- Required status checks: Go Tests, Lint, Build (ubuntu-latest), Smart Contract Tests, Integration Tests
+- Branch must be up to date with `main`; linear history (squash or rebase merges)
+- No force pushes or deletion
+
+**Release tags (`v*`):** creation, update and deletion restricted to administrators.
 
 **`dev` branch:**
 - Requires pull request reviews (1 approval)
