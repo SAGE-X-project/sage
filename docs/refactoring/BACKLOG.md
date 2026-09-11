@@ -54,7 +54,8 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 
 | ID | Item | Severity | Source | Status |
 |---|---|---|---|---|
-| C-01 | `ERC8004ValidationRegistry`: access control on `addTrustedTeeKey`, `removeTrustedTeeKey`, `setMinStake`, `setMinValidators`, `setConsensusThreshold`, `setMaxValidatorsPerRequest`; `ERC8004ReputationRegistry.setValidationRegistry` initial-set gating; re-enable Slither `missing-events-access-control`; redeploy on Sepolia | [치명] | `DOCS_GRAPH.md` headline, verified 2026-09-11 | Open |
+| C-01 | `ERC8004ValidationRegistry`: access control on `addTrustedTeeKey`, `removeTrustedTeeKey`, `setMinStake`, `setMinValidators`, `setConsensusThreshold`, `setMaxValidatorsPerRequest`; `ERC8004ReputationRegistry.setValidationRegistry` initial-set gating; re-enable Slither `missing-events-access-control`; redeploy on Sepolia | [치명] | `DOCS_GRAPH.md` headline, verified 2026-09-11 | PR (both contracts inherit `Ownable2Step`, 17 tests); **Sepolia redeploy still open** (needs the deployer key); Slither exclusion unchanged |
+| C-05 | `scripts/deploy-all-contracts.js` deploys `ERC8004ReputationRegistry` with no constructor argument although the constructor takes the validation registry address | [권장] | found while fixing C-01 | Open |
 | C-02 | Go bindings generated in CI from Hardhat artifacts (`make bindings`) with drift check; `KEMKeyUpdated` event missing today | [중요] | `analysis/05` §5 | Open |
 | C-03 | Drop `SageRegistryV2` support: delete `SageRegistryABI`, rename config key, fix Kaia preset (needs AgentCard address on Kaia) | [권장] | `DECISIONS.md` 5 | Decision (address) |
 | C-04 | Solana program: placeholder program IDs, no `Anchor.toml`, never built in CI | [권장] | `analysis/05` §5 | Open |
