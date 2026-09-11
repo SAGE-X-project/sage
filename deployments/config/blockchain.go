@@ -25,6 +25,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/sage-x-project/sage/pkg/blockchain/ethereum"
 )
 
 // BlockchainConfig holds blockchain connection and contract configuration
@@ -206,6 +208,20 @@ func (c *BlockchainConfig) Validate() error {
 	}
 
 	return nil
+}
+
+// Endpoint converts the deployment configuration into the connection
+// parameters the pkg/blockchain/ethereum provider needs.
+func (c *BlockchainConfig) Endpoint() ethereum.Endpoint {
+	return ethereum.Endpoint{
+		RPCURL:         c.NetworkRPC,
+		ChainID:        c.ChainID,
+		GasLimit:       c.GasLimit,
+		MaxGasPrice:    c.MaxGasPrice,
+		MaxRetries:     c.MaxRetries,
+		RetryDelay:     c.RetryDelay,
+		RequestTimeout: c.RequestTimeout,
+	}
 }
 
 // GetRetryConfig returns retry configuration for the blockchain operations

@@ -28,7 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/sage-x-project/sage/deployments/config"
-	chaineth "github.com/sage-x-project/sage/pkg/agent/crypto/chain/ethereum"
+	ethprovider "github.com/sage-x-project/sage/pkg/blockchain/ethereum"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -85,7 +85,7 @@ func TestEnhancedProviderIntegration(t *testing.T) {
 	cfg := getTestConfig()
 
 	t.Run("Create enhanced provider", func(t *testing.T) {
-		provider, err := chaineth.NewEnhancedProvider(cfg)
+		provider, err := ethprovider.NewProvider(cfg.Endpoint())
 		require.NoError(t, err)
 		defer provider.Close()
 
@@ -96,7 +96,7 @@ func TestEnhancedProviderIntegration(t *testing.T) {
 	})
 
 	t.Run("Gas estimation", func(t *testing.T) {
-		provider, err := chaineth.NewEnhancedProvider(cfg)
+		provider, err := ethprovider.NewProvider(cfg.Endpoint())
 		require.NoError(t, err)
 		defer provider.Close()
 
@@ -122,7 +122,7 @@ func TestEnhancedProviderIntegration(t *testing.T) {
 	})
 
 	t.Run("Gas price suggestion", func(t *testing.T) {
-		provider, err := chaineth.NewEnhancedProvider(cfg)
+		provider, err := ethprovider.NewProvider(cfg.Endpoint())
 		require.NoError(t, err)
 		defer provider.Close()
 
@@ -148,7 +148,7 @@ func TestEnhancedProviderIntegration(t *testing.T) {
 			RequestTimeout: 1 * time.Second,
 		}
 
-		_, err := chaineth.NewEnhancedProvider(invalidCfg)
+		_, err := ethprovider.NewProvider(invalidCfg.Endpoint())
 		assert.Error(t, err)
 	})
 }
@@ -183,7 +183,7 @@ func TestAccountBalance(t *testing.T) {
 // BenchmarkEnhancedProvider benchmarks provider operations
 func BenchmarkEnhancedProvider(b *testing.B) {
 	cfg := getTestConfig()
-	provider, err := chaineth.NewEnhancedProvider(cfg)
+	provider, err := ethprovider.NewProvider(cfg.Endpoint())
 	require.NoError(b, err)
 	defer provider.Close()
 
