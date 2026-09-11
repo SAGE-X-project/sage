@@ -24,7 +24,8 @@ GOTOOLCHAIN?=auto
 VERSION?=$(shell cat VERSION 2>/dev/null || echo "0.1.0")
 GIT_COMMIT?=$(shell git rev-parse HEAD 2>/dev/null || echo "")
 GIT_BRANCH?=$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
-BUILD_DATE?=$(shell date -u '+%Y-%m-%d %H:%M:%S UTC')
+# Commit timestamp, not wall-clock time, so two builds of the same commit are identical
+BUILD_DATE?=$(shell git log -1 --format=%cI 2>/dev/null || date -u '+%Y-%m-%dT%H:%M:%SZ')
 
 # Build flags for version injection
 VERSION_PKG=github.com/sage-x-project/sage/pkg/version
@@ -233,15 +234,15 @@ build-binaries-all-platforms:
 build-platform:
 	@echo "Building binaries for $(GOOS)/$(GOARCH)..."
 	@mkdir -p $(DIST_DIR)/$(GOOS)-$(GOARCH)
-	@GOTOOLCHAIN=$(GOTOOLCHAIN) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
+	@GOTOOLCHAIN=$(GOTOOLCHAIN) CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) -trimpath \
 		-ldflags "$(LDFLAGS) $(BUILD_LDFLAGS)" \
 		-o $(DIST_DIR)/$(GOOS)-$(GOARCH)/$(CRYPTO_BINARY)$(if $(filter windows,$(GOOS)),.exe,) \
 		./$(CMD_DIR)/$(CRYPTO_BINARY)
-	@GOTOOLCHAIN=$(GOTOOLCHAIN) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
+	@GOTOOLCHAIN=$(GOTOOLCHAIN) CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) -trimpath \
 		-ldflags "$(LDFLAGS) $(BUILD_LDFLAGS)" \
 		-o $(DIST_DIR)/$(GOOS)-$(GOARCH)/$(DID_BINARY)$(if $(filter windows,$(GOOS)),.exe,) \
 		./$(CMD_DIR)/$(DID_BINARY)
-	@GOTOOLCHAIN=$(GOTOOLCHAIN) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) \
+	@GOTOOLCHAIN=$(GOTOOLCHAIN) CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build $(GOFLAGS) -trimpath \
 		-ldflags "$(LDFLAGS) $(BUILD_LDFLAGS)" \
 		-o $(DIST_DIR)/$(GOOS)-$(GOARCH)/$(VERIFY_BINARY)$(if $(filter windows,$(GOOS)),.exe,) \
 		./$(CMD_DIR)/$(VERIFY_BINARY)
