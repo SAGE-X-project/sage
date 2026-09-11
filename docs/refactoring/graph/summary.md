@@ -5,12 +5,12 @@ Module: `github.com/sage-x-project/sage`
 | Metric | Value |
 |---|---|
 | Packages | 64 |
-| Symbols | 2234 |
-| Edges | 1751 |
-| Non-test LOC | 45205 |
-| Test LOC | 38249 |
-| Funcs+methods | 1803 |
-| Types | 431 |
+| Symbols | 2241 |
+| Edges | 1758 |
+| Non-test LOC | 45277 |
+| Test LOC | 38315 |
+| Funcs+methods | 1808 |
+| Types | 433 |
 
 ## Packages
 
@@ -39,7 +39,7 @@ Module: `github.com/sage-x-project/sage`
 | pkg/agent/core/message/nonce | pkg | 1 | 147 | 362 | 9 | 1 | 0 | 2 | 0 | 5 |
 | pkg/agent/core/message/order | pkg | 2 | 153 | 830 | 9 | 3 | 0 | 1 | 1 | 4 |
 | pkg/agent/core/message/validator | pkg | 2 | 175 | 450 | 5 | 3 | 0 | 0 | 4 | 3 |
-| pkg/agent/core/rfc9421 | pkg | 8 | 2212 | 4257 | 89 | 16 | 1 | 5 | 3 | 18 |
+| pkg/agent/core/rfc9421 | pkg | 8 | 2224 | 4257 | 91 | 17 | 0 | 5 | 4 | 18 |
 | pkg/agent/crypto | pkg | 4 | 671 | 1684 | 28 | 11 | 6 | 20 | 0 | 9 |
 | pkg/agent/crypto/chain | pkg | 4 | 620 | 593 | 25 | 9 | 4 | 5 | 2 | 9 |
 | pkg/agent/crypto/chain/ethereum | pkg | 2 | 228 | 149 | 12 | 3 | 0 | 2 | 5 | 7 |
@@ -54,8 +54,8 @@ Module: `github.com/sage-x-project/sage`
 | pkg/agent/did/ethereum | pkg | 5 | 1708 | 2028 | 42 | 3 | 0 | 3 | 4 | 19 |
 | pkg/agent/did/solana | pkg | 2 | 798 | 393 | 16 | 2 | 0 | 1 | 4 | 9 |
 | pkg/agent/handshake | pkg | 4 | 951 | 825 | 36 | 13 | 2 | 1 | 8 | 11 |
-| pkg/agent/hpke | pkg | 5 | 1569 | 2994 | 49 | 18 | 5 | 0 | 6 | 24 |
-| pkg/agent/session | pkg | 6 | 1752 | 2538 | 85 | 13 | 2 | 4 | 0 | 15 |
+| pkg/agent/hpke | pkg | 5 | 1546 | 2994 | 47 | 17 | 5 | 0 | 6 | 23 |
+| pkg/agent/session | pkg | 7 | 1835 | 2604 | 90 | 15 | 3 | 5 | 0 | 15 |
 | pkg/agent/transport | pkg | 4 | 469 | 363 | 16 | 9 | 1 | 4 | 0 | 5 |
 | pkg/agent/transport/http | pkg | 3 | 427 | 324 | 12 | 3 | 0 | 1 | 1 | 8 |
 | pkg/agent/transport/websocket | pkg | 3 | 673 | 496 | 29 | 3 | 0 | 1 | 1 | 8 |
@@ -146,6 +146,7 @@ graph LR
   pkg_agent_core_rfc9421 --> pkg_agent_core_message_nonce
   pkg_agent_core_rfc9421 --> pkg_agent_crypto
   pkg_agent_core_rfc9421 --> pkg_agent_crypto_keys
+  pkg_agent_core_rfc9421 --> pkg_agent_session
   pkg_agent_crypto_chain --> pkg_agent_crypto
   pkg_agent_crypto_chain --> pkg_agent_crypto_keys
   pkg_agent_crypto_chain_ethereum --> deployments_config
@@ -215,7 +216,6 @@ None.
 |---|---|---|
 | pkg/agent/core.DIDResolver | 2 | pkg/agent/did.Manager |
 | pkg/agent/core/message.ControlHeader | 3 | pkg/agent/handshake.CompleteMessage, pkg/agent/handshake.InvitationMessage, pkg/agent/handshake.RequestMessage, pkg/agent/handshake.ResponseMessage |
-| pkg/agent/core/rfc9421.ReplayGuard | 1 | pkg/agent/core/rfc9421.NonceReplayGuard |
 | pkg/agent/crypto.KeyExporter | 2 | pkg/agent/crypto/formats.jwkExporter, pkg/agent/crypto/formats.pemExporter |
 | pkg/agent/crypto.KeyImporter | 2 | pkg/agent/crypto/formats.jwkImporter, pkg/agent/crypto/formats.pemImporter |
 | pkg/agent/crypto.KeyManager | 5 |  |
@@ -240,6 +240,7 @@ None.
 | pkg/agent/hpke.KeyIDBinder | 1 | internal.Creator |
 | pkg/agent/hpke.SignatureVerifier | 2 | pkg/agent/hpke.CompositeVerifier, pkg/agent/hpke.ECDSAVerifier, pkg/agent/hpke.Ed25519Verifier |
 | pkg/agent/session.Metrics | 5 | pkg/agent/session.NopMetrics, pkg/telemetry/metrics.PrometheusSessionMetrics |
+| pkg/agent/session.ReplayGuard | 1 | pkg/agent/core/rfc9421.nonceManagerGuard, pkg/agent/session.MemoryReplayGuard |
 | pkg/agent/session.Session | 14 | pkg/agent/session.SecureSession |
 | pkg/agent/transport.MessageTransport | 1 | pkg/agent/transport.MockTransport, pkg/agent/transport/http.HTTPTransport, pkg/agent/transport/websocket.WSTransport |
 | pkg/blockchain/ethereum.EthClient | 8 |  |
@@ -298,15 +299,15 @@ None.
 | pkg/agent/crypto/formats.jwkExporter.Export | 100 | pkg/agent/crypto/formats/jwk.go:64 |
 | cmd/sage-did.runVerify | 98 | cmd/sage-did/verify.go:64 |
 | pkg/agent/did/ethereum.toKeyHashes | 97 | pkg/agent/did/ethereum/client.go:580 |
-| pkg/agent/crypto/formats.pemExporter.ExportPublic | 93 | pkg/agent/crypto/formats/pem.go:139 |
 | pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
+| pkg/agent/crypto/formats.pemExporter.ExportPublic | 93 | pkg/agent/crypto/formats/pem.go:139 |
 | pkg/agent/crypto/formats.pemExporter.Export | 92 | pkg/agent/crypto/formats/pem.go:45 |
 | cmd/sage-did.runKeyAdd | 91 | cmd/sage-did/key.go:239 |
 | pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
 | deployments/config.validateBlockchainConfig | 88 | deployments/config/validator.go:61 |
 | pkg/agent/crypto/formats.jwkExporter.ExportPublic | 84 | pkg/agent/crypto/formats/jwk.go:166 |
 | pkg/agent/did/ethereum.EthereumClient.Register | 84 | pkg/agent/did/ethereum/client.go:126 |
-| pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:133 |
+| pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:137 |
 | cmd/sage-did.runRegister | 83 | cmd/sage-did/register.go:76 |
 | examples/mcp-integration/client.SAGEClient.CallTool | 81 | examples/mcp-integration/client/sage_client.go:79 |
 

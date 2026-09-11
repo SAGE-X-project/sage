@@ -11,10 +11,10 @@ Reachability follows call and ref edges from each entry point, including dynamic
 | cmd/sage-crypto | cmd | internal/app(1), internal/cli(1), pkg/agent/crypto/chain(14), pkg/agent/crypto/chain/ethereum(8), pkg/agent/crypto/chain/solana(10), pkg/agent/crypto/formats(18), pkg/agent/crypto/keys(61), pkg/agent/crypto/rotation(4), pkg/agent/crypto/storage(8), pkg/agent/did(3), pkg/agent/did/ethereum(2), pkg/agent/did/solana(2), pkg/agent/transport(1), pkg/agent/transport/http(2), pkg/agent/transport/websocket(2) |
 | cmd/sage-did | cmd | internal/app(1), internal/cli(1), pkg/agent/crypto/chain(4), pkg/agent/crypto/chain/ethereum(6), pkg/agent/crypto/chain/solana(7), pkg/agent/crypto/formats(11), pkg/agent/crypto/jcs(6), pkg/agent/crypto/keys(29), pkg/agent/crypto/storage(4), pkg/agent/did(50), pkg/agent/did/ethereum(18), pkg/agent/did/solana(7), pkg/agent/transport(1), pkg/agent/transport/http(2), pkg/agent/transport/websocket(2), pkg/blockchain/ethereum/contracts/agentcardregistry(8) |
 | cmd/sage-verify | cmd | deployments/config(6), pkg/health(4) |
-| examples/mcp-integration/basic-demo | examples | pkg/agent/core/message/nonce(4), pkg/agent/core/rfc9421(45), pkg/agent/crypto(5), pkg/agent/crypto/keys(21) |
-| examples/mcp-integration/basic-tool | examples | pkg/agent/core(2), pkg/agent/core/message/nonce(4), pkg/agent/core/rfc9421(42), pkg/agent/crypto(5), pkg/agent/crypto/chain(2), pkg/agent/crypto/chain/ethereum(3), pkg/agent/crypto/chain/solana(1), pkg/agent/crypto/keys(3), pkg/agent/did(21), pkg/agent/did/ethereum(4) |
-| examples/mcp-integration/client | examples | pkg/agent/core/message/nonce(4), pkg/agent/core/rfc9421(45), pkg/agent/crypto(5), pkg/agent/crypto/keys(21) |
-| examples/mcp-integration/simple-standalone | examples | pkg/agent/core/message/nonce(3), pkg/agent/core/rfc9421(20), pkg/agent/crypto/keys(13) |
+| examples/mcp-integration/basic-demo | examples | pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(45), pkg/agent/crypto(5), pkg/agent/crypto/keys(21), pkg/agent/session(3) |
+| examples/mcp-integration/basic-tool | examples | pkg/agent/core(2), pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(42), pkg/agent/crypto(5), pkg/agent/crypto/chain(2), pkg/agent/crypto/chain/ethereum(3), pkg/agent/crypto/chain/solana(1), pkg/agent/crypto/keys(3), pkg/agent/did(21), pkg/agent/did/ethereum(4), pkg/agent/session(3) |
+| examples/mcp-integration/client | examples | pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(45), pkg/agent/crypto(5), pkg/agent/crypto/keys(21), pkg/agent/session(3) |
+| examples/mcp-integration/simple-standalone | examples | pkg/agent/core/rfc9421(20), pkg/agent/crypto/keys(13), pkg/agent/session(2) |
 | examples/mcp-integration/vulnerable-vs-secure/attacker | examples |  |
 | examples/mcp-integration/vulnerable-vs-secure/secure-chat | examples |  |
 | examples/mcp-integration/vulnerable-vs-secure/vulnerable-chat | examples |  |
@@ -62,7 +62,7 @@ Reachability follows call and ref edges from each entry point, including dynamic
 - pkg/agent/core/message/validator (5 funcs, 175 LOC)
 - pkg/agent/crypto/vault (15 funcs, 407 LOC)
 - pkg/agent/handshake (36 funcs, 951 LOC)
-- pkg/agent/hpke (49 funcs, 1569 LOC)
+- pkg/agent/hpke (47 funcs, 1546 LOC)
 - pkg/blockchain/ethereum (13 funcs, 355 LOC)
 - pkg/oidc (0 funcs, 40 LOC)
 - pkg/oidc/auth0 (13 funcs, 490 LOC)

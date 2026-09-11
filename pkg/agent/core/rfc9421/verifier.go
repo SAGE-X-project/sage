@@ -32,29 +32,50 @@ import (
 
 	"github.com/sage-x-project/sage/pkg/agent/core/message/nonce"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
+	"github.com/sage-x-project/sage/pkg/agent/session"
 )
 
 // Verifier provides RFC-9421 signature verification
 type Verifier struct {
 	httpVerifier *HTTPVerifier
-	nonceManager *nonce.Manager
+	replay       session.ReplayGuard // nonce replay protection, scoped by agent DID
 }
 
-// NewVerifier creates a new RFC-9421 verifier
+// NewVerifier creates a verifier with an in-memory replay guard (5 minute window).
 func NewVerifier() *Verifier {
 	return &Verifier{
 		httpVerifier: NewHTTPVerifier(),
-		nonceManager: nonce.NewManager(5*time.Minute, 1*time.Minute),
+		replay:       session.NewMemoryReplayGuard(5 * time.Minute),
 	}
 }
 
-// NewVerifierWithNonceManager creates a verifier with a custom nonce manager
-func NewVerifierWithNonceManager(nonceManager *nonce.Manager) *Verifier {
-	return &Verifier{
-		httpVerifier: NewHTTPVerifier(),
-		nonceManager: nonceManager,
-	}
+// NewVerifierWithReplayGuard creates a verifier that records nonces in the
+// given guard (for example a shared or persistent store). A nil guard
+// disables replay detection on the envelope path.
+func NewVerifierWithReplayGuard(guard session.ReplayGuard) *Verifier {
+	return &Verifier{httpVerifier: NewHTTPVerifier(), replay: guard}
 }
+
+// NewVerifierWithNonceManager creates a verifier backed by a nonce.Manager.
+//
+// Deprecated: use NewVerifierWithReplayGuard with a session.ReplayGuard.
+func NewVerifierWithNonceManager(nonceManager *nonce.Manager) *Verifier {
+	if nonceManager == nil {
+		return NewVerifierWithReplayGuard(nil)
+	}
+	return NewVerifierWithReplayGuard(nonceManagerGuard{m: nonceManager})
+}
+
+// nonceManagerGuard adapts the legacy nonce.Manager to session.ReplayGuard.
+// The manager keeps a single global nonce space, so the scope is ignored to
+// preserve its historical behaviour (callers can still query IsNonceUsed).
+type nonceManagerGuard struct{ m *nonce.Manager }
+
+func (g nonceManagerGuard) CheckAndMark(_, n string) bool { return g.m.CheckAndMark(n) }
+func (g nonceManagerGuard) Seen(_, n string) bool         { return g.m.IsNonceUsed(n) }
+
+// replayScope is the nonce space a message's nonce is checked in.
+func replayScope(message *Message) string { return message.AgentDID }
 
 // VerifySignature verifies a signature according to RFC-9421
 func (v *Verifier) VerifySignature(publicKey interface{}, message *Message, opts *VerificationOptions) error {
@@ -71,9 +92,13 @@ func (v *Verifier) VerifySignature(publicKey interface{}, message *Message, opts
 		}
 	}
 
-	// Check for nonce replay attack if nonce is present
-	if message.Nonce != "" && v.nonceManager != nil {
-		if v.nonceManager.IsNonceUsed(message.Nonce) {
+	// Fail fast on a nonce that is already recorded; the authoritative check
+	// happens after signature verification so forged messages cannot poison
+	// the guard.
+	if message.Nonce != "" && v.replay != nil {
+		if peek, ok := v.replay.(interface {
+			Seen(scope, nonce string) bool
+		}); ok && peek.Seen(replayScope(message), message.Nonce) {
 			return fmt.Errorf("nonce replay attack detected: nonce %s has already been used", message.Nonce)
 		}
 	}
@@ -86,9 +111,11 @@ func (v *Verifier) VerifySignature(publicKey interface{}, message *Message, opts
 		return fmt.Errorf("signature verification failed: %w", err)
 	}
 
-	// Mark nonce as used after successful verification
-	if message.Nonce != "" && v.nonceManager != nil {
-		v.nonceManager.MarkNonceUsed(message.Nonce)
+	// Record the nonce after successful verification (atomic check-and-mark)
+	if message.Nonce != "" && v.replay != nil {
+		if !v.replay.CheckAndMark(replayScope(message), message.Nonce) {
+			return fmt.Errorf("nonce replay attack detected: nonce %s has already been used", message.Nonce)
+		}
 	}
 
 	return nil

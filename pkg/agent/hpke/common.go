@@ -29,7 +29,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sync"
 	"time"
 
 	"golang.org/x/crypto/hkdf"
@@ -149,32 +148,6 @@ func verifySignature(payload, signature []byte, senderPub crypto.PublicKey) erro
 	}
 
 	return nil
-}
-
-type nonceStore struct {
-	ttl     time.Duration
-	mu      sync.Mutex
-	entries map[string]time.Time
-}
-
-func newNonceStore(ttl time.Duration) *nonceStore {
-	return &nonceStore{ttl: ttl, entries: make(map[string]time.Time)}
-}
-func (s *nonceStore) checkAndMark(key string) bool {
-	now := time.Now()
-	exp := now.Add(s.ttl)
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for k, v := range s.entries {
-		if now.After(v) {
-			delete(s.entries, k)
-		}
-	}
-	if _, ok := s.entries[key]; ok {
-		return false
-	}
-	s.entries[key] = exp
-	return true
 }
 
 func getString(m map[string]string, key string) (string, error) {
