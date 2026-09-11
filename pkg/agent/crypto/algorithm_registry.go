@@ -21,8 +21,10 @@ package crypto
 import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"errors"
+	"math/big"
 	"sync"
 )
 
@@ -197,6 +199,10 @@ func IsAlgorithmSupported(keyType KeyType) bool {
 	return err == nil
 }
 
+// secp256k1P is the field prime of secp256k1, used to recognise the curve
+// regardless of which implementation (go-ethereum, decred) backs the key.
+var secp256k1P, _ = new(big.Int).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 16)
+
 // GetKeyTypeFromPublicKey maps a Go crypto.PublicKey to our KeyType
 // This is used for algorithm validation in signature verification
 func GetKeyTypeFromPublicKey(publicKey interface{}) (KeyType, error) {
@@ -204,7 +210,17 @@ func GetKeyTypeFromPublicKey(publicKey interface{}) (KeyType, error) {
 	case ed25519.PublicKey:
 		return KeyTypeEd25519, nil
 	case *ecdsa.PublicKey:
-		return KeyTypeSecp256k1, nil
+		if key.Curve == nil || key.Params() == nil {
+			return "", errors.New("ECDSA public key has no curve")
+		}
+		switch {
+		case key.Curve == elliptic.P256() || key.Curve.Params().Name == "P-256":
+			return KeyTypeP256, nil
+		case key.Params().P.Cmp(secp256k1P) == 0:
+			return KeyTypeSecp256k1, nil
+		default:
+			return "", errors.New("unsupported ECDSA curve: " + key.Curve.Params().Name)
+		}
 	case *rsa.PublicKey:
 		return KeyTypeRSA, nil
 	default:

@@ -32,6 +32,7 @@ import (
 
 	"github.com/google/uuid"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/session"
@@ -68,8 +69,9 @@ type ServerOpts struct {
 	Cookies       CookieVerifier
 }
 
-// serverSigEnvelope is the canonical structure signed by the server.
-// Field order is fixed to guarantee deterministic JSON encoding.
+// serverSigEnvelope holds the members of the handshake response that the
+// server signs. The signature is computed over the RFC 8785 canonical JSON
+// of these members (see pkg/agent/crypto/jcs), independent of field order.
 type serverSigEnvelope struct {
 	V             string `json:"v"`
 	Task          string `json:"task"`
@@ -337,9 +339,12 @@ func (s *Server) buildAndSignResponse(req *transport.SecureMessage, pl HPKEInitP
 		EphC:          base64.RawURLEncoding.EncodeToString(pl.EphC),
 	}
 
-	envBytes, err := json.Marshal(env) // deterministic order by struct field order
+	// Sign the RFC 8785 canonical form of the envelope. The response below
+	// carries exactly these members plus sigB64, so a verifier canonicalizes
+	// what it received (minus sigB64) and gets the same bytes in any language.
+	envBytes, err := jcs.Marshal(env)
 	if err != nil {
-		return nil, fmt.Errorf("marshal env: %w", err)
+		return nil, fmt.Errorf("canonicalize env: %w", err)
 	}
 	sig, err := s.key.Sign(envBytes) // Ed25519 sign
 	if err != nil {

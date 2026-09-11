@@ -183,15 +183,8 @@ func (v *HTTPVerifier) sign(signatureBase string, privateKey crypto.Signer) ([]b
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign with ECDSA: %w", err)
 		}
-
-		// Convert to fixed-size byte arrays (P-256 = 32 bytes each)
-		signature = make([]byte, 64)
-		rBytes := r.Bytes()
-		sBytes := s.Bytes()
-
-		// Pad with zeros if necessary
-		copy(signature[32-len(rBytes):32], rBytes)
-		copy(signature[64-len(sBytes):64], sBytes)
+		// Fixed-size r || s (P-256: 32 bytes each), low-S normalised
+		signature = keys.EncodeRawECDSASignature(key.Curve, r, s)
 
 	default:
 		// Other algorithms use the standard crypto.Signer interface

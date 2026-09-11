@@ -118,16 +118,8 @@ func (kp *p256KeyPair) Sign(message []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	// Serialize to 64-byte format (32 bytes R + 32 bytes S)
-	signature := make([]byte, 64)
-	rBytes := r.Bytes()
-	sBytes := s.Bytes()
-
-	// Pad with zeros if necessary (right-align in 32-byte slots)
-	copy(signature[32-len(rBytes):32], rBytes)
-	copy(signature[64-len(sBytes):64], sBytes)
-
-	return signature, nil
+	// Serialize to 64-byte format (32 bytes R + 32 bytes S), low-S normalised
+	return EncodeRawECDSASignature(kp.privateKey.Curve, r, s), nil
 }
 
 // Verify verifies the signature using ECDSA with SHA-256

@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
-	_ "github.com/sage-x-project/sage/pkg/agent/crypto/keys" // Import to register algorithms
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 )
 
 func TestGetKeyTypeFromPublicKey(t *testing.T) {
@@ -43,13 +43,30 @@ func TestGetKeyTypeFromPublicKey(t *testing.T) {
 		assert.Equal(t, sagecrypto.KeyTypeEd25519, keyType)
 	})
 
-	t.Run("ECDSA public key", func(t *testing.T) {
+	t.Run("ECDSA P-256 public key", func(t *testing.T) {
 		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		require.NoError(t, err)
 
 		keyType, err := sagecrypto.GetKeyTypeFromPublicKey(&priv.PublicKey)
 		require.NoError(t, err)
+		assert.Equal(t, sagecrypto.KeyTypeP256, keyType)
+	})
+
+	t.Run("ECDSA secp256k1 public key", func(t *testing.T) {
+		kp, err := keys.GenerateSecp256k1KeyPair()
+		require.NoError(t, err)
+
+		keyType, err := sagecrypto.GetKeyTypeFromPublicKey(kp.PublicKey())
+		require.NoError(t, err)
 		assert.Equal(t, sagecrypto.KeyTypeSecp256k1, keyType)
+	})
+
+	t.Run("ECDSA unsupported curve", func(t *testing.T) {
+		priv, err := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+		require.NoError(t, err)
+
+		_, err = sagecrypto.GetKeyTypeFromPublicKey(&priv.PublicKey)
+		assert.Error(t, err)
 	})
 
 	t.Run("RSA public key", func(t *testing.T) {
@@ -103,11 +120,15 @@ func TestValidateAlgorithmForPublicKey(t *testing.T) {
 	})
 
 	t.Run("Valid ECDSA algorithm", func(t *testing.T) {
-		priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		p256, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		require.NoError(t, err)
+		assert.NoError(t, sagecrypto.ValidateAlgorithmForPublicKey(&p256.PublicKey, "ecdsa-p256-sha256"))
+		assert.Error(t, sagecrypto.ValidateAlgorithmForPublicKey(&p256.PublicKey, "es256k"), "a P-256 key must not pass as secp256k1")
 
-		err = sagecrypto.ValidateAlgorithmForPublicKey(&priv.PublicKey, "es256k")
-		assert.NoError(t, err)
+		k1, err := keys.GenerateSecp256k1KeyPair()
+		require.NoError(t, err)
+		assert.NoError(t, sagecrypto.ValidateAlgorithmForPublicKey(k1.PublicKey(), "es256k"))
+		assert.Error(t, sagecrypto.ValidateAlgorithmForPublicKey(k1.PublicKey(), "ecdsa-p256-sha256"))
 	})
 
 	t.Run("Valid RSA algorithm", func(t *testing.T) {

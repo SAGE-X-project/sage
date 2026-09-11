@@ -34,6 +34,7 @@ import (
 
 	"github.com/google/uuid"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/session"
@@ -332,6 +333,9 @@ type serverSignedResponse struct {
 	EncB64        string
 	EphCB64       string
 	Sig           []byte
+	// Canonical is the RFC 8785 form of the received response without sigB64:
+	// the bytes the server's signature must verify over.
+	Canonical []byte
 }
 
 func parseServerSignedResponse(data []byte) (*serverSignedResponse, error) {
@@ -380,6 +384,18 @@ func parseServerSignedResponse(data []byte) (*serverSignedResponse, error) {
 		return nil, fmt.Errorf("bad sigB64")
 	}
 
+	// Canonical bytes of everything except the detached signature.
+	signed := make(map[string]interface{}, len(m))
+	for k, val := range m {
+		if k != "sigB64" {
+			signed[k] = val
+		}
+	}
+	canonical, err := jcs.Marshal(signed)
+	if err != nil {
+		return nil, fmt.Errorf("canonicalize response: %w", err)
+	}
+
 	var enc, ephC []byte
 	encB64, ok := m["enc"]
 	if ok && encB64 != "" {
@@ -412,6 +428,7 @@ func parseServerSignedResponse(data []byte) (*serverSignedResponse, error) {
 		EncB64:        encB64,
 		EphCB64:       ephCB64,
 		Sig:           sig,
+		Canonical:     canonical,
 	}, nil
 }
 
@@ -442,28 +459,18 @@ func (c *Client) verifySignature(ctx context.Context, serverDID string, r *serve
 		return fmt.Errorf("info/exportCtx hash mismatch")
 	}
 
-	// Rebuild the exact envelope bytes (must match server side)
-	env := serverSigEnvelope{
-		V:             r.V,
-		Task:          r.Task,
-		Ctx:           r.Ctx, // prefer local ctxID
-		Kid:           r.Kid,
-		EphS:          base64.RawURLEncoding.EncodeToString(r.EphSBytes),
-		AckTagB64:     base64.RawURLEncoding.EncodeToString(r.AckTag),
-		Ts:            r.Ts,
-		Did:           serverDID,
-		InfoHash:      base64.RawURLEncoding.EncodeToString(ih[:]),
-		ExportCtxHash: base64.RawURLEncoding.EncodeToString(eh[:]),
-		Enc:           base64.RawURLEncoding.EncodeToString(enc),
-		EphC:          base64.RawURLEncoding.EncodeToString(ephC),
+	// The signed members must describe this handshake: the server we
+	// addressed and our own enc / ephC echoed back unchanged.
+	if r.Did != serverDID {
+		return fmt.Errorf("response did %q does not match server DID %q", r.Did, serverDID)
 	}
-	envBytes, err := json.Marshal(env)
-	if err != nil {
-		return fmt.Errorf("marshal env (client): %w", err)
+	if !hmac.Equal(r.Enc, enc) || !hmac.Equal(r.EphC, ephC) {
+		return fmt.Errorf("enc/ephC echo mismatch")
 	}
 
-	// Verify detached signature
-	if err := verifySignature(envBytes, r.Sig, pub); err != nil {
+	// Verify the detached signature over the canonical form of the bytes
+	// actually received (RFC 8785), not over a re-encoding of a Go struct.
+	if err := verifySignature(r.Canonical, r.Sig, pub); err != nil {
 		return fmt.Errorf("server signature verify failed: %w", err)
 	}
 	return nil

@@ -243,10 +243,11 @@ func runCardValidate(cmd *cobra.Command, args []string) error {
 	// Level 1: Basic validation
 	if cardValidateWithProof {
 		// Parse as card with proof
-		var cardWithProof did.A2AAgentCardWithProof
-		if err := json.Unmarshal(data, &cardWithProof); err != nil {
+		parsed, err := did.ParseA2AAgentCardWithProof(data)
+		if err != nil {
 			return fmt.Errorf("invalid JSON format: %w", err)
 		}
+		cardWithProof := *parsed
 
 		// Validate with proof
 		fmt.Printf("  [1/3] Basic structure validation... ")

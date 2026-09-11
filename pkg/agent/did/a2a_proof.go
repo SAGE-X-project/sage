@@ -23,7 +23,6 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"crypto/ed25519"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -32,6 +31,9 @@ import (
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/mr-tron/base58"
+
+	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 )
 
 // A2AProof represents a cryptographic proof for an A2A Agent Card
@@ -49,6 +51,41 @@ type A2AProof struct {
 type A2AAgentCardWithProof struct {
 	A2AAgentCard
 	Proof *A2AProof `json:"proof,omitempty"` // Cryptographic proof
+
+	// raw holds the JSON the card was parsed from (see
+	// ParseA2AAgentCardWithProof). When present, the proof is verified over
+	// the canonical form of these bytes rather than over a re-encoding of the
+	// Go struct, so fields the struct does not model are still covered.
+	raw json.RawMessage
+}
+
+// ParseA2AAgentCardWithProof decodes a signed card and retains the original
+// JSON so that VerifyA2ACardProof verifies exactly what was received.
+func ParseA2AAgentCardWithProof(data []byte) (*A2AAgentCardWithProof, error) {
+	var card A2AAgentCardWithProof
+	if err := json.Unmarshal(data, &card); err != nil {
+		return nil, fmt.Errorf("invalid A2A card JSON: %w", err)
+	}
+	card.raw = append(json.RawMessage(nil), data...)
+	return &card, nil
+}
+
+// a2aCardCanonicalBytes returns the RFC 8785 canonical JSON of the card
+// without its "proof" member. This is the byte string A2A card proofs are
+// computed over: Ed25519 signs it directly; secp256k1 signs Keccak-256 of it
+// (Ethereum convention, see keys.SignSecp256k1Keccak).
+func a2aCardCanonicalBytes(card *A2AAgentCardWithProof) ([]byte, error) {
+	if len(card.raw) > 0 {
+		var m map[string]interface{}
+		dec := json.NewDecoder(bytes.NewReader(card.raw))
+		dec.UseNumber()
+		if err := dec.Decode(&m); err != nil {
+			return nil, fmt.Errorf("failed to decode card: %w", err)
+		}
+		delete(m, "proof")
+		return jcs.Marshal(m)
+	}
+	return jcs.Marshal(card.A2AAgentCard)
 }
 
 // GenerateA2ACardWithProof creates an A2A Agent Card with cryptographic proof
@@ -86,14 +123,11 @@ func GenerateA2ACardWithProof(metadata *AgentMetadataV4, privateKey interface{},
 		return nil, fmt.Errorf("no verified %s key found in metadata", keyType)
 	}
 
-	// Create canonical representation for signing (without proof)
-	cardJSON, err := json.Marshal(baseCard)
+	// Canonical representation for signing (RFC 8785, without proof)
+	canonical, err := jcs.Marshal(baseCard)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal card: %w", err)
+		return nil, fmt.Errorf("failed to canonicalize card: %w", err)
 	}
-
-	// Hash the card data
-	hash := sha256.Sum256(cardJSON)
 
 	// Sign based on key type
 	var signature []byte
@@ -105,7 +139,7 @@ func GenerateA2ACardWithProof(metadata *AgentMetadataV4, privateKey interface{},
 		if !ok {
 			return nil, fmt.Errorf("invalid Ed25519 private key type")
 		}
-		signature = ed25519.Sign(ed25519Key, hash[:])
+		signature = ed25519.Sign(ed25519Key, canonical)
 		proofType = "Ed25519Signature2020"
 
 	case KeyTypeECDSA:
@@ -113,7 +147,7 @@ func GenerateA2ACardWithProof(metadata *AgentMetadataV4, privateKey interface{},
 		if !ok {
 			return nil, fmt.Errorf("invalid ECDSA private key type")
 		}
-		signature, err = ethcrypto.Sign(hash[:], ecdsaKey)
+		signature, err = keys.SignSecp256k1Keccak(ecdsaKey, canonical)
 		if err != nil {
 			return nil, fmt.Errorf("failed to sign with ECDSA: %w", err)
 		}
@@ -268,19 +302,18 @@ func verifyA2ACardProofWithKey(cardWithProof *A2AAgentCardWithProof, pubKeyBytes
 		return fmt.Errorf("failed to decode signature: %w", err)
 	}
 
-	// Canonical representation (without proof) for verification
-	cardJSON, err := json.Marshal(cardWithProof.A2AAgentCard)
+	// Canonical representation (RFC 8785, without proof) for verification
+	canonical, err := a2aCardCanonicalBytes(cardWithProof)
 	if err != nil {
-		return fmt.Errorf("failed to marshal card: %w", err)
+		return err
 	}
-	hash := sha256.Sum256(cardJSON)
 
 	switch proof.Type {
 	case "Ed25519Signature2020":
 		if len(pubKeyBytes) != ed25519.PublicKeySize {
 			return fmt.Errorf("invalid Ed25519 public key size: %d", len(pubKeyBytes))
 		}
-		if !ed25519.Verify(ed25519.PublicKey(pubKeyBytes), hash[:], signature) {
+		if !ed25519.Verify(ed25519.PublicKey(pubKeyBytes), canonical, signature) {
 			return fmt.Errorf("Ed25519 signature verification failed")
 		}
 		return nil
@@ -305,12 +338,9 @@ func verifyA2ACardProofWithKey(cardWithProof *A2AAgentCardWithProof, pubKeyBytes
 		default:
 			return fmt.Errorf("invalid public key length: %d (expected 33, 64, or 65 bytes)", len(pubKeyBytes))
 		}
-		// Ethereum signatures carry the recovery id in the last byte
-		if len(signature) == 65 {
-			signature = signature[:64]
-		}
-		if !ethcrypto.VerifySignature(ethcrypto.CompressPubkey(pubKey), hash[:], signature) {
-			return fmt.Errorf("ECDSA signature verification failed")
+		// Ethereum convention: Keccak-256 of the canonical card, r || s [|| v]
+		if err := keys.VerifySecp256k1Keccak(pubKey, canonical, signature); err != nil {
+			return fmt.Errorf("ECDSA signature verification failed: %w", err)
 		}
 		return nil
 

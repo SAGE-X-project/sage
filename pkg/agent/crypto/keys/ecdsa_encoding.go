@@ -5,6 +5,7 @@ import (
 	"crypto/elliptic"
 	"errors"
 	"fmt"
+	"math/big"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
@@ -75,4 +76,28 @@ func ParseECDSAPublicKey(curve elliptic.Curve, x, y []byte) (*ecdsa.PublicKey, e
 		return ethcrypto.UnmarshalPubkey(raw)
 	}
 	return ecdsa.ParseUncompressedPublicKey(curve, raw)
+}
+
+// LowS returns s normalised to the lower half of the curve order (s <= N/2),
+// the form required by BIP-62 / Ethereum and used by every SAGE ECDSA signer
+// so that a given message and key produce exactly one accepted signature
+// encoding.
+func LowS(curve elliptic.Curve, s *big.Int) *big.Int {
+	n := curve.Params().N
+	half := new(big.Int).Rsh(n, 1)
+	if s.Cmp(half) > 0 {
+		return new(big.Int).Sub(n, s)
+	}
+	return s
+}
+
+// EncodeRawECDSASignature returns r || s as two fixed-size big-endian values
+// of the curve's byte length, with s normalised to low-S.
+func EncodeRawECDSASignature(curve elliptic.Curve, r, s *big.Int) []byte {
+	size := (curve.Params().BitSize + 7) / 8
+	s = LowS(curve, s)
+	out := make([]byte, 2*size)
+	r.FillBytes(out[:size])
+	s.FillBytes(out[size:])
+	return out
 }
