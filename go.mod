@@ -4,7 +4,7 @@ go 1.25.2
 
 require (
 	filippo.io/edwards25519 v1.2.0
-	github.com/cloudflare/circl v1.6.3
+	github.com/cloudflare/circl v1.6.5
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1
 	github.com/ethereum/go-ethereum v1.17.3
 	github.com/gagliardetto/solana-go v1.20.0
