@@ -25,6 +25,8 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/binary"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -70,6 +72,112 @@ type SecureSession struct {
 	inSign  []byte // HMAC-SHA256 key for inbound  signatures
 	aeadOut cipher.AEAD
 	aeadIn  cipher.AEAD
+
+	// Replay / ordering protection and key rotation (see wire format below).
+	sendMu  sync.Mutex
+	sendSeq uint64 // next outbound sequence number
+	recvMu  sync.Mutex
+	recv    replayWindow // inbound sliding window
+	genMu   sync.Mutex
+	genAEAD map[genKey]cipher.AEAD // AEADs for key generations > 0
+}
+
+// Wire format of every ciphertext produced by this package:
+//
+//	seq (8 bytes, big-endian) || nonce (12 bytes) || ChaCha20-Poly1305(plaintext)
+//
+// seq is a per-session, per-direction counter starting at 0. It is bound to
+// the ciphertext as the first 8 bytes of the AEAD associated data, followed by
+// the caller's AAD, so it cannot be altered without failing authentication.
+// The receiver keeps a sliding window of ReplayWindowSize sequence numbers
+// below the highest one seen: a sequence number already accepted is rejected
+// (ErrReplayedMessage), one that fell out of the window is rejected
+// (ErrStaleMessage), and messages within the window may arrive out of order.
+// Only authenticated messages update the window, so forged headers cannot
+// poison it.
+//
+// When Config.RekeyInterval is > 0 the AEAD key of a direction changes every
+// RekeyInterval messages: message seq uses key generation seq / RekeyInterval.
+// Generation 0 is the handshake-derived key; generation g > 0 is
+// HKDF-SHA256(sessionSeed, salt = session id, info = "sage-session-rekey-v1" ||
+// direction || g). Both peers derive the same generations, so rotation needs
+// no extra messages.
+const (
+	// SeqSize is the size of the sequence-number header.
+	SeqSize = 8
+	// HeaderSize is the size of the header preceding the AEAD ciphertext.
+	HeaderSize = SeqSize + chacha20poly1305.NonceSize
+	// ReplayWindowSize is how many sequence numbers below the highest accepted
+	// one are still accepted (if not seen before).
+	ReplayWindowSize = 1024
+	// DefaultRekeyInterval is the number of messages per key generation used
+	// by Manager when Config.RekeyInterval is 0.
+	DefaultRekeyInterval = 256
+)
+
+var (
+	// ErrReplayedMessage is returned when a sequence number was already accepted.
+	ErrReplayedMessage = errors.New("session: replayed message")
+	// ErrStaleMessage is returned when a sequence number is older than the replay window.
+	ErrStaleMessage = errors.New("session: message outside replay window")
+	// ErrDataTooShort is returned when a ciphertext is shorter than its header.
+	ErrDataTooShort = errors.New("session: data too short")
+)
+
+type genKey struct {
+	direction string
+	gen       uint64
+}
+
+// replayWindow is a sliding bitmap over the last ReplayWindowSize sequence numbers.
+type replayWindow struct {
+	seen    bool
+	highest uint64
+	bits    [ReplayWindowSize / 64]uint64
+}
+
+func (w *replayWindow) slot(seq uint64) (word int, mask uint64) {
+	i := seq % ReplayWindowSize
+	return int(i / 64), 1 << (i % 64)
+}
+
+// check reports whether seq may be accepted; it does not modify the window.
+func (w *replayWindow) check(seq uint64) error {
+	if !w.seen || seq > w.highest {
+		return nil
+	}
+	if w.highest-seq >= ReplayWindowSize {
+		return ErrStaleMessage
+	}
+	word, mask := w.slot(seq)
+	if w.bits[word]&mask != 0 {
+		return ErrReplayedMessage
+	}
+	return nil
+}
+
+// mark records seq as accepted. Callers must have called check first.
+func (w *replayWindow) mark(seq uint64) {
+	if !w.seen {
+		w.seen = true
+		w.highest = seq
+	} else if seq > w.highest {
+		if seq-w.highest >= ReplayWindowSize {
+			w.bits = [ReplayWindowSize / 64]uint64{}
+		} else {
+			for i := w.highest + 1; i <= seq; i++ {
+				word, mask := w.slot(i)
+				w.bits[word] &^= mask
+			}
+		}
+		w.highest = seq
+	}
+	word, mask := w.slot(seq)
+	w.bits[word] |= mask
+}
+
+func (w *replayWindow) reset() {
+	*w = replayWindow{}
 }
 
 // Params describes the handshake context required to deterministically
@@ -421,6 +529,21 @@ func (s *SecureSession) Reset() {
 	s.aead = nil
 	s.aeadOut = nil
 	s.aeadIn = nil
+
+	s.resetSequencing()
+}
+
+// resetSequencing clears the sequence counter, replay window and rotated keys.
+func (s *SecureSession) resetSequencing() {
+	s.sendMu.Lock()
+	s.sendSeq = 0
+	s.sendMu.Unlock()
+	s.recvMu.Lock()
+	s.recv.reset()
+	s.recvMu.Unlock()
+	s.genMu.Lock()
+	s.genAEAD = nil
+	s.genMu.Unlock()
 }
 
 // InitializeSession initializes a pooled session with the given parameters
@@ -438,6 +561,7 @@ func (s *SecureSession) InitializeSession(sid string, sessionSeed []byte, config
 	s.config = config
 	s.closed = false
 	s.sessionSeed = append([]byte(nil), sessionSeed...)
+	s.resetSequencing()
 
 	// Derive encryption and signing keys using HKDF
 	if err := s.deriveKeys(); err != nil {
@@ -456,7 +580,9 @@ func (s *SecureSession) InitializeSession(sid string, sessionSeed []byte, config
 
 // Close marks the session as closed
 func (s *SecureSession) Close() error {
+	s.mu.Lock()
 	s.closed = true
+	s.mu.Unlock()
 
 	zeroBytes := func(b []byte) {
 		for i := range b {
@@ -475,6 +601,9 @@ func (s *SecureSession) Close() error {
 	s.aead = nil
 	s.aeadOut = nil
 	s.aeadIn = nil
+	s.genMu.Lock()
+	s.genAEAD = nil
+	s.genMu.Unlock()
 
 	return nil
 }
@@ -489,101 +618,58 @@ func (s *SecureSession) GetConfig() Config {
 	return s.config
 }
 
-// Encrypt encrypts plaintext using ChaCha20-Poly1305.
-// Output format: nonce || ciphertext.
+// Encrypt encrypts plaintext for the peer.
+// Output format: seq || nonce || ciphertext (see the wire format above).
+// Exporter-derived sessions use the outbound directional key; seed-derived
+// sessions use the single shared key.
 func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error) {
 	if s.IsExpired() {
 		metrics.CryptoOperations.WithLabelValues("encrypt", "expired").Inc()
 		return nil, fmt.Errorf("session expired")
 	}
-
-	if s.aeadOut != nil { // directional path
-		return s.EncryptOutbound(plaintext)
+	out, err := s.EncryptWithAAD(plaintext, nil)
+	if err != nil {
+		metrics.CryptoOperations.WithLabelValues("encrypt", "failure").Inc()
+		return nil, err
 	}
-	// legacy single-AEAD path
-	if s.aead == nil {
-		metrics.CryptoOperations.WithLabelValues("encrypt", "not_initialized").Inc()
-		return nil, fmt.Errorf("session not initialized: AEAD is nil")
-	}
-	// Generate random 12-byte nonce
-	nonce := make([]byte, chacha20poly1305.NonceSize)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		metrics.CryptoOperations.WithLabelValues("encrypt", "nonce_error").Inc()
-		return nil, fmt.Errorf("failed to generate nonce: %w", err)
-	}
-
-	// Seal appends the ciphertext and authentication tag
-	// #nosec G407 - nonce is randomly generated using crypto/rand above
-	ciphertext := s.aead.Seal(nil, nonce, plaintext, nil)
-
-	// Prepend nonce
-	out := make([]byte, len(nonce)+len(ciphertext))
-	copy(out, nonce)
-	copy(out[len(nonce):], ciphertext)
-
-	s.UpdateLastUsed()
 	metrics.CryptoOperations.WithLabelValues("encrypt", "success").Inc()
 	metrics.SessionMessageSize.WithLabelValues("encrypted").Observe(float64(len(out)))
 	return out, nil
 }
 
-// Decrypt decrypts data produced by Encrypt.
-// Expects input format: nonce || ciphertext.
+// Decrypt decrypts data produced by the peer's Encrypt and enforces the
+// replay window.
 func (s *SecureSession) Decrypt(data []byte) ([]byte, error) {
 	if s.IsExpired() {
 		metrics.CryptoOperations.WithLabelValues("decrypt", "expired").Inc()
 		return nil, fmt.Errorf("session expired")
 	}
-
-	if s.aeadIn != nil { // directional path
-		return s.DecryptInbound(data)
-	}
-	// legacy single-AEAD path
-	if s.aead == nil {
-		metrics.CryptoOperations.WithLabelValues("decrypt", "not_initialized").Inc()
-		return nil, fmt.Errorf("session not initialized: AEAD is nil")
-	}
-	if len(data) < chacha20poly1305.NonceSize {
-		metrics.CryptoOperations.WithLabelValues("decrypt", "invalid_data").Inc()
-		return nil, fmt.Errorf("data too short")
-	}
-
-	nonce := data[:chacha20poly1305.NonceSize]
-	ciphertext := data[chacha20poly1305.NonceSize:]
-
-	// Open verifies authenticity and decrypts
-	plaintext, err := s.aead.Open(nil, nonce, ciphertext, nil) // #nosec G407 -- nonce extracted from data, not hardcoded
+	pt, err := s.DecryptWithAAD(data, nil)
 	if err != nil {
 		metrics.CryptoOperations.WithLabelValues("decrypt", "failure").Inc()
-		return nil, fmt.Errorf("decryption failed: %w", err)
+		return nil, err
 	}
-	s.UpdateLastUsed()
 	metrics.CryptoOperations.WithLabelValues("decrypt", "success").Inc()
-	metrics.SessionMessageSize.WithLabelValues("decrypted").Observe(float64(len(plaintext)))
-	return plaintext, nil
+	metrics.SessionMessageSize.WithLabelValues("decrypted").Observe(float64(len(pt)))
+	return pt, nil
 }
 
-// EncryptAndSign encrypts plaintext and returns (cipher, mac) where:
-//   - cipher = nonce || ciphertext (ChaCha20-Poly1305)
+// EncryptAndSign encrypts plaintext with the single shared key and returns
+// (cipher, mac) where:
+//   - cipher = seq || nonce || ciphertext (ChaCha20-Poly1305)
 //   - mac    = HMAC-SHA256(signingKey, covered)
 func (s *SecureSession) EncryptAndSign(plaintext []byte, covered []byte) (cipher []byte, mac []byte, err error) {
 	if s.IsExpired() {
 		return nil, nil, fmt.Errorf("session expired")
 	}
-
-	// Encrypt
-	nonce := make([]byte, chacha20poly1305.NonceSize)
-	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, nil, fmt.Errorf("failed to generate nonce: %w", err)
+	if s.aead == nil {
+		return nil, nil, fmt.Errorf("session not initialized: AEAD is nil")
 	}
-	// #nosec G407 - nonce is randomly generated using crypto/rand above
-	ct := s.aead.Seal(nil, nonce, plaintext, nil)
+	out, err := s.seal(s.aead, "single", plaintext, nil)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	out := make([]byte, len(nonce)+len(ct))
-	copy(out, nonce)
-	copy(out[len(nonce):], ct)
-
-	// HMAC over your covered bytes
 	h := hmac.New(sha256.New, s.signingKey)
 	h.Write(covered)
 	tag := h.Sum(nil)
@@ -592,11 +678,14 @@ func (s *SecureSession) EncryptAndSign(plaintext []byte, covered []byte) (cipher
 	return out, tag, nil
 }
 
-// DecryptAndVerify verifies mac = HMAC-SHA256(signingKey, covered) and then decrypts cipher.
-// cipher = nonce || ciphertext
+// DecryptAndVerify verifies mac = HMAC-SHA256(signingKey, covered) and then
+// decrypts cipher (seq || nonce || ciphertext) with the single shared key.
 func (s *SecureSession) DecryptAndVerify(cipher []byte, covered []byte, mac []byte) ([]byte, error) {
 	if s.IsExpired() {
 		return nil, fmt.Errorf("session expired")
+	}
+	if s.aead == nil {
+		return nil, fmt.Errorf("session not initialized: AEAD is nil")
 	}
 
 	// Verify HMAC first
@@ -607,14 +696,7 @@ func (s *SecureSession) DecryptAndVerify(cipher []byte, covered []byte, mac []by
 		return nil, fmt.Errorf("signature verify failed")
 	}
 
-	// Then decrypt
-	if len(cipher) < chacha20poly1305.NonceSize {
-		return nil, fmt.Errorf("cipher too short")
-	}
-	nonce := cipher[:chacha20poly1305.NonceSize]
-	ct := cipher[chacha20poly1305.NonceSize:]
-
-	plain, err := s.aead.Open(nil, nonce, ct, nil) // #nosec G407 -- nonce extracted from cipher data, not hardcoded
+	plain, err := s.open(s.aead, "single", cipher, nil)
 	if err != nil {
 		return nil, fmt.Errorf("decryption/verification failed: %w", err)
 	}
@@ -623,8 +705,8 @@ func (s *SecureSession) DecryptAndVerify(cipher []byte, covered []byte, mac []by
 	return plain, nil
 }
 
-// EncryptWithAAD encrypts plaintext with optional AEAD AAD.
-// Output: nonce || ciphertext
+// EncryptWithAAD encrypts plaintext with additional authenticated data.
+// Output: seq || nonce || ciphertext
 func (s *SecureSession) EncryptWithAAD(plaintext, aad []byte) ([]byte, error) {
 	if s.aeadOut != nil {
 		return s.EncryptWithAADOutbound(plaintext, aad)
@@ -632,22 +714,16 @@ func (s *SecureSession) EncryptWithAAD(plaintext, aad []byte) ([]byte, error) {
 	if s.aead == nil {
 		return nil, fmt.Errorf("session not initialized: AEAD is nil")
 	}
-
-	nonce := make([]byte, chacha20poly1305.NonceSize)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	out, err := s.seal(s.aead, "single", plaintext, aad)
+	if err != nil {
+		return nil, err
 	}
-	// #nosec G407 - nonce is randomly generated using crypto/rand above
-	ct := s.aead.Seal(nil, nonce, plaintext, aad)
-	out := make([]byte, len(nonce)+len(ct))
-	copy(out, nonce)
-	copy(out[len(nonce):], ct)
 	s.UpdateLastUsed()
 	return out, nil
 }
 
 // DecryptWithAAD decrypts data produced by EncryptWithAAD.
-// Input: nonce || ciphertext
+// Input: seq || nonce || ciphertext
 func (s *SecureSession) DecryptWithAAD(data, aad []byte) ([]byte, error) {
 	if s.aeadIn != nil {
 		return s.DecryptWithAADInbound(data, aad)
@@ -655,15 +731,9 @@ func (s *SecureSession) DecryptWithAAD(data, aad []byte) ([]byte, error) {
 	if s.aead == nil {
 		return nil, fmt.Errorf("session not initialized: AEAD is nil")
 	}
-
-	if len(data) < chacha20poly1305.NonceSize {
-		return nil, fmt.Errorf("data too short")
-	}
-	nonce := data[:chacha20poly1305.NonceSize]
-	ct := data[chacha20poly1305.NonceSize:]
-	pt, err := s.aead.Open(nil, nonce, ct, aad) // #nosec G407 -- nonce extracted from data, not hardcoded
+	pt, err := s.open(s.aead, "single", data, aad)
 	if err != nil {
-		return nil, fmt.Errorf("decryption failed: %w", err)
+		return nil, err
 	}
 	s.UpdateLastUsed()
 	return pt, nil
@@ -688,81 +758,160 @@ func (s *SecureSession) VerifyCovered(covered, sig []byte) error {
 }
 
 // EncryptOutbound encrypts plaintext using the *outbound* AEAD.
-// Output: nonce || ciphertext
+// Output: seq || nonce || ciphertext
 func (s *SecureSession) EncryptOutbound(plaintext []byte) ([]byte, error) {
-	if s.aeadOut == nil {
-		return nil, fmt.Errorf("session not initialized: outbound AEAD is nil")
-	}
-	nonce := make([]byte, chacha20poly1305.NonceSize)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("failed to generate nonce: %w", err)
-	}
-	// #nosec G407 - nonce is randomly generated using crypto/rand above
-	ct := s.aeadOut.Seal(nil, nonce, plaintext, nil)
-
-	out := make([]byte, len(nonce)+len(ct))
-	copy(out, nonce)
-	copy(out[len(nonce):], ct)
-
-	s.UpdateLastUsed()
-	return out, nil
+	return s.EncryptWithAADOutbound(plaintext, nil)
 }
 
 // DecryptInbound decrypts data using the *inbound* AEAD.
-// Input: nonce || ciphertext
+// Input: seq || nonce || ciphertext
 func (s *SecureSession) DecryptInbound(data []byte) ([]byte, error) {
-	if s.aeadIn == nil {
-		return nil, fmt.Errorf("session not initialized: inbound AEAD is nil")
-	}
-	if len(data) < chacha20poly1305.NonceSize {
-		return nil, fmt.Errorf("data too short")
-	}
-	nonce := data[:chacha20poly1305.NonceSize]
-	ct := data[chacha20poly1305.NonceSize:]
-
-	pt, err := s.aeadIn.Open(nil, nonce, ct, nil) // #nosec G407 -- nonce extracted from data, not hardcoded
-	if err != nil {
-		return nil, fmt.Errorf("decryption failed: %w", err)
-	}
-	s.UpdateLastUsed()
-	return pt, nil
+	return s.DecryptWithAADInbound(data, nil)
 }
 
-// EncryptWithAADOutbound encrypts with AAD using *outbound* AEAD.
+// EncryptWithAADOutbound encrypts with AAD using the *outbound* AEAD.
 func (s *SecureSession) EncryptWithAADOutbound(plaintext, aad []byte) ([]byte, error) {
 	if s.aeadOut == nil {
 		return nil, fmt.Errorf("session not initialized: outbound AEAD is nil")
 	}
-	nonce := make([]byte, chacha20poly1305.NonceSize)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	out, err := s.seal(s.aeadOut, s.directionLabel(true), plaintext, aad)
+	if err != nil {
+		return nil, err
 	}
-	// #nosec G407 - nonce is randomly generated using crypto/rand above
-	ct := s.aeadOut.Seal(nil, nonce, plaintext, aad)
-
-	out := make([]byte, len(nonce)+len(ct))
-	copy(out, nonce)
-	copy(out[len(nonce):], ct)
-
 	s.UpdateLastUsed()
 	return out, nil
 }
 
-// DecryptWithAADInbound decrypts with AAD using *inbound* AEAD.
+// DecryptWithAADInbound decrypts with AAD using the *inbound* AEAD.
 func (s *SecureSession) DecryptWithAADInbound(data, aad []byte) ([]byte, error) {
 	if s.aeadIn == nil {
 		return nil, fmt.Errorf("session not initialized: inbound AEAD is nil")
 	}
-	if len(data) < chacha20poly1305.NonceSize {
-		return nil, fmt.Errorf("data too short")
-	}
-	nonce := data[:chacha20poly1305.NonceSize]
-	ct := data[chacha20poly1305.NonceSize:]
-
-	pt, err := s.aeadIn.Open(nil, nonce, ct, aad) // #nosec G407 -- nonce extracted from data, not hardcoded
+	pt, err := s.open(s.aeadIn, s.directionLabel(false), data, aad)
 	if err != nil {
-		return nil, fmt.Errorf("decryption failed: %w", err)
+		return nil, err
 	}
 	s.UpdateLastUsed()
 	return pt, nil
+}
+
+// SendSequence returns the sequence number the next outbound message will carry.
+func (s *SecureSession) SendSequence() uint64 {
+	s.sendMu.Lock()
+	defer s.sendMu.Unlock()
+	return s.sendSeq
+}
+
+// directionLabel names the key a direction uses, identically on both peers:
+// the initiator's outbound key is the responder's inbound key.
+func (s *SecureSession) directionLabel(outbound bool) string {
+	if s.initiator == outbound {
+		return "c2s"
+	}
+	return "s2c"
+}
+
+// generation returns the key generation used by sequence number seq.
+func (s *SecureSession) generation(seq uint64) uint64 {
+	if s.config.RekeyInterval == 0 {
+		return 0
+	}
+	return seq / s.config.RekeyInterval
+}
+
+// aeadForSeq returns the AEAD for the given direction and sequence number,
+// deriving and caching rotated keys as needed. Generations older than the
+// previous one are dropped from the cache.
+func (s *SecureSession) aeadForSeq(base cipher.AEAD, direction string, seq uint64) (cipher.AEAD, error) {
+	gen := s.generation(seq)
+	if gen == 0 {
+		return base, nil
+	}
+	key := genKey{direction: direction, gen: gen}
+
+	s.genMu.Lock()
+	defer s.genMu.Unlock()
+	if a, ok := s.genAEAD[key]; ok {
+		return a, nil
+	}
+	if len(s.sessionSeed) == 0 {
+		return nil, fmt.Errorf("session not initialized: no seed for key rotation")
+	}
+	info := make([]byte, 0, 32+len(direction)+8)
+	info = append(info, "sage-session-rekey-v1"...)
+	info = append(info, direction...)
+	info = binary.BigEndian.AppendUint64(info, gen)
+	k := make([]byte, chacha20poly1305.KeySize)
+	if _, err := io.ReadFull(hkdf.New(sha256.New, s.sessionSeed, []byte(s.id), info), k); err != nil {
+		return nil, fmt.Errorf("derive rotated key: %w", err)
+	}
+	a, err := chacha20poly1305.New(k)
+	if err != nil {
+		return nil, fmt.Errorf("create rotated AEAD: %w", err)
+	}
+	if s.genAEAD == nil {
+		s.genAEAD = make(map[genKey]cipher.AEAD)
+	}
+	for k := range s.genAEAD {
+		if k.direction == direction && k.gen+1 < gen {
+			delete(s.genAEAD, k)
+		}
+	}
+	s.genAEAD[key] = a
+	return a, nil
+}
+
+// seal produces seq || nonce || AEAD(plaintext, aad' = seq || aad).
+func (s *SecureSession) seal(base cipher.AEAD, direction string, plaintext, aad []byte) ([]byte, error) {
+	s.sendMu.Lock()
+	seq := s.sendSeq
+	s.sendSeq++
+	s.sendMu.Unlock()
+
+	aead, err := s.aeadForSeq(base, direction, seq)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]byte, HeaderSize, HeaderSize+len(plaintext)+aead.Overhead())
+	binary.BigEndian.PutUint64(out[:SeqSize], seq)
+	nonce := out[SeqSize:HeaderSize]
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, fmt.Errorf("failed to generate nonce: %w", err)
+	}
+	// #nosec G407 - nonce is randomly generated using crypto/rand above
+	return aead.Seal(out, nonce, plaintext, boundAAD(out[:SeqSize], aad)), nil
+}
+
+// open verifies seq against the replay window, authenticates and decrypts
+// seq || nonce || ciphertext, and records seq only on success.
+func (s *SecureSession) open(base cipher.AEAD, direction string, data, aad []byte) ([]byte, error) {
+	if len(data) < HeaderSize {
+		return nil, ErrDataTooShort
+	}
+	seq := binary.BigEndian.Uint64(data[:SeqSize])
+
+	s.recvMu.Lock()
+	defer s.recvMu.Unlock()
+	if err := s.recv.check(seq); err != nil {
+		return nil, err
+	}
+	aead, err := s.aeadForSeq(base, direction, seq)
+	if err != nil {
+		return nil, err
+	}
+	nonce := data[SeqSize:HeaderSize]
+	pt, err := aead.Open(nil, nonce, data[HeaderSize:], boundAAD(data[:SeqSize], aad)) // #nosec G407 -- nonce extracted from data, not hardcoded
+	if err != nil {
+		return nil, fmt.Errorf("decryption failed: %w", err)
+	}
+	s.recv.mark(seq)
+	return pt, nil
+}
+
+// boundAAD prefixes the caller's AAD with the sequence header.
+func boundAAD(seqHeader, aad []byte) []byte {
+	out := make([]byte, 0, len(seqHeader)+len(aad))
+	out = append(out, seqHeader...)
+	return append(out, aad...)
 }

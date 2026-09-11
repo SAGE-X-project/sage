@@ -22,11 +22,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - RFC 9421 HTTP verification now rejects replayed nonces (per keyid), signatures dated in the future beyond a clock-skew bound, and, with `StrictHTTPVerificationOptions`, signatures that do not cover `@method`, `@target-uri`, `@authority` and (for requests with a body) `content-digest`; signature selection no longer depends on map order.
 - Sessions created from an HPKE exporter secret now derive the single-key material used by `SignCovered`, `VerifyCovered`, `EncryptAndSign` and `DecryptAndVerify`; previously the signing key was all zeros and the AEAD nil.
 - `sage-did update` and `sage-did deactivate` load the key file given with `--key` instead of generating a new random key.
+- Session ciphertexts (`SecureSession.Encrypt`, `EncryptWithAAD`, `EncryptAndSign` and the directional variants) now carry an 8-byte big-endian sequence number that is authenticated as AEAD associated data. Receivers keep a 1024-entry sliding window per session: a replayed ciphertext fails with `ErrReplayedMessage`, one older than the window with `ErrStaleMessage`, and only authenticated messages advance the window. Keys rotate every `Config.RekeyInterval` messages per direction (Manager default 256; generation `g` is derived with HKDF from the session seed), so "automatic key rotation" is now implemented. The wire format changed from `nonce || ciphertext` to `seq || nonce || ciphertext`; peers must run the same version.
 - A2A Agent Card proofs can now be bound to the chain: `did.VerifyA2ACardProofWithDID` requires the proof's verification method to be a key of the card's DID that the on-chain document lists as verified, and checks the signature with the on-chain key bytes. `sage-did card validate --with-proof --verify-did` uses it; without `--verify-did` the command now reports the proof as self-attested (the key comes from the card itself) instead of "valid".
 
 ### Fixed
 - `did.Manager.Configure` installs the Ethereum client registered by `pkg/agent/did/ethereum`; `sage-did resolve`, `list`, `verify`, `update`, `deactivate`, `card` and `key` commands no longer fail with "no resolver for chain ethereum".
 - `nonce.Manager` gained an atomic `CheckAndMark` and a `Close` that stops its cleanup goroutine.
+- `SecureSession.Close` sets the closed flag under the session lock (it raced with `IsExpired`).
 - `did.ValidateA2ACardWithDID` always failed against a real resolver: `FromAgentMetadata` only accepted `[]byte` public keys, while the Ethereum resolver returns parsed `*ecdsa.PublicKey` / `ed25519.PublicKey` values, so no card key was ever "found on-chain". Parsed keys are now encoded with `MarshalPublicKey` and typed correctly.
 - `VerifyA2ACardProof` decoded `publicKeyHex` as Base58; hex-only cards now verify. `MarshalPublicKey` detects secp256k1 by curve parameters, so go-ethereum keys (empty curve name) are encoded as 64-byte `x || y` like decred keys.
 
@@ -34,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `rfc9421.ReplayGuard`, `NewNonceReplayGuard`, `NewHTTPVerifierWithReplayGuard`, `HTTPVerifier.Close`, `StrictHTTPVerificationOptions`, and new `HTTPVerificationOptions` fields (`MaxClockSkew`, `RequireContentDigest`, `RequireNonce`, `DisableReplayCheck`).
 - `did.Manager.HasClient`, `MultiChainResolver.HasResolver`.
 - `did.Manager.Resolver`, `did.VerifyA2ACardProofWithDID`, `did.ValidateA2ACardWithProofAndDID`.
+- `session.Config.RekeyInterval`, `session.SeqSize`, `HeaderSize`, `ReplayWindowSize`, `DefaultRekeyInterval`, `ErrReplayedMessage`, `ErrStaleMessage`, `ErrDataTooShort`, `SecureSession.SendSequence`.
 - `internal/cli.LoadKeyPair`, shared by the CLIs.
 
 ### Removed
