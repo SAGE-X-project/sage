@@ -4,6 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"fmt"
+	"math/big"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
@@ -51,6 +52,11 @@ func VerifySecp256k1Keccak(pub *ecdsa.PublicKey, message, signature []byte) erro
 	default:
 		return sagecrypto.ErrInvalidSignature
 	}
+	// go-ethereum rejects signatures whose s is in the upper half of the
+	// order. SAGE signers emit low-S, but signatures made with crypto/ecdsa or
+	// other libraries may not; normalising here keeps them verifiable
+	// (verification is unaffected: (r, s) and (r, N-s) are both valid).
+	signature = EncodeRawECDSASignature(pub.Curve, new(big.Int).SetBytes(signature[:32]), new(big.Int).SetBytes(signature[32:]))
 	if !ethcrypto.VerifySignature(ethcrypto.FromECDSAPub(pub), ethcrypto.Keccak256(message), signature) {
 		return sagecrypto.ErrInvalidSignature
 	}

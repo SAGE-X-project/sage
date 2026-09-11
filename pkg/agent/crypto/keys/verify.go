@@ -85,9 +85,5 @@ func derToRaw(curve elliptic.Curve, sig []byte) ([]byte, bool) {
 	if err != nil || len(rest) != 0 || der.R == nil || der.S == nil {
 		return nil, false
 	}
-	size := (curve.Params().BitSize + 7) / 8
-	out := make([]byte, 2*size)
-	der.R.FillBytes(out[:size])
-	der.S.FillBytes(out[size:])
-	return out, true
+	return EncodeRawECDSASignature(curve, der.R, der.S), true
 }

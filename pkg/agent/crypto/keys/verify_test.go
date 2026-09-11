@@ -2,10 +2,12 @@ package keys
 
 import (
 	"crypto/ecdsa"
+	"crypto/rand"
 	"encoding/asn1"
 	"math/big"
 	"testing"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,4 +48,30 @@ func TestVerifySignature_AllKeyTypes(t *testing.T) {
 
 	require.Error(t, VerifySignature("not a key", msg, sig))
 	require.Error(t, VerifySignature((*ecdsa.PublicKey)(nil), msg, sig))
+}
+
+// Signatures made with crypto/ecdsa (random nonce, no low-S normalisation) or
+// re-encoded with s' = N - s must still verify: (r, s) and (r, N-s) are both
+// valid ECDSA signatures and go-ethereum only accepts the low form.
+func TestVerifySignature_Secp256k1AcceptsHighS(t *testing.T) {
+	kp, err := GenerateSecp256k1KeyPair()
+	require.NoError(t, err)
+	priv := kp.PrivateKey().(*ecdsa.PrivateKey)
+	msg := []byte("high-s tolerance")
+	digest := ethcrypto.Keccak256(msg)
+
+	for i := 0; i < 32; i++ {
+		r, s, err := ecdsa.Sign(rand.Reader, priv, digest)
+		require.NoError(t, err)
+		// Force the high form explicitly as well.
+		high := new(big.Int).Sub(priv.Curve.Params().N, LowS(priv.Curve, s))
+		for _, sv := range []*big.Int{s, high} {
+			raw := make([]byte, 64)
+			r.FillBytes(raw[:32])
+			sv.FillBytes(raw[32:])
+			require.NoError(t, VerifySignature(kp.PublicKey(), msg, raw), "raw r||s")
+			require.NoError(t, VerifySignature(kp.PublicKey(), msg, derEncode(t, raw)), "DER")
+			require.NoError(t, VerifySecp256k1Keccak(priv.Public().(*ecdsa.PublicKey), msg, raw))
+		}
+	}
 }
