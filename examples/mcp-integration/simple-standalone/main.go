@@ -20,6 +20,8 @@ package main
 
 import (
 	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -150,19 +152,25 @@ func makeSAGERequest() {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Agent-DID", "did:sage:demo:agent123")
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
+	// Bind the body to the signature (verifiers require it in strict mode).
+	req.Header.Set("Content-Digest", rfc9421.ComputeContentDigest(bodyBytes))
 
 	// Create signature (simplified for demo)
 	verifier := rfc9421.NewHTTPVerifier()
 	params := &rfc9421.SignatureInputParams{
 		CoveredComponents: []string{
 			`"@method"`,
-			`"@path"`,
+			`"@target-uri"`,
+			`"@authority"`,
 			`"content-type"`,
+			`"content-digest"`,
 			`"x-agent-did"`,
+			`"date"`,
 		},
 		KeyID:     "demo-key",
 		Algorithm: "ed25519",
 		Created:   time.Now().Unix(),
+		Nonce:     newNonce(),
 	}
 
 	// Sign the request
@@ -242,4 +250,13 @@ curl -X POST http://localhost:8082/weather-secure \
 		IdleTimeout:  60 * time.Second,
 	}
 	log.Fatal(server.ListenAndServe())
+}
+
+// newNonce returns a random per-request nonce so verifiers can reject replays.
+func newNonce() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return ""
+	}
+	return base64.RawURLEncoding.EncodeToString(b)
 }

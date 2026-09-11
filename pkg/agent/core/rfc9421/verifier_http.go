@@ -29,22 +29,84 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/sage-x-project/sage/pkg/agent/core/message/nonce"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	_ "github.com/sage-x-project/sage/pkg/agent/crypto/keys" // Import to register algorithms
 )
 
+// DefaultMaxClockSkew bounds how far in the future a "created" parameter may
+// be. It mirrors the default MaxAge so the acceptance window is symmetric
+// (5 minutes either side of the verifier's clock).
+const DefaultMaxClockSkew = 5 * time.Minute
+
+// ReplayGuard remembers (keyID, nonce) pairs for the verification window and
+// reports reuse. CheckAndMark returns true when the pair has not been seen and
+// records it; it returns false when the pair was already presented.
+type ReplayGuard interface {
+	CheckAndMark(keyID, nonce string) bool
+}
+
+// NonceReplayGuard is the in-memory ReplayGuard used by NewHTTPVerifier.
+type NonceReplayGuard struct {
+	m *nonce.Manager
+}
+
+// NewNonceReplayGuard returns an in-memory replay guard that forgets nonces
+// after ttl. Call Close to stop its cleanup goroutine.
+func NewNonceReplayGuard(ttl time.Duration) *NonceReplayGuard {
+	cleanup := ttl / 2
+	if cleanup < time.Second {
+		cleanup = time.Second
+	}
+	return &NonceReplayGuard{m: nonce.NewManager(ttl, cleanup)}
+}
+
+// CheckAndMark implements ReplayGuard.
+func (g *NonceReplayGuard) CheckAndMark(keyID, n string) bool {
+	return g.m.CheckAndMark(keyID + "\x00" + n)
+}
+
+// Close stops the guard's cleanup goroutine.
+func (g *NonceReplayGuard) Close() { g.m.Close() }
+
 // HTTPVerifier provides RFC-9421 HTTP message signature verification
 type HTTPVerifier struct {
 	canonicalizer *Canonicalizer
+	replay        ReplayGuard
+	ownsGuard     bool
 }
 
-// NewHTTPVerifier creates a new HTTP signature verifier
+// NewHTTPVerifier creates a new HTTP signature verifier with an in-memory
+// replay guard whose window matches DefaultHTTPVerificationOptions().MaxAge.
+// Call Close when the verifier is no longer needed.
 func NewHTTPVerifier() *HTTPVerifier {
 	return &HTTPVerifier{
 		canonicalizer: NewCanonicalizer(),
+		replay:        NewNonceReplayGuard(DefaultHTTPVerificationOptions().MaxAge),
+		ownsGuard:     true,
+	}
+}
+
+// NewHTTPVerifierWithReplayGuard creates a verifier that records nonces in the
+// given guard (for example a shared or persistent store). A nil guard disables
+// replay detection.
+func NewHTTPVerifierWithReplayGuard(guard ReplayGuard) *HTTPVerifier {
+	return &HTTPVerifier{
+		canonicalizer: NewCanonicalizer(),
+		replay:        guard,
+	}
+}
+
+// Close releases the verifier's own replay guard, if it created one.
+func (v *HTTPVerifier) Close() {
+	if v.ownsGuard {
+		if c, ok := v.replay.(interface{ Close() }); ok {
+			c.Close()
+		}
 	}
 }
 
@@ -135,15 +197,19 @@ func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicK
 		return fmt.Errorf("failed to parse Signature: %w", err)
 	}
 
-	// Find the signature to verify
+	// Find the signature to verify. Without an explicit name, pick the
+	// lexicographically first label so the outcome does not depend on map order.
 	var sigName string
 	if opts.SignatureName != "" {
 		sigName = opts.SignatureName
 	} else {
-		// Use the first signature
+		names := make([]string, 0, len(sigInputs))
 		for name := range sigInputs {
-			sigName = name
-			break
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		if len(names) > 0 {
+			sigName = names[0]
 		}
 	}
 
@@ -166,8 +232,32 @@ func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicK
 		}
 	}
 
+	if params.Created > 0 {
+		skew := opts.MaxClockSkew
+		if skew <= 0 {
+			skew = DefaultMaxClockSkew
+		}
+		if params.Created > now+int64(skew.Seconds()) {
+			return fmt.Errorf("signature created in the future: created=%d now=%d (max skew %s)", params.Created, now, skew)
+		}
+	}
+
 	if params.Expires > 0 && now > params.Expires {
 		return fmt.Errorf("signature expired at %d (now %d)", params.Expires, now)
+	}
+
+	// Required components: the verifier, not the signer, decides what must be covered.
+	required := append([]string(nil), opts.RequiredComponents...)
+	if opts.RequireContentDigest && requestHasBody(req) {
+		required = append(required, "content-digest")
+	}
+	for _, comp := range required {
+		if !IsComponentCovered(params.CoveredComponents, comp) {
+			return fmt.Errorf("required component %q is not covered by the signature", strings.Trim(comp, `"`))
+		}
+	}
+	if opts.RequireNonce && params.Nonce == "" {
+		return fmt.Errorf("signature nonce is required but missing")
 	}
 
 	// Validate body integrity if Content-Digest is covered by signature
@@ -185,7 +275,27 @@ func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicK
 	}
 
 	// Verify signature
-	return v.verifySignature(publicKey, []byte(signatureBase), signature, params.Algorithm)
+	if err := v.verifySignature(publicKey, []byte(signatureBase), signature, params.Algorithm); err != nil {
+		return err
+	}
+
+	// Replay detection runs last so that unverifiable requests cannot poison the
+	// nonce store. The nonce is scoped by keyid so distinct signers do not collide.
+	if params.Nonce != "" && v.replay != nil && !opts.DisableReplayCheck {
+		if !v.replay.CheckAndMark(params.KeyID, params.Nonce) {
+			return fmt.Errorf("signature replay detected: nonce %q was already used for keyid %q", params.Nonce, params.KeyID)
+		}
+	}
+	return nil
+}
+
+// requestHasBody reports whether the request carries a body that a signature
+// should bind through content-digest.
+func requestHasBody(req *http.Request) bool {
+	if req.ContentLength > 0 {
+		return true
+	}
+	return req.Body != nil && req.Body != http.NoBody && req.ContentLength != 0
 }
 
 // verifySignature verifies the actual cryptographic signature
@@ -259,20 +369,53 @@ func (v *HTTPVerifier) formatSignatureInput(sigName string, params *SignatureInp
 
 // HTTPVerificationOptions contains options for HTTP signature verification
 type HTTPVerificationOptions struct {
-	// SignatureName specifies which signature to verify (if multiple exist)
+	// SignatureName specifies which signature to verify (if multiple exist).
+	// When empty, the lexicographically first signature label is used.
 	SignatureName string
 
 	// MaxAge specifies the maximum age for created timestamps
 	MaxAge time.Duration
 
-	// RequiredComponents specifies components that must be included
+	// MaxClockSkew bounds how far in the future "created" may be. Zero means
+	// DefaultMaxClockSkew.
+	MaxClockSkew time.Duration
+
+	// RequiredComponents lists components that the signature must cover
+	// (for example "@method", "@target-uri", "content-digest"). Quotes optional.
 	RequiredComponents []string
+
+	// RequireContentDigest additionally requires "content-digest" to be covered
+	// whenever the request has a body, binding the body to the signature.
+	RequireContentDigest bool
+
+	// RequireNonce rejects signatures without a nonce parameter.
+	RequireNonce bool
+
+	// DisableReplayCheck skips the verifier's replay guard (tests, offline replay).
+	DisableReplayCheck bool
 }
 
-// DefaultHTTPVerificationOptions returns default verification options
+// DefaultHTTPVerificationOptions returns lenient options: signatures must be
+// fresh (5 minutes), may not be dated in the future, and a nonce, when present,
+// is accepted once. Component coverage is left to the signer; use
+// StrictHTTPVerificationOptions to make the verifier enforce it.
 func DefaultHTTPVerificationOptions() *HTTPVerificationOptions {
 	return &HTTPVerificationOptions{
-		MaxAge: 5 * time.Minute,
+		MaxAge:       5 * time.Minute,
+		MaxClockSkew: DefaultMaxClockSkew,
+	}
+}
+
+// StrictHTTPVerificationOptions returns options that bind the method, target,
+// authority and (for requests with a body) the body to the signature and
+// require a nonce. This is the recommended setting for agent-to-agent traffic.
+func StrictHTTPVerificationOptions() *HTTPVerificationOptions {
+	return &HTTPVerificationOptions{
+		MaxAge:               5 * time.Minute,
+		MaxClockSkew:         DefaultMaxClockSkew,
+		RequiredComponents:   []string{"@method", "@target-uri", "@authority"},
+		RequireContentDigest: true,
+		RequireNonce:         true,
 	}
 }
 

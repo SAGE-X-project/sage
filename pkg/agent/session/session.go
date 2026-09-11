@@ -137,6 +137,18 @@ func NewSecureSessionFromExporterWithRole(sid string, exporter []byte, initiator
 	if err := sess.initAEADs(); err != nil {
 		return nil, err
 	}
+	// The single-key methods (Encrypt/Decrypt, EncryptAndSign/DecryptAndVerify,
+	// SignCovered/VerifyCovered) are part of the Session interface and must work
+	// on exporter-derived sessions as well; derive their keys from the same
+	// exporter with the legacy info label so both peers agree.
+	if err := sess.deriveKeys(); err != nil {
+		return nil, fmt.Errorf("derive legacy keys: %w", err)
+	}
+	aead, err := chacha20poly1305.New(sess.encryptKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AEAD: %w", err)
+	}
+	sess.aead = aead
 	return sess, nil
 }
 

@@ -33,6 +33,8 @@ type Manager struct {
 	usedNonces      map[string]time.Time
 	lastCleanup     time.Time
 	cleanupInterval time.Duration
+	stop            chan struct{}
+	stopOnce        sync.Once
 }
 
 // NewManager creates a new nonce tracker with the given TTL
@@ -42,9 +44,29 @@ func NewManager(ttl, cleanupInterval time.Duration) *Manager {
 		usedNonces:      make(map[string]time.Time),
 		cleanupInterval: cleanupInterval,
 		lastCleanup:     time.Now(),
+		stop:            make(chan struct{}),
 	}
 	go m.cleanupLoop()
 	return m
+}
+
+// CheckAndMark atomically reports whether nonce is fresh and, if so, records it.
+// It returns false when the nonce was already seen within the TTL window.
+// Use this instead of IsNonceUsed followed by MarkNonceUsed, which is racy.
+func (m *Manager) CheckAndMark(nonce string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	now := time.Now()
+	if seen, exists := m.usedNonces[nonce]; exists && now.Sub(seen) <= m.ttl {
+		return false
+	}
+	m.usedNonces[nonce] = now
+	return true
+}
+
+// Close stops the background cleanup goroutine. It is safe to call more than once.
+func (m *Manager) Close() {
+	m.stopOnce.Do(func() { close(m.stop) })
 }
 
 // GenerateNonce returns a cryptographically secure random nonce,
@@ -100,8 +122,13 @@ func (m *Manager) cleanupLoop() {
 	ticker := time.NewTicker(m.cleanupInterval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		m.performCleanup()
+	for {
+		select {
+		case <-ticker.C:
+			m.performCleanup()
+		case <-m.stop:
+			return
+		}
 	}
 }
 

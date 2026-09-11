@@ -96,7 +96,7 @@ func (t *CalculatorTool) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify the request signature
-	err = verifier.VerifyRequest(r, publicKey, nil)
+	err = verifier.VerifyRequest(r, publicKey, rfc9421.StrictHTTPVerificationOptions())
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Invalid signature: %v", err), http.StatusUnauthorized)
 		return

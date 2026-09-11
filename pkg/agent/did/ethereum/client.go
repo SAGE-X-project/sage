@@ -61,9 +61,14 @@ type EthereumClient struct {
 	config          *did.RegistryConfig
 }
 
-// init registers the Ethereum client creator with the factory
+// init registers the Ethereum client creators with the did package so that
+// did.CreateClient and did.Manager.Configure can build a client without a
+// manual SetClient call. Importing this package is what wires Ethereum in.
 func init() {
 	did.RegisterEthereumClientCreator(func(config *did.RegistryConfig) (did.Client, error) {
+		return NewEthereumClient(config)
+	})
+	did.RegisterEthereumV4ClientCreator(func(config *did.RegistryConfig) (interface{}, error) {
 		return NewEthereumClient(config)
 	})
 }
