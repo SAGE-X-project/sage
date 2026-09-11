@@ -48,6 +48,9 @@ func VerifySignature(publicKey crypto.PublicKey, message, signature []byte) erro
 		}
 		return nil
 	case *ecdsa.PublicKey:
+		if pub == nil || pub.Curve == nil {
+			return fmt.Errorf("nil ECDSA public key: %w", sagecrypto.ErrInvalidKeyType)
+		}
 		if IsSecp256k1Curve(pub.Curve) {
 			if raw, ok := derToRaw(pub.Curve, signature); ok {
 				signature = raw
