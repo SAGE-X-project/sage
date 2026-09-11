@@ -76,7 +76,7 @@ func (d *DIDStore) Get(ctx context.Context, did string) (*storage.DID, error) {
 	)
 
 	if err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("DID not found: %s", did)
+		return nil, fmt.Errorf("%w: DID %s", storage.ErrNotFound, did)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get DID: %w", err)
@@ -106,7 +106,7 @@ func (d *DIDStore) Update(ctx context.Context, did *storage.DID) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("DID not found: %s", did.DID)
+		return fmt.Errorf("%w: DID %s", storage.ErrNotFound, did.DID)
 	}
 
 	return nil
@@ -122,7 +122,7 @@ func (d *DIDStore) Delete(ctx context.Context, did string) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("DID not found: %s", did)
+		return fmt.Errorf("%w: DID %s", storage.ErrNotFound, did)
 	}
 
 	return nil
@@ -179,7 +179,7 @@ func (d *DIDStore) Revoke(ctx context.Context, did string) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("DID not found: %s", did)
+		return fmt.Errorf("%w: DID %s", storage.ErrNotFound, did)
 	}
 
 	return nil
@@ -192,7 +192,7 @@ func (d *DIDStore) IsRevoked(ctx context.Context, did string) (bool, error) {
 	var revoked bool
 	err := d.db.QueryRow(ctx, query, did).Scan(&revoked)
 	if err == pgx.ErrNoRows {
-		return false, fmt.Errorf("DID not found: %s", did)
+		return false, fmt.Errorf("%w: DID %s", storage.ErrNotFound, did)
 	}
 	if err != nil {
 		return false, fmt.Errorf("failed to check DID revocation: %w", err)

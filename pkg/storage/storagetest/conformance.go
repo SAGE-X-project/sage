@@ -65,7 +65,8 @@ func testNonceSingleUse(t *testing.T, s storage.Store) {
 	assert.False(t, used, "unknown nonce is not used")
 
 	require.NoError(t, ns.CheckAndStore(ctx, "n1", "sess-1", exp))
-	require.Error(t, ns.CheckAndStore(ctx, "n1", "sess-1", exp), "a nonce is accepted exactly once")
+	err = ns.CheckAndStore(ctx, "n1", "sess-1", exp)
+	require.ErrorIs(t, err, storage.ErrNonceUsed, "a nonce is accepted exactly once")
 	require.Error(t, ns.CheckAndStore(ctx, "n1", "sess-2", exp), "regardless of the session that presents it")
 
 	used, err = ns.IsUsed(ctx, "n1")
@@ -112,10 +113,10 @@ func testSessionLifecycle(t *testing.T, s storage.Store) {
 	}
 
 	_, err := ss.Get(ctx, "s1")
-	require.Error(t, err, "missing session is an error")
+	require.ErrorIs(t, err, storage.ErrNotFound, "missing session is an error")
 
 	require.NoError(t, ss.Create(ctx, sess))
-	require.Error(t, ss.Create(ctx, sess), "duplicate session id is rejected")
+	require.ErrorIs(t, ss.Create(ctx, sess), storage.ErrAlreadyExists, "duplicate session id is rejected")
 
 	// The store must not alias the caller's buffers.
 	sess.SessionKey[0] ^= 0xff
@@ -147,7 +148,7 @@ func testSessionExpiry(t *testing.T, s storage.Store) {
 	require.NoError(t, ss.Create(ctx, &storage.Session{ID: "live", CreatedAt: now, ExpiresAt: now.Add(time.Hour)}))
 
 	_, err := ss.Get(ctx, "expired")
-	require.Error(t, err, "an expired session is not returned")
+	require.ErrorIs(t, err, storage.ErrExpired, "an expired session is not returned")
 	_, err = ss.Get(ctx, "live")
 	require.NoError(t, err)
 
@@ -168,10 +169,10 @@ func testDIDLifecycle(t *testing.T, s storage.Store) {
 	other := &storage.DID{DID: "did:sage:ethereum:0xc", PublicKey: []byte{7}, OwnerAddress: "0x2222222222222222222222222222222222222222", KeyType: "ed25519", CreatedAt: now, UpdatedAt: now}
 
 	_, err := ds.Get(ctx, d1.DID)
-	require.Error(t, err, "missing DID is an error")
+	require.ErrorIs(t, err, storage.ErrNotFound, "missing DID is an error")
 
 	require.NoError(t, ds.Create(ctx, d1))
-	require.Error(t, ds.Create(ctx, d1), "duplicate DID is rejected")
+	require.ErrorIs(t, ds.Create(ctx, d1), storage.ErrAlreadyExists, "duplicate DID is rejected")
 	require.NoError(t, ds.Create(ctx, d2))
 	require.NoError(t, ds.Create(ctx, other))
 

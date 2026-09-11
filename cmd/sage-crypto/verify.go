@@ -25,8 +25,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"io"
-	"math/big"
 	"os"
 
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
@@ -251,36 +251,9 @@ func getSignature() ([]byte, error) {
 	return nil, fmt.Errorf("no signature provided")
 }
 
-// verifyWithPublicKey verifies a signature using only a public key
+// verifyWithPublicKey verifies a signature using only a public key. The
+// conventions (pure Ed25519, Keccak-256 for secp256k1, SHA-256 for P-256)
+// are those of keys.VerifySignature, matching what sage-crypto sign produces.
 func verifyWithPublicKey(publicKey crypto.PublicKey, message, signature []byte) error {
-	switch pk := publicKey.(type) {
-	case ed25519.PublicKey:
-		if !ed25519.Verify(pk, message, signature) {
-			return fmt.Errorf("ed25519 signature verification failed")
-		}
-		return nil
-
-	case *ecdsa.PublicKey:
-		// For ECDSA, we need to hash the message and parse the signature
-		hash := crypto.SHA256.New()
-		hash.Write(message)
-		hashed := hash.Sum(nil)
-
-		// ECDSA signature should be 64 bytes (32 bytes for r, 32 bytes for s)
-		if len(signature) != 64 {
-			return fmt.Errorf("invalid ECDSA signature length: expected 64 bytes, got %d", len(signature))
-		}
-
-		// Split signature into r and s components
-		r := new(big.Int).SetBytes(signature[:32])
-		s := new(big.Int).SetBytes(signature[32:])
-
-		if !ecdsa.Verify(pk, hashed, r, s) {
-			return fmt.Errorf("ecdsa signature verification failed")
-		}
-		return nil
-
-	default:
-		return fmt.Errorf("unsupported public key type: %T", publicKey)
-	}
+	return keys.VerifySignature(publicKey, message, signature)
 }

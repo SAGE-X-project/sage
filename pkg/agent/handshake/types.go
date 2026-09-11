@@ -22,6 +22,7 @@ import (
 	"context"
 	"crypto"
 	"encoding/json"
+	"github.com/sage-x-project/sage/pkg/agent/hpke"
 	"time"
 
 	"github.com/sage-x-project/sage/pkg/agent/core/message"
@@ -93,13 +94,9 @@ func (NoopEvents) AskEphemeral(context.Context, string) ([]byte, json.RawMessage
 	return nil, nil, nil
 }
 
-// 1) Optional extension: let the application issue and bind a keyid after session is ensured.
-// If implemented, the server will embed the issued keyid into the Complete ACK response.
-type KeyIDBinder interface {
-	// IssueKeyID returns an opaque keyid bound to the negotiated session for the given context.
-	// ok=false means no keyid is available (server will omit it).
-	IssueKeyID(ctxID string) (keyid string, ok bool)
-}
+// KeyIDBinder issues opaque key ids bound to a negotiated session. It is the
+// same contract as hpke.KeyIDBinder; one definition serves both protocols.
+type KeyIDBinder = hpke.KeyIDBinder
 
 // InvitationMessage represents an invitation packet containing only the Session ID.
 // It is delivered alongside a JWT carrying the agent's DID information.

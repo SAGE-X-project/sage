@@ -20,7 +20,17 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"time"
+)
+
+// Sentinel errors every Store implementation returns (wrapped, so use
+// errors.Is). The conformance suite in storagetest checks them.
+var (
+	ErrNotFound      = errors.New("storage: not found")
+	ErrAlreadyExists = errors.New("storage: already exists")
+	ErrExpired       = errors.New("storage: expired")
+	ErrNonceUsed     = errors.New("storage: nonce already used")
 )
 
 // SessionStore defines the interface for session persistence

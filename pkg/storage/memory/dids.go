@@ -35,7 +35,7 @@ func (d *DIDStore) Create(ctx context.Context, did *storage.DID) error {
 	defer d.store.didsMu.Unlock()
 
 	if _, exists := d.store.dids[did.DID]; exists {
-		return fmt.Errorf("DID already exists: %s", did.DID)
+		return fmt.Errorf("%w: DID %s", storage.ErrAlreadyExists, did.DID)
 	}
 
 	// Deep copy
@@ -55,7 +55,7 @@ func (d *DIDStore) Get(ctx context.Context, did string) (*storage.DID, error) {
 
 	didData, exists := d.store.dids[did]
 	if !exists {
-		return nil, fmt.Errorf("DID not found: %s", did)
+		return nil, fmt.Errorf("%w: DID %s", storage.ErrNotFound, did)
 	}
 
 	// Return copy
@@ -68,7 +68,7 @@ func (d *DIDStore) Update(ctx context.Context, did *storage.DID) error {
 	defer d.store.didsMu.Unlock()
 
 	if _, exists := d.store.dids[did.DID]; !exists {
-		return fmt.Errorf("DID not found: %s", did.DID)
+		return fmt.Errorf("%w: DID %s", storage.ErrNotFound, did.DID)
 	}
 
 	didCopy := *did
@@ -81,7 +81,7 @@ func (d *DIDStore) Delete(ctx context.Context, did string) error {
 	defer d.store.didsMu.Unlock()
 
 	if _, exists := d.store.dids[did]; !exists {
-		return fmt.Errorf("DID not found: %s", did)
+		return fmt.Errorf("%w: DID %s", storage.ErrNotFound, did)
 	}
 
 	delete(d.store.dids, did)
@@ -110,7 +110,7 @@ func (d *DIDStore) Revoke(ctx context.Context, did string) error {
 
 	didData, exists := d.store.dids[did]
 	if !exists {
-		return fmt.Errorf("DID not found: %s", did)
+		return fmt.Errorf("%w: DID %s", storage.ErrNotFound, did)
 	}
 
 	didData.Revoked = true
@@ -123,7 +123,7 @@ func (d *DIDStore) IsRevoked(ctx context.Context, did string) (bool, error) {
 
 	didData, exists := d.store.dids[did]
 	if !exists {
-		return false, fmt.Errorf("DID not found: %s", did)
+		return false, fmt.Errorf("%w: DID %s", storage.ErrNotFound, did)
 	}
 
 	return didData.Revoked, nil

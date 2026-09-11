@@ -87,7 +87,7 @@ func (s *SessionStore) Get(ctx context.Context, id string) (*storage.Session, er
 	)
 
 	if err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("session not found: %s", id)
+		return nil, fmt.Errorf("%w: session %s", storage.ErrNotFound, id)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
@@ -128,7 +128,7 @@ func (s *SessionStore) Update(ctx context.Context, session *storage.Session) err
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("session not found: %s", session.ID)
+		return fmt.Errorf("%w: session %s", storage.ErrNotFound, session.ID)
 	}
 
 	return nil
@@ -144,7 +144,7 @@ func (s *SessionStore) Delete(ctx context.Context, id string) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("session not found: %s", id)
+		return fmt.Errorf("%w: session %s", storage.ErrNotFound, id)
 	}
 
 	return nil
@@ -223,7 +223,7 @@ func (s *SessionStore) UpdateActivity(ctx context.Context, id string) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("session not found: %s", id)
+		return fmt.Errorf("%w: session %s", storage.ErrNotFound, id)
 	}
 
 	return nil

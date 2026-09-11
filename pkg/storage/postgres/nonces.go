@@ -51,7 +51,7 @@ func (n *NonceStore) CheckAndStore(ctx context.Context, nonce string, sessionID 
 	}
 
 	if exists {
-		return fmt.Errorf("nonce already used: %s", nonce)
+		return fmt.Errorf("%w: %s", storage.ErrNonceUsed, nonce)
 	}
 
 	// Store the nonce
@@ -132,7 +132,7 @@ func (n *NonceStore) Get(ctx context.Context, nonce string) (*storage.Nonce, err
 	)
 
 	if err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("nonce not found: %s", nonce)
+		return nil, fmt.Errorf("%w: nonce %s", storage.ErrNotFound, nonce)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get nonce: %w", err)

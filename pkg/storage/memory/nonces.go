@@ -37,7 +37,7 @@ func (n *NonceStore) CheckAndStore(ctx context.Context, nonce string, sessionID 
 
 	// Check if nonce already exists
 	if _, exists := n.store.nonces[nonce]; exists {
-		return fmt.Errorf("nonce already used: %s", nonce)
+		return fmt.Errorf("%w: %s", storage.ErrNonceUsed, nonce)
 	}
 
 	// Store the nonce
