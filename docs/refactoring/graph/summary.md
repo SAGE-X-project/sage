@@ -5,11 +5,11 @@ Module: `github.com/sage-x-project/sage`
 | Metric | Value |
 |---|---|
 | Packages | 64 |
-| Symbols | 2241 |
-| Edges | 1758 |
-| Non-test LOC | 45277 |
-| Test LOC | 38315 |
-| Funcs+methods | 1808 |
+| Symbols | 2243 |
+| Edges | 1764 |
+| Non-test LOC | 45284 |
+| Test LOC | 38357 |
+| Funcs+methods | 1810 |
 | Types | 433 |
 
 ## Packages
@@ -42,15 +42,15 @@ Module: `github.com/sage-x-project/sage`
 | pkg/agent/core/rfc9421 | pkg | 8 | 2224 | 4257 | 91 | 17 | 0 | 5 | 4 | 18 |
 | pkg/agent/crypto | pkg | 4 | 671 | 1684 | 28 | 11 | 6 | 20 | 0 | 9 |
 | pkg/agent/crypto/chain | pkg | 4 | 620 | 593 | 25 | 9 | 4 | 5 | 2 | 9 |
-| pkg/agent/crypto/chain/ethereum | pkg | 2 | 228 | 149 | 12 | 3 | 0 | 2 | 5 | 7 |
+| pkg/agent/crypto/chain/ethereum | pkg | 2 | 218 | 149 | 12 | 3 | 0 | 2 | 5 | 7 |
 | pkg/agent/crypto/chain/solana | pkg | 1 | 174 | 170 | 12 | 1 | 0 | 2 | 2 | 5 |
 | pkg/agent/crypto/formats | pkg | 2 | 891 | 786 | 19 | 5 | 0 | 6 | 2 | 16 |
 | pkg/agent/crypto/jcs | pkg | 1 | 225 | 62 | 6 | 0 | 0 | 2 | 0 | 10 |
-| pkg/agent/crypto/keys | pkg | 8 | 1365 | 2631 | 81 | 7 | 0 | 15 | 1 | 23 |
+| pkg/agent/crypto/keys | pkg | 9 | 1401 | 2673 | 83 | 7 | 0 | 15 | 1 | 23 |
 | pkg/agent/crypto/rotation | pkg | 1 | 145 | 198 | 4 | 1 | 0 | 1 | 2 | 3 |
 | pkg/agent/crypto/storage | pkg | 2 | 312 | 824 | 13 | 3 | 0 | 2 | 2 | 7 |
 | pkg/agent/crypto/vault | pkg | 1 | 407 | 324 | 15 | 4 | 1 | 0 | 0 | 14 |
-| pkg/agent/did | pkg | 13 | 3001 | 5423 | 111 | 35 | 5 | 8 | 4 | 21 |
+| pkg/agent/did | pkg | 13 | 2982 | 5423 | 111 | 35 | 5 | 8 | 4 | 20 |
 | pkg/agent/did/ethereum | pkg | 5 | 1708 | 2028 | 42 | 3 | 0 | 3 | 4 | 19 |
 | pkg/agent/did/solana | pkg | 2 | 798 | 393 | 16 | 2 | 0 | 1 | 4 | 9 |
 | pkg/agent/handshake | pkg | 4 | 951 | 825 | 36 | 13 | 2 | 1 | 8 | 11 |
@@ -264,7 +264,7 @@ None.
 | pkg/agent/did.ParseDID | 14 |
 | cmd/sage-did.getDefaultRPCEndpoint | 13 |
 | pkg/agent/crypto.KeyPair.ID | 12 |
-| pkg/agent/crypto/keys.IsSecp256k1Curve | 10 |
+| pkg/agent/crypto/keys.IsSecp256k1Curve | 11 |
 | pkg/agent/did.Manager.ResolveAgent | 10 |
 | pkg/agent/crypto.KeyPair.PrivateKey | 9 |
 | pkg/agent/did/ethereum.AgentCardClient.getTransactor | 8 |
@@ -299,8 +299,8 @@ None.
 | pkg/agent/crypto/formats.jwkExporter.Export | 100 | pkg/agent/crypto/formats/jwk.go:64 |
 | cmd/sage-did.runVerify | 98 | cmd/sage-did/verify.go:64 |
 | pkg/agent/did/ethereum.toKeyHashes | 97 | pkg/agent/did/ethereum/client.go:580 |
-| pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
 | pkg/agent/crypto/formats.pemExporter.ExportPublic | 93 | pkg/agent/crypto/formats/pem.go:139 |
+| pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
 | pkg/agent/crypto/formats.pemExporter.Export | 92 | pkg/agent/crypto/formats/pem.go:45 |
 | cmd/sage-did.runKeyAdd | 91 | cmd/sage-did/key.go:239 |
 | pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |

@@ -67,20 +67,10 @@ func (p *Provider) GenerateAddress(publicKey crypto.PublicKey, network chain.Net
 		return nil, chain.ErrNetworkNotSupported
 	}
 
-	// Uncompressed point without the 0x04 prefix: X || Y (32 bytes each)
-	uncompressed, err := keys.ECDSAPublicUncompressed(ecdsaPubKey)
-	if err != nil || len(uncompressed) != 65 {
+	address, err := keys.EthereumAddress(ecdsaPubKey)
+	if err != nil {
 		return nil, chain.ErrInvalidPublicKey
 	}
-	pubKeyBytes := uncompressed[1:]
-
-	// Keccak256 hash of the public key
-	hash := sha3.NewLegacyKeccak256()
-	hash.Write(pubKeyBytes)
-	addressBytes := hash.Sum(nil)
-
-	// Take the last 20 bytes as the address
-	address := "0x" + hex.EncodeToString(addressBytes[12:])
 
 	return &chain.Address{
 		Value:     address,

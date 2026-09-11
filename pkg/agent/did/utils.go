@@ -22,7 +22,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/x509"
-	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"strings"
@@ -30,7 +29,6 @@ import (
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"golang.org/x/crypto/sha3"
 )
 
 // MarshalPublicKey converts a public key to bytes for storage
@@ -222,26 +220,9 @@ func DeriveEthereumAddress(keyPair crypto.KeyPair) (string, error) {
 		return "", fmt.Errorf("ethereum address derivation requires secp256k1 key, got %s", keyPair.Type())
 	}
 
-	// Extract ECDSA public key
 	ecdsaPubKey, ok := keyPair.PublicKey().(*ecdsa.PublicKey)
 	if !ok {
 		return "", fmt.Errorf("failed to convert public key to ECDSA format")
 	}
-
-	// Uncompressed point without the 0x04 prefix (64 bytes: 32 bytes X + 32 bytes Y)
-	uncompressed, err := keys.ECDSAPublicUncompressed(ecdsaPubKey)
-	if err != nil || len(uncompressed) != 65 {
-		return "", fmt.Errorf("failed to encode ECDSA public key")
-	}
-	pubKeyBytes := uncompressed[1:]
-
-	// Keccak256 hash of the public key
-	hash := sha3.NewLegacyKeccak256()
-	hash.Write(pubKeyBytes)
-	addressBytes := hash.Sum(nil)
-
-	// Take the last 20 bytes as the address and format with 0x prefix
-	address := "0x" + hex.EncodeToString(addressBytes[12:])
-
-	return address, nil
+	return keys.EthereumAddress(ecdsaPubKey)
 }
