@@ -229,7 +229,16 @@ func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicK
 	if opts.RequireContentDigest && requestHasBody(req) {
 		required = append(required, "content-digest")
 	}
+	if len(opts.ExpectedAuthorities) > 0 {
+		required = append(required, "@authority")
+	}
 	if err := checkCovered(params, required, opts.RequireNonce); err != nil {
+		return err
+	}
+	if err := checkSignerIdentity(params, opts); err != nil {
+		return err
+	}
+	if err := checkAudience(req, opts); err != nil {
 		return err
 	}
 
@@ -294,6 +303,9 @@ func (v *HTTPVerifier) VerifyResponse(resp *http.Response, req *http.Request, pu
 		}
 	}
 	if err := checkCovered(params, required, opts.RequireNonce); err != nil {
+		return err
+	}
+	if err := checkSignerIdentity(params, opts); err != nil {
 		return err
 	}
 
@@ -396,6 +408,46 @@ func checkCovered(params *SignatureInputParams, required []string, requireNonce 
 		return fmt.Errorf("signature nonce is required but missing")
 	}
 	return nil
+}
+
+// KeyIDDID returns the DID part of a keyid of the form "<DID>#<fragment>" (or
+// the keyid itself when it has no fragment). It is the DID a verifier should
+// resolve the signing key from.
+func KeyIDDID(keyID string) string {
+	if i := strings.IndexByte(keyID, '#'); i >= 0 {
+		return keyID[:i]
+	}
+	return keyID
+}
+
+// checkSignerIdentity ties the signature's keyid to the expected DID or key.
+func checkSignerIdentity(params *SignatureInputParams, opts *HTTPVerificationOptions) error {
+	if opts.ExpectedKeyID != "" && params.KeyID != opts.ExpectedKeyID {
+		return fmt.Errorf("signature keyid %q does not match expected key %q", params.KeyID, opts.ExpectedKeyID)
+	}
+	if opts.ExpectedDID != "" && KeyIDDID(params.KeyID) != opts.ExpectedDID {
+		return fmt.Errorf("signature keyid %q does not belong to DID %q", params.KeyID, opts.ExpectedDID)
+	}
+	return nil
+}
+
+// checkAudience rejects requests whose authority is not one this verifier
+// serves. Combined with "@authority" coverage (enforced by the caller) this
+// prevents a request signed for another agent from being accepted here.
+func checkAudience(req *http.Request, opts *HTTPVerificationOptions) error {
+	if len(opts.ExpectedAuthorities) == 0 {
+		return nil
+	}
+	authority := req.Host
+	if authority == "" && req.URL != nil {
+		authority = req.URL.Host
+	}
+	for _, a := range opts.ExpectedAuthorities {
+		if strings.EqualFold(strings.TrimSpace(a), authority) {
+			return nil
+		}
+	}
+	return fmt.Errorf("request authority %q is not served by this verifier", authority)
 }
 
 // checkReplay runs last so that unverifiable messages cannot poison the nonce
@@ -527,6 +579,20 @@ type HTTPVerificationOptions struct {
 
 	// DisableReplayCheck skips the verifier's replay guard (tests, offline replay).
 	DisableReplayCheck bool
+
+	// ExpectedDID, when set, requires the signature's keyid to identify a key
+	// of this DID: keyid must equal the DID or be "<DID>#<fragment>". Use it
+	// to tie the signer to the DID whose key was resolved.
+	ExpectedDID string
+
+	// ExpectedKeyID, when set, requires the signature's keyid to equal it.
+	ExpectedKeyID string
+
+	// ExpectedAuthorities (requests only) lists the authorities (host[:port])
+	// this verifier serves. When set, "@authority" must be covered and the
+	// request's authority must be one of them, so a request signed for another
+	// agent cannot be forwarded here.
+	ExpectedAuthorities []string
 
 	// RequireRequestBinding (responses only) requires the signature to cover
 	// `"@method";req`, `"@target-uri";req` and `"@authority";req`, plus

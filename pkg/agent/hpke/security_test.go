@@ -484,6 +484,26 @@ func Test_Server_Rejects_Info_ExportCtx_Mismatch(t *testing.T) {
 	require.Error(t, err, "server must reject when info/exportCtx differs")
 }
 
+// Audience binding: an init addressed to serverDID handled by a server with a
+// different DID (same keys) must be rejected before a session is created.
+func Test_Server_Rejects_RespDID_Mismatch(t *testing.T) {
+	ctx := context.Background()
+	cli, srv, srvMgr, _, _, multiResolver, mt, clientDID, serverDID :=
+		setupHPKETestWithTransport(t, session.Config{}, session.Config{})
+
+	other := NewServer(srv.key, srvMgr, "did:sage:test:other-"+uuid.NewString(), multiResolver,
+		&ServerOpts{MaxSkew: 2 * time.Minute, Info: DefaultInfoBuilder{}, KEM: srv.kem})
+	mt.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
+		return other.HandleMessage(ctx, msg)
+	}
+
+	before := srvMgr.GetSessionCount()
+	_, err := cli.Initialize(ctx, "ctx-"+uuid.NewString(), clientDID, serverDID)
+	require.Error(t, err, "server must reject an init addressed to another DID")
+	require.Contains(t, err.Error(), "respDid")
+	require.Equal(t, before, srvMgr.GetSessionCount(), "no session may be created for a misaddressed init")
+}
+
 // (4) Replay protection: resubmit identical SecureMessage -> reject
 func Test_Replay_Protection_Works(t *testing.T) {
 	ctx := context.Background()

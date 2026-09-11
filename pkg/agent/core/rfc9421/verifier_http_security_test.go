@@ -166,3 +166,58 @@ func TestVerifyRequest_DeterministicSignatureSelection(t *testing.T) {
 	opts.SignatureName = "sig1"
 	assert.Error(t, v.VerifyRequest(req, pub, opts), "explicitly selecting the foreign signature must fail")
 }
+
+func TestVerifyRequest_ExpectedDIDBindsKeyID(t *testing.T) {
+	pub, priv := newTestKey(t)
+	v := NewHTTPVerifier()
+	defer v.Close()
+
+	req := signedRequest(t, v, priv, baseParams("nonce-did-1"), `{"a":1}`)
+	opts := StrictHTTPVerificationOptions()
+	opts.ExpectedDID = "did:sage:ethereum:0xabc"
+	require.NoError(t, v.VerifyRequest(req, pub, opts))
+
+	// The key was resolved for another DID: the signer's keyid must not be accepted.
+	req = signedRequest(t, v, priv, baseParams("nonce-did-2"), `{"a":1}`)
+	opts.ExpectedDID = "did:sage:ethereum:0xother"
+	err := v.VerifyRequest(req, pub, opts)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "does not belong to DID")
+
+	// Exact key identifier.
+	req = signedRequest(t, v, priv, baseParams("nonce-did-3"), `{"a":1}`)
+	opts = StrictHTTPVerificationOptions()
+	opts.ExpectedKeyID = "did:sage:ethereum:0xabc#key-2"
+	require.Error(t, v.VerifyRequest(req, pub, opts))
+
+	assert.Equal(t, "did:sage:ethereum:0xabc", KeyIDDID("did:sage:ethereum:0xabc#key-1"))
+	assert.Equal(t, "did:sage:ethereum:0xabc", KeyIDDID("did:sage:ethereum:0xabc"))
+}
+
+func TestVerifyRequest_ExpectedAuthoritiesRejectForwarding(t *testing.T) {
+	pub, priv := newTestKey(t)
+	v := NewHTTPVerifier()
+	defer v.Close()
+
+	req := signedRequest(t, v, priv, baseParams("nonce-aud-1"), `{"a":1}`)
+	opts := StrictHTTPVerificationOptions()
+	opts.ExpectedAuthorities = []string{"Agent.example"}
+	require.NoError(t, v.VerifyRequest(req, pub, opts), "authority match is case-insensitive")
+
+	// Agent B receives a request signed for agent A.
+	req = signedRequest(t, v, priv, baseParams("nonce-aud-2"), `{"a":1}`)
+	opts.ExpectedAuthorities = []string{"agent-b.example"}
+	err := v.VerifyRequest(req, pub, opts)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not served by this verifier")
+
+	// A signature that does not cover @authority is refused when authorities are configured.
+	params := baseParams("nonce-aud-3")
+	params.CoveredComponents = []string{`"@method"`, `"@target-uri"`, `"content-type"`, `"content-digest"`}
+	req = signedRequest(t, v, priv, params, `{"a":1}`)
+	opts = DefaultHTTPVerificationOptions()
+	opts.ExpectedAuthorities = []string{"agent.example"}
+	err = v.VerifyRequest(req, pub, opts)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "@authority")
+}

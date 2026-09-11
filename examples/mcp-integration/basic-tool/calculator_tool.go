@@ -95,8 +95,13 @@ func (t *CalculatorTool) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify the request signature
-	err = verifier.VerifyRequest(r, publicKey, rfc9421.StrictHTTPVerificationOptions())
+	// Verify the request signature. The signature's keyid must belong to the
+	// DID whose key was resolved above, so a valid signature from another
+	// agent cannot be presented under this DID.
+	opts := rfc9421.StrictHTTPVerificationOptions()
+	opts.ExpectedDID = agentDID
+	// opts.ExpectedAuthorities = []string{"tools.example:8080"} // reject requests signed for another host
+	err = verifier.VerifyRequest(r, publicKey, opts)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Invalid signature: %v", err), http.StatusUnauthorized)
 		return
