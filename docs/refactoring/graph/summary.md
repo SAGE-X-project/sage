@@ -5,12 +5,12 @@ Module: `github.com/sage-x-project/sage`
 | Metric | Value |
 |---|---|
 | Packages | 64 |
-| Symbols | 2243 |
-| Edges | 1764 |
-| Non-test LOC | 45284 |
-| Test LOC | 38357 |
-| Funcs+methods | 1810 |
-| Types | 433 |
+| Symbols | 2249 |
+| Edges | 1775 |
+| Non-test LOC | 45396 |
+| Test LOC | 38404 |
+| Funcs+methods | 1815 |
+| Types | 434 |
 
 ## Packages
 
@@ -19,9 +19,9 @@ Module: `github.com/sage-x-project/sage`
 | cmd/deployment-verify | cmd | 1 | 159 | 0 | 1 | 0 | 0 | 0 | 1 | 7 |
 | cmd/metrics-demo | cmd | 1 | 161 | 0 | 2 | 0 | 0 | 0 | 2 | 8 |
 | cmd/sage-crypto | cmd | 7 | 1209 | 0 | 28 | 0 | 0 | 0 | 8 | 14 |
-| cmd/sage-did | cmd | 13 | 2963 | 256 | 52 | 0 | 0 | 0 | 5 | 16 |
+| cmd/sage-did | cmd | 13 | 2962 | 256 | 53 | 0 | 0 | 0 | 6 | 16 |
 | cmd/sage-verify | cmd | 1 | 304 | 0 | 9 | 0 | 0 | 0 | 3 | 3 |
-| deployments/config | other | 6 | 1238 | 800 | 32 | 15 | 0 | 3 | 1 | 13 |
+| deployments/config | other | 6 | 1242 | 800 | 33 | 15 | 0 | 3 | 2 | 13 |
 | examples/mcp-integration/basic-demo | examples | 1 | 376 | 0 | 9 | 4 | 0 | 0 | 2 | 10 |
 | examples/mcp-integration/basic-tool | examples | 2 | 298 | 0 | 6 | 3 | 0 | 0 | 4 | 5 |
 | examples/mcp-integration/client | examples | 2 | 281 | 0 | 5 | 1 | 0 | 0 | 2 | 11 |
@@ -41,7 +41,7 @@ Module: `github.com/sage-x-project/sage`
 | pkg/agent/core/message/validator | pkg | 2 | 175 | 450 | 5 | 3 | 0 | 0 | 4 | 3 |
 | pkg/agent/core/rfc9421 | pkg | 8 | 2224 | 4257 | 91 | 17 | 0 | 5 | 4 | 18 |
 | pkg/agent/crypto | pkg | 4 | 671 | 1684 | 28 | 11 | 6 | 20 | 0 | 9 |
-| pkg/agent/crypto/chain | pkg | 4 | 620 | 593 | 25 | 9 | 4 | 5 | 2 | 9 |
+| pkg/agent/crypto/chain | pkg | 5 | 729 | 640 | 28 | 10 | 4 | 7 | 2 | 10 |
 | pkg/agent/crypto/chain/ethereum | pkg | 2 | 218 | 149 | 12 | 3 | 0 | 2 | 5 | 7 |
 | pkg/agent/crypto/chain/solana | pkg | 1 | 174 | 170 | 12 | 1 | 0 | 2 | 2 | 5 |
 | pkg/agent/crypto/formats | pkg | 2 | 891 | 786 | 19 | 5 | 0 | 6 | 2 | 16 |
@@ -99,11 +99,13 @@ graph LR
   cmd_sage_did --> internal_app
   cmd_sage_did --> internal_cli
   cmd_sage_did --> pkg_agent_crypto
+  cmd_sage_did --> pkg_agent_crypto_chain
   cmd_sage_did --> pkg_agent_did
   cmd_sage_did --> pkg_agent_did_ethereum
   cmd_sage_verify --> deployments_config
   cmd_sage_verify --> pkg_health
   cmd_sage_verify --> pkg_version
+  deployments_config --> pkg_agent_crypto_chain
   deployments_config --> pkg_blockchain_ethereum
   examples_mcp_integration_basic_demo --> pkg_agent_core_rfc9421
   examples_mcp_integration_basic_demo --> pkg_agent_crypto_keys
@@ -302,13 +304,13 @@ None.
 | pkg/agent/crypto/formats.pemExporter.ExportPublic | 93 | pkg/agent/crypto/formats/pem.go:139 |
 | pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
 | pkg/agent/crypto/formats.pemExporter.Export | 92 | pkg/agent/crypto/formats/pem.go:45 |
-| cmd/sage-did.runKeyAdd | 91 | cmd/sage-did/key.go:239 |
 | pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
+| cmd/sage-did.runKeyAdd | 91 | cmd/sage-did/key.go:239 |
 | deployments/config.validateBlockchainConfig | 88 | deployments/config/validator.go:61 |
-| pkg/agent/crypto/formats.jwkExporter.ExportPublic | 84 | pkg/agent/crypto/formats/jwk.go:166 |
 | pkg/agent/did/ethereum.EthereumClient.Register | 84 | pkg/agent/did/ethereum/client.go:126 |
+| pkg/agent/crypto/formats.jwkExporter.ExportPublic | 84 | pkg/agent/crypto/formats/jwk.go:166 |
+| cmd/sage-did.runRegister | 83 | cmd/sage-did/register.go:77 |
 | pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:137 |
-| cmd/sage-did.runRegister | 83 | cmd/sage-did/register.go:76 |
 | examples/mcp-integration/client.SAGEClient.CallTool | 81 | examples/mcp-integration/client/sage_client.go:79 |
 
 ## Duplicate function bodies
@@ -415,7 +417,6 @@ None.
 
 ### Structural duplicates (identical AST shape ignoring identifiers/literals, >= 8 lines)
 
-- cmd/sage-crypto.getSignatureAlgorithm, cmd/sage-did.getDefaultContractAddress, cmd/sage-did.getDefaultRPCEndpoint
 - deployments/config.BlockchainConfig.Validate, pkg/blockchain/ethereum.Endpoint.Validate
 - pkg/agent/crypto/chain/ethereum.Provider.SignTransaction, pkg/agent/crypto/chain/solana.Provider.SignTransaction
 - pkg/agent/crypto/formats.jwkImporter.importEd25519, pkg/agent/crypto/formats.jwkImporter.importSecp256k1

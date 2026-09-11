@@ -6,11 +6,11 @@ Reachability follows call and ref edges from each entry point, including dynamic
 
 | Entry package | Kind | Reachable module packages |
 |---|---|---|
-| cmd/deployment-verify | cmd | deployments/config(6) |
+| cmd/deployment-verify | cmd | deployments/config(6), pkg/agent/crypto/chain(2) |
 | cmd/metrics-demo | cmd | pkg/agent/session(42), pkg/telemetry/metrics(6) |
 | cmd/sage-crypto | cmd | internal/app(1), internal/cli(1), pkg/agent/crypto/chain(14), pkg/agent/crypto/chain/ethereum(8), pkg/agent/crypto/chain/solana(10), pkg/agent/crypto/formats(18), pkg/agent/crypto/keys(63), pkg/agent/crypto/rotation(4), pkg/agent/crypto/storage(8), pkg/agent/did(3), pkg/agent/did/ethereum(2), pkg/agent/did/solana(2), pkg/agent/transport(1), pkg/agent/transport/http(2), pkg/agent/transport/websocket(2) |
-| cmd/sage-did | cmd | internal/app(1), internal/cli(1), pkg/agent/crypto/chain(4), pkg/agent/crypto/chain/ethereum(6), pkg/agent/crypto/chain/solana(7), pkg/agent/crypto/formats(11), pkg/agent/crypto/jcs(6), pkg/agent/crypto/keys(31), pkg/agent/crypto/storage(4), pkg/agent/did(50), pkg/agent/did/ethereum(18), pkg/agent/did/solana(7), pkg/agent/transport(1), pkg/agent/transport/http(2), pkg/agent/transport/websocket(2), pkg/blockchain/ethereum/contracts/agentcardregistry(8) |
-| cmd/sage-verify | cmd | deployments/config(6), pkg/health(4) |
+| cmd/sage-did | cmd | internal/app(1), internal/cli(1), pkg/agent/crypto/chain(6), pkg/agent/crypto/chain/ethereum(6), pkg/agent/crypto/chain/solana(7), pkg/agent/crypto/formats(11), pkg/agent/crypto/jcs(6), pkg/agent/crypto/keys(31), pkg/agent/crypto/storage(4), pkg/agent/did(50), pkg/agent/did/ethereum(18), pkg/agent/did/solana(7), pkg/agent/transport(1), pkg/agent/transport/http(2), pkg/agent/transport/websocket(2), pkg/blockchain/ethereum/contracts/agentcardregistry(8) |
+| cmd/sage-verify | cmd | deployments/config(6), pkg/agent/crypto/chain(2), pkg/health(4) |
 | examples/mcp-integration/basic-demo | examples | pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(45), pkg/agent/crypto(5), pkg/agent/crypto/keys(22), pkg/agent/session(3) |
 | examples/mcp-integration/basic-tool | examples | pkg/agent/core(2), pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(42), pkg/agent/crypto(5), pkg/agent/crypto/chain(2), pkg/agent/crypto/chain/ethereum(3), pkg/agent/crypto/chain/solana(1), pkg/agent/crypto/keys(3), pkg/agent/did(21), pkg/agent/did/ethereum(4), pkg/agent/session(3) |
 | examples/mcp-integration/client | examples | pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(45), pkg/agent/crypto(5), pkg/agent/crypto/keys(22), pkg/agent/session(3) |
@@ -34,25 +34,25 @@ Reachability follows call and ref edges from each entry point, including dynamic
 | cmd/sage-crypto | `sign` | cmd/sage-crypto.runSign | internal/cli(1), pkg/agent/crypto/formats(11), pkg/agent/crypto/keys(36), pkg/agent/crypto/storage(4) |
 | cmd/sage-crypto | `verify` | cmd/sage-crypto.runVerify | pkg/agent/crypto/formats(12), pkg/agent/crypto/keys(43) |
 | cmd/sage-did | `activate <commit-hash>` | cmd/sage-did.runActivate | pkg/agent/did/ethereum(3), pkg/blockchain/ethereum/contracts/agentcardregistry(3) |
-| cmd/sage-did | `add <did> <keyfile>` | cmd/sage-did.runKeyAdd | pkg/agent/did(12) |
-| cmd/sage-did | `approve <keyhash>` | cmd/sage-did.runKeyApprove | pkg/agent/did(12) |
+| cmd/sage-did | `add <did> <keyfile>` | cmd/sage-did.runKeyAdd | pkg/agent/crypto/chain(2), pkg/agent/did(12) |
+| cmd/sage-did | `approve <keyhash>` | cmd/sage-did.runKeyApprove | pkg/agent/crypto/chain(2), pkg/agent/did(12) |
 | cmd/sage-did | `card` | - |  |
 | cmd/sage-did | `commit` | cmd/sage-did.runCommit | pkg/agent/did/ethereum(4), pkg/blockchain/ethereum/contracts/agentcardregistry(4) |
-| cmd/sage-did | `deactivate [DID]` | cmd/sage-did.runDeactivate | internal/cli(1), pkg/agent/crypto/formats(11), pkg/agent/crypto/keys(29), pkg/agent/crypto/storage(4), pkg/agent/did(14), pkg/agent/did/ethereum(3), pkg/agent/did/solana(3) |
-| cmd/sage-did | `debug` | cmd/sage-did.runDebug | pkg/agent/did(17), pkg/agent/did/ethereum(2) |
-| cmd/sage-did | `generate [DID]` | cmd/sage-did.runCardGenerate | pkg/agent/crypto/keys(3), pkg/agent/did(23), pkg/agent/did/ethereum(2) |
+| cmd/sage-did | `deactivate [DID]` | cmd/sage-did.runDeactivate | internal/cli(1), pkg/agent/crypto/chain(2), pkg/agent/crypto/formats(11), pkg/agent/crypto/keys(29), pkg/agent/crypto/storage(4), pkg/agent/did(14), pkg/agent/did/ethereum(3), pkg/agent/did/solana(3) |
+| cmd/sage-did | `debug` | cmd/sage-did.runDebug | pkg/agent/crypto/chain(2), pkg/agent/did(17), pkg/agent/did/ethereum(2) |
+| cmd/sage-did | `generate [DID]` | cmd/sage-did.runCardGenerate | pkg/agent/crypto/chain(2), pkg/agent/crypto/keys(3), pkg/agent/did(23), pkg/agent/did/ethereum(2) |
 | cmd/sage-did | `key` | - |  |
-| cmd/sage-did | `list` | cmd/sage-did.runList | pkg/agent/did(13), pkg/agent/did/ethereum(3) |
-| cmd/sage-did | `list <did>` | cmd/sage-did.runKeyList | pkg/agent/crypto/keys(3), pkg/agent/did(21), pkg/agent/did/ethereum(2) |
+| cmd/sage-did | `list` | cmd/sage-did.runList | pkg/agent/crypto/chain(2), pkg/agent/did(13), pkg/agent/did/ethereum(3) |
+| cmd/sage-did | `list <did>` | cmd/sage-did.runKeyList | pkg/agent/crypto/chain(2), pkg/agent/crypto/keys(3), pkg/agent/did(21), pkg/agent/did/ethereum(2) |
 | cmd/sage-did | `register [commit-hash]` | cmd/sage-did.runRegister | pkg/agent/did/ethereum(5), pkg/blockchain/ethereum/contracts/agentcardregistry(5) |
-| cmd/sage-did | `resolve [DID]` | cmd/sage-did.runResolve | pkg/agent/did(17), pkg/agent/did/ethereum(2) |
-| cmd/sage-did | `revoke <did> <keyhash>` | cmd/sage-did.runKeyRevoke | pkg/agent/did(12) |
+| cmd/sage-did | `resolve [DID]` | cmd/sage-did.runResolve | pkg/agent/crypto/chain(2), pkg/agent/did(17), pkg/agent/did/ethereum(2) |
+| cmd/sage-did | `revoke <did> <keyhash>` | cmd/sage-did.runKeyRevoke | pkg/agent/crypto/chain(2), pkg/agent/did(12) |
 | cmd/sage-did | `sage-did` | - |  |
-| cmd/sage-did | `show [DID]` | cmd/sage-did.runCardShow | pkg/agent/crypto/keys(3), pkg/agent/did(23), pkg/agent/did/ethereum(2) |
-| cmd/sage-did | `update [DID]` | cmd/sage-did.runUpdate | internal/cli(1), pkg/agent/crypto/chain(2), pkg/agent/crypto/chain/ethereum(3), pkg/agent/crypto/chain/solana(4), pkg/agent/crypto/formats(11), pkg/agent/crypto/keys(30), pkg/agent/crypto/storage(4), pkg/agent/did(14), pkg/agent/did/ethereum(4), pkg/agent/did/solana(4) |
-| cmd/sage-did | `validate [FILE]` | cmd/sage-did.runCardValidate | pkg/agent/crypto/jcs(6), pkg/agent/crypto/keys(4), pkg/agent/did(28), pkg/agent/did/ethereum(2) |
-| cmd/sage-did | `verify [DID]` | cmd/sage-did.runVerify | pkg/agent/did(17), pkg/agent/did/ethereum(2) |
-| cmd/sage-did | `verify-pop <did>` | cmd/sage-did.runKeyVerifyPop | pkg/agent/crypto/keys(3), pkg/agent/did(23), pkg/agent/did/ethereum(2) |
+| cmd/sage-did | `show [DID]` | cmd/sage-did.runCardShow | pkg/agent/crypto/chain(2), pkg/agent/crypto/keys(3), pkg/agent/did(23), pkg/agent/did/ethereum(2) |
+| cmd/sage-did | `update [DID]` | cmd/sage-did.runUpdate | internal/cli(1), pkg/agent/crypto/chain(4), pkg/agent/crypto/chain/ethereum(3), pkg/agent/crypto/chain/solana(4), pkg/agent/crypto/formats(11), pkg/agent/crypto/keys(30), pkg/agent/crypto/storage(4), pkg/agent/did(14), pkg/agent/did/ethereum(4), pkg/agent/did/solana(4) |
+| cmd/sage-did | `validate [FILE]` | cmd/sage-did.runCardValidate | pkg/agent/crypto/chain(2), pkg/agent/crypto/jcs(6), pkg/agent/crypto/keys(4), pkg/agent/did(28), pkg/agent/did/ethereum(2) |
+| cmd/sage-did | `verify [DID]` | cmd/sage-did.runVerify | pkg/agent/crypto/chain(2), pkg/agent/did(17), pkg/agent/did/ethereum(2) |
+| cmd/sage-did | `verify-pop <did>` | cmd/sage-did.runKeyVerifyPop | pkg/agent/crypto/chain(2), pkg/agent/crypto/keys(3), pkg/agent/did(23), pkg/agent/did/ethereum(2) |
 
 ## pkg packages not reachable from any cmd/lib/example
 
