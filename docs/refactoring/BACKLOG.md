@@ -33,11 +33,11 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 
 | ID | Item | Severity | Source | Status |
 |---|---|---|---|---|
-| B-01 | RFC 9421 HTTP path: replay check on `nonce`; enforce `RequiredComponents` (make `content-digest`, `@method`, `@target-uri`, `@authority` mandatory); forward skew bound on `created` | [치명] | §11 a1, a2, b1 | Open |
-| B-02 | HPKE-derived sessions: derive `encryptKey`/`signingKey`, initialise `aead`; regression test | [치명] | §11 a3, D2 | Open |
+| B-01 | RFC 9421 HTTP path: replay check on `nonce`; enforce `RequiredComponents` (make `content-digest`, `@method`, `@target-uri`, `@authority` mandatory); forward skew bound on `created` | [치명] | §11 a1, a2, b1 | PR (replay guard, skew bound, `RequiredComponents`, `StrictHTTPVerificationOptions`; examples use strict mode) |
+| B-02 | HPKE-derived sessions: derive `encryptKey`/`signingKey`, initialise `aead`; regression test | [치명] | §11 a3, D2 | PR |
 | B-03 | secp256k1 signing convention: one hash per key type (Keccak-256 vs SHA-256) across `KeyPair.Sign`, envelope verifier, HTTP verifier, HPKE verifier | [치명] | §11 c1 | Decision |
-| B-04 | `did.Manager.Configure` installs a real chain client; `sage-did resolve/list/verify/update/deactivate/card/key` work | [치명] | D1, `DECISIONS.md` 1 | Open |
-| B-05 | `sage-did update/deactivate` load the given key file instead of generating a random key | [치명] | D3 | Open |
+| B-04 | `did.Manager.Configure` installs a real chain client; `sage-did resolve/list/verify/update/deactivate/card/key` work | [치명] | D1, `DECISIONS.md` 1 | PR (`did/ethereum` registers the creator; `Manager.HasClient`; actionable error when unwired) |
+| B-05 | `sage-did update/deactivate` load the given key file instead of generating a random key | [치명] | D3 | PR (`internal/cli.LoadKeyPair` shared by sage-did and sage-crypto) |
 | B-06 | Resolver honours on-chain `verified` flag and revocation; returns Ed25519 keys; replaces the `"mock-public-key"` resolver used by `sage-did debug` | [중요] | §11 a5, c5 | Open |
 | B-07 | A2A card validation against the chain (`ValidateA2ACardWithDID`) in `sage-did card verify` | [중요] | §11 a4 | Open |
 | B-08 | Session-layer replay/ordering: per-direction counter in AEAD nonce/AAD, sliding window, rekey at `MaxMessages` | [중요] | §11 c2 | Open |
@@ -45,7 +45,7 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 | B-10 | Audience binding (`@authority` / `RespDID` / `did` component compared with resolved DID) | [중요] | §11 b2, c4 | Open |
 | B-11 | Canonical JSON (RFC 8785) for A2A card proofs and the HPKE signed response; deterministic signature selection; P-256 detection; low-S | [중요] | §11 b9, b10, b12, c6; `STRATEGY.md` §3 | Open |
 | B-12 | Transport hardening: body size limits, WebSocket origin default-deny, drop `X-SAGE-*` header override, generic auth error messages | [중요] | §11 b4, b5, b6, b13 | Open |
-| B-13 | Locks: `SecureSession.Close`, `Manager.SetDefaultConfig`; atomic `CheckAndMark` + `Close()` in `nonce.Manager`; `VerifyAgentMessage(nil opts)` panic | [권장] | §11 b7, b8, b11 | Open |
+| B-13 | Locks: `SecureSession.Close`, `Manager.SetDefaultConfig`; atomic `CheckAndMark` + `Close()` in `nonce.Manager`; `VerifyAgentMessage(nil opts)` panic | [권장] | §11 b7, b8, b11 | Partly in PR (`nonce.Manager.CheckAndMark`/`Close`); locks and nil-opts still open |
 | B-14 | HPKE: cookie check before DID resolution; replace O(n) nonce store; `RespDID` check | [권장] | §11 a7, b2, b3 | Open |
 | B-15 | Verifier DoS budget: DID resolution cache with TTL, rate limit before signature verification | [권장] | §11 c7 | Open |
 | B-16 | Wire or delete `core/message/validator`, `storage.NonceStore`, `session.ReplayGuardSeenOnce` (currently dead) | [권장] | §11 a6, `DECISIONS.md` 1 | Decision (delete with handshake) |

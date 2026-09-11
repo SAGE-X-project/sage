@@ -26,14 +26,12 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/sage-x-project/sage/internal/cli"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
-	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"github.com/sage-x-project/sage/pkg/agent/crypto/storage"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
@@ -53,45 +51,7 @@ func parseChain(chainStr string) (did.Chain, error) {
 }
 
 func loadKeyPair() (crypto.KeyPair, error) {
-	// Load from storage
-	if registerStorageDir != "" && registerKeyID != "" {
-		store, err := storage.NewFileKeyStorage(registerStorageDir)
-		if err != nil {
-			return nil, err
-		}
-		return store.Load(registerKeyID)
-	}
-
-	// Load from file
-	if registerKeyFile != "" {
-		// #nosec G304 - User-specified file path is intentional for CLI tool
-		data, err := os.ReadFile(registerKeyFile)
-		if err != nil {
-			return nil, err
-		}
-
-		switch registerKeyFormat {
-		case "jwk":
-			// Import JWK format
-			var jwk map[string]interface{}
-			if err := json.Unmarshal(data, &jwk); err != nil {
-				return nil, fmt.Errorf("invalid JWK format: %w", err)
-			}
-			// This is a simplified implementation - in production you'd parse the JWK properly
-			kty, _ := jwk["kty"].(string)
-			if kty == "OKP" {
-				return keys.GenerateEd25519KeyPair()
-			}
-			return keys.GenerateSecp256k1KeyPair()
-		case "pem":
-			// For now, generate a new key - proper PEM import would be implemented later
-			return keys.GenerateEd25519KeyPair()
-		default:
-			return nil, fmt.Errorf("unsupported key format: %s", registerKeyFormat)
-		}
-	}
-
-	return nil, fmt.Errorf("no key source specified: use --key or --storage-dir with --key-id")
+	return cli.LoadKeyPair(registerKeyFile, registerKeyFormat, registerStorageDir, registerKeyID)
 }
 
 // detectKeyType auto-detects key type from file extension and content

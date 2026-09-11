@@ -69,6 +69,12 @@ func (m *MultiChainResolver) AddResolver(chain Chain, resolver Resolver) {
 	m.resolvers[chain] = resolver
 }
 
+// HasResolver reports whether a resolver is registered for chain.
+func (m *MultiChainResolver) HasResolver(chain Chain) bool {
+	_, ok := m.resolvers[chain]
+	return ok
+}
+
 // Resolve attempts to resolve a DID across all configured chains
 func (m *MultiChainResolver) Resolve(ctx context.Context, did AgentDID) (*AgentMetadata, error) {
 	chain, err := extractChainFromDID(did)

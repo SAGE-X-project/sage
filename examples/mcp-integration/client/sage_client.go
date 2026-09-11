@@ -21,6 +21,8 @@ package main
 import (
 	"bytes"
 	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -85,20 +87,24 @@ func (c *SAGEClient) CallTool(toolURL string, request interface{}) (interface{},
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Agent-DID", c.agentDID)
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
+	// Bind the body to the signature (verifiers require it in strict mode).
+	req.Header.Set("Content-Digest", rfc9421.ComputeContentDigest(requestBody))
 
 	// Sign the request with SAGE
 	params := &rfc9421.SignatureInputParams{
 		CoveredComponents: []string{
 			`"@method"`,
-			`"@path"`,
+			`"@target-uri"`,
+			`"@authority"`,
 			`"content-type"`,
-			`"content-length"`,
-			`"date"`,
+			`"content-digest"`,
 			`"x-agent-did"`,
+			`"date"`,
 		},
 		KeyID:     c.agentDID,
 		Algorithm: "ed25519",
 		Created:   time.Now().Unix(),
+		Nonce:     newNonce(),
 	}
 
 	err = c.verifier.SignRequest(req, "sig1", params, c.privateKey)
@@ -163,4 +169,13 @@ func ExampleUsage() {
 	} else {
 		fmt.Printf("Result: %v\n", result)
 	}
+}
+
+// newNonce returns a random per-request nonce so verifiers can reject replays.
+func newNonce() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return ""
+	}
+	return base64.RawURLEncoding.EncodeToString(b)
 }

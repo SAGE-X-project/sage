@@ -183,7 +183,34 @@ func (m *Manager) ResolveAgent(ctx context.Context, did AgentDID) (*AgentMetadat
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
+	if err := m.requireClient(did); err != nil {
+		return nil, err
+	}
 	return m.resolver.Resolve(ctx, did)
+}
+
+// HasClient reports whether a chain client has been installed for chain,
+// either by Configure (through the creator registered by the chain package)
+// or by SetClient.
+func (m *Manager) HasClient(chain Chain) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.resolver.HasResolver(chain)
+}
+
+// requireClient turns the generic "no resolver" failure into an actionable
+// message when the chain was configured but never wired. Callers must hold m.mu.
+func (m *Manager) requireClient(did AgentDID) error {
+	chain, _, err := ParseDID(did)
+	if err != nil {
+		return nil // let the resolver report the parse error with its usual context
+	}
+	if _, configured := m.configs[chain]; configured && !m.resolver.HasResolver(chain) {
+		return fmt.Errorf("chain %s is configured but no client is installed: import "+
+			"github.com/sage-x-project/sage/pkg/agent/did/%s (its init registers the client creator) "+
+			"or call Manager.SetClient", chain, chain)
+	}
+	return nil
 }
 
 // ResolvePublicKey retrieves only the public key for an agent
