@@ -26,7 +26,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"github.com/sage-x-project/sage/pkg/agent/did/ethereum"
 	"github.com/sage-x-project/sage/tests/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -63,7 +62,7 @@ func TestDIDRegistrationEnhanced(t *testing.T) {
 		env.SetupTestDID(t, did)
 
 		// Create DID document using the actual structure
-		didDoc := &ethereum.DIDDocument{
+		didDoc := &didDocumentFixture{
 			ID:         did,
 			Controller: agentAddress.Hex(),
 			PublicKey:  fmt.Sprintf("0x%x", pubKeyBytes),

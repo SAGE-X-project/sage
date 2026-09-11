@@ -32,6 +32,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `did.Manager.HasClient`, `MultiChainResolver.HasResolver`.
 - `internal/cli.LoadKeyPair`, shared by the CLIs.
 
+### Removed
+- The mock `ethereum.Resolver`, `DIDCache`, `DIDDocument` and `ParsedDID` types, which returned `"mock-public-key"` for every DID and were reachable from `sage-did debug`. `sage-did debug` now parses the DID with `did.ParseDID` and resolves it through the configured Ethereum client (`--did`, `--parse`, `--resolve`, `--rpc`, `--contract`).
+
 
 ### Security
 
