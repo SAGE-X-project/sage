@@ -28,6 +28,12 @@ updates:
       day: "monday"
       time: "00:00"
     open-pull-requests-limit: 5
+    # Actions are pinned to commit SHAs; Dependabot keeps the SHA and the
+    # version comment in sync. One grouped PR per week instead of one per action.
+    groups:
+      actions:
+        patterns:
+          - "*"
     reviewers:
       - "sage-x-project/maintainers"
     labels:

@@ -17,7 +17,7 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 | A-05 | Workflow-level `permissions: contents: read`; job-level write only where needed | [중요] | F21, F22 | PR #220 |
 | A-06 | Fix `loadtest.yml` invalid YAML; manual-only until harness exists | [권장] | F19 | PR #220 |
 | A-07 | `SECURITY.md`; align `CONTRIBUTING.md` with the ruleset | [권장] | F25, F26 | PR #220 |
-| A-08 | SHA-pin all 44 remaining action references; require SHA pinning in repo settings; Dependabot `actions` group | [중요] | F05 | Open |
+| A-08 | SHA-pin all 44 remaining action references; require SHA pinning in repo settings; Dependabot `actions` group | [중요] | F05 | PR (72 references pinned to release commit SHAs with version comments; Dependabot actions group); repo setting `sha_pinning_required` after merge |
 | A-09 | Pin run-time tool installs (gosec, slither, gitleaks, go-licenses, golangci-lint) and make scanners blocking (remove `\|\| true`, `-no-fail`, `continue-on-error`); triage existing findings first | [중요] | F09, F10 | Open |
 | A-10 | `npm ci --ignore-scripts`; `go mod verify`; `GOFLAGS=-mod=readonly`; `govulncheck` (source + binary mode) | [중요] | F11, F15 | Open |
 | A-11 | Pin `alpine`/`golang` images by digest; align Docker Go version with `go.mod`; remove `make build-lib \|\| true` | [중요] | F12, F13, F14 | Open |
