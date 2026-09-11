@@ -11,8 +11,9 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: '1.25.2'
+  GO_VERSION: '1.26.8'
   GOTOOLCHAIN: auto
+  GOFLAGS: -mod=readonly
 
 jobs:
   integration-test:
@@ -50,11 +51,11 @@ jobs:
           cache-dependency-path: contracts/ethereum/package-lock.json
 
       - name: Install Go dependencies
-        run: go mod download
+        run: go mod download && go mod verify
 
       - name: Install contract dependencies
         working-directory: contracts/ethereum
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Start Hardhat node
         working-directory: contracts/ethereum

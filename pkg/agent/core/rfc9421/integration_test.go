@@ -33,6 +33,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/tests/helpers"
 )
 
@@ -139,15 +140,16 @@ func TestIntegration(t *testing.T) {
 		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 		require.NoError(t, err)
 		publicKey := &privateKey.PublicKey
+		keyD, keyX, keyY := ecdsaKeyParts(t, privateKey)
 
 		// Specification Requirement: ECDSA P-256 key validation
 		assert.Equal(t, elliptic.P256(), privateKey.Curve, "Curve must be P-256")
 
 		helpers.LogSuccess(t, "ECDSA P-256 key generation successful")
 		helpers.LogDetail(t, "Curve: P-256")
-		helpers.LogDetail(t, "Private key D size: %d bytes", len(privateKey.D.Bytes()))
-		helpers.LogDetail(t, "Public key X: %x", publicKey.X.Bytes())
-		helpers.LogDetail(t, "Public key Y: %x", publicKey.Y.Bytes())
+		helpers.LogDetail(t, "Private key D size: %d bytes", len(keyD))
+		helpers.LogDetail(t, "Public key X: %x", keyX)
+		helpers.LogDetail(t, "Public key Y: %x", keyY)
 
 		// Create POST request with body
 		body := `{"a":1}`
@@ -210,9 +212,9 @@ func TestIntegration(t *testing.T) {
 		testData := map[string]interface{}{
 			"test_case":       "1.1.2_ECDSA_P256_Signature",
 			"curve":           "P-256",
-			"private_key_d":   hex.EncodeToString(privateKey.D.Bytes()),
-			"public_key_x":    hex.EncodeToString(publicKey.X.Bytes()),
-			"public_key_y":    hex.EncodeToString(publicKey.Y.Bytes()),
+			"private_key_d":   hex.EncodeToString(keyD),
+			"public_key_x":    hex.EncodeToString(keyX),
+			"public_key_y":    hex.EncodeToString(keyY),
 			"request_url":     testURL,
 			"request_method":  "POST",
 			"request_body":    body,
@@ -236,6 +238,7 @@ func TestIntegration(t *testing.T) {
 		// Convert to standard ecdsa.PrivateKey for RFC 9421
 		privateKey := privateKeyEth
 		publicKey := &privateKey.PublicKey
+		keyD, keyX, keyY := ecdsaKeyParts(t, privateKey)
 
 		// Get Ethereum address from public key
 		ethAddress := ethcrypto.PubkeyToAddress(*publicKey).Hex()
@@ -247,9 +250,9 @@ func TestIntegration(t *testing.T) {
 		helpers.LogSuccess(t, "ECDSA Secp256k1 key generation successful (Ethereum compatible)")
 		helpers.LogDetail(t, "Curve: Secp256k1")
 		helpers.LogDetail(t, "Ethereum address: %s", ethAddress)
-		helpers.LogDetail(t, "Private key D size: %d bytes", len(privateKey.D.Bytes()))
-		helpers.LogDetail(t, "Public key X: %x", publicKey.X.Bytes())
-		helpers.LogDetail(t, "Public key Y: %x", publicKey.Y.Bytes())
+		helpers.LogDetail(t, "Private key D size: %d bytes", len(keyD))
+		helpers.LogDetail(t, "Public key X: %x", keyX)
+		helpers.LogDetail(t, "Public key Y: %x", keyY)
 
 		// Create POST request with body (Ethereum transaction format)
 		body := `{"action":"transfer","amount":100,"to":"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"}`
@@ -320,9 +323,9 @@ func TestIntegration(t *testing.T) {
 			"test_case":        "1.1.3_ECDSA_Secp256k1_Signature_Ethereum",
 			"curve":            "Secp256k1",
 			"ethereum_address": ethAddress,
-			"private_key_d":    hex.EncodeToString(privateKey.D.Bytes()),
-			"public_key_x":     hex.EncodeToString(publicKey.X.Bytes()),
-			"public_key_y":     hex.EncodeToString(publicKey.Y.Bytes()),
+			"private_key_d":    hex.EncodeToString(keyD),
+			"public_key_x":     hex.EncodeToString(keyX),
+			"public_key_y":     hex.EncodeToString(keyY),
 			"request_url":      testURL,
 			"request_method":   "POST",
 			"request_body":     body,
@@ -547,4 +550,24 @@ func TestQueryParamProtection(t *testing.T) {
 		err = verifier.VerifyRequest(req, publicKey, nil)
 		assert.NoError(t, err)
 	})
+}
+
+// ecdsaKeyParts returns the private scalar and the affine X/Y coordinates
+// without touching the deprecated D/X/Y fields: the Go 1.25+ encoding APIs
+// for NIST curves, go-ethereum's encoders for secp256k1.
+func ecdsaKeyParts(t *testing.T, priv *ecdsa.PrivateKey) (d, x, y []byte) {
+	t.Helper()
+	var pub []byte
+	if keys.IsSecp256k1Curve(priv.Curve) {
+		d = ethcrypto.FromECDSA(priv)
+		pub = ethcrypto.FromECDSAPub(&priv.PublicKey)
+	} else {
+		var err error
+		d, err = priv.Bytes()
+		require.NoError(t, err)
+		pub, err = priv.PublicKey.Bytes()
+		require.NoError(t, err)
+	}
+	n := (len(pub) - 1) / 2 // pub is 0x04 || X || Y
+	return d, pub[1 : 1+n], pub[1+n:]
 }

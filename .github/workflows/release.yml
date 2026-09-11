@@ -9,8 +9,9 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: '1.25.2'
+  GO_VERSION: '1.26.8'
   GOTOOLCHAIN: auto
+  GOFLAGS: -mod=readonly
 
 jobs:
   # Build and release binaries

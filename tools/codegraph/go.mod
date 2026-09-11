@@ -1,6 +1,6 @@
 module github.com/sage-x-project/sage/tools/codegraph
 
-go 1.25.2
+go 1.26.0
 
 require golang.org/x/tools v0.38.0
 

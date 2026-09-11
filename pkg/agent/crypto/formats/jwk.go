@@ -91,11 +91,19 @@ func (e *jwkExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 			return nil, errors.New("invalid Secp256k1 private key type")
 		}
 
+		x, y, err := keys.ECDSAPublicCoordinates(&privateKey.PublicKey)
+		if err != nil {
+			return nil, err
+		}
+		d, err := keys.ECDSAPrivateScalar(privateKey)
+		if err != nil {
+			return nil, err
+		}
 		jwk.Kty = "EC"
 		jwk.Crv = "secp256k1"
-		jwk.X = base64.RawURLEncoding.EncodeToString(privateKey.X.Bytes())
-		jwk.Y = base64.RawURLEncoding.EncodeToString(privateKey.Y.Bytes())
-		jwk.D = base64.RawURLEncoding.EncodeToString(privateKey.D.Bytes())
+		jwk.X = base64.RawURLEncoding.EncodeToString(x)
+		jwk.Y = base64.RawURLEncoding.EncodeToString(y)
+		jwk.D = base64.RawURLEncoding.EncodeToString(d)
 		jwk.Alg = "ES256K"
 
 	case sagecrypto.KeyTypeP256:
@@ -104,11 +112,19 @@ func (e *jwkExporter) Export(keyPair sagecrypto.KeyPair, format sagecrypto.KeyFo
 			return nil, errors.New("invalid P-256 private key type")
 		}
 
+		x, y, err := keys.ECDSAPublicCoordinates(&privateKey.PublicKey)
+		if err != nil {
+			return nil, err
+		}
+		d, err := keys.ECDSAPrivateScalar(privateKey)
+		if err != nil {
+			return nil, err
+		}
 		jwk.Kty = "EC"
 		jwk.Crv = "P-256"
-		jwk.X = base64.RawURLEncoding.EncodeToString(privateKey.X.Bytes())
-		jwk.Y = base64.RawURLEncoding.EncodeToString(privateKey.Y.Bytes())
-		jwk.D = base64.RawURLEncoding.EncodeToString(privateKey.D.Bytes())
+		jwk.X = base64.RawURLEncoding.EncodeToString(x)
+		jwk.Y = base64.RawURLEncoding.EncodeToString(y)
+		jwk.D = base64.RawURLEncoding.EncodeToString(d)
 		jwk.Alg = "ES256"
 
 	case sagecrypto.KeyTypeX25519:
@@ -175,10 +191,14 @@ func (e *jwkExporter) ExportPublic(keyPair sagecrypto.KeyPair, format sagecrypto
 			return nil, errors.New("invalid Secp256k1 public key type")
 		}
 
+		x, y, err := keys.ECDSAPublicCoordinates(publicKey)
+		if err != nil {
+			return nil, err
+		}
 		jwk.Kty = "EC"
 		jwk.Crv = "secp256k1"
-		jwk.X = base64.RawURLEncoding.EncodeToString(publicKey.X.Bytes())
-		jwk.Y = base64.RawURLEncoding.EncodeToString(publicKey.Y.Bytes())
+		jwk.X = base64.RawURLEncoding.EncodeToString(x)
+		jwk.Y = base64.RawURLEncoding.EncodeToString(y)
 		jwk.Alg = "ES256K"
 
 	case sagecrypto.KeyTypeP256:
@@ -187,10 +207,14 @@ func (e *jwkExporter) ExportPublic(keyPair sagecrypto.KeyPair, format sagecrypto
 			return nil, errors.New("invalid P-256 public key type")
 		}
 
+		x, y, err := keys.ECDSAPublicCoordinates(publicKey)
+		if err != nil {
+			return nil, err
+		}
 		jwk.Kty = "EC"
 		jwk.Crv = "P-256"
-		jwk.X = base64.RawURLEncoding.EncodeToString(publicKey.X.Bytes())
-		jwk.Y = base64.RawURLEncoding.EncodeToString(publicKey.Y.Bytes())
+		jwk.X = base64.RawURLEncoding.EncodeToString(x)
+		jwk.Y = base64.RawURLEncoding.EncodeToString(y)
 		jwk.Alg = "ES256"
 
 	case sagecrypto.KeyTypeX25519:
@@ -326,24 +350,20 @@ func (i *jwkImporter) ImportPublic(data []byte, format sagecrypto.KeyFormat) (cr
 			return nil, fmt.Errorf("failed to decode Y coordinate: %w", err)
 		}
 
+		var curve elliptic.Curve
 		switch jwk.Crv {
 		case "secp256k1":
-			pubKey := &ecdsa.PublicKey{
-				Curve: keys.Secp256k1Curve(),
-				X:     new(big.Int).SetBytes(xBytes),
-				Y:     new(big.Int).SetBytes(yBytes),
-			}
-			return pubKey, nil
+			curve = keys.Secp256k1Curve()
 		case "P-256":
-			pubKey := &ecdsa.PublicKey{
-				Curve: elliptic.P256(),
-				X:     new(big.Int).SetBytes(xBytes),
-				Y:     new(big.Int).SetBytes(yBytes),
-			}
-			return pubKey, nil
+			curve = elliptic.P256()
 		default:
 			return nil, fmt.Errorf("unsupported EC curve: %s", jwk.Crv)
 		}
+		pubKey, err := keys.ParseECDSAPublicKey(curve, xBytes, yBytes)
+		if err != nil {
+			return nil, fmt.Errorf("invalid %s public key: %w", jwk.Crv, err)
+		}
+		return pubKey, nil
 
 	case "RSA":
 		nBytes, err := base64.RawURLEncoding.DecodeString(jwk.N)
@@ -413,13 +433,17 @@ func (i *jwkImporter) importP256(jwk *JWK) (sagecrypto.KeyPair, error) {
 		return nil, fmt.Errorf("failed to decode Y coordinate: %w", err)
 	}
 
-	privateKey := &ecdsa.PrivateKey{
-		PublicKey: ecdsa.PublicKey{
-			Curve: elliptic.P256(),
-			X:     new(big.Int).SetBytes(xBytes),
-			Y:     new(big.Int).SetBytes(yBytes),
-		},
-		D: new(big.Int).SetBytes(dBytes),
+	privateKey, err := keys.ParseP256PrivateKey(dBytes)
+	if err != nil {
+		return nil, fmt.Errorf("invalid P-256 private key: %w", err)
+	}
+	// The public coordinates in the JWK must match the key derived from d.
+	x, y, err := keys.ECDSAPublicCoordinates(&privateKey.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+	if !bytesEqualPadded(x, xBytes) || !bytesEqualPadded(y, yBytes) {
+		return nil, errors.New("P-256 JWK public coordinates do not match the private key")
 	}
 
 	return keys.NewP256KeyPair(privateKey, jwk.Kid)
@@ -506,4 +530,10 @@ func (jwk JWK) ComputeKeyIDRFC9421() (string, error) {
 
 	kid := base64.RawURLEncoding.EncodeToString(sum[:])
 	return kid, nil
+}
+
+// bytesEqualPadded compares two big-endian integers ignoring leading zeros,
+// so JWK values written without fixed-length padding still match.
+func bytesEqualPadded(a, b []byte) bool {
+	return new(big.Int).SetBytes(a).Cmp(new(big.Int).SetBytes(b)) == 0
 }

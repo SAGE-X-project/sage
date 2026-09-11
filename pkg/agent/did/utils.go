@@ -29,6 +29,7 @@ import (
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -49,20 +50,14 @@ func MarshalPublicKey(publicKey interface{}) ([]byte, error) {
 			// V4 contract rejects compressed keys due to expensive decompression on-chain
 			// Returns raw 64-byte format (without 0x04 prefix)
 			// Contract accepts both 64-byte and 65-byte (with 0x04) formats
-			byteLen := (pk.Curve.Params().BitSize + 7) / 8
-			bytes := make([]byte, 2*byteLen)
-			pk.X.FillBytes(bytes[0:byteLen])
-			pk.Y.FillBytes(bytes[byteLen:])
-			return bytes, nil
+			uncompressed, err := keys.ECDSAPublicUncompressed(pk)
+			if err != nil {
+				return nil, err
+			}
+			return uncompressed[1:], nil
 		}
 		// For other ECDSA curves, use uncompressed format (0x04 || X || Y)
-		// Manual construction to avoid deprecated elliptic.Marshal
-		byteLen := (pk.Curve.Params().BitSize + 7) / 8
-		bytes := make([]byte, 1+2*byteLen)
-		bytes[0] = 0x04 // uncompressed point format
-		pk.X.FillBytes(bytes[1 : 1+byteLen])
-		pk.Y.FillBytes(bytes[1+byteLen:])
-		return bytes, nil
+		return keys.ECDSAPublicUncompressed(pk)
 	default:
 		// Try to marshal as generic public key using x509
 		return x509.MarshalPKIXPublicKey(publicKey)
@@ -233,10 +228,12 @@ func DeriveEthereumAddress(keyPair crypto.KeyPair) (string, error) {
 		return "", fmt.Errorf("failed to convert public key to ECDSA format")
 	}
 
-	// Convert public key to uncompressed format (64 bytes: 32 bytes X + 32 bytes Y)
-	pubKeyBytes := make([]byte, 64)
-	ecdsaPubKey.X.FillBytes(pubKeyBytes[:32])
-	ecdsaPubKey.Y.FillBytes(pubKeyBytes[32:])
+	// Uncompressed point without the 0x04 prefix (64 bytes: 32 bytes X + 32 bytes Y)
+	uncompressed, err := keys.ECDSAPublicUncompressed(ecdsaPubKey)
+	if err != nil || len(uncompressed) != 65 {
+		return "", fmt.Errorf("failed to encode ECDSA public key")
+	}
+	pubKeyBytes := uncompressed[1:]
 
 	// Keccak256 hash of the public key
 	hash := sha3.NewLegacyKeccak256()

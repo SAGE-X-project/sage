@@ -2,7 +2,7 @@
 # Optimized for production with minimal image size
 
 # Stage 1: Builder
-FROM golang:1.27.1-alpine AS builder
+FROM golang:1.26.8-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -17,8 +17,9 @@ WORKDIR /app
 # Copy go mod files
 COPY go.mod go.sum ./
 
-# Download dependencies
-RUN go mod download
+# Download and verify dependencies against go.sum; never modify go.mod during the build
+ENV GOFLAGS=-mod=readonly
+RUN go mod download && go mod verify
 
 # Copy source code
 COPY . .
