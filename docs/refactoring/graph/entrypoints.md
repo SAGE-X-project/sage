@@ -7,7 +7,7 @@ Reachability follows call and ref edges from each entry point, including dynamic
 | Entry package | Kind | Reachable module packages |
 |---|---|---|
 | cmd/deployment-verify | cmd | deployments/config(6) |
-| cmd/metrics-demo | cmd | internal/metrics(1), pkg/agent/session(34) |
+| cmd/metrics-demo | cmd | pkg/agent/session(34), pkg/telemetry/metrics(1) |
 | cmd/sage-crypto | cmd | internal/cli(1), pkg/agent/crypto/chain(12), pkg/agent/crypto/chain/ethereum(5), pkg/agent/crypto/chain/solana(7), pkg/agent/crypto/formats(18), pkg/agent/crypto/keys(61), pkg/agent/crypto/rotation(4), pkg/agent/crypto/storage(8) |
 | cmd/sage-did | cmd | internal/cli(1), pkg/agent/crypto/chain(2), pkg/agent/crypto/chain/ethereum(3), pkg/agent/crypto/chain/solana(4), pkg/agent/crypto/formats(11), pkg/agent/crypto/jcs(6), pkg/agent/crypto/keys(29), pkg/agent/crypto/storage(4), pkg/agent/did(46), pkg/agent/did/ethereum(16), pkg/agent/did/solana(5), pkg/blockchain/ethereum/contracts/agentcardregistry(8) |
 | cmd/sage-verify | cmd | deployments/config(6), pkg/health(4) |
@@ -57,7 +57,6 @@ Reachability follows call and ref edges from each entry point, including dynamic
 ## pkg packages not reachable from any cmd/lib/example
 
 - internal/cryptoinit (1 funcs, 48 LOC)
-- internal/logger (34 funcs, 416 LOC)
 - pkg/agent/core/message (0 funcs, 42 LOC)
 - pkg/agent/core/message/dedupe (7 funcs, 124 LOC)
 - pkg/agent/core/message/order (9 funcs, 153 LOC)
@@ -74,4 +73,6 @@ Reachability follows call and ref edges from each entry point, including dynamic
 - pkg/storage/memory (26 funcs, 477 LOC)
 - pkg/storage/postgres (26 funcs, 688 LOC)
 - pkg/storage/storagetest (6 funcs, 201 LOC)
+- pkg/telemetry (0 funcs, 23 LOC)
+- pkg/telemetry/logger (30 funcs, 361 LOC)
 - pkg/version (7 funcs, 143 LOC)

@@ -30,7 +30,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sage-x-project/sage/internal/metrics"
+	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 	"github.com/sage-x-project/sage/pkg/agent/session"
 )
 

@@ -26,10 +26,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sage-x-project/sage/internal/metrics"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/transport"
+	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 )
 
 type Client struct {

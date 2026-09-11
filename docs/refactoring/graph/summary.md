@@ -4,13 +4,13 @@ Module: `github.com/sage-x-project/sage`
 
 | Metric | Value |
 |---|---|
-| Packages | 61 |
-| Symbols | 1817 |
-| Edges | 1607 |
-| Non-test LOC | 39433 |
-| Test LOC | 39033 |
-| Funcs+methods | 1473 |
-| Types | 344 |
+| Packages | 63 |
+| Symbols | 2223 |
+| Edges | 1724 |
+| Non-test LOC | 45121 |
+| Test LOC | 39017 |
+| Funcs+methods | 1796 |
+| Types | 427 |
 
 ## Packages
 
@@ -32,8 +32,6 @@ Module: `github.com/sage-x-project/sage`
 | internal | other | 1 | 149 | 0 | 8 | 1 | 0 | 0 | 5 | 7 |
 | internal/cli | internal | 1 | 71 | 70 | 1 | 1 | 0 | 2 | 3 | 3 |
 | internal/cryptoinit | internal | 1 | 48 | 0 | 1 | 0 | 0 | 1 | 4 | 0 |
-| internal/logger | internal | 1 | 416 | 321 | 34 | 6 | 1 | 1 | 0 | 9 |
-| internal/metrics | internal | 7 | 666 | 111 | 17 | 2 | 0 | 4 | 0 | 7 |
 | lib | other | 1 | 60 | 0 | 4 | 0 | 0 | 0 | 3 | 3 |
 | pkg/agent/core | pkg | 2 | 319 | 807 | 18 | 4 | 1 | 2 | 4 | 3 |
 | pkg/agent/core/message | pkg | 1 | 42 | 0 | 0 | 3 | 1 | 4 | 0 | 1 |
@@ -61,15 +59,19 @@ Module: `github.com/sage-x-project/sage`
 | pkg/agent/transport | pkg | 3 | 355 | 363 | 12 | 7 | 1 | 4 | 0 | 5 |
 | pkg/agent/transport/http | pkg | 3 | 520 | 324 | 15 | 5 | 0 | 0 | 1 | 8 |
 | pkg/agent/transport/websocket | pkg | 3 | 766 | 496 | 33 | 5 | 0 | 0 | 1 | 8 |
-| pkg/blockchain/ethereum/contracts/agentcardregistry | pkg | 3 | 5388 | 0 | 315 | 80 | 0 | 1 | 0 | 9 |
+| pkg/blockchain/ethereum/contracts/agentcardregistry | pkg | 3 | 5554 | 0 | 321 | 82 | 0 | 1 | 0 | 11 |
 | pkg/health | pkg | 5 | 508 | 123 | 12 | 6 | 0 | 1 | 2 | 9 |
 | pkg/oidc | pkg | 1 | 40 | 0 | 0 | 0 | 0 | 1 | 0 | 1 |
 | pkg/oidc/auth0 | pkg | 2 | 490 | 613 | 13 | 4 | 0 | 0 | 4 | 17 |
 | pkg/storage | pkg | 2 | 155 | 0 | 0 | 7 | 4 | 3 | 0 | 2 |
 | pkg/storage/memory | pkg | 3 | 477 | 12 | 26 | 4 | 0 | 0 | 1 | 4 |
-| pkg/storage/postgres | pkg | 4 | 688 | 0 | 26 | 5 | 0 | 0 | 1 | 6 |
+| pkg/storage/postgres | pkg | 4 | 688 | 42 | 26 | 5 | 0 | 0 | 1 | 6 |
 | pkg/storage/storagetest | pkg | 1 | 201 | 0 | 6 | 0 | 0 | 0 | 1 | 5 |
+| pkg/telemetry | pkg | 1 | 23 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+| pkg/telemetry/logger | pkg | 1 | 361 | 263 | 30 | 5 | 1 | 1 | 0 | 9 |
+| pkg/telemetry/metrics | pkg | 7 | 666 | 111 | 17 | 2 | 0 | 4 | 0 | 7 |
 | pkg/version | pkg | 1 | 143 | 215 | 7 | 1 | 0 | 0 | 0 | 3 |
+| reports/bindings | other | 3 | 5554 | 0 | 321 | 82 | 0 | 0 | 0 | 11 |
 | tests | root | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | tests/helpers | tests | 1 | 206 | 0 | 10 | 0 | 0 | 0 | 0 | 7 |
 | tests/integration | tests | 1 | 79 | 5245 | 4 | 0 | 0 | 0 | 0 | 4 |
@@ -83,8 +85,8 @@ Module: `github.com/sage-x-project/sage`
 ```mermaid
 graph LR
   cmd_deployment_verify --> deployments_config
-  cmd_metrics_demo --> internal_metrics
   cmd_metrics_demo --> pkg_agent_session
+  cmd_metrics_demo --> pkg_telemetry_metrics
   cmd_sage_crypto --> internal_cli
   cmd_sage_crypto --> pkg_agent_crypto
   cmd_sage_crypto --> pkg_agent_crypto_chain
@@ -162,7 +164,6 @@ graph LR
   pkg_agent_did_solana --> pkg_agent_crypto
   pkg_agent_did_solana --> pkg_agent_crypto_chain
   pkg_agent_did_solana --> pkg_agent_did
-  pkg_agent_handshake --> internal_metrics
   pkg_agent_handshake --> pkg_agent_core_message
   pkg_agent_handshake --> pkg_agent_crypto
   pkg_agent_handshake --> pkg_agent_crypto_formats
@@ -170,17 +171,18 @@ graph LR
   pkg_agent_handshake --> pkg_agent_did
   pkg_agent_handshake --> pkg_agent_session
   pkg_agent_handshake --> pkg_agent_transport
+  pkg_agent_handshake --> pkg_telemetry_metrics
   pkg_agent_hpke --> pkg_agent_crypto
   pkg_agent_hpke --> pkg_agent_crypto_jcs
   pkg_agent_hpke --> pkg_agent_crypto_keys
   pkg_agent_hpke --> pkg_agent_did
   pkg_agent_hpke --> pkg_agent_session
   pkg_agent_hpke --> pkg_agent_transport
-  pkg_agent_session --> internal_metrics
+  pkg_agent_session --> pkg_telemetry_metrics
   pkg_agent_transport_http --> pkg_agent_transport
   pkg_agent_transport_websocket --> pkg_agent_transport
-  pkg_health --> internal_logger
-  pkg_health --> internal_metrics
+  pkg_health --> pkg_telemetry_logger
+  pkg_health --> pkg_telemetry_metrics
   pkg_oidc_auth0 --> pkg_agent_crypto
   pkg_oidc_auth0 --> pkg_agent_crypto_formats
   pkg_oidc_auth0 --> pkg_agent_crypto_keys
@@ -199,16 +201,11 @@ None.
 Rule: pkg must not import cmd/internal; internal must not import cmd; examples/tests/tools must not be imported by pkg/internal/cmd.
 
 - pkg/agent/core (pkg) -> internal/cryptoinit (internal)
-- pkg/agent/handshake (pkg) -> internal/metrics (internal)
-- pkg/agent/session (pkg) -> internal/metrics (internal)
-- pkg/health (pkg) -> internal/logger (internal)
-- pkg/health (pkg) -> internal/metrics (internal)
 
 ## Interfaces and implementers
 
 | Interface | Methods | Implementers (module-internal) |
 |---|---|---|
-| internal/logger.Logger | 9 | internal/logger.StructuredLogger |
 | pkg/agent/core.DIDResolver | 2 | pkg/agent/did.Manager |
 | pkg/agent/core/message.ControlHeader | 3 | pkg/agent/handshake.CompleteMessage, pkg/agent/handshake.InvitationMessage, pkg/agent/handshake.RequestMessage, pkg/agent/handshake.ResponseMessage |
 | pkg/agent/core/rfc9421.ReplayGuard | 1 | pkg/agent/core/rfc9421.NonceReplayGuard |
@@ -242,6 +239,7 @@ Rule: pkg must not import cmd/internal; internal must not import cmd; examples/t
 | pkg/storage.NonceStore | 4 | pkg/storage/memory.NonceStore, pkg/storage/postgres.NonceStore |
 | pkg/storage.SessionStore | 8 | pkg/storage/memory.SessionStore, pkg/storage/postgres.SessionStore |
 | pkg/storage.Store | 5 | pkg/storage/memory.Store, pkg/storage/postgres.Store |
+| pkg/telemetry/logger.Logger | 9 | pkg/telemetry/logger.StructuredLogger |
 
 ## Most-called functions (top 25 by internal call fan-in)
 
@@ -283,22 +281,22 @@ Rule: pkg must not import cmd/internal; internal must not import cmd; examples/t
 | cmd/deployment-verify.main | 127 | cmd/deployment-verify/main.go:33 |
 | pkg/agent/did/solana.SolanaClient.Update | 125 | pkg/agent/did/solana/client.go:283 |
 | cmd/sage-did.runCardValidate | 125 | cmd/sage-did/card.go:230 |
-| tests/random.ResultReporter.saveHTML | 120 | tests/random/reporter.go:164 |
 | cmd/sage-did.runKeyVerifyPop | 120 | cmd/sage-did/key.go:536 |
+| tests/random.ResultReporter.saveHTML | 120 | tests/random/reporter.go:164 |
 | pkg/agent/hpke.Client.Initialize | 114 | pkg/agent/hpke/client.go:80 |
 | pkg/agent/did/solana.SolanaClient.Deactivate | 102 | pkg/agent/did/solana/client.go:410 |
 | examples/mcp-integration/basic-demo.main | 101 | examples/mcp-integration/basic-demo/main.go:267 |
 | pkg/agent/crypto/formats.jwkExporter.Export | 100 | pkg/agent/crypto/formats/jwk.go:64 |
 | cmd/sage-did.runVerify | 98 | cmd/sage-did/verify.go:64 |
 | pkg/agent/did/ethereum.toKeyHashes | 97 | pkg/agent/did/ethereum/client.go:575 |
-| pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
 | pkg/agent/crypto/formats.pemExporter.ExportPublic | 93 | pkg/agent/crypto/formats/pem.go:139 |
+| pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
 | pkg/agent/crypto/formats.pemExporter.Export | 92 | pkg/agent/crypto/formats/pem.go:45 |
-| pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
 | cmd/sage-did.runKeyAdd | 91 | cmd/sage-did/key.go:239 |
+| pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
 | deployments/config.validateBlockchainConfig | 88 | deployments/config/validator.go:61 |
-| pkg/agent/crypto/formats.jwkExporter.ExportPublic | 84 | pkg/agent/crypto/formats/jwk.go:166 |
 | pkg/agent/did/ethereum.EthereumClient.Register | 84 | pkg/agent/did/ethereum/client.go:121 |
+| pkg/agent/crypto/formats.jwkExporter.ExportPublic | 84 | pkg/agent/crypto/formats/jwk.go:166 |
 | cmd/sage-did.runRegister | 83 | cmd/sage-did/register.go:76 |
 | pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:133 |
 | examples/mcp-integration/client.SAGEClient.CallTool | 81 | examples/mcp-integration/client/sage_client.go:79 |
@@ -311,11 +309,106 @@ Rule: pkg must not import cmd/internal; internal must not import cmd; examples/t
 - pkg/agent/transport/http.fromWireResponse, pkg/agent/transport/websocket.fromWireResponse
 - pkg/agent/transport/http.toWireMessage, pkg/agent/transport/websocket.toWireMessage
 - pkg/agent/transport/http.toWireResponse, pkg/agent/transport/websocket.toWireResponse
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentActivatedIterator.Next, reports/bindings.AgentCardRegistryAgentActivatedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentDeactivatedByHashIterator.Next, reports/bindings.AgentCardRegistryAgentDeactivatedByHashIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentDeactivatedIterator.Next, reports/bindings.AgentCardRegistryAgentDeactivatedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentEndpointUpdatedIterator.Next, reports/bindings.AgentCardRegistryAgentEndpointUpdatedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentRegistered0Iterator.Next, reports/bindings.AgentCardRegistryAgentRegistered0Iterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentRegisteredIterator.Next, reports/bindings.AgentCardRegistryAgentRegisteredIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentUpdatedIterator.Next, reports/bindings.AgentCardRegistryAgentUpdatedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryApprovalForAgentIterator.Next, reports/bindings.AgentCardRegistryApprovalForAgentIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.ActivationDelay, reports/bindings.AgentCardRegistryCaller.ActivationDelay
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentActivationTime, reports/bindings.AgentCardRegistryCaller.AgentActivationTime
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentNonce, reports/bindings.AgentCardRegistryCaller.AgentNonce
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentOperators, reports/bindings.AgentCardRegistryCaller.AgentOperators
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentReputations, reports/bindings.AgentCardRegistryCaller.AgentReputations
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentStakes, reports/bindings.AgentCardRegistryCaller.AgentStakes
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.DidToAgentId, reports/bindings.AgentCardRegistryCaller.DidToAgentId
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetAgent, reports/bindings.AgentCardRegistryCaller.GetAgent
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetAgentByDID, reports/bindings.AgentCardRegistryCaller.GetAgentByDID
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetAgentsByOwner, reports/bindings.AgentCardRegistryCaller.GetAgentsByOwner
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetKEMKey, reports/bindings.AgentCardRegistryCaller.GetKEMKey
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetKey, reports/bindings.AgentCardRegistryCaller.GetKey
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.IsAgentActive, reports/bindings.AgentCardRegistryCaller.IsAgentActive
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.IsApprovedOperator, reports/bindings.AgentCardRegistryCaller.IsApprovedOperator
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.Owner, reports/bindings.AgentCardRegistryCaller.Owner
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.Paused, reports/bindings.AgentCardRegistryCaller.Paused
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.PendingOwner, reports/bindings.AgentCardRegistryCaller.PendingOwner
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.RegistrationCommitments, reports/bindings.AgentCardRegistryCaller.RegistrationCommitments
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.RegistrationStake, reports/bindings.AgentCardRegistryCaller.RegistrationStake
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.ResolveAgent, reports/bindings.AgentCardRegistryCaller.ResolveAgent
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.ResolveAgentByAddress, reports/bindings.AgentCardRegistryCaller.ResolveAgentByAddress
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.VerifyHook, reports/bindings.AgentCardRegistryCaller.VerifyHook
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCommitmentRecordedIterator.Next, reports/bindings.AgentCardRegistryCommitmentRecordedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentActivated, reports/bindings.AgentCardRegistryFilterer.FilterAgentActivated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentDeactivated, reports/bindings.AgentCardRegistryFilterer.FilterAgentDeactivated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentDeactivatedByHash, reports/bindings.AgentCardRegistryFilterer.FilterAgentDeactivatedByHash
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentEndpointUpdated, reports/bindings.AgentCardRegistryFilterer.FilterAgentEndpointUpdated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentRegistered, reports/bindings.AgentCardRegistryFilterer.FilterAgentRegistered
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentRegistered0, reports/bindings.AgentCardRegistryFilterer.FilterAgentRegistered0
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentUpdated, reports/bindings.AgentCardRegistryFilterer.FilterAgentUpdated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterApprovalForAgent, reports/bindings.AgentCardRegistryFilterer.FilterApprovalForAgent
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterCommitmentRecorded, reports/bindings.AgentCardRegistryFilterer.FilterCommitmentRecorded
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterKEMKeyUpdated, reports/bindings.AgentCardRegistryFilterer.FilterKEMKeyUpdated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterKeyAdded, reports/bindings.AgentCardRegistryFilterer.FilterKeyAdded
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterKeyRevoked, reports/bindings.AgentCardRegistryFilterer.FilterKeyRevoked
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterOwnershipTransferStarted, reports/bindings.AgentCardRegistryFilterer.FilterOwnershipTransferStarted
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterOwnershipTransferred, reports/bindings.AgentCardRegistryFilterer.FilterOwnershipTransferred
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentActivated, reports/bindings.AgentCardRegistryFilterer.WatchAgentActivated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentDeactivated, reports/bindings.AgentCardRegistryFilterer.WatchAgentDeactivated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentDeactivatedByHash, reports/bindings.AgentCardRegistryFilterer.WatchAgentDeactivatedByHash
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentEndpointUpdated, reports/bindings.AgentCardRegistryFilterer.WatchAgentEndpointUpdated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentRegistered, reports/bindings.AgentCardRegistryFilterer.WatchAgentRegistered
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentRegistered0, reports/bindings.AgentCardRegistryFilterer.WatchAgentRegistered0
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentUpdated, reports/bindings.AgentCardRegistryFilterer.WatchAgentUpdated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchApprovalForAgent, reports/bindings.AgentCardRegistryFilterer.WatchApprovalForAgent
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchCommitmentRecorded, reports/bindings.AgentCardRegistryFilterer.WatchCommitmentRecorded
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchKEMKeyUpdated, reports/bindings.AgentCardRegistryFilterer.WatchKEMKeyUpdated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchKeyAdded, reports/bindings.AgentCardRegistryFilterer.WatchKeyAdded
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchKeyRevoked, reports/bindings.AgentCardRegistryFilterer.WatchKeyRevoked
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchOwnershipTransferStarted, reports/bindings.AgentCardRegistryFilterer.WatchOwnershipTransferStarted
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchOwnershipTransferred, reports/bindings.AgentCardRegistryFilterer.WatchOwnershipTransferred
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchPaused, reports/bindings.AgentCardRegistryFilterer.WatchPaused
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchUnpaused, reports/bindings.AgentCardRegistryFilterer.WatchUnpaused
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKEMKeyUpdatedIterator.Next, reports/bindings.AgentCardRegistryKEMKeyUpdatedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKeyAddedIterator.Next, reports/bindings.AgentCardRegistryKeyAddedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKeyRevokedIterator.Next, reports/bindings.AgentCardRegistryKeyRevokedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryOwnershipTransferStartedIterator.Next, reports/bindings.AgentCardRegistryOwnershipTransferStartedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryOwnershipTransferredIterator.Next, reports/bindings.AgentCardRegistryOwnershipTransferredIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryPausedIterator.Next, reports/bindings.AgentCardRegistryPausedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryUnpausedIterator.Next, reports/bindings.AgentCardRegistryUnpausedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentDeactivatedByHashIterator.Next, reports/bindings.AgentCardStorageAgentDeactivatedByHashIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentRegisteredIterator.Next, reports/bindings.AgentCardStorageAgentRegisteredIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentUpdatedIterator.Next, reports/bindings.AgentCardStorageAgentUpdatedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageApprovalForAgentIterator.Next, reports/bindings.AgentCardStorageApprovalForAgentIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.AgentNonce, reports/bindings.AgentCardStorageCaller.AgentNonce
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.AgentOperators, reports/bindings.AgentCardStorageCaller.AgentOperators
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.DidToAgentId, reports/bindings.AgentCardStorageCaller.DidToAgentId
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.RegistrationCommitments, reports/bindings.AgentCardStorageCaller.RegistrationCommitments
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCommitmentRecordedIterator.Next, reports/bindings.AgentCardStorageCommitmentRecordedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterAgentDeactivatedByHash, reports/bindings.AgentCardStorageFilterer.FilterAgentDeactivatedByHash
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterAgentRegistered, reports/bindings.AgentCardStorageFilterer.FilterAgentRegistered
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterAgentUpdated, reports/bindings.AgentCardStorageFilterer.FilterAgentUpdated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterApprovalForAgent, reports/bindings.AgentCardStorageFilterer.FilterApprovalForAgent
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterCommitmentRecorded, reports/bindings.AgentCardStorageFilterer.FilterCommitmentRecorded
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterKEMKeyUpdated, reports/bindings.AgentCardStorageFilterer.FilterKEMKeyUpdated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterKeyAdded, reports/bindings.AgentCardStorageFilterer.FilterKeyAdded
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterKeyRevoked, reports/bindings.AgentCardStorageFilterer.FilterKeyRevoked
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchAgentDeactivatedByHash, reports/bindings.AgentCardStorageFilterer.WatchAgentDeactivatedByHash
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchAgentRegistered, reports/bindings.AgentCardStorageFilterer.WatchAgentRegistered
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchAgentUpdated, reports/bindings.AgentCardStorageFilterer.WatchAgentUpdated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchApprovalForAgent, reports/bindings.AgentCardStorageFilterer.WatchApprovalForAgent
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchCommitmentRecorded, reports/bindings.AgentCardStorageFilterer.WatchCommitmentRecorded
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchKEMKeyUpdated, reports/bindings.AgentCardStorageFilterer.WatchKEMKeyUpdated
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchKeyAdded, reports/bindings.AgentCardStorageFilterer.WatchKeyAdded
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchKeyRevoked, reports/bindings.AgentCardStorageFilterer.WatchKeyRevoked
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKEMKeyUpdatedIterator.Next, reports/bindings.AgentCardStorageKEMKeyUpdatedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKeyAddedIterator.Next, reports/bindings.AgentCardStorageKeyAddedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKeyRevokedIterator.Next, reports/bindings.AgentCardStorageKeyRevokedIterator.Next
 
 ### Structural duplicates (identical AST shape ignoring identifiers/literals, >= 8 lines)
 
 - cmd/sage-crypto.getSignatureAlgorithm, cmd/sage-did.getDefaultContractAddress, cmd/sage-did.getDefaultRPCEndpoint
-- internal/metrics.MetricsCollector.RecordDIDResolution, internal/metrics.MetricsCollector.RecordVerification
 - pkg/agent/crypto.Manager.ExportKeyPair, pkg/agent/crypto.Manager.ImportKeyPair
 - pkg/agent/crypto/chain/ethereum.Provider.SignTransaction, pkg/agent/crypto/chain/solana.Provider.SignTransaction
 - pkg/agent/crypto/formats.jwkImporter.importEd25519, pkg/agent/crypto/formats.jwkImporter.importSecp256k1
@@ -335,21 +428,25 @@ Rule: pkg must not import cmd/internal; internal must not import cmd; examples/t
 - pkg/agent/transport/http.init, pkg/agent/transport/websocket.init
 - pkg/agent/transport/http.toWireMessage, pkg/agent/transport/websocket.toWireMessage
 - pkg/agent/transport/http.toWireResponse, pkg/agent/transport/websocket.toWireResponse
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentActivatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentDeactivatedByHashIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentDeactivatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentEndpointUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentRegistered0Iterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentRegisteredIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryApprovalForAgentIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCommitmentRecordedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKEMKeyUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKeyAddedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKeyRevokedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryOwnershipTransferStartedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryOwnershipTransferredIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryPausedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryUnpausedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentDeactivatedByHashIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentRegisteredIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageApprovalForAgentIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCommitmentRecordedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKeyAddedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKeyRevokedIterator.Next
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.ActivationDelay, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.RegistrationStake
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentActivationTime, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentNonce, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentStakes, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.AgentNonce
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentOperators, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.IsApprovedOperator, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.AgentOperators
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.DidToAgentId, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.DidToAgentId
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetAgent, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetAgentByDID, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetKey, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.IsAgentActive, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.ResolveAgent, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.ResolveAgentByAddress
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.Owner, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.PendingOwner, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.VerifyHook
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.RegistrationCommitments, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.RegistrationCommitments
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentActivated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentDeactivatedByHash, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentEndpointUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterCommitmentRecorded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterAgentDeactivatedByHash, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterAgentUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterCommitmentRecorded
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentDeactivated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentRegistered0, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterKEMKeyUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterKeyAdded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterKeyRevoked, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterOwnershipTransferStarted, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterOwnershipTransferred, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterKeyAdded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterKeyRevoked
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentRegistered, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterApprovalForAgent, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterAgentRegistered, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterApprovalForAgent
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentActivated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentDeactivatedByHash, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentEndpointUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchCommitmentRecorded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchAgentDeactivatedByHash, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchAgentUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchCommitmentRecorded
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentDeactivated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentRegistered0, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchKEMKeyUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchKeyAdded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchKeyRevoked, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchOwnershipTransferStarted, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchOwnershipTransferred, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchKeyAdded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchKeyRevoked
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentRegistered, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchApprovalForAgent, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchAgentRegistered, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchApprovalForAgent
-- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchPaused, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchUnpaused
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentActivatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentDeactivatedByHashIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentDeactivatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentEndpointUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentRegistered0Iterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentRegisteredIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryApprovalForAgentIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCommitmentRecordedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKEMKeyUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKeyAddedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKeyRevokedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryOwnershipTransferStartedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryOwnershipTransferredIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryPausedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryUnpausedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentDeactivatedByHashIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentRegisteredIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageApprovalForAgentIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCommitmentRecordedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKEMKeyUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKeyAddedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKeyRevokedIterator.Next, reports/bindings.AgentCardRegistryAgentActivatedIterator.Next, reports/bindings.AgentCardRegistryAgentDeactivatedByHashIterator.Next, reports/bindings.AgentCardRegistryAgentDeactivatedIterator.Next, reports/bindings.AgentCardRegistryAgentEndpointUpdatedIterator.Next, reports/bindings.AgentCardRegistryAgentRegistered0Iterator.Next, reports/bindings.AgentCardRegistryAgentRegisteredIterator.Next, reports/bindings.AgentCardRegistryAgentUpdatedIterator.Next, reports/bindings.AgentCardRegistryApprovalForAgentIterator.Next, reports/bindings.AgentCardRegistryCommitmentRecordedIterator.Next, reports/bindings.AgentCardRegistryKEMKeyUpdatedIterator.Next, reports/bindings.AgentCardRegistryKeyAddedIterator.Next, reports/bindings.AgentCardRegistryKeyRevokedIterator.Next, reports/bindings.AgentCardRegistryOwnershipTransferStartedIterator.Next, reports/bindings.AgentCardRegistryOwnershipTransferredIterator.Next, reports/bindings.AgentCardRegistryPausedIterator.Next, reports/bindings.AgentCardRegistryUnpausedIterator.Next, reports/bindings.AgentCardStorageAgentDeactivatedByHashIterator.Next, reports/bindings.AgentCardStorageAgentRegisteredIterator.Next, reports/bindings.AgentCardStorageAgentUpdatedIterator.Next, reports/bindings.AgentCardStorageApprovalForAgentIterator.Next, reports/bindings.AgentCardStorageCommitmentRecordedIterator.Next, reports/bindings.AgentCardStorageKEMKeyUpdatedIterator.Next, reports/bindings.AgentCardStorageKeyAddedIterator.Next, reports/bindings.AgentCardStorageKeyRevokedIterator.Next
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.ActivationDelay, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.RegistrationStake, reports/bindings.AgentCardRegistryCaller.ActivationDelay, reports/bindings.AgentCardRegistryCaller.RegistrationStake
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentActivationTime, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentNonce, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentStakes, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.AgentNonce, reports/bindings.AgentCardRegistryCaller.AgentActivationTime, reports/bindings.AgentCardRegistryCaller.AgentNonce, reports/bindings.AgentCardRegistryCaller.AgentStakes, reports/bindings.AgentCardStorageCaller.AgentNonce
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentOperators, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.IsApprovedOperator, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.AgentOperators, reports/bindings.AgentCardRegistryCaller.AgentOperators, reports/bindings.AgentCardRegistryCaller.IsApprovedOperator, reports/bindings.AgentCardStorageCaller.AgentOperators
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.AgentReputations, reports/bindings.AgentCardRegistryCaller.AgentReputations
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.DidToAgentId, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.DidToAgentId, reports/bindings.AgentCardRegistryCaller.DidToAgentId, reports/bindings.AgentCardStorageCaller.DidToAgentId
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetAgent, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetAgentByDID, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetKey, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.IsAgentActive, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.ResolveAgent, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.ResolveAgentByAddress, reports/bindings.AgentCardRegistryCaller.GetAgent, reports/bindings.AgentCardRegistryCaller.GetAgentByDID, reports/bindings.AgentCardRegistryCaller.GetKey, reports/bindings.AgentCardRegistryCaller.IsAgentActive, reports/bindings.AgentCardRegistryCaller.ResolveAgent, reports/bindings.AgentCardRegistryCaller.ResolveAgentByAddress
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetAgentsByOwner, reports/bindings.AgentCardRegistryCaller.GetAgentsByOwner
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.GetKEMKey, reports/bindings.AgentCardRegistryCaller.GetKEMKey
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.Owner, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.PendingOwner, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.VerifyHook, reports/bindings.AgentCardRegistryCaller.Owner, reports/bindings.AgentCardRegistryCaller.PendingOwner, reports/bindings.AgentCardRegistryCaller.VerifyHook
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.Paused, reports/bindings.AgentCardRegistryCaller.Paused
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCaller.RegistrationCommitments, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCaller.RegistrationCommitments, reports/bindings.AgentCardRegistryCaller.RegistrationCommitments, reports/bindings.AgentCardStorageCaller.RegistrationCommitments
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentActivated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentDeactivatedByHash, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentEndpointUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterCommitmentRecorded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterAgentDeactivatedByHash, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterAgentUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterCommitmentRecorded, reports/bindings.AgentCardRegistryFilterer.FilterAgentActivated, reports/bindings.AgentCardRegistryFilterer.FilterAgentDeactivatedByHash, reports/bindings.AgentCardRegistryFilterer.FilterAgentEndpointUpdated, reports/bindings.AgentCardRegistryFilterer.FilterAgentUpdated, reports/bindings.AgentCardRegistryFilterer.FilterCommitmentRecorded, reports/bindings.AgentCardStorageFilterer.FilterAgentDeactivatedByHash, reports/bindings.AgentCardStorageFilterer.FilterAgentUpdated, reports/bindings.AgentCardStorageFilterer.FilterCommitmentRecorded
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentDeactivated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentRegistered0, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterKEMKeyUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterKeyAdded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterKeyRevoked, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterOwnershipTransferStarted, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterOwnershipTransferred, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterKEMKeyUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterKeyAdded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterKeyRevoked, reports/bindings.AgentCardRegistryFilterer.FilterAgentDeactivated, reports/bindings.AgentCardRegistryFilterer.FilterAgentRegistered0, reports/bindings.AgentCardRegistryFilterer.FilterKEMKeyUpdated, reports/bindings.AgentCardRegistryFilterer.FilterKeyAdded, reports/bindings.AgentCardRegistryFilterer.FilterKeyRevoked, reports/bindings.AgentCardRegistryFilterer.FilterOwnershipTransferStarted, reports/bindings.AgentCardRegistryFilterer.FilterOwnershipTransferred, reports/bindings.AgentCardStorageFilterer.FilterKEMKeyUpdated, reports/bindings.AgentCardStorageFilterer.FilterKeyAdded, reports/bindings.AgentCardStorageFilterer.FilterKeyRevoked
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterAgentRegistered, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.FilterApprovalForAgent, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterAgentRegistered, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.FilterApprovalForAgent, reports/bindings.AgentCardRegistryFilterer.FilterAgentRegistered, reports/bindings.AgentCardRegistryFilterer.FilterApprovalForAgent, reports/bindings.AgentCardStorageFilterer.FilterAgentRegistered, reports/bindings.AgentCardStorageFilterer.FilterApprovalForAgent
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentActivated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentDeactivatedByHash, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentEndpointUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchCommitmentRecorded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchAgentDeactivatedByHash, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchAgentUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchCommitmentRecorded, reports/bindings.AgentCardRegistryFilterer.WatchAgentActivated, reports/bindings.AgentCardRegistryFilterer.WatchAgentDeactivatedByHash, reports/bindings.AgentCardRegistryFilterer.WatchAgentEndpointUpdated, reports/bindings.AgentCardRegistryFilterer.WatchAgentUpdated, reports/bindings.AgentCardRegistryFilterer.WatchCommitmentRecorded, reports/bindings.AgentCardStorageFilterer.WatchAgentDeactivatedByHash, reports/bindings.AgentCardStorageFilterer.WatchAgentUpdated, reports/bindings.AgentCardStorageFilterer.WatchCommitmentRecorded
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentDeactivated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentRegistered0, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchKEMKeyUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchKeyAdded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchKeyRevoked, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchOwnershipTransferStarted, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchOwnershipTransferred, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchKEMKeyUpdated, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchKeyAdded, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchKeyRevoked, reports/bindings.AgentCardRegistryFilterer.WatchAgentDeactivated, reports/bindings.AgentCardRegistryFilterer.WatchAgentRegistered0, reports/bindings.AgentCardRegistryFilterer.WatchKEMKeyUpdated, reports/bindings.AgentCardRegistryFilterer.WatchKeyAdded, reports/bindings.AgentCardRegistryFilterer.WatchKeyRevoked, reports/bindings.AgentCardRegistryFilterer.WatchOwnershipTransferStarted, reports/bindings.AgentCardRegistryFilterer.WatchOwnershipTransferred, reports/bindings.AgentCardStorageFilterer.WatchKEMKeyUpdated, reports/bindings.AgentCardStorageFilterer.WatchKeyAdded, reports/bindings.AgentCardStorageFilterer.WatchKeyRevoked
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchAgentRegistered, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchApprovalForAgent, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchAgentRegistered, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageFilterer.WatchApprovalForAgent, reports/bindings.AgentCardRegistryFilterer.WatchAgentRegistered, reports/bindings.AgentCardRegistryFilterer.WatchApprovalForAgent, reports/bindings.AgentCardStorageFilterer.WatchAgentRegistered, reports/bindings.AgentCardStorageFilterer.WatchApprovalForAgent
+- pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchPaused, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryFilterer.WatchUnpaused, reports/bindings.AgentCardRegistryFilterer.WatchPaused, reports/bindings.AgentCardRegistryFilterer.WatchUnpaused
 - pkg/storage/memory.DIDStore.Delete, pkg/storage/memory.SessionStore.Delete
 - pkg/storage/memory.DIDStore.Update, pkg/storage/memory.SessionStore.Update
 - pkg/storage/memory.NonceStore.Count, pkg/storage/memory.SessionStore.Count
@@ -357,6 +454,7 @@ Rule: pkg must not import cmd/internal; internal must not import cmd; examples/t
 - pkg/storage/postgres.DIDStore.Delete, pkg/storage/postgres.DIDStore.Revoke, pkg/storage/postgres.SessionStore.Delete
 - pkg/storage/postgres.NonceStore.Count, pkg/storage/postgres.SessionStore.Count
 - pkg/storage/postgres.NonceStore.DeleteExpired, pkg/storage/postgres.SessionStore.DeleteExpired
+- pkg/telemetry/metrics.MetricsCollector.RecordDIDResolution, pkg/telemetry/metrics.MetricsCollector.RecordVerification
 
 ## Dead-code candidates (unexported funcs/methods with no internal callers or references)
 

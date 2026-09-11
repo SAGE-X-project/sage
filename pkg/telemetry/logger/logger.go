@@ -318,61 +318,6 @@ func (l *StructuredLogger) log(level Level, msg string, fields ...Field) {
 	_, _ = fmt.Fprintf(l.output, "%s\n", data)
 }
 
-// SageError represents a structured error with additional context
-type SageError struct {
-	Code    string                 `json:"code"`
-	Message string                 `json:"message"`
-	Details map[string]interface{} `json:"details,omitempty"`
-	Cause   error                  `json:"-"`
-}
-
-// Error implements the error interface
-func (e *SageError) Error() string {
-	if e.Cause != nil {
-		return fmt.Sprintf("%s: %s (caused by: %v)", e.Code, e.Message, e.Cause)
-	}
-	return fmt.Sprintf("%s: %s", e.Code, e.Message)
-}
-
-// Unwrap returns the underlying error
-func (e *SageError) Unwrap() error {
-	return e.Cause
-}
-
-// WithDetails adds details to the error
-func (e *SageError) WithDetails(key string, value interface{}) *SageError {
-	if e.Details == nil {
-		e.Details = make(map[string]interface{})
-	}
-	e.Details[key] = value
-	return e
-}
-
-// NewSageError creates a new SAGE error
-func NewSageError(code, message string, cause error) *SageError {
-	return &SageError{
-		Code:    code,
-		Message: message,
-		Cause:   cause,
-	}
-}
-
-// Common error codes
-const (
-	ErrCodeInternal           = "INTERNAL_ERROR"
-	ErrCodeInvalidInput       = "INVALID_INPUT"
-	ErrCodeNotFound           = "NOT_FOUND"
-	ErrCodeUnauthorized       = "UNAUTHORIZED"
-	ErrCodeForbidden          = "FORBIDDEN"
-	ErrCodeConflict           = "CONFLICT"
-	ErrCodeTimeout            = "TIMEOUT"
-	ErrCodeNetworkError       = "NETWORK_ERROR"
-	ErrCodeBlockchainError    = "BLOCKCHAIN_ERROR"
-	ErrCodeCryptoError        = "CRYPTO_ERROR"
-	ErrCodeValidationError    = "VALIDATION_ERROR"
-	ErrCodeConfigurationError = "CONFIGURATION_ERROR"
-)
-
 // Global logger instance
 var defaultLogger = NewDefaultLogger()
 

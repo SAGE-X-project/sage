@@ -30,13 +30,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sage-x-project/sage/internal/metrics"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/formats"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/session"
 	"github.com/sage-x-project/sage/pkg/agent/transport"
+	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 	"golang.org/x/sync/singleflight"
 )
 

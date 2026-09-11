@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sage-x-project/sage/internal/metrics"
+	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 )
 
 // Manager handles session lifecycle, storage, and cleanup

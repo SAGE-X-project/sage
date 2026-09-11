@@ -33,7 +33,7 @@ import (
 
 	"io"
 
-	"github.com/sage-x-project/sage/internal/metrics"
+	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 )
