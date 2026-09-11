@@ -63,7 +63,7 @@ func loadTrustedAgents(spec string) map[string]ed25519.PublicKey {
 		}
 		raw, err := hex.DecodeString(strings.TrimSpace(hexKey))
 		if err != nil || len(raw) != ed25519.PublicKeySize {
-			log.Printf("ignoring SAGE_TRUSTED_AGENTS entry for %s: not a 32-byte hex Ed25519 key", did)
+			log.Printf("ignoring SAGE_TRUSTED_AGENTS entry for %q: not a 32-byte hex Ed25519 key", strings.TrimSpace(did)) // #nosec G706 -- value is quoted, no control characters reach the log
 			continue
 		}
 		out[strings.TrimSpace(did)] = ed25519.PublicKey(raw)
