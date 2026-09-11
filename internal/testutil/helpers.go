@@ -17,7 +17,7 @@
 // along with SAGE. If not, see <https://www.gnu.org/licenses/>.
 
 // Package helpers provides common test helper functions for SAGE test enhancement
-package helpers
+package testutil
 
 import (
 	"encoding/json"

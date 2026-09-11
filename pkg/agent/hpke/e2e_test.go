@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/sage-x-project/sage/tests/helpers"
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/stretchr/testify/require"
 
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
@@ -116,63 +116,63 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 
 	t.Run("Scenario_01_Valid_Handshake", func(t *testing.T) {
 		// Specification Requirement: Complete HPKE handshake flow with MockTransport
-		helpers.LogTestSection(t, "9.1.1", "HPKE E2E Handshake - Valid Flow")
+		testutil.LogTestSection(t, "9.1.1", "HPKE E2E Handshake - Valid Flow")
 
-		helpers.LogDetail(t, "Test setup:")
-		helpers.LogDetail(t, "  Client DID: %s", clientDID)
-		helpers.LogDetail(t, "  Server DID: %s", serverDID)
-		helpers.LogDetail(t, "  Client KEM public key: %s", hex.EncodeToString(clientKEMKP.PublicKey().(*ecdh.PublicKey).Bytes()))
-		helpers.LogDetail(t, "  Server KEM public key: %s", hex.EncodeToString(serverKEMKP.PublicKey().(*ecdh.PublicKey).Bytes()))
+		testutil.LogDetail(t, "Test setup:")
+		testutil.LogDetail(t, "  Client DID: %s", clientDID)
+		testutil.LogDetail(t, "  Server DID: %s", serverDID)
+		testutil.LogDetail(t, "  Client KEM public key: %s", hex.EncodeToString(clientKEMKP.PublicKey().(*ecdh.PublicKey).Bytes()))
+		testutil.LogDetail(t, "  Server KEM public key: %s", hex.EncodeToString(serverKEMKP.PublicKey().(*ecdh.PublicKey).Bytes()))
 
 		// Specification Requirement: Initialize HPKE session with client-server key exchange
 		ctxID := "ctx-" + uuid.NewString()
-		helpers.LogDetail(t, "Initializing HPKE session with context ID: %s", ctxID)
+		testutil.LogDetail(t, "Initializing HPKE session with context ID: %s", ctxID)
 
 		kid, err := clientHPKE.Initialize(ctx, ctxID, string(clientDID), string(serverDID))
 		require.NoError(t, err, "HPKE Initialize should succeed")
 		require.NotEmpty(t, kid, "Key ID should be generated")
-		helpers.LogSuccess(t, "HPKE session initialized successfully")
-		helpers.LogDetail(t, "  Generated Key ID: %s", kid)
+		testutil.LogSuccess(t, "HPKE session initialized successfully")
+		testutil.LogDetail(t, "  Generated Key ID: %s", kid)
 
 		// Specification Requirement: Verify client session establishment
 		clientSess, ok := clientSessMgr.GetByKeyID(kid)
 		require.True(t, ok, "Client session should exist")
 		require.NotNil(t, clientSess, "Client session should not be nil")
-		helpers.LogSuccess(t, "Client session established")
-		helpers.LogDetail(t, "  Session ID: %s", clientSess.GetID())
-		helpers.LogDetail(t, "  Key ID: %s", kid)
+		testutil.LogSuccess(t, "Client session established")
+		testutil.LogDetail(t, "  Session ID: %s", clientSess.GetID())
+		testutil.LogDetail(t, "  Key ID: %s", kid)
 
 		// Specification Requirement: Encrypt test message using established session
 		plaintext := []byte(`{"op":"ping","ts":1}`)
-		helpers.LogDetail(t, "Encrypting test message:")
-		helpers.LogDetail(t, "  Plaintext: %s", string(plaintext))
-		helpers.LogDetail(t, "  Plaintext size: %d bytes", len(plaintext))
+		testutil.LogDetail(t, "Encrypting test message:")
+		testutil.LogDetail(t, "  Plaintext: %s", string(plaintext))
+		testutil.LogDetail(t, "  Plaintext size: %d bytes", len(plaintext))
 
 		ciphertext, err := clientSess.Encrypt(plaintext)
 		require.NoError(t, err, "Encryption should succeed")
 		require.NotEmpty(t, ciphertext, "Ciphertext should not be empty")
-		helpers.LogSuccess(t, "Message encrypted successfully")
-		helpers.LogDetail(t, "  Ciphertext size: %d bytes", len(ciphertext))
-		helpers.LogDetail(t, "  Ciphertext (hex): %s", hex.EncodeToString(ciphertext))
+		testutil.LogSuccess(t, "Message encrypted successfully")
+		testutil.LogDetail(t, "  Ciphertext size: %d bytes", len(ciphertext))
+		testutil.LogDetail(t, "  Ciphertext (hex): %s", hex.EncodeToString(ciphertext))
 
 		// Specification Requirement: Verify server session establishment (via MockTransport)
 		serverSess, ok := serverSessMgr.GetByKeyID(kid)
 		require.True(t, ok, "Server session should exist")
 		require.NotNil(t, serverSess, "Server session should not be nil")
-		helpers.LogSuccess(t, "Server session established")
-		helpers.LogDetail(t, "  Session ID: %s", serverSess.GetID())
-		helpers.LogDetail(t, "  Key ID: %s", kid)
+		testutil.LogSuccess(t, "Server session established")
+		testutil.LogDetail(t, "  Session ID: %s", serverSess.GetID())
+		testutil.LogDetail(t, "  Key ID: %s", kid)
 
 		// Specification Requirement: Decrypt message on server side and verify integrity
-		helpers.LogDetail(t, "Decrypting message on server side")
+		testutil.LogDetail(t, "Decrypting message on server side")
 		decrypted, err := serverSess.Decrypt(ciphertext)
 		require.NoError(t, err, "Decryption should succeed")
 		require.Equal(t, plaintext, decrypted, "Decrypted text should match original")
-		helpers.LogSuccess(t, "Message decrypted and verified successfully")
-		helpers.LogDetail(t, "  Decrypted: %s", string(decrypted))
+		testutil.LogSuccess(t, "Message decrypted and verified successfully")
+		testutil.LogDetail(t, "  Decrypted: %s", string(decrypted))
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"Client and server DIDs generated",
 			"KEM key pairs generated for both parties",
 			"HPKE session initialized via MockTransport",
@@ -206,22 +206,22 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 			},
 			"handshake_status": "success",
 		}
-		helpers.SaveTestData(t, "hpke/e2e_valid_handshake.json", testData)
+		testutil.SaveTestData(t, "hpke/e2e_valid_handshake.json", testData)
 	})
 
 	t.Run("Scenario_02_Message_Encryption_Decryption", func(t *testing.T) {
 		// Specification Requirement: Multiple message encryption/decryption within single session
-		helpers.LogTestSection(t, "9.1.2", "HPKE E2E Multiple Messages")
+		testutil.LogTestSection(t, "9.1.2", "HPKE E2E Multiple Messages")
 
 		// Specification Requirement: Establish fresh session for multiple messages
 		ctxID := "ctx-" + uuid.NewString()
-		helpers.LogDetail(t, "Establishing new session for multiple messages")
-		helpers.LogDetail(t, "  Context ID: %s", ctxID)
+		testutil.LogDetail(t, "Establishing new session for multiple messages")
+		testutil.LogDetail(t, "  Context ID: %s", ctxID)
 
 		kid, err := clientHPKE.Initialize(ctx, ctxID, string(clientDID), string(serverDID))
 		require.NoError(t, err)
-		helpers.LogSuccess(t, "Session established")
-		helpers.LogDetail(t, "  Key ID: %s", kid)
+		testutil.LogSuccess(t, "Session established")
+		testutil.LogDetail(t, "  Key ID: %s", kid)
 
 		clientSess, _ := clientSessMgr.GetByKeyID(kid)
 		serverSess, _ := serverSessMgr.GetByKeyID(kid)
@@ -233,26 +233,26 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 			[]byte(`{"op":"status","code":200}`),
 		}
 
-		helpers.LogDetail(t, "Testing %d messages:", len(messages))
+		testutil.LogDetail(t, "Testing %d messages:", len(messages))
 		for i, msg := range messages {
-			helpers.LogDetail(t, "  Message %d: %s", i+1, string(msg))
+			testutil.LogDetail(t, "  Message %d: %s", i+1, string(msg))
 		}
 
 		messageResults := make([]map[string]interface{}, 0, len(messages))
 
 		for i, msg := range messages {
-			helpers.LogDetail(t, "Processing message %d/%d", i+1, len(messages))
+			testutil.LogDetail(t, "Processing message %d/%d", i+1, len(messages))
 
 			// Specification Requirement: Encrypt with client session
 			ciphertext, err := clientSess.Encrypt(msg)
 			require.NoError(t, err, "Message %d encryption failed", i)
-			helpers.LogDetail(t, "  Encrypted: %d bytes -> %d bytes", len(msg), len(ciphertext))
+			testutil.LogDetail(t, "  Encrypted: %d bytes -> %d bytes", len(msg), len(ciphertext))
 
 			// Specification Requirement: Decrypt with server session
 			decrypted, err := serverSess.Decrypt(ciphertext)
 			require.NoError(t, err, "Message %d decryption failed", i)
 			require.Equal(t, msg, decrypted, "Message %d content mismatch", i)
-			helpers.LogDetail(t, "  Decrypted: %s", string(decrypted))
+			testutil.LogDetail(t, "  Decrypted: %s", string(decrypted))
 
 			messageResults = append(messageResults, map[string]interface{}{
 				"index":           i + 1,
@@ -264,11 +264,11 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 			})
 		}
 
-		helpers.LogSuccess(t, "All messages processed successfully")
-		helpers.LogDetail(t, "  Total processed: %d messages", len(messages))
+		testutil.LogSuccess(t, "All messages processed successfully")
+		testutil.LogDetail(t, "  Total processed: %d messages", len(messages))
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"New session established for message sequence",
 			"Multiple messages encrypted sequentially",
 			"All ciphertexts generated successfully",
@@ -285,39 +285,39 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 			"message_count": len(messages),
 			"messages":      messageResults,
 		}
-		helpers.SaveTestData(t, "hpke/e2e_multiple_messages.json", testData)
+		testutil.SaveTestData(t, "hpke/e2e_multiple_messages.json", testData)
 	})
 
 	t.Run("Scenario_03_Invalid_Ciphertext", func(t *testing.T) {
 		// Specification Requirement: Invalid ciphertext detection and rejection
-		helpers.LogTestSection(t, "9.1.3", "HPKE E2E Invalid Ciphertext")
+		testutil.LogTestSection(t, "9.1.3", "HPKE E2E Invalid Ciphertext")
 
 		// Specification Requirement: Establish session for error testing
 		ctxID := "ctx-" + uuid.NewString()
-		helpers.LogDetail(t, "Establishing session for invalid ciphertext test")
-		helpers.LogDetail(t, "  Context ID: %s", ctxID)
+		testutil.LogDetail(t, "Establishing session for invalid ciphertext test")
+		testutil.LogDetail(t, "  Context ID: %s", ctxID)
 
 		kid, err := clientHPKE.Initialize(ctx, ctxID, string(clientDID), string(serverDID))
 		require.NoError(t, err)
-		helpers.LogSuccess(t, "Session established")
-		helpers.LogDetail(t, "  Key ID: %s", kid)
+		testutil.LogSuccess(t, "Session established")
+		testutil.LogDetail(t, "  Key ID: %s", kid)
 
 		serverSess, _ := serverSessMgr.GetByKeyID(kid)
-		helpers.LogDetail(t, "Server session retrieved for decryption test")
+		testutil.LogDetail(t, "Server session retrieved for decryption test")
 
 		// Specification Requirement: Attempt decryption of invalid ciphertext
 		invalidCipher := []byte("this is not valid ciphertext")
-		helpers.LogDetail(t, "Attempting to decrypt invalid ciphertext:")
-		helpers.LogDetail(t, "  Invalid data: %s", string(invalidCipher))
-		helpers.LogDetail(t, "  Size: %d bytes", len(invalidCipher))
+		testutil.LogDetail(t, "Attempting to decrypt invalid ciphertext:")
+		testutil.LogDetail(t, "  Invalid data: %s", string(invalidCipher))
+		testutil.LogDetail(t, "  Size: %d bytes", len(invalidCipher))
 
 		_, err = serverSess.Decrypt(invalidCipher)
 		require.Error(t, err, "Decryption of invalid ciphertext should fail")
-		helpers.LogSuccess(t, "Invalid ciphertext correctly rejected")
-		helpers.LogDetail(t, "  Error message: %s", err.Error())
+		testutil.LogSuccess(t, "Invalid ciphertext correctly rejected")
+		testutil.LogDetail(t, "  Error message: %s", err.Error())
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"Session established successfully",
 			"Invalid ciphertext rejected by decryption",
 			"Error returned for invalid input",
@@ -335,59 +335,59 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 			"decryption_failed":  true,
 			"error":              err.Error(),
 		}
-		helpers.SaveTestData(t, "hpke/e2e_invalid_ciphertext.json", testData)
+		testutil.SaveTestData(t, "hpke/e2e_invalid_ciphertext.json", testData)
 	})
 
 	t.Run("Scenario_04_Session_Isolation", func(t *testing.T) {
 		// Specification Requirement: Session isolation and independent key derivation
-		helpers.LogTestSection(t, "9.1.4", "HPKE E2E Session Isolation")
+		testutil.LogTestSection(t, "9.1.4", "HPKE E2E Session Isolation")
 
 		// Specification Requirement: Create first independent session
 		ctxID1 := "ctx-" + uuid.NewString()
-		helpers.LogDetail(t, "Creating first session:")
-		helpers.LogDetail(t, "  Context ID 1: %s", ctxID1)
+		testutil.LogDetail(t, "Creating first session:")
+		testutil.LogDetail(t, "  Context ID 1: %s", ctxID1)
 
 		kid1, err := clientHPKE.Initialize(ctx, ctxID1, string(clientDID), string(serverDID))
 		require.NoError(t, err)
-		helpers.LogSuccess(t, "First session established")
-		helpers.LogDetail(t, "  Key ID 1: %s", kid1)
+		testutil.LogSuccess(t, "First session established")
+		testutil.LogDetail(t, "  Key ID 1: %s", kid1)
 
 		// Specification Requirement: Create second independent session
 		ctxID2 := "ctx-" + uuid.NewString()
-		helpers.LogDetail(t, "Creating second session:")
-		helpers.LogDetail(t, "  Context ID 2: %s", ctxID2)
+		testutil.LogDetail(t, "Creating second session:")
+		testutil.LogDetail(t, "  Context ID 2: %s", ctxID2)
 
 		kid2, err := clientHPKE.Initialize(ctx, ctxID2, string(clientDID), string(serverDID))
 		require.NoError(t, err)
-		helpers.LogSuccess(t, "Second session established")
-		helpers.LogDetail(t, "  Key ID 2: %s", kid2)
+		testutil.LogSuccess(t, "Second session established")
+		testutil.LogDetail(t, "  Key ID 2: %s", kid2)
 
 		// Specification Requirement: Verify unique key IDs
 		require.NotEqual(t, kid1, kid2, "Session key IDs should be different")
-		helpers.LogSuccess(t, "Key IDs are unique")
+		testutil.LogSuccess(t, "Key IDs are unique")
 
 		// Get sessions
 		sess1, _ := clientSessMgr.GetByKeyID(kid1)
 		sess2, _ := clientSessMgr.GetByKeyID(kid2)
-		helpers.LogDetail(t, "Both sessions retrieved from manager")
+		testutil.LogDetail(t, "Both sessions retrieved from manager")
 
 		// Specification Requirement: Encrypt identical message with both sessions
 		msg := []byte(`{"op":"test"}`)
-		helpers.LogDetail(t, "Encrypting identical message with both sessions:")
-		helpers.LogDetail(t, "  Message: %s", string(msg))
+		testutil.LogDetail(t, "Encrypting identical message with both sessions:")
+		testutil.LogDetail(t, "  Message: %s", string(msg))
 
 		cipher1, _ := sess1.Encrypt(msg)
-		helpers.LogDetail(t, "  Session 1 ciphertext: %d bytes (hex: %s...)", len(cipher1), hex.EncodeToString(cipher1[:min(16, len(cipher1))]))
+		testutil.LogDetail(t, "  Session 1 ciphertext: %d bytes (hex: %s...)", len(cipher1), hex.EncodeToString(cipher1[:min(16, len(cipher1))]))
 
 		cipher2, _ := sess2.Encrypt(msg)
-		helpers.LogDetail(t, "  Session 2 ciphertext: %d bytes (hex: %s...)", len(cipher2), hex.EncodeToString(cipher2[:min(16, len(cipher2))]))
+		testutil.LogDetail(t, "  Session 2 ciphertext: %d bytes (hex: %s...)", len(cipher2), hex.EncodeToString(cipher2[:min(16, len(cipher2))]))
 
 		// Specification Requirement: Verify ciphertexts differ (different keys)
 		require.NotEqual(t, cipher1, cipher2, "Ciphertexts from different sessions should differ")
-		helpers.LogSuccess(t, "Ciphertexts are unique (sessions are isolated)")
+		testutil.LogSuccess(t, "Ciphertexts are unique (sessions are isolated)")
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"Two independent sessions created",
 			"Unique Key IDs generated for each session",
 			"Both sessions registered in session manager",
@@ -416,7 +416,7 @@ func TestE2E_HPKE_Handshake_MockTransport(t *testing.T) {
 			"ciphertexts_unique": !bytes.Equal(cipher1, cipher2),
 			"isolation_verified": true,
 		}
-		helpers.SaveTestData(t, "hpke/e2e_session_isolation.json", testData)
+		testutil.SaveTestData(t, "hpke/e2e_session_isolation.json", testData)
 	})
 }
 

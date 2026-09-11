@@ -24,12 +24,12 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/hpke"
 	"github.com/sage-x-project/sage/pkg/agent/session"
 	"github.com/sage-x-project/sage/pkg/agent/transport"
-	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/require"
 	"github.com/test-go/testify/mock"
 )
@@ -88,7 +88,7 @@ func (m *mockResolver) Search(ctx context.Context, criteria did.SearchCriteria) 
 // Test 10.6.7: 멀티 에이전트 시나리오
 func TestMultiAgentCommunication(t *testing.T) {
 	// Specification Requirement: Multi-agent message exchange
-	helpers.LogTestSection(t, "10.6.7", "멀티 에이전트 시나리오 (여러 에이전트 간 메시지 교환)")
+	testutil.LogTestSection(t, "10.6.7", "멀티 에이전트 시나리오 (여러 에이전트 간 메시지 교환)")
 
 	ctx := context.Background()
 
@@ -97,9 +97,9 @@ func TestMultiAgentCommunication(t *testing.T) {
 	agentBDID := "did:sage:test:agentB-" + uuid.NewString()
 	agentCDID := "did:sage:test:agentC-" + uuid.NewString()
 
-	helpers.LogDetail(t, "Agent A DID: %s", agentADID)
-	helpers.LogDetail(t, "Agent B DID: %s", agentBDID)
-	helpers.LogDetail(t, "Agent C DID: %s", agentCDID)
+	testutil.LogDetail(t, "Agent A DID: %s", agentADID)
+	testutil.LogDetail(t, "Agent B DID: %s", agentBDID)
+	testutil.LogDetail(t, "Agent C DID: %s", agentCDID)
 
 	// Generate keys for each agent
 	agentASignKey, err := keys.GenerateEd25519KeyPair()
@@ -117,7 +117,7 @@ func TestMultiAgentCommunication(t *testing.T) {
 	agentCKEMKey, err := keys.GenerateX25519KeyPair()
 	require.NoError(t, err)
 
-	helpers.LogSuccess(t, "Generated keys for 3 agents")
+	testutil.LogSuccess(t, "Generated keys for 3 agents")
 
 	// Setup resolver with all agent metadata
 	resolver := new(mockResolver)
@@ -151,7 +151,7 @@ func TestMultiAgentCommunication(t *testing.T) {
 	resolver.On("Resolve", mock.Anything, did.AgentDID(agentBDID)).Return(agentBMeta, nil)
 	resolver.On("Resolve", mock.Anything, did.AgentDID(agentCDID)).Return(agentCMeta, nil)
 
-	helpers.LogSuccess(t, "Configured DID resolver for 3 agents")
+	testutil.LogSuccess(t, "Configured DID resolver for 3 agents")
 
 	// Create session managers for each agent
 	sessionA := session.NewManager()
@@ -192,15 +192,15 @@ func TestMultiAgentCommunication(t *testing.T) {
 	clientBtoC := hpke.NewClient(transportBC, multiResolver, agentBSignKey, agentBDID, hpke.DefaultInfoBuilder{}, sessionB)
 	clientCtoA := hpke.NewClient(transportCA, multiResolver, agentCSignKey, agentCDID, hpke.DefaultInfoBuilder{}, sessionC)
 
-	helpers.LogSuccess(t, "Created HPKE servers and clients for 3 agents")
+	testutil.LogSuccess(t, "Created HPKE servers and clients for 3 agents")
 
 	// Test 1: Agent A → Agent B
-	helpers.LogDetail(t, "Testing Agent A → Agent B communication")
+	testutil.LogDetail(t, "Testing Agent A → Agent B communication")
 	ctxAB := "ctx-AB-" + uuid.NewString()
 	kidAB, err := clientAtoB.Initialize(ctx, ctxAB, agentADID, agentBDID)
 	require.NoError(t, err)
 	require.NotEmpty(t, kidAB)
-	helpers.LogSuccess(t, "Agent A → Agent B: Session initialized")
+	testutil.LogSuccess(t, "Agent A → Agent B: Session initialized")
 
 	sessionAB_A, ok := sessionA.GetByKeyID(kidAB)
 	require.True(t, ok)
@@ -213,16 +213,16 @@ func TestMultiAgentCommunication(t *testing.T) {
 	decAB, err := sessionAB_B.Decrypt(encAB)
 	require.NoError(t, err)
 	require.Equal(t, msgAtoB, decAB)
-	helpers.LogSuccess(t, "Agent A → Agent B: Message delivered")
-	helpers.LogDetail(t, "  Message: %s", string(decAB))
+	testutil.LogSuccess(t, "Agent A → Agent B: Message delivered")
+	testutil.LogDetail(t, "  Message: %s", string(decAB))
 
 	// Test 2: Agent B → Agent C
-	helpers.LogDetail(t, "Testing Agent B → Agent C communication")
+	testutil.LogDetail(t, "Testing Agent B → Agent C communication")
 	ctxBC := "ctx-BC-" + uuid.NewString()
 	kidBC, err := clientBtoC.Initialize(ctx, ctxBC, agentBDID, agentCDID)
 	require.NoError(t, err)
 	require.NotEmpty(t, kidBC)
-	helpers.LogSuccess(t, "Agent B → Agent C: Session initialized")
+	testutil.LogSuccess(t, "Agent B → Agent C: Session initialized")
 
 	sessionBC_B, ok := sessionB.GetByKeyID(kidBC)
 	require.True(t, ok)
@@ -235,16 +235,16 @@ func TestMultiAgentCommunication(t *testing.T) {
 	decBC, err := sessionBC_C.Decrypt(encBC)
 	require.NoError(t, err)
 	require.Equal(t, msgBtoC, decBC)
-	helpers.LogSuccess(t, "Agent B → Agent C: Message delivered")
-	helpers.LogDetail(t, "  Message: %s", string(decBC))
+	testutil.LogSuccess(t, "Agent B → Agent C: Message delivered")
+	testutil.LogDetail(t, "  Message: %s", string(decBC))
 
 	// Test 3: Agent C → Agent A
-	helpers.LogDetail(t, "Testing Agent C → Agent A communication")
+	testutil.LogDetail(t, "Testing Agent C → Agent A communication")
 	ctxCA := "ctx-CA-" + uuid.NewString()
 	kidCA, err := clientCtoA.Initialize(ctx, ctxCA, agentCDID, agentADID)
 	require.NoError(t, err)
 	require.NotEmpty(t, kidCA)
-	helpers.LogSuccess(t, "Agent C → Agent A: Session initialized")
+	testutil.LogSuccess(t, "Agent C → Agent A: Session initialized")
 
 	sessionCA_C, ok := sessionC.GetByKeyID(kidCA)
 	require.True(t, ok)
@@ -257,11 +257,11 @@ func TestMultiAgentCommunication(t *testing.T) {
 	decCA, err := sessionCA_A.Decrypt(encCA)
 	require.NoError(t, err)
 	require.Equal(t, msgCtoA, decCA)
-	helpers.LogSuccess(t, "Agent C → Agent A: Message delivered")
-	helpers.LogDetail(t, "  Message: %s", string(decCA))
+	testutil.LogSuccess(t, "Agent C → Agent A: Message delivered")
+	testutil.LogDetail(t, "  Message: %s", string(decCA))
 
 	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
+	testutil.LogPassCriteria(t, []string{
 		"멀티 에이전트 생성 (3개)",
 		"에이전트 A → B 메시지 교환",
 		"에이전트 B → C 메시지 교환",
@@ -289,5 +289,5 @@ func TestMultiAgentCommunication(t *testing.T) {
 			"C → A",
 		},
 	}
-	helpers.SaveTestData(t, "integration/multi_agent_communication.json", testData)
+	testutil.SaveTestData(t, "integration/multi_agent_communication.json", testData)
 }

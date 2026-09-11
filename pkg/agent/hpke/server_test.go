@@ -25,11 +25,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	sagedid "github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/agent/session"
 	"github.com/sage-x-project/sage/pkg/agent/transport"
-	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/require"
 	"github.com/test-go/testify/mock"
 )
@@ -392,61 +392,61 @@ func Test_Session_KeyID_Uniqueness(t *testing.T) {
 // Test 8.1.4: HPKE 서버
 func TestServer(t *testing.T) {
 	// Specification Requirement: HPKE server communication test
-	helpers.LogTestSection(t, "8.1.4", "HPKE 서버 통신 테스트")
+	testutil.LogTestSection(t, "8.1.4", "HPKE 서버 통신 테스트")
 
 	ctx := context.Background()
 
 	// Setup HPKE test environment
 	cli, _, srvMgr, cliMgr, _, _, clientDID, serverDID := setupHPKETest(t, session.Config{}, session.Config{})
-	helpers.LogSuccess(t, "Test environment initialized")
-	helpers.LogDetail(t, "Client DID: %s", clientDID)
-	helpers.LogDetail(t, "Server DID: %s", serverDID)
+	testutil.LogSuccess(t, "Test environment initialized")
+	testutil.LogDetail(t, "Client DID: %s", clientDID)
+	testutil.LogDetail(t, "Server DID: %s", serverDID)
 
 	// Test 1: Initialize HPKE session
 	ctxID := "ctx-" + uuid.NewString()
 	kid, err := cli.Initialize(ctx, ctxID, clientDID, serverDID)
 	require.NoError(t, err)
 	require.NotEmpty(t, kid)
-	helpers.LogSuccess(t, "HPKE session initialized")
-	helpers.LogDetail(t, "Context ID: %s", ctxID)
-	helpers.LogDetail(t, "Key ID: %s", kid)
+	testutil.LogSuccess(t, "HPKE session initialized")
+	testutil.LogDetail(t, "Context ID: %s", ctxID)
+	testutil.LogDetail(t, "Key ID: %s", kid)
 
 	// Verify sessions exist on both sides
 	sSrv, ok := srvMgr.GetByKeyID(kid)
 	require.True(t, ok, "Server session should exist")
 	sCli, ok := cliMgr.GetByKeyID(kid)
 	require.True(t, ok, "Client session should exist")
-	helpers.LogSuccess(t, "Sessions created on both client and server")
+	testutil.LogSuccess(t, "Sessions created on both client and server")
 
 	// Test 2: Client to Server message encryption/decryption
 	msg1 := []byte("Hello from client")
 	ct1, err := sCli.Encrypt(msg1)
 	require.NoError(t, err)
 	require.NotEmpty(t, ct1)
-	helpers.LogSuccess(t, "Client encrypted message")
-	helpers.LogDetail(t, "Plaintext length: %d bytes", len(msg1))
-	helpers.LogDetail(t, "Ciphertext length: %d bytes", len(ct1))
+	testutil.LogSuccess(t, "Client encrypted message")
+	testutil.LogDetail(t, "Plaintext length: %d bytes", len(msg1))
+	testutil.LogDetail(t, "Ciphertext length: %d bytes", len(ct1))
 
 	pt1, err := sSrv.Decrypt(ct1)
 	require.NoError(t, err)
 	require.True(t, bytes.Equal(pt1, msg1))
-	helpers.LogSuccess(t, "Server decrypted message successfully")
-	helpers.LogDetail(t, "Decrypted: %s", string(pt1))
+	testutil.LogSuccess(t, "Server decrypted message successfully")
+	testutil.LogDetail(t, "Decrypted: %s", string(pt1))
 
 	// Test 3: Server to Client message encryption/decryption
 	msg2 := []byte("Hello from server")
 	ct2, err := sSrv.Encrypt(msg2)
 	require.NoError(t, err)
 	require.NotEmpty(t, ct2)
-	helpers.LogSuccess(t, "Server encrypted message")
-	helpers.LogDetail(t, "Plaintext length: %d bytes", len(msg2))
-	helpers.LogDetail(t, "Ciphertext length: %d bytes", len(ct2))
+	testutil.LogSuccess(t, "Server encrypted message")
+	testutil.LogDetail(t, "Plaintext length: %d bytes", len(msg2))
+	testutil.LogDetail(t, "Ciphertext length: %d bytes", len(ct2))
 
 	pt2, err := sCli.Decrypt(ct2)
 	require.NoError(t, err)
 	require.True(t, bytes.Equal(pt2, msg2))
-	helpers.LogSuccess(t, "Client decrypted message successfully")
-	helpers.LogDetail(t, "Decrypted: %s", string(pt2))
+	testutil.LogSuccess(t, "Client decrypted message successfully")
+	testutil.LogDetail(t, "Decrypted: %s", string(pt2))
 
 	// Test 4: Bidirectional communication (multiple messages)
 	for i := 1; i <= 3; i++ {
@@ -464,22 +464,22 @@ func TestServer(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, bytes.Equal(pt, serverMsg))
 	}
-	helpers.LogSuccess(t, "Bidirectional communication test passed (3 round trips)")
+	testutil.LogSuccess(t, "Bidirectional communication test passed (3 round trips)")
 
 	// Test 5: Covered signature verification
 	covered := []byte("@method:POST\n@path:/hpke/complete\nx-kid:" + kid)
 	sig := sCli.SignCovered(covered)
 	require.NotEmpty(t, sig)
-	helpers.LogSuccess(t, "Client signed covered content")
-	helpers.LogDetail(t, "Signature length: %d bytes", len(sig))
+	testutil.LogSuccess(t, "Client signed covered content")
+	testutil.LogDetail(t, "Signature length: %d bytes", len(sig))
 
 	err = sSrv.VerifyCovered(covered, sig)
 	require.NoError(t, err)
-	helpers.LogSuccess(t, "Server verified covered signature")
+	testutil.LogSuccess(t, "Server verified covered signature")
 
 	// Test 6: Verify sessions are identical (same shared secret)
 	require.Equal(t, sSrv.GetID(), sCli.GetID(), "Client and server should have matching session IDs")
-	helpers.LogSuccess(t, "Session IDs match (same shared secret)")
+	testutil.LogSuccess(t, "Session IDs match (same shared secret)")
 
 	// Test 7: AEAD integrity test - tampered ciphertext should fail
 	tamperedCt := append([]byte(nil), ct1...)
@@ -488,10 +488,10 @@ func TestServer(t *testing.T) {
 	}
 	_, err = sSrv.Decrypt(tamperedCt)
 	require.Error(t, err, "Tampered ciphertext should fail AEAD authentication")
-	helpers.LogSuccess(t, "AEAD integrity check: tampered message rejected")
+	testutil.LogSuccess(t, "AEAD integrity check: tampered message rejected")
 
 	// Pass criteria checklist
-	helpers.LogPassCriteria(t, []string{
+	testutil.LogPassCriteria(t, []string{
 		"HPKE 세션 초기화",
 		"클라이언트->서버 암호화/복호화",
 		"서버->클라이언트 암호화/복호화",
@@ -515,5 +515,5 @@ func TestServer(t *testing.T) {
 		"kem":           "X25519 HPKE",
 		"signature":     "Ed25519",
 	}
-	helpers.SaveTestData(t, "hpke/hpke_server.json", testData)
+	testutil.SaveTestData(t, "hpke/hpke_server.json", testData)
 }

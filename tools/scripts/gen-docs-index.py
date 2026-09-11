@@ -38,7 +38,7 @@ SECTIONS = [
     ("Go packages", "Package-level READMEs under pkg/ and internal/.",
      lambda p: (p.startswith("pkg/") or p.startswith("internal/")) and p.endswith("README.md")
      or p.startswith("docs/crypto/") or p.startswith("docs/did/")),
-    ("Command-line tools", "sage-crypto, sage-did, sage-verify and deployment-verify.",
+    ("Command-line tools", "sage-crypto, sage-did and sage-verify.",
      lambda p: p.startswith("docs/cli/")),
     ("Smart contracts", "AgentCardRegistry, ERC-8004 registries, deployment and verification.",
      lambda p: p.startswith("contracts/") or p.startswith("docs/contracts/")),
@@ -61,8 +61,7 @@ SECTIONS = [
 CLI_TOOLS = [
     ("sage-crypto", "key generation, import/export (JWK, PEM), signing, verification and address derivation"),
     ("sage-did", "agent registration (commit -> register -> activate), resolution, key and A2A card management"),
-    ("sage-verify", "health checks against a configured network and contract"),
-    ("deployment-verify", "prints the blockchain configuration and deployment record for a network and tests the RPC connection"),
+    ("sage-verify", "health, blockchain and system checks; `deployment` prints the configuration and deployment record for a network and tests the RPC and registry code"),
 ]
 
 

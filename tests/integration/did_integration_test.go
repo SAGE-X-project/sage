@@ -28,8 +28,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"github.com/sage-x-project/sage/tests/helpers"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -61,12 +61,12 @@ func TestDIDRegistration(t *testing.T) {
 
 	t.Run("Register DID on blockchain", func(t *testing.T) {
 		// Specification Requirement: DID creation and format validation
-		helpers.LogTestSection(t, "3.1.1", "DID Creation and Registration")
+		testutil.LogTestSection(t, "3.1.1", "DID Creation and Registration")
 
 		// This would normally interact with the smart contract
 		// For now, we'll simulate the registration
 
-		helpers.LogDetail(t, "Generated Ethereum address: %s", agentAddress.Hex())
+		testutil.LogDetail(t, "Generated Ethereum address: %s", agentAddress.Hex())
 
 		// Specification Requirement: DID format must be "did:sage:ethereum:<address>"
 		didFormatPattern := `^did:sage:ethereum:0x[0-9a-fA-F]{40}$`
@@ -74,11 +74,11 @@ func TestDIDRegistration(t *testing.T) {
 		require.NoError(t, err)
 		assert.True(t, matched, "DID must match format: did:sage:ethereum:<0x + 40 hex chars>")
 
-		helpers.LogSuccess(t, "DID format validation passed")
-		helpers.LogDetail(t, "DID: %s", did)
-		helpers.LogDetail(t, "Format: did:sage:ethereum:<ethereum-address>")
-		helpers.LogDetail(t, "Ethereum address: %s", agentAddress.Hex())
-		helpers.LogDetail(t, "Address length: 42 characters (0x + 40 hex)")
+		testutil.LogSuccess(t, "DID format validation passed")
+		testutil.LogDetail(t, "DID: %s", did)
+		testutil.LogDetail(t, "Format: did:sage:ethereum:<ethereum-address>")
+		testutil.LogDetail(t, "Ethereum address: %s", agentAddress.Hex())
+		testutil.LogDetail(t, "Address length: 42 characters (0x + 40 hex)")
 
 		// Create DID document
 		currentTime := time.Now()
@@ -90,10 +90,10 @@ func TestDIDRegistration(t *testing.T) {
 			Updated:    currentTime,
 		}
 
-		helpers.LogSuccess(t, "DID Document created")
-		helpers.LogDetail(t, "Controller: %s", didDoc.Controller)
-		helpers.LogDetail(t, "Public key length: %d bytes (uncompressed)", len(pubKeyBytes))
-		helpers.LogDetail(t, "Public key (hex): %s", didDoc.PublicKey[:64])
+		testutil.LogSuccess(t, "DID Document created")
+		testutil.LogDetail(t, "Controller: %s", didDoc.Controller)
+		testutil.LogDetail(t, "Public key length: %d bytes (uncompressed)", len(pubKeyBytes))
+		testutil.LogDetail(t, "Public key (hex): %s", didDoc.PublicKey[:64])
 
 		// In a real scenario, this would call the smart contract
 		// Example: registry.RegisterDID(ctx, didDoc)
@@ -104,10 +104,10 @@ func TestDIDRegistration(t *testing.T) {
 		assert.Equal(t, agentAddress.Hex(), didDoc.Controller, "Controller must be Ethereum address")
 		assert.NotEmpty(t, didDoc.PublicKey, "Public key must not be empty")
 
-		helpers.LogSuccess(t, "DID registration validation complete")
+		testutil.LogSuccess(t, "DID registration validation complete")
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"DID generation successful",
 			"DID format: did:sage:ethereum:<address>",
 			"Ethereum address format valid (0x + 40 hex)",
@@ -128,7 +128,7 @@ func TestDIDRegistration(t *testing.T) {
 			"created_at":        currentTime.Format(time.RFC3339),
 			"expected_format":   didFormatPattern,
 		}
-		helpers.SaveTestData(t, "did/did_creation_registration.json", testData)
+		testutil.SaveTestData(t, "did/did_creation_registration.json", testData)
 	})
 
 	t.Run("Lookup DID from blockchain", func(t *testing.T) {

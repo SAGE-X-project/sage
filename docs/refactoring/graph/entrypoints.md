@@ -6,11 +6,9 @@ Reachability follows call and ref edges from each entry point, including dynamic
 
 | Entry package | Kind | Reachable module packages |
 |---|---|---|
-| cmd/deployment-verify | cmd | deployments/config(6), pkg/agent/crypto/chain(2) |
-| cmd/metrics-demo | cmd | pkg/agent/session(42), pkg/telemetry/metrics(6) |
 | cmd/sage-crypto | cmd | internal/app(1), internal/cli(1), pkg/agent/crypto/chain(14), pkg/agent/crypto/chain/ethereum(8), pkg/agent/crypto/chain/solana(10), pkg/agent/crypto/formats(18), pkg/agent/crypto/keys(65), pkg/agent/crypto/rotation(4), pkg/agent/crypto/storage(8), pkg/agent/did(3), pkg/agent/did/ethereum(2), pkg/agent/did/solana(2), pkg/agent/transport(1), pkg/agent/transport/http(2), pkg/agent/transport/websocket(2) |
 | cmd/sage-did | cmd | internal/app(1), internal/cli(1), pkg/agent/crypto/chain(6), pkg/agent/crypto/chain/ethereum(6), pkg/agent/crypto/chain/solana(7), pkg/agent/crypto/formats(11), pkg/agent/crypto/jcs(6), pkg/agent/crypto/keys(31), pkg/agent/crypto/storage(4), pkg/agent/did(50), pkg/agent/did/ethereum(18), pkg/agent/did/solana(7), pkg/agent/transport(1), pkg/agent/transport/http(2), pkg/agent/transport/websocket(2), pkg/blockchain/ethereum/contracts/agentcardregistry(8) |
-| cmd/sage-verify | cmd | deployments/config(6), pkg/agent/crypto/chain(2), pkg/health(4) |
+| cmd/sage-verify | cmd | internal/config(6), pkg/agent/crypto/chain(2), pkg/health(4) |
 | examples/mcp-integration/basic-demo | examples | pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(45), pkg/agent/crypto(5), pkg/agent/crypto/keys(22), pkg/agent/session(3) |
 | examples/mcp-integration/basic-tool | examples | pkg/agent/core(2), pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(42), pkg/agent/crypto(5), pkg/agent/crypto/chain(2), pkg/agent/crypto/chain/ethereum(3), pkg/agent/crypto/chain/solana(1), pkg/agent/crypto/keys(5), pkg/agent/did(21), pkg/agent/did/ethereum(4), pkg/agent/session(3) |
 | examples/mcp-integration/client | examples | pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(45), pkg/agent/crypto(5), pkg/agent/crypto/keys(22), pkg/agent/session(3) |
@@ -18,6 +16,7 @@ Reachability follows call and ref edges from each entry point, including dynamic
 | examples/mcp-integration/vulnerable-vs-secure/attacker | examples |  |
 | examples/mcp-integration/vulnerable-vs-secure/secure-chat | examples | pkg/agent/core/message/nonce(1), pkg/agent/core/rfc9421(38), pkg/agent/crypto(5), pkg/agent/crypto/keys(5), pkg/agent/session(1) |
 | examples/mcp-integration/vulnerable-vs-secure/vulnerable-chat | examples |  |
+| examples/metrics-demo | examples | pkg/agent/session(42), pkg/telemetry/metrics(6) |
 
 ## CLI commands (cobra)
 
@@ -55,6 +54,7 @@ Reachability follows call and ref edges from each entry point, including dynamic
 
 ## pkg packages not reachable from any cmd/lib/example
 
+- internal/testutil (25 funcs, 477 LOC)
 - pkg/agent/core/message (0 funcs, 42 LOC)
 - pkg/agent/crypto/vault (15 funcs, 407 LOC)
 - pkg/agent/handshake (36 funcs, 976 LOC)

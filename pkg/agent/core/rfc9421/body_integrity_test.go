@@ -26,14 +26,14 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/sage-x-project/sage/tests/helpers"
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBodyIntegrityValidator_ValidateContentDigest_Success(t *testing.T) {
 	// 사양 요구사항: RFC9421 Content-Digest 헤더 검증
-	helpers.LogTestSection(t, "15.1.5", "RFC9421 Body Integrity - Valid Content-Digest")
+	testutil.LogTestSection(t, "15.1.5", "RFC9421 Body Integrity - Valid Content-Digest")
 
 	validator := NewBodyIntegrityValidator()
 	body := []byte(`{"message": "Hello, SAGE!"}`)
@@ -52,12 +52,12 @@ func TestBodyIntegrityValidator_ValidateContentDigest_Success(t *testing.T) {
 
 	err = validator.ValidateContentDigest(req, coveredComponents)
 	assert.NoError(t, err, "Valid Content-Digest should pass validation")
-	helpers.LogSuccess(t, "Content-Digest validation passed for matching body")
+	testutil.LogSuccess(t, "Content-Digest validation passed for matching body")
 }
 
 func TestBodyIntegrityValidator_ValidateContentDigest_Mismatch(t *testing.T) {
 	// 사양 요구사항: Body 변조 감지
-	helpers.LogTestSection(t, "15.1.6", "RFC9421 Body Integrity - Detect Body Tampering")
+	testutil.LogTestSection(t, "15.1.6", "RFC9421 Body Integrity - Detect Body Tampering")
 
 	validator := NewBodyIntegrityValidator()
 	originalBody := []byte(`{"message": "Original"}`)
@@ -77,12 +77,12 @@ func TestBodyIntegrityValidator_ValidateContentDigest_Mismatch(t *testing.T) {
 	err = validator.ValidateContentDigest(req, coveredComponents)
 	assert.Error(t, err, "Mismatched Content-Digest should fail validation")
 	assert.Contains(t, err.Error(), "content-digest mismatch", "Error should indicate mismatch")
-	helpers.LogSuccess(t, "Body tampering detected successfully")
+	testutil.LogSuccess(t, "Body tampering detected successfully")
 }
 
 func TestBodyIntegrityValidator_ValidateContentDigest_MissingHeader(t *testing.T) {
 	// 사양 요구사항: Content-Digest 헤더 누락 감지
-	helpers.LogTestSection(t, "15.1.7", "RFC9421 Body Integrity - Missing Content-Digest Header")
+	testutil.LogTestSection(t, "15.1.7", "RFC9421 Body Integrity - Missing Content-Digest Header")
 
 	validator := NewBodyIntegrityValidator()
 	body := []byte(`{"message": "Test"}`)
@@ -96,12 +96,12 @@ func TestBodyIntegrityValidator_ValidateContentDigest_MissingHeader(t *testing.T
 	err = validator.ValidateContentDigest(req, coveredComponents)
 	assert.Error(t, err, "Missing Content-Digest header should fail")
 	assert.Contains(t, err.Error(), "content-digest header missing", "Error should indicate missing header")
-	helpers.LogSuccess(t, "Missing header detected successfully")
+	testutil.LogSuccess(t, "Missing header detected successfully")
 }
 
 func TestBodyIntegrityValidator_ValidateContentDigest_EmptyBody(t *testing.T) {
 	// 사양 요구사항: 빈 Body 처리
-	helpers.LogTestSection(t, "15.1.8", "RFC9421 Body Integrity - Empty Body")
+	testutil.LogTestSection(t, "15.1.8", "RFC9421 Body Integrity - Empty Body")
 
 	validator := NewBodyIntegrityValidator()
 	body := []byte{}
@@ -118,12 +118,12 @@ func TestBodyIntegrityValidator_ValidateContentDigest_EmptyBody(t *testing.T) {
 
 	err = validator.ValidateContentDigest(req, coveredComponents)
 	assert.NoError(t, err, "Empty body should validate correctly")
-	helpers.LogSuccess(t, "Empty body validation passed")
+	testutil.LogSuccess(t, "Empty body validation passed")
 }
 
 func TestBodyIntegrityValidator_ValidateContentDigest_NotCovered(t *testing.T) {
 	// 사양 요구사항: Content-Digest가 서명 범위에 없으면 검증 스킵
-	helpers.LogTestSection(t, "15.1.9", "RFC9421 Body Integrity - Skip When Not Covered")
+	testutil.LogTestSection(t, "15.1.9", "RFC9421 Body Integrity - Skip When Not Covered")
 
 	validator := NewBodyIntegrityValidator()
 	body := []byte(`{"message": "Test"}`)
@@ -136,12 +136,12 @@ func TestBodyIntegrityValidator_ValidateContentDigest_NotCovered(t *testing.T) {
 
 	err = validator.ValidateContentDigest(req, coveredComponents)
 	assert.NoError(t, err, "Should skip validation when content-digest not covered")
-	helpers.LogSuccess(t, "Validation skipped correctly when not in covered components")
+	testutil.LogSuccess(t, "Validation skipped correctly when not in covered components")
 }
 
 func TestBodyIntegrityValidator_ValidateContentDigest_LargeBody(t *testing.T) {
 	// 사양 요구사항: 큰 페이로드 처리
-	helpers.LogTestSection(t, "15.1.10", "RFC9421 Body Integrity - Large Payload")
+	testutil.LogTestSection(t, "15.1.10", "RFC9421 Body Integrity - Large Payload")
 
 	validator := NewBodyIntegrityValidator()
 	// Create 1MB body
@@ -166,12 +166,12 @@ func TestBodyIntegrityValidator_ValidateContentDigest_LargeBody(t *testing.T) {
 	bodyBytes, err := io.ReadAll(req.Body)
 	require.NoError(t, err)
 	assert.Equal(t, len(body), len(bodyBytes), "Body should be restored after validation")
-	helpers.LogSuccess(t, "Large body validated and restored successfully")
+	testutil.LogSuccess(t, "Large body validated and restored successfully")
 }
 
 func TestBodyIntegrityValidator_ValidateContentDigest_MultipleAlgorithms(t *testing.T) {
 	// 사양 요구사항: 여러 해시 알고리즘 지원 (sha-256 우선)
-	helpers.LogTestSection(t, "15.1.11", "RFC9421 Body Integrity - Multiple Hash Algorithms")
+	testutil.LogTestSection(t, "15.1.11", "RFC9421 Body Integrity - Multiple Hash Algorithms")
 
 	validator := NewBodyIntegrityValidator()
 	body := []byte(`{"message": "Test"}`)
@@ -190,12 +190,12 @@ func TestBodyIntegrityValidator_ValidateContentDigest_MultipleAlgorithms(t *test
 
 	err = validator.ValidateContentDigest(req, coveredComponents)
 	assert.NoError(t, err, "Should find and validate sha-256 among multiple algorithms")
-	helpers.LogSuccess(t, "Multiple algorithm header parsed correctly")
+	testutil.LogSuccess(t, "Multiple algorithm header parsed correctly")
 }
 
 func TestIsComponentCovered(t *testing.T) {
 	// 사양 요구사항: Case-insensitive 컴포넌트 매칭
-	helpers.LogTestSection(t, "15.1.12", "RFC9421 Body Integrity - Component Matching")
+	testutil.LogTestSection(t, "15.1.12", "RFC9421 Body Integrity - Component Matching")
 
 	tests := []struct {
 		name       string
@@ -241,12 +241,12 @@ func TestIsComponentCovered(t *testing.T) {
 			assert.Equal(t, tt.shouldFind, result, "Component match result should be correct")
 		})
 	}
-	helpers.LogSuccess(t, "Component matching logic validated")
+	testutil.LogSuccess(t, "Component matching logic validated")
 }
 
 func TestComputeContentDigest(t *testing.T) {
 	// 사양 요구사항: RFC9421 Content-Digest 형식
-	helpers.LogTestSection(t, "15.1.13", "RFC9421 Body Integrity - Digest Computation")
+	testutil.LogTestSection(t, "15.1.13", "RFC9421 Body Integrity - Digest Computation")
 
 	tests := []struct {
 		name     string
@@ -276,8 +276,8 @@ func TestComputeContentDigest(t *testing.T) {
 			// Note: Expected values need to be computed correctly
 			assert.NotEmpty(t, result, "Digest should not be empty")
 			assert.Contains(t, result, "sha-256=:", "Digest should have correct prefix")
-			helpers.LogDetail(t, "Computed digest: %s", result)
+			testutil.LogDetail(t, "Computed digest: %s", result)
 		})
 	}
-	helpers.LogSuccess(t, "Content digest computation validated")
+	testutil.LogSuccess(t, "Content digest computation validated")
 }

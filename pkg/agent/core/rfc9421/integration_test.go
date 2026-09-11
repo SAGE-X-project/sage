@@ -33,15 +33,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"github.com/sage-x-project/sage/tests/helpers"
 )
 
 func TestIntegration(t *testing.T) {
 	// Test 2.1.1: Ed25519 signature/verification
 	t.Run("Ed25519 end-to-end", func(t *testing.T) {
 		// Specification Requirement: RFC 9421 compliant HTTP message signature generation and verification (Ed25519)
-		helpers.LogTestSection(t, "1.1.1", "RFC 9421 Ed25519 Signature Generation and Verification")
+		testutil.LogTestSection(t, "1.1.1", "RFC 9421 Ed25519 Signature Generation and Verification")
 
 		// Generate Ed25519 key pair
 		publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
@@ -51,10 +51,10 @@ func TestIntegration(t *testing.T) {
 		assert.Equal(t, 32, len(publicKey), "Public key size must be 32 bytes")
 		assert.Equal(t, 64, len(privateKey), "Private key size must be 64 bytes")
 
-		helpers.LogSuccess(t, "Ed25519 key generation successful")
-		helpers.LogDetail(t, "Public key size: %d bytes", len(publicKey))
-		helpers.LogDetail(t, "Private key size: %d bytes", len(privateKey))
-		helpers.LogDetail(t, "Public key (hex): %x", publicKey)
+		testutil.LogSuccess(t, "Ed25519 key generation successful")
+		testutil.LogDetail(t, "Public key size: %d bytes", len(publicKey))
+		testutil.LogDetail(t, "Private key size: %d bytes", len(privateKey))
+		testutil.LogDetail(t, "Public key (hex): %x", publicKey)
 
 		// Create request
 		testMessage := "https://sage.dev/resource/123?user=alice"
@@ -65,8 +65,8 @@ func TestIntegration(t *testing.T) {
 		currentTime := time.Now()
 		req.Header.Set("Date", currentTime.Format(http.TimeFormat))
 
-		helpers.LogDetail(t, "Test request URL: %s", testMessage)
-		helpers.LogDetail(t, "Test time: %s", currentTime.Format(time.RFC3339))
+		testutil.LogDetail(t, "Test request URL: %s", testMessage)
+		testutil.LogDetail(t, "Test time: %s", currentTime.Format(time.RFC3339))
 
 		// Sign request
 		params := &SignatureInputParams{
@@ -90,18 +90,18 @@ func TestIntegration(t *testing.T) {
 		assert.Contains(t, sigInput, "created=", "Signature-Input must contain created parameter")
 		assert.Contains(t, sigInput, "alg=", "Signature-Input must contain alg parameter")
 
-		helpers.LogSuccess(t, "Signature generation successful")
-		helpers.LogDetail(t, "Signature: %s", signature)
-		helpers.LogDetail(t, "Signature-Input: %s", sigInput)
+		testutil.LogSuccess(t, "Signature generation successful")
+		testutil.LogDetail(t, "Signature: %s", signature)
+		testutil.LogDetail(t, "Signature-Input: %s", sigInput)
 
 		// Verify request
 		err = verifier.VerifyRequest(req, publicKey, nil)
 		assert.NoError(t, err)
 
-		helpers.LogSuccess(t, "Signature verification successful")
+		testutil.LogSuccess(t, "Signature verification successful")
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"Ed25519 signature generation successful",
 			"Public key size = 32 bytes",
 			"Private key size = 64 bytes",
@@ -128,13 +128,13 @@ func TestIntegration(t *testing.T) {
 				"private_key": 64,
 			},
 		}
-		helpers.SaveTestData(t, "rfc9421/ed25519_signature.json", testData)
+		testutil.SaveTestData(t, "rfc9421/ed25519_signature.json", testData)
 	})
 
 	// Test 2.1.2: ECDSA P-256 signature/verification
 	t.Run("ECDSA P-256 end-to-end", func(t *testing.T) {
 		// Specification Requirement: RFC 9421 compliant HTTP message signature with ECDSA P-256
-		helpers.LogTestSection(t, "1.1.2", "RFC 9421 ECDSA P-256 Signature Generation and Verification")
+		testutil.LogTestSection(t, "1.1.2", "RFC 9421 ECDSA P-256 Signature Generation and Verification")
 
 		// Generate ECDSA P-256 key pair
 		privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -145,11 +145,11 @@ func TestIntegration(t *testing.T) {
 		// Specification Requirement: ECDSA P-256 key validation
 		assert.Equal(t, elliptic.P256(), privateKey.Curve, "Curve must be P-256")
 
-		helpers.LogSuccess(t, "ECDSA P-256 key generation successful")
-		helpers.LogDetail(t, "Curve: P-256")
-		helpers.LogDetail(t, "Private key D size: %d bytes", len(keyD))
-		helpers.LogDetail(t, "Public key X: %x", keyX)
-		helpers.LogDetail(t, "Public key Y: %x", keyY)
+		testutil.LogSuccess(t, "ECDSA P-256 key generation successful")
+		testutil.LogDetail(t, "Curve: P-256")
+		testutil.LogDetail(t, "Private key D size: %d bytes", len(keyD))
+		testutil.LogDetail(t, "Public key X: %x", keyX)
+		testutil.LogDetail(t, "Public key Y: %x", keyY)
 
 		// Create POST request with body
 		body := `{"a":1}`
@@ -163,10 +163,10 @@ func TestIntegration(t *testing.T) {
 		req.Header.Set("Content-Digest", ComputeContentDigest([]byte(body)))
 		req.Header.Set("Content-Type", "application/json")
 
-		helpers.LogDetail(t, "Test request URL: %s", testURL)
-		helpers.LogDetail(t, "Request method: POST")
-		helpers.LogDetail(t, "Request body: %s", body)
-		helpers.LogDetail(t, "Test time: %s", currentTime.Format(time.RFC3339))
+		testutil.LogDetail(t, "Test request URL: %s", testURL)
+		testutil.LogDetail(t, "Request method: POST")
+		testutil.LogDetail(t, "Request body: %s", body)
+		testutil.LogDetail(t, "Test time: %s", currentTime.Format(time.RFC3339))
 
 		// Sign request
 		params := &SignatureInputParams{
@@ -188,18 +188,18 @@ func TestIntegration(t *testing.T) {
 		assert.Contains(t, sigInput, "keyid=", "Signature-Input must contain keyid parameter")
 		assert.Contains(t, sigInput, "created=", "Signature-Input must contain created parameter")
 
-		helpers.LogSuccess(t, "Signature generation successful")
-		helpers.LogDetail(t, "Signature: %s", signature)
-		helpers.LogDetail(t, "Signature-Input: %s", sigInput)
+		testutil.LogSuccess(t, "Signature generation successful")
+		testutil.LogDetail(t, "Signature: %s", signature)
+		testutil.LogDetail(t, "Signature-Input: %s", sigInput)
 
 		// Verify request
 		err = verifier.VerifyRequest(req, publicKey, nil)
 		assert.NoError(t, err)
 
-		helpers.LogSuccess(t, "Signature verification successful")
+		testutil.LogSuccess(t, "Signature verification successful")
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"ECDSA P-256 signature generation successful",
 			"Curve = P-256 (NIST)",
 			"Signature header present",
@@ -223,13 +223,13 @@ func TestIntegration(t *testing.T) {
 			"signature_input": sigInput,
 			"content_digest":  "sha-256=:RBsLjMq4VvLtwL6W0heDElJPTe2WbHL7gWRYYhHbAw0=:",
 		}
-		helpers.SaveTestData(t, "rfc9421/ecdsa_p256_signature.json", testData)
+		testutil.SaveTestData(t, "rfc9421/ecdsa_p256_signature.json", testData)
 	})
 
 	// Test 2.1.3: ECDSA Secp256k1 signature/verification (Ethereum compatible)
 	t.Run("ECDSA Secp256k1 end-to-end", func(t *testing.T) {
 		// Specification Requirement: RFC 9421 compliant HTTP message signature with ECDSA Secp256k1 (Ethereum)
-		helpers.LogTestSection(t, "1.1.3", "RFC 9421 ECDSA Secp256k1 Signature Generation and Verification (Ethereum)")
+		testutil.LogTestSection(t, "1.1.3", "RFC 9421 ECDSA Secp256k1 Signature Generation and Verification (Ethereum)")
 
 		// Generate ECDSA Secp256k1 key pair (Ethereum compatible)
 		privateKeyEth, err := ethcrypto.GenerateKey()
@@ -247,12 +247,12 @@ func TestIntegration(t *testing.T) {
 		assert.True(t, strings.HasPrefix(ethAddress, "0x"), "Ethereum address must start with 0x")
 		assert.Len(t, ethAddress, 42, "Ethereum address must be 42 characters (0x + 40 hex chars)")
 
-		helpers.LogSuccess(t, "ECDSA Secp256k1 key generation successful (Ethereum compatible)")
-		helpers.LogDetail(t, "Curve: Secp256k1")
-		helpers.LogDetail(t, "Ethereum address: %s", ethAddress)
-		helpers.LogDetail(t, "Private key D size: %d bytes", len(keyD))
-		helpers.LogDetail(t, "Public key X: %x", keyX)
-		helpers.LogDetail(t, "Public key Y: %x", keyY)
+		testutil.LogSuccess(t, "ECDSA Secp256k1 key generation successful (Ethereum compatible)")
+		testutil.LogDetail(t, "Curve: Secp256k1")
+		testutil.LogDetail(t, "Ethereum address: %s", ethAddress)
+		testutil.LogDetail(t, "Private key D size: %d bytes", len(keyD))
+		testutil.LogDetail(t, "Public key X: %x", keyX)
+		testutil.LogDetail(t, "Public key Y: %x", keyY)
 
 		// Create POST request with body (Ethereum transaction format)
 		body := `{"action":"transfer","amount":100,"to":"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"}`
@@ -267,10 +267,10 @@ func TestIntegration(t *testing.T) {
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-Ethereum-Address", ethAddress)
 
-		helpers.LogDetail(t, "Test request URL: %s", testURL)
-		helpers.LogDetail(t, "Request method: POST")
-		helpers.LogDetail(t, "Request body: %s", body)
-		helpers.LogDetail(t, "Test time: %s", currentTime.Format(time.RFC3339))
+		testutil.LogDetail(t, "Test request URL: %s", testURL)
+		testutil.LogDetail(t, "Request method: POST")
+		testutil.LogDetail(t, "Request body: %s", body)
+		testutil.LogDetail(t, "Test time: %s", currentTime.Format(time.RFC3339))
 
 		// Sign request with Secp256k1 (Ethereum curve)
 		params := &SignatureInputParams{
@@ -295,19 +295,19 @@ func TestIntegration(t *testing.T) {
 		assert.Contains(t, sigInput, "alg=", "Signature-Input must contain alg parameter")
 		assert.Contains(t, sigInput, "es256k", "Algorithm must be es256k for Secp256k1")
 
-		helpers.LogSuccess(t, "Signature generation successful")
-		helpers.LogDetail(t, "Signature: %s", signature)
-		helpers.LogDetail(t, "Signature-Input: %s", sigInput)
-		helpers.LogDetail(t, "Algorithm: es256k (Secp256k1)")
+		testutil.LogSuccess(t, "Signature generation successful")
+		testutil.LogDetail(t, "Signature: %s", signature)
+		testutil.LogDetail(t, "Signature-Input: %s", sigInput)
+		testutil.LogDetail(t, "Algorithm: es256k (Secp256k1)")
 
 		// Verify request
 		err = verifier.VerifyRequest(req, publicKey, nil)
 		assert.NoError(t, err)
 
-		helpers.LogSuccess(t, "Signature verification successful")
+		testutil.LogSuccess(t, "Signature verification successful")
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"ECDSA Secp256k1 signature generation successful",
 			"Ethereum address format correct (0x + 40 hex)",
 			"Ethereum address covered in signature",
@@ -335,7 +335,7 @@ func TestIntegration(t *testing.T) {
 			"algorithm":        "es256k",
 			"content_digest":   "sha-256=:k8H1234567890abcdefghijklmnopqrstuvwxyz+/=:",
 		}
-		helpers.SaveTestData(t, "rfc9421/ecdsa_secp256k1_signature.json", testData)
+		testutil.SaveTestData(t, "rfc9421/ecdsa_secp256k1_signature.json", testData)
 	})
 }
 

@@ -31,7 +31,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/sage-x-project/sage/tests/helpers"
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,10 +46,10 @@ func TestBlockchainChainID_Integration(t *testing.T) {
 
 	t.Run("Verify Chain ID is 31337", func(t *testing.T) {
 		// Specification Requirement: Chain ID verification for local testnet (Hardhat/Anvil default: 31337)
-		helpers.LogTestSection(t, "4.1.1", "Blockchain Chain ID Verification")
+		testutil.LogTestSection(t, "4.1.1", "Blockchain Chain ID Verification")
 
 		cfg := getTestConfig()
-		helpers.LogDetail(t, "Network RPC: %s", cfg.NetworkRPC)
+		testutil.LogDetail(t, "Network RPC: %s", cfg.NetworkRPC)
 
 		client, err := ethclient.Dial(cfg.NetworkRPC)
 		require.NoError(t, err)
@@ -63,13 +63,13 @@ func TestBlockchainChainID_Integration(t *testing.T) {
 		expectedChainID := big.NewInt(31337)
 		assert.Equal(t, expectedChainID, chainID, "Chain ID must be 31337 for local testnet")
 
-		helpers.LogSuccess(t, "Chain ID verification successful")
-		helpers.LogDetail(t, "Chain ID: %s", chainID.String())
-		helpers.LogDetail(t, "Expected: 31337 (Hardhat/Anvil default)")
-		helpers.LogDetail(t, "Match: %v", chainID.Cmp(expectedChainID) == 0)
+		testutil.LogSuccess(t, "Chain ID verification successful")
+		testutil.LogDetail(t, "Chain ID: %s", chainID.String())
+		testutil.LogDetail(t, "Expected: 31337 (Hardhat/Anvil default)")
+		testutil.LogDetail(t, "Match: %v", chainID.Cmp(expectedChainID) == 0)
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"Blockchain connection successful",
 			"Chain ID retrieval successful",
 			"Chain ID = 31337 (local testnet)",
@@ -85,12 +85,12 @@ func TestBlockchainChainID_Integration(t *testing.T) {
 			"match":             chainID.Cmp(expectedChainID) == 0,
 			"network_type":      "local_testnet",
 		}
-		helpers.SaveTestData(t, "blockchain/chain_id_verification.json", testData)
+		testutil.SaveTestData(t, "blockchain/chain_id_verification.json", testData)
 	})
 
 	t.Run("Chain ID consistency check", func(t *testing.T) {
 		// Specification Requirement: Chain ID should be consistent across multiple queries
-		helpers.LogTestSection(t, "4.1.2", "Chain ID Consistency Check")
+		testutil.LogTestSection(t, "4.1.2", "Chain ID Consistency Check")
 
 		cfg := getTestConfig()
 		client, err := ethclient.Dial(cfg.NetworkRPC)
@@ -102,20 +102,20 @@ func TestBlockchainChainID_Integration(t *testing.T) {
 		// Multiple calls should return same Chain ID
 		chainID1, err := client.ChainID(ctx)
 		require.NoError(t, err)
-		helpers.LogDetail(t, "First query - Chain ID: %s", chainID1.String())
+		testutil.LogDetail(t, "First query - Chain ID: %s", chainID1.String())
 
 		chainID2, err := client.ChainID(ctx)
 		require.NoError(t, err)
-		helpers.LogDetail(t, "Second query - Chain ID: %s", chainID2.String())
+		testutil.LogDetail(t, "Second query - Chain ID: %s", chainID2.String())
 
 		// Specification Requirement: Chain ID consistency validation
 		assert.Equal(t, chainID1, chainID2, "Chain ID should be consistent")
 
-		helpers.LogSuccess(t, "Chain ID consistency verified")
-		helpers.LogDetail(t, "Both queries returned: %s", chainID1.String())
+		testutil.LogSuccess(t, "Chain ID consistency verified")
+		testutil.LogDetail(t, "Both queries returned: %s", chainID1.String())
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"Multiple Chain ID queries successful",
 			"Chain ID values are identical",
 			"No variation between queries",
@@ -128,7 +128,7 @@ func TestBlockchainChainID_Integration(t *testing.T) {
 			"chain_id_2": chainID2.String(),
 			"consistent": chainID1.Cmp(chainID2) == 0,
 		}
-		helpers.SaveTestData(t, "blockchain/chain_id_consistency.json", testData)
+		testutil.SaveTestData(t, "blockchain/chain_id_consistency.json", testData)
 	})
 }
 
@@ -142,7 +142,7 @@ func TestTransactionSignAndSend(t *testing.T) {
 
 	t.Run("Sign and send simple transfer", func(t *testing.T) {
 		// Specification Requirement: EIP-155 compliant transaction signing and blockchain submission
-		helpers.LogTestSection(t, "4.2.1", "Transaction Signing and Sending (EIP-155)")
+		testutil.LogTestSection(t, "4.2.1", "Transaction Signing and Sending (EIP-155)")
 
 		cfg := getTestConfig()
 		client, err := ethclient.Dial(cfg.NetworkRPC)
@@ -163,32 +163,32 @@ func TestTransactionSignAndSend(t *testing.T) {
 		fromAddress := crypto.PubkeyToAddress(*publicKeyECDSA)
 		toAddress := common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 
-		helpers.LogDetail(t, "From address: %s", fromAddress.Hex())
-		helpers.LogDetail(t, "To address: %s", toAddress.Hex())
+		testutil.LogDetail(t, "From address: %s", fromAddress.Hex())
+		testutil.LogDetail(t, "To address: %s", toAddress.Hex())
 
 		// Get nonce
 		nonce, err := client.PendingNonceAt(ctx, fromAddress)
 		require.NoError(t, err)
-		helpers.LogDetail(t, "Account nonce: %d", nonce)
+		testutil.LogDetail(t, "Account nonce: %d", nonce)
 
 		// Get gas price
 		gasPrice, err := client.SuggestGasPrice(ctx)
 		require.NoError(t, err)
-		helpers.LogDetail(t, "Gas price: %s Wei", gasPrice.String())
+		testutil.LogDetail(t, "Gas price: %s Wei", gasPrice.String())
 
 		// Create transaction
 		value := big.NewInt(1000000000000000) // 0.001 ETH
 		gasLimit := uint64(21000)             // Standard transfer gas limit
 
-		helpers.LogDetail(t, "Transfer value: %s Wei (0.001 ETH)", value.String())
-		helpers.LogDetail(t, "Gas limit: %d (standard transfer)", gasLimit)
+		testutil.LogDetail(t, "Transfer value: %s Wei (0.001 ETH)", value.String())
+		testutil.LogDetail(t, "Gas limit: %d (standard transfer)", gasLimit)
 
 		tx := types.NewTransaction(nonce, toAddress, value, gasLimit, gasPrice, nil)
 
 		// Get chain ID for signing
 		chainID, err := client.ChainID(ctx)
 		require.NoError(t, err)
-		helpers.LogDetail(t, "Chain ID: %s", chainID.String())
+		testutil.LogDetail(t, "Chain ID: %s", chainID.String())
 
 		// Specification Requirement: EIP-155 transaction signing
 		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainID), privateKey)
@@ -196,18 +196,18 @@ func TestTransactionSignAndSend(t *testing.T) {
 
 		// Extract signature components
 		v, r, s := signedTx.RawSignatureValues()
-		helpers.LogSuccess(t, "Transaction signed successfully (EIP-155)")
-		helpers.LogDetail(t, "Signature V: %s", v.String())
-		helpers.LogDetail(t, "Signature R: %s", r.String())
-		helpers.LogDetail(t, "Signature S: %s", s.String())
+		testutil.LogSuccess(t, "Transaction signed successfully (EIP-155)")
+		testutil.LogDetail(t, "Signature V: %s", v.String())
+		testutil.LogDetail(t, "Signature R: %s", r.String())
+		testutil.LogDetail(t, "Signature S: %s", s.String())
 
 		// Specification Requirement: Transaction submission to blockchain
 		err = client.SendTransaction(ctx, signedTx)
 		require.NoError(t, err)
 
 		txHash := signedTx.Hash()
-		helpers.LogSuccess(t, "Transaction sent to blockchain")
-		helpers.LogDetail(t, "Transaction hash: %s", txHash.Hex())
+		testutil.LogSuccess(t, "Transaction sent to blockchain")
+		testutil.LogDetail(t, "Transaction hash: %s", txHash.Hex())
 
 		// Specification Requirement: Transaction confirmation and receipt validation
 		receipt, err := waitForTransaction(ctx, client, txHash, 30*time.Second)
@@ -216,20 +216,20 @@ func TestTransactionSignAndSend(t *testing.T) {
 		assert.Equal(t, types.ReceiptStatusSuccessful, receipt.Status, "Transaction should succeed")
 		assert.NotNil(t, receipt.BlockNumber, "Transaction should be mined")
 
-		helpers.LogSuccess(t, "Transaction confirmed on blockchain")
-		helpers.LogDetail(t, "Block number: %d", receipt.BlockNumber.Uint64())
-		helpers.LogDetail(t, "Status: %d (1 = success)", receipt.Status)
-		helpers.LogDetail(t, "Gas used: %d", receipt.GasUsed)
-		helpers.LogDetail(t, "Effective gas price: %s Wei", receipt.EffectiveGasPrice.String())
+		testutil.LogSuccess(t, "Transaction confirmed on blockchain")
+		testutil.LogDetail(t, "Block number: %d", receipt.BlockNumber.Uint64())
+		testutil.LogDetail(t, "Status: %d (1 = success)", receipt.Status)
+		testutil.LogDetail(t, "Gas used: %d", receipt.GasUsed)
+		testutil.LogDetail(t, "Effective gas price: %s Wei", receipt.EffectiveGasPrice.String())
 
 		// Calculate total transaction cost
 		totalCost := new(big.Int).Mul(receipt.EffectiveGasPrice, big.NewInt(int64(receipt.GasUsed)))
 		totalCostWithValue := new(big.Int).Add(totalCost, value)
-		helpers.LogDetail(t, "Transaction cost: %s Wei", totalCost.String())
-		helpers.LogDetail(t, "Total cost (value + gas): %s Wei", totalCostWithValue.String())
+		testutil.LogDetail(t, "Transaction cost: %s Wei", totalCost.String())
+		testutil.LogDetail(t, "Total cost (value + gas): %s Wei", totalCostWithValue.String())
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"Transaction creation successful",
 			"EIP-155 signature generation successful",
 			"Transaction sent to blockchain",
@@ -263,7 +263,7 @@ func TestTransactionSignAndSend(t *testing.T) {
 			"transaction_cost_wei": totalCost.String(),
 			"total_cost_wei":       totalCostWithValue.String(),
 		}
-		helpers.SaveTestData(t, "blockchain/transaction_sign_send.json", testData)
+		testutil.SaveTestData(t, "blockchain/transaction_sign_send.json", testData)
 	})
 }
 
@@ -277,7 +277,7 @@ func TestGasEstimationAccuracy(t *testing.T) {
 
 	t.Run("Gas estimation within ±10% of actual usage", func(t *testing.T) {
 		// Specification Requirement: Gas estimation accuracy within ±10% tolerance for cost optimization
-		helpers.LogTestSection(t, "4.3.1", "Gas Estimation Accuracy Validation")
+		testutil.LogTestSection(t, "4.3.1", "Gas Estimation Accuracy Validation")
 
 		cfg := getTestConfig()
 		client, err := ethclient.Dial(cfg.NetworkRPC)
@@ -289,8 +289,8 @@ func TestGasEstimationAccuracy(t *testing.T) {
 		from := common.HexToAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
 		to := common.HexToAddress("0x70997970C51812dc3A010C7d01b50e0d17dc79C8")
 
-		helpers.LogDetail(t, "From address: %s", from.Hex())
-		helpers.LogDetail(t, "To address: %s", to.Hex())
+		testutil.LogDetail(t, "From address: %s", from.Hex())
+		testutil.LogDetail(t, "To address: %s", to.Hex())
 
 		msg := ethereum.CallMsg{
 			From:  from,
@@ -302,11 +302,11 @@ func TestGasEstimationAccuracy(t *testing.T) {
 		// Estimate gas
 		estimatedGas, err := client.EstimateGas(ctx, msg)
 		require.NoError(t, err)
-		helpers.LogDetail(t, "Estimated gas: %d", estimatedGas)
+		testutil.LogDetail(t, "Estimated gas: %d", estimatedGas)
 
 		// Specification Requirement: Standard transfer gas is 21000
 		actualGas := uint64(21000)
-		helpers.LogDetail(t, "Actual gas (standard transfer): %d", actualGas)
+		testutil.LogDetail(t, "Actual gas (standard transfer): %d", actualGas)
 
 		// Calculate deviation
 		var deviation float64
@@ -316,16 +316,16 @@ func TestGasEstimationAccuracy(t *testing.T) {
 			deviation = float64(actualGas-estimatedGas) / float64(actualGas) * 100
 		}
 
-		helpers.LogDetail(t, "Deviation: %.2f%%", deviation)
+		testutil.LogDetail(t, "Deviation: %.2f%%", deviation)
 
 		// Specification Requirement: Gas estimation accuracy must be within ±10%
 		assert.LessOrEqual(t, deviation, 10.0, "Gas estimation should be within ±10%% of actual usage")
 
-		helpers.LogSuccess(t, "Gas estimation accuracy verified")
-		helpers.LogDetail(t, "Within specification: %.2f%% ≤ ±10%%", deviation)
+		testutil.LogSuccess(t, "Gas estimation accuracy verified")
+		testutil.LogDetail(t, "Within specification: %.2f%% ≤ ±10%%", deviation)
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"Gas estimation successful",
 			"Estimated gas obtained",
 			"Deviation calculated correctly",
@@ -347,12 +347,12 @@ func TestGasEstimationAccuracy(t *testing.T) {
 			"within_tolerance": deviation <= 10.0,
 			"transaction_type": "simple_transfer",
 		}
-		helpers.SaveTestData(t, "blockchain/gas_estimation_accuracy.json", testData)
+		testutil.SaveTestData(t, "blockchain/gas_estimation_accuracy.json", testData)
 	})
 
 	t.Run("Complex transaction gas estimation", func(t *testing.T) {
 		// Specification Requirement: Gas estimation for transactions with data payload
-		helpers.LogTestSection(t, "4.3.2", "Complex Transaction Gas Estimation")
+		testutil.LogTestSection(t, "4.3.2", "Complex Transaction Gas Estimation")
 
 		cfg := getTestConfig()
 		client, err := ethclient.Dial(cfg.NetworkRPC)
@@ -366,9 +366,9 @@ func TestGasEstimationAccuracy(t *testing.T) {
 
 		// Transaction with data (more complex)
 		data := []byte("test data for gas estimation")
-		helpers.LogDetail(t, "Transaction data: %s", string(data))
-		helpers.LogDetail(t, "Data size: %d bytes", len(data))
-		helpers.LogDetail(t, "Data (hex): %s", hex.EncodeToString(data))
+		testutil.LogDetail(t, "Transaction data: %s", string(data))
+		testutil.LogDetail(t, "Data size: %d bytes", len(data))
+		testutil.LogDetail(t, "Data (hex): %s", hex.EncodeToString(data))
 
 		msg := ethereum.CallMsg{
 			From:  from,
@@ -380,8 +380,8 @@ func TestGasEstimationAccuracy(t *testing.T) {
 		estimatedGas, err := client.EstimateGas(ctx, msg)
 		require.NoError(t, err)
 
-		helpers.LogDetail(t, "Estimated gas: %d", estimatedGas)
-		helpers.LogDetail(t, "Base transfer gas: 21000")
+		testutil.LogDetail(t, "Estimated gas: %d", estimatedGas)
+		testutil.LogDetail(t, "Base transfer gas: 21000")
 
 		// Specification Requirement: Complex transaction must use more than base 21000 gas
 		assert.Greater(t, estimatedGas, uint64(21000), "Complex transaction should use more gas")
@@ -390,12 +390,12 @@ func TestGasEstimationAccuracy(t *testing.T) {
 		additionalGas := estimatedGas - 21000
 		gasPerByte := float64(additionalGas) / float64(len(data))
 
-		helpers.LogSuccess(t, "Complex transaction gas estimated")
-		helpers.LogDetail(t, "Additional gas for data: %d", additionalGas)
-		helpers.LogDetail(t, "Average gas per byte: %.2f", gasPerByte)
+		testutil.LogSuccess(t, "Complex transaction gas estimated")
+		testutil.LogDetail(t, "Additional gas for data: %d", additionalGas)
+		testutil.LogDetail(t, "Average gas per byte: %.2f", gasPerByte)
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"Gas estimation successful for complex tx",
 			"Gas > 21000 (base transfer)",
 			"Data payload included in calculation",
@@ -416,7 +416,7 @@ func TestGasEstimationAccuracy(t *testing.T) {
 			"gas_per_byte":      gasPerByte,
 			"exceeds_base":      estimatedGas > 21000,
 		}
-		helpers.SaveTestData(t, "blockchain/gas_estimation_complex.json", testData)
+		testutil.SaveTestData(t, "blockchain/gas_estimation_complex.json", testData)
 	})
 }
 
@@ -514,7 +514,7 @@ func TestEventMonitoring(t *testing.T) {
 
 	t.Run("Monitor transaction logs", func(t *testing.T) {
 		// Specification Requirement: Event log querying and filtering for blockchain monitoring
-		helpers.LogTestSection(t, "4.4.1", "Blockchain Event Log Monitoring")
+		testutil.LogTestSection(t, "4.4.1", "Blockchain Event Log Monitoring")
 
 		cfg := getTestConfig()
 		client, err := ethclient.Dial(cfg.NetworkRPC)
@@ -526,7 +526,7 @@ func TestEventMonitoring(t *testing.T) {
 		// Get current block number
 		currentBlock, err := client.BlockNumber(ctx)
 		require.NoError(t, err)
-		helpers.LogDetail(t, "Current block number: %d", currentBlock)
+		testutil.LogDetail(t, "Current block number: %d", currentBlock)
 
 		// Specification Requirement: Query historical logs across block range
 		query := ethereum.FilterQuery{
@@ -534,15 +534,15 @@ func TestEventMonitoring(t *testing.T) {
 			ToBlock:   big.NewInt(int64(currentBlock)),
 		}
 
-		helpers.LogDetail(t, "Query range: blocks 0 to %d", currentBlock)
+		testutil.LogDetail(t, "Query range: blocks 0 to %d", currentBlock)
 
 		// Query logs
 		logs, err := client.FilterLogs(ctx, query)
 		require.NoError(t, err)
 
-		helpers.LogSuccess(t, "Event log query successful")
-		helpers.LogDetail(t, "Total logs found: %d", len(logs))
-		helpers.LogDetail(t, "Block range: 0-%d", currentBlock)
+		testutil.LogSuccess(t, "Event log query successful")
+		testutil.LogDetail(t, "Total logs found: %d", len(logs))
+		testutil.LogDetail(t, "Block range: 0-%d", currentBlock)
 
 		// Specification Requirement: Log structure validation
 		if len(logs) > 0 {
@@ -551,16 +551,16 @@ func TestEventMonitoring(t *testing.T) {
 			assert.NotNil(t, firstLog.Topics, "Log should have topics")
 			assert.NotNil(t, firstLog.BlockNumber, "Log should have block number")
 
-			helpers.LogSuccess(t, "Log structure validation passed")
-			helpers.LogDetail(t, "Sample log structure:")
-			helpers.LogDetail(t, "  Contract address: %s", firstLog.Address.Hex())
-			helpers.LogDetail(t, "  Block number: %d", firstLog.BlockNumber)
-			helpers.LogDetail(t, "  Transaction hash: %s", firstLog.TxHash.Hex())
-			helpers.LogDetail(t, "  Topics count: %d", len(firstLog.Topics))
-			helpers.LogDetail(t, "  Data size: %d bytes", len(firstLog.Data))
+			testutil.LogSuccess(t, "Log structure validation passed")
+			testutil.LogDetail(t, "Sample log structure:")
+			testutil.LogDetail(t, "  Contract address: %s", firstLog.Address.Hex())
+			testutil.LogDetail(t, "  Block number: %d", firstLog.BlockNumber)
+			testutil.LogDetail(t, "  Transaction hash: %s", firstLog.TxHash.Hex())
+			testutil.LogDetail(t, "  Topics count: %d", len(firstLog.Topics))
+			testutil.LogDetail(t, "  Data size: %d bytes", len(firstLog.Data))
 
 			// Pass criteria checklist
-			helpers.LogPassCriteria(t, []string{
+			testutil.LogPassCriteria(t, []string{
 				"Log query successful",
 				"Logs retrieved from blockchain",
 				"Log structure valid",
@@ -584,12 +584,12 @@ func TestEventMonitoring(t *testing.T) {
 					"data_size":        len(firstLog.Data),
 				},
 			}
-			helpers.SaveTestData(t, "blockchain/event_log_monitoring.json", testData)
+			testutil.SaveTestData(t, "blockchain/event_log_monitoring.json", testData)
 		} else {
-			helpers.LogDetail(t, "No logs found (no contracts deployed or events emitted yet)")
+			testutil.LogDetail(t, "No logs found (no contracts deployed or events emitted yet)")
 
 			// Pass criteria checklist for empty log case
-			helpers.LogPassCriteria(t, []string{
+			testutil.LogPassCriteria(t, []string{
 				"Log query successful",
 				"No errors during query",
 				"Empty result handled correctly",
@@ -604,13 +604,13 @@ func TestEventMonitoring(t *testing.T) {
 				"logs_found":    0,
 				"note":          "No events found - no contracts deployed yet",
 			}
-			helpers.SaveTestData(t, "blockchain/event_log_monitoring.json", testData)
+			testutil.SaveTestData(t, "blockchain/event_log_monitoring.json", testData)
 		}
 	})
 
 	t.Run("Subscribe to new logs", func(t *testing.T) {
 		// Specification Requirement: WebSocket subscription for real-time event monitoring
-		helpers.LogTestSection(t, "4.4.2", "Real-time Event Subscription (WebSocket)")
+		testutil.LogTestSection(t, "4.4.2", "Real-time Event Subscription (WebSocket)")
 
 		cfg := getTestConfig()
 		client, err := ethclient.Dial(cfg.NetworkRPC)
@@ -620,8 +620,8 @@ func TestEventMonitoring(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		helpers.LogDetail(t, "Network RPC: %s", cfg.NetworkRPC)
-		helpers.LogDetail(t, "Timeout: 5 seconds")
+		testutil.LogDetail(t, "Network RPC: %s", cfg.NetworkRPC)
+		testutil.LogDetail(t, "Timeout: 5 seconds")
 
 		// Create subscription query
 		query := ethereum.FilterQuery{}
@@ -631,12 +631,12 @@ func TestEventMonitoring(t *testing.T) {
 		sub, err := client.SubscribeFilterLogs(ctx, query, logChan)
 
 		if err != nil {
-			helpers.LogDetail(t, "WebSocket not available: %v", err)
-			helpers.LogDetail(t, "Note: Full event monitoring requires WebSocket connection")
-			helpers.LogDetail(t, "HTTP RPC endpoint does not support subscriptions")
+			testutil.LogDetail(t, "WebSocket not available: %v", err)
+			testutil.LogDetail(t, "Note: Full event monitoring requires WebSocket connection")
+			testutil.LogDetail(t, "HTTP RPC endpoint does not support subscriptions")
 
 			// Pass criteria checklist for HTTP-only case
-			helpers.LogPassCriteria(t, []string{
+			testutil.LogPassCriteria(t, []string{
 				"Subscription attempt made",
 				"HTTP limitation identified",
 				"Graceful error handling",
@@ -650,17 +650,17 @@ func TestEventMonitoring(t *testing.T) {
 				"error":       err.Error(),
 				"note":        "WebSocket required for subscriptions",
 			}
-			helpers.SaveTestData(t, "blockchain/event_subscription.json", testData)
+			testutil.SaveTestData(t, "blockchain/event_subscription.json", testData)
 			return
 		}
 		defer sub.Unsubscribe()
 
-		helpers.LogSuccess(t, "Log subscription capability verified")
-		helpers.LogDetail(t, "Subscription active")
-		helpers.LogDetail(t, "WebSocket connection established")
+		testutil.LogSuccess(t, "Log subscription capability verified")
+		testutil.LogDetail(t, "Subscription active")
+		testutil.LogDetail(t, "WebSocket connection established")
 
 		// Pass criteria checklist
-		helpers.LogPassCriteria(t, []string{
+		testutil.LogPassCriteria(t, []string{
 			"WebSocket connection successful",
 			"Subscription created",
 			"Log channel established",
@@ -674,7 +674,7 @@ func TestEventMonitoring(t *testing.T) {
 			"available":   true,
 			"note":        "WebSocket subscription functional",
 		}
-		helpers.SaveTestData(t, "blockchain/event_subscription.json", testData)
+		testutil.SaveTestData(t, "blockchain/event_subscription.json", testData)
 	})
 }
 

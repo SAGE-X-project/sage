@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
-	"github.com/sage-x-project/sage/tests/testutil"
 	"github.com/stretchr/testify/require"
 )
 

@@ -3,7 +3,7 @@
 # Variables
 CRYPTO_BINARY=sage-crypto
 DID_BINARY=sage-did
-VERIFY_BINARY=deployment-verify
+VERIFY_BINARY=sage-verify
 TEST_CLIENT_BINARY=test-client
 TEST_SERVER_BINARY=test-server
 BUILD_DIR=build
@@ -503,7 +503,7 @@ clean:
 	@rm -rf $(BUILD_DIR)
 	@rm -rf $(DIST_DIR)
 	@rm -f $(BINARY_NAME)
-	@rm -f sage-crypto sage-did deployment-verify
+	@rm -f sage-crypto sage-did sage-verify
 	@rm -f test_output.tmp
 	@rm -f coverage.out coverage.html
 	@rm -f *.test
@@ -701,7 +701,7 @@ help:
 	@echo "  make build-binaries     - Build all CLI binaries"
 	@echo "  make build-crypto       - Build sage-crypto binary only"
 	@echo "  make build-did          - Build sage-did binary only"
-	@echo "  make build-verify       - Build deployment-verify binary only"
+	@echo "  make build-verify       - Build sage-verify binary only"
 	@echo ""
 	@echo "Cross-platform build targets:"
 	@echo "  make build-all-platforms         - Build binaries for all platforms"

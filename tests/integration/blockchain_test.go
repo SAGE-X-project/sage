@@ -27,7 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/sage-x-project/sage/deployments/config"
+	"github.com/sage-x-project/sage/internal/config"
 	ethprovider "github.com/sage-x-project/sage/pkg/blockchain/ethereum"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
