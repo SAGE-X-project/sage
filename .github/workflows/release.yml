@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   GO_VERSION: '1.25.2'
@@ -99,6 +99,8 @@ jobs:
     name: Create Release
     needs: build-release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code

@@ -1,22 +1,9 @@
 name: Load Tests
 
+# Manual only until the k6 harness targets an existing server
+# (tests/handshake/server/main.go does not exist; see docs/refactoring/SUPPLY_CHAIN_AUDIT.md).
 on:
-  push:
-    branches: [main, dev]
-    paths:
-      - 'pkg/**'
-      - 'cmd/**'
-      - 'internal/**'
-      - 'loadtest/**'
-  pull_request:
-    branches: [main]
-  schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM UTC
   workflow_dispatch:
-
-env:
-  GO_VERSION: '1.25.2'
-  GOTOOLCHAIN: auto
     inputs:
       scenario:
         description: 'Test scenario to run'
@@ -28,6 +15,13 @@ env:
           - stress
           - spike
           - all
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: '1.25.2'
+  GOTOOLCHAIN: auto
 
 jobs:
   baseline:
