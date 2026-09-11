@@ -189,6 +189,12 @@ func (m *Manager) ResolveAgent(ctx context.Context, did AgentDID) (*AgentMetadat
 	return m.resolver.Resolve(ctx, did)
 }
 
+// Resolver returns the multi-chain resolver backing this manager, for use
+// with functions that take a did.Resolver such as ValidateA2ACardWithDID.
+func (m *Manager) Resolver() Resolver {
+	return m.resolver
+}
+
 // HasClient reports whether a chain client has been installed for chain,
 // either by Configure (through the creator registered by the chain package)
 // or by SetClient.

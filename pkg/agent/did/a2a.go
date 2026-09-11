@@ -290,20 +290,9 @@ func ValidateA2ACardWithDID(ctx context.Context, card *A2AAgentCard, resolver Re
 
 	// Verify all public keys in card exist on-chain
 	for _, cardKey := range card.PublicKeys {
-		// Decode card key data
-		var cardKeyData []byte
-		if cardKey.PublicKeyBase58 != "" {
-			cardKeyData, err = base58.Decode(cardKey.PublicKeyBase58)
-			if err != nil {
-				return fmt.Errorf("invalid key data in card for key %s: %w", cardKey.ID, err)
-			}
-		} else if cardKey.PublicKeyHex != "" {
-			cardKeyData, err = hex.DecodeString(cardKey.PublicKeyHex)
-			if err != nil {
-				return fmt.Errorf("invalid hex key data in card for key %s: %w", cardKey.ID, err)
-			}
-		} else {
-			return fmt.Errorf("key %s has no public key data", cardKey.ID)
+		cardKeyData, err := decodeA2APublicKey(&cardKey)
+		if err != nil {
+			return err
 		}
 
 		// Check if this key exists on-chain

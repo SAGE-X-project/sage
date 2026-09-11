@@ -20,12 +20,10 @@ package main
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 
-	"github.com/mr-tron/base58"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/spf13/cobra"
 )
@@ -74,13 +72,14 @@ This command checks:
 - JSON structure conforms to A2A specification
 
 With --with-proof flag:
-- Verifies cryptographic proof signature
-- Ensures card was signed by legitimate DID owner
+- Verifies the cryptographic proof signature with the key listed in the card
+  (self-attested; proves consistency, not ownership of the DID)
 
 With --verify-did flag:
 - Cross-validates card against on-chain DID document
-- Verifies all keys exist on blockchain
-- Checks endpoint consistency
+- Verifies all keys exist on blockchain and are marked verified
+- Checks endpoint consistency and that the DID is active
+- With --with-proof, the proof must be signed by a verified on-chain key
 
 Examples:
   # Basic validation
@@ -257,35 +256,45 @@ func runCardValidate(cmd *cobra.Command, args []string) error {
 		}
 		fmt.Printf(" PASSED\n")
 
-		// Level 2: Cryptographic proof validation
-		fmt.Printf("  [2/3] Cryptographic proof verification... ")
-		if err := did.ValidateA2ACardWithProof(&cardWithProof); err != nil {
-			fmt.Printf(" FAILED\n")
-			return fmt.Errorf("proof verification failed: %w", err)
-		}
-		fmt.Printf(" PASSED\n")
-
-		// Level 3: DID cross-validation (optional)
 		if cardValidateVerifyDID {
+			resolver, err := cardChainResolver(cardWithProof.ID)
+			if err != nil {
+				return err
+			}
+
+			// Level 2: proof bound to the on-chain DID document. The signing
+			// key must be a verified key of the card's DID on the chain.
+			fmt.Printf("  [2/3] Cryptographic proof verification (on-chain key)... ")
+			if err := did.VerifyA2ACardProofWithDID(ctx, &cardWithProof, resolver); err != nil {
+				fmt.Printf(" FAILED\n")
+				return fmt.Errorf("proof verification failed: %w", err)
+			}
+			fmt.Printf(" PASSED\n")
+
+			// Level 3: every card key and the primary endpoint match the chain
 			fmt.Printf("  [3/3] On-chain DID cross-validation... ")
-			if err := validateCardWithDID(ctx, &cardWithProof.A2AAgentCard); err != nil {
+			if err := did.ValidateA2ACardWithDID(ctx, &cardWithProof.A2AAgentCard, resolver); err != nil {
 				fmt.Printf(" FAILED\n")
 				return fmt.Errorf("DID validation failed: %w", err)
 			}
 			fmt.Printf(" PASSED\n")
-		} else {
-			fmt.Printf("  [3/3] On-chain DID cross-validation... ⊘ SKIPPED\n")
-		}
 
-		// Success message
-		fmt.Printf("\n A2A Agent Card is valid")
-		if cardWithProof.Proof != nil {
-			fmt.Printf(" (with cryptographic proof)")
+			fmt.Printf("\n A2A Agent Card is valid (proof verified against blockchain)\n")
+		} else {
+			// Level 2: self-attested proof. The key comes from the card itself,
+			// so this only proves internal consistency, not DID ownership.
+			fmt.Printf("  [2/3] Cryptographic proof verification (self-attested)... ")
+			if err := did.ValidateA2ACardWithProof(&cardWithProof); err != nil {
+				fmt.Printf(" FAILED\n")
+				return fmt.Errorf("proof verification failed: %w", err)
+			}
+			fmt.Printf(" PASSED\n")
+			fmt.Printf("  [3/3] On-chain DID cross-validation... SKIPPED\n")
+
+			fmt.Printf("\n A2A Agent Card is internally consistent (self-attested proof)\n")
+			fmt.Printf(" WARNING: the proof was checked against the key listed in the card, not against the chain.\n")
+			fmt.Printf("          Run with --verify-did --rpc <url> to confirm the key belongs to %s.\n", cardWithProof.ID)
 		}
-		if cardValidateVerifyDID {
-			fmt.Printf(" (verified against blockchain)")
-		}
-		fmt.Printf("\n")
 
 		// Verbose output
 		if cardValidateVerbose {
@@ -315,14 +324,18 @@ func runCardValidate(cmd *cobra.Command, args []string) error {
 
 		// DID cross-validation (optional)
 		if cardValidateVerifyDID {
+			resolver, err := cardChainResolver(card.ID)
+			if err != nil {
+				return err
+			}
 			fmt.Printf("  [2/2] On-chain DID cross-validation... ")
-			if err := validateCardWithDID(ctx, &card); err != nil {
+			if err := did.ValidateA2ACardWithDID(ctx, &card, resolver); err != nil {
 				fmt.Printf(" FAILED\n")
 				return fmt.Errorf("DID validation failed: %w", err)
 			}
 			fmt.Printf(" PASSED\n")
 		} else {
-			fmt.Printf("  [2/2] On-chain DID cross-validation... ⊘ SKIPPED\n")
+			fmt.Printf("  [2/2] On-chain DID cross-validation... SKIPPED\n")
 		}
 
 		fmt.Printf("\n A2A Agent Card is valid")
@@ -339,97 +352,31 @@ func runCardValidate(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-// validateCardWithDID validates a card against on-chain DID document
-func validateCardWithDID(ctx context.Context, card *did.A2AAgentCard) error {
-	// Validate --verify-did prerequisites
+// cardChainResolver builds a DID resolver for the chain named in the card's
+// DID from the --rpc / --contract flags of "card validate".
+func cardChainResolver(cardID string) (did.Resolver, error) {
 	if cardValidateRPC == "" {
-		return fmt.Errorf("--rpc flag is required with --verify-did")
+		return nil, fmt.Errorf("--rpc flag is required with --verify-did")
 	}
 
-	// Parse DID from card
-	agentDID := did.AgentDID(card.ID)
-	chain, _, err := did.ParseDID(agentDID)
+	chain, _, err := did.ParseDID(did.AgentDID(cardID))
 	if err != nil {
-		return fmt.Errorf("invalid DID in card: %w", err)
+		return nil, fmt.Errorf("invalid DID in card: %w", err)
 	}
 
-	// Setup configuration
 	config := &did.RegistryConfig{
 		RPCEndpoint:     cardValidateRPC,
 		ContractAddress: cardValidateContract,
 	}
-
 	if config.ContractAddress == "" {
 		config.ContractAddress = getDefaultContractAddress(chain)
 	}
 
-	// Create DID manager
 	manager := did.NewManager()
 	if err := manager.Configure(chain, config); err != nil {
-		return fmt.Errorf("failed to configure DID manager: %w", err)
+		return nil, fmt.Errorf("failed to configure DID manager: %w", err)
 	}
-
-	// Resolve on-chain metadata directly using manager
-	metadata, err := manager.ResolveAgent(ctx, agentDID)
-	if err != nil {
-		return fmt.Errorf("failed to resolve DID from blockchain: %w", err)
-	}
-
-	// Convert to V4 metadata for key comparison
-	metadataV4 := did.FromAgentMetadata(metadata)
-
-	// Verify all public keys in card exist on-chain
-	for _, cardKey := range card.PublicKeys {
-		// Decode card key data
-		var cardKeyData []byte
-		if cardKey.PublicKeyBase58 != "" {
-			cardKeyData, err = base58.Decode(cardKey.PublicKeyBase58)
-			if err != nil {
-				return fmt.Errorf("invalid key data in card for key %s: %w", cardKey.ID, err)
-			}
-		} else if cardKey.PublicKeyHex != "" {
-			cardKeyData, err = hex.DecodeString(cardKey.PublicKeyHex)
-			if err != nil {
-				return fmt.Errorf("invalid hex key data in card for key %s: %w", cardKey.ID, err)
-			}
-		} else {
-			return fmt.Errorf("key %s has no public key data", cardKey.ID)
-		}
-
-		// Check if this key exists on-chain
-		found := false
-		for _, onChainKey := range metadataV4.Keys {
-			// Compare key data
-			if hex.EncodeToString(onChainKey.KeyData) == hex.EncodeToString(cardKeyData) {
-				// Key found - check if verified
-				if !onChainKey.Verified {
-					return fmt.Errorf("key %s exists on-chain but is not verified", cardKey.ID)
-				}
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			return fmt.Errorf("key %s not found in on-chain DID document", cardKey.ID)
-		}
-	}
-
-	// Verify endpoint consistency
-	if len(card.Endpoints) > 0 {
-		primaryEndpoint := card.Endpoints[0].URI
-		if primaryEndpoint != metadata.Endpoint {
-			return fmt.Errorf("primary endpoint mismatch: card has %s, on-chain has %s",
-				primaryEndpoint, metadata.Endpoint)
-		}
-	}
-
-	// Verify agent is active
-	if !metadata.IsActive {
-		return fmt.Errorf("DID %s is not active on-chain", agentDID)
-	}
-
-	return nil
+	return manager.Resolver(), nil
 }
 
 // displayCardDetails shows detailed card information
@@ -452,14 +399,6 @@ func displayCardDetails(card *did.A2AAgentCard) {
 	fmt.Printf("\nCapabilities: %v\n", card.Capabilities)
 	fmt.Printf("\nCreated: %s\n", card.Created.Format("2006-01-02 15:04:05"))
 	fmt.Printf("Updated: %s\n", card.Updated.Format("2006-01-02 15:04:05"))
-}
-
-// min returns the minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
 
 func runCardShow(cmd *cobra.Command, args []string) error {

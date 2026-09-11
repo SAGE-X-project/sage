@@ -45,7 +45,7 @@ func MarshalPublicKey(publicKey interface{}) ([]byte, error) {
 		// Check if this is a secp256k1 curve (Ethereum)
 		// Note: We check curve name instead of pointer equality because
 		// different libraries may use different curve instances
-		if pk.Curve.Params().Name == "secp256k1" {
+		if keys.IsSecp256k1Curve(pk.Curve) {
 			// For secp256k1, use UNCOMPRESSED format (64 bytes: x || y)
 			// V4 contract rejects compressed keys due to expensive decompression on-chain
 			// Returns raw 64-byte format (without 0x04 prefix)
