@@ -132,7 +132,11 @@ func (t *CalculatorTool) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		response.Result = result
 	}
 
-	// Step 4: Send the response (response signing could be added here if needed)
+	// Step 4: Send the response. To sign tool results so the agent can verify
+	// them, register the handler through rfc9421.ResponseSigner:
+	//
+	//	signer := &rfc9421.ResponseSigner{PrivateKey: toolKey, KeyID: toolDID + "#key-1", Algorithm: "ed25519"}
+	//	mux.Handle("/tools/calculator/execute", signer.Wrap(http.HandlerFunc(tool.HandleRequest)))
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(response)
 }

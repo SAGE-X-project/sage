@@ -20,6 +20,7 @@ package main
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/base64"
@@ -40,6 +41,11 @@ type SAGEClient struct {
 	publicKey  ed25519.PublicKey
 	httpClient *http.Client
 	verifier   *rfc9421.HTTPVerifier
+
+	// ToolPublicKey is the key the tool signs its responses with (resolved
+	// from the tool's DID in production). When set, every response must carry
+	// a valid RFC 9421 signature bound to the request that was sent.
+	ToolPublicKey crypto.PublicKey
 }
 
 // NewSAGEClient creates a new SAGE-enabled client
@@ -125,16 +131,22 @@ func (c *SAGEClient) CallTool(toolURL string, request interface{}) (interface{},
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
 
+	// Verify the response signature before trusting status or result. The
+	// signature must cover @status and content-digest and be bound to the
+	// request (method, target, authority, request digest), so a swapped or
+	// replayed tool result is rejected.
+	if c.ToolPublicKey != nil {
+		resp.Body = io.NopCloser(bytes.NewReader(responseBody))
+		if err := c.verifier.VerifyResponse(resp, req, c.ToolPublicKey, rfc9421.StrictHTTPResponseVerificationOptions()); err != nil {
+			return nil, fmt.Errorf("tool response failed verification: %w", err)
+		}
+	} else if resp.Header.Get("Signature") != "" {
+		fmt.Println(" Response is signed but no tool public key is configured; set ToolPublicKey to verify it")
+	}
+
 	// Check status
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("tool returned error: %s - %s", resp.Status, string(responseBody))
-	}
-
-	// Verify response signature (if present)
-	if resp.Header.Get("Signature") != "" {
-		// In a real implementation, we would resolve the tool's public key
-		// and verify the response signature
-		fmt.Println(" Response signature present (verification would happen here)")
 	}
 
 	// Parse response

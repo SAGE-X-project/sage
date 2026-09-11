@@ -117,9 +117,48 @@ func (v *HTTPVerifier) SignRequest(req *http.Request, sigName string, params *Si
 	if err != nil {
 		return fmt.Errorf("failed to build signature base: %w", err)
 	}
+	signature, err := v.sign(signatureBase, privateKey)
+	if err != nil {
+		return err
+	}
+	v.setSignatureHeaders(req.Header, sigName, params, signature)
+	return nil
+}
 
-	// Sign the signature base differently based on key type
+// SignResponse signs an HTTP response according to RFC 9421. req is the
+// request the response answers; covered components carrying the ";req"
+// parameter (for example `"@method";req`, `"@target-uri";req`,
+// `"content-digest";req`, `"signature";req`) are taken from it and bind the
+// response to that exact request. resp.Header is created if nil.
+func (v *HTTPVerifier) SignResponse(resp *http.Response, req *http.Request, sigName string, params *SignatureInputParams, privateKey crypto.Signer) error {
+	if resp == nil {
+		return fmt.Errorf("response is nil")
+	}
+	if resp.Header == nil {
+		resp.Header = http.Header{}
+	}
+	signatureBase, err := v.canonicalizer.BuildResponseSignatureBase(resp, req, sigName, params)
+	if err != nil {
+		return fmt.Errorf("failed to build signature base: %w", err)
+	}
+	signature, err := v.sign(signatureBase, privateKey)
+	if err != nil {
+		return err
+	}
+	v.setSignatureHeaders(resp.Header, sigName, params, signature)
+	return nil
+}
+
+// setSignatureHeaders writes the Signature-Input and Signature fields.
+func (v *HTTPVerifier) setSignatureHeaders(h http.Header, sigName string, params *SignatureInputParams, signature []byte) {
+	h.Set("Signature-Input", v.formatSignatureInput(sigName, params))
+	h.Set("Signature", fmt.Sprintf("%s=:%s:", sigName, base64.StdEncoding.EncodeToString(signature)))
+}
+
+// sign produces the signature over a signature base for the given key type.
+func (v *HTTPVerifier) sign(signatureBase string, privateKey crypto.Signer) ([]byte, error) {
 	var signature []byte
+	var err error
 
 	switch key := privateKey.(type) {
 	case ed25519.PrivateKey:
@@ -131,7 +170,7 @@ func (v *HTTPVerifier) SignRequest(req *http.Request, sigName string, params *Si
 			// Ethereum convention: Keccak-256, deterministic, r || s || v.
 			signature, err = keys.SignSecp256k1Keccak(key, []byte(signatureBase))
 			if err != nil {
-				return fmt.Errorf("failed to sign with secp256k1: %w", err)
+				return nil, fmt.Errorf("failed to sign with secp256k1: %w", err)
 			}
 			break
 		}
@@ -142,7 +181,7 @@ func (v *HTTPVerifier) SignRequest(req *http.Request, sigName string, params *Si
 
 		r, s, err := ecdsa.Sign(rand.Reader, key, digest)
 		if err != nil {
-			return fmt.Errorf("failed to sign with ECDSA: %w", err)
+			return nil, fmt.Errorf("failed to sign with ECDSA: %w", err)
 		}
 
 		// Convert to fixed-size byte arrays (P-256 = 32 bytes each)
@@ -162,19 +201,10 @@ func (v *HTTPVerifier) SignRequest(req *http.Request, sigName string, params *Si
 
 		signature, err = privateKey.Sign(rand.Reader, digest, crypto.SHA256)
 		if err != nil {
-			return fmt.Errorf("failed to sign: %w", err)
+			return nil, fmt.Errorf("failed to sign: %w", err)
 		}
 	}
-
-	// Set Signature-Input header
-	inputHeader := v.formatSignatureInput(sigName, params)
-	req.Header.Set("Signature-Input", inputHeader)
-
-	// Set Signature header
-	sigHeader := fmt.Sprintf("%s=:%s:", sigName, base64.StdEncoding.EncodeToString(signature))
-	req.Header.Set("Signature", sigHeader)
-
-	return nil
+	return signature, nil
 }
 
 // VerifyRequest verifies an HTTP request signature
@@ -182,76 +212,16 @@ func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicK
 	if opts == nil {
 		opts = DefaultHTTPVerificationOptions()
 	}
-
-	// Parse Signature-Input header
-	inputHeader := req.Header.Get("Signature-Input")
-	if inputHeader == "" {
-		return fmt.Errorf("missing Signature-Input header")
+	if req == nil {
+		return fmt.Errorf("request is nil")
 	}
 
-	sigInputs, err := ParseSignatureInput(inputHeader)
+	sigName, params, signature, err := selectSignature(req.Header, opts)
 	if err != nil {
-		return fmt.Errorf("failed to parse Signature-Input: %w", err)
+		return err
 	}
-
-	// Parse Signature header
-	sigHeader := req.Header.Get("Signature")
-	if sigHeader == "" {
-		return fmt.Errorf("missing Signature header")
-	}
-
-	signatures, err := ParseSignature(sigHeader)
-	if err != nil {
-		return fmt.Errorf("failed to parse Signature: %w", err)
-	}
-
-	// Find the signature to verify. Without an explicit name, pick the
-	// lexicographically first label so the outcome does not depend on map order.
-	var sigName string
-	if opts.SignatureName != "" {
-		sigName = opts.SignatureName
-	} else {
-		names := make([]string, 0, len(sigInputs))
-		for name := range sigInputs {
-			names = append(names, name)
-		}
-		sort.Strings(names)
-		if len(names) > 0 {
-			sigName = names[0]
-		}
-	}
-
-	params, exists := sigInputs[sigName]
-	if !exists {
-		return fmt.Errorf("signature '%s' not found in Signature-Input", sigName)
-	}
-
-	signature, exists := signatures[sigName]
-	if !exists {
-		return fmt.Errorf("signature '%s' not found in Signature header", sigName)
-	}
-
-	// Check created/expires if present
-	now := time.Now().Unix()
-	if params.Created > 0 && opts.MaxAge > 0 {
-		age := now - params.Created
-		if age > int64(opts.MaxAge.Seconds()) {
-			return fmt.Errorf("signature expired: created %d seconds ago (max %d)", age, int64(opts.MaxAge.Seconds()))
-		}
-	}
-
-	if params.Created > 0 {
-		skew := opts.MaxClockSkew
-		if skew <= 0 {
-			skew = DefaultMaxClockSkew
-		}
-		if params.Created > now+int64(skew.Seconds()) {
-			return fmt.Errorf("signature created in the future: created=%d now=%d (max skew %s)", params.Created, now, skew)
-		}
-	}
-
-	if params.Expires > 0 && now > params.Expires {
-		return fmt.Errorf("signature expired at %d (now %d)", params.Expires, now)
+	if err := checkSignatureTimes(params, opts); err != nil {
+		return err
 	}
 
 	// Required components: the verifier, not the signer, decides what must be covered.
@@ -259,13 +229,8 @@ func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicK
 	if opts.RequireContentDigest && requestHasBody(req) {
 		required = append(required, "content-digest")
 	}
-	for _, comp := range required {
-		if !IsComponentCovered(params.CoveredComponents, comp) {
-			return fmt.Errorf("required component %q is not covered by the signature", strings.Trim(comp, `"`))
-		}
-	}
-	if opts.RequireNonce && params.Nonce == "" {
-		return fmt.Errorf("signature nonce is required but missing")
+	if err := checkCovered(params, required, opts.RequireNonce); err != nil {
+		return err
 	}
 
 	// Validate body integrity if Content-Digest is covered by signature
@@ -287,14 +252,170 @@ func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicK
 		return err
 	}
 
-	// Replay detection runs last so that unverifiable requests cannot poison the
-	// nonce store. The nonce is scoped by keyid so distinct signers do not collide.
+	return v.checkReplay(params, opts)
+}
+
+// VerifyResponse verifies an HTTP response signature. req is the request the
+// response answers (resp.Request when nil); components carrying the ";req"
+// parameter are evaluated against it, so a response signed for another
+// request fails verification. With RequireRequestBinding the signature must
+// cover `"@method";req`, `"@target-uri";req` and `"@authority";req`, plus
+// `"content-digest";req` when the request has a body.
+func (v *HTTPVerifier) VerifyResponse(resp *http.Response, req *http.Request, publicKey crypto.PublicKey, opts *HTTPVerificationOptions) error {
+	if opts == nil {
+		opts = DefaultHTTPVerificationOptions()
+	}
+	if resp == nil {
+		return fmt.Errorf("response is nil")
+	}
+	if req == nil {
+		req = resp.Request
+	}
+
+	sigName, params, signature, err := selectSignature(resp.Header, opts)
+	if err != nil {
+		return err
+	}
+	if err := checkSignatureTimes(params, opts); err != nil {
+		return err
+	}
+
+	required := append([]string(nil), opts.RequiredComponents...)
+	if opts.RequireContentDigest && responseHasBody(resp) {
+		required = append(required, "content-digest")
+	}
+	if opts.RequireRequestBinding {
+		if req == nil {
+			return fmt.Errorf("request binding required but no request is associated with the response")
+		}
+		required = append(required, `"@method";req`, `"@target-uri";req`, `"@authority";req`)
+		if requestHasBody(req) {
+			required = append(required, `"content-digest";req`)
+		}
+	}
+	if err := checkCovered(params, required, opts.RequireNonce); err != nil {
+		return err
+	}
+
+	bodyValidator := NewBodyIntegrityValidator()
+	if err := bodyValidator.ValidateResponseContentDigest(resp, params.CoveredComponents); err != nil {
+		return fmt.Errorf("body integrity validation failed: %w", err)
+	}
+
+	signatureBase, err := v.canonicalizer.BuildResponseSignatureBase(resp, req, sigName, params)
+	if err != nil {
+		return fmt.Errorf("failed to build signature base: %w", err)
+	}
+	if err := v.verifySignature(publicKey, []byte(signatureBase), signature, params.Algorithm); err != nil {
+		return err
+	}
+
+	return v.checkReplay(params, opts)
+}
+
+// selectSignature parses the Signature-Input and Signature fields of h and
+// picks the signature to verify. Without an explicit name the
+// lexicographically first label is used so the outcome does not depend on
+// map iteration order.
+func selectSignature(h http.Header, opts *HTTPVerificationOptions) (string, *SignatureInputParams, []byte, error) {
+	inputHeader := h.Get("Signature-Input")
+	if inputHeader == "" {
+		return "", nil, nil, fmt.Errorf("missing Signature-Input header")
+	}
+	sigInputs, err := ParseSignatureInput(inputHeader)
+	if err != nil {
+		return "", nil, nil, fmt.Errorf("failed to parse Signature-Input: %w", err)
+	}
+
+	sigHeader := h.Get("Signature")
+	if sigHeader == "" {
+		return "", nil, nil, fmt.Errorf("missing Signature header")
+	}
+	signatures, err := ParseSignature(sigHeader)
+	if err != nil {
+		return "", nil, nil, fmt.Errorf("failed to parse Signature: %w", err)
+	}
+
+	sigName := opts.SignatureName
+	if sigName == "" {
+		names := make([]string, 0, len(sigInputs))
+		for name := range sigInputs {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		if len(names) > 0 {
+			sigName = names[0]
+		}
+	}
+
+	params, exists := sigInputs[sigName]
+	if !exists {
+		return "", nil, nil, fmt.Errorf("signature '%s' not found in Signature-Input", sigName)
+	}
+	signature, exists := signatures[sigName]
+	if !exists {
+		return "", nil, nil, fmt.Errorf("signature '%s' not found in Signature header", sigName)
+	}
+	return sigName, params, signature, nil
+}
+
+// checkSignatureTimes enforces created/expires freshness and the clock-skew bound.
+func checkSignatureTimes(params *SignatureInputParams, opts *HTTPVerificationOptions) error {
+	now := time.Now().Unix()
+	if params.Created > 0 && opts.MaxAge > 0 {
+		age := now - params.Created
+		if age > int64(opts.MaxAge.Seconds()) {
+			return fmt.Errorf("signature expired: created %d seconds ago (max %d)", age, int64(opts.MaxAge.Seconds()))
+		}
+	}
+
+	if params.Created > 0 {
+		skew := opts.MaxClockSkew
+		if skew <= 0 {
+			skew = DefaultMaxClockSkew
+		}
+		if params.Created > now+int64(skew.Seconds()) {
+			return fmt.Errorf("signature created in the future: created=%d now=%d (max skew %s)", params.Created, now, skew)
+		}
+	}
+
+	if params.Expires > 0 && now > params.Expires {
+		return fmt.Errorf("signature expired at %d (now %d)", params.Expires, now)
+	}
+	return nil
+}
+
+// checkCovered enforces the verifier's required components and nonce policy.
+func checkCovered(params *SignatureInputParams, required []string, requireNonce bool) error {
+	for _, comp := range required {
+		if !IsComponentCovered(params.CoveredComponents, comp) {
+			return fmt.Errorf("required component %s is not covered by the signature", normalizeComponentIdentifier(comp))
+		}
+	}
+	if requireNonce && params.Nonce == "" {
+		return fmt.Errorf("signature nonce is required but missing")
+	}
+	return nil
+}
+
+// checkReplay runs last so that unverifiable messages cannot poison the nonce
+// store. The nonce is scoped by keyid so distinct signers do not collide.
+func (v *HTTPVerifier) checkReplay(params *SignatureInputParams, opts *HTTPVerificationOptions) error {
 	if params.Nonce != "" && v.replay != nil && !opts.DisableReplayCheck {
 		if !v.replay.CheckAndMark(params.KeyID, params.Nonce) {
 			return fmt.Errorf("signature replay detected: nonce %q was already used for keyid %q", params.Nonce, params.KeyID)
 		}
 	}
 	return nil
+}
+
+// responseHasBody reports whether the response carries a body that a
+// signature should bind through content-digest.
+func responseHasBody(resp *http.Response) bool {
+	if resp.ContentLength > 0 {
+		return true
+	}
+	return resp.Body != nil && resp.Body != http.NoBody && resp.ContentLength != 0
 }
 
 // requestHasBody reports whether the request carries a body that a signature
@@ -406,6 +527,12 @@ type HTTPVerificationOptions struct {
 
 	// DisableReplayCheck skips the verifier's replay guard (tests, offline replay).
 	DisableReplayCheck bool
+
+	// RequireRequestBinding (responses only) requires the signature to cover
+	// `"@method";req`, `"@target-uri";req` and `"@authority";req`, plus
+	// `"content-digest";req` when the request has a body, so the response is
+	// bound to the request it answers.
+	RequireRequestBinding bool
 }
 
 // DefaultHTTPVerificationOptions returns lenient options: signatures must be
@@ -429,6 +556,21 @@ func StrictHTTPVerificationOptions() *HTTPVerificationOptions {
 		RequiredComponents:   []string{"@method", "@target-uri", "@authority"},
 		RequireContentDigest: true,
 		RequireNonce:         true,
+	}
+}
+
+// StrictHTTPResponseVerificationOptions returns options for verifying a
+// response (for example an MCP tool result): the status and, for responses
+// with a body, the body must be covered, and the signature must be bound to
+// the request that was sent. Responses need no nonce because the binding to
+// the request (which carries one) already prevents replay.
+func StrictHTTPResponseVerificationOptions() *HTTPVerificationOptions {
+	return &HTTPVerificationOptions{
+		MaxAge:                5 * time.Minute,
+		MaxClockSkew:          DefaultMaxClockSkew,
+		RequiredComponents:    []string{"@status"},
+		RequireContentDigest:  true,
+		RequireRequestBinding: true,
 	}
 }
 
