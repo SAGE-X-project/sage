@@ -25,45 +25,37 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/sage-x-project/sage/pkg/agent/did/ethereum"
 	"github.com/spf13/cobra"
+
+	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
 var debugCmd = &cobra.Command{
 	Use:   "debug",
 	Short: "Debug DID operations",
-	Long: `Debug DID operations and inspect DID documents.
-
-This command provides debugging utilities for:
-- Parsing and validating DIDs
-- Resolving DID documents
-- Checking cache status
-- Verifying signatures`,
+	Long: `Inspect a DID: parse it into chain and identifier, validate the
+identifier for the chain, and optionally resolve it against the registry.`,
 	RunE: runDebug,
 }
 
 var (
-	didString       string
-	resolveFlag     bool
-	parseOnly       bool
-	checkCache      bool
-	verifySignature bool
-	message         string
-	signature       string
-	verbose         bool
+	debugDID          string
+	debugResolve      bool
+	debugParseOnly    bool
+	debugRPCEndpoint  string
+	debugContractAddr string
+	debugVerbose      bool
 )
 
 func init() {
 	rootCmd.AddCommand(debugCmd)
 
-	debugCmd.Flags().StringVar(&didString, "did", "", "DID to debug (required)")
-	debugCmd.Flags().BoolVar(&resolveFlag, "resolve", false, "Resolve the DID document")
-	debugCmd.Flags().BoolVar(&parseOnly, "parse", false, "Only parse the DID")
-	debugCmd.Flags().BoolVar(&checkCache, "cache", false, "Check cache status")
-	debugCmd.Flags().BoolVar(&verifySignature, "verify", false, "Verify a signature")
-	debugCmd.Flags().StringVar(&message, "message", "", "Message for signature verification")
-	debugCmd.Flags().StringVar(&signature, "signature", "", "Signature to verify")
-	debugCmd.Flags().BoolVarP(&verbose, "verbose", "v", false, "Verbose output")
+	debugCmd.Flags().StringVar(&debugDID, "did", "", "DID to debug (required)")
+	debugCmd.Flags().BoolVar(&debugResolve, "resolve", false, "Resolve the DID against the registry")
+	debugCmd.Flags().BoolVar(&debugParseOnly, "parse", false, "Only parse the DID")
+	debugCmd.Flags().StringVar(&debugRPCEndpoint, "rpc", "", "Blockchain RPC endpoint (default per chain)")
+	debugCmd.Flags().StringVar(&debugContractAddr, "contract", "", "Registry contract address (default per chain)")
+	debugCmd.Flags().BoolVarP(&debugVerbose, "verbose", "v", false, "Print the resolved metadata as JSON")
 
 	if err := debugCmd.MarkFlagRequired("did"); err != nil {
 		panic(fmt.Sprintf("failed to mark flag required: %v", err))
@@ -71,111 +63,71 @@ func init() {
 }
 
 func runDebug(cmd *cobra.Command, args []string) error {
-	fmt.Printf(" Debugging DID: %s\n\n", didString)
+	agentDID := did.AgentDID(debugDID)
+	fmt.Printf("Debugging DID: %s\n\n", agentDID)
 
-	// Create resolver
-	resolver := ethereum.NewResolverWithCache(100, 5*time.Minute)
-
-	// Parse DID
-	fmt.Println(" Parsing DID...")
-	parsedDID, err := resolver.ParseDID(didString)
+	chain, identifier, err := did.ParseDID(agentDID)
 	if err != nil {
-		fmt.Printf(" Failed to parse DID: %v\n", err)
-		return err
+		return fmt.Errorf("invalid DID: %w", err)
+	}
+	fmt.Println("Parsed:")
+	fmt.Printf("  Chain:      %s\n", chain)
+	fmt.Printf("  Identifier: %s\n", identifier)
+
+	if chain == did.ChainEthereum {
+		if common.IsHexAddress(identifier) {
+			fmt.Printf("  Address:    %s (checksummed)\n", common.HexToAddress(identifier).Hex())
+		} else {
+			fmt.Println("  Warning: identifier is not a hex Ethereum address")
+		}
 	}
 
-	fmt.Println(" DID parsed successfully:")
-	fmt.Printf("  Scheme:  %s\n", parsedDID.Scheme)
-	fmt.Printf("  Method:  %s\n", parsedDID.Method)
-	fmt.Printf("  Network: %s\n", parsedDID.Network)
-	fmt.Printf("  Address: %s\n", parsedDID.Address)
-
-	// Validate Ethereum address
-	if !common.IsHexAddress(parsedDID.Address) {
-		fmt.Printf("\n  Warning: Address is not a valid Ethereum address\n")
-	} else {
-		addr := common.HexToAddress(parsedDID.Address)
-		fmt.Printf("\n Ethereum Address (checksummed): %s\n", addr.Hex())
-	}
-
-	if parseOnly {
+	if debugParseOnly || !debugResolve {
 		return nil
 	}
 
-	// Resolve DID if requested
-	if resolveFlag {
-		fmt.Println("\n Resolving DID document...")
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+	config := &did.RegistryConfig{
+		Chain:           chain,
+		RPCEndpoint:     debugRPCEndpoint,
+		ContractAddress: debugContractAddr,
+	}
+	if config.RPCEndpoint == "" {
+		config.RPCEndpoint = getDefaultRPCEndpoint(chain)
+	}
+	if config.ContractAddress == "" {
+		config.ContractAddress = getDefaultContractAddress(chain)
+	}
 
-		doc, err := resolver.Resolve(ctx, didString)
+	manager := did.NewManager()
+	if err := manager.Configure(chain, config); err != nil {
+		return fmt.Errorf("failed to configure DID manager: %w", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	fmt.Printf("\nResolving via %s (%s)...\n", config.RPCEndpoint, config.ContractAddress)
+	start := time.Now()
+	metadata, err := manager.ResolveAgent(ctx, agentDID)
+	if err != nil {
+		return fmt.Errorf("failed to resolve DID: %w", err)
+	}
+	fmt.Printf("Resolved in %s\n", time.Since(start).Round(time.Millisecond))
+
+	if debugVerbose {
+		out, err := json.MarshalIndent(metadata, "", "  ")
 		if err != nil {
-			fmt.Printf(" Failed to resolve DID: %v\n", err)
-			return err
+			return fmt.Errorf("failed to encode metadata: %w", err)
 		}
-
-		fmt.Println(" DID document resolved:")
-
-		if verbose {
-			// Pretty print JSON
-			docJSON, err := json.MarshalIndent(doc, "  ", "  ")
-			if err != nil {
-				fmt.Printf("  Failed to marshal document: %v\n", err)
-			} else {
-				fmt.Printf("%s\n", docJSON)
-			}
-		} else {
-			fmt.Printf("  ID:         %s\n", doc.ID)
-			fmt.Printf("  Controller: %s\n", doc.Controller)
-			fmt.Printf("  Public Key: %s...\n", doc.PublicKey[:20])
-			fmt.Printf("  Created:    %s\n", doc.Created.Format(time.RFC3339))
-			fmt.Printf("  Updated:    %s\n", doc.Updated.Format(time.RFC3339))
-			fmt.Printf("  Revoked:    %v\n", doc.Revoked)
-		}
+		fmt.Println(string(out))
+		return nil
 	}
-
-	// Check cache if requested
-	if checkCache {
-		fmt.Println("\n Checking cache...")
-
-		// Try to resolve from cache (it should be instant if cached)
-		start := time.Now()
-		ctx := context.Background()
-		_, err := resolver.Resolve(ctx, didString)
-		duration := time.Since(start)
-
-		if err != nil {
-			fmt.Printf(" Cache check failed: %v\n", err)
-		} else {
-			if duration < 1*time.Millisecond {
-				fmt.Printf(" DID is cached (resolution time: %v)\n", duration)
-			} else {
-				fmt.Printf("ℹ  DID not in cache (resolution time: %v)\n", duration)
-			}
-		}
-	}
-
-	// Verify signature if requested
-	if verifySignature && message != "" && signature != "" {
-		fmt.Println("\n Verifying signature...")
-		fmt.Printf("  Message:   %s\n", message)
-		fmt.Printf("  Signature: %s...\n", signature[:20])
-
-		// This would need the actual implementation
-		fmt.Println("  Signature verification not fully implemented in debug mode")
-	}
-
-	// Print summary
-	if verbose {
-		fmt.Println("\n Debug Summary:")
-		fmt.Printf("  DID Valid:     %v\n", err == nil)
-		fmt.Printf("  Network:       %s\n", parsedDID.Network)
-		fmt.Printf("  Address Valid: %v\n", common.IsHexAddress(parsedDID.Address))
-
-		if resolveFlag {
-			fmt.Printf("  Resolvable:    true\n")
-		}
-	}
-
+	fmt.Printf("  Name:        %s\n", metadata.Name)
+	fmt.Printf("  Endpoint:    %s\n", metadata.Endpoint)
+	fmt.Printf("  Owner:       %s\n", metadata.Owner)
+	fmt.Printf("  Active:      %v\n", metadata.IsActive)
+	fmt.Printf("  Signing key: %v\n", metadata.PublicKey != nil)
+	fmt.Printf("  KEM key:     %v\n", metadata.PublicKEMKey != nil)
+	fmt.Printf("  Updated:     %s\n", metadata.UpdatedAt.Format(time.RFC3339))
 	return nil
 }
