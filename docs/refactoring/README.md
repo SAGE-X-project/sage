@@ -4,6 +4,7 @@ Artifacts produced for the 2026-09 dependency update and refactoring design.
 
 | Path | What |
 |---|---|
+| `BACKLOG.md` | Tracking list of every finding (governance, security wiring, contracts, refactoring, docs, strategy) with ID, severity, source and status. Update here when an item lands. |
 | `STRATEGY.md` | Final synthesis: protocol-first multi-repository target (spec + Go reference + Rust FFI/WASM core + SDKs + gateway + contracts), determinism requirements, threat coverage, migration sequence, versioning and licensing policy. Start here. |
 | `SECURITY_WIRING_AUDIT.md` | Which security controls sit on the real request paths, which are dead code, executed proof tests, determinism analysis, prioritised wiring fixes. |
 | `SUPPLY_CHAIN_AUDIT.md` | CI/release/governance audit with Scorecard-style checklist and P0/P1/P2 remediation, multi-repo version policy. |
