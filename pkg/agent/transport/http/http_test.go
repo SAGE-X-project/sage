@@ -198,25 +198,25 @@ func TestHTTPServer_Validation(t *testing.T) {
 
 		tests := []struct {
 			name    string
-			message *wireMessage
+			message *transport.WireMessage
 		}{
 			{
 				name: "Missing ID",
-				message: &wireMessage{
+				message: &transport.WireMessage{
 					Payload: []byte("payload"),
 					DID:     "did:sage:ethereum:0x123",
 				},
 			},
 			{
 				name: "Missing DID",
-				message: &wireMessage{
+				message: &transport.WireMessage{
 					ID:      "msg-123",
 					Payload: []byte("payload"),
 				},
 			},
 			{
 				name: "Missing Payload",
-				message: &wireMessage{
+				message: &transport.WireMessage{
 					ID:  "msg-123",
 					DID: "did:sage:ethereum:0x123",
 				},
@@ -304,7 +304,7 @@ func TestHTTPServer_IdentityHeadersCannotOverrideBody(t *testing.T) {
 	req.Header.Set("X-SAGE-DID", "did:sage:ethereum:0xattacker")
 	rec := httptest.NewRecorder()
 	server.ServeHTTP(rec, req)
-	var wire wireResponse
+	var wire transport.WireResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &wire); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}

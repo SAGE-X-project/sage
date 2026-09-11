@@ -186,26 +186,11 @@ func (m *MultiChainResolver) Search(ctx context.Context, criteria SearchCriteria
 	return allAgents, nil
 }
 
-// extractChainFromDID attempts to determine the chain from a DID
-// Format: did:sage:chain:identifier
+// extractChainFromDID returns the chain a DID belongs to, using ParseDID.
 func extractChainFromDID(did AgentDID) (Chain, error) {
-	didStr := string(did)
-	if len(didStr) < 10 || didStr[:4] != "did:" {
-		return "", fmt.Errorf("invalid DID format")
+	chain, _, err := ParseDID(did)
+	if err != nil {
+		return "", fmt.Errorf("cannot determine chain from DID: %w", err)
 	}
-
-	// Simple extraction - can be enhanced based on actual DID format
-	if len(didStr) > 14 && didStr[4:9] == "sage:" {
-		parts := didStr[9:]
-		if len(parts) > 4 {
-			switch parts[:3] {
-			case "eth":
-				return ChainEthereum, nil
-			case "sol":
-				return ChainSolana, nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("cannot determine chain from DID")
+	return chain, nil
 }

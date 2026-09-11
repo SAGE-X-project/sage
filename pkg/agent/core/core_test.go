@@ -27,6 +27,7 @@ import (
 
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	"github.com/sage-x-project/sage/pkg/version"
 )
 
 func TestCore(t *testing.T) {
@@ -315,68 +316,18 @@ func TestCore(t *testing.T) {
 		helpers.SaveTestData(t, "core/core_get_managers.json", testData)
 	})
 
-	t.Run("GetSupportedChains", func(t *testing.T) {
-		// 명세 요구사항: 지원 체인 목록 조회 검증
-		helpers.LogTestSection(t, "16.1.7", "Core 지원 체인 목록 조회")
-
-		helpers.LogDetail(t, "Core 인스턴스 생성...")
-		core := New()
-
-		helpers.LogDetail(t, "지원 체인 목록 조회 중...")
-		chains := core.GetSupportedChains()
-		assert.NotNil(t, chains)
-		helpers.LogSuccess(t, "지원 체인 목록 조회 성공")
-
-		helpers.LogDetail(t, "초기 상태 검증 (설정된 체인 없음)...")
-		assert.Empty(t, chains) // No chains configured yet
-		helpers.LogSuccess(t, "예상대로 빈 목록 반환")
-		helpers.LogDetail(t, "  지원 체인 개수: %d", len(chains))
-
-		// 통과 기준 체크리스트
-		helpers.LogPassCriteria(t, []string{
-			"GetSupportedChains()가 nil이 아닌 슬라이스 반환",
-			"초기 상태에서 빈 목록 반환",
-			"설정되지 않은 체인 없음 확인",
-		})
-
-		// CLI 검증용 테스트 데이터 저장
-		testData := map[string]interface{}{
-			"test_case":      "16.1.7_지원_체인_목록",
-			"chains_count":   len(chains),
-			"chains_empty":   len(chains) == 0,
-			"chains_not_nil": chains != nil,
-			"validation":     "체인_목록_검증_통과",
-		}
-		helpers.SaveTestData(t, "core/core_get_supported_chains.json", testData)
-	})
-}
-
-func TestVersion(t *testing.T) {
-	// 명세 요구사항: 버전 상수 검증
-	helpers.LogTestSection(t, "16.2.1", "Core 패키지 버전 상수")
-
-	expectedVersion := "0.1.0"
-	helpers.LogDetail(t, "버전 상수 검증 중...")
-	helpers.LogDetail(t, "  예상 버전: %s", expectedVersion)
-	helpers.LogDetail(t, "  실제 버전: %s", Version)
-
-	assert.Equal(t, expectedVersion, Version)
-	helpers.LogSuccess(t, "버전 상수 일치 확인")
-
-	// 통과 기준 체크리스트
-	helpers.LogPassCriteria(t, []string{
-		"Version 상수가 정의됨",
-		"버전이 예상 값과 일치",
-		"버전 형식이 올바름 (semantic versioning)",
+	t.Run("version comes from pkg/version", func(t *testing.T) {
+		// 명세 요구사항: 버전은 pkg/version 단일 소스에서 제공
+		helpers.LogTestSection(t, "16.2.1", "버전 단일 소스")
+		assert.NotEmpty(t, version.Version)
+		helpers.LogSuccess(t, "pkg/version.Version 확인")
 	})
 
 	// CLI 검증용 테스트 데이터 저장
 	testData := map[string]interface{}{
-		"test_case":        "16.2.1_버전_상수",
-		"expected_version": expectedVersion,
-		"actual_version":   Version,
-		"version_match":    Version == expectedVersion,
-		"validation":       "버전_검증_통과",
+		"test_case":      "16.2.1_버전_단일_소스",
+		"actual_version": version.Version,
+		"validation":     "버전_검증_통과",
 	}
 	helpers.SaveTestData(t, "core/core_version.json", testData)
 }

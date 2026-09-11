@@ -40,14 +40,7 @@ import (
 // TODO: Refactor other commands to use three-phase registration flow
 
 func parseChain(chainStr string) (did.Chain, error) {
-	switch strings.ToLower(chainStr) {
-	case "ethereum", "eth":
-		return did.ChainEthereum, nil
-	case "solana", "sol":
-		return did.ChainSolana, nil
-	default:
-		return "", fmt.Errorf("unsupported chain: %s", chainStr)
-	}
+	return did.ParseChain(chainStr)
 }
 
 func loadKeyPair() (crypto.KeyPair, error) {

@@ -36,10 +36,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestVersion(t *testing.T) {
-	assert.Equal(t, "0.1.0", Version)
-}
-
 func TestGetDefaultManager(t *testing.T) {
 	manager := GetDefaultManager()
 	assert.NotNil(t, manager)

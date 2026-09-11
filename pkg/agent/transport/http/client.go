@@ -82,7 +82,7 @@ func (t *HTTPTransport) Send(ctx context.Context, msg *transport.SecureMessage) 
 	}
 
 	// Convert SecureMessage to HTTP wire format
-	wireMsg := toWireMessage(msg)
+	wireMsg := transport.ToWireMessage(msg)
 
 	// Marshal to JSON
 	jsonData, err := json.Marshal(wireMsg)
@@ -153,7 +153,7 @@ func (t *HTTPTransport) Send(ctx context.Context, msg *transport.SecureMessage) 
 	}
 
 	// Parse response
-	var wireResp wireResponse
+	var wireResp transport.WireResponse
 	if err := json.Unmarshal(respBody, &wireResp); err != nil {
 		return &transport.Response{
 			Success:   false,
@@ -165,66 +165,5 @@ func (t *HTTPTransport) Send(ctx context.Context, msg *transport.SecureMessage) 
 	}
 
 	// Convert to transport.Response
-	return fromWireResponse(&wireResp, msg.ID, msg.TaskID), nil
-}
-
-// wireMessage is the JSON representation of SecureMessage for HTTP transport
-type wireMessage struct {
-	ID        string            `json:"id"`
-	ContextID string            `json:"context_id,omitempty"`
-	TaskID    string            `json:"task_id,omitempty"`
-	Payload   []byte            `json:"payload"`
-	DID       string            `json:"did"`
-	Signature []byte            `json:"signature"`
-	Metadata  map[string]string `json:"metadata,omitempty"`
-	Role      string            `json:"role,omitempty"`
-}
-
-// wireResponse is the JSON representation of Response for HTTP transport
-type wireResponse struct {
-	Success   bool   `json:"success"`
-	MessageID string `json:"message_id"`
-	TaskID    string `json:"task_id,omitempty"`
-	Data      []byte `json:"data,omitempty"`
-	Error     string `json:"error,omitempty"`
-}
-
-// toWireMessage converts transport.SecureMessage to HTTP wire format
-func toWireMessage(msg *transport.SecureMessage) *wireMessage {
-	return &wireMessage{
-		ID:        msg.ID,
-		ContextID: msg.ContextID,
-		TaskID:    msg.TaskID,
-		Payload:   msg.Payload,
-		DID:       msg.DID,
-		Signature: msg.Signature,
-		Metadata:  msg.Metadata,
-		Role:      msg.Role,
-	}
-}
-
-// fromWireResponse converts HTTP wire response to transport.Response
-func fromWireResponse(resp *wireResponse, msgID, taskID string) *transport.Response {
-	result := &transport.Response{
-		Success:   resp.Success,
-		MessageID: resp.MessageID,
-		TaskID:    resp.TaskID,
-		Data:      resp.Data,
-	}
-
-	// Use provided IDs if response doesn't include them
-	if result.MessageID == "" {
-		result.MessageID = msgID
-	}
-	if result.TaskID == "" {
-		result.TaskID = taskID
-	}
-
-	// Convert error string to error type
-	if resp.Error != "" {
-		result.Error = fmt.Errorf("%s", resp.Error)
-		result.Success = false
-	}
-
-	return result
+	return transport.FromWireResponse(&wireResp, msg.ID, msg.TaskID), nil
 }

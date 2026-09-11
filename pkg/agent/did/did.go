@@ -23,9 +23,6 @@ import (
 	"fmt"
 )
 
-// Version of the DID module
-const Version = "0.1.0"
-
 // Default DID manager instance
 var defaultManager = NewManager()
 
