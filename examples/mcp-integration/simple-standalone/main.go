@@ -27,6 +27,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
@@ -44,27 +45,52 @@ type ToolResponse struct {
 	Error  string      `json:"error,omitempty"`
 }
 
-// Simple SAGE verification helper
-func verifySAGERequest(r *http.Request) error {
-	// In a real implementation, you would:
-	// 1. Get the agent DID from header
-	// 2. Resolve the public key from blockchain
-	// 3. Verify the signature
+// trustedAgents maps an agent DID to its Ed25519 public key. A production
+// server resolves the key from the agent's on-chain DID document
+// (did.Manager.ResolvePublicKey); this self-contained demo trusts the key it
+// generated for the demo client. Nothing else is accepted.
+var (
+	trustedAgents   = map[string]ed25519.PublicKey{}
+	trustedAgentsMu sync.RWMutex
+	// One verifier for the server: it keeps the replay guard that rejects a
+	// nonce presented twice.
+	serverVerifier = rfc9421.NewHTTPVerifier()
+)
 
-	// For this demo, we'll do basic signature verification
-	signature := r.Header.Get("Signature")
-	if signature == "" {
-		return fmt.Errorf("missing signature header")
+func trustAgent(agentDID string, pub ed25519.PublicKey) {
+	trustedAgentsMu.Lock()
+	defer trustedAgentsMu.Unlock()
+	trustedAgents[agentDID] = pub
+}
+
+// verifySAGERequest verifies the RFC 9421 signature of a request: the
+// signature must cover method, target, authority and the body digest, carry
+// a fresh nonce, and be made with the key of the DID named in its keyid.
+func verifySAGERequest(r *http.Request) (string, error) {
+	inputs, err := rfc9421.ParseSignatureInput(r.Header.Get("Signature-Input"))
+	if err != nil || len(inputs) == 0 {
+		return "", fmt.Errorf("missing or malformed Signature-Input header")
+	}
+	var keyID string
+	for _, params := range inputs {
+		keyID = params.KeyID
+		break
+	}
+	agentDID := rfc9421.KeyIDDID(keyID)
+
+	trustedAgentsMu.RLock()
+	pub, ok := trustedAgents[agentDID]
+	trustedAgentsMu.RUnlock()
+	if !ok {
+		return "", fmt.Errorf("unknown agent %q", agentDID)
 	}
 
-	agentDID := r.Header.Get("X-Agent-DID")
-	if agentDID == "" {
-		return fmt.Errorf("missing X-Agent-DID header")
+	opts := rfc9421.StrictHTTPVerificationOptions()
+	opts.ExpectedDID = agentDID
+	if err := serverVerifier.VerifyRequest(r, pub, opts); err != nil {
+		return "", err
 	}
-
-	// In a real app, verify the signature here
-	fmt.Printf(" Request from agent: %s\n", agentDID)
-	return nil
+	return agentDID, nil
 }
 
 // Weather tool handler - WITHOUT SAGE (vulnerable)
@@ -95,11 +121,14 @@ func insecureWeatherHandler(w http.ResponseWriter, r *http.Request) {
 
 // Weather tool handler - WITH SAGE (secure)
 func secureWeatherHandler(w http.ResponseWriter, r *http.Request) {
-	// SAGE verification - just add this!
-	if err := verifySAGERequest(r); err != nil {
-		http.Error(w, fmt.Sprintf("Unauthorized: %v", err), http.StatusUnauthorized)
+	// SAGE verification: signature, body digest, freshness, replay, identity.
+	agentDID, err := verifySAGERequest(r)
+	if err != nil {
+		fmt.Printf(" Request rejected: %v\n", err)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
+	fmt.Printf(" Verified request from agent: %s\n", agentDID)
 
 	// Rest of the code is exactly the same
 	var req ToolRequest
@@ -136,6 +165,9 @@ func makeSAGERequest() {
 	}
 
 	privateKey, _ := keyPair.PrivateKey().(ed25519.PrivateKey)
+	// The demo server trusts this key for the demo DID (a real server resolves it on-chain).
+	const agentDID = "did:sage:demo:agent123"
+	trustAgent(agentDID, keyPair.PublicKey().(ed25519.PublicKey))
 
 	// Create request
 	reqBody := ToolRequest{
@@ -150,7 +182,7 @@ func makeSAGERequest() {
 
 	// Add headers
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Agent-DID", "did:sage:demo:agent123")
+	req.Header.Set("X-Agent-DID", agentDID)
 	req.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	// Bind the body to the signature (verifiers require it in strict mode).
 	req.Header.Set("Content-Digest", rfc9421.ComputeContentDigest(bodyBytes))
@@ -167,7 +199,7 @@ func makeSAGERequest() {
 			`"x-agent-did"`,
 			`"date"`,
 		},
-		KeyID:     "demo-key",
+		KeyID:     agentDID + "#key-1",
 		Algorithm: "ed25519",
 		Created:   time.Now().Unix(),
 		Nonce:     newNonce(),

@@ -82,8 +82,8 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 
 | ID | Item | Severity | Source | Status |
 |---|---|---|---|---|
-| E-01 | Remove or rewrite security-overclaiming examples and SDK READMEs (`a2a-integration/04`, `mcp-integration/*`, `sdk/*/README.md`) | [중요] | `DOCS_GRAPH.md` §5 priority 1 | Open |
-| E-02 | `contracts/ethereum/docs/GOVERNANCE-SETUP.md` assumes Ownable ERC-8004 registries (see C-01) | [중요] | §5 priority 1 | Open |
+| E-01 | Remove or rewrite security-overclaiming examples and SDK READMEs (`a2a-integration/04`, `mcp-integration/*`, `sdk/*/README.md`) | [중요] | `DOCS_GRAPH.md` §5 priority 1 | PR (`a2a-integration/04` encrypts with real HPKE via `keys.HPKESealAndExportToX25519Peer`; `simple-standalone` and `vulnerable-vs-secure/secure-chat` verify RFC 9421 signatures with `HTTPVerifier` strict options against a trusted-key table; READMEs state what is and is not checked; SDK READMEs in D-08) |
+| E-02 | `contracts/ethereum/docs/GOVERNANCE-SETUP.md` assumes Ownable ERC-8004 registries (see C-01) | [중요] | §5 priority 1 | PR (status banner: draft, scripts missing, redeploy required; docs index updated). A verified runbook is written after C-01 |
 | E-03 | `docs/INDEX.md`: 17 dead targets, missing newer docs, wrong `deployment-verify` description | [권장] | §5 priority 1 | Open |
 | E-04 | Retire V2/V4-era documents (`pkg/agent/did/README.md`, `docs/did/*`, `docs/SAGE_A2A_INTEGRATION_GUIDE.md`, `docs/audit/*`, verification guides, `DETAILED_GUIDE_PART*`, test sections) | [권장] | §5 priority 2 | Open |
 | E-05 | Archive planning-era design docs (`docs/dev/*`, `docs/planning/*`, optimisation plans) under `archive/` with dates | [권장] | §5 priority 3 | Open |

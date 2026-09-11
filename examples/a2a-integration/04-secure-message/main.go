@@ -27,7 +27,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	dideth "github.com/sage-x-project/sage/pkg/agent/did/ethereum"
@@ -47,12 +46,12 @@ import (
 // - Multi-key agents for maximum security
 
 type SecureMessage struct {
-	From      string `json:"from"`      // Sender's DID
-	To        string `json:"to"`        // Recipient's DID
-	Timestamp string `json:"timestamp"` // Message timestamp
-	Content   []byte `json:"content"`   // Encrypted content
-	Signature []byte `json:"signature"` // Ed25519 signature of content
-	Nonce     []byte `json:"nonce"`     // HPKE nonce/encapsulated key
+	From      string `json:"from"`            // Sender's DID
+	To        string `json:"to"`              // Recipient's DID
+	Timestamp string `json:"timestamp"`       // Message timestamp
+	Content   []byte `json:"content"`         // Encrypted content
+	Signature []byte `json:"signature"`       // Ed25519 signature of content
+	Nonce     []byte `json:"nonce,omitempty"` // unused: HPKE carries the encapsulated key in Content
 }
 
 func main() {
@@ -109,7 +108,7 @@ func main() {
 	fmt.Println("Generating keys for Agent A...")
 	agentAECDSA, _ := keys.GenerateSecp256k1KeyPair()
 	agentAEd25519, _ := keys.GenerateEd25519KeyPair()
-	agentAX25519, _ := crypto.GenerateX25519KeyPair()
+	agentAX25519, _ := keys.GenerateX25519KeyPair()
 
 	agentAEd25519Pub, _ := did.MarshalPublicKey(agentAEd25519.PublicKey())
 	agentAX25519Pub, _ := did.MarshalPublicKey(agentAX25519.PublicKey())
@@ -118,7 +117,7 @@ func main() {
 	fmt.Println("Generating keys for Agent B...")
 	agentBECDSA, _ := keys.GenerateSecp256k1KeyPair()
 	agentBEd25519, _ := keys.GenerateEd25519KeyPair()
-	agentBX25519, _ := crypto.GenerateX25519KeyPair()
+	agentBX25519, _ := keys.GenerateX25519KeyPair()
 
 	agentBEd25519Pub, _ := did.MarshalPublicKey(agentBEd25519.PublicKey())
 	agentBX25519Pub, _ := did.MarshalPublicKey(agentBX25519.PublicKey())
@@ -193,21 +192,21 @@ func main() {
 	fmt.Printf("Message length: %d bytes\n", len(plaintext))
 	fmt.Println()
 
-	// Encrypt using Agent B's X25519 public key
+	// Encrypt for Agent B with HPKE (RFC 9180): X25519 KEM, HKDF-SHA256,
+	// ChaCha20-Poly1305. The packet is enc || ciphertext; info binds the two
+	// DIDs so the message cannot be re-targeted.
 	fmt.Println(" Encrypting message with HPKE...")
 	fmt.Println("   Using Agent B's X25519 public key")
 
-	// Note: In a real implementation, you would use HPKE encryption here
-	// For this example, we'll demonstrate the key exchange and signing workflow
-	// The actual HPKE implementation would use crypto.EncryptHPKE(agentBX25519.PublicKey(), plaintext)
-
-	// For demonstration: we'll use a simplified encryption (in production, use HPKE)
-	ciphertext := make([]byte, len(plaintext))
-	copy(ciphertext, plaintext)
-	// In production: ciphertext, nonce, err := hpke.Seal(agentBX25519PublicKey, plaintext, nil)
+	hpkeInfo := []byte(string(agentADID) + "->" + string(agentBDID))
+	ciphertext, _, err := keys.HPKESealAndExportToX25519Peer(agentBX25519.PublicKey(), plaintext, hpkeInfo, nil, 0)
+	if err != nil {
+		fmt.Printf(" HPKE encryption failed: %v\n", err)
+		os.Exit(1)
+	}
 
 	fmt.Println(" Message encrypted")
-	fmt.Printf("  Ciphertext length: %d bytes\n", len(ciphertext))
+	fmt.Printf("  Ciphertext length: %d bytes (32-byte KEM encapsulation + AEAD ciphertext)\n", len(ciphertext))
 	fmt.Println()
 
 	// Sign the ciphertext with Agent A's Ed25519 key
@@ -231,7 +230,7 @@ func main() {
 		Timestamp: time.Now().Format(time.RFC3339),
 		Content:   ciphertext,
 		Signature: signature,
-		Nonce:     []byte{}, // In production, this would be the HPKE nonce
+		Nonce:     nil, // HPKE carries the encapsulated key inside Content
 	}
 
 	// Serialize to JSON for transport
@@ -270,8 +269,7 @@ func main() {
 	fmt.Println(" Verifying signature...")
 	fmt.Println("   Using Agent A's Ed25519 public key")
 
-	valid, err := agentAEd25519.PublicKey().Verify(receivedMsg.Content, receivedMsg.Signature)
-	if err != nil || !valid {
+	if err := keys.VerifySignature(agentAEd25519.PublicKey(), receivedMsg.Content, receivedMsg.Signature); err != nil {
 		fmt.Printf(" Signature verification failed: %v\n", err)
 		os.Exit(1)
 	}
@@ -284,9 +282,12 @@ func main() {
 	fmt.Println(" Decrypting message...")
 	fmt.Println("   Using Agent B's X25519 private key")
 
-	// In production: decrypted, err := hpke.Open(agentBX25519PrivateKey, receivedMsg.Content, receivedMsg.Nonce, nil)
-	// For demonstration:
-	decrypted := receivedMsg.Content
+	decrypted, _, err := keys.HPKEOpenAndExportWithX25519Priv(agentBX25519.PrivateKey(), receivedMsg.Content,
+		[]byte(receivedMsg.From+"->"+receivedMsg.To), nil, 0)
+	if err != nil {
+		fmt.Printf(" HPKE decryption failed: %v\n", err)
+		os.Exit(1)
+	}
 
 	fmt.Println(" Message decrypted!")
 	fmt.Println()

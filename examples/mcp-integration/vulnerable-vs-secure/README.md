@@ -37,7 +37,7 @@ go run .
 ```bash
 cd attacker
 go run . --secure
-# Attack fails! SAGE protects the server
+# Every unsigned request is rejected (401)
 ```
 
 ## What You'll See
@@ -57,9 +57,14 @@ go run . --secure
  SECURE Chat Server (SAGE PROTECTED)
  Listening on http://localhost:8083
 
- Request rejected: SAGE verification failed: missing X-Agent-DID header
-  Attack blocked!
+ Request rejected: missing or malformed Signature-Input header
 ```
+
+The secure server accepts only requests carrying a valid RFC 9421 signature
+from a key listed in `SAGE_TRUSTED_AGENTS` (`did=hex-ed25519-public-key;...`).
+The attacker sends unsigned requests, so every one is rejected. What the demo
+does **not** show: on-chain DID resolution (keys come from the environment)
+and capability checks.
 
 ## The Code Difference
 
@@ -71,11 +76,12 @@ func handleChat(w http.ResponseWriter, r *http.Request) {
 }
 ```
 
-### Secure (6 lines):
+### Secure:
 ```go
 func handleChat(w http.ResponseWriter, r *http.Request) {
-    // Add SAGE verification
-    if err := sage.VerifyRequest(r); err != nil {
+    // Verify the RFC 9421 signature against the agent's trusted key
+    agentDID, err := verifyRequest(r) // rfc9421.HTTPVerifier.VerifyRequest with strict options
+    if err != nil {
         http.Error(w, "Unauthorized", 401)
         return
     }

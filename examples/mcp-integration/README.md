@@ -79,7 +79,7 @@ go run .
 # Terminal 4: Try attacks on secure server
 cd ../attacker
 go run . --secure
-# All attacks blocked!
+# Unsigned requests are rejected with 401
 ```
 
 ### 5. [client/](./client/) - AI Agent Client
