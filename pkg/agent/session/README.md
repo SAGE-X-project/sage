@@ -70,6 +70,26 @@ After agents complete a handshake (using HPKE key agreement), they establish a s
 - RFC 8439 (ChaCha20 and Poly1305)
 - IETF variant (96-bit nonce)
 
+**Wire format and replay protection:**
+
+```
+seq (8 bytes, big-endian) || nonce (12 bytes, random) || ciphertext || tag
+```
+
+- `seq` is a per-session, per-direction counter starting at 0. It is bound to the
+  ciphertext as the first 8 bytes of the AEAD associated data (followed by the
+  caller's AAD), so it cannot be changed without failing authentication.
+- The receiver keeps a sliding window of `ReplayWindowSize` (1024) sequence
+  numbers below the highest accepted one. A duplicate returns
+  `ErrReplayedMessage`; a message older than the window returns
+  `ErrStaleMessage`; messages inside the window may arrive out of order.
+  Only authenticated messages update the window.
+- With `Config.RekeyInterval > 0` (Manager default: 256) the AEAD key of a
+  direction rotates every `RekeyInterval` messages. Message `seq` uses key
+  generation `seq / RekeyInterval`; generation `g > 0` is
+  `HKDF-SHA256(sessionSeed, salt = session id, info = "sage-session-rekey-v1" || direction || g)`.
+  Both peers derive the same schedule, so rotation needs no extra messages.
+
 **Why ChaCha20-Poly1305?**
 -  Constant-time (side-channel resistant)
 -  Fast on all platforms (no hardware dependency)
@@ -148,7 +168,7 @@ func (m *Manager) GetStatus() Status
 - Automatic background cleanup (every 30 seconds)
 - Session expiration (max age, idle timeout)
 - KeyID binding for quick lookups
-- Replay attack prevention (nonce cache)
+- Replay attack prevention (per-message sequence number and sliding window; nonce cache for RFC 9421 key IDs)
 - Session pooling for zero allocation
 
 ### Session Interface

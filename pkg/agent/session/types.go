@@ -53,6 +53,10 @@ type Config struct {
 	MaxAge      time.Duration `json:"maxAge"`      // absolute expiration (ex: 1 hour)
 	IdleTimeout time.Duration `json:"idleTimeout"` // idle timeout (ex: 10munutes)
 	MaxMessages int           `json:"maxMessages"`
+	// RekeyInterval is the number of messages per direction after which the
+	// AEAD key is rotated (see the wire format in session.go). 0 disables
+	// rotation; Manager substitutes DefaultRekeyInterval.
+	RekeyInterval uint64 `json:"rekeyInterval"`
 }
 
 // Status provides information about session status

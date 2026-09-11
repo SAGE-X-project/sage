@@ -45,9 +45,10 @@ func NewManager() *Manager {
 		sessions:    make(map[string]Session),
 		stopCleanup: make(chan struct{}),
 		defaultConfig: Config{
-			MaxAge:      time.Hour,        // 1-hour absolute expiration
-			IdleTimeout: 10 * time.Minute, // 10-minute idle timeout
-			MaxMessages: 1000,
+			MaxAge:        time.Hour,        // 1-hour absolute expiration
+			IdleTimeout:   10 * time.Minute, // 10-minute idle timeout
+			MaxMessages:   1000,
+			RekeyInterval: DefaultRekeyInterval,
 		},
 		nonceCache: NewNonceCache(10 * time.Minute), // replay TTL
 		sessionPool: sync.Pool{
@@ -469,6 +470,9 @@ func withDefaults(c Config) Config {
 	}
 	if c.MaxMessages == 0 {
 		c.MaxMessages = 1000 // default max message count
+	}
+	if c.RekeyInterval == 0 {
+		c.RekeyInterval = DefaultRekeyInterval
 	}
 	return c
 }

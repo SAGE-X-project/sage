@@ -305,9 +305,10 @@ func TestManager_EnsureSessionWithParams_DeterminismAndConfig(t *testing.T) {
 		p := Params{ContextID: "ctx-cfg", SelfEph: eA, SharedSecret: secret, PeerEph: eB, Label: "label-y"}
 
 		custom := &Config{
-			MaxAge:      250 * time.Millisecond,
-			IdleTimeout: 120 * time.Millisecond,
-			MaxMessages: 7,
+			MaxAge:        250 * time.Millisecond,
+			IdleTimeout:   120 * time.Millisecond,
+			MaxMessages:   7,
+			RekeyInterval: 4,
 		}
 
 		s1, sid, existed, err := mgr.EnsureSessionWithParams(p, custom)
