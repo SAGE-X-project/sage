@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/sage-x-project/sage/pkg/agent/core/message/nonce"
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 )
 
 // Verifier provides RFC-9421 signature verification
@@ -189,20 +190,22 @@ func (v *Verifier) verifySignatureWithAlgorithm(publicKey interface{}, message, 
 			return fmt.Errorf("invalid public key type for ECDSA")
 		}
 
-		// ECDSA signatures in Ethereum are typically 65 bytes (r + s + v)
-		// But standard ECDSA is just r + s (64 bytes)
+		// secp256k1 keys follow the Ethereum convention (Keccak-256, r||s[||v])
+		// so that the same signature is valid for SAGE and for ecrecover.
+		if keys.IsSecp256k1Curve(ecdsaKey.Curve) {
+			if err := keys.VerifySecp256k1Keccak(ecdsaKey, message, signature); err != nil {
+				return fmt.Errorf("ECDSA (secp256k1) signature verification failed: %w", err)
+			}
+			return nil
+		}
+
+		// Other curves (P-256): SHA-256 over the signature base, raw r || s.
 		if len(signature) < 64 {
 			return fmt.Errorf("invalid ECDSA signature length: %d", len(signature))
 		}
-
-		// Extract r and s from the signature
 		r := new(big.Int).SetBytes(signature[:32])
 		s := new(big.Int).SetBytes(signature[32:64])
-
-		// Create a hash of the message
 		hash := sha256.Sum256(message)
-
-		// Verify the signature
 		if !ecdsa.Verify(ecdsaKey, hash[:], r, s) {
 			return fmt.Errorf("ECDSA signature verification failed")
 		}

@@ -20,14 +20,11 @@ package keys
 
 import (
 	"crypto"
-	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/sha256"
 	"encoding/hex"
-	"math/big"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 )
 
@@ -74,63 +71,20 @@ func (kp *secp256k1KeyPair) Type() sagecrypto.KeyType {
 	return sagecrypto.KeyTypeSecp256k1
 }
 
-// Sign signs the given message (Ethereum-compatible signature)
+// Sign signs the message with the Ethereum convention shared by every SAGE
+// path (Keccak-256, RFC 6979, r || s || v). See SignSecp256k1Keccak.
 func (kp *secp256k1KeyPair) Sign(message []byte) ([]byte, error) {
-	// For Ethereum compatibility, use Keccak256 hash
-	hash := ethcrypto.Keccak256(message)
-
-	privateKey := kp.privateKey.ToECDSA()
-
-	// Sign using Ethereum's method which includes recovery byte
-	signature, err := ethcrypto.Sign(hash, privateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return signature, nil
+	return SignSecp256k1Keccak(kp.privateKey.ToECDSA(), message)
 }
 
-// Verify verifies the signature (Ethereum-compatible)
+// Verify verifies a 64- or 65-byte Ethereum-style signature over the message.
 func (kp *secp256k1KeyPair) Verify(message, signature []byte) error {
-	// For Ethereum compatibility, use Keccak256 hash
-	hash := ethcrypto.Keccak256(message)
-
-	// Handle both 64-byte and 65-byte signatures
-	if len(signature) == 65 {
-		// Remove recovery byte for verification
-		signature = signature[:64]
-	}
-
-	// Deserialize the signature
-	r, s, err := deserializeSignature(signature)
-	if err != nil {
-		return sagecrypto.ErrInvalidSignature
-	}
-
-	// Verify the signature
-	verified := ecdsa.Verify(kp.publicKey.ToECDSA(), hash, r, s)
-	if !verified {
-		return sagecrypto.ErrInvalidSignature
-	}
-
-	return nil
+	return VerifySecp256k1Keccak(kp.publicKey.ToECDSA(), message, signature)
 }
 
 // ID returns a unique identifier for this key pair
 func (kp *secp256k1KeyPair) ID() string {
 	return kp.id
-}
-
-// deserializeSignature deserializes an ECDSA signature
-func deserializeSignature(data []byte) (*big.Int, *big.Int, error) {
-	if len(data) != 64 {
-		return nil, nil, sagecrypto.ErrInvalidSignature
-	}
-
-	r := new(big.Int).SetBytes(data[:32])
-	s := new(big.Int).SetBytes(data[32:])
-
-	return r, s, nil
 }
 
 // Secp256k1Curve returns the secp256k1 curve as an elliptic.Curve so that

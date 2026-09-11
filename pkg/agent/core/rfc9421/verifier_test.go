@@ -19,7 +19,6 @@
 package rfc9421
 
 import (
-	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -229,24 +228,11 @@ func TestVerifier(t *testing.T) {
 		helpers.LogDetail(t, "  MessageID: %s", message.MessageID)
 		helpers.LogDetail(t, "  Original Body: %q", string(originalBody))
 
-		// Step 3: SAGE Verifier로 실제 서명 생성 (ECDSA)
-		helpers.LogDetail(t, "Step 3: 실제 서명 생성 (SAGE ConstructSignatureBase + ECDSA Sign)")
+		// Step 3: SAGE Verifier로 실제 서명 생성 (ECDSA, Ethereum 규약: Keccak-256, r||s||v)
+		helpers.LogDetail(t, "Step 3: 실제 서명 생성 (SAGE ConstructSignatureBase + Keccak-256 ECDSA Sign)")
 		signatureBase := verifier.ConstructSignatureBase(message)
-		hash := sha256.Sum256([]byte(signatureBase))
-
-		// ECDSA signature using Ethereum's secp256k1 (raw r,s format, not ASN.1)
-		r, s, err := ecdsa.Sign(rand.Reader, privateKeyEth, hash[:])
+		signature, err := ethcrypto.Sign(ethcrypto.Keccak256([]byte(signatureBase)), privateKeyEth)
 		require.NoError(t, err)
-
-		// Convert to fixed-size byte arrays (32 bytes each for Secp256k1)
-		signature := make([]byte, 64)
-		rBytes := r.Bytes()
-		sBytes := s.Bytes()
-
-		// Pad with zeros if necessary (right-align in 32-byte slots)
-		copy(signature[32-len(rBytes):32], rBytes)
-		copy(signature[64-len(sBytes):64], sBytes)
-
 		message.Signature = signature
 
 		helpers.LogSuccess(t, "유효한 서명 생성 완료 (Secp256k1)")

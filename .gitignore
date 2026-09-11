@@ -621,8 +621,9 @@ target/
 mvnw
 mvnw.cmd
 
-# Runtime key storage
+# Runtime key storage (not the Go source package pkg/agent/crypto/keys)
 keys/
+!pkg/agent/crypto/keys/
 *.key
 *.pem
 

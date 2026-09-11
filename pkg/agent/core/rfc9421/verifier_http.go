@@ -35,7 +35,7 @@ import (
 
 	"github.com/sage-x-project/sage/pkg/agent/core/message/nonce"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
-	_ "github.com/sage-x-project/sage/pkg/agent/crypto/keys" // Import to register algorithms
+	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 )
 
 // DefaultMaxClockSkew bounds how far in the future a "created" parameter may
@@ -127,7 +127,15 @@ func (v *HTTPVerifier) SignRequest(req *http.Request, sigName string, params *Si
 		signature = ed25519.Sign(key, []byte(signatureBase))
 
 	case *ecdsa.PrivateKey:
-		// ECDSA requires hashed signing
+		if keys.IsSecp256k1Curve(key.Curve) {
+			// Ethereum convention: Keccak-256, deterministic, r || s || v.
+			signature, err = keys.SignSecp256k1Keccak(key, []byte(signatureBase))
+			if err != nil {
+				return fmt.Errorf("failed to sign with secp256k1: %w", err)
+			}
+			break
+		}
+		// Other curves (P-256): SHA-256 digest, raw r || s.
 		h := sha256.New()
 		h.Write([]byte(signatureBase))
 		digest := h.Sum(nil)
@@ -317,7 +325,12 @@ func (v *HTTPVerifier) verifySignature(publicKey crypto.PublicKey, message, sign
 		}
 
 	case *ecdsa.PublicKey:
-		// ECDSA signatures should be ASN.1 DER encoded
+		if keys.IsSecp256k1Curve(key.Curve) {
+			if err := keys.VerifySecp256k1Keccak(key, message, signature); err != nil {
+				return fmt.Errorf("secp256k1 signature verification failed: %w", err)
+			}
+			return nil
+		}
 		var r, s *big.Int
 		r, s, err := parseECDSASignature(signature)
 		if err != nil {
