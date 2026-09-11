@@ -29,6 +29,7 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	dideth "github.com/sage-x-project/sage/pkg/agent/did/ethereum"
 )
 
 // Example 01: Multi-Key Agent Registration
@@ -44,6 +45,9 @@ import (
 // 3. Environment variables set (see README.md)
 
 func main() {
+	// Library packages do not self-register: install the Ethereum DID client explicitly.
+	dideth.Register()
+
 	fmt.Println("╔═══════════════════════════════════════════════════════════╗")
 	fmt.Println("║     SAGE Example 01: Multi-Key Agent Registration        ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")

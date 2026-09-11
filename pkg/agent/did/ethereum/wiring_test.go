@@ -10,8 +10,11 @@ import (
 
 // Importing this package must make did.Manager.Configure able to build an
 // Ethereum client on its own.
-func TestInit_RegistersManagerClientCreator(t *testing.T) {
-	require.NotNil(t, did.GetEthereumV4ClientCreator(), "ethereum package must register a client creator for did.Manager")
+func TestRegister_InstallsManagerClientCreator(t *testing.T) {
+	Register()
+	require.NotNil(t, did.GetEthereumV4ClientCreator(), "Register must install a client creator for did.Manager")
+	Register() // idempotent
+	require.NotNil(t, did.GetEthereumV4ClientCreator())
 }
 
 // The client handed to did.Manager must satisfy both interfaces it checks.

@@ -57,13 +57,77 @@ type AlgorithmInfo struct {
 }
 
 // algorithmRegistry stores all registered algorithms
+// builtinAlgorithms is the static table of algorithms SAGE ships. It is the
+// single source of truth for key types and their RFC 9421 names; the
+// registry below is initialised from it, so no init() or blank import is
+// needed for the built-in algorithms. RegisterAlgorithm adds to it at runtime.
+var builtinAlgorithms = []AlgorithmInfo{
+	{
+		KeyType:               KeyTypeEd25519,
+		Name:                  "Ed25519",
+		Description:           "Edwards-curve Digital Signature Algorithm using Curve25519",
+		RFC9421Algorithm:      "ed25519",
+		SupportsRFC9421:       true,
+		SupportsKeyGeneration: true,
+		SupportsSignature:     true,
+	},
+	{
+		KeyType:               KeyTypeSecp256k1,
+		Name:                  "Secp256k1",
+		Description:           "ECDSA with secp256k1 curve, Ethereum convention (Keccak-256, r||s||v)",
+		RFC9421Algorithm:      "es256k",
+		SupportsRFC9421:       true,
+		SupportsKeyGeneration: true,
+		SupportsSignature:     true,
+	},
+	{
+		KeyType:               KeyTypeP256,
+		Name:                  "P-256",
+		Description:           "ECDSA with NIST P-256 curve (secp256r1, prime256v1)",
+		RFC9421Algorithm:      "ecdsa-p256-sha256",
+		SupportsRFC9421:       true,
+		SupportsKeyGeneration: true,
+		SupportsSignature:     true,
+	},
+	{
+		KeyType:               KeyTypeX25519,
+		Name:                  "X25519",
+		Description:           "Elliptic Curve Diffie-Hellman (ECDH) using Curve25519 for key exchange",
+		SupportsKeyGeneration: true,
+		SupportsEncryption:    true,
+	},
+	{
+		KeyType:               KeyTypeRSA,
+		Name:                  "RSA-PSS-SHA256",
+		Description:           "RSA with PSS padding and SHA-256",
+		RFC9421Algorithm:      "rsa-pss-sha256",
+		SupportsRFC9421:       true,
+		SupportsKeyGeneration: true,
+		SupportsSignature:     true,
+		SupportsEncryption:    true,
+	},
+}
+
 var (
-	registry                 = make(map[KeyType]*AlgorithmInfo)
-	rfc9421ToKeyType         = make(map[string]KeyType)
-	registryMutex            sync.RWMutex
-	ErrAlgorithmNotSupported = errors.New("algorithm not supported")
-	ErrAlgorithmExists       = errors.New("algorithm already registered")
+	registry, rfc9421ToKeyType = builtinRegistry()
+	registryMutex              sync.RWMutex
+	ErrAlgorithmNotSupported   = errors.New("algorithm not supported")
+	ErrAlgorithmExists         = errors.New("algorithm already registered")
 )
+
+// builtinRegistry builds the lookup maps from the static table.
+func builtinRegistry() (map[KeyType]*AlgorithmInfo, map[string]KeyType) {
+	reg := make(map[KeyType]*AlgorithmInfo, len(builtinAlgorithms))
+	byAlg := make(map[string]KeyType, len(builtinAlgorithms))
+	for i := range builtinAlgorithms {
+		info := builtinAlgorithms[i]
+		reg[info.KeyType] = &info
+		if info.SupportsRFC9421 && info.RFC9421Algorithm != "" {
+			byAlg[info.RFC9421Algorithm] = info.KeyType
+		}
+	}
+	return reg, byAlg
+}
 
 // RegisterAlgorithm registers a new algorithm in the registry
 // This should be called during package initialization

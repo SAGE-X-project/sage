@@ -28,13 +28,13 @@ const (
 	namespace = "sage"
 )
 
-var (
-	// Registry holds all SAGE metrics
-	Registry = prometheus.NewRegistry()
-)
+// Registry is the Prometheus registry every SAGE metric is registered with.
+// It carries the Go runtime and process collectors from the start.
+var Registry = newRegistry()
 
-func init() {
-	// Register Go runtime metrics
-	Registry.MustRegister(collectors.NewGoCollector())
-	Registry.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+func newRegistry() *prometheus.Registry {
+	r := prometheus.NewRegistry()
+	r.MustRegister(collectors.NewGoCollector())
+	r.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+	return r
 }

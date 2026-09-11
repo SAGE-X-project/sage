@@ -30,6 +30,7 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	dideth "github.com/sage-x-project/sage/pkg/agent/did/ethereum"
 )
 
 // Example 03: A2A Card Exchange and Verification
@@ -43,6 +44,9 @@ import (
 // This is the foundation for secure agent-to-agent communication.
 
 func main() {
+	// Library packages do not self-register: install the Ethereum DID client explicitly.
+	dideth.Register()
+
 	fmt.Println("╔═══════════════════════════════════════════════════════════╗")
 	fmt.Println("║     SAGE Example 03: A2A Card Exchange                   ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")

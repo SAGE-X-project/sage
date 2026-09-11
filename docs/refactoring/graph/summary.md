@@ -4,11 +4,11 @@ Module: `github.com/sage-x-project/sage`
 
 | Metric | Value |
 |---|---|
-| Packages | 63 |
+| Packages | 64 |
 | Symbols | 2238 |
-| Edges | 1722 |
-| Non-test LOC | 45264 |
-| Test LOC | 38296 |
+| Edges | 1745 |
+| Non-test LOC | 45290 |
+| Test LOC | 38302 |
 | Funcs+methods | 1805 |
 | Types | 433 |
 
@@ -18,18 +18,19 @@ Module: `github.com/sage-x-project/sage`
 |---|---|---|---|---|---|---|---|---|---|---|
 | cmd/deployment-verify | cmd | 1 | 159 | 0 | 1 | 0 | 0 | 0 | 1 | 7 |
 | cmd/metrics-demo | cmd | 1 | 161 | 0 | 2 | 0 | 0 | 0 | 2 | 8 |
-| cmd/sage-crypto | cmd | 7 | 1209 | 0 | 28 | 0 | 0 | 0 | 9 | 14 |
-| cmd/sage-did | cmd | 13 | 2967 | 256 | 52 | 0 | 0 | 0 | 4 | 16 |
+| cmd/sage-crypto | cmd | 7 | 1209 | 0 | 28 | 0 | 0 | 0 | 8 | 14 |
+| cmd/sage-did | cmd | 13 | 2970 | 256 | 52 | 0 | 0 | 0 | 5 | 16 |
 | cmd/sage-verify | cmd | 1 | 305 | 0 | 9 | 0 | 0 | 0 | 2 | 3 |
 | deployments/config | other | 6 | 1238 | 800 | 32 | 15 | 0 | 3 | 1 | 13 |
 | examples/mcp-integration/basic-demo | examples | 1 | 376 | 0 | 9 | 4 | 0 | 0 | 2 | 10 |
-| examples/mcp-integration/basic-tool | examples | 2 | 294 | 0 | 6 | 3 | 0 | 0 | 3 | 5 |
+| examples/mcp-integration/basic-tool | examples | 2 | 298 | 0 | 6 | 3 | 0 | 0 | 4 | 5 |
 | examples/mcp-integration/client | examples | 2 | 281 | 0 | 5 | 1 | 0 | 0 | 2 | 11 |
 | examples/mcp-integration/simple-standalone | examples | 1 | 262 | 0 | 6 | 2 | 0 | 0 | 2 | 9 |
 | examples/mcp-integration/vulnerable-vs-secure/attacker | examples | 1 | 156 | 0 | 4 | 1 | 0 | 0 | 0 | 7 |
 | examples/mcp-integration/vulnerable-vs-secure/secure-chat | examples | 1 | 138 | 0 | 4 | 2 | 0 | 0 | 0 | 5 |
 | examples/mcp-integration/vulnerable-vs-secure/vulnerable-chat | examples | 1 | 103 | 0 | 3 | 2 | 0 | 0 | 0 | 5 |
 | internal | other | 1 | 149 | 0 | 8 | 1 | 0 | 0 | 5 | 7 |
+| internal/app | internal | 1 | 43 | 0 | 1 | 0 | 0 | 2 | 6 | 0 |
 | internal/cli | internal | 1 | 71 | 70 | 1 | 1 | 0 | 2 | 3 | 3 |
 | lib | other | 1 | 60 | 0 | 4 | 0 | 0 | 0 | 3 | 3 |
 | pkg/agent/core | pkg | 2 | 320 | 797 | 17 | 4 | 1 | 2 | 4 | 3 |
@@ -39,25 +40,25 @@ Module: `github.com/sage-x-project/sage`
 | pkg/agent/core/message/order | pkg | 2 | 153 | 830 | 9 | 3 | 0 | 1 | 1 | 4 |
 | pkg/agent/core/message/validator | pkg | 2 | 175 | 450 | 5 | 3 | 0 | 0 | 4 | 3 |
 | pkg/agent/core/rfc9421 | pkg | 8 | 2212 | 4257 | 89 | 16 | 1 | 5 | 3 | 18 |
-| pkg/agent/crypto | pkg | 4 | 607 | 1684 | 27 | 11 | 6 | 20 | 0 | 9 |
+| pkg/agent/crypto | pkg | 4 | 671 | 1684 | 28 | 11 | 6 | 20 | 0 | 9 |
 | pkg/agent/crypto/chain | pkg | 4 | 620 | 593 | 25 | 9 | 4 | 5 | 2 | 9 |
-| pkg/agent/crypto/chain/ethereum | pkg | 2 | 224 | 149 | 12 | 3 | 0 | 1 | 5 | 7 |
-| pkg/agent/crypto/chain/solana | pkg | 1 | 170 | 170 | 12 | 1 | 0 | 1 | 2 | 5 |
+| pkg/agent/crypto/chain/ethereum | pkg | 2 | 228 | 149 | 12 | 3 | 0 | 2 | 5 | 7 |
+| pkg/agent/crypto/chain/solana | pkg | 1 | 174 | 170 | 12 | 1 | 0 | 2 | 2 | 5 |
 | pkg/agent/crypto/formats | pkg | 2 | 891 | 786 | 19 | 5 | 0 | 6 | 2 | 16 |
 | pkg/agent/crypto/jcs | pkg | 1 | 225 | 62 | 6 | 0 | 0 | 2 | 0 | 10 |
-| pkg/agent/crypto/keys | pkg | 9 | 1463 | 2631 | 82 | 7 | 0 | 15 | 1 | 24 |
+| pkg/agent/crypto/keys | pkg | 8 | 1365 | 2631 | 81 | 7 | 0 | 15 | 1 | 23 |
 | pkg/agent/crypto/rotation | pkg | 1 | 145 | 198 | 4 | 1 | 0 | 1 | 2 | 3 |
 | pkg/agent/crypto/storage | pkg | 2 | 312 | 824 | 13 | 3 | 0 | 2 | 2 | 7 |
 | pkg/agent/crypto/vault | pkg | 1 | 407 | 324 | 15 | 4 | 1 | 0 | 0 | 14 |
-| pkg/agent/did | pkg | 13 | 3010 | 5427 | 111 | 35 | 5 | 8 | 4 | 21 |
-| pkg/agent/did/ethereum | pkg | 5 | 1705 | 2025 | 42 | 3 | 0 | 1 | 3 | 19 |
-| pkg/agent/did/solana | pkg | 2 | 793 | 393 | 16 | 2 | 0 | 0 | 3 | 9 |
+| pkg/agent/did | pkg | 13 | 3006 | 5427 | 110 | 35 | 5 | 8 | 4 | 21 |
+| pkg/agent/did/ethereum | pkg | 5 | 1708 | 2028 | 42 | 3 | 0 | 3 | 4 | 19 |
+| pkg/agent/did/solana | pkg | 2 | 798 | 393 | 16 | 2 | 0 | 1 | 4 | 9 |
 | pkg/agent/handshake | pkg | 4 | 951 | 825 | 36 | 13 | 2 | 1 | 8 | 11 |
 | pkg/agent/hpke | pkg | 5 | 1569 | 2994 | 49 | 18 | 5 | 0 | 6 | 24 |
 | pkg/agent/session | pkg | 6 | 1752 | 2538 | 85 | 13 | 2 | 4 | 0 | 15 |
 | pkg/agent/transport | pkg | 3 | 355 | 363 | 12 | 7 | 1 | 4 | 0 | 5 |
-| pkg/agent/transport/http | pkg | 3 | 520 | 324 | 15 | 5 | 0 | 0 | 1 | 8 |
-| pkg/agent/transport/websocket | pkg | 3 | 766 | 496 | 33 | 5 | 0 | 0 | 1 | 8 |
+| pkg/agent/transport/http | pkg | 3 | 519 | 324 | 15 | 5 | 0 | 1 | 1 | 8 |
+| pkg/agent/transport/websocket | pkg | 3 | 765 | 496 | 33 | 5 | 0 | 1 | 1 | 8 |
 | pkg/blockchain/ethereum | pkg | 1 | 355 | 592 | 13 | 3 | 1 | 2 | 0 | 9 |
 | pkg/blockchain/ethereum/contracts/agentcardregistry | pkg | 3 | 5554 | 0 | 321 | 82 | 0 | 1 | 0 | 11 |
 | pkg/health | pkg | 5 | 487 | 153 | 13 | 7 | 1 | 1 | 0 | 9 |
@@ -74,7 +75,7 @@ Module: `github.com/sage-x-project/sage`
 | reports/bindings | other | 3 | 5554 | 0 | 321 | 82 | 0 | 0 | 0 | 11 |
 | tests | root | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | tests/helpers | tests | 1 | 206 | 0 | 10 | 0 | 0 | 0 | 0 | 7 |
-| tests/integration | tests | 1 | 79 | 5245 | 4 | 0 | 0 | 0 | 0 | 4 |
+| tests/integration | tests | 1 | 79 | 5248 | 4 | 0 | 0 | 0 | 0 | 4 |
 | tests/random | tests | 4 | 1564 | 0 | 48 | 18 | 0 | 0 | 0 | 15 |
 | tests/testutil | tests | 1 | 271 | 0 | 15 | 2 | 0 | 0 | 0 | 7 |
 | tools/analyze | tools | 1 | 243 | 0 | 5 | 2 | 0 | 0 | 0 | 6 |
@@ -87,15 +88,15 @@ graph LR
   cmd_deployment_verify --> deployments_config
   cmd_metrics_demo --> pkg_agent_session
   cmd_metrics_demo --> pkg_telemetry_metrics
+  cmd_sage_crypto --> internal_app
   cmd_sage_crypto --> internal_cli
   cmd_sage_crypto --> pkg_agent_crypto
   cmd_sage_crypto --> pkg_agent_crypto_chain
-  cmd_sage_crypto --> pkg_agent_crypto_chain_ethereum
-  cmd_sage_crypto --> pkg_agent_crypto_chain_solana
   cmd_sage_crypto --> pkg_agent_crypto_formats
   cmd_sage_crypto --> pkg_agent_crypto_keys
   cmd_sage_crypto --> pkg_agent_crypto_rotation
   cmd_sage_crypto --> pkg_agent_crypto_storage
+  cmd_sage_did --> internal_app
   cmd_sage_did --> internal_cli
   cmd_sage_did --> pkg_agent_crypto
   cmd_sage_did --> pkg_agent_did
@@ -108,6 +109,7 @@ graph LR
   examples_mcp_integration_basic_tool --> pkg_agent_core
   examples_mcp_integration_basic_tool --> pkg_agent_core_rfc9421
   examples_mcp_integration_basic_tool --> pkg_agent_did
+  examples_mcp_integration_basic_tool --> pkg_agent_did_ethereum
   examples_mcp_integration_client --> pkg_agent_core_rfc9421
   examples_mcp_integration_client --> pkg_agent_crypto_keys
   examples_mcp_integration_simple_standalone --> pkg_agent_core_rfc9421
@@ -117,6 +119,12 @@ graph LR
   internal --> pkg_agent_crypto_keys
   internal --> pkg_agent_handshake
   internal --> pkg_agent_session
+  internal_app --> pkg_agent_crypto_chain_ethereum
+  internal_app --> pkg_agent_crypto_chain_solana
+  internal_app --> pkg_agent_did_ethereum
+  internal_app --> pkg_agent_did_solana
+  internal_app --> pkg_agent_transport_http
+  internal_app --> pkg_agent_transport_websocket
   internal_cli --> pkg_agent_crypto
   internal_cli --> pkg_agent_crypto_formats
   internal_cli --> pkg_agent_crypto_storage
@@ -157,10 +165,12 @@ graph LR
   pkg_agent_did --> pkg_agent_crypto_jcs
   pkg_agent_did --> pkg_agent_crypto_keys
   pkg_agent_did_ethereum --> pkg_agent_crypto
+  pkg_agent_did_ethereum --> pkg_agent_crypto_chain_ethereum
   pkg_agent_did_ethereum --> pkg_agent_did
   pkg_agent_did_ethereum --> pkg_blockchain_ethereum_contracts_agentcardregistry
   pkg_agent_did_solana --> pkg_agent_crypto
   pkg_agent_did_solana --> pkg_agent_crypto_chain
+  pkg_agent_did_solana --> pkg_agent_crypto_chain_solana
   pkg_agent_did_solana --> pkg_agent_did
   pkg_agent_handshake --> pkg_agent_core_message
   pkg_agent_handshake --> pkg_agent_crypto
@@ -272,30 +282,30 @@ None.
 
 | Function | Lines | File |
 |---|---|---|
-| pkg/agent/did/ethereum.EthereumClient.Resolve | 219 | pkg/agent/did/ethereum/client.go:208 |
+| pkg/agent/did/ethereum.EthereumClient.Resolve | 219 | pkg/agent/did/ethereum/client.go:213 |
 | pkg/agent/handshake.Server.HandleMessage | 197 | pkg/agent/handshake/server.go:142 |
-| pkg/agent/did/solana.SolanaClient.Register | 131 | pkg/agent/did/solana/client.go:102 |
+| pkg/agent/did/solana.SolanaClient.Register | 131 | pkg/agent/did/solana/client.go:107 |
 | cmd/deployment-verify.main | 127 | cmd/deployment-verify/main.go:33 |
+| pkg/agent/did/solana.SolanaClient.Update | 125 | pkg/agent/did/solana/client.go:288 |
 | cmd/sage-did.runCardValidate | 125 | cmd/sage-did/card.go:230 |
-| pkg/agent/did/solana.SolanaClient.Update | 125 | pkg/agent/did/solana/client.go:283 |
-| cmd/sage-did.runKeyVerifyPop | 120 | cmd/sage-did/key.go:536 |
 | tests/random.ResultReporter.saveHTML | 120 | tests/random/reporter.go:164 |
+| cmd/sage-did.runKeyVerifyPop | 120 | cmd/sage-did/key.go:536 |
 | pkg/agent/hpke.Client.Initialize | 114 | pkg/agent/hpke/client.go:80 |
-| pkg/agent/did/solana.SolanaClient.Deactivate | 102 | pkg/agent/did/solana/client.go:410 |
+| pkg/agent/did/solana.SolanaClient.Deactivate | 102 | pkg/agent/did/solana/client.go:415 |
 | examples/mcp-integration/basic-demo.main | 101 | examples/mcp-integration/basic-demo/main.go:267 |
 | pkg/agent/crypto/formats.jwkExporter.Export | 100 | pkg/agent/crypto/formats/jwk.go:64 |
 | cmd/sage-did.runVerify | 98 | cmd/sage-did/verify.go:64 |
-| pkg/agent/did/ethereum.toKeyHashes | 97 | pkg/agent/did/ethereum/client.go:575 |
-| pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
+| pkg/agent/did/ethereum.toKeyHashes | 97 | pkg/agent/did/ethereum/client.go:580 |
 | pkg/agent/crypto/formats.pemExporter.ExportPublic | 93 | pkg/agent/crypto/formats/pem.go:139 |
+| pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
 | pkg/agent/crypto/formats.pemExporter.Export | 92 | pkg/agent/crypto/formats/pem.go:45 |
-| pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
 | cmd/sage-did.runKeyAdd | 91 | cmd/sage-did/key.go:239 |
+| pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
 | deployments/config.validateBlockchainConfig | 88 | deployments/config/validator.go:61 |
 | pkg/agent/crypto/formats.jwkExporter.ExportPublic | 84 | pkg/agent/crypto/formats/jwk.go:166 |
-| pkg/agent/did/ethereum.EthereumClient.Register | 84 | pkg/agent/did/ethereum/client.go:121 |
-| pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:133 |
+| pkg/agent/did/ethereum.EthereumClient.Register | 84 | pkg/agent/did/ethereum/client.go:126 |
 | cmd/sage-did.runRegister | 83 | cmd/sage-did/register.go:76 |
+| pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:133 |
 | examples/mcp-integration/client.SAGEClient.CallTool | 81 | examples/mcp-integration/client/sage_client.go:79 |
 
 ## Duplicate function bodies
@@ -422,7 +432,6 @@ None.
 - pkg/agent/session.SecureSession.DecryptWithAAD, pkg/agent/session.SecureSession.EncryptWithAAD
 - pkg/agent/session.SecureSession.DecryptWithAADInbound, pkg/agent/session.SecureSession.EncryptWithAADOutbound
 - pkg/agent/transport/http.fromWireResponse, pkg/agent/transport/websocket.fromWireResponse
-- pkg/agent/transport/http.init, pkg/agent/transport/websocket.init
 - pkg/agent/transport/http.toWireMessage, pkg/agent/transport/websocket.toWireMessage
 - pkg/agent/transport/http.toWireResponse, pkg/agent/transport/websocket.toWireResponse
 - pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentActivatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentDeactivatedByHashIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentDeactivatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentEndpointUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentRegistered0Iterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentRegisteredIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryAgentUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryApprovalForAgentIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryCommitmentRecordedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKEMKeyUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKeyAddedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryKeyRevokedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryOwnershipTransferStartedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryOwnershipTransferredIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryPausedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardRegistryUnpausedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentDeactivatedByHashIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentRegisteredIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageAgentUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageApprovalForAgentIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageCommitmentRecordedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKEMKeyUpdatedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKeyAddedIterator.Next, pkg/blockchain/ethereum/contracts/agentcardregistry.AgentCardStorageKeyRevokedIterator.Next, reports/bindings.AgentCardRegistryAgentActivatedIterator.Next, reports/bindings.AgentCardRegistryAgentDeactivatedByHashIterator.Next, reports/bindings.AgentCardRegistryAgentDeactivatedIterator.Next, reports/bindings.AgentCardRegistryAgentEndpointUpdatedIterator.Next, reports/bindings.AgentCardRegistryAgentRegistered0Iterator.Next, reports/bindings.AgentCardRegistryAgentRegisteredIterator.Next, reports/bindings.AgentCardRegistryAgentUpdatedIterator.Next, reports/bindings.AgentCardRegistryApprovalForAgentIterator.Next, reports/bindings.AgentCardRegistryCommitmentRecordedIterator.Next, reports/bindings.AgentCardRegistryKEMKeyUpdatedIterator.Next, reports/bindings.AgentCardRegistryKeyAddedIterator.Next, reports/bindings.AgentCardRegistryKeyRevokedIterator.Next, reports/bindings.AgentCardRegistryOwnershipTransferStartedIterator.Next, reports/bindings.AgentCardRegistryOwnershipTransferredIterator.Next, reports/bindings.AgentCardRegistryPausedIterator.Next, reports/bindings.AgentCardRegistryUnpausedIterator.Next, reports/bindings.AgentCardStorageAgentDeactivatedByHashIterator.Next, reports/bindings.AgentCardStorageAgentRegisteredIterator.Next, reports/bindings.AgentCardStorageAgentUpdatedIterator.Next, reports/bindings.AgentCardStorageApprovalForAgentIterator.Next, reports/bindings.AgentCardStorageCommitmentRecordedIterator.Next, reports/bindings.AgentCardStorageKEMKeyUpdatedIterator.Next, reports/bindings.AgentCardStorageKeyAddedIterator.Next, reports/bindings.AgentCardStorageKeyRevokedIterator.Next
@@ -456,5 +465,5 @@ None.
 ## Dead-code candidates (unexported funcs/methods with no internal callers or references)
 
 - pkg/agent/did/ethereum.AgentCardClient.computeAgentID (pkg/agent/did/ethereum/agentcard_client.go:590)
-- pkg/agent/did/ethereum.toKeyHashes (pkg/agent/did/ethereum/client.go:575)
+- pkg/agent/did/ethereum.toKeyHashes (pkg/agent/did/ethereum/client.go:580)
 - pkg/oidc/auth0.containsScope (pkg/oidc/auth0/auth0.go:395)

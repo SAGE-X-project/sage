@@ -23,6 +23,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/sage-x-project/sage/internal/app"
 )
 
 var rootCmd = &cobra.Command{
@@ -40,6 +42,7 @@ This tool supports:
 }
 
 func main() {
+	app.RegisterDefaults()
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

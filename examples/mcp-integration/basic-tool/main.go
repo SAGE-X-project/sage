@@ -21,12 +21,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	dideth "github.com/sage-x-project/sage/pkg/agent/did/ethereum"
 	"log"
 	"net/http"
 	"time"
 )
 
 func main() {
+	// Library packages do not self-register: install the Ethereum DID client explicitly.
+	dideth.Register()
+
 	// Create calculator tool with SAGE
 	tool, err := NewCalculatorTool()
 	if err != nil {

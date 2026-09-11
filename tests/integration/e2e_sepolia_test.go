@@ -42,6 +42,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Library packages no longer self-register; wire the Ethereum DID client explicitly.
+func init() { dideth.Register() }
+
 // TestE2ESepoliaAgentRegistrationAndMessaging tests the complete flow:
 // 1. Register two agents on Sepolia testnet
 // 2. Sign a message from Agent A using RFC 9421

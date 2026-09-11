@@ -27,11 +27,7 @@ import (
 const Version = "0.1.0"
 
 // Default DID manager instance
-var defaultManager *Manager
-
-func init() {
-	defaultManager = NewManager()
-}
+var defaultManager = NewManager()
 
 // GetDefaultManager returns the default DID manager instance
 func GetDefaultManager() *Manager {

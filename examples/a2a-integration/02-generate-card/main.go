@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	dideth "github.com/sage-x-project/sage/pkg/agent/did/ethereum"
 )
 
 // Example 02: A2A Agent Card Generation
@@ -48,6 +49,9 @@ import (
 // 4. Environment variables set
 
 func main() {
+	// Library packages do not self-register: install the Ethereum DID client explicitly.
+	dideth.Register()
+
 	fmt.Println("╔═══════════════════════════════════════════════════════════╗")
 	fmt.Println("║     SAGE Example 02: A2A Agent Card Generation           ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")

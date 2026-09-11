@@ -37,6 +37,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
+	chaineth "github.com/sage-x-project/sage/pkg/agent/crypto/chain/ethereum"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
@@ -64,7 +65,11 @@ type EthereumClient struct {
 // init registers the Ethereum client creators with the did package so that
 // did.CreateClient and did.Manager.Configure can build a client without a
 // manual SetClient call. Importing this package is what wires Ethereum in.
-func init() {
+// Register installs the Ethereum DID client into did.Manager.Configure and
+// registers the Ethereum chain provider. Call it from the composition root
+// (internal/app.RegisterDefaults does) before configuring did.ChainEthereum.
+func Register() {
+	chaineth.Register()
 	did.RegisterEthereumClientCreator(func(config *did.RegistryConfig) (did.Client, error) {
 		return NewEthereumClient(config)
 	})

@@ -30,6 +30,7 @@ import (
 
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
+	chainsol "github.com/sage-x-project/sage/pkg/agent/crypto/chain/solana"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
 
@@ -57,7 +58,11 @@ type AgentAccount struct {
 }
 
 // init registers the Solana client creator with the factory
-func init() {
+// Register installs the Solana DID client into did.Manager.Configure and
+// registers the Solana chain provider it depends on. Call it from the
+// composition root (internal/app.RegisterDefaults does).
+func Register() {
+	chainsol.Register()
 	did.RegisterSolanaClientCreator(func(config *did.RegistryConfig) (did.Client, error) {
 		return NewSolanaClient(config)
 	})
