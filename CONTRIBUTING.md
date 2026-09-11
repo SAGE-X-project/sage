@@ -363,7 +363,7 @@ Follow official [Go Code Review Comments](https://github.com/golang/go/wiki/Code
 
 **Key guidelines:**
 
-1. **Use `gofmt`** for formatting (automated via pre-commit hooks)
+1. **Use `gofmt`** for formatting (the repository ships a `.pre-commit-config.yaml` with local hooks: `pip install pre-commit && pre-commit install`)
 
 2. **Error handling:**
    ```go

@@ -589,6 +589,11 @@ docs-index:
 docs-index-check:
 	@python3 tools/scripts/gen-docs-index.py --check
 
+# Fail when Dockerfiles or workflows build with a Go version other than go.mod's toolchain
+.PHONY: check-go-version
+check-go-version:
+	@bash tools/scripts/check-go-version.sh
+
 # Fail if a library package registers itself in init()
 .PHONY: check-no-init
 check-no-init:

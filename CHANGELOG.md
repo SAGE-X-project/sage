@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `VerifyA2ACardProof` decoded `publicKeyHex` as Base58; hex-only cards now verify. `MarshalPublicKey` detects secp256k1 by curve parameters, so go-ethereum keys (empty curve name) are encoded as 64-byte `x || y` like decred keys.
 
 ### Added
+- Repository hygiene: `.github/CODEOWNERS` (core team), `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `.editorconfig`, `.pre-commit-config.yaml` (local hooks: gofmt, go vet, no-init gate, Go version consistency, docs index), and `tools/scripts/check-go-version.sh` (`make check-go-version`, run in the Lint job) that fails when a Dockerfile or workflow uses a Go version other than go.mod's toolchain. Dependabot reviewers point at the existing `sage-core-dev` team. The disabled end-to-end CI job (targeting a suite that never existed) and the disabled load-test workflow are removed.
 - `rfc9421.ReplayGuard`, `NewNonceReplayGuard`, `NewHTTPVerifierWithReplayGuard`, `HTTPVerifier.Close`, `StrictHTTPVerificationOptions`, and new `HTTPVerificationOptions` fields (`MaxClockSkew`, `RequireContentDigest`, `RequireNonce`, `DisableReplayCheck`).
 - `did.Manager.HasClient`, `MultiChainResolver.HasResolver`.
 - `did.Manager.Resolver`, `did.VerifyA2ACardProofWithDID`, `did.ValidateA2ACardWithProofAndDID`.
