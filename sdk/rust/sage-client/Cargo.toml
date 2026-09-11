@@ -15,24 +15,24 @@ categories = ["cryptography", "network-programming", "web-programming"]
 
 [dependencies]
 # Cryptography
-ed25519-dalek = "2.1"
-x25519-dalek = { version = "2.0", features = ["static_secrets"] }
-sha2 = "0.10"
-hkdf = "0.12"
-aes-gcm = "0.10"
-rand = "0.8"
+ed25519-dalek = "3.0"
+x25519-dalek = { version = "3.0", features = ["static_secrets"] }
+sha2 = "0.11"
+hkdf = "0.13"
+aes-gcm = "0.11"
+rand = "0.9"
 
 # HTTP client
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-base64 = "0.21"
+base64 = "0.22"
 
 # Error handling
-thiserror = "1.0"
+thiserror = "2.0"
 anyhow = "1.0"
 
 # Time
