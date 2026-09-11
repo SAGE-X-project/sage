@@ -22,6 +22,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -58,30 +60,43 @@ type WSServer struct {
 	readTimeout  time.Duration
 	writeTimeout time.Duration
 
-	// Origin validation
+	// Origin validation (see checkOriginFunc)
+	originMu       sync.RWMutex
 	allowedOrigins map[string]bool
-	checkOrigin    bool // If false, accept all origins (development mode)
+	checkOrigin    bool // false accepts every origin (development only)
+	requireOrigin  bool // true also rejects requests without an Origin header
+
+	// Maximum size of one inbound WebSocket message
+	maxMessageBytes int64
 
 	// Active connections
 	connections map[*websocket.Conn]bool
 	connMu      sync.RWMutex
 }
 
+// DefaultMaxMessageBytes is the inbound message size limit applied by NewWSServer.
+const DefaultMaxMessageBytes int64 = 1 << 20 // 1 MiB
+
 // NewWSServer creates a new WebSocket server with default settings.
 //
-// By default, origin checking is disabled (development mode).
-// For production use, use NewWSServerWithOrigins() to enable origin validation.
+// Origin checking is enabled: a browser request whose Origin is neither the
+// server's own host nor in the allow list is refused (cross-site WebSocket
+// hijacking). Requests without an Origin header (non-browser agents) are
+// accepted unless SetRequireOrigin(true) is called. Inbound messages are
+// limited to DefaultMaxMessageBytes. Use SetOriginCheckEnabled(false) only in
+// development.
 //
 // Parameters:
 //   - handler: The application-level message handler
 func NewWSServer(handler MessageHandler) *WSServer {
 	server := &WSServer{
-		handler:        handler,
-		readTimeout:    60 * time.Second,
-		writeTimeout:   30 * time.Second,
-		allowedOrigins: make(map[string]bool),
-		checkOrigin:    false, // Development mode: accept all origins
-		connections:    make(map[*websocket.Conn]bool),
+		handler:         handler,
+		readTimeout:     60 * time.Second,
+		writeTimeout:    30 * time.Second,
+		allowedOrigins:  make(map[string]bool),
+		checkOrigin:     true,
+		maxMessageBytes: DefaultMaxMessageBytes,
+		connections:     make(map[*websocket.Conn]bool),
 	}
 
 	server.upgrader = websocket.Upgrader{
@@ -103,13 +118,28 @@ func NewWSServer(handler MessageHandler) *WSServer {
 //   - allowedOrigins: List of allowed origin URLs (e.g., ["https://example.com", "https://app.example.com"])
 func NewWSServerWithOrigins(handler MessageHandler, allowedOrigins []string) *WSServer {
 	server := NewWSServer(handler)
-	server.checkOrigin = true
-
 	for _, origin := range allowedOrigins {
-		server.allowedOrigins[origin] = true
+		server.AddAllowedOrigin(origin)
 	}
-
 	return server
+}
+
+// SetMaxMessageBytes changes the inbound message size limit for connections
+// accepted after the call. Values <= 0 restore the default.
+func (s *WSServer) SetMaxMessageBytes(n int64) {
+	if n <= 0 {
+		n = DefaultMaxMessageBytes
+	}
+	s.maxMessageBytes = n
+}
+
+// SetRequireOrigin makes the server refuse connections that carry no Origin
+// header when origin checking is enabled. Non-browser clients do not send
+// Origin, so enable this only when every client is a browser.
+func (s *WSServer) SetRequireOrigin(required bool) {
+	s.originMu.Lock()
+	defer s.originMu.Unlock()
+	s.requireOrigin = required
 }
 
 // NewWSServerWithTimeouts creates a WebSocket server with custom timeouts.
@@ -127,33 +157,42 @@ func NewWSServerWithTimeouts(handler MessageHandler, readTimeout, writeTimeout t
 //   - If checkOrigin is true (production mode), only allowed origins are accepted
 //   - Same-origin requests are always allowed when checkOrigin is true
 func (s *WSServer) checkOriginFunc(r *http.Request) bool {
+	s.originMu.RLock()
+	defer s.originMu.RUnlock()
+
 	// Development mode: accept all origins
 	if !s.checkOrigin {
 		return true
 	}
 
-	// Production mode: validate against allowed origins
 	origin := r.Header.Get("Origin")
 	if origin == "" {
-		// No origin header - might be same-origin or non-browser client
-		// Allow if Host header matches the request URL
+		// Browsers always send Origin; its absence means a non-browser client.
+		return !s.requireOrigin
+	}
+
+	// Same-origin requests are always allowed.
+	if u, err := url.Parse(origin); err == nil && u.Host != "" && strings.EqualFold(u.Host, r.Host) {
 		return true
 	}
 
-	// Check if origin is in allowed list
+	// Otherwise the origin must be allow-listed (exact match, scheme included).
 	return s.allowedOrigins[origin]
 }
 
-// AddAllowedOrigin adds an origin to the allowed origins list.
-//
-// This can be used to dynamically update allowed origins after server creation.
+// AddAllowedOrigin adds an origin to the allowed origins list and enables
+// origin checking.
 func (s *WSServer) AddAllowedOrigin(origin string) {
+	s.originMu.Lock()
+	defer s.originMu.Unlock()
 	s.allowedOrigins[origin] = true
 	s.checkOrigin = true
 }
 
 // RemoveAllowedOrigin removes an origin from the allowed origins list.
 func (s *WSServer) RemoveAllowedOrigin(origin string) {
+	s.originMu.Lock()
+	defer s.originMu.Unlock()
 	delete(s.allowedOrigins, origin)
 }
 
@@ -161,6 +200,8 @@ func (s *WSServer) RemoveAllowedOrigin(origin string) {
 //
 // This should only be disabled in development environments.
 func (s *WSServer) SetOriginCheckEnabled(enabled bool) {
+	s.originMu.Lock()
+	defer s.originMu.Unlock()
 	s.checkOrigin = enabled
 }
 
@@ -170,9 +211,10 @@ func (s *WSServer) Handler() http.Handler {
 		// Upgrade HTTP connection to WebSocket
 		conn, err := s.upgrader.Upgrade(w, r, nil)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("WebSocket upgrade failed: %v", err), http.StatusBadRequest)
+			// Upgrade already wrote the HTTP error response.
 			return
 		}
+		conn.SetReadLimit(s.maxMessageBytes)
 
 		// Track connection
 		s.addConnection(conn)

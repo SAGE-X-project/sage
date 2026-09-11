@@ -343,33 +343,47 @@ func TestWSServer_OriginChecking(t *testing.T) {
 		return &transport.Response{Success: true, MessageID: msg.ID}, nil
 	}
 
-	t.Run("Development mode - all origins allowed", func(t *testing.T) {
-		// Create server without origin checking (default/development mode)
+	t.Run("Default denies cross-origin browsers", func(t *testing.T) {
 		server := NewWSServer(handler)
-
-		// Verify checkOrigin is disabled
-		if server.checkOrigin {
-			t.Error("Expected checkOrigin to be false in development mode")
+		if !server.checkOrigin {
+			t.Fatal("origin checking must be enabled by default")
 		}
 
-		// Create test request with different origins
-		testOrigins := []string{
-			"https://example.com",
-			"https://different-site.com",
-			"http://localhost:3000",
-			"", // Empty origin (same-origin or non-browser)
-		}
-
-		for _, origin := range testOrigins {
+		// Cross-site browser origins are refused (cross-site WebSocket hijacking).
+		for _, origin := range []string{"https://example.com", "https://different-site.com", "http://localhost:3000"} {
 			req := httptest.NewRequest("GET", "/ws", nil)
-			if origin != "" {
-				req.Header.Set("Origin", origin)
+			req.Host = "agent.internal:8080"
+			req.Header.Set("Origin", origin)
+			if server.checkOriginFunc(req) {
+				t.Errorf("default configuration must reject foreign origin '%s'", origin)
 			}
+		}
 
-			allowed := server.checkOriginFunc(req)
-			if !allowed {
-				t.Errorf("Development mode should allow origin '%s'", origin)
-			}
+		// Same-origin browsers are allowed.
+		req := httptest.NewRequest("GET", "/ws", nil)
+		req.Host = "agent.internal:8080"
+		req.Header.Set("Origin", "https://Agent.internal:8080")
+		if !server.checkOriginFunc(req) {
+			t.Error("same-origin request must be allowed")
+		}
+
+		// Non-browser clients (no Origin) are allowed unless required.
+		req = httptest.NewRequest("GET", "/ws", nil)
+		if !server.checkOriginFunc(req) {
+			t.Error("request without Origin must be allowed by default")
+		}
+		server.SetRequireOrigin(true)
+		if server.checkOriginFunc(req) {
+			t.Error("request without Origin must be rejected when Origin is required")
+		}
+		server.SetRequireOrigin(false)
+
+		// Explicit development mode accepts everything.
+		server.SetOriginCheckEnabled(false)
+		req = httptest.NewRequest("GET", "/ws", nil)
+		req.Header.Set("Origin", "https://different-site.com")
+		if !server.checkOriginFunc(req) {
+			t.Error("development mode must accept all origins")
 		}
 	})
 

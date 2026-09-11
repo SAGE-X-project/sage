@@ -28,6 +28,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -57,6 +58,19 @@ type Server struct {
 	binder        KeyIDBinder
 	cookies       CookieVerifier // optional anti-DoS
 	allowedSuites []string
+	logger        *log.Logger // rejection details; nil discards
+}
+
+// ErrInitRejected is the only error the peer sees when an init envelope fails
+// validation. The specific reason is written to ServerOpts.Logger.
+var ErrInitRejected = errors.New("authentication failed")
+
+// reject logs the reason and returns the generic error.
+func (s *Server) reject(reason string) error {
+	if s.logger != nil {
+		s.logger.Printf("hpke: init rejected: %s", reason)
+	}
+	return ErrInitRejected
 }
 
 type ServerOpts struct {
@@ -67,6 +81,7 @@ type ServerOpts struct {
 	KEM           sagecrypto.KeyPair         // X25519 KEM static key
 	Transport     transport.MessageTransport // Optional transport for responses
 	Cookies       CookieVerifier
+	Logger        *log.Logger // Optional: receives the reason for each rejected init
 }
 
 // serverSigEnvelope holds the members of the handshake response that the
@@ -110,6 +125,7 @@ func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, didStr string, 
 		binder:        opts.Binder,
 		cookies:       opts.Cookies,
 		allowedSuites: opts.AllowedSuites,
+		logger:        opts.Logger,
 	}
 }
 
@@ -223,28 +239,31 @@ func (s *Server) verifySender(ctx context.Context, msg *transport.SecureMessage)
 // Validate DID binding, timestamp window, replay protection, and info/exportCtx.
 func (s *Server) validateInitEnvelope(msg *transport.SecureMessage, pl HPKEInitPayload, senderDID string) error {
 
+	// Every rejection below is reported to the peer as ErrInitRejected so the
+	// transport does not become an oracle for skew, replay or addressing
+	// state; the specific reason goes to the server's logger.
 	if senderDID != "" && senderDID != pl.InitDID {
-		return fmt.Errorf("authentication failed")
+		return s.reject("initDid does not match the signing DID")
 	}
 	// Audience binding: an init addressed to another agent must not create a
 	// session here even though its signature is valid.
 	if s.DID != "" && pl.RespDID != s.DID {
-		return fmt.Errorf("respDid mismatch: init is not addressed to this server")
+		return s.reject("respDid mismatch: init is not addressed to this server")
 	}
 	now := time.Now()
 	if pl.Timestamp.Before(now.Add(-s.maxSkew)) || pl.Timestamp.After(now.Add(s.maxSkew)) {
-		return fmt.Errorf("ts out of window")
+		return s.reject("timestamp out of window")
 	}
 	if !s.nonces.checkAndMark(msg.ContextID + "|" + pl.Nonce) {
-		return fmt.Errorf("replay detected")
+		return s.reject("replay detected")
 	}
 	cInfo := s.info.BuildInfo(msg.ContextID, pl.InitDID, pl.RespDID)
 	if string(cInfo) != string(pl.Info) {
-		return fmt.Errorf("info mismatch")
+		return s.reject("info mismatch")
 	}
 	cExport := s.info.BuildExportContext(msg.ContextID)
 	if string(cExport) != string(pl.ExportCtx) {
-		return fmt.Errorf("exportCtx mismatch")
+		return s.reject("exportCtx mismatch")
 	}
 	// suite whitelist
 	if len(s.allowedSuites) > 0 && !strContains(s.allowedSuites, hpkeSuiteID) {

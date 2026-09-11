@@ -500,7 +500,7 @@ func Test_Server_Rejects_RespDID_Mismatch(t *testing.T) {
 	before := srvMgr.GetSessionCount()
 	_, err := cli.Initialize(ctx, "ctx-"+uuid.NewString(), clientDID, serverDID)
 	require.Error(t, err, "server must reject an init addressed to another DID")
-	require.Contains(t, err.Error(), "respDid")
+	require.Contains(t, err.Error(), ErrInitRejected.Error())
 	require.Equal(t, before, srvMgr.GetSessionCount(), "no session may be created for a misaddressed init")
 }
 
