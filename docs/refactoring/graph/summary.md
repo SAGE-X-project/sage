@@ -4,13 +4,13 @@ Module: `github.com/sage-x-project/sage`
 
 | Metric | Value |
 |---|---|
-| Packages | 59 |
-| Symbols | 1752 |
-| Edges | 1457 |
-| Non-test LOC | 38188 |
-| Test LOC | 38476 |
-| Funcs+methods | 1409 |
-| Types | 343 |
+| Packages | 61 |
+| Symbols | 1817 |
+| Edges | 1607 |
+| Non-test LOC | 39433 |
+| Test LOC | 39033 |
+| Funcs+methods | 1473 |
+| Types | 344 |
 
 ## Packages
 
@@ -19,12 +19,12 @@ Module: `github.com/sage-x-project/sage`
 | cmd/deployment-verify | cmd | 1 | 159 | 0 | 1 | 0 | 0 | 0 | 1 | 7 |
 | cmd/metrics-demo | cmd | 1 | 160 | 0 | 2 | 0 | 0 | 0 | 2 | 8 |
 | cmd/sage-crypto | cmd | 7 | 1209 | 0 | 28 | 0 | 0 | 0 | 9 | 14 |
-| cmd/sage-did | cmd | 13 | 3075 | 257 | 53 | 0 | 0 | 0 | 4 | 17 |
+| cmd/sage-did | cmd | 13 | 2967 | 257 | 52 | 0 | 0 | 0 | 4 | 16 |
 | cmd/sage-verify | cmd | 1 | 305 | 0 | 9 | 0 | 0 | 0 | 2 | 3 |
 | deployments/config | other | 6 | 1222 | 800 | 31 | 15 | 0 | 3 | 0 | 13 |
 | examples/mcp-integration/basic-demo | examples | 1 | 376 | 0 | 9 | 4 | 0 | 0 | 2 | 10 |
-| examples/mcp-integration/basic-tool | examples | 2 | 285 | 0 | 6 | 3 | 0 | 0 | 3 | 5 |
-| examples/mcp-integration/client | examples | 2 | 269 | 0 | 5 | 1 | 0 | 0 | 2 | 10 |
+| examples/mcp-integration/basic-tool | examples | 2 | 294 | 0 | 6 | 3 | 0 | 0 | 3 | 5 |
+| examples/mcp-integration/client | examples | 2 | 281 | 0 | 5 | 1 | 0 | 0 | 2 | 11 |
 | examples/mcp-integration/simple-standalone | examples | 1 | 262 | 0 | 6 | 2 | 0 | 0 | 2 | 9 |
 | examples/mcp-integration/vulnerable-vs-secure/attacker | examples | 1 | 156 | 0 | 4 | 1 | 0 | 0 | 0 | 7 |
 | examples/mcp-integration/vulnerable-vs-secure/secure-chat | examples | 1 | 138 | 0 | 4 | 2 | 0 | 0 | 0 | 5 |
@@ -35,42 +35,44 @@ Module: `github.com/sage-x-project/sage`
 | internal/logger | internal | 1 | 416 | 321 | 34 | 6 | 1 | 1 | 0 | 9 |
 | internal/metrics | internal | 7 | 666 | 111 | 17 | 2 | 0 | 4 | 0 | 7 |
 | lib | other | 1 | 60 | 0 | 4 | 0 | 0 | 0 | 3 | 3 |
-| pkg/agent/core | pkg | 2 | 312 | 786 | 18 | 4 | 1 | 2 | 4 | 3 |
+| pkg/agent/core | pkg | 2 | 319 | 807 | 18 | 4 | 1 | 2 | 4 | 3 |
 | pkg/agent/core/message | pkg | 1 | 42 | 0 | 0 | 3 | 1 | 4 | 0 | 1 |
 | pkg/agent/core/message/dedupe | pkg | 1 | 124 | 422 | 7 | 1 | 0 | 1 | 1 | 5 |
 | pkg/agent/core/message/nonce | pkg | 1 | 147 | 362 | 9 | 1 | 0 | 2 | 0 | 5 |
 | pkg/agent/core/message/order | pkg | 2 | 153 | 830 | 9 | 3 | 0 | 1 | 1 | 4 |
 | pkg/agent/core/message/validator | pkg | 2 | 175 | 450 | 5 | 3 | 0 | 0 | 4 | 3 |
-| pkg/agent/core/rfc9421 | pkg | 7 | 1716 | 3998 | 62 | 13 | 1 | 5 | 3 | 18 |
-| pkg/agent/crypto | pkg | 5 | 684 | 2485 | 35 | 12 | 6 | 21 | 0 | 8 |
+| pkg/agent/core/rfc9421 | pkg | 8 | 2212 | 4257 | 89 | 16 | 1 | 5 | 3 | 18 |
+| pkg/agent/crypto | pkg | 5 | 700 | 2506 | 35 | 12 | 6 | 21 | 0 | 10 |
 | pkg/agent/crypto/chain | pkg | 4 | 620 | 593 | 25 | 9 | 4 | 5 | 2 | 9 |
-| pkg/agent/crypto/chain/ethereum | pkg | 2 | 492 | 742 | 22 | 3 | 1 | 1 | 3 | 14 |
+| pkg/agent/crypto/chain/ethereum | pkg | 2 | 495 | 742 | 22 | 3 | 1 | 1 | 4 | 14 |
 | pkg/agent/crypto/chain/solana | pkg | 1 | 170 | 170 | 12 | 1 | 0 | 1 | 2 | 5 |
-| pkg/agent/crypto/formats | pkg | 2 | 858 | 786 | 18 | 5 | 0 | 7 | 2 | 16 |
-| pkg/agent/crypto/keys | pkg | 8 | 1370 | 2637 | 75 | 7 | 0 | 13 | 1 | 24 |
+| pkg/agent/crypto/formats | pkg | 2 | 891 | 786 | 19 | 5 | 0 | 7 | 2 | 16 |
+| pkg/agent/crypto/jcs | pkg | 1 | 225 | 62 | 6 | 0 | 0 | 2 | 0 | 10 |
+| pkg/agent/crypto/keys | pkg | 9 | 1463 | 2631 | 82 | 7 | 0 | 15 | 1 | 24 |
 | pkg/agent/crypto/rotation | pkg | 1 | 145 | 198 | 4 | 1 | 0 | 1 | 2 | 3 |
 | pkg/agent/crypto/storage | pkg | 2 | 312 | 824 | 13 | 3 | 0 | 3 | 2 | 7 |
 | pkg/agent/crypto/vault | pkg | 1 | 407 | 324 | 15 | 4 | 1 | 0 | 0 | 14 |
-| pkg/agent/did | pkg | 13 | 2878 | 5222 | 102 | 35 | 5 | 8 | 2 | 20 |
-| pkg/agent/did/ethereum | pkg | 4 | 1852 | 2304 | 50 | 7 | 0 | 1 | 3 | 20 |
+| pkg/agent/did | pkg | 13 | 3010 | 5431 | 111 | 35 | 5 | 8 | 4 | 21 |
+| pkg/agent/did/ethereum | pkg | 5 | 1705 | 2026 | 42 | 3 | 0 | 1 | 3 | 19 |
 | pkg/agent/did/solana | pkg | 2 | 793 | 393 | 16 | 2 | 0 | 0 | 3 | 9 |
 | pkg/agent/handshake | pkg | 4 | 951 | 825 | 36 | 13 | 2 | 1 | 8 | 11 |
-| pkg/agent/hpke | pkg | 5 | 1533 | 2974 | 48 | 18 | 5 | 0 | 5 | 23 |
-| pkg/agent/session | pkg | 5 | 1503 | 2211 | 64 | 9 | 1 | 4 | 1 | 13 |
+| pkg/agent/hpke | pkg | 5 | 1569 | 2994 | 49 | 18 | 5 | 0 | 6 | 24 |
+| pkg/agent/session | pkg | 5 | 1669 | 2450 | 77 | 11 | 1 | 4 | 1 | 15 |
 | pkg/agent/transport | pkg | 3 | 355 | 363 | 12 | 7 | 1 | 4 | 0 | 5 |
-| pkg/agent/transport/http | pkg | 3 | 491 | 272 | 14 | 5 | 0 | 0 | 1 | 7 |
-| pkg/agent/transport/websocket | pkg | 3 | 724 | 482 | 31 | 5 | 0 | 0 | 1 | 6 |
+| pkg/agent/transport/http | pkg | 3 | 520 | 324 | 15 | 5 | 0 | 0 | 1 | 8 |
+| pkg/agent/transport/websocket | pkg | 3 | 766 | 496 | 33 | 5 | 0 | 0 | 1 | 8 |
 | pkg/blockchain/ethereum/contracts/agentcardregistry | pkg | 3 | 5388 | 0 | 315 | 80 | 0 | 1 | 0 | 9 |
 | pkg/health | pkg | 5 | 508 | 123 | 12 | 6 | 0 | 1 | 2 | 9 |
 | pkg/oidc | pkg | 1 | 40 | 0 | 0 | 0 | 0 | 1 | 0 | 1 |
 | pkg/oidc/auth0 | pkg | 2 | 490 | 613 | 13 | 4 | 0 | 0 | 4 | 17 |
-| pkg/storage | pkg | 2 | 155 | 0 | 0 | 7 | 4 | 2 | 0 | 2 |
-| pkg/storage/memory | pkg | 3 | 477 | 0 | 26 | 4 | 0 | 0 | 1 | 4 |
+| pkg/storage | pkg | 2 | 155 | 0 | 0 | 7 | 4 | 3 | 0 | 2 |
+| pkg/storage/memory | pkg | 3 | 477 | 12 | 26 | 4 | 0 | 0 | 1 | 4 |
 | pkg/storage/postgres | pkg | 4 | 688 | 0 | 26 | 5 | 0 | 0 | 1 | 6 |
+| pkg/storage/storagetest | pkg | 1 | 201 | 0 | 6 | 0 | 0 | 0 | 1 | 5 |
 | pkg/version | pkg | 1 | 143 | 215 | 7 | 1 | 0 | 0 | 0 | 3 |
 | tests | root | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 | tests/helpers | tests | 1 | 206 | 0 | 10 | 0 | 0 | 0 | 0 | 7 |
-| tests/integration | tests | 1 | 79 | 5313 | 4 | 0 | 0 | 0 | 0 | 4 |
+| tests/integration | tests | 1 | 79 | 5245 | 4 | 0 | 0 | 0 | 0 | 4 |
 | tests/random | tests | 4 | 1564 | 0 | 48 | 18 | 0 | 0 | 0 | 15 |
 | tests/testutil | tests | 1 | 271 | 0 | 15 | 2 | 0 | 0 | 0 | 7 |
 | tools/analyze | tools | 1 | 243 | 0 | 5 | 2 | 0 | 0 | 0 | 6 |
@@ -140,6 +142,7 @@ graph LR
   pkg_agent_crypto_chain_ethereum --> deployments_config
   pkg_agent_crypto_chain_ethereum --> pkg_agent_crypto
   pkg_agent_crypto_chain_ethereum --> pkg_agent_crypto_chain
+  pkg_agent_crypto_chain_ethereum --> pkg_agent_crypto_keys
   pkg_agent_crypto_chain_solana --> pkg_agent_crypto
   pkg_agent_crypto_chain_solana --> pkg_agent_crypto_chain
   pkg_agent_crypto_formats --> pkg_agent_crypto
@@ -151,6 +154,8 @@ graph LR
   pkg_agent_crypto_storage --> pkg_agent_crypto_formats
   pkg_agent_did --> pkg_agent_crypto
   pkg_agent_did --> pkg_agent_crypto_chain
+  pkg_agent_did --> pkg_agent_crypto_jcs
+  pkg_agent_did --> pkg_agent_crypto_keys
   pkg_agent_did_ethereum --> pkg_agent_crypto
   pkg_agent_did_ethereum --> pkg_agent_did
   pkg_agent_did_ethereum --> pkg_blockchain_ethereum_contracts_agentcardregistry
@@ -166,6 +171,7 @@ graph LR
   pkg_agent_handshake --> pkg_agent_session
   pkg_agent_handshake --> pkg_agent_transport
   pkg_agent_hpke --> pkg_agent_crypto
+  pkg_agent_hpke --> pkg_agent_crypto_jcs
   pkg_agent_hpke --> pkg_agent_crypto_keys
   pkg_agent_hpke --> pkg_agent_did
   pkg_agent_hpke --> pkg_agent_session
@@ -181,6 +187,7 @@ graph LR
   pkg_oidc_auth0 --> pkg_oidc
   pkg_storage_memory --> pkg_storage
   pkg_storage_postgres --> pkg_storage
+  pkg_storage_storagetest --> pkg_storage
 ```
 
 ## Import cycles (SCC size > 1)
@@ -241,66 +248,65 @@ Rule: pkg must not import cmd/internal; internal must not import cmd; examples/t
 | Function | Callers |
 |---|---|
 | pkg/agent/crypto.KeyPair.Type | 20 |
-| pkg/agent/did.NewManager | 17 |
-| pkg/agent/did.Manager.Configure | 16 |
+| pkg/agent/did.NewManager | 18 |
+| pkg/agent/did.Manager.Configure | 17 |
 | pkg/agent/crypto.KeyPair.PublicKey | 15 |
+| cmd/sage-did.getDefaultContractAddress | 14 |
 | pkg/agent/crypto.KeyPair.Sign | 14 |
-| cmd/sage-did.getDefaultContractAddress | 13 |
+| cmd/sage-did.getDefaultRPCEndpoint | 13 |
 | pkg/agent/crypto.KeyPair.ID | 13 |
-| cmd/sage-did.getDefaultRPCEndpoint | 12 |
-| pkg/agent/session.SecureSession.UpdateLastUsed | 12 |
-| pkg/agent/did.ParseDID | 11 |
+| pkg/agent/did.ParseDID | 13 |
+| pkg/agent/crypto/keys.IsSecp256k1Curve | 10 |
 | pkg/agent/did.Manager.ResolveAgent | 10 |
 | pkg/agent/crypto.KeyPair.PrivateKey | 9 |
 | pkg/agent/did/ethereum.AgentCardClient.getTransactor | 8 |
+| pkg/agent/session.SecureSession.UpdateLastUsed | 8 |
 | tests/random.TestCaseGenerator.randomInt | 8 |
 | pkg/agent/core/rfc9421.NewHTTPVerifier | 7 |
 | pkg/agent/crypto/chain.GetProvider | 7 |
 | pkg/agent/crypto/formats.NewJWKImporter | 7 |
+| pkg/agent/core/rfc9421.ComputeContentDigest | 6 |
 | pkg/agent/crypto.KeyImporter.Import | 6 |
 | pkg/agent/crypto/keys.GenerateEd25519KeyPair | 6 |
 | pkg/agent/did.FromAgentMetadata | 6 |
+| pkg/agent/did.Resolver.Resolve | 6 |
 | pkg/agent/transport.MessageTransport.Send | 6 |
 | tests/random.TestCaseGenerator.randomString | 6 |
-| cmd/sage-did.parseChain | 5 |
-| internal/logger.StructuredLogger.log | 5 |
-| pkg/agent/crypto.GetAlgorithmInfo | 5 |
 
 ## Largest functions (top 25 by lines)
 
 | Function | Lines | File |
 |---|---|---|
-| pkg/agent/did/ethereum.EthereumClient.Resolve | 224 | pkg/agent/did/ethereum/client.go:208 |
+| pkg/agent/did/ethereum.EthereumClient.Resolve | 219 | pkg/agent/did/ethereum/client.go:208 |
 | pkg/agent/handshake.Server.HandleMessage | 197 | pkg/agent/handshake/server.go:142 |
 | pkg/agent/did/solana.SolanaClient.Register | 131 | pkg/agent/did/solana/client.go:102 |
 | cmd/deployment-verify.main | 127 | cmd/deployment-verify/main.go:33 |
 | pkg/agent/did/solana.SolanaClient.Update | 125 | pkg/agent/did/solana/client.go:283 |
+| cmd/sage-did.runCardValidate | 125 | cmd/sage-did/card.go:230 |
 | tests/random.ResultReporter.saveHTML | 120 | tests/random/reporter.go:164 |
 | cmd/sage-did.runKeyVerifyPop | 120 | cmd/sage-did/key.go:536 |
-| pkg/agent/core/rfc9421.HTTPVerifier.VerifyRequest | 118 | pkg/agent/core/rfc9421/verifier_http.go:181 |
-| pkg/agent/hpke.Client.Initialize | 114 | pkg/agent/hpke/client.go:79 |
-| cmd/sage-did.runCardValidate | 110 | cmd/sage-did/card.go:231 |
-| cmd/sage-did.runDebug | 109 | cmd/sage-did/debug.go:73 |
-| pkg/agent/did.VerifyA2ACardProof | 108 | pkg/agent/did/a2a_proof.go:154 |
+| pkg/agent/hpke.Client.Initialize | 114 | pkg/agent/hpke/client.go:80 |
 | pkg/agent/did/solana.SolanaClient.Deactivate | 102 | pkg/agent/did/solana/client.go:410 |
 | examples/mcp-integration/basic-demo.main | 101 | examples/mcp-integration/basic-demo/main.go:267 |
+| pkg/agent/crypto/formats.jwkExporter.Export | 100 | pkg/agent/crypto/formats/jwk.go:64 |
 | cmd/sage-did.runVerify | 98 | cmd/sage-did/verify.go:64 |
-| pkg/agent/did/ethereum.toKeyHashes | 97 | pkg/agent/did/ethereum/client.go:580 |
-| cmd/sage-did.runKeyAdd | 91 | cmd/sage-did/key.go:239 |
-| cmd/sage-did.validateCardWithDID | 91 | cmd/sage-did/card.go:343 |
+| pkg/agent/did/ethereum.toKeyHashes | 97 | pkg/agent/did/ethereum/client.go:575 |
+| pkg/agent/hpke.parseServerSignedResponse | 93 | pkg/agent/hpke/client.go:341 |
+| pkg/agent/crypto/formats.pemExporter.ExportPublic | 93 | pkg/agent/crypto/formats/pem.go:139 |
+| pkg/agent/crypto/formats.pemExporter.Export | 92 | pkg/agent/crypto/formats/pem.go:45 |
 | pkg/agent/transport/http.HTTPTransport.Send | 91 | pkg/agent/transport/http/client.go:79 |
-| pkg/agent/crypto/formats.pemExporter.ExportPublic | 91 | pkg/agent/crypto/formats/pem.go:137 |
-| pkg/agent/crypto/formats.pemExporter.Export | 89 | pkg/agent/crypto/formats/pem.go:46 |
+| cmd/sage-did.runKeyAdd | 91 | cmd/sage-did/key.go:239 |
 | deployments/config.validateBlockchainConfig | 88 | deployments/config/validator.go:61 |
+| pkg/agent/crypto/formats.jwkExporter.ExportPublic | 84 | pkg/agent/crypto/formats/jwk.go:166 |
 | pkg/agent/did/ethereum.EthereumClient.Register | 84 | pkg/agent/did/ethereum/client.go:121 |
-| pkg/agent/crypto/formats.jwkExporter.Export | 84 | pkg/agent/crypto/formats/jwk.go:64 |
-| pkg/agent/crypto/formats.jwkImporter.ImportPublic | 83 | pkg/agent/crypto/formats/jwk.go:284 |
+| cmd/sage-did.runRegister | 83 | cmd/sage-did/register.go:76 |
+| pkg/agent/hpke.Server.HandleMessage | 83 | pkg/agent/hpke/server.go:133 |
+| examples/mcp-integration/client.SAGEClient.CallTool | 81 | examples/mcp-integration/client/sage_client.go:79 |
 
 ## Duplicate function bodies
 
 ### Exact duplicates (identical body text, >= 8 lines)
 
-- pkg/agent/did/ethereum.EthereumClient.ResolvePublicKey, pkg/agent/did/solana.SolanaClient.ResolvePublicKey
 - pkg/agent/did/ethereum.EthereumClient.Search, pkg/agent/did/solana.SolanaClient.Search
 - pkg/agent/transport/http.fromWireResponse, pkg/agent/transport/websocket.fromWireResponse
 - pkg/agent/transport/http.toWireMessage, pkg/agent/transport/websocket.toWireMessage
@@ -313,17 +319,18 @@ Rule: pkg must not import cmd/internal; internal must not import cmd; examples/t
 - pkg/agent/crypto.Manager.ExportKeyPair, pkg/agent/crypto.Manager.ImportKeyPair
 - pkg/agent/crypto/chain/ethereum.Provider.SignTransaction, pkg/agent/crypto/chain/solana.Provider.SignTransaction
 - pkg/agent/crypto/formats.jwkImporter.importEd25519, pkg/agent/crypto/formats.jwkImporter.importSecp256k1
+- pkg/agent/crypto/keys.ECDSAPrivateScalar, pkg/agent/crypto/keys.ECDSAPublicUncompressed
 - pkg/agent/crypto/keys.NewSecp256k1KeyPair, pkg/agent/crypto/keys.NewX25519KeyPair
 - pkg/agent/crypto/vault.MemoryVault.ListKeys, pkg/agent/did.Manager.GetSupportedChains
 - pkg/agent/did.KeyType.String, pkg/agent/did.mapKeyTypeToA2A
-- pkg/agent/did.MultiChainResolver.ResolveKEMKey, pkg/agent/did.MultiChainResolver.ResolvePublicKey
 - pkg/agent/did/ethereum.AgentCardClient.SetApprovalForAgent, pkg/agent/did/ethereum.AgentCardClient.UpdateAgent
-- pkg/agent/did/ethereum.EthereumClient.ResolveKEMKey, pkg/agent/did/ethereum.EthereumClient.ResolvePublicKey, pkg/agent/did/solana.SolanaClient.ResolvePublicKey
+- pkg/agent/did/ethereum.EthereumClient.ResolveKEMKey, pkg/agent/did/solana.SolanaClient.ResolvePublicKey
 - pkg/agent/did/ethereum.EthereumClient.Search, pkg/agent/did/solana.SolanaClient.Search
 - pkg/agent/handshake.Client.Complete, pkg/agent/handshake.Client.Invitation
 - pkg/agent/handshake.Client.Request, pkg/agent/handshake.Client.Response
-- pkg/agent/session.SecureSession.DecryptInbound, pkg/agent/session.SecureSession.DecryptWithAADInbound
-- pkg/agent/session.SecureSession.EncryptOutbound, pkg/agent/session.SecureSession.EncryptWithAADOutbound
+- pkg/agent/session.SecureSession.Decrypt, pkg/agent/session.SecureSession.Encrypt
+- pkg/agent/session.SecureSession.DecryptWithAAD, pkg/agent/session.SecureSession.EncryptWithAAD
+- pkg/agent/session.SecureSession.DecryptWithAADInbound, pkg/agent/session.SecureSession.EncryptWithAADOutbound
 - pkg/agent/transport/http.fromWireResponse, pkg/agent/transport/websocket.fromWireResponse
 - pkg/agent/transport/http.init, pkg/agent/transport/websocket.init
 - pkg/agent/transport/http.toWireMessage, pkg/agent/transport/websocket.toWireMessage
@@ -354,5 +361,5 @@ Rule: pkg must not import cmd/internal; internal must not import cmd; examples/t
 ## Dead-code candidates (unexported funcs/methods with no internal callers or references)
 
 - pkg/agent/did/ethereum.AgentCardClient.computeAgentID (pkg/agent/did/ethereum/agentcard_client.go:590)
-- pkg/agent/did/ethereum.toKeyHashes (pkg/agent/did/ethereum/client.go:580)
+- pkg/agent/did/ethereum.toKeyHashes (pkg/agent/did/ethereum/client.go:575)
 - pkg/oidc/auth0.containsScope (pkg/oidc/auth0/auth0.go:395)

@@ -116,6 +116,10 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
+      - name: Check layer boundaries (codegraph)
+        working-directory: tools/codegraph
+        run: go run . -dir ../.. -out /tmp/codegraph -layer-baseline layer-baseline.txt
+
       - name: Check formatting
         run: |
           UNFORMATTED=$(gofmt -l . | grep -v "contracts/ethereum/bindings/go/example.go" || true)
