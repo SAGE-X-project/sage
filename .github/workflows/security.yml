@@ -81,18 +81,20 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
-      - name: Run Gosec Security Scanner
+      - name: Install gosec
         run: |
           export GOTOOLCHAIN=local
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          echo "Running gosec security scan..."
-          # Generate JSON format for detailed output
-          gosec -conf .gosec.json -fmt=json -out=gosec-results.json -no-fail -exclude-dir=contracts/ethereum/bindings ./... || true
-          # Generate SARIF format for GitHub Code Scanning
-          gosec -conf .gosec.json -fmt=sarif -out=gosec-results-raw.sarif -no-fail -exclude-dir=contracts/ethereum/bindings ./... || true
-          # Display text output
-          gosec -conf .gosec.json -fmt=text -no-fail -exclude-dir=contracts/ethereum/bindings ./... || true
-        continue-on-error: true
+          go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
+
+      - name: Run Gosec (reports for code scanning)
+        # Non-blocking pass that always produces the JSON and SARIF reports.
+        run: |
+          gosec -conf .gosec.json -fmt=json -out=gosec-results.json -no-fail ./...
+          gosec -conf .gosec.json -fmt=sarif -out=gosec-results-raw.sarif -no-fail ./...
+
+      - name: Run Gosec (blocking)
+        # Fails the job on any finding not excluded by .gosec.json.
+        run: gosec -conf .gosec.json -fmt=text ./...
 
       - name: Fix SARIF artifact paths
         if: always()
@@ -187,17 +189,16 @@ jobs:
         working-directory: contracts/ethereum
         run: npx hardhat compile
 
-      - name: Run Slither
+      - name: Run Slither (blocking on High)
         working-directory: contracts/ethereum
+        # crytic-compile >= 0.4 is required to read Hardhat 3 build-info files.
         run: |
-          pip3 install slither-analyzer
-          echo "Running Slither analysis..."
+          pip3 install slither-analyzer==0.11.6 crytic-compile==0.4.2
           slither . \
             --config-file .slither.config.json \
             --compile-force-framework hardhat \
-            --sarif slither-results.sarif 2>&1 | tee slither-output.log || true
-
-          echo "Slither execution completed"
+            --fail-high \
+            --sarif slither-results.sarif 2>&1 | tee slither-output.log
           if [ -f "slither-results.sarif" ]; then
             echo "SARIF file generated successfully"
             echo "File size: $(wc -c < slither-results.sarif) bytes"
@@ -255,9 +256,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Run Gitleaks
+      - name: Run Gitleaks (full history, blocking)
+        # Scans every commit with the allowlist in .gitleaks.toml (public Hardhat
+        # accounts, test fixtures, documentation examples). Any other hit fails.
         run: |
-          docker run -v ${PWD}:/path zricethezav/gitleaks:latest detect --source="/path" --verbose --no-git --exit-code=0 || true
+          docker run --rm -v "${PWD}:/repo" -w /repo \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+            ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f \
+            git /repo --config /repo/.gitleaks.toml --redact --exit-code 1 --verbose
 
   # License compliance
   license-check:
@@ -277,15 +283,15 @@ jobs:
       - name: Install go-licenses v2
         run: |
           export GOTOOLCHAIN=local
-          go install github.com/google/go-licenses/v2@latest
+          go install github.com/google/go-licenses/v2@v2.0.1
 
       - name: Check Go licenses
-        continue-on-error: true  # Allow CI to pass while reporting license issues
-        run: go-licenses check ./...
+        # github.com/gagliardetto/treeout is MIT (LICENSE in its repository) but
+        # go-licenses cannot locate the file in the module cache.
+        run: go-licenses check ./... --include_tests=false --ignore github.com/gagliardetto/treeout
 
       - name: Check npm licenses
-        continue-on-error: true  # Allow CI to pass while reporting license issues
         working-directory: contracts/ethereum
         run: |
-          npx license-checker --summary
-          npx license-checker --failOn "GPL;AGPL"
+          npx --yes license-checker@25.0.1 --summary
+          npx --yes license-checker@25.0.1 --failOn "GPL;AGPL"
