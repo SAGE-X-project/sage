@@ -21,7 +21,6 @@ package health
 import (
 	"fmt"
 	"runtime"
-	"syscall"
 )
 
 const (
@@ -53,29 +52,14 @@ func CheckSystem() *SystemHealth {
 	health.GoRoutines = runtime.NumGoroutine()
 
 	// Get disk stats (current working directory)
-	var stat syscall.Statfs_t
-	err := syscall.Statfs(".", &stat)
-	if err == nil {
-		// Validate Bsize before conversion to prevent integer overflow
-		// #nosec G115 - validated that Bsize is positive before conversion
-		if stat.Bsize > 0 {
-			// Calculate disk usage
-			bsize := uint64(stat.Bsize)
-			totalBytes := stat.Blocks * bsize
-			freeBytes := stat.Bfree * bsize
-			usedBytes := totalBytes - freeBytes
-
-			health.DiskTotalGB = totalBytes / 1024 / 1024 / 1024
-			health.DiskUsedGB = usedBytes / 1024 / 1024 / 1024
-
-			if health.DiskTotalGB > 0 {
-				health.DiskPercent = float64(health.DiskUsedGB) / float64(health.DiskTotalGB) * 100
-			}
-		} else {
-			health.Error = "Invalid block size from filesystem stats"
-		}
-	} else {
+	if totalBytes, usedBytes, err := diskUsage("."); err != nil {
 		health.Error = fmt.Sprintf("Failed to get disk stats: %v", err)
+	} else {
+		health.DiskTotalGB = totalBytes / 1024 / 1024 / 1024
+		health.DiskUsedGB = usedBytes / 1024 / 1024 / 1024
+		if health.DiskTotalGB > 0 {
+			health.DiskPercent = float64(health.DiskUsedGB) / float64(health.DiskTotalGB) * 100
+		}
 	}
 
 	// Determine overall status

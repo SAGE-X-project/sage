@@ -430,25 +430,25 @@ TEST_NUM=1
 
 print_test $TEST_NUM 4 "멀티체인 설정 로드"
 run_test "Config 로드" \
-    "go test -v github.com/sage-x-project/sage/deployments/config -run 'TestLoadConfig'" \
+    "go test -v github.com/sage-x-project/sage/internal/config -run 'TestLoadConfig'" \
     "/tmp/sage-test-logs/chain_config.log"
 TEST_NUM=$((TEST_NUM + 1))
 
 print_test $TEST_NUM 4 "환경별 Config"
 run_test "환경별 설정 (dev, staging, prod)" \
-    "go test -v github.com/sage-x-project/sage/deployments/config -run 'TestLoadForEnvironment'" \
+    "go test -v github.com/sage-x-project/sage/internal/config -run 'TestLoadForEnvironment'" \
     "/tmp/sage-test-logs/chain_env.log"
 TEST_NUM=$((TEST_NUM + 1))
 
 print_test $TEST_NUM 4 "프리셋 지원"
 run_test "네트워크 프리셋 (local, sepolia, mainnet)" \
-    "go test -v github.com/sage-x-project/sage/deployments/config -run 'TestNetworkPresets'" \
+    "go test -v github.com/sage-x-project/sage/internal/config -run 'TestNetworkPresets'" \
     "/tmp/sage-test-logs/chain_preset.log"
 TEST_NUM=$((TEST_NUM + 1))
 
 print_test $TEST_NUM 4 "환경 변수 오버라이드"
 run_test "환경 변수 치환" \
-    "go test -v github.com/sage-x-project/sage/deployments/config -run 'TestLoadWithEnvOverrides'" \
+    "go test -v github.com/sage-x-project/sage/internal/config -run 'TestLoadWithEnvOverrides'" \
     "/tmp/sage-test-logs/chain_override.log"
 
 #==============================================================================
