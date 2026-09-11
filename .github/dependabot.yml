@@ -66,6 +66,13 @@ updates:
     directories:
       - "/"
       - "/deployments/docker"
+    # The golang builder image follows go.mod's toolchain directive; only
+    # patch releases of the same minor are taken automatically.
+    ignore:
+      - dependency-name: "golang"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
     schedule:
       interval: "weekly"
       day: "monday"
