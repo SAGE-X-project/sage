@@ -361,17 +361,22 @@ See [contracts/ethereum/README.md](contracts/ethereum/README.md) for deployment 
 
 ## Multi-Language Bindings
 
-SAGE provides bindings for multiple programming languages:
+The Go module in this repository is the reference implementation. The clients
+under `sdk/` (Python, TypeScript, Rust, Java) are **experimental and not yet
+interoperable with the Go core**: they do not implement RFC 9421 HTTP message
+signatures or the Go HPKE handshake, and no shipped server serves the endpoints
+they call. They are built and tested in CI (`.github/workflows/sdk.yml`) so
+they stay compilable until the protocol specification and test vectors exist;
+until then, use the Go packages (or `sage-a2a-go`) for anything security
+relevant. See `docs/refactoring/DECISIONS.md`, Decision 4, and `STRATEGY.md`
+for the planned core-plus-bindings layout.
 
-| Language | Type | Details |
-|----------|------|---------|
-| Go | Native | Primary implementation |
-| C/C++ | Static/shared library | `.a`, `.so`/`.dylib`/`.dll` |
-| Python | Web3.py + ctypes | Smart contract + library bindings |
-| Rust | FFI | Via static library |
-| JavaScript/TypeScript | Ethers.js | Smart contract bindings |
-
-See [docs/BUILD.md](docs/BUILD.md) for library build instructions and integration examples.
+| Directory | Language | Version | State |
+|-----------|----------|---------|-------|
+| `sdk/python` | Python 3.8+ | 0.1.0 | experimental; unit tests for the crypto helpers |
+| `sdk/typescript` | TypeScript | 0.1.0 | experimental; no tests yet |
+| `sdk/rust/sage-client` | Rust 1.70+ | 0.1.0 | experimental; unit tests for the crypto helpers |
+| `sdk/java/sage-client` | Java 11+ | 0.1.0 | experimental |
 
 ## Documentation
 
