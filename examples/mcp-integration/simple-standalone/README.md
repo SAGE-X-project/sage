@@ -43,12 +43,17 @@ func handler(w http.ResponseWriter, r *http.Request) {
 ### With SAGE (6 lines):
 ```go
 func handler(w http.ResponseWriter, r *http.Request) {
-    if err := verifySAGERequest(r); err != nil {
+    agentDID, err := verifySAGERequest(r) // rfc9421.HTTPVerifier.VerifyRequest, strict options
+    if err != nil {
         http.Error(w, "Unauthorized", 401)
         return
     }
-    processRequest(r)
+    processRequest(r, agentDID)
 }
 ```
 
-That's it! Just 3 extra lines add complete cryptographic security.
+The verifier checks the RFC 9421 signature with the key trusted for the DID in
+its `keyid`, requires `@method`, `@target-uri`, `@authority` and
+`content-digest` to be covered, and rejects stale or replayed nonces. This
+demo trusts the key it generates for its own client; a real server resolves the
+key from the agent's DID document (`did.Manager.ResolvePublicKey`).

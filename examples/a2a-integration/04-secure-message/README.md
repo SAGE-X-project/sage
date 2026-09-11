@@ -5,7 +5,7 @@ This example demonstrates end-to-end encrypted messaging between two agents usin
 ## What This Example Does
 
 1. **Registers two agents** (Agent A and Agent B) with multi-key support
-2. **Encrypts a message** using HPKE (Hybrid Public Key Encryption)
+2. **Encrypts a message** with HPKE (RFC 9180: X25519 KEM, HKDF-SHA256, ChaCha20-Poly1305) via `keys.HPKESealAndExportToX25519Peer`
 3. **Signs the encrypted message** using Ed25519
 4. **Transmits the secure message** (JSON format)
 5. **Verifies the signature** at the recipient
@@ -15,7 +15,7 @@ This example demonstrates end-to-end encrypted messaging between two agents usin
 
 | Property | Implementation | Guarantee |
 |----------|----------------|-----------|
-| **Confidentiality** | HPKE with X25519 | Only recipient can decrypt |
+| **Confidentiality** | HPKE (RFC 9180) with X25519 | Only the holder of Agent B's X25519 private key can open the packet; the sender and recipient DIDs are bound as HPKE `info` |
 | **Authentication** | Ed25519 signature | Proves sender identity |
 | **Integrity** | Signature verification | Detects tampering |
 | **Non-repudiation** | Digital signature | Sender can't deny |

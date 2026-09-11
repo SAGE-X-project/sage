@@ -2,7 +2,17 @@
 
 **Version:** 1.0
 **Date:** 2025-10-07
-**Status:** Implementation Ready
+**Status:** Draft, not executable
+
+> **Read before use.** The scripts this guide invokes
+> (`deploy-multisig-governance.js`, `test-multisig-flow.js`,
+> `transfer-ownership-to-timelock.js`, `accept-ownership.js`) do not exist in
+> `scripts/`, and the standalone ERC-8004 registries only became `Ownable2Step`
+> in the current unreleased changes (see `CHANGELOG.md`, Unreleased, Security).
+> The Sepolia deployments listed in the root README predate that change and
+> must be redeployed (backlog C-01) before any ownership transfer. Treat this
+> document as the intended procedure; a verified runbook will replace it once
+> the scripts exist and have been run against a testnet.
 
 ---
 
