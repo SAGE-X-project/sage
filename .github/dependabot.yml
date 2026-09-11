@@ -114,6 +114,11 @@ updates:
     labels: ["dependencies", "sdk"]
     commit-message:
       prefix: "chore(sdk-python)"
+    # The clients are experimental and pinned to the major versions they were
+    # written against; majors are taken deliberately when the client is reworked.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "npm"
     directory: "/sdk/typescript"
@@ -126,6 +131,11 @@ updates:
     labels: ["dependencies", "sdk"]
     commit-message:
       prefix: "chore(sdk-typescript)"
+    # The clients are experimental and pinned to the major versions they were
+    # written against; majors are taken deliberately when the client is reworked.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "cargo"
     directory: "/sdk/rust/sage-client"
@@ -138,6 +148,11 @@ updates:
     labels: ["dependencies", "sdk"]
     commit-message:
       prefix: "chore(sdk-rust)"
+    # The clients are experimental and pinned to the major versions they were
+    # written against; majors are taken deliberately when the client is reworked.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "maven"
     directory: "/sdk/java/sage-client"
@@ -150,3 +165,8 @@ updates:
     labels: ["dependencies", "sdk"]
     commit-message:
       prefix: "chore(sdk-java)"
+    # The clients are experimental and pinned to the major versions they were
+    # written against; majors are taken deliberately when the client is reworked.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
