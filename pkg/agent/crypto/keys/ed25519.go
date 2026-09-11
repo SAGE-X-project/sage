@@ -22,8 +22,6 @@ import (
 	"crypto"
 	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
 
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 )
@@ -43,8 +41,7 @@ func GenerateEd25519KeyPair() (sagecrypto.KeyPair, error) {
 	}
 
 	// Generate ID from public key hash
-	hash := sha256.Sum256(publicKey)
-	id := hex.EncodeToString(hash[:8])
+	id := KeyID(publicKey)
 
 	return &ed25519KeyPair{
 		privateKey: privateKey,

@@ -29,7 +29,6 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"crypto/subtle"
-	"encoding/hex"
 	"fmt"
 	"io"
 
@@ -58,8 +57,7 @@ func GenerateX25519KeyPair() (sagecrypto.KeyPair, error) {
 
 	// Generate ID from public key hash
 	pubKeyBytes := publicKey.Bytes()
-	hash := sha256.Sum256(pubKeyBytes)
-	id := hex.EncodeToString(hash[:8])
+	id := KeyID(pubKeyBytes)
 
 	return &X25519KeyPair{
 		privateKey: privateKey,

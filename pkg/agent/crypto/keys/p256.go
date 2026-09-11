@@ -24,7 +24,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
-	"encoding/hex"
 	"math/big"
 
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
@@ -54,8 +53,7 @@ func GenerateP256KeyPair() (sagecrypto.KeyPair, error) {
 	if err != nil {
 		return nil, err
 	}
-	hash := sha256.Sum256(pubKeyBytes)
-	id := hex.EncodeToString(hash[:8])
+	id := KeyID(pubKeyBytes)
 
 	return &p256KeyPair{
 		privateKey: privateKey,
@@ -78,8 +76,7 @@ func NewP256KeyPair(privateKey *ecdsa.PrivateKey, id string) (sagecrypto.KeyPair
 		if err != nil {
 			return nil, err
 		}
-		hash := sha256.Sum256(pubKeyBytes)
-		id = hex.EncodeToString(hash[:8])
+		id = KeyID(pubKeyBytes)
 	}
 
 	return &p256KeyPair{

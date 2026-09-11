@@ -21,8 +21,6 @@ package keys
 import (
 	"crypto"
 	"crypto/elliptic"
-	"crypto/sha256"
-	"encoding/hex"
 
 	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
@@ -46,8 +44,7 @@ func GenerateSecp256k1KeyPair() (sagecrypto.KeyPair, error) {
 
 	// Generate ID from public key hash
 	pubKeyBytes := publicKey.SerializeCompressed()
-	hash := sha256.Sum256(pubKeyBytes)
-	id := hex.EncodeToString(hash[:8])
+	id := KeyID(pubKeyBytes)
 
 	return &secp256k1KeyPair{
 		privateKey: privateKey,
