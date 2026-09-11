@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "../interfaces/IERC8004ValidationRegistry.sol";
 
 /**
@@ -23,7 +24,7 @@ import "../interfaces/IERC8004ValidationRegistry.sol";
  *
  * @custom:security-note All state changes occur before external calls (Checks-Effects-Interactions)
  */
-contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
+contract ERC8004ValidationRegistry is IERC8004ValidationRegistry, Ownable2Step {
 
     // ============================================
     // REENTRANCY PROTECTION
@@ -104,7 +105,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
         uint256 _minStake,
         uint256 _minValidators,
         uint256 _consensusThreshold
-    ) {
+    ) Ownable(msg.sender) {
         if (_consensusThreshold > 100) {
             revert InvalidConsensusThreshold(_consensusThreshold);
         }
@@ -593,14 +594,14 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
     }
 
     // ============================================
-    // ADMIN FUNCTIONS
+    // ADMIN FUNCTIONS (owner only)
     // ============================================
 
     /**
      * @notice Add trusted TEE public key
      * @param keyHash Hash of TEE public key
      */
-    function addTrustedTeeKey(bytes32 keyHash) external {
+    function addTrustedTeeKey(bytes32 keyHash) external onlyOwner {
         trustedTeeKeys[keyHash] = true;
     }
 
@@ -608,7 +609,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
      * @notice Remove trusted TEE public key
      * @param keyHash Hash of TEE public key
      */
-    function removeTrustedTeeKey(bytes32 keyHash) external {
+    function removeTrustedTeeKey(bytes32 keyHash) external onlyOwner {
         trustedTeeKeys[keyHash] = false;
     }
 
@@ -616,7 +617,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
      * @notice Update minimum stake requirement
      * @param newMinStake New minimum stake amount
      */
-    function setMinStake(uint256 newMinStake) external {
+    function setMinStake(uint256 newMinStake) external onlyOwner {
         minStake = newMinStake;
     }
 
@@ -624,7 +625,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
      * @notice Update minimum validators requirement
      * @param newMinValidators New minimum validator count
      */
-    function setMinValidators(uint256 newMinValidators) external {
+    function setMinValidators(uint256 newMinValidators) external onlyOwner {
         minValidators = newMinValidators;
     }
 
@@ -632,7 +633,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
      * @notice Update consensus threshold
      * @param newThreshold New consensus threshold (0-100)
      */
-    function setConsensusThreshold(uint256 newThreshold) external {
+    function setConsensusThreshold(uint256 newThreshold) external onlyOwner {
         if (newThreshold > 100) {
             revert InvalidConsensusThreshold(newThreshold);
         }
@@ -643,7 +644,7 @@ contract ERC8004ValidationRegistry is IERC8004ValidationRegistry {
      * @notice Update maximum validators per request
      * @param newMaxValidators New maximum validator count for DoS prevention
      */
-    function setMaxValidatorsPerRequest(uint256 newMaxValidators) external {
+    function setMaxValidatorsPerRequest(uint256 newMaxValidators) external onlyOwner {
         maxValidatorsPerRequest = newMaxValidators;
     }
 

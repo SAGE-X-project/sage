@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import "@openzeppelin/contracts/access/Ownable2Step.sol";
 import "../interfaces/IERC8004ReputationRegistry.sol";
 
 /**
@@ -19,7 +20,7 @@ import "../interfaces/IERC8004ReputationRegistry.sol";
  * - Verification integration hooks
  * - Spam prevention via pre-authorization
  */
-contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
+contract ERC8004ReputationRegistry is IERC8004ReputationRegistry, Ownable2Step {
 
     // ============================================
     // STATE VARIABLES
@@ -81,7 +82,7 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
     // CONSTRUCTOR
     // ============================================
 
-    constructor(address _validationRegistry) {
+    constructor(address _validationRegistry) Ownable(msg.sender) {
         // Note: address(0) is allowed - registry can be set later via setValidationRegistry
         // slither-disable-next-line missing-zero-check
         validationRegistry = _validationRegistry;
@@ -357,13 +358,13 @@ contract ERC8004ReputationRegistry is IERC8004ReputationRegistry {
 
     /**
      * @notice Update validation registry address
-     * @dev Only callable by current validation registry or during initial setup
+     * @dev Callable by the owner, or by the current validation registry to hand
+     *      over to a successor. Previously anyone could make the first assignment.
      * @param newValidationRegistry New validation registry address
      */
-    // slither-disable-next-line missing-events-access-control
     function setValidationRegistry(address newValidationRegistry) external {
-        if (validationRegistry != address(0) && msg.sender != validationRegistry) {
-            revert UnauthorizedVerifier(msg.sender);
+        if (msg.sender != owner() && msg.sender != validationRegistry) {
+            revert OwnableUnauthorizedAccount(msg.sender);
         }
         address oldRegistry = validationRegistry;
         // slither-disable-next-line missing-zero-check
