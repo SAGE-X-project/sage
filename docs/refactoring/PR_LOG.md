@@ -74,3 +74,18 @@ Notes:
 - #244 (actions group) moves every pinned action to a new major (checkout v7, setup-go v7, upload-artifact v7, download-artifact v8, codecov v7, golangci-lint-action v9, docker/* v4/v6/v7, action-gh-release v3); the consolidating PR's own CI run is the verification.
 - #242 (hardhat 3.16.0) and #230 (hardhat-chai-matchers 3.0.0) resolve the peer-range mismatch that previously kept hardhat 2 plugins in the tree; all Hardhat plugin bumps that conflicted (#234, #236, #241) were re-applied at the exact PR versions.
 - #231 (x/crypto 0.56.0) and #238 (x/sync 0.23.0) require Go 1.26 and were closed; `.github/dependabot.yml` now ignores those ranges until the toolchain moves.
+
+## Batch 3 (2026-09-11, integration/dependabot-2026-09-11b)
+
+Eight npm dev-dependency PRs opened after batch 2 landed (Hardhat 3 plugin follow-ups). All applied; three re-applied at the exact PR version after lockfile conflicts.
+
+| PR | Title | Result | Symbols / edges | External import changes |
+|---|---|---|---|---|
+| #246 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-toolbox-mocha-ethers from 3.0.2 to 3.0.7 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #247 | chore(deps)(deps-dev): bump prettier-plugin-solidity from 2.2.1 to 2.4.1 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #248 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-mocha from 3.0.11 to 3.1.0 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #249 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-ethers from 4.0.4 to 4.0.15 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #250 | chore(deps)(deps-dev): bump dotenv from 17.3.1 to 17.4.2 in /contracts/ethereum | OK | 1752->1752 / 1457->1457 | none |
+| #251 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-network-helpers from 3.0.3 to 3.0.11 in /contracts/ethereum | OK (re-applied) | 1752->1752 / 1457->1457 | none |
+| #252 | chore(deps)(deps-dev): bump solhint from 6.0.3 to 6.2.4 in /contracts/ethereum | OK (re-applied) | 1752->1752 / 1457->1457 | none |
+| #253 | chore(deps)(deps-dev): bump @nomicfoundation/hardhat-ethers-chai-matchers from 3.0.3 to 3.0.11 in /contracts/ethereum | OK (re-applied) | 1752->1752 / 1457->1457 | none |
