@@ -19,7 +19,11 @@
 package did
 
 import (
+	"crypto/ecdsa"
+	"crypto/ed25519"
 	"time"
+
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 // This file contains types for multi-key agent support.
@@ -178,10 +182,14 @@ func FromAgentMetadata(legacy *AgentMetadata) *AgentMetadataV4 {
 	}
 
 	// Convert PublicKey to ECDSA key
+	// Resolvers return PublicKey either as raw bytes or as a parsed key
+	// (*ecdsa.PublicKey for secp256k1, ed25519.PublicKey). Both forms are
+	// reduced to the byte encoding stored on-chain so that card and key
+	// comparisons work regardless of which resolver produced the metadata.
 	if legacy.PublicKey != nil {
-		if keyBytes, ok := legacy.PublicKey.([]byte); ok {
+		if keyType, keyBytes, ok := legacyPublicKeyBytes(legacy.PublicKey); ok {
 			v4.Keys = append(v4.Keys, AgentKey{
-				Type:      KeyTypeECDSA,
+				Type:      keyType,
 				KeyData:   keyBytes,
 				Verified:  true,
 				CreatedAt: legacy.CreatedAt,
@@ -246,3 +254,24 @@ const (
 	PhaseActivated                           // Fully active
 	PhaseFailed                              // Registration failed
 )
+
+// legacyPublicKeyBytes converts the PublicKey field of a legacy AgentMetadata
+// into the on-chain byte encoding and the matching KeyType. Raw bytes are
+// assumed to be ECDSA (the historical behaviour); parsed keys are encoded
+// with MarshalPublicKey. Unknown types are skipped.
+func legacyPublicKeyBytes(pk interface{}) (KeyType, []byte, bool) {
+	switch k := pk.(type) {
+	case []byte:
+		return KeyTypeECDSA, k, true
+	case ed25519.PublicKey:
+		return KeyTypeEd25519, []byte(k), true
+	case *ecdsa.PublicKey, *secp256k1.PublicKey:
+		b, err := MarshalPublicKey(k)
+		if err != nil {
+			return 0, nil, false
+		}
+		return KeyTypeECDSA, b, true
+	default:
+		return 0, nil, false
+	}
+}
