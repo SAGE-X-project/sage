@@ -30,8 +30,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 	"github.com/sage-x-project/sage/pkg/agent/session"
+	"github.com/sage-x-project/sage/pkg/telemetry/metrics"
 )
 
 func main() {
