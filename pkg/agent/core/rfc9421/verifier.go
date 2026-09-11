@@ -67,12 +67,12 @@ func NewVerifierWithNonceManager(nonceManager *nonce.Manager) *Verifier {
 }
 
 // nonceManagerGuard adapts the legacy nonce.Manager to session.ReplayGuard.
+// The manager keeps a single global nonce space, so the scope is ignored to
+// preserve its historical behaviour (callers can still query IsNonceUsed).
 type nonceManagerGuard struct{ m *nonce.Manager }
 
-func (g nonceManagerGuard) CheckAndMark(scope, n string) bool {
-	return g.m.CheckAndMark(scope + "\x00" + n)
-}
-func (g nonceManagerGuard) Seen(scope, n string) bool { return g.m.IsNonceUsed(scope + "\x00" + n) }
+func (g nonceManagerGuard) CheckAndMark(_, n string) bool { return g.m.CheckAndMark(n) }
+func (g nonceManagerGuard) Seen(_, n string) bool         { return g.m.IsNonceUsed(n) }
 
 // replayScope is the nonce space a message's nonce is checked in.
 func replayScope(message *Message) string { return message.AgentDID }
