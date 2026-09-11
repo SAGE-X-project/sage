@@ -221,13 +221,6 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 		ChainID      *big.Int       `abi:"chainId"`
 		KEMPublicKey []byte         `abi:"kemPublicKey"` // raw 32B X25519
 	}
-	type agentKeyLocal struct {
-		KeyType      uint8    `abi:"keyType"` // 0=ECDSA, 1=Ed25519, 2=X25519
-		KeyData      []byte   `abi:"keyData"`
-		Signature    []byte   `abi:"signature"`
-		Verified     bool     `abi:"verified"`
-		RegisteredAt *big.Int `abi:"registeredAt"`
-	}
 
 	// helper: []byte(플랫) → [][32]byte 변환
 	chunk32s := func(b []byte) ([][32]byte, error) {
@@ -242,7 +235,7 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 	}
 
 	// helper: getKey 결과 해석 (struct or flat)
-	coerceKey := func(vals []interface{}, out *agentKeyLocal) error {
+	coerceKey := func(vals []interface{}, out *onChainKey) error {
 		if len(vals) == 1 && reflect.ValueOf(vals[0]).Kind() == reflect.Struct {
 			v := reflect.ValueOf(vals[0])
 			out.KeyType = v.Field(0).Interface().(uint8)
@@ -382,8 +375,9 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 		}
 	}
 
-	// 6) keyHashes → getKey(bytes32)로 ECDSA 키 하나 찾아 파싱
-	var publicKey interface{} // secp256k1 (65B uncompressed)
+	// 6) keyHashes → getKey(bytes32); the key policy (selectAgentKeys) decides
+	//    which verified keys become the signing and KEM keys.
+	keys := make([]onChainKey, 0, len(on.KeyHashes))
 	for _, kh := range on.KeyHashes {
 		cdKey, err := c.contractABI.Pack("getKey", kh)
 		if err != nil {
@@ -400,18 +394,19 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 		if err != nil {
 			return nil, fmt.Errorf("unpack getKey: %w", err)
 		}
-		var k agentKeyLocal
+		var k onChainKey
 		if err := coerceKey(kvals, &k); err != nil {
 			return nil, fmt.Errorf("coerce getKey: %w", err)
 		}
-		if k.KeyType == 0 { // ECDSA
-			pk, err := did.UnmarshalPublicKey(k.KeyData, "secp256k1")
-			if err != nil {
-				return nil, fmt.Errorf("unmarshal ECDSA pubkey: %w", err)
-			}
-			publicKey = pk
-			break
-		}
+		keys = append(keys, k)
+	}
+	publicKey, listKEM, err := selectAgentKeys(keys)
+	if err != nil {
+		return nil, fmt.Errorf("agent %s: %w", agentDID, err)
+	}
+	kemPublicKey := on.KEMPublicKey
+	if len(kemPublicKey) == 0 {
+		kemPublicKey = listKEM
 	}
 
 	// 7) 결과 구성 (kemPublicKey는 원시 32바이트 그대로)
@@ -420,11 +415,11 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 		Name:         on.Name,
 		Description:  on.Description,
 		Endpoint:     on.Endpoint,
-		PublicKey:    publicKey, // 없을 수 있음
+		PublicKey:    publicKey, // nil when the agent has no verified signing key
 		Capabilities: caps,
 		Owner:        on.Owner.Hex(),
 		IsActive:     on.Active,
-		PublicKEMKey: on.KEMPublicKey, // raw X25519 (32B)
+		PublicKEMKey: kemPublicKey, // raw X25519 (32B)
 		CreatedAt:    time.Unix(on.RegisteredAt.Int64(), 0),
 		UpdatedAt:    time.Unix(on.UpdatedAt.Int64(), 0),
 	}, nil
