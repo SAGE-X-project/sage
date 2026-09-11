@@ -165,6 +165,10 @@ func (p *Provider) isNetworkSupported(network chain.Network) bool {
 }
 
 // init registers the provider
-func init() {
+// Register adds this chain's provider to the global chain registry. Call it
+// from the composition root (internal/app.RegisterDefaults does) before using
+// chain.GetProvider or address derivation for this chain. Registering twice
+// is harmless.
+func Register() {
 	_ = chain.RegisterProvider(NewProvider())
 }

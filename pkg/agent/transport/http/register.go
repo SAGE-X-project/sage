@@ -23,14 +23,13 @@ import (
 )
 
 // init registers the HTTP transport factory with the default selector
-func init() {
-	// Register HTTP factory
-	transport.DefaultSelector.RegisterFactory(transport.TransportHTTP, func(endpoint string) (transport.MessageTransport, error) {
-		return NewHTTPTransport(endpoint), nil
-	})
-
-	// Register HTTPS factory (same implementation)
-	transport.DefaultSelector.RegisterFactory(transport.TransportHTTPS, func(endpoint string) (transport.MessageTransport, error) {
-		return NewHTTPTransport(endpoint), nil
-	})
+// Register adds this transport's factories to transport.DefaultSelector so
+// transport.SelectByURL can build it from an endpoint. Call it from the
+// composition root (internal/app.RegisterDefaults does).
+func Register() {
+	for _, kind := range []transport.TransportType{transport.TransportHTTP, transport.TransportHTTPS} {
+		transport.DefaultSelector.RegisterFactory(kind, func(endpoint string) (transport.MessageTransport, error) {
+			return NewHTTPTransport(endpoint), nil
+		})
+	}
 }

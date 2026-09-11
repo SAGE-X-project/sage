@@ -51,20 +51,18 @@ func GetAgentCardRegistryABI() (string, error) {
 }
 
 // SageRegistryABI is the ABI string (for backward compatibility)
-var SageRegistryABI string
+// SageRegistryABI is the SageRegistry V2 ABI as a JSON string.
+var SageRegistryABI = mustABI(GetSageRegistryABI)
 
-// AgentCardRegistryABI is the ABI string for AgentCardRegistry
-var AgentCardRegistryABI string
+// AgentCardRegistryABI is the AgentCardRegistry ABI as a JSON string.
+var AgentCardRegistryABI = mustABI(GetAgentCardRegistryABI)
 
-func init() {
-	var err error
-	SageRegistryABI, err = GetSageRegistryABI()
+// mustABI validates an embedded ABI at package initialisation; the embedded
+// files are part of the build, so a failure is a build defect, not a runtime condition.
+func mustABI(load func() (string, error)) string {
+	s, err := load()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to load SageRegistry ABI: %v", err))
+		panic(fmt.Sprintf("embedded ABI is invalid: %v", err))
 	}
-
-	AgentCardRegistryABI, err = GetAgentCardRegistryABI()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to load AgentCardRegistry ABI: %v", err))
-	}
+	return s
 }

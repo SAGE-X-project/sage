@@ -23,14 +23,13 @@ import (
 )
 
 // init registers the WebSocket transport factory with the default selector
-func init() {
-	// Register WebSocket factory
-	transport.DefaultSelector.RegisterFactory(transport.TransportWebSocket, func(endpoint string) (transport.MessageTransport, error) {
-		return NewWSTransport(endpoint), nil
-	})
-
-	// Register WebSocket Secure factory (same implementation)
-	transport.DefaultSelector.RegisterFactory(transport.TransportWebSocketSecure, func(endpoint string) (transport.MessageTransport, error) {
-		return NewWSTransport(endpoint), nil
-	})
+// Register adds this transport's factories to transport.DefaultSelector so
+// transport.SelectByURL can build it from an endpoint. Call it from the
+// composition root (internal/app.RegisterDefaults does).
+func Register() {
+	for _, kind := range []transport.TransportType{transport.TransportWebSocket, transport.TransportWebSocketSecure} {
+		transport.DefaultSelector.RegisterFactory(kind, func(endpoint string) (transport.MessageTransport, error) {
+			return NewWSTransport(endpoint), nil
+		})
+	}
 }

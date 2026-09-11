@@ -722,6 +722,11 @@ bindings-check:
 		|| { echo "Go bindings are out of date: run 'make bindings' and commit the result"; exit 1; }
 	@echo "Bindings are up to date"
 
+# Fail if a library package registers itself in init()
+.PHONY: check-no-init
+check-no-init:
+	@bash tools/scripts/check-no-init.sh
+
 # Regenerate the AST-based code graph (docs/refactoring/graph)
 .PHONY: codegraph
 codegraph:
@@ -733,6 +738,7 @@ codegraph:
 codegraph-check:
 	@echo "Checking layer boundaries..."
 	@cd tools/codegraph && GOTOOLCHAIN=$(GOTOOLCHAIN) $(GO) run . -dir ../.. -out $(REPORTS_DIR)/codegraph -layer-baseline layer-baseline.txt
+	@bash tools/scripts/check-no-init.sh
 
 # Run CI lint checks (same as GitHub Actions)
 .PHONY: lint-ci

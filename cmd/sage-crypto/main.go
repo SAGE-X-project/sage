@@ -25,8 +25,7 @@ import (
 	"github.com/spf13/cobra"
 
 	// Import chain providers to register them
-	_ "github.com/sage-x-project/sage/pkg/agent/crypto/chain/ethereum"
-	_ "github.com/sage-x-project/sage/pkg/agent/crypto/chain/solana"
+	"github.com/sage-x-project/sage/internal/app"
 )
 
 var rootCmd = &cobra.Command{
@@ -44,6 +43,7 @@ This tool supports:
 }
 
 func main() {
+	app.RegisterDefaults()
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)

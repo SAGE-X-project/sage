@@ -35,6 +35,7 @@ import (
 
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
+	dideth "github.com/sage-x-project/sage/pkg/agent/did/ethereum"
 )
 
 // Agent represents a SAGE agent with cryptographic keys
@@ -388,6 +389,9 @@ func (a *Agent) PrintInfo() {
 }
 
 func main() {
+	// Library packages do not self-register: install the Ethereum DID client explicitly.
+	dideth.Register()
+
 	fmt.Println("╔═══════════════════════════════════════════════════════════╗")
 	fmt.Println("║     SAGE Agent Initialization with Key Management        ║")
 	fmt.Println("╚═══════════════════════════════════════════════════════════╝")

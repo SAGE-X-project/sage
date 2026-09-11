@@ -131,6 +131,9 @@ jobs:
         working-directory: tools/codegraph
         run: go run . -dir ../.. -out /tmp/codegraph -layer-baseline layer-baseline.txt
 
+      - name: Check that pkg has no init() registrations
+        run: bash tools/scripts/check-no-init.sh
+
       - name: Check formatting
         run: |
           UNFORMATTED=$(gofmt -l . || true)
