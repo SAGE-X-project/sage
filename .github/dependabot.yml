@@ -61,9 +61,11 @@ updates:
       include: "scope"
     versioning-strategy: increase
 
-  # Docker
+  # Docker (root Dockerfile and deployments/docker/Dockerfile are pinned by digest)
   - package-ecosystem: "docker"
-    directory: "/"
+    directories:
+      - "/"
+      - "/deployments/docker"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -71,6 +73,21 @@ updates:
     open-pull-requests-limit: 5
     reviewers:
       - "sage-x-project/maintainers"
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+
+  # Docker Compose (development and test stacks, pinned by digest)
+  - package-ecosystem: "docker-compose"
+    directory: "/deployments/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "00:00"
+    open-pull-requests-limit: 5
     labels:
       - "dependencies"
       - "docker"

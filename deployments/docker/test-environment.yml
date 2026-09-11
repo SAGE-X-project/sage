@@ -6,7 +6,7 @@ version: '3.8'
 services:
   # Ethereum Local Node (Hardhat)
   ethereum-node:
-    image: node:18-alpine
+    image: node:18-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4b8ca09d9e
     container_name: sage-test-ethereum
     working_dir: /app
     command: sh -c "cd /app/contracts/ethereum && npm install && npx hardhat node --hostname 0.0.0.0"
@@ -27,7 +27,7 @@ services:
 
   # Solana Local Validator (Test Validator)
   solana-node:
-    image: solanalabs/solana:stable
+    image: solanalabs/solana:stable@sha256:219af50ddaeace9e92aee5005909dc9a3ef10ec25625e11679ee13f1f4a3e14b
     container_name: sage-test-solana
     command: >
       solana-test-validator
@@ -55,7 +55,7 @@ services:
 
   # Redis (Session Cache for Tests)
   redis-test:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
     container_name: sage-test-redis
     ports:
       - "6380:6379"  # Different port to avoid conflicts
@@ -72,7 +72,7 @@ services:
 
   # PostgreSQL (Optional - for DID Registry tests)
   postgres-test:
-    image: postgres:15-alpine
+    image: postgres:15-alpine@sha256:fe0737ba566a2c5b2a28f34433c0a423261900ec17b9bf7ad115e1aae7e57f1b
     container_name: sage-test-postgres
     ports:
       - "5433:5432"  # Different port to avoid conflicts
@@ -95,7 +95,7 @@ services:
 
   # Test Coordinator (Health Check & Status)
   test-health:
-    image: alpine:latest
+    image: alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
     container_name: sage-test-health
     command: >
       sh -c '

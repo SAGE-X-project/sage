@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Go toolchain raised to 1.26 (`go 1.26.0`, `toolchain go1.26.8`): Go 1.25 is out of the support window and no longer receives standard-library security fixes. CI, the Docker builder image and the new blocking `govulncheck` job use go1.26.8. Consumers need Go 1.26 or newer.
 - `golang.org/x/crypto` 0.57.0 and `golang.org/x/sync` 0.23.0.
 - ECDSA key material is encoded through `keys.ECDSAPrivateScalar`, `ECDSAPublicCoordinates`, `ECDSAPublicUncompressed` and `ParseECDSAPublicKey` (fixed-length, curve-aware) instead of the `D`/`X`/`Y` fields deprecated in Go 1.26. JWK exports of secp256k1 and P-256 keys now always carry 32-byte `x`, `y` and `d` values (RFC 7518), and importing a P-256 JWK verifies that `x`/`y` match `d`.
+- Container base images (`golang:1.26.8-alpine`, `alpine:3.24.1`) and the images in `deployments/docker/*.yml` are pinned by digest; the Dockerfiles no longer attempt the optional cgo library build.
 - CI installs npm packages with `--ignore-scripts`, verifies Go modules against `go.sum` (`go mod verify`, `GOFLAGS=-mod=readonly`), and Trivy now scans the Go binaries inside the image.
 
 ### Security

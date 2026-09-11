@@ -2,7 +2,8 @@
 # Optimized for production with minimal image size
 
 # Stage 1: Builder
-FROM golang:1.26.8-alpine AS builder
+# Base images are pinned by digest (multi-arch index); Dependabot keeps the tag and digest in step.
+FROM golang:1.26.8-alpine@sha256:ce864e7223ac17b1775e6fd0b4c0db580c2eb50e7953a427916379e4b92a1628 AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -27,11 +28,8 @@ COPY . .
 # Build all binaries
 RUN make build
 
-# Build library (optional, for multi-language support)
-RUN make build-lib || true
-
 # Stage 2: Runtime
-FROM alpine:latest
+FROM alpine:3.24.1@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
 # Upgrade the base packages first so the image does not ship OS-level CVEs
 # already fixed in the Alpine repositories (e.g. OpenSSL), then install
@@ -50,12 +48,6 @@ WORKDIR /home/sage
 
 # Copy binaries from builder
 COPY --from=builder /app/build/bin/* /usr/local/bin/
-
-# Copy libraries if they exist
-RUN --mount=type=bind,from=builder,source=/app/build/lib,target=/tmp/lib \
-    if [ -d /tmp/lib ] && [ "$(ls -A /tmp/lib)" ]; then \
-        cp -r /tmp/lib/* /usr/local/lib/; \
-    fi
 
 # Copy configuration templates if they exist
 RUN --mount=type=bind,from=builder,source=/app,target=/tmp/app \
