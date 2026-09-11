@@ -138,5 +138,3 @@ linters:
           - errcheck
           - staticcheck
           - ineffassign
-      - path: "contracts/ethereum/bindings/go/"
-        text: "local import"
