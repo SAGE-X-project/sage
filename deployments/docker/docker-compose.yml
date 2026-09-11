@@ -59,7 +59,7 @@ services:
 
   # Local Blockchain (Hardhat Node)
   blockchain:
-    image: ethereum/client-go:stable
+    image: ethereum/client-go:stable@sha256:b8ab3451a117faa929a5ad5cb6608396a28883cf9918f07a0d922ff5769c184c
     container_name: sage-blockchain
     command: |
       --dev
@@ -85,7 +85,7 @@ services:
 
   # Redis for Session Cache (Optional)
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
     container_name: sage-redis
     restart: unless-stopped
     ports:
@@ -103,7 +103,7 @@ services:
 
   # Prometheus (Monitoring)
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:latest@sha256:5ce7540c3c00ef4ab0c9d2c995c6a5b9c421f44b4a115d97a2c7af3b1c21cbb0
     container_name: sage-prometheus
     restart: unless-stopped
     ports:
@@ -121,7 +121,7 @@ services:
 
   # Grafana (Visualization)
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:latest@sha256:f772d434e8fab0049deb2b1b30abd43342bcfca1537614aa8d36080232cf4283
     container_name: sage-grafana
     restart: unless-stopped
     ports:
@@ -143,7 +143,7 @@ services:
 
   # Swagger UI (API Documentation)
   swagger-ui:
-    image: swaggerapi/swagger-ui:latest
+    image: swaggerapi/swagger-ui:latest@sha256:9ae209e3791e6fa78e1426769bf54562a043caa969287bfd3779428ece4930e5
     container_name: sage-swagger-ui
     restart: unless-stopped
     ports:
