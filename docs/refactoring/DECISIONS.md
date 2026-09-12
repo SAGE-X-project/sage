@@ -133,3 +133,18 @@ Release shape: v1.6.0 = Phase 0 defect fixes + deprecations + SDK banners + lib 
 4. The repository split proposed in `v2/review/11` is deferred until the maintainer has reviewed it; no further extraction until then (F-10).
 
 **Consequence for the order of work.** G-01 to G-05 (specification, Go, Rust, vectors) come first, then the gateway HPKE session mode and F-03b, then F-09.
+
+---
+
+## Decision 8 (2026-09-13). Keep what is unused; repository structure B
+
+**Evidence.** The review recommended deleting parts of the system whose only fault is that nothing calls them today: the HPKE traffic-key and channel-binding expansion of spec 04 §4 with its vector (`v2/review/08` §3.2), `pkg/oidc` and `pkg/health` (`v2/review/11` §6 item 4), and several exported symbols with no caller (`v2/review/02` §4). The security features this project added after discussion, the handshake and the nonce and replay protection, were in the same position before they were wired up (`v2/review/03` §2).
+
+**Decisions taken by the maintainer.**
+
+1. Being unused is not a reason to delete. Specification sections, vectors, packages and exported symbols stay unless they are superseded by something that does the same job, or they are harmful. Where a reviewer proposed a deletion on the grounds of no current caller, the item is kept and its intended role is written down instead: spec 04 §4, `pkg/oidc`, `pkg/health`, `pkg/storage`, `crypto/vault` and the exported symbols listed in `v2/review/02` §4 all remain.
+2. This does not reopen Decision 7 item 2. The 4-phase handshake, `core/message` and `core/message/nonce` are removed at v1.8.0 because the HPKE handshake and the single replay guard replace them, not because they are unused.
+3. G-04 is resolved by keeping both key derivations and stating which applies where: the session record layer derives its keys through `DeriveSessionSeed` and the HKDF schedule of spec 05 §1-§2, while the counter expansion of spec 04 §4 remains for the channel binding value and for peers that use the HPKE channel without the record layer. The code is corrected to call `DeriveSessionSeed` on the handshake path, the traffic-keys vector stays, and a vector for the HPKE seed path is added.
+4. The repository structure is option B of `v2/REPO_STRUCTURE_OPTIONS.md`: the Go repository keeps the reference library, and `sage-cli`, `sage-examples`, `sage-bench` and `sage-demo` become their own repositories, with the language SDKs later. Nothing is extracted until the G rows and the live end-to-end path are done, and no code is deleted by the move: what leaves `sage` is relocated with its history.
+
+**Consequence.** The G rows keep the wire-format corrections but drop the "remove the unused section" option. F-10 records the chosen structure and stays open until its preconditions are met.

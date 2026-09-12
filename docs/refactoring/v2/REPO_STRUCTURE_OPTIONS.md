@@ -1,8 +1,9 @@
 # Repository structure options
 
-Status: proposal for review, 2026-09-13. Nothing here is executed; the
-maintainer chooses an option (or a mix) before any extraction starts
-(BACKLOG F-10, DECISIONS.md 7). Measurements come from
+Status: option B chosen on 2026-09-13 (DECISIONS.md 8). Nothing is
+executed yet: extraction waits for the wire-format corrections (BACKLOG G)
+and the live end-to-end path (F-03b), and the move relocates code with its
+history rather than deleting any of it. Measurements come from
 `review/02-code-graph.md` and `review/11-repository-split-and-research-plan.md`
 at `sage` `878932d`.
 
@@ -196,9 +197,9 @@ READMEs stay true.
    column depends on them.
 3. Only then the extraction chosen above.
 
-## 6. Recommendation
+## 6. Recommendation and decision
 
-Option B, executed after step 2 above, with `sage-demo` created first
+Chosen: option B, executed after step 2 above, with `sage-demo` created first
 because it is the artefact the maintainer wants to show. If the maintainer
 count stays at one for the next quarter, Option C gives most of the benefit
 with one repository to run. Option A is the fallback if the wire-format work
