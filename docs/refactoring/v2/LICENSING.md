@@ -65,6 +65,12 @@ agree explicitly before a licence change.
 | 4 | `sage` | Correct the go-ethereum row of `NOTICE` to LGPL-3.0 (library packages) so the notice does not overstate the copyleft obligation. | Recommended |
 | 5 | new repositories | Add `LICENSE` (and `NOTICE` where Apache-2.0) in the first commit, per §4. | Major |
 
+Status on 2026-09-12: fix 1 is in `rs-sage-core` PR #16; fixes 2, 3 and 4 are
+in `sage` PR #301; fix 5 landed as the initial commit of each new repository
+(`sage-spec` Apache-2.0 with NOTICE, `sage-contracts` MIT, `sage-gateway` and
+`sage-inspector` LGPL-3.0), and GitHub detects the expected licence on all
+four.
+
 ## 4. Licence per repository
 
 | Repository | Licence | Reason | Trade-off |
