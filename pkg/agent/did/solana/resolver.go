@@ -20,7 +20,6 @@ package solana
 
 import (
 	"context"
-	"crypto"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -32,7 +31,7 @@ import (
 )
 
 // ResolvePublicKey retrieves only the public key for an agent
-func (c *SolanaClient) ResolvePublicKey(ctx context.Context, agentDID did.AgentDID) (crypto.PublicKey, error) {
+func (c *SolanaClient) ResolvePublicKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
 	metadata, err := c.Resolve(ctx, agentDID)
 	if err != nil {
 		return nil, err
@@ -43,6 +42,22 @@ func (c *SolanaClient) ResolvePublicKey(ctx context.Context, agentDID did.AgentD
 	}
 
 	return metadata.PublicKey, nil
+}
+
+// ResolveKEMKey retrieves the agent's raw X25519 KEM key. The Solana agent
+// account stores no KEM key today, so it returns nil for an active agent.
+func (c *SolanaClient) ResolveKEMKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error) {
+	metadata, err := c.Resolve(ctx, agentDID)
+	if err != nil {
+		return nil, err
+	}
+	if !metadata.IsActive {
+		return nil, did.ErrInactiveAgent
+	}
+	if kem := metadata.KEMKey(); kem != nil {
+		return kem, nil
+	}
+	return nil, nil
 }
 
 // VerifyMetadata checks if the provided metadata matches the on-chain data

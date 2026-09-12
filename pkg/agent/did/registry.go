@@ -40,10 +40,10 @@ type Registry interface {
 	GetRegistrationStatus(ctx context.Context, txHash string) (*RegistrationResult, error)
 }
 
-// RegistryV4 extends Registry with multi-key management operations
-type RegistryV4 interface {
-	Registry
-
+// KeyRegistry is the optional key-management extension of a Registry. A
+// Manager checks for it with a type assertion before AddKey, RevokeKey and
+// ApproveEd25519Key.
+type KeyRegistry interface {
 	// AddKey adds a new cryptographic key to an agent
 	AddKey(ctx context.Context, did AgentDID, key AgentKey) (keyHash string, err error)
 
@@ -52,6 +52,14 @@ type RegistryV4 interface {
 
 	// ApproveEd25519Key approves an Ed25519 key (owner only)
 	ApproveEd25519Key(ctx context.Context, keyHash string) error
+}
+
+// RegistryV4 is a Registry that also manages keys.
+//
+// Deprecated: use Registry and KeyRegistry.
+type RegistryV4 interface {
+	Registry
+	KeyRegistry
 }
 
 // RegistryConfig contains configuration for a DID registry

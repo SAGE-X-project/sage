@@ -23,7 +23,18 @@ import (
 	"fmt"
 )
 
-// Resolver defines the interface for DID resolution
+// Lister enumerates agents in a registry.
+type Lister interface {
+	// ListAgentsByOwner retrieves all agents owned by a specific address
+	ListAgentsByOwner(ctx context.Context, ownerAddress string) ([]*AgentMetadata, error)
+
+	// Search finds agents matching the given criteria
+	Search(ctx context.Context, criteria SearchCriteria) ([]*AgentMetadata, error)
+}
+
+// Resolver reads agents from a registry. It embeds Lister so that the method
+// set of the previous release is unchanged; consumers that only resolve
+// single agents should accept the smaller interface they need.
 type Resolver interface {
 	// Resolve retrieves agent metadata by DID
 	Resolve(ctx context.Context, did AgentDID) (*AgentMetadata, error)
@@ -31,16 +42,13 @@ type Resolver interface {
 	// ResolvePublicKey retrieves only the public key for an agent
 	ResolvePublicKey(ctx context.Context, did AgentDID) (interface{}, error)
 
+	// ResolveKEMKey retrieves the agent's raw X25519 KEM key, or nil
 	ResolveKEMKey(ctx context.Context, did AgentDID) (interface{}, error)
 
 	// VerifyMetadata checks if the provided metadata matches the on-chain data
 	VerifyMetadata(ctx context.Context, did AgentDID, metadata *AgentMetadata) (*VerificationResult, error)
 
-	// ListAgentsByOwner retrieves all agents owned by a specific address
-	ListAgentsByOwner(ctx context.Context, ownerAddress string) ([]*AgentMetadata, error)
-
-	// Search finds agents matching the given criteria
-	Search(ctx context.Context, criteria SearchCriteria) ([]*AgentMetadata, error)
+	Lister
 }
 
 // SearchCriteria defines search parameters for finding agents

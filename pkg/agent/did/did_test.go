@@ -36,29 +36,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetDefaultManager(t *testing.T) {
-	manager := GetDefaultManager()
-	assert.NotNil(t, manager)
-	assert.Equal(t, defaultManager, manager)
-}
-
 func TestPackageLevelFunctions(t *testing.T) {
 	ctx := context.Background()
 
-	// Save original default manager
-	originalManager := defaultManager
-	defer func() {
-		defaultManager = originalManager
-	}()
-
 	// Create a new manager with mocks
-	defaultManager = NewManager()
+	m := NewManager()
 	mockRegistry := new(MockRegistry)
 	mockResolver := new(MockResolver)
 
 	// Add mocks to the default manager
-	defaultManager.registry.registries[ChainEthereum] = mockRegistry
-	defaultManager.resolver.resolvers[ChainEthereum] = mockResolver
+	m.registry.registries[ChainEthereum] = mockRegistry
+	m.resolver.resolvers[ChainEthereum] = mockResolver
 
 	t.Run("Configure", func(t *testing.T) {
 		config := &RegistryConfig{
@@ -68,7 +56,7 @@ func TestPackageLevelFunctions(t *testing.T) {
 		}
 
 		// This should succeed now as we only store configuration
-		err := Configure(ChainEthereum, config)
+		err := m.Configure(ChainEthereum, config)
 		assert.NoError(t, err)
 	})
 
@@ -90,7 +78,7 @@ func TestPackageLevelFunctions(t *testing.T) {
 			return true
 		})).Return(expectedResult, nil).Once()
 
-		result, err := RegisterAgent(ctx, ChainEthereum, req)
+		result, err := m.RegisterAgent(ctx, ChainEthereum, req)
 		require.NoError(t, err)
 		assert.Equal(t, expectedResult, result)
 
@@ -107,7 +95,7 @@ func TestPackageLevelFunctions(t *testing.T) {
 
 		mockResolver.On("Resolve", ctx, did).Return(expectedMetadata, nil).Once()
 
-		metadata, err := ResolveAgent(ctx, did)
+		metadata, err := m.ResolveAgent(ctx, did)
 		require.NoError(t, err)
 		assert.Equal(t, expectedMetadata, metadata)
 
@@ -133,7 +121,7 @@ func TestPackageLevelFunctions(t *testing.T) {
 
 		mockResolver.On("Resolve", ctx, did).Return(agent, nil).Once()
 
-		result, err := ValidateAgent(ctx, did, nil)
+		result, err := m.ValidateAgent(ctx, did, nil)
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.Equal(t, agent.Name, result.Name)
@@ -145,16 +133,10 @@ func TestPackageLevelFunctions(t *testing.T) {
 func TestCheckCapabilities(t *testing.T) {
 	ctx := context.Background()
 
-	// Save original default manager
-	originalManager := defaultManager
-	defer func() {
-		defaultManager = originalManager
-	}()
-
 	// Create a new manager with mocks
-	defaultManager = NewManager()
+	m := NewManager()
 	mockResolver := new(MockResolver)
-	defaultManager.resolver.resolvers[ChainEthereum] = mockResolver
+	m.resolver.resolvers[ChainEthereum] = mockResolver
 
 	t.Run("CheckCapabilities with all capabilities present", func(t *testing.T) {
 		did := AgentDID("did:sage:ethereum:agent001")
@@ -171,7 +153,7 @@ func TestCheckCapabilities(t *testing.T) {
 
 		mockResolver.On("Resolve", ctx, did).Return(agent, nil).Once()
 
-		hasCapabilities, err := CheckCapabilities(ctx, did, []string{"messaging", "compute"})
+		hasCapabilities, err := m.CheckCapabilities(ctx, did, []string{"messaging", "compute"})
 		assert.NoError(t, err)
 		assert.True(t, hasCapabilities)
 
@@ -191,7 +173,7 @@ func TestCheckCapabilities(t *testing.T) {
 
 		mockResolver.On("Resolve", ctx, did).Return(agent, nil).Once()
 
-		hasCapabilities, err := CheckCapabilities(ctx, did, []string{"messaging", "compute"})
+		hasCapabilities, err := m.CheckCapabilities(ctx, did, []string{"messaging", "compute"})
 		assert.NoError(t, err)
 		assert.False(t, hasCapabilities)
 
@@ -211,7 +193,7 @@ func TestCheckCapabilities(t *testing.T) {
 
 		mockResolver.On("Resolve", ctx, did).Return(agent, nil).Once()
 
-		hasCapabilities, err := CheckCapabilities(ctx, did, []string{"messaging"})
+		hasCapabilities, err := m.CheckCapabilities(ctx, did, []string{"messaging"})
 		assert.Error(t, err)
 		assert.Equal(t, ErrInactiveAgent, err)
 		assert.False(t, hasCapabilities)
@@ -225,7 +207,7 @@ func TestCheckCapabilities(t *testing.T) {
 		mockResolver.On("Resolve", ctx, did).
 			Return(nil, ErrDIDNotFound).Once()
 
-		hasCapabilities, err := CheckCapabilities(ctx, did, []string{"messaging"})
+		hasCapabilities, err := m.CheckCapabilities(ctx, did, []string{"messaging"})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to resolve agent DID")
 		assert.False(t, hasCapabilities)
@@ -411,14 +393,8 @@ func TestDIDDuplicateDetection(t *testing.T) {
 
 	ctx := context.Background()
 
-	// Save original default manager
-	originalManager := defaultManager
-	defer func() {
-		defaultManager = originalManager
-	}()
-
 	// Create a new manager
-	defaultManager = NewManager()
+	m := NewManager()
 
 	// Configure for Ethereum V4
 	config := &RegistryConfig{
@@ -429,7 +405,7 @@ func TestDIDDuplicateDetection(t *testing.T) {
 		ConfirmationBlocks: 1,
 	}
 
-	err := Configure(ChainEthereum, config)
+	err := m.Configure(ChainEthereum, config)
 	require.NoError(t, err, "Failed to configure DID manager")
 	testutil.LogSuccess(t, "DID Manager 설정 완료")
 
@@ -458,7 +434,7 @@ func TestDIDDuplicateDetection(t *testing.T) {
 	}
 
 	// First registration should succeed
-	result1, err := RegisterAgent(ctx, ChainEthereum, req)
+	result1, err := m.RegisterAgent(ctx, ChainEthereum, req)
 	require.NoError(t, err, "First registration should succeed")
 	require.NotNil(t, result1, "Registration result should not be nil")
 	testutil.LogSuccess(t, "첫 번째 Agent 등록 성공")
@@ -467,7 +443,7 @@ func TestDIDDuplicateDetection(t *testing.T) {
 
 	// Step 4: Verify DID can be resolved
 	testutil.LogDetail(t, "[Step 3] 등록된 DID 조회...")
-	agent, err := ResolveAgent(ctx, testDID)
+	agent, err := m.ResolveAgent(ctx, testDID)
 	require.NoError(t, err, "Should resolve registered DID")
 	require.NotNil(t, agent, "Agent should be found")
 	assert.Equal(t, testDID, agent.DID, "DID should match")
@@ -478,7 +454,7 @@ func TestDIDDuplicateDetection(t *testing.T) {
 	testutil.LogDetail(t, "[Step 4] 동일한 DID로 재등록 시도...")
 
 	// Second registration with the same DID should fail
-	result2, err := RegisterAgent(ctx, ChainEthereum, req)
+	result2, err := m.RegisterAgent(ctx, ChainEthereum, req)
 
 	// Verify that duplicate registration fails
 	if err != nil {
