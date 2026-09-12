@@ -22,31 +22,20 @@ import (
 	"time"
 )
 
-const GeneralPrefix = "session"
-
-// Session represents an active cryptographic session between two agents
+// Session is the part of *SecureSession that callers outside this package
+// use. Manager methods return *SecureSession directly; keep this interface
+// for code that stored the previous return type.
+//
+// Deprecated: use *SecureSession.
 type Session interface {
-	// Identification
 	GetID() string
-	GetCreatedAt() time.Time
-	GetLastUsedAt() time.Time
-
-	// Lifecycle
-	IsExpired() bool
-	UpdateLastUsed()
-	Close() error
-
-	// Cryptographic operations
 	Encrypt(plaintext []byte) ([]byte, error)
 	Decrypt(data []byte) ([]byte, error)
-	EncryptAndSign(plaintext []byte, covered []byte) ([]byte, []byte, error)
-	DecryptAndVerify(cipher []byte, covered []byte, mac []byte) ([]byte, error)
 	SignCovered(covered []byte) []byte
 	VerifyCovered(covered, sig []byte) error
-	// Statistics
-	GetMessageCount() int
-	GetConfig() Config
 }
+
+var _ Session = (*SecureSession)(nil)
 
 // Config defines session policies and limits
 type Config struct {

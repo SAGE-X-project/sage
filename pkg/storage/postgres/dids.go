@@ -28,12 +28,12 @@ import (
 )
 
 // DIDStore implements storage.DIDStore for PostgreSQL
-type DIDStore struct {
+type dIDStore struct {
 	db *pgxpool.Pool
 }
 
 // Create creates a new DID entry
-func (d *DIDStore) Create(ctx context.Context, did *storage.DID) error {
+func (d *dIDStore) Create(ctx context.Context, did *storage.DID) error {
 	query := `
 		INSERT INTO dids (did, public_key, owner_address, key_type, revoked, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -57,7 +57,7 @@ func (d *DIDStore) Create(ctx context.Context, did *storage.DID) error {
 }
 
 // Get retrieves a DID by its identifier
-func (d *DIDStore) Get(ctx context.Context, did string) (*storage.DID, error) {
+func (d *dIDStore) Get(ctx context.Context, did string) (*storage.DID, error) {
 	query := `
 		SELECT did, public_key, owner_address, key_type, revoked, created_at, updated_at
 		FROM dids
@@ -86,7 +86,7 @@ func (d *DIDStore) Get(ctx context.Context, did string) (*storage.DID, error) {
 }
 
 // Update updates an existing DID
-func (d *DIDStore) Update(ctx context.Context, did *storage.DID) error {
+func (d *dIDStore) Update(ctx context.Context, did *storage.DID) error {
 	query := `
 		UPDATE dids
 		SET public_key = $1, owner_address = $2, key_type = $3, revoked = $4
@@ -113,7 +113,7 @@ func (d *DIDStore) Update(ctx context.Context, did *storage.DID) error {
 }
 
 // Delete deletes a DID
-func (d *DIDStore) Delete(ctx context.Context, did string) error {
+func (d *dIDStore) Delete(ctx context.Context, did string) error {
 	query := `DELETE FROM dids WHERE did = $1`
 
 	result, err := d.db.Exec(ctx, query, did)
@@ -129,7 +129,7 @@ func (d *DIDStore) Delete(ctx context.Context, did string) error {
 }
 
 // ListByOwner lists all DIDs owned by an address
-func (d *DIDStore) ListByOwner(ctx context.Context, ownerAddress string) ([]*storage.DID, error) {
+func (d *dIDStore) ListByOwner(ctx context.Context, ownerAddress string) ([]*storage.DID, error) {
 	query := `
 		SELECT did, public_key, owner_address, key_type, revoked, created_at, updated_at
 		FROM dids
@@ -170,7 +170,7 @@ func (d *DIDStore) ListByOwner(ctx context.Context, ownerAddress string) ([]*sto
 }
 
 // Revoke marks a DID as revoked
-func (d *DIDStore) Revoke(ctx context.Context, did string) error {
+func (d *dIDStore) Revoke(ctx context.Context, did string) error {
 	query := `UPDATE dids SET revoked = true WHERE did = $1`
 
 	result, err := d.db.Exec(ctx, query, did)
@@ -186,7 +186,7 @@ func (d *DIDStore) Revoke(ctx context.Context, did string) error {
 }
 
 // IsRevoked checks if a DID is revoked
-func (d *DIDStore) IsRevoked(ctx context.Context, did string) (bool, error) {
+func (d *dIDStore) IsRevoked(ctx context.Context, did string) (bool, error) {
 	query := `SELECT revoked FROM dids WHERE did = $1`
 
 	var revoked bool

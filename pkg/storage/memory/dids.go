@@ -26,11 +26,11 @@ import (
 )
 
 // DIDStore implements storage.DIDStore
-type DIDStore struct {
+type dIDStore struct {
 	store *Store
 }
 
-func (d *DIDStore) Create(ctx context.Context, did *storage.DID) error {
+func (d *dIDStore) Create(ctx context.Context, did *storage.DID) error {
 	d.store.didsMu.Lock()
 	defer d.store.didsMu.Unlock()
 
@@ -49,7 +49,7 @@ func (d *DIDStore) Create(ctx context.Context, did *storage.DID) error {
 	return nil
 }
 
-func (d *DIDStore) Get(ctx context.Context, did string) (*storage.DID, error) {
+func (d *dIDStore) Get(ctx context.Context, did string) (*storage.DID, error) {
 	d.store.didsMu.RLock()
 	defer d.store.didsMu.RUnlock()
 
@@ -63,7 +63,7 @@ func (d *DIDStore) Get(ctx context.Context, did string) (*storage.DID, error) {
 	return &didCopy, nil
 }
 
-func (d *DIDStore) Update(ctx context.Context, did *storage.DID) error {
+func (d *dIDStore) Update(ctx context.Context, did *storage.DID) error {
 	d.store.didsMu.Lock()
 	defer d.store.didsMu.Unlock()
 
@@ -76,7 +76,7 @@ func (d *DIDStore) Update(ctx context.Context, did *storage.DID) error {
 	return nil
 }
 
-func (d *DIDStore) Delete(ctx context.Context, did string) error {
+func (d *dIDStore) Delete(ctx context.Context, did string) error {
 	d.store.didsMu.Lock()
 	defer d.store.didsMu.Unlock()
 
@@ -88,7 +88,7 @@ func (d *DIDStore) Delete(ctx context.Context, did string) error {
 	return nil
 }
 
-func (d *DIDStore) ListByOwner(ctx context.Context, ownerAddress string) ([]*storage.DID, error) {
+func (d *dIDStore) ListByOwner(ctx context.Context, ownerAddress string) ([]*storage.DID, error) {
 	d.store.didsMu.RLock()
 	defer d.store.didsMu.RUnlock()
 
@@ -104,7 +104,7 @@ func (d *DIDStore) ListByOwner(ctx context.Context, ownerAddress string) ([]*sto
 	return dids, nil
 }
 
-func (d *DIDStore) Revoke(ctx context.Context, did string) error {
+func (d *dIDStore) Revoke(ctx context.Context, did string) error {
 	d.store.didsMu.Lock()
 	defer d.store.didsMu.Unlock()
 
@@ -117,7 +117,7 @@ func (d *DIDStore) Revoke(ctx context.Context, did string) error {
 	return nil
 }
 
-func (d *DIDStore) IsRevoked(ctx context.Context, did string) (bool, error) {
+func (d *dIDStore) IsRevoked(ctx context.Context, did string) (bool, error) {
 	d.store.didsMu.RLock()
 	defer d.store.didsMu.RUnlock()
 

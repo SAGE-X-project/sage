@@ -37,9 +37,9 @@ type Store struct {
 	noncesMu   sync.RWMutex
 	didsMu     sync.RWMutex
 
-	sessionStore *SessionStore
-	nonceStore   *NonceStore
-	didStore     *DIDStore
+	sessionStore *sessionStore
+	nonceStore   *nonceStore
+	didStore     *dIDStore
 }
 
 // NewStore creates a new in-memory store
@@ -50,9 +50,9 @@ func NewStore() *Store {
 		dids:     make(map[string]*storage.DID),
 	}
 
-	s.sessionStore = &SessionStore{store: s}
-	s.nonceStore = &NonceStore{store: s}
-	s.didStore = &DIDStore{store: s}
+	s.sessionStore = &sessionStore{store: s}
+	s.nonceStore = &nonceStore{store: s}
+	s.didStore = &dIDStore{store: s}
 
 	return s
 }
@@ -98,11 +98,11 @@ func (s *Store) Clear() {
 }
 
 // SessionStore implements storage.SessionStore
-type SessionStore struct {
+type sessionStore struct {
 	store *Store
 }
 
-func (s *SessionStore) Create(ctx context.Context, session *storage.Session) error {
+func (s *sessionStore) Create(ctx context.Context, session *storage.Session) error {
 	s.store.sessionsMu.Lock()
 	defer s.store.sessionsMu.Unlock()
 
@@ -127,7 +127,7 @@ func (s *SessionStore) Create(ctx context.Context, session *storage.Session) err
 	return nil
 }
 
-func (s *SessionStore) Get(ctx context.Context, id string) (*storage.Session, error) {
+func (s *sessionStore) Get(ctx context.Context, id string) (*storage.Session, error) {
 	s.store.sessionsMu.RLock()
 	defer s.store.sessionsMu.RUnlock()
 
@@ -146,7 +146,7 @@ func (s *SessionStore) Get(ctx context.Context, id string) (*storage.Session, er
 	return &sessionCopy, nil
 }
 
-func (s *SessionStore) Update(ctx context.Context, session *storage.Session) error {
+func (s *sessionStore) Update(ctx context.Context, session *storage.Session) error {
 	s.store.sessionsMu.Lock()
 	defer s.store.sessionsMu.Unlock()
 
@@ -159,7 +159,7 @@ func (s *SessionStore) Update(ctx context.Context, session *storage.Session) err
 	return nil
 }
 
-func (s *SessionStore) Delete(ctx context.Context, id string) error {
+func (s *sessionStore) Delete(ctx context.Context, id string) error {
 	s.store.sessionsMu.Lock()
 	defer s.store.sessionsMu.Unlock()
 
@@ -171,7 +171,7 @@ func (s *SessionStore) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *SessionStore) DeleteExpired(ctx context.Context) (int64, error) {
+func (s *sessionStore) DeleteExpired(ctx context.Context) (int64, error) {
 	s.store.sessionsMu.Lock()
 	defer s.store.sessionsMu.Unlock()
 
@@ -188,7 +188,7 @@ func (s *SessionStore) DeleteExpired(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-func (s *SessionStore) List(ctx context.Context, clientDID string, limit, offset int) ([]*storage.Session, error) {
+func (s *sessionStore) List(ctx context.Context, clientDID string, limit, offset int) ([]*storage.Session, error) {
 	s.store.sessionsMu.RLock()
 	defer s.store.sessionsMu.RUnlock()
 
@@ -215,7 +215,7 @@ func (s *SessionStore) List(ctx context.Context, clientDID string, limit, offset
 	return sessions[offset:end], nil
 }
 
-func (s *SessionStore) UpdateActivity(ctx context.Context, id string) error {
+func (s *sessionStore) UpdateActivity(ctx context.Context, id string) error {
 	s.store.sessionsMu.Lock()
 	defer s.store.sessionsMu.Unlock()
 
@@ -228,7 +228,7 @@ func (s *SessionStore) UpdateActivity(ctx context.Context, id string) error {
 	return nil
 }
 
-func (s *SessionStore) Count(ctx context.Context) (int64, error) {
+func (s *sessionStore) Count(ctx context.Context) (int64, error) {
 	s.store.sessionsMu.RLock()
 	defer s.store.sessionsMu.RUnlock()
 

@@ -171,35 +171,20 @@ func (m *Manager) GetStatus() Status
 - Replay attack prevention (per-message sequence number and sliding window; nonce cache for RFC 9421 key IDs)
 - Session pooling for zero allocation
 
-### Session Interface
+### Sessions
 
-Core session operations:
+`Manager` returns `*SecureSession`. The methods callers use:
 
 ```go
-type Session interface {
-    // Identification
-    GetID() string
-    GetCreatedAt() time.Time
-    GetLastUsedAt() time.Time
-
-    // Lifecycle
-    IsExpired() bool
-    UpdateLastUsed()
-    Close() error
-
-    // Cryptographic operations
-    Encrypt(plaintext []byte) ([]byte, error)
-    Decrypt(data []byte) ([]byte, error)
-    EncryptAndSign(plaintext []byte, covered []byte) ([]byte, []byte, error)
-    DecryptAndVerify(cipher []byte, covered []byte, mac []byte) ([]byte, error)
-    SignCovered(covered []byte) []byte
-    VerifyCovered(covered, sig []byte) error
-
-    // Statistics
-    GetMessageCount() int
-    GetConfig() Config
-}
+func (s *SecureSession) GetID() string
+func (s *SecureSession) Encrypt(plaintext []byte) ([]byte, error)
+func (s *SecureSession) Decrypt(data []byte) ([]byte, error)
+func (s *SecureSession) SignCovered(covered []byte) []byte
+func (s *SecureSession) VerifyCovered(covered, sig []byte) error
 ```
+
+The `Session` interface with these five methods is kept for callers that
+stored the previous return type and is deprecated.
 
 ### Config
 

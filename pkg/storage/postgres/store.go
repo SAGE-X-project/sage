@@ -29,9 +29,9 @@ import (
 // Store implements the storage.Store interface for PostgreSQL
 type Store struct {
 	pool    *pgxpool.Pool
-	session *SessionStore
-	nonce   *NonceStore
-	did     *DIDStore
+	session *sessionStore
+	nonce   *nonceStore
+	did     *dIDStore
 }
 
 // Config holds PostgreSQL connection configuration
@@ -67,9 +67,9 @@ func NewStore(ctx context.Context, cfg *Config) (*Store, error) {
 	}
 
 	// Initialize sub-stores
-	store.session = &SessionStore{db: pool}
-	store.nonce = &NonceStore{db: pool}
-	store.did = &DIDStore{db: pool}
+	store.session = &sessionStore{db: pool}
+	store.nonce = &nonceStore{db: pool}
+	store.did = &dIDStore{db: pool}
 
 	return store, nil
 }
