@@ -46,7 +46,7 @@ github.com/crate-crypto/go-ipa,https://github.com/crate-crypto/go-ipa/blob/53bbb
 github.com/davecgh/go-spew/spew,https://github.com/davecgh/go-spew/blob/v1.1.1/LICENSE,ISC
 github.com/deckarep/golang-set/v2,https://github.com/deckarep/golang-set/blob/v2.6.0/LICENSE,MIT
 github.com/decred/dcrd/dcrec/secp256k1/v4,https://github.com/decred/dcrd/blob/dcrec/secp256k1/v4.4.0/dcrec/secp256k1/LICENSE,ISC
-github.com/ethereum/go-ethereum,https://github.com/ethereum/go-ethereum/blob/v1.15.11/COPYING,GPL-3.0
+github.com/ethereum/go-ethereum,https://github.com/ethereum/go-ethereum/blob/v1.15.11/COPYING.LESSER,LGPL-3.0
 github.com/ethereum/go-ethereum/crypto/secp256k1,https://github.com/ethereum/go-ethereum/blob/v1.15.11/crypto/secp256k1/LICENSE,BSD-3-Clause
 github.com/ethereum/go-ethereum/metrics,https://github.com/ethereum/go-ethereum/blob/v1.15.11/metrics/LICENSE,BSD-2-Clause-FreeBSD
 github.com/ethereum/go-verkle,https://github.com/ethereum/go-verkle/blob/v0.2.2/LICENSE,Unlicense

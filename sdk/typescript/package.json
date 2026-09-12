@@ -33,7 +33,7 @@
     "web3"
   ],
   "author": "SAGE Team",
-  "license": "MIT",
+  "license": "LGPL-3.0-only",
   "repository": {
     "type": "git",
     "url": "https://github.com/sage-x-project/sage.git",

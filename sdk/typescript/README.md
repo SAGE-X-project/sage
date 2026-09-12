@@ -509,7 +509,7 @@ npm run lint
 
 ## License
 
-MIT
+LGPL-3.0 - See [LICENSE](../../LICENSE) for details
 
 ## Links
 
