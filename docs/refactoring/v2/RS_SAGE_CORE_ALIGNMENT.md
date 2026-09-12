@@ -15,6 +15,26 @@ and the crate exposes the C header and WASM artifacts the SDKs need.
   `wasm32-unknown-unknown` build fixed (`uuid` `js` feature).
 - 589 unit tests plus integration and doc tests pass.
 
+## 1a. Progress (2026-09-12)
+
+| Step | State | Where |
+|---|---|---|
+| 1 Baseline | merged | rs-sage-core #18 |
+| 2 Vector harness + JCS | in review | rs-sage-core #23 (consolidated; the stacked #19-#22 were closed after #18 was squash-merged) |
+| 3 Crypto | in review | #23 |
+| 4 RFC 9421 | in review | #23 |
+| 5 Session | in review | #23 |
+| 6 HPKE | committed locally, PR after #23 | branch `feat/hpke-align-2` |
+| 7 did:sage and A2A | committed locally, PR after #23 | branch `feat/hpke-align-2` |
+| 8 C header / WASM surface | open | |
+
+With steps 2-7 the vector harness passes all 26 sage-spec vectors
+(`jcs` 4, `crypto` 4, `rfc9421` 4, `hpke` 6, `session` 3, `did` 5), byte
+for byte against the Go core where the vectors are deterministic. Two
+specification corrections came out of the work: the Ethereum address is
+lower-case hex, not EIP-55 (sage-spec #2), and the HPKE init payload
+carries `info` and `exportCtx` as plain strings (sage-spec #3).
+
 ## 2. Divergences from sage-spec, by module
 
 | Area | Today | Required (spec section) | Effort |
