@@ -12,13 +12,10 @@ import (
 // Ethereum client on its own.
 func TestRegister_InstallsManagerClientCreator(t *testing.T) {
 	Register()
-	require.NotNil(t, did.GetEthereumV4ClientCreator(), "Register must install a client creator for did.Manager")
+	require.NotNil(t, did.ClientCreatorFor(did.ChainEthereum), "Register must install a client creator for did.Manager")
 	Register() // idempotent
-	require.NotNil(t, did.GetEthereumV4ClientCreator())
+	require.NotNil(t, did.ClientCreatorFor(did.ChainEthereum))
 }
 
 // The client handed to did.Manager must satisfy both interfaces it checks.
-var (
-	_ did.Registry = (*EthereumClient)(nil)
-	_ did.Resolver = (*EthereumClient)(nil)
-)
+var _ did.ChainClient = (*EthereumClient)(nil)

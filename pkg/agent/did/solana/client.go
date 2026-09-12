@@ -57,13 +57,12 @@ type AgentAccount struct {
 	UpdatedAt    int64                  `json:"updated_at"`
 }
 
-// init registers the Solana client creator with the factory
 // Register installs the Solana DID client into did.Manager.Configure and
 // registers the Solana chain provider it depends on. Call it from the
 // composition root (internal/app.RegisterDefaults does).
 func Register() {
 	chainsol.Register()
-	did.RegisterSolanaClientCreator(func(config *did.RegistryConfig) (did.Client, error) {
+	did.RegisterClientCreator(did.ChainSolana, func(config *did.RegistryConfig) (did.ChainClient, error) {
 		return NewSolanaClient(config)
 	})
 }
@@ -570,3 +569,6 @@ func deserializeAccount(data []byte, v interface{}) error {
 	// In production, use proper borsh deserialization
 	return json.Unmarshal(data, v)
 }
+
+// The client handed to did.Manager must satisfy both interfaces it checks.
+var _ did.ChainClient = (*SolanaClient)(nil)

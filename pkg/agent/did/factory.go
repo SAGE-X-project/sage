@@ -20,135 +20,85 @@ package did
 
 import (
 	"fmt"
+	"sync"
 
 	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/chain"
 )
 
-// ClientFactory creates DID clients for different blockchain types
-type ClientFactory interface {
-	// CreateClient creates a DID client for the specified chain
-	CreateClient(config *RegistryConfig) (Client, error)
-
-	// GetRecommendedKeyType returns the recommended key type for a chain
-	GetRecommendedKeyType(chainType Chain) (sagecrypto.KeyType, error)
-
-	// ValidateKeyTypeForChain validates if a key type is compatible with a chain
-	ValidateKeyTypeForChain(keyType sagecrypto.KeyType, chainType Chain) error
-
-	// GetRFC9421Algorithm returns the RFC 9421 algorithm for a key type
-	GetRFC9421Algorithm(keyType sagecrypto.KeyType) (string, error)
+// ChainClient is what a chain package installs into a Manager: one object
+// that both writes to and reads from the chain's registry.
+type ChainClient interface {
+	Registry
+	Resolver
 }
 
-// defaultClientFactory is the default implementation of ClientFactory
-type defaultClientFactory struct {
-	keyMapper chain.ChainKeyTypeMapper
-}
-
-// NewClientFactory creates a new DID client factory
-func NewClientFactory() ClientFactory {
-	return &defaultClientFactory{
-		keyMapper: chain.NewChainKeyTypeMapper(),
-	}
-}
-
-// CreateClient creates a DID client for the specified chain
-func (f *defaultClientFactory) CreateClient(config *RegistryConfig) (Client, error) {
-	if config == nil {
-		return nil, fmt.Errorf("config cannot be nil")
-	}
-
-	switch config.Chain {
-	case ChainEthereum:
-		// Import here to avoid circular dependencies
-		// In actual use, this would be in a separate package
-		return createEthereumClient(config)
-
-	case ChainSolana:
-		// Import here to avoid circular dependencies
-		return createSolanaClient(config)
-
-	default:
-		return nil, fmt.Errorf("%w: %s", ErrChainNotSupported, config.Chain)
-	}
-}
-
-// GetRecommendedKeyType returns the recommended key type for a chain
-func (f *defaultClientFactory) GetRecommendedKeyType(chainType Chain) (sagecrypto.KeyType, error) {
-	// Convert did.Chain to chain.ChainType
-	var cryptoChainType chain.ChainType
-	switch chainType {
-	case ChainEthereum:
-		cryptoChainType = chain.ChainTypeEthereum
-	case ChainSolana:
-		cryptoChainType = chain.ChainTypeSolana
-	default:
-		return "", fmt.Errorf("%w: %s", ErrChainNotSupported, chainType)
-	}
-
-	return f.keyMapper.GetRecommendedKeyType(cryptoChainType)
-}
-
-// ValidateKeyTypeForChain validates if a key type is compatible with a chain
-func (f *defaultClientFactory) ValidateKeyTypeForChain(keyType sagecrypto.KeyType, chainType Chain) error {
-	// Convert did.Chain to chain.ChainType
-	var cryptoChainType chain.ChainType
-	switch chainType {
-	case ChainEthereum:
-		cryptoChainType = chain.ChainTypeEthereum
-	case ChainSolana:
-		cryptoChainType = chain.ChainTypeSolana
-	default:
-		return fmt.Errorf("%w: %s", ErrChainNotSupported, chainType)
-	}
-
-	return f.keyMapper.ValidateKeyTypeForChain(keyType, cryptoChainType)
-}
-
-// GetRFC9421Algorithm returns the RFC 9421 algorithm for a key type
-func (f *defaultClientFactory) GetRFC9421Algorithm(keyType sagecrypto.KeyType) (string, error) {
-	return f.keyMapper.GetRFC9421Algorithm(keyType)
-}
-
-// Global default factory instance for convenience
-var defaultFactory = NewClientFactory()
-
-// CreateClient is a convenience function using the default factory
-func CreateClient(config *RegistryConfig) (Client, error) {
-	return defaultFactory.CreateClient(config)
-}
-
-// GetRecommendedKeyType is a convenience function using the default factory
-func GetRecommendedKeyType(chainType Chain) (sagecrypto.KeyType, error) {
-	return defaultFactory.GetRecommendedKeyType(chainType)
-}
-
-// ValidateKeyTypeForChain is a convenience function using the default factory
-func ValidateKeyTypeForChain(keyType sagecrypto.KeyType, chainType Chain) error {
-	return defaultFactory.ValidateKeyTypeForChain(keyType, chainType)
-}
-
-// GetRFC9421Algorithm is a convenience function using the default factory
-func GetRFC9421Algorithm(keyType sagecrypto.KeyType) (string, error) {
-	return defaultFactory.GetRFC9421Algorithm(keyType)
-}
-
-// Client creation functions - these will be implemented by importing the specific packages
-// We use function variables to avoid import cycles
+// ClientCreator builds a ChainClient from a registry configuration.
+type ClientCreator func(config *RegistryConfig) (ChainClient, error)
 
 var (
-	createEthereumClient func(*RegistryConfig) (Client, error)
-	createSolanaClient   func(*RegistryConfig) (Client, error)
+	clientCreators   = map[Chain]ClientCreator{}
+	clientCreatorsMu sync.RWMutex
 )
 
-// RegisterEthereumClientCreator registers the Ethereum client creator
-// This should be called during initialization by the ethereum package
-func RegisterEthereumClientCreator(creator func(*RegistryConfig) (Client, error)) {
-	createEthereumClient = creator
+// RegisterClientCreator installs the creator Manager.Configure uses for
+// chain. Chain packages call it from their Register function; the
+// composition root (internal/app.RegisterDefaults) calls those. A nil
+// creator removes the registration.
+func RegisterClientCreator(chain Chain, creator ClientCreator) {
+	clientCreatorsMu.Lock()
+	defer clientCreatorsMu.Unlock()
+	if creator == nil {
+		delete(clientCreators, chain)
+		return
+	}
+	clientCreators[chain] = creator
 }
 
-// RegisterSolanaClientCreator registers the Solana client creator
-// This should be called during initialization by the solana package
-func RegisterSolanaClientCreator(creator func(*RegistryConfig) (Client, error)) {
-	createSolanaClient = creator
+// ClientCreatorFor returns the creator registered for chain, or nil.
+func ClientCreatorFor(chain Chain) ClientCreator {
+	clientCreatorsMu.RLock()
+	defer clientCreatorsMu.RUnlock()
+	return clientCreators[chain]
+}
+
+// chainType maps a DID chain to the crypto chain table.
+func chainType(chainName Chain) (chain.ChainType, error) {
+	switch chainName {
+	case ChainEthereum:
+		return chain.ChainTypeEthereum, nil
+	case ChainSolana:
+		return chain.ChainTypeSolana, nil
+	default:
+		return "", fmt.Errorf("%w: %s", ErrChainNotSupported, chainName)
+	}
+}
+
+// GetRecommendedKeyType returns the recommended key type for a chain.
+//
+// Deprecated: use chain.GetRecommendedKeyType from pkg/agent/crypto/chain.
+func GetRecommendedKeyType(chainName Chain) (sagecrypto.KeyType, error) {
+	ct, err := chainType(chainName)
+	if err != nil {
+		return "", err
+	}
+	return chain.GetRecommendedKeyType(ct)
+}
+
+// ValidateKeyTypeForChain validates if a key type is compatible with a chain.
+//
+// Deprecated: use chain.ValidateKeyTypeForChain from pkg/agent/crypto/chain.
+func ValidateKeyTypeForChain(keyType sagecrypto.KeyType, chainName Chain) error {
+	ct, err := chainType(chainName)
+	if err != nil {
+		return err
+	}
+	return chain.ValidateKeyTypeForChain(keyType, ct)
+}
+
+// GetRFC9421Algorithm returns the RFC 9421 algorithm for a key type.
+//
+// Deprecated: use chain.GetRFC9421Algorithm from pkg/agent/crypto/chain.
+func GetRFC9421Algorithm(keyType sagecrypto.KeyType) (string, error) {
+	return chain.GetRFC9421Algorithm(keyType)
 }
