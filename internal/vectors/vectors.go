@@ -118,7 +118,7 @@ func writeFile(path string, f *File) error {
 // in dir are kept when they still verify, so regenerating does not churn
 // randomised outputs.
 func Generate(dir string) error {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
+	if err := os.MkdirAll(dir, 0o750); err != nil {
 		return err
 	}
 	for _, s := range Suites() {

@@ -1,6 +1,6 @@
 {
-  "commit": "c60d1e9e2f043c9da2449bc5e3cff2e869277ad3",
-  "status": " M CHANGELOG.md\n M Makefile\n M docs/refactoring/BACKLOG.md\n M pkg/agent/hpke/common.go\n?? analysis/\n?? cmd/sage-vectors/\n?? internal/vectors/\n",
+  "commit": "75e4d20971cc321018cecf882f2bc50eccb74439",
+  "status": "?? analysis/2026-09-12/evidence/security-probe.json\n?? analysis/2026-09-12/scripts/security_probe.go\n",
   "files": [
     {
       "path": ".dockerignore",
