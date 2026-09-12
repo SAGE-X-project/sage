@@ -192,7 +192,7 @@ func runCardGenerate(cmd *cobra.Command, args []string) error {
 	}
 
 	// Convert to V4 metadata
-	metadataV4 := did.FromAgentMetadata(metadata)
+	metadataV4 := metadata.Normalized()
 
 	// Generate A2A Agent Card
 	card, err := did.GenerateA2ACard(metadataV4)
@@ -438,7 +438,7 @@ func runCardShow(cmd *cobra.Command, args []string) error {
 	}
 
 	// Convert to V4 metadata
-	metadataV4 := did.FromAgentMetadata(metadata)
+	metadataV4 := metadata.Normalized()
 
 	// Generate A2A Agent Card
 	card, err := did.GenerateA2ACard(metadataV4)

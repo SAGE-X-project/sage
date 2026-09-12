@@ -136,7 +136,7 @@ func main() {
 	fmt.Println("─────────────────────────────────────────────────────────")
 
 	// Convert AgentMetadata to AgentMetadataV4 for card generation
-	metadataV4 := did.FromAgentMetadata(agent)
+	metadataV4 := agent.Normalized()
 
 	card, err := did.GenerateA2ACard(metadataV4)
 	if err != nil {

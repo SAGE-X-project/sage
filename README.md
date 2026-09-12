@@ -260,7 +260,7 @@ ownerAddr, _ := did.DeriveEthereumAddress(keyPair)
 agentDID := did.GenerateAgentDIDWithAddress(did.ChainEthereum, ownerAddr)
 
 // Export as A2A-compliant agent card
-card, err := did.GenerateA2ACard(metadataV4) // *did.AgentMetadataV4 with verified keys
+card, err := did.GenerateA2ACard(metadata) // *did.AgentMetadata with verified keys
 ```
 
 For detailed A2A integration, see [SAGE A2A Integration Guide](docs/archive/2026-09/SAGE_A2A_INTEGRATION_GUIDE.md) and [sage-a2a-go](https://github.com/sage-x-project/sage-a2a-go).

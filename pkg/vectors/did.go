@@ -139,7 +139,7 @@ func didSuite() Suite {
 					if err != nil {
 						return nil, err
 					}
-					meta := &did.AgentMetadataV4{
+					meta := &did.AgentMetadata{
 						DID:          popDID,
 						Name:         in["name"].(string),
 						Description:  "SAGE test vector agent",

@@ -3,6 +3,7 @@ package ethereum
 import (
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/sage-x-project/sage/pkg/agent/did"
 )
@@ -66,4 +67,43 @@ func selectAgentKeys(keys []onChainKey) (pub interface{}, kem []byte, err error)
 		pub = edPub
 	}
 	return pub, kem, nil
+}
+
+// agentKeysFromChain converts on-chain key rows into metadata key entries.
+func agentKeysFromChain(keys []onChainKey) []did.AgentKey {
+	out := make([]did.AgentKey, 0, len(keys))
+	for _, k := range keys {
+		var created time.Time
+		if k.RegisteredAt != nil {
+			created = time.Unix(k.RegisteredAt.Int64(), 0)
+		}
+		out = append(out, did.AgentKey{
+			Type:      did.KeyType(k.KeyType),
+			KeyData:   k.KeyData,
+			Signature: k.Signature,
+			Verified:  k.Verified,
+			CreatedAt: created,
+		})
+	}
+	return out
+}
+
+// applyKeyPolicy fills the legacy single-key view of agent from its key
+// list with the same rules as selectAgentKeys, so that both Ethereum clients
+// report the same signing and KEM keys. A KEM key already present on the
+// agent record is kept.
+func applyKeyPolicy(agent *did.AgentMetadata) error {
+	rows := make([]onChainKey, 0, len(agent.Keys))
+	for _, k := range agent.Keys {
+		rows = append(rows, onChainKey{KeyType: uint8(k.Type), KeyData: k.KeyData, Signature: k.Signature, Verified: k.Verified})
+	}
+	pub, kem, err := selectAgentKeys(rows)
+	if err != nil {
+		return fmt.Errorf("agent %s: %w", agent.DID, err)
+	}
+	agent.PublicKey = pub
+	if existing, ok := agent.PublicKEMKey.([]byte); !ok || len(existing) == 0 {
+		agent.PublicKEMKey = kem
+	}
+	return nil
 }
