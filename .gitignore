@@ -644,3 +644,8 @@ gosec-check.json
 # Regenerated code-graph artifacts (see docs/refactoring/README.md)
 docs/refactoring/graph/graph.json
 docs/refactoring/graph/delta.md
+
+# Local analysis workspaces (not part of the repository)
+analysis/
+# sage-spec checkout used by the Spec Vectors CI job
+.sage-spec

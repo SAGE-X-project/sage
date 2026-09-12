@@ -199,6 +199,36 @@ jobs:
           path: build/bin/
           retention-days: 7
 
+  # Protocol test vectors published in the sage-spec repository: this
+  # implementation must reproduce (deterministic) or verify (verify-only)
+  # every vector. A failure here means the wire format drifted from the
+  # specification; regenerate with `make vectors` and open a sage-spec PR
+  # only when the change is intended.
+  spec-vectors:
+    name: Spec Vectors (sage-spec)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Checkout sage-spec
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: SAGE-X-project/sage-spec
+          ref: main
+          path: .sage-spec
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Check vectors
+        run: go run ./cmd/sage-vectors check -dir .sage-spec/vectors
+
   # Feature verification (88 automated tests from FEATURE_TEST_GUIDE_KR.md)
   feature-verification:
     name: Feature Verification (88 Tests)
