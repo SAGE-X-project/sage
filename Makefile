@@ -117,6 +117,16 @@ $(BIN_DIR)/$(CRYPTO_BINARY):
 	$(GO) build $(GOFLAGS) -ldflags "$(LDFLAGS) $(MAIN_BUILD_LDFLAGS)" -o $(BIN_DIR)/$(CRYPTO_BINARY) ./$(CMD_DIR)/$(CRYPTO_BINARY)
 	@echo "Build complete: $(BIN_DIR)/$(CRYPTO_BINARY)"
 
+# Protocol test vectors (published in the sage-spec repository)
+VECTORS_DIR ?= ../sage-spec/vectors
+
+.PHONY: vectors vectors-check
+vectors:
+	$(GO) run ./$(CMD_DIR)/sage-vectors gen -dir $(VECTORS_DIR)
+
+vectors-check:
+	$(GO) run ./$(CMD_DIR)/sage-vectors check -dir $(VECTORS_DIR)
+
 # Build sage-did binary
 .PHONY: build-did
 build-did: $(BIN_DIR)/$(DID_BINARY)

@@ -68,6 +68,14 @@ func DefaultExportContext(ctxID string) []byte {
 	return DefaultInfoBuilder{}.BuildExportContext(ctxID)
 }
 
+// CombineSecrets derives the 32-byte session seed from the HPKE exporter
+// secret and the end-to-end X25519 shared secret. It is exported so that the
+// test-vector generator (and other implementations checking against the
+// vectors) can exercise the exact derivation used by the handshake.
+func CombineSecrets(exporterHPKE, ssE2E, exportCtx []byte) ([]byte, error) {
+	return combineSecrets(exporterHPKE, ssE2E, exportCtx)
+}
+
 // Combine exporterHPKE || ssE2E using HKDF-Extract(salt=exportCtx) then
 // HKDF-Expand("SAGE-HPKE+E2E-Combiner") to 32 bytes.
 func combineSecrets(exporterHPKE, ssE2E, exportCtx []byte) ([]byte, error) {

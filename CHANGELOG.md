@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `sage-vectors` command (`gen`, `check`, `list`) and `internal/vectors`: deterministic and verify-only protocol test vectors for crypto, JCS, RFC 9421, HPKE derivations, session key schedule and `did:sage`, published in the sage-spec repository; `make vectors` / `make vectors-check`.
+- `hpke.CombineSecrets` exported for cross-implementation checks.
+
 ### Changed
 - Phase 4 moves: test helpers live in `internal/testutil` (formerly `tests/helpers` and `tests/testutil`); the deployment configuration Go package is `internal/config` (formerly `deployments/config`; the YAML samples stay in `deployments/config`); the `deployment-verify` binary is now `sage-verify deployment`; `cmd/metrics-demo` is `examples/metrics-demo`. The `chain/ethereum.EnhancedProvider` compatibility shim (deprecated two releases early in this cycle) is removed with it; use `pkg/blockchain/ethereum`.
 - Documentation clean-up: sixteen superseded documents (planning-era design, the SageRegistryV2 audit package, old performance and load-test plans, the SageRegistryV4 A2A guide) moved to `docs/archive/2026-09/` with an explanation banner and their links rewritten; status banners added to documents that are partly outdated (`pkg/agent/did/README.md`, `docs/API.md`, `api/*`, `deployments/README.md`, `INSTALL.md`, verification guides, three Korean guide parts); README-only example directories removed; twenty recorded contradictions fixed (test counts, README code samples, key-storage claims, RFC 9421 algorithm names and P-256 status, ackTag labels, session nonce description, ADR dates, local registry address in the query recipes). The Java SDK build job is now blocking.
