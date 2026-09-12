@@ -275,6 +275,7 @@ func (c *SolanaClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*did
 		Name:         agentAccount.Name,
 		Description:  agentAccount.Description,
 		Endpoint:     agentAccount.Endpoint,
+		Keys:         []did.AgentKey{{Type: did.KeyTypeEd25519, KeyData: agentAccount.PublicKey[:], Verified: true, CreatedAt: time.Unix(agentAccount.CreatedAt, 0)}},
 		PublicKey:    publicKey,
 		Capabilities: agentAccount.Capabilities,
 		Owner:        agentAccount.Owner.String(),

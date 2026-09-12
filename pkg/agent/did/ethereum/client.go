@@ -420,6 +420,7 @@ func (c *EthereumClient) Resolve(ctx context.Context, agentDID did.AgentDID) (*d
 		Name:         on.Name,
 		Description:  on.Description,
 		Endpoint:     on.Endpoint,
+		Keys:         agentKeysFromChain(keys),
 		PublicKey:    publicKey, // nil when the agent has no verified signing key
 		Capabilities: caps,
 		Owner:        on.Owner.Hex(),

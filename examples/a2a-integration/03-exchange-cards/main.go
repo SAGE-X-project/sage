@@ -334,7 +334,7 @@ func registerAndGenerateCard(manager *did.Manager, ctx context.Context, name str
 		os.Exit(1)
 	}
 
-	metadataV4 := did.FromAgentMetadata(agent)
+	metadataV4 := agent.Normalized()
 	card, err := did.GenerateA2ACard(metadataV4)
 	if err != nil {
 		fmt.Printf(" Failed to generate card for %s: %v\n", name, err)

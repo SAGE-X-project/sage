@@ -738,23 +738,23 @@ func TestAgentMetadataV4_PublicKEMKey(t *testing.T) {
 		KEMKey[i] = byte(i)
 	}
 
-	metadata := &did.AgentMetadataV4{
+	metadata := &did.AgentMetadata{
 		DID:          "did:sage:ethereum:test",
 		Name:         "Test Agent",
 		PublicKEMKey: KEMKey,
 	}
 
 	assert.NotNil(t, metadata.PublicKEMKey)
-	assert.Equal(t, 32, len(metadata.PublicKEMKey))
-	assert.Equal(t, KEMKey, metadata.PublicKEMKey)
+	assert.Equal(t, 32, len(metadata.KEMKey()))
+	assert.Equal(t, KEMKey, metadata.KEMKey())
 
 	// Test with empty KME key
-	metadata2 := &did.AgentMetadataV4{
+	metadata2 := &did.AgentMetadata{
 		DID:          "did:sage:ethereum:test2",
 		Name:         "Test Agent 2",
 		PublicKEMKey: []byte{}, // Empty
 	}
 
 	assert.NotNil(t, metadata2.PublicKEMKey)
-	assert.Equal(t, 0, len(metadata2.PublicKEMKey))
+	assert.Equal(t, 0, len(metadata2.KEMKey()))
 }

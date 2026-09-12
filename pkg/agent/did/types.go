@@ -27,14 +27,22 @@ import (
 // AgentDID represents a decentralized identifier for an AI agent
 type AgentDID string
 
-// AgentMetadata contains the metadata for a registered AI agent
+// AgentMetadata is the single description of a registered agent, whatever
+// chain it lives on. Keys holds every key the registry knows about (the
+// multi-key AgentCardRegistry model). PublicKey and PublicKEMKey are the
+// legacy single-key view kept for callers written against the previous
+// type: PublicKey is the selected signing key (a parsed key such as
+// *ecdsa.PublicKey or ed25519.PublicKey, or its raw bytes) and PublicKEMKey
+// the raw 32-byte X25519 key. Resolvers fill both views; Normalized fills
+// whichever view is missing.
 type AgentMetadata struct {
 	DID          AgentDID               `json:"did"`
 	Name         string                 `json:"name"`
 	Description  string                 `json:"description"`
 	Endpoint     string                 `json:"endpoint"`
-	PublicKey    interface{}            `json:"public_key"`     // crypto.PublicKey type
-	PublicKEMKey interface{}            `json:"public_kem_key"` // crypto.PublicKey type
+	Keys         []AgentKey             `json:"keys,omitempty"`
+	PublicKey    interface{}            `json:"public_key"`     // legacy view: selected signing key
+	PublicKEMKey interface{}            `json:"public_kem_key"` // legacy view: raw X25519 key bytes
 	Capabilities map[string]interface{} `json:"capabilities"`
 	Owner        string                 `json:"owner"` // Blockchain address of the owner
 	IsActive     bool                   `json:"is_active"`
