@@ -324,8 +324,8 @@ func TestCanonicalizer(t *testing.T) {
 		result, err := canonicalizer.BuildSignatureBase(req, "sig1", params)
 		require.NoError(t, err)
 
-		// Should include full URL for proxy requests
-		assert.Contains(t, result, `"@request-target": GET /foo`)
+		// RFC 9421 section 2.2.5: the request target without the method
+		assert.Contains(t, result, `"@request-target": /foo`)
 	})
 }
 
@@ -468,7 +468,7 @@ func TestHTTPFields(t *testing.T) {
 		assert.Contains(t, result, `"@target-uri": https://api.example.com:8443/v1/messages?filter=active`)
 		assert.Contains(t, result, `"@authority": api.example.com:8443`)
 		assert.Contains(t, result, `"@scheme": https`)
-		assert.Contains(t, result, `"@request-target": POST /v1/messages?filter=active`)
+		assert.Contains(t, result, `"@request-target": /v1/messages?filter=active`)
 		assert.Contains(t, result, `"@path": /v1/messages`)
 		assert.Contains(t, result, `"@query": ?filter=active`)
 		assert.Contains(t, result, `"host": api.example.com:8443`)

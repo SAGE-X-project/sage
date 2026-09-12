@@ -57,13 +57,22 @@ func buildResponse(req *http.Request) *http.Response {
 	return resp
 }
 
+// requestTargetComponents adds the request-line derived components to the
+// default set: @request-target is the target without the method (RFC 9421
+// section 2.2.5), @query yields "?" for a request without a query.
+var requestTargetComponents = append(append([]string(nil), requestComponents...), `"@request-target"`, `"@path"`, `"@query"`)
+
 func requestInput(alg, keyLabel string) map[string]any {
+	return requestInputCovering(alg, keyLabel, requestComponents)
+}
+
+func requestInputCovering(alg, keyLabel string, covered []string) map[string]any {
 	return map[string]any{
 		"method":         vecMethod,
 		"url":            vecURL,
 		"headers":        map[string]any{"content-type": vecRequestCT, "x-sage-did": vecDIDA, "date": vecDate},
 		"body":           vecBody,
-		"covered":        requestComponents,
+		"covered":        covered,
 		"signature_name": vecSigName,
 		"keyid":          vecDIDA + "#key-1",
 		"alg":            alg,
@@ -95,12 +104,19 @@ func signerFor(alg, label string) (crypto.Signer, crypto.PublicKey, error) {
 }
 
 func paramsFrom(in map[string]any) *rfc9421.SignatureInputParams {
+	covered := requestComponents
+	if c, ok := in["covered"].([]string); ok {
+		covered = c
+	}
 	p := &rfc9421.SignatureInputParams{
-		CoveredComponents: requestComponents,
+		CoveredComponents: covered,
 		KeyID:             in["keyid"].(string),
 		Algorithm:         in["alg"].(string),
 		Created:           vecCreated,
 		Nonce:             vecNonce,
+	}
+	if tag, ok := in["tag"].(string); ok {
+		p.Tag = tag
 	}
 	return p
 }
@@ -184,6 +200,24 @@ func rfc9421Suite() Suite {
 			Verify:      verifyRequestVector,
 		})
 	}
+	s.Cases = append(s.Cases, Case{
+		Name: "request-target-ed25519", Mode: ModeDeterministic,
+		Description: "Signed POST request that also covers @request-target (the target without the method, RFC 9421 section 2.2.5), " +
+			"@path and @query (\"?\" when the request has no query).",
+		Input:   requestInputCovering("ed25519", labelEd25519A, requestTargetComponents),
+		Produce: signRequestVector,
+		Verify:  verifyRequestVector,
+	})
+	tagged := requestInput("ed25519", labelEd25519A)
+	tagged["tag"] = "sage-mcp"
+	s.Cases = append(s.Cases, Case{
+		Name: "request-tag-ed25519", Mode: ModeDeterministic,
+		Description: "Signed POST request whose Signature-Input carries tag=\"sage-mcp\". The profile assigns no meaning to tag; " +
+			"verifiers must keep the received parameters verbatim in the signature base.",
+		Input:   tagged,
+		Produce: signRequestVector,
+		Verify:  verifyRequestVector,
+	})
 	s.Cases = append(s.Cases, Case{
 		Name: "response-ed25519", Mode: ModeDeterministic,
 		Description: "Response signed by agent B over @status plus the request's @method/@target-uri/@authority/content-digest/signature with ;req, " +

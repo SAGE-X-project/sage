@@ -34,6 +34,13 @@ type SignatureInputParams struct {
 	Created           int64
 	Expires           int64
 	Nonce             string
+	Tag               string
+
+	// Raw is the member value exactly as received in Signature-Input
+	// (the component list and every parameter, known or not). The verifier
+	// builds the "@signature-params" line from it; it is empty for
+	// parameters constructed by a signer.
+	Raw string
 }
 
 // ParseSignatureInput parses the Signature-Input header according to RFC 9421
@@ -113,7 +120,7 @@ func ParseSignature(input string) (map[string][]byte, error) {
 
 // parseSignatureValue parses the value part of a signature input
 func parseSignatureValue(value string) (*SignatureInputParams, error) {
-	params := &SignatureInputParams{}
+	params := &SignatureInputParams{Raw: strings.TrimSpace(value)}
 
 	// Find the components list in parentheses
 	compStart := strings.Index(value, "(")
@@ -235,6 +242,8 @@ func parseParameters(paramStr string, params *SignatureInputParams) error {
 			params.Expires = expires
 		case "nonce":
 			params.Nonce = value
+		case "tag":
+			params.Tag = value
 		}
 	}
 

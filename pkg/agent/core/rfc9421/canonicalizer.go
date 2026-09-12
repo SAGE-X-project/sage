@@ -230,7 +230,8 @@ func requestComponentValue(req *http.Request, component string) (string, error) 
 		}
 
 	case "@request-target":
-		// Method + space + request-target
+		// RFC 9421 section 2.2.5: the request target as it appears in the
+		// request line, without the method (path and query for origin form).
 		target := req.URL.Path
 		if target == "" {
 			target = "/"
@@ -238,7 +239,7 @@ func requestComponentValue(req *http.Request, component string) (string, error) 
 		if req.URL.RawQuery != "" {
 			target += "?" + req.URL.RawQuery
 		}
-		value = fmt.Sprintf("%s %s", req.Method, target)
+		value = target
 
 	case "@path":
 		value = req.URL.Path
@@ -296,8 +297,21 @@ func (c *Canonicalizer) queryParamValue(req *http.Request, component string) (st
 	return values[0], nil
 }
 
-// buildSignatureParams creates the @signature-params line
+// buildSignatureParams creates the @signature-params line. When params
+// came from a received Signature-Input field, its member value is used
+// byte for byte (RFC 9421 section 2.3): the verifier must not re-order or
+// drop parameters it does not know, such as tag.
 func (c *Canonicalizer) buildSignatureParams(sigName string, params *SignatureInputParams) string {
+	if params.Raw != "" {
+		return fmt.Sprintf(`"@signature-params": %s`, params.Raw)
+	}
+	return fmt.Sprintf(`"@signature-params": %s`, FormatSignatureParams(params))
+}
+
+// FormatSignatureParams serialises the covered components and parameters in
+// the order the specification requires of signers: keyid, alg, created,
+// expires, nonce, tag, omitting empty ones.
+func FormatSignatureParams(params *SignatureInputParams) string {
 	var parts []string
 
 	// Add covered components
@@ -321,6 +335,9 @@ func (c *Canonicalizer) buildSignatureParams(sigName string, params *SignatureIn
 	if params.Nonce != "" {
 		parts = append(parts, fmt.Sprintf(`nonce="%s"`, params.Nonce))
 	}
+	if params.Tag != "" {
+		parts = append(parts, fmt.Sprintf(`tag="%s"`, params.Tag))
+	}
 
-	return fmt.Sprintf(`"@signature-params": %s`, strings.Join(parts, ";"))
+	return strings.Join(parts, ";")
 }

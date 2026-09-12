@@ -505,30 +505,10 @@ func (v *HTTPVerifier) verifySignature(publicKey crypto.PublicKey, message, sign
 	return nil
 }
 
-// formatSignatureInput formats the Signature-Input header value
+// formatSignatureInput formats the Signature-Input header value with the
+// same serialisation the signature base uses.
 func (v *HTTPVerifier) formatSignatureInput(sigName string, params *SignatureInputParams) string {
-	components := make([]string, len(params.CoveredComponents))
-	copy(components, params.CoveredComponents)
-
-	result := fmt.Sprintf("%s=(%s)", sigName, strings.Join(components, " "))
-
-	if params.KeyID != "" {
-		result += fmt.Sprintf(`;keyid="%s"`, params.KeyID)
-	}
-	if params.Algorithm != "" {
-		result += fmt.Sprintf(`;alg="%s"`, params.Algorithm)
-	}
-	if params.Created > 0 {
-		result += fmt.Sprintf(`;created=%d`, params.Created)
-	}
-	if params.Expires > 0 {
-		result += fmt.Sprintf(`;expires=%d`, params.Expires)
-	}
-	if params.Nonce != "" {
-		result += fmt.Sprintf(`;nonce="%s"`, params.Nonce)
-	}
-
-	return result
+	return sigName + "=" + FormatSignatureParams(params)
 }
 
 // HTTPVerificationOptions contains options for HTTP signature verification
