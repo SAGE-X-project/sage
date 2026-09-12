@@ -12,6 +12,7 @@ referenced, not duplicated.
 | `LICENSING.md` | Licence review of `sage` and the new repositories; per-repository licence recommendation and the fixes required before any release. |
 | `RS_SAGE_CORE_ALIGNMENT.md` | F-03: divergences of `rs-sage-core` from sage-spec by module, and the ordered pull-request plan to close them. |
 | `VERSION_POLICY.md` | Cross-repository version policy, pins and the compatibility matrix. |
+| `REPO_STRUCTURE_OPTIONS.md` | Three repository structures (keep, split into library plus operator/demo/research repositories, or one applications repository) with layouts for the new repositories and a recommendation; for review before any extraction. |
 | `review/` | 2026-09-12 project review: documentation and code graphs, history, purpose, progress, direction, literature, implementation evaluation, protocol flows, inspector matrix, repository split and research plan. Read `review/README.md` first. |
 
 Naming rule used throughout this directory:
