@@ -178,7 +178,11 @@ func (m *Manager) UpdateAgent(ctx context.Context, did AgentDID, updates *Update
 
 ### AgentMetadata
 
-Complete agent information:
+Complete agent information. One type covers every chain: `Keys` holds all
+registered keys (the AgentCardRegistry multi-key model) and `PublicKey` /
+`PublicKEMKey` are the single-key view that older callers read. Resolvers
+fill both; `Normalized()` returns a copy with whichever view was missing
+filled in, `KEMKey()` returns the raw X25519 key bytes.
 
 ```go
 type AgentMetadata struct {
@@ -186,41 +190,27 @@ type AgentMetadata struct {
     Name         string                 `json:"name"`
     Description  string                 `json:"description"`
     Endpoint     string                 `json:"endpoint"`       // HTTPS endpoint
-    PublicKey    interface{}            `json:"public_key"`     // Signing key
-    PublicKEMKey interface{}            `json:"public_kem_key"` // HPKE key (optional)
+    Keys         []AgentKey             `json:"keys,omitempty"` // Every registered key
+    PublicKey    interface{}            `json:"public_key"`     // Selected signing key (legacy view)
+    PublicKEMKey interface{}            `json:"public_kem_key"` // Raw X25519 key (legacy view)
     Capabilities map[string]interface{} `json:"capabilities"`
     Owner        string                 `json:"owner"`          // Blockchain address
     IsActive     bool                   `json:"is_active"`
     CreatedAt    time.Time              `json:"created_at"`
     UpdatedAt    time.Time              `json:"updated_at"`
 }
-```
-
-### AgentMetadataV4 (Multi-Key Support)
-
-Extended metadata for SageRegistryV4:
-
-```go
-type AgentMetadataV4 struct {
-    DID          AgentDID               `json:"did"`
-    Name         string                 `json:"name"`
-    Description  string                 `json:"description"`
-    Endpoint     string                 `json:"endpoint"`
-    Keys         []AgentKey             `json:"keys"`          // Multiple keys
-    Capabilities map[string]interface{} `json:"capabilities"`
-    Owner        string                 `json:"owner"`
-    Nonce        uint64                 `json:"nonce"`         // Replay protection
-    IsActive     bool                   `json:"is_active"`
-    CreatedAt    time.Time              `json:"created_at"`
-    UpdatedAt    time.Time              `json:"updated_at"`
-}
 
 type AgentKey struct {
-    Type     string `json:"type"`      // "Ed25519" or "ECDSA"
-    KeyData  []byte `json:"key_data"`  // Raw public key bytes
-    Verified bool   `json:"verified"`  // Ownership verification
+    Type      KeyType   `json:"type"`       // KeyTypeECDSA, KeyTypeEd25519, KeyTypeX25519
+    KeyData   []byte    `json:"key_data"`   // Raw public key bytes
+    Signature []byte    `json:"signature"`  // Ownership proof
+    Verified  bool      `json:"verified"`   // Set by the registry
+    CreatedAt time.Time `json:"created_at"`
 }
 ```
+
+`AgentMetadataV4` is a deprecated alias of `AgentMetadata`; `FromAgentMetadata`
+and `ToAgentMetadata` are deprecated names for `Normalized()`.
 
 ### Registry Configuration
 
