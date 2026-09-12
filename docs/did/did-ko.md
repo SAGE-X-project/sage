@@ -36,10 +36,12 @@ did/
 ├── verification.go       # MetadataVerifier 구현
 ├── utils.go              # 유틸리티 함수
 ├── ethereum/             # Ethereum 블록체인 클라이언트
-│   ├── client.go        # Ethereum DID 작업
-│   ├── resolver.go      # Ethereum 전용 조회
-│   ├── abi.go           # 컨트랙트 ABI 정의
-│   └── SageRegistryV2.abi.json # 컨트랙트 ABI JSON
+│   ├── agentcard_client.go # AgentCardRegistry client (commit-reveal, keys, KEM)
+│   ├── chainclient.go   # did.ChainClient methods (resolve, list, update, deactivate)
+│   ├── client.go        # Deprecated EthereumClient wrapper
+│   ├── key_policy.go    # Which on-chain keys become the signing / KEM key
+│   ├── abi.go           # Embedded AgentCardRegistry ABI
+│   └── AgentCardRegistry.abi.json
 └── solana/              # Solana 블록체인 클라이언트 (개발중)
     ├── client.go        # Solana DID 작업
     └── resolver.go      # Solana 전용 조회

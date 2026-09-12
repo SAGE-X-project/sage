@@ -90,12 +90,10 @@ func TestEthereumClientWithoutSkip(t *testing.T) {
 			config.RPCEndpoint = mockServer.URL()
 
 			// Create mock client (simplified version)
-			mockClient := &EthereumClient{
+			mockClient := &EthereumClient{AgentCardClient: &AgentCardClient{
 				config:          config,
 				contractAddress: common.Address{}, // Would be set in real implementation
-				client:          nil,              // Would be HTTP client in real implementation
-				contract:        nil,              // Would be contract instance in real implementation
-			}
+			}}
 
 			// Verify mock client works
 			assert.NotNil(t, mockClient)
