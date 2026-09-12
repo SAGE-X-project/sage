@@ -1,6 +1,5 @@
 # Code owners are requested for review automatically. The core team owns
 # everything; add narrower entries below when a directory gets its own owner.
 *                       @SAGE-X-project/sage-core-dev
-/contracts/             @SAGE-X-project/sage-core-dev
 /.github/               @SAGE-X-project/sage-core-dev
 /docs/refactoring/      @SAGE-X-project/sage-core-dev

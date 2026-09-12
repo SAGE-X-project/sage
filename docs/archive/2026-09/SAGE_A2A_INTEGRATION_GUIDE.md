@@ -915,7 +915,7 @@ func handleAgentRequest(w http.ResponseWriter, r *http.Request) {
 ### SAGE Documentation
 
 - [SAGE Architecture](../ARCHITECTURE.md)
-- [DID Registry V4 Contract](../contracts/ethereum/contracts/SageRegistryV4.sol)
+- [DID Registry V4 Contract](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/contracts/SageRegistryV4.sol)
 - [Multi-Key Resolution Tests](../pkg/agent/did/ethereum/clientv4_multikey_resolution_test.go)
 - [RFC9421 Verifier](../../../pkg/agent/core/rfc9421/verifier.go)
 

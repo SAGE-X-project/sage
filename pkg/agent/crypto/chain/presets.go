@@ -52,7 +52,7 @@ type Preset struct {
 }
 
 // presets lists every network SAGE knows about. Keep the deployed addresses
-// in step with contracts/DEPLOYED_ADDRESSES.md.
+// in step with the README of github.com/SAGE-X-project/sage-contracts.
 var presets = []Preset{
 	{Name: "local", Chain: ChainTypeEthereum, Network: NetworkEthereumLocal, ChainID: big.NewInt(31337), RPCURL: "http://localhost:8545", Local: true},
 	{Name: "sepolia", Chain: ChainTypeEthereum, Network: NetworkEthereumSepolia, ChainID: big.NewInt(11155111), RPCURL: "https://ethereum-sepolia-rpc.publicnode.com",

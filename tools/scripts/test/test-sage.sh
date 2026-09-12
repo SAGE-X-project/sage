@@ -109,7 +109,7 @@ fi
 print_step "2. Dependency installation"
 
 echo "Installing contract dependencies..."
-cd ../../contracts/ethereum
+cd ../../.sage-contracts/ethereum
 if [ ! -d "node_modules" ]; then
     npm install --silent
     print_success "Contract dependencies installation completed"
@@ -207,7 +207,7 @@ fi
 # 8. Unit test execution
 print_step "8. Unit test execution"
 
-cd ../../contracts/ethereum
+cd ../../.sage-contracts/ethereum
 echo "Running tests..."
 npm test > test-results.log 2>&1
 if [ $? -eq 0 ]; then
@@ -295,14 +295,14 @@ echo ""
 # Next steps guide
 echo " Next Steps:"
 echo "  1. Frontend test: cd ../../../sage-fe && npm run dev"
-echo "  2. Copy environment variables: cp ../../contracts/ethereum/deployments/localhost.env ../../../.env"
-echo "  3. Check logs: tail -f ../../contracts/ethereum/hardhat.log"
+echo "  2. Copy environment variables: cp ../../.sage-contracts/ethereum/deployments/localhost.env ../../../.env"
+echo "  3. Check logs: tail -f ../../.sage-contracts/ethereum/hardhat.log"
 echo ""
 
 echo " Log Files:"
-echo "  - Hardhat: ../../contracts/ethereum/hardhat.log"
-echo "  - Deployment: ../../contracts/ethereum/deploy.log"
-echo "  - Tests: ../../contracts/ethereum/test-results.log"
+echo "  - Hardhat: ../../.sage-contracts/ethereum/hardhat.log"
+echo "  - Deployment: ../../.sage-contracts/ethereum/deploy.log"
+echo "  - Tests: ../../.sage-contracts/ethereum/test-results.log"
 
 if [ "$1" == "--with-agents" ]; then
     echo "  - Root Agent: sage-multi-agent/root.log"

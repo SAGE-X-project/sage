@@ -326,16 +326,16 @@ We welcome proposals from:
 - [Main README](../../../../README.md)
 - [Build Guide](../../../BUILD.md)
 - [Handshake Protocol](../../../handshake/handshake-en.md)
-- [Smart Contracts README](../../../../contracts/README.md)
-- [Sepolia Deployment](../../contracts/ethereum/docs/PHASE7-SEPOLIA-DEPLOYMENT-COMPLETE.md)
+- [Smart Contracts README](https://github.com/SAGE-X-project/sage-contracts/blob/main/README.md)
+- [Sepolia Deployment](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/docs/PHASE7-SEPOLIA-DEPLOYMENT-COMPLETE.md)
 
 ### Test Reports
-- [Phase 1 Completion](../../contracts/ethereum/docs/PHASE1-COMPLETION-REPORT.md)
-- [Security Tests Report](../../contracts/ethereum/docs/SECURITY-TESTS-REPORT.md)
-- [Sepolia Extended Tests](../../contracts/ethereum/docs/SEPOLIA-EXTENDED-TESTS.md)
+- [Phase 1 Completion](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/docs/PHASE1-COMPLETION-REPORT.md)
+- [Security Tests Report](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/docs/SECURITY-TESTS-REPORT.md)
+- [Sepolia Extended Tests](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/docs/SEPOLIA-EXTENDED-TESTS.md)
 
 ### Architecture
-- [ERC-8004 Architecture](../../contracts/ethereum/docs/ERC-8004-ARCHITECTURE.md)
+- [ERC-8004 Architecture](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/docs/ERC-8004-ARCHITECTURE.md)
 - [Security Design](../../../dev/security-design.md)
 
 ---

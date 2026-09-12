@@ -107,25 +107,10 @@ Guides:
 
 ## Smart contracts
 
-AgentCardRegistry, ERC-8004 registries, deployment and verification.
+Contract-facing guides; the contracts themselves live in github.com/SAGE-X-project/sage-contracts.
 
 | Document | Title | Freshness |
 |---|---|---|
-| [`contracts/README.md`](../contracts/README.md) | SAGE Smart Contracts (Ethereum contracts overview (AgentCard)) | MIXED |
-| [`contracts/ethereum/.slither.config.md`](../contracts/ethereum/.slither.config.md) | Slither Configuration Notes (Slither exclusion rationale) | MIXED |
-| [`contracts/ethereum/QUICK_START.md`](../contracts/ethereum/QUICK_START.md) | SAGE Contracts Quick Start Guide (Local full-stack deployment quick start) | MIXED |
-| [`contracts/ethereum/README.md`](../contracts/ethereum/README.md) | SAGE AgentCard Contracts (AgentCard Hardhat package reference) | MIXED |
-| [`contracts/ethereum/contracts/erc-8004/standalone/README.md`](../contracts/ethereum/contracts/erc-8004/standalone/README.md) | ERC-8004 Standalone Implementation (Standalone ERC-8004 registries) | MIXED |
-| [`contracts/ethereum/deployments/README.md`](../contracts/ethereum/deployments/README.md) | Deployment Records (Deployment record format and per-network commands) | MIXED |
-| [`contracts/ethereum/docs/ARCHITECTURE-DIAGRAMS.md`](../contracts/ethereum/docs/ARCHITECTURE-DIAGRAMS.md) | SAGE Smart Contract Architecture Diagrams (AgentCard system architecture and flows) | MIXED |
-| [`contracts/ethereum/docs/CLEAN_GUIDE.md`](../contracts/ethereum/docs/CLEAN_GUIDE.md) | Ethereum Contracts - Clean Guide (npm clean scripts) | MIXED |
-| [`contracts/ethereum/docs/GOVERNANCE-SETUP.md`](../contracts/ethereum/docs/GOVERNANCE-SETUP.md) | SAGE Governance Setup Guide (Multi-sig + timelock ownership hand-over) | STALE |
-| [`contracts/ethereum/docs/INTEGRATION-GUIDE.md`](../contracts/ethereum/docs/INTEGRATION-GUIDE.md) | SAGE Smart Contract Integration Guide (dApp integration with AgentCard/validation/reputation/TEE) | MIXED |
-| [`contracts/ethereum/docs/LOCAL_TESTING_GUIDE.md`](../contracts/ethereum/docs/LOCAL_TESTING_GUIDE.md) | SAGE Contracts Local Testing Guide (Local Hardhat deploy-and-interact walkthrough) | MIXED |
-| [`contracts/ethereum/docs/NATSPEC-GUIDE.md`](../contracts/ethereum/docs/NATSPEC-GUIDE.md) | NatSpec Documentation Guide (NatSpec documentation standard) | MIXED |
-| [`contracts/ethereum/docs/QUERY_COMMANDS.md`](../contracts/ethereum/docs/QUERY_COMMANDS.md) | Agent 조회 명령어 모음 (Read-only agent query recipes) | MIXED |
-| [`contracts/ethereum/docs/README.md`](../contracts/ethereum/docs/README.md) | SAGE Ethereum Contracts - Documentation (Index of contracts/ethereum/docs) | MIXED |
-| [`contracts/ethereum/docs/VERIFICATION_GUIDE.md`](../contracts/ethereum/docs/VERIFICATION_GUIDE.md) | Contract Verification Guide for Kaia Network (Source verification on Kaia Klaytnscope) | STALE |
 | [`docs/contracts/ERC-8004-Analysis.md`](contracts/ERC-8004-Analysis.md) | EIP-8004 (ERC-8004): Trustless Agents 상세 분석 리포트 (ERC-8004 standard analysis and SAGE roadmap) | MIXED |
 | [`docs/contracts/SAGE-vs-ERC8004-Comparison.md`](contracts/SAGE-vs-ERC8004-Comparison.md) | SAGE vs ERC-8004: 핵심 차이점 분석 (SAGE vs ERC-8004 scope comparison) | MIXED |
 | [`docs/contracts/SOLIDITY_CONTRACTS_ANALYSIS.md`](contracts/SOLIDITY_CONTRACTS_ANALYSIS.md) | SAGE Smart Contracts Analysis (Solidity contract system analysis / Go client signatures) | MIXED |

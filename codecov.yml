@@ -26,7 +26,6 @@ coverage:
     - "**/*_test.go"
     - "**/testdata/**"
     - "**/examples/**"
-    - "contracts/ethereum/bindings/**"
     - "tools/**"
     - "docs/**"
     - "sdk/**"

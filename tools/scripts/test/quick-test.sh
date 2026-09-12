@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 # 1. Compile
 echo " Compiling contracts..."
-cd ../../contracts/ethereum
+cd ../../.sage-contracts/ethereum
 
 # Clean up ports (remove previous test residue)
 if lsof -i:8545 &>/dev/null; then
@@ -38,7 +38,7 @@ if [ $? -eq 0 ]; then
     echo -e "${GREEN} Deployment complete${NC}"
 else
     echo -e "${RED} Deployment failed${NC}"
-    echo "Check logs: cat ../../contracts/ethereum/deploy-quick.log"
+    echo "Check logs: cat ../../.sage-contracts/ethereum/deploy-quick.log"
     exit 1
 fi
 

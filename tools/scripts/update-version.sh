@@ -18,8 +18,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # Files to update
 VERSION_FILE="$PROJECT_ROOT/VERSION"
 README_FILE="$PROJECT_ROOT/README.md"
-PACKAGE_JSON="$PROJECT_ROOT/contracts/ethereum/package.json"
-PACKAGE_LOCK="$PROJECT_ROOT/contracts/ethereum/package-lock.json"
+PACKAGE_JSON="$PROJECT_ROOT/.sage-.sage-contracts/ethereum/package.json (if checked out)"  # contracts live in sage-contracts; only touched when checked out
+PACKAGE_LOCK="$PROJECT_ROOT/.sage-.sage-contracts/ethereum/package-lock.json (if checked out)"
 VERSION_GO="$PROJECT_ROOT/pkg/version/version.go"
 EXPORT_GO="$PROJECT_ROOT/lib/export.go"
 
@@ -34,8 +34,8 @@ usage() {
     echo "This script updates version in the following files:"
     echo "  1. VERSION"
     echo "  2. README.md"
-    echo "  3. contracts/ethereum/package.json"
-    echo "  4. contracts/ethereum/package-lock.json"
+    echo "  3. .sage-contracts/ethereum/package.json (if checked out)"
+    echo "  4. .sage-contracts/ethereum/package-lock.json (if checked out)"
     echo "  5. pkg/version/version.go"
     echo "  6. lib/export.go"
     exit 1
@@ -97,8 +97,8 @@ else
     echo -e "      ${YELLOW}${NC}  README.md not found, skipping"
 fi
 
-# 3. Update contracts/ethereum/package.json
-echo -e "${YELLOW}[3/6]${NC} Updating contracts/ethereum/package.json..."
+# 3. Update .sage-contracts/ethereum/package.json (if checked out)
+echo -e "${YELLOW}[3/6]${NC} Updating .sage-contracts/ethereum/package.json (if checked out)..."
 if [ -f "$PACKAGE_JSON" ]; then
     # Use jq if available, otherwise use sed
     if command -v jq &> /dev/null; then
@@ -114,8 +114,8 @@ else
     echo -e "      ${YELLOW}${NC}  package.json not found, skipping"
 fi
 
-# 4. Update contracts/ethereum/package-lock.json
-echo -e "${YELLOW}[4/6]${NC} Updating contracts/ethereum/package-lock.json..."
+# 4. Update .sage-contracts/ethereum/package-lock.json (if checked out)
+echo -e "${YELLOW}[4/6]${NC} Updating .sage-contracts/ethereum/package-lock.json (if checked out)..."
 if [ -f "$PACKAGE_LOCK" ]; then
     # Use jq if available
     if command -v jq &> /dev/null; then

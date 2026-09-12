@@ -52,11 +52,6 @@ docs/_build/
 site/
 
 # Contract artifacts (will be rebuilt in container)
-contracts/ethereum/artifacts/
-contracts/ethereum/cache/
-contracts/ethereum/typechain-types/
-contracts/ethereum/coverage/
-contracts/ethereum/coverage.json
 
 # Temporary files
 tmp/

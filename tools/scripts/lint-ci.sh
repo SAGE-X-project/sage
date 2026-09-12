@@ -68,10 +68,10 @@ echo ""
 
 # Step 3: gofmt check (same as GitHub Actions)
 echo -e "${BLUE}[3/3] Checking code formatting...${NC}"
-echo "Command: gofmt -l . | grep -v 'contracts/ethereum/bindings/go/example.go'"
+echo "Command: gofmt -l ."
 echo ""
 
-UNFORMATTED=$(gofmt -l . | grep -v "contracts/ethereum/bindings/go/example.go" || true)
+UNFORMATTED=$(gofmt -l . || true)
 if [ -n "$UNFORMATTED" ]; then
     echo -e "${RED} Go code is not formatted:${NC}"
     echo "$UNFORMATTED"
