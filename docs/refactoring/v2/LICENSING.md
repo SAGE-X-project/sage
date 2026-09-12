@@ -92,3 +92,10 @@ four.
 
 Option B can be taken later without redoing the split, because each new
 repository starts with a single licence file and no outside contributors.
+
+Decision (2026-09-12, maintainers): Option A. The Go repositories stay on
+LGPL-3.0; no relicensing given the licences of the open-source dependencies
+(the go-ethereum library packages are LGPL-3.0). A-16 is closed with this
+record. Note for the record: an LGPL dependency does not by itself prevent an
+Apache-2.0 project from linking it, so the option remains technically open;
+it is closed as a policy choice, not as a legal necessity.
