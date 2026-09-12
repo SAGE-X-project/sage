@@ -191,15 +191,21 @@ READMEs stay true.
 
 ## 5. Ordering that applies to every option
 
-1. BACKLOG G-01 to G-05 (wire-format fixes) and the `sage-spec` and
-   `sage-contracts` tags, because every new repository would pin them.
-2. Gateway HPKE session mode and F-03b, because the demonstration's third
-   column depends on them.
-3. Only then the extraction chosen above.
+Corrected on 2026-09-13 (DECISIONS.md 10):
+
+1. The specification stages, including the wire-format corrections and the
+   `sage-spec` and `sage-contracts` tags, because every repository would
+   pin them.
+2. Code analysis and refactoring, so that what moves is what the frozen
+   text requires.
+3. The extraction chosen above.
+4. The gateway session mode and the live interoperability run, built on the
+   split repositories.
+5. The attack demonstration, whose third column depends on step 4.
 
 ## 6. Recommendation and decision
 
-Chosen: option B, executed after step 2 above, with `sage-demo` created first
+Chosen: option B, executed after step 2 of section 5, with `sage-demo` created first
 because it is the artefact the maintainer wants to show. If the maintainer
 count stays at one for the next quarter, Option C gives most of the benefit
 with one repository to run. Option A is the fallback if the wire-format work
