@@ -248,7 +248,7 @@ func VerifyA2ACardProofWithDID(ctx context.Context, cardWithProof *A2AAgentCardW
 		return fmt.Errorf("DID %s is not active on-chain", agentDID)
 	}
 	var onChainKey *AgentKey
-	for _, key := range FromAgentMetadata(metadata).Keys {
+	for _, key := range metadata.Normalized().Keys {
 		if key.Verified && bytes.Equal(key.KeyData, cardKeyBytes) {
 			k := key
 			onChainKey = &k

@@ -19,6 +19,7 @@
 package did
 
 import (
+	"crypto/ed25519"
 	"testing"
 	"time"
 
@@ -273,7 +274,9 @@ func TestAgentMetadataV4_ToAgentMetadata_MissingKeys(t *testing.T) {
 		Keys: []AgentKey{{Type: KeyTypeEd25519, KeyData: []byte("ed25519-key"), Verified: true, CreatedAt: now}},
 	}
 	legacyNoEcdsa := v4NoEcdsa.ToAgentMetadata()
-	assert.Nil(t, legacyNoEcdsa.PublicKey)
+	// Without an ECDSA key the verified Ed25519 key is the signing key, the
+	// same rule the Ethereum resolver applies.
+	assert.Equal(t, []byte("ed25519-key"), legacyNoEcdsa.PublicKey)
 
 	// Test with no X25519 key
 	v4NoX25519 := &AgentMetadataV4{
@@ -405,4 +408,57 @@ func TestAgentMetadataV4_RoundTrip(t *testing.T) {
 	assert.Len(t, converted.Keys, 2)
 	assert.NotNil(t, converted.GetKeyByType(KeyTypeECDSA))
 	assert.NotNil(t, converted.GetKeyByType(KeyTypeX25519))
+}
+
+func TestAgentMetadata_Normalized(t *testing.T) {
+	now := time.Now()
+	ecdsaKey := []byte("ecdsa-key")
+	kem := []byte("x25519-key")
+
+	t.Run("fills the legacy view from the key list without touching the receiver", func(t *testing.T) {
+		m := &AgentMetadata{
+			DID: "did:sage:ethereum:0x1",
+			Keys: []AgentKey{
+				{Type: KeyTypeEd25519, KeyData: []byte("ed"), Verified: false},
+				{Type: KeyTypeECDSA, KeyData: ecdsaKey, Verified: true, CreatedAt: now},
+				{Type: KeyTypeX25519, KeyData: kem, Verified: true, CreatedAt: now},
+			},
+		}
+		n := m.Normalized()
+		assert.Equal(t, ecdsaKey, n.PublicKey)
+		assert.Equal(t, kem, n.PublicKEMKey)
+		assert.Len(t, n.Keys, 3)
+		assert.Nil(t, m.PublicKey, "receiver must not be modified")
+		assert.Nil(t, m.PublicKEMKey)
+	})
+
+	t.Run("ignores unverified keys for the legacy view", func(t *testing.T) {
+		m := &AgentMetadata{Keys: []AgentKey{{Type: KeyTypeECDSA, KeyData: ecdsaKey, Verified: false}}}
+		assert.Nil(t, m.Normalized().PublicKey)
+	})
+
+	t.Run("derives the key list from the legacy view", func(t *testing.T) {
+		m := &AgentMetadata{PublicKey: ecdsaKey, PublicKEMKey: kem, CreatedAt: now}
+		n := m.Normalized()
+		require.Len(t, n.Keys, 2)
+		assert.Equal(t, KeyTypeECDSA, n.Keys[0].Type)
+		assert.True(t, n.Keys[0].Verified)
+		assert.Equal(t, KeyTypeX25519, n.Keys[1].Type)
+		assert.Empty(t, m.Keys, "receiver must not be modified")
+	})
+
+	t.Run("keeps an existing legacy view", func(t *testing.T) {
+		parsed := ed25519.PublicKey(make([]byte, 32))
+		m := &AgentMetadata{PublicKey: parsed, Keys: []AgentKey{{Type: KeyTypeECDSA, KeyData: ecdsaKey, Verified: true}}}
+		assert.Equal(t, parsed, m.Normalized().PublicKey)
+	})
+}
+
+func TestAgentMetadata_KEMKey(t *testing.T) {
+	kem := []byte("x25519-key")
+	assert.Equal(t, kem, (&AgentMetadata{PublicKEMKey: kem}).KEMKey())
+	assert.Equal(t, kem, (&AgentMetadata{Keys: []AgentKey{{Type: KeyTypeX25519, KeyData: kem, Verified: true}}}).KEMKey())
+	assert.Nil(t, (&AgentMetadata{Keys: []AgentKey{{Type: KeyTypeX25519, KeyData: kem, Verified: false}}}).KEMKey())
+	assert.Nil(t, (&AgentMetadata{PublicKEMKey: []byte{}}).KEMKey())
+	assert.Nil(t, (&AgentMetadata{PublicKEMKey: 12345}).KEMKey())
 }

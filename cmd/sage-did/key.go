@@ -365,7 +365,7 @@ func runKeyList(cmd *cobra.Command, args []string) error {
 	}
 
 	// Convert to V4 (ResolveAgent returns *AgentMetadata)
-	metadataV4 := did.FromAgentMetadata(metadata)
+	metadataV4 := metadata.Normalized()
 
 	if len(metadataV4.Keys) == 0 {
 		fmt.Println("No keys found for this agent")
@@ -575,7 +575,7 @@ func runKeyVerifyPop(cmd *cobra.Command, args []string) error {
 	}
 
 	// Convert to V4 metadata
-	metadataV4 := did.FromAgentMetadata(metadata)
+	metadataV4 := metadata.Normalized()
 
 	fmt.Printf("Agent: %s\n", metadataV4.Name)
 	fmt.Printf("DID: %s\n", metadataV4.DID)

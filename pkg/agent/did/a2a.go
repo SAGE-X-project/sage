@@ -286,7 +286,7 @@ func ValidateA2ACardWithDID(ctx context.Context, card *A2AAgentCard, resolver Re
 	}
 
 	// Convert to V4 metadata for key comparison
-	metadataV4 := FromAgentMetadata(metadata)
+	metadataV4 := metadata.Normalized()
 
 	// Verify all public keys in card exist on-chain
 	for _, cardKey := range card.PublicKeys {
