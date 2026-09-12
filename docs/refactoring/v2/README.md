@@ -10,6 +10,7 @@ referenced, not duplicated.
 |---|---|
 | `REPO_PLAN.md` | Final repository plan: naming rule, assessment of `rs-sage-core`, role of each repository, dependency direction, execution order, open decisions. Start here. |
 | `LICENSING.md` | Licence review of `sage` and the new repositories; per-repository licence recommendation and the fixes required before any release. |
+| `RS_SAGE_CORE_ALIGNMENT.md` | F-03: divergences of `rs-sage-core` from sage-spec by module, and the ordered pull-request plan to close them. |
 
 Naming rule used throughout this directory:
 
