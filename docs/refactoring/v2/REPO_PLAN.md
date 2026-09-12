@@ -59,10 +59,10 @@ the repository, build and CI are kept.
 |---|---|---|---|---|
 | `sage` | Reference core: protocol implementation, CLIs, test-vector generator (`cmd/sage-vectors`) | Go | Go module, binaries, vectors | active |
 | `rs-sage-core` | Rust core: spec-conformant implementation, C ABI, WASM; common substrate for SDKs | Rust | crate, C header, `.wasm` | needs F-03 alignment |
-| `sage-spec` | Protocol specification and golden test vectors; the single interoperability reference | Markdown, JSON | profile documents, `vectors/` | empty (F-01) |
-| `sage-contracts` | Solidity and Anchor contracts, deployment scripts, ABI publishing; Go bindings generated on tag | Solidity, Rust | ABI JSON, address registry | empty (F-02) |
-| `sage-gateway` | MCP / A2A wrapper, HTTP signing proxy, client recipes; imports the core, never the reverse | Go | binary, container image | empty (F-05) |
-| `sage-inspector` | Spec conformance checker: vector runner, RFC 9421 / HPKE / A2A message inspector, optional capture proxy | Go | CLI | empty (new) |
+| `sage-spec` | Protocol specification and golden test vectors; the single interoperability reference | Markdown, JSON | profile documents, `vectors/` | draft 1.0.0-draft.1, 26 vectors (F-01 done 2026-09-12) |
+| `sage-contracts` | Solidity and Anchor contracts, deployment scripts, ABI publishing; Go bindings generated on tag | Solidity, Rust | ABI JSON, address registry | imported with history, `abi/` published, CI green (F-02 done 2026-09-12; first tag pending) |
+| `sage-gateway` | MCP / A2A wrapper, HTTP signing proxy, client recipes; imports the core, never the reverse | Go | binary, container image | skeleton merged: verifying and signing proxies, recipes (F-05, 2026-09-12) |
+| `sage-inspector` | Spec conformance checker: vector runner, RFC 9421 / HPKE / A2A message inspector, optional capture proxy | Go | CLI | skeleton merged: vector runner, request/response/card inspection (F-07, 2026-09-12) |
 | `sage-sdk-python`, `-typescript`, `-java` | Thin bindings over `rs-sage-core` | per language | packages | deferred; nothing to build until the C header and WASM exist |
 
 Dependency direction:
