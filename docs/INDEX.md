@@ -219,6 +219,9 @@ Analyses, decisions, backlog and the generated code graph.
 | [`docs/refactoring/analysis/05-cmd-lib-tests-sdk-contracts-ci.md`](refactoring/analysis/05-cmd-lib-tests-sdk-contracts-ci.md) | SAGE Peripheral Architecture Analysis (cmd, lib, tests, tools, examples, sdk, contracts, build/CI) |  |
 | [`docs/refactoring/graph/entrypoints.md`](refactoring/graph/entrypoints.md) | Entry points and feature reachability |  |
 | [`docs/refactoring/graph/summary.md`](refactoring/graph/summary.md) | Code Graph Summary |  |
+| [`docs/refactoring/v2/LICENSING.md`](refactoring/v2/LICENSING.md) | Licence review (2026-09-12) |  |
+| [`docs/refactoring/v2/README.md`](refactoring/v2/README.md) | docs/refactoring/v2 |  |
+| [`docs/refactoring/v2/REPO_PLAN.md`](refactoring/v2/REPO_PLAN.md) | Repository plan (final, 2026-09-12) |  |
 
 ## Detailed guides (Korean)
 

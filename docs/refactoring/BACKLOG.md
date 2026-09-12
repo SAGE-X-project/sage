@@ -25,7 +25,7 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 | A-13 | Signed, attested, reproducible releases (GoReleaser + cosign keyless + SLSA provenance + SBOM; `-trimpath`, `CGO_ENABLED=0`) | [중요] | F06, F07, F08 | PR (`.goreleaser.yaml`; `release.yml` GoReleaser + cosign sign-blob of `SHA256SUMS` + syft CycloneDX SBOM + `attest-build-provenance`; image signed with cosign and attested; Makefile `-trimpath`, `CGO_ENABLED=0`, commit-time `BUILD_DATE`; `SECURITY.md` verification steps). Open: signed tags (F08) require maintainers' signing keys or the tag ruleset `required_signatures` |
 | A-14 | Gitleaks over history; remove stale `contracts/ethereum/bindings` exclusions; fix `./test/e2e` path | [권장] | F20, F23, F24 | Partly in PR (history scan, gosec exclusion removed); gofmt/golangci exclusions and `./test/e2e` still open |
 | A-15 | `CODEOWNERS`, `CODE_OF_CONDUCT.md`, `.editorconfig`, pre-commit | [권장] | F25 | PR (`.github/CODEOWNERS` -> `@SAGE-X-project/sage-core-dev`; `CODE_OF_CONDUCT.md` Contributor Covenant 2.1; `.editorconfig`; `.pre-commit-config.yaml` with local hooks only) |
-| A-16 | License consistency (LGPL vs MIT across SDKs/contracts); decide Apache-2.0 relicense | [권장] | F27, `STRATEGY.md` §7 | Decision |
+| A-16 | License consistency (LGPL vs MIT across SDKs/contracts); decide Apache-2.0 relicense | [권장] | F27, `STRATEGY.md` §7, `v2/LICENSING.md` | Decision (per-repository licences proposed in `v2/LICENSING.md` §4; fixes in §3 open: `rs-sage-core` LICENSE file, TypeScript SDK metadata, new repositories) |
 | A-17 | Single version source (`pkg/version` read by every binary); CHANGELOG gaps; release-please or equivalent tagging | [권장] | F28, F29, F30 | Open |
 | A-18 | Pin images in `deployments/docker/*.yml` | [권장] | F31 | PR (all nine compose images pinned by digest; Dependabot `docker-compose` entry added) |
 | A-19 | Go toolchain policy: track the newest supported Go minor (`go.mod` `toolchain` directive, CI, Docker builder in lock-step); Go 1.25 was EOL with 22 reachable stdlib vulnerabilities | [중요] | govulncheck 2026-09-11 | PR (1.26.8) |
@@ -94,19 +94,20 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 
 | ID | Item | Severity | Source | Status |
 |---|---|---|---|---|
-| F-01 | `sage-spec`: RFC 9421 agent profile, canonicalisation rules, HPKE profile with mandatory AEAD, `did:sage` method, MCP binding, test vectors; `cmd/sage-vectors` generator | [중요] | `STRATEGY.md` §2.1, §5 step 2 | Decision (AEAD choice) |
-| F-02 | `sage-contracts` extraction with ABI publishing and binding generation on tag | [권장] | §5 step 3 | Open |
-| F-03 | `sage-core` (Rust): align session layer with the spec, vectors in CI, stable C header, `uniffi`/`wasm` packaging, provenance | [중요] | §2.3, §5 step 5 | Decision (owner) |
-| F-04 | `sage-sdk-python` / `-typescript` / `-java` on the Rust core; archive current `sdk/*` | [권장] | §2.4, §5 step 6 | Open |
-| F-05 | `sage-gateway`: MCP wrapper + HTTP proxy + A2A endpoint; client recipes for Codex / Claude Code / Hermes | [중요] | §2.5, §5 step 7 | Open |
+| F-01 | `sage-spec`: RFC 9421 agent profile, canonicalisation rules, HPKE profile with mandatory AEAD, `did:sage` method, MCP binding, test vectors; `cmd/sage-vectors` generator | [중요] | `STRATEGY.md` §2.1, §5 step 2, `v2/REPO_PLAN.md` §4 | Open (repository created 2026-09-11; ChaCha20-Poly1305 mandatory, matching the Go core) |
+| F-02 | `sage-contracts` extraction with ABI publishing and binding generation on tag | [권장] | §5 step 3, `v2/REPO_PLAN.md` §4 | Open (repository created 2026-09-11) |
+| F-03 | `rs-sage-core` (Rust): align with the spec (secp256k1 Keccak, ChaCha20-Poly1305 sessions with sequence/replay window, JCS, Ed25519 RFC 9421), drop the 4-phase handshake and blockchain module, vectors in CI, stable C header, `uniffi`/`wasm` packaging, provenance | [중요] | §2.3, §5 step 5, `v2/REPO_PLAN.md` §2 | Open (repository confirmed 2026-09-12; divergence table in `v2/REPO_PLAN.md`) |
+| F-04 | `sage-sdk-python` / `-typescript` / `-java` on the Rust core; archive current `sdk/*` | [권장] | §2.4, §5 step 6, `v2/REPO_PLAN.md` §3 | Deferred until `rs-sage-core` publishes a C header and WASM artifact |
+| F-05 | `sage-gateway`: MCP wrapper + HTTP proxy + A2A endpoint; client recipes for Codex / Claude Code / Hermes | [중요] | §2.5, §5 step 7, `v2/REPO_PLAN.md` §4 | Open (repository created 2026-09-11) |
 | F-06 | Cross-repository version policy and compatibility matrix | [권장] | §6 | Open |
+| F-07 | `sage-inspector`: spec conformance checker (vector runner, RFC 9421 / HPKE / A2A message inspector, optional capture proxy) | [권장] | `v2/REPO_PLAN.md` §3 | Open (repository created 2026-09-12; vector runner after F-01) |
 
 ## Decisions still open
 
 | Decision | Options | Recommendation |
 |---|---|---|
 | secp256k1 hash convention (B-03) | decided: Keccak-256, RFC 6979, r\|\|s\|\|v (Ethereum convention) for every secp256k1 path | record in `sage-spec` as the `es256k` profile; SHA-256 remains for P-256 only |
-| Mandatory session AEAD (F-01) | AES-256-GCM vs ChaCha20-Poly1305 | AES-256-GCM mandatory (broadest library reach), ChaCha20 optional |
-| Rust core owner (F-03) | maintainer / new contributor | required before step 5 |
+| Mandatory session AEAD (F-01) | AES-256-GCM vs ChaCha20-Poly1305 | ChaCha20-Poly1305 mandatory (what the Go core ships; `v2/REPO_PLAN.md` §4), AES-256-GCM optional |
+| Rust core owner (F-03) | maintainer / new contributor | required before step 5; repository is `rs-sage-core` (confirmed 2026-09-12) |
 | Kaia AgentCard address (C-03) | known / unknown | leave preset empty until confirmed |
-| Go core licence (A-16) | keep LGPL-3.0 / Apache-2.0 | Apache-2.0 after contributor consent |
+| Go core licence (A-16) | keep LGPL-3.0 / Apache-2.0 | keep LGPL-3.0 for Go repositories now, per-repository licences per `v2/LICENSING.md` §4; Apache-2.0 later only with contributor consent |
