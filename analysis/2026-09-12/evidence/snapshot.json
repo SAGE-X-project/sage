@@ -1,0 +1,3431 @@
+{
+  "commit": "c60d1e9e2f043c9da2449bc5e3cff2e869277ad3",
+  "status": " M CHANGELOG.md\n M Makefile\n M docs/refactoring/BACKLOG.md\n M pkg/agent/hpke/common.go\n?? analysis/\n?? cmd/sage-vectors/\n?? internal/vectors/\n",
+  "files": [
+    {
+      "path": ".dockerignore",
+      "sha256": "755b35305bcfdde2f663c1400be21554f9cda14ac3710ad635b4019fbec136e2",
+      "bytes": 1115
+    },
+    {
+      "path": ".editorconfig",
+      "sha256": "bd744d0f6062fd13b9b3f88f11d94cd20d725d5784329eb40264d70bde738998",
+      "bytes": 393
+    },
+    {
+      "path": ".env.e2e.example",
+      "sha256": "c2339a38d018397402068433b3128d83cf2fa04045b9f8e126b44faef593d41d",
+      "bytes": 2295
+    },
+    {
+      "path": ".env.example",
+      "sha256": "15de5c7dfb5f9145db212f576a8d818e6225bf7c54a675b6ed630edbf13a549f",
+      "bytes": 4699
+    },
+    {
+      "path": ".github/CODEOWNERS",
+      "sha256": "f5ff5864c94b34ac3dbd04625d6991bbcc8d5e38a60d407849aa26f7c70fcf31",
+      "bytes": 367
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug_report.yml",
+      "sha256": "5933bc46c94e6772194ec45f5b641170718b4a5f627523912f5e6a301089f02a",
+      "bytes": 3963
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/config.yml",
+      "sha256": "1b6aaef445b0390a1d8656cffb5b800c32c69e56fb7b56d2bccb8e8bc57fde36",
+      "bytes": 476
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/documentation.yml",
+      "sha256": "58b5c235e230d5502a24218c128d6f8a222f5f782beed80f8d68f3c17105af3a",
+      "bytes": 3512
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/feature_request.yml",
+      "sha256": "b9c77d44566a1da000bc6b4617958b278e5ba51cafbde1e9674ef59c3069b256",
+      "bytes": 4308
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/performance.yml",
+      "sha256": "8f552f92b5033841d2d9b44b703618a5cb738c7ca41eeb6817264e32f9d86a3a",
+      "bytes": 5007
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "sha256": "c2fda99d220e3c29396d5c93e1f47f9345596b5cec1369c3ef8c7d765d4a8750",
+      "bytes": 3090
+    },
+    {
+      "path": ".github/codeql/codeql-config.yml",
+      "sha256": "13906d1d01407bd98c613fb22755f9d6019519ca1deba927c53ec0c7109d89b1",
+      "bytes": 227
+    },
+    {
+      "path": ".github/dependabot.yml",
+      "sha256": "648a78b1e9be090e38d15d2a2195e2ca2bb524a9b5bc87d8d3693f17258dd00d",
+      "bytes": 4803
+    },
+    {
+      "path": ".github/scripts/fix-sarif-paths.py",
+      "sha256": "48d095d5d0ac2ea831d760c0d084088c20c1aa963dbc995b70b2a257b9e56777",
+      "bytes": 6399
+    },
+    {
+      "path": ".github/workflows/docker.yml",
+      "sha256": "55314d3b66514a628048788b5e5064d579d1bccd3d57c20692141d62cfdbe525",
+      "bytes": 4516
+    },
+    {
+      "path": ".github/workflows/integration-test.yml",
+      "sha256": "a05895eb3c87a147633f8826476dd1f12ade239a28d1f90906362c734f0c9774",
+      "bytes": 3358
+    },
+    {
+      "path": ".github/workflows/release.yml",
+      "sha256": "9de35cc0c6dbba81bf4783b84745dbb678b4063108418f1dbb893ae839c4a4d2",
+      "bytes": 4707
+    },
+    {
+      "path": ".github/workflows/sdk.yml",
+      "sha256": "69c92712bcb3693287f507bd8941ea85ddc4c0a4fae29c3ffd8a9c2fa503311e",
+      "bytes": 2551
+    },
+    {
+      "path": ".github/workflows/security.yml",
+      "sha256": "d723edcea69ccecb5cce0fa7bce33d18706fa57aba70760340c61383dd5e845f",
+      "bytes": 10723
+    },
+    {
+      "path": ".github/workflows/test.yml",
+      "sha256": "4b32ee4ad61b8011d128136f7f484fb6ca45f6675d0bb6d84da919c3de036f96",
+      "bytes": 7864
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "b2e850ebe25db2f10ec9999326224be25b0f1f74e7ca7d66c469e8d4f43fef42",
+      "bytes": 9917
+    },
+    {
+      "path": ".gitleaks.toml",
+      "sha256": "e194cbf6dfd9b8543145ddb359f5f9fdaf0a9b49080ac5ce1bedf0dd7b535e87",
+      "bytes": 1998
+    },
+    {
+      "path": ".gitleaksignore",
+      "sha256": "23c12ea4e455c8f700f619381edccea3418d3f91982febbbd29f39caa7d947de",
+      "bytes": 1327
+    },
+    {
+      "path": ".golangci.yml",
+      "sha256": "3151229aef563f42be5d07b0402a3acabe278c208bc618173ea5f6c57223680e",
+      "bytes": 4431
+    },
+    {
+      "path": ".goreleaser.yaml",
+      "sha256": "2adfbaa8e1eb40f1c2b415c6e558d16bcdef5bc23597e8ba1f18b265b7f2e00b",
+      "bytes": 4046
+    },
+    {
+      "path": ".gosec.json",
+      "sha256": "e0a22b6e591fda68d7d55b0d5bf1033d1239b4ee1e063ff52336570d13cdc581",
+      "bytes": 158
+    },
+    {
+      "path": ".pre-commit-config.yaml",
+      "sha256": "d5237217fc6357e448c04f0fdfca82f480eb3cfb54697e72b108171886a33e69",
+      "bytes": 1274
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "65827373182869d95edc94333fc3810e193fb6e0f5fe74e8f46e3ce6cdbee55e",
+      "bytes": 61341
+    },
+    {
+      "path": "CODE_OF_CONDUCT.md",
+      "sha256": "f1624f2628e0335d6f66d84879f946277f210d239b3c91be60cda08e6a0b63d3",
+      "bytes": 5748
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "sha256": "6ebd369f627d691175b99e88cc139adee56ad24c62f676d7e42e255a4bd9b35e",
+      "bytes": 19937
+    },
+    {
+      "path": "Dockerfile",
+      "sha256": "6afd706a58da15271990c0738440c336c2164be80662845eb6cc04126aa5a7d5",
+      "bytes": 1863
+    },
+    {
+      "path": "INSTALL.md",
+      "sha256": "1fe64fa51d0ae736f1d236177d50c093d6b1fb14f5b151f4097a42dea1d31b77",
+      "bytes": 6740
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118",
+      "bytes": 7652
+    },
+    {
+      "path": "Makefile",
+      "sha256": "3e54251a41fa8c6af356654e0b6986273dfef3c4b209d8bed03bb08b0c1ccb27",
+      "bytes": 28360
+    },
+    {
+      "path": "NOTICE",
+      "sha256": "ace1c9aa22e665bc91d1eab5e89501d8d1139e719b420c23e34de09f6e0a1901",
+      "bytes": 9276
+    },
+    {
+      "path": "README.md",
+      "sha256": "89cc5975cc9afe676c94bac96353cedd475ffb3174ede52d8130271dc175c858",
+      "bytes": 18899
+    },
+    {
+      "path": "SECURITY.md",
+      "sha256": "eb91375ea3f01bca11a623b7bbf8446238b2496649eaadd65561009b5e2fb665",
+      "bytes": 2595
+    },
+    {
+      "path": "VERSION",
+      "sha256": "ded1b601e81d31ca1f65c4f3ccf2ebd7992b6390e37bc2a86f3837282f1e00cf",
+      "bytes": 6
+    },
+    {
+      "path": "api/README.md",
+      "sha256": "409c462929754b36beb75873d4d5b19cbd125e0caa2a12aa33d6514d6ae85eb6",
+      "bytes": 4847
+    },
+    {
+      "path": "api/examples/authentication.md",
+      "sha256": "3aefbc01ca6b88d6b8b9dc6efbc99d506a7f4d176df9c85293808523c80bf045",
+      "bytes": 7227
+    },
+    {
+      "path": "api/examples/sessions.md",
+      "sha256": "45f0290709b834ac40181ea3c4532e7bf55e6e4f40e3500aeab2dfcc401ae38d",
+      "bytes": 12189
+    },
+    {
+      "path": "api/examples/signatures.md",
+      "sha256": "439757962b124e1a2761c3cc496024c50068ead1c6eb3437bdf7a9c30ec8fc2d",
+      "bytes": 14183
+    },
+    {
+      "path": "api/openapi.yaml",
+      "sha256": "67d31589b4fe4619caa41b0acb8f1ecb435fcc5480928fa765046938e73e9d41",
+      "bytes": 9942
+    },
+    {
+      "path": "cmd/sage-crypto/address.go",
+      "sha256": "9ca27c2af354f353dda12b2808d54287c4dc48bf3d0ab5e6f1c06b18a7ebfaee",
+      "bytes": 7722
+    },
+    {
+      "path": "cmd/sage-crypto/generate.go",
+      "sha256": "12d5e1fb1ed2f16ab6d4b4f553d63ec5a077130a84e66313312ca85a6f54713c",
+      "bytes": 5980
+    },
+    {
+      "path": "cmd/sage-crypto/list.go",
+      "sha256": "b8fbd0624c402a74cba191711578989891d8111f16568c822530992d09a43aea",
+      "bytes": 2521
+    },
+    {
+      "path": "cmd/sage-crypto/main.go",
+      "sha256": "f92f30d0afa3f82a3fae8509840e1fa1cd89bebf269be351a25649592f1c8c64",
+      "bytes": 1857
+    },
+    {
+      "path": "cmd/sage-crypto/rotate.go",
+      "sha256": "4706dd9ddce719c8d1800705e16a17170e81a8837ccc8f50d8a1b6b05a1adeda",
+      "bytes": 3814
+    },
+    {
+      "path": "cmd/sage-crypto/sign.go",
+      "sha256": "d95411e089bc995780ec47546d1c4efb770e91877560e5de71a845edd58ba7a8",
+      "bytes": 4949
+    },
+    {
+      "path": "cmd/sage-crypto/verify.go",
+      "sha256": "48ee3281609c7ee6917f2b0dd25b62fcc6aec3628b54038d41333541d9468de0",
+      "bytes": 7661
+    },
+    {
+      "path": "cmd/sage-did/activate.go",
+      "sha256": "6de80152ce114e3302efaffa766f5877f850c5cb38e72be4c773950a81f70088",
+      "bytes": 4428
+    },
+    {
+      "path": "cmd/sage-did/card.go",
+      "sha256": "0ebc8d2bf80d509ce63a199e3a4554c74e8611b10dc24b4bc6628280e2e37583",
+      "bytes": 16579
+    },
+    {
+      "path": "cmd/sage-did/commit.go",
+      "sha256": "3fb9bd4f7e77e973f5d2db9ced71d5d17dd5cb011f58d19611f67894e47735f3",
+      "bytes": 6895
+    },
+    {
+      "path": "cmd/sage-did/deactivate.go",
+      "sha256": "5f47f8ca9dcf49cc82c323c9dcaf19533f0b4b915776a3d4c3777e3794d6d568",
+      "bytes": 4665
+    },
+    {
+      "path": "cmd/sage-did/debug.go",
+      "sha256": "cfbf14b825fe3e7e3b85e58f1b6f6d040049513ff9bf64871159c1934f3dfa4a",
+      "bytes": 4275
+    },
+    {
+      "path": "cmd/sage-did/helpers.go",
+      "sha256": "36437f478db6e0dcc9be68c2a04ccd2cea8fc8dfcb5baa955edbd49b09a762c3",
+      "bytes": 7481
+    },
+    {
+      "path": "cmd/sage-did/key.go",
+      "sha256": "bbffc03724f36d6042cca88351ebba6de1122560a21f4f57436a5baa7e97c645",
+      "bytes": 18890
+    },
+    {
+      "path": "cmd/sage-did/list.go",
+      "sha256": "b87d00095ac30e93bbe3005892b911e5d2c19ac86245fc980d19cefb0eabb255",
+      "bytes": 4546
+    },
+    {
+      "path": "cmd/sage-did/main.go",
+      "sha256": "484e4142a306f6d5e697cc48ebdbb551046f8fea4a75c2e709a7c7c1cfa4d78a",
+      "bytes": 1568
+    },
+    {
+      "path": "cmd/sage-did/register.go",
+      "sha256": "077bdab24f370c3db1fe15551082291b496dc7b31b68dfe89360201a0436bdb2",
+      "bytes": 6034
+    },
+    {
+      "path": "cmd/sage-did/register_test.go",
+      "sha256": "517a74ad9391698cc34d3737925e2b6a9c8b5cb2e47cdd745448aac15b607570",
+      "bytes": 7873
+    },
+    {
+      "path": "cmd/sage-did/resolve.go",
+      "sha256": "14a868e80d6399c33566249bbbf8842c6fc69d93d18bf619540b9e19425cce16",
+      "bytes": 4154
+    },
+    {
+      "path": "cmd/sage-did/update.go",
+      "sha256": "e48592061bda7253c45c9d00a9bc17965664795c163d69b59030deecea918f24",
+      "bytes": 4512
+    },
+    {
+      "path": "cmd/sage-did/verify.go",
+      "sha256": "274f9f457434b0b0b26048c1f169c2505d937e2138a04e160a36bd8809b83a62",
+      "bytes": 4579
+    },
+    {
+      "path": "cmd/sage-vectors/main.go",
+      "sha256": "6b24952c71af7a350b3793701e2e3848cb898af98aa76fff360329f609e9c25a",
+      "bytes": 1722
+    },
+    {
+      "path": "cmd/sage-verify/main.go",
+      "sha256": "c49245a8925fe6ab6f7ee7f375855e6b2517a95ea4e2c7ae1808c6ff7fc99738",
+      "bytes": 12798
+    },
+    {
+      "path": "codecov.yml",
+      "sha256": "cb718dfb022afc45f7e4b1598667f58640ab441c675721a1e17bec8df44af0e5",
+      "bytes": 890
+    },
+    {
+      "path": "contracts/README.md",
+      "sha256": "38225eedc0469453be51924123233fd942393207ef82b0f3b0d9b6b272f8d987",
+      "bytes": 11672
+    },
+    {
+      "path": "contracts/ethereum/.env.example",
+      "sha256": "b4bb8d34eb0083881a02e2862a58d07869bd4750a283392baa0bea58294e4a9c",
+      "bytes": 3831
+    },
+    {
+      "path": "contracts/ethereum/.env.governance.example",
+      "sha256": "09c2751e8929424e8d5ddfb1d1d04a33c6a64ab6194c115677f7bd6746d40fb3",
+      "bytes": 3512
+    },
+    {
+      "path": "contracts/ethereum/.gitignore",
+      "sha256": "1e6590c141b4877d1598a0466e6f86e98fd0c246eeab5f01c8017fb03b0ff43b",
+      "bytes": 4569
+    },
+    {
+      "path": "contracts/ethereum/.npmrc",
+      "sha256": "a093bb2fed59d699b7f9a62a5203cc196054c624e9c39c6d908c9e7db5dd2464",
+      "bytes": 22
+    },
+    {
+      "path": "contracts/ethereum/.slither.config.json",
+      "sha256": "0cccf7004804fd6411fddb221ca7cd64d77c4a5b20071969bb4fb4d6c0044d6f",
+      "bytes": 713
+    },
+    {
+      "path": "contracts/ethereum/.slither.config.md",
+      "sha256": "3fad0cf6a7779a588b1fc6bc69bfc7b616f598ebd3cd660d2a06d6023f2a7d2f",
+      "bytes": 3064
+    },
+    {
+      "path": "contracts/ethereum/.solcover.js",
+      "sha256": "b4840572356e2ec177ccdc8a8338f7f06f09ef4ec73d3eb653d74e232ddac7c6",
+      "bytes": 872
+    },
+    {
+      "path": "contracts/ethereum/.solhint.json",
+      "sha256": "f030fc5dd38c90175122219f537ccf6f4fa16d113201f61696815b8e25ad946c",
+      "bytes": 1124
+    },
+    {
+      "path": "contracts/ethereum/LICENSE",
+      "sha256": "4ac8093f1d096495305a9044b3bb0306a779206896e627d44273a15625d777ba",
+      "bytes": 1071
+    },
+    {
+      "path": "contracts/ethereum/QUICK_START.md",
+      "sha256": "3e1be6ea0947f2fa3cfdb2d71fba7d9a2a0f03e66cdc83b32d30788118a02c25",
+      "bytes": 9385
+    },
+    {
+      "path": "contracts/ethereum/README.md",
+      "sha256": "cbbc8b2afd6e9038f71c05978594d5e40f4182ea4e47ac16be6947232d6c8c5f",
+      "bytes": 16243
+    },
+    {
+      "path": "contracts/ethereum/contracts/AgentCardRegistry.sol",
+      "sha256": "7bb47a932850eebfa297c546fb9e8d855e12ab3491d630f8575e0d6bd14ce6cb",
+      "bytes": 25616
+    },
+    {
+      "path": "contracts/ethereum/contracts/AgentCardStorage.sol",
+      "sha256": "50cf400a552cc6c9676f3699eb9d698b0f2cc5ee4926f329ff5f2104b3d83f84",
+      "bytes": 12306
+    },
+    {
+      "path": "contracts/ethereum/contracts/AgentCardStorageTest.sol",
+      "sha256": "47610554ca8d1684533b45e422a17c87c623137b97cce4fe248eca1462565e4c",
+      "bytes": 9250
+    },
+    {
+      "path": "contracts/ethereum/contracts/AgentCardVerifyHook.sol",
+      "sha256": "bdbedadc18b8c984746dfd015fd2f8dd5040ebbb2471cd34b8b3cb1f9f8907a3",
+      "bytes": 8527
+    },
+    {
+      "path": "contracts/ethereum/contracts/erc-8004/interfaces/IERC8004IdentityRegistry.sol",
+      "sha256": "0c93b7be272521b04e71d83c942559860fa7d2792699fbd9a5473663e2aca764",
+      "bytes": 3747
+    },
+    {
+      "path": "contracts/ethereum/contracts/erc-8004/interfaces/IERC8004ReputationRegistry.sol",
+      "sha256": "6fedf81f95516f51a2722e01aae3cd8c2add44bf3e3331368ea59a319874f7fc",
+      "bytes": 5872
+    },
+    {
+      "path": "contracts/ethereum/contracts/erc-8004/interfaces/IERC8004ValidationRegistry.sol",
+      "sha256": "3f15c45058cec362e820c4e09533a3e385a5f3088c5105f39126ae20f81aee85",
+      "bytes": 7626
+    },
+    {
+      "path": "contracts/ethereum/contracts/erc-8004/standalone/ERC8004IdentityRegistry.sol",
+      "sha256": "c27d34f95f76dcaf6e0e5ec939b76aa776a7a2cad4e1d26cb0c652ec79516a15",
+      "bytes": 7353
+    },
+    {
+      "path": "contracts/ethereum/contracts/erc-8004/standalone/ERC8004ReputationRegistry.sol",
+      "sha256": "748c9ca992e971412d99d017d4235e546f3fcb2c732d9c44f756022161901680",
+      "bytes": 12527
+    },
+    {
+      "path": "contracts/ethereum/contracts/erc-8004/standalone/ERC8004ValidationRegistry.sol",
+      "sha256": "95d13ce63815901cfa6de7f3b22a31da72f8c7176a988fc11c4ba1e973e3bb70",
+      "bytes": 24715
+    },
+    {
+      "path": "contracts/ethereum/contracts/erc-8004/standalone/README.md",
+      "sha256": "48fc75e4c04bf5569d79681d957b027d5c0c6f1ca58c0fa6e81f09a9b1cdcbe0",
+      "bytes": 11148
+    },
+    {
+      "path": "contracts/ethereum/contracts/governance/SimpleMultiSig.sol",
+      "sha256": "0b25330e5ff9ebf7ecccc7c16b93f388b2a2bc82d89fb7e5a7b167769f07d6de",
+      "bytes": 10212
+    },
+    {
+      "path": "contracts/ethereum/contracts/governance/TEEKeyRegistry.sol",
+      "sha256": "f248afb3377547b66b4bb8a307065888fae46387d324726338732b42b5e8b2a7",
+      "bytes": 26762
+    },
+    {
+      "path": "contracts/ethereum/contracts/governance/TimelockController.sol",
+      "sha256": "a10dc2c3802a23d438330cf7761a72ffa3128257953568073a12a1a6dce69364",
+      "bytes": 661
+    },
+    {
+      "path": "contracts/ethereum/contracts/interfaces/IRegistryHook.sol",
+      "sha256": "ffffd50876604566a89cec3883d8a41b11036331d4749f7ae1e5c3f2c0319cf0",
+      "bytes": 947
+    },
+    {
+      "path": "contracts/ethereum/contracts/interfaces/ISageRegistry.sol",
+      "sha256": "7497b17847e733b19136f79c5b002488655d4a13bf410b65d5014b12936ccf9b",
+      "bytes": 2741
+    },
+    {
+      "path": "contracts/ethereum/contracts/test/ReentrancyAttacker.sol",
+      "sha256": "9dd2bee03be346c270280f802caaaac171e82c3a05e7b10ece6999829e29ec45",
+      "bytes": 2799
+    },
+    {
+      "path": "contracts/ethereum/deployments/.gitkeep",
+      "sha256": "eca60fcfe04779e6fea083321352cf4c2549787df1515e519890b1d048f3758d",
+      "bytes": 124
+    },
+    {
+      "path": "contracts/ethereum/deployments/README.md",
+      "sha256": "85a51afdae7fb5b27f7837e304c9965709ea7b33521e2a6034faefd67e02265b",
+      "bytes": 4565
+    },
+    {
+      "path": "contracts/ethereum/deployments/hardhat-latest.json",
+      "sha256": "e560cb68c886d670712afb4787cfd8e8369a1ece3d72ac8a7dc4fbd5b69853cd",
+      "bytes": 1204
+    },
+    {
+      "path": "contracts/ethereum/docs/ARCHITECTURE-DIAGRAMS.md",
+      "sha256": "43bc2a24ef04f2fa440aaca1d28f301a0c615870b2c52ab1312127ab3261c4ab",
+      "bytes": 58259
+    },
+    {
+      "path": "contracts/ethereum/docs/CLEAN_GUIDE.md",
+      "sha256": "f4f7e7a42b4f5b1d577dea7b5314b7f7eb43c8e66a580fe4c7243aa33c8bf465",
+      "bytes": 6843
+    },
+    {
+      "path": "contracts/ethereum/docs/GOVERNANCE-SETUP.md",
+      "sha256": "01d0ffade5cf57ba32d7a170ff20460f679e693309487b4048de31d2051081b9",
+      "bytes": 13339
+    },
+    {
+      "path": "contracts/ethereum/docs/INTEGRATION-GUIDE.md",
+      "sha256": "9c238c494980a830ecd786d73830d13ef0bf58dfe2f931aaaae0906cb180be84",
+      "bytes": 27462
+    },
+    {
+      "path": "contracts/ethereum/docs/LOCAL_TESTING_GUIDE.md",
+      "sha256": "8055ae4f6977d710aadd6e7b155e37fa648c9b77cf623fba2fa1ac8368259965",
+      "bytes": 7487
+    },
+    {
+      "path": "contracts/ethereum/docs/NATSPEC-GUIDE.md",
+      "sha256": "c50558108c1ca1453eae9f05a0c3d33375f7edc2154440e7a7731d46bdd652e1",
+      "bytes": 19265
+    },
+    {
+      "path": "contracts/ethereum/docs/QUERY_COMMANDS.md",
+      "sha256": "ce204a3104ed58946d47077822783d2f447dd51615749178d0cf66438a99fe0a",
+      "bytes": 7828
+    },
+    {
+      "path": "contracts/ethereum/docs/README.md",
+      "sha256": "2315d3a07c296895edde3d4d1ebc7dc28e7e0f1ed83ac809dcf42cfc013680b3",
+      "bytes": 3163
+    },
+    {
+      "path": "contracts/ethereum/docs/VERIFICATION_GUIDE.md",
+      "sha256": "1d6d00bb5d0bb6bb7fbe00e54591989bd9cbd45ed8ee6a7fc0e0e2e2a6064a81",
+      "bytes": 5808
+    },
+    {
+      "path": "contracts/ethereum/flattened/VERIFICATION_INSTRUCTIONS.md",
+      "sha256": "7b9da8890fc1ad3e2e4ca1be89f11f7800c20012891fccc61c50cb5d20f823c4",
+      "bytes": 2180
+    },
+    {
+      "path": "contracts/ethereum/foundry.toml",
+      "sha256": "710fe527358e3375c6377c384daeb492a22e9a4df795304bd9be95cdfd706057",
+      "bytes": 757
+    },
+    {
+      "path": "contracts/ethereum/hardhat.config.js",
+      "sha256": "ca63c4a07c92e0b3b769e868550ff78c6d7ad7016586311ef0e00c567c77d2e6",
+      "bytes": 12601
+    },
+    {
+      "path": "contracts/ethereum/package-lock.json",
+      "sha256": "332ca1cfea02442790e3dc98a0d2a84dd3782e9952b2accd5c2a65d4cfd37aea",
+      "bytes": 238307
+    },
+    {
+      "path": "contracts/ethereum/package.json",
+      "sha256": "5755334f41518c1b22db7ccd9b71191fdd2fe289f7ea807c4ca170048e5f88b6",
+      "bytes": 7391
+    },
+    {
+      "path": "contracts/ethereum/scripts/check-balance.js",
+      "sha256": "5a2a0225f2c5b2b72c99ec7587a8adf1c6a6e726eac2e7c1f15c0ed505874dbc",
+      "bytes": 1056
+    },
+    {
+      "path": "contracts/ethereum/scripts/deploy-agentcard.js",
+      "sha256": "62828f7029e13b333f4f5e196aeff6713905e81a529f8ffed891f1c784091157",
+      "bytes": 8294
+    },
+    {
+      "path": "contracts/ethereum/scripts/deploy-all-contracts.js",
+      "sha256": "2cda2bd8a5c64a955b01d7c4cd4ff42f48ba387a9bf08ccae1e6baf35bf04460",
+      "bytes": 12619
+    },
+    {
+      "path": "contracts/ethereum/scripts/deploy-erc8004.js",
+      "sha256": "0e0a9e6bb16025747f0ae42ee30c442cc6e84774c8a893048f017873f9978f63",
+      "bytes": 10172
+    },
+    {
+      "path": "contracts/ethereum/scripts/flatten-contracts.sh",
+      "sha256": "8bafff79f16e47c08b89d602ee1a99edfc13152c9b0317bb745f92ab54962f5e",
+      "bytes": 6800
+    },
+    {
+      "path": "contracts/ethereum/scripts/generate-key-from-mnemonic.js",
+      "sha256": "b52d6104a009e19f4425891a966ecf0194e98884d141889416e7be6f8c333f92",
+      "bytes": 4029
+    },
+    {
+      "path": "contracts/ethereum/scripts/port-manager.sh",
+      "sha256": "8a62720c785d716e9edae4b26aca6256e2177059a261f4e34eb5816f624a056c",
+      "bytes": 5185
+    },
+    {
+      "path": "contracts/ethereum/scripts/test-deployed-contract-quick.js",
+      "sha256": "fe21d5602ff405d334305d085a268f25b3cde79ab283b1798e38bb01718c0b81",
+      "bytes": 3941
+    },
+    {
+      "path": "contracts/ethereum/scripts/test-deployed-contract.js",
+      "sha256": "7f2a912e1b60baed0d463be7b9cfcee07cecc9626bd78827f6e0beffa96a2f58",
+      "bytes": 9433
+    },
+    {
+      "path": "contracts/ethereum/scripts/verify-agentcard.js",
+      "sha256": "7f5be2e82522479988bae3584ea05ca8034a757afc9d3ac90858146eb07f9ecd",
+      "bytes": 7553
+    },
+    {
+      "path": "contracts/ethereum/scripts/verify-deployment-local.js",
+      "sha256": "dffc3d31e18511d92cd2969e0505cc570f35a051c7e7edd61b2d88635e0f94d5",
+      "bytes": 3383
+    },
+    {
+      "path": "contracts/ethereum/test/AgentCardRegistry.test.js",
+      "sha256": "ea3003f53cb23263d55e287dcb06cfb7fd8f3ff32237eb5a071c46be9949929e",
+      "bytes": 52920
+    },
+    {
+      "path": "contracts/ethereum/test/AgentCardStorage.test.js",
+      "sha256": "de1e03182de4f5d98bc4602a4e0c782aa52a8e6c3bb2a3261f04d6e648aa1bd3",
+      "bytes": 21992
+    },
+    {
+      "path": "contracts/ethereum/test/AgentCardVerifyHook.test.js",
+      "sha256": "564a03abb5f15523084ad8ceaa515058699cf868f450d59d141c148a37f4ddab",
+      "bytes": 22354
+    },
+    {
+      "path": "contracts/ethereum/test/ERC8004AccessControl.test.js",
+      "sha256": "405076f44407fac79ffd38545e15a0e20a5a3cb23ad87c25188e59dc7aaf8a57",
+      "bytes": 4506
+    },
+    {
+      "path": "contracts/ethereum/test/ERC8004InterfaceInRegistry.test.js",
+      "sha256": "b9396ad6a971daf71b48648492a593ad9634c44c1ef60939edacc9602b8c743c",
+      "bytes": 11692
+    },
+    {
+      "path": "contracts/ethereum/test/FullWorkflow.test.js",
+      "sha256": "e113a4f13003b32727d0d2b47735ac8ae919a9bac16798c029bbba4065fe1a1f",
+      "bytes": 16954
+    },
+    {
+      "path": "contracts/ethereum/test/governance/GovernanceIntegration.test.js",
+      "sha256": "2a9d9b673c53afb004a8b5abfd6ccd2f676624bf565d579acb221e7edce54a5d",
+      "bytes": 17365
+    },
+    {
+      "path": "contracts/ethereum/test/governance/SimpleMultiSig.test.js",
+      "sha256": "1745da03c7e11b0755b7c95bd0f70f827c3c430db72a1e32cde93fc40282faec",
+      "bytes": 11959
+    },
+    {
+      "path": "contracts/ethereum/test/governance/TEEKeyRegistry.test.js",
+      "sha256": "0485724d4fdee581930429671ba1a6d37a31dab397d299d4ef7ec9aa17ad047a",
+      "bytes": 17668
+    },
+    {
+      "path": "contracts/ethereum/test/governance/TimelockController.test.js",
+      "sha256": "4dc04ec3edb9fdbc2999a15558dc88750405c78673c0de989507ac986abb13f0",
+      "bytes": 16067
+    },
+    {
+      "path": "contracts/examples/solana-registration.ts",
+      "sha256": "77fea8febc7cdc07361edf907a7193d8c8a61ca7c40f580743f0ae6e9affe0f2",
+      "bytes": 4910
+    },
+    {
+      "path": "contracts/solana/Cargo.toml",
+      "sha256": "a25d402db87f8633940cf0ea15f5c368e774dcf8e26823fbdea30ebc475bf89c",
+      "bytes": 408
+    },
+    {
+      "path": "contracts/solana/LICENSE",
+      "sha256": "ea93ac08fe6ddd2ea9537633c00ffa02c10fd2970730a325ff5c59f234c2d0f4",
+      "bytes": 1071
+    },
+    {
+      "path": "contracts/solana/programs/sage-registry/Cargo.toml",
+      "sha256": "78d778d67631d5957381042ac9464b101f1d4f0a3a067d31e2640711efcd4bc2",
+      "bytes": 544
+    },
+    {
+      "path": "contracts/solana/programs/sage-registry/src/lib.rs",
+      "sha256": "59eaf3fe2f4075108d2f0c42552faebb10093d61ca28aaacb5bd63ddf6ea4e25",
+      "bytes": 13257
+    },
+    {
+      "path": "contracts/solana/programs/sage-registry/tests/registry_tests.rs",
+      "sha256": "18cfffcd3023fc0298387c30610d0db1b039b0a086a0a82c74ac691c39b4fa5f",
+      "bytes": 13719
+    },
+    {
+      "path": "contracts/solana/programs/sage-verification-hook/Cargo.toml",
+      "sha256": "f086b7e4698b85c3f12a8faf0d543d98e81ae4090d5f5ceb90c54254da2a5425",
+      "bytes": 563
+    },
+    {
+      "path": "contracts/solana/programs/sage-verification-hook/src/lib.rs",
+      "sha256": "a71afcf5f4edc976320a27821b8a10835c933d79d33f4b7cc7bfb74ec9dbc9bb",
+      "bytes": 7681
+    },
+    {
+      "path": "contracts/solana/programs/sage-verification-hook/tests/hook_tests.rs",
+      "sha256": "38a0ae9e2a4e1b176e409e8a5dc67b4470e7c665f05697f7400fe3b7fdc6b62e",
+      "bytes": 14032
+    },
+    {
+      "path": "contracts/solana/scripts/deploy.sh",
+      "sha256": "57db44ca37ec8a706ab7f23b183c3bf7bc3011d10ec8a08c08ba15b3270afc68",
+      "bytes": 3232
+    },
+    {
+      "path": "deployments/README.md",
+      "sha256": "c6c0f9634df820d9bec20fe953c752dfd7923bdb40f9d414fdbcd068ac13abd6",
+      "bytes": 11508
+    },
+    {
+      "path": "deployments/config/development.yaml",
+      "sha256": "61a4ef7e5d5053054e7400b02be889c6cf9b31bef27b40234dd732f1cb4690c6",
+      "bytes": 1302
+    },
+    {
+      "path": "deployments/config/local.yaml",
+      "sha256": "aa3097c865a598a82f5970ded7452e1e33337158c8a7ce612cf4acb5a251d4a3",
+      "bytes": 1163
+    },
+    {
+      "path": "deployments/config/production.yaml",
+      "sha256": "439e6d313ef813a3636e0853e96de9583315c262aa7dd5996a5fc5fb94bc9b06",
+      "bytes": 1350
+    },
+    {
+      "path": "deployments/config/staging.yaml",
+      "sha256": "20ac52b1c7657b4aa0e0c46c1f504fd72dbc52367229481e5615314d1b8c9b53",
+      "bytes": 1253
+    },
+    {
+      "path": "deployments/docker/Dockerfile",
+      "sha256": "c64d991a4aef3efbacb5003abb39c3e2b3f9f26b9b0127195859e44dd9dea691",
+      "bytes": 1640
+    },
+    {
+      "path": "deployments/docker/README.md",
+      "sha256": "6f834a7dc9beb20f35e4cacffb150b7ec0209a6efeed616fe6eda2fb387bd0c2",
+      "bytes": 10741
+    },
+    {
+      "path": "deployments/docker/docker-compose.yml",
+      "sha256": "a11d07481c35bcae93ce80c6e2a8344046217596b7ac2002db854ca2d078e2f9",
+      "bytes": 4847
+    },
+    {
+      "path": "deployments/docker/grafana/dashboards/dashboard.yml",
+      "sha256": "b499c3a8e577300f71bb3702a1c176ad4fe27371c37deb0edc19a240a81e4822",
+      "bytes": 375
+    },
+    {
+      "path": "deployments/docker/grafana/dashboards/sage-overview.json",
+      "sha256": "d53ada0edf31bc6990351bc82ba0396082d3fb5213114000c61961a91b304f29",
+      "bytes": 4139
+    },
+    {
+      "path": "deployments/docker/grafana/datasources/prometheus.yml",
+      "sha256": "6262a226a5c43eae512b49fd6f18e93d21aed483ae606bfa746160ae5523105b",
+      "bytes": 339
+    },
+    {
+      "path": "deployments/docker/prometheus/prometheus.yml",
+      "sha256": "8f2245045a95fac58fca0a047196438d1bb8c84747ca7af071e03133a33e1a5a",
+      "bytes": 2153
+    },
+    {
+      "path": "deployments/docker/scripts/docker-entrypoint.sh",
+      "sha256": "30993be8877acf6e458e848a6fd95fedfab507885c438bda5eb3bd664a980d56",
+      "bytes": 2656
+    },
+    {
+      "path": "deployments/docker/scripts/healthcheck.sh",
+      "sha256": "0b9007015bfe2a8104345d1bd5c0260ae1ee738ac2dd5451b8a4d5abea2d00ed",
+      "bytes": 1380
+    },
+    {
+      "path": "deployments/docker/test-environment.yml",
+      "sha256": "c1921fa32b09a2f0499bac7f1561c8269577376d2ea84def7813e7dbe5833bbb",
+      "bytes": 3912
+    },
+    {
+      "path": "deployments/migrations/000001_initial_schema.down.sql",
+      "sha256": "90bb1dcb88f128d08b20fa4a672021064dab197e750afa123d6e921bae26441a",
+      "bytes": 354
+    },
+    {
+      "path": "deployments/migrations/000001_initial_schema.up.sql",
+      "sha256": "71e42361100778240169a6374ddba1bb0910e21275d393c9d9160a6a1bb17f94",
+      "bytes": 2237
+    },
+    {
+      "path": "deployments/migrations/seeds/dev.sql",
+      "sha256": "f29f63e7c6cffd5491202e5c16f0013ad26992bb6ceb5491d9643c24af69e5e3",
+      "bytes": 2790
+    },
+    {
+      "path": "deployments/migrations/seeds/staging.sql",
+      "sha256": "87389dc96d2f4b5eada93f3669dbf570290489c6742181a658f79eec3873c110",
+      "bytes": 971
+    },
+    {
+      "path": "docs/AGENTCARD_MIGRATION_GUIDE.md",
+      "sha256": "22b87504debee1203b9b19f7cee674d1c793320545e2422ff1d70d44e5a360f1",
+      "bytes": 13685
+    },
+    {
+      "path": "docs/API.md",
+      "sha256": "3325504a70c361d95f64b1aea491fe950cfde3181998170d8cd37fc9712bf149",
+      "bytes": 26267
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "sha256": "a9850f42cef00aedeb189139bb87b22687daaa198217cdced43685fa01ec43dd",
+      "bytes": 33183
+    },
+    {
+      "path": "docs/BUILD.md",
+      "sha256": "a6a0658ccec3af9a299e0b71b67a5c5c3aa40ed1c661e643d69fa7f5c7c36426",
+      "bytes": 11445
+    },
+    {
+      "path": "docs/CI-CD.md",
+      "sha256": "b09a1e389a0f30c8c8d21be31c127978a156c3d86b2d06c7fae49a67c5e03e4e",
+      "bytes": 11471
+    },
+    {
+      "path": "docs/CODE_REVIEW_CHECKLIST.md",
+      "sha256": "46726c6befd9d59b23da6262395742bf3d697fe6f2e7e3f799b1ec1e04f56d6e",
+      "bytes": 9034
+    },
+    {
+      "path": "docs/CODING_GUIDELINES.md",
+      "sha256": "4bbfbf6f63cc4c1089ce49526b1912366229394daf8363c87b5fd1b746b09fe4",
+      "bytes": 13573
+    },
+    {
+      "path": "docs/DATABASE.md",
+      "sha256": "eff0cd64537783223d1473a710266d1dcf284b4bfc3181069c807daad03e4dfb",
+      "bytes": 11147
+    },
+    {
+      "path": "docs/GO_VERSION_REQUIREMENT.md",
+      "sha256": "235e2d4ab6c8eb1d328cb50defda92462768b841b80e58480afb484261af6a80",
+      "bytes": 7180
+    },
+    {
+      "path": "docs/INDEX.md",
+      "sha256": "31e110b3b0fa51a9a883091328b26b873fa95d0a9bc17b9426741188ac867462",
+      "bytes": 25861
+    },
+    {
+      "path": "docs/KME_PUBLIC_KEY_INTEGRATION.md",
+      "sha256": "4969d06be9d0ce829b957a7128b822f5c9530c7653b24ac57c64324fedd3ba54",
+      "bytes": 23043
+    },
+    {
+      "path": "docs/PERFORMANCE_BENCHMARKS.md",
+      "sha256": "05c0d627f4c835bad123ae9e79e4c3883bb8bc3c606d6556f999e771454ba94b",
+      "bytes": 2260
+    },
+    {
+      "path": "docs/QUICKSTART_PR118.md",
+      "sha256": "d5d48164de8ab4e8b5667fd6dced7e67ffbc2e72d0ef82ac7ff653760ee5badb",
+      "bytes": 16655
+    },
+    {
+      "path": "docs/adr/001-transport-layer-abstraction.md",
+      "sha256": "b6165fff4d4e1224c1177f7852f7787eb9680853b93bea99c7466d29245f6c13",
+      "bytes": 11507
+    },
+    {
+      "path": "docs/adr/002-hpke-selection-rationale.md",
+      "sha256": "79e3d42a21d2f025a8a64891c2b27e2c3b8222dd5fd1c91e8a1b5269b5015aed",
+      "bytes": 16212
+    },
+    {
+      "path": "docs/adr/003-did-method-selection.md",
+      "sha256": "d164ec0c09e56e601330efb2940b4977f4939c311a1f222b509b54f1f02f3aa9",
+      "bytes": 22424
+    },
+    {
+      "path": "docs/archive/2026-09/SAGE_A2A_INTEGRATION_GUIDE.md",
+      "sha256": "4e9cc295c92c2978d2da7a96970d884c29ad5b589ae56966d300f9a8b0e191ae",
+      "bytes": 29739
+    },
+    {
+      "path": "docs/archive/2026-09/audit/ARCHITECTURE-OVERVIEW.md",
+      "sha256": "9a7f98c83611e3c06dd5c6481ff6f3ce3112dbbf2d79b4048773c1365b2c44e7",
+      "bytes": 31380
+    },
+    {
+      "path": "docs/archive/2026-09/audit/AUDIT-SCOPE.md",
+      "sha256": "f2b3fe81c89639a48f9eb34a9e0060bb32a06342725cf7800b986a3d60900b49",
+      "bytes": 12089
+    },
+    {
+      "path": "docs/archive/2026-09/audit/README.md",
+      "sha256": "244f0fe69c8e376fd495081f8c8712bb636e57a1e8e4039c2069e4dd05f038c1",
+      "bytes": 9792
+    },
+    {
+      "path": "docs/archive/2026-09/audit/SECURITY-CONSIDERATIONS.md",
+      "sha256": "759d57ab6ae6f386bc9c4360ccebe6175a1e5f86a4b9959c7af66b5217e88a30",
+      "bytes": 20714
+    },
+    {
+      "path": "docs/archive/2026-09/contracts/contracts-submodule-setup.md",
+      "sha256": "53f4af5686c60221a2296cc8419ce582274419c1b1e7fed3120f6292339f3f1a",
+      "bytes": 4883
+    },
+    {
+      "path": "docs/archive/2026-09/dev/README.md",
+      "sha256": "c3c4bef7bc2074babfbd6662ed5fb2233740daac5ea98b0314f9b415cf305b07",
+      "bytes": 4644
+    },
+    {
+      "path": "docs/archive/2026-09/dev/api-spec.md",
+      "sha256": "8f4a5ab1a861b9f715c477f279271d0a7aa9dd322e0d4f80d357c87e6e50dbba",
+      "bytes": 13678
+    },
+    {
+      "path": "docs/archive/2026-09/dev/architecture.md",
+      "sha256": "43e59adc037944d1e876d0112c6afbab9f76538964853bdabe06633009a1d98d",
+      "bytes": 10584
+    },
+    {
+      "path": "docs/archive/2026-09/dev/development-guide.md",
+      "sha256": "a02ad6a78611a994cd891aae4449e9e6e6a25f3fe5c7c72625c1b7c60a2937c0",
+      "bytes": 10254
+    },
+    {
+      "path": "docs/archive/2026-09/maintenance/DOCUMENTATION_AUDIT_2025-10-26.md",
+      "sha256": "44c219155ffd4a70a98cc1d65291c39b402ed964861fef27f6f7f486bc88cf2a",
+      "bytes": 8770
+    },
+    {
+      "path": "docs/archive/2026-09/planning/PERFORMANCE_OPTIMIZATION_ROADMAP.md",
+      "sha256": "3d2efb6f4a7f3fde041ba3b9280e0f0a1bdf348c21b76bf7a254be204b255076",
+      "bytes": 24777
+    },
+    {
+      "path": "docs/archive/2026-09/test/LOAD-TESTING.md",
+      "sha256": "981552aa58d4329011af42608f9a4b4bcdda5bbb0b04f302de4c0a9662fdde88",
+      "bytes": 15366
+    },
+    {
+      "path": "docs/archive/2026-09/test/OPTIMIZATION-PLAN.md",
+      "sha256": "ae3b753395881f594781035f6dfa87652d27506498c0ad3151cf70841f6d67b7",
+      "bytes": 11777
+    },
+    {
+      "path": "docs/archive/2026-09/test/PERFORMANCE-BASELINE.md",
+      "sha256": "6cb82c83bc7fbcb0efd90ebd029c281c4ed793545053e243002c8f965117c8e3",
+      "bytes": 19537
+    },
+    {
+      "path": "docs/archive/2026-09/test/TEST_EXECUTION_GUIDE.md",
+      "sha256": "04ff064f0f4d778e33397180ed0644d32c1a373e1c3b722c7a2857e5f2ea43f4",
+      "bytes": 7106
+    },
+    {
+      "path": "docs/assets/SAGE-E2EE-request-lifecycle-legacy.png",
+      "sha256": "b46d25d4148b040640e4db7a954717bf50f05315fb34d1ec15ffcc6e55b0a058",
+      "bytes": 1198700
+    },
+    {
+      "path": "docs/assets/SAGE-E2EE-request-lifecycle.png",
+      "sha256": "4a417c733e2c72813ca6fa3120e17066ac61e99d5c7bbd629a76616e7e5698c7",
+      "bytes": 1150406
+    },
+    {
+      "path": "docs/assets/SAGE-handshake.png",
+      "sha256": "c2827d3d14a7fc31c744172d57f4dbb43316e8a8e2f7c66a4f3f5c3f5374419d",
+      "bytes": 645154
+    },
+    {
+      "path": "docs/assets/SAGE-hpke-handshake.png",
+      "sha256": "46ba834115f9a1ac3c2e33fd4cea66be450dbce1cba06f351ebeed853d5da30f",
+      "bytes": 773384
+    },
+    {
+      "path": "docs/cli/cli-guide-en.md",
+      "sha256": "3dfe9e97cbe7d12611c16039c99891f90a340aeea2af53edabebe3f5ed6da821",
+      "bytes": 12057
+    },
+    {
+      "path": "docs/cli/cli-guide-ko.md",
+      "sha256": "9e6983bf293a8fe1b95e5b70dbf3e12323c8c5441ed5668e509898671c844c5d",
+      "bytes": 15193
+    },
+    {
+      "path": "docs/contracts/ERC-8004-Analysis.md",
+      "sha256": "16ff3ef70e432e3f9638d51b260ec2987f263e9a4af237742f01990d2b68462e",
+      "bytes": 19060
+    },
+    {
+      "path": "docs/contracts/SAGE-vs-ERC8004-Comparison.md",
+      "sha256": "d0306e851a813a852094dc8ecde0be4fe2c65fec7f70199d7196e06137beba11",
+      "bytes": 16666
+    },
+    {
+      "path": "docs/contracts/SOLIDITY_CONTRACTS_ANALYSIS.md",
+      "sha256": "b5b672f0b95e588985ee5a862fbb1a3beac6b835dce79738e96314c83e48836e",
+      "bytes": 30662
+    },
+    {
+      "path": "docs/core/README.md",
+      "sha256": "68ba44f3734709c6b52428fb3ec63de84be21cd90bfd7b2a0c7287bf3a88465f",
+      "bytes": 542
+    },
+    {
+      "path": "docs/core/rfc-9421-test.md",
+      "sha256": "e8cf329744b7cf1ef1190d275f6ae3415f6c8700ce18e1f873b3e6346f42f96e",
+      "bytes": 11835
+    },
+    {
+      "path": "docs/core/rfc9421-en.md",
+      "sha256": "d499fafc7f33b3413888efe3a3d2ce97e989a990ec94f8f34b5ba4f44f3cf3db",
+      "bytes": 15311
+    },
+    {
+      "path": "docs/core/rfc9421-ko.md",
+      "sha256": "b923f6ccfbe68efe4a7d716afaba4f30dcccc16eb7caf8e32a04a7361e4bd009",
+      "bytes": 16007
+    },
+    {
+      "path": "docs/crypto/crypto-en.md",
+      "sha256": "6d79ec33cb938f94209fe791c53c2fb8fd473cc6f10eb66c2f43eaa52cfe9418",
+      "bytes": 15979
+    },
+    {
+      "path": "docs/crypto/crypto-ko.md",
+      "sha256": "86fdd51fa5afbe1e2c407f299138daee9feaf98c757b8e898d7c54b35292e1bd",
+      "bytes": 16307
+    },
+    {
+      "path": "docs/dev/SAGE-secure-session-communication-ko.md",
+      "sha256": "4da74e4a3dd0f8f9a852e3bd5869ba4ee63306c6c3c63b81689b014c18ede89b",
+      "bytes": 9345
+    },
+    {
+      "path": "docs/dev/security-design.md",
+      "sha256": "3a39439bd849f6cc51ad97d4539b9547077d2de209c4d675d734ba2e51313cbf",
+      "bytes": 15350
+    },
+    {
+      "path": "docs/did/did-en.md",
+      "sha256": "1ac2f0a293e3f9f948892335fb0de7accfa7c4dcdc04c0848f2f3ad97b7967ed",
+      "bytes": 15094
+    },
+    {
+      "path": "docs/did/did-ko.md",
+      "sha256": "f8192040358f81eecadd50c7267e60281fe6430f3a995413fb2db500154d9c1d",
+      "bytes": 15975
+    },
+    {
+      "path": "docs/handshake/README-ko.md",
+      "sha256": "2537c965ffe246c7a2c71f56846f23c348614a9c1820bf27142dfb76f7056845",
+      "bytes": 8257
+    },
+    {
+      "path": "docs/handshake/README.md",
+      "sha256": "34bdf793daff3cc87ed5e63ffe06ad6b57c8d5c10c2458aa8259283139ced25f",
+      "bytes": 7955
+    },
+    {
+      "path": "docs/handshake/cryptographic-en.md",
+      "sha256": "8cad81ecf7c45b37df11662419cf2981c3b767db0126cdd339a34c6541df8f8c",
+      "bytes": 17996
+    },
+    {
+      "path": "docs/handshake/cryptographic-ko.md",
+      "sha256": "74988cd2840c373f68eed0a620b1a20c2b52852afcfc489fb5c0831649783217",
+      "bytes": 18847
+    },
+    {
+      "path": "docs/handshake/handshake-en.md",
+      "sha256": "a461b6c72d3f468734fea75aa65091be4e9cb3629a98530e6054d1c6a1562664",
+      "bytes": 10209
+    },
+    {
+      "path": "docs/handshake/handshake-ko.md",
+      "sha256": "37420244f6d79f77d9090b507893f793b4db230a244803f23c158d7201f10808",
+      "bytes": 11352
+    },
+    {
+      "path": "docs/handshake/hpke-based-handshake-en.md",
+      "sha256": "a6031284520e611c0fb073b6446c5c6539e91d39207e6a04158bc90e682ceafc",
+      "bytes": 20364
+    },
+    {
+      "path": "docs/handshake/hpke-based-handshake-ko.md",
+      "sha256": "edadbf6f7104aed87f4f0bf22c09c44f1308463b3f380c511360dc7ce32ffe80",
+      "bytes": 21217
+    },
+    {
+      "path": "docs/handshake/hpke-detailed-ko.md",
+      "sha256": "e92057b8eeb7cde5105350728be06bb81ace7143b08e47302f5a1434da53d4fd",
+      "bytes": 34761
+    },
+    {
+      "path": "docs/overview/DETAILED_GUIDE_PART1_KO.md",
+      "sha256": "eeed9ba7498ecccc45c37848205592da9eabdc810fc50146e5590f5052b2a6df",
+      "bytes": 64285
+    },
+    {
+      "path": "docs/overview/DETAILED_GUIDE_PART2_KO.md",
+      "sha256": "b4a5e0203f8e59a9c0b1f56958803e0b1e89607deb64d204990c81e548142dd0",
+      "bytes": 60864
+    },
+    {
+      "path": "docs/overview/DETAILED_GUIDE_PART3_KO.md",
+      "sha256": "786eebfac97b05cdd315211d3a009047729f032aca0041e3b6ee8a87b0f93a4b",
+      "bytes": 75652
+    },
+    {
+      "path": "docs/overview/DETAILED_GUIDE_PART4_KO.md",
+      "sha256": "6792cba2ac26123cdf9245500895c36ad3901434a96cc261b44f17a2ae541b5c",
+      "bytes": 47129
+    },
+    {
+      "path": "docs/overview/DETAILED_GUIDE_PART5_KO.md",
+      "sha256": "a867ddb69efe6b1f26f97f48156e8e32853fc5820b885217e58394894107ebb8",
+      "bytes": 87090
+    },
+    {
+      "path": "docs/overview/DETAILED_GUIDE_PART6A_KO.md",
+      "sha256": "eac666f48e7d9d760ed7b3a871785c7ddfa5abff08976372b99af99ea8fa3f6a",
+      "bytes": 103022
+    },
+    {
+      "path": "docs/overview/DETAILED_GUIDE_PART6B_KO.md",
+      "sha256": "bc40b179a29c1e5ed2ee4e586484b88d46b51783a8c8cfe40f68b0e449e86a15",
+      "bytes": 47079
+    },
+    {
+      "path": "docs/overview/DETAILED_GUIDE_PART6C_KO.md",
+      "sha256": "95ef57aca8ec304b04928a7b8561f09c9660ce461146d9d284fc92365c32d7ea",
+      "bytes": 41472
+    },
+    {
+      "path": "docs/refactoring/BACKLOG.md",
+      "sha256": "3c210a5a549bb83c3f2894934f737b9a6a55251f8058e5352974e1696eb24079",
+      "bytes": 25949
+    },
+    {
+      "path": "docs/refactoring/DECISIONS.md",
+      "sha256": "9734a0e80b35ed626be6dd370e7c1b6e3fbcef9be8ad995b40d1791b7b96cd80",
+      "bytes": 13727
+    },
+    {
+      "path": "docs/refactoring/DOCS_GRAPH.md",
+      "sha256": "e544a82074f6984bc6078b6da9578fb6e60052cfcb0ae0360d2e561e4e9cabdf",
+      "bytes": 107776
+    },
+    {
+      "path": "docs/refactoring/FEATURE_MAP.md",
+      "sha256": "59f4fe1417cbef8572eb1fc7d1eeaf84ab5fb7c1da02ad66c221f386a7bca354",
+      "bytes": 5615
+    },
+    {
+      "path": "docs/refactoring/PR_LOG.md",
+      "sha256": "af748c0ccd446ff3f7410c567c90d83b02bb4fa3f8fd977a856af7eba2ee4d90",
+      "bytes": 10973
+    },
+    {
+      "path": "docs/refactoring/README.md",
+      "sha256": "7364ddd0d5f4af516a97a714c0209e2e725da338b7f8f19971f57069112bc2b2",
+      "bytes": 3461
+    },
+    {
+      "path": "docs/refactoring/REFACTORING_DESIGN.md",
+      "sha256": "3d5375264edfe82eb8bc089c43eda0c19ef43924614bbfe669ecfd9cd9391720",
+      "bytes": 40584
+    },
+    {
+      "path": "docs/refactoring/SECURITY_WIRING_AUDIT.md",
+      "sha256": "aec2b6f950203cde4146859ada7b8b5e8c1dbd92d5ae5fa634b20ebe43a6dfea",
+      "bytes": 43118
+    },
+    {
+      "path": "docs/refactoring/STRATEGY.md",
+      "sha256": "91ffec9844beb60d3a7bd2fc0bc79abc4c3ecc85d68c4be0da19b3688d947d80",
+      "bytes": 26154
+    },
+    {
+      "path": "docs/refactoring/SUPPLY_CHAIN_AUDIT.md",
+      "sha256": "b416063b9884c963ec308ebc7b8cfb97a75b07a3e2137d0b8be1f8726845ed77",
+      "bytes": 47691
+    },
+    {
+      "path": "docs/refactoring/analysis/01-crypto.md",
+      "sha256": "5b0a34e27d12721b376e8925cee9f48ece1b8cfd270ecbb021f23245f42f3d24",
+      "bytes": 18323
+    },
+    {
+      "path": "docs/refactoring/analysis/02-did-blockchain-config.md",
+      "sha256": "9783988049af60d4c27887ed309d99561701ff1ceec27da03a867705a944dd3e",
+      "bytes": 18423
+    },
+    {
+      "path": "docs/refactoring/analysis/03-handshake-hpke-session-transport.md",
+      "sha256": "32446335ecb8d6f10ab52dd56c96cc6da8b30afc56a0f93c0b8861d9bd1a5669",
+      "bytes": 18823
+    },
+    {
+      "path": "docs/refactoring/analysis/04-core-storage-health-oidc-internal.md",
+      "sha256": "652525a21c01fd1a3b6633a03d9d2f051604d143c1ac55c98c935ef4de829870",
+      "bytes": 18145
+    },
+    {
+      "path": "docs/refactoring/analysis/05-cmd-lib-tests-sdk-contracts-ci.md",
+      "sha256": "e182240ced8da47d341a0821091ba2c295aa1305e34f262acd6005ed2f30f992",
+      "bytes": 21399
+    },
+    {
+      "path": "docs/refactoring/graph/entrypoints.md",
+      "sha256": "ef2cef20d543c3bcd738352386e17c5a3e3b0175157e32d826a8aeb4814cb93c",
+      "bytes": 7593
+    },
+    {
+      "path": "docs/refactoring/graph/summary.md",
+      "sha256": "1e4cc32ac685b23c17cbf9f123702e5e2ca20e29f3a2b4dd8ca6de5e68388633",
+      "bytes": 50230
+    },
+    {
+      "path": "docs/refactoring/v2/LICENSING.md",
+      "sha256": "a069a1691ec9b4c98c74d4b5dae8c4a050135edbf2af91d35d6230361953b7f5",
+      "bytes": 7615
+    },
+    {
+      "path": "docs/refactoring/v2/README.md",
+      "sha256": "6d602777203b9dd58b4dcb53958acf23313361a3778abe2c7babcff7777f30d3",
+      "bytes": 1144
+    },
+    {
+      "path": "docs/refactoring/v2/REPO_PLAN.md",
+      "sha256": "b937eedf8930e867b2a525e597f5ef518192ce6421ce6b45bbc7d23e28db9242",
+      "bytes": 9159
+    },
+    {
+      "path": "docs/test/FUZZING.md",
+      "sha256": "c17188b42d2207eae5247b02f7f4714212246e05bca368cf8e7ce3840640ea38",
+      "bytes": 11008
+    },
+    {
+      "path": "docs/test/GO_TEST_COMMANDS.md",
+      "sha256": "1098b9282aa096ae038417ba9177d631daea38a87471fb8095f8d8a7a4e3c68d",
+      "bytes": 17770
+    },
+    {
+      "path": "docs/test/SPECIFICATION_VERIFICATION_MATRIX.md",
+      "sha256": "78d2cfb321489831cfd4ee0afe089c8c89d7f4edfacc839f05c063500d46f132",
+      "bytes": 5745
+    },
+    {
+      "path": "docs/test/TESTING.md",
+      "sha256": "107c19689e2c787e2d78067162795678f3e1fc26d430318b0c6196005e8e559c",
+      "bytes": 12204
+    },
+    {
+      "path": "docs/test/TESTING_GUIDE.md",
+      "sha256": "bacd82a70f71982b3bdabb6ad96c1e2823449c3c23559ad18cfa0dceb8b12f9c",
+      "bytes": 6206
+    },
+    {
+      "path": "docs/test/sage-cli-commands-copy-paste.md",
+      "sha256": "6e227ed31144734c59339206f4d9cdd60131bf19a8ea43d2237264bfdb4269fe",
+      "bytes": 8347
+    },
+    {
+      "path": "docs/test/sections/SECTION_1_RFC9421.md",
+      "sha256": "2016c16109b69a123f8b48a61913c03ccce36bda3e0198cebae4348ea5d1f056",
+      "bytes": 21126
+    },
+    {
+      "path": "docs/test/sections/SECTION_2_CRYPTO.md",
+      "sha256": "ef0a0bd79209fdf5cd969c1c7d676c955674ccea61c92a98a7605665d598c4aa",
+      "bytes": 12918
+    },
+    {
+      "path": "docs/test/sections/SECTION_3_DID.md",
+      "sha256": "dcdc927aebb576021c365e39763987f61045e9324a4566daee426cc125e43677",
+      "bytes": 40720
+    },
+    {
+      "path": "docs/test/sections/SECTION_4_BLOCKCHAIN.md",
+      "sha256": "0eafa30a26545f4407fcf966cc6f76fb868ae7c67afebdc0f766b7a948dd8b73",
+      "bytes": 12477
+    },
+    {
+      "path": "docs/test/sections/SECTION_5_MESSAGE.md",
+      "sha256": "6266c5521846ea35a7073e4e0dbd0e58a546d46bf8a525caa4c351b7709e99d9",
+      "bytes": 25914
+    },
+    {
+      "path": "docs/test/sections/SECTION_6_CLI.md",
+      "sha256": "cd7dae179a0004f760f5120361a92d17f8e79cd809795d0c9794c6f2b717d742",
+      "bytes": 7556
+    },
+    {
+      "path": "docs/test/sections/SECTION_7_SESSION.md",
+      "sha256": "60019207b4f5a172f6fe17318dea4361b3e60a6260f2ec1cc9cf08493ed59359",
+      "bytes": 19750
+    },
+    {
+      "path": "docs/test/sections/SECTION_8_HPKE.md",
+      "sha256": "588e283a2021afc0c4328a4e0d514a59d208f94c46312891e05458964adaf5f1",
+      "bytes": 11594
+    },
+    {
+      "path": "docs/test/sections/SECTION_9_HEALTH.md",
+      "sha256": "30faf68fe2aef1005dee061818f574b4acc517e51a17b243dfd62c1bc25d40f5",
+      "bytes": 8298
+    },
+    {
+      "path": "examples/README.md",
+      "sha256": "7c3a75caa15d54dd359784eccd9b1a5fabdab1f2862768d0d591c69d8c71df5a",
+      "bytes": 2317
+    },
+    {
+      "path": "examples/a2a-integration/01-register-agent/README.md",
+      "sha256": "083d57f37322f54fb8816c2ad0dd3024c283b391c47faa26b9bf4a1488b05822",
+      "bytes": 8278
+    },
+    {
+      "path": "examples/a2a-integration/01-register-agent/main.go",
+      "sha256": "4f3bc70463f4f9a12bffacc2582d7e542a70d3f3a0f8961251a2f200798b65e5",
+      "bytes": 10373
+    },
+    {
+      "path": "examples/a2a-integration/02-generate-card/README.md",
+      "sha256": "41a2dc5a91adca3ac5c134fe15823532f96fe052a0d641106f6b84c3f75911e4",
+      "bytes": 9051
+    },
+    {
+      "path": "examples/a2a-integration/02-generate-card/main.go",
+      "sha256": "3667c931a44dec057c3033f66514585fff4d2d12e3b7020a3c218b2e2917e10a",
+      "bytes": 9109
+    },
+    {
+      "path": "examples/a2a-integration/03-exchange-cards/README.md",
+      "sha256": "4262001ae55e3351ed705c12ac6c5c620c80e78239070169592aa75b5353fcbd",
+      "bytes": 8334
+    },
+    {
+      "path": "examples/a2a-integration/03-exchange-cards/main.go",
+      "sha256": "161f889acb979183e2a236be2432de3529bd639c4425a532c21d5a8a120efa60",
+      "bytes": 12746
+    },
+    {
+      "path": "examples/a2a-integration/04-secure-message/README.md",
+      "sha256": "979573da295c78aafb1007bde3595da8dd0ea73e057ce83a7a13bfd75981df86",
+      "bytes": 10806
+    },
+    {
+      "path": "examples/a2a-integration/04-secure-message/main.go",
+      "sha256": "9105b7a2ba62f5ab31857f8747af3492badffb89a29f5dab61b51ec343c96663",
+      "bytes": 12782
+    },
+    {
+      "path": "examples/a2a-integration/README.md",
+      "sha256": "c7d2d4b2654159aede2b8da1f6047b33daba831504ac3d7b458c7bf39c018061",
+      "bytes": 5818
+    },
+    {
+      "path": "examples/agent-initialization/README.md",
+      "sha256": "09d81f025e61dd66f3df1fb8aef2482517ea4cb947dbc6e78fb1766473b7a63a",
+      "bytes": 4377
+    },
+    {
+      "path": "examples/agent-initialization/main.go",
+      "sha256": "d085f8bc06636ca66a1f77a8dca6f08132cddd39b58dbb2d91c35a150f1ab350",
+      "bytes": 15265
+    },
+    {
+      "path": "examples/config.yaml",
+      "sha256": "07d7bf29583114c2f9c044355b2f0e039e785986acf26295bd63521994d238eb",
+      "bytes": 1208
+    },
+    {
+      "path": "examples/mcp-integration/QUICKSTART.md",
+      "sha256": "7d3898dafc7040652ba75922bc310caa7f0379829605c1daf67fb4ab0f0ca2b6",
+      "bytes": 2343
+    },
+    {
+      "path": "examples/mcp-integration/README.md",
+      "sha256": "72b6bbe79ddddbc450a484d22ebbaacae7166031bc0ace02ce0830410a6ad944",
+      "bytes": 6135
+    },
+    {
+      "path": "examples/mcp-integration/basic-demo/README.md",
+      "sha256": "c83c2977709821aec809f012d3a833ac5fc9b42585cd41b167c3d7b04e66064a",
+      "bytes": 2389
+    },
+    {
+      "path": "examples/mcp-integration/basic-demo/main.go",
+      "sha256": "3fa80efbcc300120650b7b3ed74845e83f70a740ec825d8d18f0e0dba7d37831",
+      "bytes": 9802
+    },
+    {
+      "path": "examples/mcp-integration/basic-tool/calculator_tool.go",
+      "sha256": "adc1bc48086c7d0e0fe77e92c12d966b6fa67cf0190b8582994f6653c3ea8cf6",
+      "bytes": 6853
+    },
+    {
+      "path": "examples/mcp-integration/basic-tool/main.go",
+      "sha256": "e16dc6ee0986366fcc82dc7e3de53b6e23370c125b2abd4f71d3c226f05b3533",
+      "bytes": 2655
+    },
+    {
+      "path": "examples/mcp-integration/client/main.go",
+      "sha256": "597282e621a7b8b557555c73b3862142f837d2e20a8d244e0c45c856bd1087de",
+      "bytes": 2431
+    },
+    {
+      "path": "examples/mcp-integration/client/sage_client.go",
+      "sha256": "b19521a1c4784c2a906562f36a65c52a57b4876cb0bf18e21112d70640a1af00",
+      "bytes": 5774
+    },
+    {
+      "path": "examples/mcp-integration/simple-standalone/README.md",
+      "sha256": "fd2ae0994e3b23ba796bbcb7e9d22cdd92dbae174655cc2b7c20781c7828eb70",
+      "bytes": 1691
+    },
+    {
+      "path": "examples/mcp-integration/simple-standalone/main.go",
+      "sha256": "02c897ecd1ef2a5aa836215aa1b8dc86a5055b884835fbbdc9c1c7054c60ab3a",
+      "bytes": 8516
+    },
+    {
+      "path": "examples/mcp-integration/test_compile.sh",
+      "sha256": "70485030a4925387efc24079296f0bec72299c0c85da92ff2c86a4c05dd7bc77",
+      "bytes": 1609
+    },
+    {
+      "path": "examples/mcp-integration/vulnerable-vs-secure/README.md",
+      "sha256": "08bf588eef76b8a6a968264fa146fe199eb6a772370ebee36188dc21f47c84d8",
+      "bytes": 2278
+    },
+    {
+      "path": "examples/mcp-integration/vulnerable-vs-secure/attacker/main.go",
+      "sha256": "9e521898fbb4f47faedba09ac008fa08d4a510145f597a988b9cc8562acb838b",
+      "bytes": 4392
+    },
+    {
+      "path": "examples/mcp-integration/vulnerable-vs-secure/secure-chat/main.go",
+      "sha256": "3c40d4fe1555f9881033134aff53990813e4ac3900d114828e4e5ff67785e978",
+      "bytes": 5627
+    },
+    {
+      "path": "examples/mcp-integration/vulnerable-vs-secure/vulnerable-chat/main.go",
+      "sha256": "0e4049114d1b7e511b222590aea11cdaefbb1d8ad691a23bd8c2b4d09c323bbb",
+      "bytes": 3012
+    },
+    {
+      "path": "examples/metrics-demo/main.go",
+      "sha256": "acd76583b5e26eba2ee37cc3950552e8678f3ef6298a8709ffc0e52f5b56a90f",
+      "bytes": 4817
+    },
+    {
+      "path": "examples/run-examples.sh",
+      "sha256": "b1f6558c9fc9d26fe7c73be9b538e8a81dc820519841457571c7cef1951d3195",
+      "bytes": 4941
+    },
+    {
+      "path": "examples/simple-agent-init/README.md",
+      "sha256": "bafc4016f14f1e6da4195ebb3ab8ffb767a078c28136c3d8b2a33b6826270564",
+      "bytes": 3317
+    },
+    {
+      "path": "examples/simple-agent-init/main.go",
+      "sha256": "0091c55362a371e5031c3f98e0da2001677acb0e26c4cfb4f8ae4e71eab44565",
+      "bytes": 10170
+    },
+    {
+      "path": "go.mod",
+      "sha256": "c23a68976d75c786fff32e062e6c5b670a6a3959ec3580ff0b2a09cbf1e45536",
+      "bytes": 3954
+    },
+    {
+      "path": "go.sum",
+      "sha256": "eef9fb09a9ef609fc2d7146d4a7970eb05ca34c3bf4461a8d138dace063836d8",
+      "bytes": 40389
+    },
+    {
+      "path": "internal/app/register.go",
+      "sha256": "acd78957d31a776da9f9aa1477b434e2454e287a22ea666588021f948bd701e8",
+      "bytes": 1821
+    },
+    {
+      "path": "internal/cli/keyfile.go",
+      "sha256": "9273184576fa90fc9112ba29fe23d562d419248bb5076a9e36689b521b835d77",
+      "bytes": 2349
+    },
+    {
+      "path": "internal/cli/keyfile_test.go",
+      "sha256": "9a3855dca9976155ba15ca754a61cf1e290fb57243a8d61e806b7b77d7c3ebc5",
+      "bytes": 2144
+    },
+    {
+      "path": "internal/config/blockchain.go",
+      "sha256": "a06e727a2d6e109da1a056b0620a7154ab09884304c00c70c0b9d5c697b247dd",
+      "bytes": 7802
+    },
+    {
+      "path": "internal/config/blockchain_test.go",
+      "sha256": "2ffa220fdaa08b3a5e0fd1973343628dd9fdc6c843eeb115f4378e65f2f3a5f7",
+      "bytes": 9653
+    },
+    {
+      "path": "internal/config/config.go",
+      "sha256": "62bfabf5dde401e77bcf9ae6517ee59d7b994af374b08b5383a5e1a5f7f0a9d5",
+      "bytes": 6650
+    },
+    {
+      "path": "internal/config/deployment_loader.go",
+      "sha256": "3cc4bbdd6e05f588049b1e9cdddeaf6b0a6524cdae0f594c3aa398d9af7916ba",
+      "bytes": 6526
+    },
+    {
+      "path": "internal/config/env.go",
+      "sha256": "12872ada261514b608aa8b5817787c87f28356deb238d0273e69b6f5e2c4ffec",
+      "bytes": 3530
+    },
+    {
+      "path": "internal/config/env_test.go",
+      "sha256": "b13ba4c2939bb2ad457980369fc8a096427e31dfe41950fc76e4984a2e87882a",
+      "bytes": 5214
+    },
+    {
+      "path": "internal/config/loader.go",
+      "sha256": "05e5905572416ddb3579a75dbdbd66e358748f8c011f779e6b93bd81c2c4fa44",
+      "bytes": 4878
+    },
+    {
+      "path": "internal/config/loader_test.go",
+      "sha256": "c76f3edab9fcaa1e267f47506595a15574ae7e2bf50d73e953bd6292b8557692",
+      "bytes": 4998
+    },
+    {
+      "path": "internal/config/validator.go",
+      "sha256": "5c4b3d685fa43bf2dfe125548601aabea9826d567a04af042ef2dba8c4380ae3",
+      "bytes": 7125
+    },
+    {
+      "path": "internal/session_creator.go",
+      "sha256": "db25baac5847f4972ade73cec32ee228642a40d9b24a282cfb55a505335a7435",
+      "bytes": 4536
+    },
+    {
+      "path": "internal/sessioninit/README.md",
+      "sha256": "436f7ad2ed981f8a2dfe798386dd2eacf526bc1684070d0fe51cdb242814fb4b",
+      "bytes": 17508
+    },
+    {
+      "path": "internal/testutil/environment.go",
+      "sha256": "864eeb9693c3f29120eafa236c1092025df170e85ee99e24d818e22f6855af53",
+      "bytes": 6689
+    },
+    {
+      "path": "internal/testutil/helpers.go",
+      "sha256": "7b41bb4f3bd46b54205d68ee95db1eed65e78917859ebd9ae2e2d66e965dd0e8",
+      "bytes": 5867
+    },
+    {
+      "path": "internal/vectors/crypto.go",
+      "sha256": "63a44ec8a2d208be0286218a56d0e15d7ae707aad0c94c3e4762f34273236443",
+      "bytes": 8353
+    },
+    {
+      "path": "internal/vectors/did.go",
+      "sha256": "0ed7c678f2b91cdb9d8a006529ff12b6cfd0565cea37c7f23bd830775e9f285b",
+      "bytes": 7298
+    },
+    {
+      "path": "internal/vectors/helpers.go",
+      "sha256": "1483265dbedc367c6e2dd1096801ed678b11fedb08eea9527acf9398983a4750",
+      "bytes": 3086
+    },
+    {
+      "path": "internal/vectors/hpke.go",
+      "sha256": "bb1bf947ac9ece3c5e3959ffc3357562f1d59efb2b1bafce3da9269b81593be0",
+      "bytes": 7498
+    },
+    {
+      "path": "internal/vectors/rfc9421.go",
+      "sha256": "f617909dddcc99cc9d4141f089803e1abb70b69f9bea98dbaaa4b9f54de85906",
+      "bytes": 9372
+    },
+    {
+      "path": "internal/vectors/session.go",
+      "sha256": "3f72a7d53c2965638f2eeecf5d6801ccf11bd01c542576d76456706c6873b3b7",
+      "bytes": 7089
+    },
+    {
+      "path": "internal/vectors/vectors.go",
+      "sha256": "582f23f60feda753f0b87b96a0b24c4dc9308dfc7e5722a9c28c11011cdb8430",
+      "bytes": 7322
+    },
+    {
+      "path": "internal/vectors/vectors_test.go",
+      "sha256": "223a645a3142e697a1f3ad6f387ad4f3b258e7cb9fa0a9220cc3e9ce144f0d8e",
+      "bytes": 2634
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "254eb6302ff91b8a25b54b3091aba7dc015df68257c62e2f3103d7ace3666722",
+      "bytes": 83
+    },
+    {
+      "path": "pkg/agent/core/core.go",
+      "sha256": "2a6710edaf05915a5d677c039f9f6c32f7a0b1e5e0f0f19f1fd5d1ee81a2cf78",
+      "bytes": 4203
+    },
+    {
+      "path": "pkg/agent/core/core_test.go",
+      "sha256": "2657210686e70a2f866b42e7bbe766d9ae46af080e30bbead324dfa5b0600bf5",
+      "bytes": 11695
+    },
+    {
+      "path": "pkg/agent/core/message/nonce/manager.go",
+      "sha256": "25ba7ff6e5166e84b7a205b1f2348be9d11115355e8327f5e084a5f76ed2f681",
+      "bytes": 3821
+    },
+    {
+      "path": "pkg/agent/core/message/nonce/manager_test.go",
+      "sha256": "6b93722ef3cf6a1a05ddbfa6c8a907bce39aeb832b4fd00abc2bd56ae4f51328",
+      "bytes": 12853
+    },
+    {
+      "path": "pkg/agent/core/message/types.go",
+      "sha256": "0b45c9afaf968a5d55ed02fc02169d8248a514bd3551eb482174b24f05ddc842",
+      "bytes": 1255
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/body_integrity.go",
+      "sha256": "84c1042d421a8c93a758683dc925e3252a02c27d32da986131f00efc9b5fd61b",
+      "bytes": 8515
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/body_integrity_edge_test.go",
+      "sha256": "5e44b8f680f688c858f452a1607ed899b18660011c63837c2091eb2493fb23d8",
+      "bytes": 10021
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/body_integrity_test.go",
+      "sha256": "7b1534cc645d2911c3692e51df14369d590ceee58029cbccad708f2b502e43a2",
+      "bytes": 10075
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/canonicalizer.go",
+      "sha256": "2e10ab8829cf4b8c23b3da670ba864d270c284d77be415627ec2169f08d7eee2",
+      "bytes": 9788
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/canonicalizer_test.go",
+      "sha256": "da7cb3e235eaf7eb858e8177ba68b11b4ebd6bd99939a4756c5660738bd6217e",
+      "bytes": 15739
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/integration_test.go",
+      "sha256": "d2dd3716230f996eaaf090bb87baa5439295253d6c0d6d7f91cf35f575b5bbd8",
+      "bytes": 21044
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/message_builder.go",
+      "sha256": "93d32c2a3db3bc4a38211d02ccd13b4401285a51fb581f048650b7cffcfb5574",
+      "bytes": 4326
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/message_builder_test.go",
+      "sha256": "315956a87770200416a63bae09764955a272d72af446c9f55ee2373713c1c71e",
+      "bytes": 20885
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/parser.go",
+      "sha256": "79ff3e714a833c219fc9eaa90cf9f631532b69698789f2be2b051f1e9986d39a",
+      "bytes": 7693
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/parser_test.go",
+      "sha256": "ab7beee3a2957d176bdcda9331eb2445de3e778a798a9be4e035284f4e1d7814",
+      "bytes": 10413
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/response_signer.go",
+      "sha256": "c155fcbe390a0f100c654d352a4631c980ac1082275a26824ad4c6ee4d1ec976",
+      "bytes": 4352
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/secp256k1_keccak_test.go",
+      "sha256": "5d4a9ce8ef92054bda880f3f6da039427bfb43c226a6d65e5f8fc068687d2dcb",
+      "bytes": 3387
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/testutil_readcloser_test.go",
+      "sha256": "18fc62449f8be387bd92da61f57661f1deccf4cbeaa8351a9e0a8080f3da318a",
+      "bytes": 211
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/types.go",
+      "sha256": "bec47deea1598e4cee392a35c7e752186aa4c250d817244d9f0735768f195570",
+      "bytes": 3372
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/verifier.go",
+      "sha256": "39b042f7c745dec735dc64f432a7b4400d1a775b3660f4b21ecf82e6cf164db0",
+      "bytes": 10791
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/verifier_http.go",
+      "sha256": "084ccdf1627dc23f051ef20f26753c077773dcfc3b7e80f4cf2e545c109ac805",
+      "bytes": 22271
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/verifier_http_response_test.go",
+      "sha256": "aa939adce08b90a3e1f65167eda1b248634b22102bf5dd0ebad7634a0703d41f",
+      "bytes": 7819
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/verifier_http_security_test.go",
+      "sha256": "6807a6483ec8c14e7153825be9c2049b38a4a9778c34c9c356ebafda94bcded0",
+      "bytes": 8161
+    },
+    {
+      "path": "pkg/agent/core/rfc9421/verifier_test.go",
+      "sha256": "8459fcbcb1f6056f0efde78dadf37e3ac4f08900ecec50605857fd88466b2a8d",
+      "bytes": 48247
+    },
+    {
+      "path": "pkg/agent/core/verification_service.go",
+      "sha256": "89a1dfe506925fb865a59a9f3a1fc2bce499b1d2dbe202c26f45c82761f784b0",
+      "bytes": 6032
+    },
+    {
+      "path": "pkg/agent/core/verification_service_test.go",
+      "sha256": "4ececb6af0ec787499d8e56b69a57f22f0c669ad8d6ac7200e4bb20a19297fb8",
+      "bytes": 14729
+    },
+    {
+      "path": "pkg/agent/crypto/README.md",
+      "sha256": "5877bc3dae5ce3aef9a2ec7aa19b769eead49a288ec36118dde1bf094de00664",
+      "bytes": 25141
+    },
+    {
+      "path": "pkg/agent/crypto/algorithm_registry.go",
+      "sha256": "bc6acb8e6c42cdbe1207a1dd1e0d1901573d138a732445e261c058420995904c",
+      "bytes": 9807
+    },
+    {
+      "path": "pkg/agent/crypto/algorithm_registry_test.go",
+      "sha256": "735703ebb95159cfe7a86b024ed309b221a24a57c8ae974f259b0fa5041e75ab",
+      "bytes": 30515
+    },
+    {
+      "path": "pkg/agent/crypto/chain/ethereum/provider.go",
+      "sha256": "73758d64b8d0d9d00405b06c87e6721948d50782b1752fb4de6257f5eaaa0049",
+      "bytes": 5000
+    },
+    {
+      "path": "pkg/agent/crypto/chain/ethereum/provider_test.go",
+      "sha256": "1ead5d8e5185c410abeb420c4af2ef42ad2773e94122f4587c8d64e89444a0cc",
+      "bytes": 5151
+    },
+    {
+      "path": "pkg/agent/crypto/chain/key_mapper.go",
+      "sha256": "68050ace26365fe35878cb9b3cf861a96295880215f538e9aeafc81592a0361c",
+      "bytes": 5515
+    },
+    {
+      "path": "pkg/agent/crypto/chain/key_mapper_test.go",
+      "sha256": "4d364dc982470234efb3147c480dfc42cbddc9de1c78773f0927a3b4a880025c",
+      "bytes": 10039
+    },
+    {
+      "path": "pkg/agent/crypto/chain/presets.go",
+      "sha256": "9e8a8c814953aeb288d2fc47a36d6bd445ea2839ba92f55744b56c423fff37d8",
+      "bytes": 4352
+    },
+    {
+      "path": "pkg/agent/crypto/chain/presets_test.go",
+      "sha256": "7df16a70817f05254b7500f29434ca6c013284ff0760951aecff16afd1e2c8e8",
+      "bytes": 1385
+    },
+    {
+      "path": "pkg/agent/crypto/chain/registry.go",
+      "sha256": "48c51c8611abecd1c09570710112303fa07398567aef6943c3a96ebb1a1cd0d7",
+      "bytes": 3737
+    },
+    {
+      "path": "pkg/agent/crypto/chain/registry_test.go",
+      "sha256": "e7cc1e91454660ab7f566b2352c5e0cfefb4a7e79e81464fa39c9fd022a83484",
+      "bytes": 7515
+    },
+    {
+      "path": "pkg/agent/crypto/chain/solana/provider.go",
+      "sha256": "cb6810af8089bfb4ad01f9446e718467dad5e8bc03244e4722ee1cfb7fdd8ae7",
+      "bytes": 5201
+    },
+    {
+      "path": "pkg/agent/crypto/chain/solana/provider_test.go",
+      "sha256": "0e59675f83592e04220d0b8f932b1765b1ca4d9b23c73f4ee9db1d5f14faff2f",
+      "bytes": 5691
+    },
+    {
+      "path": "pkg/agent/crypto/chain/types.go",
+      "sha256": "c39c3151e90d81441fb651b908f85841edd099dca3a7ebc70054767c609c0077",
+      "bytes": 4674
+    },
+    {
+      "path": "pkg/agent/crypto/chain/utils.go",
+      "sha256": "17ac862d47010b791fe7d9c887406c28147def2b8b3c11d23ada304057722082",
+      "bytes": 5969
+    },
+    {
+      "path": "pkg/agent/crypto/crypto.go",
+      "sha256": "d3313d9c0dcf838ffe5de62b94d1da17114380be565e0275c7da5df0a2fed9f7",
+      "bytes": 1130
+    },
+    {
+      "path": "pkg/agent/crypto/formats/jwk.go",
+      "sha256": "7168a91e7f3334336247b2d4c75f2c593eba027484f8c86fad8ae14c93672749",
+      "bytes": 14904
+    },
+    {
+      "path": "pkg/agent/crypto/formats/jwk_test.go",
+      "sha256": "1b55974ca18f91cf3dde1e18e3f6fd150b23fa1adc2d0653e14ec96d66abd70a",
+      "bytes": 13567
+    },
+    {
+      "path": "pkg/agent/crypto/formats/pem.go",
+      "sha256": "d6d6da489234d02cf190eacb2ba356f80b988e14d715fe6041d6e28a2d821c8e",
+      "bytes": 10381
+    },
+    {
+      "path": "pkg/agent/crypto/formats/pem_test.go",
+      "sha256": "b4d1f4d0a76b38db1c9a123d0e0af91fa3a9dab982706a03674800529c59bab8",
+      "bytes": 10608
+    },
+    {
+      "path": "pkg/agent/crypto/fuzz_test.go",
+      "sha256": "687fffb70e3c88c3b66ffaa2bdaa1fa1af74e14f966b85c4b3623c966150a373",
+      "bytes": 7311
+    },
+    {
+      "path": "pkg/agent/crypto/jcs/jcs.go",
+      "sha256": "eec04584b40cb5a6bf0994cd79821fc59c90022cf4d581a5e5d965cb9a60f762",
+      "bytes": 5830
+    },
+    {
+      "path": "pkg/agent/crypto/jcs/jcs_test.go",
+      "sha256": "28be5973873dc104ce4657afa54a07eabac6159548d2d66b34741fd37d766807",
+      "bytes": 2552
+    },
+    {
+      "path": "pkg/agent/crypto/keys/constructors.go",
+      "sha256": "44d2cf163d8a7152c5d5e80de49bff2c749193b43668909ad8949d715cb08428",
+      "bytes": 5504
+    },
+    {
+      "path": "pkg/agent/crypto/keys/ecdsa_encoding.go",
+      "sha256": "500a3cefb8b50faddc8207474ccc79a128b93851270eea961d82cbd3abaaa695",
+      "bytes": 3333
+    },
+    {
+      "path": "pkg/agent/crypto/keys/ed25519.go",
+      "sha256": "d1938738487089f999fc34cbea2797c943aec662246ce844c271be0b35f34dd2",
+      "bytes": 2313
+    },
+    {
+      "path": "pkg/agent/crypto/keys/ed25519_test.go",
+      "sha256": "79c34ef72ff35c81cfa927b78bc1c7646bfd03173655b1cd6782092b1668dc59",
+      "bytes": 49395
+    },
+    {
+      "path": "pkg/agent/crypto/keys/keyid.go",
+      "sha256": "4ceb983955025854f8351cbb050343b5a21afcfe0f752a29b8098dfa68082dd3",
+      "bytes": 1739
+    },
+    {
+      "path": "pkg/agent/crypto/keys/keyid_test.go",
+      "sha256": "da03ebbcf8b976db20a15a1518de21e289eb3cf4df5910df469dbc57fef68347",
+      "bytes": 1217
+    },
+    {
+      "path": "pkg/agent/crypto/keys/p256.go",
+      "sha256": "165965b561d73d53c7a0f38338a4e90d885242bddd29f4df728ad2f91da2579c",
+      "bytes": 4594
+    },
+    {
+      "path": "pkg/agent/crypto/keys/p256_test.go",
+      "sha256": "6b171dca67bc9890d7fe9c51f0c6aca0e03d4ca135206ee57e2ee58ac629bb3d",
+      "bytes": 7888
+    },
+    {
+      "path": "pkg/agent/crypto/keys/rs256.go",
+      "sha256": "608c9492501cfb4332c91da058e0ffeb23395b2a6101335e731c066a2a5deb97",
+      "bytes": 2834
+    },
+    {
+      "path": "pkg/agent/crypto/keys/rs256_test.go",
+      "sha256": "3b7f1db4cef597113870df8a7f9ec7ec2cc45816026f83a57872abe35647572e",
+      "bytes": 5323
+    },
+    {
+      "path": "pkg/agent/crypto/keys/secp256k1.go",
+      "sha256": "ebfbad2a03adff246ed0d509ee9c12466ef50b767cace78f28a859ab46751f0e",
+      "bytes": 3054
+    },
+    {
+      "path": "pkg/agent/crypto/keys/secp256k1_keccak.go",
+      "sha256": "0bfda8312481fefb6bcbe908f73e4bdf6535705211e93031ce7630776a58e0c5",
+      "bytes": 2635
+    },
+    {
+      "path": "pkg/agent/crypto/keys/secp256k1_test.go",
+      "sha256": "04eb5fe4deeb839ed5fb3b0ddc2d8101af1277346c77ef12d26f5124aa07e6c3",
+      "bytes": 29955
+    },
+    {
+      "path": "pkg/agent/crypto/keys/verify.go",
+      "sha256": "23e3abebe2a3d2875e21a9883aad5a465221bf85f63039b57a7d249660f4ac73",
+      "bytes": 3220
+    },
+    {
+      "path": "pkg/agent/crypto/keys/verify_test.go",
+      "sha256": "444539061f9fd560890bd77655b04bb5cdfbcb14047dd61a9a4d7ed90a560854",
+      "bytes": 2815
+    },
+    {
+      "path": "pkg/agent/crypto/keys/x25519.go",
+      "sha256": "95aba9bdf8bc98ce826d8500d3a8bfa1ef04b916471be4fe68589c74bc7eae14",
+      "bytes": 16549
+    },
+    {
+      "path": "pkg/agent/crypto/keys/x25519_test.go",
+      "sha256": "70185ef8d68a47d068b0558cf953e65819605d67d6d17d9efb704383ffa6119c",
+      "bytes": 5655
+    },
+    {
+      "path": "pkg/agent/crypto/pubkey_validation_test.go",
+      "sha256": "7fd25983a1afc7c5bfdc44d5ad6d6053bf8889f1e513e5425ad2e3f7bef45e1d",
+      "bytes": 4562
+    },
+    {
+      "path": "pkg/agent/crypto/rotation/rotator.go",
+      "sha256": "c628d17b1fb6394f5dbfeeacf38ba09384bb942bfd03fb5dd8c7ada60203d219",
+      "bytes": 4062
+    },
+    {
+      "path": "pkg/agent/crypto/rotation/rotator_test.go",
+      "sha256": "f6a62795b83914a1573c279b2fcf9b80fd1fd94b38116e4184334ac7cb982692",
+      "bytes": 5803
+    },
+    {
+      "path": "pkg/agent/crypto/storage/file.go",
+      "sha256": "7797cdd3818953a8427698ede4b0b914207864ef4a77a771a9dabc0eabafd61c",
+      "bytes": 5502
+    },
+    {
+      "path": "pkg/agent/crypto/storage/file_test.go",
+      "sha256": "ee7c260c78b24abbff721ea97e09647c6eee7cb175ce019030e8b0c970bd57ca",
+      "bytes": 15670
+    },
+    {
+      "path": "pkg/agent/crypto/storage/memory.go",
+      "sha256": "6088ec0c80f2a8e095bceb52e9e15708ef9adc39ad026a5476d5e2e63d92ebec",
+      "bytes": 2374
+    },
+    {
+      "path": "pkg/agent/crypto/storage/memory_test.go",
+      "sha256": "4526fcc7528aa11812e684b3310281977b29b88423dab3b839c4690f28e94bf1",
+      "bytes": 14462
+    },
+    {
+      "path": "pkg/agent/crypto/types.go",
+      "sha256": "8965bb7323677233c96d79f3af520d3114560f156dc3f19e72e633e4c8aeebd0",
+      "bytes": 4522
+    },
+    {
+      "path": "pkg/agent/crypto/vault/secure_storage.go",
+      "sha256": "587a15bb6df4c2f76f3a4d085b2f3a2f4955e2515d9286fb4be5484ffbdfb858",
+      "bytes": 10073
+    },
+    {
+      "path": "pkg/agent/crypto/vault/secure_storage_test.go",
+      "sha256": "bc2469c940b565f4bc0845594b3d9d039bb4d4edaa132c0ba424fa1a7765c21b",
+      "bytes": 8781
+    },
+    {
+      "path": "pkg/agent/crypto/wrappers.go",
+      "sha256": "6846502a6e889ed34d5ad52ec7d1ad70367c553c9e612e378e574ba4bca50bc0",
+      "bytes": 5245
+    },
+    {
+      "path": "pkg/agent/crypto/wrappers_test.go",
+      "sha256": "9cc4434a19123a500a8ea4ada2bd49a481ea48691ca03d30b7c0635bae8cb23e",
+      "bytes": 13958
+    },
+    {
+      "path": "pkg/agent/did/README.md",
+      "sha256": "e6ea8c8a26f2653e40a51e7dd8cd4b006a30b851b87228037e0530b71742e7fc",
+      "bytes": 28049
+    },
+    {
+      "path": "pkg/agent/did/a2a.go",
+      "sha256": "f93dc5e4b7e11f9d6b827e4057d82a3339e3224da7975943707349b4f62b3a2a",
+      "bytes": 8997
+    },
+    {
+      "path": "pkg/agent/did/a2a_proof.go",
+      "sha256": "dbc229352da360a8c0a34180738a2f3e8a177aac98371935024a884e8007a6f2",
+      "bytes": 13782
+    },
+    {
+      "path": "pkg/agent/did/a2a_proof_did_test.go",
+      "sha256": "43585a80f456a585be5add9347ef592e183ed6ed32e9e6ea81326f819f3d4d31",
+      "bytes": 8329
+    },
+    {
+      "path": "pkg/agent/did/a2a_proof_test.go",
+      "sha256": "a31b231570a74099b8169513104d0cce09a9d7f0060dca6257c25a5b2d9ec84b",
+      "bytes": 7034
+    },
+    {
+      "path": "pkg/agent/did/a2a_test.go",
+      "sha256": "af685a58066907bdc01b1cdee4e1d5247639d33ab7a863d798b9ae92e510e918",
+      "bytes": 16200
+    },
+    {
+      "path": "pkg/agent/did/client.go",
+      "sha256": "b6465bef79d928a60e334b2c6010166664e3a46df7e40c4aea02fb5be6347717",
+      "bytes": 1533
+    },
+    {
+      "path": "pkg/agent/did/did.go",
+      "sha256": "68cae6c5b2572334a9b60fc59aec844c953f1280afd2323eb6be78f620d16ff5",
+      "bytes": 2379
+    },
+    {
+      "path": "pkg/agent/did/did_test.go",
+      "sha256": "f96f81ff4e4d404bdb831de19dd81a2649daea285e123712c969431c8c655f2c",
+      "bytes": 16654
+    },
+    {
+      "path": "pkg/agent/did/ethereum/AgentCardRegistry.abi.json",
+      "sha256": "bf3e59375be9cf3ea070caee309f7eccbe660ce85440d242ae9a6bb1ca855e8b",
+      "bytes": 28035
+    },
+    {
+      "path": "pkg/agent/did/ethereum/SageRegistryV2.abi.json",
+      "sha256": "7a41f0bdab2930ce66017a3df57d74e3aec430fa17c140651ab64f68c04b8cbe",
+      "bytes": 11536
+    },
+    {
+      "path": "pkg/agent/did/ethereum/abi.go",
+      "sha256": "45f54bdefa7a7e332af73682209c795a75cd9d7ca71ef1e0fc191db7405d8083",
+      "bytes": 2297
+    },
+    {
+      "path": "pkg/agent/did/ethereum/agentcard_benchmark_test.go",
+      "sha256": "4b2d82159c10ac92a9783bf3d2705bfc825f4f8a49e0abd2a0a1fadf13d71ef0",
+      "bytes": 8748
+    },
+    {
+      "path": "pkg/agent/did/ethereum/agentcard_client.go",
+      "sha256": "f0dba98ce5911077efb986dec53a2cd17c1efe09f595923aff535813ce473da0",
+      "bytes": 20838
+    },
+    {
+      "path": "pkg/agent/did/ethereum/client.go",
+      "sha256": "db762fa58cea4a5770d7b5e6981a3fa4c73a3683d4a55f21ff53d6520d155513",
+      "bytes": 21066
+    },
+    {
+      "path": "pkg/agent/did/ethereum/client_enhanced_test.go",
+      "sha256": "f1793739f1a3477940103ccdd719156ed9e65dc71ba92322a2bd8b3b928e1237",
+      "bytes": 5792
+    },
+    {
+      "path": "pkg/agent/did/ethereum/client_test.go",
+      "sha256": "cb0bb1373820a7398b0bd93ecc7aeef7ce6534e07ba78396b0b08e52bc3a92c4",
+      "bytes": 17126
+    },
+    {
+      "path": "pkg/agent/did/ethereum/client_unit_test.go",
+      "sha256": "8c64ae372b8c79cab30bb318dd40b786f06a73675674f6f04d54aa68c623e184",
+      "bytes": 19144
+    },
+    {
+      "path": "pkg/agent/did/ethereum/compare_capabilities_test.go",
+      "sha256": "be2fd222a5938202a5705fdad4ee5d2694952d86d0f84ad87bc38fc3db33fd8a",
+      "bytes": 1757
+    },
+    {
+      "path": "pkg/agent/did/ethereum/key_policy.go",
+      "sha256": "b1a35faf3d0055fdf985e309f9b9529acd210b9e147267c69845e7ff7f494495",
+      "bytes": 2155
+    },
+    {
+      "path": "pkg/agent/did/ethereum/key_policy_test.go",
+      "sha256": "afd31288491f376f5c0d9ce9c8decd45fcdd60b7ceedad21e14c4a12dba2df4c",
+      "bytes": 2998
+    },
+    {
+      "path": "pkg/agent/did/ethereum/resolver.go",
+      "sha256": "01c3d9220f88e0e23f98b8f8988444f2d8f1bca0cfdf1744ce4c151e2d8bcefe",
+      "bytes": 6528
+    },
+    {
+      "path": "pkg/agent/did/ethereum/wiring_test.go",
+      "sha256": "e70bd2968c71af86defb1e93bd28587aab83128d5de2fb5b1dca562e7bd3dfe6",
+      "bytes": 670
+    },
+    {
+      "path": "pkg/agent/did/factory.go",
+      "sha256": "f9ac208d6dba362c3205cc9bf1112f07035510707e1c37315b957c8176860539",
+      "bytes": 5484
+    },
+    {
+      "path": "pkg/agent/did/factory_test.go",
+      "sha256": "5f39d20feab6f52b28d637d3ed5d7a10c9c48cff7689e4bfb139f2c372a5c622",
+      "bytes": 9970
+    },
+    {
+      "path": "pkg/agent/did/key_proof.go",
+      "sha256": "352de9660ac8ed4f65d08122ae10d49c8171af2fba2f99c708422e35241f2423",
+      "bytes": 8288
+    },
+    {
+      "path": "pkg/agent/did/key_proof_test.go",
+      "sha256": "7f4141f17f783f77a6d1ce79f31f1cdf0abae3667abd31971f4dba78e7569fbe",
+      "bytes": 8666
+    },
+    {
+      "path": "pkg/agent/did/manager.go",
+      "sha256": "516b1b5f990ec8d711628ef7eca84685482f4cf703a960d35588b9c9df2be2db",
+      "bytes": 12916
+    },
+    {
+      "path": "pkg/agent/did/manager_test.go",
+      "sha256": "fdd7238d547a61ecd7c13d4ed7010ad82c4f236d99e15bca597ddc8828e4466f",
+      "bytes": 12727
+    },
+    {
+      "path": "pkg/agent/did/manager_wiring_test.go",
+      "sha256": "e5a7569802d85604210a5b972bee41d5f9b0b349e8b263c4ae6f87cf4754a506",
+      "bytes": 3034
+    },
+    {
+      "path": "pkg/agent/did/performance_test.go",
+      "sha256": "a00d1e4334ef70cddb60cde345fd07d33538f8f74f46cbaa00f899819157cfe7",
+      "bytes": 11100
+    },
+    {
+      "path": "pkg/agent/did/registry.go",
+      "sha256": "71c07cabd4880f7ebe2e41a70e11984bd9ee4b8c33568debc235c3be0e65b7cd",
+      "bytes": 5874
+    },
+    {
+      "path": "pkg/agent/did/registry_test.go",
+      "sha256": "cbf2d336bb1db3602324136085a9bcf2cabce97817e5cc2134dc11d51034c5ee",
+      "bytes": 10050
+    },
+    {
+      "path": "pkg/agent/did/resolver.go",
+      "sha256": "14d5f9d6b061c18bad25ba049f51d68958f736a36b5533ba1b0e068fdaa3ab6f",
+      "bytes": 6037
+    },
+    {
+      "path": "pkg/agent/did/resolver_test.go",
+      "sha256": "bc386f55964151706b35fa5e32d084def0fe0ca25b669c41a48aa4234f51b7e0",
+      "bytes": 10984
+    },
+    {
+      "path": "pkg/agent/did/solana/client.go",
+      "sha256": "facac469ccfad4e149037cacef72c8a90d62cdf9e7c12f8422bf3778c08a27a7",
+      "bytes": 16498
+    },
+    {
+      "path": "pkg/agent/did/solana/client_mock_test.go",
+      "sha256": "e7723a5961a990ae1bb9bcebc02904c4ea7534370e92d2bd4bf06fc55ad586dd",
+      "bytes": 6689
+    },
+    {
+      "path": "pkg/agent/did/solana/client_test.go",
+      "sha256": "aa36dc8f07d6251aa432668ada724425ab81fc8f1860ecb8ca3a2b6afda31e5b",
+      "bytes": 3734
+    },
+    {
+      "path": "pkg/agent/did/solana/resolver.go",
+      "sha256": "335b8dfdbd83c1f0a6a375894017801561175d5bf25a61171273f8fae15b4008",
+      "bytes": 6455
+    },
+    {
+      "path": "pkg/agent/did/types.go",
+      "sha256": "d53540a9c069564cb06c8247bbcb57481cc5d5714334bb2f8cae27e5d170a994",
+      "bytes": 4470
+    },
+    {
+      "path": "pkg/agent/did/types_test.go",
+      "sha256": "bd73f027207e0e9a3f23bb9a71f618507ba0d11c2e2dd6921a19d22a38d763eb",
+      "bytes": 6013
+    },
+    {
+      "path": "pkg/agent/did/types_v4.go",
+      "sha256": "ee8b48f29b48f360132b050886ca79228a1dd3f57f588bd19c67870dc752d140",
+      "bytes": 10489
+    },
+    {
+      "path": "pkg/agent/did/types_v4_test.go",
+      "sha256": "e6343cfc83249124ef9551832219e4454f189880c05caf94567f522fed2a8227",
+      "bytes": 11113
+    },
+    {
+      "path": "pkg/agent/did/utils.go",
+      "sha256": "0df8092ee1eda9e6e711c277e2d8dfc41876d30c4df7260447d80f84a35693e7",
+      "bytes": 8278
+    },
+    {
+      "path": "pkg/agent/did/utils_test.go",
+      "sha256": "84a09ebd37f5b63d43cb14f2dadb0c61376c900a3e28da91e57d24fc1d5be7e9",
+      "bytes": 9419
+    },
+    {
+      "path": "pkg/agent/did/utils_x25519_test.go",
+      "sha256": "0b0ca1031439f2cfa215b754a4bc17653e241450877c1c1d26da307c0bd5e408",
+      "bytes": 7572
+    },
+    {
+      "path": "pkg/agent/did/verification.go",
+      "sha256": "192a5bff737ac457571a4869ad5768feb7d4db6a7fa77dbb851cb7f91d8d2153",
+      "bytes": 9251
+    },
+    {
+      "path": "pkg/agent/did/verification_test.go",
+      "sha256": "6b8724a6420373c247106d5c586735b7890354c1ff10b21a27458fefb2f9a740",
+      "bytes": 7301
+    },
+    {
+      "path": "pkg/agent/handshake/client.go",
+      "sha256": "fd8a1b279fcab5f6dacd739cc5aa5d8cd5288a4cd6a59c524917ec9979a4966d",
+      "bytes": 6694
+    },
+    {
+      "path": "pkg/agent/handshake/doc.go",
+      "sha256": "19b76b1d121488d5f29d218c69f7cc43a8e3a798835cb606b009a5e08c2a684a",
+      "bytes": 1347
+    },
+    {
+      "path": "pkg/agent/handshake/handshake_bench_test.go",
+      "sha256": "af61d52cad52d24c56b50cb1f7700f3cc9df2e2f00736cd82befe85da362786f",
+      "bytes": 2940
+    },
+    {
+      "path": "pkg/agent/handshake/helper_test.go",
+      "sha256": "8487ad8835f69438c8d5a525a7367ea925590c04df08b2315efe80b12600bcb2",
+      "bytes": 2464
+    },
+    {
+      "path": "pkg/agent/handshake/server.go",
+      "sha256": "f7d9c1d341450c2591f8cb63780acebffcec383f4aa13a9c99c74c81e327a70e",
+      "bytes": 14682
+    },
+    {
+      "path": "pkg/agent/handshake/server_test.go",
+      "sha256": "cbd30562fa87eb46f015a84ff89de8189ed6d922a6323260caf0d9f0dd34eebc",
+      "bytes": 22096
+    },
+    {
+      "path": "pkg/agent/handshake/types.go",
+      "sha256": "e00e4749cc5423ba514a140a32ebf79ec29ec242c91ffcf04ead5ebfd7acca4a",
+      "bytes": 6479
+    },
+    {
+      "path": "pkg/agent/handshake/utils.go",
+      "sha256": "8dfabe36b42e59de9e0dadcf85fa1a41e6f362a1b37a8d8eeb0e77ec7f898b06",
+      "bytes": 1416
+    },
+    {
+      "path": "pkg/agent/hpke/client.go",
+      "sha256": "e353d7cd66f4d8cb5f2f07a398321fb0f56868de5f5b6a1df3d2efd2b18d9b8c",
+      "bytes": 15164
+    },
+    {
+      "path": "pkg/agent/hpke/client_error_test.go",
+      "sha256": "4d2dcf19276ea090d8b368874174c46d393c425cb53c93dd28982f25fa4b5a14",
+      "bytes": 8933
+    },
+    {
+      "path": "pkg/agent/hpke/common.go",
+      "sha256": "a06d1b25ed57a1d870f6d388578eafba1d5915209c8cb184ec057cb5cb2a668b",
+      "bytes": 10338
+    },
+    {
+      "path": "pkg/agent/hpke/e2e_test.go",
+      "sha256": "0e1bc1baec2ae9fbded04d1c0f9c728b5e3fca6da330790e837ec30541828cf2",
+      "bytes": 21243
+    },
+    {
+      "path": "pkg/agent/hpke/hpke_bench_test.go",
+      "sha256": "816ee18450116894781d3bc6204a4fb7f9e10909a6d4b91be7e92ad06030bdae",
+      "bytes": 4615
+    },
+    {
+      "path": "pkg/agent/hpke/hpke_test.go",
+      "sha256": "3d1306f47124a6f319219aabc8bccb50ff874c209658cac725c9879366d5975f",
+      "bytes": 7263
+    },
+    {
+      "path": "pkg/agent/hpke/security_test.go",
+      "sha256": "4076f73de876af27692d2585504eb1423092c632f563514ec15839d3c687d6cb",
+      "bytes": 32811
+    },
+    {
+      "path": "pkg/agent/hpke/server.go",
+      "sha256": "939db45ea22e76f7701e964c4cbb7785ab61cd989fe08f0ac2d742716cd4b7b3",
+      "bytes": 13133
+    },
+    {
+      "path": "pkg/agent/hpke/server_test.go",
+      "sha256": "be3e01629bd58d2440758d1a0cd6cb71006b8b0a8d66be1bbf207afc7a17f346",
+      "bytes": 17306
+    },
+    {
+      "path": "pkg/agent/hpke/signature_verifier.go",
+      "sha256": "095454113ce9d7474f97d3a30f53c1b16db860d9ff9f413652256f730741cde7",
+      "bytes": 5606
+    },
+    {
+      "path": "pkg/agent/hpke/signature_verifier_test.go",
+      "sha256": "2538d32e13450429785d79758de799c9b1beca5055c831bc3bad4190b9c633b0",
+      "bytes": 9047
+    },
+    {
+      "path": "pkg/agent/hpke/types.go",
+      "sha256": "168b4fdd7b4d283ff8692b99268ceca2b21d211412f7b409c98b87e47de3aa54",
+      "bytes": 2000
+    },
+    {
+      "path": "pkg/agent/session/README.md",
+      "sha256": "35713f26135e420c32cec0456866b1d4cd3e49a3280cddfd59dc5b4825ef517f",
+      "bytes": 28176
+    },
+    {
+      "path": "pkg/agent/session/fuzz_test.go",
+      "sha256": "bcbb5ea114bbef91b2dd22c674e667e459a511fb99847d3585e716a6dce709bc",
+      "bytes": 7476
+    },
+    {
+      "path": "pkg/agent/session/manager.go",
+      "sha256": "9d8d2c1341e40fdc382ea5da4f1515ff2e3b6a73c35416b87bf25b59b27c0792",
+      "bytes": 13016
+    },
+    {
+      "path": "pkg/agent/session/manager_test.go",
+      "sha256": "c75a049ac2e9516cbc239d8104452405b5474a94b2ca778ea9e6fce1ef3e306c",
+      "bytes": 14780
+    },
+    {
+      "path": "pkg/agent/session/metadata.go",
+      "sha256": "ef48d9f31c0cd33f597fdbed245d680a082d811564cd42d1ea4ece64ca787265",
+      "bytes": 2899
+    },
+    {
+      "path": "pkg/agent/session/metadata_test.go",
+      "sha256": "0c1fb8ebafa462fadf9d4c90ac0a29fb7e1a446f37564a5abc9f10ecd801cde1",
+      "bytes": 2721
+    },
+    {
+      "path": "pkg/agent/session/metrics.go",
+      "sha256": "83a32012770e4391fa10038dedf08db4f4ed2d6fdc491eddf6cc94e1a446ea04",
+      "bytes": 2186
+    },
+    {
+      "path": "pkg/agent/session/metrics_test.go",
+      "sha256": "b4309258fa670228e08b34c0d15b3cb0be404e7fa0ac1df28915e8ed7ac89c99",
+      "bytes": 2566
+    },
+    {
+      "path": "pkg/agent/session/nonce.go",
+      "sha256": "a8be3a93cb1344d452230f398f63ea9046bedd2db81a2455c93e35a635792675",
+      "bytes": 1901
+    },
+    {
+      "path": "pkg/agent/session/replay.go",
+      "sha256": "f16b7305be46f82b780d828dd83133b5748baf887613ee64eadf5ae74bc80249",
+      "bytes": 3786
+    },
+    {
+      "path": "pkg/agent/session/replay_test.go",
+      "sha256": "582f85371ea579ca465578e2bf9d476414403bd95eda3d4700c4db0e88dc02c3",
+      "bytes": 1740
+    },
+    {
+      "path": "pkg/agent/session/session.go",
+      "sha256": "ba0cc9cfe24c8874d348bf6a5106b1a9dc811a526f3750f002b8256005f240b9",
+      "bytes": 28166
+    },
+    {
+      "path": "pkg/agent/session/session_exporter_test.go",
+      "sha256": "31e7e754ebdc049af96eb9aadc3a0a2cb53a3a2c12dbfb95a5536c20bef4563d",
+      "bytes": 1600
+    },
+    {
+      "path": "pkg/agent/session/session_replay_test.go",
+      "sha256": "0044eb28b352fece2cc0fd00368396821a84b2424387c366de6fb1101279d10e",
+      "bytes": 6467
+    },
+    {
+      "path": "pkg/agent/session/session_test.go",
+      "sha256": "77fbfb988fca8a3ac8f6f6e9174c6307d9101896ecaff5b39a6b1f1050bec636",
+      "bytes": 47247
+    },
+    {
+      "path": "pkg/agent/session/types.go",
+      "sha256": "c01e51fb6bc4debd882dffd3eec764dc33c20c277864c952e1a37e3fddc7b69b",
+      "bytes": 2218
+    },
+    {
+      "path": "pkg/agent/transport/README.md",
+      "sha256": "f628655145da3e2559b3b729cb76b158ba4295780d5628110f4a039433682385",
+      "bytes": 15233
+    },
+    {
+      "path": "pkg/agent/transport/http/README.md",
+      "sha256": "e6b74e4841156bf318e6290bce32dea3f0dff8566dc99fd689dbfb9fe81838e2",
+      "bytes": 5662
+    },
+    {
+      "path": "pkg/agent/transport/http/client.go",
+      "sha256": "a1e51dcf9a226d9e17262388d2a4645c8980db0c78bce7770263ba3251c16c2c",
+      "bytes": 4858
+    },
+    {
+      "path": "pkg/agent/transport/http/http_test.go",
+      "sha256": "b0589399881e60a5675039d219d3db850910ea31af0f6688e263d53e829e5ec2",
+      "bytes": 9603
+    },
+    {
+      "path": "pkg/agent/transport/http/register.go",
+      "sha256": "67214a647f59ca60bf9cf9807c5abd9733193b6b99c53dae3e3376ee01bd6175",
+      "bytes": 1395
+    },
+    {
+      "path": "pkg/agent/transport/http/server.go",
+      "sha256": "6d5880c927dce58a9d828aaa4c66b48d5a54239291d758eed9434923b1ca4122",
+      "bytes": 7247
+    },
+    {
+      "path": "pkg/agent/transport/interface.go",
+      "sha256": "fe837f74fa62d2d87f85e8e6b5f89baa9adc7c745e42641bc492bd89f703dc62",
+      "bytes": 3472
+    },
+    {
+      "path": "pkg/agent/transport/interface_test.go",
+      "sha256": "40b626cf7b6ced2a8fc1bde45b181f3358f01e2186ec8575458d0dbb108f04d7",
+      "bytes": 3240
+    },
+    {
+      "path": "pkg/agent/transport/mock.go",
+      "sha256": "216171f72aba0f6805585c031ba7bdf4cbb4c81430d8f5c4f55b06ef91e07ea6",
+      "bytes": 2720
+    },
+    {
+      "path": "pkg/agent/transport/selector.go",
+      "sha256": "aff9ed9f8e8d338491897d4e8274f4c6114f5e39180f0bf0fffe522505b94a55",
+      "bytes": 5224
+    },
+    {
+      "path": "pkg/agent/transport/selector_test.go",
+      "sha256": "fbc74f5c70ba4ea3aa6262259694ee623537c419d30d174b5cde19433dc31783",
+      "bytes": 6585
+    },
+    {
+      "path": "pkg/agent/transport/websocket/README.md",
+      "sha256": "90630761d78913715277677d9065da3498fa8fa776c0677b22a150eee644761c",
+      "bytes": 8392
+    },
+    {
+      "path": "pkg/agent/transport/websocket/client.go",
+      "sha256": "a331e6e5844e10288f44a4b56c0e564859776e69c253a1644f46a9df04d37be3",
+      "bytes": 7227
+    },
+    {
+      "path": "pkg/agent/transport/websocket/register.go",
+      "sha256": "ad42bb347026616425e06aed30cc1bd14f98ee9b53fa203103f2fcf92cfd1f98",
+      "bytes": 1418
+    },
+    {
+      "path": "pkg/agent/transport/websocket/server.go",
+      "sha256": "18a53f15937ca9d6dcd086d00d2e562fa511b41b9f7a7ddfec58e4164e9c4269",
+      "bytes": 10454
+    },
+    {
+      "path": "pkg/agent/transport/websocket/websocket_test.go",
+      "sha256": "b8ce4c627ccd48c6d5fc1fffa9d6de2feabd5abfb11fe31cedab9badaae01b4a",
+      "bytes": 14147
+    },
+    {
+      "path": "pkg/agent/transport/wire.go",
+      "sha256": "5e8851a488fa3ac0b660e38e79596c037c7683e23beb860b7d245b60a412e1fd",
+      "bytes": 3466
+    },
+    {
+      "path": "pkg/blockchain/ethereum/contracts/agentcardregistry/AgentCardRegistry.go",
+      "sha256": "d60d1d639117c7b92d19358296b08ba53cc94aa6553e8aa9e00f6594a5355ace",
+      "bytes": 171631
+    },
+    {
+      "path": "pkg/blockchain/ethereum/contracts/agentcardregistry/AgentCardStorage.go",
+      "sha256": "866a8949071b14dd00d0bb92bbd59c0eb09ae0a8b041e9197c534d2725432c3b",
+      "bytes": 62611
+    },
+    {
+      "path": "pkg/blockchain/ethereum/contracts/agentcardregistry/IRegistryHook.go",
+      "sha256": "4653763c1ad1b992c2b678443bcd4cc63211638727494c9b2fd99102224d0360",
+      "bytes": 11737
+    },
+    {
+      "path": "pkg/blockchain/ethereum/provider.go",
+      "sha256": "959c7d77930fadb6de10a6e76fef8f11a027c27505cfb4846eb2585116af30f0",
+      "bytes": 9662
+    },
+    {
+      "path": "pkg/blockchain/ethereum/provider_test.go",
+      "sha256": "6483ec6c648476c174631302cb70f41537b9cd7b62bf6ad7c8f520add845d17d",
+      "bytes": 15704
+    },
+    {
+      "path": "pkg/health/blockchain.go",
+      "sha256": "469f0eceef2ee3be65c6f7d809539202d5a6fea9ed6fc9eb706607f06023c00e",
+      "bytes": 2247
+    },
+    {
+      "path": "pkg/health/checker.go",
+      "sha256": "54da0127dcfea6b0a4992b5608fa1d19c456c6a6a5010424f2fb839234f28418",
+      "bytes": 1932
+    },
+    {
+      "path": "pkg/health/checker_test.go",
+      "sha256": "6deecc3c51f0b70f86d47b1c6f24e04685da16d20ca26fb2715f410c17ee105f",
+      "bytes": 3609
+    },
+    {
+      "path": "pkg/health/disk_unix.go",
+      "sha256": "9f2261eb3a3612f31397f608e90712b976dcca5cde319c6b4c857530c1fb2a61",
+      "bytes": 1360
+    },
+    {
+      "path": "pkg/health/disk_windows.go",
+      "sha256": "99a988677c8855900c64ed3086b9df76d241d81e7c53d13ed5ca71ca66cae270",
+      "bytes": 1236
+    },
+    {
+      "path": "pkg/health/server.go",
+      "sha256": "6ee7d33c139bd87d7caccdae8db85dad7a1811a67db97f2e94c3624ffd30b2af",
+      "bytes": 5344
+    },
+    {
+      "path": "pkg/health/server_test.go",
+      "sha256": "d5bf17f2811ba63f04af6113eb0b6ab8f99bc1f933f32fdd2d5650d5faf027d7",
+      "bytes": 888
+    },
+    {
+      "path": "pkg/health/system.go",
+      "sha256": "01aef852a043133b8f07d48398f3d9d88c06952be91dd74fe5088a505e199dd5",
+      "bytes": 2251
+    },
+    {
+      "path": "pkg/health/types.go",
+      "sha256": "4f77e587a58cfb6d236b76a8a21f78ec1b6181bc245e06d7303dd8093968a2f9",
+      "bytes": 2314
+    },
+    {
+      "path": "pkg/oidc/auth0/auth0.go",
+      "sha256": "db27660936706bd991b1f7a2567cca07893427c4fd058714499118f82b5c4843",
+      "bytes": 10975
+    },
+    {
+      "path": "pkg/oidc/auth0/auth0_enhanced_test.go",
+      "sha256": "4a54bef4ca9852d321d312fd3451ddbc50bf96f5aea7c7e54ecc623cd7c325bb",
+      "bytes": 7201
+    },
+    {
+      "path": "pkg/oidc/auth0/auth0_integration_test.go",
+      "sha256": "3aee73ef5b1ff6de1c19dd40c85114f9cc3adcfddacc527eef72984293e82d75",
+      "bytes": 4960
+    },
+    {
+      "path": "pkg/oidc/auth0/auth0_test.go",
+      "sha256": "397b0754aed1a304ae6f47aab0d2e02a15a0936069de6e152e4cdb9356262eb9",
+      "bytes": 5733
+    },
+    {
+      "path": "pkg/oidc/auth0/generate_keys.go",
+      "sha256": "0686bd1a504c2f504f6c2115e7fe937e40336bb391027be9da652338e8476345",
+      "bytes": 2839
+    },
+    {
+      "path": "pkg/oidc/types.go",
+      "sha256": "71293d90a3d7837b4f5ea8e7feaa5c611771df468a5078603a7824953b6085fd",
+      "bytes": 1497
+    },
+    {
+      "path": "pkg/storage/interface.go",
+      "sha256": "b62e208f1a4acc47c0b4ef3082f4940f7bde0c30605944e1fd431d021be86e50",
+      "bytes": 3593
+    },
+    {
+      "path": "pkg/storage/memory/conformance_test.go",
+      "sha256": "7c45bb0ba148757b0ce84627d4c91bf0584f594710783817acb486802b7b3160",
+      "bytes": 282
+    },
+    {
+      "path": "pkg/storage/memory/dids.go",
+      "sha256": "6a80c176ed899dac66c2a5834f005905474434053b48aac0a6dd1d2f771b11ec",
+      "bytes": 3197
+    },
+    {
+      "path": "pkg/storage/memory/nonces.go",
+      "sha256": "ec1965df12f3e35732cb9e8e7699f7121e0682ccdc88203b0c81581bcd899a9a",
+      "bytes": 2374
+    },
+    {
+      "path": "pkg/storage/memory/store.go",
+      "sha256": "5a5888b22c249aede488d4c140738728d836a80771fe6c06c75a0159676e1766",
+      "bytes": 5984
+    },
+    {
+      "path": "pkg/storage/postgres/conformance_test.go",
+      "sha256": "676d4037a03ccb1858f6f85ecd1e4e62946b75d5f1439beef8676e543ff37115",
+      "bytes": 1312
+    },
+    {
+      "path": "pkg/storage/postgres/dids.go",
+      "sha256": "56aa0ebe08dd7623076d513e8486b3fb5ceab07a46f284e249f3d8fdf0f1e327",
+      "bytes": 4815
+    },
+    {
+      "path": "pkg/storage/postgres/nonces.go",
+      "sha256": "a816557bb1d0e77a25444b9813b6a1aa7dbde396cd80d00d3c1e0aaadf57cff6",
+      "bytes": 3826
+    },
+    {
+      "path": "pkg/storage/postgres/sessions.go",
+      "sha256": "63e97989b4541f2b803a174927310a8c81f5099ffcd215dac8f3e821f70e6b81",
+      "bytes": 6231
+    },
+    {
+      "path": "pkg/storage/postgres/store.go",
+      "sha256": "bcef4cc2766ccf5b01f2f0d88f5bacd476f176c18ff44d1dee5478c56e0cd596",
+      "bytes": 2524
+    },
+    {
+      "path": "pkg/storage/storagetest/conformance.go",
+      "sha256": "eb22b5fc65920ced4e9e8b3ea63dea3c94c9ba3eaa1d91eacecafe5b5eb46a56",
+      "bytes": 7660
+    },
+    {
+      "path": "pkg/storage/types.go",
+      "sha256": "3818cd277d1c8222184d0914ef422870324893cef2e802333fb37ef9f2a6fe33",
+      "bytes": 1919
+    },
+    {
+      "path": "pkg/telemetry/doc.go",
+      "sha256": "401582ead12152231304bf34f41f2dca5f314b3568248d687c5e41ca8e8b54a4",
+      "bytes": 1065
+    },
+    {
+      "path": "pkg/telemetry/logger/README.md",
+      "sha256": "4fe9e272be044f2c92b83f1d9bb44d9bb57b8465231813d649ca2455cc825b60",
+      "bytes": 15784
+    },
+    {
+      "path": "pkg/telemetry/logger/logger.go",
+      "sha256": "8d3e8977bbb538576bebe67633bbb18791e017c0f6640adcda6711f19d59a629",
+      "bytes": 8744
+    },
+    {
+      "path": "pkg/telemetry/logger/logger_test.go",
+      "sha256": "0272d52bcf34b16bf6326e4cb1927d2154c5f261c9054f553a5df29f3f4ebd9b",
+      "bytes": 6637
+    },
+    {
+      "path": "pkg/telemetry/metrics/README.md",
+      "sha256": "36206750eb3756211ca465dcc0f83baf1b2a08becdf1162abf9ffb60791b9f02",
+      "bytes": 19366
+    },
+    {
+      "path": "pkg/telemetry/metrics/collector.go",
+      "sha256": "7ee275f75e7a0107e342992f9ff2323601a2693f2dc69f3b97de2dd56c9fdd03",
+      "bytes": 7363
+    },
+    {
+      "path": "pkg/telemetry/metrics/crypto.go",
+      "sha256": "08c585f8d4b605ce0712cfd30e4cdc67de221c72ecd9c564496cdf107f16a936",
+      "bytes": 2096
+    },
+    {
+      "path": "pkg/telemetry/metrics/handshake.go",
+      "sha256": "b7df5fed197ee7aedd50358603ad9f663f4ef8f4883da222dcfc0d51ed422426",
+      "bytes": 2328
+    },
+    {
+      "path": "pkg/telemetry/metrics/message.go",
+      "sha256": "e4da26b2d1c254ad12e7f1a5553819c596a6941e572bfdd8dafb2a6705a015de",
+      "bytes": 2597
+    },
+    {
+      "path": "pkg/telemetry/metrics/registry.go",
+      "sha256": "42d8d5177eefc80988adaf3d7815029b641cdb3ae2ef90b8dc2239f1f1a2f7cc",
+      "bytes": 1350
+    },
+    {
+      "path": "pkg/telemetry/metrics/server.go",
+      "sha256": "da5b6976b74a7a4254c50bfbb60eeb2ef9964a2b91f234498d3b9d591581bca5",
+      "bytes": 1493
+    },
+    {
+      "path": "pkg/telemetry/metrics/session.go",
+      "sha256": "22b7ee1e1eb8eb8960844db99a1b4457a0fadb41744b4f31ab4cf241a2d30018",
+      "bytes": 2835
+    },
+    {
+      "path": "pkg/telemetry/metrics/session_adapter.go",
+      "sha256": "afe1c1e9f7439b60c5f516b8a3c11e2e26b7255b509d7be1f8776cba0acbb9e7",
+      "bytes": 1773
+    },
+    {
+      "path": "pkg/telemetry/metrics/snapshot_handler.go",
+      "sha256": "fa4de4b99c4619b3988c61692418ae491655cbb86ae9ba09db04bef63fbf395f",
+      "bytes": 2824
+    },
+    {
+      "path": "pkg/telemetry/metrics/verify_test.go",
+      "sha256": "45e9e3765b34375d667c4ac4e9a8635e711e995fd6aa157f93429ac82ec0d141",
+      "bytes": 3473
+    },
+    {
+      "path": "pkg/version/version.go",
+      "sha256": "4350855feafbed0219d7fec998a08f7e5e2bafd430f2e57e230ffa92601fbc34",
+      "bytes": 3652
+    },
+    {
+      "path": "pkg/version/version_test.go",
+      "sha256": "7db0a0cd7828a537f9f53162ff66b658b85a6bf800a24548f6351ff04ce50daf",
+      "bytes": 4998
+    },
+    {
+      "path": "scripts/test/README_VERIFICATION.md",
+      "sha256": "722d0113745f3a1eee07c2188cf227a2771229873639c4e22710975d9bab3fcb",
+      "bytes": 9618
+    },
+    {
+      "path": "scripts/test/integration/cli_integration_test.sh",
+      "sha256": "681a5575b620e2208a80d451198d1f9034551de0e9dd3d76b725cb2078137c45",
+      "bytes": 2634
+    },
+    {
+      "path": "scripts/test/integration/run_handshake.sh",
+      "sha256": "abcbcc0086de605d33c486aa64d059dce30e4f3cba8ce9e8fd299eb203fef726",
+      "bytes": 1670
+    },
+    {
+      "path": "scripts/test/integration/run_hpke_handshake.sh",
+      "sha256": "f3f2f802c07fa8419a52a32fa2cb0ed0369f06d5f51e80c28a73445f621c5e8b",
+      "bytes": 1459
+    },
+    {
+      "path": "scripts/test/integration/setup_test_env.sh",
+      "sha256": "7e0c966514810b1135533f38681e3c8c33e14b0321cdd6946c52d054187266db",
+      "bytes": 11198
+    },
+    {
+      "path": "scripts/test/run-did-integration-test.sh",
+      "sha256": "a91883904ef63c2785f2471b29485762b74e32aa0ccf99e97e197040f8013e8d",
+      "bytes": 4883
+    },
+    {
+      "path": "scripts/test/verify_all_specifications.sh",
+      "sha256": "b193e3619645c85573fdc97cb0972a7759abe53c53f3c35fe13e4f01bfdcdad6",
+      "bytes": 6090
+    },
+    {
+      "path": "scripts/test/verify_healthcheck.sh",
+      "sha256": "f08f79c70869a355f9a92e359f7eed0b1273dcd562bb8b955035db5cf27207f9",
+      "bytes": 7460
+    },
+    {
+      "path": "sdk/java/sage-client/README.md",
+      "sha256": "1cd3a11248544cbda8a40e347315b3cf720da3e1c6f33ad2e6ad043b62068cdc",
+      "bytes": 33314
+    },
+    {
+      "path": "sdk/java/sage-client/examples/BasicUsage.java",
+      "sha256": "311b7b47e516931fa741ed81618398ca7eee2f7d915237136fa13c2d9ffe745f",
+      "bytes": 2159
+    },
+    {
+      "path": "sdk/java/sage-client/pom.xml",
+      "sha256": "bc5222e39974ecbb752c44d6cc5d0d9d9967f6b96ced595414247a1fdbe5b7a2",
+      "bytes": 4905
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/ClientConfig.java",
+      "sha256": "d0b5ba46680478eeca3a3b5f46c084ca9b3149473ec9bf6f89922dea4c996607",
+      "bytes": 1422
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/Crypto.java",
+      "sha256": "2a526b584128e44fae2c3a4db439b9975713ecaae7072a3dbe4cb5908fb4ab2c",
+      "bytes": 9312
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/Did.java",
+      "sha256": "e541cde58abe501f7b1f4b31fb6241d9c1defafac2cb93bf07239f43b1016d85",
+      "bytes": 3554
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/SageClient.java",
+      "sha256": "b091acc8d4f8430e0bfc8d7751cf445b6d04b0cad9993724beaf7b172f014737",
+      "bytes": 12102
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/SageException.java",
+      "sha256": "2d9fddaf9c6d2224590e57892d9bffd631c7a1be7ae08a0db67999b7d8a5ddeb",
+      "bytes": 2023
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/Session.java",
+      "sha256": "704095854cc1c514af228a7b5a85bc005116a6b48968584b10b5b36190f5e27b",
+      "bytes": 2599
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/SessionManager.java",
+      "sha256": "580681364d31fb9290ae4bcd9539ef820a6e4a32625108e5f068c85c52453624",
+      "bytes": 2011
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/types/AgentMetadata.java",
+      "sha256": "148f316d4d8b5fafa0b547a889300dd30243e7249bc0c956d0e34fe708bd73ec",
+      "bytes": 1505
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/types/HandshakeRequest.java",
+      "sha256": "302f33d5baa1b3d4364ac151621a47337ab59e0116c571b1ca9dc68781382350",
+      "bytes": 1607
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/types/HandshakeResponse.java",
+      "sha256": "f50d33bea9b90b9416b407624ed57e975db4511f8c4d196b2b8d7a370d81d904",
+      "bytes": 851
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/types/HealthStatus.java",
+      "sha256": "28aad6e72f53461455cad52a1e164609ddfed8f41ade7d5eb01430f2861b19d4",
+      "bytes": 1348
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/types/KemPublicKeyResponse.java",
+      "sha256": "54d93badcfdc9a3ceebee18db94c29dd8c111f3e67d3fed629d24a7856c8efe9",
+      "bytes": 450
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/types/KeyPair.java",
+      "sha256": "bfc7add84ea19ca834793a89ef747056ea1d0976527043a92a10eeb94a98b9d0",
+      "bytes": 441
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/types/MessageRequest.java",
+      "sha256": "79fbfa778ff8a19ccebc059dd7d8dbe491982542210c5335ae297002eeea788a",
+      "bytes": 1599
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/types/MessageResponse.java",
+      "sha256": "ad32b4c5f7e7b596b96ef0640ed24683438c6bae03cc7b8047dc947d1a04da8c",
+      "bytes": 846
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/types/RegisterResponse.java",
+      "sha256": "8addb6e4719997bebe351ddaf24cc538ff7ecbed2986f868df14342882542fba",
+      "bytes": 608
+    },
+    {
+      "path": "sdk/java/sage-client/src/main/java/com/sage/client/types/ServerDidResponse.java",
+      "sha256": "104907e12a478f2dc0dfed622ddc5e36ec6a0222b91c0f98b0d6bde8566eb606",
+      "bytes": 366
+    },
+    {
+      "path": "sdk/java/sage-client/src/test/java/com/sage/client/CryptoTest.java",
+      "sha256": "b66bdac5138030cc81bd9a97a5670421b780fc868e427972317ca0bdb1d8f85a",
+      "bytes": 4367
+    },
+    {
+      "path": "sdk/java/sage-client/src/test/java/com/sage/client/DidTest.java",
+      "sha256": "1186f98b5f166441cab1ae2906ef8667122daa3eb2eff3611cbcf2d76d9a83c6",
+      "bytes": 3155
+    },
+    {
+      "path": "sdk/python/README.md",
+      "sha256": "e4c73e88121b4a82e73fadf0a556a4d3c12bee25929ce82c17bc21a1e8df7fd5",
+      "bytes": 23623
+    },
+    {
+      "path": "sdk/python/examples/basic_usage.py",
+      "sha256": "60e648620a91bed7c75fcd74623408abcf950820bebc3b5491e0899d1af2dcf8",
+      "bytes": 1327
+    },
+    {
+      "path": "sdk/python/pyproject.toml",
+      "sha256": "9639d5963ed8300cc30eb4f09dea0e653a3896b3a81c2f4b03fe4cb64d87c3cf",
+      "bytes": 2179
+    },
+    {
+      "path": "sdk/python/requirements.txt",
+      "sha256": "b070beac4274169df9c9b06078774d8785c2214f4213f3001731067e2408092d",
+      "bytes": 304
+    },
+    {
+      "path": "sdk/python/sage_client/__init__.py",
+      "sha256": "5ff6f4ecf96a5c5dc0c0e65a3b2a03e0b18c335f1bc60cd871ad03318080f2f3",
+      "bytes": 986
+    },
+    {
+      "path": "sdk/python/sage_client/client.py",
+      "sha256": "40219332c218a140814ecd31405ad4d744ec53f7606f0d5257f5f1275627c76f",
+      "bytes": 12095
+    },
+    {
+      "path": "sdk/python/sage_client/crypto.py",
+      "sha256": "5938408dad3247fa60b86f72f28fe6081c4df444893f999817613bfde90af3ed",
+      "bytes": 10449
+    },
+    {
+      "path": "sdk/python/sage_client/did.py",
+      "sha256": "e1d3ef124d4b4289f6794109f58535a3bd191f138689b597046159e12a3ba8a1",
+      "bytes": 4763
+    },
+    {
+      "path": "sdk/python/sage_client/exceptions.py",
+      "sha256": "b4d893e5d6be49dc4dd8bc8ef45e7ab5842496596519203a15bf2eae9ec24545",
+      "bytes": 941
+    },
+    {
+      "path": "sdk/python/sage_client/py.typed",
+      "sha256": "f0f8f2675695a10a5156fb7bd66bafbaae6a13e8d315990af862c792175e6e67",
+      "bytes": 26
+    },
+    {
+      "path": "sdk/python/sage_client/session.py",
+      "sha256": "2ee480f6b33827534fd126c5523da20da261c4b6c3db9f1a1c9840ab45bfff0c",
+      "bytes": 5301
+    },
+    {
+      "path": "sdk/python/sage_client/types.py",
+      "sha256": "70ff733c5fa865293659bf8bbe6fa1fe8babf87aa50cd076fd34be43664bd6e3",
+      "bytes": 2275
+    },
+    {
+      "path": "sdk/python/tests/test_crypto.py",
+      "sha256": "8f1508c2daecd4a603be49633bcba152fe1ee4daec2b01640d4064c1421a0cb5",
+      "bytes": 2234
+    },
+    {
+      "path": "sdk/rust/sage-client/Cargo.lock",
+      "sha256": "a45f1de01828c751f29b67459ae08518e11198b271839591b04f81586d9d24f5",
+      "bytes": 58207
+    },
+    {
+      "path": "sdk/rust/sage-client/Cargo.toml",
+      "sha256": "57501f043573a05aab10b80e1718ab97e5fceaa6d146f01bc15550879480b3c7",
+      "bytes": 1297
+    },
+    {
+      "path": "sdk/rust/sage-client/README.md",
+      "sha256": "0b74af304238cd4a7d232d8a7b9bdf5b1fd2275e86d7c940bd1e083df5f9efc9",
+      "bytes": 27100
+    },
+    {
+      "path": "sdk/rust/sage-client/examples/basic_usage.rs",
+      "sha256": "dc10bf1e76246dc06e14fe578f33d2eb8931b8d257fa2c7ba8abe66d6ef6a0a4",
+      "bytes": 1616
+    },
+    {
+      "path": "sdk/rust/sage-client/src/client.rs",
+      "sha256": "67fe44c5eb4ae40b4225bac37287f8257604ff6373912c3aa9c3e1550c03bd49",
+      "bytes": 8018
+    },
+    {
+      "path": "sdk/rust/sage-client/src/crypto.rs",
+      "sha256": "d751372b9b1058fb2582e6127470c3ea1dc843461b87c3daad6b80d8ab618e32",
+      "bytes": 10243
+    },
+    {
+      "path": "sdk/rust/sage-client/src/did.rs",
+      "sha256": "9768916811f79f35a1beccf44de5897fa7719a896adb99c4328b121cbd0e2b96",
+      "bytes": 2938
+    },
+    {
+      "path": "sdk/rust/sage-client/src/error.rs",
+      "sha256": "e981dde4c0731cc98e87c632b0456eb1cca5b90926e4480eeaad1122aa526f0f",
+      "bytes": 1637
+    },
+    {
+      "path": "sdk/rust/sage-client/src/lib.rs",
+      "sha256": "31f57677d5fe724ed58b7cf6396fed1a04c75ad7f4159447779e95542ffe556c",
+      "bytes": 1511
+    },
+    {
+      "path": "sdk/rust/sage-client/src/session.rs",
+      "sha256": "3595420b5e6fd59d3c097ed533be72af1678b6a7f95a1f2722d49ca8512e00f7",
+      "bytes": 4197
+    },
+    {
+      "path": "sdk/rust/sage-client/src/types.rs",
+      "sha256": "403c0bbc9ff8cb326a594ff8e4dd3f69e58a074860ab5ea8d3609a15674f4d8e",
+      "bytes": 3737
+    },
+    {
+      "path": "sdk/typescript/.eslintrc.json",
+      "sha256": "0aaf2f09414814a1998cbc15dc74f0f1b07707fdfd13afdb0847c461b3252b8a",
+      "bytes": 660
+    },
+    {
+      "path": "sdk/typescript/README.md",
+      "sha256": "0d89f20ebc4ccb1418b76157ca9586496d5d1c2c2af02d931e522f55f10f9570",
+      "bytes": 32361
+    },
+    {
+      "path": "sdk/typescript/examples/mcp-chat/index.ts",
+      "sha256": "dc94d3b710c4d704c83df5a94cee7db982391288202d075f7ba411d82c99f979",
+      "bytes": 2599
+    },
+    {
+      "path": "sdk/typescript/examples/react-app/App.tsx",
+      "sha256": "2c6e3f2b5c9a265cbef4df3a8a36821d4c271debfbee96ec6a37c8de30f787c1",
+      "bytes": 7817
+    },
+    {
+      "path": "sdk/typescript/package-lock.json",
+      "sha256": "a4a6d34b7ae166639111a1efc45f762a7081af0c61fdafb3a6be077460179349",
+      "bytes": 173443
+    },
+    {
+      "path": "sdk/typescript/package.json",
+      "sha256": "e0e09f83778e188fd0e76300a4a1a5f64847dd19e0ceb9b2a73d97118e2dbf9d",
+      "bytes": 1880
+    },
+    {
+      "path": "sdk/typescript/src/client.ts",
+      "sha256": "471714390fe5e1128dbb2ed847a47360285a39a816aaf5d987a54aaad1f73287",
+      "bytes": 6933
+    },
+    {
+      "path": "sdk/typescript/src/crypto.ts",
+      "sha256": "2ef88da353d33d9ccd6c75a0ceda276ba7b132ee993e2b2ae2c93c75d6dee595",
+      "bytes": 6197
+    },
+    {
+      "path": "sdk/typescript/src/index.ts",
+      "sha256": "56b112fe58708f359327ec95f3670d311c58df9dbe6a40c18e482a4c292a596c",
+      "bytes": 846
+    },
+    {
+      "path": "sdk/typescript/src/react/hooks.tsx",
+      "sha256": "0718835e93d03aa63fd631d9f9ed9ba42c42592280f98990ebeb724241313641",
+      "bytes": 7271
+    },
+    {
+      "path": "sdk/typescript/src/session.ts",
+      "sha256": "3784145e178b3918c4cad3b14ebbca396afabcebd7363e98439b01757b062ceb",
+      "bytes": 5206
+    },
+    {
+      "path": "sdk/typescript/src/types.ts",
+      "sha256": "60a91798a9fe150760bd4a189a19420d9be582f82231ec488f0040a54485fea0",
+      "bytes": 3612
+    },
+    {
+      "path": "sdk/typescript/tsconfig.json",
+      "sha256": "4e168d17e41a9745594157c1f2fd0f671e63dfdb9794d565c5538c6fc969bd98",
+      "bytes": 741
+    },
+    {
+      "path": "sdk/typescript/vitest.config.ts",
+      "sha256": "953796464de23481d5253344be4570fca9a5485a154c53a4f5904bfc2a6a95fa",
+      "bytes": 366
+    },
+    {
+      "path": "tests/blockchain_verification_test.go",
+      "sha256": "444ff48903b43f31daef7abad9de4d7363a8ec709ed7590e4421ed5f24f7dfb9",
+      "bytes": 22533
+    },
+    {
+      "path": "tests/integration/basic_test.go",
+      "sha256": "dac2be962ae41c138601e996362534d0168e1582eaffce27d3a7b1db1ca14bb2",
+      "bytes": 10648
+    },
+    {
+      "path": "tests/integration/blockchain_detailed_test.go",
+      "sha256": "317c773a21288a3e00f31b4d43345f4ecd5d9a109f6b4c25f24067d8af4c737d",
+      "bytes": 24507
+    },
+    {
+      "path": "tests/integration/blockchain_test.go",
+      "sha256": "feb769cad28eae7c2c06851fbcc4e818885f5516b0ffb1e43cfbb26b1613ff9c",
+      "bytes": 5870
+    },
+    {
+      "path": "tests/integration/cli_crypto_test.go",
+      "sha256": "45bad3f09da6c71f5d96601b13978a28c656ba188c3dcfc41289565a20e2a167",
+      "bytes": 14517
+    },
+    {
+      "path": "tests/integration/cli_did_test.go",
+      "sha256": "b5c9ce0047aa3fbdbd462078065ae123918c6e4944ab5294c8e29a2afda599a6",
+      "bytes": 18928
+    },
+    {
+      "path": "tests/integration/did_blockchain_detailed_test.go",
+      "sha256": "3012a3a67488f67c6fb9f2e2a52e2a8ed92fda72afeae7c39ee9eaec3dc6baf2",
+      "bytes": 12674
+    },
+    {
+      "path": "tests/integration/did_integration_enhanced_test.go",
+      "sha256": "7cf8e61d8bea6b2c0561b663bd1ebe5560a3e4d8ef26ea57dbd508300be5cf6f",
+      "bytes": 3405
+    },
+    {
+      "path": "tests/integration/did_integration_test.go",
+      "sha256": "d7d1bf8f5128b4f9c21d40aa1af9bd1ea624431df2b5557850f50976cf048c13",
+      "bytes": 10949
+    },
+    {
+      "path": "tests/integration/e2e_sepolia_test.go",
+      "sha256": "186c95ac8b52ee3aafc229e2c6f19a29171b14ddfe2a531cd5f80348ab6fcc90",
+      "bytes": 33481
+    },
+    {
+      "path": "tests/integration/go_solidity_sync_test.go",
+      "sha256": "66d9ba1fea1bae14a116562d8a05b90705f91f75cc08ddcb31c99047d83f88b7",
+      "bytes": 2459
+    },
+    {
+      "path": "tests/integration/health_test.go",
+      "sha256": "7ad209eb937a168eed82e22c50b5478c4dca9ba73f5a45c1a242d638e475e9ff",
+      "bytes": 11517
+    },
+    {
+      "path": "tests/integration/hpke_test.go",
+      "sha256": "2c81eb7d5be0aa889ecea42f822a5e9ef2163f251af02f1b18f0e0fa24bee5fc",
+      "bytes": 19100
+    },
+    {
+      "path": "tests/integration/message_test.go",
+      "sha256": "9c63eae9bffc7ae50f198b3bf977ba523d94aec5a20993403d2f1e57f29d34fa",
+      "bytes": 19917
+    },
+    {
+      "path": "tests/integration/test_helper.go",
+      "sha256": "c5afd74ce126b1aa36b3fe96e113280160650c7e1571ee0a87aedc3804d1451b",
+      "bytes": 2224
+    },
+    {
+      "path": "tools/analyze/analyze.go",
+      "sha256": "8602d20c6be54f7d9a099049ceefe85b264b12b48e4c1c2f8856467c8d3c9ba0",
+      "bytes": 6989
+    },
+    {
+      "path": "tools/benchmark/README.md",
+      "sha256": "13f760b978166514a60eb0aed4f8e5ec95bf05c190e9ac3b555797bea55b46ca",
+      "bytes": 19976
+    },
+    {
+      "path": "tools/benchmark/comparison_bench_test.go",
+      "sha256": "64976168b643231e01a4edfd3b9ee0a0814e1dcb8d50396851d144f5ed10e0ab",
+      "bytes": 7167
+    },
+    {
+      "path": "tools/benchmark/crypto_bench_test.go",
+      "sha256": "729444e529bf12e22a7514a97c8f32ebb804b243ed1193d283d18e528bdc4b1c",
+      "bytes": 5089
+    },
+    {
+      "path": "tools/benchmark/session_bench_test.go",
+      "sha256": "8606aa6e46447a8db155649ebf7ea5f4081afbe83d39c67fc6cd4f14997997a7",
+      "bytes": 3073
+    },
+    {
+      "path": "tools/codegraph/go.mod",
+      "sha256": "a8c7be74e94abe2a2c388b41944b6577038aa8eb7caeaff6fe8908eca5b33867",
+      "bytes": 191
+    },
+    {
+      "path": "tools/codegraph/go.sum",
+      "sha256": "18eae4604c2ec0cfee6c8f9889a9aeaacdab4ce033125c9b4e85fb1df9710b4b",
+      "bytes": 632
+    },
+    {
+      "path": "tools/codegraph/layer-baseline.txt",
+      "sha256": "b6deed766954c2ba31cf1f745fec78c26533e67a8c71ec685d0f02c4e8f06ccb",
+      "bytes": 395
+    },
+    {
+      "path": "tools/codegraph/main.go",
+      "sha256": "ab9e50c1f3e04d9fde8091cb1e74e55792e3491ca3f38ca66c37c11b7a6908a5",
+      "bytes": 31653
+    },
+    {
+      "path": "tools/loadtest/README.md",
+      "sha256": "5aecff0f851799b43cc3f6402140de86d6446a15fe540824da3c7d23363edd76",
+      "bytes": 12192
+    },
+    {
+      "path": "tools/loadtest/config.js",
+      "sha256": "51af5e0b79cd416cf93a906f0e24b80e45c7df7042ed90341b8bc16ec55796c1",
+      "bytes": 3481
+    },
+    {
+      "path": "tools/loadtest/scenarios/baseline.js",
+      "sha256": "4cdfd5fb423f1c508e1f090658ed9f692fcdc76099aabeadc8236470607fbae8",
+      "bytes": 3348
+    },
+    {
+      "path": "tools/loadtest/scenarios/concurrent-sessions.js",
+      "sha256": "4db7a02d09473ad5e85932e7f70699a6d02906527e335f8e85252517ee58a28a",
+      "bytes": 4982
+    },
+    {
+      "path": "tools/loadtest/scenarios/did-operations.js",
+      "sha256": "2ec1001ae910f7d344e74bdedea73b89894f31ec42072b2911be4cb9b3bdbc8a",
+      "bytes": 5371
+    },
+    {
+      "path": "tools/loadtest/scenarios/hpke-operations.js",
+      "sha256": "dc0477a8c3cf38569aab0d84563736522d9cdd6cb99683fe77ffe9ba737f46f6",
+      "bytes": 6476
+    },
+    {
+      "path": "tools/loadtest/scenarios/mixed-workload.js",
+      "sha256": "310cffb558053f9abdb93fd6256cd5040ddce214e4dcb549518f32c3d7a78c5c",
+      "bytes": 8262
+    },
+    {
+      "path": "tools/loadtest/scenarios/soak.js",
+      "sha256": "f125d2af6e2ff14f148e6832202fa6e109ea73bab826f85a486f2542da85dcbe",
+      "bytes": 5910
+    },
+    {
+      "path": "tools/loadtest/scenarios/spike.js",
+      "sha256": "7a3c094f28975efcdc45e3816101683488d3ffabeeac8164ad0a63a3ffa8aeb0",
+      "bytes": 6609
+    },
+    {
+      "path": "tools/loadtest/scenarios/stress.js",
+      "sha256": "79492442975baf282da424d41fe56520ac921c527e8d1db44112f59c396c28a6",
+      "bytes": 4291
+    },
+    {
+      "path": "tools/loadtest/utils/helpers.js",
+      "sha256": "04a8edecaf67fa02a2d5a2d9dc0e0f5582ba59002306506463dbfa91a6c60e2a",
+      "bytes": 8767
+    },
+    {
+      "path": "tools/scripts/README_VERSION.md",
+      "sha256": "064ee5bec840c2bac5e0e03480e18d0afb5a748419a2e4ed9c91b221436478f0",
+      "bytes": 8376
+    },
+    {
+      "path": "tools/scripts/backup-db.sh",
+      "sha256": "fb58b6c2fc2c563e41104da0c4fd5dceb6e232996de7ee2bc01eb119cf0aabd9",
+      "bytes": 1505
+    },
+    {
+      "path": "tools/scripts/check-go-version.sh",
+      "sha256": "ea64e2902aa97ec74e03c9284bdc17df3bef726415231d15360e38c9d98da373",
+      "bytes": 1229
+    },
+    {
+      "path": "tools/scripts/check-no-init.sh",
+      "sha256": "c06eb0fe5ab1c64914eed04e99e2b5105156c791e062ef0982adc365637907bb",
+      "bytes": 593
+    },
+    {
+      "path": "tools/scripts/cleanup_test_env.sh",
+      "sha256": "108d05a9ec9c4b4cf7b85af05991ef61510319312ee0e3c0ff4d1916f5d37ece",
+      "bytes": 5955
+    },
+    {
+      "path": "tools/scripts/docker-build.sh",
+      "sha256": "72fc7cbe44e104900bd2c816cd2871a24f4d2da2a0fcda9158d06b2aa5463c4c",
+      "bytes": 2994
+    },
+    {
+      "path": "tools/scripts/docker-run.sh",
+      "sha256": "acca61befd924bc30ff36894cf87c868fcd1dc3726d3b0a644ebb74d8128d366",
+      "bytes": 3566
+    },
+    {
+      "path": "tools/scripts/full-test.sh",
+      "sha256": "7ef2212ce3e23003b05b5a8a73fa4756e74faa4927d9de8a161359cc86276dc8",
+      "bytes": 11586
+    },
+    {
+      "path": "tools/scripts/gen-bindings.sh",
+      "sha256": "35e2500764d34feb1746b7478c5c4cdf1da21a1a5fbb88ddbf019f005cf91b3c",
+      "bytes": 1531
+    },
+    {
+      "path": "tools/scripts/gen-docs-index.py",
+      "sha256": "fecd1ae202d6e2b1b51f4b06e9c9e74b1f12df7ac767fb3a48fc199c230b3c55",
+      "bytes": 8985
+    },
+    {
+      "path": "tools/scripts/lint-ci.sh",
+      "sha256": "90adbc1e3af3a1f2c0a7f9e37e364d1d7fc7c8ac50e1636f9e5b0010257ddf24",
+      "bytes": 2482
+    },
+    {
+      "path": "tools/scripts/migrate-down.sh",
+      "sha256": "0ec0ef60859f12dde9cb23fa831469bdbe6b122c79f1cd42b2c9a05b0f46a83b",
+      "bytes": 1409
+    },
+    {
+      "path": "tools/scripts/migrate-up.sh",
+      "sha256": "541789e705ebaf40363674226e3c3a272c54469da395f90bad86a98c8a5240b1",
+      "bytes": 1081
+    },
+    {
+      "path": "tools/scripts/quick-test.sh",
+      "sha256": "747a5b60c694507dbbb72d59f6d2d329ae5047f56306d8a7c51bad04b0beb90a",
+      "bytes": 1656
+    },
+    {
+      "path": "tools/scripts/quick_verify.sh",
+      "sha256": "678f5a34eef2548d477473db58a930fa66e675bfdb30e9db827e76941746253a",
+      "bytes": 1499
+    },
+    {
+      "path": "tools/scripts/restore-db.sh",
+      "sha256": "7b0d7c1a3226584cce34669846aebce312ea76e687a2cf40e55c1210935ab403",
+      "bytes": 2027
+    },
+    {
+      "path": "tools/scripts/run-benchmarks.sh",
+      "sha256": "f1e3aa51b2f44364b3e28e762f55c4dc159c54c928a7b672a84064d1d5e00d3e",
+      "bytes": 5012
+    },
+    {
+      "path": "tools/scripts/run-fuzz.sh",
+      "sha256": "5b3ca3256266d61fe8cb3ed19905ec732d037c61fb85c3d92f47ff786df7eee0",
+      "bytes": 6241
+    },
+    {
+      "path": "tools/scripts/run-loadtest.sh",
+      "sha256": "88591f5f0d2311742ddc93f59141bb0f37fd065451904279e7241aba58225492",
+      "bytes": 3163
+    },
+    {
+      "path": "tools/scripts/seed-db.sh",
+      "sha256": "6308fb965a9231c5ac4d4f54c2df27a8bd3199e64b7a9e38093326ac7cdcbc3c",
+      "bytes": 1188
+    },
+    {
+      "path": "tools/scripts/setup_test_env.sh",
+      "sha256": "715a18602afac5033e967ddc6e58e6047f3fead4f98f9b0bef126e96a2364f2c",
+      "bytes": 8562
+    },
+    {
+      "path": "tools/scripts/test/quick-test.sh",
+      "sha256": "ea0c23a7ad2927b83e08addc3b6a11aefc31549d1c672f224bdcd61bcaf56d06",
+      "bytes": 2015
+    },
+    {
+      "path": "tools/scripts/test/sage-cli-workflow.sh",
+      "sha256": "6dd4c4278379a85080ca2f6fce9ac75ad6fd7e8a8b7ac4b7986b3ce004975fd2",
+      "bytes": 10703
+    },
+    {
+      "path": "tools/scripts/test/test-sage.sh",
+      "sha256": "5f38e775fc609f47218124e93aaa45d93dea63a93f6e36dce9eacee87a51ba35",
+      "bytes": 8323
+    },
+    {
+      "path": "tools/scripts/test/test-workflow.sh",
+      "sha256": "5c65159d79454b6436a082cf1f9db2cab7c596f159db6d53995c9f67de127520",
+      "bytes": 886
+    },
+    {
+      "path": "tools/scripts/update-version.sh",
+      "sha256": "1e8fdcd5f09983e8804047a4da2b9a8a2203f87cb453cb640d8a0fe140a7433e",
+      "bytes": 5979
+    },
+    {
+      "path": "tools/scripts/verify_all_features.sh",
+      "sha256": "ce6d6ea94ecb93166a0bac319733d3ecbab15eed032c344367cb80207a4387c3",
+      "bytes": 32234
+    },
+    {
+      "path": "tools/scripts/verify_makefile.sh",
+      "sha256": "516a52261f213fb38e705c79b7c1fe7d373d00ad46d0cd34d1e8d6d13ea1f9c5",
+      "bytes": 2961
+    },
+    {
+      "path": "tools/scripts/verify_rfc9421_ed25519.sh",
+      "sha256": "5daf106ab1af635d64aa569459c637923c3bc69f22f28681cfd227783c5f4178",
+      "bytes": 3435
+    }
+  ]
+}

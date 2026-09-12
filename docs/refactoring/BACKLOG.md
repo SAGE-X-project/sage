@@ -94,14 +94,14 @@ Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c
 
 | ID | Item | Severity | Source | Status |
 |---|---|---|---|---|
-| F-01 | `sage-spec`: RFC 9421 agent profile, canonicalisation rules, HPKE profile with mandatory AEAD, `did:sage` method, MCP binding, test vectors; `cmd/sage-vectors` generator | [중요] | `STRATEGY.md` §2.1, §5 step 2, `v2/REPO_PLAN.md` §4 | Open (repository created 2026-09-11; ChaCha20-Poly1305 mandatory, matching the Go core) |
+| F-01 | `sage-spec`: RFC 9421 agent profile, canonicalisation rules, HPKE profile with mandatory AEAD, `did:sage` method, MCP binding, test vectors; `cmd/sage-vectors` generator | [중요] | `STRATEGY.md` §2.1, §5 step 2, `v2/REPO_PLAN.md` §4 | In progress. PR: `cmd/sage-vectors` (`gen`/`check`, 26 vectors in 6 suites: crypto, jcs, rfc9421, hpke, session, did; `make vectors`/`vectors-check`), `hpke.CombineSecrets` exported. Next: sage-spec profiles + committed vectors, then a CI job checking sage against sage-spec |
 | F-02 | `sage-contracts` extraction with ABI publishing and binding generation on tag | [권장] | §5 step 3, `v2/REPO_PLAN.md` §4 | Open (repository created 2026-09-11) |
 | F-03 | `rs-sage-core` (Rust): align with the spec (secp256k1 Keccak, ChaCha20-Poly1305 sessions with sequence/replay window, JCS, Ed25519 RFC 9421), drop the 4-phase handshake and blockchain module, vectors in CI, stable C header, `uniffi`/`wasm` packaging, provenance | [중요] | §2.3, §5 step 5, `v2/REPO_PLAN.md` §2 | Open (repository confirmed 2026-09-12; divergence table in `v2/REPO_PLAN.md`) |
 | F-04 | `sage-sdk-python` / `-typescript` / `-java` on the Rust core; archive current `sdk/*` | [권장] | §2.4, §5 step 6, `v2/REPO_PLAN.md` §3 | Deferred until `rs-sage-core` publishes a C header and WASM artifact |
 | F-05 | `sage-gateway`: MCP wrapper + HTTP proxy + A2A endpoint; client recipes for Codex / Claude Code / Hermes | [중요] | §2.5, §5 step 7, `v2/REPO_PLAN.md` §4 | Open (repository created 2026-09-11) |
 | F-06 | Cross-repository version policy and compatibility matrix | [권장] | §6 | Open |
 | F-07 | `sage-inspector`: spec conformance checker (vector runner, RFC 9421 / HPKE / A2A message inspector, optional capture proxy) | [권장] | `v2/REPO_PLAN.md` §3 | Open (repository created 2026-09-12; vector runner after F-01) |
-| F-08 | Organisation Actions policy: enable workflows for `rs-sage-core`, `sage-spec`, `sage-contracts`, `sage-gateway`, `sage-inspector` (currently "disabled by the organization"; public repositories, 0 billable minutes) | [중요] | `v2/REPO_PLAN.md` §5 | Blocked (organisation owner setting) |
+| F-08 | Organisation Actions policy: enable workflows for `rs-sage-core`, `sage-spec`, `sage-contracts`, `sage-gateway`, `sage-inspector` (currently "disabled by the organization"; public repositories, 0 billable minutes) | [중요] | `v2/REPO_PLAN.md` §5 | Done 2026-09-12 (policy changed by the organisation owner; all five report `enabled: true`; `rs-sage-core` PR #17 ran CI). Note: `rs-sage-core` CI is red on main for pre-existing reasons (clippy `-D warnings` on current stable, cargo-deny/audit advisories via reqwest 0.11, WASM build); tracked under F-03 |
 
 ## Decisions still open
 
