@@ -20,15 +20,20 @@ and the crate exposes the C header and WASM artifacts the SDKs need.
 | Step | State | Where |
 |---|---|---|
 | 1 Baseline | merged | rs-sage-core #18 |
-| 2 Vector harness + JCS | in review | rs-sage-core #23 (consolidated; the stacked #19-#22 were closed after #18 was squash-merged) |
-| 3 Crypto | in review | #23 |
-| 4 RFC 9421 | in review | #23 |
-| 5 Session | in review | #23 |
-| 6 HPKE | committed locally, PR after #23 | branch `feat/hpke-align-2` |
-| 7 did:sage and A2A | committed locally, PR after #23 | branch `feat/hpke-align-2` |
-| 8 C header / WASM surface | open | |
+| 2 Vector harness + JCS | merged | rs-sage-core #23 (consolidated; the stacked #19-#22 were closed after #18 was squash-merged) |
+| 3 Crypto | merged | #23 |
+| 4 RFC 9421 | merged | #23 |
+| 5 Session | merged | #23 |
+| 6 HPKE | merged | #24 |
+| 7 did:sage and A2A | merged | #24 |
+| 8 C header / WASM surface | merged | #25: `cbindgen.toml`, tracked `include/sage_crypto.h` (`make header`, `make header-check` in CI), FFI functions for RFC 9421 request/response signing and verification, JCS, `did:sage`, proofs of possession, A2A cards and session records; WASM bindings for the same surface with headers passed as JSON strings; the C example builds and runs in CI; `pkg/` (wasm-pack output) untracked |
+| 9 Live interoperability with the Go core | open | F-03b in `BACKLOG.md`: a CI job that runs the HPKE handshake and an RFC 9421 exchange between `sage-gateway` and a Rust peer |
 
-With steps 2-7 the vector harness passes all 26 sage-spec vectors
+Step 8 fixed one build defect on the way: hpke's `getrandom` feature pulls
+getrandom 0.4, which needs the `wasm_js` backend on wasm32; the crate now
+declares it as a wasm32-only dependency.
+
+With steps 2-8 merged the vector harness passes all 26 sage-spec vectors in CI
 (`jcs` 4, `crypto` 4, `rfc9421` 4, `hpke` 6, `session` 3, `did` 5), byte
 for byte against the Go core where the vectors are deterministic. Two
 specification corrections came out of the work: the Ethereum address is
