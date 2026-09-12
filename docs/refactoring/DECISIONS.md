@@ -148,3 +148,13 @@ Release shape: v1.6.0 = Phase 0 defect fixes + deprecations + SDK banners + lib 
 4. The repository structure is option B of `v2/REPO_STRUCTURE_OPTIONS.md`: the Go repository keeps the reference library, and `sage-cli`, `sage-examples`, `sage-bench` and `sage-demo` become their own repositories, with the language SDKs later. Nothing is extracted until the G rows and the live end-to-end path are done, and no code is deleted by the move: what leaves `sage` is relocated with its history.
 
 **Consequence.** The G rows keep the wire-format corrections but drop the "remove the unused section" option. F-10 records the chosen structure and stays open until its preconditions are met.
+
+---
+
+## Decision 9 (2026-09-13). The specification is finished before the code
+
+**Evidence.** `1.0.0-draft.1` is a snapshot of the Go core and chapter 00 §6 makes that core normative wherever the text is silent; the review found four rules where the core contradicted RFC 9421 or another chapter (`v2/review/08` §2, §3). Work queued behind the specification (the gateway session mode, the demonstration repository, the repository split) would all pin whatever the text says.
+
+**Decision.** The specification is taken to `1.0.0` through a documented standards process before the rest of the plan proceeds: `sage-spec/PROCESS.md` (sage-spec #4) defines five stages (charter, design, verification, analysis, finalisation), what each draft closes, and the exit criteria of each stage. The text leads the implementations: a change lands as text, vector, Go core, Rust core and conformance checker together, and chapter 00 §6 is deleted when the design stage closes.
+
+**Consequence for the order of work.** F-01b (the stages) with the G rows as its design-stage inputs, then the gateway HPKE session mode and F-03b, then F-09, then the repository extraction of F-10. The wire-format branches already prepared in the cores wait for the charter and the design-stage text, so that they land as one set rather than ahead of the specification.
