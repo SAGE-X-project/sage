@@ -32,7 +32,9 @@ import (
 
 var keyPath = "./testdata/"
 
-func LoadOrCreateKeyPair(suffix string) (kp sagecrypto.KeyPair, privPEM, pubPEM []byte, err error) {
+// loadOrCreateKeyPair returns the RSA test key pair under testdata/,
+// generating and writing it on first use.
+func loadOrCreateKeyPair(suffix string) (kp sagecrypto.KeyPair, privPEM, pubPEM []byte, err error) {
 	privPath := filepath.Join(filepath.Dir(keyPath), "private_"+suffix+".pem")
 	pubPath := filepath.Join(filepath.Dir(keyPath), "public_"+suffix+".pem")
 

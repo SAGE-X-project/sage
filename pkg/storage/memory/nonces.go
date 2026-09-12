@@ -27,11 +27,11 @@ import (
 )
 
 // NonceStore implements storage.NonceStore
-type NonceStore struct {
+type nonceStore struct {
 	store *Store
 }
 
-func (n *NonceStore) CheckAndStore(ctx context.Context, nonce string, sessionID string, expiresAt time.Time) error {
+func (n *nonceStore) CheckAndStore(ctx context.Context, nonce string, sessionID string, expiresAt time.Time) error {
 	n.store.noncesMu.Lock()
 	defer n.store.noncesMu.Unlock()
 
@@ -51,7 +51,7 @@ func (n *NonceStore) CheckAndStore(ctx context.Context, nonce string, sessionID 
 	return nil
 }
 
-func (n *NonceStore) IsUsed(ctx context.Context, nonce string) (bool, error) {
+func (n *nonceStore) IsUsed(ctx context.Context, nonce string) (bool, error) {
 	n.store.noncesMu.RLock()
 	defer n.store.noncesMu.RUnlock()
 
@@ -68,7 +68,7 @@ func (n *NonceStore) IsUsed(ctx context.Context, nonce string) (bool, error) {
 	return true, nil
 }
 
-func (n *NonceStore) DeleteExpired(ctx context.Context) (int64, error) {
+func (n *nonceStore) DeleteExpired(ctx context.Context) (int64, error) {
 	n.store.noncesMu.Lock()
 	defer n.store.noncesMu.Unlock()
 
@@ -85,7 +85,7 @@ func (n *NonceStore) DeleteExpired(ctx context.Context) (int64, error) {
 	return count, nil
 }
 
-func (n *NonceStore) Count(ctx context.Context) (int64, error) {
+func (n *nonceStore) Count(ctx context.Context) (int64, error) {
 	n.store.noncesMu.RLock()
 	defer n.store.noncesMu.RUnlock()
 

@@ -26,14 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewChainKeyTypeMapper(t *testing.T) {
-	mapper := NewChainKeyTypeMapper()
-	assert.NotNil(t, mapper)
-}
-
 func TestGetRecommendedKeyType(t *testing.T) {
-	mapper := NewChainKeyTypeMapper()
-
 	tests := []struct {
 		name      string
 		chainType ChainType
@@ -73,7 +66,7 @@ func TestGetRecommendedKeyType(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			keyType, err := mapper.GetRecommendedKeyType(tt.chainType)
+			keyType, err := GetRecommendedKeyType(tt.chainType)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -87,7 +80,6 @@ func TestGetRecommendedKeyType(t *testing.T) {
 }
 
 func TestGetSupportedKeyTypes(t *testing.T) {
-	mapper := NewChainKeyTypeMapper()
 
 	tests := []struct {
 		name      string
@@ -128,7 +120,7 @@ func TestGetSupportedKeyTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			keyTypes, err := mapper.GetSupportedKeyTypes(tt.chainType)
+			keyTypes, err := GetSupportedKeyTypes(tt.chainType)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -142,10 +134,9 @@ func TestGetSupportedKeyTypes(t *testing.T) {
 }
 
 func TestGetSupportedKeyTypes_ImmutableResult(t *testing.T) {
-	mapper := NewChainKeyTypeMapper()
 
 	// Get the supported key types
-	keyTypes1, err := mapper.GetSupportedKeyTypes(ChainTypeEthereum)
+	keyTypes1, err := GetSupportedKeyTypes(ChainTypeEthereum)
 	require.NoError(t, err)
 
 	// Modify the returned slice
@@ -153,7 +144,7 @@ func TestGetSupportedKeyTypes_ImmutableResult(t *testing.T) {
 	_ = append(keyTypes1, sagecrypto.KeyTypeRSA)
 
 	// Get the supported key types again
-	keyTypes2, err := mapper.GetSupportedKeyTypes(ChainTypeEthereum)
+	keyTypes2, err := GetSupportedKeyTypes(ChainTypeEthereum)
 	require.NoError(t, err)
 
 	// Verify the original wasn't modified
@@ -161,7 +152,6 @@ func TestGetSupportedKeyTypes_ImmutableResult(t *testing.T) {
 }
 
 func TestValidateKeyTypeForChain(t *testing.T) {
-	mapper := NewChainKeyTypeMapper()
 
 	tests := []struct {
 		name      string
@@ -227,7 +217,7 @@ func TestValidateKeyTypeForChain(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := mapper.ValidateKeyTypeForChain(tt.keyType, tt.chainType)
+			err := ValidateKeyTypeForChain(tt.keyType, tt.chainType)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -239,7 +229,6 @@ func TestValidateKeyTypeForChain(t *testing.T) {
 }
 
 func TestGetRFC9421Algorithm(t *testing.T) {
-	mapper := NewChainKeyTypeMapper()
 
 	tests := []struct {
 		name     string
@@ -274,7 +263,7 @@ func TestGetRFC9421Algorithm(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			algorithm, err := mapper.GetRFC9421Algorithm(tt.keyType)
+			algorithm, err := GetRFC9421Algorithm(tt.keyType)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -312,58 +301,57 @@ func TestConvenienceFunctions(t *testing.T) {
 }
 
 func TestIntegrationScenario(t *testing.T) {
-	mapper := NewChainKeyTypeMapper()
 
 	t.Run("Complete workflow: Ethereum agent with correct key type", func(t *testing.T) {
 		// Step 1: Get recommended key type for Ethereum
-		keyType, err := mapper.GetRecommendedKeyType(ChainTypeEthereum)
+		keyType, err := GetRecommendedKeyType(ChainTypeEthereum)
 		require.NoError(t, err)
 		assert.Equal(t, sagecrypto.KeyTypeSecp256k1, keyType)
 
 		// Step 2: Validate the key type is supported
-		err = mapper.ValidateKeyTypeForChain(keyType, ChainTypeEthereum)
+		err = ValidateKeyTypeForChain(keyType, ChainTypeEthereum)
 		assert.NoError(t, err)
 
 		// Step 3: Get RFC 9421 algorithm for message signing
-		algorithm, err := mapper.GetRFC9421Algorithm(keyType)
+		algorithm, err := GetRFC9421Algorithm(keyType)
 		require.NoError(t, err)
 		assert.Equal(t, "es256k", algorithm)
 	})
 
 	t.Run("Complete workflow: Solana agent with correct key type", func(t *testing.T) {
 		// Step 1: Get recommended key type for Solana
-		keyType, err := mapper.GetRecommendedKeyType(ChainTypeSolana)
+		keyType, err := GetRecommendedKeyType(ChainTypeSolana)
 		require.NoError(t, err)
 		assert.Equal(t, sagecrypto.KeyTypeEd25519, keyType)
 
 		// Step 2: Validate the key type is supported
-		err = mapper.ValidateKeyTypeForChain(keyType, ChainTypeSolana)
+		err = ValidateKeyTypeForChain(keyType, ChainTypeSolana)
 		assert.NoError(t, err)
 
 		// Step 3: Get RFC 9421 algorithm for message signing
-		algorithm, err := mapper.GetRFC9421Algorithm(keyType)
+		algorithm, err := GetRFC9421Algorithm(keyType)
 		require.NoError(t, err)
 		assert.Equal(t, "ed25519", algorithm)
 	})
 
 	t.Run("Error scenario: Wrong key type for chain", func(t *testing.T) {
 		// Try to use Ed25519 for Ethereum (should fail)
-		err := mapper.ValidateKeyTypeForChain(sagecrypto.KeyTypeEd25519, ChainTypeEthereum)
+		err := ValidateKeyTypeForChain(sagecrypto.KeyTypeEd25519, ChainTypeEthereum)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "not supported")
 	})
 
 	t.Run("Multi-chain support: Cosmos accepts multiple key types", func(t *testing.T) {
-		supportedTypes, err := mapper.GetSupportedKeyTypes(ChainTypeCosmos)
+		supportedTypes, err := GetSupportedKeyTypes(ChainTypeCosmos)
 		require.NoError(t, err)
 		assert.Contains(t, supportedTypes, sagecrypto.KeyTypeSecp256k1)
 		assert.Contains(t, supportedTypes, sagecrypto.KeyTypeEd25519)
 
 		// Both should validate successfully
-		err = mapper.ValidateKeyTypeForChain(sagecrypto.KeyTypeSecp256k1, ChainTypeCosmos)
+		err = ValidateKeyTypeForChain(sagecrypto.KeyTypeSecp256k1, ChainTypeCosmos)
 		assert.NoError(t, err)
 
-		err = mapper.ValidateKeyTypeForChain(sagecrypto.KeyTypeEd25519, ChainTypeCosmos)
+		err = ValidateKeyTypeForChain(sagecrypto.KeyTypeEd25519, ChainTypeCosmos)
 		assert.NoError(t, err)
 	})
 }

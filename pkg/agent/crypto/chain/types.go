@@ -96,30 +96,6 @@ type ChainProvider interface {
 	VerifySignature(publicKey crypto.PublicKey, message []byte, signature []byte) error
 }
 
-// ChainRegistry manages multiple chain providers
-type ChainRegistry interface {
-	// RegisterProvider registers a new chain provider
-	RegisterProvider(provider ChainProvider) error
-
-	// GetProvider returns a provider for the specified chain
-	GetProvider(chain ChainType) (ChainProvider, error)
-
-	// ListProviders returns all registered chain types
-	ListProviders() []ChainType
-
-	// GenerateAddresses generates addresses for all registered chains
-	GenerateAddresses(publicKey crypto.PublicKey) (map[ChainType]*Address, error)
-}
-
-// PublicKeyResolver provides methods to resolve public keys from various sources
-type PublicKeyResolver interface {
-	// ResolveFromAddress attempts to resolve a public key from a blockchain address
-	ResolveFromAddress(ctx context.Context, address string, chain ChainType, network Network) (crypto.PublicKey, error)
-
-	// ResolveFromDID resolves a public key from a DID
-	ResolveFromDID(ctx context.Context, did string) (crypto.PublicKey, error)
-}
-
 // Common errors
 var (
 	ErrChainNotSupported     = errors.New("blockchain not supported")

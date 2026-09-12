@@ -37,4 +37,6 @@ var (
 	ErrTokenIssuedInFuture = errors.New("token issued in the future")
 	ErrInvalidIssuer       = errors.New("invalid issuer")
 	ErrMissingSub          = errors.New("missing sub")
+	ErrInvalidClaims       = errors.New("invalid token claims")
+	ErrNoJWKSKeys          = errors.New("no keys found in JWKS")
 )

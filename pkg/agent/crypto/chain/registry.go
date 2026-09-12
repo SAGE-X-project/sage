@@ -25,14 +25,15 @@ import (
 	"sync"
 )
 
-// defaultRegistry implements the ChainRegistry interface
+// defaultRegistry holds the chain providers. The package-level functions
+// operate on one global instance; there is no exported registry type.
 type defaultRegistry struct {
 	providers map[ChainType]ChainProvider
 	mu        sync.RWMutex
 }
 
-// NewRegistry creates a new chain registry
-func NewRegistry() ChainRegistry {
+// newRegistry creates an empty registry
+func newRegistry() *defaultRegistry {
 	return &defaultRegistry{
 		providers: make(map[ChainType]ChainProvider),
 	}
@@ -113,7 +114,7 @@ func (r *defaultRegistry) GenerateAddresses(publicKey crypto.PublicKey) (map[Cha
 }
 
 // Global registry instance
-var globalRegistry = NewRegistry()
+var globalRegistry = newRegistry()
 
 // RegisterProvider registers a provider to the global registry
 func RegisterProvider(provider ChainProvider) error {

@@ -30,12 +30,12 @@ import (
 )
 
 // SessionStore implements storage.SessionStore for PostgreSQL
-type SessionStore struct {
+type sessionStore struct {
 	db *pgxpool.Pool
 }
 
 // Create creates a new session
-func (s *SessionStore) Create(ctx context.Context, session *storage.Session) error {
+func (s *sessionStore) Create(ctx context.Context, session *storage.Session) error {
 	metadata, err := json.Marshal(session.Metadata)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metadata: %w", err)
@@ -65,7 +65,7 @@ func (s *SessionStore) Create(ctx context.Context, session *storage.Session) err
 }
 
 // Get retrieves a session by ID
-func (s *SessionStore) Get(ctx context.Context, id string) (*storage.Session, error) {
+func (s *sessionStore) Get(ctx context.Context, id string) (*storage.Session, error) {
 	query := `
 		SELECT id, client_did, server_did, session_key, created_at, expires_at, last_activity, metadata
 		FROM sessions
@@ -103,7 +103,7 @@ func (s *SessionStore) Get(ctx context.Context, id string) (*storage.Session, er
 }
 
 // Update updates an existing session
-func (s *SessionStore) Update(ctx context.Context, session *storage.Session) error {
+func (s *sessionStore) Update(ctx context.Context, session *storage.Session) error {
 	metadata, err := json.Marshal(session.Metadata)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metadata: %w", err)
@@ -135,7 +135,7 @@ func (s *SessionStore) Update(ctx context.Context, session *storage.Session) err
 }
 
 // Delete deletes a session by ID
-func (s *SessionStore) Delete(ctx context.Context, id string) error {
+func (s *sessionStore) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM sessions WHERE id = $1`
 
 	result, err := s.db.Exec(ctx, query, id)
@@ -151,7 +151,7 @@ func (s *SessionStore) Delete(ctx context.Context, id string) error {
 }
 
 // DeleteExpired deletes all expired sessions
-func (s *SessionStore) DeleteExpired(ctx context.Context) (int64, error) {
+func (s *sessionStore) DeleteExpired(ctx context.Context) (int64, error) {
 	query := `DELETE FROM sessions WHERE expires_at <= NOW()`
 
 	result, err := s.db.Exec(ctx, query)
@@ -163,7 +163,7 @@ func (s *SessionStore) DeleteExpired(ctx context.Context) (int64, error) {
 }
 
 // List lists all sessions for a client DID
-func (s *SessionStore) List(ctx context.Context, clientDID string, limit, offset int) ([]*storage.Session, error) {
+func (s *sessionStore) List(ctx context.Context, clientDID string, limit, offset int) ([]*storage.Session, error) {
 	query := `
 		SELECT id, client_did, server_did, session_key, created_at, expires_at, last_activity, metadata
 		FROM sessions
@@ -214,7 +214,7 @@ func (s *SessionStore) List(ctx context.Context, clientDID string, limit, offset
 }
 
 // UpdateActivity updates the last activity timestamp
-func (s *SessionStore) UpdateActivity(ctx context.Context, id string) error {
+func (s *sessionStore) UpdateActivity(ctx context.Context, id string) error {
 	query := `UPDATE sessions SET last_activity = $1 WHERE id = $2`
 
 	result, err := s.db.Exec(ctx, query, time.Now(), id)
@@ -230,7 +230,7 @@ func (s *SessionStore) UpdateActivity(ctx context.Context, id string) error {
 }
 
 // Count returns the total number of active sessions
-func (s *SessionStore) Count(ctx context.Context) (int64, error) {
+func (s *sessionStore) Count(ctx context.Context) (int64, error) {
 	query := `SELECT COUNT(*) FROM sessions WHERE expires_at > NOW()`
 
 	var count int64

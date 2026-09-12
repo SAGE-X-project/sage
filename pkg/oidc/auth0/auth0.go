@@ -22,7 +22,6 @@ import (
 	"context"
 	"crypto"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -150,8 +149,8 @@ type VerifierConfig struct {
 	HTTPTimeout time.Duration // e.g. 10 * time.Second
 }
 
-// verifier caches JWKS and verifies JWTs.
-type verifier struct {
+// Verifier caches the JWKS of an Auth0 tenant and verifies its JWTs.
+type Verifier struct {
 	cfg       VerifierConfig
 	http      *http.Client
 	cache     []formats.JWK
@@ -160,7 +159,7 @@ type verifier struct {
 }
 
 // NewVerifier creates a new JWT verifier.
-func NewVerifier(cfg VerifierConfig) *verifier {
+func NewVerifier(cfg VerifierConfig) *Verifier {
 	if cfg.CacheTTL == 0 {
 		cfg.CacheTTL = 10 * time.Minute
 	}
@@ -168,14 +167,14 @@ func NewVerifier(cfg VerifierConfig) *verifier {
 	if cfg.HTTPTimeout == 0 {
 		httpClient.Timeout = 10 * time.Second
 	}
-	return &verifier{
+	return &Verifier{
 		cfg:  cfg,
 		http: httpClient,
 	}
 }
 
 // Verify parses and validates the JWT, returning claims map on success.
-func (v *verifier) Verify(ctx context.Context, tokenString string, issuer string) (map[string]interface{}, error) {
+func (v *Verifier) Verify(ctx context.Context, tokenString string, issuer string) (map[string]interface{}, error) {
 	parser := jwt.NewParser()
 	unverified, _, err := parser.ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
@@ -211,7 +210,7 @@ func (v *verifier) Verify(ctx context.Context, tokenString string, issuer string
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, errors.New("invalid token claims")
+		return nil, oidc.ErrInvalidClaims
 	}
 
 	if !has(claims, v.cfg.Identifier) {
@@ -234,7 +233,7 @@ func (v *verifier) Verify(ctx context.Context, tokenString string, issuer string
 
 	gotIss, _ := claims["iss"].(string)
 	if normalizeIssuer(gotIss) != normalizeIssuer(issuer) {
-		return nil, fmt.Errorf("invalid issuer: expected %s, got %s", issuer, gotIss)
+		return nil, fmt.Errorf("%w: expected %s, got %s", oidc.ErrInvalidIssuer, issuer, gotIss)
 	}
 
 	if sub, _ := claims["sub"].(string); strings.TrimSpace(sub) == "" {
@@ -248,21 +247,21 @@ func (v *verifier) Verify(ctx context.Context, tokenString string, issuer string
 	return out, nil
 }
 
-func (v *verifier) parseAndVerifyWithKey(tokenString string, pubKey crypto.PublicKey) (*jwt.Token, error) {
+func (v *Verifier) parseAndVerifyWithKey(tokenString string, pubKey crypto.PublicKey) (*jwt.Token, error) {
 	if pubKey == nil {
-		return nil, errors.New("no public key provided")
+		return nil, oidc.ErrNoPublicKey
 	}
 	return jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
 		alg := t.Method.Alg()
 		// Auth0 default is RS256. Allow PS256 if needed.
 		if alg != "RS256" && alg != "PS256" {
-			return nil, fmt.Errorf("unexpected signing method: %s", alg)
+			return nil, fmt.Errorf("%w: %s", oidc.ErrInvalidSigningAlg, alg)
 		}
 		return pubKey, nil
 	})
 }
 
-func (v *verifier) lookupKeyFromCache(kid string) crypto.PublicKey {
+func (v *Verifier) lookupKeyFromCache(kid string) crypto.PublicKey {
 	v.mu.RLock()
 	defer v.mu.RUnlock()
 	if len(v.cache) == 0 {
@@ -296,7 +295,7 @@ func findKeyByKID(keys []formats.JWK, kid string) crypto.PublicKey {
 }
 
 // getJWKS returns cached JWKS or fetches fresh set
-func (v *verifier) getJWKS(ctx context.Context, issuer string) ([]formats.JWK, error) {
+func (v *Verifier) getJWKS(ctx context.Context, issuer string) ([]formats.JWK, error) {
 	v.mu.RLock()
 	if time.Now().Before(v.expiresAt) && len(v.cache) > 0 {
 		keys := v.cache
@@ -333,7 +332,7 @@ func (v *verifier) getJWKS(ctx context.Context, issuer string) ([]formats.JWK, e
 		return nil, fmt.Errorf("decode JWKS response: %w", err)
 	}
 	if len(doc.Keys) == 0 {
-		return nil, errors.New("no keys found in JWKS")
+		return nil, oidc.ErrNoJWKSKeys
 	}
 
 	v.mu.Lock()

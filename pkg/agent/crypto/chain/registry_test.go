@@ -29,7 +29,7 @@ import (
 
 func TestChainRegistry(t *testing.T) {
 	// Use a new registry for testing
-	registry := NewRegistry()
+	registry := newRegistry()
 
 	t.Run("RegisterAndGetProvider", func(t *testing.T) {
 		// Create mock providers
@@ -54,7 +54,7 @@ func TestChainRegistry(t *testing.T) {
 	})
 
 	t.Run("RegisterDuplicate", func(t *testing.T) {
-		registry := NewRegistry()
+		registry := newRegistry()
 		provider := &mockProvider{chainType: ChainTypeEthereum}
 
 		err := registry.RegisterProvider(provider)
@@ -67,7 +67,7 @@ func TestChainRegistry(t *testing.T) {
 	})
 
 	t.Run("GetNonExistentProvider", func(t *testing.T) {
-		registry := NewRegistry()
+		registry := newRegistry()
 
 		_, err := registry.GetProvider(ChainTypeBitcoin)
 		assert.Error(t, err)
@@ -75,7 +75,7 @@ func TestChainRegistry(t *testing.T) {
 	})
 
 	t.Run("ListProviders", func(t *testing.T) {
-		registry := NewRegistry()
+		registry := newRegistry()
 
 		// Empty registry
 		chains := registry.ListProviders()
@@ -97,7 +97,7 @@ func TestGlobalRegistry(t *testing.T) {
 	// We test the global registry functions by creating a new registry
 
 	// Create fresh registry
-	testRegistry := NewRegistry()
+	testRegistry := newRegistry()
 
 	// Register mock providers
 	mockEth := &mockProvider{chainType: ChainTypeEthereum}
@@ -140,7 +140,7 @@ func TestAddressGeneration(t *testing.T) {
 	// Test using mock provider to avoid import cycle
 	// Create a new registry instance for testing
 
-	testRegistry := NewRegistry()
+	testRegistry := newRegistry()
 
 	// Register mock provider
 	mockEth := &mockProvider{chainType: ChainTypeEthereum}

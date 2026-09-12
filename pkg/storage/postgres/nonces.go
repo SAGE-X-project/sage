@@ -29,12 +29,12 @@ import (
 )
 
 // NonceStore implements storage.NonceStore for PostgreSQL
-type NonceStore struct {
+type nonceStore struct {
 	db *pgxpool.Pool
 }
 
 // CheckAndStore atomically checks if nonce is used and stores it
-func (n *NonceStore) CheckAndStore(ctx context.Context, nonce string, sessionID string, expiresAt time.Time) error {
+func (n *nonceStore) CheckAndStore(ctx context.Context, nonce string, sessionID string, expiresAt time.Time) error {
 	// Use a transaction to ensure atomicity
 	tx, err := n.db.Begin(ctx)
 	if err != nil {
@@ -73,7 +73,7 @@ func (n *NonceStore) CheckAndStore(ctx context.Context, nonce string, sessionID 
 }
 
 // IsUsed checks if a nonce has been used
-func (n *NonceStore) IsUsed(ctx context.Context, nonce string) (bool, error) {
+func (n *nonceStore) IsUsed(ctx context.Context, nonce string) (bool, error) {
 	query := `
 		SELECT EXISTS(
 			SELECT 1 FROM nonces
@@ -91,7 +91,7 @@ func (n *NonceStore) IsUsed(ctx context.Context, nonce string) (bool, error) {
 }
 
 // DeleteExpired deletes all expired nonces
-func (n *NonceStore) DeleteExpired(ctx context.Context) (int64, error) {
+func (n *nonceStore) DeleteExpired(ctx context.Context) (int64, error) {
 	query := `DELETE FROM nonces WHERE expires_at <= NOW()`
 
 	result, err := n.db.Exec(ctx, query)
@@ -103,7 +103,7 @@ func (n *NonceStore) DeleteExpired(ctx context.Context) (int64, error) {
 }
 
 // Count returns the total number of stored nonces
-func (n *NonceStore) Count(ctx context.Context) (int64, error) {
+func (n *nonceStore) Count(ctx context.Context) (int64, error) {
 	query := `SELECT COUNT(*) FROM nonces WHERE expires_at > NOW()`
 
 	var count int64
@@ -116,7 +116,7 @@ func (n *NonceStore) Count(ctx context.Context) (int64, error) {
 }
 
 // Get retrieves a nonce by its value (internal use)
-func (n *NonceStore) Get(ctx context.Context, nonce string) (*storage.Nonce, error) {
+func (n *nonceStore) Get(ctx context.Context, nonce string) (*storage.Nonce, error) {
 	query := `
 		SELECT nonce, session_id, used_at, expires_at
 		FROM nonces

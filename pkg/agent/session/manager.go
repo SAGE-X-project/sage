@@ -26,7 +26,7 @@ import (
 
 // Manager handles session lifecycle, storage, and cleanup
 type Manager struct {
-	sessions      map[string]Session
+	sessions      map[string]*SecureSession
 	byKeyID       map[string]string
 	keyIDsBySID   map[string]map[string]struct{}
 	mu            sync.RWMutex
@@ -41,7 +41,7 @@ type Manager struct {
 // NewManager creates a new session manager with default configuration
 func NewManager() *Manager {
 	m := &Manager{
-		sessions:    make(map[string]Session),
+		sessions:    make(map[string]*SecureSession),
 		stopCleanup: make(chan struct{}),
 		defaultConfig: Config{
 			MaxAge:        time.Hour,        // 1-hour absolute expiration
@@ -69,7 +69,7 @@ func NewManager() *Manager {
 }
 
 // CreateSession creates a new session with the given shared secret
-func (m *Manager) CreateSession(sessionID string, sharedSecret []byte) (Session, error) {
+func (m *Manager) CreateSession(sessionID string, sharedSecret []byte) (*SecureSession, error) {
 	return m.CreateSessionWithConfig(sessionID, sharedSecret, m.getDefaultConfig())
 }
 
@@ -84,7 +84,7 @@ func (m *Manager) EnsureSessionFromExporterWithRole(
 	label string,
 	initiator bool,
 	cfg *Config,
-) (Session, string, bool, error) {
+) (*SecureSession, string, bool, error) {
 	if len(exporter) == 0 {
 		return nil, "", false, fmt.Errorf("empty exporter")
 	}
@@ -140,7 +140,7 @@ func (m *Manager) EnsureAndBindFromExporterWithRole(
 	initiator bool,
 	kid string,
 	cfg *Config,
-) (Session, string, bool, error) {
+) (*SecureSession, string, bool, error) {
 	s, sid, existed, err := m.EnsureSessionFromExporterWithRole(exporter, label, initiator, cfg)
 	if err != nil {
 		return nil, "", false, err
@@ -152,7 +152,7 @@ func (m *Manager) EnsureAndBindFromExporterWithRole(
 }
 
 // EnsureSessionWithParams computes a deterministic sessionID and creates the session.
-func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, string, bool, error) {
+func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (*SecureSession, string, bool, error) {
 	seed, err := DeriveSessionSeed(p.SharedSecret, p)
 	if err != nil {
 		return nil, "", false, fmt.Errorf("derive seed: %w", err)
@@ -198,7 +198,7 @@ func (m *Manager) EnsureSessionWithParams(p Params, cfg *Config) (Session, strin
 
 // CreateSessionWithConfig creates a new session with custom configuration
 // Uses session pool to reduce GC pressure
-func (m *Manager) CreateSessionWithConfig(sessionID string, sharedSecret []byte, config Config) (Session, error) {
+func (m *Manager) CreateSessionWithConfig(sessionID string, sharedSecret []byte, config Config) (*SecureSession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -271,7 +271,7 @@ func (m *Manager) UnbindKeyID(keyid string) bool {
 }
 
 // GetByKeyID returns the Session associated with the given keyid (if alive).
-func (m *Manager) GetByKeyID(keyid string) (Session, bool) {
+func (m *Manager) GetByKeyID(keyid string) (*SecureSession, bool) {
 	m.mu.RLock()
 	sid, ok := m.byKeyID[keyid]
 	m.mu.RUnlock()
@@ -282,7 +282,7 @@ func (m *Manager) GetByKeyID(keyid string) (Session, bool) {
 }
 
 // GetSession retrieves a session by ID, returns nil if not found or expired
-func (m *Manager) GetSession(sessionID string) (Session, bool) {
+func (m *Manager) GetSession(sessionID string) (*SecureSession, bool) {
 	m.mu.RLock()
 	sess, exists := m.sessions[sessionID]
 	m.mu.RUnlock()
@@ -314,10 +314,8 @@ func (m *Manager) RemoveSession(sessionID string) {
 		m.metrics.ActiveSessions(-1)
 
 		// Return session to pool
-		if secSess, ok := sess.(*SecureSession); ok {
-			secSess.Reset()
-			m.sessionPool.Put(secSess)
-		}
+		sess.Reset()
+		m.sessionPool.Put(sess)
 	}
 	// Unbind all keyids mapped to this sessionID
 	if set, ok := m.keyIDsBySID[sessionID]; ok {
@@ -427,7 +425,7 @@ func (m *Manager) Close() error {
 			fmt.Printf("Warning: error closing session during manager shutdown: %v\n", err)
 		}
 	}
-	m.sessions = make(map[string]Session)
+	m.sessions = make(map[string]*SecureSession)
 	m.byKeyID = nil
 	m.keyIDsBySID = nil
 	return nil
@@ -466,10 +464,8 @@ func (m *Manager) cleanupExpiredSessions() {
 			m.metrics.ActiveSessions(-1)
 
 			// Return session to pool
-			if secSess, ok := sess.(*SecureSession); ok {
-				secSess.Reset()
-				m.sessionPool.Put(secSess)
-			}
+			sess.Reset()
+			m.sessionPool.Put(sess)
 		}
 		// Unbind all keyids for this session
 		if set, ok := m.keyIDsBySID[id]; ok {

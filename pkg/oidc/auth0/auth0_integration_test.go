@@ -47,7 +47,7 @@ func newAgentFromEnvSuffix(suffix string) (*Agent, error) {
 	resource := env("IDENTIFIER")
 	keyId := env("AUTH0_KEY_ID")
 
-	_, privPEM, _, err := LoadOrCreateKeyPair(suffix)
+	_, privPEM, _, err := loadOrCreateKeyPair(suffix)
 	if err != nil {
 		return nil, fmt.Errorf("load/create keypair: %w", err)
 	}
