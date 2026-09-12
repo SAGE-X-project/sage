@@ -1,5 +1,6 @@
 // Package vectors generates and checks the SAGE protocol test vectors that
-// are published in the sage-spec repository.
+// are published in the sage-spec repository. It is exported so that other
+// tools (sage-inspector) can run the same checks and report per vector.
 //
 // Every vector belongs to a suite (crypto, jcs, rfc9421, hpke, session, did)
 // and is either deterministic or verify-only:
