@@ -208,6 +208,7 @@ Analyses, decisions, backlog and the generated code graph.
 | [`docs/refactoring/v2/README.md`](refactoring/v2/README.md) | docs/refactoring/v2 |  |
 | [`docs/refactoring/v2/REPO_PLAN.md`](refactoring/v2/REPO_PLAN.md) | Repository plan (final, 2026-09-12) |  |
 | [`docs/refactoring/v2/RS_SAGE_CORE_ALIGNMENT.md`](refactoring/v2/RS_SAGE_CORE_ALIGNMENT.md) | rs-sage-core alignment plan (F-03) |  |
+| [`docs/refactoring/v2/VERSION_POLICY.md`](refactoring/v2/VERSION_POLICY.md) | Cross-repository version policy (F-06) |  |
 
 ## Detailed guides (Korean)
 
