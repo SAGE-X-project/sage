@@ -21,6 +21,7 @@ Artifacts produced for the 2026-09 dependency update and refactoring design.
 | `graph/summary.md` | Code graph metrics: package table, import graph (mermaid), cycles, layer violations, interfaces/implementers, hot functions, duplicates, dead-code candidates |
 | `graph/graph.json` | Full node/edge list (regenerated, not committed) |
 | `PR_LOG.md` | Per-PR verification log for the dependency update |
+| `v2/` | Second phase (from 2026-09-12): repository split plan and licence review. New documents go here. |
 
 Regenerate the graph:
 
