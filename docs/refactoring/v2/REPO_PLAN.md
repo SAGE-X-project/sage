@@ -58,7 +58,7 @@ the repository, build and CI are kept.
 | Repository | Role | Language | Published artifacts | State on 2026-09-12 |
 |---|---|---|---|---|
 | `sage` | Reference core: protocol implementation, CLIs, test-vector generator (`cmd/sage-vectors`) | Go | Go module, binaries, vectors | active |
-| `rs-sage-core` | Rust core: spec-conformant implementation, C ABI, WASM; common substrate for SDKs | Rust | crate, C header, `.wasm` | needs F-03 alignment |
+| `rs-sage-core` | Rust core: spec-conformant implementation, C ABI, WASM; common substrate for SDKs | Rust | crate, C header, `.wasm` | aligned with sage-spec 1.0.0-draft.1 (F-03 done at vector level; live interop F-03b open) |
 | `sage-spec` | Protocol specification and golden test vectors; the single interoperability reference | Markdown, JSON | profile documents, `vectors/` | draft 1.0.0-draft.1, 26 vectors (F-01 done 2026-09-12) |
 | `sage-contracts` | Solidity and Anchor contracts, deployment scripts, ABI publishing; Go bindings generated on tag | Solidity, Rust | ABI JSON, address registry | imported with history, `abi/` published, CI green (F-02 done 2026-09-12; first tag pending) |
 | `sage-gateway` | MCP / A2A wrapper, HTTP signing proxy, client recipes; imports the core, never the reverse | Go | binary, container image | skeleton merged: verifying and signing proxies, recipes (F-05, 2026-09-12) |
