@@ -36,10 +36,12 @@ did/
 ├── verification.go       # MetadataVerifier implementation
 ├── utils.go              # Utility functions
 ├── ethereum/             # Ethereum blockchain client
-│   ├── client.go        # Ethereum DID operations
-│   ├── resolver.go      # Ethereum-specific resolution
-│   ├── abi.go           # Contract ABI definition
-│   └── SageRegistryV2.abi.json # Contract ABI JSON
+│   ├── agentcard_client.go # AgentCardRegistry client (commit-reveal, keys, KEM)
+│   ├── chainclient.go   # did.ChainClient methods (resolve, list, update, deactivate)
+│   ├── client.go        # Deprecated EthereumClient wrapper
+│   ├── key_policy.go    # Which on-chain keys become the signing / KEM key
+│   ├── abi.go           # Embedded AgentCardRegistry ABI
+│   └── AgentCardRegistry.abi.json
 └── solana/              # Solana blockchain client (in development)
     ├── client.go        # Solana DID operations
     └── resolver.go      # Solana-specific resolution

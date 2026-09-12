@@ -319,7 +319,7 @@ func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.
 
 	// Check if agent exists (DID not empty)
 	if metadata.Did == "" {
-		return nil, fmt.Errorf("agent not found")
+		return nil, did.ErrDIDNotFound
 	}
 
 	// Convert contract metadata to AgentMetadataV4
@@ -376,7 +376,7 @@ func (c *AgentCardClient) GetAgentByDID(ctx context.Context, didStr string) (*di
 	}
 	// Check existence
 	if md.Owner == (common.Address{}) || md.Did == "" {
-		return nil, fmt.Errorf("agent not found")
+		return nil, did.ErrDIDNotFound
 	}
 
 	// 2) Convert to local struct
