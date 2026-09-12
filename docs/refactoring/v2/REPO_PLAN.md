@@ -111,7 +111,8 @@ not compatible with the Go core v1.5 wire format and is being aligned to
 | Item | Situation | Recommendation |
 |---|---|---|
 | C-01 Sepolia redeploy | `ERC8004ReputationRegistry` (`0xE953…`) already has `validationRegistry()` set to `0x9729…`, so the initial-set gap is closed on chain. The remaining issue is that `ERC8004ValidationRegistry` at `0x9729…` runs pre-fix code with open admin setters. Testnet only. | Defer to just before mainnet or a public demo; mark C-01 "deferred" in `../BACKLOG.md`. |
-| A-16 licence | `sage` is LGPL-3.0 with MIT contracts; `rs-sage-core` metadata says MIT OR Apache-2.0 but ships a GPL-2.0 `LICENSE` file; new repositories have no licence. | See `LICENSING.md`. |
+| A-16 licence | Decided 2026-09-12: Go repositories stay LGPL-3.0; `rs-sage-core` MIT OR Apache-2.0 (LICENSE files fixed in PR #16); new repositories licensed at their first commit. | Closed; see `LICENSING.md` §5. |
+| GitHub Actions on new repositories | The organisation's Actions policy allows workflows only for selected repositories: `rs-sage-core`, `sage-spec`, `sage-contracts`, `sage-gateway` and `sage-inspector` report `enabled: false`, and the repository-level toggle is refused with "disabled on this repository by the organization". All six repositories are public, so GitHub-hosted runner minutes are not billed (sage runs report 0 billable minutes); this is a policy setting, not a quota. | An organisation owner adds the five repositories under Settings > Actions > General > Policies before F-01 (vector CI) and F-03 start. |
 | F08 tag signing | cosign keyless for release tags | pending |
 | SDK repositories | nothing to bind until `rs-sage-core` exposes a C header and WASM | do not create yet |
 
