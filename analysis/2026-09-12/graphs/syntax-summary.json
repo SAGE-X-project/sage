@@ -1,0 +1,26 @@
+{
+  "counts": {
+    "sentences": 22653,
+    "tokens": 222129,
+    "xbar_nodes": 666387,
+    "xbar_edges": 643734
+  },
+  "unique_fragments": 18641,
+  "block_status": {
+    "parsed": 20590,
+    "non_linguistic_fragment": 2704,
+    "non_prose": 2797
+  },
+  "failures": [],
+  "models": {
+    "en": "ewt_nocharlm",
+    "ko": "kaist_nocharlm"
+  },
+  "stanza_version": "1.10.1",
+  "limitations": [
+    "UD to X-bar is non-unique; roles are heuristic, not a gold constituency analysis",
+    "Head-final Korean particles and functional projections are not reconstructed",
+    "Tables, headings and snippets are fragments; no sentence-level truth or security conclusion is inferred automatically",
+    "Source line range is attached at block level; 1200-character fragments may split a sentence"
+  ]
+}

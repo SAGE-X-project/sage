@@ -1,0 +1,8 @@
+{
+  "per_request_verifier_accepts_replay": true,
+  "same_guard_rejects_immediate_replay": true,
+  "scope": "synthetic local reproduction; short TTL is custom configuration, missing timestamp is default strict behavior",
+  "strict_accepts_missing_created_expires": true,
+  "strict_accepts_replay_after_short_guard_ttl": true,
+  "strict_response_accepts_different_request_nonce": true
+}

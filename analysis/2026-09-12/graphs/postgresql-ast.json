@@ -1,0 +1,2635 @@
+[
+  {
+    "file": "deployments/migrations/000001_initial_schema.down.sql",
+    "ast": {
+      "version": 170004,
+      "stmts": [
+        {
+          "stmt": {
+            "DropStmt": {
+              "objects": [
+                {
+                  "List": {
+                    "items": [
+                      {
+                        "String": {
+                          "sval": "dids"
+                        }
+                      },
+                      {
+                        "String": {
+                          "sval": "update_dids_updated_at"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              "removeType": "OBJECT_TRIGGER",
+              "behavior": "DROP_RESTRICT",
+              "missing_ok": true
+            }
+          },
+          "stmt_len": 143
+        },
+        {
+          "stmt": {
+            "DropStmt": {
+              "objects": [
+                {
+                  "ObjectWithArgs": {
+                    "objname": [
+                      {
+                        "String": {
+                          "sval": "update_updated_at_column"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              "removeType": "OBJECT_FUNCTION",
+              "behavior": "DROP_RESTRICT",
+              "missing_ok": true
+            }
+          },
+          "stmt_location": 144,
+          "stmt_len": 69
+        },
+        {
+          "stmt": {
+            "DropStmt": {
+              "objects": [
+                {
+                  "List": {
+                    "items": [
+                      {
+                        "String": {
+                          "sval": "nonces"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              "removeType": "OBJECT_TABLE",
+              "behavior": "DROP_RESTRICT",
+              "missing_ok": true
+            }
+          },
+          "stmt_location": 214,
+          "stmt_len": 80
+        },
+        {
+          "stmt": {
+            "DropStmt": {
+              "objects": [
+                {
+                  "List": {
+                    "items": [
+                      {
+                        "String": {
+                          "sval": "sessions"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              "removeType": "OBJECT_TABLE",
+              "behavior": "DROP_RESTRICT",
+              "missing_ok": true
+            }
+          },
+          "stmt_location": 295,
+          "stmt_len": 30
+        },
+        {
+          "stmt": {
+            "DropStmt": {
+              "objects": [
+                {
+                  "List": {
+                    "items": [
+                      {
+                        "String": {
+                          "sval": "dids"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              "removeType": "OBJECT_TABLE",
+              "behavior": "DROP_RESTRICT",
+              "missing_ok": true
+            }
+          },
+          "stmt_location": 326,
+          "stmt_len": 26
+        }
+      ]
+    }
+  },
+  {
+    "file": "deployments/migrations/000001_initial_schema.up.sql",
+    "ast": {
+      "version": 170004,
+      "stmts": [
+        {
+          "stmt": {
+            "CreateStmt": {
+              "relation": {
+                "relname": "sessions",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 146
+              },
+              "tableElts": [
+                {
+                  "ColumnDef": {
+                    "colname": "id",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "uuid"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 164
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_PRIMARY",
+                          "location": 169
+                        }
+                      }
+                    ],
+                    "location": 161
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "client_did",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "text"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 197
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 202
+                        }
+                      }
+                    ],
+                    "location": 186
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "server_did",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "text"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 227
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 232
+                        }
+                      }
+                    ],
+                    "location": 216
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "session_key",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "bytea"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 258
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 264
+                        }
+                      }
+                    ],
+                    "location": 246
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "created_at",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "pg_catalog"
+                          }
+                        },
+                        {
+                          "String": {
+                            "sval": "timestamp"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 289
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 299
+                        }
+                      },
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_DEFAULT",
+                          "raw_expr": {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 316
+                            }
+                          },
+                          "location": 308
+                        }
+                      }
+                    ],
+                    "location": 278
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "expires_at",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "pg_catalog"
+                          }
+                        },
+                        {
+                          "String": {
+                            "sval": "timestamp"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 338
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 348
+                        }
+                      }
+                    ],
+                    "location": 327
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "last_activity",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "pg_catalog"
+                          }
+                        },
+                        {
+                          "String": {
+                            "sval": "timestamp"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 376
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 386
+                        }
+                      },
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_DEFAULT",
+                          "raw_expr": {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 403
+                            }
+                          },
+                          "location": 395
+                        }
+                      }
+                    ],
+                    "location": 362
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "metadata",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "jsonb"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 423
+                    },
+                    "is_local": true,
+                    "location": 414
+                  }
+                },
+                {
+                  "Constraint": {
+                    "contype": "CONSTR_CHECK",
+                    "conname": "sessions_expires_at_check",
+                    "initially_valid": true,
+                    "raw_expr": {
+                      "A_Expr": {
+                        "kind": "AEXPR_OP",
+                        "name": [
+                          {
+                            "String": {
+                              "sval": ">"
+                            }
+                          }
+                        ],
+                        "lexpr": {
+                          "ColumnRef": {
+                            "fields": [
+                              {
+                                "String": {
+                                  "sval": "expires_at"
+                                }
+                              }
+                            ],
+                            "location": 478
+                          }
+                        },
+                        "rexpr": {
+                          "ColumnRef": {
+                            "fields": [
+                              {
+                                "String": {
+                                  "sval": "created_at"
+                                }
+                              }
+                            ],
+                            "location": 491
+                          }
+                        },
+                        "location": 489
+                      }
+                    },
+                    "location": 434
+                  }
+                }
+              ],
+              "oncommit": "ONCOMMIT_NOOP",
+              "if_not_exists": true
+            }
+          },
+          "stmt_len": 504
+        },
+        {
+          "stmt": {
+            "IndexStmt": {
+              "idxname": "idx_sessions_client_did",
+              "relation": {
+                "relname": "sessions",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 571
+              },
+              "accessMethod": "btree",
+              "indexParams": [
+                {
+                  "IndexElem": {
+                    "name": "client_did",
+                    "ordering": "SORTBY_DEFAULT",
+                    "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 505,
+          "stmt_len": 86
+        },
+        {
+          "stmt": {
+            "IndexStmt": {
+              "idxname": "idx_sessions_server_did",
+              "relation": {
+                "relname": "sessions",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 633
+              },
+              "accessMethod": "btree",
+              "indexParams": [
+                {
+                  "IndexElem": {
+                    "name": "server_did",
+                    "ordering": "SORTBY_DEFAULT",
+                    "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 592,
+          "stmt_len": 61
+        },
+        {
+          "stmt": {
+            "IndexStmt": {
+              "idxname": "idx_sessions_expires_at",
+              "relation": {
+                "relname": "sessions",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 695
+              },
+              "accessMethod": "btree",
+              "indexParams": [
+                {
+                  "IndexElem": {
+                    "name": "expires_at",
+                    "ordering": "SORTBY_DEFAULT",
+                    "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 654,
+          "stmt_len": 61
+        },
+        {
+          "stmt": {
+            "IndexStmt": {
+              "idxname": "idx_sessions_created_at",
+              "relation": {
+                "relname": "sessions",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 757
+              },
+              "accessMethod": "btree",
+              "indexParams": [
+                {
+                  "IndexElem": {
+                    "name": "created_at",
+                    "ordering": "SORTBY_DEFAULT",
+                    "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 716,
+          "stmt_len": 61
+        },
+        {
+          "stmt": {
+            "CreateStmt": {
+              "relation": {
+                "relname": "nonces",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 849
+              },
+              "tableElts": [
+                {
+                  "ColumnDef": {
+                    "colname": "nonce",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "text"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 868
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_PRIMARY",
+                          "location": 873
+                        }
+                      }
+                    ],
+                    "location": 862
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "session_id",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "uuid"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 901
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_FOREIGN",
+                          "initially_valid": true,
+                          "pktable": {
+                            "relname": "sessions",
+                            "inh": true,
+                            "relpersistence": "p",
+                            "location": 917
+                          },
+                          "pk_attrs": [
+                            {
+                              "String": {
+                                "sval": "id"
+                              }
+                            }
+                          ],
+                          "fk_matchtype": "s",
+                          "fk_upd_action": "a",
+                          "fk_del_action": "c",
+                          "location": 906
+                        }
+                      }
+                    ],
+                    "location": 890
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "used_at",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "pg_catalog"
+                          }
+                        },
+                        {
+                          "String": {
+                            "sval": "timestamp"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 961
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 971
+                        }
+                      },
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_DEFAULT",
+                          "raw_expr": {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 988
+                            }
+                          },
+                          "location": 980
+                        }
+                      }
+                    ],
+                    "location": 953
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "expires_at",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "pg_catalog"
+                          }
+                        },
+                        {
+                          "String": {
+                            "sval": "timestamp"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 1010
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 1020
+                        }
+                      }
+                    ],
+                    "location": 999
+                  }
+                },
+                {
+                  "Constraint": {
+                    "contype": "CONSTR_CHECK",
+                    "conname": "nonces_expires_at_check",
+                    "initially_valid": true,
+                    "raw_expr": {
+                      "A_Expr": {
+                        "kind": "AEXPR_OP",
+                        "name": [
+                          {
+                            "String": {
+                              "sval": ">"
+                            }
+                          }
+                        ],
+                        "lexpr": {
+                          "ColumnRef": {
+                            "fields": [
+                              {
+                                "String": {
+                                  "sval": "expires_at"
+                                }
+                              }
+                            ],
+                            "location": 1076
+                          }
+                        },
+                        "rexpr": {
+                          "ColumnRef": {
+                            "fields": [
+                              {
+                                "String": {
+                                  "sval": "used_at"
+                                }
+                              }
+                            ],
+                            "location": 1089
+                          }
+                        },
+                        "location": 1087
+                      }
+                    },
+                    "location": 1034
+                  }
+                }
+              ],
+              "oncommit": "ONCOMMIT_NOOP",
+              "if_not_exists": true
+            }
+          },
+          "stmt_location": 778,
+          "stmt_len": 321
+        },
+        {
+          "stmt": {
+            "IndexStmt": {
+              "idxname": "idx_nonces_session_id",
+              "relation": {
+                "relname": "nonces",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 1162
+              },
+              "accessMethod": "btree",
+              "indexParams": [
+                {
+                  "IndexElem": {
+                    "name": "session_id",
+                    "ordering": "SORTBY_DEFAULT",
+                    "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 1100,
+          "stmt_len": 80
+        },
+        {
+          "stmt": {
+            "IndexStmt": {
+              "idxname": "idx_nonces_expires_at",
+              "relation": {
+                "relname": "nonces",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 1220
+              },
+              "accessMethod": "btree",
+              "indexParams": [
+                {
+                  "IndexElem": {
+                    "name": "expires_at",
+                    "ordering": "SORTBY_DEFAULT",
+                    "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 1181,
+          "stmt_len": 57
+        },
+        {
+          "stmt": {
+            "IndexStmt": {
+              "idxname": "idx_nonces_used_at",
+              "relation": {
+                "relname": "nonces",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 1275
+              },
+              "accessMethod": "btree",
+              "indexParams": [
+                {
+                  "IndexElem": {
+                    "name": "used_at",
+                    "ordering": "SORTBY_DEFAULT",
+                    "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 1239,
+          "stmt_len": 51
+        },
+        {
+          "stmt": {
+            "CreateStmt": {
+              "relation": {
+                "relname": "dids",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 1361
+              },
+              "tableElts": [
+                {
+                  "ColumnDef": {
+                    "colname": "did",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "text"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 1376
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_PRIMARY",
+                          "location": 1381
+                        }
+                      }
+                    ],
+                    "location": 1372
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "public_key",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "bytea"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 1409
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 1415
+                        }
+                      }
+                    ],
+                    "location": 1398
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "owner_address",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "text"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 1443
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 1448
+                        }
+                      }
+                    ],
+                    "location": 1429
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "key_type",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "text"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 1471
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 1476
+                        }
+                      },
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_DEFAULT",
+                          "raw_expr": {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "Ed25519"
+                              },
+                              "location": 1493
+                            }
+                          },
+                          "location": 1485
+                        }
+                      }
+                    ],
+                    "location": 1462
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "revoked",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "pg_catalog"
+                          }
+                        },
+                        {
+                          "String": {
+                            "sval": "bool"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 1516
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 1524
+                        }
+                      },
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_DEFAULT",
+                          "raw_expr": {
+                            "A_Const": {
+                              "boolval": {},
+                              "location": 1541
+                            }
+                          },
+                          "location": 1533
+                        }
+                      }
+                    ],
+                    "location": 1508
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "created_at",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "pg_catalog"
+                          }
+                        },
+                        {
+                          "String": {
+                            "sval": "timestamp"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 1563
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 1573
+                        }
+                      },
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_DEFAULT",
+                          "raw_expr": {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 1590
+                            }
+                          },
+                          "location": 1582
+                        }
+                      }
+                    ],
+                    "location": 1552
+                  }
+                },
+                {
+                  "ColumnDef": {
+                    "colname": "updated_at",
+                    "typeName": {
+                      "names": [
+                        {
+                          "String": {
+                            "sval": "pg_catalog"
+                          }
+                        },
+                        {
+                          "String": {
+                            "sval": "timestamp"
+                          }
+                        }
+                      ],
+                      "typemod": -1,
+                      "location": 1612
+                    },
+                    "is_local": true,
+                    "constraints": [
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_NOTNULL",
+                          "location": 1622
+                        }
+                      },
+                      {
+                        "Constraint": {
+                          "contype": "CONSTR_DEFAULT",
+                          "raw_expr": {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 1639
+                            }
+                          },
+                          "location": 1631
+                        }
+                      }
+                    ],
+                    "location": 1601
+                  }
+                }
+              ],
+              "oncommit": "ONCOMMIT_NOOP",
+              "if_not_exists": true
+            }
+          },
+          "stmt_location": 1291,
+          "stmt_len": 355
+        },
+        {
+          "stmt": {
+            "IndexStmt": {
+              "idxname": "idx_dids_owner_address",
+              "relation": {
+                "relname": "dids",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 1708
+              },
+              "accessMethod": "btree",
+              "indexParams": [
+                {
+                  "IndexElem": {
+                    "name": "owner_address",
+                    "ordering": "SORTBY_DEFAULT",
+                    "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 1647,
+          "stmt_len": 80
+        },
+        {
+          "stmt": {
+            "IndexStmt": {
+              "idxname": "idx_dids_revoked",
+              "relation": {
+                "relname": "dids",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 1762
+              },
+              "accessMethod": "btree",
+              "indexParams": [
+                {
+                  "IndexElem": {
+                    "name": "revoked",
+                    "ordering": "SORTBY_DEFAULT",
+                    "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                  }
+                }
+              ],
+              "whereClause": {
+                "A_Expr": {
+                  "kind": "AEXPR_OP",
+                  "name": [
+                    {
+                      "String": {
+                        "sval": "="
+                      }
+                    }
+                  ],
+                  "lexpr": {
+                    "ColumnRef": {
+                      "fields": [
+                        {
+                          "String": {
+                            "sval": "revoked"
+                          }
+                        }
+                      ],
+                      "location": 1782
+                    }
+                  },
+                  "rexpr": {
+                    "A_Const": {
+                      "boolval": {
+                        "boolval": true
+                      },
+                      "location": 1792
+                    }
+                  },
+                  "location": 1790
+                }
+              }
+            }
+          },
+          "stmt_location": 1728,
+          "stmt_len": 68
+        },
+        {
+          "stmt": {
+            "IndexStmt": {
+              "idxname": "idx_dids_key_type",
+              "relation": {
+                "relname": "dids",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 1832
+              },
+              "accessMethod": "btree",
+              "indexParams": [
+                {
+                  "IndexElem": {
+                    "name": "key_type",
+                    "ordering": "SORTBY_DEFAULT",
+                    "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 1797,
+          "stmt_len": 49
+        },
+        {
+          "stmt": {
+            "CreateFunctionStmt": {
+              "replace": true,
+              "funcname": [
+                {
+                  "String": {
+                    "sval": "update_updated_at_column"
+                  }
+                }
+              ],
+              "returnType": {
+                "names": [
+                  {
+                    "String": {
+                      "sval": "trigger"
+                    }
+                  }
+                ],
+                "typemod": -1,
+                "location": 1968
+              },
+              "options": [
+                {
+                  "DefElem": {
+                    "defname": "as",
+                    "arg": {
+                      "List": {
+                        "items": [
+                          {
+                            "String": {
+                              "sval": "\nBEGIN\n    NEW.updated_at = NOW();\n    RETURN NEW;\nEND;\n"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "defaction": "DEFELEM_UNSPEC",
+                    "location": 1976
+                  }
+                },
+                {
+                  "DefElem": {
+                    "defname": "language",
+                    "arg": {
+                      "String": {
+                        "sval": "plpgsql"
+                      }
+                    },
+                    "defaction": "DEFELEM_UNSPEC",
+                    "location": 2040
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 1847,
+          "stmt_len": 211
+        },
+        {
+          "stmt": {
+            "CreateTrigStmt": {
+              "trigname": "update_dids_updated_at",
+              "relation": {
+                "relname": "dids",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 2166
+              },
+              "funcname": [
+                {
+                  "String": {
+                    "sval": "update_updated_at_column"
+                  }
+                }
+              ],
+              "row": true,
+              "timing": 2,
+              "events": 16
+            }
+          },
+          "stmt_location": 2059,
+          "stmt_len": 176
+        }
+      ]
+    }
+  },
+  {
+    "file": "deployments/migrations/seeds/dev.sql",
+    "ast": {
+      "version": 170004,
+      "stmts": [
+        {
+          "stmt": {
+            "InsertStmt": {
+              "relation": {
+                "relname": "dids",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 123
+              },
+              "cols": [
+                {
+                  "ResTarget": {
+                    "name": "did",
+                    "location": 129
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "public_key",
+                    "location": 134
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "owner_address",
+                    "location": 146
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "key_type",
+                    "location": 161
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "revoked",
+                    "location": 171
+                  }
+                }
+              ],
+              "selectStmt": {
+                "SelectStmt": {
+                  "valuesLists": [
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:dev:alice"
+                              },
+                              "location": 192
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "\\x302a300506032b6570032100c6ba7d8a9ed1e2e87a4832c0c5f6e4c24a9c6a8e5c8f9d4c3b2a1f0e8d7c6b5a4"
+                              },
+                              "location": 214
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+                              },
+                              "location": 311
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "Ed25519"
+                              },
+                              "location": 356
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "boolval": {},
+                              "location": 367
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:dev:bob"
+                              },
+                              "location": 380
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "\\x302a300506032b6570032100d7cb8e9b9fe2f3f98b5943d1d6g7f5d35b0d7b9f6d9g0e5d4c3b2a1f0e9e8d7c"
+                              },
+                              "location": 400
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "0x853f46Dd7714Ab2533a4a844Cd0e8696e1bFec"
+                              },
+                              "location": 496
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "Ed25519"
+                              },
+                              "location": 540
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "boolval": {},
+                              "location": 551
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:dev:charlie"
+                              },
+                              "location": 564
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "\\x302a300506032b6570032100e8dc9f0c0gf3g0g09c6a54e2e7h8g6e46c1e8c0g7e0h1f6e5d4c3b2a1f0f9f8e"
+                              },
+                              "location": 588
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "0x964g57Ee8825Bc3644b5b955De1f9707f2cGfd"
+                              },
+                              "location": 684
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "Ed25519"
+                              },
+                              "location": 728
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "boolval": {},
+                              "location": 739
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:dev:revoked"
+                              },
+                              "location": 752
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "\\x302a300506032b6570032100f9ed0g1d1hg4h1h10d7b65f3f8i9h7f57d2f9d1h8f1i2g7f6e5d4c3b2a1g0g9g"
+                              },
+                              "location": 776
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "0xa75h68Ff9936Cd4755c6c066Ef2g0818g3dHge"
+                              },
+                              "location": 872
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "Ed25519"
+                              },
+                              "location": 916
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "boolval": {
+                                "boolval": true
+                              },
+                              "location": 927
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "limitOption": "LIMIT_OPTION_DEFAULT",
+                  "op": "SETOP_NONE"
+                }
+              },
+              "onConflictClause": {
+                "action": "ONCONFLICT_NOTHING",
+                "infer": {
+                  "indexElems": [
+                    {
+                      "IndexElem": {
+                        "name": "did",
+                        "ordering": "SORTBY_DEFAULT",
+                        "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                      }
+                    }
+                  ],
+                  "location": 945
+                },
+                "location": 933
+              },
+              "override": "OVERRIDING_NOT_SET"
+            }
+          },
+          "stmt_len": 961
+        },
+        {
+          "stmt": {
+            "InsertStmt": {
+              "relation": {
+                "relname": "sessions",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 1029
+              },
+              "cols": [
+                {
+                  "ResTarget": {
+                    "name": "id",
+                    "location": 1039
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "client_did",
+                    "location": 1043
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "server_did",
+                    "location": 1055
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "session_key",
+                    "location": 1067
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "created_at",
+                    "location": 1080
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "expires_at",
+                    "location": 1092
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "last_activity",
+                    "location": 1104
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "metadata",
+                    "location": 1119
+                  }
+                }
+              ],
+              "selectStmt": {
+                "SelectStmt": {
+                  "valuesLists": [
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "550e8400-e29b-41d4-a716-446655440000"
+                              },
+                              "location": 1141
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:dev:alice"
+                              },
+                              "location": 1186
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:dev:bob"
+                              },
+                              "location": 1213
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "\\x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+                              },
+                              "location": 1238
+                            }
+                          },
+                          {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 1315
+                            }
+                          },
+                          {
+                            "A_Expr": {
+                              "kind": "AEXPR_OP",
+                              "name": [
+                                {
+                                  "String": {
+                                    "sval": "+"
+                                  }
+                                }
+                              ],
+                              "lexpr": {
+                                "FuncCall": {
+                                  "funcname": [
+                                    {
+                                      "String": {
+                                        "sval": "now"
+                                      }
+                                    }
+                                  ],
+                                  "funcformat": "COERCE_EXPLICIT_CALL",
+                                  "location": 1327
+                                }
+                              },
+                              "rexpr": {
+                                "TypeCast": {
+                                  "arg": {
+                                    "A_Const": {
+                                      "sval": {
+                                        "sval": "1 hour"
+                                      },
+                                      "location": 1344
+                                    }
+                                  },
+                                  "typeName": {
+                                    "names": [
+                                      {
+                                        "String": {
+                                          "sval": "pg_catalog"
+                                        }
+                                      },
+                                      {
+                                        "String": {
+                                          "sval": "interval"
+                                        }
+                                      }
+                                    ],
+                                    "typemod": -1,
+                                    "location": 1335
+                                  },
+                                  "location": -1
+                                }
+                              },
+                              "location": 1333
+                            }
+                          },
+                          {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 1359
+                            }
+                          },
+                          {
+                            "TypeCast": {
+                              "arg": {
+                                "A_Const": {
+                                  "sval": {
+                                    "sval": "{\"purpose\": \"test\", \"environment\": \"development\"}"
+                                  },
+                                  "location": 1371
+                                }
+                              },
+                              "typeName": {
+                                "names": [
+                                  {
+                                    "String": {
+                                      "sval": "jsonb"
+                                    }
+                                  }
+                                ],
+                                "typemod": -1,
+                                "location": 1424
+                              },
+                              "location": 1422
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "660f9511-f30c-52e5-b827-557766551111"
+                              },
+                              "location": 1438
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:dev:bob"
+                              },
+                              "location": 1483
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:dev:alice"
+                              },
+                              "location": 1508
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "\\xfedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+                              },
+                              "location": 1535
+                            }
+                          },
+                          {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 1612
+                            }
+                          },
+                          {
+                            "A_Expr": {
+                              "kind": "AEXPR_OP",
+                              "name": [
+                                {
+                                  "String": {
+                                    "sval": "+"
+                                  }
+                                }
+                              ],
+                              "lexpr": {
+                                "FuncCall": {
+                                  "funcname": [
+                                    {
+                                      "String": {
+                                        "sval": "now"
+                                      }
+                                    }
+                                  ],
+                                  "funcformat": "COERCE_EXPLICIT_CALL",
+                                  "location": 1624
+                                }
+                              },
+                              "rexpr": {
+                                "TypeCast": {
+                                  "arg": {
+                                    "A_Const": {
+                                      "sval": {
+                                        "sval": "2 hours"
+                                      },
+                                      "location": 1641
+                                    }
+                                  },
+                                  "typeName": {
+                                    "names": [
+                                      {
+                                        "String": {
+                                          "sval": "pg_catalog"
+                                        }
+                                      },
+                                      {
+                                        "String": {
+                                          "sval": "interval"
+                                        }
+                                      }
+                                    ],
+                                    "typemod": -1,
+                                    "location": 1632
+                                  },
+                                  "location": -1
+                                }
+                              },
+                              "location": 1630
+                            }
+                          },
+                          {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 1657
+                            }
+                          },
+                          {
+                            "TypeCast": {
+                              "arg": {
+                                "A_Const": {
+                                  "sval": {
+                                    "sval": "{\"purpose\": \"bidirectional\", \"environment\": \"development\"}"
+                                  },
+                                  "location": 1669
+                                }
+                              },
+                              "typeName": {
+                                "names": [
+                                  {
+                                    "String": {
+                                      "sval": "jsonb"
+                                    }
+                                  }
+                                ],
+                                "typemod": -1,
+                                "location": 1731
+                              },
+                              "location": 1729
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "770fa622-g41d-63f6-c938-668877662222"
+                              },
+                              "location": 1745
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:dev:charlie"
+                              },
+                              "location": 1790
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:dev:alice"
+                              },
+                              "location": 1819
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "\\x123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef1"
+                              },
+                              "location": 1846
+                            }
+                          },
+                          {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 1923
+                            }
+                          },
+                          {
+                            "A_Expr": {
+                              "kind": "AEXPR_OP",
+                              "name": [
+                                {
+                                  "String": {
+                                    "sval": "+"
+                                  }
+                                }
+                              ],
+                              "lexpr": {
+                                "FuncCall": {
+                                  "funcname": [
+                                    {
+                                      "String": {
+                                        "sval": "now"
+                                      }
+                                    }
+                                  ],
+                                  "funcformat": "COERCE_EXPLICIT_CALL",
+                                  "location": 1935
+                                }
+                              },
+                              "rexpr": {
+                                "TypeCast": {
+                                  "arg": {
+                                    "A_Const": {
+                                      "sval": {
+                                        "sval": "30 minutes"
+                                      },
+                                      "location": 1952
+                                    }
+                                  },
+                                  "typeName": {
+                                    "names": [
+                                      {
+                                        "String": {
+                                          "sval": "pg_catalog"
+                                        }
+                                      },
+                                      {
+                                        "String": {
+                                          "sval": "interval"
+                                        }
+                                      }
+                                    ],
+                                    "typemod": -1,
+                                    "location": 1943
+                                  },
+                                  "location": -1
+                                }
+                              },
+                              "location": 1941
+                            }
+                          },
+                          {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 1971
+                            }
+                          },
+                          {
+                            "TypeCast": {
+                              "arg": {
+                                "A_Const": {
+                                  "sval": {
+                                    "sval": "{\"purpose\": \"short-lived\", \"environment\": \"development\"}"
+                                  },
+                                  "location": 1983
+                                }
+                              },
+                              "typeName": {
+                                "names": [
+                                  {
+                                    "String": {
+                                      "sval": "jsonb"
+                                    }
+                                  }
+                                ],
+                                "typemod": -1,
+                                "location": 2043
+                              },
+                              "location": 2041
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "limitOption": "LIMIT_OPTION_DEFAULT",
+                  "op": "SETOP_NONE"
+                }
+              },
+              "onConflictClause": {
+                "action": "ONCONFLICT_NOTHING",
+                "infer": {
+                  "indexElems": [
+                    {
+                      "IndexElem": {
+                        "name": "id",
+                        "ordering": "SORTBY_DEFAULT",
+                        "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                      }
+                    }
+                  ],
+                  "location": 2062
+                },
+                "location": 2050
+              },
+              "override": "OVERRIDING_NOT_SET"
+            }
+          },
+          "stmt_location": 962,
+          "stmt_len": 1115
+        },
+        {
+          "stmt": {
+            "InsertStmt": {
+              "relation": {
+                "relname": "nonces",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 2145
+              },
+              "cols": [
+                {
+                  "ResTarget": {
+                    "name": "nonce",
+                    "location": 2153
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "session_id",
+                    "location": 2160
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "used_at",
+                    "location": 2172
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "expires_at",
+                    "location": 2181
+                  }
+                }
+              ],
+              "selectStmt": {
+                "SelectStmt": {
+                  "valuesLists": [
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "nonce_alice_bob_001"
+                              },
+                              "location": 2205
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "550e8400-e29b-41d4-a716-446655440000"
+                              },
+                              "location": 2228
+                            }
+                          },
+                          {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 2268
+                            }
+                          },
+                          {
+                            "A_Expr": {
+                              "kind": "AEXPR_OP",
+                              "name": [
+                                {
+                                  "String": {
+                                    "sval": "+"
+                                  }
+                                }
+                              ],
+                              "lexpr": {
+                                "FuncCall": {
+                                  "funcname": [
+                                    {
+                                      "String": {
+                                        "sval": "now"
+                                      }
+                                    }
+                                  ],
+                                  "funcformat": "COERCE_EXPLICIT_CALL",
+                                  "location": 2275
+                                }
+                              },
+                              "rexpr": {
+                                "TypeCast": {
+                                  "arg": {
+                                    "A_Const": {
+                                      "sval": {
+                                        "sval": "5 minutes"
+                                      },
+                                      "location": 2292
+                                    }
+                                  },
+                                  "typeName": {
+                                    "names": [
+                                      {
+                                        "String": {
+                                          "sval": "pg_catalog"
+                                        }
+                                      },
+                                      {
+                                        "String": {
+                                          "sval": "interval"
+                                        }
+                                      }
+                                    ],
+                                    "typemod": -1,
+                                    "location": 2283
+                                  },
+                                  "location": -1
+                                }
+                              },
+                              "location": 2281
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "nonce_bob_alice_001"
+                              },
+                              "location": 2311
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "660f9511-f30c-52e5-b827-557766551111"
+                              },
+                              "location": 2334
+                            }
+                          },
+                          {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 2374
+                            }
+                          },
+                          {
+                            "A_Expr": {
+                              "kind": "AEXPR_OP",
+                              "name": [
+                                {
+                                  "String": {
+                                    "sval": "+"
+                                  }
+                                }
+                              ],
+                              "lexpr": {
+                                "FuncCall": {
+                                  "funcname": [
+                                    {
+                                      "String": {
+                                        "sval": "now"
+                                      }
+                                    }
+                                  ],
+                                  "funcformat": "COERCE_EXPLICIT_CALL",
+                                  "location": 2381
+                                }
+                              },
+                              "rexpr": {
+                                "TypeCast": {
+                                  "arg": {
+                                    "A_Const": {
+                                      "sval": {
+                                        "sval": "5 minutes"
+                                      },
+                                      "location": 2398
+                                    }
+                                  },
+                                  "typeName": {
+                                    "names": [
+                                      {
+                                        "String": {
+                                          "sval": "pg_catalog"
+                                        }
+                                      },
+                                      {
+                                        "String": {
+                                          "sval": "interval"
+                                        }
+                                      }
+                                    ],
+                                    "typemod": -1,
+                                    "location": 2389
+                                  },
+                                  "location": -1
+                                }
+                              },
+                              "location": 2387
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "nonce_charlie_alice_001"
+                              },
+                              "location": 2417
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "770fa622-g41d-63f6-c938-668877662222"
+                              },
+                              "location": 2444
+                            }
+                          },
+                          {
+                            "FuncCall": {
+                              "funcname": [
+                                {
+                                  "String": {
+                                    "sval": "now"
+                                  }
+                                }
+                              ],
+                              "funcformat": "COERCE_EXPLICIT_CALL",
+                              "location": 2484
+                            }
+                          },
+                          {
+                            "A_Expr": {
+                              "kind": "AEXPR_OP",
+                              "name": [
+                                {
+                                  "String": {
+                                    "sval": "+"
+                                  }
+                                }
+                              ],
+                              "lexpr": {
+                                "FuncCall": {
+                                  "funcname": [
+                                    {
+                                      "String": {
+                                        "sval": "now"
+                                      }
+                                    }
+                                  ],
+                                  "funcformat": "COERCE_EXPLICIT_CALL",
+                                  "location": 2491
+                                }
+                              },
+                              "rexpr": {
+                                "TypeCast": {
+                                  "arg": {
+                                    "A_Const": {
+                                      "sval": {
+                                        "sval": "5 minutes"
+                                      },
+                                      "location": 2508
+                                    }
+                                  },
+                                  "typeName": {
+                                    "names": [
+                                      {
+                                        "String": {
+                                          "sval": "pg_catalog"
+                                        }
+                                      },
+                                      {
+                                        "String": {
+                                          "sval": "interval"
+                                        }
+                                      }
+                                    ],
+                                    "typemod": -1,
+                                    "location": 2499
+                                  },
+                                  "location": -1
+                                }
+                              },
+                              "location": 2497
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "limitOption": "LIMIT_OPTION_DEFAULT",
+                  "op": "SETOP_NONE"
+                }
+              },
+              "onConflictClause": {
+                "action": "ONCONFLICT_NOTHING",
+                "infer": {
+                  "indexElems": [
+                    {
+                      "IndexElem": {
+                        "name": "nonce",
+                        "ordering": "SORTBY_DEFAULT",
+                        "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                      }
+                    }
+                  ],
+                  "location": 2533
+                },
+                "location": 2521
+              },
+              "override": "OVERRIDING_NOT_SET"
+            }
+          },
+          "stmt_location": 2078,
+          "stmt_len": 473
+        },
+        {
+          "stmt": {
+            "DoStmt": {
+              "args": [
+                {
+                  "DefElem": {
+                    "defname": "as",
+                    "arg": {
+                      "String": {
+                        "sval": "\nBEGIN\n    RAISE NOTICE 'Development seed data loaded successfully';\n    RAISE NOTICE 'DIDs created: 4 (3 active, 1 revoked)';\n    RAISE NOTICE 'Sessions created: 3';\n    RAISE NOTICE 'Nonces created: 3';\nEND "
+                      }
+                    },
+                    "defaction": "DEFELEM_UNSPEC",
+                    "location": 2575
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 2552,
+          "stmt_len": 236
+        }
+      ]
+    }
+  },
+  {
+    "file": "deployments/migrations/seeds/staging.sql",
+    "ast": {
+      "version": 170004,
+      "stmts": [
+        {
+          "stmt": {
+            "InsertStmt": {
+              "relation": {
+                "relname": "dids",
+                "inh": true,
+                "relpersistence": "p",
+                "location": 156
+              },
+              "cols": [
+                {
+                  "ResTarget": {
+                    "name": "did",
+                    "location": 162
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "public_key",
+                    "location": 167
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "owner_address",
+                    "location": 179
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "key_type",
+                    "location": 194
+                  }
+                },
+                {
+                  "ResTarget": {
+                    "name": "revoked",
+                    "location": 204
+                  }
+                }
+              ],
+              "selectStmt": {
+                "SelectStmt": {
+                  "valuesLists": [
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:staging:test1"
+                              },
+                              "location": 225
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "\\x302a300506032b6570032100a1b2c3d4e5f6071829303a4b5c6d7e8f9091a2b3c4d5e6f7081920313a4b5c6d"
+                              },
+                              "location": 251
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "0x123a24Bc5634D0532925a3b844Bc9e7595f0bEb"
+                              },
+                              "location": 347
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "Ed25519"
+                              },
+                              "location": 392
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "boolval": {},
+                              "location": 403
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "List": {
+                        "items": [
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "did:sage:staging:test2"
+                              },
+                              "location": 416
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "\\x302a300506032b6570032100b2c3d4e5f6071829303a4b5c6d7e8f9091a2b3c4d5e6f7081920313a4b5c6d7e"
+                              },
+                              "location": 442
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "0x234b35Cd6745E1643a36b4c955Cd0f8686f1cFec"
+                              },
+                              "location": 538
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "sval": {
+                                "sval": "Ed25519"
+                              },
+                              "location": 584
+                            }
+                          },
+                          {
+                            "A_Const": {
+                              "boolval": {},
+                              "location": 595
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "limitOption": "LIMIT_OPTION_DEFAULT",
+                  "op": "SETOP_NONE"
+                }
+              },
+              "onConflictClause": {
+                "action": "ONCONFLICT_NOTHING",
+                "infer": {
+                  "indexElems": [
+                    {
+                      "IndexElem": {
+                        "name": "did",
+                        "ordering": "SORTBY_DEFAULT",
+                        "nulls_ordering": "SORTBY_NULLS_DEFAULT"
+                      }
+                    }
+                  ],
+                  "location": 614
+                },
+                "location": 602
+              },
+              "override": "OVERRIDING_NOT_SET"
+            }
+          },
+          "stmt_len": 630
+        },
+        {
+          "stmt": {
+            "DoStmt": {
+              "args": [
+                {
+                  "DefElem": {
+                    "defname": "as",
+                    "arg": {
+                      "String": {
+                        "sval": "\nBEGIN\n    RAISE NOTICE 'Staging seed data loaded successfully';\n    RAISE NOTICE 'DIDs created: 2 (minimal test accounts)';\n    RAISE NOTICE 'Sessions: None (created by tests)';\n    RAISE NOTICE 'Nonces: None (created by tests)';\nEND "
+                      }
+                    },
+                    "defaction": "DEFELEM_UNSPEC",
+                    "location": 730
+                  }
+                }
+              ]
+            }
+          },
+          "stmt_location": 631,
+          "stmt_len": 338
+        }
+      ]
+    }
+  }
+]

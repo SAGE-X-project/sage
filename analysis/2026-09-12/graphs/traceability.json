@@ -1,0 +1,1238 @@
+{
+  "requirements": [
+    {
+      "id": "R01",
+      "title": "본문·대상 무결성",
+      "status": "부분 구현",
+      "assessment": "strict 모드의 본문·대상 coverage는 구현. 기본 옵션은 느슨하며 호출자 설정이 보안 경계다.",
+      "document": {
+        "file": "README.md",
+        "line": 34,
+        "excerpt": "- **RFC 9421 HTTP Message Signatures** — Verifiable agent-to-agent communication",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/README.md:34"
+      },
+      "code": {
+        "file": "pkg/agent/core/rfc9421/verifier_http.go",
+        "line": 189,
+        "excerpt": "func (v *HTTPVerifier) VerifyRequest(req *http.Request, publicKey crypto.PublicKey, opts *HTTPVerificationOptions) error {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/core/rfc9421/verifier_http.go:189"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R02",
+      "title": "서명 재전송 방지",
+      "status": "결함 재현",
+      "assessment": "created/expires 누락을 strict에서도 허용하고 nonce TTL과 전체 수락 기간을 연결하지 않는다. S04.",
+      "document": {
+        "file": "docs/handshake/hpke-based-handshake-en.md",
+        "line": 224,
+        "excerpt": "  - RFC 9421 requests reject duplicate `Signature-Input` nonces via `ReplayGuardSeenOnce(kid, nonce)`.",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/handshake/hpke-based-handshake-en.md:224"
+      },
+      "code": {
+        "file": "pkg/agent/core/rfc9421/verifier_http.go",
+        "line": 353,
+        "excerpt": "func checkSignatureTimes(params *SignatureInputParams, opts *HTTPVerificationOptions) error {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/core/rfc9421/verifier_http.go:353"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R03",
+      "title": "MCP 예제 replay 보호",
+      "status": "결함 재현",
+      "assessment": "요청마다 새 guard 생성. basic-tool도 동일. 저장소 수명과 Close 누락. S03.",
+      "document": {
+        "file": "examples/mcp-integration/basic-demo/README.md",
+        "line": 3,
+        "excerpt": "This is a self-contained demo showing how SAGE secures MCP tools using cryptographic signatures and agent verification.",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/examples/mcp-integration/basic-demo/README.md:3"
+      },
+      "code": {
+        "file": "examples/mcp-integration/basic-demo/main.go",
+        "line": 81,
+        "excerpt": "\tverifier := rfc9421.NewHTTPVerifier()",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/examples/mcp-integration/basic-demo/main.go:81"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R04",
+      "title": "개별 요청에 연결된 응답 인증",
+      "status": "부분 구현",
+      "assessment": "SignResponse/ResponseSigner는 존재하나 strict 검증의 필수 집합에 요청 nonce·signature가 없다. S05.",
+      "document": {
+        "file": "docs/refactoring/BACKLOG.md",
+        "line": 46,
+        "excerpt": "| B-09 | Response / tool-result authentication (RFC 9421 response signing or AEAD wrap with request id as AAD) | [중요] | §11 c3, `STRATEGY.md` §2.1 MCP binding | PR (`SignResponse`/`VerifyResponse` with `;req` request binding, `@status`, response `content-digest`; `ResponseSigner` middleware; `StrictHTTPResponseVerificationOptions`) |",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/refactoring/BACKLOG.md:46"
+      },
+      "code": {
+        "file": "pkg/agent/core/rfc9421/verifier_http.go",
+        "line": 611,
+        "excerpt": "func StrictHTTPResponseVerificationOptions() *HTTPVerificationOptions {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/core/rfc9421/verifier_http.go:611"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R05",
+      "title": "방향별 AEAD와 replay window",
+      "status": "구현·테스트 확인",
+      "assessment": "seq를 AAD에 결합하고 인증 후 sliding window를 갱신한다. 단순 복호화 반복 취약점은 과거 상태다.",
+      "document": {
+        "file": "README.md",
+        "line": 38,
+        "excerpt": "- **Session Management** — Automatic key rotation, nonce tracking, and replay protection",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/README.md:38"
+      },
+      "code": {
+        "file": "pkg/agent/session/session.go",
+        "line": 908,
+        "excerpt": "func (s *SecureSession) open(base cipher.AEAD, direction string, data, aad []byte) ([]byte, error) {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/session/session.go:908"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R06",
+      "title": "세션 자동 키 교체",
+      "status": "부분 구현",
+      "assessment": "메시지 세대별 HKDF 키 교체는 존재. 보관된 동일 seed에서 재파생하므로 PCS나 seed 유출 후 과거키 보호는 아니다.",
+      "document": {
+        "file": "README.md",
+        "line": 38,
+        "excerpt": "- **Session Management** — Automatic key rotation, nonce tracking, and replay protection",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/README.md:38"
+      },
+      "code": {
+        "file": "pkg/agent/session/session.go",
+        "line": 845,
+        "excerpt": "func (s *SecureSession) aeadForSeq(base cipher.AEAD, direction string, seq uint64) (cipher.AEAD, error) {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/session/session.go:845"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R07",
+      "title": "HPKE 기반 1 RTT",
+      "status": "구현·테스트 확인",
+      "assessment": "DID 서명, exporter+ephemeral DH, ackTag가 실제 경로에 있다. 표준 HPKE primitive와 SAGE 전용 합성 프로토콜을 구별해야 한다.",
+      "document": {
+        "file": "README.md",
+        "line": 146,
+        "excerpt": "│   ├── handshake/          # Handshake protocol documentation (EN/KO)",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/README.md:146"
+      },
+      "code": {
+        "file": "pkg/agent/hpke/server.go",
+        "line": 137,
+        "excerpt": "func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/hpke/server.go:137"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R08",
+      "title": "전방향 비밀성",
+      "status": "설계 구현·증명 미확인",
+      "assessment": "추가 ephemeral DH가 정적 KEM 키 유출 위험을 줄임. 합성 AKE의 형식 증명·독립 감사는 확인하지 못했다.",
+      "document": {
+        "file": "docs/handshake/hpke-based-handshake-en.md",
+        "line": 128,
+        "excerpt": "  → Because HKDF mixes both secrets, the resulting `combined` seed stays safe, giving the session **PFS** guarantees.",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/handshake/hpke-based-handshake-en.md:128"
+      },
+      "code": {
+        "file": "pkg/agent/hpke/server.go",
+        "line": 185,
+        "excerpt": "\tcombined, err := combineSecrets(exporterHPKE, ssE2E, pl.ExportCtx)",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/hpke/server.go:185"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R09",
+      "title": "서버 수신 DID 바인딩",
+      "status": "구현·테스트 확인",
+      "assessment": "RespDID 검사가 추가되어 과거 감사 결함 해소.",
+      "document": {
+        "file": "docs/refactoring/BACKLOG.md",
+        "line": 47,
+        "excerpt": "| B-10 | Audience binding (`@authority` / `RespDID` / `did` component compared with resolved DID) | [중요] | §11 b2, c4 | PR (HPKE server rejects `RespDID != s.DID`; rfc9421 `ExpectedDID` / `ExpectedKeyID` / `ExpectedAuthorities` options, `KeyIDDID`; example tool binds keyid to the resolved DID) |",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/refactoring/BACKLOG.md:47"
+      },
+      "code": {
+        "file": "pkg/agent/hpke/server.go",
+        "line": 254,
+        "excerpt": "\tif s.DID != \"\" && pl.RespDID != s.DID {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/hpke/server.go:254"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R10",
+      "title": "DoS cookie 선행 검증",
+      "status": "부분 구현",
+      "assessment": "현재 DID 조회·서명 검증 뒤 cookie 검사. HPKE 비용만 줄이고 앞선 비용은 막지 못한다.",
+      "document": {
+        "file": "README.md",
+        "line": 159,
+        "excerpt": "    - **Server**: verify cookie early → verify DID signature → check replay/clock-skew/context → HPKE Open → generate ephS → compute ssE2E → derive seed → **create session**.",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/README.md:159"
+      },
+      "code": {
+        "file": "pkg/agent/hpke/server.go",
+        "line": 147,
+        "excerpt": "\tsenderDID, _, err := s.verifySender(ctx, msg)",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/hpke/server.go:147"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R11",
+      "title": "DID와 등록 소유자 결합",
+      "status": "결함 재현",
+      "assessment": "다른 주소를 포함한 DID를 등록할 수 있음. 이름을 소유자 인증으로 해석하는 통합에서는 신뢰 경계 손상. S01.",
+      "document": {
+        "file": "docs/did/did-en.md",
+        "line": 1,
+        "excerpt": "# SAGE DID Package",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/did/did-en.md:1"
+      },
+      "code": {
+        "file": "contracts/ethereum/contracts/AgentCardVerifyHook.sol",
+        "line": 148,
+        "excerpt": "    function _validateDIDFormat(string calldata did, address owner) internal pure {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/contracts/ethereum/contracts/AgentCardVerifyHook.sol:148"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R12",
+      "title": "등록 키 소유 증명",
+      "status": "결함 재현",
+      "assessment": "Ed25519는 길이만 검사. ECDSA는 등록 계정 서명을 검사하나 등록 keyData와 결합하지 않는다. S01.",
+      "document": {
+        "file": "README.md",
+        "line": 37,
+        "excerpt": "- **Multi-Key Support** — Ed25519, Secp256k1, and X25519 cryptographic operations",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/README.md:37"
+      },
+      "code": {
+        "file": "contracts/ethereum/contracts/AgentCardRegistry.sol",
+        "line": 418,
+        "excerpt": "    function _verifyKeyOwnership(",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/contracts/ethereum/contracts/AgentCardRegistry.sol:418"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R13",
+      "title": "폐기·비활성 신원 거부",
+      "status": "결함 재현",
+      "assessment": "Go의 verified/active 검사는 개선됐지만 비활성 agent를 비소유자가 재활성화 가능. S02.",
+      "document": {
+        "file": "docs/refactoring/BACKLOG.md",
+        "line": 42,
+        "excerpt": "| B-06 | Resolver honours on-chain `verified` flag and revocation; returns Ed25519 keys; replaces the `\"mock-public-key\"` resolver used by `sage-did debug` | [중요] | §11 a5, c5 | PR (key policy: only verified keys, revoked keys skipped, Ed25519 fallback, X25519 from key list; `ErrNoSigningKey`); mock resolver removal tracked as B-06b |",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/refactoring/BACKLOG.md:42"
+      },
+      "code": {
+        "file": "contracts/ethereum/contracts/AgentCardRegistry.sol",
+        "line": 245,
+        "excerpt": "    function activateAgent(bytes32 agentId) external nonReentrant {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/contracts/ethereum/contracts/AgentCardRegistry.sol:245"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R14",
+      "title": "온체인 verified 키만 선택",
+      "status": "구현·테스트 확인",
+      "assessment": "Go 필터 자체는 구현. verified를 만드는 계약의 증명 강도가 약하다는 별도 문제 존재.",
+      "document": {
+        "file": "docs/refactoring/BACKLOG.md",
+        "line": 42,
+        "excerpt": "| B-06 | Resolver honours on-chain `verified` flag and revocation; returns Ed25519 keys; replaces the `\"mock-public-key\"` resolver used by `sage-did debug` | [중요] | §11 a5, c5 | PR (key policy: only verified keys, revoked keys skipped, Ed25519 fallback, X25519 from key list; `ErrNoSigningKey`); mock resolver removal tracked as B-06b |",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/refactoring/BACKLOG.md:42"
+      },
+      "code": {
+        "file": "pkg/agent/did/ethereum/key_policy.go",
+        "line": 37,
+        "excerpt": "\t\tif !k.Verified {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/did/ethereum/key_policy.go:37"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R15",
+      "title": "AgentCard proof의 DID 신뢰점",
+      "status": "부분 구현",
+      "assessment": "체인 키로 proof 검증하는 API 존재. 자기서명 검증과 신뢰점 검증의 선택은 호출자가 책임진다.",
+      "document": {
+        "file": "docs/refactoring/BACKLOG.md",
+        "line": 44,
+        "excerpt": "| B-07 | A2A card validation against the chain (`ValidateA2ACardWithDID`) in `sage-did card verify` | [중요] | §11 a4 | PR (`VerifyA2ACardProofWithDID` / `ValidateA2ACardWithProofAndDID`; `card validate --with-proof --verify-did` verifies the proof with the on-chain key; self-attested result is labelled; `FromAgentMetadata` accepts parsed keys) |",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/refactoring/BACKLOG.md:44"
+      },
+      "code": {
+        "file": "pkg/agent/did/a2a_proof.go",
+        "line": 218,
+        "excerpt": "func VerifyA2ACardProofWithDID(ctx context.Context, cardWithProof *A2AAgentCardWithProof, resolver Resolver) error {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/did/a2a_proof.go:218"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R16",
+      "title": "3단계 CLI 등록 --key",
+      "status": "미완료",
+      "assessment": "문서의 --key 예제가 즉시 실패한다. --private-key 우회도 빈 Keys와 TBD DID를 생성하여 다음 단계와 맞지 않는다. S06.",
+      "document": {
+        "file": "README.md",
+        "line": 190,
+        "excerpt": "# Phase 1: Commit with stake",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/README.md:190"
+      },
+      "code": {
+        "file": "cmd/sage-did/commit.go",
+        "line": 166,
+        "excerpt": "\t\treturn nil, fmt.Errorf(\"key file loading not implemented yet\")",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/cmd/sage-did/commit.go:166"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R17",
+      "title": "스마트컨트랙트 등록 상태기계",
+      "status": "부분 구현",
+      "assessment": "commit-reveal/지연·stake는 구현. 영구 비활성화·소유 증명 결함과 별개로 평가해야 한다.",
+      "document": {
+        "file": "contracts/ethereum/README.md",
+        "line": 14,
+        "excerpt": "- **Commit-Reveal Pattern**: Front-running protection for agent registration",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/contracts/ethereum/README.md:14"
+      },
+      "code": {
+        "file": "contracts/ethereum/contracts/AgentCardRegistry.sol",
+        "line": 122,
+        "excerpt": "    function registerAgentWithParams(RegistrationParams calldata params)",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/contracts/ethereum/contracts/AgentCardRegistry.sol:122"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R18",
+      "title": "RFC 8785 canonical JSON",
+      "status": "구현·테스트 확인",
+      "assessment": "JCS 모듈 및 A2A/HPKE 연결 존재. 언어 간 모든 수치/Unicode 벡터 통과를 의미하지 않는다.",
+      "document": {
+        "file": "docs/refactoring/BACKLOG.md",
+        "line": 48,
+        "excerpt": "| B-11 | Canonical JSON (RFC 8785) for A2A card proofs and the HPKE signed response; deterministic signature selection; P-256 detection; low-S | [중요] | §11 b9, b10, b12, c6; `STRATEGY.md` §3 | PR (`pkg/agent/crypto/jcs`; A2A proofs and HPKE response signed over JCS bytes, verified over received bytes; `GetKeyTypeFromPublicKey` detects P-256 by curve; low-S on every ECDSA signer; signature selection done in B-05). Open remainder: RFC 6979 deterministic nonces for P-256 (Go `ecdsa.Sign` is randomised) → B-11b |",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/refactoring/BACKLOG.md:48"
+      },
+      "code": {
+        "file": "pkg/agent/crypto/jcs/jcs.go",
+        "line": 45,
+        "excerpt": "func Marshal(v interface{}) ([]byte, error) {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/crypto/jcs/jcs.go:45"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R19",
+      "title": "RFC 9421 RSA-PSS 상호운용",
+      "status": "규격 불일치",
+      "assessment": "알고리즘 표기는 rsa-pss-sha256이나 실제 HTTP 경로는 PKCS1v15. 표준 상대와 상호운용하지 못한다. S07.",
+      "document": {
+        "file": "docs/dev/security-design.md",
+        "line": 312,
+        "excerpt": "    \"rsa-pss-sha256\": true,",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/dev/security-design.md:312"
+      },
+      "code": {
+        "file": "pkg/agent/core/rfc9421/verifier_http.go",
+        "line": 496,
+        "excerpt": "\t\terr := rsa.VerifyPKCS1v15(key, crypto.SHA256, digest, signature)",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/core/rfc9421/verifier_http.go:496"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R20",
+      "title": "HTTP/WS 입력 제한",
+      "status": "구현·테스트 확인",
+      "assessment": "HTTP/WS 제한과 origin 검사가 존재. ResponseSigner는 별도 무제한 버퍼링·streaming 미지원 과제다.",
+      "document": {
+        "file": "docs/refactoring/BACKLOG.md",
+        "line": 50,
+        "excerpt": "| B-12 | Transport hardening: body size limits, WebSocket origin default-deny, drop `X-SAGE-*` header override, generic auth error messages | [중요] | §11 b4, b5, b6, b13 | PR (HTTP `MaxBytesReader` 1 MiB + 413; WS `SetReadLimit` 1 MiB, origin check on by default with same-origin/allow-list, `SetRequireOrigin`, mutex-guarded; `X-SAGE-*` identity headers must equal the body; rfc9421 `MaxBodyBytes`; HPKE init rejections collapse to `ErrInitRejected` with reasons on `ServerOpts.Logger`) |",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/refactoring/BACKLOG.md:50"
+      },
+      "code": {
+        "file": "pkg/agent/transport/http/server.go",
+        "line": 102,
+        "excerpt": "\t\tr.Body = http.MaxBytesReader(w, r.Body, s.maxBodyBytes)",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/transport/http/server.go:102"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R21",
+      "title": "HMAC session RFC 9421 바인딩",
+      "status": "통합 미완료",
+      "assessment": "HTTPVerifier는 공개키 검증 경로. session.SignCovered와 RFC 9421 middleware 및 kid 해석이 자동 연결된 것으로 볼 수 없다.",
+      "document": {
+        "file": "docs/handshake/hpke-based-handshake-en.md",
+        "line": 261,
+        "excerpt": "3. **HTTP signing phase**: RFC 9421 signs the request line, headers, and body digest. `keyId=kid` identifies the session for verification.",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/handshake/hpke-based-handshake-en.md:261"
+      },
+      "code": {
+        "file": "pkg/agent/core/rfc9421/verifier_http.go",
+        "line": 461,
+        "excerpt": "func (v *HTTPVerifier) verifySignature(publicKey crypto.PublicKey, message, signature []byte, algorithm string) error {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/core/rfc9421/verifier_http.go:461"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R22",
+      "title": "x-channel-binding 프로파일",
+      "status": "문서 예시·통합 미확인",
+      "assessment": "문서에는 설계·예시가 있으나 pkg/internal/examples의 해당 헤더 구현 검색 결과 없음.",
+      "document": {
+        "file": "docs/handshake/hpke-based-handshake-en.md",
+        "line": 310,
+        "excerpt": "- Header name: `X-Channel-Binding`",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/handshake/hpke-based-handshake-en.md:310"
+      },
+      "code": {
+        "file": "pkg/agent/hpke/common.go",
+        "line": 39,
+        "excerpt": "func (DefaultInfoBuilder) BuildInfo(ctxID, initDID, respDID string) []byte {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/hpke/common.go:39"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R23",
+      "title": "도구별 권한·위임 정책",
+      "status": "미구현 명시",
+      "assessment": "OIDC 유틸리티는 있지만 tool/argument/tenant별 정책 엔진과 강제 경로는 확인되지 않음.",
+      "document": {
+        "file": "docs/dev/security-design.md",
+        "line": 7,
+        "excerpt": "> -  미구현: Policy Engine, Rate Limiter, Audit Logger",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/dev/security-design.md:7"
+      },
+      "code": {
+        "file": "pkg/oidc/auth0/auth0.go",
+        "line": 61,
+        "excerpt": "func NewAgent(cfg Config) *Agent {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/oidc/auth0/auth0.go:61"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R24",
+      "title": "불변 감사 로그",
+      "status": "미구현 명시",
+      "assessment": "구조화 로그는 존재. hash-chain/서명 영수증/외부 체크포인트와 동일하지 않다.",
+      "document": {
+        "file": "docs/dev/security-design.md",
+        "line": 7,
+        "excerpt": "> -  미구현: Policy Engine, Rate Limiter, Audit Logger",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/dev/security-design.md:7"
+      },
+      "code": {
+        "file": "pkg/telemetry/logger/logger.go",
+        "line": 43,
+        "excerpt": "func WithRequestID(ctx context.Context, requestID string) context.Context {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/telemetry/logger/logger.go:43"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R25",
+      "title": "멀티 언어 SDK 상호운용",
+      "status": "미완료 명시",
+      "assessment": "Go handshake·RFC 9421과 호환되지 않음을 README가 인정. 동일 언어 왕복만으로 완료 판정 불가.",
+      "document": {
+        "file": "README.md",
+        "line": 364,
+        "excerpt": "under `sdk/` (Python, TypeScript, Rust, Java) are **experimental and not yet",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/README.md:364"
+      },
+      "code": {
+        "file": "sdk/typescript/src/client.ts",
+        "line": 54,
+        "excerpt": "  getDID(): string {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/sdk/typescript/src/client.ts:54"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R26",
+      "title": "기술 명세와 test vectors",
+      "status": "부분 구현",
+      "assessment": "현재 sage-vectors 생성기가 있음. 외부 독립 구현의 벡터 검증 및 spec와 양방향 conformance는 이 폴더만으로 확증 불가.",
+      "document": {
+        "file": "docs/refactoring/BACKLOG.md",
+        "line": 7,
+        "excerpt": "Sources: `SUPPLY_CHAIN_AUDIT.md` (F-ids), `SECURITY_WIRING_AUDIT.md` (§11 a/b/c), `REFACTORING_DESIGN.md` (defects D1-D8, phases), `DECISIONS.md`, `DOCS_GRAPH.md` (§5 stale list), `STRATEGY.md` (§5 migration steps).",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/refactoring/BACKLOG.md:7"
+      },
+      "code": {
+        "file": "internal/vectors/vectors.go",
+        "line": 7,
+        "excerpt": "//   - deterministic: the output is a pure function of the input; \"check\"",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/internal/vectors/vectors.go:7"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R27",
+      "title": "Solana production 지원",
+      "status": "부분 구현",
+      "assessment": "Go RPC 클라이언트는 존재. 이 폴더에는 대응 배포 program과 실제 chain 상호운용 증거 부족.",
+      "document": {
+        "file": "README.md",
+        "line": 331,
+        "excerpt": "- **Solana** — In development",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/README.md:331"
+      },
+      "code": {
+        "file": "pkg/agent/did/solana/client.go",
+        "line": 107,
+        "excerpt": "func (c *SolanaClient) Register(ctx context.Context, req *did.RegistrationRequest) (*did.RegistrationResult, error) {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/did/solana/client.go:107"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R28",
+      "title": "외부 의존성 없음",
+      "status": "문서 불일치",
+      "assessment": "go.mod에는 circl/go-ethereum 등 외부 의존성이 있다. core 범위를 재정의하거나 주장 수정 필요.",
+      "document": {
+        "file": "README.md",
+        "line": 41,
+        "excerpt": "- **Zero External Dependencies** — Self-contained core for better maintainability",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/README.md:41"
+      },
+      "code": {
+        "file": "go.mod",
+        "line": 7,
+        "excerpt": "require (",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/go.mod:7"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R29",
+      "title": "production 99% 성공률",
+      "status": "실증 근거 부족",
+      "assessment": "날짜/하드웨어·시행 횟수·실패 분모가 명확하지 않음. 이번 측정은 local primitive benchmark뿐이다.",
+      "document": {
+        "file": "docs/PERFORMANCE_BENCHMARKS.md",
+        "line": 70,
+        "excerpt": "-  Production-ready with 99%+ success rate",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/PERFORMANCE_BENCHMARKS.md:70"
+      },
+      "code": {
+        "file": "pkg/agent/did/ethereum/agentcard_benchmark_test.go",
+        "line": 34,
+        "excerpt": "func BenchmarkCommitmentHashCalculation(b *testing.B) {",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/did/ethereum/agentcard_benchmark_test.go:34"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    },
+    {
+      "id": "R30",
+      "title": "문서·구현 경로 최신화",
+      "status": "미완료",
+      "assessment": "기존 감사, 4-phase 설명, 옛 폴더 구조와 현 코드가 혼재. 과거 결함을 현재 결함으로 재사용하지 않도록 버전 귀속 필요.",
+      "document": {
+        "file": "docs/ARCHITECTURE.md",
+        "line": 1,
+        "excerpt": "# SAGE Architecture",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/docs/ARCHITECTURE.md:1"
+      },
+      "code": {
+        "file": "pkg/agent/core/core.go",
+        "line": 19,
+        "excerpt": "package core",
+        "url": "/Users/kevin/work/github/sage-x-project/sage/pkg/agent/core/core.go:19"
+      },
+      "method": "analyst-reviewed current source; testing stated individually"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "R01",
+      "kind": "requirement",
+      "label": "본문·대상 무결성",
+      "status": "부분 구현"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/core/rfc9421.HTTPVerifier.VerifyRequest",
+      "kind": "code_evidence",
+      "label": "pkg/agent/core/rfc9421/verifier_http.go:189"
+    },
+    {
+      "id": "R02",
+      "kind": "requirement",
+      "label": "서명 재전송 방지",
+      "status": "결함 재현"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/core/rfc9421.checkSignatureTimes",
+      "kind": "code_evidence",
+      "label": "pkg/agent/core/rfc9421/verifier_http.go:353"
+    },
+    {
+      "id": "R03",
+      "kind": "requirement",
+      "label": "MCP 예제 replay 보호",
+      "status": "결함 재현"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/examples/mcp-integration/basic-demo.Calculator.VerifyRequest",
+      "kind": "code_evidence",
+      "label": "examples/mcp-integration/basic-demo/main.go:81"
+    },
+    {
+      "id": "R04",
+      "kind": "requirement",
+      "label": "개별 요청에 연결된 응답 인증",
+      "status": "부분 구현"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/core/rfc9421.StrictHTTPResponseVerificationOptions",
+      "kind": "code_evidence",
+      "label": "pkg/agent/core/rfc9421/verifier_http.go:611"
+    },
+    {
+      "id": "R05",
+      "kind": "requirement",
+      "label": "방향별 AEAD와 replay window",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/session.SecureSession.open",
+      "kind": "code_evidence",
+      "label": "pkg/agent/session/session.go:908"
+    },
+    {
+      "id": "R06",
+      "kind": "requirement",
+      "label": "세션 자동 키 교체",
+      "status": "부분 구현"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/session.SecureSession.aeadForSeq",
+      "kind": "code_evidence",
+      "label": "pkg/agent/session/session.go:845"
+    },
+    {
+      "id": "R07",
+      "kind": "requirement",
+      "label": "HPKE 기반 1 RTT",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/hpke.Server.HandleMessage",
+      "kind": "code_evidence",
+      "label": "pkg/agent/hpke/server.go:137"
+    },
+    {
+      "id": "R08",
+      "kind": "requirement",
+      "label": "전방향 비밀성",
+      "status": "설계 구현·증명 미확인"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/hpke.Server.HandleMessage",
+      "kind": "code_evidence",
+      "label": "pkg/agent/hpke/server.go:185"
+    },
+    {
+      "id": "R09",
+      "kind": "requirement",
+      "label": "서버 수신 DID 바인딩",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/hpke.Server.validateInitEnvelope",
+      "kind": "code_evidence",
+      "label": "pkg/agent/hpke/server.go:254"
+    },
+    {
+      "id": "R10",
+      "kind": "requirement",
+      "label": "DoS cookie 선행 검증",
+      "status": "부분 구현"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/hpke.Server.HandleMessage",
+      "kind": "code_evidence",
+      "label": "pkg/agent/hpke/server.go:147"
+    },
+    {
+      "id": "R11",
+      "kind": "requirement",
+      "label": "DID와 등록 소유자 결합",
+      "status": "결함 재현"
+    },
+    {
+      "id": "file:contracts/ethereum/contracts/AgentCardVerifyHook.sol",
+      "kind": "code_evidence",
+      "label": "contracts/ethereum/contracts/AgentCardVerifyHook.sol:148"
+    },
+    {
+      "id": "R12",
+      "kind": "requirement",
+      "label": "등록 키 소유 증명",
+      "status": "결함 재현"
+    },
+    {
+      "id": "file:contracts/ethereum/contracts/AgentCardRegistry.sol",
+      "kind": "code_evidence",
+      "label": "contracts/ethereum/contracts/AgentCardRegistry.sol:418"
+    },
+    {
+      "id": "R13",
+      "kind": "requirement",
+      "label": "폐기·비활성 신원 거부",
+      "status": "결함 재현"
+    },
+    {
+      "id": "file:contracts/ethereum/contracts/AgentCardRegistry.sol",
+      "kind": "code_evidence",
+      "label": "contracts/ethereum/contracts/AgentCardRegistry.sol:245"
+    },
+    {
+      "id": "R14",
+      "kind": "requirement",
+      "label": "온체인 verified 키만 선택",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/did/ethereum.selectAgentKeys",
+      "kind": "code_evidence",
+      "label": "pkg/agent/did/ethereum/key_policy.go:37"
+    },
+    {
+      "id": "R15",
+      "kind": "requirement",
+      "label": "AgentCard proof의 DID 신뢰점",
+      "status": "부분 구현"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/did.VerifyA2ACardProofWithDID",
+      "kind": "code_evidence",
+      "label": "pkg/agent/did/a2a_proof.go:218"
+    },
+    {
+      "id": "R16",
+      "kind": "requirement",
+      "label": "3단계 CLI 등록 --key",
+      "status": "미완료"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/cmd/sage-did.createAgentCardClient",
+      "kind": "code_evidence",
+      "label": "cmd/sage-did/commit.go:166"
+    },
+    {
+      "id": "R17",
+      "kind": "requirement",
+      "label": "스마트컨트랙트 등록 상태기계",
+      "status": "부분 구현"
+    },
+    {
+      "id": "file:contracts/ethereum/contracts/AgentCardRegistry.sol",
+      "kind": "code_evidence",
+      "label": "contracts/ethereum/contracts/AgentCardRegistry.sol:122"
+    },
+    {
+      "id": "R18",
+      "kind": "requirement",
+      "label": "RFC 8785 canonical JSON",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/crypto/jcs.Marshal",
+      "kind": "code_evidence",
+      "label": "pkg/agent/crypto/jcs/jcs.go:45"
+    },
+    {
+      "id": "R19",
+      "kind": "requirement",
+      "label": "RFC 9421 RSA-PSS 상호운용",
+      "status": "규격 불일치"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/core/rfc9421.HTTPVerifier.verifySignature",
+      "kind": "code_evidence",
+      "label": "pkg/agent/core/rfc9421/verifier_http.go:496"
+    },
+    {
+      "id": "R20",
+      "kind": "requirement",
+      "label": "HTTP/WS 입력 제한",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/transport/http.HTTPServer.MessagesHandler",
+      "kind": "code_evidence",
+      "label": "pkg/agent/transport/http/server.go:102"
+    },
+    {
+      "id": "R21",
+      "kind": "requirement",
+      "label": "HMAC session RFC 9421 바인딩",
+      "status": "통합 미완료"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/core/rfc9421.HTTPVerifier.verifySignature",
+      "kind": "code_evidence",
+      "label": "pkg/agent/core/rfc9421/verifier_http.go:461"
+    },
+    {
+      "id": "R22",
+      "kind": "requirement",
+      "label": "x-channel-binding 프로파일",
+      "status": "문서 예시·통합 미확인"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/hpke.DefaultInfoBuilder.BuildInfo",
+      "kind": "code_evidence",
+      "label": "pkg/agent/hpke/common.go:39"
+    },
+    {
+      "id": "R23",
+      "kind": "requirement",
+      "label": "도구별 권한·위임 정책",
+      "status": "미구현 명시"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/oidc/auth0.NewAgent",
+      "kind": "code_evidence",
+      "label": "pkg/oidc/auth0/auth0.go:61"
+    },
+    {
+      "id": "R24",
+      "kind": "requirement",
+      "label": "불변 감사 로그",
+      "status": "미구현 명시"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/telemetry/logger.WithRequestID",
+      "kind": "code_evidence",
+      "label": "pkg/telemetry/logger/logger.go:43"
+    },
+    {
+      "id": "R25",
+      "kind": "requirement",
+      "label": "멀티 언어 SDK 상호운용",
+      "status": "미완료 명시"
+    },
+    {
+      "id": "file:sdk/typescript/src/client.ts",
+      "kind": "code_evidence",
+      "label": "sdk/typescript/src/client.ts:54"
+    },
+    {
+      "id": "R26",
+      "kind": "requirement",
+      "label": "기술 명세와 test vectors",
+      "status": "부분 구현"
+    },
+    {
+      "id": "file:internal/vectors/vectors.go",
+      "kind": "code_evidence",
+      "label": "internal/vectors/vectors.go:7"
+    },
+    {
+      "id": "R27",
+      "kind": "requirement",
+      "label": "Solana production 지원",
+      "status": "부분 구현"
+    },
+    {
+      "id": "github.com/sage-x-project/sage/pkg/agent/did/solana.SolanaClient.Register",
+      "kind": "code_evidence",
+      "label": "pkg/agent/did/solana/client.go:107"
+    },
+    {
+      "id": "R28",
+      "kind": "requirement",
+      "label": "외부 의존성 없음",
+      "status": "문서 불일치"
+    },
+    {
+      "id": "file:go.mod",
+      "kind": "code_evidence",
+      "label": "go.mod:7"
+    },
+    {
+      "id": "R29",
+      "kind": "requirement",
+      "label": "production 99% 성공률",
+      "status": "실증 근거 부족"
+    },
+    {
+      "id": "file:pkg/agent/did/ethereum/agentcard_benchmark_test.go",
+      "kind": "code_evidence",
+      "label": "pkg/agent/did/ethereum/agentcard_benchmark_test.go:34"
+    },
+    {
+      "id": "R30",
+      "kind": "requirement",
+      "label": "문서·구현 경로 최신화",
+      "status": "미완료"
+    },
+    {
+      "id": "file:pkg/agent/core/core.go",
+      "kind": "code_evidence",
+      "label": "pkg/agent/core/core.go:19"
+    }
+  ],
+  "edges": [
+    {
+      "source": "doc:README.md:L34",
+      "target": "R01",
+      "kind": "claims"
+    },
+    {
+      "source": "R01",
+      "target": "github.com/sage-x-project/sage/pkg/agent/core/rfc9421.HTTPVerifier.VerifyRequest",
+      "kind": "reviewed_evidence",
+      "status": "부분 구현"
+    },
+    {
+      "source": "doc:docs/handshake/hpke-based-handshake-en.md:L224",
+      "target": "R02",
+      "kind": "claims"
+    },
+    {
+      "source": "R02",
+      "target": "github.com/sage-x-project/sage/pkg/agent/core/rfc9421.checkSignatureTimes",
+      "kind": "reviewed_evidence",
+      "status": "결함 재현"
+    },
+    {
+      "source": "doc:examples/mcp-integration/basic-demo/README.md:L3",
+      "target": "R03",
+      "kind": "claims"
+    },
+    {
+      "source": "R03",
+      "target": "github.com/sage-x-project/sage/examples/mcp-integration/basic-demo.Calculator.VerifyRequest",
+      "kind": "reviewed_evidence",
+      "status": "결함 재현"
+    },
+    {
+      "source": "doc:docs/refactoring/BACKLOG.md:L46",
+      "target": "R04",
+      "kind": "claims"
+    },
+    {
+      "source": "R04",
+      "target": "github.com/sage-x-project/sage/pkg/agent/core/rfc9421.StrictHTTPResponseVerificationOptions",
+      "kind": "reviewed_evidence",
+      "status": "부분 구현"
+    },
+    {
+      "source": "doc:README.md:L38",
+      "target": "R05",
+      "kind": "claims"
+    },
+    {
+      "source": "R05",
+      "target": "github.com/sage-x-project/sage/pkg/agent/session.SecureSession.open",
+      "kind": "reviewed_evidence",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "source": "doc:README.md:L38",
+      "target": "R06",
+      "kind": "claims"
+    },
+    {
+      "source": "R06",
+      "target": "github.com/sage-x-project/sage/pkg/agent/session.SecureSession.aeadForSeq",
+      "kind": "reviewed_evidence",
+      "status": "부분 구현"
+    },
+    {
+      "source": "doc:README.md:L90",
+      "target": "R07",
+      "kind": "claims"
+    },
+    {
+      "source": "R07",
+      "target": "github.com/sage-x-project/sage/pkg/agent/hpke.Server.HandleMessage",
+      "kind": "reviewed_evidence",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "source": "doc:docs/handshake/hpke-based-handshake-en.md:L126",
+      "target": "R08",
+      "kind": "claims"
+    },
+    {
+      "source": "R08",
+      "target": "github.com/sage-x-project/sage/pkg/agent/hpke.Server.HandleMessage",
+      "kind": "reviewed_evidence",
+      "status": "설계 구현·증명 미확인"
+    },
+    {
+      "source": "doc:docs/refactoring/BACKLOG.md:L47",
+      "target": "R09",
+      "kind": "claims"
+    },
+    {
+      "source": "R09",
+      "target": "github.com/sage-x-project/sage/pkg/agent/hpke.Server.validateInitEnvelope",
+      "kind": "reviewed_evidence",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "source": "doc:README.md:L159",
+      "target": "R10",
+      "kind": "claims"
+    },
+    {
+      "source": "R10",
+      "target": "github.com/sage-x-project/sage/pkg/agent/hpke.Server.HandleMessage",
+      "kind": "reviewed_evidence",
+      "status": "부분 구현"
+    },
+    {
+      "source": "doc:docs/did/did-en.md:L1",
+      "target": "R11",
+      "kind": "claims"
+    },
+    {
+      "source": "R11",
+      "target": "file:contracts/ethereum/contracts/AgentCardVerifyHook.sol",
+      "kind": "reviewed_evidence",
+      "status": "결함 재현"
+    },
+    {
+      "source": "doc:README.md:L37",
+      "target": "R12",
+      "kind": "claims"
+    },
+    {
+      "source": "R12",
+      "target": "file:contracts/ethereum/contracts/AgentCardRegistry.sol",
+      "kind": "reviewed_evidence",
+      "status": "결함 재현"
+    },
+    {
+      "source": "doc:docs/refactoring/BACKLOG.md:L42",
+      "target": "R13",
+      "kind": "claims"
+    },
+    {
+      "source": "R13",
+      "target": "file:contracts/ethereum/contracts/AgentCardRegistry.sol",
+      "kind": "reviewed_evidence",
+      "status": "결함 재현"
+    },
+    {
+      "source": "doc:docs/refactoring/BACKLOG.md:L42",
+      "target": "R14",
+      "kind": "claims"
+    },
+    {
+      "source": "R14",
+      "target": "github.com/sage-x-project/sage/pkg/agent/did/ethereum.selectAgentKeys",
+      "kind": "reviewed_evidence",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "source": "doc:docs/refactoring/BACKLOG.md:L44",
+      "target": "R15",
+      "kind": "claims"
+    },
+    {
+      "source": "R15",
+      "target": "github.com/sage-x-project/sage/pkg/agent/did.VerifyA2ACardProofWithDID",
+      "kind": "reviewed_evidence",
+      "status": "부분 구현"
+    },
+    {
+      "source": "doc:README.md:L189",
+      "target": "R16",
+      "kind": "claims"
+    },
+    {
+      "source": "R16",
+      "target": "github.com/sage-x-project/sage/cmd/sage-did.createAgentCardClient",
+      "kind": "reviewed_evidence",
+      "status": "미완료"
+    },
+    {
+      "source": "doc:contracts/ethereum/README.md:L14",
+      "target": "R17",
+      "kind": "claims"
+    },
+    {
+      "source": "R17",
+      "target": "file:contracts/ethereum/contracts/AgentCardRegistry.sol",
+      "kind": "reviewed_evidence",
+      "status": "부분 구현"
+    },
+    {
+      "source": "doc:docs/refactoring/BACKLOG.md:L48",
+      "target": "R18",
+      "kind": "claims"
+    },
+    {
+      "source": "R18",
+      "target": "github.com/sage-x-project/sage/pkg/agent/crypto/jcs.Marshal",
+      "kind": "reviewed_evidence",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "source": "doc:docs/dev/security-design.md:L308",
+      "target": "R19",
+      "kind": "claims"
+    },
+    {
+      "source": "R19",
+      "target": "github.com/sage-x-project/sage/pkg/agent/core/rfc9421.HTTPVerifier.verifySignature",
+      "kind": "reviewed_evidence",
+      "status": "규격 불일치"
+    },
+    {
+      "source": "doc:docs/refactoring/BACKLOG.md:L50",
+      "target": "R20",
+      "kind": "claims"
+    },
+    {
+      "source": "R20",
+      "target": "github.com/sage-x-project/sage/pkg/agent/transport/http.HTTPServer.MessagesHandler",
+      "kind": "reviewed_evidence",
+      "status": "구현·테스트 확인"
+    },
+    {
+      "source": "doc:docs/handshake/hpke-based-handshake-en.md:L261",
+      "target": "R21",
+      "kind": "claims"
+    },
+    {
+      "source": "R21",
+      "target": "github.com/sage-x-project/sage/pkg/agent/core/rfc9421.HTTPVerifier.verifySignature",
+      "kind": "reviewed_evidence",
+      "status": "통합 미완료"
+    },
+    {
+      "source": "doc:docs/handshake/hpke-based-handshake-en.md:L310",
+      "target": "R22",
+      "kind": "claims"
+    },
+    {
+      "source": "R22",
+      "target": "github.com/sage-x-project/sage/pkg/agent/hpke.DefaultInfoBuilder.BuildInfo",
+      "kind": "reviewed_evidence",
+      "status": "문서 예시·통합 미확인"
+    },
+    {
+      "source": "doc:docs/dev/security-design.md:L3",
+      "target": "R23",
+      "kind": "claims"
+    },
+    {
+      "source": "R23",
+      "target": "github.com/sage-x-project/sage/pkg/oidc/auth0.NewAgent",
+      "kind": "reviewed_evidence",
+      "status": "미구현 명시"
+    },
+    {
+      "source": "doc:docs/dev/security-design.md:L3",
+      "target": "R24",
+      "kind": "claims"
+    },
+    {
+      "source": "R24",
+      "target": "github.com/sage-x-project/sage/pkg/telemetry/logger.WithRequestID",
+      "kind": "reviewed_evidence",
+      "status": "미구현 명시"
+    },
+    {
+      "source": "doc:README.md:L363",
+      "target": "R25",
+      "kind": "claims"
+    },
+    {
+      "source": "R25",
+      "target": "file:sdk/typescript/src/client.ts",
+      "kind": "reviewed_evidence",
+      "status": "미완료 명시"
+    },
+    {
+      "source": "doc:docs/refactoring/BACKLOG.md:L7",
+      "target": "R26",
+      "kind": "claims"
+    },
+    {
+      "source": "R26",
+      "target": "file:internal/vectors/vectors.go",
+      "kind": "reviewed_evidence",
+      "status": "부분 구현"
+    },
+    {
+      "source": "doc:README.md:L331",
+      "target": "R27",
+      "kind": "claims"
+    },
+    {
+      "source": "R27",
+      "target": "github.com/sage-x-project/sage/pkg/agent/did/solana.SolanaClient.Register",
+      "kind": "reviewed_evidence",
+      "status": "부분 구현"
+    },
+    {
+      "source": "doc:README.md:L41",
+      "target": "R28",
+      "kind": "claims"
+    },
+    {
+      "source": "R28",
+      "target": "file:go.mod",
+      "kind": "reviewed_evidence",
+      "status": "문서 불일치"
+    },
+    {
+      "source": "doc:docs/PERFORMANCE_BENCHMARKS.md:L70",
+      "target": "R29",
+      "kind": "claims"
+    },
+    {
+      "source": "R29",
+      "target": "file:pkg/agent/did/ethereum/agentcard_benchmark_test.go",
+      "kind": "reviewed_evidence",
+      "status": "실증 근거 부족"
+    },
+    {
+      "source": "doc:docs/ARCHITECTURE.md:L1",
+      "target": "R30",
+      "kind": "claims"
+    },
+    {
+      "source": "R30",
+      "target": "file:pkg/agent/core/core.go",
+      "kind": "reviewed_evidence",
+      "status": "미완료"
+    }
+  ]
+}

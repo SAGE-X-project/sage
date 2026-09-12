@@ -644,3 +644,4 @@ gosec-check.json
 # Regenerated code-graph artifacts (see docs/refactoring/README.md)
 docs/refactoring/graph/graph.json
 docs/refactoring/graph/delta.md
+.sage-spec

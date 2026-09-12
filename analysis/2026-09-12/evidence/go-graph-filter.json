@@ -1,0 +1,13 @@
+{
+  "raw_packages": 60,
+  "filtered_packages": 58,
+  "raw_symbols": 2216,
+  "filtered_symbols": 1805,
+  "raw_edges": 1856,
+  "filtered_edges": 1461,
+  "removed_packages": [
+    "github.com/sage-x-project/sage/reports/bindings",
+    "github.com/sage-x-project/sage/sdk/typescript/node_modules/flatted/golang/pkg/flatted"
+  ],
+  "note": "Filtered to original snapshot inventory; go/packages excludes some build-tagged files and nested modules. All source files still have syntax ASTs."
+}
