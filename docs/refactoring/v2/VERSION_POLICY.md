@@ -55,4 +55,6 @@ release-candidate combination; "main" rows are removed once tagged.
 | Pin the sage-spec checkout `ref:` in the three CIs to a spec tag; tag `sage-spec` `v1.0.0-draft.1` | sage-spec, sage, rs-sage-core, sage-inspector | after the first spec tag exists |
 | Add the `spec` declaration to the four READMEs | sage, rs-sage-core, sage-gateway, sage-inspector | open |
 | Move the matrix in §3 to the `sage-spec` README once it has a second row | sage-spec | later |
-| Tag `sage` `v1.6.0` after the remaining Phase 3 items | sage | after D-04 3.2/3.4/3.5 |
+| Tag `sage` `v1.6.0` | sage | Phase 3 is complete (2026-09-12); tag after the G-01 to G-05 wire-format fixes so that v1.6.0 already speaks the 1.0.0 protocol |
+| Do not tag `sage-spec` `v1.0.0` until BACKLOG G-01 to G-05 are in the text and the vectors | sage-spec | decided 2026-09-13 |
+| Deprecated code (including `handshake`) is removed in `v1.8.0`, not earlier | sage | decided 2026-09-13; BACKLOG D-06 aligned |

@@ -35,7 +35,8 @@ import (
 // SignatureVerifier is the HPKE-local verification contract.
 //
 // Deprecated: call keys.VerifySignature directly; the implementations below
-// delegate to it and remain for one release.
+// delegate to it and remain until v1.8.0, two minor releases after their
+// deprecation in v1.6.0 (docs/refactoring/v2/VERSION_POLICY.md).
 type SignatureVerifier interface {
 	// Verify verifies a signature against a payload using the provided public key
 	Verify(payload, signature []byte, publicKey crypto.PublicKey) error

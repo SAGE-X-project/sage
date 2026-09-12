@@ -119,3 +119,17 @@ Release shape: v1.6.0 = Phase 0 defect fixes + deprecations + SDK banners + lib 
 
 **Consequence for the spec.** The `es256k` entry of the algorithm table in `sage-spec` is defined as this profile; test vectors for it are generated from the Go implementation and must be reproduced by the Rust core.
 
+---
+
+## Decision 7 (2026-09-13). Outcome of the project review
+
+**Evidence.** The review under `v2/review/` (PR #323) found that the HPKE handshake and the session record layer are reachable only from tests and examples, that no shipped path configures TLS (`05` §3, `08` §7), that the version policy and BACKLOG D-06 disagree on when deprecated code leaves (`02` §4), and that four findings change the wire format (`08` §2.1, §2.2, §3.1, §3.2; `09`).
+
+**Decisions taken by the maintainer.**
+
+1. End-to-end encryption becomes a shipped path, not a relabelled claim: the gateway gains an HPKE session mode, the Go and Rust cores are exercised against each other live (F-03b), and a separate demonstration repository (F-09) shows an attacker proxy eavesdropping, replacing and replaying messages, and which layer stops each attack.
+2. Deprecated code leaves at v1.8.0, two minor releases after the v1.6.0 deprecation, as `v2/VERSION_POLICY.md` §4 rule 3 states. BACKLOG D-06 and the code comments that said "one release" or "v1.7" are corrected.
+3. The wire-format fixes listed as BACKLOG G-01 to G-05 are made before sage-spec is tagged 1.0.0. The current behaviour is not frozen as 1.0.0.
+4. The repository split proposed in `v2/review/11` is deferred until the maintainer has reviewed it; no further extraction until then (F-10).
+
+**Consequence for the order of work.** G-01 to G-05 (specification, Go, Rust, vectors) come first, then the gateway HPKE session mode and F-03b, then F-09.
