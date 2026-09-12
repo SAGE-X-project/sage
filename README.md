@@ -430,6 +430,8 @@ This project is licensed under **GNU Lesser General Public License v3.0** — se
 
 **Smart Contracts** (`contracts/ethereum/`) are separately licensed under **MIT License** — see [contracts/ethereum/LICENSE](contracts/ethereum/LICENSE).
 
+**SDKs** (`sdk/`) follow the repository licence (LGPL-3.0) while they live in this repository; when they move to their own repositories they take the licence of the Rust core they bind to.
+
 See also: [LGPL-3.0 Full Text](https://www.gnu.org/licenses/lgpl-3.0.html) | [INSTALL.md](INSTALL.md) | [NOTICE](NOTICE)
 
 ## Support & Acknowledgments
