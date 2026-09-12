@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sage-x-project/sage/internal/vectors"
+	"github.com/sage-x-project/sage/pkg/vectors"
 	"github.com/sage-x-project/sage/pkg/version"
 )
 

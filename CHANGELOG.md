@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- `sage-vectors` command (`gen`, `check`, `list`) and `internal/vectors`: deterministic and verify-only protocol test vectors for crypto, JCS, RFC 9421, HPKE derivations, session key schedule and `did:sage`, published in the sage-spec repository; `make vectors` / `make vectors-check`.
+- `sage-vectors` command (`gen`, `check`, `list`) and `pkg/vectors`: deterministic and verify-only protocol test vectors for crypto, JCS, RFC 9421, HPKE derivations, session key schedule and `did:sage`, published in the sage-spec repository; `make vectors` / `make vectors-check`.
 - `hpke.CombineSecrets` exported for cross-implementation checks.
 
 ### Changed
