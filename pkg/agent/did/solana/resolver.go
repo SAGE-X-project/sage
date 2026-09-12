@@ -155,6 +155,7 @@ func (c *SolanaClient) ListAgentsByOwner(ctx context.Context, ownerAddress strin
 			Name:         agentAccount.Name,
 			Description:  agentAccount.Description,
 			Endpoint:     agentAccount.Endpoint,
+			Keys:         []did.AgentKey{{Type: did.KeyTypeEd25519, KeyData: agentAccount.PublicKey[:], Verified: true, CreatedAt: time.Unix(agentAccount.CreatedAt, 0)}},
 			PublicKey:    agentAccount.PublicKey[:],
 			Capabilities: agentAccount.Capabilities,
 			Owner:        agentAccount.Owner.String(),

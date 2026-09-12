@@ -310,7 +310,7 @@ func (c *AgentCardClient) GetCommitmentState(ctx context.Context, owner common.A
 }
 
 // GetAgent retrieves agent metadata by agent ID
-func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.AgentMetadataV4, error) {
+func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.AgentMetadata, error) {
 	// Call contract to get agent metadata
 	metadata, err := c.contract.GetAgent(&bind.CallOpts{Context: ctx}, agentID)
 	if err != nil {
@@ -323,7 +323,7 @@ func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.
 	}
 
 	// Convert contract metadata to AgentMetadataV4
-	agent := &did.AgentMetadataV4{
+	agent := &did.AgentMetadata{
 		DID:          did.AgentDID(metadata.Did),
 		Name:         metadata.Name,
 		Description:  metadata.Description,
@@ -334,7 +334,7 @@ func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.
 		IsActive:     metadata.Active,
 		CreatedAt:    time.Unix(metadata.RegisteredAt.Int64(), 0),
 		UpdatedAt:    time.Unix(metadata.UpdatedAt.Int64(), 0),
-		PublicKEMKey: metadata.KemPublicKey, // ✅ Populate KME public key
+		PublicKEMKey: metadata.KemPublicKey, // raw 32-byte X25519 key
 	}
 
 	// Parse capabilities JSON
@@ -361,11 +361,14 @@ func (c *AgentCardClient) GetAgent(ctx context.Context, agentID [32]byte) (*did.
 		})
 	}
 
+	if err := applyKeyPolicy(agent); err != nil {
+		return nil, err
+	}
 	return agent, nil
 }
 
 // GetAgentByDID retrieves agent metadata by DID string
-func (c *AgentCardClient) GetAgentByDID(ctx context.Context, didStr string) (*did.AgentMetadataV4, error) {
+func (c *AgentCardClient) GetAgentByDID(ctx context.Context, didStr string) (*did.AgentMetadata, error) {
 	// 1) Call on-chain view
 	md, err := c.contract.GetAgentByDID(&bind.CallOpts{Context: ctx}, didStr)
 	if err != nil {
@@ -377,7 +380,7 @@ func (c *AgentCardClient) GetAgentByDID(ctx context.Context, didStr string) (*di
 	}
 
 	// 2) Convert to local struct
-	agent := &did.AgentMetadataV4{
+	agent := &did.AgentMetadata{
 		DID:          did.AgentDID(md.Did),
 		Name:         md.Name,
 		Description:  md.Description,
@@ -415,6 +418,9 @@ func (c *AgentCardClient) GetAgentByDID(ctx context.Context, didStr string) (*di
 		})
 	}
 
+	if err := applyKeyPolicy(agent); err != nil {
+		return nil, err
+	}
 	return agent, nil
 }
 

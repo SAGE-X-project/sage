@@ -66,21 +66,11 @@ type AgentKey struct {
 	CreatedAt time.Time `json:"created_at"` // When key was added
 }
 
-// AgentMetadataV4 contains metadata for agents with multi-key support
-// This type supports SageRegistryV4 contract with multiple keys per agent
-type AgentMetadataV4 struct {
-	DID          AgentDID               `json:"did"`
-	Name         string                 `json:"name"`
-	Description  string                 `json:"description"`
-	Endpoint     string                 `json:"endpoint"`
-	Keys         []AgentKey             `json:"keys"` // Multiple keys (Ed25519, ECDSA, X25519)
-	Capabilities map[string]interface{} `json:"capabilities"`
-	Owner        string                 `json:"owner"` // Blockchain address
-	IsActive     bool                   `json:"is_active"`
-	CreatedAt    time.Time              `json:"created_at"`
-	UpdatedAt    time.Time              `json:"updated_at"`
-	PublicKEMKey []byte                 `json:"public_kem_key"` // X25519 KME public key (32 bytes) for HPKE
-}
+// AgentMetadataV4 is the former multi-key metadata type. AgentMetadata now
+// carries the key list itself, so this is the same type.
+//
+// Deprecated: use AgentMetadata.
+type AgentMetadataV4 = AgentMetadata
 
 // A2APublicKey represents a public key in A2A Agent Card format
 type A2APublicKey struct {
@@ -113,7 +103,7 @@ type A2AAgentCard struct {
 }
 
 // GetKeyByType returns the first key of the specified type
-func (m *AgentMetadataV4) GetKeyByType(keyType KeyType) *AgentKey {
+func (m *AgentMetadata) GetKeyByType(keyType KeyType) *AgentKey {
 	for i := range m.Keys {
 		if m.Keys[i].Type == keyType {
 			return &m.Keys[i]
@@ -123,7 +113,7 @@ func (m *AgentMetadataV4) GetKeyByType(keyType KeyType) *AgentKey {
 }
 
 // GetVerifiedKeys returns all verified keys
-func (m *AgentMetadataV4) GetVerifiedKeys() []AgentKey {
+func (m *AgentMetadata) GetVerifiedKeys() []AgentKey {
 	verified := make([]AgentKey, 0, len(m.Keys))
 	for _, key := range m.Keys {
 		if key.Verified {
@@ -134,82 +124,84 @@ func (m *AgentMetadataV4) GetVerifiedKeys() []AgentKey {
 }
 
 // HasKeyType checks if the agent has a key of the specified type
-func (m *AgentMetadataV4) HasKeyType(keyType KeyType) bool {
+func (m *AgentMetadata) HasKeyType(keyType KeyType) bool {
 	return m.GetKeyByType(keyType) != nil
 }
 
-// ToAgentMetadata converts V4 metadata to legacy AgentMetadata
-// Uses the first ECDSA key as PublicKey and first X25519 key as PublicKEMKey
-func (m *AgentMetadataV4) ToAgentMetadata() *AgentMetadata {
-	legacy := &AgentMetadata{
-		DID:          m.DID,
-		Name:         m.Name,
-		Description:  m.Description,
-		Endpoint:     m.Endpoint,
-		Capabilities: m.Capabilities,
-		Owner:        m.Owner,
-		IsActive:     m.IsActive,
-		CreatedAt:    m.CreatedAt,
-		UpdatedAt:    m.UpdatedAt,
+// KEMKey returns the raw X25519 key bytes: PublicKEMKey when it is set,
+// otherwise the first verified X25519 entry of Keys. It returns nil when the
+// agent has no KEM key.
+func (m *AgentMetadata) KEMKey() []byte {
+	if b, ok := m.PublicKEMKey.([]byte); ok && len(b) > 0 {
+		return b
 	}
-
-	// Use first ECDSA key as primary PublicKey
-	if ecdsaKey := m.GetKeyByType(KeyTypeECDSA); ecdsaKey != nil {
-		legacy.PublicKey = ecdsaKey.KeyData
+	for _, k := range m.Keys {
+		if k.Type == KeyTypeX25519 && k.Verified && len(k.KeyData) > 0 {
+			return k.KeyData
+		}
 	}
-
-	// Use first X25519 key as PublicKEMKey
-	if x25519Key := m.GetKeyByType(KeyTypeX25519); x25519Key != nil {
-		legacy.PublicKEMKey = x25519Key.KeyData
-	}
-
-	return legacy
+	return nil
 }
 
-// FromAgentMetadata creates a V4 metadata from legacy AgentMetadata
-func FromAgentMetadata(legacy *AgentMetadata) *AgentMetadataV4 {
-	v4 := &AgentMetadataV4{
-		DID:          legacy.DID,
-		Name:         legacy.Name,
-		Description:  legacy.Description,
-		Endpoint:     legacy.Endpoint,
-		Keys:         make([]AgentKey, 0, 2),
-		Capabilities: legacy.Capabilities,
-		Owner:        legacy.Owner,
-		IsActive:     legacy.IsActive,
-		CreatedAt:    legacy.CreatedAt,
-		UpdatedAt:    legacy.UpdatedAt,
-	}
+// Normalized returns a copy in which both views agree. When Keys is empty
+// it is derived from PublicKey and PublicKEMKey (the derived entries are
+// marked verified, since a resolver only exposes keys the registry
+// accepted). When PublicKey is nil it becomes the raw bytes of the first
+// verified ECDSA key, or failing that the first verified Ed25519 key; when
+// PublicKEMKey is nil it becomes the first verified X25519 key. Unknown
+// PublicKey types are left alone and produce no key entry. The receiver is
+// not modified, so cached resolver results are safe to normalise.
+func (m *AgentMetadata) Normalized() *AgentMetadata {
+	out := *m
+	out.Keys = append([]AgentKey(nil), m.Keys...)
 
-	// Convert PublicKey to ECDSA key
-	// Resolvers return PublicKey either as raw bytes or as a parsed key
-	// (*ecdsa.PublicKey for secp256k1, ed25519.PublicKey). Both forms are
-	// reduced to the byte encoding stored on-chain so that card and key
-	// comparisons work regardless of which resolver produced the metadata.
-	if legacy.PublicKey != nil {
-		if keyType, keyBytes, ok := legacyPublicKeyBytes(legacy.PublicKey); ok {
-			v4.Keys = append(v4.Keys, AgentKey{
-				Type:      keyType,
-				KeyData:   keyBytes,
-				Verified:  true,
-				CreatedAt: legacy.CreatedAt,
-			})
+	if len(out.Keys) == 0 {
+		if m.PublicKey != nil {
+			if keyType, keyBytes, ok := legacyPublicKeyBytes(m.PublicKey); ok {
+				out.Keys = append(out.Keys, AgentKey{Type: keyType, KeyData: keyBytes, Verified: true, CreatedAt: m.CreatedAt})
+			}
+		}
+		if kem, ok := m.PublicKEMKey.([]byte); ok && kem != nil {
+			out.Keys = append(out.Keys, AgentKey{Type: KeyTypeX25519, KeyData: kem, Verified: true, CreatedAt: m.CreatedAt})
 		}
 	}
 
-	// Convert PublicKEMKey to X25519 key
-	if legacy.PublicKEMKey != nil {
-		if keyBytes, ok := legacy.PublicKEMKey.([]byte); ok {
-			v4.Keys = append(v4.Keys, AgentKey{
-				Type:      KeyTypeX25519,
-				KeyData:   keyBytes,
-				Verified:  true,
-				CreatedAt: legacy.CreatedAt,
-			})
+	if out.PublicKey == nil {
+		if k := out.firstVerified(KeyTypeECDSA); k != nil {
+			out.PublicKey = k.KeyData
+		} else if k := out.firstVerified(KeyTypeEd25519); k != nil {
+			out.PublicKey = k.KeyData
 		}
 	}
+	if out.PublicKEMKey == nil {
+		if k := out.firstVerified(KeyTypeX25519); k != nil {
+			out.PublicKEMKey = k.KeyData
+		}
+	}
+	return &out
+}
 
-	return v4
+func (m *AgentMetadata) firstVerified(keyType KeyType) *AgentKey {
+	for i := range m.Keys {
+		if m.Keys[i].Type == keyType && m.Keys[i].Verified {
+			return &m.Keys[i]
+		}
+	}
+	return nil
+}
+
+// ToAgentMetadata returns Normalized().
+//
+// Deprecated: AgentMetadata is the only metadata type; call Normalized.
+func (m *AgentMetadata) ToAgentMetadata() *AgentMetadata {
+	return m.Normalized()
+}
+
+// FromAgentMetadata returns legacy.Normalized().
+//
+// Deprecated: AgentMetadata is the only metadata type; call Normalized.
+func FromAgentMetadata(legacy *AgentMetadata) *AgentMetadata {
+	return legacy.Normalized()
 }
 
 // RegistrationParams represents parameters for AgentCardRegistry registration
