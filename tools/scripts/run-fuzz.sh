@@ -130,7 +130,7 @@ if [ "$FUZZ_TYPE" = "all" ] || [ "$FUZZ_TYPE" = "solidity" ]; then
         echo "Install Foundry: curl -L https://foundry.paradigm.xyz | bash"
         echo ""
     else
-        cd contracts/ethereum
+        cd .sage-contracts/ethereum
 
         echo -e "${YELLOW}Running Foundry fuzz tests...${NC}"
         forge test --match-test "testFuzz_" -vv || true

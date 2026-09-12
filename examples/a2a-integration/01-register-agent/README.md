@@ -223,9 +223,9 @@ Typical gas usage for multi-key registration:
 
 ## Related Documentation
 
-- [SAGE Multi-Key Design](../../../contracts/MULTI_KEY_DESIGN.md)
+- [SAGE Multi-Key Design](https://github.com/SAGE-X-project/sage-contracts/blob/main/MULTI_KEY_DESIGN.md)
 - [DID Specification](../../../docs/DID_SPECIFICATION.md)
-- [SageRegistryV4 Contract](../../../contracts/ethereum/contracts/SageRegistryV4.sol)
+- [SageRegistryV4 Contract](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/contracts/SageRegistryV4.sol)
 
 ## License
 

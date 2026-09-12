@@ -527,7 +527,6 @@ clean:
 	@find . -type d -name "__debug_bin*" -exec rm -rf {} + 2>/dev/null || true
 	@echo "Cleaning Rust build artifacts..."
 	@rm -rf target/
-	@rm -rf contracts/solana/target/
 	@echo "Cleaning SDK artifacts..."
 	@find sdk/ -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find sdk/ -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
@@ -573,18 +572,31 @@ lint:
 		echo "golangci-lint not installed. Run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"; \
 	fi
 
-# Regenerate the Go contract bindings from the Hardhat artifacts
+# Smart contracts live in github.com/SAGE-X-project/sage-contracts. The Go
+# bindings are generated from the ABI files of the commit recorded in
+# .contracts-version, checked out into .sage-contracts (override CONTRACTS_DIR
+# to use another checkout, for example ../sage-contracts while developing).
+CONTRACTS_REPO ?= https://github.com/SAGE-X-project/sage-contracts.git
+CONTRACTS_DIR ?= $(CURDIR)/.sage-contracts
+CONTRACTS_REF := $(shell cat .contracts-version)
+
+.PHONY: contracts-checkout
+contracts-checkout:
+	@if [ ! -d "$(CONTRACTS_DIR)/.git" ]; then git clone -q $(CONTRACTS_REPO) "$(CONTRACTS_DIR)"; fi
+	@git -C "$(CONTRACTS_DIR)" fetch -q origin $(CONTRACTS_REF) && git -C "$(CONTRACTS_DIR)" checkout -q $(CONTRACTS_REF)
+	@echo "sage-contracts at $(CONTRACTS_REF) in $(CONTRACTS_DIR)"
+
+# Regenerate the Go contract bindings from the sage-contracts ABIs
 .PHONY: bindings
 bindings:
-	@echo "Compiling contracts and generating Go bindings..."
-	@cd contracts/ethereum && npx hardhat compile >/dev/null
-	@GOTOOLCHAIN=$(GOTOOLCHAIN) tools/scripts/gen-bindings.sh
+	@echo "Generating Go bindings from $(CONTRACTS_DIR)/abi..."
+	@CONTRACTS_DIR="$(CONTRACTS_DIR)" GOTOOLCHAIN=$(GOTOOLCHAIN) tools/scripts/gen-bindings.sh
 
 # Fail when the committed bindings differ from freshly generated ones
 .PHONY: bindings-check
 bindings-check:
 	@echo "Checking Go contract bindings for drift..."
-	@rm -rf $(REPORTS_DIR)/bindings && GOTOOLCHAIN=$(GOTOOLCHAIN) tools/scripts/gen-bindings.sh $(REPORTS_DIR)/bindings >/dev/null
+	@rm -rf $(REPORTS_DIR)/bindings && CONTRACTS_DIR="$(CONTRACTS_DIR)" GOTOOLCHAIN=$(GOTOOLCHAIN) tools/scripts/gen-bindings.sh $(REPORTS_DIR)/bindings >/dev/null
 	@diff -r $(REPORTS_DIR)/bindings pkg/blockchain/ethereum/contracts/agentcardregistry \
 		|| { echo "Go bindings are out of date: run 'make bindings' and commit the result"; exit 1; }
 	@echo "Bindings are up to date"

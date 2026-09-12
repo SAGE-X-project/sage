@@ -628,8 +628,8 @@ publicKey := didDoc.PublicKeys[0]
 ## Related Documents
 
 - [DID Implementation](../../pkg/agent/did/README.md)
-- [SageRegistryV4 Smart Contract](../../contracts/ethereum/contracts/SageRegistryV4.sol)
-- [Solana Agent Program](../../contracts/solana/programs/agent_registry/)
+- [SageRegistryV4 Smart Contract](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/contracts/SageRegistryV4.sol)
+- [Solana Agent Program](https://github.com/SAGE-X-project/sage-contracts/blob/main/solana/programs/agent_registry/)
 - [W3C DID Core Specification](https://www.w3.org/TR/did-core/)
 - [A2A Integration Guide](../archive/2026-09/SAGE_A2A_INTEGRATION_GUIDE.md)
 

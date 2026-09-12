@@ -852,7 +852,7 @@ See [A2A Integration Guide](../../../docs/archive/2026-09/SAGE_A2A_INTEGRATION_G
 - [W3C DID Core 1.0](https://www.w3.org/TR/did-core/) - DID specification
 - [EIP-1056](https://eips.ethereum.org/EIPS/eip-1056) - Ethereum DID
 - [Google A2A Protocol](https://github.com/a2aproject/a2a) - Agent interoperability
-- [SageRegistryV4 Contract](../../../contracts/ethereum/SageRegistryV4.sol) - Smart contract
+- [SageRegistryV4 Contract](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/SageRegistryV4.sol) - Smart contract
 - [Sepolia Etherscan](https://sepolia.etherscan.io/) - Testnet explorer
 
 ## License

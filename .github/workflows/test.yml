@@ -56,32 +56,29 @@ jobs:
           name: coverage-report
           path: coverage.html
 
-  # Smart contract tests
-  test-contracts:
-    name: Smart Contract Tests
+  # Go contract bindings must match the ABIs published by sage-contracts at
+  # the commit pinned in .contracts-version (contract tests, Slither and
+  # solhint run in that repository).
+  bindings:
+    name: Contract Bindings (sage-contracts)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Read the pinned sage-contracts commit
+        id: pin
+        run: echo "ref=$(cat .contracts-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout sage-contracts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: contracts/ethereum/package-lock.json
+          repository: SAGE-X-project/sage-contracts
+          ref: ${{ steps.pin.outputs.ref }}
+          path: .sage-contracts
 
-      - name: Install dependencies
-        working-directory: contracts/ethereum
-        run: npm ci --ignore-scripts
-
-      - name: Run Hardhat tests
-        working-directory: contracts/ethereum
-        run: npm test
-
-      # The Go bindings under pkg/blockchain/ethereum/contracts are generated
-      # from these artifacts; fail if a contract change was not regenerated.
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
@@ -90,17 +87,6 @@ jobs:
 
       - name: Check Go contract bindings for drift
         run: make bindings-check
-
-      # Coverage disabled due to timeout issues with complex contracts
-      # - name: Generate coverage report
-      #   working-directory: contracts/ethereum
-      #   run: npm run coverage
-      #
-      # - name: Upload coverage artifact
-      #   uses: actions/upload-artifact@v5
-      #   with:
-      #     name: contracts-coverage
-      #     path: contracts/ethereum/coverage
 
   # Linting and code quality
   lint:
@@ -148,21 +134,6 @@ jobs:
             echo "$UNFORMATTED"
             exit 1
           fi
-
-      - name: Set up Node.js for Solidity linting
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: contracts/ethereum/package-lock.json
-
-      - name: Install contract dependencies
-        working-directory: contracts/ethereum
-        run: npm ci --ignore-scripts
-
-      - name: Run Solidity linting
-        working-directory: contracts/ethereum
-        run: npx solhint 'contracts/**/*.sol'
 
   # Build verification
   build:

@@ -21,7 +21,7 @@ GRAPH = ROOT / "docs" / "refactoring" / "DOCS_GRAPH.md"
 # Scanned roots (relative to the repository). node_modules and build output
 # are skipped; generated code-graph output is skipped.
 ROOTS = ["README.md", "INSTALL.md", "CONTRIBUTING.md", "SECURITY.md", "CHANGELOG.md",
-         "docs", "api", "contracts/README.md", "contracts/ethereum", "examples", "pkg",
+         "docs", "api", "examples", "pkg",
          "internal", "deployments", "tools", "sdk"]
 SKIP_PARTS = {"node_modules", "artifacts", "cache", "typechain-types", "dist", "target", "reports", "flattened"}
 SKIP_FILES = {"docs/INDEX.md", "docs/refactoring/graph/delta.md"}
@@ -40,8 +40,8 @@ SECTIONS = [
      or p.startswith("docs/crypto/") or p.startswith("docs/did/")),
     ("Command-line tools", "sage-crypto, sage-did and sage-verify.",
      lambda p: p.startswith("docs/cli/")),
-    ("Smart contracts", "AgentCardRegistry, ERC-8004 registries, deployment and verification.",
-     lambda p: p.startswith("contracts/") or p.startswith("docs/contracts/")),
+    ("Smart contracts", "Contract-facing guides; the contracts themselves live in github.com/SAGE-X-project/sage-contracts.",
+     lambda p: p.startswith("docs/contracts/")),
     ("Examples", "Runnable demonstrations. Their READMEs state what each demo checks and what it does not.",
      lambda p: p.startswith("examples/")),
     ("Testing", "Test guides and specification verification records.",

@@ -213,7 +213,7 @@ Check that key files are in the correct format:
 ## Further Reading
 
 - [SAGE Architecture](../../docs/ARCHITECTURE.md)
-- [Multi-Key Design](../../contracts/MULTI_KEY_DESIGN.md)
+- [Multi-Key Design](https://github.com/SAGE-X-project/sage-contracts/blob/main/MULTI_KEY_DESIGN.md)
 - [A2A Protocol Specification](https://github.com/a2aproject/a2a)
 - [RFC 9180: HPKE](https://www.rfc-editor.org/rfc/rfc9180.html)
 - [RFC 9421: HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421.html)

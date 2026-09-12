@@ -43,24 +43,6 @@ updates:
       prefix: "chore(ci)"
       include: "scope"
 
-  # npm (Smart Contracts)
-  - package-ecosystem: "npm"
-    directory: "/contracts/ethereum"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "00:00"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "SAGE-X-project/sage-core-dev"
-    labels:
-      - "dependencies"
-      - "contracts"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-    versioning-strategy: increase
-
   # Docker (root Dockerfile and deployments/docker/Dockerfile are pinned by digest)
   - package-ecosystem: "docker"
     directories:

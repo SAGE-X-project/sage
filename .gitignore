@@ -649,3 +649,6 @@ docs/refactoring/graph/delta.md
 analysis/
 # sage-spec checkout used by the Spec Vectors CI job
 .sage-spec
+
+# sage-contracts checkout used by make bindings and CI (pinned by .contracts-version)
+.sage-contracts

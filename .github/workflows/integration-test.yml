@@ -37,6 +37,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Read the pinned sage-contracts commit
+        id: pin
+        run: echo "ref=$(cat .contracts-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout sage-contracts (Hardhat node for the integration tests)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: SAGE-X-project/sage-contracts
+          ref: ${{ steps.pin.outputs.ref }}
+          path: .sage-contracts
+
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
@@ -48,17 +59,17 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: contracts/ethereum/package-lock.json
+          cache-dependency-path: .sage-contracts/ethereum/package-lock.json
 
       - name: Install Go dependencies
         run: go mod download && go mod verify
 
       - name: Install contract dependencies
-        working-directory: contracts/ethereum
+        working-directory: .sage-contracts/ethereum
         run: npm ci --ignore-scripts
 
       - name: Start Hardhat node
-        working-directory: contracts/ethereum
+        working-directory: .sage-contracts/ethereum
         run: |
           npx hardhat node --hostname 0.0.0.0 &
           sleep 10

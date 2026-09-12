@@ -59,13 +59,11 @@ cd sage
 go mod download
 
 # Smart contract dependencies
-cd contracts/ethereum && npm install && cd ../..
 
 # Build all CLI tools
 make build
 
 # Compile smart contracts
-cd contracts/ethereum && npm run compile
 ```
 
 ### Run Tests
@@ -75,7 +73,6 @@ cd contracts/ethereum && npm run compile
 make test
 
 # Smart contract tests (202 passing)
-cd contracts/ethereum && npm test
 
 # Integration tests
 make test-integration
@@ -130,7 +127,6 @@ sage/
 │   ├── config.go           # Unified configuration loader
 │   ├── blockchain.go       # Blockchain-specific settings
 │   └── validator.go        # Configuration validation
-├── contracts/               # Smart contracts
 │   └── ethereum/           # Ethereum contracts, tests, deployment scripts
 ├── cmd/                     # CLI applications
 │   ├── sage-crypto/        # Cryptographic operations CLI
@@ -307,11 +303,15 @@ go test -cover ./...     # Coverage
 
 ### Smart Contract Tests
 
+The contracts and their 219 Hardhat tests live in
+[sage-contracts](https://github.com/SAGE-X-project/sage-contracts). This
+repository only checks that its Go bindings match the ABIs published there
+at the commit pinned in `.contracts-version`:
+
 ```bash
-cd contracts/ethereum
-npm test                 # All 202 contract tests
-npm run coverage         # Coverage report
-npm run test:integration # Integration tests
+make contracts-checkout  # clone sage-contracts into .sage-contracts at the pinned commit
+make bindings-check      # regenerate bindings from .sage-contracts/abi and diff
+make bindings            # rewrite the bindings after bumping .contracts-version
 ```
 
 ### Feature Verification
@@ -346,7 +346,7 @@ npm run test:integration # Integration tests
 | ERC8004ReputationRegistry | [`0xE953B278fd2378BA4987FE07f71575dd3353C9a8`](https://sepolia.etherscan.io/address/0xE953B278fd2378BA4987FE07f71575dd3353C9a8) |
 | ERC8004ValidationRegistry | [`0x97291e2D3023d166878ed45BBD176F92E5Fda098`](https://sepolia.etherscan.io/address/0x97291e2D3023d166878ed45BBD176F92E5Fda098) |
 
-See [contracts/ethereum/README.md](contracts/ethereum/README.md) for deployment details and verification status.
+See [contracts/ethereum/README.md](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/README.md) for deployment details and verification status.
 
 ### Sepolia Testnet — Legacy Contracts
 
@@ -394,7 +394,7 @@ for the planned core-plus-bindings layout.
 
 ### Smart Contracts
 
-- **[Contracts README](contracts/ethereum/README.md)** — AgentCard contracts, deployment, testing
+- **[Contracts README](https://github.com/SAGE-X-project/sage-contracts/blob/main/ethereum/README.md)** — AgentCard contracts, deployment, testing
 - **[AgentCard Migration Guide](docs/AGENTCARD_MIGRATION_GUIDE.md)** — Migrating from legacy registries
 
 ### Development
@@ -428,7 +428,7 @@ This project is licensed under **GNU Lesser General Public License v3.0** — se
 
 **You DON'T need to**: Open-source your application that uses SAGE.
 
-**Smart Contracts** (`contracts/ethereum/`) are separately licensed under **MIT License** — see [contracts/ethereum/LICENSE](contracts/ethereum/LICENSE).
+**Smart Contracts** live in [sage-contracts](https://github.com/SAGE-X-project/sage-contracts) under the **MIT License**.
 
 **SDKs** (`sdk/`) follow the repository licence (LGPL-3.0) while they live in this repository; when they move to their own repositories they take the licence of the Rust core they bind to.
 
