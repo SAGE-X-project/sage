@@ -209,6 +209,18 @@ Analyses, decisions, backlog and the generated code graph.
 | [`docs/refactoring/v2/REPO_PLAN.md`](refactoring/v2/REPO_PLAN.md) | Repository plan (final, 2026-09-12) |  |
 | [`docs/refactoring/v2/RS_SAGE_CORE_ALIGNMENT.md`](refactoring/v2/RS_SAGE_CORE_ALIGNMENT.md) | rs-sage-core alignment plan (F-03) |  |
 | [`docs/refactoring/v2/VERSION_POLICY.md`](refactoring/v2/VERSION_POLICY.md) | Cross-repository version policy (F-06) |  |
+| [`docs/refactoring/v2/review/01-documentation-graph.md`](refactoring/v2/review/01-documentation-graph.md) | Documentation graph, second pass (X-bar classification) |  |
+| [`docs/refactoring/v2/review/02-code-graph.md`](refactoring/v2/review/02-code-graph.md) | 02. Code graph of main (AST-based) |  |
+| [`docs/refactoring/v2/review/03-history-timeline.md`](refactoring/v2/review/03-history-timeline.md) | 03. History timeline: how SAGE and its documentation evolved |  |
+| [`docs/refactoring/v2/review/04-purpose-and-vision.md`](refactoring/v2/review/04-purpose-and-vision.md) | 04. Purpose and vision: what SAGE says it is for |  |
+| [`docs/refactoring/v2/review/05-progress-assessment.md`](refactoring/v2/review/05-progress-assessment.md) | 05. Progress assessment: where SAGE stands against its purpose and protocol |  |
+| [`docs/refactoring/v2/review/06-direction-and-stack-evaluation.md`](refactoring/v2/review/06-direction-and-stack-evaluation.md) | 06. Direction and stack evaluation: does the chosen technology fit the purpose? |  |
+| [`docs/refactoring/v2/review/07-literature-review.md`](refactoring/v2/review/07-literature-review.md) | 07. Literature review: where SAGE sits in the research landscape |  |
+| [`docs/refactoring/v2/review/08-implementation-evaluation.md`](refactoring/v2/review/08-implementation-evaluation.md) | 08. Implementation evaluation against common practice (2026-09-12) |  |
+| [`docs/refactoring/v2/review/09-protocol-flows.md`](refactoring/v2/review/09-protocol-flows.md) | 09. SAGE protocol flows as implemented (protocol overview) |  |
+| [`docs/refactoring/v2/review/10-inspector-test-matrix.md`](refactoring/v2/review/10-inspector-test-matrix.md) | 10. Conformance inspector test matrix |  |
+| [`docs/refactoring/v2/review/11-repository-split-and-research-plan.md`](refactoring/v2/review/11-repository-split-and-research-plan.md) | 11. Repository split and research plan |  |
+| [`docs/refactoring/v2/review/README.md`](refactoring/v2/review/README.md) | Project review (2026-09-12) |  |
 
 ## Detailed guides (Korean)
 
