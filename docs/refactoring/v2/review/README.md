@@ -21,6 +21,10 @@ each document ends with a "Facts vs Opinions" block.
 | 8. Protocol | `09-protocol-flows.md` | RFC-style procedures and sequence diagrams for signed requests and responses, DID resolution and cards, the HPKE handshake, session records and on-chain registration; state machines; spec/Go/Rust/vector coverage |
 | 9. Conformance | `10-inspector-test-matrix.md` | Every positive, negative and edge case an inspector must check, what `sage-inspector` covers today, missing checks and vectors with effort |
 | 10. Repositories | `11-repository-split-and-research-plan.md` | Target repository set, code-reuse mechanisms, migration steps with gates and the removal schedule, research plan with experiments and metrics, open decisions |
+| Follow-up: identity standards | `12-did-standards-research.md` | What a conformant identifier method must contain, how existing methods guarantee uniqueness and prove control, and what the identifier scheme is missing; grounded in the maintainer's own study of the standards |
+| Follow-up: revocation | `13-revocation-research.md` | What immediate revocation can mean when the registry confirms in blocks, how other systems bound the delay, and the options with their cost per verified message |
+| Follow-up: registry coupling | `14-registry-coupling-analysis.md` | Every place a chain, address format, key type or algorithm is decided in the two cores and the gateway; what the protocol actually needs from a registry; what breaks without a blockchain |
+| Follow-up: design proposal | `15-identity-and-registry-design.md` | The identifier scheme, the chain-neutral registry model with profiles including one that is not a blockchain, the standards to adopt, how revocation is made immediate, and the decisions this needs |
 | 11. Persistence | this directory | The documents are committed here so they survive the session; regenerate the graphs with `make codegraph` and the method in 01 |
 
 ## Reading order

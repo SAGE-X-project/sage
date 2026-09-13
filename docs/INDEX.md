@@ -221,6 +221,10 @@ Analyses, decisions, backlog and the generated code graph.
 | [`docs/refactoring/v2/review/09-protocol-flows.md`](refactoring/v2/review/09-protocol-flows.md) | 09. SAGE protocol flows as implemented (protocol overview) |  |
 | [`docs/refactoring/v2/review/10-inspector-test-matrix.md`](refactoring/v2/review/10-inspector-test-matrix.md) | 10. Conformance inspector test matrix |  |
 | [`docs/refactoring/v2/review/11-repository-split-and-research-plan.md`](refactoring/v2/review/11-repository-split-and-research-plan.md) | 11. Repository split and research plan |  |
+| [`docs/refactoring/v2/review/12-did-standards-research.md`](refactoring/v2/review/12-did-standards-research.md) | 12. Decentralised identifier standards: what SAGE should build on |  |
+| [`docs/refactoring/v2/review/13-revocation-research.md`](refactoring/v2/review/13-revocation-research.md) | 13. Revocation research: what "immediate" can mean, and how other systems get there |  |
+| [`docs/refactoring/v2/review/14-registry-coupling-analysis.md`](refactoring/v2/review/14-registry-coupling-analysis.md) | 14. Registry coupling: what is tied to Ethereum and what decoupling costs |  |
+| [`docs/refactoring/v2/review/15-identity-and-registry-design.md`](refactoring/v2/review/15-identity-and-registry-design.md) | Identity and registry: design proposal |  |
 | [`docs/refactoring/v2/review/README.md`](refactoring/v2/review/README.md) | Project review (2026-09-12) |  |
 
 ## Detailed guides (Korean)
