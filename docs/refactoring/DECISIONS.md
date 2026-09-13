@@ -158,3 +158,17 @@ Release shape: v1.6.0 = Phase 0 defect fixes + deprecations + SDK banners + lib 
 **Decision.** The specification is taken to `1.0.0` through a documented standards process before the rest of the plan proceeds: `sage-spec/PROCESS.md` (sage-spec #4) defines five stages (charter, design, verification, analysis, finalisation), what each draft closes, and the exit criteria of each stage. The text leads the implementations: a change lands as text, vector, Go core, Rust core and conformance checker together, and chapter 00 §6 is deleted when the design stage closes.
 
 **Consequence for the order of work.** F-01b (the stages) with the G rows as its design-stage inputs, then the gateway HPKE session mode and F-03b, then F-09, then the repository extraction of F-10. The wire-format branches already prepared in the cores wait for the charter and the design-stage text, so that they land as one set rather than ahead of the specification.
+
+---
+
+## Decision 10 (2026-09-13). Corrected order of the remaining work
+
+**Decision.** The order set by decisions 7 to 9 is replaced by:
+
+1. **Specification stages** (F-01b): charter, design, verification, analysis, finalisation, as `sage-spec/PROCESS.md` defines them, with the wire-format corrections of the G rows as design-stage inputs. The charter adds the agent lifecycle on chain to the scope: registration, activation, key proofs, rotation, revocation and authorisation are requirements of this specification, and the registry is described as a chain-neutral model with per-chain profiles.
+2. **Code analysis and refactoring** (D-10 and the remaining D rows): bring both cores to the frozen text, and apply the implementation findings that do not change the wire (the session entry points that bypass the lifetime limits, the unprotected foreign-function entry points, key file permissions, the divergent canonicalisation verdicts, the registry key checks).
+3. **Repository split** (F-10, structure B): extract the operator tool, the examples, the benchmarks and the demonstration once the code is stable, relocating history rather than deleting code.
+4. **Gateway session mode and live interoperability** (F-03b): the shipped end-to-end path, built against the frozen text and the split repositories.
+5. **Attack demonstration** (F-09): the eavesdrop, replace and replay scenario over the shipped path.
+
+**Why this order.** Refactoring before the text is frozen would be redone; splitting repositories before the code settles would move code that is about to change; the gateway path and the demonstration are the first things that must not be rewritten, so they come after the pieces they depend on are stable.
