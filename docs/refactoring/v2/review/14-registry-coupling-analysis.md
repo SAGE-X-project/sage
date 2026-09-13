@@ -438,66 +438,54 @@ implementation behind them; and `GenerateAgentDIDWithAddress` corrupts Solana ba
 
 ## Facts vs Opinions
 
-**Fact** — verified by reading the cited file.
+**Fact** — verified in the cited file; full citations are in the sections above.
 
-- Both DID parsers hard-code the method `sage` and a two-chain vocabulary, and neither checks
-  the identifier against an address shape (`manager.go:313-341`; `rs/src/did/mod.rs:26-84`);
-  `did:sage:ethereum:agent-one` is an accepted vector (`sage-spec/vectors/did.json`).
-- Three incompatible proofs of possession exist: `SAGE-PoP` over SHA-256 in both cores
-  (`key_proof.go:218`; `rs/src/did/proof.rs:12-19`) and spec 06 §4; `"SAGE Agent
-  Registration:"` over Keccak + EIP-191, binding the owner account
-  (`AgentCardRegistry.sol:424-438`); and `"SAGE X25519 Ownership:"`, binding the key bytes
-  (`:443-464`). Neither core contains the contract's strings, nor the contract either core's.
-- The contract accepts an Ed25519 key on a length check alone and marks it `verified`
-  (`AgentCardRegistry.sol:439-442`, `:192`, `:288`); the owner-pre-approval design in the
-  comments (`AgentCardStorage.sol:76`) is not implemented.
-- `_verifyKeyOwnership` has no `else` branch (`AgentCardRegistry.sol:418-465`), so a new
+- Both DID parsers hard-code the method `sage` and two chain names, and neither checks the
+  identifier against an address shape (`did/manager.go:313-341`; `rs/src/did/mod.rs:26-84`).
+- Three incompatible proofs of possession exist: `SAGE-PoP` over SHA-256 in both cores and the
+  spec; `"SAGE Agent Registration:"` over Keccak + EIP-191 binding the *owner account* in the
+  contract; `"SAGE X25519 Ownership:"` binding the key bytes. Neither core contains the
+  contract's strings, nor the contract either core's (§1).
+- The contract marks an Ed25519 key `verified` after a length check alone
+  (`AgentCardRegistry.sol:439-442`, `:192`, `:288`); the pre-approval design in its comments is
+  unimplemented.
+- `_verifyKeyOwnership` has no `else` branch (`AgentCardRegistry.sol:418-465`): a new
   `KeyType` member without a branch is accepted unvalidated and marked verified.
 - No chain client implements `KeyRegistry`, so `Manager.AddKey`, `RevokeKey` and
-  `ApproveEd25519Key` (`manager.go:344-398`) always fail their type assertion, and `sage-did
-  key add` (`cmd/sage-did/key.go:309-315`) cannot succeed.
-- The Go client computes `agentId = keccak256(did)` (`agentcard_client.go:596-598`); the
-  contract computes `keccak256(abi.encodePacked(did, msg.sender, block.timestamp))`
-  (`AgentCardRegistry.sol:164`). `Update` and `Deactivate` use the former
-  (`chainclient.go:197`, `:204`).
-- `GenerateAgentDIDWithAddress` lower-cases the identifier for every chain (`utils.go:146`),
-  corrupting Solana base58 addresses.
-- Kaia presets are typed `ChainTypeEthereum`, one pointing at a different registry contract
-  (`presets.go:61-63`, `:104-109`); network is configuration, not part of the DID (spec 06 §2).
-- The Rust core has no chain client, chain id, RPC URL or contract address;
-  `BlockchainDIDResolver::resolve` always errors (`rs/src/did/resolver.rs:30-36`), and its
-  registry model is a W3C `DIDDocument` with no liveness flag, owner or per-key accepted flag
-  (`rs/src/hpke/types.rs:296-310`, `:342-356`).
-- The gateway configures `did.ChainEthereum` unconditionally (`gw/.../resolve.go:190`), reads
-  only the signing key before accepting a request (`gw/.../verify.go:104-127`), and caches
-  resolutions with a 5-minute default TTL (`gw/.../resolve.go:106-159`;
-  `gw/cmd/main.go:60-61`).
-- Two numeric key-type spaces disagree: `ECDSA = 0, Ed25519 = 1, X25519 = 2`
-  (`types_v4.go:41-43`; `AgentCardStorage.sol:32-36`) against `Ed25519 = 0, Secp256k1 = 1, P256
-  = 2` (`rs/src/ffi/mod.rs:85-89`; `rs/src/wasm/mod.rs:40-44`).
-- `activateAgent` has no access control (`AgentCardRegistry.sol:245-256`), and `_recoverSigner`
+  `ApproveEd25519Key` (`did/manager.go:344-398`) always fail their type assertion.
+- `agentId` is `keccak256(did)` in Go (`eth/agentcard_client.go:596-598`) but
+  `keccak256(abi.encodePacked(did, msg.sender, block.timestamp))` on chain
+  (`AgentCardRegistry.sol:164`); `Update` and `Deactivate` use the former.
+- `GenerateAgentDIDWithAddress` lower-cases every identifier (`did/utils.go:146`), corrupting
+  Solana base58 addresses.
+- Kaia presets are typed `ChainTypeEthereum` (`chain/presets.go:61-63`), and network is
+  configuration rather than part of the DID (spec 06 §2).
+- The Rust core has no chain client, chain id, RPC URL or contract address
+  (`rs/src/did/resolver.rs:30-36`), and models a registry as a W3C `DIDDocument` with no
+  liveness flag, owner or per-key accepted flag (`rs/src/hpke/types.rs:296-310`).
+- The gateway configures `did.ChainEthereum` unconditionally (`gw/resolve/resolve.go:190`) and
+  reads only the signing key before accepting a request (`gw/verify/verify.go:104-127`).
+- Two numeric key-type spaces disagree: `ECDSA=0, Ed25519=1, X25519=2`
+  (`did/types_v4.go:41-43`) against `Ed25519=0, Secp256k1=1, P256=2` (`rs/src/ffi/mod.rs:85-89`).
+- `activateAgent` has no access control (`AgentCardRegistry.sol:245-256`); `_recoverSigner`
   does not reject high-`s` (`:467-491`).
-- The Solana client serialises with `json.Marshal`/`Unmarshal` where Borsh is required
-  (`solana/client.go:561-571`), stores no KEM key (`solana/resolver.go:47-61`), and asserts
-  `Verified: true` without any proof (`solana/client.go:277`).
+- The Solana client uses JSON where Borsh is required (`sol/client.go:561-571`), stores no KEM
+  key, and asserts `Verified: true` without proof (`sol/client.go:277`).
 
 **Opinion** — inference.
 
-- [High] The Solana path should be treated as unimplemented for specification purposes:
-  JSON-versus-Borsh means no real Solana program could interoperate in either direction.
+- [High] Treat the Solana path as unimplemented for specification purposes: JSON-versus-Borsh
+  means no real Solana program could interoperate in either direction.
 - [High] The `verified` flag conflates "a proof was checked" with "the registry accepted this
   key", which is why an unchecked Ed25519 key is indistinguishable from a proven secp256k1 one
   in every consumer reading `Keys[].Verified`.
-- [Mid] The read path is already chain-neutral in practice — the gateway's static resolver and
-  the Rust in-memory resolvers are working non-blockchain registries — so decoupling cost falls
-  almost entirely on writes, configuration and the identifier scheme.
+- [Mid] The read path is already chain-neutral in practice, so decoupling cost falls almost
+  entirely on writes, configuration and the identifier scheme.
 - [Mid] A registry identifier in the DID grammar is the only option that makes a DID a name
-  rather than a name-plus-configuration; the cost is a breaking grammar change and reissued
-  vectors.
+  rather than a name-plus-configuration; the cost is a breaking grammar change and new vectors.
 - [Mid] A deployed contract that enumerates key types caps agility at deployment time; an
   opaque type label validated by the reader suits a chain-neutral registry.
 - [Mid] A document-based registry needs an explicit, verifier-enforced expiry, since the
   freshness a chain supplies implicitly would otherwise be unbounded.
-- [Low] The alias and case-normalisation gaps are likelier to cause operational confusion (two
-  records for one agent) than to be exploited, since creating the second record still requires
-  passing the registry's own checks.
+- [Low] The normalisation gaps are likelier to cause operational confusion than to be
+  exploited, since creating a second record still requires passing the registry's own checks.
