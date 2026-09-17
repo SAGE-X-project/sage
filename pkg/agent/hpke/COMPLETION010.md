@@ -60,3 +60,10 @@ provisional expiry/closure and current-key checks. Inspector runs all four
 Go/Rust combinations and independently verifies signatures with Node over fixed
 public test seeds, preserving raw messages and failures outside historical
 conformance evidence. Full protocol conformance remains unestablished.
+
+## Subsequent record integration
+
+The original completion-only boundary above is extended by [authenticated session
+requests](RECORD010.md). Results now privately own record state; responder
+confirmation and sending are available only through that verified boundary.
+The earlier absence of record methods describes the completion-only revision.

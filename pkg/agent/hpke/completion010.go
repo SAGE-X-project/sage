@@ -1,7 +1,7 @@
 package hpke
 
 // This module authenticates the bounded, metadata-free plain handshake carriage.
-// HTTP binding, durable replay storage and established/provisional record dispatch
+// HTTP binding, durable replay storage and application dispatch
 // are separate dependencies/integrations; this is not full WireTransport conformance.
 import (
 	"bytes"
@@ -21,6 +21,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
 	"github.com/sage-x-project/sage/pkg/agent/registry010"
+	"github.com/sage-x-project/sage/pkg/agent/session"
 )
 
 var errCompletion010 = errors.New("authentication failed")
@@ -347,17 +348,18 @@ func pendingLive010(now, start registry010.Stamp, expires int64) bool {
 }
 
 // AuthenticatedCompletion010 owns a pinned authenticated transcript and secret
-// seed. No public constructor or seed export exists. It is not a dispatch API.
-// Responder results remain RESPONSE_SENT; first-record atomic confirmation is a
-// separate integration and cannot be bypassed by calling this module.
+// record state. No public constructor or seed export exists. It is not a dispatch
+// API. Responders remain RESPONSE_SENT until OpenRequest atomically confirms them.
 type AuthenticatedCompletion010 struct {
 	endpoint          *CompletionEndpoint010
 	a, b              *registry010.Pinned
 	tuple             map[string]string
-	seed              []byte
 	created           registry010.Stamp
 	expires           int64
 	initiator, closed bool
+	confirmed         bool
+	active            registry010.Stamp
+	records           *session.RecordSession010
 }
 
 // Tuple returns a copy of public authenticated bindings, never a grant or secret.
@@ -378,12 +380,17 @@ func (s *AuthenticatedCompletion010) State() string {
 	if s.closed {
 		return "CLOSED"
 	}
-	if s.initiator {
+	if s.initiator || s.confirmed {
 		return "ESTABLISHED"
 	}
 	return "RESPONSE_SENT"
 }
-func (s *AuthenticatedCompletion010) destroy() { zeroBytes(s.seed); s.seed = nil; s.closed = true }
+func (s *AuthenticatedCompletion010) destroy() {
+	if s.records != nil {
+		s.records.Close()
+	}
+	s.closed = true
+}
 
 // Close erases the owned seed and retires the result.
 func (s *AuthenticatedCompletion010) Close() {
@@ -399,16 +406,12 @@ func (s *AuthenticatedCompletion010) Check(ctx context.Context) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	start, x := e.sample()
-	if s.closed || x != nil || start.MonoMS < s.created.MonoMS || start.MonoMS-s.created.MonoMS >= 600000 || (!s.initiator && !pendingLive010(start, s.created, s.expires)) {
-		s.destroy()
-		return errCompletion010
-	}
-	if e.current(ctx, s.a, s.b) != nil {
+	if x != nil || s.recordLive(start) != nil || e.current(ctx, s.a, s.b) != nil {
 		s.destroy()
 		return errCompletion010
 	}
 	end, x := e.sample()
-	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, s.a, s.b) || end.MonoMS-s.created.MonoMS >= 600000 || (!s.initiator && !pendingLive010(end, s.created, s.expires)) {
+	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, s.a, s.b) || s.recordLive(end) != nil {
 		s.destroy()
 		return errCompletion010
 	}
@@ -426,7 +429,9 @@ func owned010(e *CompletionEndpoint010, d *Derivation010, a, b *registry010.Pinn
 	seed := d.Seed
 	d.Seed = nil
 	zeroBytes(d.AckTag)
-	return &AuthenticatedCompletion010{e, a, b, tuple, seed, now, expires, initiator, false}
+	records, _ := session.NewRecordSession010(seed, d.TH, initiator)
+	zeroBytes(seed)
+	return &AuthenticatedCompletion010{endpoint: e, a: a, b: b, tuple: tuple, created: now, active: now, expires: expires, initiator: initiator, records: records}
 }
 
 // Complete verifies both signatures, exact request hash and echoed initiation,
@@ -508,7 +513,7 @@ func (p *PendingCompletion010) Complete(ctx context.Context, response []byte) (*
 
 // Respond authenticates the complete signed request and produces a separately
 // signed completion payload inside an exact-request-bound signed response. The
-// returned result is provisional and has no application send/execute method.
+// returned result is provisional and cannot send before first-record confirmation.
 func (e *CompletionEndpoint010) Respond(ctx context.Context, request []byte, ttl int64) (*AuthenticatedCompletion010, []byte, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()

@@ -375,3 +375,31 @@ func TestCompletion010KeyExpiresDuringCommit(t *testing.T) {
 		t.Fatal("expired signing key authorized completion")
 	}
 }
+
+// Bounded synthetic transaction store; not a durable deployment implementation.
+func (r *completionReplay) ReserveRecord(v Replay010, validate func() error) error {
+	if r.c.mode == "store-error" {
+		return errors.New("store")
+	}
+	prefix := v.Sender + "|" + v.Recipient
+	ids := []string{prefix + "|id|" + v.ID, prefix + "|nonce|" + v.Nonce}
+	for _, id := range ids {
+		if r.seen[id] {
+			return errors.New("duplicate")
+		}
+	}
+	if r.c.mode == "utc-delay" {
+		r.c.utc++
+		r.c.mono += 1000
+	}
+	if r.c.mode == "store-delay" {
+		r.c.mono += 5001
+	}
+	if err := validate(); err != nil {
+		return err
+	}
+	for _, id := range ids {
+		r.seen[id] = true
+	}
+	return nil
+}
