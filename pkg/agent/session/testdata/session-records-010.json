@@ -1,0 +1,1394 @@
+{
+  "schema_version": 1,
+  "protocol_version": "0.10.0",
+  "profile": "primitive-foundation",
+  "id": "sage-session-records-0.10.0",
+  "sources": [
+    {
+      "id": "sage-session",
+      "kind": "spec-derived",
+      "uri": "sage-spec/spec/05-session.md",
+      "reference": "SESSION-01..06; HPKE-05 responder confirmation. Public fixed inputs, independent Python cryptography calculation."
+    }
+  ],
+  "cases": [
+    {
+      "id": "c2s-key-0",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "seq": 0
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "c3a89552907e15483754f111e2460fd86a7eed19948cf21b9da1be328c7491bd",
+          "generation": 0
+        }
+      }
+    },
+    {
+      "id": "c2s-open-0",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000000000000000000000000000000882116e879457582f3d127ea08eba98185f3bf0eef94b5ad246e724a9ea9cc763de56b152",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "c2s-key-1",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "seq": 1
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "c3a89552907e15483754f111e2460fd86a7eed19948cf21b9da1be328c7491bd",
+          "generation": 0
+        }
+      }
+    },
+    {
+      "id": "c2s-open-1",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000010000000000000000000000018d3edc90c6817896ea98bb2711f02b883afc4d0ba38e9210505117b81bfa75931e2816ef1d",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "c2s-key-255",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "seq": 255
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "c3a89552907e15483754f111e2460fd86a7eed19948cf21b9da1be328c7491bd",
+          "generation": 0
+        }
+      }
+    },
+    {
+      "id": "c2s-open-255",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000ff0000000000000000000000ffd9739fb7261e4cf045864ab84fc91f87c6e65429650ec3473b27630cf0dee5416c92e8c38a",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "c2s-key-256",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "seq": 256
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "9b1f13889532013ee3c3f93841d1495521b235cf272b3136bc4831d6852ff8b9",
+          "generation": 1
+        }
+      }
+    },
+    {
+      "id": "c2s-open-256",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "0000000000000100000000000000000000000100194a2be59494843f9388c1a9e6a316e465daa80d9e372995d566b007cd2a49599fb4c0a629",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "c2s-key-511",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "seq": 511
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "9b1f13889532013ee3c3f93841d1495521b235cf272b3136bc4831d6852ff8b9",
+          "generation": 1
+        }
+      }
+    },
+    {
+      "id": "c2s-open-511",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000001ff0000000000000000000001ffab8bd418cede22894acd39ed4281bcfab9a772cca0b741ce1e806c97033f4cab386f407136",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "c2s-key-512",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "seq": 512
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "2a5899795dda1a25f0135381898a07f1d8b568ce61cacf441e77ccbcc17afb6d",
+          "generation": 2
+        }
+      }
+    },
+    {
+      "id": "c2s-open-512",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000002000000000000000000000002003eb76597d3dae983603d56fdfa0b0affc4f3fd82bac61bcb9f87a78c4168205a217516a3e7",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "c2s-key-767",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "seq": 767
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "2a5899795dda1a25f0135381898a07f1d8b568ce61cacf441e77ccbcc17afb6d",
+          "generation": 2
+        }
+      }
+    },
+    {
+      "id": "c2s-open-767",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000002ff0000000000000000000002fff11a5f5f081fde8118f72870c0e1cebe3654c9447411e6c3b46526e6f405a16e7076fffb9e",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "c2s-key-768",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "seq": 768
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "0fc66e22c946a7622f4bfb9f3e0f901acfe3199348f891e56e6d4f1e43fd5f93",
+          "generation": 3
+        }
+      }
+    },
+    {
+      "id": "c2s-open-768",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "0000000000000300000000000000000000000300fe73f2fea574873497e7d73484d25c42ba48a18aac853f3eb12343d6abe3fa8efe787f85db",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "c2s-key-999",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "seq": 999
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "0fc66e22c946a7622f4bfb9f3e0f901acfe3199348f891e56e6d4f1e43fd5f93",
+          "generation": 3
+        }
+      }
+    },
+    {
+      "id": "c2s-open-999",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000003e70000000000000000000003e7a3889f4bcf0cb85ce69d3341691ac8aeb418b9544fe9498b9594d37d87fa5db2b351e1129f",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "s2c-key-0",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "seq": 0
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "f6175cf0d50d04f039693b1c1c40606f92f603d1c2ba8226f5c9e1a05dcacb2a",
+          "generation": 0
+        }
+      }
+    },
+    {
+      "id": "s2c-open-0",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "record_hex": "0000000000000000000000000000000000000000f1557417e39f16176dfc2b21f48908774bd1131fb0e576ee96a77e36fdce1884c2734bdb97",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "s2c-key-1",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "seq": 1
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "f6175cf0d50d04f039693b1c1c40606f92f603d1c2ba8226f5c9e1a05dcacb2a",
+          "generation": 0
+        }
+      }
+    },
+    {
+      "id": "s2c-open-1",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "record_hex": "0000000000000001000000000000000000000001d7b0b8b4c6e92845c8e1cbe6f6c730653b79846e16629166d941ce432ba2d2e8a99b17942f",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "s2c-key-255",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "seq": 255
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "f6175cf0d50d04f039693b1c1c40606f92f603d1c2ba8226f5c9e1a05dcacb2a",
+          "generation": 0
+        }
+      }
+    },
+    {
+      "id": "s2c-open-255",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "record_hex": "00000000000000ff0000000000000000000000ff583b5eb10f945f24e205fbe6235b1fdf7881510d19871496b1efbb6f353fa785a4dcfa3948",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "s2c-key-256",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "seq": 256
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "221de416b0ce0cf34cc4559d289ec37a947365967656cea5c79a7fb6cc5f60bb",
+          "generation": 1
+        }
+      }
+    },
+    {
+      "id": "s2c-open-256",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "record_hex": "0000000000000100000000000000000000000100dec25a9b8ae33bf96900b89c28b64527b80d19ed4ea069645a8e23592cbf160e9360e55d0e",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "s2c-key-511",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "seq": 511
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "221de416b0ce0cf34cc4559d289ec37a947365967656cea5c79a7fb6cc5f60bb",
+          "generation": 1
+        }
+      }
+    },
+    {
+      "id": "s2c-open-511",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "record_hex": "00000000000001ff0000000000000000000001ff57834e033110ac7e115639c1e8ca7cc7e13ea157c6dbb5d1925b6c0f1bd43ce1002047dfbc",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "s2c-key-512",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "seq": 512
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "be8483351fc219268f0839a004188ec157eff6fb463c8631aa3361b92ffd8252",
+          "generation": 2
+        }
+      }
+    },
+    {
+      "id": "s2c-open-512",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "record_hex": "00000000000002000000000000000000000002000818d1dfbc960321d2804b7f90f80991b3cddf943ccec605f2712e03e346092d4d924e8e2a",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "s2c-key-767",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "seq": 767
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "be8483351fc219268f0839a004188ec157eff6fb463c8631aa3361b92ffd8252",
+          "generation": 2
+        }
+      }
+    },
+    {
+      "id": "s2c-open-767",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "record_hex": "00000000000002ff0000000000000000000002ffa7d9903e97f55c6b961bf45148905c7661341c2888593262d57eacaa62112dac15c2bd235e",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "s2c-key-768",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "seq": 768
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "8e813ca92c4580f409bb3d0b281a24412c8e86591eab0befd2df79b2104f797f",
+          "generation": 3
+        }
+      }
+    },
+    {
+      "id": "s2c-open-768",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "record_hex": "00000000000003000000000000000000000003001cf9e46b9352d8c2df1bd2661e6ef7bfcea2303695099c36c4dc18d25689a174866f054475",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "s2c-key-999",
+      "operation": "sage.session.key",
+      "rule_ids": [
+        "SESSION-02"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "seq": 999
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "key_hex": "8e813ca92c4580f409bb3d0b281a24412c8e86591eab0befd2df79b2104f797f",
+          "generation": 3
+        }
+      }
+    },
+    {
+      "id": "s2c-open-999",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "record_hex": "00000000000003e70000000000000000000003e7fa3be29ced2c077c6cdfae83506e05966cb48db659e459ee4b8fcb873cec1b57ab78a9fe74",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "aad-open-0",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000000000000000000000000000000882116e879457582f3d127ea08eba98185f3bf0ee30df528b35e7ee6575b58ad931a827a3",
+        "caller_aad_hex": ""
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "aad-open-4033",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000000000000000000000000000000882116e879457582f3d127ea08eba98185f3bf0ee6f88fa5424d93eac31b50fc158ac2567",
+        "caller_aad_hex": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "plaintext_hex": "7075626c69632073657373696f6e207265636f7264"
+        }
+      }
+    },
+    {
+      "id": "aad-open-4034",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000000000000000000000000000000882116e879457582f3d127ea08eba98185f3bf0ee755233d7eccf2a8591d3df70a4330e41",
+        "caller_aad_hex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "aad-seal-4033",
+      "operation": "sage.session.record.seal",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "plaintext": {
+          "byte": 97,
+          "length": 1
+        },
+        "caller_aad_hex": "61616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161"
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "record_sha256": "3c3b3a7664eefb189906b7248563c81f392afbde7e3906f05020f072aeb23b4f",
+          "record_bytes": 37
+        }
+      }
+    },
+    {
+      "id": "aad-seal-4034",
+      "operation": "sage.session.record.seal",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "plaintext": {
+          "byte": 97,
+          "length": 1
+        },
+        "caller_aad_hex": "6161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161616161"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "plaintext-size-0",
+      "operation": "sage.session.record.seal",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "plaintext": {
+          "byte": 97,
+          "length": 0
+        },
+        "caller_aad_hex": ""
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "record_sha256": "8f1f4940b1793c13a5c82a6424c81eee3da71ce670f5cc3642b9800bb59c2dc5",
+          "record_bytes": 36
+        }
+      }
+    },
+    {
+      "id": "plaintext-size-1",
+      "operation": "sage.session.record.seal",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "plaintext": {
+          "byte": 97,
+          "length": 1
+        },
+        "caller_aad_hex": ""
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "record_sha256": "43baadc5c37ed33fa163d114b1c3b7d86911a154dea094dab01dbe9e0001877c",
+          "record_bytes": 37
+        }
+      }
+    },
+    {
+      "id": "plaintext-size-8388572",
+      "operation": "sage.session.record.seal",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "plaintext": {
+          "byte": 97,
+          "length": 8388572
+        },
+        "caller_aad_hex": ""
+      },
+      "expected": {
+        "verdict": "ACCEPT",
+        "output": {
+          "record_sha256": "5981e5f0345bda9e580699a295e938af5d894f0e972225932fc6612c4c82371b",
+          "record_bytes": 8388608
+        }
+      }
+    },
+    {
+      "id": "plaintext-size-8388573",
+      "operation": "sage.session.record.seal",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "plaintext": {
+          "byte": 97,
+          "length": 8388573
+        },
+        "caller_aad_hex": ""
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "short",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-02",
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000000000000000000000000000000882116e879457582f3d127ea08eba",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "tag",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-02",
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000000000000000000000000000000882116e879457582f3d127ea08eba98185f3bf0eef94b5ad246e724a9ea9cc763de56b153",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "seq",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-02",
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000010000000000000000000000000882116e879457582f3d127ea08eba98185f3bf0eef94b5ad246e724a9ea9cc763de56b152",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "nonce",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-02",
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000000100000000000000000000000882116e879457582f3d127ea08eba98185f3bf0eef94b5ad246e724a9ea9cc763de56b152",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "nonce-valid-tag",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-02",
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "000000000000000001000000000000000000000020471643bdb3c7ddeccb351c5de15cdd55ecf43410ff6bd3ff663fe2c8cc37e499ea5c2520",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "seq-1000",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-02",
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000003e80000000000000000000003e859c49e92c365acbc2596e7f86f88883a77fb3427b75bd534b2ae52f1cf892645f0efd3e94b",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "seq-max",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-02",
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "ffffffffffffffff00000000fffffffffffffffff7592fba3f376694054d243ec4579c9733b104edd06d834163a83ef186cf5e2911db847421",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "reflection",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "s2c",
+        "record_hex": "00000000000000000000000000000000000000000882116e879457582f3d127ea08eba98185f3bf0eef94b5ad246e724a9ea9cc763de56b152",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "transcript",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000000000000000000000000000000882116e879457582f3d127ea08eba98185f3bf0eef94b5ad246e724a9ea9cc763de56b152",
+        "caller_aad_hex": "7b7d"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    },
+    {
+      "id": "aad-changed",
+      "operation": "sage.session.record.open",
+      "rule_ids": [
+        "SESSION-03"
+      ],
+      "source_ids": [
+        "sage-session"
+      ],
+      "derivation": "Independent HKDF-Expand and ChaCha20-Poly1305; each case starts a fresh subject. See session-inspection.md for projections and controls.",
+      "input": {
+        "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+        "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+        "sid": "7_DwdcM8kMwneSBrBd-9Yg",
+        "direction": "c2s",
+        "record_hex": "00000000000000000000000000000000000000000882116e879457582f3d127ea08eba98185f3bf0eef94b5ad246e724a9ea9cc763de56b152",
+        "caller_aad_hex": "7b207d"
+      },
+      "expected": {
+        "verdict": "REJECT",
+        "output": {}
+      }
+    }
+  ]
+}
