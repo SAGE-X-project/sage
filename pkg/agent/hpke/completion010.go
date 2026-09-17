@@ -42,14 +42,16 @@ type ReplayStore010 interface{ Reserve(Replay010) error }
 // endpoint must use the same durable replay store across transports and restarts.
 // Registry and Clock are trusted local dependencies; no verified booleans enter.
 type CompletionEndpoint010 struct {
-	mu       sync.Mutex
-	registry *registry010.Gate
-	clock    registry010.Clock
-	replay   ReplayStore010
-	did, kid string
-	signing  ed25519.PrivateKey
-	kem      []byte
-	last     *registry010.Stamp
+	httpTarget, httpAuthority string
+	used                      bool
+	mu                        sync.Mutex
+	registry                  *registry010.Gate
+	clock                     registry010.Clock
+	replay                    ReplayStore010
+	did, kid                  string
+	signing                   ed25519.PrivateKey
+	kem                       []byte
+	last                      *registry010.Stamp
 }
 
 // NewCompletionEndpoint010 copies a local Ed25519 seed and optional X25519 private
@@ -267,6 +269,7 @@ func reservation010(m map[string]json.RawMessage) Replay010 {
 // PendingCompletion010 owns one emitted initiation. Close on abandonment; invalid
 // completion consumes it. The return of Start is the local emission boundary.
 type PendingCompletion010 struct {
+	http     *httpContext010
 	endpoint *CompletionEndpoint010
 	state    *Initiator010
 	request  []byte
@@ -283,6 +286,13 @@ type PendingCompletion010 struct {
 func (e *CompletionEndpoint010) Start(ctx context.Context, recipient, respKid string, ttl int64) (*PendingCompletion010, []byte, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if e.httpTarget != "" {
+		return nil, nil, errCompletion010
+	}
+	return e.start010(ctx, recipient, respKid, ttl)
+}
+func (e *CompletionEndpoint010) start010(ctx context.Context, recipient, respKid string, ttl int64) (*PendingCompletion010, []byte, error) {
+	e.used = true
 	start, x := e.sample()
 	if x != nil || ttl < 1 || ttl > 300 || len(e.signing) != 64 {
 		return nil, nil, errCompletion010
@@ -326,7 +336,7 @@ func (e *CompletionEndpoint010) Start(ctx context.Context, recipient, respKid st
 		return nil, nil, errCompletion010
 	}
 	original, _, _ := initiation010(init)
-	p := &PendingCompletion010{e, state, request, original, a, b, end, start.Unix + ttl, false}
+	p := &PendingCompletion010{endpoint: e, state: state, request: request, init: original, a: a, b: b, emitted: end, expires: start.Unix + ttl}
 	return p, append([]byte(nil), request...), nil
 }
 func (p *PendingCompletion010) destroy() {
@@ -444,6 +454,13 @@ func (p *PendingCompletion010) Complete(ctx context.Context, response []byte) (*
 	e := p.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if p.http != nil || e.httpTarget != "" {
+		return nil, errCompletion010
+	}
+	return p.complete010(ctx, response, nil)
+}
+func (p *PendingCompletion010) complete010(ctx context.Context, response []byte, proof *httpProof010) (*AuthenticatedCompletion010, error) {
+	e := p.endpoint
 	if p.closed {
 		return nil, errCompletion010
 	}
@@ -452,8 +469,14 @@ func (p *PendingCompletion010) Complete(ctx context.Context, response []byte) (*
 	if x != nil || !pendingLive010(start, p.emitted, p.expires) {
 		return nil, errCompletion010
 	}
+	if proof != nil {
+		start = proof.start
+	}
 	w, body, x := wire010(response, true, start.Unix)
 	if x != nil {
+		return nil, errCompletion010
+	}
+	if proof != nil && verifyHTTPProof010(proof, w, p.b.Signing(), p.http) != nil {
 		return nil, errCompletion010
 	}
 	request, _, _ := wire010(p.request, false, p.emitted.Unix)
@@ -521,9 +544,19 @@ func (p *PendingCompletion010) Complete(ctx context.Context, response []byte) (*
 func (e *CompletionEndpoint010) Respond(ctx context.Context, request []byte, ttl int64) (*AuthenticatedCompletion010, []byte, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if e.httpTarget != "" {
+		return nil, nil, errCompletion010
+	}
+	return e.respond010(ctx, request, ttl, nil)
+}
+func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, ttl int64, proof *httpProof010) (*AuthenticatedCompletion010, []byte, error) {
+	e.used = true
 	start, x := e.sample()
 	if x != nil || ttl < 1 || ttl > 300 || len(e.signing) != 64 || len(e.kem) != 32 {
 		return nil, nil, errCompletion010
+	}
+	if proof != nil {
+		start = proof.start
 	}
 	w, body, x := wire010(request, false, start.Unix)
 	if x != nil {
@@ -535,6 +568,9 @@ func (e *CompletionEndpoint010) Respond(ctx context.Context, request []byte, ttl
 	}
 	a, b, x := e.selected(ctx, m)
 	if x != nil || verifyWire010(w, false, a.Signing()) != nil {
+		return nil, nil, errCompletion010
+	}
+	if proof != nil && verifyHTTPProof010(proof, w, a.Signing(), nil) != nil {
 		return nil, nil, errCompletion010
 	}
 	sk, x := ecdh.X25519().NewPrivateKey(e.kem)

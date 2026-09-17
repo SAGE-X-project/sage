@@ -43,13 +43,21 @@ const httpResponseComponents010 = `"@status" "@method";req "@target-uri";req "@a
 func (s *AuthenticatedCompletion010) BindHTTP(target string) error {
 	s.endpoint.mu.Lock()
 	defer s.endpoint.mu.Unlock()
-	u, x := url.Parse(target)
-	if x != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" || u.Opaque != "" || u.Path == "" || strings.HasSuffix(u.Host, ":443") || u.Host != strings.ToLower(u.Host) || u.String() != target || !httpASCII010(target) || strings.ContainsAny(target, "\"\\ ") || s.closed || s.httpTarget != "" || len(s.sent)+len(s.received) != 0 {
+	authority, x := httpEndpoint010(target)
+	if x != nil || s.closed || s.httpTarget != "" || len(s.sent)+len(s.received) != 0 {
 		return errCompletion010
 	}
-	s.httpTarget, s.httpAuthority = target, u.Host
+	s.httpTarget, s.httpAuthority = target, authority
 	return nil
 }
+func httpEndpoint010(target string) (string, error) {
+	u, x := url.Parse(target)
+	if x != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.Fragment != "" || u.Opaque != "" || u.Path == "" || strings.HasSuffix(u.Host, ":443") || u.Host != strings.ToLower(u.Host) || u.String() != target || !httpASCII010(target) || strings.ContainsAny(target, "\"\\ ") {
+		return "", errCompletion010
+	}
+	return u.Host, nil
+}
+
 func httpASCII010(v string) bool {
 	for _, c := range []byte(v) {
 		if c < 32 || c > 126 {
@@ -175,7 +183,10 @@ func httpInput010(input string, response bool) (map[string]string, error) {
 	return out, nil
 }
 func (s *AuthenticatedCompletion010) prepareHTTP010(m HTTPMessage010, response bool, start registry010.Stamp) (*httpProof010, error) {
-	if s.httpTarget == "" || (!response && (m.Method != "POST" || m.Target != s.httpTarget || m.Authority != s.httpAuthority || m.Status != 0)) || (response && (m.Method != "" || m.Target != "" || m.Authority != "" || m.Status < 200 || m.Status > 599 || m.Status == 204)) {
+	return prepareHTTP010(s.httpTarget, s.httpAuthority, m, response, start)
+}
+func prepareHTTP010(target, authority string, m HTTPMessage010, response bool, start registry010.Stamp) (*httpProof010, error) {
+	if target == "" || (!response && (m.Method != "POST" || m.Target != target || m.Authority != authority || m.Status != 0)) || (response && (m.Method != "" || m.Target != "" || m.Authority != "" || m.Status < 200 || m.Status > 599 || m.Status == 204)) {
 		return nil, errCompletion010
 	}
 	h, x := httpHeaders010(m)
@@ -222,6 +233,21 @@ func contextHTTP010(m HTTPMessage010, h map[string]string) *httpContext010 {
 	return &httpContext010{m.Method, m.Target, m.Authority, h["content-digest"], h["signature"], h["x-sage-version"]}
 }
 func (s *AuthenticatedCompletion010) verifyHTTP010(p *httpProof010, w map[string]json.RawMessage) error {
+	var q *httpContext010
+	if p.message.Status != 0 {
+		r := s.sent[str010(w, "message_id")]
+		if r == nil || r.http == nil {
+			return errCompletion010
+		}
+		q = r.http
+	}
+	key := s.a.Signing()
+	if s.initiator {
+		key = s.b.Signing()
+	}
+	return verifyHTTPProof010(p, w, key, q)
+}
+func verifyHTTPProof010(p *httpProof010, w map[string]json.RawMessage, key registry010.Key, q *httpContext010) error {
 	for param, field := range map[string]string{"keyid": "kid", "created": "created", "expires": "expires", "nonce": "nonce"} {
 		value := str010(w, field)
 		if field == "created" || field == "expires" {
@@ -239,18 +265,6 @@ func (s *AuthenticatedCompletion010) verifyHTTP010(p *httpProof010, w map[string
 			return errCompletion010
 		}
 	}
-	var q *httpContext010
-	if p.message.Status != 0 {
-		r := s.sent[str010(w, "message_id")]
-		if r == nil || r.http == nil {
-			return errCompletion010
-		}
-		q = r.http
-	}
-	key := s.a.Signing()
-	if s.initiator {
-		key = s.b.Signing()
-	}
 	pub, x := hex.DecodeString(key.Material)
 	if x != nil || len(pub) != 32 || key.Alg != "ed25519" {
 		return errCompletion010
@@ -261,6 +275,9 @@ func (s *AuthenticatedCompletion010) verifyHTTP010(p *httpProof010, w map[string
 	return nil
 }
 func (s *AuthenticatedCompletion010) signHTTP010(body []byte, status int, q *httpContext010) (HTTPMessage010, error) {
+	return signHTTP010(s.endpoint, s.httpTarget, s.httpAuthority, body, status, q)
+}
+func signHTTP010(e *CompletionEndpoint010, target, authority string, body []byte, status int, q *httpContext010) (HTTPMessage010, error) {
 	var w map[string]json.RawMessage
 	if json.Unmarshal(body, &w) != nil {
 		return HTTPMessage010{}, errCompletion010
@@ -269,13 +286,13 @@ func (s *AuthenticatedCompletion010) signHTTP010(body []byte, status int, q *htt
 	components := httpResponseComponents010
 	if q == nil {
 		m.Method = "POST"
-		m.Target = s.httpTarget
-		m.Authority = s.httpAuthority
+		m.Target = target
+		m.Authority = authority
 		components = httpRequestComponents010
 	}
 	input := "(" + components + ");keyid=" + strconv.Quote(str010(w, "kid")) + `;alg="ed25519";created=` + string(w["created"]) + ";expires=" + string(w["expires"]) + ";nonce=" + strconv.Quote(str010(w, "nonce")) + `;tag="sage-0.10.0"`
 	h := map[string]string{"content-type": "application/json", "content-digest": httpDigest010(body), "x-sage-did": str010(w, "did"), "x-sage-version": "0.10.0", "signature-input": "sig1=" + input}
-	h["signature"] = "sig1=:" + base64.StdEncoding.EncodeToString(ed25519.Sign(s.endpoint.signing, httpBase010(m, h, input, q))) + ":"
+	h["signature"] = "sig1=:" + base64.StdEncoding.EncodeToString(ed25519.Sign(e.signing, httpBase010(m, h, input, q))) + ":"
 	for _, k := range []string{"content-type", "content-digest", "x-sage-did", "x-sage-version", "signature-input", "signature"} {
 		m.Headers = append(m.Headers, [2]string{k, h[k]})
 	}

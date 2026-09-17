@@ -3,15 +3,17 @@
 Bind an unused authenticated completion to a trusted canonical HTTPS endpoint
 with `BindHTTP` (Go) or `bind_http` (Rust), then use the HTTP request/response
 seal/open methods. Binding is permanent: bare session record and response methods
-reject calls. The handshake itself is still carried by the existing plain
-completion API; this addition does not wrap that handshake in HTTP.
+reject calls. To protect the handshake as well, bind the CompletionEndpoint
+before any handshake attempt and use StartHTTP/RespondHTTP/CompleteHTTP in Go,
+or start_http/respond_http/complete_http in Rust. Their resulting sessions inherit
+the HTTP binding automatically. The bare handshake entry points then reject.
 
 The transport supplies exact content bytes, uncombined header occurrences and
 actual method/absolute target/authority or response status. These values must
 come from the trusted HTTP stack. Deserializing peer JSON into the message type
 is not a transport integration. Do not derive the receiving endpoint from Host,
-Forwarded or X-Forwarded fields. TLS server authentication, HTTP framing and
-routing remain the transport's responsibility. In particular, already combined
+Forwarded or X-Forwarded fields. TLS server authentication and routing remain the transport's responsibility.
+The new raw HTTP/1.1 codec supplies bounded framing checks. Already combined
 headers cannot be used to claim duplicate-field or request-smuggling protection.
 
 ## Admitted profile
@@ -79,3 +81,46 @@ The local `rfc9421` repository's `en.txt` is the RFC reference. Its legacy build
 and parser are not a SAGE conformance oracle: they do not enforce this exact
 profile or its envelope/replay transaction. Historical Inspector FAIL and
 UNSUPPORTED observations remain unchanged. Full conformance is NOT_ESTABLISHED.
+
+## HTTP handshake and raw framing
+
+HTTP completion retains the exact emitted HTTP request in private pending state.
+Both HTTP and envelope signatures must pass before the existing handshake replay
+reservation. The completion signature, ACK, current pinned keys and final lifetime
+gates remain mandatory. Invalid completion consumes one-shot pending material;
+there is no unsigned-error or bare-API fallback. Delayed handshake storage may
+retain a denial entry while returning no session, as in the original handshake
+contract. This does not create a second HTTP replay reservation.
+
+Go `ParseHTTP010` / `EncodeHTTP010` and Rust `parse_http_010` / `encode_http_010`
+accept a deliberately bounded HTTP/1.1 carriage: POST origin-form to the configured
+path/query, one matching Host, canonical Content-Length, exact body length and
+one message per connection. Responses derive status from their status line.
+Raw field occurrences are preserved until duplicate rejection; optional leading
+and trailing SP/HTAB field whitespace is removed during extraction. Raw field
+bytes, including each field line's CRLF, are capped at 32 KiB before whitespace
+removal. The start line is capped at 4096 bytes, and normalized field and content
+limits still apply. Extra bytes, truncation, obs-fold, malformed names, transfer
+coding, Expect, Upgrade, conflicting lengths and non-close Connection values fail.
+The encoder validates names/values before serialization to reject header injection.
+
+These codecs do not establish TLS and do not turn unauthenticated bytes into
+trusted transport data. A caller must obtain bytes from an authenticated TLS
+connection, use locally configured routing, impose absolute I/O deadlines and
+close after one exchange. Never dispatch a second request from leftover bytes.
+HTTP/2, HTTP/3, pipelining, chunking and general Structured Fields serialization
+remain outside this subset. Verify certificates and hostnames; never use an
+insecure-skip-verification option to make a fixture or deployment pass.
+
+The Inspector uses a Python/OpenSSL loopback transport with a fresh local test CA,
+TLS 1.3 and ALPN `http/1.1`. Actual received bytes enter these core codecs and core
+handshake/session APIs. It checks both cores in all four pairings, including
+untrusted CA and hostname mismatch with zero HTTP-handler invocations. This proves
+the controlled transport integration, not a production Go/Rust TLS service or
+host isolation. Malformed framing is exercised offline only, not over sockets.
+
+`http-handshake010.json` adds 22 shared handshake scenarios and records 24 framing
+rejection categories. The Inspector executes 88 handshake process scenarios and
+16 TLS scenarios; its bounded transport helpers have eight offline unit tests.
+Production replay durability, quarantine, registry finality and host enforcement
+are still separate requirements, and full conformance remains NOT_ESTABLISHED.
