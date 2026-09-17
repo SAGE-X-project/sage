@@ -360,6 +360,7 @@ type AuthenticatedCompletion010 struct {
 	confirmed         bool
 	active            registry010.Stamp
 	records           *session.RecordSession010
+	sent, received    map[string]*recordRequest010
 }
 
 // Tuple returns a copy of public authenticated bindings, never a grant or secret.
@@ -386,6 +387,8 @@ func (s *AuthenticatedCompletion010) State() string {
 	return "RESPONSE_SENT"
 }
 func (s *AuthenticatedCompletion010) destroy() {
+	s.sent = nil
+	s.received = nil
 	if s.records != nil {
 		s.records.Close()
 	}

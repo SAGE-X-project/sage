@@ -38,13 +38,16 @@ func (s *AuthenticatedCompletion010) recordGate(start registry010.Stamp, expires
 func requestAAD010(m map[string]json.RawMessage) []byte {
 	a := map[string]json.RawMessage{}
 	for k, v := range m {
-		if k != "payload" && k != "signature" {
+		if k != "payload" && k != "data" && k != "signature" {
 			a[k] = v
 		}
 	}
 	return canon010(a)
 }
 func sessionRequest010(raw []byte, now int64) (map[string]json.RawMessage, []byte, error) {
+	return sessionRecord010(raw, now, false)
+}
+func sessionRecord010(raw []byte, now int64, response bool) (map[string]json.RawMessage, []byte, error) {
 	// This bounded subset deliberately shares the 32 KiB envelope admission cap.
 	if len(raw) > 32768 {
 		return nil, nil, errCompletion010
@@ -52,7 +55,23 @@ func sessionRequest010(raw []byte, now int64) (map[string]json.RawMessage, []byt
 	if _, err := jcs.Canonicalize(raw); err != nil {
 		return nil, nil, errCompletion010
 	}
-	m, x := rawObject010(raw, append(append([]string{}, wireFields010...), "session_id", "payload"))
+	names := append(append([]string{}, wireFields010...), "session_id")
+	field := "payload"
+	if response {
+		field = "data"
+		names = append(names, "message_id", "request_hash", "success")
+		var probe map[string]json.RawMessage
+		if json.Unmarshal(raw, &probe) != nil {
+			return nil, nil, errCompletion010
+		}
+		if string(probe["success"]) == "false" {
+			names = append(names, "error")
+		} else if string(probe["success"]) != "true" {
+			return nil, nil, errCompletion010
+		}
+	}
+	names = append(names, field)
+	m, x := rawObject010(raw, names)
 	if x != nil || str010(m, "encoding") != "session" || str010(m, "version") != "0.10.0" || !uuid010.MatchString(str010(m, "id")) {
 		return nil, nil, errCompletion010
 	}
@@ -66,7 +85,18 @@ func sessionRequest010(raw []byte, now int64) (map[string]json.RawMessage, []byt
 			return nil, nil, errCompletion010
 		}
 	}
-	encoded := str010(m, "payload")
+	if response {
+		if !uuid010.MatchString(str010(m, "message_id")) {
+			return nil, nil, errCompletion010
+		}
+		if _, x = binary010(str010(m, "request_hash"), 32); x != nil {
+			return nil, nil, errCompletion010
+		}
+		if string(m["success"]) == "false" && !responseError010(str010(m, "error")) {
+			return nil, nil, errCompletion010
+		}
+	}
+	encoded := str010(m, field)
 	body, x := base64.RawURLEncoding.Strict().DecodeString(encoded)
 	if x != nil || len(body) < 36 || len(body) > 16384 || base64.RawURLEncoding.EncodeToString(body) != encoded || len(requestAAD010(m)) > 4033 {
 		return nil, nil, errCompletion010
@@ -123,6 +153,10 @@ func (s *AuthenticatedCompletion010) SealRequest(ctx context.Context, plaintext 
 		return nil, x
 	}
 	s.active = end
+	if s.sent == nil {
+		s.sent = map[string]*recordRequest010{}
+	}
+	s.sent[w["id"].(string)] = &recordRequest010{wire: append([]byte(nil), result...)}
 	return result, nil
 }
 
@@ -143,6 +177,18 @@ func (s *AuthenticatedCompletion010) OpenRequest(ctx context.Context, raw []byte
 	if x != nil {
 		return nil, errCompletion010
 	}
+	plaintext, x := s.acceptRecord010(ctx, start, w, wire, false)
+	if x != nil {
+		return nil, x
+	}
+	if s.received == nil {
+		s.received = map[string]*recordRequest010{}
+	}
+	s.received[str010(w, "id")] = &recordRequest010{wire: canon010(w)}
+	return plaintext, nil
+}
+func (s *AuthenticatedCompletion010) acceptRecord010(ctx context.Context, start registry010.Stamp, w map[string]json.RawMessage, wire []byte, response bool) ([]byte, error) {
+	e := s.endpoint
 	did, recipient, kid, role, key := s.tuple["initDid"], s.tuple["respDid"], s.tuple["initKid"], "initiator", s.a.Signing()
 	if s.initiator {
 		did, recipient, kid, role, key = s.tuple["respDid"], s.tuple["initDid"], s.tuple["respKid"], "responder", s.b.Signing()
@@ -156,7 +202,7 @@ func (s *AuthenticatedCompletion010) OpenRequest(ctx context.Context, raw []byte
 		s.destroy()
 		return nil, errCompletion010
 	}
-	if verifyWire010(w, false, key) != nil {
+	if verifyWire010(w, response, key) != nil {
 		return nil, errCompletion010
 	}
 	store, ok := e.replay.(RecordReplayStore010)

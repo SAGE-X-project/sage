@@ -55,3 +55,9 @@ verifies signed handshakes and records across all four Go/Rust process combinati
 retaining raw messages and revision hashes. Synthetic replay controls test the
 integration contract; they are not deployment durability evidence. Full protocol
 conformance remains NOT_ESTABLISHED.
+
+## Correlated responses
+
+The original request-only boundary above is extended by [session responses](RESPONSE010.md).
+The new API retains signed requests internally and accepts one terminal signed/encrypted
+response per request. HTTP/TLS and optional envelope fields remain outside this subset.
