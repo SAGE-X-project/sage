@@ -38,6 +38,7 @@ type Journal struct {
 // deployment obligations. It does not protect against malicious disk rollback.
 func OpenJournal(path string, create bool) (*Journal, error) {
 	lock := path + ".lock"
+	// #nosec G304 -- path is trusted deployment configuration, never record/peer input; the writer lock is created exclusively.
 	l, e := os.OpenFile(lock, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if e != nil {
 		return nil, e
@@ -50,6 +51,7 @@ func OpenJournal(path string, create bool) (*Journal, error) {
 	if create {
 		flags |= os.O_CREATE | os.O_EXCL
 	}
+	// #nosec G304 -- caller chooses trusted local storage; initialization is exclusive and restart cannot create missing state.
 	f, e := os.OpenFile(path, flags, 0600)
 	if e != nil {
 		_ = os.Remove(lock)
