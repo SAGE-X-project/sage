@@ -1,0 +1,31 @@
+{
+  "source": "SAGE-X-project/sage-inspector@93dd472415041d383a0ac6adabb115c4f98f2c00 vectors/0.10.0/hpke-schedule.json",
+  "source_sha256": "79e172d3a31b2c67c507abf348923b6cf140fb8529556d2b2c2192de7a30fe1b",
+  "scope": "Independent public fixed seed/ACK values; no full handshake authentication.",
+  "cases": [
+    {
+      "id": "schedule-0",
+      "exporter_hex": "a8de62cfb50aae8058d494a86b9420a9a04fbb5f19c4b25bda7c4cf251aa882c",
+      "ss_e2e_hex": "7cc2b7b281a0742951106c397572ff7ba1fc702a9fc46c9d8a0d984f52ed166f",
+      "th_hex": "a4dcfbf2cfe2b3ffd09acd65fbb78c675612b93c93b512a11b9b064786ee5488",
+      "seed_hex": "a670cc6a4cf4eed950a26f2e85a185457e283ba617fd87da485625d96a2a61a6",
+      "ack_tag_hex": "3aa2c8a2e5374b0286a3f3c47e87278e01697f22eaa4303308c36e2c3c7f4ce8"
+    },
+    {
+      "id": "schedule-1",
+      "exporter_hex": "c4e401e2ba7ddd1e82200d524906ac9583a400a34c1b5ab575a4b323aa0a42b2",
+      "ss_e2e_hex": "85a395444baedcc9d9911b7b13e59378587d5c2d7a64ccd2d907c5ce6017ae7d",
+      "th_hex": "3fbbd51aa56fd6ab3dc8f8c511c7f0e9225789f20b466a2bea51be77d5d04fb9",
+      "seed_hex": "8b32bf27a27af10cee3c7752c9d0f882316977302137b4698d2f5ffd9621c7af",
+      "ack_tag_hex": "7397d13d992b4a07a104fcde2e11f6eb3f983406c64b6904b59f3c250923ee1d"
+    },
+    {
+      "id": "schedule-2",
+      "exporter_hex": "c8356d2148832c4d14f05b738de7900f47179ea43dabd702a05a5938722adbea",
+      "ss_e2e_hex": "3b355c48c864350bbe7be2889c04ead02d82e54ec7d54f5c754f3ae25d660351",
+      "th_hex": "5d7020ace584ab9641c423d1121ba782b1a07265f2107a39c14eccbbeefe2418",
+      "seed_hex": "aafef6c5e1f744e6f069491c5532d5dd1e00fc3d61ac94c5e37921aa26bfb2d1",
+      "ack_tag_hex": "2c694e8f8034c3748e856de1168803e4fc09016368aea68497dd9a78edfdd7c5"
+    }
+  ]
+}
