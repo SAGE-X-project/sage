@@ -1,0 +1,4446 @@
+{
+  "scope": "Trusted-source and clock injection; full record proofs and deployed finality are external prerequisites. REG-03 mutations excluded.",
+  "config": {
+    "source": "fixture-authority",
+    "registry": "eip155:1:0xabababababababababababababababababababab",
+    "network": "1",
+    "blockchain": true
+  },
+  "cases": [
+    {
+      "id": "registry-finalized-tombstone",
+      "source_sha256": "b034c68b0745f4748e09b3013d35c6fca2ab2af686d698c0c15ceac88fc07e3b",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "deactivated",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "aba222eee45bcb288430bf164eaf8d0d05de7abe68c4dca68ae74469736201b5"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "state": "deactivated",
+              "version": "2"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": true
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "7b5fccc73f910638ba8fe886ba268fe432cdba1c4d66722923fb20736856c485"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-freshness",
+      "source_sha256": "5e0e14ef5e046e8c65cee9c3d2942943bb9dc29c07ef948ca172b740875cc259",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 15000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 15000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": ""
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 16000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 16000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-inactive-resolution",
+      "source_sha256": "bc20e0ecac50dd5969a6ac5ab52ead9e76e9c0a0c888baeac477dd315b94827b",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "deactivated",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "aba222eee45bcb288430bf164eaf8d0d05de7abe68c4dca68ae74469736201b5"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "state": "deactivated",
+              "version": "2"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": true
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "deactivated",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "aba222eee45bcb288430bf164eaf8d0d05de7abe68c4dca68ae74469736201b5"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-positive-cache",
+      "source_sha256": "d832d7e5d01904deb8185e3ed4f1d64a25dfa5e5df5b23679a85568fa4b0a699",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": ""
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 11000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-reject-clock_trusted",
+      "source_sha256": "789df01d3f5389fd3d745f9756b5360a93f148b0ba70102902f797c8b71dfb49",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": false,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-reject-conflicting",
+      "source_sha256": "a5c7be94989b8d274fc7b584a530be0c6fe6c048d33c6b0faab080e262e9eb29",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": true,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-reject-keys_block_hash",
+      "source_sha256": "9d80cb47a440d2e592f8341b436e62d89f15c26889cbdda764e095b0956685ff",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-reject-lookup",
+      "source_sha256": "3c2e30ce4045737c866d28bc647866aea399036cd8c55acf87ea5d12bfe33964",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": false
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-reject-ready",
+      "source_sha256": "ae51f6b89c2892be357522dbdc9f30da1c091e8929000d94108fc90612a5c4e6",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": false,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-reject-registry_id",
+      "source_sha256": "62dda6387ca5788b7e704480a1e75a6c5f8a0d437ff047217d2c5e198d91272a",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:2:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-reject-source",
+      "source_sha256": "a5caf7abf35982bbc86427a678b2e3ed61e8f01b9a044b30a4bcf3f6eb40b335",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "peer-resolver",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-reject-transport_ok",
+      "source_sha256": "bba4d4b654b3331ecb663b224639d844767f079857da16b59c8cf81587d70580",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": false
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-reject-trusted",
+      "source_sha256": "4973965057cd67b0e854fff95a691f1bdc25f1b939be558a71c5598222aa6f05",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": false
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-restart",
+      "source_sha256": "60298673b5fedd7742e343e8c281c7f409d7f48bc697677db376569e7f247cc9",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "7b5fccc73f910638ba8fe886ba268fe432cdba1c4d66722923fb20736856c485"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "state": "active",
+              "version": "3"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "restart"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": false,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "7b5fccc73f910638ba8fe886ba268fe432cdba1c4d66722923fb20736856c485"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "state": "active",
+              "version": "3"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-rollback",
+      "source_sha256": "f166e42e9b871ea3c4df53179faafb6aea2764ca92b3c524a955216fe3a4a13f",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "7b5fccc73f910638ba8fe886ba268fe432cdba1c4d66722923fb20736856c485"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "state": "active",
+              "version": "3"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "registry-unfinalized-reorg",
+      "source_sha256": "2a0147b7f02e4486bfc0eec25a8357420cd6b4421e763a27f2d8111d64cd2ac5",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "deactivated",
+              "ready": true,
+              "validated": true,
+              "finalized": false,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "aba222eee45bcb288430bf164eaf8d0d05de7abe68c4dca68ae74469736201b5"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": ""
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "exact-signing-url",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#missing",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "kem-required",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#kem-1"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "signing-without-kem",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "9d0dd637ca2a2c65319ade0121c82bea19bf9a984bca80d56c13ec7ead2fb090"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": ""
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "9d0dd637ca2a2c65319ade0121c82bea19bf9a984bca80d56c13ec7ead2fb090"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "revoked-signing",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#kem-1"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "check",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "revoked"
+                }
+              ],
+              "digest": "8be81e0dcec7026ede6ecf57e7bfc06c59bae7ac33775bb0629340b488b8a604"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "changed-material",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#kem-1"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "check",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "aa326b00fbe545b9b132997af8b9b1429bbf64e92ce7ba5f4fc1d0c8b1264459"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "changed-expiry",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#kem-1"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "check",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted",
+                  "expires": 200
+                }
+              ],
+              "digest": "e552e0624fadc32954054eb48559a6bf378be641103932e4562f44aad14ef31d"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "changed-algorithm",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#kem-1"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "check",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "x25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "1b682571f60d7cce877549ce239e271a1b22830d07d30121dd3dc9e6dbc10491"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "revoked-kem",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#kem-1"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "check",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "revoked"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "270d10868b7bdf13fc88a2b0c13b590239add4fee43bfc9854feb7e7071ce590"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "unrelated-key-addition",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#kem-1"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "check",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "aaa-kem",
+                  "alg": "x25519",
+                  "material": "0303030303030303030303030303030303030303030303030303030303030303",
+                  "state": "accepted"
+                },
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "453024059accf3e5939a8c6096c4e8d3f93c66f532e75aec4c739cd56165f1cf"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "valid": true
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "aaa-kem",
+                  "alg": "x25519",
+                  "material": "0303030303030303030303030303030303030303030303030303030303030303",
+                  "state": "accepted"
+                },
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "453024059accf3e5939a8c6096c4e8d3f93c66f532e75aec4c739cd56165f1cf"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#aaa-kem"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "unrelated-record-update",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#kem-1"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "check",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "valid": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "expiry-equality",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted",
+                  "expires": 101
+                }
+              ],
+              "digest": "2acda397cb8240d851a6357fb275bcfd35b4370c7adf247f17ec68be93d61980"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": ""
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "check",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted",
+                  "expires": 101
+                }
+              ],
+              "digest": "2acda397cb8240d851a6357fb275bcfd35b4370c7adf247f17ec68be93d61980"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 101
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 101
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 101
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "same-version-conflict",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "state": "active",
+              "version": "2"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "unvalidated-record",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": false,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "network-binding",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "2",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "future-acquisition",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 11000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "clock-rollback",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "state": "active",
+              "version": "2"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 9999,
+                "unix": 100
+              },
+              {
+                "mono_ms": 9999,
+                "unix": 100
+              },
+              {
+                "mono_ms": 9999,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": "storage-delay-and-refresh",
+      "steps": [
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 15001,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "select",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 16000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 16000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 16000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 16000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true,
+            "signing_url": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+            "require_kem": false
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "signing_keyid": "did:sage:eip155:1:0xabababababababababababababababababababab:alice#signing-1",
+              "kem_keyid": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "scope-isolation",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "3",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "7b5fccc73f910638ba8fe886ba268fe432cdba1c4d66722923fb20736856c485"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "state": "active",
+              "version": "3"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:bob",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:bob",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "28bd2f79ea95b3bf88440dfffe32ecdbd9152b4accc63cf65acba6a6f73b5f22"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "state": "active",
+              "version": "2"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "3",
+              "tombstone": false
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:bob"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "2",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "maximum-version",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "18446744073709551615",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "ba01f8f8f2dacf43fe702d578d9c7fabb7b443b9bd368d94ed90c322f33179e3"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "state": "active",
+              "version": "18446744073709551615"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "2",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "d0effea045b26b11a69f780d40e9a3eb66604dc60965c90b187b0081799fa81e"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "18446744073709551615",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid-version-0",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "0",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "986ede9a88792d7dfb3f586213860da01ab0ef35286646ffbeeda8cbd706cdd7"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid-version-01",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "01",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "71a90318acd0ca0dff3f90aade35a29de4e3b7f092a8fd8bddc8dfcbaebf81eb"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid-version-18446744073709551616",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "18446744073709551616",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "754ad4e81b5074c56f8ad6f24bb207a5d273e0bab19632dca62d5c3efd2fad7f"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid-version--1",
+      "steps": [
+        {
+          "request": {
+            "action": "observe",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+            "snapshot": {
+              "source": "fixture-authority",
+              "registry": "eip155:1:0xabababababababababababababababababababab",
+              "network": "1",
+              "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice",
+              "version": "-1",
+              "state": "active",
+              "ready": true,
+              "validated": true,
+              "finalized": true,
+              "conflicting": false,
+              "acquired_ms": 10000,
+              "block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys_block_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "keys": [
+                {
+                  "name": "kem-1",
+                  "alg": "x25519",
+                  "material": "6604c47928b02a2f106b098cced13128bd5b3f12509a3e9dca76a61085d31a3a",
+                  "state": "accepted"
+                },
+                {
+                  "name": "signing-1",
+                  "alg": "ed25519",
+                  "material": "0343a58a4967c40b3ba00257d1d1e19af69b8a3a5dda072eeaf8778466ddd742",
+                  "state": "accepted"
+                }
+              ],
+              "digest": "6d110c1dcbf8cb40a99c0827a847ca3e399af98da1b0aed33450bb866fb9c26f"
+            },
+            "times": [
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              },
+              {
+                "mono_ms": 10000,
+                "unix": 100
+              }
+            ],
+            "clock_ok": true,
+            "source_ok": true
+          },
+          "expected": {
+            "verdict": "REJECT",
+            "output": {}
+          }
+        },
+        {
+          "request": {
+            "action": "inspect",
+            "did": "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+          },
+          "expected": {
+            "verdict": "ACCEPT",
+            "output": {
+              "highest_finalized_version": "0",
+              "tombstone": false
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
