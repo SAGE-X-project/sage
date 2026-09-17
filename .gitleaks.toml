@@ -31,6 +31,8 @@ paths = [
   '''^sdk/[^/]+/(README|.*\.md)$''',
 ]
 regexes = [
+  # Exact SHA256 of the public Inspector source fixture, not an API credential.
+  '''hpke-bound-key-invalid\.json["\s:]+39e6d1d36f45b53130404551fb29fab6354736e9b631dad0c110b20be2ec1525\b''',
   # Exact public derived keys from the frozen SAGE 0.10.0 record vectors.
   '''key_hex["\s:]+(?:0fc66e22c946a7622f4bfb9f3e0f901acfe3199348f891e56e6d4f1e43fd5f93|221de416b0ce0cf34cc4559d289ec37a947365967656cea5c79a7fb6cc5f60bb|2a5899795dda1a25f0135381898a07f1d8b568ce61cacf441e77ccbcc17afb6d|8e813ca92c4580f409bb3d0b281a24412c8e86591eab0befd2df79b2104f797f|9b1f13889532013ee3c3f93841d1495521b235cf272b3136bc4831d6852ff8b9|be8483351fc219268f0839a004188ec157eff6fb463c8631aa3361b92ffd8252|c3a89552907e15483754f111e2460fd86a7eed19948cf21b9da1be328c7491bd|f6175cf0d50d04f039693b1c1c40606f92f603d1c2ba8226f5c9e1a05dcacb2a)\b''',
   # Hardhat default development accounts (publicly documented).
