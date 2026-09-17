@@ -22,6 +22,7 @@ const completionAlice = "did:sage:web:agent.example:alice"
 const completionBob = "did:sage:web:agent.example:bob"
 
 type completionControl struct {
+	expiry    int64
 	mono, utc int64
 	mode      string
 }
@@ -67,6 +68,12 @@ func (c *completionControl) Read(_ context.Context, did string) (registry010.Sna
 		extra.Material = hex.EncodeToString(ed25519.NewKeyFromSeed(bytes.Repeat([]byte{5}, 32)).Public().(ed25519.PublicKey))
 		keys = append(keys, extra)
 	}
+	if c.expiry != 0 {
+		for i := range keys {
+			expiry := c.expiry
+			keys[i].Expires = &expiry
+		}
+	}
 	h := sha256.Sum256(canon010(keys))
 	return registry010.Snapshot{Source: "fixture-authority", Registry: completionRegistry, Network: "local", DID: did, Version: version, State: "active", Digest: hex.EncodeToString(h[:]), Ready: true, Validated: true, Finalized: true, AcquiredMS: c.mono, Keys: keys}, nil
 }
@@ -92,6 +99,10 @@ func (r *completionReplay) Reserve(v Replay010) error {
 	}
 	for _, id := range ids {
 		r.seen[id] = true
+	}
+	if r.c.mode == "utc-delay" {
+		r.c.utc++
+		r.c.mono += 1000
 	}
 	if r.c.mode == "store-delay" {
 		r.c.mono += 5001
@@ -342,5 +353,25 @@ func TestCompletion010Lifecycle(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestCompletion010KeyExpiresDuringCommit(t *testing.T) {
+	a, b, c := completionPair(t)
+	c.expiry = 101
+	p, request, x := a.Start(context.Background(), completionBob, completionBob+"#signing-1", 300)
+	if x != nil {
+		t.Fatal(x)
+	}
+	defer p.Close()
+	r, response, x := b.Respond(context.Background(), request, 300)
+	if x != nil {
+		t.Fatal(x)
+	}
+	defer r.Close()
+	c.mode = "utc-delay"
+	s, x := p.Complete(context.Background(), response)
+	if x == nil || s != nil || p.State() != "CLOSED" {
+		t.Fatal("expired signing key authorized completion")
 	}
 }

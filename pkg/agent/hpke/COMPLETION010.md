@@ -13,7 +13,8 @@ participant/key/context/nonce bindings, signature and local private-key match,
 then signs the completion and exact-request-bound response. Complete consumes
 pending state on every success or failure and creates an initiator result only
 after both response signatures, echoed fields, current pinned keys, ACK and the
-final time checks succeed. Completion payload bytes must be JCS-canonical.
+final time checks succeed. The final gate also rechecks pinned key expiry,
+including expiry reached during durable storage. Completion payload bytes must be JCS-canonical.
 
 This API supports the metadata-free plain handshake subset with explicit context
 and role fields, Ed25519 signing and X25519 KEM, and both peers in the configured
@@ -54,7 +55,7 @@ compromised trusted process.
 
 A shared 36-scenario fixture covers signatures, ACK, echoed/request bindings,
 closed schemas, monotonic/UTC boundaries, unavailable dependencies, delayed
-storage and abandonment. Seven additional lifecycle cases cover request replay,
+storage and abandonment. Eight additional lifecycle cases cover request replay,
 provisional expiry/closure and current-key checks. Inspector runs all four
 Go/Rust combinations and independently verifies signatures with Node over fixed
 public test seeds, preserving raw messages and failures outside historical

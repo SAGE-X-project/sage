@@ -73,6 +73,18 @@ func (e *CompletionEndpoint010) sample() (registry010.Stamp, error) {
 	e.last = &t
 	return t, nil
 }
+func pinnedLive010(now int64, a, b *registry010.Pinned) bool {
+	keys := []registry010.Key{a.Signing(), b.Signing()}
+	if k := b.KEM(); k != nil {
+		keys = append(keys, *k)
+	}
+	for _, k := range keys {
+		if k.Expires != nil && now >= *k.Expires {
+			return false
+		}
+	}
+	return true
+}
 func (e *CompletionEndpoint010) current(ctx context.Context, a, b *registry010.Pinned) error {
 	if e.registry.CheckPinned(ctx, a) != nil || e.registry.CheckPinned(ctx, b) != nil {
 		return errCompletion010
@@ -308,7 +320,7 @@ func (e *CompletionEndpoint010) Start(ctx context.Context, recipient, respKid st
 	wire["nonce"] = m["nonce"]
 	request := sign010(wire, "sage-wire-request|0.10.0\n", e.signing)
 	end, x := e.sample()
-	if x != nil || end.MonoMS-start.MonoMS > 5000 || end.Unix >= start.Unix+ttl {
+	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, a, b) || end.Unix >= start.Unix+ttl {
 		state.Close()
 		return nil, nil, errCompletion010
 	}
@@ -396,7 +408,7 @@ func (s *AuthenticatedCompletion010) Check(ctx context.Context) error {
 		return errCompletion010
 	}
 	end, x := e.sample()
-	if x != nil || end.MonoMS-start.MonoMS > 5000 || end.MonoMS-s.created.MonoMS >= 600000 || (!s.initiator && !pendingLive010(end, s.created, s.expires)) {
+	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, s.a, s.b) || end.MonoMS-s.created.MonoMS >= 600000 || (!s.initiator && !pendingLive010(end, s.created, s.expires)) {
 		s.destroy()
 		return errCompletion010
 	}
@@ -479,7 +491,7 @@ func (p *PendingCompletion010) Complete(ctx context.Context, response []byte) (*
 	}
 	end, x := e.sample()
 	expires, _ := int010(w, "expires")
-	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pendingLive010(end, p.emitted, p.expires) || end.Unix >= expires {
+	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, p.a, p.b) || !pendingLive010(end, p.emitted, p.expires) || end.Unix >= expires {
 		return nil, errCompletion010
 	}
 	if e.replay.Reserve(reservation010(w)) != nil {
@@ -488,7 +500,7 @@ func (p *PendingCompletion010) Complete(ctx context.Context, response []byte) (*
 	// The trusted replay store may block. A consumed replay entry remains a denial
 	// if the operation expires during durable commit; no session is created.
 	end, x = e.sample()
-	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pendingLive010(end, p.emitted, p.expires) || end.Unix >= expires {
+	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, p.a, p.b) || !pendingLive010(end, p.emitted, p.expires) || end.Unix >= expires {
 		return nil, errCompletion010
 	}
 	return owned010(e, d, p.a, p.b, end, 0, true), nil
@@ -546,14 +558,14 @@ func (e *CompletionEndpoint010) Respond(ctx context.Context, request []byte, ttl
 	response["success"] = true
 	raw := sign010(response, "sage-wire-response|0.10.0\n", e.signing)
 	end, x := e.sample()
-	if x != nil || end.MonoMS-start.MonoMS > 5000 || end.Unix >= expires {
+	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, a, b) || end.Unix >= expires {
 		return nil, nil, errCompletion010
 	}
 	if e.replay.Reserve(reservation010(w)) != nil {
 		return nil, nil, errCompletion010
 	}
 	end, x = e.sample()
-	if x != nil || end.MonoMS-start.MonoMS > 5000 || end.Unix >= expires {
+	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, a, b) || end.Unix >= expires {
 		return nil, nil, errCompletion010
 	}
 	return owned010(e, d, a, b, end, expires, false), raw, nil
