@@ -351,16 +351,17 @@ func pendingLive010(now, start registry010.Stamp, expires int64) bool {
 // record state. No public constructor or seed export exists. It is not a dispatch
 // API. Responders remain RESPONSE_SENT until OpenRequest atomically confirms them.
 type AuthenticatedCompletion010 struct {
-	endpoint          *CompletionEndpoint010
-	a, b              *registry010.Pinned
-	tuple             map[string]string
-	created           registry010.Stamp
-	expires           int64
-	initiator, closed bool
-	confirmed         bool
-	active            registry010.Stamp
-	records           *session.RecordSession010
-	sent, received    map[string]*recordRequest010
+	httpTarget, httpAuthority string
+	endpoint                  *CompletionEndpoint010
+	a, b                      *registry010.Pinned
+	tuple                     map[string]string
+	created                   registry010.Stamp
+	expires                   int64
+	initiator, closed         bool
+	confirmed                 bool
+	active                    registry010.Stamp
+	records                   *session.RecordSession010
+	sent, received            map[string]*recordRequest010
 }
 
 // Tuple returns a copy of public authenticated bindings, never a grant or secret.

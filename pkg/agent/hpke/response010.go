@@ -8,6 +8,7 @@ import (
 )
 
 type recordRequest010 struct {
+	http     *httpContext010
 	wire     []byte
 	terminal bool
 }
@@ -49,6 +50,13 @@ func (s *AuthenticatedCompletion010) SealResponse(ctx context.Context, messageID
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if s.httpTarget != "" {
+		return nil, errCompletion010
+	}
+	return s.sealResponse010(ctx, messageID, data, success, code, ttl)
+}
+func (s *AuthenticatedCompletion010) sealResponse010(ctx context.Context, messageID string, data []byte, success bool, code string, ttl int64) ([]byte, error) {
+	e := s.endpoint
 	start, x := e.sample()
 	if x != nil || s.recordLive(start) != nil {
 		s.destroy()
@@ -112,6 +120,13 @@ func (s *AuthenticatedCompletion010) OpenResponse(ctx context.Context, raw []byt
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if s.httpTarget != "" {
+		return nil, errCompletion010
+	}
+	return s.openResponse010(ctx, raw, nil)
+}
+func (s *AuthenticatedCompletion010) openResponse010(ctx context.Context, raw []byte, proof *httpProof010) (*SessionResponse010, error) {
+	e := s.endpoint
 	start, x := e.sample()
 	if x != nil || s.recordLive(start) != nil {
 		s.destroy()
@@ -119,6 +134,9 @@ func (s *AuthenticatedCompletion010) OpenResponse(ctx context.Context, raw []byt
 	}
 	if !s.initiator && !s.confirmed {
 		return nil, errCompletion010
+	}
+	if proof != nil {
+		start = proof.start
 	}
 	w, record, x := sessionRecord010(raw, start.Unix, true)
 	if x != nil {
@@ -128,6 +146,9 @@ func (s *AuthenticatedCompletion010) OpenResponse(ctx context.Context, raw []byt
 	retained := s.sent[messageID]
 	request, hash, x := retained010(retained)
 	if x != nil || str010(w, "request_hash") != hash || str010(w, "id") == str010(request, "id") || str010(w, "nonce") == str010(request, "nonce") {
+		return nil, errCompletion010
+	}
+	if proof != nil && s.verifyHTTP010(proof, w) != nil {
 		return nil, errCompletion010
 	}
 	data, x := s.acceptRecord010(ctx, start, w, record, true)

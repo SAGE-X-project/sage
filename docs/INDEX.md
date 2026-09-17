@@ -271,5 +271,6 @@ Historical material kept for reference.
 | Document | Title | Freshness |
 |---|---|---|
 | [`pkg/agent/hpke/COMPLETION010.md`](../pkg/agent/hpke/COMPLETION010.md) | Authenticated completion boundary |  |
+| [`pkg/agent/hpke/HTTP010.md`](../pkg/agent/hpke/HTTP010.md) | HTTP signatures for authenticated session messages |  |
 | [`pkg/agent/hpke/RECORD010.md`](../pkg/agent/hpke/RECORD010.md) | Authenticated session request boundary |  |
 | [`pkg/agent/hpke/RESPONSE010.md`](../pkg/agent/hpke/RESPONSE010.md) | Correlated session responses |  |
