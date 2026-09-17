@@ -113,6 +113,13 @@ func (s *AuthenticatedCompletion010) SealRequest(ctx context.Context, plaintext 
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if s.httpTarget != "" {
+		return nil, errCompletion010
+	}
+	return s.sealRequest010(ctx, plaintext, ttl)
+}
+func (s *AuthenticatedCompletion010) sealRequest010(ctx context.Context, plaintext []byte, ttl int64) ([]byte, error) {
+	e := s.endpoint
 	start, x := e.sample()
 	if x != nil || s.recordLive(start) != nil {
 		s.destroy()
@@ -168,13 +175,26 @@ func (s *AuthenticatedCompletion010) OpenRequest(ctx context.Context, raw []byte
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if s.httpTarget != "" {
+		return nil, errCompletion010
+	}
+	return s.openRequest010(ctx, raw, nil)
+}
+func (s *AuthenticatedCompletion010) openRequest010(ctx context.Context, raw []byte, proof *httpProof010) ([]byte, error) {
+	e := s.endpoint
 	start, x := e.sample()
 	if x != nil || s.recordLive(start) != nil {
 		s.destroy()
 		return nil, errCompletion010
 	}
+	if proof != nil {
+		start = proof.start
+	}
 	w, wire, x := sessionRequest010(raw, start.Unix)
 	if x != nil {
+		return nil, errCompletion010
+	}
+	if proof != nil && s.verifyHTTP010(proof, w) != nil {
 		return nil, errCompletion010
 	}
 	plaintext, x := s.acceptRecord010(ctx, start, w, wire, false)
