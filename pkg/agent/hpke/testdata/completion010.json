@@ -1,0 +1,198 @@
+{
+  "scope": "Fresh locally signed metadata-free plain handshake; synthetic registry/clock and replay faults. Not HTTP, durable replay deployment or provisional record confirmation.",
+  "public_keys": {
+    "1": "8a88e3dd7409f195fd52db2d3cba5d72ca6709bf1d94121bf3748801b40f6f5c",
+    "2": "8139770ea87d175f56a35466c34c7ecccb8d8a91b4ee37a25df60f5b8fc9b394"
+  },
+  "sources": {
+    "hpke-bound-key-invalid.json": "39e6d1d36f45b53130404551fb29fab6354736e9b631dad0c110b20be2ec1525",
+    "hpke-monotonic-expiry.json": "f83a270f4a6d9a7f913b410c02542fd83b86bae1bbb2c72e621a03c33726ac8b",
+    "hpke-utc-expiry.json": "1ff7f90a3bd5e0b1450e9f50e2078962ceb223138c6505bda32cbfd81a857bc5",
+    "hpke-valid.json": "b10f7342e20da3163971fb5227f16b01040d263d0931a0bc9eae363cb35e596a",
+    "hpke-wrong-ack.json": "63d35fffabe26e7807d6a42cce7f0cf86779fc34c8b99ce53c4286e3d2f9632c",
+    "hpke-wrong-pending.json": "a1ef7e693d47f9c667c2391534c7c9038fc19d8be5182fd9966d118aaa83e010"
+  },
+  "cases": [
+    {
+      "id": "valid",
+      "accept": true
+    },
+    {
+      "id": "outer-signature",
+      "accept": false,
+      "mutation": "outer-signature"
+    },
+    {
+      "id": "inner-signature",
+      "accept": false,
+      "mutation": "inner-signature"
+    },
+    {
+      "id": "ack",
+      "accept": false,
+      "mutation": "ack"
+    },
+    {
+      "id": "echo",
+      "accept": false,
+      "mutation": "echo"
+    },
+    {
+      "id": "request-hash",
+      "accept": false,
+      "mutation": "request-hash"
+    },
+    {
+      "id": "message-id",
+      "accept": false,
+      "mutation": "message-id"
+    },
+    {
+      "id": "recipient",
+      "accept": false,
+      "mutation": "recipient"
+    },
+    {
+      "id": "signing-key",
+      "accept": false,
+      "mutation": "signing-key"
+    },
+    {
+      "id": "response-nonce",
+      "accept": false,
+      "mutation": "response-nonce"
+    },
+    {
+      "id": "unknown-wire",
+      "accept": false,
+      "mutation": "unknown-wire"
+    },
+    {
+      "id": "unknown-completion",
+      "accept": false,
+      "mutation": "unknown-completion"
+    },
+    {
+      "id": "duplicate-wire",
+      "accept": false,
+      "mutation": "duplicate-wire"
+    },
+    {
+      "id": "duplicate-completion",
+      "accept": false,
+      "mutation": "duplicate-completion"
+    },
+    {
+      "id": "duplicate-transcript",
+      "accept": false,
+      "mutation": "duplicate-transcript"
+    },
+    {
+      "id": "null-transcript",
+      "accept": false,
+      "mutation": "null-transcript"
+    },
+    {
+      "id": "trailing-wire",
+      "accept": false,
+      "mutation": "trailing-wire"
+    },
+    {
+      "id": "noncanonical-completion",
+      "accept": false,
+      "mutation": "noncanonical-completion"
+    },
+    {
+      "id": "source-error",
+      "accept": false,
+      "mode": "source-error"
+    },
+    {
+      "id": "revoke-init",
+      "accept": false,
+      "mode": "revoke-init"
+    },
+    {
+      "id": "revoke-resp",
+      "accept": false,
+      "mode": "revoke-resp"
+    },
+    {
+      "id": "revoke-kem",
+      "accept": false,
+      "mode": "revoke-kem"
+    },
+    {
+      "id": "changed-material",
+      "accept": false,
+      "mode": "changed-material"
+    },
+    {
+      "id": "clock-error",
+      "accept": false,
+      "mode": "clock-error"
+    },
+    {
+      "id": "store-error",
+      "accept": false,
+      "mode": "store-error"
+    },
+    {
+      "id": "store-delay",
+      "accept": false,
+      "mode": "store-delay"
+    },
+    {
+      "id": "unrelated-key",
+      "accept": true,
+      "mode": "unrelated"
+    },
+    {
+      "id": "monotonic-before",
+      "accept": true,
+      "mono_ms": 299999
+    },
+    {
+      "id": "monotonic-equality",
+      "accept": false,
+      "mono_ms": 300000
+    },
+    {
+      "id": "utc-before",
+      "accept": true,
+      "unix": 399
+    },
+    {
+      "id": "utc-equality",
+      "accept": false,
+      "unix": 400
+    },
+    {
+      "id": "clock-rollback",
+      "accept": false,
+      "mono_ms": -1
+    },
+    {
+      "id": "completion-expiry",
+      "accept": false,
+      "response_ttl": 1,
+      "unix": 101
+    },
+    {
+      "id": "initiation-expiry",
+      "accept": false,
+      "init_ttl": 1,
+      "unix": 101
+    },
+    {
+      "id": "pending-abandoned",
+      "accept": false,
+      "abandon": true
+    },
+    {
+      "id": "endpoint-closed",
+      "accept": false,
+      "endpoint_close": true
+    }
+  ]
+}
