@@ -135,6 +135,14 @@ func (s *RecordSession010) Seal(plaintext, callerAAD []byte) ([]byte, error) {
 // Open authenticates and accepts a record atomically. Unseen out-of-order
 // records are permitted; callers must separately enforce business ordering.
 func (s *RecordSession010) Open(wire, callerAAD []byte) ([]byte, error) {
+	return s.OpenChecked(wire, callerAAD, func() error { return nil })
+}
+
+// OpenChecked authenticates without consuming the sequence until accept succeeds.
+// accept runs under the session lock after AEAD and lifetime checks; it must not
+// reenter this session. On failure plaintext is erased and replay state is unchanged.
+// A trusted protocol owner uses this to commit transport replay before release.
+func (s *RecordSession010) OpenChecked(wire, callerAAD []byte, accept func() error) ([]byte, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.live(); err != nil {
@@ -169,6 +177,14 @@ func (s *RecordSession010) Open(wire, callerAAD []byte) ([]byte, error) {
 		return nil, err
 	}
 	if err := s.live(); err != nil {
+		clear(plaintext)
+		return nil, err
+	}
+	if accept == nil {
+		clear(plaintext)
+		return nil, errors.New("missing acceptance gate")
+	}
+	if err := accept(); err != nil {
 		clear(plaintext)
 		return nil, err
 	}
