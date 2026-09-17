@@ -19,8 +19,8 @@ including expiry reached during durable storage. Completion payload bytes must b
 This API supports the metadata-free plain handshake subset with explicit context
 and role fields, Ed25519 signing and X25519 KEM, and both peers in the configured
 registry. Optional task/metadata fields, absent role/context, session envelopes,
-HTTP signatures and failed application responses are not supported here; they
-are rejected. This is not a general WireTransport implementation. Payloads are
+failed application responses are not supported by these plain entry points.
+HTTP signatures use the separate HTTP-bound methods described below. This is not a general WireTransport implementation. Payloads are
 bounded to 16 KiB and these handshake envelopes to 32 KiB before resolution.
 
 Pending state uses a 300-second monotonic cap and strict absolute envelope
@@ -67,3 +67,8 @@ The original completion-only boundary above is extended by [authenticated sessio
 requests](RECORD010.md). Results now privately own record state; responder
 confirmation and sending are available only through that verified boundary.
 The earlier absence of record methods describes the completion-only revision.
+
+
+HTTP carriage is now available through the separate endpoint-bound HTTP methods
+and strict HTTP/1.1 codec documented in [HTTP010.md](HTTP010.md). The plain methods
+above remain transport-independent; an HTTP-bound endpoint rejects them.
