@@ -21,9 +21,10 @@ headers cannot be used to claim duplicate-field or request-smuggling protection.
 - Ed25519, exactly one `sig1`, the chapter 03 ordered request/response coverage,
   required `keyid`, `alg`, `created`, `expires`, `nonce`, `tag` parameters and the
   final `@signature-params` line. Received parameter order is preserved.
-- The canonical Structured Fields serialization subset: single SP between covered
-  components, bare `;req`, no optional whitespace, escaped strings or alternate
-  integer spelling. Parameters may occur in any order. This is not a general
+- The bounded Structured Fields subset accepts standard SP positions and
+  explicit true `req` parameters, then serializes single SP and bare `;req`
+  for the signature base. Escaped strings and alternate integer spellings
+  remain unsupported. Parameters may occur in any order. This is not a general
   RFC 8941 parser and does not claim acceptance of every RFC 9421 serialization.
 - HTTPS POST to one configured canonical absolute URI with a path, lowercase
   authority and omitted default port. Other methods, redirects, target rewriting
@@ -124,3 +125,29 @@ rejection categories. The Inspector executes 88 handshake process scenarios and
 16 TLS scenarios; its bounded transport helpers have eight offline unit tests.
 Production replay durability, quarantine, registry finality and host enforcement
 are still separate requirements, and full conformance remains NOT_ESTABLISHED.
+
+
+## Structured Field serialization and URI interoperability
+
+Verification parses the fixed covered-component list before constructing
+`@signature-params`. RFC 8941 SP between inner-list items, at the list edges,
+and after parameter semicolons is accepted. Explicit `;req=?1` serializes as
+`;req`. Signature parameter order remains as received; quoted values are never
+trimmed or reordered. Re-signing a request after emission changes its Signature
+field, so a response bound to that new field cannot complete the original
+sender's retained request.
+
+This remains a bounded SAGE profile parser, not a general Structured Fields
+library. Duplicate/unknown parameters, extra labels, false or duplicate req,
+tabs inside the inner list, whitespace before semicolons or around equals,
+noncanonical numeric spellings and escaped string values remain rejected.
+Canonical Signature byte sequences and Content-Digest values remain required.
+
+The shared `http-serialization010.json` fixture has 34 Structured Field cases
+and 17 URI configuration cases. Encoded path/query octets, percent-escape case,
+query order, repeated query names, plus signs and an empty query marker are
+preserved exactly. IPv6 and nondefault ports are covered. No URL decoding,
+query sorting, percent-case rewriting or general URI normalization is added.
+The raw codec still requires exact agreement with trusted configuration.
+Inspector additionally checks the published RFC 9421 B.2.6 Ed25519 example
+independently; that example has different coverage and is not a SAGE message.

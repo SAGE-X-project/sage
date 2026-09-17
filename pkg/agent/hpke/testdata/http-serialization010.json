@@ -1,0 +1,306 @@
+{
+  "version": "0.10.0",
+  "sources": [
+    "https://www.rfc-editor.org/rfc/rfc8941.html#section-4.1.1.1",
+    "https://www.rfc-editor.org/rfc/rfc8941.html#section-4.2.1.2",
+    "https://www.rfc-editor.org/rfc/rfc9421.html#section-2.3",
+    "https://www.rfc-editor.org/rfc/rfc9421.html#section-2.2.2"
+  ],
+  "provenance": "Independently authored profile vectors derived from RFC algorithms; not verbatim RFC examples or full RFC conformance.",
+  "structured_fields": [
+    {
+      "id": "request-canonical",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "canonical": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": true
+    },
+    {
+      "id": "request-list-spaces",
+      "response": false,
+      "input": "sig1=(  \"@method\"   \"@target-uri\"   \"@authority\"   \"content-type\"   \"content-digest\"   \"x-sage-did\"   \"x-sage-version\"  );keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "canonical": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": true
+    },
+    {
+      "id": "request-parameter-spaces",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");  keyid=\"did:sage:web:agent.example:alice#signing-1\";  alg=\"ed25519\";  created=100;  expires=400;  nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";  tag=\"sage-0.10.0\"",
+      "canonical": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": true
+    },
+    {
+      "id": "request-combined",
+      "response": false,
+      "input": "sig1=( \"@method\"  \"@target-uri\"  \"@authority\"  \"content-type\"  \"content-digest\"  \"x-sage-did\"  \"x-sage-version\" ); keyid=\"did:sage:web:agent.example:alice#signing-1\"; alg=\"ed25519\"; created=100; expires=400; nonce=\"AAAAAAAAAAAAAAAAAAAAAA\"; tag=\"sage-0.10.0\"",
+      "canonical": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": true
+    },
+    {
+      "id": "request-parameter-order",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");tag=\"sage-0.10.0\";nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";expires=400;created=100;alg=\"ed25519\";keyid=\"did:sage:web:agent.example:alice#signing-1\"",
+      "canonical": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");tag=\"sage-0.10.0\";nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";expires=400;created=100;alg=\"ed25519\";keyid=\"did:sage:web:agent.example:alice#signing-1\"",
+      "accept": true
+    },
+    {
+      "id": "request-tab",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";\talg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "request-space-before-semicolon",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\" ;alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "request-space-around-equals",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created =100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "request-no-component-separator",
+      "response": false,
+      "input": "sig1=(\"@method\"\"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "request-duplicate-parameter",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "request-second-label",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\", sig2=()",
+      "accept": false
+    },
+    {
+      "id": "request-unknown-parameter",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\";extra=1",
+      "accept": false
+    },
+    {
+      "id": "request-leading-zero",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=0100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "request-wrong-coverage",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"date\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "request-trailing-garbage",
+      "response": false,
+      "input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"!",
+      "accept": false
+    },
+    {
+      "id": "response-canonical",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "canonical": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": true
+    },
+    {
+      "id": "response-list-spaces",
+      "response": true,
+      "input": "sig1=(  \"@status\"   \"@method\";req   \"@target-uri\";req   \"@authority\";req   \"content-digest\";req   \"signature\";req   \"x-sage-version\";req   \"content-type\"   \"content-digest\"   \"x-sage-did\"   \"x-sage-version\"  );keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "canonical": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": true
+    },
+    {
+      "id": "response-parameter-spaces",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";  req \"@target-uri\";  req \"@authority\";  req \"content-digest\";  req \"signature\";  req \"x-sage-version\";  req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");  keyid=\"did:sage:web:agent.example:alice#signing-1\";  alg=\"ed25519\";  created=100;  expires=400;  nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";  tag=\"sage-0.10.0\"",
+      "canonical": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": true
+    },
+    {
+      "id": "response-combined",
+      "response": true,
+      "input": "sig1=( \"@status\"  \"@method\"; req=?1  \"@target-uri\"; req=?1  \"@authority\"; req=?1  \"content-digest\"; req=?1  \"signature\"; req=?1  \"x-sage-version\"; req=?1  \"content-type\"  \"content-digest\"  \"x-sage-did\"  \"x-sage-version\" ); keyid=\"did:sage:web:agent.example:alice#signing-1\"; alg=\"ed25519\"; created=100; expires=400; nonce=\"AAAAAAAAAAAAAAAAAAAAAA\"; tag=\"sage-0.10.0\"",
+      "canonical": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": true
+    },
+    {
+      "id": "response-parameter-order",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");tag=\"sage-0.10.0\";nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";expires=400;created=100;alg=\"ed25519\";keyid=\"did:sage:web:agent.example:alice#signing-1\"",
+      "canonical": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");tag=\"sage-0.10.0\";nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";expires=400;created=100;alg=\"ed25519\";keyid=\"did:sage:web:agent.example:alice#signing-1\"",
+      "accept": true
+    },
+    {
+      "id": "explicit-true",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req=?1 \"@target-uri\";req=?1 \"@authority\";req=?1 \"content-digest\";req=?1 \"signature\";req=?1 \"x-sage-version\";req=?1 \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "canonical": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": true
+    },
+    {
+      "id": "response-tab",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";\talg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "response-space-before-semicolon",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\" ;alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "response-space-around-equals",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created =100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "response-no-component-separator",
+      "response": true,
+      "input": "sig1=(\"@status\"\"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "response-duplicate-parameter",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "response-second-label",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\", sig2=()",
+      "accept": false
+    },
+    {
+      "id": "response-unknown-parameter",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\";extra=1",
+      "accept": false
+    },
+    {
+      "id": "response-leading-zero",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=0100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "response-wrong-coverage",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"date\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "response-trailing-garbage",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"!",
+      "accept": false
+    },
+    {
+      "id": "false",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req=?0 \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "duplicate-req",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req;req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    },
+    {
+      "id": "req-string",
+      "response": true,
+      "input": "sig1=(\"@status\" \"@method\";req=\"true\" \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"x-sage-version\";req \"content-type\" \"content-digest\" \"x-sage-did\" \"x-sage-version\");keyid=\"did:sage:web:agent.example:alice#signing-1\";alg=\"ed25519\";created=100;expires=400;nonce=\"AAAAAAAAAAAAAAAAAAAAAA\";tag=\"sage-0.10.0\"",
+      "accept": false
+    }
+  ],
+  "uris": [
+    {
+      "target": "https://agent.example/messages",
+      "accept": true,
+      "authority": "agent.example"
+    },
+    {
+      "target": "https://agent.example/",
+      "accept": true,
+      "authority": "agent.example"
+    },
+    {
+      "target": "https://agent.example/a%2Fb?x=%2f&x=+",
+      "accept": true,
+      "authority": "agent.example"
+    },
+    {
+      "target": "https://agent.example/a%2fb?x=%2F&x=%20",
+      "accept": true,
+      "authority": "agent.example"
+    },
+    {
+      "target": "https://agent.example/messages?",
+      "accept": true,
+      "authority": "agent.example"
+    },
+    {
+      "target": "https://agent.example/messages?a=1&a=2",
+      "accept": true,
+      "authority": "agent.example"
+    },
+    {
+      "target": "https://agent.example/messages?b=2&a=1",
+      "accept": true,
+      "authority": "agent.example"
+    },
+    {
+      "target": "https://agent.example:8443/messages",
+      "accept": true,
+      "authority": "agent.example:8443"
+    },
+    {
+      "target": "https://[::1]:8443/messages",
+      "accept": true,
+      "authority": "[::1]:8443"
+    },
+    {
+      "target": "http://agent.example/messages",
+      "accept": false
+    },
+    {
+      "target": "https://AGENT.example/messages",
+      "accept": false
+    },
+    {
+      "target": "https://agent.example:443/messages",
+      "accept": false
+    },
+    {
+      "target": "https://user@agent.example/messages",
+      "accept": false
+    },
+    {
+      "target": "https://agent.example/messages#fragment",
+      "accept": false
+    },
+    {
+      "target": "https://agent.example",
+      "accept": false
+    },
+    {
+      "target": "https://agent.example/a b",
+      "accept": false
+    },
+    {
+      "target": "https://agent.example/a\\b",
+      "accept": false
+    }
+  ]
+}

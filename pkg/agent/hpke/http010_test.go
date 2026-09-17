@@ -307,7 +307,7 @@ func TestHTTPAdmission010(t *testing.T) {
 	}
 	h, _ := httpHeaders010(q)
 	input := h["signature-input"]
-	for _, v := range []string{input + ";created=100", input + ", sig2=()", strings.Replace(input, ";created=100", ";created=0100", 1), strings.Replace(input, ";created=100", ";created=-1", 1), strings.Replace(input, ";created=100", ";created=1.0", 1), strings.Replace(input, `;tag="sage-0.10.0"`, "", 1), strings.Replace(input, `;nonce="`, `;nonce="\`, 1), strings.Replace(input, ";alg=", "; alg=", 1)} {
+	for _, v := range []string{input + ";created=100", input + ", sig2=()", strings.Replace(input, ";created=100", ";created=0100", 1), strings.Replace(input, ";created=100", ";created=-1", 1), strings.Replace(input, ";created=100", ";created=1.0", 1), strings.Replace(input, `;tag="sage-0.10.0"`, "", 1), strings.Replace(input, `;nonce="`, `;nonce="\`, 1), strings.Replace(input, ";alg=", ";\talg=", 1)} {
 		if _, x = httpInput010(v, false); x == nil {
 			t.Fatal("non-profile structured fields accepted")
 		}
@@ -324,5 +324,49 @@ func TestHTTPAdmission010(t *testing.T) {
 	q.Body = append(q.Body, 'x')
 	if _, x = httpHeaders010(q); x == nil {
 		t.Fatal("body limit")
+	}
+}
+
+func TestHTTPSerialization010(t *testing.T) {
+	raw, err := os.ReadFile("testdata/http-serialization010.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fixture struct {
+		StructuredFields []struct {
+			ID               string
+			Response         bool
+			Input, Canonical string
+			Accept           bool
+		} `json:"structured_fields"`
+		URIs []struct {
+			Target, Authority string
+			Accept            bool
+		} `json:"uris"`
+	}
+	if json.Unmarshal(raw, &fixture) != nil {
+		t.Fatal("fixture")
+	}
+	for _, c := range fixture.StructuredFields {
+		t.Run(c.ID, func(t *testing.T) {
+			_, err := httpInput010(c.Input, c.Response)
+			if (err == nil) != c.Accept {
+				t.Fatalf("admission: %v", err)
+			}
+			if c.Accept {
+				v, err := canonicalHTTPInput010(c.Input, c.Response)
+				if err != nil || v != c.Canonical {
+					t.Fatalf("serialization: %q %v", v, err)
+				}
+			}
+		})
+	}
+	for _, c := range fixture.URIs {
+		t.Run(c.Target, func(t *testing.T) {
+			authority, err := httpEndpoint010(c.Target)
+			if (err == nil) != c.Accept || (c.Accept && authority != c.Authority) {
+				t.Fatalf("endpoint: %q %v", authority, err)
+			}
+		})
 	}
 }

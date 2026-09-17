@@ -118,9 +118,79 @@ func httpHeaders010(m HTTPMessage010) (map[string]string, error) {
 	return h, nil
 }
 
+// canonicalHTTPInput010 parses the fixed component list before serializing it.
+// Only RFC 8941 SP positions and explicit true req parameters are normalized.
+// Quoted values and parameter order are preserved; the profile parser below
+// still rejects duplicate/unknown parameters and noncanonical numeric values.
+func canonicalHTTPInput010(v string, response bool) (string, error) {
+	if len(v) > 8192 || !httpASCII010(v) {
+		return "", errCompletion010
+	}
+	components := httpRequestComponents010
+	if response {
+		components = httpResponseComponents010
+	}
+	rest, ok := strings.CutPrefix(v, "sig1=(")
+	if !ok {
+		return "", errCompletion010
+	}
+	rest = strings.TrimLeft(rest, " ")
+	for i, item := range strings.Split(components, " ") {
+		if i > 0 {
+			if !strings.HasPrefix(rest, " ") {
+				return "", errCompletion010
+			}
+			rest = strings.TrimLeft(rest, " ")
+		}
+		name := strings.TrimSuffix(item, ";req")
+		rest, ok = strings.CutPrefix(rest, name)
+		if !ok {
+			return "", errCompletion010
+		}
+		if strings.HasSuffix(item, ";req") {
+			rest, ok = strings.CutPrefix(rest, ";")
+			if !ok {
+				return "", errCompletion010
+			}
+			rest = strings.TrimLeft(rest, " ")
+			rest, ok = strings.CutPrefix(rest, "req")
+			if !ok {
+				return "", errCompletion010
+			}
+			rest = strings.TrimPrefix(rest, "=?1")
+		}
+	}
+	rest = strings.TrimLeft(rest, " ")
+	rest, ok = strings.CutPrefix(rest, ")")
+	if !ok {
+		return "", errCompletion010
+	}
+	var out strings.Builder
+	out.WriteString("sig1=(" + components + ")")
+	quoted := false
+	for i := 0; i < len(rest); i++ {
+		c := rest[i]
+		if c == '"' {
+			quoted = !quoted
+		}
+		out.WriteByte(c)
+		if c == ';' && !quoted {
+			for i+1 < len(rest) && rest[i+1] == ' ' {
+				i++
+			}
+		}
+	}
+	return out.String(), nil
+}
+
 // The admitted Structured Fields subset is canonically serialized. Parameter
-// order may vary and is retained verbatim; duplicate/unknown parameters fail.
+// order may vary and is retained; duplicate/unknown parameters fail.
 func httpInput010(input string, response bool) (map[string]string, error) {
+	var x error
+	input, x = canonicalHTTPInput010(input, response)
+	if x != nil {
+		return nil, x
+	}
 	components := httpRequestComponents010
 	if response {
 		components = httpResponseComponents010
@@ -193,7 +263,11 @@ func prepareHTTP010(target, authority string, m HTTPMessage010, response bool, s
 	if x != nil {
 		return nil, x
 	}
-	p, x := httpInput010(h["signature-input"], response)
+	normalized, x := canonicalHTTPInput010(h["signature-input"], response)
+	if x != nil {
+		return nil, x
+	}
+	p, x := httpInput010(normalized, response)
 	if x != nil {
 		return nil, x
 	}
@@ -205,7 +279,7 @@ func prepareHTTP010(target, authority string, m HTTPMessage010, response bool, s
 	if x != nil || len(sig) != 64 || "sig1=:"+base64.StdEncoding.EncodeToString(sig)+":" != v {
 		return nil, errCompletion010
 	}
-	return &httpProof010{message: m, headers: h, params: p, input: h["signature-input"][5:], signature: sig, start: start}, nil
+	return &httpProof010{message: m, headers: h, params: p, input: normalized[5:], signature: sig, start: start}, nil
 }
 func httpBase010(m HTTPMessage010, h map[string]string, input string, q *httpContext010) []byte {
 	lines := []string{}
