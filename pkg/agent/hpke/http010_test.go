@@ -194,11 +194,10 @@ func TestHTTPBinding010(t *testing.T) {
 				a.sent[id].http.signature = saved
 			}
 			if kind == "inner-signature" {
-				bad := r
 				var v map[string]any
 				_ = json.Unmarshal(r.Body, &v)
 				v["signature"] = strings.Repeat("A", 86)
-				bad, x = b.signHTTP010(canon010(v), 200, b.received[id].http)
+				bad, x := b.signHTTP010(canon010(v), 200, b.received[id].http)
 				if x != nil {
 					t.Fatal(x)
 				}
