@@ -265,3 +265,9 @@ Historical material kept for reference.
 | [`docs/archive/2026-09/test/OPTIMIZATION-PLAN.md`](archive/2026-09/test/OPTIMIZATION-PLAN.md) | SAGE Performance Optimization Plan |  |
 | [`docs/archive/2026-09/test/PERFORMANCE-BASELINE.md`](archive/2026-09/test/PERFORMANCE-BASELINE.md) | SAGE Performance Baseline Report |  |
 | [`docs/archive/2026-09/test/TEST_EXECUTION_GUIDE.md`](archive/2026-09/test/TEST_EXECUTION_GUIDE.md) | SAGE Complete Test Execution Guide |  |
+
+## Other
+
+| Document | Title | Freshness |
+|---|---|---|
+| [`pkg/agent/hpke/COMPLETION010.md`](../pkg/agent/hpke/COMPLETION010.md) | Authenticated completion boundary |  |
