@@ -872,3 +872,44 @@ See [HPKE documentation](../hpke/) for complete integration guide.
 ## License
 
 LGPL-3.0 - See LICENSE file for details.
+
+## SAGE 0.10.0 record session
+
+`RecordSession010` is a separate low-level record API using the authenticated
+32-byte handshake seed and transcript hash, with a fixed local role. It derives
+the public session ID, directional generation keys and complete record AAD using
+the 0.10.0 profile. It owns send sequences and receive replay state. Existing
+session APIs keep their historical wire format and derivation.
+
+Create it once per fresh authenticated handshake. Never recreate a session from
+an old seed to reset counters or resume after restart. Retain the returned wire
+bytes for transport retries; calling the seal method again allocates a new
+sequence. Out-of-order unseen records are accepted but applications must enforce
+business-operation ordering themselves. Close retires the session and clears the
+retained seed. Managed language/compiler copies and cipher temporary storage are
+not claimed to provide hardware-enforced erasure.
+
+The fixed limits are 1000 records per direction, one hour absolute lifetime,
+ten minutes idle lifetime, 4033 bytes of caller AAD, and 8 MiB of wire bytes.
+Invalid records do not refresh idle time or consume replay state. A bitmap of
+1024 entries covers every permitted sequence because the message cap is 1000;
+no permitted sequence can fall below a sliding window. In Go, a mutex serializes
+send, receive and close. Rust requires exclusive mutable access and deliberately
+does not implement Clone or state serialization.
+
+This API does **not** validate authenticated envelope tuples, registry status,
+selected DID/key material, HPKE confirmation, provisional-session policy or
+Execution Guard authorization. The caller must establish those conditions before
+creating/using it and close it when those conditions cease to hold. A successful
+record operation is not full session/protocol conformance. FFI, SDK and Inspector
+adapter integration remain follow-up work.
+
+Unit tests use all 55 independent key/record cases copied unchanged from
+sage-inspector at revision 9285a1b8ad9f6ddc622d80d3dc06038bcb7785c2,
+`vectors/0.10.0/session-records.json` (SHA-256: cf0dcefeab7e82161445d6f6d05e4c70855e50336fcb6b01edbbdb2d999d05bd).
+The fixtures include public synthetic key material only. They test both
+communication directions, generation boundaries, transcript binding, nonce and
+AAD validation, and record-size limits. Additional state tests cover replay,
+out-of-order acceptance, closure, expiration and exhaustion without live attack
+or host-bypass programs. Inspector's archived core observations remain historical
+and are not updated by these tests.
