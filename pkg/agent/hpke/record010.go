@@ -11,8 +11,9 @@ import (
 // RecordReplayStore010 extends the mandatory trusted replay store with a
 // transaction boundary. ReserveRecord must check both scoped ID and nonce, stage
 // durable denial state, then call validate exactly once at final publication.
-// All fallible/blocking storage work must precede validate. Failure (including
-// validate failure) publishes neither entry; success durably publishes both.
+// All fallible/blocking storage work must precede validate. Failure publishes no
+// acceptance or plaintext; staged durable denial may remain to reject retries.
+// Success requires both denial keys durable.
 // It must not reenter the endpoint. The endpoint lock spans this transaction,
 // sequence consumption and provisional confirmation. A crash discards sessions;
 // durable replay denial remains. There is no session restoration protocol.

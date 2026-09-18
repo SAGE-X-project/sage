@@ -28,8 +28,9 @@ protected application operation is executed by this API.
 The trusted replay dependency must implement ReserveRecord/reserve_record. It
 atomically checks scoped ID and nonce, stages durable state and calls the final
 validation callback exactly once at publication. All fallible/blocking storage
-work precedes that callback. Failure publishes neither entry; success durably
-publishes both without a later fallible step. The callback rechecks current
+work precedes that callback. Failure publishes no acceptance or plaintext,
+but staged durable denial may remain to reject retries. Success requires both
+denial keys durable without a later fallible step. The callback rechecks current
 operation age, envelope expiry, pending/session lifetime and pinned-key expiry.
 The record owner publishes its sequence and confirmation only on successful
 return, without another fallible operation. Sessions are never restored: a crash
