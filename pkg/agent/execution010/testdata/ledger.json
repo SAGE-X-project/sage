@@ -1,0 +1,1422 @@
+{
+  "schema_version": 1,
+  "scope": "Storage contract only; opaque synthetic envelopes, no authentication or tool execution.",
+  "cases": [
+    {
+      "id": "duplicate-reservation",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "nonce-collision",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-2",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "issuer-and-recipient-scopes",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "other",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "other",
+              "call_id": "call-2",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "call-binding-immutable",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "other",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "other",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1001,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b2261223a317d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "reserved-recovery",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "reopen"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "UNKNOWN",
+              "result_hex": ""
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "EXECUTING",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "COMPLETED",
+              "result_hex": "7b7d"
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "executing-recovery",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "EXECUTING",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "reopen"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "UNKNOWN",
+              "result_hex": ""
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "EXECUTING",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "completed-recovery",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "EXECUTING",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "COMPLETED",
+              "result_hex": "7b7d"
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "reopen"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "COMPLETED",
+              "result_hex": "7b7d"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "COMPLETED",
+              "result_hex": "7b7d"
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "rejected-reserves-nonce",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "REJECTED",
+              "result_hex": "7b7d"
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "reopen"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "REJECTED",
+              "result_hex": "7b7d"
+            }
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-2",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "unknown-one-envelope",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "reopen"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "UNKNOWN",
+              "result_hex": "7b7d"
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "UNKNOWN",
+              "result_hex": "7b7d"
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "UNKNOWN",
+              "result_hex": "7b2261223a317d"
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "reopen"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "UNKNOWN",
+              "result_hex": "7b7d"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "terminal-immutable",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "EXECUTING",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "REJECTED",
+              "result_hex": "7b7d"
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "COMPLETED",
+              "result_hex": "7b7d"
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "UNKNOWN",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "COMPLETED",
+              "result_hex": "7b2261223a317d"
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "initial-terminal-rules",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "COMPLETED",
+              "result_hex": "7b7d"
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "UNKNOWN",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "EXECUTING",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "invalid-entry",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "AA",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "0",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": -1,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 9007199254740992,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "a|b\n",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "OTHER",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": "00"
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "reject-before-dispatch",
+      "steps": [
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "REJECTED",
+              "result_hex": "7b7d"
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "EXECUTING",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": false,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "reopen"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "REJECTED",
+              "result_hex": "7b7d"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "clean-empty-reopen",
+      "steps": [
+        {
+          "request": {
+            "action": "reopen"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "commit",
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          },
+          "expected": {
+            "ok": true,
+            "changed": true,
+            "entry": null
+          }
+        },
+        {
+          "request": {
+            "action": "lookup",
+            "issuer": "issuer",
+            "call_id": "call-1"
+          },
+          "expected": {
+            "ok": true,
+            "changed": false,
+            "entry": {
+              "issuer": "issuer",
+              "recipient": "executor",
+              "call_id": "call-1",
+              "nonce": "nonce-1",
+              "expires": 1000,
+              "intent_hex": "7b7d",
+              "state": "RESERVED",
+              "result_hex": ""
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
