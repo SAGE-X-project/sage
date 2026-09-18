@@ -29,8 +29,7 @@ UTF-8, duplicate decoded keys, lone surrogates, nonfinite numbers, negative zero
 negative underflow are rejected before canonicalization. Protocol timestamps are
 checked as exact nonnegative safe integers before binary64 rounding.
 
-Not implemented here: a verified-intent ledger bridge, serialized dispatch and
-retirement, terminal consumption storage, MCP result mapping, a deployed validating
+Not implemented here: serialized dispatch and retirement, terminal consumption storage, MCP result mapping, a deployed validating
 registry Source, or host capability isolation. File byte verification does not
 prove that a regular, non-symlink, immutable instance is the one actually loaded.
 These are required integration boundaries, not properties established by a valid
@@ -40,3 +39,26 @@ The frozen `testdata/guard-records.json` comes from sage-inspector's independent
 0.10.0 vector suite. Tests execute 78 applicable Guard cases through actual APIs;
 the fixture service implementations are test-only. The remaining MCP mapping and
 other primitive projections do not count as implemented Guard behavior here.
+
+## Authenticated durable reservations
+
+`GuardLedger` owns an execution ledger and a configured recipient. Each reservation
+verifies the signed intent against current trusted authority and policy callbacks,
+then privately derives every stored identity field and the complete canonical
+envelope including proof. Callers cannot submit a raw entry or a cached verification
+flag through this API. Call and nonce are reserved atomically. An identical retry
+returns the existing state without appending or transitioning it. Changed claims,
+proof, or a reused nonce under another call are denied.
+
+The returned observation contains only the created flag, stored state and intent
+digest. It exposes no stored terminal bytes and grants no execution permission.
+Expiry is checked again after storage; a late denial retains any committed record.
+Normal reopen never recreates missing storage and converts pending reservations
+to UNKNOWN. Fresh key, policy and time checks also apply to retries after recovery.
+Use only trusted local paths and explicit initialization of a new isolated scope.
+
+Tests reuse the independent intent vectors, validate correctly signed conflicts,
+concurrent identical reservations, current-authority denial, expiry during storage,
+and recovery. Inspector additionally runs both languages in separate bounded local
+processes and verifies exact journal identities across all four language pairs.
+Serialized final dispatch, retirement and signed result release remain separate.

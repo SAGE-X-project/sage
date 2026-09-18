@@ -21,6 +21,11 @@ REJECTED outcome. Rejected entries reserve the nonce and can never execute later
 | UNKNOWN without result | UNKNOWN with its one signed terminal envelope |
 | terminal with result | no change; exact identical retry returns changed=false |
 
+Reserve atomically inserts a RESERVED identity or reads an exactly matching existing
+identity in any state without a transition. It still requires caller authentication;
+returned low-level result bytes are unverified storage. The guard010 wrapper provides
+a fresh verified-intent projection and exposes only state metadata.
+
 Commit reports changed=true only after append and file sync. No return value is an
 authorization grant. The caller must persist EXECUTING before effects, serialize
 live authorization/retirement with dispatch, and never dispatch for changed=false.

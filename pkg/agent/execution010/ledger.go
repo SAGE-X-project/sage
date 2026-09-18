@@ -298,6 +298,33 @@ func (l *Ledger) Commit(e Entry) (bool, error) {
 	return true, nil
 }
 
+// Reserve atomically inserts a RESERVED identity or reads the exact existing
+// identity in any state. It never transitions an existing entry. The caller must
+// authenticate every attempt; returned result bytes remain unverified storage.
+func (l *Ledger) Reserve(e Entry) (Entry, bool, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.failed || l.file == nil {
+		return Entry{}, false, ErrUnavailable
+	}
+	if !valid(e) || e.State != "RESERVED" {
+		return Entry{}, false, ErrDenied
+	}
+	if old, ok := l.entries[callKey{e.Issuer, e.CallID}]; ok {
+		if !identity(old, e) {
+			return Entry{}, false, ErrDenied
+		}
+		return old, false, nil
+	}
+	if _, err := l.check(e); err != nil {
+		return Entry{}, false, err
+	}
+	if err := l.append(e); err != nil {
+		return Entry{}, false, err
+	}
+	return e, true, nil
+}
+
 // Lookup returns storage state only, never authority or a verified result.
 // Retrieval freshness, live identity, policy and result expiry are caller duties.
 func (l *Ledger) Lookup(issuer, call string) (Entry, bool, error) {
