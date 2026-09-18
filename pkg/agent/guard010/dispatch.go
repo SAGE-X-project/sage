@@ -26,6 +26,7 @@ type Component interface {
 type Invocation struct {
 	canonical, arguments   []byte
 	tool, manifest, digest string
+	completion             *Completion
 }
 
 func (i *Invocation) CanonicalIntent() []byte { return append([]byte(nil), i.canonical...) }
@@ -39,6 +40,7 @@ func (i *Invocation) IntentDigest() string    { return i.digest }
 type DispatchReceipt struct {
 	reservation Reservation
 	committed   bool
+	reply       *replyPermit
 }
 
 func (r *DispatchReceipt) Created() bool { return r != nil && r.reservation.Created() }
@@ -181,6 +183,7 @@ func (g *DispatchGate) Dispatch(ctx context.Context, raw []byte) (receipt *Dispa
 	if err != nil || g.component.Check(ctx, i.manifest, i.tool) != nil || ctx.Err() != nil {
 		return nil, ErrInvalid
 	}
+	i.completion = &Completion{owner: g, canonical: v.Canonical()}
 	e, err := reservationEntry(v)
 	if err != nil {
 		return nil, ErrInvalid
@@ -189,7 +192,7 @@ func (g *DispatchGate) Dispatch(ctx context.Context, raw []byte) (receipt *Dispa
 	if err != nil {
 		return nil, ErrInvalid
 	}
-	receipt = &DispatchReceipt{reservation: Reservation{created: created, state: stored.State, digest: v.Digest()}}
+	receipt = &DispatchReceipt{reservation: Reservation{created: created, state: stored.State, digest: v.Digest()}, reply: &replyPermit{owner: g, canonical: v.Canonical()}}
 	if !created {
 		_, m, _, _ := intentEnvelope(v.canonical)
 		now, e := g.authority.Now(ctx)

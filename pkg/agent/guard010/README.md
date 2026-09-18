@@ -29,7 +29,7 @@ UTF-8, duplicate decoded keys, lone surrogates, nonfinite numbers, negative zero
 negative underflow are rejected before canonicalization. Protocol timestamps are
 checked as exact nonnegative safe integers before binary64 rounding.
 
-Not implemented here: signed terminal publication/consumption storage, MCP result
+Not implemented here: client terminal consumption storage, MCP result
 mapping, a deployed validating registry Source, or host capability isolation. File byte verification does not
 prove that a regular, non-symlink, immutable instance is the one actually loaded.
 These are required integration boundaries, not properties established by a valid
@@ -62,7 +62,7 @@ concurrent identical reservations, current-authority denial, expiry during stora
 and recovery. Inspector additionally runs both languages in separate bounded local
 processes and verifies exact journal identities across all four language pairs.
 The separate DispatchGate connects serialized dispatch and retirement; signed result
-release remains unimplemented.
+publication is described below.
 
 ## Serialized dispatch boundary
 
@@ -101,3 +101,46 @@ duplicates and deterministic retirement/replacement ordering. Inspector runs 30 
 processes against inert fixture sinks and checks complete handoff bytes and journals.
 These sinks measure owned fixture bytes; they do not certify a production loader or
 execute external tools. Full Guard lifecycle conformance remains unestablished.
+
+
+## Signed outcome publication
+
+A committed Invocation supplies a private, gate-bound Completion token to its trusted
+worker. Finish records the first completed output and full signed envelope atomically,
+but never sends a response. Identical canonical output retries reuse that envelope;
+conflicting output and recovered UNKNOWN cannot become completed. Keep completion
+tokens and signer capabilities outside plugin/model write access.
+
+Dispatch and explicit Reject return a receipt containing one response permit. Reply
+consumes it even on failure; copying a Go receipt does not duplicate the permit.
+The host must bind each receipt to one fresh outer invocation and must not dispatch
+again for the same outer request. After pending, completion cannot be pushed through
+that invocation. A later, newly authenticated invocation can retrieve the outcome.
+Client polling intervals, durable single consumption and MCP mapping remain separate.
+
+ResultSigner provides a trusted executor key, current key authority and time. The core
+constructs the closed domain-separated result, with a 300-second validity interval,
+and verifies the signature before persistence and again before release. The first
+terminal bytes survive restart without refreshing timestamps or signatures. Expired,
+revoked or unavailable result authority denies publication. Accepted work may finish
+and reply after intent expiry or local gate retirement; new retrieval must pass all
+current intent authentication, policy and expiry checks. Result expiry still applies.
+
+An unsigned recovered UNKNOWN can acquire one signed unknown outcome once the signer
+returns. Explicit Reject verifies the incoming intent and current policy, then reserves
+an absent call and nonce atomically with a signed rejection. It cannot overwrite an
+existing execution. Authentication/policy failures remain unverified local failures;
+Reject is not a conversion of failed verification into an authenticated verdict.
+
+Callbacks are trusted and bounded, and must not reenter the gate. A storage failure
+cannot publish an unpersisted terminal. A post-persistence validity failure preserves
+the terminal but returns no signed response. Filesystem durability assumptions and
+rollback limitations are those of execution010; these tests do not establish hardware
+power-loss behavior or protect compromised gate/signing infrastructure.
+
+Native tests cover single permits, concurrent completion, exact byte reuse, late
+accepted replies, malformed outputs, signing failures, revoked/expired stored results,
+capacity denial and restart ownership. Inspector runs 44 bounded local processes,
+including all four language pairs and UNKNOWN reopens, and independently verifies
+102 published/stored fixture signatures with Node/OpenSSL. The sink never executes
+external tools. Full Guard lifecycle and host conformance remain unestablished.
