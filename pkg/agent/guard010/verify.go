@@ -37,7 +37,8 @@ type Outstanding interface {
 }
 
 // VerifiedIntent owns the entire authenticated canonical envelope including proof.
-// Its zero value is invalid; no ledger or dispatch API accepts it yet.
+// Its zero value is invalid. Only the private reservation bridge consumes it;
+// it is never a dispatch capability.
 type VerifiedIntent struct{ canonical []byte }
 
 func (v *VerifiedIntent) Canonical() []byte {

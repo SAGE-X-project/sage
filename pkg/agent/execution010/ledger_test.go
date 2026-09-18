@@ -237,3 +237,59 @@ func TestRejectNoncanonicalHistory(t *testing.T) {
 		}
 	}
 }
+
+func TestReserveReadsEveryExistingState(t *testing.T) {
+	supported(t)
+	for _, state := range []string{"RESERVED", "EXECUTING", "COMPLETED", "REJECTED", "UNKNOWN"} {
+		t.Run(state, func(t *testing.T) {
+			l, e := Open(filepath.Join(t.TempDir(), "journal"), true)
+			if e != nil {
+				t.Fatal(e)
+			}
+			defer func() { _ = l.Close() }()
+			base := baseEntry()
+			if _, _, e = l.Reserve(base); e != nil {
+				t.Fatal(e)
+			}
+			want := base
+			if state == "EXECUTING" || state == "COMPLETED" {
+				want.State = "EXECUTING"
+				if _, e = l.Commit(want); e != nil {
+					t.Fatal(e)
+				}
+			}
+			if state == "COMPLETED" || state == "REJECTED" {
+				want.ResultHex = "7b7d"
+			}
+			want.State = state
+			if _, e = l.Commit(want); e != nil {
+				t.Fatal(e)
+			}
+			size, rows := l.size, l.rows
+			got, changed, e := l.Reserve(base)
+			if e != nil || changed || got != want || l.size != size || l.rows != rows {
+				t.Fatal("read mutated terminal state", e)
+			}
+			bad := base
+			bad.Nonce = "different"
+			if _, _, e = l.Reserve(bad); e == nil {
+				t.Fatal("changed identity accepted")
+			}
+		})
+	}
+}
+func TestReserveFailedStorage(t *testing.T) {
+	supported(t)
+	l, e := Open(filepath.Join(t.TempDir(), "journal"), true)
+	if e != nil {
+		t.Fatal(e)
+	}
+	_ = l.file.Close()
+	if _, changed, e := l.Reserve(baseEntry()); e == nil || changed {
+		t.Fatal("failed write accepted")
+	}
+	if _, found, _ := l.Lookup("issuer", "call"); found {
+		t.Fatal("failed identity published")
+	}
+	_ = l.Close()
+}
