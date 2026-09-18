@@ -81,6 +81,7 @@ Package-level READMEs under pkg/ and internal/.
 | [`internal/sessioninit/README.md`](../internal/sessioninit/README.md) | SessionInit Package (handshake-to-session Creator adapter) | MIXED |
 | [`pkg/agent/crypto/README.md`](../pkg/agent/crypto/README.md) | SAGE Cryptographic Operations (Crypto key management package) | MIXED |
 | [`pkg/agent/did/README.md`](../pkg/agent/did/README.md) | SAGE Decentralized Identity (DID) Management (DID management package) | STALE |
+| [`pkg/agent/execution010/README.md`](../pkg/agent/execution010/README.md) | Durable execution storage for 0.10.0 |  |
 | [`pkg/agent/registry010/README.md`](../pkg/agent/registry010/README.md) | Operation-scoped registry observations |  |
 | [`pkg/agent/session/README.md`](../pkg/agent/session/README.md) | SAGE Session Management (Session management package) | MIXED |
 | [`pkg/agent/transport/README.md`](../pkg/agent/transport/README.md) | SAGE Transport Layer (Transport abstraction layer) | MIXED |
