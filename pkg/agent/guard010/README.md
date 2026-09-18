@@ -29,8 +29,8 @@ UTF-8, duplicate decoded keys, lone surrogates, nonfinite numbers, negative zero
 negative underflow are rejected before canonicalization. Protocol timestamps are
 checked as exact nonnegative safe integers before binary64 rounding.
 
-Not implemented here: serialized dispatch and retirement, terminal consumption storage, MCP result mapping, a deployed validating
-registry Source, or host capability isolation. File byte verification does not
+Not implemented here: signed terminal publication/consumption storage, MCP result
+mapping, a deployed validating registry Source, or host capability isolation. File byte verification does not
 prove that a regular, non-symlink, immutable instance is the one actually loaded.
 These are required integration boundaries, not properties established by a valid
 signature or fixture flags.
@@ -61,4 +61,43 @@ Tests reuse the independent intent vectors, validate correctly signed conflicts,
 concurrent identical reservations, current-authority denial, expiry during storage,
 and recovery. Inspector additionally runs both languages in separate bounded local
 processes and verifies exact journal identities across all four language pairs.
-Serialized final dispatch, retirement and signed result release remain separate.
+The separate DispatchGate connects serialized dispatch and retirement; signed result
+release remains unimplemented.
+
+## Serialized dispatch boundary
+
+`DispatchGate` owns a separate ledger handle, current authority/policy providers and
+one trusted pinned component. It verifies inside the same mutex used by administrative
+Replace and permanent Retire. There is no public reusable execution capability or
+pre-lock verification snapshot. Retire cancels all not-yet-committed local work;
+Replace cannot reactivate a retired gate. Already committed work is not rolled back.
+
+For a new identity it records RESERVED and durable EXECUTING, then repeats current
+key/signature, policy, measured component and expiry checks before a bounded Commit.
+The same component object receives the complete canonical intent and exact arguments.
+An identical retry never commits again, even after replacement or UNKNOWN recovery.
+A final check failure or uncertain Commit leaves UNKNOWN; storage failure denies
+success and follows the poisoned-store lock rules. Callback panics also retire the
+gate. The local receipt reports handoff, never tool completion or signed output.
+
+Component is a trusted integration seam. Check must bind protected approved bytes
+and covered dependencies to the same immutable loaded instance that Commit uses.
+A matching caller-provided digest is insufficient. Commit must atomically accept
+that exact pinned invocation into a protected execution boundary, with bounded
+deadlines, no name/path reopening, no added arguments and no reentrant gate calls.
+Do not run an unbounded tool while holding the gate. Background work must retain its
+pinned instance and arguments after handoff. Go Commit must honor context cancellation;
+local gate retirement provides the serialized cancellation boundary in both cores.
+
+Providers must supply fresh registry observations and trusted time. Host policy and
+component changes must use Replace/Retire; mutating them behind the gate defeats its
+serialization. Administrative authentication, old/new baseline audit records, durable
+retirement across restarts and all receivers, actual immutable loaders and host
+capability isolation remain host responsibilities. This API does not claim to protect
+a gate or its trusted providers already controlled by an attacker.
+
+Native tests cover final denial, callback panic/uncertainty, exact arguments, concurrent
+duplicates and deterministic retirement/replacement ordering. Inspector runs 30 local
+processes against inert fixture sinks and checks complete handoff bytes and journals.
+These sinks measure owned fixture bytes; they do not certify a production loader or
+execute external tools. Full Guard lifecycle conformance remains unestablished.
