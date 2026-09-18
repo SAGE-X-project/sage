@@ -35,8 +35,9 @@ of complete registry records/proofs remains a prerequisite. ReplayStore must
 atomically reserve both ID and nonce per sender/recipient, retain them through
 expires+30, reject reused nonempty initiation contexts per sender, and implement
 durable recovery or restart quarantine. There is deliberately no production
-in-memory fallback. The tests supply bounded synthetic dependencies; they do not
-establish production replay durability, quarantine or deployed chain finality.
+in-memory fallback. The original tests use bounded synthetic dependencies;
+the additional durable backend and its limits are described below. Deployed
+registry validation and chain finality remain external obligations.
 
 The initiator result is ESTABLISHED at this handshake boundary; the responder
 result remains RESPONSE_SENT. Neither result exposes application send/dispatch
@@ -72,3 +73,52 @@ The earlier absence of record methods describes the completion-only revision.
 HTTP carriage is now available through the separate endpoint-bound HTTP methods
 and strict HTTP/1.1 codec documented in [HTTP010.md](HTTP010.md). The plain methods
 above remain transport-independent; an HTTP-bound endpoint rejects them.
+
+
+## Bounded durable replay journal
+
+`OpenReplayJournal010` (Go) and `ReplayJournal010::open` (Rust, exported from
+completion010) implement a shared, canonical JSON-line denial journal on
+trusted Linux/macOS filesystems. This backend rejects initialization on other
+platforms. It reserves scoped sender/recipient ID and nonce through expires+30
+(inclusive), and retains nonempty sender/context denials for the journal lifetime.
+It does not persist session keys, sequence state or positive execution grants.
+
+New explicit creation and an empty reopen require 360 seconds of both trusted
+UTC and local monotonic elapsed time. A wall-clock jump alone cannot finish
+quarantine. A complete nonempty journal recovers immediately when trusted UTC
+has not moved behind its last recorded time. Missing files are never implicitly
+created on restart. Torn rows, noncanonical, duplicate, oversized or backward-time
+history fails closed. Runtime clock failure or rollback poisons the open handle.
+
+The writer holds an exclusive .lock file until explicit Close/close. An unclean
+exit leaves that lock: an operator must prove the prior writer is gone before
+removing it. The library never guesses that a lock is stale. Rust callers can
+retain an Rc<RefCell<ReplayJournal010>> handle, pass a boxed clone to endpoints,
+then explicitly close it after all endpoints and sessions are closed. This
+shared handle rejects reentry and is not a cross-thread/multi-process database.
+
+Each accepted reservation appends and syncs denial state before returning.
+Initial creation also syncs the parent directory. Record reservations do all
+fallible/blocking work before invoking the final endpoint gate exactly once; that callback must not
+reenter the journal.
+A failed gate releases no plaintext and advances no session state, but the
+staged denial remains, including after clean reopen. Retrying that same message
+is conservatively rejected. This clarifies the transaction contract: absence of
+acceptance is not a promise to erase durable denial evidence.
+
+Limits are 4096 journal rows and 1 MiB, with bounded replay key fields. Capacity
+exhaustion rejects new reservations. This implementation does not compact state
+or automatically reset lost journals. Explicit replacement starts quarantine;
+normal restart requires the intact file. Expired ID/nonce values may be reused
+only after their retention boundary, while context values remain denied.
+
+Paths, exclusive ownership, trusted clocks and filesystem sync semantics are
+local deployment obligations. This backend does not detect malicious rollback
+to a valid older disk snapshot or certify hardware power-loss behavior. Tests
+use temporary files and synthetic trusted time, not a 360-second wall-clock wait.
+The shared replay-journal010 fixture has 12 cases / 53 operations per core;
+additional tests cover corruption, writer exclusion, capacity, storage errors
+and a real authenticated handshake plus first-record replay rejection. Inspector
+runs actual journal processes and cross-language reopen tests separately from
+full protocol or deployment conformance.

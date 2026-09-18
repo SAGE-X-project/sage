@@ -1,0 +1,427 @@
+{
+  "version": "0.10.0",
+  "scope": "Trusted local durable denial store; synthetic trusted time, no session restoration or full conformance",
+  "cases": [
+    {
+      "id": "quarantine",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "ready",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": false
+        },
+        {
+          "action": "reserve",
+          "unix": 459,
+          "mono_ms": 359000,
+          "ok": false
+        },
+        {
+          "action": "ready",
+          "unix": 460,
+          "mono_ms": 359999,
+          "ok": false
+        },
+        {
+          "action": "ready",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "utc-jump",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "ready",
+          "unix": 1000,
+          "mono_ms": 0,
+          "ok": false
+        },
+        {
+          "action": "ready",
+          "unix": 1000,
+          "mono_ms": 360000,
+          "ok": true
+        },
+        {
+          "action": "reserve",
+          "unix": 1000,
+          "mono_ms": 360000,
+          "ok": true,
+          "expires": 1200
+        }
+      ]
+    },
+    {
+      "id": "mono-jump",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "ready",
+          "unix": 100,
+          "mono_ms": 360000,
+          "ok": false
+        },
+        {
+          "action": "ready",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "recovery",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true
+        },
+        {
+          "action": "close",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true
+        },
+        {
+          "action": "open",
+          "unix": 460,
+          "mono_ms": 0,
+          "ok": true
+        },
+        {
+          "action": "ready",
+          "unix": 460,
+          "mono_ms": 0,
+          "ok": true
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 0,
+          "ok": false,
+          "nonce": "other"
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 0,
+          "ok": false,
+          "id": "other"
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 0,
+          "ok": true,
+          "recipient": "other"
+        }
+      ]
+    },
+    {
+      "id": "retention",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true,
+          "expires": 460
+        },
+        {
+          "action": "reserve",
+          "unix": 490,
+          "mono_ms": 390000,
+          "ok": false,
+          "expires": 700
+        },
+        {
+          "action": "reserve",
+          "unix": 491,
+          "mono_ms": 391000,
+          "ok": true,
+          "expires": 700
+        }
+      ]
+    },
+    {
+      "id": "context",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true,
+          "context": "ctx",
+          "expires": 460
+        },
+        {
+          "action": "reserve",
+          "unix": 491,
+          "mono_ms": 391000,
+          "ok": false,
+          "expires": 700,
+          "id": "other",
+          "nonce": "other",
+          "recipient": "other",
+          "context": "ctx"
+        }
+      ]
+    },
+    {
+      "id": "failed-final-gate",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "record",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": false,
+          "gate": false,
+          "calls": 1
+        },
+        {
+          "action": "close",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true
+        },
+        {
+          "action": "open",
+          "unix": 460,
+          "mono_ms": 0,
+          "ok": true
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 0,
+          "ok": false
+        },
+        {
+          "action": "record",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true,
+          "id": "other",
+          "nonce": "other",
+          "gate": true,
+          "calls": 1
+        },
+        {
+          "action": "record",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": false,
+          "id": "third",
+          "nonce": "third",
+          "context": "ctx",
+          "gate": true,
+          "calls": 0
+        }
+      ]
+    },
+    {
+      "id": "utc-rollback",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true
+        },
+        {
+          "action": "ready",
+          "unix": 459,
+          "mono_ms": 360000,
+          "ok": false
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": false,
+          "id": "other",
+          "nonce": "other"
+        }
+      ]
+    },
+    {
+      "id": "mono-rollback",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true
+        },
+        {
+          "action": "ready",
+          "unix": 460,
+          "mono_ms": 359999,
+          "ok": false
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": false,
+          "id": "other",
+          "nonce": "other"
+        }
+      ]
+    },
+    {
+      "id": "empty-reopen",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "close",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true
+        },
+        {
+          "action": "open",
+          "unix": 460,
+          "mono_ms": 0,
+          "ok": true
+        },
+        {
+          "action": "ready",
+          "unix": 460,
+          "mono_ms": 0,
+          "ok": false
+        },
+        {
+          "action": "ready",
+          "unix": 820,
+          "mono_ms": 360000,
+          "ok": true
+        }
+      ]
+    },
+    {
+      "id": "missing",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": false,
+          "create": false
+        }
+      ]
+    },
+    {
+      "id": "expired-input",
+      "steps": [
+        {
+          "action": "open",
+          "unix": 100,
+          "mono_ms": 0,
+          "ok": true,
+          "create": true
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": false,
+          "expires": 429
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": false,
+          "expires": 791
+        },
+        {
+          "action": "reserve",
+          "unix": 460,
+          "mono_ms": 360000,
+          "ok": true
+        }
+      ]
+    }
+  ]
+}
