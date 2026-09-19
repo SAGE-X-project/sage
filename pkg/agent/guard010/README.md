@@ -256,3 +256,21 @@ watermarks. The adapter is not a network resolver or host-isolation mechanism.
 Bounded callbacks and the effect handoff remain trusted host responsibilities;
 revocation observed after a committed effect cannot undo it. More authoritative
 reads are deliberate and should be included in deployment latency measurements.
+
+### Non-HTTP MCP session carriage
+
+`SealMCPSessionRequest` and `OpenMCPSessionRequest` bind exact RPC bytes and the
+inner issuer/recipient to an existing authenticated signed AEAD session. The returned
+`MCPSessionCall` owns the distinct outer message ID and inner RPC ID. Its `SealReply`
+and `OpenReply` enforce one response and the original intent digest, with protected
+pending/completed/error mapping. Copies share the response permit. No wire fields or
+cryptographic algorithms are added; the existing 16348-byte plaintext limit applies.
+
+Use sealing inside the authorized client handoff. Dispatch the incoming call's
+`ID()` and copied `Request()` through `MCPEndpoint`; pass opened replies to
+`Client.AcceptMCPResponse`. This binding does not authenticate the inner Guard proof
+or grant tool execution: those remain existing Guard and client responsibilities.
+Authenticated MCP initialization, exclusive routing and bounded handoff are host
+requirements. HTTP carriage has a different intent-payload mapping and is unsupported
+by these helpers. Failure after cryptographic acceptance never restores outer replay
+or a consumed response permit. Do not silently fall back to unprotected calls.
