@@ -196,3 +196,20 @@ persistence. Inspector executes 64 bounded processes, including real signed serv
 results across all four language pairs and cross-language client journal reopen.
 MCP result mapping, full lifecycle certification and deployed host enforcement remain
 separate work; no network attacks or host-bypass tools are used.
+
+
+### MCP result carriage
+
+The explicit supported negotiated version is `2025-06-18`. Hosts must authenticate
+negotiation and reject unsupported versions before protected calls. The parser
+checks the closed `structuredContent`, single canonical JSON text block and
+`isError` mapping. It returns **unauthenticated bytes**, not a verification verdict.
+Use fresh result verification or the client's MCP acceptance method before use.
+Client acceptance consumes an invocation even for malformed carriage or unsupported
+versions and retains durable first-terminal consumption. Verified result snapshots
+can format MCP carriage and derive chapter 08 success/error without signing again.
+Snapshot formatting does not extend freshness or replace the server response permit.
+The outer wrapper permits 8 MiB for JSON escaping; the inner envelope retains
+1 MiB, depth 32 and 4096 object-member limits. Unsigned annotations reject.
+Host interception, RPC invocation correlation, transport protection, setup enforcement,
+input tool schema and production MCP server integration remain host responsibilities.
