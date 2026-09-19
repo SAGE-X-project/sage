@@ -1,0 +1,108 @@
+{
+  "name": "sage_secure_call",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "envelope": {
+        "type": "object",
+        "properties": {
+          "intent": {
+            "type": "object",
+            "properties": {
+              "version": {
+                "const": "0.10.0"
+              },
+              "profile": {
+                "const": "sage-execution-guard"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "call_id": {
+                "type": "string"
+              },
+              "original_digest": {
+                "type": "string"
+              },
+              "issuer": {
+                "type": "string"
+              },
+              "recipient": {
+                "type": "string"
+              },
+              "tool": {
+                "type": "string"
+              },
+              "policy_digest": {
+                "type": "string"
+              },
+              "manifest_digest": {
+                "type": "string"
+              },
+              "nonce": {
+                "type": "string"
+              },
+              "keyid": {
+                "type": "string"
+              },
+              "alg": {
+                "const": "ed25519"
+              },
+              "parent_call_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "arguments": {
+                "type": "object"
+              },
+              "created": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "expires": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "alg",
+              "arguments",
+              "call_id",
+              "created",
+              "expires",
+              "issuer",
+              "keyid",
+              "manifest_digest",
+              "nonce",
+              "original_digest",
+              "parent_call_id",
+              "policy_digest",
+              "profile",
+              "recipient",
+              "request_id",
+              "tool",
+              "version"
+            ],
+            "additionalProperties": false
+          },
+          "proof": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "intent",
+          "proof"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "required": [
+      "envelope"
+    ],
+    "additionalProperties": false
+  }
+}
