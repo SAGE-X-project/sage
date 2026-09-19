@@ -165,7 +165,21 @@ func objectLimit(raw []byte, limit int) (map[string]any, []byte, error) {
 	}
 	return m, b, nil
 }
-func encode(v any) []byte { b, _ := json.Marshal(v); return b }
+
+// Owned values have already crossed the strict raw-input boundary. Canonicalize
+// their JSON encoding before applying envelope limits again: JSON string escape
+// expansion is not growth of the authenticated canonical message.
+func encode(v any) []byte {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil
+	}
+	b, err = jcs.Canonicalize(b)
+	if err != nil {
+		return nil
+	}
+	return b
+}
 func closed(m map[string]any, fields string) bool {
 	names := split(fields)
 	if len(m) != len(names) {
