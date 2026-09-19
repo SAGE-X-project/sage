@@ -29,7 +29,7 @@ UTF-8, duplicate decoded keys, lone surrogates, nonfinite numbers, negative zero
 negative underflow are rejected before canonicalization. Protocol timestamps are
 checked as exact nonnegative safe integers before binary64 rounding.
 
-Not implemented here: client terminal consumption storage, MCP result
+Not implemented here: MCP result
 mapping, a deployed validating registry Source, or host capability isolation. File byte verification does not
 prove that a regular, non-symlink, immutable instance is the one actually loaded.
 These are required integration boundaries, not properties established by a valid
@@ -116,7 +116,7 @@ consumes it even on failure; copying a Go receipt does not duplicate the permit.
 The host must bind each receipt to one fresh outer invocation and must not dispatch
 again for the same outer request. After pending, completion cannot be pushed through
 that invocation. A later, newly authenticated invocation can retrieve the outcome.
-Client polling intervals, durable single consumption and MCP mapping remain separate.
+Client polling and consumption are described below. MCP mapping remains separate.
 
 ResultSigner provides a trusted executor key, current key authority and time. The core
 constructs the closed domain-separated result, with a 300-second validity interval,
@@ -144,3 +144,55 @@ capacity denial and restart ownership. Inspector runs 44 bounded local processes
 including all four language pairs and UNKNOWN reopens, and independently verifies
 102 published/stored fixture signatures with Node/OpenSSL. The sink never executes
 external tools. Full Guard lifecycle and host conformance remain unestablished.
+
+
+## Client consumption and polling
+
+Client owns one operation's separate protected journal. The host must maintain a
+stable issuer/call-to-journal mapping and never initialize another journal for the
+same operation. Explicit creation verifies the signed original and local policy;
+normal reopen requires that exact original and existing state. Missing or corrupt
+state denies. The original envelope, used outer UUIDs and first consumed terminal
+survive restart; pre-restart invocation handles are abandoned, not reconstructed
+from untrusted response fields. Filesystem integrity and rollback protection remain
+trusted deployment responsibilities.
+
+Begin verifies current intent authority, policy and expiry on every attempt, records
+a fresh outer UUID, and invokes ClientSender under the same lock as result acceptance.
+Sender is a bounded protected transport handoff, not a reusable permission to send
+later. It must bind this exact intent/UUID to one actual request, supply fresh outer
+nonce/session sequence as applicable, honor expiry and never reenter the client or
+queue delayed duplicates. The fixture sender records bytes without network effects.
+Production transport integration is still required and is not certified here.
+
+A new handoff requires at least 1000 milliseconds on both UTC and monotonic clocks
+since the previous handoff finished. Reopen additionally requires one second of
+local monotonic elapsed time before any retry, as well as the persisted UTC interval.
+A changed call, inner nonce or proof cannot be substituted through Begin. A transport
+failure is unverified and only permits identity-preserving reconciliation under the
+same checks; it never manufactures a remote rejection or a new call authorization.
+The original could execute once if it never reached the receiver's intact ledger.
+This is not a strictly read-only query API or a remote cancellation guarantee.
+
+Accept consumes a private outstanding invocation even on malformed or unverifiable
+responses. It validates the current executor key, result time and exact intent binding.
+Pending provides no output. The first terminal is durably recorded before output is
+released, and only completed provides output. Already-outstanding identical terminal
+or delayed pending replies are ignored without output; a conflicting terminal denies
+without replacing the first. Terminal acceptance and intent expiry stop new polling;
+an accepted invocation may still receive a fresh result after intent expiry.
+
+A crash or post-persistence validity failure can lose delivery after the consumed
+marker is durable. Reopen never redelivers it. This is at-most-once output release,
+not exactly-once downstream effects; unresolved delivery requires protected operator
+reconciliation. Storage failure or unavailable/backwards clocks deny and retain the
+exclusive lock for administration. Journals are bounded to 1024 events and 8 MiB,
+with no automatic pruning. Host services must be bounded, trustworthy and consistent;
+no peer field can install authority, policy, time or transport providers.
+
+Tests cover 19 independent fixture scenarios per core, concurrent terminal delivery,
+late pending/conflicts, handoff duration/uncertainty, storage failure and expiry after
+persistence. Inspector executes 64 bounded processes, including real signed server
+results across all four language pairs and cross-language client journal reopen.
+MCP result mapping, full lifecycle certification and deployed host enforcement remain
+separate work; no network attacks or host-bypass tools are used.
