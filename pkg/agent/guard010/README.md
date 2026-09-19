@@ -213,3 +213,31 @@ The outer wrapper permits 8 MiB for JSON escaping; the inner envelope retains
 1 MiB, depth 32 and 4096 object-member limits. Unsigned annotations reject.
 Host interception, RPC invocation correlation, transport protection, setup enforcement,
 input tool schema and production MCP server integration remain host responsibilities.
+
+
+### MCP RPC boundary
+
+The tool descriptor exposes only `sage_secure_call` with required `envelope` and
+`additionalProperties: false`. Structural schema validation supplements, never
+replaces, signed intent and current policy validation. Request parsing returns
+unauthenticated intent bytes; the session endpoint delegates to DispatchGate.
+
+This binding supports UUID string JSON-RPC IDs, matching the durable client's
+existing outer IDs. Numeric IDs and other JSON-RPC methods are unsupported here;
+this is not a general MCP server implementation. The host supplies the expected
+ID from the protected transport invocation and routes every protected tool call
+through the endpoint. Notifications, batches, direct tools, extra arguments and
+ID mismatches reject before tool commitment. One endpoint consumes up to 1024
+attempt IDs, including failures, then requires session closure. Do not reconstruct
+an endpoint to clear a live session's history. Cross-session/restart replay protection
+belongs to the authenticated transport. Closing the endpoint does not close its gate.
+
+The client sender serializes the exact authorized intent during bounded handoff.
+The RPC response acceptance path checks the matching ID and consumes malformed
+responses and JSON-RPC errors as unverified failures. Server receipts bind each
+response to that endpoint and ID while preserving the gate's single-response permit.
+Polling uses a fresh ID and unchanged intent, never another tool commitment.
+The host still implements authenticated MCP initialization, protected transport,
+trusted Source resolution and complete interception without alternate direct routes.
+Request wrappers allow 2 MiB and response wrappers 9 MiB; nested Guard and MCP
+representation limits remain enforced on original bytes before canonicalization.
