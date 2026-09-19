@@ -235,14 +235,21 @@ func usable(k Key, now int64) bool {
 // Select uses the exact signing key URL and, when requested, the first usable
 // X25519 key in ASCII name order. No trial verification or fallback is performed.
 func (g *Gate) Select(ctx context.Context, did, signingURL string, requireKEM bool) (*Pinned, error) {
+	p, _, err := g.SelectWithTime(ctx, did, signingURL, requireKEM)
+	return p, err
+}
+
+// SelectWithTime returns the selected keys and the final trusted observation time.
+// Both describe this operation only; neither is reusable authority for later work.
+func (g *Gate) SelectWithTime(ctx context.Context, did, signingURL string, requireKEM bool) (*Pinned, Stamp, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	s, now, e := g.read(ctx, did)
 	if e != nil {
-		return nil, e
+		return nil, Stamp{}, e
 	}
 	if s.State != "active" {
-		return nil, ErrRejected
+		return nil, Stamp{}, ErrRejected
 	}
 	p := &Pinned{did: did, registry: g.cfg.Registry}
 	found := false
@@ -260,9 +267,9 @@ func (g *Gate) Select(ctx context.Context, did, signingURL string, requireKEM bo
 		}
 	}
 	if !found || (requireKEM && p.kem == nil) {
-		return nil, ErrRejected
+		return nil, Stamp{}, ErrRejected
 	}
-	return p, nil
+	return p, now, nil
 }
 func sameKey(a, b Key) bool {
 	return a.Name == b.Name && a.Alg == b.Alg && a.Material == b.Material && ((a.Expires == nil && b.Expires == nil) || (a.Expires != nil && b.Expires != nil && *a.Expires == *b.Expires))

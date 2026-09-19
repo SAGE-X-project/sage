@@ -241,3 +241,18 @@ The host still implements authenticated MCP initialization, protected transport,
 trusted Source resolution and complete interception without alternate direct routes.
 Request wrappers allow 2 MiB and response wrappers 9 MiB; nested Guard and MCP
 representation limits remain enforced on original bytes before canonicalization.
+
+### Registry-backed authority
+
+`NewRegistryAuthority` binds one configured issuer/keyid to a trusted registry gate.
+Both `ActiveKey` and `Now` perform a fresh `SelectWithTime`, including existing final
+Guard time checks after policy, storage and component validation. The selected key
+material and expiry are pinned for the authority lifetime; an administrative key
+replacement requires a new binding. No positive observation is cached for later
+operations. Use separate bindings for the intent issuer and result executor.
+
+The Source must validate full records and proofs; the Store must provide durable
+watermarks. The adapter is not a network resolver or host-isolation mechanism.
+Bounded callbacks and the effect handoff remain trusted host responsibilities;
+revocation observed after a committed effect cannot undo it. More authoritative
+reads are deliberate and should be included in deployment latency measurements.
