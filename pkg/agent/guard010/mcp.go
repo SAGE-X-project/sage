@@ -93,7 +93,14 @@ func (v *VerifiedResult) MCPResult(version string) ([]byte, error) {
 	if v == nil || len(v.canonical) == 0 || CheckMCPVersion(version) != nil {
 		return nil, ErrInvalid
 	}
-	raw := encode(map[string]any{"structuredContent": json.RawMessage(v.canonical), "content": []any{map[string]any{"type": "text", "text": string(v.canonical)}}, "isError": v.status != "completed"})
+	// Raw canonical envelope bytes must not be re-escaped by encoding/json.
+	// Only the text block needs JSON string encoding, with its larger wire budget.
+	flag := "true"
+	if v.status == "completed" {
+		flag = "false"
+	}
+	raw := []byte(`{"content":[{"text":` + string(encode(string(v.canonical))) + `,"type":"text"}],"isError":` + flag + `,"structuredContent":` + string(v.canonical) + `}`)
+
 	if _, e := ParseMCPResult(version, raw); e != nil {
 		return nil, ErrInvalid
 	}

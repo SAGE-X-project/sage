@@ -44,7 +44,9 @@ func MCPRequest(version, id string, intent []byte) ([]byte, error) {
 	if e != nil {
 		return nil, ErrInvalid
 	}
-	return encode(map[string]any{"jsonrpc": "2.0", "id": id, "method": "tools/call", "params": map[string]any{"name": "sage_secure_call", "arguments": map[string]any{"envelope": json.RawMessage(canonical)}}}), nil
+	// ID is a validated UUID and canonical is validated JSON. Preserve the inner
+	// bytes instead of letting a second JSON encoder expand their escape spelling.
+	return []byte(`{"id":"` + id + `","jsonrpc":"2.0","method":"tools/call","params":{"arguments":{"envelope":` + string(canonical) + `},"name":"sage_secure_call"}}`), nil
 }
 
 // ParseMCPRequest returns unauthenticated intent bytes. expectedID comes from the
@@ -217,7 +219,7 @@ func (e *MCPEndpoint) Reply(ctx context.Context, r *MCPReceipt, s ResultSigner) 
 	if err != nil {
 		return nil, ErrInvalid
 	}
-	return encode(map[string]any{"jsonrpc": "2.0", "id": r.id, "result": json.RawMessage(body)}), nil
+	return mcpRPCResponse(r.id, body), nil
 }
 
 // Close retires this session boundary without closing the shared execution gate.
@@ -227,4 +229,9 @@ func (e *MCPEndpoint) Close() {
 		defer e.mu.Unlock()
 		e.closed = true
 	}
+}
+
+// Both fragments are owned by the endpoint: a validated UUID and generated MCP JSON.
+func mcpRPCResponse(id string, body []byte) []byte {
+	return []byte(`{"id":"` + id + `","jsonrpc":"2.0","result":` + string(body) + `}`)
 }
