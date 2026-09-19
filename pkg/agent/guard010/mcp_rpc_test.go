@@ -8,6 +8,7 @@ import (
 	g "github.com/sage-x-project/sage/pkg/agent/guard010"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -221,5 +222,41 @@ func TestRPCZeroEndpointDenies(t *testing.T) {
 	var e g.MCPEndpoint
 	if _, err := e.Dispatch(context.Background(), outer(1), []byte(`{}`)); err == nil {
 		t.Fatal("zero endpoint")
+	}
+}
+
+func TestRPCLargeSignedOutput(t *testing.T) {
+	for _, text := range []string{strings.Repeat("<>&", 75000), strings.Repeat("\u2028\u2029", 100000)} {
+		gate, _, sink, _ := openGate(t)
+		ep, e := g.NewMCPEndpoint(g.MCPVersion, gate)
+		if e != nil {
+			t.Fatal(e)
+		}
+		client, _, _, _ := clientSetup(t)
+		ctx := context.Background()
+		ticket, e := client.Begin(ctx, outer(101))
+		if e != nil {
+			t.Fatal(e)
+		}
+		request, e := g.MCPRequest(g.MCPVersion, ticket.ID(), ticket.Intent())
+		if e != nil {
+			t.Fatal(e)
+		}
+		receipt, e := ep.Dispatch(ctx, ticket.ID(), request)
+		if e != nil {
+			t.Fatal(e)
+		}
+		output := []byte(`{"text":"` + text + `"}`)
+		if e = gate.Finish(ctx, sink.observed.Completion(), output, signer()); e != nil {
+			t.Fatal("large signed completion", e)
+		}
+		response, e := ep.Reply(ctx, receipt, signer())
+		if e != nil {
+			t.Fatal("large signed response", e)
+		}
+		delivery, e := client.AcceptMCPResponse(ctx, ticket, g.MCPVersion, response)
+		if e != nil || !delivery.FirstTerminal() || !bytes.Equal(delivery.Output(), output) {
+			t.Fatal("large authenticated delivery", e)
+		}
 	}
 }

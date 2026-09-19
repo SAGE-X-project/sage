@@ -217,7 +217,7 @@ func (e *MCPEndpoint) Reply(ctx context.Context, r *MCPReceipt, s ResultSigner) 
 	if err != nil {
 		return nil, ErrInvalid
 	}
-	return encode(map[string]any{"jsonrpc": "2.0", "id": r.id, "result": json.RawMessage(body)}), nil
+	return mcpRPCResponse(r.id, body), nil
 }
 
 // Close retires this session boundary without closing the shared execution gate.
@@ -227,4 +227,10 @@ func (e *MCPEndpoint) Close() {
 		defer e.mu.Unlock()
 		e.closed = true
 	}
+}
+
+// The endpoint owns both the ID and the generated MCP result. Use the JSON
+// encoder and canonicalizer, never string concatenation, to frame the response.
+func mcpRPCResponse(id string, body []byte) []byte {
+	return encode(map[string]any{"jsonrpc": "2.0", "id": id, "result": json.RawMessage(body)})
 }

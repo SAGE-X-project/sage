@@ -93,7 +93,10 @@ func (v *VerifiedResult) MCPResult(version string) ([]byte, error) {
 	if v == nil || len(v.canonical) == 0 || CheckMCPVersion(version) != nil {
 		return nil, ErrInvalid
 	}
+	// encode canonicalizes owned JSON after safe string encoding, preserving the
+	// inner envelope spelling without manually assembling JSON fragments.
 	raw := encode(map[string]any{"structuredContent": json.RawMessage(v.canonical), "content": []any{map[string]any{"type": "text", "text": string(v.canonical)}}, "isError": v.status != "completed"})
+
 	if _, e := ParseMCPResult(version, raw); e != nil {
 		return nil, ErrInvalid
 	}
