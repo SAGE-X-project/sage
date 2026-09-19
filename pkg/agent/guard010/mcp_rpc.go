@@ -44,9 +44,7 @@ func MCPRequest(version, id string, intent []byte) ([]byte, error) {
 	if e != nil {
 		return nil, ErrInvalid
 	}
-	// ID is a validated UUID and canonical is validated JSON. Preserve the inner
-	// bytes instead of letting a second JSON encoder expand their escape spelling.
-	return []byte(`{"id":"` + id + `","jsonrpc":"2.0","method":"tools/call","params":{"arguments":{"envelope":` + string(canonical) + `},"name":"sage_secure_call"}}`), nil
+	return encode(map[string]any{"jsonrpc": "2.0", "id": id, "method": "tools/call", "params": map[string]any{"name": "sage_secure_call", "arguments": map[string]any{"envelope": json.RawMessage(canonical)}}}), nil
 }
 
 // ParseMCPRequest returns unauthenticated intent bytes. expectedID comes from the
@@ -231,7 +229,8 @@ func (e *MCPEndpoint) Close() {
 	}
 }
 
-// Both fragments are owned by the endpoint: a validated UUID and generated MCP JSON.
+// The endpoint owns both the ID and the generated MCP result. Use the JSON
+// encoder and canonicalizer, never string concatenation, to frame the response.
 func mcpRPCResponse(id string, body []byte) []byte {
-	return []byte(`{"id":"` + id + `","jsonrpc":"2.0","result":` + string(body) + `}`)
+	return encode(map[string]any{"jsonrpc": "2.0", "id": id, "result": json.RawMessage(body)})
 }
