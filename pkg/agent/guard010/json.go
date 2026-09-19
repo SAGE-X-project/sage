@@ -21,32 +21,35 @@ var ErrInvalid = errors.New("guard authentication failed")
 // the entire input and all nested object members, before signature verification.
 func Canonicalize(raw []byte) ([]byte, error) { return canonicalize(raw, 4096) }
 func canonicalize(raw []byte, limit int) ([]byte, error) {
-	if len(raw) > MaxBytes || !utf8.Valid(raw) || !validEscapes(raw) {
+	return canonicalizeBounds(raw, limit, MaxBytes, 32)
+}
+func canonicalizeBounds(raw []byte, limit, maxBytes, maxDepth int) ([]byte, error) {
+	if len(raw) > maxBytes || !utf8.Valid(raw) || !validEscapes(raw) {
 		return nil, ErrInvalid
 	}
 	d := json.NewDecoder(bytes.NewReader(raw))
 	d.UseNumber()
 	members := 0
-	if _, err := value(d, 0, &members, limit); err != nil {
+	if _, err := value(d, 0, &members, limit, maxDepth); err != nil {
 		return nil, ErrInvalid
 	}
 	if _, err := d.Token(); err != io.EOF {
 		return nil, ErrInvalid
 	}
 	b, err := jcs.Canonicalize(raw)
-	if err != nil || len(b) > MaxBytes {
+	if err != nil || len(b) > maxBytes {
 		return nil, ErrInvalid
 	}
 	return b, nil
 }
-func value(d *json.Decoder, depth int, members *int, limit int) (any, error) {
+func value(d *json.Decoder, depth int, members *int, limit, maxDepth int) (any, error) {
 	t, e := d.Token()
 	if e != nil {
 		return nil, e
 	}
 	switch x := t.(type) {
 	case json.Delim:
-		if depth >= 32 {
+		if depth >= maxDepth {
 			return nil, ErrInvalid
 		}
 		switch x {
@@ -68,7 +71,7 @@ func value(d *json.Decoder, depth int, members *int, limit int) (any, error) {
 				if *members > limit {
 					return nil, ErrInvalid
 				}
-				v, e := value(d, depth+1, members, limit)
+				v, e := value(d, depth+1, members, limit, maxDepth)
 				if e != nil {
 					return nil, e
 				}
@@ -82,7 +85,7 @@ func value(d *json.Decoder, depth int, members *int, limit int) (any, error) {
 		case '[':
 			a := []any{}
 			for d.More() {
-				v, e := value(d, depth+1, members, limit)
+				v, e := value(d, depth+1, members, limit, maxDepth)
 				if e != nil {
 					return nil, e
 				}

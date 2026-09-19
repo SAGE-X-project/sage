@@ -40,7 +40,7 @@ func cases(t *testing.T) []struct {
 func TestFrozenIndependentVectors(t *testing.T) {
 	n := 0
 	for _, c := range cases(t) {
-		if !strings.HasPrefix(c.Operation, "sage.guard.") || c.Operation == "sage.guard.mcp.result" {
+		if !strings.HasPrefix(c.Operation, "sage.guard.") {
 			continue
 		}
 		n++
@@ -54,7 +54,7 @@ func TestFrozenIndependentVectors(t *testing.T) {
 			}
 		})
 	}
-	if n != 78 {
+	if n != 94 {
 		t.Fatal(n)
 	}
 }
