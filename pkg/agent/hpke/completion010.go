@@ -636,3 +636,21 @@ func (p *PendingCompletion010) State() string {
 	}
 	return "INIT_SENT"
 }
+
+// Participants returns local/peer identity from this authenticated non-HTTP session.
+// This public identity snapshot is not current authorization; record operations
+// still revalidate the session, registry and replay state before releasing data.
+func (s *AuthenticatedCompletion010) Participants() (string, string, error) {
+	if s == nil || s.endpoint == nil {
+		return "", "", errCompletion010
+	}
+	s.endpoint.mu.Lock()
+	defer s.endpoint.mu.Unlock()
+	if s.closed || s.httpTarget != "" || s.tuple["sid"] == "" {
+		return "", "", errCompletion010
+	}
+	if s.initiator {
+		return s.tuple["initDid"], s.tuple["respDid"], nil
+	}
+	return s.tuple["respDid"], s.tuple["initDid"], nil
+}
