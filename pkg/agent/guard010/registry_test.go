@@ -7,6 +7,7 @@ import (
 	g "github.com/sage-x-project/sage/pkg/agent/guard010"
 	r "github.com/sage-x-project/sage/pkg/agent/registry010"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -118,6 +119,12 @@ func TestRegistryAuthorityFinalDispatch(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "journal")
 			sink := &registrySink{gateSink: &gateSink{f: f, path: path}, control: c, mode: mode}
 			gate, e := g.OpenDispatchGate(path, true, f.s("expected_recipient"), a, f, sink)
+			if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
+				if e == nil || sink.commits != 0 {
+					t.Fatal("unsupported storage must deny setup")
+				}
+				return
+			}
 			if e != nil {
 				t.Fatal(e)
 			}
