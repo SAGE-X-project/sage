@@ -35,6 +35,7 @@ type mcpBounds struct {
 // The execution mutex is ledger.mu. Only execution -> coordinator nesting is used.
 type mcpAdmissionGate struct {
 	mu         sync.Mutex
+	scheduler  *mcpHost
 	ledger     *DispatchGate
 	clock      registry010.Clock
 	last       registry010.Stamp
@@ -53,6 +54,7 @@ type mcpWork struct {
 	config                     *mcpAdmissionConfig
 	generation                 uint64
 	start, deadline, enqueued  time.Duration
+	workerEnd                  time.Duration
 	wire                       []byte
 	invocation                 *Invocation
 	entry                      execution010.Entry
@@ -91,6 +93,10 @@ func newMCPGuardSetup(s *hpke.AuthenticatedCompletion010, name, version string, 
 	if err != nil {
 		return nil, err
 	}
+	if a.session.Initiator() {
+		a.close()
+		return nil, ErrInvalid
+	}
 	// Construction has not published the owner to any callback or transport.
 	a.owner.mu = &g.mu
 	a.owner.admission = g
@@ -112,10 +118,11 @@ func (g *mcpAdmissionGate) sampleLocked() (t registry010.Stamp, err error) {
 	g.last = t
 	return t, nil
 }
-func (g *mcpAdmissionGate) begin(o *mcpOwner, wire []byte) (*mcpWork, error) {
+func (g *mcpAdmissionGate) begin(s *mcpSetupSession, wire []byte) (*mcpWork, error) {
+	o := s.owner
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if o.mu != &g.mu || g.retired || o.phase != mcpReady || o.pending != nil || o.deferred != nil || o.response != nil || o.active != nil || len(wire) == 0 || len(wire) > 32768 || !o.validLocked(true) {
+	if (g.scheduler != nil && o.scheduler != g.scheduler) || o.mu != &g.mu || g.retired || o.phase != mcpReady || o.pending != nil || o.deferred != nil || o.response != nil || o.active != nil || len(wire) == 0 || len(wire) > 32768 || !o.validLocked(true) {
 		return nil, ErrInvalid
 	}
 	t, err := g.sampleLocked()
@@ -128,7 +135,7 @@ func (g *mcpAdmissionGate) begin(o *mcpOwner, wire []byte) (*mcpWork, error) {
 	}
 	for n, slot := range g.slots {
 		if slot == nil {
-			w := &mcpWork{owner: o, config: g.config, generation: g.generation, start: start, deadline: start + g.bounds.request, wire: append([]byte(nil), wire...)}
+			w := &mcpWork{owner: o, adapter: s, session: s.session, config: g.config, generation: g.generation, start: start, deadline: start + g.bounds.request, wire: append([]byte(nil), wire...)}
 			g.slots[n] = w
 			o.active = w
 			return w, nil
@@ -184,7 +191,7 @@ func (s *mcpSetupSession) admitProtected(ctx context.Context, wire []byte, g *mc
 	if ctx == nil || g == nil || s.admission != g || s.session.Initiator() {
 		return nil, ErrInvalid
 	}
-	w, err := g.begin(s.owner, wire)
+	w, err := g.begin(s, wire)
 	if err != nil {
 		s.close()
 		return nil, err
@@ -200,7 +207,6 @@ func (s *mcpSetupSession) admitProtected(ctx context.Context, wire []byte, g *mc
 	}
 	s.running, s.cancel = true, cancel
 	s.mu.Unlock()
-	w.session, w.adapter = s.session, s
 	defer func() {
 		if recover() != nil {
 			g.poison()
@@ -246,7 +252,9 @@ func (s *mcpSetupSession) admitProtected(ctx context.Context, wire []byte, g *mc
 		s.close()
 		return nil, ErrInvalid
 	}
+	g.mu.Lock()
 	w.response = &mcpProtectedReply{owner: s, gate: g, config: w.config, generation: w.generation, start: w.start, deadline: w.deadline, innerID: id, outerID: wireField(w.wire, "id"), intent: append([]byte(nil), intent...)}
+	g.mu.Unlock()
 	return g.fenceAndAdmit(work, w, intent)
 }
 func (g *mcpAdmissionGate) fenceAndAdmit(ctx context.Context, w *mcpWork, raw []byte) (receipt *DispatchReceipt, err error) {
@@ -352,6 +360,9 @@ func (g *mcpAdmissionGate) fenceAndAdmit(ctx context.Context, w *mcpWork, raw []
 		w.entry = e
 		w.enqueued = mono
 		w.queued = true
+		if g.scheduler != nil {
+			g.scheduler.notify()
+		}
 	}
 	g.mu.Unlock()
 	if !valid {
@@ -423,6 +434,11 @@ func (g *mcpAdmissionGate) runOne(ctx context.Context) (ran bool, err error) {
 		w.owner.closeLocked()
 	}
 	cancelled := e != nil || g.retired || w.cancelled || w.generation != g.generation || now < w.enqueued || now-w.enqueued >= g.bounds.claim || ctx.Err() != nil
+	if now > time.Duration(1<<63-1)-g.bounds.worker {
+		cancelled = true
+	} else {
+		w.workerEnd = now + g.bounds.worker
+	}
 	w.claimed = true
 	work, cancel := context.WithTimeout(ctx, g.bounds.worker)
 	w.cancel = cancel
