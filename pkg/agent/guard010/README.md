@@ -302,11 +302,10 @@ an already used or HTTP-bound session. Existing handles cannot erase the new own
 keys. The endpoint clock used by this adapter must be bounded, thread-safe and purely
 local; registry observation work is never performed under the lifecycle coordinator.
 
-The adapter is still private and has no protected dispatch API. Its server preparation
-callback is trusted bounded host work, not evidence that an owner-aware Guard gate has
-been installed. These setup exchanges alone do not establish full binding conformance
-or whole-host mediation. Production transport framing, shared provider quotas and the
-owner-aware execution gate remain to be integrated. Transport providers must honor
+The adapter is still private and has no public protected dispatch API. Its server
+preparation callback is trusted bounded host work, not evidence that the private
+owner-aware Guard gate has been installed. These setup exchanges alone do not establish full binding conformance
+or whole-host mediation. Production transport framing and host scheduling remain to be integrated. Transport providers must honor
 cancellation, report complete local send results and bound pending input to one frame.
 The adapter starts no worker per I/O; active work owns key cleanup on exit. Closing an
 idle or completed adapter cleans up keys outside coordinator locks. Cleanup can wait
@@ -320,7 +319,38 @@ create no attack program or host-bypass implementation. This is Go setup evidenc
 not Go/Rust interoperability or Inspector catalog promotion. The isolated 1024-entry
 history unit does not override the session's tighter record ceiling.
 
-Remaining work is the private Guard coordinator with post-storage observations,
-queue admission/claim, administrative cancellation, shared provider capacity and
-conservative recovery, followed by end-to-end Inspector execution. Only that
-integration can connect negotiated setup to actual protected effects.
+### Private protected admission and completion
+
+The private admission gate authenticates encrypted requests from its exclusively
+owned responder session, verifies the intent, and durably reserves/fences the call.
+After storage it refreshes both intent authority and the complete session binding.
+Only a final coordinator check of owner identity, generation, deadlines, key expiry,
+clock monotonicity and observation freshness can insert the pinned invocation.
+Persisting EXECUTING alone never authorizes an effect. Failed final validation
+settles newly fenced work as UNKNOWN; uncertain persistence retires the gate.
+Duplicates undergo current validation and never enqueue another execution.
+
+All attached owners share a preallocated capacity limit, including authentication,
+storage, queued and running work. Closing one owner before insertion prevents its
+admission without retiring other owners. Closing after insertion preserves historical
+admission. Replacement cancels queued work; a claimed task retains its original
+executor and receives cancellation. Synchronous execution includes actual termination,
+and capacity remains occupied until execution and durable settlement return. Exact
+signed completion is stored before the slot is released. Recovery uses the existing
+execution ledger and does not reconstruct an execution queue from unresolved fences.
+
+Native runtime tests cover real protected records, signed durable completion,
+duplicates, close/fence/claim ordering, independent owners sharing capacity,
+responder signing/KEM revocation during storage, uncertain persistence, observation
+ages of 4999/5000/5001 ms, clock rollback, and expiry with session cleanup. They use
+only benign in-process effects and deterministic fault schedules.
+
+This gate remains private. A trusted bounded host scheduler must call the worker
+within its configured claim bound or arrange cancellation; a late claim settles
+UNKNOWN, while an unexpected stall retains capacity. Providers must honor finite
+completion bounds. Synchronous paths enforce observed expiry, but timely background
+expiry enforcement, complete transport/result carriage and client publication are
+still pending. The gate and session clocks must share one trusted monotonic origin.
+These tests do not establish whole-host mediation, Go/Rust interoperability or
+Inspector conformance. Those claims require the remaining integrations and catalog
+execution.

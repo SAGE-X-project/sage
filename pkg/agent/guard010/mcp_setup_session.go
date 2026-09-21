@@ -22,6 +22,7 @@ type mcpSetupIO interface {
 // mcpSetupSession is private until owner-aware Guard admission is integrated.
 // Negotiating this object alone grants no protected dispatch or public readiness.
 type mcpSetupSession struct {
+	admission       *mcpAdmissionGate
 	mu              sync.Mutex
 	running, closed bool
 	started         bool

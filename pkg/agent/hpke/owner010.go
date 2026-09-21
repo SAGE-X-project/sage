@@ -145,3 +145,11 @@ func (o *NonHTTPOwner010) Observe(ctx context.Context) (time.Duration, error) {
 	}
 	return time.Duration(start.MonoMS) * time.Millisecond, nil
 }
+
+// Participants returns immutable authenticated local/peer identities, not authority.
+func (o *NonHTTPOwner010) Participants() (string, string, error) {
+	if o == nil || o.session == nil {
+		return "", "", errCompletion010
+	}
+	return o.session.Participants()
+}
