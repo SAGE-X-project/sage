@@ -305,8 +305,10 @@ local; registry observation work is never performed under the lifecycle coordina
 The adapter is still private and has no public protected dispatch API. Its server
 preparation callback is trusted bounded host work, not evidence that the private
 owner-aware Guard gate has been installed. These setup exchanges alone do not establish
-full binding conformance or whole-host mediation. Production transport framing remains to be integrated. Transport providers must honor
-cancellation, report complete local send results and bound pending input to one frame.
+full binding conformance or whole-host mediation. The private stream adapter below
+provides bounded framing; host socket lifetime and listener integration remain pending.
+Transport providers must honor cancellation, report complete local send results and
+bound pending input to one frame.
 The adapter starts no worker per I/O; active work owns key cleanup on exit. Closing an
 idle or completed adapter cleans up keys outside coordinator locks. Cleanup can wait
 for a bounded provider or shared endpoint operation; it never delays recording closure.
@@ -349,7 +351,8 @@ This gate remains private. The private host scheduler below schedules workers
 and cancellation checks; a late claim settles
 UNKNOWN, while an unexpected stall retains capacity. Providers must honor finite
 completion bounds. Synchronous paths enforce observed expiry, and the private host
-scheduler adds background cancellation. Production transport framing remains pending.
+scheduler adds background cancellation. The private stream adapter below supplies
+bounded framing; production host integration remains pending.
 The gate and session clocks must share one trusted monotonic origin.
 These tests do not establish whole-host mediation, Go/Rust interoperability or
 Inspector conformance. Those claims require the remaining integrations and catalog
@@ -452,3 +455,34 @@ and providers must satisfy bounded progress. Late execution/publication still ch
 absolute deadlines, but this implementation does not promise hard real-time scheduling
 or forcibly terminate arbitrary host callbacks. Production transport/mediation,
 matching Rust support and Inspector catalog evidence remain separate requirements.
+
+### Private bounded stream framing
+
+The private `mcpStream` implements the setup and protected-exchange I/O contract
+on an exclusively owned `net.Conn`. Trusted deployment configuration selects the
+same framing on both endpoints: a four-byte unsigned big-endian envelope length,
+then exactly that many envelope bytes. This is a local integration choice, not a
+new normative protocol field, stdio framing, capability negotiation or fallback.
+Envelope authentication and record limits remain the owned session's responsibility.
+
+Receive validates a nonzero length of at most 32,768 before allocating the body.
+It never reads into the next frame. Send copies one bounded complete frame and
+handles short writes. There is no read-ahead queue or background input pump. One
+send and one receive may overlap; concurrent calls in the same direction close
+the stream. Callers retain at most one returned incoming frame while output is pending.
+
+Each operation has a finite, configured deadline of at most 30 seconds, shortened
+by the caller's deadline and applied to the complete header and body. Cancellation,
+EOF, truncation, invalid length, I/O failure or provider panic closes both directions;
+uncertain frames cannot be resumed. Success reports complete local handoff only.
+The host must supply a connection with bounded, non-panicking Close and functioning
+deadlines; arbitrary provider callbacks are not forcibly terminated. The owner still
+checks authentication, freshness, admission and publication after transport success.
+
+Unit tests cover boundary sizes, fragmented input, short writes, no read-ahead,
+invalid/truncated frames, provider failures and panic retirement. Safe runtime tests
+cover cancellation, deadlines, duplicate local operations and loopback TCP round trips.
+The host exchange test uses the same stream pair from authenticated MCP setup through
+encrypted tool execution and durable client delivery. Host-owned socket lifetime,
+listener admission, handshake integration and deployment mediation remain separate
+work, as do Rust parity and Inspector conformance evidence.
