@@ -50,7 +50,7 @@ func (s *AuthenticatedCompletion010) SealResponse(ctx context.Context, messageID
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if s.httpTarget != "" {
+	if s.httpTarget != "" || (s.lifetime != nil && s.lifetime.http.Load()) {
 		return nil, errCompletion010
 	}
 	return s.sealResponse010(ctx, messageID, data, success, code, ttl)
@@ -109,6 +109,8 @@ func (s *AuthenticatedCompletion010) sealResponse010(ctx context.Context, messag
 	}
 	retained.terminal = true
 	s.active = end
+	s.lifetime.active.Store(end.MonoMS)
+	s.lifetime.wall.Store(end.Unix)
 	return result, nil
 }
 
@@ -120,7 +122,7 @@ func (s *AuthenticatedCompletion010) OpenResponse(ctx context.Context, raw []byt
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if s.httpTarget != "" {
+	if s.httpTarget != "" || (s.lifetime != nil && s.lifetime.http.Load()) {
 		return nil, errCompletion010
 	}
 	return s.openResponse010(ctx, raw, nil)

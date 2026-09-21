@@ -288,20 +288,39 @@ follow the [MCP 2025-06-18 schema](https://modelcontextprotocol.io/specification
 for initialize fields; the adopted SAGE profile further restricts capabilities
 and discovery.
 
-These helpers are private and are not connected to the public session or dispatch
-APIs yet. Their inputs are trusted adapter events and a bounded local monotonic clock, not wire
-authentication evidence. They do not enforce session ownership, outer success or
-request correlation, cryptographic record limits, provider quotas, or the final
-owner-aware execution queue. The existing public endpoint remains unchanged.
-No deployment may claim the new binding solely from these helpers.
+The private `mcpSetupSession` now connects these rules to actual HPKE-authenticated
+sessions. It exchanges initialize, initialized acknowledgement and pinned discovery
+through signed encrypted records, checks outer success and exact correlation, and
+revalidates current registry authority before publication. The observation's start
+time remains private and must be no more than 5000 ms old at the final locked clock
+sample. Cancellation and clock rollback also deny publication.
 
-Tests cover local setup/closure/history/deadline boundaries and native goroutine
-close/publication schedules under the race detector. They are not authenticated
-end-to-end setup tests or Inspector conformance results. The 1024-entry history
-unit explicitly does not override the session's tighter record ceiling.
+`AuthenticatedCompletion010.TakeNonHTTP` transfers an unused non-HTTP session into
+a retained handle, disables the old handle and its value copies, and preserves the
+original creation clock. Shared use/HTTP flags prevent a stale copy from transferring
+an already used or HTTP-bound session. Existing handles cannot erase the new owner's
+keys. The endpoint clock used by this adapter must be bounded, thread-safe and purely
+local; registry observation work is never performed under the lifecycle coordinator.
 
-Remaining integration work is the authenticated session adapter (including original
-key-creation clock provenance and session-generation checks), bounded shared host
-providers, and the private dispatch coordinator with post-storage observations,
-queue admission/claim, administrative cancellation and conservative recovery.
-Only that integration can connect these local rules to actual protected effects.
+The adapter is still private and has no protected dispatch API. Its server preparation
+callback is trusted bounded host work, not evidence that an owner-aware Guard gate has
+been installed. These setup exchanges alone do not establish full binding conformance
+or whole-host mediation. Production transport framing, shared provider quotas and the
+owner-aware execution gate remain to be integrated. Transport providers must honor
+cancellation, report complete local send results and bound pending input to one frame.
+The adapter starts no worker per I/O; active work owns key cleanup on exit. Closing an
+idle or completed adapter cleans up keys outside coordinator locks. Cleanup can wait
+for a bounded provider or shared endpoint operation; it never delays recording closure.
+
+Native tests use real Ed25519/HPKE handshakes, signed AEAD records, durable registry and
+replay journals, and bounded `net.Pipe` framing. The test clock honors replay-store
+startup quarantine. Scenario units cover stale aliases, false outer success, clock
+panic/rollback, exact freshness boundaries and closure during a blocked send. They
+create no attack program or host-bypass implementation. This is Go setup evidence,
+not Go/Rust interoperability or Inspector catalog promotion. The isolated 1024-entry
+history unit does not override the session's tighter record ceiling.
+
+Remaining work is the private Guard coordinator with post-storage observations,
+queue admission/claim, administrative cancellation, shared provider capacity and
+conservative recovery, followed by end-to-end Inspector execution. Only that
+integration can connect negotiated setup to actual protected effects.

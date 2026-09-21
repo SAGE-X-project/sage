@@ -44,9 +44,10 @@ func (s *AuthenticatedCompletion010) BindHTTP(target string) error {
 	s.endpoint.mu.Lock()
 	defer s.endpoint.mu.Unlock()
 	authority, x := httpEndpoint010(target)
-	if x != nil || s.closed || s.httpTarget != "" || len(s.sent)+len(s.received) != 0 {
+	if x != nil || s.closed || s.unavailable010() || s.lifetime.used.Load() || s.lifetime.http.Load() || s.httpTarget != "" || len(s.sent)+len(s.received) != 0 {
 		return errCompletion010
 	}
+	s.lifetime.http.Store(true)
 	s.httpTarget, s.httpAuthority = target, authority
 	return nil
 }
