@@ -274,3 +274,34 @@ Authenticated MCP initialization, exclusive routing and bounded handoff are host
 requirements. HTTP carriage has a different intent-payload mapping and is unsupported
 by these helpers. Failure after cryptographic acceptance never restores outer replay
 or a consumed response permit. Do not silently fall back to unprotected calls.
+
+### Private non-HTTP setup implementation
+
+The internal `mcpOwner` coordinator and setup codecs implement the first local
+pieces of the adopted [non-HTTP profile](https://github.com/SAGE-X-project/sage-spec/blob/520e5ed9a896ff8ba8ade776484f41084957aaa2/profiles/non-http-mcp-security.md):
+client/server phase order, retained setup/protected request-ID history, fixed
+setup/protected deadline arithmetic, output publication identity, one copied
+deferred frame, and closure independent of blocked transport work. The codecs
+validate the selected initialize capabilities, exact initialized acknowledgement,
+and complete pinned discovery descriptor. They discard descriptive metadata and
+follow the [MCP 2025-06-18 schema](https://modelcontextprotocol.io/specification/2025-06-18/schema)
+for initialize fields; the adopted SAGE profile further restricts capabilities
+and discovery.
+
+These helpers are private and are not connected to the public session or dispatch
+APIs yet. Their inputs are trusted adapter events and a bounded local monotonic clock, not wire
+authentication evidence. They do not enforce session ownership, outer success or
+request correlation, cryptographic record limits, provider quotas, or the final
+owner-aware execution queue. The existing public endpoint remains unchanged.
+No deployment may claim the new binding solely from these helpers.
+
+Tests cover local setup/closure/history/deadline boundaries and native goroutine
+close/publication schedules under the race detector. They are not authenticated
+end-to-end setup tests or Inspector conformance results. The 1024-entry history
+unit explicitly does not override the session's tighter record ceiling.
+
+Remaining integration work is the authenticated session adapter (including original
+key-creation clock provenance and session-generation checks), bounded shared host
+providers, and the private dispatch coordinator with post-storage observations,
+queue admission/claim, administrative cancellation and conservative recovery.
+Only that integration can connect these local rules to actual protected effects.
