@@ -25,6 +25,7 @@ type mcpSetupSession struct {
 	admission       *mcpAdmissionGate
 	client          *mcpOwnedClient
 	host            *mcpHost
+	connection      *mcpHostConnection
 	mu              sync.Mutex
 	running, closed bool
 	started         bool
@@ -62,6 +63,9 @@ func (s *mcpSetupSession) close() {
 	s.owner.close()
 	s.mu.Lock()
 	s.closed = true
+	if s.connection != nil {
+		s.connection.cancel()
+	}
 	if s.cancel != nil {
 		s.cancel()
 	}
@@ -83,7 +87,7 @@ func (s *mcpSetupSession) run(ctx context.Context, io mcpSetupIO, prepare func(c
 		return ErrInvalid
 	}
 	s.mu.Lock()
-	if s.started || s.closed {
+	if s.started || s.closed || (s.connection != nil && io != s.connection.stream) {
 		s.mu.Unlock()
 		s.close()
 		return ErrInvalid

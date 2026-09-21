@@ -28,7 +28,7 @@ func (s *mcpSetupSession) replyProtected(ctx context.Context, io mcpSetupIO) (er
 	}
 	g := s.admission
 	s.mu.Lock()
-	if s.running || s.closed {
+	if s.running || s.closed || (s.connection != nil && io != s.connection.stream) {
 		s.mu.Unlock()
 		s.close()
 		return ErrInvalid
