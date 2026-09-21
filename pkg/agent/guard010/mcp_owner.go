@@ -14,6 +14,7 @@ import (
 type mcpOwner struct {
 	mu             *sync.Mutex
 	active         *mcpWork
+	response       *mcpProtectedReply
 	admission      *mcpAdmissionGate
 	clock          func() (time.Duration, error)
 	phase          mcpPhase
@@ -74,9 +75,16 @@ var mcpTransitions = [...]mcpTransition{
 // mcpOutput is an unexported, owner-bound completion identity. A transport never
 // receives it; the adapter retains it while sending an immutable byte snapshot.
 type mcpOutput struct {
-	owner    *mcpOwner
-	next     mcpPhase
-	deadline time.Duration
+	owner          *mcpOwner
+	next           mcpPhase
+	deadline       time.Duration
+	response       *mcpProtectedReply
+	cancel         context.CancelFunc
+	expires        int64
+	resultObserved time.Duration
+	resultSample   time.Duration
+	resultUnix     int64
+	keyExpires     *int64
 }
 
 // Samples are elapsed monotonic durations from one trusted host clock origin.
@@ -99,8 +107,13 @@ func newMCPOwner(server bool, created, setupLimit time.Duration, clock func() (t
 	}
 	return &mcpOwner{mu: &sync.Mutex{}, clock: clock, phase: phase, last: now, setupEnd: end, seen: make(map[string]struct{})}, nil
 }
-func (o *mcpOwner) closeLocked() { o.phase = mcpClosed; o.pending = nil; o.deferred = nil }
-func (o *mcpOwner) close()       { o.mu.Lock(); defer o.mu.Unlock(); o.closeLocked() }
+func (o *mcpOwner) closeLocked() {
+	o.phase = mcpClosed
+	o.pending = nil
+	o.deferred = nil
+	o.response = nil
+}
+func (o *mcpOwner) close() { o.mu.Lock(); defer o.mu.Unlock(); o.closeLocked() }
 
 // The clock must be bounded, non-reentrant and purely local; RegistryAuthority.Now
 // is not a compatible provider. Missing/failed/panicking samples fail closed.
@@ -243,6 +256,20 @@ func (o *mcpOwner) completeObserved(p *mcpOutput, fullSend, sessionValid bool, o
 	if !fullSend || o.last >= p.deadline {
 		o.closeLocked()
 		return ErrInvalid
+	}
+	if p.response != nil {
+		r := p.response
+		g := o.admission
+		stamp, err := g.sampleLocked()
+		now := time.Duration(stamp.MonoMS) * time.Millisecond
+		if err != nil || g.retired || o.response != r || r.generation != g.generation || now < o.last || now >= p.deadline || stamp.Unix >= p.expires || (p.keyExpires != nil && stamp.Unix >= *p.keyExpires) || now < p.resultSample || stamp.Unix < p.resultUnix || p.resultObserved < r.start || now < p.resultObserved || now-p.resultObserved > 5*time.Second || observation == nil || *observation < r.start || now < *observation || now-*observation > 5*time.Second {
+			o.closeLocked()
+			return ErrInvalid
+		}
+		o.response = nil
+		if o.active != nil && o.active.response == r {
+			o.active = nil
+		}
 	}
 	o.phase = p.next
 	o.pending = nil

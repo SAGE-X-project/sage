@@ -54,6 +54,8 @@ func (c *setupRegistry) Read(_ context.Context, did string) (registry010.Snapsho
 	if did == setupBob {
 		sk, _ := ecdh.X25519().NewPrivateKey(bytes.Repeat([]byte{3}, 32))
 		keys = append(keys, registry010.Key{Name: "kem-1", Alg: "x25519", Material: hex.EncodeToString(sk.PublicKey().Bytes()), State: "accepted"})
+		expiry := int64(465)
+		keys = append(keys, registry010.Key{Name: "signing-2", Alg: "ed25519", Material: hex.EncodeToString(ed25519.NewKeyFromSeed(bytes.Repeat([]byte{4}, 32)).Public().(ed25519.PublicKey)), State: "accepted", Expires: &expiry})
 	}
 	version := "1"
 	if c.revoked.Load() {
