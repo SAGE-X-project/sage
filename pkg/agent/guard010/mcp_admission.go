@@ -19,10 +19,11 @@ type mcpExecutor interface {
 	Run(context.Context, *Invocation) ([]byte, error)
 }
 type mcpAdmissionConfig struct {
-	authority *RegistryAuthority
-	policy    IntentPolicy
-	executor  mcpExecutor
-	signer    ResultSigner
+	authority       *RegistryAuthority
+	resultAuthority *RegistryAuthority
+	policy          IntentPolicy
+	executor        mcpExecutor
+	signer          ResultSigner
 }
 type mcpBounds struct {
 	capacity               int
@@ -42,6 +43,7 @@ type mcpAdmissionGate struct {
 	generation uint64
 	retired    bool
 	slots      []*mcpWork
+	outputs    []*mcpOutput
 	commit     func(execution010.Entry) (bool, error)
 }
 type mcpWork struct {
@@ -56,6 +58,7 @@ type mcpWork struct {
 	entry                      execution010.Entry
 	queued, claimed, cancelled bool
 	cancel                     context.CancelFunc
+	response                   *mcpProtectedReply
 }
 
 // The underlying legacy gate cannot hand off an invocation through this adapter.
@@ -66,7 +69,7 @@ func (c mcpNoDirectCommit) Check(ctx context.Context, m, t string) error {
 }
 func (c mcpNoDirectCommit) Commit(context.Context, *Invocation) error { return ErrInvalid }
 func validMCPConfig(c *mcpAdmissionConfig) bool {
-	return c != nil && c.authority != nil && c.policy != nil && c.executor != nil && c.signer != nil
+	return c != nil && c.authority != nil && c.resultAuthority != nil && c.policy != nil && c.executor != nil && c.signer != nil
 }
 func openMCPAdmissionGate(path string, create bool, recipient string, c *mcpAdmissionConfig, clock registry010.Clock, b mcpBounds) (*mcpAdmissionGate, error) {
 	if !validMCPConfig(c) || clock == nil || b.capacity < 1 || b.capacity > 128 || b.request <= 0 || b.request > 5*time.Minute || b.claim <= 0 || b.claim > 5*time.Minute || b.worker <= 0 || b.worker > time.Hour {
@@ -77,7 +80,7 @@ func openMCPAdmissionGate(path string, create bool, recipient string, c *mcpAdmi
 		return nil, err
 	}
 	copy := *c
-	g := &mcpAdmissionGate{ledger: d, clock: clock, config: &copy, bounds: b, generation: 1, slots: make([]*mcpWork, b.capacity), commit: d.store.Commit}
+	g := &mcpAdmissionGate{ledger: d, clock: clock, config: &copy, bounds: b, generation: 1, slots: make([]*mcpWork, b.capacity), outputs: make([]*mcpOutput, b.capacity), commit: d.store.Commit}
 	return g, nil
 }
 func newMCPGuardSetup(s *hpke.AuthenticatedCompletion010, name, version string, g *mcpAdmissionGate) (*mcpSetupSession, error) {
@@ -112,7 +115,7 @@ func (g *mcpAdmissionGate) sampleLocked() (t registry010.Stamp, err error) {
 func (g *mcpAdmissionGate) begin(o *mcpOwner, wire []byte) (*mcpWork, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	if o.mu != &g.mu || g.retired || o.phase != mcpReady || o.pending != nil || o.active != nil || len(wire) == 0 || len(wire) > 32768 || !o.validLocked(true) {
+	if o.mu != &g.mu || g.retired || o.phase != mcpReady || o.pending != nil || o.deferred != nil || o.response != nil || o.active != nil || len(wire) == 0 || len(wire) > 32768 || !o.validLocked(true) {
 		return nil, ErrInvalid
 	}
 	t, err := g.sampleLocked()
@@ -142,7 +145,7 @@ func (g *mcpAdmissionGate) release(w *mcpWork) {
 			w.adapter.close()
 		}
 	}()
-	if t, err := g.sampleLocked(); err != nil || time.Duration(t.MonoMS)*time.Millisecond >= w.deadline {
+	if t, err := g.sampleLocked(); err != nil || ((w.owner.active == w || w.owner.response == w.response) && time.Duration(t.MonoMS)*time.Millisecond >= w.deadline) {
 		w.owner.closeLocked()
 	}
 	for n, v := range g.slots {
@@ -243,6 +246,7 @@ func (s *mcpSetupSession) admitProtected(ctx context.Context, wire []byte, g *mc
 		s.close()
 		return nil, ErrInvalid
 	}
+	w.response = &mcpProtectedReply{owner: s, gate: g, config: w.config, generation: w.generation, start: w.start, deadline: w.deadline, innerID: id, outerID: wireField(w.wire, "id"), intent: append([]byte(nil), intent...)}
 	return g.fenceAndAdmit(work, w, intent)
 }
 func (g *mcpAdmissionGate) fenceAndAdmit(ctx context.Context, w *mcpWork, raw []byte) (receipt *DispatchReceipt, err error) {
@@ -338,6 +342,10 @@ func (g *mcpAdmissionGate) fenceAndAdmit(ctx context.Context, w *mcpWork, raw []
 	now, x := g.sampleLocked()
 	mono := time.Duration(now.MonoMS) * time.Millisecond
 	valid := mono >= w.owner.last && sessionObserved >= w.start && mono >= sessionObserved && mono-sessionObserved <= 5*time.Second && x == nil && !g.retired && w.generation == g.generation && w.owner.active == w && w.owner.phase == mcpReady && ownerLive && ctx.Err() == nil && mono >= w.start && mono < w.deadline && observed >= w.start && mono >= observed && mono-observed <= 5*time.Second && now.MonoMS >= observation.stamp.MonoMS && now.Unix >= observation.stamp.Unix && times(m, now.Unix) && (observation.expires == nil || now.Unix < *observation.expires)
+	if valid {
+		w.response.receipt = receipt
+		w.owner.response = w.response
+	}
 	if valid && created {
 		i.completion = &Completion{owner: d, canonical: v.Canonical()}
 		w.invocation = i
@@ -373,6 +381,11 @@ func (g *mcpAdmissionGate) replace(c *mcpAdmissionConfig) error {
 	copy := *c
 	g.config = &copy
 	g.generation++
+	for _, p := range g.outputs {
+		if p != nil && p.cancel != nil {
+			p.cancel()
+		}
+	}
 	for _, w := range g.slots {
 		if w != nil {
 			if w.queued && !w.claimed {
@@ -406,7 +419,7 @@ func (g *mcpAdmissionGate) runOne(ctx context.Context) (ran bool, err error) {
 	}
 	t, e := g.sampleLocked()
 	now := time.Duration(t.MonoMS) * time.Millisecond
-	if e != nil || now >= w.deadline {
+	if e != nil || ((w.owner.active == w || w.owner.response == w.response) && now >= w.deadline) {
 		w.owner.closeLocked()
 	}
 	cancelled := e != nil || g.retired || w.cancelled || w.generation != g.generation || now < w.enqueued || now-w.enqueued >= g.bounds.claim || ctx.Err() != nil
@@ -457,6 +470,11 @@ func (g *mcpAdmissionGate) retire() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.retired = true
+	for _, p := range g.outputs {
+		if p != nil && p.cancel != nil {
+			p.cancel()
+		}
+	}
 	for _, w := range g.slots {
 		if w != nil {
 			if !w.claimed {
@@ -472,6 +490,9 @@ func (g *mcpAdmissionGate) close() error {
 	g.retire()
 	g.mu.Lock()
 	busy := false
+	for _, p := range g.outputs {
+		busy = busy || p != nil
+	}
 	for _, w := range g.slots {
 		busy = busy || w != nil
 	}

@@ -55,6 +55,7 @@ type admissionExecutor struct {
 	checks           atomic.Int64
 	mu               sync.Mutex
 	observed         *Invocation
+	output           []byte
 	entered, release chan struct{}
 	checkHook        func(int64) error
 }
@@ -82,6 +83,9 @@ func (e *admissionExecutor) Run(ctx context.Context, i *Invocation) ([]byte, err
 	if e.entered != nil {
 		close(e.entered)
 		<-e.release
+	}
+	if e.output != nil {
+		return append([]byte(nil), e.output...), nil
 	}
 	return []byte(`{"ok":true}`), nil
 }
@@ -151,7 +155,7 @@ func newAdmissionFixture(t *testing.T, capacity int) *admissionFixture {
 		t.Fatal(err)
 	}
 	executor := &admissionExecutor{manifest: intent["manifest_digest"].(string)}
-	config := &mcpAdmissionConfig{authority: authority, policy: &admissionPolicy{original: intent["original_digest"].(string), policy: policyRaw, manifest: data.Input["approved_manifest"]}, executor: executor, signer: &admissionSigner{RegistryAuthority: resultAuthority, key: ed25519.NewKeyFromSeed(bytes.Repeat([]byte{2}, 32))}}
+	config := &mcpAdmissionConfig{authority: authority, resultAuthority: resultAuthority, policy: &admissionPolicy{original: intent["original_digest"].(string), policy: policyRaw, manifest: data.Input["approved_manifest"]}, executor: executor, signer: &admissionSigner{RegistryAuthority: resultAuthority, key: ed25519.NewKeyFromSeed(bytes.Repeat([]byte{2}, 32))}}
 	path := filepath.Join(t.TempDir(), "execution")
 	g, err := openMCPAdmissionGate(path, true, setupBob, config, clock, mcpBounds{capacity: capacity, request: 20 * time.Second, claim: 10 * time.Second, worker: time.Second})
 	if err != nil {
@@ -219,6 +223,9 @@ func TestMCPAdmissionAuthenticatedExecutionAndDuplicate(t *testing.T) {
 	}
 	if !bytes.Equal(f.executor.observed.CanonicalIntent(), f.intent) {
 		t.Fatal("changed invocation")
+	}
+	if err := f.server.replyProtected(context.Background(), replyIO{}); err != nil {
+		t.Fatal(err)
 	}
 	r, err = f.admit(t)
 	if err != nil || r.Committed() || r.Created() || r.State() != "COMPLETED" {

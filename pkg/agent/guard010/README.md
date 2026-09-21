@@ -304,8 +304,9 @@ local; registry observation work is never performed under the lifecycle coordina
 
 The adapter is still private and has no public protected dispatch API. Its server
 preparation callback is trusted bounded host work, not evidence that the private
-owner-aware Guard gate has been installed. These setup exchanges alone do not establish full binding conformance
-or whole-host mediation. Production transport framing and host scheduling remain to be integrated. Transport providers must honor
+owner-aware Guard gate has been installed. These setup exchanges alone do not establish
+full binding conformance or whole-host mediation. Production transport framing and
+host scheduling remain to be integrated. Transport providers must honor
 cancellation, report complete local send results and bound pending input to one frame.
 The adapter starts no worker per I/O; active work owns key cleanup on exit. Closing an
 idle or completed adapter cleans up keys outside coordinator locks. Cleanup can wait
@@ -349,8 +350,40 @@ This gate remains private. A trusted bounded host scheduler must call the worker
 within its configured claim bound or arrange cancellation; a late claim settles
 UNKNOWN, while an unexpected stall retains capacity. Providers must honor finite
 completion bounds. Synchronous paths enforce observed expiry, but timely background
-expiry enforcement, complete transport/result carriage and client publication are
+expiry enforcement, production transport framing and client owner publication are
 still pending. The gate and session clocks must share one trusted monotonic origin.
 These tests do not establish whole-host mediation, Go/Rust interoperability or
 Inspector conformance. Those claims require the remaining integrations and catalog
 execution.
+
+
+### Private protected response carriage
+
+The server owner retains the exact authenticated inner/outer request correlation,
+original request deadline and pinned result configuration. It frames the existing
+Guard result and seals one response on that same owned session. No caller supplies
+routing fields or a reusable response permit. Complete plaintext and wire limits
+apply before handoff; oversized results remain durably stored and are never truncated.
+
+A separate shared bounded output pool covers result lookup, signing, transport and
+cleanup across all owners of the gate. Close and replacement revoke publication,
+but a stalled provider retains its slot until it actually returns and cleanup ends.
+After full local handoff, the adapter refreshes the result authority and complete
+session. Final publication checks both observation ages, result and signing-key
+expiry, original deadline, owner identity and configuration generation. Failure
+closes the owner without rewriting the first execution outcome or resending bytes.
+The concrete result authority may use a different key from the session signing key.
+
+Publishing pending completes that transport invocation only. The execution slot
+remains occupied until actual termination; a fresh identical poll can receive a new
+snapshot when shared capacity permits. Its new I/O deadline does not refresh the
+original intent or execution identity. The old completed transport deadline cannot
+later cancel independently admitted execution or close a newer invocation.
+
+Runtime tests use signed encrypted replies over bounded net.Pipe framing and the
+existing durable Client consumption path, including reopen without redelivery.
+They also cover pending polling, separate result-key freshness/expiry, oversized
+output, partial/late send, replacement, revocation, deferred input and shared output
+quotas. This demonstrates server carriage and existing client verification, not the
+complete client owner submission/publication adapter. That adapter, timely host
+scheduling and Inspector execution remain required before claiming full conformance.
