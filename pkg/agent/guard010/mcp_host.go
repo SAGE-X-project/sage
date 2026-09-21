@@ -17,6 +17,8 @@ type mcpHost struct {
 	gate           *mcpAdmissionGate
 	clients        *mcpClientPool
 	owners         []*mcpHostOwner
+	connections    []*mcpHostConnection
+	listenerCancel context.CancelFunc
 	interval       time.Duration
 	wake, cleanup  chan struct{}
 	stopping, done chan struct{}
@@ -32,7 +34,7 @@ func newMCPHost(g *mcpAdmissionGate, p *mcpClientPool, owners, workers int, inte
 	if g == nil || owners < 1 || owners > 256 || workers < 1 || workers > len(g.slots) || interval <= 0 || interval > time.Second || interval >= g.bounds.claim || interval >= g.bounds.request || (p != nil && interval >= p.timeout) {
 		return nil, ErrInvalid
 	}
-	h := &mcpHost{gate: g, clients: p, owners: make([]*mcpHostOwner, owners), interval: interval, wake: make(chan struct{}, workers), cleanup: make(chan struct{}, 1), stopping: make(chan struct{}), done: make(chan struct{})}
+	h := &mcpHost{gate: g, clients: p, owners: make([]*mcpHostOwner, owners), connections: make([]*mcpHostConnection, owners), interval: interval, wake: make(chan struct{}, workers), cleanup: make(chan struct{}, 1), stopping: make(chan struct{}), done: make(chan struct{})}
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.scheduler != nil || g.retired {
@@ -177,6 +179,9 @@ func (h *mcpHost) sweep() {
 		}
 	}
 	g.mu.Unlock()
+	if gateFailed {
+		h.cancelConnections()
+	}
 	clientFailed := false
 	if h.clients != nil {
 		p := h.clients
@@ -225,6 +230,9 @@ func (s *mcpSetupSession) retireOnly() {
 	s.owner.close()
 	s.mu.Lock()
 	s.closed = true
+	if s.connection != nil {
+		s.connection.cancel()
+	}
 	if s.cancel != nil {
 		s.cancel()
 	}
@@ -272,6 +280,16 @@ func (h *mcpHost) idle() bool {
 		return false
 	}
 	h.mu.Lock()
+	if h.listenerCancel != nil {
+		h.mu.Unlock()
+		return false
+	}
+	for _, connection := range h.connections {
+		if connection != nil {
+			h.mu.Unlock()
+			return false
+		}
+	}
 	for _, entry := range h.owners {
 		if entry != nil {
 			h.mu.Unlock()
@@ -333,6 +351,7 @@ func (h *mcpHost) stop(ctx context.Context) error {
 			h.clients.retire()
 		}
 		close(h.stopping)
+		h.cancelConnections()
 		for _, entry := range h.snapshot() {
 			if entry != nil {
 				entry.session.retireOnly()

@@ -170,7 +170,7 @@ func (b *mcpOwnedClient) exchange(ctx context.Context, io mcpSetupIO) (delivery 
 	}
 	s, p := b.session, b.pool
 	s.mu.Lock()
-	if s.running || s.closed || s.client != b {
+	if s.running || s.closed || s.client != b || (s.connection != nil && io != s.connection.stream) {
 		s.mu.Unlock()
 		return nil, ErrInvalid
 	}

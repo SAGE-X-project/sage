@@ -77,7 +77,7 @@ func (c *setupRegistry) Read(_ context.Context, did string) (registry010.Snapsho
 	h := sha256.Sum256(raw)
 	return registry010.Snapshot{Source: "setup-test", Registry: "web:agent.example", Network: "local", DID: did, Version: version, State: "active", Digest: hex.EncodeToString(h[:]), Ready: true, Validated: true, Finalized: true, AcquiredMS: c.mono.Load(), Keys: keys}, nil
 }
-func setupSessions(t *testing.T) (*hpke.AuthenticatedCompletion010, *hpke.AuthenticatedCompletion010, *setupRegistry) {
+func setupEndpoints(t *testing.T) (*hpke.CompletionEndpoint010, *hpke.CompletionEndpoint010, *setupRegistry) {
 	t.Helper()
 	c := &setupRegistry{}
 	endpoint := func(did string, n byte) *hpke.CompletionEndpoint010 {
@@ -109,6 +109,11 @@ func setupSessions(t *testing.T) (*hpke.AuthenticatedCompletion010, *hpke.Authen
 	a, b := endpoint(setupAlice, 1), endpoint(setupBob, 2)
 	// Honor the new durable replay journal's startup quarantine before handshake.
 	c.mono.Store(360000)
+	return a, b, c
+}
+func setupSessions(t *testing.T) (*hpke.AuthenticatedCompletion010, *hpke.AuthenticatedCompletion010, *setupRegistry) {
+	t.Helper()
+	a, b, c := setupEndpoints(t)
 	pending, request, err := a.Start(context.Background(), setupBob, setupBob+"#signing-1", 300)
 	if err != nil {
 		t.Fatal("handshake start", err)

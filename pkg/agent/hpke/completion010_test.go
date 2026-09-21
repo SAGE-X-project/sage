@@ -403,3 +403,42 @@ func (r *completionReplay) ReserveRecord(v Replay010, validate func() error) err
 	}
 	return nil
 }
+
+type panicEndClock010 struct {
+	base  registry010.Clock
+	calls int
+}
+
+func (c *panicEndClock010) Now() (registry010.Stamp, error) {
+	c.calls++
+	if c.calls == 2 {
+		panic("end clock")
+	}
+	return c.base.Now()
+}
+func TestCompletionInitiationEndClockPanic(t *testing.T) {
+	a, _, clock := completionPair(t)
+	probe := &panicEndClock010{base: clock}
+	a.clock = probe
+	var pending *PendingCompletion010
+	var request []byte
+	panicked := false
+	func() {
+		defer func() { panicked = recover() != nil }()
+		pending, request, _ = a.Start(context.Background(), completionBob, completionBob+"#signing-1", 60)
+	}()
+	if !panicked || probe.calls != 2 || pending != nil || request != nil {
+		t.Fatal("partial initiation escaped")
+	}
+	// The endpoint lock is released and no pending initiation was published. The
+	// allocation-site defer owns secret erasure on this unwind path.
+	a.clock = clock
+	pending, request, e := a.Start(context.Background(), completionBob, completionBob+"#signing-1", 60)
+	if e != nil || len(request) == 0 {
+		t.Fatal("endpoint remained locked", e)
+	}
+	pending.Close()
+	if pending.State() != "CLOSED" {
+		t.Fatal("pending state not retired")
+	}
+}

@@ -306,7 +306,8 @@ The adapter is still private and has no public protected dispatch API. Its serve
 preparation callback is trusted bounded host work, not evidence that the private
 owner-aware Guard gate has been installed. These setup exchanges alone do not establish
 full binding conformance or whole-host mediation. The private stream adapter below
-provides bounded framing; host socket lifetime and listener integration remain pending.
+provides bounded framing; the host connection runner below adds socket lifetime
+and listener integration. Deployment-wide mediation remains separate.
 Transport providers must honor cancellation, report complete local send results and
 bound pending input to one frame.
 The adapter starts no worker per I/O; active work owns key cleanup on exit. Closing an
@@ -483,6 +484,40 @@ Unit tests cover boundary sizes, fragmented input, short writes, no read-ahead,
 invalid/truncated frames, provider failures and panic retirement. Safe runtime tests
 cover cancellation, deadlines, duplicate local operations and loopback TCP round trips.
 The host exchange test uses the same stream pair from authenticated MCP setup through
-encrypted tool execution and durable client delivery. Host-owned socket lifetime,
-listener admission, handshake integration and deployment mediation remain separate
-work, as do Rust parity and Inspector conformance evidence.
+encrypted tool execution and durable client delivery. The host connection runner below adds socket lifetime, listener admission and
+handshake integration. Deployment mediation, Rust parity and Inspector conformance
+evidence remain separate work.
+
+### Host-owned connections and handshake
+
+The private host connection runner reserves a socket slot before authentication,
+registry lookup or reading peer input. Connection slots and registered-owner slots
+are separate bounded pools, each sized to the host's owner limit. A refused socket
+is closed; callers transfer exclusive ownership when invoking the runner. The
+shared HPKE endpoint, replay journal and authority configuration stay host-owned.
+
+The runner performs the existing signed SAGE handshake and authenticated MCP setup
+on one stream. Role, expected responder, keys, lifetime and implementation metadata
+come from trusted configuration. Its configured setup deadline includes handshake,
+provider work and MCP initialization. Cancellation closes the socket independently
+of a stalled provider; the occupied slot stays retained until the provider and
+cleanup return. After setup, existing owner and operation deadlines continue to apply.
+The deployment-selected stream cap also bounds handshake reassembly on this adapter;
+it does not change protocol-wide handshake limits or add negotiation or fallback.
+
+A connection-backed owner accepts only its pinned stream for setup, client exchange
+and protected replies. Its synchronous trusted handler receives the established
+owner and stream and must not detach work or retain connection aliases. Returning
+from the handler retires the session and closes the socket. A fixed accept-worker
+pool supports one exclusively owned listener per host and runs each connection
+inline, without spawning a worker per socket. Listener failure or cancellation
+closes the listener and drains its workers. A host stop also cancels pending
+handshakes and waits for listener, connection, owner and operation cleanup.
+
+Runtime tests use benign loopback traffic for handshake, initialization, execution
+and durable delivery. Unit/runtime schedules cover silent peers, connection quota
+rejection, blocked handshake providers, delayed socket cleanup and listener panic.
+These guarantees assume native-style, bounded, non-panicking socket/listener Close
+and cooperative trusted handlers. Persistent registry deployment, immutable tool
+loading and whole-host mediation remain deployment responsibilities. Rust parity
+and Inspector catalog evidence remain separate work.

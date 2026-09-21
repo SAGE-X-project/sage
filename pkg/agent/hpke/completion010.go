@@ -325,21 +325,29 @@ func (e *CompletionEndpoint010) start010(ctx context.Context, recipient, respKid
 	if x != nil {
 		return nil, nil, errCompletion010
 	}
+	// Keep ownership here until a pending object is returned, including unwinding
+	// from a trusted clock/provider panic after allocation.
+	transferred := false
+	defer func() {
+		if !transferred {
+			state.Close()
+		}
+	}()
 	wire, x := envelope010(e.did, recipient, e.kid, m["ctx"], "initiator", init, start.Unix, start.Unix+ttl)
 	if x != nil {
-		state.Close()
 		return nil, nil, x
 	}
 	wire["nonce"] = m["nonce"]
 	request := sign010(wire, "sage-wire-request|0.10.0\n", e.signing)
 	end, x := e.sample()
 	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, a, b) || end.Unix >= start.Unix+ttl {
-		state.Close()
 		return nil, nil, errCompletion010
 	}
 	original, _, _ := initiation010(init)
 	p := &PendingCompletion010{endpoint: e, state: state, request: request, init: original, a: a, b: b, emitted: end, expires: start.Unix + ttl}
-	return p, append([]byte(nil), request...), nil
+	output := append([]byte(nil), request...)
+	transferred = true
+	return p, output, nil
 }
 func (p *PendingCompletion010) destroy() {
 	if p.state != nil {
