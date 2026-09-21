@@ -13,6 +13,7 @@ import (
 // transport, registry lookup or other extensible work runs under this lock.
 type mcpOwner struct {
 	mu             *sync.Mutex
+	scheduler      *mcpHost
 	active         *mcpWork
 	response       *mcpProtectedReply
 	admission      *mcpAdmissionGate

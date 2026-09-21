@@ -13,12 +13,13 @@ import (
 // share the session's trusted origin. No provider runs under either coordinator;
 // nested locking is always pool -> owner, never the reverse.
 type mcpClientPool struct {
-	mu      sync.Mutex
-	clock   registry010.Clock
-	last    registry010.Stamp
-	timeout time.Duration
-	slots   []*mcpClientExchange
-	retired bool
+	mu        sync.Mutex
+	scheduler *mcpHost
+	clock     registry010.Clock
+	last      registry010.Stamp
+	timeout   time.Duration
+	slots     []*mcpClientExchange
+	retired   bool
 }
 
 func newMCPClientPool(clock registry010.Clock, capacity int, timeout time.Duration) (*mcpClientPool, error) {
@@ -64,6 +65,7 @@ type mcpOwnedClient struct {
 }
 type mcpClientExchange struct {
 	binding         *mcpOwnedClient
+	session         *mcpSetupSession
 	ctx             context.Context
 	cancel          context.CancelFunc
 	io              mcpSetupIO
@@ -109,31 +111,12 @@ func openMCPOwnedClient(ctx context.Context, s *mcpSetupSession, p *mcpClientPoo
 		if recover() != nil {
 			err = ErrInvalid
 		}
-		s.mu.Lock()
-		s.running = false
-		cleanup := s.closed || err != nil
-		if cleanup {
-			s.closed = true
-		}
-		s.mu.Unlock()
-		if cleanup {
-			s.owner.close()
-			s.session.Close()
-			if b != nil && b.client != nil {
-				_ = b.client.Close()
-			}
-			b = nil
-			err = ErrInvalid
-		}
-		p.mu.Lock()
-		for n, entry := range p.slots {
-			if preparation != nil && entry == preparation {
-				p.slots[n] = nil
-			}
-		}
-		p.mu.Unlock()
+		b, err = finishMCPClientPreparation(s, p, preparation, b, err)
 	}()
 	p.mu.Lock()
+	s.owner.mu.Lock()
+	registered := s.owner.scheduler == p.scheduler
+	s.owner.mu.Unlock()
 	stamp, clockErr := p.sampleLocked()
 	now := time.Duration(stamp.MonoMS) * time.Millisecond
 	slot := -1
@@ -143,11 +126,11 @@ func openMCPOwnedClient(ctx context.Context, s *mcpSetupSession, p *mcpClientPoo
 			break
 		}
 	}
-	if p.retired || clockErr != nil || slot < 0 || now > time.Duration(1<<63-1)-p.timeout || work.Err() != nil {
+	if !registered || p.retired || clockErr != nil || slot < 0 || now > time.Duration(1<<63-1)-p.timeout || work.Err() != nil {
 		p.mu.Unlock()
 		return nil, ErrInvalid
 	}
-	preparation = &mcpClientExchange{ctx: work, cancel: cancel, start: now, deadline: now + p.timeout}
+	preparation = &mcpClientExchange{session: s, ctx: work, cancel: cancel, start: now, deadline: now + p.timeout}
 	p.slots[slot] = preparation
 	p.mu.Unlock()
 	local, peer, e := s.session.Participants()
@@ -229,7 +212,7 @@ func (b *mcpOwnedClient) exchange(ctx context.Context, io mcpSetupIO) (delivery 
 	}()
 	p.mu.Lock()
 	s.owner.mu.Lock()
-	valid := !p.retired && b.active == nil && s.owner.phase == mcpReady && s.owner.pending == nil && s.owner.deferred == nil && s.owner.validLocked(true)
+	valid := s.owner.scheduler == p.scheduler && !p.retired && b.active == nil && s.owner.phase == mcpReady && s.owner.pending == nil && s.owner.deferred == nil && s.owner.validLocked(true)
 	stamp, e := p.sampleLocked()
 	now := time.Duration(stamp.MonoMS) * time.Millisecond
 	slot := -1
@@ -244,7 +227,7 @@ func (b *mcpOwnedClient) exchange(ctx context.Context, io mcpSetupIO) (delivery 
 		p.mu.Unlock()
 		return nil, ErrInvalid
 	}
-	w = &mcpClientExchange{binding: b, ctx: work, cancel: cancel, io: io, start: now, deadline: now + p.timeout, id: guuid.NewString()}
+	w = &mcpClientExchange{binding: b, session: s, ctx: work, cancel: cancel, io: io, start: now, deadline: now + p.timeout, id: guuid.NewString()}
 	b.active = w
 	p.slots[slot] = w
 	s.owner.mu.Unlock()
@@ -407,4 +390,39 @@ func (c mcpSafeClientClock) Sample(ctx context.Context) (utc, mono int64, err er
 		}
 	}()
 	return c.ClientClock.Sample(ctx)
+}
+
+// Failed construction may own a journal not yet attached to the session. Keep
+// cleanup ownership active so the host cannot release this owner's slot early.
+func finishMCPClientPreparation(s *mcpSetupSession, p *mcpClientPool, w *mcpClientExchange, b *mcpOwnedClient, err error) (*mcpOwnedClient, error) {
+	s.mu.Lock()
+	cleanup := s.closed || err != nil
+	if cleanup {
+		s.closed = true
+	} else {
+		s.running = false
+	}
+	s.mu.Unlock()
+	if cleanup {
+		s.owner.close()
+		s.session.Close()
+		if b != nil && b.client != nil {
+			_ = b.client.Close()
+		}
+		b = nil
+		err = ErrInvalid
+	}
+	p.mu.Lock()
+	for n, entry := range p.slots {
+		if w != nil && entry == w {
+			p.slots[n] = nil
+		}
+	}
+	p.mu.Unlock()
+	if cleanup {
+		s.mu.Lock()
+		s.running = false
+		s.mu.Unlock()
+	}
+	return b, err
 }

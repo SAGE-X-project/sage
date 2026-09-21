@@ -101,6 +101,9 @@ type admissionFixture struct {
 }
 
 func newAdmissionFixture(t *testing.T, capacity int) *admissionFixture {
+	return newAdmissionFixtureWithSetup(t, capacity, nil)
+}
+func newAdmissionFixtureWithSetup(t *testing.T, capacity int, beforeSetup func(*admissionFixture)) *admissionFixture {
 	t.Helper()
 	a, b, clock := setupSessions(t)
 	raw, err := os.ReadFile("testdata/guard-rpc.json")
@@ -179,6 +182,9 @@ func newAdmissionFixture(t *testing.T, capacity int) *admissionFixture {
 		}
 		_ = g.close()
 	})
+	if beforeSetup != nil {
+		beforeSetup(f)
+	}
 	x, y := net.Pipe()
 	ea, eb := runSetupPair(t, client, server, &setupPipe{Conn: x}, &setupPipe{Conn: y}, func(context.Context) error { return nil })
 	if ea != nil || eb != nil {

@@ -305,8 +305,7 @@ local; registry observation work is never performed under the lifecycle coordina
 The adapter is still private and has no public protected dispatch API. Its server
 preparation callback is trusted bounded host work, not evidence that the private
 owner-aware Guard gate has been installed. These setup exchanges alone do not establish
-full binding conformance or whole-host mediation. Production transport framing and
-host scheduling remain to be integrated. Transport providers must honor
+full binding conformance or whole-host mediation. Production transport framing remains to be integrated. Transport providers must honor
 cancellation, report complete local send results and bound pending input to one frame.
 The adapter starts no worker per I/O; active work owns key cleanup on exit. Closing an
 idle or completed adapter cleans up keys outside coordinator locks. Cleanup can wait
@@ -346,11 +345,12 @@ responder signing/KEM revocation during storage, uncertain persistence, observat
 ages of 4999/5000/5001 ms, clock rollback, and expiry with session cleanup. They use
 only benign in-process effects and deterministic fault schedules.
 
-This gate remains private. A trusted bounded host scheduler must call the worker
-within its configured claim bound or arrange cancellation; a late claim settles
+This gate remains private. The private host scheduler below schedules workers
+and cancellation checks; a late claim settles
 UNKNOWN, while an unexpected stall retains capacity. Providers must honor finite
-completion bounds. Synchronous paths enforce observed expiry, but timely background
-expiry enforcement and production transport framing are still pending. The gate and session clocks must share one trusted monotonic origin.
+completion bounds. Synchronous paths enforce observed expiry, and the private host
+scheduler adds background cancellation. Production transport framing remains pending.
+The gate and session clocks must share one trusted monotonic origin.
 These tests do not establish whole-host mediation, Go/Rust interoperability or
 Inspector conformance. Those claims require the remaining integrations and catalog
 execution.
@@ -384,8 +384,9 @@ existing durable Client consumption path, including reopen without redelivery.
 They also cover pending polling, separate result-key freshness/expiry, oversized
 output, partial/late send, replacement, revocation, deferred input and shared output
 quotas. This demonstrates server carriage and existing client verification. The owned
-client exchange described below adds its publication boundary; timely host scheduling
-and Inspector execution remain required before claiming full conformance.
+client exchange described below adds its publication boundary, and the host scheduler
+adds deadline enforcement. Inspector execution remains
+required before claiming full conformance.
 
 ### Private owned client exchange
 
@@ -416,6 +417,38 @@ Runtime tests exercise the complete owned client/server exchange over encrypted
 net.Pipe records, pending polling, a deferred response, and post-consumption closure
 with journal reopen. Safe scenario tests cover malformed correlation, revocation,
 expiry, callback stalls, canonical input variants, preparation quotas and clock failure.
-The implementation remains private. Timely host scheduling, production transport and
-host mediation, matching Rust support and Inspector catalog execution remain necessary
+The implementation remains private. Production transport and host mediation, matching
+Rust support and Inspector catalog execution remain necessary
 before declaring complete deployment or interoperability conformance.
+
+### Private bounded host scheduler
+
+The private host scheduler attaches once to a shared execution gate and optional
+client pool. Owners register before setup, with a finite host-wide owner quota.
+Server admission and client preparation/exchange require the matching host binding;
+a reconnect cannot switch to an unmanaged pool. Handshake provisioning remains
+trusted host work outside this adapter's registration boundary.
+
+A fixed worker set consumes admitted queue entries. An independent timer samples
+only trusted local clocks and retires expired setup, protected I/O and client
+preparation rights. Queue expiry and claim use the same coordinator; expired
+unclaimed entries cannot execute. Worker cancellation preserves pinned dependencies
+and durable identity. The timer never performs registry, journal, tool or key cleanup
+work, so a blocked provider cannot hold the deadline sweep's coordinator.
+
+One separate cleanup worker handles retired owners. Owner, I/O and execution slots
+remain occupied until their actual work and cleanup terminate. A blocked cleanup can
+reduce availability but does not stop deadline enforcement or free reconnect capacity.
+Stopping retires the gate and client pool, revokes owner rights and cancels outstanding
+work. The caller's stop timeout reports incomplete shutdown; the same fixed worker set
+continues conservative settlement and cleanup. Waiting again can observe completion.
+The host does not close active storage; the caller closes the gate after quiescence.
+
+Tests exercise an encrypted owned-client/server exchange with automatic execution,
+blocked authentication and client deadlines, queue cancellation behind a stalled
+worker, shutdown timeout and subsequent drain, setup expiry, clock failure, idle
+response expiry, and cleanup stalls with retained owner capacity. Runtime scheduling
+and providers must satisfy bounded progress. Late execution/publication still checks
+absolute deadlines, but this implementation does not promise hard real-time scheduling
+or forcibly terminate arbitrary host callbacks. Production transport/mediation,
+matching Rust support and Inspector catalog evidence remain separate requirements.

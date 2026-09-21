@@ -24,6 +24,7 @@ type mcpSetupIO interface {
 type mcpSetupSession struct {
 	admission       *mcpAdmissionGate
 	client          *mcpOwnedClient
+	host            *mcpHost
 	mu              sync.Mutex
 	running, closed bool
 	started         bool
