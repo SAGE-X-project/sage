@@ -17,6 +17,7 @@ import (
 	"io"
 	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
@@ -44,6 +45,7 @@ type ReplayStore010 interface{ Reserve(Replay010) error }
 type CompletionEndpoint010 struct {
 	httpTarget, httpAuthority string
 	used                      bool
+	retired                   atomic.Bool
 	mu                        sync.Mutex
 	registry                  *registry010.Gate
 	clock                     registry010.Clock
@@ -63,7 +65,7 @@ func NewCompletionEndpoint010(did, kid string, signingSeed, kem []byte, g *regis
 	return &CompletionEndpoint010{registry: g, clock: c, replay: r, did: did, kid: kid, signing: ed25519.NewKeyFromSeed(signingSeed), kem: append([]byte(nil), kem...)}, nil
 }
 func (e *CompletionEndpoint010) sample() (registry010.Stamp, error) {
-	if len(e.signing) != 64 {
+	if e.retired.Load() || len(e.signing) != 64 {
 		return registry010.Stamp{}, errCompletion010
 	}
 	t, x := e.clock.Now()
@@ -362,6 +364,7 @@ func pendingLive010(now, start registry010.Stamp, expires int64) bool {
 // API. Responders remain RESPONSE_SENT until OpenRequest atomically confirms them.
 type AuthenticatedCompletion010 struct {
 	httpTarget, httpAuthority string
+	lifetime                  *recordLifetime010
 	endpoint                  *CompletionEndpoint010
 	a, b                      *registry010.Pinned
 	tuple                     map[string]string
@@ -389,7 +392,7 @@ func (s *AuthenticatedCompletion010) Tuple() map[string]string {
 func (s *AuthenticatedCompletion010) State() string {
 	s.endpoint.mu.Lock()
 	defer s.endpoint.mu.Unlock()
-	if s.closed {
+	if s.closed || s.unavailable010() {
 		return "CLOSED"
 	}
 	if s.initiator || s.confirmed {
@@ -398,6 +401,9 @@ func (s *AuthenticatedCompletion010) State() string {
 	return "RESPONSE_SENT"
 }
 func (s *AuthenticatedCompletion010) destroy() {
+	if s.lifetime != nil && s.lifetime.disabled.Swap(true) {
+		return
+	}
 	s.sent = nil
 	s.received = nil
 	if s.records != nil {
@@ -419,17 +425,24 @@ func (s *AuthenticatedCompletion010) Check(ctx context.Context) error {
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	_, err := s.checkCurrent010(ctx)
+	return err
+}
+func (s *AuthenticatedCompletion010) checkCurrent010(ctx context.Context) (registry010.Stamp, error) {
+	e := s.endpoint
 	start, x := e.sample()
 	if x != nil || s.recordLive(start) != nil || e.current(ctx, s.a, s.b) != nil {
 		s.destroy()
-		return errCompletion010
+		return registry010.Stamp{}, errCompletion010
 	}
 	end, x := e.sample()
 	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, s.a, s.b) || s.recordLive(end) != nil {
 		s.destroy()
-		return errCompletion010
+		return registry010.Stamp{}, errCompletion010
 	}
-	return nil
+	s.lifetime.wall.Store(end.Unix)
+	s.lifetime.checked.Store(end.MonoMS)
+	return start, nil
 }
 func owned010(e *CompletionEndpoint010, d *Derivation010, a, b *registry010.Pinned, now registry010.Stamp, expires int64, initiator bool) *AuthenticatedCompletion010 {
 	var t map[string]string
@@ -445,7 +458,7 @@ func owned010(e *CompletionEndpoint010, d *Derivation010, a, b *registry010.Pinn
 	zeroBytes(d.AckTag)
 	records, _ := session.NewRecordSession010(seed, d.TH, initiator)
 	zeroBytes(seed)
-	return &AuthenticatedCompletion010{endpoint: e, a: a, b: b, tuple: tuple, created: now, active: now, expires: expires, initiator: initiator, records: records}
+	return &AuthenticatedCompletion010{lifetime: newRecordLifetime010(now), endpoint: e, a: a, b: b, tuple: tuple, created: now, active: now, expires: expires, initiator: initiator, records: records}
 }
 
 // Complete verifies both signatures, exact request hash and echoed initiation,
@@ -619,6 +632,7 @@ func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, 
 // Close retires the endpoint's local private-key copies. Previously returned
 // objects must also be closed by their owner; no keys are restored on restart.
 func (e *CompletionEndpoint010) Close() {
+	e.retired.Store(true)
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	zeroBytes(e.signing)
@@ -646,7 +660,7 @@ func (s *AuthenticatedCompletion010) Participants() (string, string, error) {
 	}
 	s.endpoint.mu.Lock()
 	defer s.endpoint.mu.Unlock()
-	if s.closed || s.httpTarget != "" || s.tuple["sid"] == "" {
+	if s.closed || s.unavailable010() || s.httpTarget != "" || s.tuple["sid"] == "" {
 		return "", "", errCompletion010
 	}
 	if s.initiator {

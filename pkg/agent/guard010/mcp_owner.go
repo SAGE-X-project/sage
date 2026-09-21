@@ -1,6 +1,7 @@
 package guard010
 
 import (
+	"context"
 	"sync"
 	"time"
 )
@@ -161,9 +162,16 @@ func (o *mcpOwner) reserveProtected(id string, sessionValid bool) error {
 // the session adapter, and protected request IDs by reserveProtected. No arbitrary
 // target phase or publicly importable readiness value exists.
 func (o *mcpOwner) transition(event mcpEvent, id string, protectedEnd time.Duration, sessionValid bool) (*mcpOutput, error) {
+	return o.transitionObserved(event, id, protectedEnd, sessionValid, nil, nil)
+}
+func (o *mcpOwner) transitionObserved(event mcpEvent, id string, protectedEnd time.Duration, sessionValid bool, observation *time.Duration, ctx context.Context) (*mcpOutput, error) {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if !o.validLocked(sessionValid) {
+		return nil, ErrInvalid
+	}
+	if observation != nil && (ctx == nil || ctx.Err() != nil || *observation > o.last || o.last-*observation > 5*time.Second) {
+		o.closeLocked()
 		return nil, ErrInvalid
 	}
 	if int(event) >= len(mcpTransitions) || o.pending != nil || o.deferred != nil {
@@ -215,12 +223,19 @@ func (o *mcpOwner) deferFrame(wire []byte, sessionValid bool) error {
 // Stale callbacks are inert; a failed active send closes without retry. Deferred
 // bytes remain private until takeDeferred transfers them to the receive path.
 func (o *mcpOwner) complete(p *mcpOutput, fullSend bool, sessionValid bool) error {
+	return o.completeObserved(p, fullSend, sessionValid, nil, nil)
+}
+func (o *mcpOwner) completeObserved(p *mcpOutput, fullSend, sessionValid bool, observation *time.Duration, ctx context.Context) error {
 	o.mu.Lock()
 	defer o.mu.Unlock()
 	if p == nil || p.owner != o || o.pending != p {
 		return ErrInvalid
 	}
 	if !o.validLocked(sessionValid) {
+		return ErrInvalid
+	}
+	if observation != nil && (ctx == nil || ctx.Err() != nil || *observation > o.last || o.last-*observation > 5*time.Second) {
+		o.closeLocked()
 		return ErrInvalid
 	}
 	if !fullSend || o.last >= p.deadline {

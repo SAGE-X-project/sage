@@ -23,7 +23,7 @@ type RecordReplayStore010 interface {
 }
 
 func (s *AuthenticatedCompletion010) recordLive(t registry010.Stamp) error {
-	if s.closed || s.records == nil || t.MonoMS < s.created.MonoMS || t.MonoMS < s.active.MonoMS || t.Unix < s.created.Unix || t.MonoMS-s.created.MonoMS >= 3600000 || t.MonoMS-s.active.MonoMS >= 600000 || (!s.initiator && !s.confirmed && !pendingLive010(t, s.created, s.expires)) {
+	if s.closed || s.unavailable010() || s.records == nil || t.MonoMS < s.lifetime.sampledMono.Load() || t.Unix < s.lifetime.sampledWall.Load() || t.MonoMS < s.created.MonoMS || t.MonoMS < s.active.MonoMS || t.Unix < s.created.Unix || t.MonoMS-s.created.MonoMS >= 3600000 || t.MonoMS-s.active.MonoMS >= 600000 || (!s.initiator && !s.confirmed && !pendingLive010(t, s.created, s.expires)) {
 		return errCompletion010
 	}
 	return nil
@@ -114,7 +114,7 @@ func (s *AuthenticatedCompletion010) SealRequest(ctx context.Context, plaintext 
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if s.httpTarget != "" {
+	if s.httpTarget != "" || (s.lifetime != nil && s.lifetime.http.Load()) {
 		return nil, errCompletion010
 	}
 	return s.sealRequest010(ctx, plaintext, ttl)
@@ -149,6 +149,7 @@ func (s *AuthenticatedCompletion010) sealRequest010(ctx context.Context, plainte
 	if len(aad) > 4033 {
 		return nil, errCompletion010
 	}
+	s.lifetime.used.Store(true)
 	wire, x := s.records.Seal(plaintext, aad)
 	if x != nil {
 		s.destroy()
@@ -161,6 +162,8 @@ func (s *AuthenticatedCompletion010) sealRequest010(ctx context.Context, plainte
 		return nil, x
 	}
 	s.active = end
+	s.lifetime.active.Store(end.MonoMS)
+	s.lifetime.wall.Store(end.Unix)
 	if s.sent == nil {
 		s.sent = map[string]*recordRequest010{}
 	}
@@ -176,7 +179,7 @@ func (s *AuthenticatedCompletion010) OpenRequest(ctx context.Context, raw []byte
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	if s.httpTarget != "" {
+	if s.httpTarget != "" || (s.lifetime != nil && s.lifetime.http.Load()) {
 		return nil, errCompletion010
 	}
 	return s.openRequest010(ctx, raw, nil)
@@ -261,7 +264,11 @@ func (s *AuthenticatedCompletion010) acceptRecord010(ctx context.Context, start 
 		}
 		return nil, errCompletion010
 	}
+	s.lifetime.used.Store(true)
 	s.confirmed = true
+	s.lifetime.confirmed.Store(true)
 	s.active = accepted
+	s.lifetime.active.Store(accepted.MonoMS)
+	s.lifetime.wall.Store(accepted.Unix)
 	return plaintext, nil
 }

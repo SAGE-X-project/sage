@@ -1,6 +1,7 @@
 package guard010
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -286,5 +287,51 @@ func TestMCPOwnerClockFailure(t *testing.T) {
 		if err := o.mcpOwner.complete(p, true, true); err == nil || o.phase != mcpClosed {
 			t.Fatal("bad publication clock")
 		}
+	}
+}
+
+func TestMCPOwnerPublicationObservationAge(t *testing.T) {
+	for _, age := range []time.Duration{5 * time.Second, 5*time.Second + time.Millisecond} {
+		for _, response := range []bool{false, true} {
+			o := testOwner(t, response)
+			var p *mcpOutput
+			if response {
+				ownerComplete(t, o, ownerEvent(t, o, mcpReplyInitialize, ownerID1))
+				ownerComplete(t, o, ownerEvent(t, o, mcpReplyInitialized, ""))
+				p = ownerEvent(t, o, mcpReplyList, ownerID2)
+			} else {
+				ownerComplete(t, o, ownerEvent(t, o, mcpSendInitialize, ownerID1))
+				ownerEvent(t, o, mcpAcceptInitialize, "")
+				ownerComplete(t, o, ownerEvent(t, o, mcpSendInitialized, ""))
+				ownerEvent(t, o, mcpAcceptInitialized, "")
+				ownerComplete(t, o, ownerEvent(t, o, mcpSendList, ownerID2))
+			}
+			observation := time.Second
+			o.now.Store(int64(observation + age))
+			var err error
+			if response {
+				err = o.completeObserved(p, true, true, &observation, context.Background())
+			} else {
+				_, err = o.transitionObserved(mcpAcceptList, "", 0, true, &observation, context.Background())
+			}
+			if age == 5*time.Second {
+				if err != nil || o.phase != mcpReady {
+					t.Fatal("fresh boundary rejected", err)
+				}
+			} else if err == nil || o.phase != mcpClosed {
+				t.Fatal("stale publication")
+			}
+		}
+	}
+}
+
+func TestMCPOwnerCancelledObservationCannotPublish(t *testing.T) {
+	o := testOwner(t, true)
+	p := ownerEvent(t, o, mcpReplyInitialize, ownerID1)
+	observation := time.Second
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := o.completeObserved(p, true, true, &observation, ctx); err == nil || o.phase != mcpClosed {
+		t.Fatal("cancelled observation published")
 	}
 }
