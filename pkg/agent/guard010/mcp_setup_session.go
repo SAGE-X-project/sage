@@ -23,6 +23,7 @@ type mcpSetupIO interface {
 // Negotiating this object alone grants no protected dispatch or public readiness.
 type mcpSetupSession struct {
 	admission       *mcpAdmissionGate
+	client          *mcpOwnedClient
 	mu              sync.Mutex
 	running, closed bool
 	started         bool
@@ -64,11 +65,15 @@ func (s *mcpSetupSession) close() {
 		s.cancel()
 	}
 	running := s.running
+	client := s.client
 	s.mu.Unlock()
 	// Never hold the coordinator or adapter mutex while erasing session keys.
 	// Active work owns cleanup on exit; idle/completed owners clean up here.
 	if !running {
 		s.session.Close()
+		if client != nil {
+			_ = client.client.Close()
+		}
 	}
 }
 func (s *mcpSetupSession) run(ctx context.Context, io mcpSetupIO, prepare func(context.Context) error) (err error) {
@@ -102,6 +107,12 @@ func (s *mcpSetupSession) run(ctx context.Context, io mcpSetupIO, prepare func(c
 		if cleanup {
 			s.owner.close()
 			s.session.Close()
+			s.mu.Lock()
+			client := s.client
+			s.mu.Unlock()
+			if client != nil {
+				_ = client.client.Close()
+			}
 		}
 	}()
 	now, e := s.session.LocalNow()

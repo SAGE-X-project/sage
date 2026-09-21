@@ -350,8 +350,7 @@ This gate remains private. A trusted bounded host scheduler must call the worker
 within its configured claim bound or arrange cancellation; a late claim settles
 UNKNOWN, while an unexpected stall retains capacity. Providers must honor finite
 completion bounds. Synchronous paths enforce observed expiry, but timely background
-expiry enforcement, production transport framing and client owner publication are
-still pending. The gate and session clocks must share one trusted monotonic origin.
+expiry enforcement and production transport framing are still pending. The gate and session clocks must share one trusted monotonic origin.
 These tests do not establish whole-host mediation, Go/Rust interoperability or
 Inspector conformance. Those claims require the remaining integrations and catalog
 execution.
@@ -384,6 +383,39 @@ Runtime tests use signed encrypted replies over bounded net.Pipe framing and the
 existing durable Client consumption path, including reopen without redelivery.
 They also cover pending polling, separate result-key freshness/expiry, oversized
 output, partial/late send, replacement, revocation, deferred input and shared output
-quotas. This demonstrates server carriage and existing client verification, not the
-complete client owner submission/publication adapter. That adapter, timely host
-scheduling and Inspector execution remain required before claiming full conformance.
+quotas. This demonstrates server carriage and existing client verification. The owned
+client exchange described below adds its publication boundary; timely host scheduling
+and Inspector execution remain required before claiming full conformance.
+
+### Private owned client exchange
+
+The private client binding owns its durable Guard client and supplies its sender
+internally. Callers cannot choose request IDs, swap a sender, import a readiness
+value or consume raw decrypted output through this adapter. It retains one canonical
+signed intent, bounds the complete request before persistence, and uses fresh
+internally generated transport IDs without changing the signed call identity.
+
+Construction and exchanges share a bounded host pool across owners and reconnects.
+Both retain capacity until providers return and cleanup finishes. Construction checks
+pool retirement, original session validity and its fixed local preparation deadline;
+clock panics become errors while the journal still owns descriptor cleanup. A failed
+subsequent setup also closes the attached client journal. Provisioning still requires
+one stable protected journal per signed operation and clocks with a common origin.
+
+An exchange uses one immutable request deadline through send, receive, consumption
+and publication. Full send is followed by fresh intent, policy, signing-key and session
+checks. A response must match both correlation IDs, peer identities, exact intent and
+outer status before ordinary Guard acceptance. The client persists terminal consumption
+before the adapter refreshes result authority and the complete session. A final local
+coordinator check enforces closure, pool retirement, both observation freshness windows,
+result/key expiry, clock validity and the original deadline before releasing output.
+Failure after persistence withholds output without restoring consumption or asserting
+that a remote effect was undone. Reopen cannot redeliver the consumed terminal.
+
+Runtime tests exercise the complete owned client/server exchange over encrypted
+net.Pipe records, pending polling, a deferred response, and post-consumption closure
+with journal reopen. Safe scenario tests cover malformed correlation, revocation,
+expiry, callback stalls, canonical input variants, preparation quotas and clock failure.
+The implementation remains private. Timely host scheduling, production transport and
+host mediation, matching Rust support and Inspector catalog execution remain necessary
+before declaring complete deployment or interoperability conformance.
