@@ -452,3 +452,34 @@ and providers must satisfy bounded progress. Late execution/publication still ch
 absolute deadlines, but this implementation does not promise hard real-time scheduling
 or forcibly terminate arbitrary host callbacks. Production transport/mediation,
 matching Rust support and Inspector catalog evidence remain separate requirements.
+
+### Private bounded stream framing
+
+The private `mcpStream` implements the setup and protected-exchange I/O contract
+on an exclusively owned `net.Conn`. Trusted deployment configuration selects the
+same framing on both endpoints: a four-byte unsigned big-endian envelope length,
+then exactly that many envelope bytes. This is a local integration choice, not a
+new normative protocol field, stdio framing, capability negotiation or fallback.
+Envelope authentication and record limits remain the owned session's responsibility.
+
+Receive validates a nonzero length of at most 32,768 before allocating the body.
+It never reads into the next frame. Send copies one bounded complete frame and
+handles short writes. There is no read-ahead queue or background input pump. One
+send and one receive may overlap; concurrent calls in the same direction close
+the stream. Callers retain at most one returned incoming frame while output is pending.
+
+Each operation has a finite, configured deadline of at most 30 seconds, shortened
+by the caller's deadline and applied to the complete header and body. Cancellation,
+EOF, truncation, invalid length, I/O failure or provider panic closes both directions;
+uncertain frames cannot be resumed. Success reports complete local handoff only.
+The host must supply a connection with bounded, non-panicking Close and functioning
+deadlines; arbitrary provider callbacks are not forcibly terminated. The owner still
+checks authentication, freshness, admission and publication after transport success.
+
+Unit tests cover boundary sizes, fragmented input, short writes, no read-ahead,
+invalid/truncated frames, provider failures and panic retirement. Safe runtime tests
+cover cancellation, deadlines, duplicate local operations and loopback TCP round trips.
+The host exchange test uses the same stream pair from authenticated MCP setup through
+encrypted tool execution and durable client delivery. Host-owned socket lifetime,
+listener admission, handshake integration and deployment mediation remain separate
+work, as do Rust parity and Inspector conformance evidence.

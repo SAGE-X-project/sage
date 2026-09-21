@@ -6,7 +6,6 @@ import (
 	"crypto/ed25519"
 	"encoding/base64"
 	"encoding/json"
-	"net"
 	"path/filepath"
 	"testing"
 	"time"
@@ -63,14 +62,11 @@ func TestMCPHostRuntimeExchange(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	x, y := net.Pipe()
-	defer x.Close()
-	defer y.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	done := make(chan error, 1)
 	go func() {
-		io := &setupPipe{Conn: y}
+		io := f.streams[1]
 		wire, e := io.Receive(ctx)
 		if e == nil {
 			_, e = f.server.admitProtected(ctx, wire, f.gate)
@@ -101,7 +97,7 @@ func TestMCPHostRuntimeExchange(t *testing.T) {
 		}
 		done <- e
 	}()
-	d, e := b.exchange(ctx, &setupPipe{Conn: x})
+	d, e := b.exchange(ctx, f.streams[0])
 	if e != nil {
 		t.Fatal(e)
 	}

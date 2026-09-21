@@ -98,6 +98,7 @@ type admissionFixture struct {
 	config         *mcpAdmissionConfig
 	intent         []byte
 	path           string
+	streams        [2]*mcpStream
 }
 
 func newAdmissionFixture(t *testing.T, capacity int) *admissionFixture {
@@ -186,7 +187,25 @@ func newAdmissionFixtureWithSetup(t *testing.T, capacity int, beforeSetup func(*
 		beforeSetup(f)
 	}
 	x, y := net.Pipe()
-	ea, eb := runSetupPair(t, client, server, &setupPipe{Conn: x}, &setupPipe{Conn: y}, func(context.Context) error { return nil })
+	left, _ := newMCPStream(x, 3*time.Second)
+	right, _ := newMCPStream(y, 3*time.Second)
+	f.streams = [2]*mcpStream{left, right}
+	t.Cleanup(func() { _ = left.Close(); _ = right.Close() })
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() {
+		e := server.run(ctx, right, func(context.Context) error { return nil })
+		if e != nil {
+			cancel()
+		}
+		done <- e
+	}()
+	ea := client.run(ctx, left, nil)
+	if ea != nil {
+		cancel()
+	}
+	eb := <-done
 	if ea != nil || eb != nil {
 		t.Fatal(ea, eb)
 	}
