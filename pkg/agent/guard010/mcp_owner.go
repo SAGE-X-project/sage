@@ -12,7 +12,9 @@ import (
 // Only the trusted bounded local clock is sampled under mu. No storage,
 // transport, registry lookup or other extensible work runs under this lock.
 type mcpOwner struct {
-	mu             sync.Mutex
+	mu             *sync.Mutex
+	active         *mcpWork
+	admission      *mcpAdmissionGate
 	clock          func() (time.Duration, error)
 	phase          mcpPhase
 	last, setupEnd time.Duration
@@ -95,7 +97,7 @@ func newMCPOwner(server bool, created, setupLimit time.Duration, clock func() (t
 	if server {
 		phase = mcpServerStart
 	}
-	return &mcpOwner{clock: clock, phase: phase, last: now, setupEnd: end, seen: make(map[string]struct{})}, nil
+	return &mcpOwner{mu: &sync.Mutex{}, clock: clock, phase: phase, last: now, setupEnd: end, seen: make(map[string]struct{})}, nil
 }
 func (o *mcpOwner) closeLocked() { o.phase = mcpClosed; o.pending = nil; o.deferred = nil }
 func (o *mcpOwner) close()       { o.mu.Lock(); defer o.mu.Unlock(); o.closeLocked() }
@@ -119,7 +121,7 @@ func (o *mcpOwner) validLocked(sessionValid bool) bool {
 	if o.phase == mcpClosed {
 		return false
 	}
-	if err != nil || !sessionValid || now < o.last || (o.phase != mcpReady && now >= o.setupEnd) {
+	if (o.admission != nil && o.admission.retired) || err != nil || !sessionValid || now < o.last || (o.phase != mcpReady && now >= o.setupEnd) {
 		o.closeLocked()
 		return false
 	}

@@ -30,6 +30,9 @@ type setupRegistry struct {
 	mono       atomic.Int64
 	revoked    atomic.Bool
 	panicClock atomic.Bool
+	readHook   func(string)
+	bobSigning atomic.Bool
+	bobKEM     atomic.Bool
 }
 
 func (c *setupRegistry) Now() (registry010.Stamp, error) {
@@ -40,6 +43,9 @@ func (c *setupRegistry) Now() (registry010.Stamp, error) {
 	return registry010.Stamp{MonoMS: mono, Unix: 100 + mono/1000}, nil
 }
 func (c *setupRegistry) Read(_ context.Context, did string) (registry010.Snapshot, error) {
+	if c.readHook != nil {
+		c.readHook(did)
+	}
 	seed := byte(1)
 	if did == setupBob {
 		seed = 2
@@ -53,6 +59,16 @@ func (c *setupRegistry) Read(_ context.Context, did string) (registry010.Snapsho
 	if c.revoked.Load() {
 		keys[0].State = "revoked"
 		version = "2"
+	}
+	if did == setupBob {
+		if c.bobSigning.Load() {
+			keys[0].State = "revoked"
+			version = "2"
+		}
+		if c.bobKEM.Load() {
+			keys[1].State = "revoked"
+			version = "2"
+		}
 	}
 	sort.Slice(keys, func(i, j int) bool { return keys[i].Name < keys[j].Name })
 	raw, _ := Canonicalize(encode(keys))

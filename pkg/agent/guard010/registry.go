@@ -32,30 +32,44 @@ func NewRegistryAuthority(gate *registry010.Gate, issuer, keyid string) (*Regist
 	}
 	return &RegistryAuthority{gate: gate, issuer: issuer, keyid: keyid}, nil
 }
+
+type registryObservation struct {
+	key     ed25519.PublicKey
+	stamp   registry010.Stamp
+	expires *int64
+}
+
 func (a *RegistryAuthority) read(ctx context.Context) (ed25519.PublicKey, int64, error) {
+	o, err := a.observe(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	return o.key, o.stamp.Unix, nil
+}
+func (a *RegistryAuthority) observe(ctx context.Context) (*registryObservation, error) {
 	if a == nil || ctx == nil || ctx.Err() != nil {
-		return nil, 0, ErrInvalid
+		return nil, ErrInvalid
 	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.gate == nil {
-		return nil, 0, ErrInvalid
+		return nil, ErrInvalid
 	}
 	p, stamp, err := a.gate.SelectWithTime(ctx, a.issuer, a.keyid, false)
 	if err != nil || ctx.Err() != nil {
-		return nil, 0, ErrInvalid
+		return nil, ErrInvalid
 	}
 	key := p.Signing()
 	if a.key != nil && (key.Name != a.key.Name || key.Alg != a.key.Alg || key.Material != a.key.Material ||
 		(key.Expires == nil) != (a.key.Expires == nil) || (key.Expires != nil && *key.Expires != *a.key.Expires)) {
-		return nil, 0, ErrInvalid
+		return nil, ErrInvalid
 	}
 	raw, err := hex.DecodeString(key.Material)
 	if err != nil || len(raw) != ed25519.PublicKeySize || !strongPoint(raw) {
-		return nil, 0, ErrInvalid
+		return nil, ErrInvalid
 	}
 	a.key = &key
-	return ed25519.PublicKey(raw), stamp.Unix, nil
+	return &registryObservation{key: ed25519.PublicKey(raw), stamp: stamp, expires: key.Expires}, nil
 }
 
 // Now revalidates the exact pinned principal/key and returns that read's gate time.
