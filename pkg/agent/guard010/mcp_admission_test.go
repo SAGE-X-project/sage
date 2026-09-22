@@ -211,9 +211,10 @@ func newAdmissionFixtureWithSetup(t *testing.T, capacity int, beforeSetup func(*
 	}
 	return f
 }
-func (f *admissionFixture) wire(t *testing.T) []byte {
+func (f *admissionFixture) wireWithID(t *testing.T) ([]byte, string) {
 	t.Helper()
-	raw, err := MCPRequest(MCPVersion, guuid.NewString(), f.intent)
+	id := guuid.NewString()
+	raw, err := MCPRequest(MCPVersion, id, f.intent)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,20 +222,29 @@ func (f *admissionFixture) wire(t *testing.T) []byte {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return wire, id
+}
+func (f *admissionFixture) wire(t *testing.T) []byte {
+	t.Helper()
+	wire, _ := f.wireWithID(t)
 	return wire
 }
 func (f *admissionFixture) admit(t *testing.T) (*DispatchReceipt, error) {
 	t.Helper()
 	return f.server.admitProtected(context.Background(), f.wire(t), f.gate)
 }
-func (f *admissionFixture) state(t *testing.T) string {
+func (f *admissionFixture) entry(t *testing.T) execution010.Entry {
 	t.Helper()
 	_, m, _, _ := intentEnvelope(f.intent)
 	e, ok, err := f.gate.ledger.store.Lookup(str(m, "issuer"), str(m, "call_id"))
 	if err != nil || !ok {
 		t.Fatal("missing entry", err)
 	}
-	return e.State
+	return e
+}
+func (f *admissionFixture) state(t *testing.T) string {
+	t.Helper()
+	return f.entry(t).State
 }
 func TestMCPAdmissionAuthenticatedExecutionAndDuplicate(t *testing.T) {
 	f := newAdmissionFixture(t, 2)
@@ -281,7 +291,10 @@ func TestMCPAdmissionCloseDuringFence(t *testing.T) {
 				}
 				return commit(e)
 			}
-			wire := f.wire(t)
+			f.gate.mu.Lock()
+			historyBefore := len(f.server.owner.seen)
+			f.gate.mu.Unlock()
+			wire, requestID := f.wireWithID(t)
 			done := make(chan error, 1)
 			go func() { _, err := f.server.admitProtected(context.Background(), wire, f.gate); done <- err }()
 			<-entered
@@ -307,8 +320,20 @@ func TestMCPAdmissionCloseDuringFence(t *testing.T) {
 			if mode == "uncertain" {
 				want = "EXECUTING"
 			}
-			if f.state(t) != want {
-				t.Fatal("invented fence/outcome", f.state(t))
+			entry := f.entry(t)
+			if entry.State != want {
+				t.Fatal("invented fence/outcome", entry.State)
+			}
+			_, intent, _, err := intentEnvelope(f.intent)
+			if err != nil || entry.Nonce == "" || entry.Nonce != str(intent, "nonce") {
+				t.Fatal("reservation nonce history not retained", err)
+			}
+			f.gate.mu.Lock()
+			_, retained := f.server.owner.seen[requestID]
+			historyAfter := len(f.server.owner.seen)
+			f.gate.mu.Unlock()
+			if !retained || historyAfter != historyBefore+1 {
+				t.Fatal("protected request history not retained", retained, historyBefore, historyAfter)
 			}
 			if mode != "success" && !f.gate.retired {
 				t.Fatal("uncertain store remained available")
