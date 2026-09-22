@@ -10,7 +10,9 @@ import (
 	"errors"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -105,6 +107,9 @@ func newAdmissionFixture(t *testing.T, capacity int) *admissionFixture {
 	return newAdmissionFixtureWithSetup(t, capacity, nil)
 }
 func newAdmissionFixtureWithSetup(t *testing.T, capacity int, beforeSetup func(*admissionFixture)) *admissionFixture {
+	return newAdmissionFixtureAtPath(t, capacity, "", true, beforeSetup)
+}
+func newAdmissionFixtureAtPath(t *testing.T, capacity int, path string, create bool, beforeSetup func(*admissionFixture)) *admissionFixture {
 	t.Helper()
 	a, b, clock := setupSessions(t)
 	raw, err := os.ReadFile("testdata/guard-rpc.json")
@@ -160,8 +165,10 @@ func newAdmissionFixtureWithSetup(t *testing.T, capacity int, beforeSetup func(*
 	}
 	executor := &admissionExecutor{manifest: intent["manifest_digest"].(string)}
 	config := &mcpAdmissionConfig{authority: authority, resultAuthority: resultAuthority, policy: &admissionPolicy{original: intent["original_digest"].(string), policy: policyRaw, manifest: data.Input["approved_manifest"]}, executor: executor, signer: &admissionSigner{RegistryAuthority: resultAuthority, key: ed25519.NewKeyFromSeed(bytes.Repeat([]byte{2}, 32))}}
-	path := filepath.Join(t.TempDir(), "execution")
-	g, err := openMCPAdmissionGate(path, true, setupBob, config, clock, mcpBounds{capacity: capacity, request: 20 * time.Second, claim: 10 * time.Second, worker: time.Second})
+	if path == "" {
+		path = filepath.Join(t.TempDir(), "execution")
+	}
+	g, err := openMCPAdmissionGate(path, create, setupBob, config, clock, mcpBounds{capacity: capacity, request: 20 * time.Second, claim: 10 * time.Second, worker: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -349,6 +356,59 @@ func TestMCPAdmissionCloseAfterInsertionKeepsAdmission(t *testing.T) {
 	f.server.close()
 	if ran, err := f.gate.runOne(context.Background()); !ran || err != nil || f.executor.effects.Load() != 1 {
 		t.Fatal("close rolled back admitted work", err)
+	}
+}
+func TestMCPAdmissionCrashHelper(t *testing.T) {
+	path := os.Getenv("SAGE_MCP_ADMISSION_CRASH_PATH")
+	if path == "" {
+		return
+	}
+	f := newAdmissionFixtureAtPath(t, 1, path, true, nil)
+	r, err := f.admit(t)
+	if err != nil || !r.Created() || !r.Committed() || f.state(t) != "EXECUTING" || f.executor.effects.Load() != 0 {
+		t.Fatal("durable admission before crash", err)
+	}
+	if _, err := os.Stat(path + ".lock"); err != nil {
+		t.Fatal("missing live owner lock", err)
+	}
+	os.Exit(0)
+}
+func TestMCPAdmissionCrashRecoveryDoesNotExecuteAgain(t *testing.T) {
+	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
+		t.Skip("local durable storage requires Linux/macOS")
+	}
+	path := filepath.Join(t.TempDir(), "execution")
+	binary, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	command := exec.Command(binary, "-test.run=^TestMCPAdmissionCrashHelper$", "-test.count=1")
+	command.Env = append(os.Environ(), "SAGE_MCP_ADMISSION_CRASH_PATH="+path)
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("crash fixture: %v\n%s", err, output)
+	}
+	if _, err := os.Stat(path + ".lock"); err != nil {
+		t.Fatal("crash released owner lock", err)
+	}
+	if ledger, err := execution010.Open(path, false); err == nil {
+		_ = ledger.Close()
+		t.Fatal("reopened before trusted recovery")
+	}
+	// The owned child has exited; this models trusted administration proving
+	// exclusive ownership before clearing the stale process lock.
+	if err := os.Remove(path + ".lock"); err != nil {
+		t.Fatal("trusted lock recovery", err)
+	}
+	f := newAdmissionFixtureAtPath(t, 1, path, false, nil)
+	if f.state(t) != "UNKNOWN" || f.executor.effects.Load() != 0 {
+		t.Fatal("unresolved admission recovery")
+	}
+	r, err := f.admit(t)
+	if err != nil || r.Created() || r.Committed() || r.State() != "UNKNOWN" {
+		t.Fatal("recovered admission was redispatched", err)
+	}
+	if ran, err := f.gate.runOne(context.Background()); err != nil || ran || f.executor.effects.Load() != 0 {
+		t.Fatal("recovered work executed", err)
 	}
 }
 func TestMCPAdmissionReplacementAndClaimOrder(t *testing.T) {
