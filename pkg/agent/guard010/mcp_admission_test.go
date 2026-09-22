@@ -595,6 +595,41 @@ func TestMCPAdmissionRequestExpiryClosesOwner(t *testing.T) {
 	}
 }
 
+func TestMCPAdmissionProtectedDeadlineBeforeFinalAdmissionRetainsReservation(t *testing.T) {
+	f := newAdmissionFixture(t, 1)
+	f.gate.mu.Lock()
+	historyBefore := len(f.server.owner.seen)
+	f.gate.mu.Unlock()
+	wire, requestID := f.wireWithID(t)
+	f.executor.checkHook = func(n int64) error {
+		if n == 2 {
+			f.clock.mono.Add(20000)
+		}
+		return nil
+	}
+	if _, err := f.server.admitProtected(context.Background(), wire, f.gate); err == nil {
+		t.Fatal("expired protected request admitted")
+	}
+	entry := f.entry(t)
+	_, intent, _, err := intentEnvelope(f.intent)
+	if err != nil || entry.State != "UNKNOWN" || entry.CallID != str(intent, "call_id") || entry.Nonce != str(intent, "nonce") {
+		t.Fatal("intent reservation not retained", err, entry)
+	}
+	f.gate.mu.Lock()
+	_, retained := f.server.owner.seen[requestID]
+	historyAfter := len(f.server.owner.seen)
+	f.gate.mu.Unlock()
+	if !retained || historyAfter != historyBefore+1 {
+		t.Fatal("protected request history not retained", retained, historyBefore, historyAfter)
+	}
+	if f.server.owner.phase != mcpClosed {
+		t.Fatal("expired owner remains ready")
+	}
+	if ran, runErr := f.gate.runOne(context.Background()); runErr != nil || ran || f.executor.effects.Load() != 0 {
+		t.Fatal("expired reservation executed", runErr)
+	}
+}
+
 type admissionClockFunc func() (registry010.Stamp, error)
 
 func (f admissionClockFunc) Now() (registry010.Stamp, error) { return f() }
