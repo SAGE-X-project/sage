@@ -6,6 +6,7 @@ import (
 	"crypto/ed25519"
 	"encoding/hex"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -205,6 +206,49 @@ func TestMCPProtectedReplyFailurePreservesCompletion(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestMCPProtectedReplyDeadlineAfterAdmissionRetainsCompletion(t *testing.T) {
+	f := newAdmissionFixture(t, 1)
+	if receipt, err := f.admit(t); err != nil || !receipt.Committed() {
+		t.Fatal("admission", err)
+	}
+	if ran, err := f.gate.runOne(context.Background()); err != nil || !ran {
+		t.Fatal("execution", err)
+	}
+	before, err := os.ReadFile(f.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sends := 0
+	err = f.server.replyProtected(context.Background(), replyIO{send: func(context.Context, []byte) error {
+		sends++
+		f.clock.mono.Add(20000)
+		return nil
+	}})
+	if err == nil || sends != 1 {
+		t.Fatal("expired response was accepted", err)
+	}
+	if err = f.server.replyProtected(context.Background(), replyIO{send: func(context.Context, []byte) error {
+		sends++
+		return nil
+	}}); err == nil || sends != 1 {
+		t.Fatal("second response was allowed", err)
+	}
+	after, err := os.ReadFile(f.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := f.entry(t)
+	if !bytes.Equal(before, after) || entry.State != "COMPLETED" || entry.ResultHex == "" || f.executor.effects.Load() != 1 {
+		t.Fatal("transport failure changed durable completion")
+	}
+	if ran, err := f.gate.runOne(context.Background()); err != nil || ran || f.executor.effects.Load() != 1 {
+		t.Fatal("completed execution was repeated", err)
+	}
+	if f.server.owner.phase != mcpClosed {
+		t.Fatal("expired owner remained open")
 	}
 }
 
