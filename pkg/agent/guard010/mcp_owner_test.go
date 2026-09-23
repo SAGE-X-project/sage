@@ -187,6 +187,18 @@ func TestMCPOwnerFixedDeadlinesAndStaleIdentity(t *testing.T) {
 		t.Fatal("protected deadline equality")
 	}
 }
+func TestMCPOwnerProtectedCallsRequireReady(t *testing.T) {
+	for _, server := range []bool{false, true} {
+		o := testOwner(t, server)
+		if err := o.reserveProtected("00000000-0000-4000-8000-000000000003", time.Second, true); err == nil {
+			t.Fatal("protected request accepted before ready")
+		}
+		if o.phase != mcpClosed || len(o.seen) != 0 {
+			t.Fatal("early protected request reserved identity or retained readiness")
+		}
+	}
+}
+
 func TestMCPOwnerRejectsOutOfOrderEvents(t *testing.T) {
 	for event := mcpAcceptInitialize; event <= mcpProtectedOutput+1; event++ {
 		o := testOwner(t, false)
