@@ -46,6 +46,7 @@ type mcpAdmissionGate struct {
 	slots      []*mcpWork
 	outputs    []*mcpOutput
 	commit     func(execution010.Entry) (bool, error)
+	insert     func(*mcpWork) bool
 }
 type mcpWork struct {
 	owner                      *mcpOwner
@@ -85,7 +86,7 @@ func openMCPAdmissionGate(path string, create bool, recipient string, c *mcpAdmi
 		return nil, err
 	}
 	copy := *c
-	g := &mcpAdmissionGate{ledger: d, clock: clock, config: &copy, bounds: b, generation: 1, slots: make([]*mcpWork, b.preparations), outputs: make([]*mcpOutput, b.capacity), commit: d.store.Commit}
+	g := &mcpAdmissionGate{ledger: d, clock: clock, config: &copy, bounds: b, generation: 1, slots: make([]*mcpWork, b.preparations), outputs: make([]*mcpOutput, b.capacity), commit: d.store.Commit, insert: func(*mcpWork) bool { return true }}
 	return g, nil
 }
 func newMCPGuardSetup(s *hpke.AuthenticatedCompletion010, name, version string, g *mcpAdmissionGate) (*mcpSetupSession, error) {
@@ -372,9 +373,12 @@ func (g *mcpAdmissionGate) fenceAndAdmit(ctx context.Context, w *mcpWork, raw []
 		w.invocation = i
 		w.entry = e
 		w.enqueued = mono
-		w.queued = true
-		if g.scheduler != nil {
-			g.scheduler.notify()
+		valid = g.insert(w)
+		if valid {
+			w.queued = true
+			if g.scheduler != nil {
+				g.scheduler.notify()
+			}
 		}
 	}
 	g.mu.Unlock()
