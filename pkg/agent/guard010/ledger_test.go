@@ -206,6 +206,110 @@ func mustJSON(t *testing.T, value any) []byte {
 	return raw
 }
 
+func resultFixture(t *testing.T) guardFixture {
+	t.Helper()
+	for _, c := range cases(t) {
+		if c.ID == "result-completed-valid" {
+			var f guardFixture
+			if json.Unmarshal(c.Input, &f) != nil {
+				t.Fatal("fixture")
+			}
+			return f
+		}
+	}
+	t.Fatal("missing result fixture")
+	return nil
+}
+
+func resultAlgorithmEnvelope(t *testing.T, f guardFixture, algorithm string) []byte {
+	t.Helper()
+	raw, err := hex.DecodeString(f.s("envelope_hex"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var envelope map[string]any
+	if json.Unmarshal(raw, &envelope) != nil {
+		t.Fatal("envelope")
+	}
+	result := envelope["result"].(map[string]any)
+	result["alg"] = algorithm
+	body, err := g.Canonicalize(mustJSON(t, result))
+	if err != nil {
+		t.Fatal(err)
+	}
+	message := append([]byte("sage-tool-result|0.10.0\x00"), body...)
+	var proof []byte
+	switch algorithm {
+	case "ed25519":
+		seed := sha256.Sum256([]byte("public Guard fixture executor"))
+		key := ed25519.NewKeyFromSeed(seed[:])
+		proof = ed25519.Sign(key, message)
+		if !ed25519.Verify(key.Public().(ed25519.PublicKey), message, proof) {
+			t.Fatal("invalid Ed25519 control")
+		}
+		f["public_key_hex"], _ = json.Marshal(hex.EncodeToString(key.Public().(ed25519.PublicKey)))
+	case "ecdsa-p256-sha256":
+		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		digest := sha256.Sum256(message)
+		r, s, err := ecdsa.Sign(rand.Reader, key, digest[:])
+		if err != nil || !ecdsa.Verify(&key.PublicKey, digest[:], r, s) {
+			t.Fatal("invalid P-256 control", err)
+		}
+		proof = make([]byte, 64)
+		r.FillBytes(proof[:32])
+		s.FillBytes(proof[32:])
+	case "secp256k1":
+		key, err := ethcrypto.GenerateKey()
+		if err != nil {
+			t.Fatal(err)
+		}
+		digest := ethcrypto.Keccak256(message)
+		signature, err := ethcrypto.Sign(digest, key)
+		if err != nil || !ethcrypto.VerifySignature(ethcrypto.FromECDSAPub(&key.PublicKey), digest, signature[:64]) {
+			t.Fatal("invalid secp256k1 control", err)
+		}
+		proof = signature[:64]
+	default:
+		t.Fatal("unexpected algorithm")
+	}
+	envelope["proof"] = base64.RawURLEncoding.EncodeToString(proof)
+	return mustJSON(t, envelope)
+}
+
+type countingOutstanding struct {
+	guardFixture
+	lookups int
+}
+
+func (o *countingOutstanding) Intent(ctx context.Context, request, call string) ([]byte, error) {
+	o.lookups++
+	return o.guardFixture.Intent(ctx, request, call)
+}
+
+func TestBridgeResultSignatureAlgorithmBoundary(t *testing.T) {
+	for _, algorithm := range []string{"ed25519", "ecdsa-p256-sha256", "secp256k1"} {
+		t.Run(algorithm, func(t *testing.T) {
+			fixture := resultFixture(t)
+			raw := resultAlgorithmEnvelope(t, fixture, algorithm)
+			authority := &countingAuthority{guardFixture: fixture}
+			outstanding := &countingOutstanding{guardFixture: fixture}
+			verified, err := g.VerifyResult(context.Background(), raw, authority, outstanding)
+			if algorithm == "ed25519" {
+				if err != nil || verified == nil || verified.Status() != "completed" || authority.key == 0 || outstanding.lookups != 1 {
+					t.Fatal("Ed25519 did not continue complete result validation", err)
+				}
+				return
+			}
+			if err == nil || verified != nil || authority.now != 0 || authority.key != 0 || outstanding.lookups != 0 {
+				t.Fatal("unsupported algorithm crossed the result schema boundary", algorithm, err)
+			}
+		})
+	}
+}
+
 func TestBridgeIntentSignatureAlgorithmBoundary(t *testing.T) {
 	for _, algorithm := range []string{"ed25519", "ecdsa-p256-sha256", "secp256k1"} {
 		t.Run(algorithm, func(t *testing.T) {
