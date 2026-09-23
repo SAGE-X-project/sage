@@ -733,6 +733,29 @@ func TestMCPAdmissionQueueCapacityRaceFailsAtomicInsertion(t *testing.T) {
 	}
 }
 
+func TestMCPAdmissionQueueInsertionFailureIsAtomic(t *testing.T) {
+	f := newAdmissionFixture(t, 1)
+	f.gate.insert = func(*mcpWork) bool { return false }
+	if receipt, err := f.admit(t); err == nil || receipt != nil {
+		t.Fatal("failed insertion returned an admission")
+	}
+	if f.state(t) != "UNKNOWN" || f.executor.effects.Load() != 0 {
+		t.Fatal("failed insertion did not preserve a conservative outcome")
+	}
+	if ran, err := f.gate.runOne(context.Background()); err != nil || ran {
+		t.Fatal("failed insertion became visible to a worker", err)
+	}
+	f.gate.mu.Lock()
+	queued := false
+	for _, work := range f.gate.slots {
+		queued = queued || work != nil && work.queued
+	}
+	f.gate.mu.Unlock()
+	if queued {
+		t.Fatal("failed insertion left a visible queue entry")
+	}
+}
+
 func TestMCPAdmissionCloseDuringAuthentication(t *testing.T) {
 	f := newAdmissionFixture(t, 1)
 	wire := f.wire(t)
