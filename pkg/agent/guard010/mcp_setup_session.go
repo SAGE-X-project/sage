@@ -158,6 +158,10 @@ func (s *mcpSetupSession) receive(ctx context.Context, io mcpSetupIO) ([]byte, e
 	}
 	return append([]byte(nil), b...), nil
 }
+func distinctMCPRequestID(inner string, wire []byte) bool {
+	return inner == "" || wireField(wire, "id") != inner
+}
+
 func (s *mcpSetupSession) initiate(ctx context.Context, io mcpSetupIO) error {
 	events := []mcpEvent{mcpSendInitialize, mcpSendInitialized, mcpSendList}
 	for index, event := range events {
@@ -181,7 +185,7 @@ func (s *mcpSetupSession) initiate(ctx context.Context, io mcpSetupIO) error {
 			return ErrInvalid
 		}
 		wire, err := s.session.SealRequest(ctx, raw, 30)
-		if err != nil || (id != "" && wireField(wire, "id") == id) {
+		if err != nil || !distinctMCPRequestID(id, wire) {
 			return ErrInvalid
 		}
 		// The core retains the exact signed request for hash/ID correlation.
@@ -194,7 +198,7 @@ func (s *mcpSetupSession) initiate(ctx context.Context, io mcpSetupIO) error {
 			return err
 		}
 		r, err := s.session.OpenResponse(ctx, reply)
-		if err != nil || r.MessageID != outer || !r.Success || r.Error != "" || (id != "" && wireField(reply, "id") == id) {
+		if err != nil || r.MessageID != outer || !r.Success || r.Error != "" || !distinctMCPRequestID(id, reply) {
 			return ErrInvalid
 		}
 		switch index {
@@ -233,7 +237,7 @@ func (s *mcpSetupSession) serve(ctx context.Context, io mcpSetupIO, prepare func
 			return ErrInvalid
 		}
 		id := rpcText(m, "id")
-		if id != "" && id == wireField(wire, "id") {
+		if !distinctMCPRequestID(id, wire) {
 			return ErrInvalid
 		}
 		if index == 1 && uuid.MatchString(id) {
@@ -267,7 +271,7 @@ func (s *mcpSetupSession) serve(ctx context.Context, io mcpSetupIO, prepare func
 			return ErrInvalid
 		}
 		reply, err := s.session.SealResponse(ctx, wireField(wire, "id"), response, true, "", 30)
-		if err != nil || (id != "" && wireField(reply, "id") == id) {
+		if err != nil || !distinctMCPRequestID(id, reply) {
 			return ErrInvalid
 		}
 		if err = s.send(ctx, io, p, reply); err != nil {

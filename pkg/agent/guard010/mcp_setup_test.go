@@ -112,3 +112,16 @@ func TestMCPSetupPinnedDiscovery(t *testing.T) {
 		}
 	}
 }
+
+func TestMCPSetupOuterAndInnerRequestIDsRemainDistinct(t *testing.T) {
+	outer := encode(map[string]any{"id": ownerID1})
+	if distinctMCPRequestID(ownerID1, outer) {
+		t.Fatal("outer and inner request ID collision accepted")
+	}
+	if !distinctMCPRequestID(ownerID2, outer) {
+		t.Fatal("distinct request IDs rejected")
+	}
+	if !distinctMCPRequestID("", outer) {
+		t.Fatal("notification without inner request ID rejected")
+	}
+}
