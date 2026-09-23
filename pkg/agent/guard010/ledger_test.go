@@ -3,7 +3,10 @@ package guard010_test
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -14,6 +17,7 @@ import (
 	"sync"
 	"testing"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	g "github.com/sage-x-project/sage/pkg/agent/guard010"
 )
 
@@ -104,6 +108,122 @@ func TestBridgeIndependentIntentCases(t *testing.T) {
 				}
 			} else if !bytes.Equal(before, bridgeBytes(t, path)) {
 				t.Fatal("invalid intent modified storage")
+			}
+		})
+	}
+}
+
+type countingAuthority struct {
+	guardFixture
+	now, key int
+}
+
+func (a *countingAuthority) Now(ctx context.Context) (int64, error) {
+	a.now++
+	return a.guardFixture.Now(ctx)
+}
+
+func (a *countingAuthority) ActiveKey(ctx context.Context, issuer, kid string) (ed25519.PublicKey, error) {
+	a.key++
+	return a.guardFixture.ActiveKey(ctx, issuer, kid)
+}
+
+type countingPolicy struct {
+	guardFixture
+	bindings, authorize int
+}
+
+func (p *countingPolicy) Bindings(ctx context.Context, issuer, requestID string) (string, []byte, []byte, error) {
+	p.bindings++
+	return p.guardFixture.Bindings(ctx, issuer, requestID)
+}
+
+func (p *countingPolicy) Authorize(ctx context.Context, issuer, tool string, args []byte) error {
+	p.authorize++
+	return p.guardFixture.Authorize(ctx, issuer, tool, args)
+}
+
+func intentAlgorithmEnvelope(t *testing.T, f guardFixture, algorithm string) []byte {
+	t.Helper()
+	var envelope map[string]any
+	if json.Unmarshal(bridgeRaw(f), &envelope) != nil {
+		t.Fatal("envelope")
+	}
+	intent := envelope["intent"].(map[string]any)
+	intent["alg"] = algorithm
+	body, err := g.Canonicalize(mustJSON(t, intent))
+	if err != nil {
+		t.Fatal(err)
+	}
+	message := append([]byte("sage-execution-intent|0.10.0\x00"), body...)
+	var proof []byte
+	switch algorithm {
+	case "ed25519":
+		seed := sha256.Sum256([]byte("public Guard fixture issuer"))
+		key := ed25519.NewKeyFromSeed(seed[:])
+		proof = ed25519.Sign(key, message)
+		if !ed25519.Verify(key.Public().(ed25519.PublicKey), message, proof) {
+			t.Fatal("invalid Ed25519 control")
+		}
+		f["public_key_hex"], _ = json.Marshal(hex.EncodeToString(key.Public().(ed25519.PublicKey)))
+	case "ecdsa-p256-sha256":
+		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			t.Fatal(err)
+		}
+		digest := sha256.Sum256(message)
+		r, s, err := ecdsa.Sign(rand.Reader, key, digest[:])
+		if err != nil || !ecdsa.Verify(&key.PublicKey, digest[:], r, s) {
+			t.Fatal("invalid P-256 control", err)
+		}
+		proof = make([]byte, 64)
+		r.FillBytes(proof[:32])
+		s.FillBytes(proof[32:])
+	case "secp256k1":
+		key, err := ethcrypto.GenerateKey()
+		if err != nil {
+			t.Fatal(err)
+		}
+		digest := ethcrypto.Keccak256(message)
+		signature, err := ethcrypto.Sign(digest, key)
+		if err != nil || !ethcrypto.VerifySignature(ethcrypto.FromECDSAPub(&key.PublicKey), digest, signature[:64]) {
+			t.Fatal("invalid secp256k1 control", err)
+		}
+		proof = signature[:64]
+	default:
+		t.Fatal("unexpected algorithm")
+	}
+	envelope["proof"] = base64.RawURLEncoding.EncodeToString(proof)
+	return mustJSON(t, envelope)
+}
+
+func mustJSON(t *testing.T, value any) []byte {
+	t.Helper()
+	raw, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
+func TestBridgeIntentSignatureAlgorithmBoundary(t *testing.T) {
+	for _, algorithm := range []string{"ed25519", "ecdsa-p256-sha256", "secp256k1"} {
+		t.Run(algorithm, func(t *testing.T) {
+			fixture := bridgeFixture(t)
+			raw := intentAlgorithmEnvelope(t, fixture, algorithm)
+			ledger, path := bridgeOpen(t, fixture.s("expected_recipient"))
+			before := bridgeBytes(t, path)
+			authority := &countingAuthority{guardFixture: fixture}
+			policy := &countingPolicy{guardFixture: fixture}
+			reservation, err := ledger.Reserve(context.Background(), raw, authority, policy)
+			if algorithm == "ed25519" {
+				if err != nil || reservation == nil || !reservation.Created() || authority.key == 0 || policy.bindings == 0 || policy.authorize == 0 || bytes.Equal(before, bridgeBytes(t, path)) {
+					t.Fatal("Ed25519 did not continue complete validation", err)
+				}
+				return
+			}
+			if err == nil || reservation != nil || authority.now != 0 || authority.key != 0 || policy.bindings != 0 || policy.authorize != 0 || !bytes.Equal(before, bridgeBytes(t, path)) {
+				t.Fatal("unsupported algorithm crossed the intent schema boundary", algorithm, err)
 			}
 		})
 	}
