@@ -595,6 +595,30 @@ func TestMCPAdmissionRequestExpiryClosesOwner(t *testing.T) {
 	}
 }
 
+func TestMCPAdmissionReadySessionExpiryDeniesNewAdmission(t *testing.T) {
+	f := newAdmissionFixture(t, 1)
+	f.clock.mono.Store(f.client.session.CreatedMonoMS() + 599999)
+	wire, _ := f.wireWithID(t)
+	var protected map[string]any
+	if err := json.Unmarshal(wire, &protected); err != nil {
+		t.Fatal(err)
+	}
+	f.clock.mono.Add(1)
+	now, err := f.clock.Now()
+	if err != nil || now.Unix >= int64(protected["expires"].(float64)) {
+		t.Fatal("protected message expired before session", err)
+	}
+	if _, err := f.server.admitProtected(context.Background(), wire, f.gate); err == nil {
+		t.Fatal("expired ready session admitted new work")
+	}
+	if f.server.owner.phase != mcpClosed || f.executor.effects.Load() != 0 {
+		t.Fatal("expired ready session remained usable")
+	}
+	if _, err := f.server.session.LocalNow(); err == nil {
+		t.Fatal("expired session retained keys")
+	}
+}
+
 func TestMCPAdmissionProtectedDeadlineBeforeFinalAdmissionRetainsReservation(t *testing.T) {
 	f := newAdmissionFixture(t, 1)
 	f.gate.mu.Lock()
