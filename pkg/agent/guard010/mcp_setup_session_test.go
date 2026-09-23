@@ -27,12 +27,13 @@ const setupAlice = "did:sage:web:agent.example:alice"
 const setupBob = "did:sage:web:agent.example:bob"
 
 type setupRegistry struct {
-	mono       atomic.Int64
-	revoked    atomic.Bool
-	panicClock atomic.Bool
-	readHook   func(string)
-	bobSigning atomic.Bool
-	bobKEM     atomic.Bool
+	mono             atomic.Int64
+	revoked          atomic.Bool
+	panicClock       atomic.Bool
+	readHook         func(string)
+	bobSigning       atomic.Bool
+	bobKEM           atomic.Bool
+	acquiredOffsetMS atomic.Int64
 }
 
 func (c *setupRegistry) Now() (registry010.Stamp, error) {
@@ -75,7 +76,7 @@ func (c *setupRegistry) Read(_ context.Context, did string) (registry010.Snapsho
 	sort.Slice(keys, func(i, j int) bool { return keys[i].Name < keys[j].Name })
 	raw, _ := Canonicalize(encode(keys))
 	h := sha256.Sum256(raw)
-	return registry010.Snapshot{Source: "setup-test", Registry: "web:agent.example", Network: "local", DID: did, Version: version, State: "active", Digest: hex.EncodeToString(h[:]), Ready: true, Validated: true, Finalized: true, AcquiredMS: c.mono.Load(), Keys: keys}, nil
+	return registry010.Snapshot{Source: "setup-test", Registry: "web:agent.example", Network: "local", DID: did, Version: version, State: "active", Digest: hex.EncodeToString(h[:]), Ready: true, Validated: true, Finalized: true, AcquiredMS: c.mono.Load() + c.acquiredOffsetMS.Load(), Keys: keys}, nil
 }
 func setupEndpoints(t *testing.T) (*hpke.CompletionEndpoint010, *hpke.CompletionEndpoint010, *setupRegistry) {
 	t.Helper()

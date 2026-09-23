@@ -270,6 +270,9 @@ func Open(path string, create bool) (*Ledger, error) {
 		if e.State == "RESERVED" || e.State == "EXECUTING" {
 			e.State = "UNKNOWN"
 			if err = l.append(e); err != nil {
+				// Recovery is an integrity operation. Even failures detected before
+				// the write begins keep exclusive ownership for administration.
+				l.failed = true
 				return fail(err)
 			}
 		}

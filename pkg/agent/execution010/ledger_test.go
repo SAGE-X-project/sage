@@ -2,9 +2,11 @@ package execution010
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -146,6 +148,46 @@ func TestStorageFailures(t *testing.T) {
 		l.size = maxSize
 		if ok, e := l.Commit(baseEntry()); e == nil || ok {
 			t.Fatal("byte capacity")
+		}
+	})
+	t.Run("recovery-conversion-keeps-lock", func(t *testing.T) {
+		p := filepath.Join(t.TempDir(), "ledger")
+		var journal strings.Builder
+		journal.WriteString(header)
+		for n := 0; n < maxRows-2; n++ {
+			e := Entry{"issuer", "executor", fmt.Sprintf("terminal-%04d", n), fmt.Sprintf("nonce-%04d", n), 1000, "7b7d", "REJECTED", "7b7d"}
+			row, err := json.Marshal(e)
+			if err != nil {
+				t.Fatal(err)
+			}
+			journal.Write(row)
+			journal.WriteByte('\n')
+		}
+		pending := Entry{"issuer", "executor", "unresolved", "unresolved", 1000, "7b7d", "RESERVED", ""}
+		for _, state := range []string{"RESERVED", "EXECUTING"} {
+			pending.State = state
+			row, err := json.Marshal(pending)
+			if err != nil {
+				t.Fatal(err)
+			}
+			journal.Write(row)
+			journal.WriteByte('\n')
+		}
+		if err := os.WriteFile(p, []byte(journal.String()), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Open(p, false); err == nil {
+			t.Fatal("recovery conversion at capacity succeeded")
+		}
+		if _, err := os.Stat(p + ".lock"); err != nil {
+			t.Fatal("failed recovery released exclusive ownership", err)
+		}
+		if _, err := Open(p, false); err == nil {
+			t.Fatal("failed recovery allowed a new writer")
+		}
+		raw, err := os.ReadFile(p)
+		if err != nil || strings.Contains(string(raw), `"state":"UNKNOWN"`) {
+			t.Fatal("failed recovery fabricated an UNKNOWN row", err)
 		}
 	})
 }
