@@ -277,6 +277,29 @@ func TestMCPAdmissionAuthenticatedExecutionAndDuplicate(t *testing.T) {
 		t.Fatal("redispatch")
 	}
 }
+func TestMCPAdmissionCloseBeforeReservationHasNoEffects(t *testing.T) {
+	f := newAdmissionFixture(t, 1)
+	before, err := os.ReadFile(f.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire, requestID := f.wireWithID(t)
+	f.server.close()
+	if receipt, err := f.server.admitProtected(context.Background(), wire, f.gate); err == nil || receipt != nil {
+		t.Fatal("closed owner admitted request")
+	}
+	after, err := os.ReadFile(f.path)
+	if err != nil || !bytes.Equal(before, after) || f.executor.checks.Load() != 0 || f.executor.effects.Load() != 0 {
+		t.Fatal("close before reservation changed durable or effect state", err)
+	}
+	f.server.owner.mu.Lock()
+	_, reserved := f.server.owner.seen[requestID]
+	f.server.owner.mu.Unlock()
+	if reserved {
+		t.Fatal("closed owner reserved protected request")
+	}
+}
+
 func TestMCPAdmissionCloseDuringFence(t *testing.T) {
 	for _, mode := range []string{"success", "failure", "uncertain"} {
 		t.Run(mode, func(t *testing.T) {

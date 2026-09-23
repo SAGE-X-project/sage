@@ -42,6 +42,19 @@ func (c *completionControl) Read(_ context.Context, did string) (registry010.Sna
 		seed = 2
 	}
 	key := registry010.Key{Name: "signing-1", Alg: "ed25519", Material: hex.EncodeToString(ed25519.NewKeyFromSeed(bytes.Repeat([]byte{seed}, 32)).Public().(ed25519.PublicKey)), State: "accepted"}
+	targeted := (strings.HasPrefix(c.mode, "alice-") && did == completionAlice) || (strings.HasPrefix(c.mode, "bob-") && did == completionBob)
+	if targeted {
+		switch strings.TrimPrefix(strings.TrimPrefix(c.mode, "alice-"), "bob-") {
+		case "p256-signing":
+			key.Alg = "ecdsa-p256-sha256"
+		case "secp256k1-signing":
+			key.Alg = "sage-secp256k1-keccak256"
+		case "x25519-signing":
+			key.Alg = "x25519"
+		case "alternate-signing":
+			key.Name = "signing-2"
+		}
+	}
 	keys := []registry010.Key{}
 	if did == completionBob {
 		p, _ := ecdh.X25519().NewPrivateKey(bytes.Repeat([]byte{3}, 32))
@@ -308,6 +321,73 @@ func TestCompletion010Scenarios(t *testing.T) {
 		})
 	}
 }
+func TestCompletion010SignatureCarriageRequiresRoleBoundEd25519(t *testing.T) {
+	a, b, _ := completionPair(t)
+	pending, request, err := a.Start(context.Background(), completionBob, completionBob+"#signing-1", 300)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pending.Close()
+	var outer map[string]any
+	if json.Unmarshal(request, &outer) != nil || outer["kid"] != completionAlice+"#signing-1" {
+		t.Fatal("outer signature key role")
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(outer["payload"].(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var binding map[string]any
+	if json.Unmarshal(payload, &binding) != nil || binding["initKid"] != completionAlice+"#signing-1" || binding["respKid"] != completionBob+"#signing-1" || binding["kemKid"] != completionBob+"#kem-1" {
+		t.Fatal("handshake signing and KEM roles")
+	}
+	provisional, response, err := b.Respond(context.Background(), request, 300)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer provisional.Close()
+	established, err := pending.Complete(context.Background(), response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	established.Close()
+
+	for _, role := range []string{"alice", "bob"} {
+		for _, algorithm := range []string{"p256-signing", "secp256k1-signing", "x25519-signing"} {
+			t.Run(role+"-"+algorithm, func(t *testing.T) {
+				a, _, control := completionPair(t)
+				control.mode = role + "-" + algorithm
+				if pending, request, err := a.Start(context.Background(), completionBob, completionBob+"#signing-1", 300); err == nil || pending != nil || request != nil {
+					t.Fatal("unsupported signing role continued")
+				}
+				if role == "bob" {
+					snapshot, err := control.Read(context.Background(), completionBob)
+					if err != nil || len(snapshot.Keys) < 2 || snapshot.Keys[0].Name != "kem-1" || snapshot.Keys[0].Alg != "x25519" {
+						t.Fatal("HPKE KEM changed")
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestCompletion010MissingSigningKeyHasNoFallback(t *testing.T) {
+	for _, role := range []string{"alice", "bob"} {
+		t.Run(role, func(t *testing.T) {
+			a, _, control := completionPair(t)
+			control.mode = role + "-alternate-signing"
+			if pending, request, err := a.Start(context.Background(), completionBob, completionBob+"#signing-1", 300); err == nil || pending != nil || request != nil {
+				t.Fatal("alternate signing key substituted")
+			}
+			if role == "bob" {
+				snapshot, err := control.Read(context.Background(), completionBob)
+				if err != nil || len(snapshot.Keys) < 2 || snapshot.Keys[0].Name != "kem-1" || snapshot.Keys[0].Alg != "x25519" {
+					t.Fatal("KEM substituted for missing signing key")
+				}
+			}
+		})
+	}
+}
+
 func TestCompletion010Lifecycle(t *testing.T) {
 	for _, mode := range []string{"revoke-init", "revoke-resp", "revoke-kem", "source-error", "unrelated", "expiry", "closed"} {
 		t.Run(mode, func(t *testing.T) {

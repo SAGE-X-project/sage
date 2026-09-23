@@ -66,6 +66,18 @@ func TestMCPOwnerSetupAndRetainedHistory(t *testing.T) {
 		}
 	}
 }
+func TestMCPOwnerStaleSetupCompletionAfterReady(t *testing.T) {
+	o := testOwner(t, true)
+	ownerComplete(t, o, ownerEvent(t, o, mcpReplyInitialize, ownerID1))
+	ownerComplete(t, o, ownerEvent(t, o, mcpReplyInitialized, ""))
+	pending := ownerEvent(t, o, mcpReplyList, ownerID2)
+	ownerComplete(t, o, pending)
+	before := len(o.seen)
+	if _, err := o.complete(pending, true, 31*time.Second, true); err == nil || o.phase != mcpReady || len(o.seen) != before || o.pending != nil {
+		t.Fatal("stale setup completion changed ready state")
+	}
+}
+
 func TestMCPOwnerHistoryLimit(t *testing.T) {
 	o := readyOwner(t, true)
 	for i := 3; i <= 1024; i++ {
