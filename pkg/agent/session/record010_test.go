@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
@@ -98,6 +99,58 @@ func TestRecord010Vectors(t *testing.T) {
 				t.Fatalf("unexpected verdict: %v", e)
 			}
 		})
+	}
+}
+
+// A close may overlap an authenticated receive. The receive either completes
+// before close or is denied; a later receive can never revive the session.
+func TestRecord010CloseOpenOrder(t *testing.T) {
+	seed, th := bytes.Repeat([]byte{1}, 32), bytes.Repeat([]byte{2}, 32)
+	for attempt := 0; attempt < 32; attempt++ {
+		sender, err := NewRecordSession010(seed, th, true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		receiver, err := NewRecordSession010(seed, th, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		first, err := sender.Seal([]byte("first"), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := sender.Seal([]byte("second"), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		start := make(chan struct{})
+		var done sync.WaitGroup
+		var received []byte
+		var receiveErr error
+		done.Add(2)
+		go func() {
+			defer done.Done()
+			<-start
+			received, receiveErr = receiver.Open(first, nil)
+		}()
+		go func() {
+			defer done.Done()
+			<-start
+			receiver.Close()
+		}()
+		close(start)
+		done.Wait()
+		if receiveErr == nil && !bytes.Equal(received, []byte("first")) {
+			t.Fatalf("attempt %d: wrong authenticated plaintext", attempt)
+		}
+		if _, err := receiver.Open(second, nil); err == nil {
+			t.Fatalf("attempt %d: closed session accepted a later record", attempt)
+		}
+		if receiver.seed != ([32]byte{}) || !receiver.closed {
+			t.Fatalf("attempt %d: close did not retire the session", attempt)
+		}
+		sender.Close()
 	}
 }
 func TestRecord010State(t *testing.T) {
