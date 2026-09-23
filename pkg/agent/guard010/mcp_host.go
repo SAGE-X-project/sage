@@ -31,7 +31,7 @@ type mcpHostOwner struct {
 }
 
 func newMCPHost(g *mcpAdmissionGate, p *mcpClientPool, owners, workers int, interval time.Duration) (*mcpHost, error) {
-	if g == nil || owners < 1 || owners > 256 || workers < 1 || workers > len(g.slots) || interval <= 0 || interval > time.Second || interval >= g.bounds.claim || interval >= g.bounds.request || (p != nil && interval >= p.timeout) {
+	if g == nil || owners < 1 || owners > 256 || workers < 1 || workers > g.bounds.capacity || interval <= 0 || interval > time.Second || interval >= g.bounds.claim || interval >= g.bounds.request || (p != nil && interval >= p.timeout) {
 		return nil, ErrInvalid
 	}
 	h := &mcpHost{gate: g, clients: p, owners: make([]*mcpHostOwner, owners), connections: make([]*mcpHostConnection, owners), interval: interval, wake: make(chan struct{}, workers), cleanup: make(chan struct{}, 1), stopping: make(chan struct{}), done: make(chan struct{})}

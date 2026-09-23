@@ -104,12 +104,18 @@ type admissionFixture struct {
 }
 
 func newAdmissionFixture(t *testing.T, capacity int) *admissionFixture {
-	return newAdmissionFixtureWithSetup(t, capacity, nil)
+	return newAdmissionFixtureWithPreparations(t, capacity, capacity)
+}
+func newAdmissionFixtureWithPreparations(t *testing.T, capacity, preparations int) *admissionFixture {
+	return newAdmissionFixtureAtPathAndPreparations(t, capacity, preparations, "", true, nil)
 }
 func newAdmissionFixtureWithSetup(t *testing.T, capacity int, beforeSetup func(*admissionFixture)) *admissionFixture {
 	return newAdmissionFixtureAtPath(t, capacity, "", true, beforeSetup)
 }
 func newAdmissionFixtureAtPath(t *testing.T, capacity int, path string, create bool, beforeSetup func(*admissionFixture)) *admissionFixture {
+	return newAdmissionFixtureAtPathAndPreparations(t, capacity, capacity, path, create, beforeSetup)
+}
+func newAdmissionFixtureAtPathAndPreparations(t *testing.T, capacity, preparations int, path string, create bool, beforeSetup func(*admissionFixture)) *admissionFixture {
 	t.Helper()
 	a, b, clock := setupSessions(t)
 	raw, err := os.ReadFile("testdata/guard-rpc.json")
@@ -168,7 +174,7 @@ func newAdmissionFixtureAtPath(t *testing.T, capacity int, path string, create b
 	if path == "" {
 		path = filepath.Join(t.TempDir(), "execution")
 	}
-	g, err := openMCPAdmissionGate(path, create, setupBob, config, clock, mcpBounds{capacity: capacity, request: 20 * time.Second, claim: 10 * time.Second, worker: time.Second})
+	g, err := openMCPAdmissionGate(path, create, setupBob, config, clock, mcpBounds{capacity: capacity, preparations: preparations, request: 20 * time.Second, claim: 10 * time.Second, worker: time.Second})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +191,7 @@ func newAdmissionFixtureAtPath(t *testing.T, capacity int, path string, create b
 		client.close()
 		server.close()
 		g.retire()
-		for range g.bounds.capacity {
+		for range len(g.slots) {
 			_, _ = g.runOne(context.Background())
 		}
 		_ = g.close()
@@ -235,6 +241,32 @@ func (f *admissionFixture) wire(t *testing.T) []byte {
 	t.Helper()
 	wire, _ := f.wireWithID(t)
 	return wire
+}
+func (f *admissionFixture) distinctIntent(t *testing.T) ([]byte, string) {
+	t.Helper()
+	var envelope map[string]any
+	if err := json.Unmarshal(f.intent, &envelope); err != nil {
+		t.Fatal(err)
+	}
+	intent, ok := envelope["intent"].(map[string]any)
+	if !ok {
+		t.Fatal("missing intent")
+	}
+	callID := guuid.NewString()
+	nonce := guuid.New()
+	intent["call_id"] = callID
+	intent["request_id"] = guuid.NewString()
+	intent["nonce"] = base64.RawURLEncoding.EncodeToString(nonce[:])
+	canonical, err := Canonicalize(encode(intent))
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope["proof"] = base64.RawURLEncoding.EncodeToString(ed25519.Sign(ed25519.NewKeyFromSeed(bytes.Repeat([]byte{1}, 32)), append([]byte("sage-execution-intent|0.10.0\x00"), canonical...)))
+	raw, err := Canonicalize(encode(envelope))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw, callID
 }
 func (f *admissionFixture) admit(t *testing.T) (*DispatchReceipt, error) {
 	t.Helper()
@@ -469,6 +501,101 @@ func TestMCPAdmissionReplacementAndClaimOrder(t *testing.T) {
 		})
 	}
 }
+
+func TestMCPAdmissionPolicyGenerationBeforeCoordinator(t *testing.T) {
+	f := newAdmissionFixture(t, 1)
+	observed := f.gate.generation
+	f.executor.checkHook = func(n int64) error {
+		if n == 2 {
+			replacement := *f.config
+			replacement.policy = &admissionPolicy{original: f.config.policy.(*admissionPolicy).original, policy: append([]byte(nil), f.config.policy.(*admissionPolicy).policy...), manifest: append([]byte(nil), f.config.policy.(*admissionPolicy).manifest...)}
+			return f.gate.replace(&replacement)
+		}
+		return nil
+	}
+	if _, err := f.admit(t); err == nil {
+		t.Fatal("old policy generation admitted")
+	}
+	if f.gate.generation != observed+1 || f.state(t) != "UNKNOWN" || f.executor.effects.Load() != 0 {
+		t.Fatal("policy generation change was not preserved", observed, f.gate.generation)
+	}
+}
+
+func TestMCPAdmissionPolicyRetirementAndClaimOrder(t *testing.T) {
+	for _, claimFirst := range []bool{false, true} {
+		t.Run(map[bool]string{false: "invalidate-first", true: "claim-first"}[claimFirst], func(t *testing.T) {
+			f := newAdmissionFixture(t, 1)
+			if _, err := f.admit(t); err != nil {
+				t.Fatal(err)
+			}
+			observed := f.gate.generation
+			replacement := *f.config
+			replacement.policy = &admissionPolicy{original: f.config.policy.(*admissionPolicy).original, policy: append([]byte(nil), f.config.policy.(*admissionPolicy).policy...), manifest: append([]byte(nil), f.config.policy.(*admissionPolicy).manifest...)}
+			if !claimFirst {
+				if err := f.gate.replace(&replacement); err != nil {
+					t.Fatal(err)
+				}
+				if ran, _ := f.gate.runOne(context.Background()); ran || f.executor.effects.Load() != 0 || f.state(t) != "UNKNOWN" {
+					t.Fatal("retired policy entry executed")
+				}
+			} else {
+				f.executor.entered = make(chan struct{})
+				f.executor.release = make(chan struct{})
+				done := make(chan error, 1)
+				go func() { _, err := f.gate.runOne(context.Background()); done <- err }()
+				<-f.executor.entered
+				if err := f.gate.replace(&replacement); err != nil {
+					t.Fatal(err)
+				}
+				close(f.executor.release)
+				<-done
+				if f.executor.effects.Load() != 1 || f.state(t) != "UNKNOWN" {
+					t.Fatal("claimed work was substituted or reported complete")
+				}
+			}
+			if f.gate.generation != observed+1 {
+				t.Fatal("policy generation did not advance")
+			}
+		})
+	}
+}
+
+func TestMCPAdmissionSchedulerCancellationRace(t *testing.T) {
+	for _, claimFirst := range []bool{false, true} {
+		t.Run(map[bool]string{false: "cancel-first", true: "claim-first"}[claimFirst], func(t *testing.T) {
+			f := newAdmissionFixture(t, 1)
+			if _, err := f.admit(t); err != nil {
+				t.Fatal(err)
+			}
+			replacement := *f.config
+			replacement.policy = &admissionPolicy{original: f.config.policy.(*admissionPolicy).original, policy: append([]byte(nil), f.config.policy.(*admissionPolicy).policy...), manifest: append([]byte(nil), f.config.policy.(*admissionPolicy).manifest...)}
+			if !claimFirst {
+				f.clock.mono.Add(int64(f.gate.bounds.claim / time.Millisecond))
+				if err := f.gate.replace(&replacement); err != nil {
+					t.Fatal(err)
+				}
+				if ran, _ := f.gate.runOne(context.Background()); ran || f.executor.effects.Load() != 0 || f.state(t) != "UNKNOWN" {
+					t.Fatal("cancelled scheduler entry executed")
+				}
+				return
+			}
+			f.executor.entered = make(chan struct{})
+			f.executor.release = make(chan struct{})
+			done := make(chan error, 1)
+			go func() { _, err := f.gate.runOne(context.Background()); done <- err }()
+			<-f.executor.entered
+			f.clock.mono.Add(int64(f.gate.bounds.claim / time.Millisecond))
+			if err := f.gate.replace(&replacement); err != nil {
+				t.Fatal(err)
+			}
+			close(f.executor.release)
+			<-done
+			if f.executor.effects.Load() != 1 || f.state(t) != "UNKNOWN" {
+				t.Fatal("claim winner was retried or reported rolled back")
+			}
+		})
+	}
+}
 func TestMCPAdmissionDeadlineGenerationAndScheduler(t *testing.T) {
 	for _, kind := range []string{"request-expiry", "generation", "scheduler"} {
 		t.Run(kind, func(t *testing.T) {
@@ -531,6 +658,81 @@ func TestMCPAdmissionCapacityRetainedUntilWorkerTerminates(t *testing.T) {
 	}
 }
 
+func TestMCPAdmissionQueueCapacityRaceFailsAtomicInsertion(t *testing.T) {
+	f := newAdmissionFixtureWithPreparations(t, 1, 2)
+	a, b, secondClock := setupSessions(t)
+	client, err := newMCPSetupSession(a, "second-client", "1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, err := newMCPGuardSetup(b, "second-server", "1", f.gate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(client.close)
+	t.Cleanup(server.close)
+	x, y := net.Pipe()
+	ea, eb := runSetupPair(t, client, server, &setupPipe{Conn: x}, &setupPipe{Conn: y}, func(context.Context) error { return nil })
+	if ea != nil || eb != nil {
+		t.Fatal(ea, eb)
+	}
+	intent, callID := f.distinctIntent(t)
+	raw, err := MCPRequest(MCPVersion, guuid.NewString(), intent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wire, err := client.session.SealRequest(context.Background(), raw, 30)
+	if err != nil {
+		t.Fatal(err)
+	}
+	entered, release := make(chan struct{}), make(chan struct{})
+	var once sync.Once
+	secondClock.readHook = func(string) { once.Do(func() { close(entered); <-release }) }
+	type result struct {
+		receipt *DispatchReceipt
+		err     error
+	}
+	done := make(chan result, 1)
+	go func() {
+		r, err := server.admitProtected(context.Background(), wire, f.gate)
+		done <- result{r, err}
+	}()
+	<-entered
+	f.executor.checkHook = func(n int64) error {
+		if n%2 == 1 {
+			secondClock.mono.Store(f.clock.mono.Load())
+		}
+		return nil
+	}
+	if r, err := f.admit(t); err != nil || !r.Committed() {
+		close(release)
+		t.Fatal("competing insertion failed", err)
+	}
+	close(release)
+	denied := <-done
+	if denied.err == nil || (denied.receipt != nil && denied.receipt.Committed()) {
+		t.Fatal("full queue admitted prepared work")
+	}
+	entry, ok, err := f.gate.ledger.store.Lookup(setupAlice, callID)
+	if err != nil || !ok || entry.State != "UNKNOWN" {
+		t.Fatal("denied insertion lost conservative identity", entry, err)
+	}
+	f.gate.mu.Lock()
+	queued := 0
+	for _, work := range f.gate.slots {
+		if work != nil && work.queued {
+			queued++
+		}
+	}
+	f.gate.mu.Unlock()
+	if queued != 1 || f.executor.effects.Load() != 0 {
+		t.Fatal("failed insertion became partially visible", queued)
+	}
+	if ran, err := f.gate.runOne(context.Background()); err != nil || !ran || f.executor.effects.Load() != 1 {
+		t.Fatal("winning insertion was damaged", err)
+	}
+}
+
 func TestMCPAdmissionCloseDuringAuthentication(t *testing.T) {
 	f := newAdmissionFixture(t, 1)
 	wire := f.wire(t)
@@ -576,6 +778,72 @@ func TestMCPAdmissionSessionRevocationDuringFence(t *testing.T) {
 			}
 			if f.state(t) != "UNKNOWN" || f.server.owner.phase != mcpClosed || f.executor.effects.Load() != 0 {
 				t.Fatal("revocation outcome")
+			}
+		})
+	}
+}
+
+func TestMCPAdmissionUnknownWriteFailureRetiresScope(t *testing.T) {
+	f := newAdmissionFixture(t, 1)
+	f.executor.checkHook = func(n int64) error {
+		if n == 2 {
+			f.clock.mono.Add(20000)
+		}
+		return nil
+	}
+	commit := f.gate.commit
+	f.gate.commit = func(e execution010.Entry) (bool, error) {
+		if e.State == "UNKNOWN" {
+			return false, execution010.ErrUnavailable
+		}
+		return commit(e)
+	}
+	if _, err := f.admit(t); err == nil {
+		t.Fatal("admission survived failed UNKNOWN persistence")
+	}
+	if !f.gate.retired || !f.gate.ledger.retired || f.executor.effects.Load() != 0 {
+		t.Fatal("failed UNKNOWN persistence did not retire the scope")
+	}
+	if _, err := f.admit(t); err == nil {
+		t.Fatal("retired scope accepted new work")
+	}
+	if _, err := os.Stat(f.path + ".lock"); err != nil {
+		t.Fatal("failed storage released exclusive ownership", err)
+	}
+}
+
+func TestMCPAuthenticatedSetupReachesRecordLimitBeforeOwnerHistory(t *testing.T) {
+	for _, direction := range []string{"initiator", "responder"} {
+		t.Run(direction, func(t *testing.T) {
+			f := newAdmissionFixture(t, 1)
+			sender, receiver := f.client.session, f.server.session
+			if direction == "responder" {
+				sender, receiver = receiver, sender
+			}
+			sent := 0
+			for {
+				wire, err := sender.SealRequest(context.Background(), []byte(`{"jsonrpc":"2.0","method":"ping"}`), 30)
+				if err != nil {
+					break
+				}
+				if _, err := receiver.OpenRequest(context.Background(), wire); err != nil {
+					t.Fatalf("record %d rejected before sender limit: %v", sent, err)
+				}
+				sent++
+			}
+			// The authenticated MCP setup consumes three records in each direction,
+			// leaving sequence numbers 3 through 999 for protected traffic.
+			if sent != 997 {
+				t.Fatalf("record limit ignored setup traffic: sent %d", sent)
+			}
+			if _, err := sender.SealRequest(context.Background(), []byte(`{}`), 30); err == nil {
+				t.Fatal("closed session reset its record counter")
+			}
+			f.gate.mu.Lock()
+			history := len(f.server.owner.seen)
+			f.gate.mu.Unlock()
+			if history >= 1024 {
+				t.Fatalf("owner history exhausted before record limit: %d", history)
 			}
 		})
 	}
@@ -702,6 +970,22 @@ func TestMCPAdmissionFinalObservationBoundaries(t *testing.T) {
 				t.Fatal("stale observation admitted")
 			}
 		})
+	}
+}
+
+func TestMCPAdmissionRejectsObservationAtOperationStart(t *testing.T) {
+	f := newAdmissionFixture(t, 1)
+	f.executor.checkHook = func(n int64) error {
+		if n == 1 {
+			f.clock.acquiredOffsetMS.Store(-1)
+		}
+		return nil
+	}
+	if _, err := f.admit(t); err == nil {
+		t.Fatal("observation at operation start admitted")
+	}
+	if f.state(t) != "UNKNOWN" || f.executor.effects.Load() != 0 {
+		t.Fatal("pre-start observation changed execution state")
 	}
 }
 

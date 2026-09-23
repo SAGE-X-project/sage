@@ -26,7 +26,7 @@ type mcpAdmissionConfig struct {
 	signer          ResultSigner
 }
 type mcpBounds struct {
-	capacity               int
+	capacity, preparations int
 	request, claim, worker time.Duration
 }
 
@@ -74,7 +74,10 @@ func validMCPConfig(c *mcpAdmissionConfig) bool {
 	return c != nil && c.authority != nil && c.resultAuthority != nil && c.policy != nil && c.executor != nil && c.signer != nil
 }
 func openMCPAdmissionGate(path string, create bool, recipient string, c *mcpAdmissionConfig, clock registry010.Clock, b mcpBounds) (*mcpAdmissionGate, error) {
-	if !validMCPConfig(c) || clock == nil || b.capacity < 1 || b.capacity > 128 || b.request <= 0 || b.request > 5*time.Minute || b.claim <= 0 || b.claim > 5*time.Minute || b.worker <= 0 || b.worker > time.Hour {
+	if b.preparations == 0 {
+		b.preparations = b.capacity
+	}
+	if !validMCPConfig(c) || clock == nil || b.capacity < 1 || b.capacity > 128 || b.preparations < b.capacity || b.preparations > 128 || b.request <= 0 || b.request > 5*time.Minute || b.claim <= 0 || b.claim > 5*time.Minute || b.worker <= 0 || b.worker > time.Hour {
 		return nil, ErrInvalid
 	}
 	d, err := OpenDispatchGate(path, create, recipient, c.authority, c.policy, mcpNoDirectCommit{c.executor})
@@ -82,7 +85,7 @@ func openMCPAdmissionGate(path string, create bool, recipient string, c *mcpAdmi
 		return nil, err
 	}
 	copy := *c
-	g := &mcpAdmissionGate{ledger: d, clock: clock, config: &copy, bounds: b, generation: 1, slots: make([]*mcpWork, b.capacity), outputs: make([]*mcpOutput, b.capacity), commit: d.store.Commit}
+	g := &mcpAdmissionGate{ledger: d, clock: clock, config: &copy, bounds: b, generation: 1, slots: make([]*mcpWork, b.preparations), outputs: make([]*mcpOutput, b.capacity), commit: d.store.Commit}
 	return g, nil
 }
 func newMCPGuardSetup(s *hpke.AuthenticatedCompletion010, name, version string, g *mcpAdmissionGate) (*mcpSetupSession, error) {
@@ -166,6 +169,16 @@ func (g *mcpAdmissionGate) release(w *mcpWork) {
 	}
 }
 func (g *mcpAdmissionGate) poison() { g.mu.Lock(); g.retired = true; g.mu.Unlock() }
+
+func (g *mcpAdmissionGate) queueAvailableLocked() bool {
+	queued := 0
+	for _, w := range g.slots {
+		if w != nil && w.queued {
+			queued++
+		}
+	}
+	return queued < g.bounds.capacity
+}
 
 // Called under the execution mutex, never under the coordinator.
 func (g *mcpAdmissionGate) unknown(e execution010.Entry) {
@@ -349,7 +362,7 @@ func (g *mcpAdmissionGate) fenceAndAdmit(ctx context.Context, w *mcpWork, raw []
 	ownerLive := w.owner.validLocked(true)
 	now, x := g.sampleLocked()
 	mono := time.Duration(now.MonoMS) * time.Millisecond
-	valid := mono >= w.owner.last && sessionObserved >= w.start && mono >= sessionObserved && mono-sessionObserved <= 5*time.Second && x == nil && !g.retired && w.generation == g.generation && w.owner.active == w && w.owner.phase == mcpReady && ownerLive && ctx.Err() == nil && mono >= w.start && mono < w.deadline && observed >= w.start && mono >= observed && mono-observed <= 5*time.Second && now.MonoMS >= observation.stamp.MonoMS && now.Unix >= observation.stamp.Unix && times(m, now.Unix) && (observation.expires == nil || now.Unix < *observation.expires)
+	valid := mono >= w.owner.last && sessionObserved >= w.start && mono >= sessionObserved && mono-sessionObserved <= 5*time.Second && x == nil && !g.retired && w.generation == g.generation && w.owner.active == w && w.owner.phase == mcpReady && ownerLive && ctx.Err() == nil && mono >= w.start && mono < w.deadline && observed >= w.start && mono >= observed && mono-observed <= 5*time.Second && now.MonoMS >= observation.stamp.MonoMS && now.Unix >= observation.stamp.Unix && times(m, now.Unix) && (observation.expires == nil || now.Unix < *observation.expires) && (!created || g.queueAvailableLocked())
 	if valid {
 		w.response.receipt = receipt
 		w.owner.response = w.response
