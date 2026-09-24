@@ -39,6 +39,26 @@ type ClientServices struct {
 	ExpectedRecipient string
 }
 
+// HopParent reports the durable authorized admission state of an incoming call.
+// Missing, rejected, and unknown states must fail. The exact authenticated
+// envelope is supplied so a parent identifier alone cannot grant authority.
+type HopParent interface {
+	Authorized(context.Context, []byte) error
+}
+
+// HopServices are trusted providers for a captured A-to-B input. They are
+// separate from B's authority and policy for the outgoing B-to-C call.
+type HopServices struct {
+	Authority Authority
+	Policy    IntentPolicy
+	Parent    HopParent
+}
+
+type hopBinding struct {
+	incoming []byte
+	services HopServices
+}
+
 // ClientInvocation binds one outstanding transport request to a single Client.
 // Keep it protected from plugins. ID must also be bound to the actual outer request.
 type ClientInvocation struct {
@@ -94,12 +114,55 @@ type Client struct {
 	file                                                            *os.File
 	lock                                                            string
 	services                                                        ClientServices
+	hop                                                             *hopBinding
 	intent, terminal                                                []byte
 	seen                                                            map[string]bool
 	last, lastMono, lastWall, observedUTC, observedMono, openedMono int64
 	rows                                                            int
 	size                                                            int64
 	failed                                                          bool
+}
+
+func checkHop(ctx context.Context, incoming, outgoing []byte, s ClientServices, h HopServices) error {
+	if ctx == nil || h.Authority == nil || h.Policy == nil || h.Parent == nil {
+		return ErrInvalid
+	}
+	_, parent, parentCanonical, err := intentEnvelope(incoming)
+	if err != nil || !bytes.Equal(incoming, parentCanonical) || str(parent, "recipient") != s.ExpectedIssuer {
+		return ErrInvalid
+	}
+	if _, err = VerifyIntent(ctx, incoming, s.ExpectedIssuer, h.Authority, h.Policy); err != nil {
+		return ErrInvalid
+	}
+	if h.Parent.Authorized(ctx, append([]byte(nil), incoming...)) != nil || ctx.Err() != nil {
+		return ErrInvalid
+	}
+	_, child, _, err := intentEnvelope(outgoing)
+	if err != nil || str(child, "issuer") != s.ExpectedIssuer || str(child, "recipient") != s.ExpectedRecipient ||
+		str(child, "request_id") == str(parent, "request_id") || str(child, "call_id") == str(parent, "call_id") {
+		return ErrInvalid
+	}
+	digest, err := OriginalCommitment([][]byte{incoming})
+	if err != nil || digest != str(child, "original_digest") {
+		return ErrInvalid
+	}
+	return nil
+}
+
+// OpenHopClient binds an authenticated, authorized A-to-B call to B's fresh
+// capture and independently authorized B-to-C operation. The host must route
+// every multi-hop protected effect through this entry point, retain the parent
+// admission in protected storage, and use it again when reopening the journal.
+func OpenHopClient(ctx context.Context, path string, create bool, incoming, outgoing []byte, s ClientServices, h HopServices) (*Client, error) {
+	if checkHop(ctx, incoming, outgoing, s, h) != nil {
+		return nil, ErrInvalid
+	}
+	c, err := OpenClient(ctx, path, create, outgoing, s)
+	if err != nil {
+		return nil, err
+	}
+	c.hop = &hopBinding{incoming: append([]byte(nil), incoming...), services: h}
+	return c, nil
 }
 
 func clientTerminal(raw, intent []byte) bool {
@@ -324,6 +387,9 @@ func (c *Client) Begin(ctx context.Context, id string) (ticket *ClientInvocation
 	if _, e = VerifyIntent(ctx, c.intent, str(i, "recipient"), c.services.IntentAuthority, c.services.Policy); e != nil {
 		return nil, ErrInvalid
 	}
+	if c.hop != nil && checkHop(ctx, c.hop.incoming, c.intent, c.services, c.hop.services) != nil {
+		return nil, ErrInvalid
+	}
 	expires, _ := number(i, "expires")
 	if u >= expires*1000 {
 		return nil, ErrInvalid
@@ -333,6 +399,9 @@ func (c *Client) Begin(ctx context.Context, id string) (ticket *ClientInvocation
 	}
 	c.lastMono = m
 	if _, e = VerifyIntent(ctx, c.intent, str(i, "recipient"), c.services.IntentAuthority, c.services.Policy); e != nil {
+		return nil, ErrInvalid
+	}
+	if c.hop != nil && checkHop(ctx, c.hop.incoming, c.intent, c.services, c.hop.services) != nil {
 		return nil, ErrInvalid
 	}
 	u, _, e = c.sample(ctx)
