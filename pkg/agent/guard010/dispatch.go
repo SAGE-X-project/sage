@@ -27,6 +27,7 @@ type Invocation struct {
 	canonical, arguments   []byte
 	tool, manifest, digest string
 	completion             *Completion
+	parent                 HopParent
 }
 
 func (i *Invocation) CanonicalIntent() []byte { return append([]byte(nil), i.canonical...) }
@@ -34,6 +35,16 @@ func (i *Invocation) Arguments() []byte       { return append([]byte(nil), i.arg
 func (i *Invocation) Tool() string            { return i.tool }
 func (i *Invocation) ManifestDigest() string  { return i.manifest }
 func (i *Invocation) IntentDigest() string    { return i.digest }
+
+// ParentAdmission is available only while this MCP invocation is running in
+// its admitted worker. It can be passed to B's trusted downstream HopServices.
+// Ordinary dispatch invocations have no parent admission capability.
+func (i *Invocation) ParentAdmission() HopParent {
+	if i == nil {
+		return nil
+	}
+	return i.parent
+}
 
 // DispatchReceipt is local storage/commit metadata, not a signed tool result.
 // Committed reports only this invocation's bounded handoff, never tool completion.

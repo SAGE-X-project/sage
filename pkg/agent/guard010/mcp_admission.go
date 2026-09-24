@@ -1,6 +1,7 @@
 package guard010
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"sync"
@@ -62,6 +63,29 @@ type mcpWork struct {
 	queued, claimed, cancelled bool
 	cancel                     context.CancelFunc
 	response                   *mcpProtectedReply
+}
+
+// This capability is minted only for a worker that crossed the durable fence
+// and final queue admission. It is invalid outside that worker's live scope.
+type mcpParentAdmission struct {
+	gate      *mcpAdmissionGate
+	work      *mcpWork
+	ctx       context.Context
+	canonical []byte
+	active    bool // protected by gate.mu
+}
+
+func (p *mcpParentAdmission) Authorized(ctx context.Context, incoming []byte) error {
+	if p == nil || ctx == nil || ctx.Err() != nil || p.ctx.Err() != nil || !bytes.Equal(incoming, p.canonical) {
+		return ErrInvalid
+	}
+	p.gate.mu.Lock()
+	defer p.gate.mu.Unlock()
+	if !p.active || p.gate.retired || p.work.generation != p.gate.generation ||
+		!p.work.queued || !p.work.claimed || p.work.cancelled || p.ctx.Err() != nil {
+		return ErrInvalid
+	}
+	return nil
 }
 
 // The underlying legacy gate cannot hand off an invocation through this adapter.
@@ -480,7 +504,19 @@ func (g *mcpAdmissionGate) runOne(ctx context.Context) (ran bool, err error) {
 		g.ledger.mu.Unlock()
 		return false, ErrInvalid
 	}
-	output, err := w.config.executor.Run(work, w.invocation)
+	parent := &mcpParentAdmission{gate: g, work: w, ctx: work, canonical: w.invocation.CanonicalIntent()}
+	g.mu.Lock()
+	parent.active = true
+	w.invocation.parent = parent
+	g.mu.Unlock()
+	output, err := func() ([]byte, error) {
+		defer func() {
+			g.mu.Lock()
+			parent.active = false
+			g.mu.Unlock()
+		}()
+		return w.config.executor.Run(work, w.invocation)
+	}()
 	if err != nil {
 		g.ledger.mu.Lock()
 		g.unknown(w.entry)
