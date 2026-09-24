@@ -71,7 +71,7 @@ func TestClientStorageFailureAndExpiryBeforeRelease(t *testing.T) {
 			raw, _ := hex.DecodeString(intent)
 			result, _ := hex.DecodeString(v.Results["completed"])
 			p := filepath.Join(t.TempDir(), "journal")
-			c, e := OpenClient(context.Background(), p, true, raw, ClientServices{IntentAuthority: a, Policy: a, ResultAuthority: r, Clock: a, Sender: a})
+			c, e := OpenClient(context.Background(), p, true, raw, ClientServices{IntentAuthority: a, Policy: a, ResultAuthority: r, Clock: a, Sender: a, ExpectedIssuer: "did:sage:web:agents.example.com:alice", ExpectedRecipient: "did:sage:web:agents.example.com:executor"})
 			if e != nil {
 				t.Fatal(e)
 			}
@@ -98,7 +98,7 @@ func TestClientStorageFailureAndExpiryBeforeRelease(t *testing.T) {
 				if c.Close() != nil {
 					t.Fatal("close")
 				}
-				reopened, e := OpenClient(context.Background(), p, false, raw, ClientServices{IntentAuthority: a, Policy: a, ResultAuthority: r, Clock: a, Sender: a})
+				reopened, e := OpenClient(context.Background(), p, false, raw, ClientServices{IntentAuthority: a, Policy: a, ResultAuthority: r, Clock: a, Sender: a, ExpectedIssuer: "did:sage:web:agents.example.com:alice", ExpectedRecipient: "did:sage:web:agents.example.com:executor"})
 				if e != nil {
 					t.Fatal(e)
 				}

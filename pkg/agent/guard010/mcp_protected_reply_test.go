@@ -55,7 +55,7 @@ func (c replyClientClock) Sample(context.Context) (int64, int64, error) {
 func TestMCPProtectedReplyRuntimeConsumption(t *testing.T) {
 	f := newAdmissionFixture(t, 1)
 	sender := &replyClientSender{fixture: f}
-	services := ClientServices{IntentAuthority: f.config.authority, Policy: f.config.policy, ResultAuthority: f.config.signer, Clock: replyClientClock{f}, Sender: sender}
+	services := ClientServices{IntentAuthority: f.config.authority, Policy: f.config.policy, ResultAuthority: f.config.signer, Clock: replyClientClock{f}, Sender: sender, ExpectedIssuer: setupAlice, ExpectedRecipient: setupBob}
 	path := filepath.Join(t.TempDir(), "client")
 	c, err := OpenClient(context.Background(), path, true, f.intent, services)
 	if err != nil {

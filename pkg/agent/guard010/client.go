@@ -34,6 +34,9 @@ type ClientServices struct {
 	ResultAuthority Authority
 	Clock           ClientClock
 	Sender          ClientSender
+	// Expected identities come from trusted Client configuration, not the intent.
+	ExpectedIssuer    string
+	ExpectedRecipient string
 }
 
 // ClientInvocation binds one outstanding transport request to a single Client.
@@ -203,6 +206,10 @@ func OpenClient(ctx context.Context, path string, create bool, raw []byte, s Cli
 	}
 	_, i, canonical, e := intentEnvelope(raw)
 	if e != nil {
+		return nil, ErrInvalid
+	}
+	if !did(s.ExpectedIssuer) || !did(s.ExpectedRecipient) ||
+		str(i, "issuer") != s.ExpectedIssuer || str(i, "recipient") != s.ExpectedRecipient {
 		return nil, ErrInvalid
 	}
 	if create {
