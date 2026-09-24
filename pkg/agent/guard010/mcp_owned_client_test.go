@@ -20,6 +20,85 @@ type ownedHopAuthority struct {
 	key    ed25519.PublicKey
 }
 
+// Historical transport fixtures contain only a committed original digest.
+// Production callers must use newMCPRootCapture with the actual input bytes.
+func openMCPOwnedClient(ctx context.Context, s *mcpSetupSession, p *mcpClientPool, path string, create bool, intent []byte, a, result *RegistryAuthority, policy IntentPolicy, clock ClientClock) (*mcpOwnedClient, error) {
+	_, fields, _, err := intentEnvelope(intent)
+	if err != nil {
+		return nil, err
+	}
+	capture := &mcpRootCapture{requestID: str(fields, "request_id"), digest: str(fields, "original_digest")}
+	return openMCPOwnedRootClient(ctx, s, p, path, create, intent, a, result, policy, clock, capture)
+}
+
+func bindOwnedRootCapture(t *testing.T, f *admissionFixture) *mcpRootCapture {
+	t.Helper()
+	var envelope map[string]any
+	if json.Unmarshal(f.intent, &envelope) != nil {
+		t.Fatal("intent fixture")
+	}
+	intent := envelope["intent"].(map[string]any)
+	capture, err := newMCPRootCapture([][]byte{[]byte("trusted root input")}, intent["request_id"].(string))
+	if err != nil {
+		t.Fatal(err)
+	}
+	intent["original_digest"] = capture.digest
+	canonical, err := Canonicalize(encode(intent))
+	if err != nil {
+		t.Fatal(err)
+	}
+	envelope["proof"] = base64.RawURLEncoding.EncodeToString(ed25519.Sign(ed25519.NewKeyFromSeed(bytes.Repeat([]byte{1}, 32)), append([]byte("sage-execution-intent|0.10.0\x00"), canonical...)))
+	f.intent, err = Canonicalize(encode(envelope))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.config.policy.(*admissionPolicy).original = capture.digest
+	return capture
+}
+
+func TestMCPOwnedRootRequiresCapturedOriginalBeforeJournal(t *testing.T) {
+	for _, mode := range []string{"missing", "wrong request", "changed original", "allowed"} {
+		t.Run(mode, func(t *testing.T) {
+			f := newAdmissionFixture(t, 2)
+			capture := bindOwnedRootCapture(t, f)
+			pool, err := newMCPClientPool(f.clock, 2, 20*time.Second)
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(t.TempDir(), "client")
+			switch mode {
+			case "missing":
+				capture = nil
+			case "wrong request":
+				capture = &mcpRootCapture{requestID: "00000000-0000-4000-8000-000000000099", digest: capture.digest}
+			case "changed original":
+				capture, err = newMCPRootCapture([][]byte{[]byte("changed root input")}, capture.requestID)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			client, err := openMCPOwnedRootClient(context.Background(), f.client, pool, path, true, f.intent,
+				f.config.authority, f.config.resultAuthority, f.config.policy, replyClientClock{f}, capture)
+			if mode != "allowed" {
+				if err == nil || client != nil {
+					t.Fatal("unbound root capture opened client")
+				}
+				if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
+					t.Fatal("unbound root capture created journal")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			delivery, err := client.exchange(context.Background(), &ownedClientIO{f: f, execute: true})
+			if err != nil || delivery == nil || delivery.Status() != "completed" || f.executor.effects.Load() != 1 {
+				t.Fatalf("captured root did not complete: %v", err)
+			}
+		})
+	}
+}
+
 func (a ownedHopAuthority) Now(context.Context) (int64, error) { return a.now, nil }
 func (a ownedHopAuthority) ActiveKey(_ context.Context, issuer, kid string) (ed25519.PublicKey, error) {
 	if issuer != a.issuer || kid != issuer+"#signing-1" {

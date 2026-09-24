@@ -80,11 +80,11 @@ type mcpClientEvidence struct {
 	expires        int64
 }
 
-// openMCPOwnedClient pins an existing exclusive initiator owner to a private
+// openMCPOwnedRootClient pins an existing exclusive initiator owner to a private
 // durable client. The sender cannot be supplied by a plugin or swapped later.
-// Creation is trusted bounded host preparation, serialized with session closure.
-func openMCPOwnedClient(ctx context.Context, s *mcpSetupSession, p *mcpClientPool, path string, create bool, intent []byte, a, result *RegistryAuthority, policy IntentPolicy, clock ClientClock) (b *mcpOwnedClient, err error) {
-	return openMCPOwnedClientWithHop(ctx, s, p, path, create, intent, a, result, policy, clock, nil)
+// Creation requires a previously captured original and is serialized with closure.
+func openMCPOwnedRootClient(ctx context.Context, s *mcpSetupSession, p *mcpClientPool, path string, create bool, intent []byte, a, result *RegistryAuthority, policy IntentPolicy, clock ClientClock, capture *mcpRootCapture) (b *mcpOwnedClient, err error) {
+	return openMCPOwnedClientWithHop(ctx, s, p, path, create, intent, a, result, policy, clock, capture, nil)
 }
 
 type mcpHopCapture struct {
@@ -103,12 +103,15 @@ func openMCPOwnedHopClient(ctx context.Context, s *mcpSetupSession, p *mcpClient
 	if admission == nil {
 		return nil, ErrInvalid
 	}
-	return openMCPOwnedClientWithHop(ctx, s, p, path, create, intent, a, result, policy, clock,
+	return openMCPOwnedClientWithHop(ctx, s, p, path, create, intent, a, result, policy, clock, nil,
 		&mcpHopCapture{incoming: parent.CanonicalIntent(), services: HopServices{Authority: upstream, Policy: upstreamPolicy, Parent: admission}})
 }
 
-func openMCPOwnedClientWithHop(ctx context.Context, s *mcpSetupSession, p *mcpClientPool, path string, create bool, intent []byte, a, result *RegistryAuthority, policy IntentPolicy, clock ClientClock, hop *mcpHopCapture) (b *mcpOwnedClient, err error) {
+func openMCPOwnedClientWithHop(ctx context.Context, s *mcpSetupSession, p *mcpClientPool, path string, create bool, intent []byte, a, result *RegistryAuthority, policy IntentPolicy, clock ClientClock, capture *mcpRootCapture, hop *mcpHopCapture) (b *mcpOwnedClient, err error) {
 	if ctx == nil || s == nil || p == nil || a == nil || result == nil || policy == nil || clock == nil || !s.session.Initiator() {
+		return nil, ErrInvalid
+	}
+	if (hop == nil && !capture.matches(intent)) || (hop != nil && capture != nil) {
 		return nil, ErrInvalid
 	}
 	// Size failure before persistence consumes neither a request ID nor a sequence.
