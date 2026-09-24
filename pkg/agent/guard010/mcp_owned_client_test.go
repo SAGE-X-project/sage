@@ -3,6 +3,8 @@ package guard010
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
+	"encoding/base64"
 	"encoding/json"
 	"net"
 	"os"
@@ -11,6 +13,151 @@ import (
 	"testing"
 	"time"
 )
+
+type ownedHopAuthority struct {
+	issuer string
+	now    int64
+	key    ed25519.PublicKey
+}
+
+func (a ownedHopAuthority) Now(context.Context) (int64, error) { return a.now, nil }
+func (a ownedHopAuthority) ActiveKey(_ context.Context, issuer, kid string) (ed25519.PublicKey, error) {
+	if issuer != a.issuer || kid != issuer+"#signing-1" {
+		return nil, ErrInvalid
+	}
+	return a.key, nil
+}
+
+type ownedHopPolicy struct {
+	issuer, original string
+	policy, manifest []byte
+}
+
+func (p ownedHopPolicy) Bindings(_ context.Context, issuer, _ string) (string, []byte, []byte, error) {
+	if issuer != p.issuer {
+		return "", nil, nil, ErrInvalid
+	}
+	return p.original, p.policy, p.manifest, nil
+}
+func (p ownedHopPolicy) Authorize(_ context.Context, issuer, tool string, args []byte) error {
+	if issuer != p.issuer || tool != "read" || string(args) != `{"path":"public.txt"}` {
+		return ErrInvalid
+	}
+	return nil
+}
+
+type ownedHopParent struct {
+	incoming []byte
+	allowed  bool
+}
+
+func (p *ownedHopParent) Authorized(_ context.Context, incoming []byte) error {
+	if !p.allowed || !bytes.Equal(incoming, p.incoming) {
+		return ErrInvalid
+	}
+	return nil
+}
+
+func prepareOwnedHop(t *testing.T, f *admissionFixture) ([]byte, HopServices, *ownedHopParent) {
+	t.Helper()
+	const origin = "did:sage:web:agent.example:origin"
+	var env map[string]any
+	if json.Unmarshal(f.intent, &env) != nil {
+		t.Fatal("outgoing")
+	}
+	parent := map[string]any{}
+	for k, v := range env["intent"].(map[string]any) {
+		parent[k] = v
+	}
+	parent["issuer"], parent["recipient"], parent["keyid"] = origin, setupAlice, origin+"#signing-1"
+	parent["request_id"] = "00000000-0000-4000-8000-000000000031"
+	parent["call_id"] = "00000000-0000-4000-8000-000000000032"
+	var descriptor map[string]any
+	policy := f.config.policy.(*admissionPolicy)
+	if json.Unmarshal(policy.policy, &descriptor) != nil {
+		t.Fatal("policy")
+	}
+	descriptor["issuer"] = origin
+	parentPolicy := encode(descriptor)
+	digest, err := PolicyCommitment(parentPolicy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	parent["policy_digest"] = digest
+	seed := bytes.Repeat([]byte{3}, 32)
+	key := ed25519.NewKeyFromSeed(seed)
+	canonical, err := Canonicalize(encode(parent))
+	if err != nil {
+		t.Fatal(err)
+	}
+	incoming, err := Canonicalize(encode(map[string]any{"intent": parent,
+		"proof": base64.RawURLEncoding.EncodeToString(ed25519.Sign(key, append([]byte("sage-execution-intent|0.10.0\x00"), canonical...)))}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	original, err := OriginalCommitment([][]byte{incoming})
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy.original = original
+	child := env["intent"].(map[string]any)
+	child["original_digest"] = original
+	canonical, err = Canonicalize(encode(child))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.intent, err = Canonicalize(encode(map[string]any{"intent": child,
+		"proof": base64.RawURLEncoding.EncodeToString(ed25519.Sign(ed25519.NewKeyFromSeed(bytes.Repeat([]byte{1}, 32)), append([]byte("sage-execution-intent|0.10.0\x00"), canonical...)))}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	stamp, err := f.clock.Now()
+	if err != nil {
+		t.Fatal(err)
+	}
+	admitted := &ownedHopParent{incoming: incoming, allowed: true}
+	return incoming, HopServices{Authority: ownedHopAuthority{issuer: origin, now: stamp.Unix, key: key.Public().(ed25519.PublicKey)},
+		Policy: ownedHopPolicy{issuer: origin, original: parent["original_digest"].(string), policy: parentPolicy, manifest: policy.manifest}, Parent: admitted}, admitted
+}
+
+func TestMCPOwnedHopUsesParentGateBeforeRuntimeSend(t *testing.T) {
+	for _, mode := range []string{"denied at open", "revoked before send", "allowed"} {
+		t.Run(mode, func(t *testing.T) {
+			f := newAdmissionFixture(t, 2)
+			incoming, hop, parent := prepareOwnedHop(t, f)
+			pool, err := newMCPClientPool(f.clock, 2, 20*time.Second)
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(t.TempDir(), "client")
+			parent.allowed = mode != "denied at open"
+			b, err := openMCPOwnedHopClient(context.Background(), f.client, pool, path, true,
+				incoming, f.intent, hop, f.config.authority, f.config.resultAuthority, f.config.policy, replyClientClock{f})
+			if mode == "denied at open" {
+				if err == nil || b != nil {
+					t.Fatal("unadmitted parent opened MCP client")
+				}
+				if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
+					t.Fatal("unadmitted parent created journal")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			parent.allowed = mode == "allowed"
+			io := &ownedClientIO{f: f, execute: true}
+			delivery, err := b.exchange(context.Background(), io)
+			if mode == "allowed" {
+				if err != nil || delivery == nil || delivery.Status() != "completed" || io.sent != 1 || f.executor.effects.Load() != 1 {
+					t.Fatalf("authorized hop did not complete: %v", err)
+				}
+			} else if err == nil || delivery != nil || io.sent != 0 || f.executor.effects.Load() != 0 {
+				t.Fatal("revoked parent reached MCP transport")
+			}
+		})
+	}
+}
 
 type ownedClientIO struct {
 	f             *admissionFixture
