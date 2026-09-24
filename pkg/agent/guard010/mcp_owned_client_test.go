@@ -121,7 +121,7 @@ func prepareOwnedHop(t *testing.T, f *admissionFixture) ([]byte, HopServices, *o
 }
 
 func TestMCPOwnedHopUsesParentGateBeforeRuntimeSend(t *testing.T) {
-	for _, mode := range []string{"denied at open", "revoked before send", "allowed"} {
+	for _, mode := range []string{"missing parent", "missing admission", "denied at open", "revoked before send", "allowed"} {
 		t.Run(mode, func(t *testing.T) {
 			f := newAdmissionFixture(t, 2)
 			incoming, hop, parent := prepareOwnedHop(t, f)
@@ -130,10 +130,17 @@ func TestMCPOwnedHopUsesParentGateBeforeRuntimeSend(t *testing.T) {
 				t.Fatal(err)
 			}
 			path := filepath.Join(t.TempDir(), "client")
+			invocation := &Invocation{canonical: incoming, parent: parent}
+			if mode == "missing admission" {
+				invocation.parent = nil
+			}
+			if mode == "missing parent" {
+				invocation = nil
+			}
 			parent.allowed = mode != "denied at open"
 			b, err := openMCPOwnedHopClient(context.Background(), f.client, pool, path, true,
-				incoming, f.intent, hop, f.config.authority, f.config.resultAuthority, f.config.policy, replyClientClock{f})
-			if mode == "denied at open" {
+				invocation, f.intent, hop.Authority, hop.Policy, f.config.authority, f.config.resultAuthority, f.config.policy, replyClientClock{f})
+			if mode == "denied at open" || mode == "missing admission" || mode == "missing parent" {
 				if err == nil || b != nil {
 					t.Fatal("unadmitted parent opened MCP client")
 				}
