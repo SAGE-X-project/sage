@@ -132,7 +132,7 @@ func TestMCPOwnedClientCloseAfterConsumptionWithholdsOutput(t *testing.T) {
 	if f.client.owner.phase != mcpClosed {
 		t.Fatal("owner remains open")
 	}
-	reopened, e := OpenClient(context.Background(), path, false, f.intent, ClientServices{IntentAuthority: f.config.authority, ResultAuthority: f.config.resultAuthority, Policy: f.config.policy, Clock: replyClientClock{f}, Sender: &replyClientSender{fixture: f}})
+	reopened, e := OpenClient(context.Background(), path, false, f.intent, ClientServices{IntentAuthority: f.config.authority, ResultAuthority: f.config.resultAuthority, Policy: f.config.policy, Clock: replyClientClock{f}, Sender: &replyClientSender{fixture: f}, ExpectedIssuer: setupAlice, ExpectedRecipient: setupBob})
 	if e != nil {
 		t.Fatal(e)
 	}

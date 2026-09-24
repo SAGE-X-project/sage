@@ -68,7 +68,38 @@ func (f *clientFixture) Commit(_ context.Context, id string, raw []byte) error {
 	return nil
 }
 func (f *clientFixture) services() g.ClientServices {
-	return g.ClientServices{IntentAuthority: f, Policy: f, ResultAuthority: f, Clock: f, Sender: f}
+	return g.ClientServices{IntentAuthority: f, Policy: f, ResultAuthority: f, Clock: f, Sender: f, ExpectedIssuer: f.f.s("expected_issuer"), ExpectedRecipient: f.f.s("expected_recipient")}
+}
+
+func TestClientRequiresTrustedPeerBinding(t *testing.T) {
+	s := clientVectors(t)
+	raw, err := hex.DecodeString(s.Input.s("envelope_hex"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name string
+		edit func(*g.ClientServices)
+	}{
+		{"missing issuer", func(c *g.ClientServices) { c.ExpectedIssuer = "" }},
+		{"other issuer", func(c *g.ClientServices) { c.ExpectedIssuer = "did:sage:web:agents.example.com:other" }},
+		{"missing recipient", func(c *g.ClientServices) { c.ExpectedRecipient = "" }},
+		{"other recipient", func(c *g.ClientServices) { c.ExpectedRecipient = "did:sage:web:agents.example.com:other" }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := &clientFixture{f: s.Input, utc: 1700000000000, clockOK: true, resultActive: true, pub: s.Public}
+			services := f.services()
+			tc.edit(&services)
+			path := filepath.Join(t.TempDir(), "journal")
+			client, err := g.OpenClient(context.Background(), path, true, raw, services)
+			if err == nil || client != nil {
+				t.Fatal("untrusted intent chose a Client peer")
+			}
+			if _, err := os.Stat(path); !os.IsNotExist(err) || f.sends != 0 {
+				t.Fatal("identity mismatch created durable state or sent traffic")
+			}
+		})
+	}
 }
 
 type clientObservation struct {

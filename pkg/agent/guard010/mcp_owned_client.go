@@ -141,7 +141,7 @@ func openMCPOwnedClient(ctx context.Context, s *mcpSetupSession, p *mcpClientPoo
 		return nil, ErrInvalid
 	}
 	b = &mcpOwnedClient{session: s, pool: p, intent: intent, authority: a, resultAuthority: result, policy: policy}
-	b.client, e = OpenClient(work, path, create, intent, ClientServices{IntentAuthority: a, ResultAuthority: result, Policy: policy, Clock: mcpSafeClientClock{clock}, Sender: b})
+	b.client, e = OpenClient(work, path, create, intent, ClientServices{IntentAuthority: a, ResultAuthority: result, Policy: policy, Clock: mcpSafeClientClock{clock}, Sender: b, ExpectedIssuer: local, ExpectedRecipient: peer})
 	if e != nil {
 		return b, ErrInvalid
 	}

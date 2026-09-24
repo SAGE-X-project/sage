@@ -157,6 +157,13 @@ survive restart; pre-restart invocation handles are abandoned, not reconstructed
 from untrusted response fields. Filesystem integrity and rollback protection remain
 trusted deployment responsibilities.
 
+ClientServices requires trusted expected issuer and recipient DIDs. Creation and
+reopen reject a signed intent whose peer tuple differs before writing a journal or
+handing off traffic. The private MCP owner supplies this tuple from its authenticated
+session participants. In a multihop Agent workflow, the host must still capture the
+incoming authenticated input and independently authorize the outgoing call; this
+peer check alone does not transfer upstream authority or complete host mediation.
+
 Begin verifies current intent authority, policy and expiry on every attempt, records
 a fresh outer UUID, and invokes ClientSender under the same lock as result acceptance.
 Sender is a bounded protected transport handoff, not a reusable permission to send
