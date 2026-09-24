@@ -70,6 +70,42 @@ func TestHopClientRejectsUnboundCaptureAndReusedIdentities(t *testing.T) {
 	}
 }
 
+func TestHopClientBindsDeclaredParentIDToHopPath(t *testing.T) {
+	incoming, outgoing, parent, child := hopTestInput(t)
+	var upstream map[string]any
+	if json.Unmarshal(incoming, &upstream) != nil {
+		t.Fatal("parent envelope")
+	}
+	parentID := upstream["intent"].(map[string]any)["call_id"]
+	f := guardFixture{"envelope_hex": mustJSON(t, hex.EncodeToString(outgoing))}
+	linked := resign(t, f, "parent_call_id", parentID, false)
+	services := g.ClientServices{IntentAuthority: child, Policy: child, ResultAuthority: child, Clock: child, Sender: child,
+		ExpectedIssuer: child.s("expected_issuer"), ExpectedRecipient: child.s("expected_recipient")}
+	hop := g.HopServices{Authority: parent, Policy: parent, Parent: parent}
+	rootPath := filepath.Join(t.TempDir(), "root")
+	if c, err := g.OpenClient(context.Background(), rootPath, true, linked, services); err == nil || c != nil {
+		t.Fatal("declared hop opened through root client")
+	}
+	if _, err := os.Stat(rootPath); !os.IsNotExist(err) {
+		t.Fatal("root denial created a journal")
+	}
+	wrong := resign(t, f, "parent_call_id", "00000000-0000-4000-8000-000000000099", false)
+	wrongPath := filepath.Join(t.TempDir(), "wrong")
+	if c, err := g.OpenHopClient(context.Background(), wrongPath, true, incoming, wrong, services, hop); err == nil || c != nil {
+		t.Fatal("wrong declared parent opened a hop")
+	}
+	if _, err := os.Stat(wrongPath); !os.IsNotExist(err) {
+		t.Fatal("wrong parent created a journal")
+	}
+	c, err := g.OpenHopClient(context.Background(), filepath.Join(t.TempDir(), "linked"), true, incoming, linked, services, hop)
+	if err != nil {
+		t.Fatal("matching parent ID was denied", err)
+	}
+	if err := c.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestHopClientRechecksParentAfterJournalReservation(t *testing.T) {
 	incoming, outgoing, parent, child := hopTestInput(t)
 	parent.denyAt = 3 // Open, first Begin check, then post-journal check.
