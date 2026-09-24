@@ -95,9 +95,16 @@ type mcpHopCapture struct {
 // openMCPOwnedHopClient requires a protected parent admission for a derived
 // MCP call. It shares the same exclusive session, sender and final publication
 // path as a root call; the host must select it from trusted input provenance.
-func openMCPOwnedHopClient(ctx context.Context, s *mcpSetupSession, p *mcpClientPool, path string, create bool, incoming, intent []byte, h HopServices, a, result *RegistryAuthority, policy IntentPolicy, clock ClientClock) (*mcpOwnedClient, error) {
+func openMCPOwnedHopClient(ctx context.Context, s *mcpSetupSession, p *mcpClientPool, path string, create bool, parent *Invocation, intent []byte, upstream Authority, upstreamPolicy IntentPolicy, a, result *RegistryAuthority, policy IntentPolicy, clock ClientClock) (*mcpOwnedClient, error) {
+	if parent == nil || upstream == nil || upstreamPolicy == nil {
+		return nil, ErrInvalid
+	}
+	admission := parent.ParentAdmission()
+	if admission == nil {
+		return nil, ErrInvalid
+	}
 	return openMCPOwnedClientWithHop(ctx, s, p, path, create, intent, a, result, policy, clock,
-		&mcpHopCapture{incoming: append([]byte(nil), incoming...), services: h})
+		&mcpHopCapture{incoming: parent.CanonicalIntent(), services: HopServices{Authority: upstream, Policy: upstreamPolicy, Parent: admission}})
 }
 
 func openMCPOwnedClientWithHop(ctx context.Context, s *mcpSetupSession, p *mcpClientPool, path string, create bool, intent []byte, a, result *RegistryAuthority, policy IntentPolicy, clock ClientClock, hop *mcpHopCapture) (b *mcpOwnedClient, err error) {
