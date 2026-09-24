@@ -139,7 +139,8 @@ func checkHop(ctx context.Context, incoming, outgoing []byte, s ClientServices, 
 	}
 	_, child, _, err := intentEnvelope(outgoing)
 	if err != nil || str(child, "issuer") != s.ExpectedIssuer || str(child, "recipient") != s.ExpectedRecipient ||
-		str(child, "request_id") == str(parent, "request_id") || str(child, "call_id") == str(parent, "call_id") {
+		str(child, "request_id") == str(parent, "request_id") || str(child, "call_id") == str(parent, "call_id") ||
+		(child["parent_call_id"] != nil && str(child, "parent_call_id") != str(parent, "call_id")) {
 		return ErrInvalid
 	}
 	digest, err := OriginalCommitment([][]byte{incoming})
@@ -157,7 +158,7 @@ func OpenHopClient(ctx context.Context, path string, create bool, incoming, outg
 	if checkHop(ctx, incoming, outgoing, s, h) != nil {
 		return nil, ErrInvalid
 	}
-	c, err := OpenClient(ctx, path, create, outgoing, s)
+	c, err := openClient(ctx, path, create, outgoing, s, true)
 	if err != nil {
 		return nil, err
 	}
@@ -260,10 +261,15 @@ func (c *Client) sample(ctx context.Context) (int64, int64, error) {
 	return u, m, nil
 }
 
-// OpenClient initializes only a new authorized operation, or reopens the exact
-// protected original. Existing terminal outcomes are never delivered again on open.
+// OpenClient initializes only a root operation with no parent ID, or reopens its
+// exact protected original. A declared parent requires OpenHopClient. Existing
+// terminal outcomes are never delivered again on open.
 // Outstanding pre-restart transports are abandoned; retries need new invocations.
 func OpenClient(ctx context.Context, path string, create bool, raw []byte, s ClientServices) (*Client, error) {
+	return openClient(ctx, path, create, raw, s, false)
+}
+
+func openClient(ctx context.Context, path string, create bool, raw []byte, s ClientServices, hop bool) (*Client, error) {
 	if ctx == nil || s.IntentAuthority == nil || s.Policy == nil || s.ResultAuthority == nil || s.Clock == nil || s.Sender == nil || (runtime.GOOS != "linux" && runtime.GOOS != "darwin") {
 		return nil, ErrInvalid
 	}
@@ -271,7 +277,7 @@ func OpenClient(ctx context.Context, path string, create bool, raw []byte, s Cli
 	if e != nil {
 		return nil, ErrInvalid
 	}
-	if !did(s.ExpectedIssuer) || !did(s.ExpectedRecipient) ||
+	if (!hop && i["parent_call_id"] != nil) || !did(s.ExpectedIssuer) || !did(s.ExpectedRecipient) ||
 		str(i, "issuer") != s.ExpectedIssuer || str(i, "recipient") != s.ExpectedRecipient {
 		return nil, ErrInvalid
 	}
