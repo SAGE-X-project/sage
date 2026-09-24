@@ -164,6 +164,13 @@ session participants. In a multihop Agent workflow, the host must still capture 
 incoming authenticated input and independently authorize the outgoing call; this
 peer check alone does not transfer upstream authority or complete host mediation.
 
+The private MCP-owned root entry requires a trusted capture made from the exact
+original UTF-8 input list before model or plugin expansion. It compares that
+capture's request ID and commitment with the signed root intent before creating
+a journal. The host must assign a fresh request ID and preserve the original
+bytes in protected storage; this library does not establish the deployment's
+capture timing, storage protection, or root-versus-hop routing by itself.
+
 Begin verifies current intent authority, policy and expiry on every attempt, records
 a fresh outer UUID, and invokes ClientSender under the same lock as result acceptance.
 Sender is a bounded protected transport handoff, not a reusable permission to send
