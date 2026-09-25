@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "protocol_version": "0.10.0",
+  "kind": "registry-proof-and-kem-role-fixture",
+  "status": "SPECIFICATION_FIXTURE_NOT_IMPLEMENTATION_CONFORMANCE",
+  "challenge_vectors": [
+    {
+      "name": "sign-1",
+      "registry_id": "web:agents.example.com",
+      "agent_id": "billing-bot",
+      "alg": "ed25519",
+      "public_key_hex": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "challenge_hex": "736167652d706f702d302e31302e3000167765623a6167656e74732e6578616d706c652e636f6d000b62696c6c696e672d626f7400067369676e2d310007656432353531390020d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "challenge_sha256": "209a10fdd134ed64c564a4f388089f266c96108faf9aab776cb7c3a583e24916",
+      "purpose": "signing-key possession"
+    },
+    {
+      "name": "kem-a",
+      "registry_id": "web:agents.example.com",
+      "agent_id": "billing-bot",
+      "alg": "x25519",
+      "public_key_hex": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+      "challenge_hex": "736167652d706f702d302e31302e3000167765623a6167656e74732e6578616d706c652e636f6d000b62696c6c696e672d626f7400056b656d2d61000678323535313900208520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e6a",
+      "challenge_sha256": "e5c580804605983c20be2c07c22df66f079534bc680030bb0e6a825caa02722a",
+      "purpose": "signing-key endorsement of a KEM key"
+    }
+  ],
+  "kem_selection": {
+    "record_id": "did:sage:web:agents.example.com:billing-bot",
+    "now": 1000,
+    "keys": [
+      {
+        "name": "kem-z",
+        "alg": "x25519",
+        "state": "accepted",
+        "expires": 2000
+      },
+      {
+        "name": "sign-1",
+        "alg": "ed25519",
+        "state": "accepted",
+        "expires": 2000
+      },
+      {
+        "name": "kem-a",
+        "alg": "x25519",
+        "state": "accepted",
+        "expires": 2000
+      }
+    ],
+    "selected_kid": "did:sage:web:agents.example.com:billing-bot#kem-a"
+  },
+  "negative_verdicts": [
+    {
+      "name": "upper-case-kem-alg",
+      "alg": "X25519",
+      "verdict": "reject"
+    },
+    {
+      "name": "kem-as-signature",
+      "alg": "x25519",
+      "operation": "message-signature",
+      "verdict": "reject"
+    },
+    {
+      "name": "wrong-length-kem-key",
+      "alg": "x25519",
+      "public_key_hex": "8520f0098930a754748b7ddcb43ef75a0dbf3a0d26381af4eba4a98eaa9b4e",
+      "verdict": "reject"
+    },
+    {
+      "name": "duplicate-pop-fields",
+      "verdict": "reject"
+    }
+  ]
+}

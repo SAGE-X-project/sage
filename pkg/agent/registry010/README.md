@@ -7,6 +7,13 @@ source identity, network binding, readiness and finality before returning a
 projection. Boolean fields in remote JSON are not evidence of these checks.
 This module is not a network resolver or a full record validator.
 
+`PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
+already validated record components. It keeps the new `sage-pop-0.10.0`
+domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
+fixture checks signing-key and KEM-endorsement challenge bytes. This byte
+constructor does not verify a signature or establish the signer's authority;
+the trusted validating Source still owns those checks.
+
 Every observe, select and pinned-key check performs a new source read. Acquisition
 must occur after the operation starts and at most five seconds before the gate,
 including time spent committing durable state. A clock failure, rollback,
