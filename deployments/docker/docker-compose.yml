@@ -59,7 +59,7 @@ services:
 
   # Local Blockchain (Hardhat Node)
   blockchain:
-    image: ethereum/client-go:stable@sha256:b8ab3451a117faa929a5ad5cb6608396a28883cf9918f07a0d922ff5769c184c
+    image: ethereum/client-go:stable@sha256:de3e76f7a16290e650da3c15cf55fa569cda185d2014fd8f057377e0ce825e62
     container_name: sage-blockchain
     command: |
       --dev
