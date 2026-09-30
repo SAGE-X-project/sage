@@ -17,6 +17,10 @@ const maxWebRecord010 = 65536
 // It does not verify key points, proofs, historical immutability, HTTPS origin,
 // or controller authority. Success is never an authorization decision.
 func CheckWebRegistryRecordShape010(raw []byte, expectedDID string, now int64) error {
+	return checkWebRegistryRecordShape010(raw, expectedDID, now, true)
+}
+
+func checkWebRegistryRecordShape010(raw []byte, expectedDID string, now int64, requireUsableSigning bool) error {
 	if err := CheckWebRegistryEnvelope010(raw, now); err != nil {
 		return err
 	}
@@ -68,6 +72,7 @@ func CheckWebRegistryRecordShape010(raw []byte, expectedDID string, now int64) e
 	keyBytes := make(map[string]bool, len(keys))
 	previous := ""
 	activeSigning := false
+	acceptedSigning := false
 	for _, entry := range keys {
 		key, ok := entry.(map[string]any)
 		if !ok || !webFieldsOptional010(key, []string{"name", "alg", "key", "proof", "state"}, "expires") {
@@ -127,11 +132,14 @@ func CheckWebRegistryRecordShape010(raw []byte, expectedDID string, now int64) e
 		if !ok || len(signature) == 0 || len(signature) > 87 || !webBase64URLAny010(signature) {
 			return ErrInvalidRecord010
 		}
-		if alg != "x25519" && keyState == "accepted" && (!hasExpiry || now < expires) {
-			activeSigning = true
+		if alg != "x25519" && keyState == "accepted" {
+			acceptedSigning = true
+			if !hasExpiry || now < expires {
+				activeSigning = true
+			}
 		}
 	}
-	if state == "active" && !activeSigning {
+	if state == "active" && !activeSigning && (requireUsableSigning || !acceptedSigning) {
 		return ErrInvalidRecord010
 	}
 	services, ok := record["services"].([]any)

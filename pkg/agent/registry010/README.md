@@ -85,6 +85,11 @@ only check a proposed write; the deployment must repeat the decision while
 atomically reserving or comparing and writing the record and durable history.
 They do not define an administrative API, authenticate transport credentials,
 or grant a reusable authorization token.
+An expired but still accepted signing key may leave an `active` prior record
+unusable for ordinary reads. Write admission can use that prior record only to
+add a newly proven, usable signer or move to a valid terminal state. It still
+verifies every prior key proof and rejects an `active` record with no accepted
+signing key at all. Ordinary read and historical transition checks stay strict.
 
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`

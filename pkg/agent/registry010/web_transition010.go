@@ -33,10 +33,14 @@ type webTransitionRecord010 struct {
 }
 
 func webTransitionRecordFromEnvelope010(raw []byte, did string, now int64) (webTransitionRecord010, error) {
+	return webTransitionRecordFromEnvelopeWithPolicy010(raw, did, now, true)
+}
+
+func webTransitionRecordFromEnvelopeWithPolicy010(raw []byte, did string, now int64, requireUsableSigning bool) (webTransitionRecord010, error) {
 	var wrapper struct {
 		Record webTransitionRecord010 `json:"record"`
 	}
-	if err := CheckWebRegistryProofs010(raw, did, now); err != nil {
+	if err := checkWebRegistryProofs010(raw, did, now, requireUsableSigning); err != nil {
 		return wrapper.Record, err
 	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
@@ -110,7 +114,11 @@ func CheckWebRegistryCreationShape010(raw []byte, did string, now int64) error {
 // especially when a KEM endorser later expires or is revoked. Those duties
 // belong to the trusted Registry deployment, not this predicate.
 func CheckWebRegistryTransitionShape010(previous, candidate []byte, did string, previousNow, candidateNow int64, operation string) error {
-	before, err := webTransitionRecordFromEnvelope010(previous, did, previousNow)
+	return checkWebRegistryTransitionShapeWithPolicy010(previous, candidate, did, previousNow, candidateNow, operation, true)
+}
+
+func checkWebRegistryTransitionShapeWithPolicy010(previous, candidate []byte, did string, previousNow, candidateNow int64, operation string, requirePreviousUsableSigning bool) error {
+	before, err := webTransitionRecordFromEnvelopeWithPolicy010(previous, did, previousNow, requirePreviousUsableSigning)
 	if err != nil {
 		return err
 	}
