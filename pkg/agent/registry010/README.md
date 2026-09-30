@@ -36,6 +36,15 @@ KEM signers need authenticated mutation history before their earlier authority
 can be trusted. This check does not authenticate the HTTPS origin, controller,
 or mutation history and cannot authorize an operation alone.
 
+`WebRegistryRequestURL010` constructs the exact web DID read target only when
+its HTTPS origin appears in a locally configured allowlist.
+`CheckWebRegistryResponsePolicy010` rejects non-200 status, wrong media, and
+responses lacking an origin `no-store` directive. The local policy adapter
+exercises these decisions without networking. A production HTTP adapter must
+still authenticate TLS, enforce a network destination allowlist after DNS
+resolution, avoid intermediated caches and redirects, reject ambiguous framing,
+and bound the body before these helpers can contribute to an observation.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
