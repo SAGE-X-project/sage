@@ -125,6 +125,12 @@ during the fetch. This checks one publication snapshot; it does not bind a
 deployed public server's storage to the administrator journal, authorize a
 later operation, or establish complete REG-08 conformance.
 
+`WebRegistryWriteJournal010.PublicEnvelope010` creates a new five-second
+response from the same committed journal that accepted an administrator write.
+The deployment must bind its HTTPS handler to these exact returned bytes and
+the configured origin. The local reference API does not prove deployed
+storage ownership, clock integrity, or production server behavior.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
