@@ -47,13 +47,12 @@ func CheckWebRegistryTLSOrigin010(ctx context.Context, did string, allowedOrigin
 	if err != nil {
 		return ErrUnreachable
 	}
-	defer raw.Close()
 	connection := tls.Client(raw, &tls.Config{
 		ServerName: domain,
 		RootCAs:    roots,
 		MinVersion: tls.VersionTLS12,
 	})
-	defer connection.Close()
+	defer func() { _ = connection.Close() }()
 	if err := connection.HandshakeContext(bounded); err != nil || len(connection.ConnectionState().VerifiedChains) == 0 {
 		return ErrUnreachable
 	}
