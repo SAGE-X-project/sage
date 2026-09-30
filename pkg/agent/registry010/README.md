@@ -45,6 +45,13 @@ still authenticate TLS, enforce a network destination allowlist after DNS
 resolution, avoid intermediated caches and redirects, reject ambiguous framing,
 and bound the body before these helpers can contribute to an observation.
 
+`CheckWebRegistryTLSOrigin010` makes a fresh TLS connection to one exact IP
+endpoint that appears in a local destination allowlist. It validates the web
+DID domain through certificate name and chain verification against an explicit
+root. The connection is closed without an HTTP request, so this is a TLS
+subcondition only; a future record fetch must bind its response to its own
+authenticated connection and still enforce cache, framing, body and authority.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
