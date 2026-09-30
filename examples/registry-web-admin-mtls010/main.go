@@ -64,7 +64,7 @@ func main() {
 	if err != nil {
 		os.Exit(2)
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 	fmt.Printf("PORT %d\n", listener.Addr().(*net.TCPAddr).Port)
 	connection, err := listener.Accept()
 	if err != nil {
@@ -79,7 +79,7 @@ func main() {
 		fmt.Println(`{"verdict":"WRITE_REJECTED","committed":false}`)
 		return
 	}
-	defer session.Close()
+	defer func() { _ = session.Close() }()
 	if session.SetDeadline(time.Now().Add(5*time.Second)) != nil {
 		fmt.Println(`{"verdict":"WRITE_REJECTED","committed":false}`)
 		return
