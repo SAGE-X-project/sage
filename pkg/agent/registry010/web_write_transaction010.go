@@ -3,14 +3,15 @@ package registry010
 import "context"
 
 // WebRegistryWriteState010 is the complete state supplied and replaced by one
-// trusted Registry transaction. Envelope is a fresh response for the current
-// record; History contains every committed version at its mutation time.
+// trusted Registry transaction. Envelope is the committed response for the
+// current record; the store refreshes its response timestamps for the
+// transaction snapshot. History contains every committed version at its mutation time.
 // A deactivated identifier remains reserved by Tombstoned forever.
 type WebRegistryWriteState010 struct {
-	Source     string
-	Envelope   []byte
-	History    []WebRegistryHistoryEntry010
-	Tombstoned bool
+	Source     string                       `json:"source"`
+	Envelope   []byte                       `json:"envelope"`
+	History    []WebRegistryHistoryEntry010 `json:"history"`
+	Tombstoned bool                         `json:"tombstoned"`
 }
 
 // WebRegistryWriteSnapshot010 binds the current state to credentials and
@@ -21,13 +22,15 @@ type WebRegistryWriteSnapshot010 struct {
 }
 
 // WebRegistryWriteStore010 must serialize writes for each identifier. It must
-// obtain Snapshot from its authenticated source, call decide exactly once while
+// obtain Snapshot from its authenticated source with an envelope fresh at now,
+// call decide exactly once while
 // holding the transaction, and durably replace the complete state only if
-// decide returns nil and ctx is still live. On any error it must leave all
-// state unchanged.
+// decide returns nil and ctx is still live. A decision error leaves state
+// unchanged. An I/O failure must quarantine the store because commit status
+// may be uncertain.
 // The binding must never build Authority from caller-supplied JSON fields.
 type WebRegistryWriteStore010 interface {
-	Update(context.Context, string, func(WebRegistryWriteSnapshot010) (WebRegistryWriteState010, error)) error
+	Update(context.Context, string, int64, func(WebRegistryWriteSnapshot010) (WebRegistryWriteState010, error)) error
 }
 
 func webCopyWriteState010(state WebRegistryWriteState010) WebRegistryWriteState010 {
@@ -49,7 +52,7 @@ func ApplyWebRegistryWrite010(ctx context.Context, store WebRegistryWriteStore01
 	if ctx == nil || ctx.Err() != nil || store == nil || trustedSource == "" || did == "" {
 		return ErrRejected
 	}
-	return store.Update(ctx, did, func(snapshot WebRegistryWriteSnapshot010) (WebRegistryWriteState010, error) {
+	return store.Update(ctx, did, now, func(snapshot WebRegistryWriteSnapshot010) (WebRegistryWriteState010, error) {
 		state := snapshot.State
 		if ctx.Err() != nil || state.Source != trustedSource || snapshot.Authority == nil {
 			return WebRegistryWriteState010{}, ErrUnreachable

@@ -199,9 +199,9 @@ func checkWebRegistryTransitionShapeWithPolicy010(previous, candidate []byte, di
 // WebRegistryHistoryEntry010 is one caller-supplied historical envelope and
 // its trusted mutation time. The first operation must be "create".
 type WebRegistryHistoryEntry010 struct {
-	Envelope  []byte
-	At        int64
-	Operation string
+	Envelope  []byte `json:"envelope"`
+	At        int64  `json:"at"`
+	Operation string `json:"operation"`
 }
 
 func webSameRecord010(a, b webTransitionRecord010) bool {

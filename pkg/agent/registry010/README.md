@@ -92,15 +92,21 @@ verifies every prior key proof and rejects an `active` record with no accepted
 signing key at all. Ordinary read and historical transition checks stay strict.
 
 `ApplyWebRegistryWrite010` moves admission into a store-provided transaction.
-The store supplies a current, freshly enveloped record, complete authenticated
+The store supplies a current, freshly enveloped record, complete asserted
 history, source identity, and credential-backed authority in one serialized
 snapshot. The core checks history against the current record and returns a
 complete replacement containing the candidate, new history entry and terminal
-tombstone. The store must commit that replacement durably as one unit or leave
-everything unchanged. A process-local fixture tests the boundary; this package
-does not supply a durable web Registry store or prove its source, credential,
-delegation, or atomic-commit guarantees. Deployments must establish those
-properties before claiming REG-08 write conformance.
+tombstone. A decision error leaves state unchanged. An uncertain I/O outcome
+must quarantine the writer until the journal is inspected.
+
+`OpenWebRegistryWriteJournal010` is a local single-DID reference store. It
+holds an exclusive writer lock, appends one complete state row and syncs it
+before exposing the change, and rejects incomplete state on restart. A prior
+response is re-enveloped at the trusted mutation time so later legitimate
+writes are not blocked by its five-second HTTP response lifetime. The path,
+source identity, credentials, delegation and disk integrity are deployment
+inputs; this journal does not authenticate them or establish REG-08 deployment
+conformance.
 
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`

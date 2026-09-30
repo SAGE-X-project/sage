@@ -14,7 +14,7 @@ type webMemoryTransaction010 struct {
 	authority WebRegistryAdminAuthority010
 }
 
-func (s *webMemoryTransaction010) Update(ctx context.Context, _ string, decide func(WebRegistryWriteSnapshot010) (WebRegistryWriteState010, error)) error {
+func (s *webMemoryTransaction010) Update(ctx context.Context, _ string, _ int64, decide func(WebRegistryWriteSnapshot010) (WebRegistryWriteState010, error)) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	next, err := decide(WebRegistryWriteSnapshot010{
