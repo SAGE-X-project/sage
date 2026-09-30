@@ -38,8 +38,9 @@ func fieldLine010(f HeaderField010) bool {
 	}
 	for i := 0; i < len(f.Name); i++ {
 		c := f.Name[i]
-		if !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-			(c >= '0' && c <= '9') || strings.ContainsRune("!#$%&'*+-.^_`|~", rune(c))) {
+		validToken := (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+			(c >= '0' && c <= '9') || strings.ContainsRune("!#$%&'*+-.^_`|~", rune(c))
+		if !validToken {
 			return false
 		}
 	}
