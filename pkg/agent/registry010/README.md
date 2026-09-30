@@ -91,6 +91,17 @@ add a newly proven, usable signer or move to a valid terminal state. It still
 verifies every prior key proof and rejects an `active` record with no accepted
 signing key at all. Ordinary read and historical transition checks stay strict.
 
+`ApplyWebRegistryWrite010` moves admission into a store-provided transaction.
+The store supplies a current, freshly enveloped record, complete authenticated
+history, source identity, and credential-backed authority in one serialized
+snapshot. The core checks history against the current record and returns a
+complete replacement containing the candidate, new history entry and terminal
+tombstone. The store must commit that replacement durably as one unit or leave
+everything unchanged. A process-local fixture tests the boundary; this package
+does not supply a durable web Registry store or prove its source, credential,
+delegation, or atomic-commit guarantees. Deployments must establish those
+properties before claiming REG-08 write conformance.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
