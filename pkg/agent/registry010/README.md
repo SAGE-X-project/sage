@@ -59,6 +59,15 @@ section and at most 64 field lines. Chunked or other framing is rejected in
 this bounded adapter. It does not authenticate controller writes, tombstones or
 mutation history, and its result must not be treated as complete REG-08 authority.
 
+`CheckWebRegistryCreationShape010` and `CheckWebRegistryTransitionShape010`
+validate a version-1 creation and one claimed historical change. They check
+proofs at each supplied observation time, retained immutable keys, exact
+version increments, terminal deactivation, and whether a newly endorsed KEM
+key had a usable signing endorser at addition. The caller must supply a
+complete authenticated history and trusted observation times. These pure
+checks neither authenticate controller/operator actions nor commit an atomic
+write, so they are not a Registry administration implementation.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
