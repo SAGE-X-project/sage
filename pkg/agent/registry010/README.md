@@ -108,6 +108,16 @@ source identity, credentials, delegation and disk integrity are deployment
 inputs; this journal does not authenticate them or establish REG-08 deployment
 conformance.
 
+`AcceptWebRegistryAdminMTLS010` is an optional deployment reference for
+controller-only administrative writes. It performs a fresh server-side TLS
+handshake with required client certificate verification, then maps the verified
+leaf certificate's SHA-256 to a configured controller identifier. The returned
+session reads the administrative request from that same connection and supplies
+the journal's `WebRegistryAdminAuthority010`. The deployment remains responsible
+for bounded request framing, trusted clock, exact candidate bytes, certificate
+pin provisioning and rotation, and the public Registry source. The reference
+adapter grants no delegated operator authority or complete REG-08 conformance.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
