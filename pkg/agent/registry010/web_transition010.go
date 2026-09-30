@@ -187,3 +187,64 @@ func CheckWebRegistryTransitionShape010(previous, candidate []byte, did string, 
 	}
 	return nil
 }
+
+// WebRegistryHistoryEntry010 is one caller-supplied historical envelope and
+// its trusted mutation time. The first operation must be "create".
+type WebRegistryHistoryEntry010 struct {
+	Envelope  []byte
+	At        int64
+	Operation string
+}
+
+func webSameRecord010(a, b webTransitionRecord010) bool {
+	if a.ID != b.ID || a.Controller != b.Controller || a.State != b.State ||
+		a.Version != b.Version || len(a.Keys) != len(b.Keys) ||
+		!reflect.DeepEqual(a.Services, b.Services) {
+		return false
+	}
+	for index := range a.Keys {
+		if a.Keys[index].State != b.Keys[index].State ||
+			!webSameKeyMaterial010(a.Keys[index], b.Keys[index]) {
+			return false
+		}
+	}
+	return true
+}
+
+// CheckWebRegistryHistoryContinuity010 checks an asserted sequence from
+// version-1 creation through the current record. It does not establish that
+// the supplied history is authentic or complete, authenticate mutations, or
+// perform an atomic Registry write. A trusted source must provide every
+// envelope and bind each At value to its actual mutation time.
+func CheckWebRegistryHistoryContinuity010(history []WebRegistryHistoryEntry010, current []byte, did string, currentNow int64) error {
+	if len(history) == 0 || history[0].Operation != "create" ||
+		history[0].At > currentNow {
+		return ErrInvalidRecord010
+	}
+	if err := CheckWebRegistryCreationShape010(history[0].Envelope, did, history[0].At); err != nil {
+		return err
+	}
+	for index := 1; index < len(history); index++ {
+		previous, next := history[index-1], history[index]
+		if next.At < previous.At || next.At > currentNow {
+			return ErrInvalidRecord010
+		}
+		if err := CheckWebRegistryTransitionShape010(
+			previous.Envelope, next.Envelope, did, previous.At, next.At, next.Operation); err != nil {
+			return err
+		}
+	}
+	last := history[len(history)-1]
+	final, err := webTransitionRecordFromEnvelope010(last.Envelope, did, last.At)
+	if err != nil {
+		return err
+	}
+	live, err := webTransitionRecordFromEnvelope010(current, did, currentNow)
+	if err != nil {
+		return err
+	}
+	if !webSameRecord010(final, live) {
+		return ErrInvalidRecord010
+	}
+	return nil
+}
