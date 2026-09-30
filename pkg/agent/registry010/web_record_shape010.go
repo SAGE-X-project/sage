@@ -215,8 +215,7 @@ func webKeyID010(value string) bool {
 		return false
 	}
 	for i := 0; i < len(value); i++ {
-		c := value[i]
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '-' || c == '_') {
+		if !webKeyCharacter010(value[i]) {
 			return false
 		}
 	}
@@ -248,7 +247,7 @@ func validWebDID010(did string) bool {
 		}
 		for i := 0; i < len(label); i++ {
 			c := label[i]
-			if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-') {
+			if !webDomainCharacter010(c) {
 				return false
 			}
 		}
@@ -258,11 +257,19 @@ func validWebDID010(did string) bool {
 	}
 	for i := 0; i < len(agent); i++ {
 		c := agent[i]
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_') {
+		if !webKeyCharacter010(c) && c != '.' {
 			return false
 		}
 	}
 	return true
+}
+
+func webKeyCharacter010(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '-' || c == '_'
+}
+
+func webDomainCharacter010(c byte) bool {
+	return c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '-'
 }
 
 func webServiceURI010(value string) bool {
