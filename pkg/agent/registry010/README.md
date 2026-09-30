@@ -13,6 +13,13 @@ The trusted HTTP adapter must pass individual field lines before coalescing or
 decompression. Success does not authorize a record: HTTPS origin, cache,
 response body, proof, freshness and policy checks remain with the trusted Source.
 
+`CheckWebRegistryEnvelope010` checks the separate 69632-byte JSON wrapper,
+duplicate-member and Unicode boundaries, and the five-second `issued`/`expires`
+lifetime. Its `record` member is only checked to be an object. A positive result
+does not validate that record's separate 65536-byte bound, schema, proofs, DID
+or authorization. The trusted
+adapter must enforce the read limit before parsing and supply a trusted clock.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
