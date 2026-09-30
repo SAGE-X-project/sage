@@ -16,11 +16,20 @@ import (
 // request or validate a Registry response, so success is not an observation
 // or authorization decision.
 func CheckWebRegistryTLSOrigin010(ctx context.Context, did string, allowedOrigins []string, destination netip.AddrPort, allowedDestinations []netip.AddrPort, rootDER []byte) error {
+	connection, err := dialWebRegistryTLS010(ctx, did, allowedOrigins, destination, allowedDestinations, rootDER)
+	if err != nil {
+		return err
+	}
+	_ = connection.Close()
+	return nil
+}
+
+func dialWebRegistryTLS010(ctx context.Context, did string, allowedOrigins []string, destination netip.AddrPort, allowedDestinations []netip.AddrPort, rootDER []byte) (*tls.Conn, error) {
 	if ctx == nil {
-		return ErrUnreachable
+		return nil, ErrUnreachable
 	}
 	if _, err := WebRegistryRequestURL010(did, allowedOrigins); err != nil {
-		return err
+		return nil, err
 	}
 	approved := false
 	for _, candidate := range allowedDestinations {
@@ -30,11 +39,11 @@ func CheckWebRegistryTLSOrigin010(ctx context.Context, did string, allowedOrigin
 		}
 	}
 	if !destination.IsValid() || destination.Port() == 0 || destination.Addr().IsUnspecified() || !approved {
-		return ErrUnreachable
+		return nil, ErrUnreachable
 	}
 	root, err := x509.ParseCertificate(rootDER)
 	if err != nil || !root.IsCA {
-		return ErrUnreachable
+		return nil, ErrUnreachable
 	}
 	roots := x509.NewCertPool()
 	roots.AddCert(root)
@@ -45,16 +54,24 @@ func CheckWebRegistryTLSOrigin010(ctx context.Context, did string, allowedOrigin
 	dialer := &net.Dialer{}
 	raw, err := dialer.DialContext(bounded, "tcp", destination.String())
 	if err != nil {
-		return ErrUnreachable
+		return nil, ErrUnreachable
+	}
+	deadline := time.Now().Add(5 * time.Second)
+	if earlier, ok := ctx.Deadline(); ok && earlier.Before(deadline) {
+		deadline = earlier
+	}
+	if err := raw.SetDeadline(deadline); err != nil {
+		_ = raw.Close()
+		return nil, ErrUnreachable
 	}
 	connection := tls.Client(raw, &tls.Config{
 		ServerName: domain,
 		RootCAs:    roots,
 		MinVersion: tls.VersionTLS12,
 	})
-	defer func() { _ = connection.Close() }()
 	if err := connection.HandshakeContext(bounded); err != nil || len(connection.ConnectionState().VerifiedChains) == 0 {
-		return ErrUnreachable
+		_ = connection.Close()
+		return nil, ErrUnreachable
 	}
-	return nil
+	return connection, nil
 }
