@@ -74,3 +74,50 @@ func TestWebRegistryTransitionShape010(t *testing.T) {
 	check("deactivate", after, deactivated, "deactivate", true)
 	check("reactivate", deactivated, after, "activate", false)
 }
+
+func TestWebRegistryHistoryContinuity010(t *testing.T) {
+	created := proofFixture010(t)
+	created["state"] = "created"
+	active := cloneWebRecord010(t, created)
+	active["state"] = "active"
+	active["version"] = "2"
+	updated := cloneWebRecord010(t, active)
+	updated["version"] = "3"
+	updated["services"] = []any{map[string]any{
+		"name": "api", "type": "Agent", "uri": "https://agents.example.com/api",
+	}}
+	entry := func(record map[string]any, at int64, operation string) WebRegistryHistoryEntry010 {
+		return WebRegistryHistoryEntry010{Envelope: proofBody010(t, record), At: at, Operation: operation}
+	}
+	history := []WebRegistryHistoryEntry010{
+		entry(created, 100, "create"), entry(active, 101, "activate"),
+		entry(updated, 102, "update-services"),
+	}
+	current := proofBody010(t, updated)
+	check := func(name string, entries []WebRegistryHistoryEntry010, live []byte, valid bool) {
+		t.Helper()
+		err := CheckWebRegistryHistoryContinuity010(entries, live, proofDID010, 103)
+		if (err == nil) != valid {
+			t.Errorf("%s: got %v, valid %v", name, err, valid)
+		}
+	}
+	check("complete asserted chain", history, current, true)
+	check("empty", nil, current, false)
+	check("missing creation", history[1:], current, false)
+	check("skipped version", []WebRegistryHistoryEntry010{history[0], history[2]}, current, false)
+	check("stale current", history, proofBody010(t, active), false)
+	regressed := append([]WebRegistryHistoryEntry010(nil), history...)
+	regressed[2].At = 99
+	check("time regression", regressed, current, false)
+	wrongOperation := append([]WebRegistryHistoryEntry010(nil), history...)
+	wrongOperation[2].Operation = "add-key"
+	check("wrong operation", wrongOperation, current, false)
+	terminal := cloneWebRecord010(t, updated)
+	terminal["version"] = "4"
+	terminal["state"] = "deactivated"
+	postTerminal := cloneWebRecord010(t, terminal)
+	postTerminal["version"] = "5"
+	check("post-terminal mutation", append(append([]WebRegistryHistoryEntry010(nil), history...),
+		entry(terminal, 103, "deactivate"), entry(postTerminal, 103, "update-services")),
+		proofBody010(t, postTerminal), false)
+}

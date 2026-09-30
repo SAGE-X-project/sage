@@ -68,6 +68,14 @@ complete authenticated history and trusted observation times. These pure
 checks neither authenticate controller/operator actions nor commit an atomic
 write, so they are not a Registry administration implementation.
 
+`CheckWebRegistryHistoryContinuity010` applies those checks to a caller-supplied
+sequence beginning with creation and compares its last record with a current,
+proof-valid envelope. It rejects missing versions, time regression, an invalid
+mutation, or a current record that differs from the last supplied version.
+Sequence continuity does not prove that the source supplied every real
+mutation; the Registry deployment must authenticate and retain the log and
+bind each historical time to the committed write.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
