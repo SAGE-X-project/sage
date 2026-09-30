@@ -49,7 +49,10 @@ func proofFixture010(t *testing.T) map[string]any {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p256Public := elliptic.Marshal(elliptic.P256(), p256Private.X, p256Private.Y)
+	p256Public, err := p256Private.PublicKey.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
 	p256Digest := sha256.Sum256(challenge("c-p256", "ecdsa-p256-sha256", p256Public))
 	r, s, err := ecdsa.Sign(rand.Reader, p256Private, p256Digest[:])
 	if err != nil {

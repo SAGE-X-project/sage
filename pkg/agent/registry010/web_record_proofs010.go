@@ -110,8 +110,8 @@ func webValidSigningPoint010(alg string, material []byte) bool {
 	case "ed25519":
 		return webPrimeEdPoint010(material)
 	case "ecdsa-p256-sha256":
-		x, y := elliptic.Unmarshal(elliptic.P256(), material)
-		return x != nil && y != nil
+		_, err := ecdsa.ParseUncompressedPublicKey(elliptic.P256(), material)
+		return err == nil
 	case "sage-secp256k1-keccak256":
 		_, err := ethcrypto.UnmarshalPubkey(material)
 		return err == nil
@@ -173,12 +173,12 @@ func webVerifySignature010(alg string, material, challenge, signature []byte) bo
 			return false
 		}
 		curve := elliptic.P256()
-		x, y := elliptic.Unmarshal(curve, material)
-		if x == nil || y == nil || !webLowS010(signature, curve.Params().N) {
+		public, err := ecdsa.ParseUncompressedPublicKey(curve, material)
+		if err != nil || !webLowS010(signature, curve.Params().N) {
 			return false
 		}
 		digest := sha256.Sum256(challenge)
-		return ecdsa.Verify(&ecdsa.PublicKey{Curve: curve, X: x, Y: y}, digest[:], new(big.Int).SetBytes(signature[:32]), new(big.Int).SetBytes(signature[32:]))
+		return ecdsa.Verify(public, digest[:], new(big.Int).SetBytes(signature[:32]), new(big.Int).SetBytes(signature[32:]))
 	case "sage-secp256k1-keccak256":
 		if len(signature) != 65 || signature[64] > 1 || !webLowS010(signature[:64], ethcrypto.S256().Params().N) {
 			return false
