@@ -52,6 +52,13 @@ root. The connection is closed without an HTTP request, so this is a TLS
 subcondition only; a future record fetch must bind its response to its own
 authenticated connection and still enforce cache, framing, body and authority.
 
+`FetchWebRegistryRecord010` now performs a fresh GET on its own authenticated
+TLS connection and verifies a bounded JSON record and its key proofs. It accepts
+only one unambiguous HTTP/1.1 `Content-Length` response, with a 16 KiB header
+section and at most 64 field lines. Chunked or other framing is rejected in
+this bounded adapter. It does not authenticate controller writes, tombstones or
+mutation history, and its result must not be treated as complete REG-08 authority.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
