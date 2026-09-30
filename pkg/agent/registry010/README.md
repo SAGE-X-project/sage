@@ -20,6 +20,14 @@ does not validate that record's separate 65536-byte bound, schema, proofs, DID
 or authorization. The trusted
 adapter must enforce the read limit before parsing and supply a trusted clock.
 
+`CheckWebRegistryRecordShape010` checks the nested record's exact encoded
+65536-byte bound, closed fields, web DID binding, version, key and service
+structure after the envelope check. It does not check cryptographic key points,
+proof signatures, historical immutability, HTTPS origin or write authority.
+Only a trusted Source that has completed all of those checks may authorize a
+protected operation. The local `registry-record-shape010` adapter is for
+bounded Inspector observations, not a network resolver.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
