@@ -29,6 +29,8 @@ type request struct {
 	FixtureSource        string `json:"fixture_source"`
 	TrustedSource        string `json:"trusted_source"`
 	FixtureTombstoned    bool   `json:"fixture_tombstoned"`
+	JournalPath          string `json:"journal_path"`
+	JournalCreate        bool   `json:"journal_create"`
 	History              []struct {
 		Envelope  string `json:"envelope"`
 		At        int64  `json:"at"`
@@ -42,7 +44,7 @@ type fixtureWriteStore struct {
 	authority fixtureAuthority
 }
 
-func (s *fixtureWriteStore) Update(ctx context.Context, _ string, decide func(registry010.WebRegistryWriteSnapshot010) (registry010.WebRegistryWriteState010, error)) error {
+func (s *fixtureWriteStore) Update(ctx context.Context, _ string, _ int64, decide func(registry010.WebRegistryWriteSnapshot010) (registry010.WebRegistryWriteState010, error)) error {
 	next, err := decide(registry010.WebRegistryWriteSnapshot010{State: s.state, Authority: s.authority})
 	if err != nil {
 		return err
@@ -86,9 +88,10 @@ func main() {
 	if err != nil {
 		os.Exit(2)
 	}
-	transaction := req.Action == "transaction"
+	transaction := req.Action == "transaction" || req.Action == "journal-transaction"
 	var fixtureStore *fixtureWriteStore
 	var fixtureBefore registry010.WebRegistryWriteState010
+	var fixtureAfter registry010.WebRegistryWriteState010
 	switch req.Action {
 	case "create":
 		err = registry010.CheckWebRegistryCreationShape010(candidate, req.DID, req.CandidateNow)
@@ -150,6 +153,24 @@ func main() {
 		fixtureBefore = fixtureStore.state
 		err = registry010.ApplyWebRegistryWrite010(context.Background(), fixtureStore,
 			req.TrustedSource, req.DID, candidate, req.CandidateNow, req.ExpectedVersion, req.Operation)
+		fixtureAfter = fixtureStore.state
+	case "journal-transaction":
+		if req.JournalPath == "" {
+			os.Exit(2)
+		}
+		authority := fixtureAuthority{req.FixtureActor, req.FixtureScope, req.FixtureAuthenticated}
+		journal, openErr := registry010.OpenWebRegistryWriteJournal010(
+			req.JournalPath, req.DID, req.FixtureSource, authority, req.JournalCreate)
+		if openErr != nil {
+			os.Exit(2)
+		}
+		fixtureBefore = journal.Inspect()
+		err = registry010.ApplyWebRegistryWrite010(context.Background(), journal,
+			req.TrustedSource, req.DID, candidate, req.CandidateNow, req.ExpectedVersion, req.Operation)
+		fixtureAfter = journal.Inspect()
+		if closeErr := journal.Close(); closeErr != nil {
+			err = registry010.ErrUnreachable
+		}
 	default:
 		os.Exit(2)
 	}
@@ -168,9 +189,9 @@ func main() {
 	if transaction {
 		if json.NewEncoder(os.Stdout).Encode(map[string]any{
 			"verdict":     verdict,
-			"committed":   !reflect.DeepEqual(fixtureBefore, fixtureStore.state),
-			"history_len": len(fixtureStore.state.History),
-			"tombstoned":  fixtureStore.state.Tombstoned,
+			"committed":   !reflect.DeepEqual(fixtureBefore, fixtureAfter),
+			"history_len": len(fixtureAfter.History),
+			"tombstoned":  fixtureAfter.Tombstoned,
 		}) != nil {
 			os.Exit(2)
 		}
