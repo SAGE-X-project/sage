@@ -7,6 +7,12 @@ source identity, network binding, readiness and finality before returning a
 projection. Boolean fields in remote JSON are not evidence of these checks.
 This module is not a network resolver or a full record validator.
 
+`CheckWebRegistryMedia010` checks only the optional web Registry response's
+`Content-Type`, `Content-Encoding`, and forbidden trailer fields under REG-08.
+The trusted HTTP adapter must pass individual field lines before coalescing or
+decompression. Success does not authorize a record: HTTPS origin, cache,
+response body, proof, freshness and policy checks remain with the trusted Source.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
