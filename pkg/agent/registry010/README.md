@@ -28,6 +28,14 @@ Only a trusted Source that has completed all of those checks may authorize a
 protected operation. The local `registry-record-shape010` adapter is for
 bounded Inspector observations, not a network resolver.
 
+`CheckWebRegistryProofs010` additionally validates public-key points,
+REG-04 signing proofs for the three registered signing suites, and X25519
+endorsements. It rejects non-prime-order Ed25519 points, high-S ECDSA values,
+wrong secp256k1 recovery keys, and unusable X25519 points. Retained historical
+KEM signers need authenticated mutation history before their earlier authority
+can be trusted. This check does not authenticate the HTTPS origin, controller,
+or mutation history and cannot authorize an operation alone.
+
 `PoPChallenge010` constructs the exact five-field REG-04 challenge bytes from
 already validated record components. It keeps the new `sage-pop-0.10.0`
 domain separate from the legacy DID `SAGE-PoP` path. The bundled 0.10.0
