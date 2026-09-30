@@ -55,7 +55,7 @@ func CheckWebRegistryMutationAdmission010(ctx context.Context, authority WebRegi
 	if err != nil {
 		return err
 	}
-	before, err := webTransitionRecordFromEnvelope010(previous, did, now)
+	before, err := webTransitionRecordFromEnvelopeWithPolicy010(previous, did, now, false)
 	if err != nil {
 		return err
 	}
@@ -68,5 +68,5 @@ func CheckWebRegistryMutationAdmission010(ctx context.Context, authority WebRegi
 			return ErrRejected
 		}
 	}
-	return CheckWebRegistryTransitionShape010(previous, candidate, did, now, now, operation)
+	return checkWebRegistryTransitionShapeWithPolicy010(previous, candidate, did, now, now, operation, false)
 }

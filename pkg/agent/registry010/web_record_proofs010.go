@@ -33,7 +33,11 @@ type webProofKey010 struct {
 // origin, controller, mutation history, or record freshness beyond the wrapper.
 // Success must never authorize a protected operation by itself.
 func CheckWebRegistryProofs010(raw []byte, expectedDID string, now int64) error {
-	if err := CheckWebRegistryRecordShape010(raw, expectedDID, now); err != nil {
+	return checkWebRegistryProofs010(raw, expectedDID, now, true)
+}
+
+func checkWebRegistryProofs010(raw []byte, expectedDID string, now int64, requireUsableSigning bool) error {
+	if err := checkWebRegistryRecordShape010(raw, expectedDID, now, requireUsableSigning); err != nil {
 		return err
 	}
 	var response struct {
