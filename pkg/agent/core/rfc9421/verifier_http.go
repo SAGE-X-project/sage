@@ -527,6 +527,9 @@ func (v *HTTPVerifier) formatSignatureInput(sigName string, params *SignatureInp
 	if params.Nonce != "" {
 		result += fmt.Sprintf(`;nonce="%s"`, params.Nonce)
 	}
+	if params.Tag != "" {
+		result += fmt.Sprintf(`;tag="%s"`, params.Tag)
+	}
 
 	return result
 }

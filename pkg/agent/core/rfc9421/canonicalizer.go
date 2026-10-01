@@ -304,6 +304,10 @@ func (c *Canonicalizer) buildSignatureParams(sigName string, params *SignatureIn
 	components := make([]string, len(params.CoveredComponents))
 	copy(components, params.CoveredComponents)
 	parts = append(parts, "("+strings.Join(components, " ")+")")
+	if len(params.receivedParameters) > 0 {
+		return fmt.Sprintf(`"@signature-params": %s`,
+			strings.Join(append(parts, params.receivedParameters...), ";"))
+	}
 
 	// Add parameters
 	if params.KeyID != "" {
@@ -320,6 +324,9 @@ func (c *Canonicalizer) buildSignatureParams(sigName string, params *SignatureIn
 	}
 	if params.Nonce != "" {
 		parts = append(parts, fmt.Sprintf(`nonce="%s"`, params.Nonce))
+	}
+	if params.Tag != "" {
+		parts = append(parts, fmt.Sprintf(`tag="%s"`, params.Tag))
 	}
 
 	return fmt.Sprintf(`"@signature-params": %s`, strings.Join(parts, ";"))
