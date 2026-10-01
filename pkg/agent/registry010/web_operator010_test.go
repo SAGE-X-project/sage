@@ -87,6 +87,63 @@ func TestWebRegistryOperatorJournal010(t *testing.T) {
 	}
 }
 
+func TestWebRegistryOperatorJournalRevokesAfterSignerExpiry010(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "operator-expired.log")
+	created := proofFixture010(t)
+	created["state"] = "created"
+	created["keys"] = created["keys"].([]any)[:2]
+	created["keys"].([]any)[0].(map[string]any)["expires"] = float64(101)
+	active := cloneWebRecord010(t, created)
+	active["state"] = "active"
+	active["version"] = "2"
+	authority := &webTestAuthority010{actor: "operator"}
+	store, err := OpenWebRegistryWriteJournal010(path, proofDID010, "trusted-web-origin", authority, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	write := func(record map[string]any, now int64, expected, operation string) error {
+		return ApplyWebRegistryWrite010(context.Background(), store, "trusted-web-origin", proofDID010,
+			webJournalEnvelopeAt010(t, record, now), now, expected, operation)
+	}
+	command := func(now int64, expected, operation string) error {
+		return ApplyWebRegistryOperatorCommand010(context.Background(), store, "trusted-web-origin", proofDID010,
+			now, expected, operation, "assistant", "add-key")
+	}
+	if err := write(created, 100, "", "create"); err != nil {
+		t.Fatal(err)
+	}
+	if err := write(active, 100, "1", "activate"); err != nil {
+		t.Fatal(err)
+	}
+	if err := command(100, "2", "authorize-operator"); err != nil {
+		t.Fatal(err)
+	}
+	if err := CheckWebRegistryProofs010(store.Inspect().Envelope, proofDID010, 102); err == nil {
+		t.Fatal("expired signer retained message authority")
+	}
+	if err := command(102, "3", "revoke-operator"); err != nil {
+		t.Fatalf("controller could not revoke after signer expiry: %v", err)
+	}
+	committed := store.Inspect()
+	if len(committed.Grants) != 0 || len(committed.History) != 4 ||
+		committed.History[3].Operation != "revoke-operator" {
+		t.Fatal("expired record did not commit management-only revocation")
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+	store, err = OpenWebRegistryWriteJournal010(path, proofDID010, "trusted-web-origin", authority, false)
+	if err != nil {
+		t.Fatalf("expired record did not recover: %v", err)
+	}
+	if !reflect.DeepEqual(store.Inspect(), committed) {
+		t.Fatal("restart changed expired management history")
+	}
+	if err := store.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestWebRegistryOperatorConcurrentVersion010(t *testing.T) {
 	created := proofFixture010(t)
 	created["state"] = "created"
