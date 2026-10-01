@@ -255,6 +255,40 @@ func TestHTTPBinding010(t *testing.T) {
 	}
 }
 
+func TestHTTPRequestRejectsExpiredRegistryKey010(t *testing.T) {
+	a, b, clock := recordPair010(t, 101)
+	ctx := context.Background()
+	for _, session := range []*AuthenticatedCompletion010{a, b} {
+		if err := session.BindHTTP("https://agent.example/messages"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	first, err := a.SealHTTPRequest(ctx, []byte("accepted before expiry"), 300)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := b.OpenHTTPRequest(ctx, first)
+	if err != nil || !bytes.Equal(got, []byte("accepted before expiry")) {
+		t.Fatalf("pre-expiry request: %q, %v", got, err)
+	}
+
+	second, err := a.SealHTTPRequest(ctx, []byte("must stay private"), 300)
+	if err != nil {
+		t.Fatal(err)
+	}
+	replay := b.endpoint.replay.(*completionReplay)
+	reservations := len(replay.seen)
+	clock.utc, clock.mono = 101, 1000
+	got, err = b.OpenHTTPRequest(ctx, second)
+	if err == nil || got != nil {
+		t.Fatalf("expired key authorized HTTP request: %q, %v", got, err)
+	}
+	if len(replay.seen) != reservations || b.State() != "CLOSED" {
+		t.Fatal("expired key changed replay state or left session available")
+	}
+}
+
 func TestHTTPAdmission010(t *testing.T) {
 	a, _, _ := recordPair010(t, 0)
 	for _, u := range []string{"http://agent.example/messages", "https://AGENT.example/messages", "https://agent.example:443/messages", "https://user@agent.example/messages", "https://agent.example/messages#fragment", "https://agent.example"} {
