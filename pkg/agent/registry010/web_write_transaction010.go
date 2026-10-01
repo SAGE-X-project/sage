@@ -8,10 +8,11 @@ import "context"
 // transaction snapshot. History contains every committed version at its mutation time.
 // A deactivated identifier remains reserved by Tombstoned forever.
 type WebRegistryWriteState010 struct {
-	Source     string                       `json:"source"`
-	Envelope   []byte                       `json:"envelope"`
-	History    []WebRegistryHistoryEntry010 `json:"history"`
-	Tombstoned bool                         `json:"tombstoned"`
+	Source     string                        `json:"source"`
+	Envelope   []byte                        `json:"envelope"`
+	History    []WebRegistryHistoryEntry010  `json:"history"`
+	Grants     []WebRegistryOperatorGrant010 `json:"grants,omitempty"`
+	Tombstoned bool                          `json:"tombstoned"`
 }
 
 // WebRegistryWriteSnapshot010 binds the current state to credentials and
@@ -36,10 +37,12 @@ type WebRegistryWriteStore010 interface {
 func webCopyWriteState010(state WebRegistryWriteState010) WebRegistryWriteState010 {
 	copyState := state
 	copyState.Envelope = append([]byte(nil), state.Envelope...)
+	copyState.Grants = append([]WebRegistryOperatorGrant010(nil), state.Grants...)
 	copyState.History = make([]WebRegistryHistoryEntry010, len(state.History))
 	for index, entry := range state.History {
 		copyState.History[index] = WebRegistryHistoryEntry010{
 			Envelope: append([]byte(nil), entry.Envelope...), At: entry.At, Operation: entry.Operation,
+			Actor: entry.Actor, Target: entry.Target, Scope: entry.Scope,
 		}
 	}
 	return copyState
@@ -58,7 +61,7 @@ func ApplyWebRegistryWrite010(ctx context.Context, store WebRegistryWriteStore01
 			return WebRegistryWriteState010{}, ErrUnreachable
 		}
 		if len(state.Envelope) == 0 {
-			if len(state.History) != 0 || state.Tombstoned || operation != "create" || expectedVersion != "" {
+			if len(state.History) != 0 || len(state.Grants) != 0 || state.Tombstoned || operation != "create" || expectedVersion != "" {
 				return WebRegistryWriteState010{}, ErrStale
 			}
 			if err := CheckWebRegistryCreationAdmission010(ctx, snapshot.Authority, candidate, did, now); err != nil {
@@ -69,7 +72,8 @@ func ApplyWebRegistryWrite010(ctx context.Context, store WebRegistryWriteStore01
 				return WebRegistryWriteState010{}, ErrInvalidRecord010
 			}
 			last := state.History[len(state.History)-1]
-			if last.At > now || CheckWebRegistryHistoryContinuity010(state.History, last.Envelope, did, last.At) != nil {
+			if last.At > now || CheckWebRegistryHistoryContinuity010(state.History, last.Envelope, did, last.At) != nil ||
+				webCheckGrantHistory010(state, did) != nil {
 				return WebRegistryWriteState010{}, ErrInvalidRecord010
 			}
 			historical, err := webTransitionRecordFromEnvelope010(last.Envelope, did, last.At)
@@ -80,7 +84,21 @@ func ApplyWebRegistryWrite010(ctx context.Context, store WebRegistryWriteStore01
 			if err != nil || !webSameRecord010(historical, current) || state.Tombstoned != (current.State == "deactivated") {
 				return WebRegistryWriteState010{}, ErrInvalidRecord010
 			}
-			if err := CheckWebRegistryMutationAdmission010(ctx, snapshot.Authority, state.Envelope, candidate, did, now, expectedVersion, operation); err != nil {
+			if expectedVersion != current.Version {
+				return WebRegistryWriteState010{}, ErrStale
+			}
+			if err := checkWebRegistryTransitionShapeWithPolicy010(state.Envelope, candidate, did, now, now, operation, false); err != nil {
+				return WebRegistryWriteState010{}, err
+			}
+		}
+		actor, err := webAdminActor010(ctx, snapshot.Authority)
+		if err != nil {
+			return WebRegistryWriteState010{}, err
+		}
+		var before webTransitionRecord010
+		if len(state.Envelope) != 0 {
+			before, err = webTransitionRecordFromEnvelopeWithPolicy010(state.Envelope, did, now, false)
+			if err != nil {
 				return WebRegistryWriteState010{}, err
 			}
 		}
@@ -89,13 +107,22 @@ func ApplyWebRegistryWrite010(ctx context.Context, store WebRegistryWriteStore01
 		}
 		next := webCopyWriteState010(state)
 		next.Envelope = append([]byte(nil), candidate...)
-		next.History = append(next.History, WebRegistryHistoryEntry010{
-			Envelope: append([]byte(nil), candidate...), At: now, Operation: operation,
-		})
 		record, err := webTransitionRecordFromEnvelope010(candidate, did, now)
 		if err != nil {
 			return WebRegistryWriteState010{}, err
 		}
+		entry := WebRegistryHistoryEntry010{Envelope: append([]byte(nil), candidate...), At: now, Operation: operation, Actor: actor}
+		if len(state.Envelope) == 0 {
+			if actor != record.Controller {
+				return WebRegistryWriteState010{}, ErrRejected
+			}
+		} else {
+			next.Grants, err = webNextGrants010(state.Grants, before, record, entry)
+			if err != nil {
+				return WebRegistryWriteState010{}, err
+			}
+		}
+		next.History = append(next.History, entry)
 		next.Tombstoned = record.State == "deactivated"
 		return next, nil
 	})

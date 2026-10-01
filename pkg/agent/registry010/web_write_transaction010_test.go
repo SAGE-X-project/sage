@@ -175,8 +175,8 @@ func TestWebRegistryTransactionRecoversExpiredSigner010(t *testing.T) {
 		state: WebRegistryWriteState010{
 			Source: "trusted-web-origin", Envelope: before,
 			History: []WebRegistryHistoryEntry010{
-				{Envelope: create, At: 100, Operation: "create"},
-				{Envelope: before, At: 100, Operation: "activate"},
+				{Envelope: create, At: 100, Operation: "create", Actor: "operator"},
+				{Envelope: before, At: 100, Operation: "activate", Actor: "operator"},
 			},
 		},
 		authority: &webTestAuthority010{actor: "operator"},

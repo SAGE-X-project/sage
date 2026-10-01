@@ -122,7 +122,8 @@ func checkWebRegistryTransitionShapeWithPolicy010(previous, candidate []byte, di
 	if err != nil {
 		return err
 	}
-	after, err := webTransitionRecordFromEnvelope010(candidate, did, candidateNow)
+	management := operation == "authorize-operator" || operation == "revoke-operator"
+	after, err := webTransitionRecordFromEnvelopeWithPolicy010(candidate, did, candidateNow, !management)
 	if err != nil {
 		return err
 	}
@@ -130,6 +131,13 @@ func checkWebRegistryTransitionShapeWithPolicy010(previous, candidate []byte, di
 	if err != nil || version == ^uint64(0) || after.Version != strconv.FormatUint(version+1, 10) ||
 		before.Controller != after.Controller || before.State == "deactivated" {
 		return ErrInvalidRecord010
+	}
+	if management {
+		after.Version = before.Version
+		if !webSameRecord010(before, after) {
+			return ErrInvalidRecord010
+		}
+		return nil
 	}
 	byName := make(map[string]webTransitionKey010, len(after.Keys))
 	for _, key := range after.Keys {
@@ -202,6 +210,9 @@ type WebRegistryHistoryEntry010 struct {
 	Envelope  []byte `json:"envelope"`
 	At        int64  `json:"at"`
 	Operation string `json:"operation"`
+	Actor     string `json:"actor,omitempty"`
+	Target    string `json:"target,omitempty"`
+	Scope     string `json:"scope,omitempty"`
 }
 
 func webSameRecord010(a, b webTransitionRecord010) bool {
@@ -237,17 +248,17 @@ func CheckWebRegistryHistoryContinuity010(history []WebRegistryHistoryEntry010, 
 		if next.At < previous.At || next.At > currentNow {
 			return ErrInvalidRecord010
 		}
-		if err := CheckWebRegistryTransitionShape010(
-			previous.Envelope, next.Envelope, did, previous.At, next.At, next.Operation); err != nil {
+		if err := checkWebRegistryTransitionShapeWithPolicy010(
+			previous.Envelope, next.Envelope, did, previous.At, next.At, next.Operation, false); err != nil {
 			return err
 		}
 	}
 	last := history[len(history)-1]
-	final, err := webTransitionRecordFromEnvelope010(last.Envelope, did, last.At)
+	final, err := webTransitionRecordFromEnvelopeWithPolicy010(last.Envelope, did, last.At, false)
 	if err != nil {
 		return err
 	}
-	live, err := webTransitionRecordFromEnvelope010(current, did, currentNow)
+	live, err := webTransitionRecordFromEnvelopeWithPolicy010(current, did, currentNow, false)
 	if err != nil {
 		return err
 	}
