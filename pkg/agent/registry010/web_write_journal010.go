@@ -65,7 +65,7 @@ func webWriteJournalStep010(previous, next WebRegistryWriteState010, source, did
 		CheckWebRegistryHistoryContinuity010(next.History, next.Envelope, did, last.At) != nil {
 		return ErrInvalidRecord010
 	}
-	record, err := webTransitionRecordFromEnvelope010(next.Envelope, did, last.At)
+	record, err := webTransitionRecordFromEnvelopeWithPolicy010(next.Envelope, did, last.At, false)
 	if err != nil || next.Tombstoned != (record.State == "deactivated") {
 		return ErrInvalidRecord010
 	}
