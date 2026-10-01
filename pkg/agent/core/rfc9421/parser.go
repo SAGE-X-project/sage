@@ -34,6 +34,11 @@ type SignatureInputParams struct {
 	Created           int64
 	Expires           int64
 	Nonce             string
+	Tag               string
+	// receivedParameters preserves the received order for @signature-params.
+	// RFC 9421 requires the verifier to serialize that order, not the signer's
+	// preferred order. It is populated only by ParseSignatureInput.
+	receivedParameters []string
 }
 
 // ParseSignatureInput parses the Signature-Input header according to RFC 9421
@@ -210,6 +215,7 @@ func parseParameters(paramStr string, params *SignatureInputParams) error {
 
 		key := strings.TrimSpace(strings.ToLower(kv[0]))
 		value := strings.TrimSpace(kv[1])
+		params.receivedParameters = append(params.receivedParameters, key+"="+value)
 
 		// Remove quotes if present
 		if strings.HasPrefix(value, "\"") && strings.HasSuffix(value, "\"") {
@@ -235,6 +241,8 @@ func parseParameters(paramStr string, params *SignatureInputParams) error {
 			params.Expires = expires
 		case "nonce":
 			params.Nonce = value
+		case "tag":
+			params.Tag = value
 		}
 	}
 
