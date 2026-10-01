@@ -12,7 +12,7 @@ import (
 	"sync"
 )
 
-const webWriteJournalHeader010 = "sage-web-registry-writes|0.10.0\n"
+const webWriteJournalHeader010 = "sage-web-registry-writes|0.10.0|operator-1\n"
 const webWriteJournalLimit010 = 64 * 1024 * 1024
 
 type webWriteJournalBinding010 struct {
@@ -74,6 +74,9 @@ func webWriteJournalStep010(previous, next WebRegistryWriteState010, source, did
 			return ErrInvalidRecord010
 		}
 	} else if last.At < previous.History[len(previous.History)-1].At {
+		return ErrInvalidRecord010
+	}
+	if webVerifyGrantStep010(previous, next, did) != nil {
 		return ErrInvalidRecord010
 	}
 	return nil

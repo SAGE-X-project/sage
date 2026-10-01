@@ -104,9 +104,26 @@ holds an exclusive writer lock, appends one complete state row and syncs it
 before exposing the change, and rejects incomplete state on restart. A prior
 response is re-enveloped at the trusted mutation time so later legitimate
 writes are not blocked by its five-second HTTP response lifetime. The path,
-source identity, credentials, delegation and disk integrity are deployment
+source identity, credentials and disk integrity are deployment
 inputs; this journal does not authenticate them or establish REG-08 deployment
 conformance.
+
+`ApplyWebRegistryOperatorCommand010` implements the controller-only grant and
+revoke transaction from the amended REG-03/REG-08 design. An exact operator
+and scope pair is stored with the next public record version, full history and
+tombstone under the journal's one-writer lock. Lifecycle writes now use that
+committed grant set for delegated authority and retire scopes that are invalid
+in the next state. On each write, the core reconstructs active grants from
+the complete committed history rather than trusting a standalone positive
+grant assertion. The local journal rechecks each grant transition on restart.
+The `operator-1` journal header deliberately rejects older local journal
+files; migration requires an explicit, trusted reconstruction of actor and
+grant history. The standalone `CheckWebRegistryMutationAdmission010` still
+accepts a deployment-supplied delegation predicate for bounded compatibility
+checks, but its result alone is not evidence of the atomic grant contract.
+The Registry service must still bind exact administrative request fields,
+authenticated credentials, trusted storage ownership and a read-only
+Inspector view before claiming deployed conformance.
 
 `AcceptWebRegistryAdminMTLS010` is an optional deployment reference for
 controller-only administrative writes. It performs a fresh server-side TLS
