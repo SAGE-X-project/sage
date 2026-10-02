@@ -163,8 +163,12 @@ the operation. A stale result requires another read before a deferred decision.
 The final clock sample is this module's observation linearization point; callers
 must arrange any later authorization gate and side effect accordingly.
 
-Selection requires the exact usable Ed25519 signing URL. A handshake additionally
-selects the first usable X25519 key in ASCII name order. Pinned keys retain their
+The Gate parses each DID and signing key URL with the strict 0.10.0 grammar
+before consulting the Source. The DID must name the configured registry, and
+the key URL must name that exact DID; legacy aliases and malformed fragments
+are rejected. Selection then requires the exact usable Ed25519 signing URL.
+A handshake additionally selects the first usable X25519 key in ASCII name
+order. Pinned keys retain their
 original identity, bytes and expiry; unrelated record changes do not replace them.
 Pins are metadata, not reusable grants. A session owner must call the check for
 each operation and close the session on failure. Session ownership, authenticated

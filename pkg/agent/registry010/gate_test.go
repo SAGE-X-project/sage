@@ -246,3 +246,62 @@ func TestClosedStoreAndPinnedOwnership(t *testing.T) {
 		t.Fatal("closed store granted access")
 	}
 }
+
+func TestGateRejectsNoncanonicalIdentityBeforeSourceRead(t *testing.T) {
+	f := loadFixture(t)
+	cfg := Config{f.Config.Source, f.Config.Registry, f.Config.Network, f.Config.Blockchain}
+	validDID := "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
+	for _, tc := range []struct {
+		name, did, signingURL string
+		observe               bool
+	}{
+		{"legacy kind", "did:sage:chain:x:alice", "", true},
+		{"noncanonical chain", "did:sage:eip155:01:0xabababababababababababababababababababab:alice", "", true},
+		{"different registry", "did:sage:web:agents.example.com:alice", "", true},
+		{"missing fragment", validDID, validDID, false},
+		{"extra fragment", validDID, validDID + "#signing-1#other", false},
+		{"other sender", validDID, "did:sage:eip155:1:0xabababababababababababababababababababab:bob#signing-1", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := &controls{}
+			j, err := OpenJournal(filepath.Join(t.TempDir(), "state"), true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = j.Close() }()
+			g, err := NewGate(cfg, c, c, j)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.observe {
+				_, err = g.Observe(context.Background(), tc.did)
+			} else {
+				_, err = g.Select(context.Background(), tc.did, tc.signingURL, false)
+			}
+			if !errors.Is(err, ErrRejected) || c.reads != 0 || c.index != 0 {
+				t.Fatalf("expected rejection before clock/source access, got %v, %d reads, %d clock calls", err, c.reads, c.index)
+			}
+		})
+	}
+}
+
+func TestGateRejectsNoncanonicalConfiguredRegistry(t *testing.T) {
+	for _, registry := range []string{
+		"eip155:01:0xabababababababababababababababababababab",
+		"web:Agents.example.com",
+		"solana:mainnet",
+	} {
+		t.Run(registry, func(t *testing.T) {
+			j, err := OpenJournal(filepath.Join(t.TempDir(), "state"), true)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() { _ = j.Close() }()
+			c := &controls{}
+			_, err = NewGate(Config{Source: "fixture", Registry: registry, Network: "local"}, c, c, j)
+			if !errors.Is(err, ErrRejected) {
+				t.Fatalf("expected invalid registry to fail, got %v", err)
+			}
+		})
+	}
+}
