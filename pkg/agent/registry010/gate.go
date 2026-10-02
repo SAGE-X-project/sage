@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+
+	sagedid "github.com/sage-x-project/sage/pkg/agent/did"
 )
 
 var ErrUnreachable = errors.New("record.unreachable")
@@ -17,7 +19,6 @@ var ErrStale = errors.New("record.stale")
 var ErrRejected = errors.New("record.rejected")
 var hex32 = regexp.MustCompile(`^[0-9a-f]{64}$`)
 var namePattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,32}$`)
-var agentPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,64}$`)
 
 // Stamp uses local monotonic milliseconds and trusted Unix seconds. A Clock
 // error means the clock cannot currently be trusted; it must fail closed.
@@ -98,6 +99,10 @@ func NewGate(c Config, s Source, k Clock, p Store) (*Gate, error) {
 			return nil, ErrRejected
 		}
 	}
+	parsed, err := sagedid.ParseDID010("did:sage:" + c.Registry + ":a")
+	if err != nil || parsed.Kind+":"+parsed.Locator != c.Registry {
+		return nil, ErrRejected
+	}
 	if s == nil || k == nil || p == nil {
 		return nil, ErrRejected
 	}
@@ -130,12 +135,8 @@ func cloneSnapshot(s Snapshot) Snapshot {
 	return s
 }
 func (g *Gate) validDID(did string) bool {
-	prefix := "did:sage:" + g.cfg.Registry + ":"
-	if len(did) > 256 || !strings.HasPrefix(did, prefix) {
-		return false
-	}
-	agent := strings.TrimPrefix(did, prefix)
-	return agentPattern.MatchString(agent) && agent != "." && agent != ".."
+	parsed, err := sagedid.ParseDID010(did)
+	return err == nil && parsed.Kind+":"+parsed.Locator == g.cfg.Registry
 }
 func fresh(start, now Stamp, acquired int64) bool {
 	return acquired >= start.MonoMS && acquired <= now.MonoMS && now.MonoMS-acquired <= 5000
@@ -244,6 +245,13 @@ func (g *Gate) Select(ctx context.Context, did, signingURL string, requireKEM bo
 func (g *Gate) SelectWithTime(ctx context.Context, did, signingURL string, requireKEM bool) (*Pinned, Stamp, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	if _, err := sagedid.ParseDIDURL010(signingURL); err != nil {
+		return nil, Stamp{}, ErrRejected
+	}
+	parent, _, _ := strings.Cut(signingURL, "#")
+	if parent != did {
+		return nil, Stamp{}, ErrRejected
+	}
 	s, now, e := g.read(ctx, did)
 	if e != nil {
 		return nil, Stamp{}, e
