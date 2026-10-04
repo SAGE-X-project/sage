@@ -269,6 +269,16 @@ func OpenClient(ctx context.Context, path string, create bool, raw []byte, s Cli
 	return openClient(ctx, path, create, raw, s, false)
 }
 
+// OpenCapturedClient binds a root intent to the trusted pre-expansion capture
+// before creating or reopening its journal. The host must protect the capture,
+// stable journal path and all effect and result routes independently.
+func OpenCapturedClient(ctx context.Context, path string, create bool, raw []byte, s ClientServices, capture *RootCapture) (*Client, error) {
+	if capture == nil || !capture.matches(raw) {
+		return nil, ErrInvalid
+	}
+	return OpenClient(ctx, path, create, raw, s)
+}
+
 func openClient(ctx context.Context, path string, create bool, raw []byte, s ClientServices, hop bool) (*Client, error) {
 	if ctx == nil || s.IntentAuthority == nil || s.Policy == nil || s.ResultAuthority == nil || s.Clock == nil || s.Sender == nil || (runtime.GOOS != "linux" && runtime.GOOS != "darwin") {
 		return nil, ErrInvalid

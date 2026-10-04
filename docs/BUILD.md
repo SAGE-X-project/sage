@@ -2,6 +2,24 @@
 
 This guide covers building SAGE binaries and libraries for multiple platforms and architectures.
 
+## Protected root Client import
+
+Go applications can import `github.com/sage-x-project/sage/pkg/agent/guard010`.
+For a root call, create `guard010.NewRootCapture(originalItems, requestID)` at
+the trusted input boundary, before model or plugin expansion. Pass the returned
+capture to `guard010.OpenCapturedClient(ctx, journalPath, create, signedIntent,
+services, capture)`. A missing, changed or differently identified capture is
+rejected before the Client journal is created. The same capture is required
+when reopening that operation; retain the original bytes and request ID in
+protected storage. `OpenHopClient` remains the separate child-call path.
+
+The host must supply trusted authority, policy, clock, sender and result
+authority in `ClientServices`. This import does not establish that the host
+actually captured the user's input, protects the signing key, or mediates all
+effect and output routes. The C ABI and optional MCP tools do not provide a
+complete protected Agent host. Those deployment properties need independent
+Inspector evidence.
+
 ---
 
 ## Table of Contents
