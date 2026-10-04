@@ -144,6 +144,62 @@ func clientVectors(t *testing.T) clientSuite {
 	}
 	return s
 }
+
+func TestCapturedClientBindsOriginalBeforeJournal(t *testing.T) {
+	s := clientVectors(t)
+	f := &clientFixture{f: s.Input, utc: 1700000000000, clockOK: true, resultActive: true, pub: s.Public}
+	const requestID = "00000000-0000-4000-8000-000000000002"
+	capture, err := g.NewRootCapture([][]byte{[]byte("trusted root input")}, requestID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest, err := g.OriginalCommitment([][]byte{[]byte("trusted root input")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if digest != "4dfd470e686f50c56d34a34147d753c21c7de8e012111afcd6c98f84817c8014" {
+		t.Fatal("original byte commitment differs from independent vector")
+	}
+	f.f["original_digest"], _ = json.Marshal(digest)
+	raw := resign(t, f.f, "original_digest", digest, false)
+	for _, tc := range []struct {
+		name    string
+		capture *g.RootCapture
+		allowed bool
+	}{
+		{"missing", nil, false},
+		{"changed input", mustCapture(t, "changed root input", requestID), false},
+		{"other request", mustCapture(t, "trusted root input", "00000000-0000-4000-8000-000000000099"), false},
+		{"matching", capture, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "journal")
+			client, err := g.OpenCapturedClient(context.Background(), path, true, raw, f.services(), tc.capture)
+			if tc.allowed {
+				if err != nil || client == nil {
+					t.Fatalf("matching capture rejected: %v", err)
+				}
+				_ = client.Close()
+				return
+			}
+			if err == nil || client != nil {
+				t.Fatal("unbound capture accepted")
+			}
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				t.Fatal("rejected capture created journal")
+			}
+		})
+	}
+}
+
+func mustCapture(t *testing.T, input, requestID string) *g.RootCapture {
+	t.Helper()
+	capture, err := g.NewRootCapture([][]byte{[]byte(input)}, requestID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return capture
+}
 func clientSetup(t *testing.T) (*g.Client, *clientFixture, string, clientSuite) {
 	t.Helper()
 	s := clientVectors(t)

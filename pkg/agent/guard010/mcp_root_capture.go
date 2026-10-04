@@ -1,14 +1,17 @@
 package guard010
 
-// mcpRootCapture binds the exact original input list to a root request. The
+// RootCapture binds the exact original input list to a root request. The
 // trusted host must capture those bytes and assign a fresh request ID before
 // plugin or model expansion, then retain the bytes in protected storage.
-type mcpRootCapture struct {
+// This value does not attest that the host captured the user's actual input.
+type RootCapture struct {
 	requestID string
 	digest    string
 }
 
-func newMCPRootCapture(items [][]byte, requestID string) (*mcpRootCapture, error) {
+// NewRootCapture commits the ordered, exact UTF-8 bytes at the trusted input
+// boundary. The host owns durable storage for the input and this request ID.
+func NewRootCapture(items [][]byte, requestID string) (*RootCapture, error) {
 	if !uuid.MatchString(requestID) {
 		return nil, ErrInvalid
 	}
@@ -16,10 +19,17 @@ func newMCPRootCapture(items [][]byte, requestID string) (*mcpRootCapture, error
 	if err != nil {
 		return nil, ErrInvalid
 	}
-	return &mcpRootCapture{requestID: requestID, digest: digest}, nil
+	return &RootCapture{requestID: requestID, digest: digest}, nil
 }
 
-func (c *mcpRootCapture) matches(raw []byte) bool {
+// Keep the existing private MCP owner path bound to the same capture type.
+type mcpRootCapture = RootCapture
+
+func newMCPRootCapture(items [][]byte, requestID string) (*mcpRootCapture, error) {
+	return NewRootCapture(items, requestID)
+}
+
+func (c *RootCapture) matches(raw []byte) bool {
 	if c == nil {
 		return false
 	}
