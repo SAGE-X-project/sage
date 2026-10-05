@@ -581,5 +581,60 @@ call, binds its parent call ID, and rechecks upstream admission before signing;
 journaled request or undo effects: the host must separately retire policy at
 receivers and manage live Clients and DispatchGates. Callback deadlines,
 immutable loading, key custody, full route isolation and deployment conformance
-remain host obligations. This native API does not expose an FFI/WASM protected
-host or complete non-HTTP MCP owner assembly.
+remain host obligations. This native issuer API does not expose an FFI/WASM protected host.
+The native MCP coordinator below supplies separate owner assembly.
+
+
+## Public native MCP host
+
+`OpenMCPHost` assembles the existing owner monitor, durable admission gate,
+fixed effect workers, outbound Client pool and connection runner before any
+peer input. Supply `MCPHostServices` from protected local code: separate fresh
+registry authorities for intents and results, approved policy, the same
+immutable executor used for validation and effects, a protected result signer,
+and trustworthy time. Shared Go callbacks and the signer must be concurrency
+safe, bounded and non-reentrant. `MCPHostBounds` explicitly limits preparations,
+clients, effects, owners, workers and every deadline; clocks in the registry,
+endpoint and Client providers must share the host's monotonic origin.
+
+`Connect` takes exclusive ownership of a socket, including rejected sockets,
+and runs synchronously on a bounded caller worker. `Serve` owns one listener
+and a fixed accept-worker set. `MCPConnectionConfig` selects the role, exact
+recipient/signing key for initiation, metadata, session lifetime and setup
+budget locally. Both peers use the existing four-byte big-endian length
+framing; this is deployment carriage, not MCP stdio or new protocol negotiation.
+
+Implement `MCPConnectionHandler` in trusted host code. `Endpoint` constructs
+and exclusively transfers a fresh endpoint only after connection capacity is
+reserved. Its replay/registry providers remain host obligations. `Prepare`
+confirms actual local readiness before the initialized acknowledgement;
+`Handle` runs after authentication and complete MCP setup. Endpoint construction,
+provider delays, socket cleanup and active effects retain charged capacity
+until their actual termination. The endpoint is closed at connection cleanup.
+
+Inside `Handle`, responder `ServeOne` verifies and admits one protected call,
+then publishes a verified signed response. An initiator opens one root Client
+with `OpenRootClient`, an already signed intent, an independent `RootCapture`
+and protected `MCPClientServices`, then calls `Exchange`. `OpenHopClient`
+requires the live `Invocation` from an actually admitted upstream worker and
+its verifier/policy. The connection chooses the sender and authenticated peer
+tuple; callers cannot supply a READY flag, session, raw stream or worker token.
+Copied connection handles share state and become invalid when `Handle` returns.
+
+Pending is not completed execution. Retry only the same signed operation after
+at least one second on both UTC and monotonic clocks, within all original
+expiry/deadline checks. Consume only verified journaled delivery; first terminal
+consumption precedes output release. Protect stable ledger/journal identities,
+issuer fencing, key custody, immutable loading and all alternate routes. The
+issuer and MCP opening APIs remain separate; these APIs do not themselves bind
+a complete external consumer or deployed Agent host.
+
+`Close(ctx)` permanently retires rights before draining connections, callbacks,
+effects and cleanup. A timeout keeps capacity and the exclusive ledger lock;
+finish bounded cleanup and call `Close` again. Only success permits reopening
+storage or reconstructing configuration. Native Linux/macOS tests use inert
+local TCP effects and cover original/readiness denial, post-callback invalidity,
+configuration checks and retained capacity during incomplete shutdown. Native
+TCP interoperability is bounded evidence, not complete host conformance or an
+FFI/WASM host guarantee. Historical private-component sections above describe
+the underlying adapters; this public coordinator is their supported assembly.

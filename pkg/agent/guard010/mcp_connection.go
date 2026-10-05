@@ -14,6 +14,7 @@ import (
 // Endpoints remain host-owned; one connection never closes a shared endpoint.
 type mcpConnectionConfig struct {
 	endpoint                *hpke.CompletionEndpoint010
+	endpointFactory         func(context.Context) (*hpke.CompletionEndpoint010, error)
 	initiator               bool
 	recipient, recipientKey string
 	name, version           string
@@ -42,7 +43,7 @@ func (h *mcpHost) connection(ctx context.Context, conn net.Conn, cfg mcpConnecti
 		return ErrInvalid
 	}
 	defer func() { _ = stream.Close() }()
-	if ctx == nil || cfg.endpoint == nil || cfg.ttl < 1 || cfg.ttl > 300 || handle == nil || (!cfg.initiator && prepare == nil) {
+	if ctx == nil || (cfg.endpoint == nil) == (cfg.endpointFactory == nil) || cfg.ttl < 1 || cfg.ttl > 300 || handle == nil || (!cfg.initiator && prepare == nil) {
 		return ErrInvalid
 	}
 	life, cancel := context.WithCancel(ctx)
@@ -71,6 +72,7 @@ func (h *mcpHost) connection(ctx context.Context, conn net.Conn, cfg mcpConnecti
 	// progress. It never runs on the deadline sweeper or under a coordinator lock.
 	stop := context.AfterFunc(life, func() { _ = stream.Close() })
 	var s *mcpSetupSession
+	var ownedEndpoint *hpke.CompletionEndpoint010
 	defer func() {
 		if recover() != nil {
 			err = ErrInvalid
@@ -81,6 +83,9 @@ func (h *mcpHost) connection(ctx context.Context, conn net.Conn, cfg mcpConnecti
 		if s != nil {
 			s.close()
 		}
+		if ownedEndpoint != nil {
+			ownedEndpoint.Close()
+		}
 		h.mu.Lock()
 		h.connections[slot] = nil
 		h.mu.Unlock()
@@ -90,6 +95,13 @@ func (h *mcpHost) connection(ctx context.Context, conn net.Conn, cfg mcpConnecti
 	defer endSetup()
 	stopSetup := context.AfterFunc(setup, cancel)
 	defer stopSetup()
+	if cfg.endpointFactory != nil {
+		ownedEndpoint, e = cfg.endpointFactory(setup)
+		if e != nil || ownedEndpoint == nil || setup.Err() != nil {
+			return ErrInvalid
+		}
+		cfg.endpoint = ownedEndpoint
+	}
 	authenticated, e := establishMCPConnection(setup, stream, cfg)
 	if e != nil {
 		return ErrInvalid
