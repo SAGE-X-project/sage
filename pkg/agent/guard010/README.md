@@ -638,3 +638,15 @@ configuration checks and retained capacity during incomplete shutdown. Native
 TCP interoperability is bounded evidence, not complete host conformance or an
 FFI/WASM host guarantee. Historical private-component sections above describe
 the underlying adapters; this public coordinator is their supported assembly.
+
+### Issued journal transfer to a native MCP owner
+
+`Client.JournaledIntent` returns a copy of the signed envelope from a healthy
+open journal without signing, sending, refreshing verification or appending any
+event. After protected issuance, obtain that snapshot, close the issuing Client,
+and call `MCPConnection.OpenRootClient` with `create=false`, the same stable
+journal path, independent capture and current protected services. Hop transfers
+must use the corresponding admitted-parent entry. The owned entry repeats
+current verification and adopts the existing journal without re-signing. Never
+open a second journal or reset the issuance fence on failure. Ordinary polling
+and the reopen monotonic delay still apply; the snapshot is data, not authority.

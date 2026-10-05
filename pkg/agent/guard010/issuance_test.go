@@ -516,3 +516,47 @@ func TestIntentIssuerPreservesQuotedArgumentStrings(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestJournaledIntentSnapshotDoesNotUseAuthorityOrTransport(t *testing.T) {
+	f := newIssueFixture(t)
+	f.path = filepath.Join(t.TempDir(), "operation")
+	issuer := f.issuer(t)
+	client, err := issuer.Issue(context.Background(), f.path, issueToken(t, issuer))
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(f.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := client.JournaledIntent()
+	if err != nil {
+		t.Fatal(err)
+	}
+	original := append([]byte(nil), raw...)
+	raw[0] ^= 1
+	again, err := client.JournaledIntent()
+	after, readErr := os.ReadFile(f.path)
+	if err != nil || readErr != nil || !bytes.Equal(original, again) || !bytes.Equal(before, after) || f.signs != 1 || f.sends != 0 {
+		t.Fatal("snapshot changed signing, transport, journal or intent")
+	}
+	if err = client.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = client.JournaledIntent(); err == nil {
+		t.Fatal("closed snapshot accepted")
+	}
+	resumed, err := f.issuer(t).Reopen(context.Background(), f.path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resumed.Close()
+	again, err = resumed.JournaledIntent()
+	if err != nil || !bytes.Equal(original, again) || f.signs != 1 || f.sends != 0 {
+		t.Fatal("reopen changed intent")
+	}
+	var absent *g.Client
+	if _, err = absent.JournaledIntent(); err == nil {
+		t.Fatal("nil snapshot accepted")
+	}
+}
