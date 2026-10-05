@@ -535,3 +535,51 @@ These guarantees assume native-style, bounded, non-panicking socket/listener Clo
 and cooperative trusted handlers. Persistent registry deployment, immutable tool
 loading and whole-host mediation remain deployment responsibilities. Rust parity
 and Inspector catalog evidence remain separate work.
+
+## Protected intent issuance
+
+`NewIntentIssuer` owns one root operation's trusted capture, locally selected
+issuer/recipient and signing key, approved policy and pinned component callback.
+`Authorize` accepts only an `IntentProposal` (tool, resolved JSON object and
+1–300 second lifetime). It creates canonical intent bytes with fresh call ID and
+nonce, then returns an opaque issuer-bound decision. `Issue` consumes that
+decision, rechecks policy, loaded instance, active Ed25519 key and time, and
+returns only a durably journaled `Client`. It does not send traffic.
+
+The host supplies `IssuerServices`: its ordinary `ClientServices`, a full
+`IssuancePolicy.ApproveIntent` evaluator, `IntentMeasurement`, private-key
+`IntentSigner` and exact local `KeyID`. Full approval includes allowed target
+and current readiness, policy epoch, original capture and complete final
+arguments. Providers and their capabilities stay outside model/plugin control;
+there is no public arbitrary-message method on `IntentIssuer`.
+
+```go
+issuer, err := guard010.NewIntentIssuer(capture, trustedIssuerServices)
+// Handle err before proceeding.
+approved, err := issuer.Authorize(ctx, guard010.IntentProposal{
+    Tool: "read", Arguments: []byte(`{"path":"notes.txt"}`), LifetimeSeconds: 300,
+})
+// Handle err before proceeding.
+client, err := issuer.Issue(ctx, protectedOperationPath, approved)
+```
+
+Each stable operation path has a permanent `.issuance` fence, synced before
+private-key use, alongside its Client journal. Failed or interrupted issuance
+keeps that fence and consumes the decision; automatic new-path/new-call retry
+is forbidden. A fresh configured issuer's `Reopen` reads the exact saved
+journal without signing. Missing, partial or inconsistent state requires
+protected reconciliation. After handing services to a Client, the issuer
+cannot create another operation. Protect both files and their directory
+against deletion, rollback, substitution and concurrent unmediated writers.
+
+`NewHopIntentIssuer` requires a fresh capture of the exact authenticated inbound
+envelope and protected `HopServices`. It independently approves the downstream
+call, binds its parent call ID, and rechecks upstream admission before signing;
+`OpenHopClient` also checks that admission before each actual handoff.
+
+`Retire` invalidates pending issuance decisions. It does not revoke an already
+journaled request or undo effects: the host must separately retire policy at
+receivers and manage live Clients and DispatchGates. Callback deadlines,
+immutable loading, key custody, full route isolation and deployment conformance
+remain host obligations. This native API does not expose an FFI/WASM protected
+host or complete non-HTTP MCP owner assembly.
