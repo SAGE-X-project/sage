@@ -482,3 +482,37 @@ func TestIntentIssuerRejectsOtherKeyRoleAndWeakKey(t *testing.T) {
 		})
 	}
 }
+
+func TestIntentIssuerPreservesQuotedArgumentStrings(t *testing.T) {
+	f := newIssueFixture(t)
+	f.path = filepath.Join(t.TempDir(), "operation")
+	issuer := f.issuer(t)
+	expected := "notes \"quoted\" \\ folder\nname <>&"
+	p := proposal()
+	p.Arguments = mustJSON(t, map[string]string{"path": expected})
+	token, err := issuer.Authorize(context.Background(), p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	client, err := issuer.Issue(context.Background(), f.path, token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	invocation, err := client.Begin(context.Background(), "00000000-0000-4000-8000-000000000050")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var envelope map[string]any
+	if json.Unmarshal(invocation.Intent(), &envelope) != nil {
+		t.Fatal("envelope")
+	}
+	if envelope["intent"].(map[string]any)["arguments"].(map[string]any)["path"] != expected {
+		t.Fatal("JSON serialization changed argument bytes")
+	}
+	if _, err = g.VerifyIntent(context.Background(), invocation.Intent(), f.f.s("expected_recipient"), f, f); err != nil {
+		t.Fatal(err)
+	}
+	if err = client.Close(); err != nil {
+		t.Fatal(err)
+	}
+}

@@ -128,8 +128,13 @@ func issuanceUUID() (string, error) {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[:4], b[4:6], b[6:8], b[8:10], b[10:]), nil
 }
 func unsignedEnvelope(body []byte) []byte {
-	return []byte(`{"intent":` + string(body) + `,"proof":"` + base64.RawURLEncoding.EncodeToString(make([]byte, 64)) + `"}`)
+	intent, _, err := object(body)
+	if err != nil {
+		return nil
+	}
+	return encode(map[string]any{"intent": intent, "proof": base64.RawURLEncoding.EncodeToString(make([]byte, 64))})
 }
+
 func unsignedPolicy(ctx context.Context, p IntentPolicy, i map[string]any) error {
 	original, policy, manifestRaw, err := p.Bindings(ctx, str(i, "issuer"), str(i, "request_id"))
 	pd, e := PolicyCommitment(policy)
@@ -302,7 +307,11 @@ func (g *IntentIssuer) Issue(ctx context.Context, path string, t *AuthorizedInte
 		!ed25519.Verify(key, append([]byte("sage-execution-intent|0.10.0\x00"), t.body...), proof) {
 		return nil, ErrInvalid
 	}
-	raw, err := Canonicalize([]byte(`{"intent":` + string(t.body) + `,"proof":"` + base64.RawURLEncoding.EncodeToString(proof) + `"}`))
+	intent, _, err := object(t.body)
+	if err != nil {
+		return nil, ErrInvalid
+	}
+	raw, err := Canonicalize(encode(map[string]any{"intent": intent, "proof": base64.RawURLEncoding.EncodeToString(proof)}))
 	if err != nil {
 		return nil, ErrInvalid
 	}
