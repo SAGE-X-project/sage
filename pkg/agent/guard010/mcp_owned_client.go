@@ -170,7 +170,7 @@ func openMCPOwnedClientWithHop(ctx context.Context, s *mcpSetupSession, p *mcpCl
 	b = &mcpOwnedClient{session: s, pool: p, intent: intent, authority: a, resultAuthority: result, policy: policy}
 	clientServices := ClientServices{IntentAuthority: a, ResultAuthority: result, Policy: policy, Clock: mcpSafeClientClock{clock}, Sender: b, ExpectedIssuer: local, ExpectedRecipient: peer}
 	if hop == nil {
-		b.client, e = OpenClient(work, path, create, intent, clientServices)
+		b.client, e = OpenCapturedClient(work, path, create, intent, clientServices, capture)
 	} else {
 		b.client, e = OpenHopClient(work, path, create, hop.incoming, intent, clientServices, hop.services)
 	}
