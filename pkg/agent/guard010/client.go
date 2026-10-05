@@ -524,3 +524,19 @@ func (c *Client) Close() error {
 	}
 	return os.Remove(c.lock)
 }
+
+// JournaledIntent returns a copy of the unchanged signed envelope from a healthy
+// open journal. It performs no signing, verification refresh, handoff or event
+// append and grants no invocation authority. A protected owner must reverify
+// capture, peers and current policy when reopening the same stable journal.
+func (c *Client) JournaledIntent() ([]byte, error) {
+	if c == nil {
+		return nil, ErrInvalid
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.file == nil || c.failed {
+		return nil, ErrInvalid
+	}
+	return append([]byte(nil), c.intent...), nil
+}
