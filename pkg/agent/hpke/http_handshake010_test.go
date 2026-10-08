@@ -94,7 +94,7 @@ func TestHTTPHandshake010(t *testing.T) {
 				reject = true
 			case "inner-completion":
 				r.Body = changedCompletion(t, q.Body, r.Body, "inner-signature")
-				r, x = signHTTP010(b, b.httpTarget, b.httpAuthority, r.Body, 200, p.http)
+				r, x = signHTTP010(context.Background(), b, b.httpTarget, b.httpAuthority, r.Body, 200, p.http)
 				if x != nil {
 					t.Fatal(x)
 				}

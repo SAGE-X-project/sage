@@ -159,7 +159,11 @@ func (s *AuthenticatedCompletion010) sealRequest010(ctx context.Context, plainte
 		return nil, errCompletion010
 	}
 	w["payload"] = base64.RawURLEncoding.EncodeToString(wire)
-	result := sign010(w, "sage-wire-request|0.10.0\n", e.signing)
+	result, x := sign010(ctx, w, "sage-wire-request|0.10.0\n", e)
+	if x != nil {
+		s.destroy()
+		return nil, errCompletion010
+	}
 	end, x := s.recordGate(start, start.Unix+ttl)
 	if x != nil {
 		return nil, x

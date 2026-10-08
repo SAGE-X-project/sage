@@ -102,7 +102,11 @@ func (s *AuthenticatedCompletion010) sealResponse010(ctx context.Context, messag
 		return nil, errCompletion010
 	}
 	w["data"] = base64.RawURLEncoding.EncodeToString(record)
-	result := sign010(w, "sage-wire-response|0.10.0\n", e.signing)
+	result, x := sign010(ctx, w, "sage-wire-response|0.10.0\n", e)
+	if x != nil {
+		s.destroy()
+		return nil, errCompletion010
+	}
 	end, x := s.recordGate(start, start.Unix+ttl)
 	if x != nil {
 		return nil, x

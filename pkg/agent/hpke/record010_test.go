@@ -67,7 +67,7 @@ func mutateRecord010(t *testing.T, wire []byte, kind string, s *AuthenticatedCom
 		return wire
 	}
 	delete(w, "signature")
-	return sign010(w, "sage-wire-request|0.10.0\n", s.endpoint.signing)
+	return signKey010(w, "sage-wire-request|0.10.0\n", s.endpoint.signing)
 }
 func TestAuthenticatedRecord010Scenarios(t *testing.T) {
 	raw, x := os.ReadFile("testdata/authenticated-record010.json")

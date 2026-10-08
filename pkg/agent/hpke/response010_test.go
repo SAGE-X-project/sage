@@ -68,7 +68,7 @@ func responseMutate010(t *testing.T, raw, request []byte, kind, otherID string, 
 		return raw
 	}
 	delete(w, "signature")
-	return sign010(w, "sage-wire-response|0.10.0\n", s.endpoint.signing)
+	return signKey010(w, "sage-wire-response|0.10.0\n", s.endpoint.signing)
 }
 func TestSessionResponse010(t *testing.T) {
 	raw, x := os.ReadFile("testdata/session-response010.json")
