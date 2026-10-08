@@ -23,7 +23,10 @@ type RecordReplayStore010 interface {
 }
 
 func (s *AuthenticatedCompletion010) recordLive(t registry010.Stamp) error {
-	if s.closed || s.unavailable010() || s.records == nil || t.MonoMS < s.lifetime.sampledMono.Load() || t.Unix < s.lifetime.sampledWall.Load() || t.MonoMS < s.created.MonoMS || t.MonoMS < s.active.MonoMS || t.Unix < s.created.Unix || t.MonoMS-s.created.MonoMS >= 3600000 || t.MonoMS-s.active.MonoMS >= 600000 || (!s.initiator && !s.confirmed && !pendingLive010(t, s.created, s.expires)) {
+	// Endpoint sampling already enforces rollback against both protocol work
+	// and native timers. A later timer cannot invalidate this operation's start;
+	// each final gate still takes a new ordered sample and checks freshness.
+	if s.closed || s.unavailable010() || s.records == nil || t.MonoMS < s.created.MonoMS || t.MonoMS < s.active.MonoMS || t.Unix < s.created.Unix || t.MonoMS-s.created.MonoMS >= 3600000 || t.MonoMS-s.active.MonoMS >= 600000 || (!s.initiator && !s.confirmed && !pendingLive010(t, s.created, s.expires)) {
 		return errCompletion010
 	}
 	return nil
