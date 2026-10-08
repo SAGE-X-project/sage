@@ -11,12 +11,11 @@ import (
 // A shared marker makes value copies of a transferred session unusable too.
 // All record operations still serialize on the original endpoint mutex.
 type recordLifetime010 struct {
-	disabled                 atomic.Bool
-	used, http               atomic.Bool
-	sampledMono, sampledWall atomic.Int64
-	checked                  atomic.Int64
-	active, wall             atomic.Int64
-	confirmed                atomic.Bool
+	disabled     atomic.Bool
+	used, http   atomic.Bool
+	checked      atomic.Int64
+	active, wall atomic.Int64
+	confirmed    atomic.Bool
 }
 
 func newRecordLifetime010(t registry010.Stamp) *recordLifetime010 {
@@ -24,8 +23,6 @@ func newRecordLifetime010(t registry010.Stamp) *recordLifetime010 {
 	l.active.Store(t.MonoMS)
 	l.wall.Store(t.Unix)
 	l.checked.Store(t.MonoMS)
-	l.sampledMono.Store(t.MonoMS)
-	l.sampledWall.Store(t.Unix)
 	return l
 }
 func (s *AuthenticatedCompletion010) unavailable010() bool {
@@ -54,8 +51,6 @@ func (s *AuthenticatedCompletion010) TakeNonHTTP() (*NonHTTPOwner010, error) {
 	moved.lifetime.confirmed.Store(s.confirmed)
 	moved.lifetime.active.Store(s.lifetime.active.Load())
 	moved.lifetime.wall.Store(s.lifetime.wall.Load())
-	moved.lifetime.sampledMono.Store(s.lifetime.sampledMono.Load())
-	moved.lifetime.sampledWall.Store(s.lifetime.sampledWall.Load())
 	moved.lifetime.checked.Store(s.lifetime.checked.Load())
 	s.lifetime.disabled.Store(true)
 	return &NonHTTPOwner010{session: &moved}, nil
@@ -84,12 +79,13 @@ func (o *NonHTTPOwner010) LocalNow() (now time.Duration, err error) {
 		return 0, errCompletion010
 	}
 	s := o.session
-	t, err := s.endpoint.clock.Now()
-	mono, wall := s.lifetime.sampledMono.Load(), s.lifetime.sampledWall.Load()
-	if err != nil || t.MonoMS < mono || t.MonoMS < s.lifetime.checked.Load() || t.Unix < wall || t.Unix > 9007199254740691 || s.unavailable010() || s.endpoint.retired.Load() || t.MonoMS < s.created.MonoMS || t.MonoMS < s.lifetime.active.Load() || t.Unix < s.created.Unix || t.Unix < s.lifetime.wall.Load() || t.MonoMS-s.created.MonoMS >= 3600000 || t.MonoMS-s.lifetime.active.Load() >= 600000 || !pinnedLive010(t.Unix, s.a, s.b) || (!s.initiator && !s.lifetime.confirmed.Load() && !pendingLive010(t, s.created, s.expires)) || t.MonoMS > int64((1<<63-1)/time.Millisecond) {
-		return 0, errCompletion010
-	}
-	if !s.lifetime.sampledMono.CompareAndSwap(mono, t.MonoMS) || !s.lifetime.sampledWall.CompareAndSwap(wall, t.Unix) {
+	// Capture publication bounds before sampling. A validation may publish a
+	// newer checked/activity stamp concurrently after this timer's clock read;
+	// that ordinary progress must not be mistaken for a clock rollback.
+	checked, active, wall := s.lifetime.checked.Load(), s.lifetime.active.Load(), s.lifetime.wall.Load()
+	confirmed := s.lifetime.confirmed.Load()
+	t, err := s.endpoint.sampleLocal010()
+	if err != nil || t.MonoMS < checked || t.Unix > 9007199254740691 || s.unavailable010() || s.endpoint.retired.Load() || t.MonoMS < s.created.MonoMS || t.MonoMS < active || t.Unix < s.created.Unix || t.Unix < wall || t.MonoMS-s.created.MonoMS >= 3600000 || t.MonoMS-active >= 600000 || !pinnedLive010(t.Unix, s.a, s.b) || (!s.initiator && !confirmed && !pendingLive010(t, s.created, s.expires)) || t.MonoMS > int64((1<<63-1)/time.Millisecond) {
 		return 0, errCompletion010
 	}
 	return time.Duration(t.MonoMS) * time.Millisecond, nil

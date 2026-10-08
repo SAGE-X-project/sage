@@ -47,6 +47,7 @@ type CompletionEndpoint010 struct {
 	used                      bool
 	retired                   atomic.Bool
 	mu                        sync.Mutex
+	clockMu                   sync.Mutex
 	registry                  *registry010.Gate
 	clock                     registry010.Clock
 	replay                    ReplayStore010
@@ -65,11 +66,23 @@ func NewCompletionEndpoint010(did, kid string, signingSeed, kem []byte, g *regis
 	return &CompletionEndpoint010{registry: g, clock: c, replay: r, did: did, kid: kid, signing: ed25519.NewKeyFromSeed(signingSeed), kem: append([]byte(nil), kem...)}, nil
 }
 func (e *CompletionEndpoint010) sample() (registry010.Stamp, error) {
-	if e.retired.Load() || len(e.signing) != 64 {
+	if len(e.signing) != 64 {
+		return registry010.Stamp{}, errCompletion010
+	}
+	return e.sampleLocal010()
+}
+
+// Both protocol work and the bounded native timer share one ordered clock
+// history. This lock covers only the provisioned local clock, never Registry
+// reads, durable storage, cryptography or endpoint-key cleanup.
+func (e *CompletionEndpoint010) sampleLocal010() (registry010.Stamp, error) {
+	e.clockMu.Lock()
+	defer e.clockMu.Unlock()
+	if e.retired.Load() {
 		return registry010.Stamp{}, errCompletion010
 	}
 	t, x := e.clock.Now()
-	if x != nil || t.MonoMS < 0 || t.Unix < 0 || t.Unix > 9007199254740691 {
+	if x != nil || e.retired.Load() || t.MonoMS < 0 || t.Unix < 0 || t.Unix > 9007199254740691 {
 		return t, errCompletion010
 	}
 	if e.last != nil && (t.MonoMS < e.last.MonoMS || t.Unix < e.last.Unix) {
