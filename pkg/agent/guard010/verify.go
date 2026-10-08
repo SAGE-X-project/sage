@@ -200,20 +200,49 @@ func authenticate(ctx context.Context, a Authority, e, m map[string]any, domain 
 	return nil
 }
 
-// VerifyIntent authenticates Ed25519 and consults locally configured policy.
-// Optional algorithms are rejected. Callers must recheck current authority at
-// the serialized dispatch boundary; this API cannot certify host isolation.
+// VerifyIntent authenticates Ed25519 and consults locally configured policy,
+// including the exact original commitment for the request. Optional algorithms
+// are rejected. A *ReceiverPolicy is refused here; receivers that do not hold
+// the original use VerifyReceivedIntent. Callers must recheck current authority
+// at the serialized dispatch boundary; this API cannot certify host isolation.
 func VerifyIntent(ctx context.Context, raw []byte, recipient string, a Authority, p IntentPolicy) (*VerifiedIntent, error) {
+	return verifyIntent(ctx, raw, recipient, a, p, false)
+}
+
+// VerifyReceivedIntent is VerifyIntent at a receiver. With an ordinary
+// IntentPolicy it behaves exactly like VerifyIntent. With a *ReceiverPolicy it
+// checks the provisioned (issuer, policy_digest) mapping instead of the
+// original commitment, which stays a signed audit field (AGENT-MCP policy
+// commitment rules): the receiver recomputes the policy and manifest
+// commitments from its provisioned descriptors and evaluates the arguments.
+func VerifyReceivedIntent(ctx context.Context, raw []byte, recipient string, a Authority, p IntentPolicy) (*VerifiedIntent, error) {
+	return verifyIntent(ctx, raw, recipient, a, p, true)
+}
+
+func verifyIntent(ctx context.Context, raw []byte, recipient string, a Authority, p IntentPolicy, receiver bool) (*VerifiedIntent, error) {
 	e, m, b, err := intentEnvelope(raw)
-	if err != nil || p == nil || str(m, "recipient") != recipient {
+	if err != nil || absentPolicy(p) || str(m, "recipient") != recipient {
+		return nil, ErrInvalid
+	}
+	mapped, isMapped := p.(*ReceiverPolicy)
+	if isMapped && (!receiver || mapped.mapping == nil) {
 		return nil, ErrInvalid
 	}
 	if authenticate(ctx, a, e, m, "sage-execution-intent") != nil {
 		return nil, ErrInvalid
 	}
-	original, policy, manifestRaw, err := p.Bindings(ctx, str(m, "issuer"), str(m, "request_id"))
-	if err != nil || original != str(m, "original_digest") {
-		return nil, ErrInvalid
+	var policy, manifestRaw []byte
+	if isMapped {
+		policy, manifestRaw, err = mapped.mapping.Approved(ctx, str(m, "issuer"), str(m, "policy_digest"))
+		if err != nil {
+			return nil, ErrInvalid
+		}
+	} else {
+		var original string
+		original, policy, manifestRaw, err = p.Bindings(ctx, str(m, "issuer"), str(m, "request_id"))
+		if err != nil || original != str(m, "original_digest") {
+			return nil, ErrInvalid
+		}
 	}
 	pd, err := PolicyCommitment(policy)
 	if err != nil || pd != str(m, "policy_digest") {

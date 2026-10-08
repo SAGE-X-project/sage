@@ -264,7 +264,7 @@ func (g *DispatchGate) Reject(ctx context.Context, raw []byte, s ResultSigner) (
 	if g.store == nil || g.retired || ctx.Err() != nil {
 		return nil, ErrInvalid
 	}
-	v, err := VerifyIntent(ctx, raw, g.recipient, g.authority, g.policy)
+	v, err := VerifyReceivedIntent(ctx, raw, g.recipient, g.authority, g.policy)
 	if err != nil {
 		return nil, ErrInvalid
 	}

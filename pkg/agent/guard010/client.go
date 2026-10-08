@@ -131,7 +131,7 @@ func checkHop(ctx context.Context, incoming, outgoing []byte, s ClientServices, 
 	if err != nil || !bytes.Equal(incoming, parentCanonical) || str(parent, "recipient") != s.ExpectedIssuer {
 		return ErrInvalid
 	}
-	if _, err = VerifyIntent(ctx, incoming, s.ExpectedIssuer, h.Authority, h.Policy); err != nil {
+	if _, err = VerifyReceivedIntent(ctx, incoming, s.ExpectedIssuer, h.Authority, h.Policy); err != nil {
 		return ErrInvalid
 	}
 	if h.Parent.Authorized(ctx, append([]byte(nil), incoming...)) != nil || ctx.Err() != nil {
