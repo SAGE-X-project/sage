@@ -53,6 +53,8 @@ type CompletionEndpoint010 struct {
 	replay                    ReplayStore010
 	did, kid                  string
 	signing                   ed25519.PrivateKey
+	public                    ed25519.PublicKey
+	custody                   Ed25519Custody010
 	kem                       []byte
 	last                      *registry010.Stamp
 }
@@ -63,10 +65,10 @@ func NewCompletionEndpoint010(did, kid string, signingSeed, kem []byte, g *regis
 	if !did010(did) || !key010(kid, did) || len(signingSeed) != 32 || (len(kem) != 0 && len(kem) != 32) || g == nil || c == nil || r == nil {
 		return nil, errCompletion010
 	}
-	return &CompletionEndpoint010{registry: g, clock: c, replay: r, did: did, kid: kid, signing: ed25519.NewKeyFromSeed(signingSeed), kem: append([]byte(nil), kem...)}, nil
+	return &CompletionEndpoint010{registry: g, clock: c, replay: r, did: did, kid: kid, signing: ed25519.NewKeyFromSeed(signingSeed), public: ed25519.NewKeyFromSeed(signingSeed).Public().(ed25519.PublicKey), kem: append([]byte(nil), kem...)}, nil
 }
 func (e *CompletionEndpoint010) sample() (registry010.Stamp, error) {
-	if len(e.signing) != 64 {
+	if !e.signable() {
 		return registry010.Stamp{}, errCompletion010
 	}
 	return e.sampleLocal010()
@@ -123,7 +125,7 @@ func (e *CompletionEndpoint010) selected(ctx context.Context, m map[string]strin
 		local = b
 	}
 	pub, _ := hex.DecodeString(local.Signing().Material)
-	if local.DID() != e.did || local.DID()+"#"+local.Signing().Name != e.kid || !bytes.Equal(pub, e.signing.Public().(ed25519.PublicKey)) {
+	if local.DID() != e.did || local.DID()+"#"+local.Signing().Name != e.kid || !bytes.Equal(pub, e.public) {
 		return nil, nil, errCompletion010
 	}
 	return a, b, nil
@@ -191,9 +193,13 @@ func int010(m map[string]json.RawMessage, k string) (int64, error) {
 	return strconv.ParseInt(string(m[k]), 10, 64)
 }
 func canon010(v any) []byte { b, _ := jcs.Marshal(v); return b }
-func sign010(m map[string]any, domain string, sk ed25519.PrivateKey) []byte {
-	m["signature"] = base64.RawURLEncoding.EncodeToString(ed25519.Sign(sk, append([]byte(domain), canon010(m)...)))
-	return canon010(m)
+func sign010(ctx context.Context, m map[string]any, domain string, e *CompletionEndpoint010) ([]byte, error) {
+	signature, x := e.sign(ctx, append([]byte(domain), canon010(m)...))
+	if x != nil {
+		return nil, x
+	}
+	m["signature"] = base64.RawURLEncoding.EncodeToString(signature)
+	return canon010(m), nil
 }
 func wire010(raw []byte, response bool, now int64) (map[string]json.RawMessage, []byte, error) {
 	names := append([]string{}, wireFields010...)
@@ -309,7 +315,7 @@ func (e *CompletionEndpoint010) Start(ctx context.Context, recipient, respKid st
 func (e *CompletionEndpoint010) start010(ctx context.Context, recipient, respKid string, ttl int64) (*PendingCompletion010, []byte, error) {
 	e.used = true
 	start, x := e.sample()
-	if x != nil || ttl < 1 || ttl > 300 || len(e.signing) != 64 {
+	if x != nil || ttl < 1 || ttl > 300 || !e.signable() {
 		return nil, nil, errCompletion010
 	}
 	a, x := e.registry.Select(ctx, e.did, e.kid, false)
@@ -321,7 +327,7 @@ func (e *CompletionEndpoint010) start010(ctx context.Context, recipient, respKid
 		return nil, nil, errCompletion010
 	}
 	pub, _ := hex.DecodeString(a.Signing().Material)
-	if !bytes.Equal(pub, e.signing.Public().(ed25519.PublicKey)) {
+	if !bytes.Equal(pub, e.public) {
 		return nil, nil, errCompletion010
 	}
 	contextID, x := uuid.NewRandom()
@@ -351,7 +357,10 @@ func (e *CompletionEndpoint010) start010(ctx context.Context, recipient, respKid
 		return nil, nil, x
 	}
 	wire["nonce"] = m["nonce"]
-	request := sign010(wire, "sage-wire-request|0.10.0\n", e.signing)
+	request, x := sign010(ctx, wire, "sage-wire-request|0.10.0\n", e)
+	if x != nil {
+		return nil, nil, errCompletion010
+	}
 	end, x := e.sample()
 	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, a, b) || end.Unix >= start.Unix+ttl {
 		return nil, nil, errCompletion010
@@ -586,7 +595,7 @@ func (e *CompletionEndpoint010) Respond(ctx context.Context, request []byte, ttl
 func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, ttl int64, proof *httpProof010) (*AuthenticatedCompletion010, []byte, error) {
 	e.used = true
 	start, x := e.sample()
-	if x != nil || ttl < 1 || ttl > 300 || len(e.signing) != 64 || len(e.kem) != 32 {
+	if x != nil || ttl < 1 || ttl > 300 || !e.signable() || len(e.kem) != 32 {
 		return nil, nil, errCompletion010
 	}
 	if proof != nil {
@@ -618,7 +627,11 @@ func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, 
 	}
 	defer func() { zeroBytes(d.Seed); zeroBytes(d.AckTag) }()
 	completion := map[string]any{"v": "0.10.0", "task": "hpke/complete@0.10.0", "transcript": json.RawMessage(d.Transcript), "ackTagB64": base64.RawURLEncoding.EncodeToString(d.AckTag)}
-	completion["sigB64"] = base64.RawURLEncoding.EncodeToString(ed25519.Sign(e.signing, append([]byte("sage-hpke-complete|0.10.0\n"), canon010(completion)...)))
+	completionSignature, x := e.sign(ctx, append([]byte("sage-hpke-complete|0.10.0\n"), canon010(completion)...))
+	if x != nil {
+		return nil, nil, errCompletion010
+	}
+	completion["sigB64"] = base64.RawURLEncoding.EncodeToString(completionSignature)
 	reqExpires, _ := int010(w, "expires")
 	expires := reqExpires
 	if start.Unix+ttl < expires {
@@ -635,7 +648,10 @@ func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, 
 	response["message_id"] = str010(w, "id")
 	response["request_hash"] = base64.RawURLEncoding.EncodeToString(h[:])
 	response["success"] = true
-	raw := sign010(response, "sage-wire-response|0.10.0\n", e.signing)
+	raw, x := sign010(ctx, response, "sage-wire-response|0.10.0\n", e)
+	if x != nil {
+		return nil, nil, errCompletion010
+	}
 	end, x := e.sample()
 	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, a, b) || end.Unix >= expires {
 		return nil, nil, errCompletion010
@@ -650,8 +666,9 @@ func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, 
 	return owned010(e, d, a, b, end, expires, false), raw, nil
 }
 
-// Close retires the endpoint's local private-key copies. Previously returned
-// objects must also be closed by their owner; no keys are restored on restart.
+// Close retires the endpoint's local private-key copies and custody reference.
+// Previously returned objects must also be closed by their owner; no keys are
+// restored on restart.
 func (e *CompletionEndpoint010) Close() {
 	e.retired.Store(true)
 	e.mu.Lock()
@@ -659,6 +676,8 @@ func (e *CompletionEndpoint010) Close() {
 	zeroBytes(e.signing)
 	zeroBytes(e.kem)
 	e.signing = nil
+	e.public = nil
+	e.custody = nil
 	e.kem = nil
 }
 

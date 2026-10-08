@@ -47,6 +47,17 @@ key checks close results on unavailable, revoked, expired or changed pinned keys
 unrelated key additions keep the original selections. Checks alone are not
 traffic and cannot reset idle lifetime; unused results close by ten minutes.
 
+`NewCustodyCompletionEndpoint010` keeps the Ed25519 signing key in external
+`Ed25519Custody010` custody instead of a local seed. It reads the public key
+once at construction; each request, completion, response, session record and
+HTTP signature is requested from custody with the operation context, copied,
+and must verify under that public key before use. Custody errors, panics,
+cancellation or a mismatched signature emit nothing. A failed session record
+signature retires the session because its sequence was already consumed. The
+X25519 KEM private key is still a local copy, so KEM custody remains a separate
+host responsibility. The interface does not make any custody implementation
+protected; isolation from model/plugin code belongs to the deployment.
+
 Close pending state and returned results on abandonment/restart, and retire the
 endpoint's local credential copies separately. Go values containing ownership or
 mutexes must not be copied; explicit Close is required. Rust private temporary

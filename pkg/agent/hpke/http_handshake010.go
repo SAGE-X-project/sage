@@ -11,7 +11,7 @@ func (e *CompletionEndpoint010) BindHTTP(target string) error {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	authority, x := httpEndpoint010(target)
-	if x != nil || e.used || e.httpTarget != "" || len(e.signing) != 64 {
+	if x != nil || e.used || e.httpTarget != "" || !e.signable() {
 		return errCompletion010
 	}
 	e.httpTarget, e.httpAuthority = target, authority
@@ -37,7 +37,7 @@ func (e *CompletionEndpoint010) StartHTTP(ctx context.Context, recipient, kid st
 	if x != nil {
 		return nil, HTTPMessage010{}, x
 	}
-	m, x := signHTTP010(e, e.httpTarget, e.httpAuthority, body, 0, nil)
+	m, x := signHTTP010(ctx, e, e.httpTarget, e.httpAuthority, body, 0, nil)
 	if x != nil || e.httpEnd010(start, p.expires, p.a, p.b) != nil {
 		p.destroy()
 		return nil, HTTPMessage010{}, errCompletion010
@@ -68,7 +68,7 @@ func (e *CompletionEndpoint010) RespondHTTP(ctx context.Context, m HTTPMessage01
 	if x != nil {
 		return nil, HTTPMessage010{}, x
 	}
-	result, x := signHTTP010(e, e.httpTarget, e.httpAuthority, body, 200, contextHTTP010(m, proof.headers))
+	result, x := signHTTP010(ctx, e, e.httpTarget, e.httpAuthority, body, 200, contextHTTP010(m, proof.headers))
 	if x != nil || e.httpEnd010(start, s.expires, s.a, s.b) != nil {
 		s.destroy()
 		return nil, HTTPMessage010{}, errCompletion010

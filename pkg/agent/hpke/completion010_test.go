@@ -247,7 +247,7 @@ func changedCompletion(t *testing.T, request, response []byte, kind string) []by
 	}
 	w["data"] = base64.RawURLEncoding.EncodeToString(body)
 	delete(w, "signature")
-	return sign010(w, "sage-wire-response|0.10.0\n", key)
+	return signKey010(w, "sage-wire-response|0.10.0\n", key)
 }
 func TestCompletion010Scenarios(t *testing.T) {
 	cases := completionFixture(t)

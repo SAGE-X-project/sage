@@ -349,10 +349,10 @@ func verifyHTTPProof010(p *httpProof010, w map[string]json.RawMessage, key regis
 	}
 	return nil
 }
-func (s *AuthenticatedCompletion010) signHTTP010(body []byte, status int, q *httpContext010) (HTTPMessage010, error) {
-	return signHTTP010(s.endpoint, s.httpTarget, s.httpAuthority, body, status, q)
+func (s *AuthenticatedCompletion010) signHTTP010(ctx context.Context, body []byte, status int, q *httpContext010) (HTTPMessage010, error) {
+	return signHTTP010(ctx, s.endpoint, s.httpTarget, s.httpAuthority, body, status, q)
 }
-func signHTTP010(e *CompletionEndpoint010, target, authority string, body []byte, status int, q *httpContext010) (HTTPMessage010, error) {
+func signHTTP010(ctx context.Context, e *CompletionEndpoint010, target, authority string, body []byte, status int, q *httpContext010) (HTTPMessage010, error) {
 	var w map[string]json.RawMessage
 	if json.Unmarshal(body, &w) != nil {
 		return HTTPMessage010{}, errCompletion010
@@ -367,7 +367,11 @@ func signHTTP010(e *CompletionEndpoint010, target, authority string, body []byte
 	}
 	input := "(" + components + ");keyid=" + strconv.Quote(str010(w, "kid")) + `;alg="ed25519";created=` + string(w["created"]) + ";expires=" + string(w["expires"]) + ";nonce=" + strconv.Quote(str010(w, "nonce")) + `;tag="sage-0.10.0"`
 	h := map[string]string{"content-type": "application/json", "content-digest": httpDigest010(body), "x-sage-did": str010(w, "did"), "x-sage-version": "0.10.0", "signature-input": "sig1=" + input}
-	h["signature"] = "sig1=:" + base64.StdEncoding.EncodeToString(ed25519.Sign(e.signing, httpBase010(m, h, input, q))) + ":"
+	signature, x := e.sign(ctx, httpBase010(m, h, input, q))
+	if x != nil {
+		return HTTPMessage010{}, errCompletion010
+	}
+	h["signature"] = "sig1=:" + base64.StdEncoding.EncodeToString(signature) + ":"
 	for _, k := range []string{"content-type", "content-digest", "x-sage-did", "x-sage-version", "signature-input", "signature"} {
 		m.Headers = append(m.Headers, [2]string{k, h[k]})
 	}
@@ -389,7 +393,7 @@ func (s *AuthenticatedCompletion010) SealHTTPRequest(ctx context.Context, plaint
 	if x != nil {
 		return HTTPMessage010{}, x
 	}
-	m, x := s.signHTTP010(b, 0, nil)
+	m, x := s.signHTTP010(ctx, b, 0, nil)
 	if x != nil {
 		s.destroy()
 		return HTTPMessage010{}, x
@@ -442,7 +446,7 @@ func (s *AuthenticatedCompletion010) SealHTTPResponse(ctx context.Context, messa
 	if x != nil {
 		return HTTPMessage010{}, x
 	}
-	m, x := s.signHTTP010(b, status, r.http)
+	m, x := s.signHTTP010(ctx, b, status, r.http)
 	if x != nil {
 		s.destroy()
 		return HTTPMessage010{}, x
