@@ -186,7 +186,7 @@ func (g *DispatchGate) Dispatch(ctx context.Context, raw []byte) (receipt *Dispa
 			err = ErrInvalid
 		}
 	}()
-	v, err := VerifyIntent(ctx, raw, g.recipient, g.authority, g.policy)
+	v, err := VerifyReceivedIntent(ctx, raw, g.recipient, g.authority, g.policy)
 	if err != nil {
 		return nil, ErrInvalid
 	}
@@ -218,7 +218,7 @@ func (g *DispatchGate) Dispatch(ctx context.Context, raw []byte) (receipt *Dispa
 		g.retired = true
 		return nil, ErrInvalid
 	}
-	if _, err = VerifyIntent(ctx, v.canonical, g.recipient, g.authority, g.policy); err != nil {
+	if _, err = VerifyReceivedIntent(ctx, v.canonical, g.recipient, g.authority, g.policy); err != nil {
 		g.unknown(e)
 		return nil, ErrInvalid
 	}

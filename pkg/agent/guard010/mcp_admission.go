@@ -315,7 +315,7 @@ func (g *mcpAdmissionGate) fenceAndAdmit(ctx context.Context, w *mcpWork, raw []
 		}
 	}()
 	c := w.config
-	v, err := VerifyIntent(ctx, raw, d.recipient, c.authority, c.policy)
+	v, err := VerifyReceivedIntent(ctx, raw, d.recipient, c.authority, c.policy)
 	if err != nil {
 		return nil, ErrInvalid
 	}
@@ -356,7 +356,7 @@ func (g *mcpAdmissionGate) fenceAndAdmit(ctx context.Context, w *mcpWork, raw []
 		return nil, ErrInvalid
 	}
 	observed := time.Duration(sample.MonoMS) * time.Millisecond
-	if _, err = VerifyIntent(ctx, v.canonical, d.recipient, c.authority, c.policy); err != nil {
+	if _, err = VerifyReceivedIntent(ctx, v.canonical, d.recipient, c.authority, c.policy); err != nil {
 		if created {
 			g.unknown(e)
 		}

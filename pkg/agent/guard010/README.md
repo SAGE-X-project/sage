@@ -15,6 +15,17 @@ must enforce the closed tool schema and all final arguments. A universal policy
 language is intentionally not supplied. Errors, unavailable decisions and timeouts
 must deny. Host callbacks must implement bounded deadlines.
 
+A receiver in a separate process does not hold the issuer's original request.
+`NewReceiverPolicy` wraps a `ReceiverMapping` that returns the descriptors trusted
+administration provisioned for exactly `(issuer, policy_digest)` and evaluates the
+permitted operation. `VerifyReceivedIntent` and the receiver-side gates (dispatch,
+ledger, result, native MCP admission and hop parent checks) then recompute the
+policy and manifest commitments from those descriptors instead of comparing the
+original commitment, which remains a signed audit field. `VerifyIntent` and every
+Client or issuance path refuse a `ReceiverPolicy` and keep the exact original
+comparison. Unknown or retired commitments must fail in `Approved`; the native
+admission checks the mapping again at the serialized dispatch boundary.
+
 Successful verification owns the canonical complete envelope including proof.
 Intent digests therefore bind signatures as well as claims. Accessors expose copies
 in Go and immutable borrows in Rust. They do not create a dispatch capability.

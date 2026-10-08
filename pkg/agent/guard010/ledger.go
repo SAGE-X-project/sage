@@ -68,7 +68,7 @@ func (l *GuardLedger) Reserve(ctx context.Context, raw []byte, a Authority, p In
 	if l.store == nil {
 		return nil, ErrInvalid
 	}
-	verified, err := VerifyIntent(ctx, raw, l.recipient, a, p)
+	verified, err := VerifyReceivedIntent(ctx, raw, l.recipient, a, p)
 	if err != nil {
 		return nil, ErrInvalid
 	}
