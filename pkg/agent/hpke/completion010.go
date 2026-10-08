@@ -56,6 +56,8 @@ type CompletionEndpoint010 struct {
 	public                    ed25519.PublicKey
 	custody                   Ed25519Custody010
 	kem                       []byte
+	kemCustody                X25519Custody010
+	kemPublic                 []byte
 	last                      *registry010.Stamp
 }
 
@@ -595,7 +597,7 @@ func (e *CompletionEndpoint010) Respond(ctx context.Context, request []byte, ttl
 func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, ttl int64, proof *httpProof010) (*AuthenticatedCompletion010, []byte, error) {
 	e.used = true
 	start, x := e.sample()
-	if x != nil || ttl < 1 || ttl > 300 || !e.signable() || len(e.kem) != 32 {
+	if x != nil || ttl < 1 || ttl > 300 || !e.signable() || !e.kemReady() {
 		return nil, nil, errCompletion010
 	}
 	if proof != nil {
@@ -616,12 +618,20 @@ func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, 
 	if proof != nil && verifyHTTPProof010(proof, w, a.Signing(), nil) != nil {
 		return nil, nil, errCompletion010
 	}
-	sk, x := ecdh.X25519().NewPrivateKey(e.kem)
 	kem, _ := hex.DecodeString(b.KEM().Material)
-	if x != nil || !bytes.Equal(sk.PublicKey().Bytes(), kem) {
-		return nil, nil, errCompletion010
+	var d *Derivation010
+	if e.kemCustody != nil {
+		if !bytes.Equal(e.kemPublic, kem) {
+			return nil, nil, errCompletion010
+		}
+		d, x = respondFreshCustody010(ctx, body, e.kemCustody, e.kemPublic)
+	} else {
+		sk, y := ecdh.X25519().NewPrivateKey(e.kem)
+		if y != nil || !bytes.Equal(sk.PublicKey().Bytes(), kem) {
+			return nil, nil, errCompletion010
+		}
+		d, x = RespondFresh010(body, e.kem)
 	}
-	d, x := RespondFresh010(body, e.kem)
 	if x != nil {
 		return nil, nil, errCompletion010
 	}
@@ -679,6 +689,8 @@ func (e *CompletionEndpoint010) Close() {
 	e.public = nil
 	e.custody = nil
 	e.kem = nil
+	e.kemCustody = nil
+	e.kemPublic = nil
 }
 
 // State reports whether pending cryptographic material is still retained.

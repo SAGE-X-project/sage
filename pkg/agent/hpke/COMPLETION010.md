@@ -53,10 +53,20 @@ once at construction; each request, completion, response, session record and
 HTTP signature is requested from custody with the operation context, copied,
 and must verify under that public key before use. Custody errors, panics,
 cancellation or a mismatched signature emit nothing. A failed session record
-signature retires the session because its sequence was already consumed. The
-X25519 KEM private key is still a local copy, so KEM custody remains a separate
-host responsibility. The interface does not make any custody implementation
-protected; isolation from model/plugin code belongs to the deployment.
+signature retires the session because its sequence was already consumed. That
+constructor still copies the X25519 KEM private key.
+
+`NewProtectedCompletionEndpoint010` additionally takes `X25519Custody010` for the
+KEM key (nil for an endpoint that only initiates). The responder then computes the
+RFC 9180 base-mode exporter for DHKEM(X25519, HKDF-SHA256), HKDF-SHA256 and
+ChaCha20Poly1305 itself and asks custody only for the X25519 shared value with the
+sender's `enc`. The custody public key must equal the current registered KEM key on
+every response; an all-zero, short, failed or panicking result emits nothing. The
+custody path reproduces all 50 applicable independent responder derivation vectors.
+The returned shared value lets its holder derive that handshake's secrets, so this
+separation protects the long-term KEM key, not the sessions of a compromised host.
+The interfaces do not make any custody implementation protected; isolation from
+model/plugin code belongs to the deployment.
 
 Close pending state and returned results on abandonment/restart, and retire the
 endpoint's local credential copies separately. Go values containing ownership or
