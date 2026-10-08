@@ -11,8 +11,6 @@ updates:
       day: "monday"
       time: "00:00"
     open-pull-requests-limit: 10
-    reviewers:
-      - "SAGE-X-project/sage-core-dev"
     labels:
       - "dependencies"
       - "go"
@@ -34,8 +32,6 @@ updates:
       actions:
         patterns:
           - "*"
-    reviewers:
-      - "SAGE-X-project/sage-core-dev"
     labels:
       - "dependencies"
       - "ci"
@@ -60,8 +56,6 @@ updates:
       day: "monday"
       time: "00:00"
     open-pull-requests-limit: 5
-    reviewers:
-      - "SAGE-X-project/sage-core-dev"
     labels:
       - "dependencies"
       - "docker"
