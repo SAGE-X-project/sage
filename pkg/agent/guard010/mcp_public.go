@@ -87,6 +87,39 @@ func OpenMCPHost(path string, create bool, recipient string, s MCPHostServices, 
 	return &MCPHost{host: h}, nil
 }
 
+// MCPClientHostBounds selects finite Client quotas for an initiator-only host.
+// Durations are whole milliseconds; Tick is shorter than Client.
+type MCPClientHostBounds struct {
+	Clients, Owners int
+	Client, Tick    time.Duration
+}
+
+func (b MCPClientHostBounds) valid() bool {
+	return b.Clients >= 1 && b.Clients <= 128 && b.Owners >= 1 && b.Owners <= 256 &&
+		b.Client >= time.Millisecond && b.Client <= 5*time.Minute && b.Client%time.Millisecond == 0 &&
+		b.Tick >= time.Millisecond && b.Tick <= time.Second && b.Tick%time.Millisecond == 0 && b.Tick < b.Client
+}
+
+// OpenMCPClientHost constructs a host that only initiates root Client calls.
+// It opens no admission gate, execution ledger, executor, policy or result
+// signer, and refuses Serve and responder connections. Use OpenMCPHost for a
+// participant that also receives calls, including every hop participant.
+func OpenMCPClientHost(clock registry010.Clock, b MCPClientHostBounds) (*MCPHost, error) {
+	if !b.valid() || clock == nil || (runtime.GOOS != "linux" && runtime.GOOS != "darwin") {
+		return nil, ErrInvalid
+	}
+	p, e := newMCPClientPool(clock, b.Clients, b.Client)
+	if e != nil {
+		return nil, e
+	}
+	h, e := newMCPHost(nil, p, b.Owners, 0, b.Tick)
+	if e != nil {
+		p.retire()
+		return nil, e
+	}
+	return &MCPHost{host: h}, nil
+}
+
 // Close permanently retires all rights first, then drains connection/provider,
 // effect and cleanup lifetimes. A timeout retains quotas and the ledger lock;
 // call Close again after bounded providers finish. Success releases storage.
@@ -102,8 +135,10 @@ func (h *MCPHost) Close(ctx context.Context) error {
 	if e := h.host.stop(ctx); e != nil {
 		return e
 	}
-	if e := h.host.gate.close(); e != nil {
-		return e
+	if h.host.gate != nil {
+		if e := h.host.gate.close(); e != nil {
+			return e
+		}
 	}
 	h.closed = true
 	return nil

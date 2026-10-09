@@ -30,24 +30,36 @@ type mcpHostOwner struct {
 	cleaning bool
 }
 
+// newMCPHost supervises owners for an admission gate and/or a Client pool. A
+// host without a gate only initiates: it has no workers, ledger or receiver
+// admission, and responder connections are refused.
 func newMCPHost(g *mcpAdmissionGate, p *mcpClientPool, owners, workers int, interval time.Duration) (*mcpHost, error) {
-	if g == nil || owners < 1 || owners > 256 || workers < 1 || workers > g.bounds.capacity || interval <= 0 || interval > time.Second || interval >= g.bounds.claim || interval >= g.bounds.request || (p != nil && interval >= p.timeout) {
+	if owners < 1 || owners > 256 || interval <= 0 || interval > time.Second || (p != nil && interval >= p.timeout) {
 		return nil, ErrInvalid
 	}
-	h := &mcpHost{gate: g, clients: p, owners: make([]*mcpHostOwner, owners), connections: make([]*mcpHostConnection, owners), interval: interval, wake: make(chan struct{}, workers), cleanup: make(chan struct{}, 1), stopping: make(chan struct{}), done: make(chan struct{})}
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	if g.scheduler != nil || g.retired {
-		return nil, ErrInvalid
-	}
-	for _, w := range g.slots {
-		if w != nil {
+	if g != nil {
+		if workers < 1 || workers > g.bounds.capacity || interval >= g.bounds.claim || interval >= g.bounds.request {
 			return nil, ErrInvalid
 		}
+	} else if p == nil || workers != 0 {
+		return nil, ErrInvalid
 	}
-	for _, w := range g.outputs {
-		if w != nil {
+	h := &mcpHost{gate: g, clients: p, owners: make([]*mcpHostOwner, owners), connections: make([]*mcpHostConnection, owners), interval: interval, wake: make(chan struct{}, max(workers, 1)), cleanup: make(chan struct{}, 1), stopping: make(chan struct{}), done: make(chan struct{})}
+	if g != nil {
+		g.mu.Lock()
+		defer g.mu.Unlock()
+		if g.scheduler != nil || g.retired {
 			return nil, ErrInvalid
+		}
+		for _, w := range g.slots {
+			if w != nil {
+				return nil, ErrInvalid
+			}
+		}
+		for _, w := range g.outputs {
+			if w != nil {
+				return nil, ErrInvalid
+			}
 		}
 	}
 	if p != nil {
@@ -63,7 +75,9 @@ func newMCPHost(g *mcpAdmissionGate, p *mcpClientPool, owners, workers int, inte
 		}
 		p.scheduler = h
 	}
-	g.scheduler = h
+	if g != nil {
+		g.scheduler = h
+	}
 	h.workers.Store(int64(workers))
 	for range workers {
 		go h.worker()
@@ -102,7 +116,7 @@ func (h *mcpHost) register(s *mcpSetupSession) error {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.started || s.running || s.closed || s.host != nil || (s.client != nil && s.client.pool != h.clients) || (!s.session.Initiator() && s.admission != h.gate) {
+	if s.started || s.running || s.closed || s.host != nil || (s.client != nil && s.client.pool != h.clients) || (!s.session.Initiator() && (h.gate == nil || s.admission != h.gate)) {
 		return ErrInvalid
 	}
 	for n, entry := range h.owners {
@@ -149,28 +163,41 @@ func (h *mcpHost) worker() {
 func (h *mcpHost) sweep() {
 	expired := make(map[*mcpSetupSession]bool)
 	g := h.gate
+	gateFailed := false
+	if g != nil {
+		h.sweepGate(g, expired, &gateFailed)
+	}
+	if gateFailed {
+		h.cancelConnections()
+	}
+	h.sweepOwners(g, gateFailed, expired)
+}
+
+// sweepGate retires expired admission work; it reports gate failure.
+func (h *mcpHost) sweepGate(g *mcpAdmissionGate, expired map[*mcpSetupSession]bool, gateFailed *bool) {
 	g.mu.Lock()
 	stamp, err := g.sampleLocked()
 	now := time.Duration(stamp.MonoMS) * time.Millisecond
-	gateFailed := err != nil || g.retired
+	*gateFailed = err != nil || g.retired
+	failed := *gateFailed
 	for _, w := range g.slots {
 		if w != nil {
-			if gateFailed || (!w.claimed && w.queued && (now < w.enqueued || now-w.enqueued >= g.bounds.claim)) {
+			if failed || (!w.claimed && w.queued && (now < w.enqueued || now-w.enqueued >= g.bounds.claim)) {
 				w.cancelled = true
 			}
-			if gateFailed || (w.claimed && now >= w.workerEnd) {
+			if failed || (w.claimed && now >= w.workerEnd) {
 				if w.cancel != nil {
 					w.cancel()
 				}
 			}
-			if gateFailed || ((w.owner.active == w || w.owner.response == w.response) && now >= w.deadline) {
+			if failed || ((w.owner.active == w || w.owner.response == w.response) && now >= w.deadline) {
 				w.owner.closeLocked()
 				expired[w.adapter] = true
 			}
 		}
 	}
 	for _, p := range g.outputs {
-		if p != nil && (gateFailed || now >= p.deadline) {
+		if p != nil && (failed || now >= p.deadline) {
 			p.owner.closeLocked()
 			expired[p.response.owner] = true
 			if p.cancel != nil {
@@ -179,9 +206,10 @@ func (h *mcpHost) sweep() {
 		}
 	}
 	g.mu.Unlock()
-	if gateFailed {
-		h.cancelConnections()
-	}
+}
+
+// sweepOwners retires expired Client work and owners whose rights ended.
+func (h *mcpHost) sweepOwners(g *mcpAdmissionGate, gateFailed bool, expired map[*mcpSetupSession]bool) {
 	clientFailed := false
 	if h.clients != nil {
 		p := h.clients
@@ -213,7 +241,7 @@ func (h *mcpHost) sweep() {
 			if o.response != nil && (deadline == 0 || o.response.deadline < deadline) {
 				deadline = o.response.deadline
 			}
-			fail := !live || (s.session.Initiator() && clientFailed) || expired[s] || (s.admission == g && gateFailed) || (deadline != 0 && o.last >= deadline)
+			fail := !live || (s.session.Initiator() && clientFailed) || expired[s] || (g != nil && s.admission == g && gateFailed) || (deadline != 0 && o.last >= deadline)
 			if fail {
 				o.closeLocked()
 			}
@@ -297,20 +325,9 @@ func (h *mcpHost) idle() bool {
 		}
 	}
 	h.mu.Unlock()
-	h.gate.mu.Lock()
-	for _, w := range h.gate.slots {
-		if w != nil {
-			h.gate.mu.Unlock()
-			return false
-		}
+	if !h.gateIdle() {
+		return false
 	}
-	for _, p := range h.gate.outputs {
-		if p != nil {
-			h.gate.mu.Unlock()
-			return false
-		}
-	}
-	h.gate.mu.Unlock()
 	if h.clients != nil {
 		h.clients.mu.Lock()
 		defer h.clients.mu.Unlock()
@@ -318,6 +335,24 @@ func (h *mcpHost) idle() bool {
 			if w != nil {
 				return false
 			}
+		}
+	}
+	return true
+}
+func (h *mcpHost) gateIdle() bool {
+	if h.gate == nil {
+		return true
+	}
+	h.gate.mu.Lock()
+	defer h.gate.mu.Unlock()
+	for _, w := range h.gate.slots {
+		if w != nil {
+			return false
+		}
+	}
+	for _, p := range h.gate.outputs {
+		if p != nil {
+			return false
 		}
 	}
 	return true
@@ -346,7 +381,9 @@ func (h *mcpHost) stop(ctx context.Context) error {
 		return ErrInvalid
 	}
 	h.once.Do(func() {
-		h.gate.retire()
+		if h.gate != nil {
+			h.gate.retire()
+		}
 		if h.clients != nil {
 			h.clients.retire()
 		}
