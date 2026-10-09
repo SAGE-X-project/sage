@@ -2,7 +2,7 @@
 
 Status: preparation (phase P0). No symbol is newly marked `Deprecated:` by this
 document. It classifies exported APIs that predate the SAGE 0.10.0 protocol,
-names their 0.10.0 replacements, records known callers at `e6c40f4`, and orders
+names their 0.10.0 replacements, records known callers at `c2b8d21`, and orders
 the work needed before marking them. The Rust core keeps a matching plan in
 `rs-sage-core/docs/legacy-010-deprecation.md`.
 
