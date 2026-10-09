@@ -14,11 +14,13 @@ deprecated code leaves no earlier than `v1.8.0`.
 
 ## Why preparation comes before marking
 
-- **0.10.0 code uses the legacy JCS package internally.** `guard010/json.go`
+- **0.10.0 code used the legacy JCS package internally.** `guard010/json.go`
   (`Canonicalize`, after its own strict validation), `hpke/record010.go`,
-  `hpke/derivation010.go` and `hpke/completion010.go` call `crypto/jcs`.
-  Marking `jcs.Canonicalize` or `jcs.Marshal` would make these cross-package
-  calls fail staticcheck SA1019, which `.golangci.yml` enables for all files.
+  `hpke/derivation010.go` and `hpke/completion010.go` called `crypto/jcs`.
+  Marking `jcs.Canonicalize` or `jcs.Marshal` would have made these
+  cross-package calls fail staticcheck SA1019, which `.golangci.yml` enables
+  for all files. P1 moved the implementation to `pkg/agent/internal/rfc8785`;
+  these packages now call it directly and `crypto/jcs` is a thin wrapper.
 - **Exported helpers call legacy APIs.** `pkg/vectors` (imported by
   sage-inspector) and `cmd/sage-did` call `did.ParseDID`, legacy HPKE helpers
   and `session.SecureSession`.
@@ -67,12 +69,12 @@ to retire the feature. Until then their documentation states that they are not
 
 1. **P0 (this document).** Classify, list callers and replacements.
 2. **P1. Decouple and migrate inside this repository, without behavior change.**
-   - Give 0.10.0 packages an internal canonical-JSON entry point so they no
-     longer call the lenient `jcs.Canonicalize`.
+   - Done: 0.10.0 packages call `pkg/agent/internal/rfc8785` instead of
+     `crypto/jcs`; output is unchanged because both run the same code.
    - Move `pkg/vectors` 0.10.0 vectors and `cmd/sage-did` to the 0.10.0 APIs
      where a replacement exists; keep legacy vectors behind an explicit
      legacy section.
-   - Fix the `handshake` package comment to name `CompletionEndpoint010`.
+   - Done: the `handshake` package comment names `CompletionEndpoint010`.
 3. **P2. Mark class A.** Add `// Deprecated: use …` with the replacement,
    list them in `CHANGELOG.md` under Deprecated, and use `//nolint:staticcheck`
    with a reason only where a legacy test or vector must keep calling them.
