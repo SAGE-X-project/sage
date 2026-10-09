@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -410,6 +411,28 @@ func publicProcessAuthority(t *testing.T, c publicProcessClock, did string) *Reg
 	}
 	return authority
 }
+
+// publicMapping is receiver administration for the fixture's one provisioned
+// commitment; it never holds the original request.
+type publicMapping struct {
+	policy, manifest []byte
+	authorize        func(context.Context, string, string, []byte) error
+}
+
+func (m *publicMapping) Approved(_ context.Context, issuer, digest string) ([]byte, []byte, error) {
+	canonical, e := Canonicalize(m.policy)
+	if e != nil {
+		return nil, nil, e
+	}
+	if d, e := PolicyCommitment(canonical); e != nil || issuer != setupAlice || d != digest {
+		return nil, nil, ErrInvalid
+	}
+	return m.policy, m.manifest, nil
+}
+func (m *publicMapping) Authorize(ctx context.Context, issuer, tool string, args []byte) error {
+	return m.authorize(ctx, issuer, tool, args)
+}
+
 func TestMCPPublicProcessHelper(t *testing.T) {
 	root := os.Getenv("SAGE_MCP_PUBLIC_TEST_ROOT")
 	mode := os.Getenv("SAGE_MCP_PUBLIC_TEST_MODE")
@@ -437,7 +460,19 @@ func TestMCPPublicProcessHelper(t *testing.T) {
 	raw, _ = Canonicalize(encode(env))
 	signer := &admissionSigner{RegistryAuthority: resultAuthority, key: ed25519.NewKeyFromSeed(bytes.Repeat([]byte{2}, 32))}
 	gatePath := filepath.Join(root, mode+"-gate")
-	h, e := OpenMCPHost(gatePath, true, setupBob, MCPHostServices{IntentAuthority: intentAuthority, ResultAuthority: resultAuthority, Policy: f.config.policy, Executor: f.executor, Signer: signer, Clock: clock}, publicBounds())
+	policy := f.config.policy
+	if mode == "server" && os.Getenv("SAGE_MCP_PUBLIC_RECEIVER_MAPPING") == "1" {
+		// A separate receiver: it holds no original, so the fixture's original
+		// is replaced and verification must use the provisioned mapping.
+		fixed := f.config.policy.(*admissionPolicy)
+		mapped, e := NewReceiverPolicy(&publicMapping{policy: fixed.policy, manifest: fixed.manifest, authorize: fixed.Authorize})
+		if e != nil {
+			t.Fatal(e)
+		}
+		fixed.original = strings.Repeat("0", 64)
+		policy = mapped
+	}
+	h, e := OpenMCPHost(gatePath, true, setupBob, MCPHostServices{IntentAuthority: intentAuthority, ResultAuthority: resultAuthority, Policy: policy, Executor: f.executor, Signer: signer, Clock: clock}, publicBounds())
 	if e != nil {
 		t.Fatal(e)
 	}
