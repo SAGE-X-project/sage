@@ -20,7 +20,7 @@ import (
 	"sync/atomic"
 
 	"github.com/google/uuid"
-	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
+	"github.com/sage-x-project/sage/pkg/agent/internal/rfc8785"
 	"github.com/sage-x-project/sage/pkg/agent/registry010"
 	"github.com/sage-x-project/sage/pkg/agent/session"
 )
@@ -194,7 +194,7 @@ func str010(m map[string]json.RawMessage, k string) string {
 func int010(m map[string]json.RawMessage, k string) (int64, error) {
 	return strconv.ParseInt(string(m[k]), 10, 64)
 }
-func canon010(v any) []byte { b, _ := jcs.Marshal(v); return b }
+func canon010(v any) []byte { b, _ := rfc8785.Marshal(v); return b }
 func sign010(ctx context.Context, m map[string]any, domain string, e *CompletionEndpoint010) ([]byte, error) {
 	signature, x := e.sign(ctx, append([]byte(domain), canon010(m)...))
 	if x != nil {

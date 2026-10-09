@@ -22,7 +22,8 @@
 // Deprecated: the package is retained for existing integrations only and is
 // scheduled for removal (docs/refactoring/BACKLOG.md, D-06). Its server does
 // not validate the Nonce and Timestamp fields of incoming messages, and no
-// SAGE binary or example uses it. New code should establish sessions with
-// the 1-RTT HPKE handshake in package hpke, which binds the session to both
-// DIDs, checks freshness and replay, and signs the server response.
+// SAGE binary or example uses it. New code should establish SAGE 0.10.0
+// sessions with hpke.CompletionEndpoint010, which authenticates both
+// endpoints' current keys, checks freshness and replay, and confirms the
+// session. The older hpke Client and Server are legacy as well.
 package handshake

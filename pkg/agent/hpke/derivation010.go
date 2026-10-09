@@ -16,8 +16,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/google/uuid"
-	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
+	"github.com/sage-x-project/sage/pkg/agent/internal/rfc8785"
 )
 
 var errDerivation010 = errors.New("invalid 0.10.0 HPKE derivation")
@@ -147,7 +147,7 @@ func binding010(m map[string]string) (map[string]string, error) {
 	return b, nil
 }
 func domains010(b map[string]string) (Domains010, error) {
-	raw, e := jcs.Marshal(b)
+	raw, e := rfc8785.Marshal(b)
 	if e != nil {
 		return Domains010{}, errDerivation010
 	}
@@ -207,7 +207,7 @@ func finish010(m map[string]string, exporter, private []byte, peerField string) 
 		return nil, errDerivation010
 	}
 	defer zeroBytes(shared)
-	t, e := jcs.Marshal(m)
+	t, e := rfc8785.Marshal(m)
 	if e != nil {
 		return nil, errDerivation010
 	}
@@ -316,7 +316,7 @@ func StartInitiator010(binding, kemPublic []byte) (*Initiator010, []byte, error)
 	m["task"] = "hpke/init@0.10.0"
 	m["enc"] = base64.RawURLEncoding.EncodeToString(enc)
 	m["ephC"] = base64.RawURLEncoding.EncodeToString(c.PublicKey().Bytes())
-	raw, e := jcs.Marshal(m)
+	raw, e := rfc8785.Marshal(m)
 	if e != nil {
 		zeroBytes(exporter)
 		return nil, nil, errDerivation010

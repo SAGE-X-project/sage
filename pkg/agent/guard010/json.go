@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
+	"github.com/sage-x-project/sage/pkg/agent/internal/rfc8785"
 	"io"
 	"math"
 	"strconv"
@@ -36,7 +36,7 @@ func canonicalizeBounds(raw []byte, limit, maxBytes, maxDepth int) ([]byte, erro
 	if _, err := d.Token(); err != io.EOF {
 		return nil, ErrInvalid
 	}
-	b, err := jcs.Canonicalize(raw)
+	b, err := rfc8785.Canonicalize(raw)
 	if err != nil || len(b) > maxBytes {
 		return nil, ErrInvalid
 	}
@@ -174,7 +174,7 @@ func encode(v any) []byte {
 	if err != nil {
 		return nil
 	}
-	b, err = jcs.Canonicalize(b)
+	b, err = rfc8785.Canonicalize(b)
 	if err != nil {
 		return nil
 	}

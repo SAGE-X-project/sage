@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
+	"github.com/sage-x-project/sage/pkg/agent/internal/rfc8785"
 	"github.com/sage-x-project/sage/pkg/agent/registry010"
 )
 
@@ -56,7 +56,7 @@ func sessionRecord010(raw []byte, now int64, response bool) (map[string]json.Raw
 	if len(raw) > 32768 {
 		return nil, nil, errCompletion010
 	}
-	if _, err := jcs.Canonicalize(raw); err != nil {
+	if _, err := rfc8785.Canonicalize(raw); err != nil {
 		return nil, nil, errCompletion010
 	}
 	names := append(append([]string{}, wireFields010...), "session_id")
