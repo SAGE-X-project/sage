@@ -108,11 +108,22 @@ func manifest(m map[string]any, nonempty bool) bool {
 
 // ManifestCommitment validates a descriptor, not filesystem identity or loading.
 func ManifestCommitment(raw []byte) (string, error) {
-	m, b, e := objectLimit(raw, 8194)
-	if e != nil || !manifest(m, false) {
+	b, e := CanonicalManifest(raw)
+	if e != nil {
 		return "", ErrInvalid
 	}
 	return hash(b), nil
+}
+
+// CanonicalManifest validates an artifact manifest under the same limits as
+// ManifestCommitment and returns its canonical bytes, the exact bytes the
+// commitment hashes.
+func CanonicalManifest(raw []byte) ([]byte, error) {
+	m, b, e := objectLimit(raw, 8194)
+	if e != nil || !manifest(m, false) {
+		return nil, ErrInvalid
+	}
+	return b, nil
 }
 
 // Artifact holds the exact bytes supplied by a trusted loader.
