@@ -26,6 +26,12 @@ Client or issuance path refuse a `ReceiverPolicy` and keep the exact original
 comparison. Unknown or retired commitments must fail in `Approved`; the native
 admission checks the mapping again at the serialized dispatch boundary.
 
+`OpenMCPClientHost` builds a host that only initiates root Client calls. It opens
+no admission gate, execution ledger, executor, policy or result signer, refuses
+`Serve` and responder connections, and supervises only Client exchanges. A
+participant that also receives calls, including every hop participant, still
+uses `OpenMCPHost`.
+
 Successful verification owns the canonical complete envelope including proof.
 Intent digests therefore bind signatures as well as claims. Accessors expose copies
 in Go and immutable borrows in Rust. They do not create a dispatch capability.

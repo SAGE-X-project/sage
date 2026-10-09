@@ -43,7 +43,7 @@ func (h *mcpHost) connection(ctx context.Context, conn net.Conn, cfg mcpConnecti
 		return ErrInvalid
 	}
 	defer func() { _ = stream.Close() }()
-	if ctx == nil || (cfg.endpoint == nil) == (cfg.endpointFactory == nil) || cfg.ttl < 1 || cfg.ttl > 300 || handle == nil || (!cfg.initiator && prepare == nil) {
+	if ctx == nil || (cfg.endpoint == nil) == (cfg.endpointFactory == nil) || cfg.ttl < 1 || cfg.ttl > 300 || handle == nil || (!cfg.initiator && (prepare == nil || h.gate == nil)) {
 		return ErrInvalid
 	}
 	life, cancel := context.WithCancel(ctx)
@@ -204,7 +204,7 @@ func (h *mcpHost) serve(ctx context.Context, listener net.Listener, workers int,
 	var closeOnce sync.Once
 	closeListener := func() { closeOnce.Do(func() { _ = listener.Close() }) }
 	defer closeListener()
-	if ctx == nil || workers < 1 || workers > len(h.connections) || cfg.initiator {
+	if ctx == nil || workers < 1 || workers > len(h.connections) || cfg.initiator || h.gate == nil {
 		return ErrInvalid
 	}
 	life, cancel := context.WithCancel(ctx)
