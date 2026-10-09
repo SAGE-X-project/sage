@@ -84,8 +84,8 @@ func (m *mockResolver) Search(ctx context.Context, criteria sagedid.SearchCriter
 func setupHPKETest(t *testing.T, srvCfg, cliCfg session.Config) (
 	*Client,
 	*Server,
-	*session.Manager,
-	*session.Manager,
+	*session.Manager, //nolint:staticcheck // test of the legacy API
+	*session.Manager, //nolint:staticcheck // test of the legacy API
 	*mockResolver,
 	*sagedid.MultiChainResolver,
 	string, // clientDID

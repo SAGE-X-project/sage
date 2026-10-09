@@ -20,6 +20,9 @@ package hpke
 
 const TaskHPKEComplete = "hpke/complete@v1"
 
+// InfoBuilder builds the legacy HPKE info and export contexts.
+//
+// Deprecated: use BuildDomains010 for the SAGE 0.10.0 HPKE domains.
 type InfoBuilder interface {
 	BuildInfo(ctxID, initDID, respDID string) []byte
 	BuildExportContext(ctxID string) []byte
@@ -55,4 +58,7 @@ const (
 	s2cIVLabel  = "SAGE-s2c:iv"
 )
 
+// DefaultInfoBuilder is the legacy v1 InfoBuilder.
+//
+// Deprecated: use BuildDomains010 for the SAGE 0.10.0 HPKE domains.
 type DefaultInfoBuilder struct{}

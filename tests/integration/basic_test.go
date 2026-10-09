@@ -169,12 +169,12 @@ func TestMultiAgentCommunication(t *testing.T) {
 	transportCA := &transport.MockTransport{}
 
 	// Create HPKE servers for each agent
-	serverA := hpke.NewServer(agentASignKey, sessionA, agentADID, multiResolver,
-		&hpke.ServerOpts{MaxSkew: 2 * time.Minute, Info: hpke.DefaultInfoBuilder{}, KEM: agentAKEMKey})
-	serverB := hpke.NewServer(agentBSignKey, sessionB, agentBDID, multiResolver,
-		&hpke.ServerOpts{MaxSkew: 2 * time.Minute, Info: hpke.DefaultInfoBuilder{}, KEM: agentBKEMKey})
-	serverC := hpke.NewServer(agentCSignKey, sessionC, agentCDID, multiResolver,
-		&hpke.ServerOpts{MaxSkew: 2 * time.Minute, Info: hpke.DefaultInfoBuilder{}, KEM: agentCKEMKey})
+	serverA := hpke.NewServer(agentASignKey, sessionA, agentADID, multiResolver, //nolint:staticcheck // integration test of the legacy HPKE and session API
+		&hpke.ServerOpts{MaxSkew: 2 * time.Minute, Info: hpke.DefaultInfoBuilder{}, KEM: agentAKEMKey}) //nolint:staticcheck // integration test of the legacy HPKE and session API
+	serverB := hpke.NewServer(agentBSignKey, sessionB, agentBDID, multiResolver, //nolint:staticcheck // integration test of the legacy HPKE and session API
+		&hpke.ServerOpts{MaxSkew: 2 * time.Minute, Info: hpke.DefaultInfoBuilder{}, KEM: agentBKEMKey}) //nolint:staticcheck // integration test of the legacy HPKE and session API
+	serverC := hpke.NewServer(agentCSignKey, sessionC, agentCDID, multiResolver, //nolint:staticcheck // integration test of the legacy HPKE and session API
+		&hpke.ServerOpts{MaxSkew: 2 * time.Minute, Info: hpke.DefaultInfoBuilder{}, KEM: agentCKEMKey}) //nolint:staticcheck // integration test of the legacy HPKE and session API
 
 	// Setup transport routing
 	transportAB.SendFunc = func(ctx context.Context, msg *transport.SecureMessage) (*transport.Response, error) {
@@ -188,9 +188,9 @@ func TestMultiAgentCommunication(t *testing.T) {
 	}
 
 	// Create HPKE clients
-	clientAtoB := hpke.NewClient(transportAB, multiResolver, agentASignKey, agentADID, hpke.DefaultInfoBuilder{}, sessionA)
-	clientBtoC := hpke.NewClient(transportBC, multiResolver, agentBSignKey, agentBDID, hpke.DefaultInfoBuilder{}, sessionB)
-	clientCtoA := hpke.NewClient(transportCA, multiResolver, agentCSignKey, agentCDID, hpke.DefaultInfoBuilder{}, sessionC)
+	clientAtoB := hpke.NewClient(transportAB, multiResolver, agentASignKey, agentADID, hpke.DefaultInfoBuilder{}, sessionA) //nolint:staticcheck // integration test of the legacy HPKE and session API
+	clientBtoC := hpke.NewClient(transportBC, multiResolver, agentBSignKey, agentBDID, hpke.DefaultInfoBuilder{}, sessionB) //nolint:staticcheck // integration test of the legacy HPKE and session API
+	clientCtoA := hpke.NewClient(transportCA, multiResolver, agentCSignKey, agentCDID, hpke.DefaultInfoBuilder{}, sessionC) //nolint:staticcheck // integration test of the legacy HPKE and session API
 
 	testutil.LogSuccess(t, "Created HPKE servers and clients for 3 agents")
 

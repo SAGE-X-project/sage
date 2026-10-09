@@ -157,7 +157,7 @@ func (s *VerificationService) QuickVerify(
 	}
 
 	// Determine algorithm based on DID chain
-	chain, _, err := did.ParseDID(did.AgentDID(agentDID))
+	chain, _, err := did.ParseDID(did.AgentDID(agentDID)) //nolint:staticcheck // legacy chain-based key algorithm selection
 	if err != nil {
 		return fmt.Errorf("failed to parse DID: %w", err)
 	}

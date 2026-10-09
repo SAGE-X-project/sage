@@ -59,11 +59,15 @@ func (DefaultInfoBuilder) BuildExportContext(ctxID string) []byte {
 }
 
 // DefaultInfo returns the canonical HPKE transcript info bytes used by SAGE.
+//
+// Deprecated: use BuildDomains010 for the SAGE 0.10.0 HPKE domains.
 func DefaultInfo(ctxID, initDID, respDID string) []byte {
 	return DefaultInfoBuilder{}.BuildInfo(ctxID, initDID, respDID)
 }
 
 // DefaultExportContext returns the canonical export context bytes used by SAGE.
+//
+// Deprecated: use BuildDomains010 for the SAGE 0.10.0 HPKE domains.
 func DefaultExportContext(ctxID string) []byte {
 	return DefaultInfoBuilder{}.BuildExportContext(ctxID)
 }
@@ -72,6 +76,8 @@ func DefaultExportContext(ctxID string) []byte {
 // secret and the end-to-end X25519 shared secret. It is exported so that the
 // test-vector generator (and other implementations checking against the
 // vectors) can exercise the exact derivation used by the handshake.
+//
+// Deprecated: use CombineSecrets010, which binds the transcript hash.
 func CombineSecrets(exporterHPKE, ssE2E, exportCtx []byte) ([]byte, error) {
 	return combineSecrets(exporterHPKE, ssE2E, exportCtx)
 }
@@ -203,6 +209,8 @@ func hkdfExpand(key []byte, info string, outLen int) []byte {
 // ackKey = HKDF-Expand(seed, "SAGE-ack-key-v1", 32)
 // ackMsg = "SAGE-ack-msg|v1|" || len(ctxID)||ctxID || len(nonce)||nonce || len(kid)||kid || SHA256(transcript...)
 // ackTag = HMAC(ackKey, ackMsg)
+//
+// Deprecated: use MakeAckTag010 and VerifyAckTag010.
 func MakeAckTag(seed []byte, ctxID, nonce, kid string, binds ...[]byte) []byte {
 	ackKey := hkdfExpand(seed, "SAGE-ack-key-v1", 32)
 

@@ -78,9 +78,9 @@ func Test_HPKE_Base_Exporter_To_Session(t *testing.T) {
 	testutil.LogDetail(t, "Exporter B (hex): %s", hex.EncodeToString(expB)[:32]+"...")
 
 	// 사양 요구사항: 공유 비밀로부터 결정적 세션 ID 파생
-	sidA, err := session.ComputeSessionIDFromSeed(expA, "sage/hpke v1")
+	sidA, err := session.ComputeSessionIDFromSeed(expA, "sage/hpke v1") //nolint:staticcheck // test of the legacy API
 	require.NoError(t, err)
-	sidB, err := session.ComputeSessionIDFromSeed(expB, "sage/hpke v1")
+	sidB, err := session.ComputeSessionIDFromSeed(expB, "sage/hpke v1") //nolint:staticcheck // test of the legacy API
 	require.NoError(t, err)
 	require.Equal(t, sidA, sidB, "session id 불일치")
 
@@ -90,9 +90,9 @@ func Test_HPKE_Base_Exporter_To_Session(t *testing.T) {
 	testutil.LogDetail(t, "Session ID 일치: %v", sidA == sidB)
 
 	// 사양 요구사항: exporter로부터 보안 세션 구성
-	sA, err := session.NewSecureSessionFromExporter(sidA, expA, session.Config{})
+	sA, err := session.NewSecureSessionFromExporter(sidA, expA, session.Config{}) //nolint:staticcheck // test of the legacy API
 	require.NoError(t, err)
-	sB, err := session.NewSecureSessionFromExporter(sidB, expB, session.Config{})
+	sB, err := session.NewSecureSessionFromExporter(sidB, expB, session.Config{}) //nolint:staticcheck // test of the legacy API
 	require.NoError(t, err)
 
 	testutil.LogSuccess(t, "HPKE exporter로부터 보안 세션 설정 완료")

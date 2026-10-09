@@ -25,6 +25,9 @@ import (
 )
 
 // Manager handles session lifecycle, storage, and cleanup
+//
+// Deprecated: manages legacy SecureSession values; SAGE 0.10.0 sessions are
+// owned by hpke.CompletionEndpoint010.
 type Manager struct {
 	sessions      map[string]*SecureSession
 	byKeyID       map[string]string

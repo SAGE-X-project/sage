@@ -66,7 +66,7 @@ func runDebug(cmd *cobra.Command, args []string) error {
 	agentDID := did.AgentDID(debugDID)
 	fmt.Printf("Debugging DID: %s\n\n", agentDID)
 
-	chain, identifier, err := did.ParseDID(agentDID)
+	chain, identifier, err := did.ParseDID(agentDID) //nolint:staticcheck // legacy registry CLI reads the chain from legacy DIDs
 	if err != nil {
 		return fmt.Errorf("invalid DID: %w", err)
 	}

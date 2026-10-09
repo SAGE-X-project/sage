@@ -16,8 +16,8 @@ const (
 	sessionAADTest = "aad:message-1"
 )
 
-func sessionParams() session.Params {
-	return session.Params{
+func sessionParams() session.Params { //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
+	return session.Params{ //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 		ContextID: vecCtxID,
 		SelfEph:   seed32("sage-spec/vectors/session/ephA"),
 		PeerEph:   seed32("sage-spec/vectors/session/ephB"),
@@ -52,11 +52,11 @@ func sessionSuite() Suite {
 						return nil, err
 					}
 					p := sessionParams()
-					seed, err := session.DeriveSessionSeed(ss, p)
+					seed, err := session.DeriveSessionSeed(ss, p) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 					if err != nil {
 						return nil, err
 					}
-					sid, err := session.ComputeSessionIDFromSeed(seed, p.Label)
+					sid, err := session.ComputeSessionIDFromSeed(seed, p.Label) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 					if err != nil {
 						return nil, err
 					}
@@ -195,11 +195,11 @@ func seedAndID(in map[string]any) ([]byte, string, error) {
 		return nil, "", err
 	}
 	p := sessionParams()
-	seed, err := session.DeriveSessionSeed(ss, p)
+	seed, err := session.DeriveSessionSeed(ss, p) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 	if err != nil {
 		return nil, "", err
 	}
-	sid, err := session.ComputeSessionIDFromSeed(seed, p.Label)
+	sid, err := session.ComputeSessionIDFromSeed(seed, p.Label) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 	return seed, sid, err
 }
 
@@ -214,18 +214,18 @@ func sessionConfig(in map[string]any) session.Config {
 	return session.Config{RekeyInterval: interval}
 }
 
-func sessionFromInput(in map[string]any) (*session.SecureSession, error) {
+func sessionFromInput(in map[string]any) (*session.SecureSession, error) { //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 	seed, sid, err := seedAndID(in)
 	if err != nil {
 		return nil, err
 	}
-	return session.NewSecureSession(sid, seed, sessionConfig(in))
+	return session.NewSecureSession(sid, seed, sessionConfig(in)) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 }
 
-func sessionWithRole(in map[string]any, initiator bool) (*session.SecureSession, error) {
+func sessionWithRole(in map[string]any, initiator bool) (*session.SecureSession, error) { //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 	seed, sid, err := seedAndID(in)
 	if err != nil {
 		return nil, err
 	}
-	return session.NewSecureSessionFromExporterWithRole(sid, seed, initiator, sessionConfig(in))
+	return session.NewSecureSessionFromExporterWithRole(sid, seed, initiator, sessionConfig(in)) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 }

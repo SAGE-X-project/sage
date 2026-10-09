@@ -305,12 +305,12 @@ func (s *Server) HandleMessage(ctx context.Context, msg *transport.SecureMessage
 
 		st, ok := s.takePending(msg.ContextID)
 		if !ok {
-			_ = s.events.OnComplete(ctx, msg.ContextID, comp, session.Params{})
+			_ = s.events.OnComplete(ctx, msg.ContextID, comp, session.Params{}) //nolint:staticcheck // legacy handshake built on legacy sessions
 			metrics.HandshakesCompleted.WithLabelValues("success").Inc()
 			return s.ackResponse(msg, "complete_received_no_pending")
 		}
 
-		sessParams := session.Params{
+		sessParams := session.Params{ //nolint:staticcheck // legacy handshake built on legacy sessions
 			ContextID: msg.ContextID,
 			SelfEph:   st.serverEph,
 			PeerEph:   st.peerEph,

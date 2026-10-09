@@ -38,4 +38,7 @@ import "github.com/sage-x-project/sage/pkg/agent/internal/rfc8785"
 func Marshal(v interface{}) ([]byte, error) { return rfc8785.Marshal(v) }
 
 // Canonicalize returns the RFC 8785 canonical form of a JSON document.
+//
+// Deprecated: use guard010.Canonicalize for SAGE 0.10.0 JSON. This entry
+// point keeps the last duplicate member and has no limits.
 func Canonicalize(raw []byte) ([]byte, error) { return rfc8785.Canonicalize(raw) }

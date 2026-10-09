@@ -160,7 +160,7 @@ func runCardGenerate(cmd *cobra.Command, args []string) error {
 	agentDID := did.AgentDID(args[0])
 
 	// Parse DID to get chain
-	chain, _, err := did.ParseDID(agentDID)
+	chain, _, err := did.ParseDID(agentDID) //nolint:staticcheck // legacy registry CLI reads the chain from legacy DIDs
 	if err != nil {
 		return fmt.Errorf("invalid DID: %w", err)
 	}
@@ -360,7 +360,7 @@ func cardChainResolver(cardID string) (did.Resolver, error) {
 		return nil, fmt.Errorf("--rpc flag is required with --verify-did")
 	}
 
-	chain, _, err := did.ParseDID(did.AgentDID(cardID))
+	chain, _, err := did.ParseDID(did.AgentDID(cardID)) //nolint:staticcheck // legacy registry CLI reads the chain from legacy DIDs
 	if err != nil {
 		return nil, fmt.Errorf("invalid DID in card: %w", err)
 	}
@@ -407,7 +407,7 @@ func runCardShow(cmd *cobra.Command, args []string) error {
 	agentDID := did.AgentDID(args[0])
 
 	// Parse DID to get chain
-	chain, _, err := did.ParseDID(agentDID)
+	chain, _, err := did.ParseDID(agentDID) //nolint:staticcheck // legacy registry CLI reads the chain from legacy DIDs
 	if err != nil {
 		return fmt.Errorf("invalid DID: %w", err)
 	}
