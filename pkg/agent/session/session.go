@@ -38,6 +38,9 @@ import (
 )
 
 // SecureSession implements Session with ChaCha20-Poly1305 AEAD
+//
+// Deprecated: use RecordSession010, obtained through
+// hpke.CompletionEndpoint010.
 type SecureSession struct {
 	mu           sync.RWMutex
 	id           string
@@ -200,6 +203,9 @@ func (w *replayWindow) reset() {
 }
 
 // Params describes the handshake context required to deterministically
+//
+// Deprecated: SAGE 0.10.0 sessions derive their keys inside
+// hpke.CompletionEndpoint010.
 type Params struct {
 	// ContextID must be identical on both peers (e.g., the protocol's ContextID).
 	ContextID string
@@ -213,6 +219,9 @@ type Params struct {
 }
 
 // NewSecureSession creates a new session with derived encryption/signing keys
+//
+// Deprecated: use RecordSession010, obtained through
+// hpke.CompletionEndpoint010.
 func NewSecureSession(sid string, sessionSeed []byte, config Config) (*SecureSession, error) {
 	if sid == "" || len(sessionSeed) == 0 {
 		return nil, fmt.Errorf("invalid inputs")
@@ -245,6 +254,9 @@ func NewSecureSession(sid string, sessionSeed []byte, config Config) (*SecureSes
 
 // NewSecureSessionFromExporterWithRole creates a session from an HPKE exporter secret,
 // deriving direction-separated keys. 'initiator' is true for the side that ran HPKE Sender.
+//
+// Deprecated: use RecordSession010, obtained through
+// hpke.CompletionEndpoint010.
 func NewSecureSessionFromExporterWithRole(sid string, exporter []byte, initiator bool, cfg Config) (*SecureSession, error) {
 	if sid == "" || len(exporter) == 0 {
 		return nil, fmt.Errorf("invalid inputs")
@@ -282,6 +294,9 @@ func NewSecureSessionFromExporterWithRole(sid string, exporter []byte, initiator
 
 // NewSecureSessionFromExporter creates a session directly from an HPKE exporter secret.
 // exporter must be the same 32-byte secret on both peers (e.g., HPKE Export(..., 32)).
+//
+// Deprecated: use RecordSession010, obtained through
+// hpke.CompletionEndpoint010.
 func NewSecureSessionFromExporter(sid string, exporter []byte, cfg Config) (*SecureSession, error) {
 	if sid == "" || len(exporter) == 0 {
 		return nil, fmt.Errorf("invalid inputs")
@@ -310,6 +325,9 @@ func NewSecureSessionFromExporter(sid string, exporter []byte, cfg Config) (*Sec
 
 // NewSecureSessionWithParams derives a sessionSeed (PRK) and a deterministic sessionID,
 // then constructs the SecureSession so both peers get identical id+keys.
+//
+// Deprecated: use RecordSession010, obtained through
+// hpke.CompletionEndpoint010.
 func NewSecureSessionWithParams(sharedSecret []byte, p Params, cfg Config) (*SecureSession, error) {
 	seed, err := DeriveSessionSeed(sharedSecret, p)
 	if err != nil {
@@ -323,6 +341,9 @@ func NewSecureSessionWithParams(sharedSecret []byte, p Params, cfg Config) (*Sec
 }
 
 // DeriveSessionSeed returns PRK = HKDF-Extract(sharedSecret, salt(label, ctxID, ephs)).
+//
+// Deprecated: SAGE 0.10.0 sessions derive their keys inside
+// hpke.CompletionEndpoint010.
 func DeriveSessionSeed(sharedSecret []byte, p Params) ([]byte, error) {
 	if len(sharedSecret) == 0 {
 		return nil, fmt.Errorf("empty shared secret")
@@ -348,6 +369,9 @@ func DeriveSessionSeed(sharedSecret []byte, p Params) ([]byte, error) {
 }
 
 // ComputeSessionIDFromSeed deterministically maps PRK -> compact session ID.
+//
+// Deprecated: SAGE 0.10.0 session identifiers come from
+// hpke.CompletionEndpoint010.
 func ComputeSessionIDFromSeed(seed []byte, label string) (string, error) {
 	if len(seed) == 0 {
 		return "", fmt.Errorf("empty seed")

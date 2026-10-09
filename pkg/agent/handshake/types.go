@@ -68,7 +68,7 @@ type Events interface {
 	OnResponse(ctx context.Context, ctxID string, res ResponseMessage, senderPub crypto.PublicKey) error
 	// OnComplete is called when Complete is received.
 	// If a SecureSession has been established during the handshake, it will be provided.
-	OnComplete(ctx context.Context, ctxID string, comp CompleteMessage, sessParams session.Params) error
+	OnComplete(ctx context.Context, ctxID string, comp CompleteMessage, sessParams session.Params) error //nolint:staticcheck // legacy handshake built on legacy sessions
 
 	// AskEphemeral asks the app-layer to mint an X25519 ephemeral keypair for this ctxID.
 	// The implementation MUST keep the private key internally and return:
@@ -87,7 +87,7 @@ func (NoopEvents) OnRequest(context.Context, string, RequestMessage, crypto.Publ
 func (NoopEvents) OnResponse(context.Context, string, ResponseMessage, crypto.PublicKey) error {
 	return nil
 }
-func (NoopEvents) OnComplete(context.Context, string, CompleteMessage, session.Params) error {
+func (NoopEvents) OnComplete(context.Context, string, CompleteMessage, session.Params) error { //nolint:staticcheck // legacy handshake built on legacy sessions
 	return nil
 }
 func (NoopEvents) AskEphemeral(context.Context, string) ([]byte, json.RawMessage, error) {

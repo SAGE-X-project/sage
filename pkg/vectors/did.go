@@ -34,7 +34,7 @@ func didSuite() Suite {
 				Produce: func(in map[string]any) (map[string]any, error) {
 					out := []map[string]any{}
 					for _, v := range anyStrings(in["valid"]) {
-						chain, id, err := did.ParseDID(did.AgentDID(v))
+						chain, id, err := did.ParseDID(did.AgentDID(v)) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 						if err != nil {
 							return nil, fmt.Errorf("%q: %w", v, err)
 						}
@@ -42,7 +42,7 @@ func didSuite() Suite {
 					}
 					rejected := []string{}
 					for _, v := range anyStrings(in["invalid"]) {
-						if _, _, err := did.ParseDID(did.AgentDID(v)); err == nil {
+						if _, _, err := did.ParseDID(did.AgentDID(v)); err == nil { //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 							return nil, fmt.Errorf("%q: expected an error", v)
 						}
 						rejected = append(rejected, v)

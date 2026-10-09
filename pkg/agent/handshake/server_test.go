@@ -98,7 +98,7 @@ func (m *mockResolver) Search(ctx context.Context, criteria sagedid.SearchCriter
 }
 
 // setupTest creates a Client and Server connected via MockTransport
-func setupTest(t *testing.T, cleanupInterval time.Duration) (*handshake.Client, *handshake.Server, sagecrypto.KeyPair, sagecrypto.KeyPair, *session.Manager, *mockResolver, *transport.MockTransport) {
+func setupTest(t *testing.T, cleanupInterval time.Duration) (*handshake.Client, *handshake.Server, sagecrypto.KeyPair, sagecrypto.KeyPair, *session.Manager, *mockResolver, *transport.MockTransport) { //nolint:staticcheck // test of the legacy API
 	aliceKeyPair, err := keys.GenerateEd25519KeyPair()
 	require.NoError(t, err)
 	bobKeyPair, err := keys.GenerateEd25519KeyPair()

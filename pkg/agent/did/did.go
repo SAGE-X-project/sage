@@ -23,6 +23,9 @@ import (
 )
 
 // ValidateDID validates a DID format
+//
+// Deprecated: use ParseDID010 or ParseDIDURL010, which accept canonical SAGE
+// 0.10.0 DIDs.
 func ValidateDID(did string) error {
 	if len(did) < 10 {
 		return fmt.Errorf("DID too short")

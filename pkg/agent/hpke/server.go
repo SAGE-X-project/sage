@@ -42,6 +42,8 @@ import (
 
 // Server accepts HPKE init, verifies DID-signature, derives secrets,
 // creates a session, and returns a signed response with kid/ephS/ackTag.
+//
+// Deprecated: use CompletionEndpoint010 for SAGE 0.10.0 sessions.
 type Server struct {
 	key       sagecrypto.KeyPair // Ed25519 or ECDSA(Secp256k1) for signing messages (PR #118)
 	kem       sagecrypto.KeyPair // X25519 KEM static key (HPKE Base recipient)
@@ -49,7 +51,7 @@ type Server struct {
 	resolver  did.Resolver
 	transport transport.MessageTransport // Optional: for sending responses
 
-	sessMgr *session.Manager
+	sessMgr *session.Manager //nolint:staticcheck // legacy HPKE handshake
 	info    InfoBuilder
 
 	maxSkew time.Duration
@@ -103,6 +105,10 @@ type serverSigEnvelope struct {
 	EphC          string `json:"ephC"`          // b64url(client ephC)
 }
 
+// NewServer returns a legacy HPKE handshake server.
+//
+// Deprecated: use NewCompletionEndpoint010, NewCustodyCompletionEndpoint010
+// or NewProtectedCompletionEndpoint010.
 func NewServer(key sagecrypto.KeyPair, sessMgr *session.Manager, didStr string, resolver did.Resolver, opts *ServerOpts) *Server {
 	if opts == nil {
 		opts = &ServerOpts{}

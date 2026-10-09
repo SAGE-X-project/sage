@@ -37,8 +37,8 @@ func hpkeSuite() Suite {
 					ctx, _ := str(in, "context_id")
 					a, _ := str(in, "init_did")
 					b, _ := str(in, "resp_did")
-					info := hpke.DefaultInfo(ctx, a, b)
-					ectx := hpke.DefaultExportContext(ctx)
+					info := hpke.DefaultInfo(ctx, a, b)    //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
+					ectx := hpke.DefaultExportContext(ctx) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 					ih := sha256.Sum256(info)
 					eh := sha256.Sum256(ectx)
 					return map[string]any{
@@ -88,8 +88,8 @@ func hpkeSuite() Suite {
 					if err != nil {
 						return nil, err
 					}
-					ectx := hpke.DefaultExportContext(in["context_id"].(string))
-					seed, err := hpke.CombineSecrets(exp, ss, ectx)
+					ectx := hpke.DefaultExportContext(in["context_id"].(string)) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
+					seed, err := hpke.CombineSecrets(exp, ss, ectx)              //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 					if err != nil {
 						return nil, err
 					}
@@ -133,9 +133,9 @@ func hpkeSuite() Suite {
 					ctx, _ := str(in, "context_id")
 					a, _ := str(in, "init_did")
 					b, _ := str(in, "resp_did")
-					info := hpke.DefaultInfo(ctx, a, b)
-					ectx := hpke.DefaultExportContext(ctx)
-					tag := hpke.MakeAckTag(seed, ctx, in["nonce"].(string), in["kid"].(string), info, ectx, enc, ephC, ephS, []byte(a), []byte(b))
+					info := hpke.DefaultInfo(ctx, a, b)                                                                                            //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
+					ectx := hpke.DefaultExportContext(ctx)                                                                                         //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
+					tag := hpke.MakeAckTag(seed, ctx, in["nonce"].(string), in["kid"].(string), info, ectx, enc, ephC, ephS, []byte(a), []byte(b)) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 					return map[string]any{"binds_order": []string{"info", "export_context", "enc", "eph_c", "eph_s", "init_did", "resp_did"}, "ack_tag": hx(tag)}, nil
 				},
 			},
@@ -149,8 +149,8 @@ func hpkeSuite() Suite {
 						return nil, err
 					}
 					ctx, _ := str(in, "context_id")
-					info := hpke.DefaultInfo(ctx, in["init_did"].(string), in["resp_did"].(string))
-					ectx := hpke.DefaultExportContext(ctx)
+					info := hpke.DefaultInfo(ctx, in["init_did"].(string), in["resp_did"].(string)) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
+					ectx := hpke.DefaultExportContext(ctx)                                          //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 					enc, exporter, err := keys.HPKEDeriveSharedSecretToX25519Peer(b.PublicKey(), info, ectx, 32)
 					if err != nil {
 						return nil, err
@@ -171,8 +171,8 @@ func hpkeSuite() Suite {
 						return err
 					}
 					ctx, _ := str(in, "context_id")
-					info := hpke.DefaultInfo(ctx, in["init_did"].(string), in["resp_did"].(string))
-					ectx := hpke.DefaultExportContext(ctx)
+					info := hpke.DefaultInfo(ctx, in["init_did"].(string), in["resp_did"].(string)) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
+					ectx := hpke.DefaultExportContext(ctx)                                          //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 					got, err := keys.HPKEOpenSharedSecretWithX25519Priv(b, enc, info, ectx, 32)
 					if err != nil {
 						return err

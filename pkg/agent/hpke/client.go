@@ -42,18 +42,24 @@ import (
 )
 
 // Client performs the HPKE-based initialization and session creation.
+//
+// Deprecated: use CompletionEndpoint010 for SAGE 0.10.0 sessions.
 type Client struct {
 	transport transport.MessageTransport
 	resolver  did.Resolver
 	key       sagecrypto.KeyPair // Ed25519 used to sign messages
 	DID       string
 	info      InfoBuilder
-	sessMgr   *session.Manager
+	sessMgr   *session.Manager //nolint:staticcheck // legacy HPKE handshake
 
 	cookies CookieSource      // optional
 	pins    map[string][]byte // DID -> ed25519 pub (TOFU pin)
 }
 
+// NewClient returns a legacy HPKE handshake client.
+//
+// Deprecated: use NewCompletionEndpoint010, NewCustodyCompletionEndpoint010
+// or NewProtectedCompletionEndpoint010.
 func NewClient(t transport.MessageTransport, resolver did.Resolver, key sagecrypto.KeyPair, didStr string, ib InfoBuilder, sessMgr *session.Manager) *Client {
 	if ib == nil {
 		ib = DefaultInfoBuilder{}

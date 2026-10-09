@@ -1,7 +1,7 @@
 # Legacy APIs and the SAGE 0.10.0 deprecation plan
 
-Status: preparation (phase P0). No symbol is newly marked `Deprecated:` by this
-document. It classifies exported APIs that predate the SAGE 0.10.0 protocol,
+Status: class A symbols are marked `Deprecated:` (phase P2). This document
+records the classification and the order of the work. It classifies exported APIs that predate the SAGE 0.10.0 protocol,
 names their 0.10.0 replacements, records known callers at `c2b8d21`, and orders
 the work needed before marking them. The Rust core keeps a matching plan in
 `rs-sage-core/docs/legacy-010-deprecation.md`.
@@ -81,9 +81,11 @@ to retire the feature. Until then their documentation states that they are not
      APIs themselves are intended legacy callers. P2 gives each a scoped
      `//nolint:staticcheck` with that reason.
    - Done: the `handshake` package comment names `CompletionEndpoint010`.
-3. **P2. Mark class A.** Add `// Deprecated: use …` with the replacement,
-   list them in `CHANGELOG.md` under Deprecated, and use `//nolint:staticcheck`
-   with a reason only where a legacy test or vector must keep calling them.
+3. **P2. Mark class A.** Done: each class A symbol carries `// Deprecated:`
+   naming its replacement, `CHANGELOG.md` lists them under Deprecated, and the
+   intended legacy callers carry a scoped `//nolint:staticcheck` with the
+   reason. sage-adk no longer calls `jcs.Canonicalize` (it uses
+   `guard010.CanonicalManifest`).
 4. **P3. Consumers.** Ask sage-adk to switch `guardbinding` to
    `guard010.Canonicalize`; update sage-inspector harness adapters to route
    0.10.0 cases to 0.10.0 entry points (legacy routes stay labeled legacy).

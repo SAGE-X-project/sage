@@ -37,8 +37,8 @@ import (
 func setupHPKETestWithTransport(t *testing.T, srvCfg, cliCfg session.Config) (
 	*Client,
 	*Server,
-	*session.Manager,
-	*session.Manager,
+	*session.Manager, //nolint:staticcheck // test of the legacy API
+	*session.Manager, //nolint:staticcheck // test of the legacy API
 	*mockResolver,
 	*sagedid.MultiChainResolver,
 	*transport.MockTransport,
@@ -130,8 +130,8 @@ func setupHPKETestWithCookiesAndTransport(
 ) (
 	*Client,
 	*Server,
-	*session.Manager,
-	*session.Manager,
+	*session.Manager, //nolint:staticcheck // test of the legacy API
+	*session.Manager, //nolint:staticcheck // test of the legacy API
 	*mockResolver,
 	*sagedid.MultiChainResolver,
 	*transport.MockTransport,

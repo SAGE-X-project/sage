@@ -324,6 +324,9 @@ func ParseChain(name string) (Chain, error) {
 // ParseDID parses a "did:sage:<chain>:<identifier>" DID into its chain and
 // identifier. It is the only DID parser in the module; ValidateDID and the
 // resolver's chain lookup are built on it.
+//
+// Deprecated: use ParseDID010 or ParseDIDURL010 for SAGE 0.10.0 DIDs. This
+// parser accepts only the legacy ethereum and solana forms.
 func ParseDID(did AgentDID) (chain Chain, identifier string, err error) {
 	parts := strings.Split(string(did), ":")
 	if len(parts) < 4 || parts[0] != "did" || parts[1] != "sage" {

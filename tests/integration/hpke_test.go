@@ -145,9 +145,9 @@ func Test_8_1_1_2_SharedSecretGeneration(t *testing.T) {
 	testutil.LogDetail(t, "  Secret length: %d bytes", len(exporterAlice))
 
 	// Verify deterministic session ID derivation from shared secret
-	sidAlice, err := session.ComputeSessionIDFromSeed(exporterAlice, "sage/hpke v1")
+	sidAlice, err := session.ComputeSessionIDFromSeed(exporterAlice, "sage/hpke v1") //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
-	sidBob, err := session.ComputeSessionIDFromSeed(exporterBob, "sage/hpke v1")
+	sidBob, err := session.ComputeSessionIDFromSeed(exporterBob, "sage/hpke v1") //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
 	require.Equal(t, sidAlice, sidBob, "Session IDs must match")
 	testutil.LogSuccess(t, "결정론적 Session ID 파생 성공")
@@ -208,14 +208,14 @@ func Test_8_1_2_1_ChaCha20Poly1305Encryption(t *testing.T) {
 	testutil.LogSuccess(t, "HPKE 공유 비밀 설정 완료")
 
 	// Create secure sessions from exporter secrets
-	sidAlice, err := session.ComputeSessionIDFromSeed(exporterAlice, "sage/hpke v1")
+	sidAlice, err := session.ComputeSessionIDFromSeed(exporterAlice, "sage/hpke v1") //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
-	sidBob, err := session.ComputeSessionIDFromSeed(exporterBob, "sage/hpke v1")
+	sidBob, err := session.ComputeSessionIDFromSeed(exporterBob, "sage/hpke v1") //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
 
-	sessionAlice, err := session.NewSecureSessionFromExporter(sidAlice, exporterAlice, session.Config{})
+	sessionAlice, err := session.NewSecureSessionFromExporter(sidAlice, exporterAlice, session.Config{}) //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
-	_, err = session.NewSecureSessionFromExporter(sidBob, exporterBob, session.Config{})
+	_, err = session.NewSecureSessionFromExporter(sidBob, exporterBob, session.Config{}) //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
 	testutil.LogSuccess(t, "보안 세션 생성 완료")
 	testutil.LogDetail(t, "  Alice Session ID: %s", sidAlice)
@@ -286,14 +286,14 @@ func Test_8_1_2_2_DecryptionPlaintextMatch(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	sidAlice, err := session.ComputeSessionIDFromSeed(exporterAlice, "sage/hpke v1")
+	sidAlice, err := session.ComputeSessionIDFromSeed(exporterAlice, "sage/hpke v1") //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
-	sidBob, err := session.ComputeSessionIDFromSeed(exporterBob, "sage/hpke v1")
+	sidBob, err := session.ComputeSessionIDFromSeed(exporterBob, "sage/hpke v1") //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
 
-	sessionAlice, err := session.NewSecureSessionFromExporter(sidAlice, exporterAlice, session.Config{})
+	sessionAlice, err := session.NewSecureSessionFromExporter(sidAlice, exporterAlice, session.Config{}) //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
-	sessionBob, err := session.NewSecureSessionFromExporter(sidBob, exporterBob, session.Config{})
+	sessionBob, err := session.NewSecureSessionFromExporter(sidBob, exporterBob, session.Config{}) //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
 	testutil.LogSuccess(t, "HPKE 세션 설정 완료")
 
@@ -376,14 +376,14 @@ func Test_8_1_2_3_CiphertextConsistency(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	sidAlice, err := session.ComputeSessionIDFromSeed(exporterAlice, "sage/hpke v1")
+	sidAlice, err := session.ComputeSessionIDFromSeed(exporterAlice, "sage/hpke v1") //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
-	sidBob, err := session.ComputeSessionIDFromSeed(exporterBob, "sage/hpke v1")
+	sidBob, err := session.ComputeSessionIDFromSeed(exporterBob, "sage/hpke v1") //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
 
-	sessionAlice, err := session.NewSecureSessionFromExporter(sidAlice, exporterAlice, session.Config{})
+	sessionAlice, err := session.NewSecureSessionFromExporter(sidAlice, exporterAlice, session.Config{}) //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
-	sessionBob, err := session.NewSecureSessionFromExporter(sidBob, exporterBob, session.Config{})
+	sessionBob, err := session.NewSecureSessionFromExporter(sidBob, exporterBob, session.Config{}) //nolint:staticcheck // integration test of the legacy HPKE and session API
 	require.NoError(t, err)
 	testutil.LogSuccess(t, "HPKE 세션 설정 완료")
 

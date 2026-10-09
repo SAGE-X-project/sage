@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
+	"github.com/sage-x-project/sage/pkg/agent/internal/rfc8785"
 	"os"
 	"strings"
 	"testing"
@@ -42,7 +42,7 @@ func TestMCPWirePreservesLargeCanonicalFragments(t *testing.T) {
 	}
 	canonical := func(v any) []byte {
 		b, _ := json.Marshal(v)
-		b, e = jcs.Canonicalize(b)
+		b, e = rfc8785.Canonicalize(b)
 		if e != nil || len(b) > MaxBytes {
 			t.Fatal("fixture bounds", e)
 		}

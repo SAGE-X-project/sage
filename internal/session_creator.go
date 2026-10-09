@@ -41,7 +41,7 @@ import (
 
 // Creator implements handshake.Events and forwards to Manager.
 type Creator struct {
-	sessionMgr *session.Manager
+	sessionMgr *session.Manager //nolint:staticcheck // legacy handshake adapter
 
 	mu           sync.RWMutex
 	ephPrivByCtx map[string]*keys.X25519KeyPair
@@ -50,7 +50,7 @@ type Creator struct {
 }
 
 // New creates a handshake integration Creator.
-func NewCreator(sm *session.Manager) *Creator {
+func NewCreator(sm *session.Manager) *Creator { //nolint:staticcheck // legacy handshake adapter
 	return &Creator{
 		sessionMgr:   sm,
 		ephPrivByCtx: make(map[string]*keys.X25519KeyPair),
@@ -76,7 +76,7 @@ func (a *Creator) OnResponse(ctx context.Context, ctxID string, res handshake.Re
 	return nil
 }
 
-func (a *Creator) OnComplete(ctx context.Context, ctxID string, comp handshake.CompleteMessage, p session.Params) error {
+func (a *Creator) OnComplete(ctx context.Context, ctxID string, comp handshake.CompleteMessage, p session.Params) error { //nolint:staticcheck // legacy handshake adapter
 	a.mu.RLock()
 	my := a.ephPrivByCtx[ctxID]
 	a.mu.RUnlock()

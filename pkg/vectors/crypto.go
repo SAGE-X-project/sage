@@ -216,7 +216,7 @@ func jcsSuite() Suite {
 				if err != nil {
 					return nil, err
 				}
-				out, err := jcs.Canonicalize([]byte(j))
+				out, err := jcs.Canonicalize([]byte(j)) //nolint:staticcheck // sage-spec 1.0.0-draft.1 vectors are defined by the legacy API
 				if err != nil {
 					return nil, err
 				}

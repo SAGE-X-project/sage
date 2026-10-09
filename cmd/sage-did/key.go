@@ -538,7 +538,7 @@ func runKeyVerifyPop(cmd *cobra.Command, args []string) error {
 	agentDID := did.AgentDID(args[0])
 
 	// Parse DID to get chain
-	chain, _, err := did.ParseDID(agentDID)
+	chain, _, err := did.ParseDID(agentDID) //nolint:staticcheck // legacy registry CLI reads the chain from legacy DIDs
 	if err != nil {
 		return fmt.Errorf("invalid DID format: %w", err)
 	}
