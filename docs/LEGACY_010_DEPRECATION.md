@@ -21,9 +21,13 @@ deprecated code leaves no earlier than `v1.8.0`.
   cross-package calls fail staticcheck SA1019, which `.golangci.yml` enables
   for all files. P1 moved the implementation to `pkg/agent/internal/rfc8785`;
   these packages now call it directly and `crypto/jcs` is a thin wrapper.
-- **Exported helpers call legacy APIs.** `pkg/vectors` (imported by
-  sage-inspector) and `cmd/sage-did` call `did.ParseDID`, legacy HPKE helpers
-  and `session.SecureSession`.
+- **Exported helpers call legacy APIs on purpose.** `pkg/vectors` (imported
+  by sage-inspector) generates and checks the published sage-spec
+  `1.0.0-draft.1` vector suites, whose outputs are defined by the legacy DID,
+  HPKE and session APIs. `cmd/sage-did` operates the legacy on-chain registry
+  through `did.Manager` (class C) and reads the chain from legacy DIDs with
+  `did.ParseDID`. Moving either to 0.10.0 APIs would change published vector
+  outputs or break the CLI, so both stay legacy callers.
 - **External consumers exist** (pins vary): sage-adk
   `core/guardbinding/load.go` calls `jcs.Canonicalize`; sage-gateway and
   sage-adk use `core/rfc9421`, `did.Manager` and the multi-chain resolver;
@@ -71,9 +75,11 @@ to retire the feature. Until then their documentation states that they are not
 2. **P1. Decouple and migrate inside this repository, without behavior change.**
    - Done: 0.10.0 packages call `pkg/agent/internal/rfc8785` instead of
      `crypto/jcs`; output is unchanged because both run the same code.
-   - Move `pkg/vectors` 0.10.0 vectors and `cmd/sage-did` to the 0.10.0 APIs
-     where a replacement exists; keep legacy vectors behind an explicit
-     legacy section.
+   - Reviewed: no remaining internal caller should move. `pkg/vectors`
+     (1.0.0-draft.1 suites), `cmd/sage-did` (legacy registry CLI), the legacy
+     `hpke` client and server, the A2A card proof and the tests of the legacy
+     APIs themselves are intended legacy callers. P2 gives each a scoped
+     `//nolint:staticcheck` with that reason.
    - Done: the `handshake` package comment names `CompletionEndpoint010`.
 3. **P2. Mark class A.** Add `// Deprecated: use …` with the replacement,
    list them in `CHANGELOG.md` under Deprecated, and use `//nolint:staticcheck`
