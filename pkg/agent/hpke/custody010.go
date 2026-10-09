@@ -39,6 +39,40 @@ func NewCustodyCompletionEndpoint010(ctx context.Context, did, kid string, custo
 	return &CompletionEndpoint010{registry: g, clock: c, replay: r, did: did, kid: kid, public: append(ed25519.PublicKey(nil), public...), custody: custody, kem: append([]byte(nil), kem...)}, nil
 }
 
+// NewProtectedCompletionEndpoint010 keeps both the Ed25519 signing key and the
+// optional X25519 KEM key in external custody. kem is nil for an endpoint that
+// only initiates. Both public keys are read once at construction; the KEM
+// public key must match the current registered KEM key on every response, and
+// custody performs only the X25519 operation of HPKE decapsulation.
+func NewProtectedCompletionEndpoint010(ctx context.Context, did, kid string, custody Ed25519Custody010, kem X25519Custody010, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (endpoint *CompletionEndpoint010, err error) {
+	defer func() {
+		if recover() != nil {
+			endpoint, err = nil, errCompletion010
+		}
+	}()
+	e, err := NewCustodyCompletionEndpoint010(ctx, did, kid, custody, nil, g, c, r)
+	if err != nil {
+		return nil, err
+	}
+	if kem == nil || reflect.ValueOf(kem).Kind() == reflect.Pointer && reflect.ValueOf(kem).IsNil() {
+		return e, nil
+	}
+	public, x := kem.PublicKey(ctx)
+	if x != nil || len(public) != 32 || ctx.Err() != nil {
+		return nil, errCompletion010
+	}
+	e.kemCustody, e.kemPublic = kem, append([]byte(nil), public...)
+	return e, nil
+}
+
+// kemReady reports whether exactly one KEM source is retained for responding.
+func (e *CompletionEndpoint010) kemReady() bool {
+	if e.kemCustody != nil {
+		return len(e.kem) == 0 && len(e.kemPublic) == 32
+	}
+	return len(e.kem) == 32
+}
+
 func absentCustody010(v Ed25519Custody010) bool {
 	if v == nil {
 		return true
