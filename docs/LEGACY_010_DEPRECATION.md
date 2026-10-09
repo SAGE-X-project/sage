@@ -1,9 +1,9 @@
 # Legacy APIs and the SAGE 0.10.0 deprecation plan
 
-Status: class A symbols are marked `Deprecated:` (phase P2). This document
-records the classification and the order of the work. It classifies exported APIs that predate the SAGE 0.10.0 protocol,
-names their 0.10.0 replacements, records known callers at `c2b8d21`, and orders
-the work needed before marking them. The Rust core keeps a matching plan in
+Status: phase P2. Class A symbols are marked `Deprecated:`. This document
+classifies exported APIs that predate the SAGE 0.10.0 protocol, names their
+0.10.0 replacements, records known callers (surveyed at `c2b8d21`) and orders
+the work. The Rust core keeps a matching plan in
 `rs-sage-core/docs/legacy-010-deprecation.md`.
 
 Legacy APIs remain available and keep their historical behavior. They are not
