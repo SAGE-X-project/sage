@@ -19,7 +19,15 @@ import (
 const proofDID010 = "did:sage:web:agents.example.com:billing-bot"
 
 func proofFixture010(t *testing.T) map[string]any {
+	return proofFixtureFor010(t, proofDID010, "operator")
+}
+
+func proofFixtureFor010(t *testing.T, did, controller string) map[string]any {
 	t.Helper()
+	registry, agent, ok := webProofIDs010(did)
+	if !ok {
+		t.Fatal("invalid fixture DID")
+	}
 	encode := base64.RawURLEncoding.EncodeToString
 	edPrivate := ed25519.NewKeyFromSeed(make([]byte, 32))
 	edPublic := edPrivate.Public().(ed25519.PublicKey)
@@ -28,14 +36,14 @@ func proofFixture010(t *testing.T) map[string]any {
 			"proof": map[string]any{"signer": signer, "value": encode(sig)}, "state": "accepted"}
 	}
 	challenge := func(name, alg string, pub []byte) []byte {
-		message, err := PoPChallenge010("web:agents.example.com", "billing-bot", name, alg, pub)
+		message, err := PoPChallenge010(registry, agent, name, alg, pub)
 		if err != nil {
 			t.Fatal(err)
 		}
 		return message
 	}
 	ed := makeEntry("a-ed", "ed25519", edPublic,
-		ed25519.Sign(edPrivate, challenge("a-ed", "ed25519", edPublic)), proofDID010+"#a-ed")
+		ed25519.Sign(edPrivate, challenge("a-ed", "ed25519", edPublic)), did+"#a-ed")
 	kemPrivateBytes := make([]byte, 32)
 	kemPrivateBytes[0] = 7
 	kemPrivate, err := ecdh.X25519().NewPrivateKey(kemPrivateBytes)
@@ -44,7 +52,7 @@ func proofFixture010(t *testing.T) map[string]any {
 	}
 	kemPublic := kemPrivate.PublicKey().Bytes()
 	kem := makeEntry("b-kem", "x25519", kemPublic,
-		ed25519.Sign(edPrivate, challenge("b-kem", "x25519", kemPublic)), proofDID010+"#a-ed")
+		ed25519.Sign(edPrivate, challenge("b-kem", "x25519", kemPublic)), did+"#a-ed")
 	p256Private, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -62,7 +70,7 @@ func proofFixture010(t *testing.T) map[string]any {
 		s.Sub(elliptic.P256().Params().N, s)
 	}
 	p256Sig := append(r.FillBytes(make([]byte, 32)), s.FillBytes(make([]byte, 32))...)
-	p256 := makeEntry("c-p256", "ecdsa-p256-sha256", p256Public, p256Sig, proofDID010+"#c-p256")
+	p256 := makeEntry("c-p256", "ecdsa-p256-sha256", p256Public, p256Sig, did+"#c-p256")
 	secpPrivate, err := ethcrypto.GenerateKey()
 	if err != nil {
 		t.Fatal(err)
@@ -72,8 +80,8 @@ func proofFixture010(t *testing.T) map[string]any {
 	if err != nil {
 		t.Fatal(err)
 	}
-	secp := makeEntry("d-secp", "sage-secp256k1-keccak256", secpPublic, secpSig, proofDID010+"#d-secp")
-	return map[string]any{"id": proofDID010, "controller": "operator", "state": "active", "version": "1",
+	secp := makeEntry("d-secp", "sage-secp256k1-keccak256", secpPublic, secpSig, did+"#d-secp")
+	return map[string]any{"id": did, "controller": controller, "state": "active", "version": "1",
 		"keys": []any{ed, kem, p256, secp}, "services": []any{}}
 }
 

@@ -48,12 +48,17 @@ func checkWebRegistryProofs010(raw []byte, expectedDID string, now int64, requir
 	if json.Unmarshal(raw, &response) != nil {
 		return ErrInvalidRecord010
 	}
+	return checkRegistryKeyProofs010(response.Record.Keys, expectedDID)
+}
+
+// checkRegistryKeyProofs010 requires prior complete record shape validation.
+func checkRegistryKeyProofs010(keys []webProofKey010, expectedDID string) error {
 	registryID, agentID, ok := webProofIDs010(expectedDID)
 	if !ok {
 		return ErrInvalidRecord010
 	}
-	signing := make(map[string]webProofKey010, len(response.Record.Keys))
-	for _, key := range response.Record.Keys {
+	signing := make(map[string]webProofKey010, len(keys))
+	for _, key := range keys {
 		if key.Alg == "x25519" {
 			continue
 		}
@@ -71,7 +76,7 @@ func checkWebRegistryProofs010(raw []byte, expectedDID string, now int64, requir
 		}
 		signing[key.Name] = key
 	}
-	for _, key := range response.Record.Keys {
+	for _, key := range keys {
 		if key.Alg != "x25519" {
 			continue
 		}
