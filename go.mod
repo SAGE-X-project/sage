@@ -17,6 +17,8 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/mr-tron/base58 v1.3.0
 	github.com/prometheus/client_golang v1.24.1
+	github.com/sage-x-project/did-go v0.0.0-20261012015322-ed54c505eafe
+	github.com/sage-x-project/did-go/advanced/sage v0.0.0-20261012020818-2ef282b40ccf
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/test-go/testify v1.1.4
