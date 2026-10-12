@@ -44,6 +44,27 @@ jobs:
           go test -race -coverprofile=coverage.out -covermode=atomic ./...
           go tool cover -html=coverage.out -o coverage.html
 
+      - name: Check complete eip155 observer and adapter coverage
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          targets = {
+              'pkg/agent/registry010/eip155_observer010.go': [0, 0],
+              'pkg/agent/didsource010/eip155.go': [0, 0],
+          }
+          for line in Path('coverage.out').read_text().splitlines()[1:]:
+              location, statements, count = line.split()
+              filename = location.rsplit(':', 1)[0]
+              for target, totals in targets.items():
+                  if filename.endswith('/' + target):
+                      totals[0] += int(statements)
+                      totals[1] += int(statements) if int(count) else 0
+          for target, (total, covered) in targets.items():
+              if not total or covered * 100 < total * 90:
+                  raise SystemExit(f'{target}: {covered}/{total} statements; requires 90%')
+              print(f'{target}: {covered / total:.1%}')
+          PY
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

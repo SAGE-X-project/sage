@@ -18,8 +18,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/netip"
 	"strconv"
+	"strings"
 
 	"github.com/sage-x-project/did-go/advanced/sage"
 	"github.com/sage-x-project/did-go/did"
@@ -157,28 +159,41 @@ func parseWebBody(body []byte, d did.DID) (sage.Record, error) {
 	if err := dec.Decode(&env); err != nil {
 		return sage.Record{}, fmt.Errorf("record body: %w", err)
 	}
-	if env.Record.ID != d.String() {
-		return sage.Record{}, errors.New("the record id is not the requested identifier")
-	}
-	issued, err := strconv.ParseInt(env.Issued.String(), 10, 64)
+	issued, err := recordInteger(env.Issued.String())
 	if err != nil {
 		return sage.Record{}, fmt.Errorf("issued: %w", err)
 	}
-	rec := sage.Record{
-		DID:         d,
-		Controller:  env.Record.Controller,
-		State:       sage.State(env.Record.State),
-		Version:     env.Record.Version,
-		Observation: sage.Observation{Issued: &issued},
+	rec, err := parseRecordBodyRecord(env.Record, d)
+	if err != nil {
+		return sage.Record{}, err
 	}
-	for _, k := range env.Record.Keys {
+	rec.Observation.Issued = &issued
+	return rec, nil
+}
+
+func parseRecordBody(raw []byte, d did.DID) (sage.Record, error) {
+	var r webRecord
+	dec := json.NewDecoder(bytes.NewReader(raw))
+	dec.UseNumber()
+	if err := dec.Decode(&r); err != nil {
+		return sage.Record{}, err
+	}
+	return parseRecordBodyRecord(r, d)
+}
+
+func parseRecordBodyRecord(r webRecord, d did.DID) (sage.Record, error) {
+	if r.ID != d.String() {
+		return sage.Record{}, errors.New("the record id is not the requested identifier")
+	}
+	rec := sage.Record{DID: d, Controller: r.Controller, State: sage.State(r.State), Version: r.Version}
+	for _, k := range r.Keys {
 		material, err := base64.RawURLEncoding.Strict().DecodeString(k.Key)
 		if err != nil {
 			return sage.Record{}, fmt.Errorf("key %q: %w", k.Name, err)
 		}
 		key := sage.Key{Name: k.Name, Alg: k.Alg, Material: material, State: sage.KeyState(k.State)}
 		if k.Expires != nil {
-			n, err := strconv.ParseInt(k.Expires.String(), 10, 64)
+			n, err := recordInteger(k.Expires.String())
 			if err != nil {
 				return sage.Record{}, fmt.Errorf("key %q expiry: %w", k.Name, err)
 			}
@@ -186,10 +201,29 @@ func parseWebBody(body []byte, d did.DID) (sage.Record, error) {
 		}
 		rec.Keys = append(rec.Keys, key)
 	}
-	for _, sv := range env.Record.Services {
+	for _, sv := range r.Services {
 		rec.Services = append(rec.Services, sage.Service{Name: sv.Name, Type: sv.Type, URI: sv.URI})
 	}
 	return rec, nil
+}
+
+// recordInteger accepts every bounded JSON integer spelling already checked
+// by the registry parser, including 100.0 and 1e2. It never rounds an expiry.
+func recordInteger(raw string) (int64, error) {
+	if len(raw) > 65536 || !json.Valid([]byte(raw)) || strings.HasPrefix(raw, "-") {
+		return 0, errors.New("timestamp is not a bounded nonnegative integer")
+	}
+	if i := strings.IndexAny(raw, "eE"); i >= 0 {
+		exponent, err := strconv.ParseInt(raw[i+1:], 10, 64)
+		if err != nil || exponent < -100000 || exponent > 100000 {
+			return 0, errors.New("timestamp exponent is out of range")
+		}
+	}
+	n, ok := new(big.Rat).SetString(raw)
+	if !ok || !n.IsInt() || !n.Num().IsInt64() || n.Num().Sign() < 0 || n.Num().Int64() > 9007199254740991 {
+		return 0, errors.New("timestamp is not a bounded integer")
+	}
+	return n.Num().Int64(), nil
 }
 
 func printable(s string, minLen, maxLen int) bool {

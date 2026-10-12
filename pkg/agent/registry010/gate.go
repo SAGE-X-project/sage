@@ -93,15 +93,21 @@ type Gate struct {
 	last   *Stamp
 }
 
-func NewGate(c Config, s Source, k Clock, p Store) (*Gate, error) {
+func checkConfig(c Config) error {
 	for _, v := range []string{c.Source, c.Registry, c.Network} {
 		if v == "" || len(v) > 256 || strings.ContainsAny(v, "\x00\r\n") {
-			return nil, ErrRejected
+			return ErrRejected
 		}
 	}
 	parsed, err := sagedid.ParseDID010("did:sage:" + c.Registry + ":a")
 	if err != nil || parsed.Kind+":"+parsed.Locator != c.Registry {
-		return nil, ErrRejected
+		return ErrRejected
+	}
+	return nil
+}
+func NewGate(c Config, s Source, k Clock, p Store) (*Gate, error) {
+	if err := checkConfig(c); err != nil {
+		return nil, err
 	}
 	if s == nil || k == nil || p == nil {
 		return nil, ErrRejected

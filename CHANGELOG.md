@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Complete eip155 record observations and `didsource010.EIP155Source` for fresh DID projections, with proof checks, consistent finalized blocks and durable version continuity. The reader remains an explicit deployment boundary; no RPC, ABI or existing contract is certified.
 - `sage-vectors` command (`gen`, `check`, `list`) and `pkg/vectors`: deterministic and verify-only protocol test vectors for crypto, JCS, RFC 9421, HPKE derivations, session key schedule and `did:sage`, published in the sage-spec repository; `make vectors` / `make vectors-check`.
 - `hpke.CombineSecrets` exported for cross-implementation checks.
 - `guard010.CanonicalManifest`: validates an artifact manifest under the same limits as `ManifestCommitment` (up to 8194 JSON members) and returns the canonical bytes that the commitment hashes, so hosts no longer need the lenient `jcs.Canonicalize` for manifests.

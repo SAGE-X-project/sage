@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"io"
 	"net"
 	"net/url"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 const maxWebRecord010 = 65536
@@ -32,13 +34,25 @@ func checkWebRegistryRecordShape010(raw []byte, expectedDID string, now int64, r
 		return ErrInvalidRecord010
 	}
 	recordRaw := wrapper["record"]
+	return checkRegistryRecordShape010(recordRaw, expectedDID, now, requireUsableSigning)
+}
+
+// checkRegistryRecordShape010 is shared by authenticated web and eip155 reads.
+// The caller checks the profile-specific identifier and observation policy.
+func checkRegistryRecordShape010(recordRaw []byte, expectedDID string, now int64, requireUsableSigning bool) error {
 	if len(recordRaw) > maxWebRecord010 {
 		return ErrSizeExceeded010
+	}
+	if len(recordRaw) == 0 || !utf8.Valid(recordRaw) || bytes.HasPrefix(recordRaw, []byte{0xef, 0xbb, 0xbf}) || !validWebEscapes010(recordRaw) {
+		return ErrInvalidRecord010
 	}
 	decoder := json.NewDecoder(bytes.NewReader(recordRaw))
 	decoder.UseNumber()
 	value, err := readWebValue010(decoder, 1)
 	if err != nil {
+		return ErrInvalidRecord010
+	}
+	if _, err := decoder.Token(); err != io.EOF {
 		return ErrInvalidRecord010
 	}
 	record, ok := value.(map[string]any)
