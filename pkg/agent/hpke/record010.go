@@ -52,6 +52,9 @@ func sessionRequest010(raw []byte, now int64) (map[string]json.RawMessage, []byt
 	return sessionRecord010(raw, now, false)
 }
 func sessionRecord010(raw []byte, now int64, response bool) (map[string]json.RawMessage, []byte, error) {
+	return sessionRecordMetadata010(raw, now, response, false)
+}
+func sessionRecordMetadata010(raw []byte, now int64, response, application bool) (map[string]json.RawMessage, []byte, error) {
 	// This bounded subset deliberately shares the 32 KiB envelope admission cap.
 	if len(raw) > 32768 {
 		return nil, nil, errCompletion010
@@ -60,6 +63,18 @@ func sessionRecord010(raw []byte, now int64, response bool) (map[string]json.Raw
 		return nil, nil, errCompletion010
 	}
 	names := append(append([]string{}, wireFields010...), "session_id")
+	if application {
+		var probe map[string]json.RawMessage
+		if json.Unmarshal(raw, &probe) != nil {
+			return nil, nil, errCompletion010
+		}
+		if rawMetadata, present := probe["metadata"]; present {
+			if _, err := readApplicationMetadata010(rawMetadata); err != nil {
+				return nil, nil, err
+			}
+			names = append(names, "metadata")
+		}
+	}
 	field := "payload"
 	if response {
 		field = "data"
@@ -123,6 +138,13 @@ func (s *AuthenticatedCompletion010) SealRequest(ctx context.Context, plaintext 
 	return s.sealRequest010(ctx, plaintext, ttl)
 }
 func (s *AuthenticatedCompletion010) sealRequest010(ctx context.Context, plaintext []byte, ttl int64) ([]byte, error) {
+	return s.sealRequestMetadata010(ctx, plaintext, nil, ttl)
+}
+func (s *AuthenticatedCompletion010) sealRequestMetadata010(ctx context.Context, plaintext []byte, metadata map[string]string, ttl int64) ([]byte, error) {
+	ownedMetadata, err := copyApplicationMetadata010(metadata)
+	if err != nil || (metadata != nil && !s.application) {
+		return nil, errCompletion010
+	}
 	e := s.endpoint
 	start, x := e.sample()
 	if x != nil || s.recordLive(start) != nil {
@@ -148,6 +170,9 @@ func (s *AuthenticatedCompletion010) sealRequest010(ctx context.Context, plainte
 	w["encoding"] = "session"
 	w["session_id"] = s.tuple["sid"]
 	delete(w, "payload")
+	if ownedMetadata != nil {
+		w["metadata"] = ownedMetadata
+	}
 	aad := canon010(w)
 	if len(aad) > 4033 {
 		return nil, errCompletion010
@@ -201,7 +226,13 @@ func (s *AuthenticatedCompletion010) openRequest010(ctx context.Context, raw []b
 	if proof != nil {
 		start = proof.start
 	}
-	w, wire, x := sessionRequest010(raw, start.Unix)
+	var w map[string]json.RawMessage
+	var wire []byte
+	if s.application {
+		w, wire, x = sessionRecordMetadata010(raw, start.Unix, false, true)
+	} else {
+		w, wire, x = sessionRequest010(raw, start.Unix)
+	}
 	if x != nil {
 		return nil, errCompletion010
 	}
@@ -254,7 +285,7 @@ func (s *AuthenticatedCompletion010) acceptRecord010(ctx context.Context, start 
 			called = true
 			var err error
 			accepted, err = e.sample()
-			if err != nil || s.recordLive(accepted) != nil || accepted.MonoMS-start.MonoMS > 5000 || accepted.Unix >= entry.Expires || !pinnedLive010(accepted.Unix, s.a, s.b) {
+			if err != nil || ctx == nil || ctx.Err() != nil || s.recordLive(accepted) != nil || accepted.MonoMS-start.MonoMS > 5000 || accepted.Unix >= entry.Expires || !pinnedLive010(accepted.Unix, s.a, s.b) {
 				gateFailed = true
 				return errCompletion010
 			}
