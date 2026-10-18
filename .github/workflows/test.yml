@@ -137,9 +137,27 @@ jobs:
           assert total and covered * 100 >= total * 90, (covered, total)
           print(f'HTTP application owner: {covered}/{total} statements')
           PYAPP
+          go tool cover -func="$RUNNER_TEMP/http-application/coverage.out" > "$RUNNER_TEMP/http-application/functions.txt"
+          python3 - <<'PYCLOCK'
+          import os
+          from pathlib import Path
+          expected = {('owner010.go', 'LocalNow'), ('owner010.go', 'localStamp010'), ('http_application010.go', 'LocalStamp')}
+          found = {}
+          for line in Path(os.environ['RUNNER_TEMP'], 'http-application/functions.txt').read_text().splitlines():
+              fields = line.split()
+              if len(fields) != 3:
+                  continue
+              file = fields[0].rsplit(':', 2)[0].rsplit('/', 1)[-1]
+              key = (file, fields[1])
+              if key in expected:
+                  assert key not in found
+                  found[key] = float(fields[2].removesuffix('%'))
+          assert set(found) == expected and all(p >= 90 for p in found.values()), found
+          print('Shared local sample coverage:', found)
+          PYCLOCK
           git rev-parse HEAD > "$RUNNER_TEMP/http-application/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/http-application/tree.txt"
-          sha256sum pkg/agent/hpke/completion010.go pkg/agent/hpke/record010.go pkg/agent/hpke/response010.go pkg/agent/hpke/http010.go pkg/agent/hpke/http_application010.go pkg/agent/hpke/http_application010_test.go docs/dev/http-application-metadata.md docs/INDEX.md .github/workflows/test.yml > "$RUNNER_TEMP/http-application/source.sha256"
+          sha256sum pkg/agent/hpke/owner010.go pkg/agent/hpke/http_application_clock010_test.go pkg/agent/hpke/completion010.go pkg/agent/hpke/record010.go pkg/agent/hpke/response010.go pkg/agent/hpke/http010.go pkg/agent/hpke/http_application010.go pkg/agent/hpke/http_application010_test.go docs/dev/http-application-metadata.md docs/INDEX.md .github/workflows/test.yml > "$RUNNER_TEMP/http-application/source.sha256"
 
       - name: Retain authenticated HTTP application evidence
         if: always()
