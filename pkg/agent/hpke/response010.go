@@ -56,6 +56,13 @@ func (s *AuthenticatedCompletion010) SealResponse(ctx context.Context, messageID
 	return s.sealResponse010(ctx, messageID, data, success, code, ttl)
 }
 func (s *AuthenticatedCompletion010) sealResponse010(ctx context.Context, messageID string, data []byte, success bool, code string, ttl int64) ([]byte, error) {
+	return s.sealResponseMetadata010(ctx, messageID, data, nil, success, code, ttl)
+}
+func (s *AuthenticatedCompletion010) sealResponseMetadata010(ctx context.Context, messageID string, data []byte, metadata map[string]string, success bool, code string, ttl int64) ([]byte, error) {
+	ownedMetadata, err := copyApplicationMetadata010(metadata)
+	if err != nil || (metadata != nil && !s.application) {
+		return nil, errCompletion010
+	}
 	e := s.endpoint
 	start, x := e.sample()
 	if x != nil || s.recordLive(start) != nil {
@@ -92,6 +99,9 @@ func (s *AuthenticatedCompletion010) sealResponse010(ctx context.Context, messag
 		w["error"] = code
 	}
 	delete(w, "data")
+	if ownedMetadata != nil {
+		w["metadata"] = ownedMetadata
+	}
 	aad := canon010(w)
 	if len(aad) > 4033 {
 		return nil, errCompletion010
@@ -144,7 +154,7 @@ func (s *AuthenticatedCompletion010) openResponse010(ctx context.Context, raw []
 	if proof != nil {
 		start = proof.start
 	}
-	w, record, x := sessionRecord010(raw, start.Unix, true)
+	w, record, x := sessionRecordMetadata010(raw, start.Unix, true, s.application)
 	if x != nil {
 		return nil, errCompletion010
 	}

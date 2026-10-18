@@ -381,6 +381,13 @@ func (s *AuthenticatedCompletion010) SealHTTPRequest(ctx context.Context, plaint
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if s.application {
+		return HTTPMessage010{}, errCompletion010
+	}
+	return s.sealHTTPRequestMetadata010(ctx, plaintext, nil, ttl)
+}
+func (s *AuthenticatedCompletion010) sealHTTPRequestMetadata010(ctx context.Context, plaintext []byte, metadata map[string]string, ttl int64) (HTTPMessage010, error) {
+	e := s.endpoint
 	start, x := e.sample()
 	if x != nil || s.recordLive(start) != nil {
 		s.destroy()
@@ -389,7 +396,7 @@ func (s *AuthenticatedCompletion010) SealHTTPRequest(ctx context.Context, plaint
 	if s.httpTarget == "" {
 		return HTTPMessage010{}, errCompletion010
 	}
-	b, x := s.sealRequest010(ctx, plaintext, ttl)
+	b, x := s.sealRequestMetadata010(ctx, plaintext, metadata, ttl)
 	if x != nil {
 		return HTTPMessage010{}, x
 	}
@@ -411,6 +418,13 @@ func (s *AuthenticatedCompletion010) OpenHTTPRequest(ctx context.Context, m HTTP
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if s.application {
+		return nil, errCompletion010
+	}
+	return s.openHTTPRequest010(ctx, m)
+}
+func (s *AuthenticatedCompletion010) openHTTPRequest010(ctx context.Context, m HTTPMessage010) ([]byte, error) {
+	e := s.endpoint
 	start, x := e.sample()
 	if x != nil {
 		s.destroy()
@@ -433,6 +447,13 @@ func (s *AuthenticatedCompletion010) SealHTTPResponse(ctx context.Context, messa
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if s.application {
+		return HTTPMessage010{}, errCompletion010
+	}
+	return s.sealHTTPResponseMetadata010(ctx, messageID, data, nil, success, code, ttl, status)
+}
+func (s *AuthenticatedCompletion010) sealHTTPResponseMetadata010(ctx context.Context, messageID string, data []byte, metadata map[string]string, success bool, code string, ttl int64, status int) (HTTPMessage010, error) {
+	e := s.endpoint
 	start, x := e.sample()
 	r := s.received[messageID]
 	if x != nil || s.recordLive(start) != nil {
@@ -442,7 +463,7 @@ func (s *AuthenticatedCompletion010) SealHTTPResponse(ctx context.Context, messa
 	if s.httpTarget == "" || r == nil || r.http == nil || status < 200 || status > 599 || status == 204 {
 		return HTTPMessage010{}, errCompletion010
 	}
-	b, x := s.sealResponse010(ctx, messageID, data, success, code, ttl)
+	b, x := s.sealResponseMetadata010(ctx, messageID, data, metadata, success, code, ttl)
 	if x != nil {
 		return HTTPMessage010{}, x
 	}
@@ -460,6 +481,13 @@ func (s *AuthenticatedCompletion010) OpenHTTPResponse(ctx context.Context, m HTT
 	e := s.endpoint
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	if s.application {
+		return nil, errCompletion010
+	}
+	return s.openHTTPResponse010(ctx, m)
+}
+func (s *AuthenticatedCompletion010) openHTTPResponse010(ctx context.Context, m HTTPMessage010) (*SessionResponse010, error) {
+	e := s.endpoint
 	start, x := e.sample()
 	if x != nil {
 		s.destroy()
