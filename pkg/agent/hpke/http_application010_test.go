@@ -936,13 +936,13 @@ func TestHTTPApplicationOwnedTLS010(t *testing.T) {
 			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.TLS == nil || r.Method != "POST" {
 					problems <- fmt.Errorf("actual TLS or method")
-					http.Error(w, "unavailable", 503)
+					http.Error(w, "unavailable", http.StatusServiceUnavailable)
 					return
 				}
 				body, err := io.ReadAll(io.LimitReader(r.Body, 32769))
 				if err != nil {
 					problems <- err
-					http.Error(w, "unavailable", 503)
+					http.Error(w, "unavailable", http.StatusServiceUnavailable)
 					return
 				}
 				message := HTTPMessage010{Method: r.Method, Target: serverOrigin010(target) + r.URL.RequestURI(), Authority: r.Host, Body: body}
@@ -956,17 +956,17 @@ func TestHTTPApplicationOwnedTLS010(t *testing.T) {
 					if !unavailable {
 						problems <- err
 					}
-					http.Error(w, "unavailable", 503)
+					http.Error(w, "unavailable", http.StatusServiceUnavailable)
 					return
 				}
 				if unavailable {
 					problems <- fmt.Errorf("unavailable authority released request")
-					http.Error(w, "unavailable", 503)
+					http.Error(w, "unavailable", http.StatusServiceUnavailable)
 					return
 				}
 				if string(view.Payload()) != "inert TLS request" || view.Metadata()["a2a_version"] != "1.0" {
 					problems <- fmt.Errorf("accepted request changed")
-					http.Error(w, "unavailable", 503)
+					http.Error(w, "unavailable", http.StatusServiceUnavailable)
 					return
 				}
 				// Inert fixture handler, not the future ADK production dispatch barrier.
@@ -974,7 +974,7 @@ func TestHTTPApplicationOwnedTLS010(t *testing.T) {
 				reply, err := f.right.SealResponse(r.Context(), view.ID(), []byte("inert TLS response"), map[string]string{"note": "response"}, true, "", 300, 200)
 				if err != nil {
 					problems <- err
-					http.Error(w, "unavailable", 503)
+					http.Error(w, "unavailable", http.StatusServiceUnavailable)
 					return
 				}
 				for _, h := range reply.Headers {
@@ -1025,7 +1025,7 @@ func TestHTTPApplicationOwnedTLS010(t *testing.T) {
 				}
 			}
 			if unavailable {
-				if response.StatusCode != 503 || handled.Load() != 0 {
+				if response.StatusCode != http.StatusServiceUnavailable || handled.Load() != 0 {
 					t.Fatal("authority refusal dispatched")
 				}
 				if v, err := f.left.OpenResponse(ctx, message); err == nil || v != nil {
