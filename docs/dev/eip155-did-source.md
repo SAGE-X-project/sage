@@ -70,3 +70,26 @@ and eip155 regression scenarios for exponent/decimal integer spellings and
 non-integers, negative zero and limits. A second review found no remaining
 specific defect. This code review is not an organizationally independent audit
 or runtime observation of an actual blockchain Source.
+
+## Public DID dependency adoption
+
+The core selects public did-go root
+`v0.0.0-20261018080828-3b7a79c1c326` and advanced/sage
+`v0.0.0-20261018120945-5fac371e54db`, with checksums and no local
+replacement. This includes the earlier date-consumer, recursive-fragment,
+relative-ID, URL-fragment and metadata-presence repairs. The SAGE envelope
+now retains explicit active/created `deactivated:false`; unsupported Accept
+negotiation retains the standard typed problem and SAGE diagnostic code.
+
+`TestDIDConsumerMetadata`, `TestDIDConsumerAcceptDiagnostics` and
+`TestDIDConsumerTLS` exercise the core's complete-record Source through native
+public APIs and owned TLS GET/POST requests. Malformed Accept, unsupported
+options and Source failures keep their separate diagnostics. The reader is
+an injected fixture; no operational chain, history authority or custody is
+selected. CI retains the exact selected module versions/sums, fresh test events
+and coverage profile. Historical Inspector subjects are not updated in place.
+
+URI-list intermediate resolution still requires a separately configured
+`resolver.ForDereferencing()` instance where the application explicitly chooses
+that policy. This dependency update does not enable it globally or claim
+ADK/Rust adoption, a production transport binding or whole DID conformance.
