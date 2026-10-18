@@ -109,7 +109,7 @@ jobs:
           go test -mod=readonly -race -count=1 -json -run '^TestHTTPInformationalIdentityPayload010$' ./pkg/agent/hpke > "$RUNNER_TEMP/identity-payload/tests.jsonl"
           git rev-parse HEAD > "$RUNNER_TEMP/identity-payload/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/identity-payload/tree.txt"
-          sha256sum pkg/agent/hpke/identity_payload010_test.go docs/dev/identity-payload-authority.md .github/workflows/test.yml > "$RUNNER_TEMP/identity-payload/source.sha256"
+          sha256sum pkg/agent/hpke/identity_payload010_test.go docs/dev/identity-payload-authority.md docs/INDEX.md .github/workflows/test.yml > "$RUNNER_TEMP/identity-payload/source.sha256"
 
       - name: Retain informational identity payload evidence
         if: always()
