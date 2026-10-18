@@ -65,6 +65,43 @@ jobs:
               print(f'{target}: {covered / total:.1%}')
           PY
 
+      - name: Verify adopted DID modules and safe consumer runtime
+        shell: bash
+        env:
+          GOWORK: 'off'
+        run: |
+          mkdir -p "$RUNNER_TEMP/did-consumer-adoption"
+          go version > "$RUNNER_TEMP/did-consumer-adoption/go-version.txt"
+          go list -m -json github.com/sage-x-project/did-go github.com/sage-x-project/did-go/advanced/sage > "$RUNNER_TEMP/did-consumer-adoption/modules.json"
+          python3 - <<'PYMODULES'
+          import json, os
+          from pathlib import Path
+          data = Path(os.environ['RUNNER_TEMP'], 'did-consumer-adoption/modules.json').read_text()
+          decoder = json.JSONDecoder()
+          modules = {}
+          while data.strip():
+              module, end = decoder.raw_decode(data.lstrip())
+              data = data.lstrip()[end:]
+              assert module['Path'] not in modules and not module.get('Replace')
+              modules[module['Path']] = (module['Version'], module['Sum'], module['GoModSum'])
+          assert modules == {
+              'github.com/sage-x-project/did-go': ('v0.0.0-20261018080828-3b7a79c1c326', 'h1:Am4pVUAnGnhje6WZgO19ltbRV1NDCfvmEzQAuwHInM8=', 'h1:Xi8PmTFqnTT9F008Q4MvrZc6KFrtcrXBP/e1dH8mFaQ='),
+              'github.com/sage-x-project/did-go/advanced/sage': ('v0.0.0-20261018120945-5fac371e54db', 'h1:E4eJP14M8NrrlO/jafCfGTeWq8jexrs/+dSY6HJOdlI=', 'h1:gkcVUjeYqhRIRSD8YRErTbHy8lQ85ghzay/cs3hA7d8='),
+          }
+          PYMODULES
+          go mod verify > "$RUNNER_TEMP/did-consumer-adoption/modules-verified.txt"
+          go test -mod=readonly -race -count=1 -json -run '^TestDIDConsumer' -coverprofile="$RUNNER_TEMP/did-consumer-adoption/coverage.out" ./pkg/agent/didsource010 | tee "$RUNNER_TEMP/did-consumer-adoption/tests.jsonl"
+          git diff --exit-code -- go.mod go.sum
+
+      - name: Retain adopted DID consumer evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: did-consumer-adoption
+          path: ${{ runner.temp }}/did-consumer-adoption/
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
