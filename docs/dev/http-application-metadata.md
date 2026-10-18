@@ -41,7 +41,7 @@ the full chapter 08 large-message limits or optional task fields. Existing raw,
 non-HTTP and ordinary HTTP APIs retain their metadata-free contract: they reject a
 metadata member, including `{}`, rather than decrypting and dropping it.
 
-`Check`, `Observe`, `LocalNow` and `Participants` retain the existing lifetime and
+`Check`, `Observe`, `LocalNow`, `LocalStamp` and `Participants` retain the existing lifetime and
 configured Source boundaries. Clock samples and observations are diagnostics,
 not portable authorization permits. Source/history/finality correctness and
 signing custody remain properties of the configured providers. The final replay
@@ -51,6 +51,25 @@ the session. This shared request/response gate also strengthens the older APIs
 without changing uncanceled wire bytes. It cannot predict cancellation after its
 publication point, and it does not claim a
 second Registry read or reverse durable denial staging on rejection.
+
+`LocalStamp()` returns Unix seconds and monotonic milliseconds from **one**
+sample of the owner's original clock. It shares the exact local checks used by
+`LocalNow`: ordered clock history, session and idle lifetime, provisional
+responder deadline, pinned-key expiry, rollback and Duration representability.
+It neither reads the Registry nor extends activity or a prior authority check.
+The returned struct is a value; changing it cannot change the session clock.
+Clock providers must remain bounded, thread-safe and non-reentrant. A clock
+panic or error returns an error and a zero stamp. Ordinary concurrent validation
+progress is not mistaken for clock rollback: the helper captures published
+bounds before sampling, as the existing native timer does.
+
+A trusted adapter can use this single sample to compare its own retained signed
+message/card deadlines with elapsed time in the core clock's original domain.
+It must still perform current authority checks and enforce its own no-bypass
+final write/dispatch boundary. Never combine a monotonic value from another
+clock origin with this sample or treat a previously returned stamp as permission.
+This API does not expose a signing key, mutable session or current Registry
+snapshot, and does not predict later cancellation or key revocation.
 
 A real adapter must obtain Method, Target, Authority, Status, field occurrences
 and body bytes from its authenticated transport. TLS, framing, trusted routing,

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 	"unicode/utf8"
+
+	"github.com/sage-x-project/sage/pkg/agent/registry010"
 )
 
 // HTTPApplicationOwner010 exclusively owns an unused HTTP session for a trusted
@@ -119,6 +121,18 @@ func (o *HTTPApplicationOwner010) LocalNow() (time.Duration, error) {
 		return 0, errCompletion010
 	}
 	return (&NonHTTPOwner010{session: o.session}).LocalNow()
+}
+
+// LocalStamp returns one bounded sample of this owner's original clock with
+// both Unix seconds and monotonic milliseconds. It applies the same session,
+// idle, provisional, rollback and pinned-key lifetime checks as LocalNow.
+// It never observes current Registry state, extends activity or authorizes
+// dispatch; a trusted adapter still owns final authority and emission checks.
+func (o *HTTPApplicationOwner010) LocalStamp() (registry010.Stamp, error) {
+	if o == nil || o.session == nil || !o.session.application {
+		return registry010.Stamp{}, errCompletion010
+	}
+	return (&NonHTTPOwner010{session: o.session}).localStamp010()
 }
 
 // Observe revalidates current registry bindings and returns the local operation
