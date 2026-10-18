@@ -102,6 +102,24 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Verify informational identity payload authority boundaries
+        run: |
+          mkdir -p "$RUNNER_TEMP/identity-payload"
+          go version > "$RUNNER_TEMP/identity-payload/compiler.txt"
+          go test -mod=readonly -race -count=1 -json -run '^TestHTTPInformationalIdentityPayload010$' ./pkg/agent/hpke > "$RUNNER_TEMP/identity-payload/tests.jsonl"
+          git rev-parse HEAD > "$RUNNER_TEMP/identity-payload/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/identity-payload/tree.txt"
+          sha256sum pkg/agent/hpke/identity_payload010_test.go docs/dev/identity-payload-authority.md .github/workflows/test.yml > "$RUNNER_TEMP/identity-payload/source.sha256"
+
+      - name: Retain informational identity payload evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: identity-payload-authority
+          path: ${{ runner.temp }}/identity-payload/
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
