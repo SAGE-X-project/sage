@@ -102,6 +102,27 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Verify handshake key authority with fixed memory units
+        run: |
+          mkdir -p "$RUNNER_TEMP/handshake-key-authority"
+          go version > "$RUNNER_TEMP/handshake-key-authority/compiler.txt"
+          git rev-parse HEAD > "$RUNNER_TEMP/handshake-key-authority/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/handshake-key-authority/tree.txt"
+          git ls-files -z pkg/agent/hpke pkg/agent/registry010 pkg/agent/did docs/dev/handshake-key-authority.md docs/INDEX.md go.mod go.sum .github/workflows/test.yml | xargs -0 sha256sum > "$RUNNER_TEMP/handshake-key-authority/source.sha256"
+          go test -mod=readonly -race -count=1 -json -run '^TestHandshakeKeyAuthorityBoundary010$' ./pkg/agent/hpke > "$RUNNER_TEMP/handshake-key-authority/tests.jsonl"
+          cp coverage.out "$RUNNER_TEMP/handshake-key-authority/full-coverage.out"
+          go tool cover -func=coverage.out > "$RUNNER_TEMP/handshake-key-authority/full-functions.txt"
+          git diff --exit-code
+
+      - name: Retain fixed handshake key authority evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: handshake-key-authority
+          path: ${{ runner.temp }}/handshake-key-authority/
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Verify informational identity payload authority boundaries
         run: |
           mkdir -p "$RUNNER_TEMP/identity-payload"
