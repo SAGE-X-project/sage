@@ -120,6 +120,36 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+      - name: Verify authenticated HTTP application metadata
+        run: |
+          mkdir -p "$RUNNER_TEMP/http-application"
+          go version > "$RUNNER_TEMP/http-application/compiler.txt"
+          go test -mod=readonly -race -count=1 -json -run '^TestHTTPApplication' -coverprofile="$RUNNER_TEMP/http-application/coverage.out" -covermode=atomic ./pkg/agent/hpke > "$RUNNER_TEMP/http-application/tests.jsonl"
+          python3 - <<'PYAPP'
+          import os
+          from pathlib import Path
+          total = covered = 0
+          for line in Path(os.environ['RUNNER_TEMP'], 'http-application/coverage.out').read_text().splitlines()[1:]:
+              location, statements, count = line.split()
+              if location.rsplit(':', 1)[0].endswith('/pkg/agent/hpke/http_application010.go'):
+                  total += int(statements)
+                  covered += int(statements) if int(count) else 0
+          assert total and covered * 100 >= total * 90, (covered, total)
+          print(f'HTTP application owner: {covered}/{total} statements')
+          PYAPP
+          git rev-parse HEAD > "$RUNNER_TEMP/http-application/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/http-application/tree.txt"
+          sha256sum pkg/agent/hpke/completion010.go pkg/agent/hpke/record010.go pkg/agent/hpke/response010.go pkg/agent/hpke/http010.go pkg/agent/hpke/http_application010.go pkg/agent/hpke/http_application010_test.go docs/dev/http-application-metadata.md docs/INDEX.md .github/workflows/test.yml > "$RUNNER_TEMP/http-application/source.sha256"
+
+      - name: Retain authenticated HTTP application evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: http-application-metadata
+          path: ${{ runner.temp }}/http-application/
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Upload coverage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
