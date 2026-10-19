@@ -440,6 +440,10 @@ func (_AgentCardStorage *AgentCardStorageFilterer) WatchAgentDeactivatedByHash(o
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardStorageAgentDeactivatedByHash)
 				if err := _AgentCardStorage.contract.UnpackLog(event, "AgentDeactivatedByHash", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -603,6 +607,10 @@ func (_AgentCardStorage *AgentCardStorageFilterer) WatchAgentRegistered(opts *bi
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardStorageAgentRegistered)
 				if err := _AgentCardStorage.contract.UnpackLog(event, "AgentRegistered", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -748,6 +756,10 @@ func (_AgentCardStorage *AgentCardStorageFilterer) WatchAgentUpdated(opts *bind.
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardStorageAgentUpdated)
 				if err := _AgentCardStorage.contract.UnpackLog(event, "AgentUpdated", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -911,6 +923,10 @@ func (_AgentCardStorage *AgentCardStorageFilterer) WatchApprovalForAgent(opts *b
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardStorageApprovalForAgent)
 				if err := _AgentCardStorage.contract.UnpackLog(event, "ApprovalForAgent", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -1057,6 +1073,10 @@ func (_AgentCardStorage *AgentCardStorageFilterer) WatchCommitmentRecorded(opts 
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardStorageCommitmentRecorded)
 				if err := _AgentCardStorage.contract.UnpackLog(event, "CommitmentRecorded", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -1211,6 +1231,10 @@ func (_AgentCardStorage *AgentCardStorageFilterer) WatchKEMKeyUpdated(opts *bind
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardStorageKEMKeyUpdated)
 				if err := _AgentCardStorage.contract.UnpackLog(event, "KEMKeyUpdated", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -1366,6 +1390,10 @@ func (_AgentCardStorage *AgentCardStorageFilterer) WatchKeyAdded(opts *bind.Watc
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardStorageKeyAdded)
 				if err := _AgentCardStorage.contract.UnpackLog(event, "KeyAdded", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -1520,6 +1548,10 @@ func (_AgentCardStorage *AgentCardStorageFilterer) WatchKeyRevoked(opts *bind.Wa
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardStorageKeyRevoked)
 				if err := _AgentCardStorage.contract.UnpackLog(event, "KeyRevoked", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
