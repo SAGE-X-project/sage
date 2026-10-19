@@ -43,6 +43,9 @@ System design, decisions and rationale.
 | [`docs/adr/003-did-method-selection.md`](adr/003-did-method-selection.md) | ADR-003: DID Method Selection for Agent Identity (did:sage method selection) | MIXED |
 | [`docs/dev/SAGE-secure-session-communication-ko.md`](dev/SAGE-secure-session-communication-ko.md) | Secure Session Communication (HPKE secure session communication overview) | CURRENT |
 | [`docs/dev/eip155-did-source.md`](dev/eip155-did-source.md) | Complete eip155 records for DID resolution |  |
+| [`docs/dev/handshake-key-authority.md`](dev/handshake-key-authority.md) | Handshake key authority observations |  |
+| [`docs/dev/http-application-metadata.md`](dev/http-application-metadata.md) | Authenticated HTTP application metadata |  |
+| [`docs/dev/identity-payload-authority.md`](dev/identity-payload-authority.md) | Informational identity data in protected session payloads |  |
 | [`docs/dev/security-design.md`](dev/security-design.md) | SAGE 보안 설계서 (Security design (threat model, DID auth, session, RFC 9421)) | MIXED |
 
 ## Protocols: handshake, HPKE, RFC 9421

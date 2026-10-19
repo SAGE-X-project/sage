@@ -68,15 +68,24 @@ func (o *NonHTTPOwner010) CreatedMonoMS() int64 {
 // LocalNow is a bounded local sample, not a registry lookup. The provisioned
 // Clock must be thread-safe, non-reentrant and bounded. Its original time origin
 // is preserved across ownership transfer. Current registry checks remain required.
-func (o *NonHTTPOwner010) LocalNow() (now time.Duration, err error) {
+func (o *NonHTTPOwner010) LocalNow() (time.Duration, error) {
+	t, err := o.localStamp010()
+	if err != nil {
+		return 0, err
+	}
+	return time.Duration(t.MonoMS) * time.Millisecond, nil
+}
+
+// localStamp010 shares one original-clock sample and all local lifetime checks.
+func (o *NonHTTPOwner010) localStamp010() (stamp registry010.Stamp, err error) {
 	defer func() {
 		if recover() != nil {
-			now = 0
+			stamp = registry010.Stamp{}
 			err = errCompletion010
 		}
 	}()
 	if o == nil || o.session == nil {
-		return 0, errCompletion010
+		return registry010.Stamp{}, errCompletion010
 	}
 	s := o.session
 	// Capture publication bounds before sampling. A validation may publish a
@@ -86,9 +95,9 @@ func (o *NonHTTPOwner010) LocalNow() (now time.Duration, err error) {
 	confirmed := s.lifetime.confirmed.Load()
 	t, err := s.endpoint.sampleLocal010()
 	if err != nil || t.MonoMS < checked || t.Unix > 9007199254740691 || s.unavailable010() || s.endpoint.retired.Load() || t.MonoMS < s.created.MonoMS || t.MonoMS < active || t.Unix < s.created.Unix || t.Unix < wall || t.MonoMS-s.created.MonoMS >= 3600000 || t.MonoMS-active >= 600000 || !pinnedLive010(t.Unix, s.a, s.b) || (!s.initiator && !confirmed && !pendingLive010(t, s.created, s.expires)) || t.MonoMS > int64((1<<63-1)/time.Millisecond) {
-		return 0, errCompletion010
+		return registry010.Stamp{}, errCompletion010
 	}
-	return time.Duration(t.MonoMS) * time.Millisecond, nil
+	return t, nil
 }
 func (o *NonHTTPOwner010) Check(ctx context.Context) error {
 	if o == nil || o.session == nil || ctx == nil || ctx.Err() != nil {

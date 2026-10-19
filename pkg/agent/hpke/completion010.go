@@ -395,6 +395,7 @@ func pendingLive010(now, start registry010.Stamp, expires int64) bool {
 // record state. No public constructor or seed export exists. It is not a dispatch
 // API. Responders remain RESPONSE_SENT until OpenRequest atomically confirms them.
 type AuthenticatedCompletion010 struct {
+	application               bool
 	httpTarget, httpAuthority string
 	lifetime                  *recordLifetime010
 	endpoint                  *CompletionEndpoint010
