@@ -50,7 +50,7 @@ func replayValue(s string) (*big.Int, bool) {
 		return nil, false
 	}
 	for _, c := range []byte(s[2:]) {
-		if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
 			return nil, false
 		}
 	}

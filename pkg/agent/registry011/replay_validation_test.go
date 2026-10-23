@@ -474,3 +474,61 @@ func TestReplayStrictSignatureSeparatesAccountAuthority(t *testing.T) {
 		t.Fatal("cross-domain signature")
 	}
 }
+
+func TestReplayCommandArgumentsAndExpiryPresence(t *testing.T) {
+	a, _, _ := replayABIs()
+	for name, row := range map[string]struct {
+		op   string
+		args map[string]any
+		bad  map[string]any
+	}{
+		"add-key-shape":   {"add-key", map[string]any{"key": replayTestKey(t, "b", true)}, map[string]any{"key": nil}},
+		"revoke-key-name": {"revoke-key", map[string]any{"name": "a"}, map[string]any{"name": "a.b"}},
+		"services-shape":  {"update-services", map[string]any{"services": []replayService{}}, map[string]any{"services": nil}},
+		"grant-principal": {"authorize-operator", map[string]any{"operator": replayTestOperator, "scope": "add-key"}, map[string]any{"operator": "0xAB", "scope": "add-key"}},
+		"grant-scope":     {"revoke-operator", map[string]any{"operator": replayTestOperator, "scope": "add-key"}, map[string]any{"operator": replayTestOperator, "scope": "unknown"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			c := replayTestCommand(t, row.op, replayTestWallet, 1, row.args)
+			raw := contentEdit(t, c.raw, func(m map[string]any) { m["arguments"] = row.bad })
+			if _, ok := replayParseCommand(replayTestRegistry, replayTestAgent, raw, a); ok {
+				t.Fatal("invalid arguments accepted")
+			}
+		})
+	}
+	create := replayTestCreate(t)
+	k := replayTestKey(t, "b", true)
+	expiry := uint64(2)
+	k.Expires = &expiry
+	keys := []replayKey{create.keys[0], k, create.keys[1]}
+	c := replayTestCommand(t, "create", replayTestWallet, 0, map[string]any{"controller": replayTestWallet, "keys": keys, "services": []replayService{}, "salt": create.args["salt"]})
+	got, ok := replayDecodeCommand(replayTestRegistry, replayTestWallet, c.calldata, a)
+	if !ok || got.keys[1].Expires == nil || *got.keys[1].Expires != 2 || !bytes.Equal(got.raw, c.raw) {
+		t.Fatal("present create expiry")
+	}
+	// An absent expiry has no hidden nonzero ABI value, for either mutation.
+	abiKeys := replayABIKeys(create.keys)
+	abiKeys[0].HasExpiry = false
+	abiKeys[0].Expires = 1
+	bad, e := a.Pack("revealClaim", replayTestAgent, common.HexToAddress(replayTestWallet), abiKeys, replayABIServices(create.services), [32]byte{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, ok := replayDecodeCommand(replayTestRegistry, replayTestWallet, bad, a); ok {
+		t.Fatal("hidden create expiry")
+	}
+	bad, e = a.Pack("addKey", replayTestAgent, uint64(1), abiKeys[0])
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, ok := replayDecodeCommand(replayTestRegistry, replayTestWallet, bad, a); ok {
+		t.Fatal("hidden add expiry")
+	}
+	bad, e = a.Pack("activate", "..", uint64(1))
+	if e != nil {
+		t.Fatal(e)
+	}
+	if _, ok := replayDecodeCommand(replayTestRegistry, replayTestWallet, bad, a); ok {
+		t.Fatal("invalid agent ABI")
+	}
+}

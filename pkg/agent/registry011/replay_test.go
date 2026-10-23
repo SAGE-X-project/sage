@@ -326,6 +326,7 @@ func TestReplayExplicitLimitsAndCancellation(t *testing.T) {
 	if got, e := ReplayCommands(ctx, in, replayTestLimits()); e != context.Canceled || got != nil {
 		t.Fatal(e)
 	}
+	//lint:ignore SA1012 Exercise explicit nil-context rejection without starting an operation.
 	if _, e := ReplayCommands(nil, in, replayTestLimits()); e != ErrConfiguration {
 		t.Fatal(e)
 	}
