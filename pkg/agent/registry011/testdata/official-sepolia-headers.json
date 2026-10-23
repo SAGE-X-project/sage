@@ -1,0 +1,36 @@
+{
+  "scope": "Historical four-header fixture captured from the explicitly trusted official-only RPC; header hash/consensus authentication and live Source qualification are not established by this fixture.",
+  "endpoint": "https://rpc.sepolia.ethpandaops.io",
+  "headers": [
+    {
+      "Hash": "0x8897590310b098f735c7bbb1b8e4d197b1641b208d09425743d0726f365f9af2",
+      "ParentHash": "0x06a3082b91d0ff912e0c7da9840dbd044b2dec20a41f2f53db9f67bf239983af",
+      "Number": 11976934,
+      "Timestamp": 1792761684
+    },
+    {
+      "Hash": "0x06a3082b91d0ff912e0c7da9840dbd044b2dec20a41f2f53db9f67bf239983af",
+      "ParentHash": "0x626e81a377c1558de3d03519510463158be69eb102f078c9e28aee1ed737803d",
+      "Number": 11976933,
+      "Timestamp": 1792761672
+    },
+    {
+      "Hash": "0x626e81a377c1558de3d03519510463158be69eb102f078c9e28aee1ed737803d",
+      "ParentHash": "0x157a2d823779602242b3eb325f2a0ad88aecd875803a138f0651a52f3f44d98e",
+      "Number": 11976932,
+      "Timestamp": 1792761660
+    },
+    {
+      "Hash": "0x157a2d823779602242b3eb325f2a0ad88aecd875803a138f0651a52f3f44d98e",
+      "ParentHash": "0x1bc7a89ae7013500a5d9911780539cdb4e8c653083f5a7f7bcf34bdb2c4cc8c1",
+      "Number": 11976931,
+      "Timestamp": 1792761648
+    }
+  ],
+  "source_response_sha256": [
+    "602e5fac9ebf07de9f3480faae6f0e26234bd667b3e4031290a77dc0a2764ea2",
+    "662bdf869843f6d4416425742f1c23c0feb2ab6f11b7946c74ded5fc45fa8ab9",
+    "59ce8152fc14c591c0a80c0d026988366b6dc2d3b44d06d3188636ad0ba93fb6",
+    "3a02afc9dc11769db2481719b9291bdf8f04a02f398733539a81113a44c41100"
+  ]
+}
