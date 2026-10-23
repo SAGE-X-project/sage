@@ -39,45 +39,14 @@ jobs:
       - name: Install dependencies
         run: go mod download && go mod verify
 
-      - name: Run tests with coverage and race detector
-        run: |
-          go test -race -coverprofile=coverage.out -covermode=atomic ./...
-          go tool cover -html=coverage.out -o coverage.html
-
-      - name: Check Registry observation and adapter coverage
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          targets = {
-              'pkg/agent/registry010/eip155_observer010.go': [0, 0],
-              'pkg/agent/didsource010/eip155.go': [0, 0],
-              'pkg/agent/registry011/source_checkpoint.go': [0, 0],
-              'pkg/agent/registry011/rpc_response.go': [0, 0],
-              'pkg/agent/registry011/rpc_transport.go': [0, 0],
-              'pkg/agent/registry011/rpc_reads.go': [0, 0],
-              'pkg/agent/registry011/history_content.go': [0, 0],
-          }
-          for line in Path('coverage.out').read_text().splitlines()[1:]:
-              location, statements, count = line.split()
-              filename = location.rsplit(':', 1)[0]
-              for target, totals in targets.items():
-                  if filename.endswith('/' + target):
-                      totals[0] += int(statements)
-                      totals[1] += int(statements) if int(count) else 0
-          for target, (total, covered) in targets.items():
-              if not total or covered * 100 < total * 90:
-                  raise SystemExit(f'{target}: {covered}/{total} statements; requires 90%')
-              print(f'Coverage for {target} = {covered / total:.1%}')
-          PY
-
       - name: Verify Registry Source clock and checkpoint checks
         run: |
           mkdir -p "$RUNNER_TEMP/registry-source-checks/source"
           go version > "$RUNNER_TEMP/registry-source-checks/compiler.txt"
           git rev-parse HEAD > "$RUNNER_TEMP/registry-source-checks/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/registry-source-checks/tree.txt"
-          git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md go.mod go.sum .github/workflows/test.yml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
-          cp pkg/agent/registry011/*.go "$RUNNER_TEMP/registry-source-checks/source/"
+          git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md go.mod go.sum .github/workflows/test.yml .gitleaks.toml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
+          cp pkg/agent/registry011/*.go pkg/agent/registry011/replay_*_abi.json "$RUNNER_TEMP/registry-source-checks/source/"
           cp -R pkg/agent/registry011/testdata "$RUNNER_TEMP/registry-source-checks/source/"
           python3 - <<'PYSOURCE'
           import json, os
@@ -97,6 +66,45 @@ jobs:
           path: ${{ runner.temp }}/registry-source-checks/
           if-no-files-found: error
           retention-days: 14
+
+      - name: Run tests with coverage and race detector
+        run: |
+          go test -race -coverprofile=coverage.out -covermode=atomic ./...
+          go tool cover -html=coverage.out -o coverage.html
+
+      - name: Check Registry observation and adapter coverage
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          targets = {
+              'pkg/agent/registry010/eip155_observer010.go': [0, 0],
+              'pkg/agent/didsource010/eip155.go': [0, 0],
+              'pkg/agent/registry011/source_checkpoint.go': [0, 0],
+              'pkg/agent/registry011/rpc_response.go': [0, 0],
+              'pkg/agent/registry011/rpc_transport.go': [0, 0],
+              'pkg/agent/registry011/rpc_reads.go': [0, 0],
+              'pkg/agent/registry011/history_content.go': [0, 0],
+              'pkg/agent/registry011/replay.go': [0, 0],
+              'pkg/agent/registry011/replay_blocks.go': [0, 0],
+              'pkg/agent/registry011/replay_commands.go': [0, 0],
+              'pkg/agent/registry011/replay_execution.go': [0, 0],
+              'pkg/agent/registry011/replay_framing.go': [0, 0],
+              'pkg/agent/registry011/replay_proofs.go': [0, 0],
+              'pkg/agent/registry011/replay_schema.go': [0, 0],
+              'pkg/agent/registry011/replay_state.go': [0, 0],
+          }
+          for line in Path('coverage.out').read_text().splitlines()[1:]:
+              location, statements, count = line.split()
+              filename = location.rsplit(':', 1)[0]
+              for target, totals in targets.items():
+                  if filename.endswith('/' + target):
+                      totals[0] += int(statements)
+                      totals[1] += int(statements) if int(count) else 0
+          for target, (total, covered) in targets.items():
+              if not total or covered * 100 < total * 90:
+                  raise SystemExit(f'{target}: {covered}/{total} statements; requires 90%')
+              print(f'Coverage for {target} = {covered / total:.1%}')
+          PY
 
       - name: Verify adopted DID modules and safe consumer runtime
         shell: bash

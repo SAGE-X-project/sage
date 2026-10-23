@@ -1,0 +1,385 @@
+[
+  {
+    "type": "function",
+    "name": "commitClaim",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "commitment",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": []
+  },
+  {
+    "type": "function",
+    "name": "revealClaim",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      },
+      {
+        "name": "controller",
+        "type": "address"
+      },
+      {
+        "name": "keys",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "alg",
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "type": "bytes"
+          },
+          {
+            "name": "signer",
+            "type": "string"
+          },
+          {
+            "name": "proof",
+            "type": "bytes"
+          },
+          {
+            "name": "hasExpiry",
+            "type": "bool"
+          },
+          {
+            "name": "expires",
+            "type": "uint64"
+          }
+        ]
+      },
+      {
+        "name": "services",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "serviceType",
+            "type": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string"
+          }
+        ]
+      },
+      {
+        "name": "salt",
+        "type": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "version",
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "activate",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "version",
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "deactivate",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "version",
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "addKey",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "uint64"
+      },
+      {
+        "name": "entry",
+        "type": "tuple",
+        "components": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "alg",
+            "type": "string"
+          },
+          {
+            "name": "key",
+            "type": "bytes"
+          },
+          {
+            "name": "signer",
+            "type": "string"
+          },
+          {
+            "name": "proof",
+            "type": "bytes"
+          },
+          {
+            "name": "hasExpiry",
+            "type": "bool"
+          },
+          {
+            "name": "expires",
+            "type": "uint64"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "version",
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "revokeKey",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "uint64"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "version",
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "updateServices",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "uint64"
+      },
+      {
+        "name": "services",
+        "type": "tuple[]",
+        "components": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "serviceType",
+            "type": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string"
+          }
+        ]
+      }
+    ],
+    "outputs": [
+      {
+        "name": "version",
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "authorizeOperator",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "uint64"
+      },
+      {
+        "name": "operator",
+        "type": "address"
+      },
+      {
+        "name": "scope",
+        "type": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "version",
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "revokeOperator",
+    "stateMutability": "nonpayable",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      },
+      {
+        "name": "expectedVersion",
+        "type": "uint64"
+      },
+      {
+        "name": "operator",
+        "type": "address"
+      },
+      {
+        "name": "scope",
+        "type": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "version",
+        "type": "uint64"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "registryId",
+    "stateMutability": "view",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "registry",
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "record",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "present",
+        "type": "bool"
+      },
+      {
+        "name": "canonicalRecord",
+        "type": "bytes"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "activeGrants",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "canonicalGrants",
+        "type": "bytes"
+      }
+    ]
+  },
+  {
+    "type": "function",
+    "name": "historyItem",
+    "stateMutability": "view",
+    "inputs": [
+      {
+        "name": "agentId",
+        "type": "string"
+      },
+      {
+        "name": "version",
+        "type": "uint64"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "canonicalHistory",
+        "type": "bytes"
+      },
+      {
+        "name": "canonicalCommand",
+        "type": "bytes"
+      }
+    ]
+  }
+]

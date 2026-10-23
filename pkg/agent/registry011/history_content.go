@@ -89,7 +89,7 @@ func CheckHistoryContent(registry, agent string, record, grants []byte, steps []
 		owner := contentString(r["controller"])
 		op := contentString(c["operation"])
 		stamp, ok := contentSeconds(h["admitted"])
-		if !rpcAddress(actor) || !rpcAddress(owner) || contentString(h["actor"]) != actor ||
+		if !contentAddress(actor) || !contentAddress(owner) || contentString(h["actor"]) != actor ||
 			contentString(h["operation"]) != op || !ok || stamp < admitted ||
 			(i > 0 && owner != controller) || (op == "create") != (i == 0) {
 			return ErrHistoryContent
@@ -228,7 +228,7 @@ func contentTarget(v any, op string, args map[string]any) bool {
 }
 
 func contentGrant(pair map[string]any) bool {
-	if !rpcAddress(contentString(pair["operator"])) {
+	if !contentAddress(contentString(pair["operator"])) {
 		return false
 	}
 	switch contentString(pair["scope"]) {
@@ -236,6 +236,12 @@ func contentGrant(pair map[string]any) bool {
 		return true
 	}
 	return false
+}
+
+// Principal grammar has no additional zero-address reservation. The separate
+// configured RPC/Registry address checks deliberately retain their own policy.
+func contentAddress(s string) bool {
+	return len(s) == 42 && s[:2] == "0x" && lowerHash("0x000000000000000000000000"+s[2:])
 }
 
 func contentGrants(v any) bool {

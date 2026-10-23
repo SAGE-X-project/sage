@@ -39,8 +39,9 @@ The selected Sepolia observation plan permits only
 `https://rpc.sepolia.ethpandaops.io`, with no redirect or provider fallback.
 This package makes no RPC calls and does not create or sign transactions.
 The bounded transport and block-pinned byte reads below implement part of that
-boundary. Complete historical command replay and actual Registry caller/outcome
-evidence remain separate implementation work. Existing
+boundary. The bounded stateless replay below checks supplied complete historical commands
+and normalized actual-call evidence; live trace qualification and durable
+incremental history remain separate implementation work. Existing
 0.10.0 subjects and their findings remain unchanged.
 
 Finite fixed-data tests and the import example exercise clock boundaries,
@@ -199,3 +200,78 @@ checks do not relabel the fixture as a successful on-chain lifecycle. CI applies
 the race detector and a separate 90% statement gate to `history_content.go`, and
 retains the exact fixture, source hashes, compiler, test events and coverage.
 No external RPC, transaction, private key or local heavy build is used here.
+
+
+## Stateless command replay and actual execution content
+
+`ReplayCommands` rebuilds the selected identity from creation through every
+observed version. It returns complete intermediate record/grants/history bytes,
+checks each against the retained history, and requires the final bytes to match
+separate reads at the same anchor. It implements all eight mutations, immutable
+controller/key tombstones, exact scoped grants and implicit cleanup, admission
+time and expiry, terminal state and exact successor serialization headroom.
+Only new admission proofs are verified: strict canonical prime-subgroup Ed25519
+PoP and X25519 endorsements by a usable accepted Ed25519 signer. Historical KEM
+endorsements are retained without conferring current authority. Optional signing
+algorithms are unsupported, matching the deployed required-suite contract.
+Registry admission does not invent an X25519 low-order blacklist; DH result
+validation belongs to an actual KEM operation. Signature validity never replaces
+the separate account authorization check. Principal grammar does not reserve
+zero as an additional operator value; configured Registry address policy remains
+separate.
+
+Input must include every consecutive canonical header, complete ordered signed
+transaction body and consensus receipts from a **separately authenticated**
+deployment height through the selected anchor. Header hashes, transaction and
+receipt trie roots, receipt types/status, height/parent/time continuity and the
+final anchor are checked. All Registry claim and mutation events are derived
+from these receipts; there is no supplied filtered success inventory. All
+caller/commitment pairs are reconstructed, including presence at block zero,
+non-refreshable duplicates, consumed claims, other identities' accepted creates
+and the strict later-block / inclusive 256-block reveal window.
+
+Every Registry event transaction requires a complete `ReplayExecution` joined
+by block hash, signed transaction hash and index. Protected legacy, EIP-2930 and
+EIP-1559 transaction signatures on chain 11155111 are supported; other event
+transaction formats are unavailable. There is no EOA heuristic or direct-call
+shortcut. Root sender/to/input/value must match the signed transaction. The
+whole committed call-tree log sequence must equal the complete receipt sequence.
+Each Registry event belongs to one unique successful non-static Registry CALL
+frame with zero value, matching actual principal, exact canonical ABI calldata,
+identity/version/admission and command/state/grant digests. ABI framing, scalar
+and method limits are checked before generic unpacking. Parent failures and
+static/delegate execution cannot be relabeled as a successful Registry CALL.
+
+The normalized tree is an **unqualified adapter boundary**, not raw Geth JSON,
+a live debug-method implementation, or evidence of node honesty. `ReplayFrame`
+`From` means the execution-context address initiating a call (the tracer's
+OnEnter `from`), not the child's inherited EVM `msg.sender`. CALL/STATICCALL and
+CREATE/CREATE2 enter their target context; DELEGATECALL/CALLCODE retain the
+parent storage context. A subsequent Registry CALL must originate from that
+context, including a wallet executing delegated implementation code. Own-frame
+logs specify the number of preceding immediate child calls; reverting subtrees
+contribute no committed logs. Enrollment must separately qualify the exact
+node/client/schema, full call/log coverage, raw evidence retention, code/ABI,
+deployment provenance, finalized header authenticity and pre/post acquisition
+identity. No boolean label establishes that qualification.
+
+All limits are explicit acquisition/work budgets, without operating defaults.
+Implementation ceilings are 4096 consecutive blocks, 16384 transactions, 65536
+frames/logs, depth 32, 4096 new proofs and 64 MiB evidence. History additionally
+retains its 4096-item / 8 MiB bound including all reconstructed states. Exceeding
+any budget returns no partial output and is unavailability, not a new protocol
+limit or permission to truncate. A deployment older than the block budget cannot
+be replayed by this API: separately qualified durable incremental replay and
+anchor retention remain necessary for long-running operation. Input is copied
+where returned and must not be concurrently mutated during checking.
+
+Owned offline unit fixtures cover all eight operations with handwritten expected
+snapshots and normal public RFC 8032 sample-key signatures, plus independent
+Python JSON/SHA-256/len16 and RFC 3986 grammar expectations. Headers, signed test
+transactions, receipts and normalized traces in these tests are synthetic
+in-memory content, not live execution or Source qualification. Finite refusal
+cases produce no network traffic, attack generator, operator key access or
+transactions. Existing safe transport runtime tests remain separate. CI retains
+source/ABI/fixtures/compiler/test/coverage evidence and enforces 90% statement
+coverage per new production file. No replay success is SourceReady, authenticated
+absence, enrollment, durable commit or permission to process a protected message.

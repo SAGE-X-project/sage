@@ -1,0 +1,191 @@
+[
+  {
+    "type": "error",
+    "name": "MalformedCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ValueNotAllowed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WrongRegistryContext",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnauthorizedCaller",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WrongRecordState",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "PreviousVersionMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "VersionExhausted",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ClaimUnavailable",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ClaimWindowInvalid",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "ClaimMismatch",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "IdentifierUnavailable",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "KeyUnavailable",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "KeyNameReused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "KeyMaterialReused",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidKeyProof",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "UnsupportedKeyAlgorithm",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidEntry",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "BoundsExceeded",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GrantUnavailable",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "GrantAlreadyPresent",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "HistoryUnavailable",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "TimeInvalid",
+    "inputs": []
+  },
+  {
+    "type": "event",
+    "name": "ClaimCommitted",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "caller",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "commitment",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "blockNumber",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "RecordChanged",
+    "anonymous": false,
+    "inputs": [
+      {
+        "name": "didHash",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "actor",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "did",
+        "type": "string",
+        "indexed": false
+      },
+      {
+        "name": "previousVersion",
+        "type": "uint64",
+        "indexed": false
+      },
+      {
+        "name": "version",
+        "type": "uint64",
+        "indexed": false
+      },
+      {
+        "name": "operation",
+        "type": "string",
+        "indexed": false
+      },
+      {
+        "name": "commandDigest",
+        "type": "bytes32",
+        "indexed": false
+      },
+      {
+        "name": "recordDigest",
+        "type": "bytes32",
+        "indexed": false
+      },
+      {
+        "name": "grantsDigest",
+        "type": "bytes32",
+        "indexed": false
+      },
+      {
+        "name": "admitted",
+        "type": "uint64",
+        "indexed": false
+      }
+    ]
+  }
+]
