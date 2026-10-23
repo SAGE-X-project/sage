@@ -44,13 +44,14 @@ jobs:
           go test -race -coverprofile=coverage.out -covermode=atomic ./...
           go tool cover -html=coverage.out -o coverage.html
 
-      - name: Check complete eip155 observer and adapter coverage
+      - name: Check Registry observation and adapter coverage
         run: |
           python3 - <<'PY'
           from pathlib import Path
           targets = {
               'pkg/agent/registry010/eip155_observer010.go': [0, 0],
               'pkg/agent/didsource010/eip155.go': [0, 0],
+              'pkg/agent/registry011/source_checkpoint.go': [0, 0],
           }
           for line in Path('coverage.out').read_text().splitlines()[1:]:
               location, statements, count = line.split()
@@ -64,6 +65,34 @@ jobs:
                   raise SystemExit(f'{target}: {covered}/{total} statements; requires 90%')
               print(f'{target}: {covered / total:.1%}')
           PY
+
+      - name: Verify Registry Source clock and checkpoint checks
+        run: |
+          mkdir -p "$RUNNER_TEMP/registry-source-checks/source"
+          go version > "$RUNNER_TEMP/registry-source-checks/compiler.txt"
+          git rev-parse HEAD > "$RUNNER_TEMP/registry-source-checks/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/registry-source-checks/tree.txt"
+          git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md go.mod go.sum .github/workflows/test.yml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
+          cp pkg/agent/registry011/*.go "$RUNNER_TEMP/registry-source-checks/source/"
+          cp -R pkg/agent/registry011/testdata "$RUNNER_TEMP/registry-source-checks/source/"
+          python3 - <<'PYSOURCE'
+          import json, os
+          from pathlib import Path
+          names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
+          Path(os.environ['RUNNER_TEMP'], 'registry-source-checks', 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
+          PYSOURCE
+          go test -mod=readonly -race -count=1 -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
+          go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
+          git diff --exit-code
+
+      - name: Retain Registry Source clock and checkpoint evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: registry-source-checks
+          path: ${{ runner.temp }}/registry-source-checks/
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Verify adopted DID modules and safe consumer runtime
         shell: bash
