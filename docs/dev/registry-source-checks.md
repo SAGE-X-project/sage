@@ -50,3 +50,8 @@ race detector, requires at least 90% statement coverage for the new source file,
 and retains source, compiler, revision, test events and coverage evidence.
 The four-header historical fixture was captured from the selected official-only
 RPC. Its linkage test runs offline and does not claim fresh live qualification.
+
+CI and container builders select Go 1.26.10, including the crypto/x509 fix for
+[GO-2026-6809](https://pkg.go.dev/vuln/GO-2026-6809). The language version and
+module dependency checksums are unchanged. This security patch is separate from
+the new Source checks; it does not change a SAGE version or acceptance policy.

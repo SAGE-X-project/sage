@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: '1.26.9'
+  GO_VERSION: '1.26.10'
   GOTOOLCHAIN: auto
   GOFLAGS: -mod=readonly
 
@@ -63,7 +63,7 @@ jobs:
           for target, (total, covered) in targets.items():
               if not total or covered * 100 < total * 90:
                   raise SystemExit(f'{target}: {covered}/{total} statements; requires 90%')
-              print(f'{target}: {covered / total:.1%}')
+              print(f'Coverage for {target} = {covered / total:.1%}')
           PY
 
       - name: Verify Registry Source clock and checkpoint checks
