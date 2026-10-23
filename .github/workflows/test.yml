@@ -56,6 +56,14 @@ jobs:
               'pkg/agent/registry011/rpc_transport.go': [0, 0],
               'pkg/agent/registry011/rpc_reads.go': [0, 0],
               'pkg/agent/registry011/history_content.go': [0, 0],
+              'pkg/agent/registry011/replay.go': [0, 0],
+              'pkg/agent/registry011/replay_blocks.go': [0, 0],
+              'pkg/agent/registry011/replay_commands.go': [0, 0],
+              'pkg/agent/registry011/replay_execution.go': [0, 0],
+              'pkg/agent/registry011/replay_framing.go': [0, 0],
+              'pkg/agent/registry011/replay_proofs.go': [0, 0],
+              'pkg/agent/registry011/replay_schema.go': [0, 0],
+              'pkg/agent/registry011/replay_state.go': [0, 0],
           }
           for line in Path('coverage.out').read_text().splitlines()[1:]:
               location, statements, count = line.split()
@@ -77,7 +85,7 @@ jobs:
           git rev-parse HEAD > "$RUNNER_TEMP/registry-source-checks/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/registry-source-checks/tree.txt"
           git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md go.mod go.sum .github/workflows/test.yml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
-          cp pkg/agent/registry011/*.go "$RUNNER_TEMP/registry-source-checks/source/"
+          cp pkg/agent/registry011/*.go pkg/agent/registry011/replay_*_abi.json "$RUNNER_TEMP/registry-source-checks/source/"
           cp -R pkg/agent/registry011/testdata "$RUNNER_TEMP/registry-source-checks/source/"
           python3 - <<'PYSOURCE'
           import json, os

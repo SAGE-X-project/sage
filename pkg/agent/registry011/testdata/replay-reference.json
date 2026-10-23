@@ -1,0 +1,437 @@
+{
+  "scope": "Independent Python stdlib ASCII JSON, SHA-256 and len16 expectations. Proof bytes are inert placeholders for claim/domain tests only, not valid signatures. Normal signature fixtures are separate Go owned tests using public RFC8032 seeds. Grammar cases retain contract fixed-unit expectations. No RPC, execution, finality or Source qualification.",
+  "spec": "a22a275b4d88f1d415b53cdffc5bed41231b77a0",
+  "contract": "12d32deee463fe25bad04a78a0d5d66b2e212e45",
+  "registry": "eip155:11155111:0x9361223865e641f9941f4640d8fe34faad54bf23",
+  "agent": "replay.unit",
+  "key": {
+    "name": "a",
+    "alg": "ed25519",
+    "key": "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo",
+    "proof": {
+      "signer": "did:sage:eip155:11155111:0x9361223865e641f9941f4640d8fe34faad54bf23:replay.unit#a",
+      "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+    },
+    "state": "accepted"
+  },
+  "challenge_hex": "736167652d706f702d302e31312e30003a6569703135353a31313135353131313a307839333631323233383635653634316639393431663436343064386665333466616164353462663233000b7265706c61792e756e69740001610007656432353531390020d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+  "claim_jcs": "{\"agentId\":\"replay.unit\",\"controller\":\"0x0000000000000000000000000000000000001000\",\"keys\":[{\"alg\":\"ed25519\",\"key\":\"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo\",\"name\":\"a\",\"proof\":{\"signer\":\"did:sage:eip155:11155111:0x9361223865e641f9941f4640d8fe34faad54bf23:replay.unit#a\",\"value\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"},\"state\":\"accepted\"}],\"registryId\":\"eip155:11155111:0x9361223865e641f9941f4640d8fe34faad54bf23\",\"salt\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\",\"services\":[]}",
+  "claim_sha256": "9fbe5d982d9b5d1b9f9fc5428e76d316af3721fd56963af460853de15ef8a352",
+  "uri_cases": [
+    {
+      "name": "uri-allow-0",
+      "value": "https://x",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-1",
+      "value": "HtTpS://Example.TEST",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-2",
+      "value": "https://example.test/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-3",
+      "value": "https://example.test:",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-4",
+      "value": "https://example.test:443/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-5",
+      "value": "https://example.test:65536/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-6",
+      "value": "https://example.test:000000000000000000000000000000000000000000/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-7",
+      "value": "https://example.test/a@b?user=x@y",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-8",
+      "value": "https://example.test/a:b//c/./../x",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-9",
+      "value": "https://example.test?",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-10",
+      "value": "https://example.test/a??x/?@b",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-11",
+      "value": "https://%41.example.test/%00/%23/%ff?x=%40",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-12",
+      "value": "https://a!$&'()*+,;=.test/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-13",
+      "value": "https://192.0.2.1/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-14",
+      "value": "https://999.0.0.0/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-15",
+      "value": "https://./",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-16",
+      "value": "https://[::]/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-17",
+      "value": "https://[::1]/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-18",
+      "value": "https://[2001:db8::1]:443/path",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-19",
+      "value": "https://[1:2:3:4:5:6:7:8]/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-20",
+      "value": "https://[1:2:3:4:5:6:7::]/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-21",
+      "value": "https://[::1:2:3:4:5:6:7]/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-22",
+      "value": "https://[1:2::3:4:5:6:7]/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-23",
+      "value": "https://[::ffff:192.0.2.128]/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-24",
+      "value": "https://[1:2:3:4:5:6:192.0.2.1]/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-25",
+      "value": "https://[::192.0.2.1]:/?x=@y",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-26",
+      "value": "https://[v1.a:b!]/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-27",
+      "value": "https://[VF.alpha._~$]/",
+      "accepted": true
+    },
+    {
+      "name": "uri-allow-28",
+      "value": "https://example.test/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "accepted": true
+    },
+    {
+      "name": "uri-refuse-0",
+      "value": "",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-1",
+      "value": "https://",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-2",
+      "value": "http\u017f://x",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-3",
+      "value": "http://example.test",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-4",
+      "value": "https:example.test",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-5",
+      "value": "https:/example.test",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-6",
+      "value": "https:///a",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-7",
+      "value": "https://?x=y",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-8",
+      "value": "https://user@example.test/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-9",
+      "value": "https://user:password@example.test/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-10",
+      "value": "https://:443/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-11",
+      "value": "https://example.test#",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-12",
+      "value": "https://example.test/a#fragment",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-13",
+      "value": "https://example.test/a b",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-14",
+      "value": "https://example.test/\n",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-15",
+      "value": "https://example.test/\u007f",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-16",
+      "value": "https://example.test/\u00e9",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-17",
+      "value": "https://example.test/%",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-18",
+      "value": "https://example.test/%0",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-19",
+      "value": "https://example.test/%0g",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-20",
+      "value": "https://%zz.example.test/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-21",
+      "value": "https://example.test:port/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-22",
+      "value": "https://example.test:1:2/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-23",
+      "value": "https://example.test/path[bad]",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-24",
+      "value": "https://example.test?x=[bad]",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-25",
+      "value": "https://example.test/\\path",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-26",
+      "value": "https://[]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-27",
+      "value": "https://[::1/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-28",
+      "value": "https://[::1]suffix/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-29",
+      "value": "https://[::1]:x/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-30",
+      "value": "https://[v.a]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-31",
+      "value": "https://[v1.]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-32",
+      "value": "https://[vG.foo]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-33",
+      "value": "https://[v1.a%20]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-34",
+      "value": "https://[v1.a@b]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-35",
+      "value": "https://[::%25zone]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-36",
+      "value": "https://[1:2:3:4:5:6:7]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-37",
+      "value": "https://[1:2:3:4:5:6:7:8:9]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-38",
+      "value": "https://[1:2:3:4:5:6:7:8::]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-39",
+      "value": "https://[:1]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-40",
+      "value": "https://[1:]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-41",
+      "value": "https://[:::]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-42",
+      "value": "https://[1::2::3]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-43",
+      "value": "https://[12345::]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-44",
+      "value": "https://[gggg::]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-45",
+      "value": "https://[1:2:3:4:5:192.0.2.1]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-46",
+      "value": "https://[::192.0.2]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-47",
+      "value": "https://[::192.0.2.256]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-48",
+      "value": "https://[::192.0.02.1]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-49",
+      "value": "https://[::192.0.2.1:2]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-50",
+      "value": "https://[::192.0.x.1]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-51",
+      "value": "https://[::192.0.2.1.4]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-52",
+      "value": "https://[::1.2.3.4444]/",
+      "accepted": false
+    },
+    {
+      "name": "uri-refuse-53",
+      "value": "https://example.test/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "accepted": false
+    }
+  ]
+}
