@@ -149,3 +149,53 @@ live Sepolia qualification or an attack reproduction. CI applies the race
 detector, the separate 90% gate to each new production file, and the existing
 source/compiler/test-event/coverage evidence retention. No paid transaction,
 private-key access, local heavy build or external RPC test is added.
+
+## Canonical history content and digest agreement
+
+`CheckHistoryContent` checks a complete version-1-through-current list against
+separately block-pinned final record and grant bytes. Each `HistoryContentStep`
+contains the retained entry/command plus the **complete intermediate record and
+grants independently reconstructed by a replay implementation**. `historyItem`
+does not supply those historical states. Callers must not substitute copies of
+the current state or assume this function reconstructs an omitted version.
+
+The check preflights explicit item and cumulative byte budgets before JSON
+parsing. It reuses `HistoryReadLimits` with ceilings of 4096 items and 8 MiB;
+**here the bytes include all four fields per step and both final byte strings**,
+not only the two fields counted by `HistoryRange`. Limit exhaustion is unavailable
+content, not permission to truncate history or lower a protocol bound. Individual
+record and entry/command/grant byte ceilings remain in force. Operating numeric
+values are not selected by these implementation ceilings.
+
+Inputs must already be exact RFC 8785 bytes: whitespace, duplicate members,
+invalid Unicode, noncanonical escapes/numbers and trailing values refuse rather
+than being repaired. Chain schema text is ASCII; canonical escapes for ASCII
+control characters are retained. Parsing is bounded to 32 containers. Record,
+command, history and operation-argument **root member sets** are closed. Every
+version/previousVersion, binding, Registry, DID, actor and operation must agree.
+Admission seconds are exact safe integers in nondecreasing order. Controller
+changes, a successor after terminal state and a create at another version refuse.
+Explicit grant targets must match their command; grant/removal arrays are closed,
+bounded and sorted by exact operator then scope. SHA-256 over each complete
+command, intermediate record and grants must equal that version's canonical
+unpadded base64url digest. Final record/grants must match the final step byte for
+byte. There is no retained mutable state or successful partial list.
+
+This is a **content integrity check**, not full replay or source authentication.
+Nested key/service/proof/argument schemas and their cryptographic eligibility,
+lifecycle effects, ACL/grant cleanup correctness, claim admission provenance,
+actual EOA/wallet execution and block binding still require the separate replay
+and Source gates. An internally consistent invented history can pass this check.
+Its successful result must never set readiness or grant protected-message
+permission. It does not establish authenticated absence, independently qualify
+an ABI or replace the current-state/durable anchor and freshness checks.
+
+The fixed `history-content.json` expectations use independent Python standard
+library ASCII JSON construction and SHA-256. Nine version snapshots cover all
+eight mutation operations, empty and nonempty grants, original/revoked key
+entries, service punctuation/control escapes and terminal state. Their proof
+bytes are inert placeholders, not valid PoPs or execution evidence. These data
+checks do not relabel the fixture as a successful on-chain lifecycle. CI applies
+the race detector and a separate 90% statement gate to `history_content.go`, and
+retains the exact fixture, source hashes, compiler, test events and coverage.
+No external RPC, transaction, private key or local heavy build is used here.
