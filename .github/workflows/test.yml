@@ -53,6 +53,8 @@ jobs:
               'pkg/agent/didsource010/eip155.go': [0, 0],
               'pkg/agent/registry011/source_checkpoint.go': [0, 0],
               'pkg/agent/registry011/rpc_response.go': [0, 0],
+              'pkg/agent/registry011/rpc_transport.go': [0, 0],
+              'pkg/agent/registry011/rpc_reads.go': [0, 0],
           }
           for line in Path('coverage.out').read_text().splitlines()[1:]:
               location, statements, count = line.split()
