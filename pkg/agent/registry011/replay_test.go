@@ -326,8 +326,11 @@ func TestReplayExplicitLimitsAndCancellation(t *testing.T) {
 	if got, e := ReplayCommands(ctx, in, replayTestLimits()); e != context.Canceled || got != nil {
 		t.Fatal(e)
 	}
-	//lint:ignore SA1012 Exercise explicit nil-context rejection without starting an operation.
-	if _, e := ReplayCommands(nil, in, replayTestLimits()); e != ErrConfiguration {
-		t.Fatal(e)
+	// Exercise missing and present caller contexts through the same public API.
+	for name, callerContext := range map[string]context.Context{"missing": nil, "present": context.Background()} {
+		_, err := ReplayCommands(callerContext, in, replayTestLimits())
+		if (name == "missing" && err != ErrConfiguration) || (name == "present" && err != nil) {
+			t.Fatal(name, err)
+		}
 	}
 }
