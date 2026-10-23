@@ -51,6 +51,33 @@ and retains source, compiler, revision, test events and coverage evidence.
 The four-header historical fixture was captured from the selected official-only
 RPC. Its linkage test runs offline and does not claim fresh live qualification.
 
+`DecodeRPCResult` separately checks one JSON-RPC 2.0 response envelope. Supply
+explicit byte and container-depth limits, and the exact numeric request ID in
+1..2^53-1. This client profile emits canonical decimal IDs and requires that
+same spelling in the response; it does not coerce string, fractional or exponent
+IDs. The accepted envelope contains exactly `jsonrpc`, `id` and `result`.
+Remote errors, batches, extra envelope members, duplicate names at any depth,
+invalid UTF-8, unpaired surrogate escapes, trailing values and exceeded limits
+refuse. Correctly paired escapes and equivalent escaped field names are decoded
+before duplicate detection. A returned result is an independent byte copy.
+
+The implementation supports at most 128 container levels; the actual operating
+limit must be qualified explicitly. A future transport must also bound bytes
+while reading and refuse redirects, provider fallback and non-allowlisted RPCs.
+This decoder cannot prevent an earlier unbounded allocation by its caller and
+does not perform HTTP requests, method-specific result or ABI validation, state
+authentication, history reconstruction, durable storage or publication. JSON
+`null` and `false` remain values requiring those checks, not authenticated absence.
+
+Finite fixed-data tests cover the envelope rules and copied/concurrent use. An
+additional offline test decodes the original finalized-header response captured
+from the selected RPC, preserving its exact SHA-256 and header identity. This is
+historical parser evidence, not a fresh RPC or operating Source qualification.
+The envelope follows the [JSON-RPC 2.0 response rules](https://www.jsonrpc.org/specification#response_object)
+with the client-profile restrictions above. Duplicate and Unicode validation
+are explicit because the [Go JSON decoder](https://pkg.go.dev/encoding/json@go1.26.10)
+otherwise permits duplicate names and replacement of invalid Unicode.
+
 CI and container builders select Go 1.26.10, including the crypto/x509 fix for
 [GO-2026-6809](https://pkg.go.dev/vuln/GO-2026-6809). The language version and
 module dependency checksums are unchanged. This security patch is separate from
