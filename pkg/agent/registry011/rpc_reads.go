@@ -290,7 +290,7 @@ func rpcAgent(text string) bool {
 		return false
 	}
 	for _, b := range []byte(text) {
-		if !(b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9' || b == '.' || b == '_' || b == '-') {
+		if (b < 'a' || b > 'z') && (b < 'A' || b > 'Z') && (b < '0' || b > '9') && b != '.' && b != '_' && b != '-' {
 			return false
 		}
 	}

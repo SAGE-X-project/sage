@@ -91,7 +91,8 @@ func (c *ReadRPC) call(ctx context.Context, method string, params any) (json.Raw
 	if err != nil {
 		return nil, ErrRPCTransport
 	}
-	defer response.Body.Close()
+	// The complete bounded body is checked below; closing only releases transport resources.
+	defer func() { _ = response.Body.Close() }()
 	contentType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
 	encoding := response.Header.Get("Content-Encoding")
 	if err != nil || contentType != "application/json" || response.StatusCode != http.StatusOK ||

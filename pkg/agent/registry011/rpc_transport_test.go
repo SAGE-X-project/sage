@@ -60,7 +60,7 @@ func TestReadRPCConfiguration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if _, err := c.call(nil, "eth_chainId", []any{}); !errors.Is(err, ErrConfiguration) {
+	if _, err := c.call(nil, "eth_chainId", []any{}); !errors.Is(err, ErrConfiguration) { //nolint:staticcheck // Verify refusal of an explicitly missing context.
 		t.Fatal(err)
 	}
 }
