@@ -166,7 +166,7 @@ func lowerHash(value string) bool {
 		return false
 	}
 	for _, b := range value[2:] {
-		if !(b >= '0' && b <= '9' || b >= 'a' && b <= 'f') {
+		if (b < '0' || b > '9') && (b < 'a' || b > 'f') {
 			return false
 		}
 	}
