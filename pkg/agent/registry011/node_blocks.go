@@ -34,7 +34,8 @@ type NodeExchange struct {
 // NodeGasEvidence exposes both committed gas values without inferring a fork
 // from a client claim or header shape. LegacyGasCompatible is ONLY equality
 // under the existing strict replay check, not fork, consensus or Source approval.
-// A false value means these contents remain unsupported for command replay.
+// A false value alone does not decide fork-aware replay: that separately
+// requires ReadReplayBlock and its complete, pinned gas witness.
 type NodeGasEvidence struct {
 	HeaderGasUsed, ReceiptCumulativeGasUsed uint64
 	LegacyGasCompatible                     bool

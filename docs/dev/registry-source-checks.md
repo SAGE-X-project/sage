@@ -284,7 +284,7 @@ from the sole approved RPC, using `debug_getRawBlock` and
 `debug_getRawReceipts` with its exact hash. Transaction count is checked before
 allocating typed transactions. Canonical RLP, header identity, ordered signed
 transactions, receipt and transaction trie roots, gas, uncle and withdrawal
-commitments are checked. Every transaction emitting a Registry log requires a
+commitments are checked; gas accounting is separate below. Every transaction emitting a Registry log requires a
 full native `callTracer` tree with `onlyTopCall=false`, `withLog=true`, a bounded
 timeout and `reexec=0`. No Javascript tracer or transaction submission exists.
 
@@ -339,16 +339,78 @@ and [Reth debug API](https://reth.rs/jsonrpc/debug/). The deployed ABI and thirt
 code identities come from the existing public Sepolia deployment record in
 `sage-contracts`, not from an ABI advertised by the RPC.
 
-The node collector checks content commitments, not current fork gas accounting.
+The content-only collector checks commitments, not current fork gas accounting.
 Every block and deployment observation includes the header gas, final receipt
 cumulative gas, and `LegacyGasCompatible`, computed only from those retained
 bytes. The recorded deployment has 142,149,240 header gas and 206,878,059 receipt
-cumulative gas: the flag is false and strict command replay remains unsupported.
+cumulative gas: the legacy flag is false. This content-only bundle has no gas
+witness and remains rejected by command replay.
 The shared content decoder retains all canonical encoding, type, status, log,
 monotonic cumulative gas, transaction-root and receipt-root checks. Command replay
-always calls its strict wrapper, which still rejects unequal gas values; there
-is no bypass option and no fork inferred from a header shape or client string.
+always calls its strict wrapper; there is no bypass option and no fork inferred
+from a header shape, equal totals, or client string.
 A successful collection or matching legacy gas equality is not consensus/fork
 validation, valid gas accounting, complete history or Source qualification.
-Qualifying split gas accounting requires separately pinned activation rules and
-hash-bound execution/state gas evidence; those remain unfinished.
+
+## Pinned Sepolia gas observations for strict replay
+
+`ReadReplayBlock` collects the same complete block contents and required Registry
+call trees, plus a native `debug_traceBlockByHash` `stateGasTracer` result for
+**every** transaction. The request uses the exact selected hash, explicit timeout,
+and `reexec=0`. Original response envelopes and method/parameter bindings are
+retained. The live artifact stores each response in a separate file with its
+exact byte count and SHA-256; the prettified bundle alone is not raw wire
+evidence. HTTP 200 is the transport's mandatory admission condition, not a raw
+HTTP-header capture. Methods and serialized parameters are retained, rather than
+claiming a capture of full HTTP or JSON-RPC request bytes. The response's gas
+dimensions are **trusted-provider assertions**, not values committed individually
+by the transaction or receipt root. No custom tracer, code execution request,
+alternate provider, transaction submission or local operating key is used.
+
+The narrow `sepolia-amsterdam-reth-state-gas-v1` format uses the Sepolia
+Amsterdam activation timestamp **1791294816 (2026-10-06 13:53:36 UTC)** from
+[the pinned official network configuration](https://github.com/eth-clients/sepolia/blob/7b1b9d9549787b6bbf538f943304c4cf84f7e39e/metadata/genesis.json).
+This is not a rule for mainnet or an automatic adoption of future EIP changes.
+The pinned specifications are [EIP-8037](https://github.com/ethereum/EIPs/blob/5ef380124bd68d09c02fa90d0de0f2455f37d5ee/EIPS/eip-8037.md)
+and [EIP-7778](https://github.com/ethereum/EIPs/blob/f1ade090fd315895461fc3e249cb1a675aeb55a9/EIPS/eip-7778.md).
+Implementation references are [Reth 2.8.1](https://github.com/paradigmxyz/reth/blob/d763342fa185e4e90ee79dc65f6a5706168b0bcb/Cargo.lock),
+[its native tracer](https://github.com/paradigmxyz/revm-inspectors/blob/a983a3b69641c56ba070f1318a5e1834dafa525d/src/tracing/debug.rs),
+[revm's gas result](https://github.com/bluealloy/revm/blob/6b2e655b91f21c3a21770bed78def5b379ed1d17/crates/context/interface/src/result.rs),
+and [the independent Geth accounting implementation](https://github.com/ethereum/go-ethereum/blob/9dffe6e976cbbb87a84c5fd395448f0950290def/core/state_transition.go).
+The reported client version remains an unauthenticated claim, not profile
+selection or evidence that the endpoint runs those exact bytes.
+
+Before activation, the strict wrapper retains exact final-receipt/header gas
+equality and rejects an unexpected split-gas witness. At and after activation,
+even matching totals cannot substitute for the required pinned-profile witness.
+It verifies closed JSON fields, duplicate names, Unicode, exact quantities,
+one-to-one transaction hash/order, paid gas against each committed receipt's
+delta, transaction limits and both pre-inclusion reservation dimensions. The
+maximum of the cumulative execution and state dimensions must equal header gas
+and must not exceed its limit. Existing canonical RLP, types, status/log,
+cumulative monotonicity, roots, signature/caller, request/byte/time budgets and
+post-acquisition canonical/finalized rechecks all remain enforced.
+
+For total gas before refunds `T`, state gas `S`, transaction floor `F`, and raw
+refund `R`, the pinned rules use `E=max(T-S,F)` and `P=max(T-R,F)`; the header uses
+`max(sum(E),sum(S))`, while receipts accumulate `P`. Refunds remain capped at
+`T/5`. The tracer reports an **effective** refund, which is zero when the payment
+floor clips. The implementation recovers `T=P+R` only when the payment floor is
+inactive. It checks the decomposed EIP-2780 base, uniform 64-gas calldata byte
+cost, and EIP-7981 access-list byte floor using signed transaction fields and a
+recovered sender for self-transfers. It does not assume `P=E+S-refund` when the
+execution floor binds. At a clipped payment floor it accepts only the narrow
+zero-state case; positive-state ambiguous settlements refuse rather than invent
+missing pre-refund counters. The observed 120-transaction block has no such
+ambiguous positive-state case. A future provider format or fork needs a separately
+reviewed adapter; no unknown fields, missing data, fallback or truncation passes.
+
+The retained deployment block's sums are **66,635,112 execution gas**,
+**142,149,240 state gas**, and **206,878,059 paid gas**. The larger dimension equals
+its header; paid gas equals the final receipt. The original content fixture is
+unchanged, and a separate unaltered native gas-response fixture supplies the
+additional evidence. The opt-in live CI retains both the old content-only bundle
+and a separately labelled `strict-replay-block.json`. It checks **provider-observed
+gas consistency**, not independent EVM execution, header consensus or finality.
+This completes a bounded strict block admission path; complete durable history,
+Source qualification, live Agent lifecycle and operating approval remain separate.
