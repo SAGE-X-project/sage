@@ -1,5 +1,10 @@
 # Registry Source clock and checkpoint checks
 
+Source is a Registry observation boundary that can run inside an importing Agent;
+it does not mandate a separate service. See [Agent embedding](agent-embedding.md)
+for the application responsibilities, current HTTP coverage limits and ordered
+demo/example integration. Authenticated recovery is separate from ordinary startup.
+
 `pkg/agent/registry011` provides the clock-window and finalized-header continuity
 checks needed by the SAGE 0.11.0 Source. The governing requirements are CM-09 in
 `profiles/sage-0.11.0/registry-management.md`, revision 2, at sage-spec
@@ -543,3 +548,54 @@ mathematical overlap and finite refusal cases only; they are not a new live
 Nethermind stateGasTracer observation. Fresh CI must independently retain and
 check its actual complete gas witness before reporting that observation. Node,
 finality, whole-history Source and operating qualification remain separate.
+
+## Explicit native root-call gas adapter
+
+The approved official endpoint also returned the Erigon call-trace format
+defined by the immutable upstream implementation revision
+[`cf6f14132ff042df33b8ce64b0114daeb0d15145`](https://github.com/erigontech/erigon/blob/cf6f14132ff042df33b8ce64b0114daeb0d15145/execution/tracing/tracers/native/call.go).
+Its root reports the regular/state/refund trio plus a nonzero
+`stateGasReservoir` when present. That exact root shape selects child frames
+with signed int64 net `stateGasUsed` and an optional unsigned reservoir. Mixed
+child trios, malformed quantities, negative zero, overflow and unknown fields
+refuse. The reservoir is not assumed to equal `gasLimit - 2^24`. These are call
+diagnostics only; accepting the complete tree does not qualify block gas.
+
+`ReadReplayBlockWithRootGas` explicitly selects native `callTracer` for a
+complete block, with `onlyTopCall=true`, `withLog=false`,
+`includePrecompiles=true`, the existing bounded timeout and `reexec=0`.
+`ReadReplayBlock` still selects native `stateGasTracer`. Neither API retries
+the other, falls back to another provider or selects by a client-version claim.
+Full call/log traces remain separately required for every Registry-event
+transaction; top-only gas data cannot stand in for its actual execution tree.
+
+The root adapter checks every row's order/hash and context against the signed
+transaction and receipt: sender, CALL/CREATE kind, destination (including the
+derived successful creation address), input, value and gas limit. A failed
+creation may omit its destination; this gives no successful-execution claim.
+Nested calls/logs and unknown root fields refuse. Quantities are bounded and
+the original responses remain untouched in `NodeBlockEvidence.Exchanges`.
+`Block.Gas.Trace` is the separate **derived** four-dimension witness; it must
+not be described as an original native stateGasTracer response.
+
+The profiles `sepolia-amsterdam-root-regular-gas-v1` and
+`sepolia-amsterdam-root-execution-gas-v1` preserve their respective exact
+dimension names. Every row uses the same selected contract; mixed aliases
+refuse. Both use the conservative payment-floor subset: at `P=F`, require
+`P=E=F` and `S=refund=0`. Otherwise, the existing receipt, reservation, refund,
+execution-floor and block gas equations remain mandatory. This supports only
+unambiguous observations; no hidden raw refund or unsupported clipped case is
+inferred. The Erigon
+[settled gas structure](https://github.com/erigontech/erigon/blob/cf6f14132ff042df33b8ce64b0114daeb0d15145/execution/protocol/mdgas/md_gas.go)
+defines its refund as capped before the calldata floor. Changing diagnostic
+field names in tests proves synthetic schema compatibility, not another node
+implementation's observed behavior.
+
+The public `erigon-core-trace.json` fixture is the untouched existing creation
+response retained by the failed CI. `erigon-root-gas.json` is one separately
+reviewed, fixed read of that already deployed block from the same sole approved
+endpoint. It contains 120 top-level results, including reverted transactions;
+there are no new transactions or deployment keys. Tests bind both originals by
+SHA-256 and use finite in-memory refusals. Production acquisition still needs
+its own fresh evidence. No result here is independent EVM/consensus validation,
+complete Registry history, host qualification or permission for Agent dispatch.

@@ -20,10 +20,17 @@ const SepoliaAmsterdamGasProfile = "sepolia-amsterdam-reth-state-gas-v1"
 // This is a distinct data contract; it must not inherit Reth's effective-refund
 // inference. A known schema is not evidence of the actual node binary identity.
 const SepoliaAmsterdamNethermindGasProfile = "sepolia-amsterdam-nethermind-state-gas-v1"
+
+// Root-call witnesses are DERIVED from retained full native callTracer roots.
+// Each profile preserves its exact dimension name. Both use the conservative
+// refund-floor subset; neither guesses raw refunds from a clipped payment.
+const SepoliaAmsterdamRootRegularGasProfile = "sepolia-amsterdam-root-regular-gas-v1"
+const SepoliaAmsterdamRootExecutionGasProfile = "sepolia-amsterdam-root-execution-gas-v1"
 const sepoliaAmsterdamTime uint64 = 1791294816
 
-// ReplayGasEvidence carries the COMPLETE ordered native stateGasTracer result
-// requested by exact block hash. Gas dimensions are uncommitted RPC assertions:
+// ReplayGasEvidence carries the COMPLETE ordered gas result for its exact
+// profile. Root-call profiles are derived witnesses whose original responses
+// must also be retained. Gas dimensions are uncommitted RPC assertions:
 // roots authenticate transactions/receipts, not execution/state gas individually.
 // Source enrollment must authenticate acquisition and retain the original exchange.
 type ReplayGasEvidence struct {
@@ -52,9 +59,9 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 	}
 	g := raw.Gas
 	field := "executionGasUsed"
-	if g.Profile == SepoliaAmsterdamNethermindGasProfile {
+	if g.Profile == SepoliaAmsterdamNethermindGasProfile || g.Profile == SepoliaAmsterdamRootRegularGasProfile {
 		field = "regularGasUsed"
-	} else if g.Profile != SepoliaAmsterdamGasProfile {
+	} else if g.Profile != SepoliaAmsterdamGasProfile && g.Profile != SepoliaAmsterdamRootExecutionGasProfile {
 		return ErrReplayUnavailable
 	}
 	if g.BlockHash != replayHeader(h).Hash {
@@ -108,7 +115,7 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 		p, e, s, refund := amounts[0], amounts[1], amounts[2], amounts[3]
 		// At the payment floor raw refund cannot generally reconstruct T. Keep
 		// only the unambiguous supported zero-state/zero-refund floor shape.
-		if g.Profile == SepoliaAmsterdamNethermindGasProfile && p == floor && (e != floor || s != 0 || refund != 0) {
+		if g.Profile != SepoliaAmsterdamGasProfile && p == floor && (e != floor || s != 0 || refund != 0) {
 			return ErrReplayUnavailable
 		}
 		// Inclusion reservations are checked BEFORE charging each dimension.
