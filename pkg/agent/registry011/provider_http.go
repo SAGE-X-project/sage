@@ -59,7 +59,7 @@ func providerHeaderFields(head []byte) ([]ProviderHeader, error) {
 		}
 		for i := 0; i < len(name); i++ {
 			b := name[i]
-			if !(b >= 'a' && b <= 'z' || b >= 'A' && b <= 'Z' || b >= '0' && b <= '9' || strings.ContainsRune("!#$%&'*+-.^_`|~", rune(b))) {
+			if (b < 'a' || b > 'z') && (b < 'A' || b > 'Z') && (b < '0' || b > '9') && !strings.ContainsRune("!#$%&'*+-.^_`|~", rune(b)) {
 				return nil, ErrProviderCapture
 			}
 		}

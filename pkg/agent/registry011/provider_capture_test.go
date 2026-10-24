@@ -45,8 +45,11 @@ func TestProviderCaptureConfiguration(t *testing.T) {
 			t.Fatal(e)
 		}
 	}
-	if _, e := CaptureSepoliaProviderFinality(nil, good); !errors.Is(e, ErrConfiguration) {
-		t.Fatal(e)
+	// Missing contexts are an invalid-input table, not an application call.
+	for _, missing := range []context.Context{nil} {
+		if _, e := CaptureSepoliaProviderFinality(missing, good); !errors.Is(e, ErrConfiguration) {
+			t.Fatal(e)
+		}
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
