@@ -55,7 +55,7 @@ func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBud
 		return f, ErrReplayUnavailable
 	}
 	b.frames++
-	m, ok := nodeObject(raw, "type from to gas gasUsed input output error revertReason calls logs value executionGasUsed stateGasUsed gasRefund")
+	m, ok := nodeObject(raw, "type from to gas gasUsed input output error revertReason calls logs value executionGasUsed regularGasUsed stateGasUsed gasRefund")
 	if !ok {
 		return f, ErrReplayUnavailable
 	}
@@ -73,7 +73,16 @@ func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBud
 		// represented by inventing a zero-address execution context.
 		return f, ErrReplayUnavailable
 	}
-	for _, k := range []string{"gas", "gasUsed", "executionGasUsed", "stateGasUsed", "gasRefund"} {
+	_, execution := m["executionGasUsed"]
+	_, regular := m["regularGasUsed"]
+	_, state := m["stateGasUsed"]
+	_, refund := m["gasRefund"]
+	// Known dimensional diagnostics are optional PER FRAME, but are one whole
+	// trio when present. Never accept a hybrid alias or infer a client identity.
+	if execution && regular || (execution || regular) != state || state != refund {
+		return f, ErrReplayUnavailable
+	}
+	for _, k := range []string{"gas", "gasUsed", "executionGasUsed", "regularGasUsed", "stateGasUsed", "gasRefund"} {
 		v, present := m[k]
 		if !present && k != "gas" && k != "gasUsed" {
 			continue

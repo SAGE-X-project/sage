@@ -414,3 +414,132 @@ and a separately labelled `strict-replay-block.json`. It checks **provider-obser
 gas consistency**, not independent EVM execution, header consensus or finality.
 This completes a bounded strict block admission path; complete durable history,
 Source qualification, live Agent lifecycle and operating approval remain separate.
+
+## Local incremental replay journal
+
+`CreateReplayJournal` and `OpenReplayJournal` add an explicit local persistence
+boundary. They do not enroll or ready a Source, authenticate an RPC, grant
+protected use, or establish authenticated absence. The operator must separately
+qualify the directory, filesystem durability, clock, node/ancestry/finality,
+complete code and ABI identities, and independent checkpoint retention. There
+are no operating defaults. The immutable local configuration binds these named
+identities, policy generation, exact deployment header and work limits; supplying
+an identity hash is not proof of its qualification.
+
+Each `ReplayBatch` contains every consecutive complete block after the retained
+cursor (including deployment for the first batch), only newly observed selected
+history items, and separately pinned final state. A private incremental replay
+path derives each global successor through the existing strict body/gas, actual
+caller, command, proof, ACL and lifecycle checks. It carries all consumed and
+expired caller/hash claims, created identities, controller, key tombstones,
+grants, terminal state and version. It never treats a history suffix as a new
+version-one create and never prunes lifetime duplicate indexes. A failed batch
+discards its private state copies. The older complete-range public APIs keep
+their contracts and ceilings.
+
+Batch work counters reset; lifetime state does not. Explicit total journal,
+claim and identity budgets refuse without truncating history or weakening
+protocol limits. Reopening replays all retained batches from deployment; it
+never trusts a serialized state snapshot. This supports more than 4096 total
+blocks through bounded batches, at the cost of bounded full recovery work.
+
+Backfill progress is distinct from fresh finalized selection. Each batch carries
+`SelectedFinalized` and the entire descending ancestor path through its previous
+cursor (initially deployment). Every decoded visited block must match that path;
+the previous finalized selection must also remain on it. Acquisition freshness
+is checked against the fresh selected header, not the historical cursor. The
+supplied ancestor metadata still needs external authentication; hash-shaped
+fields alone cannot establish a real chain. A cursor behind the selected header
+cannot publish. No height-only branch selection or skipped deployment interval
+is permitted.
+
+The existing directory must be empty for explicit creation. `Open` never creates
+missing history. An exclusive local lock is held until `Close`; a crashed
+process's stale lock is not automatically stolen. A separately authenticated
+operator must resolve ownership. This is conservative refusal, not automatic
+crash recovery or a distributed lock. Complete immutable sequence-numbered batch
+files are SHA-256 chained to the configuration and prior batch. Files and the
+directory are synced. A durable PENDING marker precedes append work and is
+removed only after the new batch is synced. A torn or uncertain append,
+quarantine marker, unexpected file, sequence gap or mismatch refuses reopening;
+there is no prefix fallback, truncation, cleanup, reset or repair path. IO failure
+cannot guarantee successful quarantine persistence and is returned as failure.
+The actual filesystem's power-loss behavior remains an external qualification.
+
+`Open` requires the exact independently retained latest `JournalCheckpoint`,
+including sequence, digest, anchor and version; both a rolled-back prefix and an
+unacknowledged newer tail refuse. A writer of the trusted directory can fabricate
+a new self-consistent journal; its hash chain is not authenticity or rollback
+protection without that external trusted checkpoint. Before dependent publication
+the caller must durably retain the returned checkpoint independently and supply
+its exact readback to `Publish`. The API checks equality, not the honesty or
+durability of a caller-provided acknowledgement.
+
+Neither append nor restart enables publication. `ConfirmObservation` requires a
+complete fresh, separately qualified read after the disk commit, with exact
+current anchor and final bytes; it records that new read's original start.
+Publication uses that original start and a current trusted sample after disk
+commit and checkpoint retention. It checks the confirmed epoch,
+completion ordering, observation age and finalized lag again. An old completion
+timestamp cannot be substituted as a new start. Expired, conflicting or unknown
+inputs quarantine dependent use; this API has no quarantine-clearing or
+authenticated reconfiguration operation.
+
+Local deterministic closed JSON is a storage format, not an additional network
+or RFC 8785 wire contract. Reads preflight bounded file sizes, directory counts,
+96-container depth, 32 members per object, 2^22 streamed tokens and configured
+array counts before typed decoding, then compare exact typed re-encoding; unknown/duplicate
+members or repaired spelling do not pass. Fixed names and `os.Root` confine path
+resolution, but do not protect against a writer of the trusted directory, hard
+links, mounts or a compromised host. Embedded gas JSON may be compacted by the
+local encoder; this journal is not original RPC response-byte retention. A Source
+must separately retain those original exchanges and their acquisition bindings.
+The owned temporary-directory runtime tests
+exercise real writes, syncs, restart, exclusivity and finite failures. Their
+synthetic offline blockchain inputs and handwritten expectations do not qualify
+live mutation history, a production filesystem/host, external retention or a
+Source. CI retains their source/events/coverage and applies a separate 90% gate
+to every added production file. No RPC, operating key, paid transaction,
+deployment, hostile runtime producer or local heavy build is added.
+
+## Same-endpoint Nethermind trace representation
+
+The selected official endpoint also returned a client-version claim of
+Nethermind 2.2.1+c4f1015b. The claim does not attest its binary or choose a
+trusted profile. An exact public Core call response retained by CI has sixteen
+frames: the root supplies `regularGasUsed`, `stateGasUsed`, `gasRefund`, while
+all fifteen children omit dimensional metadata. The pinned reference is
+[Nethermind c4f1015be8b989dd609803cc50d3928d6e0dfd4f](https://github.com/NethermindEth/nethermind/tree/c4f1015be8b989dd609803cc50d3928d6e0dfd4f).
+Its native CallFrame converter and stateGasTracer converter define the known
+regular/state/refund representation. Per-frame dimensional diagnostics are
+optional, but if present must be one complete known trio; partial trios and
+simultaneous execution/regular aliases refuse. These diagnostics never replace
+the separate complete block gas witness.
+
+`sepolia-amsterdam-nethermind-state-gas-v1` is a distinct closed witness schema.
+Each result has exactly `gasUsed`, `regularGasUsed`, `stateGasUsed`, `gasRefund`.
+Acquisition classifies a known bounded data shape, then checks every row against
+exactly that profile; a mixed or hybrid array refuses. Empty results retain the
+existing empty representation and still require an empty committed block. No
+client string, endpoint fallback, retry, unknown field or validation-failure
+fallback selects an alternative profile. The existing Reth v1 schema remains
+separate and unchanged.
+
+The pinned [block inclusion helper](https://github.com/NethermindEth/nethermind/blob/c4f1015be8b989dd609803cc50d3928d6e0dfd4f/src/Nethermind/Nethermind.Evm/GasPolicy/Eip8037BlockGasInclusionCheck.cs),
+GasConsumed, TransactionProcessor and NativeStateGasTracer implementations bind
+the same independent execution/state reservations and execution floor. However,
+this tracer reports **raw capped refunds**, including when payment floor clips;
+the earlier Reth format reports effective refunds. Above the payment floor,
+`T=P+rawRefund` is available and the existing settlement equations apply. At
+`P=F` the Nethermind adapter supports only `E=F, S=0, rawRefund=0`; all other
+clipped settlements refuse as unavailable. It does not invent an unreported
+pre-refund total or inherit the Reth clipped-refund inference. This is an
+explicit unsupported evidence shape, not a change to the protocol or a lower
+required transaction bound.
+
+The untouched captured call response is an offline compatibility fixture.
+Controlled field-name changes to the older Reth gas fixture test the known
+mathematical overlap and finite refusal cases only; they are not a new live
+Nethermind stateGasTracer observation. Fresh CI must independently retain and
+check its actual complete gas witness before reporting that observation. Node,
+finality, whole-history Source and operating qualification remain separate.

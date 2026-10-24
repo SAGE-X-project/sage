@@ -15,6 +15,11 @@ import (
 // not a client-version assertion or an attestation of consensus validity.
 // Activation and implementation revisions are documented in registry-source-checks.md.
 const SepoliaAmsterdamGasProfile = "sepolia-amsterdam-reth-state-gas-v1"
+
+// Nethermind reports RAW capped refunds, including at a clipped payment floor.
+// This is a distinct data contract; it must not inherit Reth's effective-refund
+// inference. A known schema is not evidence of the actual node binary identity.
+const SepoliaAmsterdamNethermindGasProfile = "sepolia-amsterdam-nethermind-state-gas-v1"
 const sepoliaAmsterdamTime uint64 = 1791294816
 
 // ReplayGasEvidence carries the COMPLETE ordered native stateGasTracer result
@@ -46,7 +51,10 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 		return ErrReplay
 	}
 	g := raw.Gas
-	if g.Profile != SepoliaAmsterdamGasProfile {
+	field := "executionGasUsed"
+	if g.Profile == SepoliaAmsterdamNethermindGasProfile {
+		field = "regularGasUsed"
+	} else if g.Profile != SepoliaAmsterdamGasProfile {
 		return ErrReplayUnavailable
 	}
 	if g.BlockHash != replayHeader(h).Hash {
@@ -80,12 +88,12 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 		if !ok || hash != block.txs[i].Hash().Hex() {
 			return ErrReplay
 		}
-		v, ok := nodeObject(m["result"], "gasUsed executionGasUsed stateGasUsed gasRefund")
+		v, ok := nodeObject(m["result"], "gasUsed "+field+" stateGasUsed gasRefund")
 		if !ok || len(v) != 4 {
 			return ErrReplayUnavailable
 		}
 		var amounts [4]uint64
-		for j, name := range []string{"gasUsed", "executionGasUsed", "stateGasUsed", "gasRefund"} {
+		for j, name := range []string{"gasUsed", field, "stateGasUsed", "gasRefund"} {
 			s, valid := nodeString(v[name])
 			amounts[j], ok = rpcQuantity(s)
 			if !valid || !ok {
@@ -98,6 +106,11 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 			return err
 		}
 		p, e, s, refund := amounts[0], amounts[1], amounts[2], amounts[3]
+		// At the payment floor raw refund cannot generally reconstruct T. Keep
+		// only the unambiguous supported zero-state/zero-refund floor shape.
+		if g.Profile == SepoliaAmsterdamNethermindGasProfile && p == floor && (e != floor || s != 0 || refund != 0) {
+			return ErrReplayUnavailable
+		}
 		// Inclusion reservations are checked BEFORE charging each dimension.
 		// These bounds also make every following sum and subtraction safe.
 		limit := tx.Gas()
@@ -114,6 +127,37 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 		return ErrReplay
 	}
 	return nil
+}
+
+// Classify a bounded native data shape, not clientVersion or trust. The strict
+// checker still validates EVERY row against exactly that profile. No alternate
+// profile is attempted if validation fails. Empty results retain the old empty
+// representation; complete block checks still require zero transactions/gas.
+func replayGasProfile(trace json.RawMessage, maximum int) (string, error) {
+	rows, ok := nodeRawArray(trace, maximum)
+	if !ok {
+		return "", ErrReplayUnavailable
+	}
+	if len(rows) == 0 {
+		return SepoliaAmsterdamGasProfile, nil
+	}
+	m, ok := nodeObject(rows[0], "txHash result")
+	if !ok || len(m) != 2 {
+		return "", ErrReplayUnavailable
+	}
+	v, ok := nodeObject(m["result"], "gasUsed executionGasUsed regularGasUsed stateGasUsed gasRefund")
+	if !ok || len(v) != 4 {
+		return "", ErrReplayUnavailable
+	}
+	_, execution := v["executionGasUsed"]
+	_, regular := v["regularGasUsed"]
+	if execution == regular {
+		return "", ErrReplayUnavailable
+	}
+	if regular {
+		return SepoliaAmsterdamNethermindGasProfile, nil
+	}
+	return SepoliaAmsterdamGasProfile, nil
 }
 
 // replayGasSettlement checks consistency with EIP-8037 + EIP-7778 and the
