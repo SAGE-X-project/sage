@@ -663,3 +663,34 @@ claim or a previous richer response cannot fill these missing values. Such a
 response does not establish strict gas support or Source readiness. The live
 check continues to fail when this required evidence is unavailable; the unit
 test's successful refusal must not be reported as a successful live replay.
+
+## Candidate provider transport capture
+
+`CaptureSepoliaProviderFinality` is a separate, data-only feasibility probe for
+one `eth_getBlockByNumber("finalized", false)` call at the selected official RPC.
+It owns certificate-verifying TLS and negotiates HTTP/1.1 so bounded original
+response headers can be retained before normalization. Whole response-wire bytes
+(including transfer framing) are bounded and retained, and a framed entity must
+be followed by actual EOF on the same reader. Original name/order,
+duplicates of non-framing fields, entity bodies and verified certificate-chain
+hashes are retained. Duplicate framing fields, content compression, trailers,
+redirects, malformed or excessive bytes and invalid JSON-RPC envelopes refuse.
+There is no alternate origin, proxy, caller transport, retry, transaction or
+signing API. A wire budget includes plaintext HTTP framing and both request and
+response bytes; it does not bound TLS packets or the platform network stack.
+
+The sample is diagnostic data, not `ExchangeV1`, a checked batch, a policy
+credential or Source readiness. Its system-root selection, wall timestamps and
+single request are not qualified manifest trust roots, clock samples, durable
+budget tickets, complete ancestry or history. They cannot authorize protected
+Agent dispatch. On read refusal a nonnil sample may retain bounded incomplete
+wire diagnostics with Complete=false, a capture error and no Result. These are
+not a successful exchange or a retry instruction. Existing strict replay, gas
+checks and required node CI remain
+unchanged. Actual policy activation requires a separate later decision.
+
+Finite inert fixture units cover malformed data. An ordinary test owns both TLS
+endpoints and a test-only certificate; it provides no production endpoint or
+certificate override. A separate opt-in CI test performs one official read and
+retains raw source, headers/bodies, TLS metadata and coverage. Its result is only
+transport feasibility, never full provider execution/Registry qualification.
