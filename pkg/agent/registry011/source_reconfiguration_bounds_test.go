@@ -45,7 +45,7 @@ func TestReconstructionInvalidInputsAndDestination(t *testing.T) {
 			}
 		})
 	}
-	if _, e := PlanJournalReconfiguration(nil, dir, c, next, tip, pub, nonce, "owned refusal", limits); e == nil {
+	if _, e := PlanJournalReconfiguration(nil, dir, c, next, tip, pub, nonce, "owned refusal", limits); e == nil { //nolint:staticcheck // Deliberately verify the public nil-context refusal.
 		t.Fatal("nil context")
 	}
 	if _, e := PlanJournalReconfiguration(context.Background(), filepath.Join(t.TempDir(), "absent"), c, next, tip, pub, nonce, "owned refusal", limits); e == nil {
@@ -188,6 +188,81 @@ func TestReconstructionFinalReadbackRefusals(t *testing.T) {
 			})
 			if e == nil {
 				t.Fatal("readback or copy failure accepted")
+			}
+		})
+	}
+}
+
+// Cancellation is triggered only by the owned destination reaching creation.
+// This exercises a valid cancellation boundary without timing a filesystem race.
+type reconstructionCancelContext struct {
+	context.Context
+	cancel  context.CancelFunc
+	created string
+}
+
+func (c reconstructionCancelContext) Err() error {
+	if _, e := os.Stat(c.created); e == nil {
+		c.cancel()
+	}
+	return c.Context.Err()
+}
+
+func TestReconstructionCancellationRetainsFailedCandidateAndOriginal(t *testing.T) {
+	dir, c, next, tip, key := reconstructionFixture(t)
+	p, signature := reconstructionTestPlan(t, dir, c, next, tip, key)
+	original, e := os.ReadFile(filepath.Join(dir, journalName(1)))
+	if e != nil {
+		t.Fatal(e)
+	}
+	destination := t.TempDir()
+	base, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ctx := reconstructionCancelContext{base, cancel, filepath.Join(destination, "CONFIG")}
+	j, audit, e := RebuildReplayJournal(ctx, dir, destination, c, next, tip, key.Public().(ed25519.PublicKey), p, signature, ReconstructionLimits{32, 8 << 20})
+	if e == nil || j != nil || audit != (ReconfigurationAudit{}) || !errors.Is(e, context.Canceled) {
+		t.Fatal("failed candidate returned", e)
+	}
+	marker, e := os.ReadFile(filepath.Join(destination, "QUARANTINED"))
+	if e != nil || string(marker) != "quarantined\n" {
+		t.Fatal("failed candidate was erased or not quarantined", e)
+	}
+	retained, e := os.ReadFile(filepath.Join(dir, journalName(1)))
+	if e != nil || string(retained) != string(original) {
+		t.Fatal("old accepted prefix changed", e)
+	}
+	marker, e = os.ReadFile(filepath.Join(dir, "LOCK"))
+	if e != nil || string(marker) != "locked\n" {
+		t.Fatal("old ownership changed", e)
+	}
+}
+
+func TestReconstructionRequiresExactLifetimeIndexes(t *testing.T) {
+	id := replayClaimID{actor: "owned-actor"}
+	a := replayStream{claims: map[replayClaimID]replayClaimState{id: {block: 7, consumed: true}}, created: map[string]bool{"terminal-identity": true}}
+	for _, kind := range []string{"claim-count", "claim-binding", "claim-consumption", "identity-count", "identity-binding", "identity-state", "admission-time"} {
+		t.Run(kind, func(t *testing.T) {
+			b := replayStream{claims: map[replayClaimID]replayClaimState{id: {block: 7, consumed: true}}, created: map[string]bool{"terminal-identity": true}}
+			switch kind {
+			case "claim-count":
+				delete(b.claims, id)
+			case "claim-binding":
+				delete(b.claims, id)
+				b.claims[replayClaimID{actor: "other-owned-actor"}] = replayClaimState{block: 7, consumed: true}
+			case "claim-consumption":
+				b.claims[id] = replayClaimState{block: 7}
+			case "identity-count":
+				delete(b.created, "terminal-identity")
+			case "identity-binding":
+				delete(b.created, "terminal-identity")
+				b.created["another-owned-identity"] = true
+			case "identity-state":
+				b.created["terminal-identity"] = false
+			case "admission-time":
+				b.state.admitted++
+			}
+			if sameLifetime(a, b) {
+				t.Fatal("lost or changed lifetime history accepted")
 			}
 		})
 	}

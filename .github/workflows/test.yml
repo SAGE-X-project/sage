@@ -45,7 +45,7 @@ jobs:
           go version > "$RUNNER_TEMP/registry-source-checks/compiler.txt"
           git rev-parse HEAD > "$RUNNER_TEMP/registry-source-checks/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/registry-source-checks/tree.txt"
-          git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml .gitleaks.toml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
+          git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md docs/dev/agent-embedding.md docs/INDEX.md go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml .gitleaks.toml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
           cp pkg/agent/registry011/*.go pkg/agent/registry011/*.json "$RUNNER_TEMP/registry-source-checks/source/"
           cp -R pkg/agent/registry011/testdata "$RUNNER_TEMP/registry-source-checks/source/"
           python3 - <<'PYSOURCE'
