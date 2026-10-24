@@ -30,7 +30,11 @@ func (r *PinnedAgentReads) ReadReplayBlock(ctx context.Context, number uint64, l
 		if err != nil {
 			return nil, err
 		}
-		out.Block.Gas = &ReplayGasEvidence{SepoliaAmsterdamGasProfile, out.Header.Hash, trace}
+		profile, err := replayGasProfile(trace, a.work.limits.MaxTransactions)
+		if err != nil {
+			return nil, err
+		}
+		out.Block.Gas = &ReplayGasEvidence{profile, out.Header.Hash, trace}
 	}
 	if err := replayCheckGas(a.ctx, out.Block, decoded, &a.work); err != nil {
 		return nil, err

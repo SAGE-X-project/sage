@@ -501,3 +501,45 @@ live mutation history, a production filesystem/host, external retention or a
 Source. CI retains their source/events/coverage and applies a separate 90% gate
 to every added production file. No RPC, operating key, paid transaction,
 deployment, hostile runtime producer or local heavy build is added.
+
+## Same-endpoint Nethermind trace representation
+
+The selected official endpoint also returned a client-version claim of
+Nethermind 2.2.1+c4f1015b. The claim does not attest its binary or choose a
+trusted profile. An exact public Core call response retained by CI has sixteen
+frames: the root supplies `regularGasUsed`, `stateGasUsed`, `gasRefund`, while
+all fifteen children omit dimensional metadata. The pinned reference is
+[Nethermind c4f1015be8b989dd609803cc50d3928d6e0dfd4f](https://github.com/NethermindEth/nethermind/tree/c4f1015be8b989dd609803cc50d3928d6e0dfd4f).
+Its native CallFrame converter and stateGasTracer converter define the known
+regular/state/refund representation. Per-frame dimensional diagnostics are
+optional, but if present must be one complete known trio; partial trios and
+simultaneous execution/regular aliases refuse. These diagnostics never replace
+the separate complete block gas witness.
+
+`sepolia-amsterdam-nethermind-state-gas-v1` is a distinct closed witness schema.
+Each result has exactly `gasUsed`, `regularGasUsed`, `stateGasUsed`, `gasRefund`.
+Acquisition classifies a known bounded data shape, then checks every row against
+exactly that profile; a mixed or hybrid array refuses. Empty results retain the
+existing empty representation and still require an empty committed block. No
+client string, endpoint fallback, retry, unknown field or validation-failure
+fallback selects an alternative profile. The existing Reth v1 schema remains
+separate and unchanged.
+
+The pinned [block inclusion helper](https://github.com/NethermindEth/nethermind/blob/c4f1015be8b989dd609803cc50d3928d6e0dfd4f/src/Nethermind/Nethermind.Evm/GasPolicy/Eip8037BlockGasInclusionCheck.cs),
+GasConsumed, TransactionProcessor and NativeStateGasTracer implementations bind
+the same independent execution/state reservations and execution floor. However,
+this tracer reports **raw capped refunds**, including when payment floor clips;
+the earlier Reth format reports effective refunds. Above the payment floor,
+`T=P+rawRefund` is available and the existing settlement equations apply. At
+`P=F` the Nethermind adapter supports only `E=F, S=0, rawRefund=0`; all other
+clipped settlements refuse as unavailable. It does not invent an unreported
+pre-refund total or inherit the Reth clipped-refund inference. This is an
+explicit unsupported evidence shape, not a change to the protocol or a lower
+required transaction bound.
+
+The untouched captured call response is an offline compatibility fixture.
+Controlled field-name changes to the older Reth gas fixture test the known
+mathematical overlap and finite refusal cases only; they are not a new live
+Nethermind stateGasTracer observation. Fresh CI must independently retain and
+check its actual complete gas witness before reporting that observation. Node,
+finality, whole-history Source and operating qualification remain separate.
