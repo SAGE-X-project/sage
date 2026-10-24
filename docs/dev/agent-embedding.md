@@ -14,6 +14,13 @@ The normative comparison below uses sage-spec
 `spec/03-rfc9421.md` and `profiles/sage-0.11.0/registry-management.md`.
 This document does not change their requirements.
 
+The adopted 0.11.0 V1 selection in `profiles/sage-0.11.0/selection.json`
+also retains its pinned HTTP component rules with the explicitly selected
+version and domain substitutions. It does not introduce variable coverage or
+Accept-Signature negotiation. The implementation must use new matching entry
+points and signed objects; translating an existing 0.10.0 signature or merely
+changing a Registry address is not migration.
+
 | Concern | Current contract | Integration consequence |
 | --- | --- | --- |
 | Which messages use signatures | The 0.10.0 HTTP profile describes protected messages. It does not require signing every unrelated Agent communication. | The Agent routes operations according to its approved policy. A protected endpoint cannot retry an authentication failure as unsigned traffic. |
