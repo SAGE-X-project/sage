@@ -694,3 +694,44 @@ endpoints and a test-only certificate; it provides no production endpoint or
 certificate override. A separate opt-in CI test performs one official read and
 retains raw source, headers/bodies, TLS metadata and coverage. Its result is only
 transport feasibility, never full provider execution/Registry qualification.
+
+## Candidate policy byte identity
+
+`ParseProviderPolicyCandidate` accepts only bounded, already canonical local
+candidate JSON. All root and nested member sets are closed; duplicate names,
+unknown fields, invalid Unicode, trailing values and alternate encodings refuse.
+Unsigned counts are decimal strings without leading zeroes or overflow. Every
+budget is explicit and positive. Operation ceilings are 65,536 requests,
+256 MiB wire/decoded bytes and five minutes; operation/segment/bootstrap
+budgets must not decrease between scopes. These relations do not prove that a
+workload fits or qualify an estimator, clock or retaining store.
+
+This implementation candidate fixes `format` to
+`sage-provider-registry-observation-v1`, `retention.format` to
+`sage-provider-retention-v1`, and `spec_revision` to the existing normative
+commit `a22a275b4d88f1d415b53cdffc5bed41231b77a0`. These are local candidate
+identifiers, not registered standards or peer message formats. The supported
+instance is the already selected Sepolia genesis, Registry ID and deployment
+block hash. The provider origin remains the sole official RPC, with redirects
+denied and no proxy. Carrier ordering and the explicit trust assumptions and
+unverified guarantees are fixed; artifact digests are checked for spelling only.
+No referenced artifact or operating policy is accepted on the strength of a hash.
+
+The parser computes separate domain-separated identities for policy, instance
+and provider. `BindCandidate` records proposed namespace, Source ID and u64
+generation as candidate metadata. The instance identity excludes policy,
+namespace, Source ID and generation; changing those cannot describe a fresh
+instance or erase a retained root. Neither parsing nor binding selects policy,
+authenticates an Agent setting, enrolls a Source, establishes authoritative
+absence, creates `ExchangeV1` or returns a checked replay/dispatch capability.
+Zero values refuse access and returned bytes/metadata are copies. There is no
+activation method, automatic fallback from strict replay or operating default.
+
+Finite inert fixture tests check schema refusal, inclusive ceilings, identity
+separation, immutable concurrent reads and rejection of fabricated JSON state.
+Fixture digests and numeric limits name no qualified artifacts or operating
+values. Full manifest/artifact qualification, authoritative enrollment,
+durable accounting, owned store/clock checks, replay/history and complete
+bootstrap/catch-up publication remain separate gates. Strict gas checks and
+their required live CI result are unchanged; actual policy activation remains
+a separate decision after qualification.
