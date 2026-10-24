@@ -80,6 +80,13 @@ func TestNodeOwnedWalletCallAndReceiptJoin(t *testing.T) {
 	if len(got.Block.Executions) != 1 || got.Block.Executions[0].Root.Calls[0].From != replayTestWallet || got.Block.Executions[0].TransactionHash != tx.Hash().Hex() {
 		t.Fatal("wallet caller")
 	}
+	if !got.Gas.LegacyGasCompatible {
+		t.Fatal("owned fixture gas compatibility")
+	}
+	budget := replayBudget{limits: nodeTestLimits().Replay}
+	if _, err := replayDecodeBlock(context.Background(), got.Block, &budget); err != nil {
+		t.Fatal("strict owned block", err)
+	}
 	// Same inert fixture, inconsistent caller: public acquisition must refuse.
 	trace["from"] = replayTestWallet
 	if got, err := r.ReadNodeBlock(context.Background(), sepoliaDeploymentBlock, nodeTestLimits()); got != nil || err == nil {
@@ -153,5 +160,21 @@ func TestNodeCallTracerFieldsAndBounds(t *testing.T) {
 	cancel()
 	if _, e := DecodeCallTracer(ctx, []byte(`{}`), replayTestLimits()); e != context.Canceled {
 		t.Fatal(e)
+	}
+}
+
+// Finite log index data exercise conversion on 32-bit and 64-bit consumers.
+func TestNodeLogPositionConversionBound(t *testing.T) {
+	for _, tc := range []struct {
+		raw     string
+		allowed bool
+	}{
+		{"65536", true}, {"65537", false}, {"4294967296", false}, {"18446744073709551615", false},
+	} {
+		raw := json.RawMessage(`{"address":"` + SepoliaRegistryAddress + `","topics":[],"data":"0x","position":` + tc.raw + `}`)
+		got, ok := nodeLog(raw, 65536)
+		if ok != tc.allowed || (ok && got.AfterChildren != 65536) {
+			t.Fatal(tc.raw, ok, got.AfterChildren)
+		}
 	}
 }

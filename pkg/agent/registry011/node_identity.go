@@ -40,7 +40,7 @@ type nodeIdentity struct {
 
 // DeploymentEvidence establishes only the thirteen exact runtime identities at
 // Anchor and one signed Registry creation at Deployment. It does not re-prove
-// all nine historical creation transactions, consensus, full Registry history,
+// all nine historical creation transactions, gas accounting, consensus, full Registry history,
 // live mutation log behavior, custody or Source readiness. Exchanges retain all
 // successful raw response envelopes for independent audit; no boolean promotes
 // this bounded observation into a Source credential.
@@ -51,6 +51,7 @@ type DeploymentEvidence struct {
 	CodeHashes         map[string]string
 	Creation           ReplayExecution
 	Block              ReplayBlock
+	Gas                NodeGasEvidence
 	Exchanges          []NodeExchange
 }
 
@@ -118,6 +119,7 @@ func (r *PinnedAgentReads) ObserveDeployment(ctx context.Context, limits NodeLim
 	out.Deployment = e.Header
 	out.Creation = creation
 	out.Block = e.Block
+	out.Gas = e.Gas
 	out.Exchanges = a.exchanges
 	out.ClientVersion = a.clientVersion
 	return out, nil

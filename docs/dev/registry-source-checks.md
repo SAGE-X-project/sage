@@ -338,3 +338,17 @@ Wire references: [Geth native tracers](https://geth.ethereum.org/docs/developers
 and [Reth debug API](https://reth.rs/jsonrpc/debug/). The deployed ABI and thirteen
 code identities come from the existing public Sepolia deployment record in
 `sage-contracts`, not from an ABI advertised by the RPC.
+
+The node collector checks content commitments, not current fork gas accounting.
+Every block and deployment observation includes the header gas, final receipt
+cumulative gas, and `LegacyGasCompatible`, computed only from those retained
+bytes. The recorded deployment has 142,149,240 header gas and 206,878,059 receipt
+cumulative gas: the flag is false and strict command replay remains unsupported.
+The shared content decoder retains all canonical encoding, type, status, log,
+monotonic cumulative gas, transaction-root and receipt-root checks. Command replay
+always calls its strict wrapper, which still rejects unequal gas values; there
+is no bypass option and no fork inferred from a header shape or client string.
+A successful collection or matching legacy gas equality is not consensus/fork
+validation, valid gas accounting, complete history or Source qualification.
+Qualifying split gas accounting requires separately pinned activation rules and
+hash-bound execution/state gas evidence; those remain unfinished.

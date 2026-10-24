@@ -61,11 +61,12 @@ func nodeFixture(t *testing.T, mutate func(string, []json.RawMessage, []byte) []
 		case "eth_getBlockByNumber":
 			var tag string
 			_ = json.Unmarshal(in.Params[0], &tag)
-			if tag == "0x0" {
+			switch tag {
+			case "0x0":
 				key = "genesis"
-			} else if tag == "0xb6b80e" {
+			case "0xb6b80e":
 				key = "canonical-deployment"
-			} else {
+			default:
 				key = "finalized"
 			}
 		case "eth_call":
@@ -125,6 +126,20 @@ func TestNodeRecordedDeploymentConnection(t *testing.T) {
 	if len(got.CodeHashes) != 13 || got.Deployment.Number != sepoliaDeploymentBlock || got.Creation.TransactionIndex != 62 || got.Creation.Root.Type != "CREATE" || len(got.Exchanges) != *calls-before || len(got.Block.Transactions) != 120 || len(got.Block.Receipts) != 120 {
 		t.Fatal("bounded observation", got.Deployment, *calls)
 	}
+	if got.Gas.HeaderGasUsed != 142149240 || got.Gas.ReceiptCumulativeGasUsed != 206878059 || got.Gas.LegacyGasCompatible {
+		t.Fatal("observed unsupported gas boundary", got.Gas)
+	}
+	budget := replayBudget{limits: nodeTestLimits().Replay}
+	if _, err := replayDecodeBlock(context.Background(), got.Block, &budget); err != ErrReplay {
+		t.Fatal("strict replay must continue to refuse these contents", err)
+	}
+	in := replayTestInput(t)
+	in.DeploymentBlock = got.Deployment.Number
+	in.Anchor = got.Deployment
+	in.Blocks = []ReplayBlock{got.Block}
+	if steps, err := ReplayCommands(context.Background(), in, nodeTestLimits().Replay); steps != nil || err != ErrReplay {
+		t.Fatal("public replay must refuse unsupported gas", err)
+	}
 	if got.Anchor != r.header || got.Creation.Root.To != SepoliaRegistryAddress {
 		t.Fatal("binding")
 	}
@@ -149,7 +164,7 @@ func TestNodeRecordedDeploymentConnection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(block.Block.Executions) != 0 || block.Header != got.Deployment {
+	if len(block.Block.Executions) != 0 || block.Header != got.Deployment || block.Gas != got.Gas {
 		t.Fatal("creation has no Registry event; do not claim live mutation")
 	}
 	// Returned buffers are private to each acquisition.

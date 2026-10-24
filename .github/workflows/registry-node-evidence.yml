@@ -27,7 +27,6 @@ jobs:
     env:
       GOFLAGS: -mod=readonly
       GOTOOLCHAIN: auto
-      SAGE_NODE_EVIDENCE_DIR: ${{ runner.temp }}/registry-node-evidence
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -38,6 +37,7 @@ jobs:
           cache: true
       - name: Record source and bounded read-only execution
         run: |
+          export SAGE_NODE_EVIDENCE_DIR="$RUNNER_TEMP/registry-node-evidence"
           mkdir -p "$SAGE_NODE_EVIDENCE_DIR"
           go version > "$SAGE_NODE_EVIDENCE_DIR/compiler.txt"
           git rev-parse HEAD > "$SAGE_NODE_EVIDENCE_DIR/revision.txt"

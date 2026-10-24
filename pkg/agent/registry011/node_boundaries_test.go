@@ -3,6 +3,7 @@ package registry011
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"net/http"
 	"testing"
 
@@ -152,5 +153,59 @@ func TestNodeABIWireCompatibility(t *testing.T) {
 	c := testReadRPC(t, func(*http.Request) (*http.Response, error) { t.Fatal("zero budget reached transport"); return nil, nil })
 	if _, _, e := c.callEnvelope(context.Background(), "eth_chainId", []any{}, 0); e != ErrConfiguration {
 		t.Fatal(e)
+	}
+}
+
+// An empty body is a supported content observation, not an absence certificate.
+func TestNodeEmptyContentGasBoundary(t *testing.T) {
+	h := &types.Header{Number: common.Big0, Difficulty: common.Big0, UncleHash: types.EmptyUncleHash, TxHash: types.EmptyTxsHash, ReceiptHash: types.EmptyReceiptsHash}
+	// Avoid aliasing common.Big0 while assigning the fixed deployment height.
+	h.Number = new(big.Int).SetUint64(sepoliaDeploymentBlock)
+	block := types.NewBlockWithHeader(h)
+	encoded, err := rlp.EncodeToBytes(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	active := false
+	r, _ := nodeFixture(t, func(method string, params []json.RawMessage, body []byte) []byte {
+		if !active || (method == "eth_getBlockByNumber" && string(params[0]) == `"0x0"`) {
+			return body
+		}
+		return nodeMutateResult(body, func(v *json.RawMessage) {
+			switch method {
+			case "eth_getBlockByNumber":
+				*v, _ = json.Marshal(map[string]any{"hash": h.Hash().Hex(), "parentHash": h.ParentHash.Hex(), "number": "0xb6b80e", "timestamp": "0x0"})
+			case "debug_getRawBlock":
+				*v, _ = json.Marshal(nodeHex(encoded))
+			case "debug_getRawReceipts":
+				*v = json.RawMessage(`[]`)
+			}
+		})
+	})
+	active = true
+	r.header = replayHeader(h)
+	got, err := r.ReadNodeBlock(context.Background(), sepoliaDeploymentBlock, nodeTestLimits())
+	if err != nil || len(got.Block.Transactions) != 0 || got.Gas != (NodeGasEvidence{LegacyGasCompatible: true}) {
+		t.Fatal("empty content", err)
+	}
+	budget := replayBudget{limits: nodeTestLimits().Replay}
+	if _, err := replayDecodeBlock(context.Background(), got.Block, &budget); err != nil {
+		t.Fatal(err)
+	}
+	// Header-only mismatch remains observable, and strict replay still refuses.
+	h.GasUsed = 1
+	block = types.NewBlockWithHeader(h)
+	encoded, err = rlp.EncodeToBytes(block)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.header = replayHeader(h)
+	got, err = r.ReadNodeBlock(context.Background(), sepoliaDeploymentBlock, nodeTestLimits())
+	if err != nil || got.Gas.LegacyGasCompatible || got.Gas.HeaderGasUsed != 1 || got.Gas.ReceiptCumulativeGasUsed != 0 {
+		t.Fatal("unequal empty gas", err)
+	}
+	budget = replayBudget{limits: nodeTestLimits().Replay}
+	if _, err := replayDecodeBlock(context.Background(), got.Block, &budget); err != ErrReplay {
+		t.Fatal("strict unequal empty gas", err)
 	}
 }

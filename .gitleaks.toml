@@ -37,6 +37,9 @@ regexes = [
   # Exact public block commitment in the original official Sepolia RPC fixture.
   # This blockAccessListHash is not an API key; other values remain scanned.
   '''^blockAccessListHash"\s*:\s*"0xccc2c86b0961a35967f13168707928255aceb87ea5bf96d5b81d7e1ed7a7fd7e"$''',
+  # Exact public block commitments in node-deployment-rpc.json. These values
+  # are block header hashes of access lists, not credentials; no path is exempt.
+  '''^blockAccessListHash"\s*:\s*"0x(?:27ef7f2981bb8714ba05f755446df59946f7b2428231555d61480005ef3325b0|8af50dfa711c57fd77bd98f06f8d00eb55f93c16fbb726a1d05ef0c1c21225fa)"$''',
   # Exact SHA256 of the public Inspector source fixture, not an API credential.
   '''hpke-bound-key-invalid\.json["\s:]+39e6d1d36f45b53130404551fb29fab6354736e9b631dad0c110b20be2ec1525\b''',
   # Exact public derived keys from the frozen SAGE 0.10.0 record vectors.

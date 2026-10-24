@@ -57,7 +57,27 @@ type replayDecodedBlock struct {
 	receipts types.Receipts
 }
 
+// replayDecodeBlock is the strict command-replay boundary. Content acquisition
+// never changes its gas requirement or supplies an option to bypass it.
 func replayDecodeBlock(ctx context.Context, block ReplayBlock, budget *replayBudget) (replayDecodedBlock, error) {
+	result, err := replayDecodeContent(ctx, block, budget)
+	if err != nil {
+		return result, err
+	}
+	var gas uint64
+	if len(result.receipts) > 0 {
+		gas = result.receipts[len(result.receipts)-1].CumulativeGasUsed
+	}
+	if gas != result.header.GasUsed {
+		return result, ErrReplay
+	}
+	return result, nil
+}
+
+// replayDecodeContent verifies canonical encodings, complete transaction/receipt
+// commitments and their internal consistency. It does not validate the fork's
+// block gas accounting or consensus validity and cannot authorize command replay.
+func replayDecodeContent(ctx context.Context, block ReplayBlock, budget *replayBudget) (replayDecodedBlock, error) {
 	var result replayDecodedBlock
 	if err := ctx.Err(); err != nil {
 		return result, err
@@ -116,7 +136,7 @@ func replayDecodeBlock(ctx context.Context, block ReplayBlock, budget *replayBud
 		result.txs[i] = tx
 		result.receipts[i] = receipt
 	}
-	if gas != header.GasUsed || types.DeriveSha(result.txs, trie.NewStackTrie(nil)) != header.TxHash || types.DeriveSha(result.receipts, trie.NewStackTrie(nil)) != header.ReceiptHash {
+	if types.DeriveSha(result.txs, trie.NewStackTrie(nil)) != header.TxHash || types.DeriveSha(result.receipts, trie.NewStackTrie(nil)) != header.ReceiptHash {
 		return result, ErrReplay
 	}
 	return result, nil

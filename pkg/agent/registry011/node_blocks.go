@@ -31,9 +31,19 @@ type NodeExchange struct {
 	Params, Response json.RawMessage
 }
 
+// NodeGasEvidence exposes both committed gas values without inferring a fork
+// from a client claim or header shape. LegacyGasCompatible is ONLY equality
+// under the existing strict replay check, not fork, consensus or Source approval.
+// A false value means these contents remain unsupported for command replay.
+type NodeGasEvidence struct {
+	HeaderGasUsed, ReceiptCumulativeGasUsed uint64
+	LegacyGasCompatible                     bool
+}
+
 type NodeBlockEvidence struct {
 	ClientVersion string
 	Header        FinalizedHeader
+	Gas           NodeGasEvidence
 	Block         ReplayBlock
 	Exchanges     []NodeExchange
 }
@@ -130,9 +140,10 @@ func (a *nodeAcquisition) header(tag string) (FinalizedHeader, error) {
 	return h, nil
 }
 
-// ReadNodeBlock acquires one complete canonical block and consensus receipts,
+// ReadNodeBlock acquires one complete canonical block and committed receipts,
 // plus full call trees for every transaction emitting a Registry log. It does
-// not attest the interval from deployment, finality, absence or Source readiness.
+// not attest gas-accounting validity, the interval from deployment, finality,
+// absence or Source readiness. Gas reports strict replay compatibility separately.
 // A trusted official provider and separate durable continuity gates are required.
 func (r *PinnedAgentReads) ReadNodeBlock(ctx context.Context, number uint64, limits NodeLimits) (*NodeBlockEvidence, error) {
 	a, cancel, err := r.nodeStart(ctx, limits)
@@ -239,10 +250,15 @@ func (a *nodeAcquisition) block(number uint64) (*NodeBlockEvidence, replayDecode
 		}
 		out.Block.Receipts = append(out.Block.Receipts, b)
 	}
-	decoded, err := replayDecodeBlock(a.ctx, out.Block, &a.work)
+	decoded, err := replayDecodeContent(a.ctx, out.Block, &a.work)
 	if err != nil {
 		return nil, zero, err
 	}
+	out.Gas.HeaderGasUsed = decoded.header.GasUsed
+	if len(decoded.receipts) > 0 {
+		out.Gas.ReceiptCumulativeGasUsed = decoded.receipts[len(decoded.receipts)-1].CumulativeGasUsed
+	}
+	out.Gas.LegacyGasCompatible = out.Gas.HeaderGasUsed == out.Gas.ReceiptCumulativeGasUsed
 	return out, decoded, nil
 }
 

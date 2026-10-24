@@ -21,7 +21,7 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	report := map[string]any{"scope": "thirteen runtime identities at one provider-finalized anchor and one existing Registry creation; no complete history, mutation lifecycle or Source qualification", "rpc": SepoliaRPCURL, "started_utc": time.Now().UTC().Format(time.RFC3339Nano), "paid_transactions": 0, "source_ready": false}
+	report := map[string]any{"scope": "thirteen runtime identities at one provider-finalized anchor and one existing Registry creation; no gas-accounting validity, complete history, mutation lifecycle or Source qualification", "rpc": SepoliaRPCURL, "started_utc": time.Now().UTC().Format(time.RFC3339Nano), "paid_transactions": 0, "source_ready": false}
 	defer func() {
 		report["finished_utc"] = time.Now().UTC().Format(time.RFC3339Nano)
 		b, e := json.MarshalIndent(report, "", "  ")
@@ -68,5 +68,10 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 	report["runtime_code_identities"] = len(got.CodeHashes)
 	report["requests_in_observation"] = len(got.Exchanges)
 	report["bundle_bytes"] = len(b)
-	report["result"] = "PASS within declared scope"
+	report["gas"] = got.Gas
+	report["gas_accounting_status"] = "UNVALIDATED: legacy equality is not fork or consensus qualification"
+	if !got.Gas.LegacyGasCompatible {
+		report["gas_accounting_status"] = "UNSUPPORTED for strict command replay"
+	}
+	report["result"] = "OBSERVED within declared content scope"
 }

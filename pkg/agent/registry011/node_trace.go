@@ -145,7 +145,9 @@ func nodeLog(raw json.RawMessage, children int) (ReplayFrameLog, bool) {
 		return l, false
 	}
 	position, ok := nodeIndex(m["position"])
-	if !ok || position > uint64(children) {
+	// The acquisition permits at most 65,536 frames. Check this absolute
+	// bound before converting even on a 32-bit consumer.
+	if !ok || position > 65536 || position > uint64(children) {
 		return l, false
 	}
 	l.AfterChildren = int(position)
