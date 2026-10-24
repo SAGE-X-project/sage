@@ -31,7 +31,8 @@ type ProviderCandidateIdentity struct {
 // ProviderCandidateContext is still candidate data. Binding a Source ID or
 // generation never enrolls an instance or proves authoritative absence. A
 // future qualified retaining boundary must independently admit these values.
-// No network, journal, replay, retention, clock or protected-use API accepts it.
+// Only candidate first-enrollment persistence consumes it as proposed data.
+// No qualified Source, replay, clock or protected-use API accepts it.
 type ProviderCandidateContext struct {
 	identity ProviderCandidateIdentity
 	bound    bool

@@ -257,11 +257,12 @@ func TestProviderEnrollmentConcurrencyAndOwnerBinding(t *testing.T) {
 	close(results)
 	success, conflict := 0, 0
 	for err := range results {
-		if err == nil {
+		switch err {
+		case nil:
 			success++
-		} else if err == ErrProviderRetentionConflict {
+		case ErrProviderRetentionConflict:
 			conflict++
-		} else {
+		default:
 			t.Fatal(err)
 		}
 	}
