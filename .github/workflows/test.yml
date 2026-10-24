@@ -106,6 +106,9 @@ jobs:
               'pkg/agent/registry011/node_trace.go': [0, 0],
               'pkg/agent/registry011/provider_policy.go': [0, 0],
               'pkg/agent/registry011/provider_policy_schema.go': [0, 0],
+              'pkg/agent/registry011/provider_enrollment.go': [0, 0],
+              'pkg/agent/registry011/provider_enrollment_schema.go': [0, 0],
+              'pkg/agent/registry011/provider_enrollment_disk.go': [0, 0],
               'pkg/agent/registry011/node_identity.go': [0, 0],
           }
           for line in Path('coverage.out').read_text().splitlines()[1:]:

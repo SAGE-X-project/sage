@@ -735,3 +735,42 @@ durable accounting, owned store/clock checks, replay/history and complete
 bootstrap/catch-up publication remain separate gates. Strict gas checks and
 their required live CI result are unchanged; actual policy activation remains
 a separate decision after qualification.
+
+## Candidate first-enrollment persistence
+
+`OpenCandidateProviderNamespace` opens only an existing Agent-owned retaining
+directory with a preprovisioned canonical `ANCHOR`. The namespace, instance,
+anchor digest and independent expected-tip pin are explicit trusted integration
+inputs. Matching hashes do not authenticate their custody. No production API
+creates the anchor, selects an authority or infers first use from missing data.
+The retaining directory must be independent of candidate staging and trusted
+against external writers, hard links and mount changes; path confinement does
+not establish those assumptions.
+
+Only a null anchor root with no enrollment entry can accept one initial append.
+An exclusive lock, expected old tip, closed bounded inventory, exclusive write,
+file and directory sync, and exact readback precede the private receipt. Existing
+roots, including quarantined, fenced and retired states, cannot be overwritten.
+Changed policy, Source, generation or directory is not proof of a fresh instance.
+Evidence files have an explicit byte ceiling; the lock has fixed seven-byte
+contents. Failed writes, syncs or readbacks produce no receipt and fence the
+handle. A failed close remains an error on later close calls.
+
+`RecoverCandidateProviderEnrollment` recovers only the identical retained first
+operation after a lost ACK and released lock. It verifies exact canonical bytes
+and the expected old pin, resyncs and rereads without rewriting evidence. A lock
+left by a crash is never stolen; authenticated crash recovery is unsupported.
+An independently retained newer tip rejects an empty replacement directory.
+This depends on independent pin custody: losing the directory and its trusted
+high-water state is not detected merely by recomputing a digest.
+
+Snapshots are bound to their owner and current tip; stale, closed and failed
+handles refuse. Receipts expose copied historical diagnostics only. JSON cannot
+restore private state, and no Source API accepts these candidate types. Finite
+unit fixtures and owned temporary-file tests cover first-registration races,
+state combinations, reopen, exact ACK recovery, invalid evidence and I/O failure.
+This component does not qualify an authority, operating filesystem or policy,
+implement later enrollment transitions, account for all resource vectors, or
+authorize Agent messages. Full retention/clock qualification, replay/history,
+bootstrap/catch-up and actual policy activation remain separate gates. Existing
+strict verification and its required live CI result are unchanged.
