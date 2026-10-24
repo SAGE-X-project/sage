@@ -84,7 +84,9 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 		report["gas_accounting_status"] = "UNSUPPORTED for strict command replay"
 	}
 	report["result"] = "OBSERVED within declared content scope"
-	strict, err := r.ReadReplayBlock(ctx, sepoliaDeploymentBlock, limits)
+	// Select the separately qualified native top-only gas contract explicitly.
+	// This is not a retry of another tracer or a relaxation after refusal.
+	strict, err := r.ReadReplayBlockWithRootGas(ctx, sepoliaDeploymentBlock, limits)
 	if err != nil {
 		report["strict_gas_error"] = err.Error()
 		t.Fatal("strict block gas evidence", err)

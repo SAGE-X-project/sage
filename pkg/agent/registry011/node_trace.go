@@ -16,8 +16,8 @@ import (
 // onlyTopCall=false and withLog=true, into replay frames. It does not authenticate
 // the caller's acquisition options or the node. A Source must retain the raw
 // result and bind the complete tree to signed transactions and receipt logs.
-// Unknown frame fields and unsupported opcodes fail closed. Known Reth 2.8.1
-// gas accounting fields are validated but do not establish execution authority.
+// Unknown frame fields and unsupported opcodes fail closed. Supported dimensional
+// diagnostics are validated but do not establish execution or gas authority.
 func DecodeCallTracer(ctx context.Context, raw json.RawMessage, limits ReplayLimits) (ReplayFrame, error) {
 	if ctx == nil || !replayLimits(limits) {
 		return ReplayFrame{}, ErrConfiguration
@@ -39,14 +39,14 @@ func DecodeCallTracer(ctx context.Context, raw json.RawMessage, limits ReplayLim
 		return ReplayFrame{}, ErrReplayUnavailable
 	}
 	b := replayBudget{limits: limits}
-	f, err := nodeFrame(ctx, raw, 0, &b)
+	f, err := nodeFrame(ctx, raw, 0, &b, false)
 	if err != nil {
 		return ReplayFrame{}, err
 	}
 	return f, nil
 }
 
-func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBudget) (ReplayFrame, error) {
+func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBudget, erigon bool) (ReplayFrame, error) {
 	var f ReplayFrame
 	if err := ctx.Err(); err != nil {
 		return f, err
@@ -55,7 +55,7 @@ func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBud
 		return f, ErrReplayUnavailable
 	}
 	b.frames++
-	m, ok := nodeObject(raw, "type from to gas gasUsed input output error revertReason calls logs value executionGasUsed regularGasUsed stateGasUsed gasRefund")
+	m, ok := nodeObject(raw, "type from to gas gasUsed input output error revertReason calls logs value executionGasUsed regularGasUsed stateGasUsed gasRefund stateGasReservoir")
 	if !ok {
 		return f, ErrReplayUnavailable
 	}
@@ -77,14 +77,29 @@ func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBud
 	_, regular := m["regularGasUsed"]
 	_, state := m["stateGasUsed"]
 	_, refund := m["gasRefund"]
+	_, reservoir := m["stateGasReservoir"]
+	if depth == 0 {
+		// This narrow root shape selects the pinned Erigon child diagnostics.
+		// A client-version string never selects a decoder or grants trust.
+		erigon = reservoir && regular && state && refund && !execution
+	}
 	// Known dimensional diagnostics are optional PER FRAME, but are one whole
-	// trio when present. Never accept a hybrid alias or infer a client identity.
-	if execution && regular || (execution || regular) != state || state != refund {
+	// trio when present. The pinned Erigon root instead supplies the trio once,
+	// while its children supply only signed net state usage and an optional
+	// unsigned reservoir. Never mix these two frame contracts.
+	if reservoir && !erigon || erigon && depth > 0 && (!state || execution || regular || refund) ||
+		(!erigon || depth == 0) && (execution && regular || (execution || regular) != state || state != refund) {
 		return f, ErrReplayUnavailable
 	}
-	for _, k := range []string{"gas", "gasUsed", "executionGasUsed", "regularGasUsed", "stateGasUsed", "gasRefund"} {
+	for _, k := range []string{"gas", "gasUsed", "executionGasUsed", "regularGasUsed", "stateGasUsed", "gasRefund", "stateGasReservoir"} {
 		v, present := m[k]
 		if !present && k != "gas" && k != "gasUsed" {
+			continue
+		}
+		if erigon && depth > 0 && k == "stateGasUsed" {
+			if !nodeSignedGas(v) {
+				return f, ErrReplayUnavailable
+			}
 			continue
 		}
 		s, valid := nodeString(v)
@@ -127,7 +142,7 @@ func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBud
 	}
 	b.traceLogs += len(logs)
 	for _, call := range calls {
-		child, err := nodeFrame(ctx, call, depth+1, b)
+		child, err := nodeFrame(ctx, call, depth+1, b, erigon)
 		if err != nil {
 			return ReplayFrame{}, err
 		}
@@ -141,6 +156,21 @@ func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBud
 		f.Logs = append(f.Logs, l)
 	}
 	return f, nil
+}
+
+// The pinned Erigon diagnostic is signed int64 hexadecimal, including -2^63.
+// Negative zero, aliases and values outside that exact range refuse.
+func nodeSignedGas(raw json.RawMessage) bool {
+	s, ok := nodeString(raw)
+	if !ok {
+		return false
+	}
+	negative := strings.HasPrefix(s, "-")
+	if negative {
+		s = s[1:]
+	}
+	v, valid := rpcQuantity(s)
+	return valid && ((!negative && v < 1<<63) || (negative && v > 0 && v <= 1<<63))
 }
 
 func nodeLog(raw json.RawMessage, children int) (ReplayFrameLog, bool) {

@@ -100,6 +100,7 @@ jobs:
               'pkg/agent/registry011/replay_state.go': [0, 0],
               'pkg/agent/registry011/node_blocks.go': [0, 0],
               'pkg/agent/registry011/node_gas.go': [0, 0],
+              'pkg/agent/registry011/node_root_gas.go': [0, 0],
               'pkg/agent/registry011/node_trace.go': [0, 0],
               'pkg/agent/registry011/node_identity.go': [0, 0],
           }
