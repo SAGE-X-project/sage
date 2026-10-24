@@ -37,6 +37,18 @@ type ProviderCandidateContext struct {
 	bound    bool
 }
 
+// UnmarshalJSON refuses reconstruction from external JSON. Only the bounded
+// schema parser may create a candidate, and it still creates no authority.
+func (*ProviderPolicyCandidate) UnmarshalJSON([]byte) error {
+	return ErrProviderPolicyCandidate
+}
+
+// UnmarshalJSON refuses restoration of private binding state from JSON.
+// Identity metadata may be serialized separately as untrusted diagnostics.
+func (*ProviderCandidateContext) UnmarshalJSON([]byte) error {
+	return ErrProviderPolicyCandidate
+}
+
 // ParseProviderPolicyCandidate checks the exact closed local candidate schema,
 // canonical bytes, supported instance/origin and explicit positive budgets.
 // maximumBytes is a parsing ceiling (at most 64 KiB), not an operating default.

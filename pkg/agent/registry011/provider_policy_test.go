@@ -266,11 +266,20 @@ func TestProviderPolicyCandidateCannotSelectOrEnroll(t *testing.T) {
 		}
 	}
 	var forged ProviderCandidateContext
-	if json.Unmarshal([]byte(`{"bound":true,"Policy":"0x123","ready":true}`), &forged) != nil {
-		t.Fatal("fixture JSON")
+	if json.Unmarshal([]byte(`{"bound":true,"Policy":"0x123","ready":true}`), &forged) != ErrProviderPolicyCandidate {
+		t.Fatal("context JSON did not explicitly refuse")
 	}
 	if _, err := forged.Identity(); err != ErrProviderPolicyCandidate {
 		t.Fatal("JSON forged a context")
+	}
+	var forgedPolicy ProviderPolicyCandidate
+	if json.Unmarshal([]byte(`{"raw":"{}","policy":"0x123"}`), &forgedPolicy) != ErrProviderPolicyCandidate || forgedPolicy.CanonicalBytes() != nil {
+		t.Fatal("JSON restored a policy candidate")
+	}
+	for _, value := range []any{p, &forged} {
+		if json.Unmarshal([]byte(`{}`), value) != ErrProviderPolicyCandidate {
+			t.Fatal("JSON replaced existing candidate state")
+		}
 	}
 	c, _ := p.BindCandidate(ns, source, "0")
 	before, _ := c.Identity()
