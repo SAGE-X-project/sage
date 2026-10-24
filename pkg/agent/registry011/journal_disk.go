@@ -99,7 +99,7 @@ func (d *journalDisk) batches(maximum int) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	// Bound directory inventory before allocating an unbounded slice.
 	names, err := f.Readdirnames(maximum + 4)
 	if err != nil && err != io.EOF {

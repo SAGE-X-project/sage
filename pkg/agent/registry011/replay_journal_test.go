@@ -165,7 +165,7 @@ func TestJournalConfigurationAndZeroValues(t *testing.T) {
 			}
 		})
 	}
-	if _, e := CreateReplayJournal(nil, t.TempDir(), c); !errors.Is(e, ErrConfiguration) {
+	if _, e := CreateReplayJournal(nil, t.TempDir(), c); !errors.Is(e, ErrConfiguration) { //nolint:staticcheck // Verify refusal of an explicitly missing context.
 		t.Fatal(e)
 	}
 	ctx, cancel := context.WithCancel(context.Background())
@@ -191,7 +191,7 @@ func TestJournalConfigurationAndZeroValues(t *testing.T) {
 		}
 	}
 	j, _ := journalTestCreate(t, c)
-	if _, e := j.Append(nil, ReplayBatch{}, ClockSample{}, ClockSample{}); !errors.Is(e, ErrConfiguration) {
+	if _, e := j.Append(nil, ReplayBatch{}, ClockSample{}, ClockSample{}); !errors.Is(e, ErrConfiguration) { //nolint:staticcheck // Verify refusal of an explicitly missing context.
 		t.Fatal(e)
 	}
 }

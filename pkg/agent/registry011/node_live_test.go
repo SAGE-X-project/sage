@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -17,6 +18,7 @@ import (
 // This opt-in test makes bounded read-only requests to the sole approved RPC.
 // It accesses no keys and cannot submit transactions or use another provider.
 func TestSepoliaNodeEvidenceLive(t *testing.T) {
+	t.Run("passive-capture-read-limits", checkLiveCaptureReadLimits)
 	dir := os.Getenv("SAGE_NODE_EVIDENCE_DIR")
 	if dir == "" {
 		t.Fatal("explicit evidence directory required")
@@ -43,6 +45,11 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer c.Close()
+	transport, ok := c.client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatal("owned transport required for passive diagnostics")
+	}
+	c.client.Transport = &liveCaptureTransport{base: transport, dir: dir, t: t, remaining: 32 << 20}
 	r, err := c.PinAgentReads(ctx, SepoliaRegistryAddress, "sage-deployment-check")
 	if err != nil {
 		report["error"] = err.Error()
