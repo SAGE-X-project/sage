@@ -182,11 +182,12 @@ func sourceBatchFixture(t *testing.T, backfill bool, mode string) (*ReadRPC, Jou
 			var result string
 			switch method.Name {
 			case "record":
-				if mode == "history-candidate" {
+				switch mode {
+				case "history-candidate":
 					result = returnABI(t, "record", true, steps[1].Record)
-				} else if mode == "nonempty-absence" {
+				case "nonempty-absence":
 					result = returnABI(t, "record", false, []byte("{}"))
-				} else {
+				default:
 					result = returnABI(t, "record", false, []byte{})
 				}
 			case "activeGrants":
