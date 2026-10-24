@@ -31,6 +31,11 @@ func TestNodeNetworkBindingRefusals(t *testing.T) {
 				if mode == "chain-error" || mode == "genesis-error" || mode == "registry-error" || mode == "client-error" {
 					return []byte(`{"jsonrpc":"2.0","id":1,"error":{"code":-32000,"message":"unavailable"}}`)
 				}
+				// A nonempty string is a valid version claim, not a credential.
+				// Use an actual schema violation for this refusal fixture.
+				if mode == "client" {
+					return nodeMutateResult(body, func(v *json.RawMessage) { *v = json.RawMessage(`null`) })
+				}
 				return nodeMutateResult(body, func(v *json.RawMessage) { *v = json.RawMessage(`"0x0"`) })
 			})
 			active = true
