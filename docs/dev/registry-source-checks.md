@@ -275,3 +275,66 @@ transactions. Existing safe transport runtime tests remain separate. CI retains
 source/ABI/fixtures/compiler/test/coverage evidence and enforces 90% statement
 coverage per new production file. No replay success is SourceReady, authenticated
 absence, enrollment, durable commit or permission to process a protected message.
+
+
+## Connecting original node evidence
+
+`PinnedAgentReads.ReadNodeBlock` acquires a complete selected canonical block
+from the sole approved RPC, using `debug_getRawBlock` and
+`debug_getRawReceipts` with its exact hash. Transaction count is checked before
+allocating typed transactions. Canonical RLP, header identity, ordered signed
+transactions, receipt and transaction trie roots, gas, uncle and withdrawal
+commitments are checked. Every transaction emitting a Registry log requires a
+full native `callTracer` tree with `onlyTopCall=false`, `withLog=true`, a bounded
+timeout and `reexec=0`. No Javascript tracer or transaction submission exists.
+
+`DecodeCallTracer` preserves the initiating context address and own-log position
+relative to completed immediate children. Its closed schema supports the known
+Geth-style fields and Reth 2.8.1 gas accounting extensions. A missing value is
+zero only for STATICCALL; a failed CREATE with no destination or an unsupported
+opcode is unavailable. Duplicate names, invalid Unicode, unknown fields,
+inconsistent positions and exhausted budgets refuse. The resulting tree is
+joined to the selected transaction signature, root call and all consensus
+receipt logs. The provider-reported client version is retained as a claim,
+not proof of the node software or its trustworthiness.
+
+`ObserveDeployment` additionally compares all thirteen runtime byte sequences at
+the same EIP-1898 block hash to the pinned public deployment manifest. The full
+local deployed ABI is pinned by SHA-256. It binds the one existing Registry
+creation transaction to the deployment block, expected sender, nonce, address,
+receipt and all eight constructor dependencies, and checks its complete call
+tree. This establishes thirteen **anchor-time code identities and one Registry
+creation**, not fresh provenance for all nine creation transactions or all
+thirteen instances. The recorded creation has sixteen frames and no logs; it
+cannot qualify live Registry mutation logs or Agent lifecycle behavior.
+
+Both APIs recheck chain ID, genesis and Registry identity, retain exact response
+envelopes and fixed request parameters, and recheck the canonical selected block,
+the retained anchor and the provider-finalized height after acquisition.
+`NodeLimits` requires explicit total wire bytes, request count, acquisition time
+and native tracer time in addition to transport and replay limits. The smaller
+remaining response budget is enforced while streaming, before JSON decoding.
+Frame, log and transaction limits apply across the complete acquisition. These
+bounds are ceilings, not approved operating defaults. They cover each node API
+call; a future Source must separately enforce the entire initial pin, acquisition,
+durable commit and publication window with its qualified clock.
+
+The opt-in `registry_live` test and Registry Node Evidence CI workflow perform
+only bounded reads of the already deployed Sepolia contract. They retain source,
+compiler, execution context and the original responses. Finite refusal tests
+use inert in-memory data; normal wallet/log fixtures are offline test evidence.
+No operating key, paid transaction, alternate provider or local heavy build is
+needed. The live job uses explicit trial limits, not an operating policy.
+
+A selected block is not the full interval since deployment. If that interval
+exceeds the stateless replay limit of 4096 blocks, it remains unavailable until
+durable incremental replay is implemented. No history is skipped, truncated or
+rebased. These APIs do not grant Source readiness, authenticated absence,
+consensus/finality proof, custody or host assurance. Normal paid Agent lifecycle
+verification remains a separately proposed and approved action.
+
+Wire references: [Geth native tracers](https://geth.ethereum.org/docs/developers/evm-tracing/built-in-tracers),
+[Geth debug API](https://geth.ethereum.org/docs/interacting-with-geth/rpc/ns-debug),
+and [Reth debug API](https://reth.rs/jsonrpc/debug/). The deployed ABI and thirteen
+code identities come from the existing public Sepolia deployment record in
+`sage-contracts`, not from an ABI advertised by the RPC.
