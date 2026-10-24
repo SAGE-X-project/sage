@@ -60,7 +60,7 @@ jobs:
 
       - name: Retain Registry Source clock and checkpoint evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: registry-source-checks
           path: ${{ runner.temp }}/registry-source-checks/
@@ -144,7 +144,7 @@ jobs:
 
       - name: Retain adopted DID consumer evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: did-consumer-adoption
           path: ${{ runner.temp }}/did-consumer-adoption/
@@ -165,7 +165,7 @@ jobs:
 
       - name: Retain fixed handshake key authority evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: handshake-key-authority
           path: ${{ runner.temp }}/handshake-key-authority/
@@ -183,7 +183,7 @@ jobs:
 
       - name: Retain informational identity payload evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: identity-payload-authority
           path: ${{ runner.temp }}/identity-payload/
@@ -231,7 +231,7 @@ jobs:
 
       - name: Retain authenticated HTTP application evidence
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: http-application-metadata
           path: ${{ runner.temp }}/http-application/
@@ -239,7 +239,7 @@ jobs:
           retention-days: 14
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-report
           path: coverage.html
