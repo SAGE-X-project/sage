@@ -67,9 +67,20 @@ func (c *ReadRPC) Close() {
 }
 
 func (c *ReadRPC) call(ctx context.Context, method string, params any) (json.RawMessage, error) {
-	if c == nil || c.client == nil || ctx == nil {
+	if c == nil {
 		return nil, ErrConfiguration
 	}
+	_, result, err := c.callEnvelope(ctx, method, params, c.limits.MaxBytes)
+	return result, err
+}
+
+// callEnvelope applies the smaller remaining acquisition budget while streaming,
+// before JSON decoding. It retains the exact validated response for audit.
+func (c *ReadRPC) callEnvelope(ctx context.Context, method string, params any, maximum int) (json.RawMessage, json.RawMessage, error) {
+	if c == nil || c.client == nil || ctx == nil || maximum <= 0 {
+		return nil, nil, ErrConfiguration
+	}
+	maximum = min(maximum, c.limits.MaxBytes)
 	// Only internal fixed methods reach this boundary. IDs are scoped to a single
 	// request/response exchange; no batched or asynchronous demultiplexing exists.
 	request, err := json.Marshal(struct {
@@ -79,29 +90,33 @@ func (c *ReadRPC) call(ctx context.Context, method string, params any) (json.Raw
 		Params  any    `json:"params"`
 	}{"2.0", 1, method, params})
 	if err != nil {
-		return nil, ErrRPCTransport
+		return nil, nil, ErrRPCTransport
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, SepoliaRPCURL, bytes.NewReader(request))
 	if err != nil {
-		return nil, ErrRPCTransport
+		return nil, nil, ErrRPCTransport
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 	response, err := c.client.Do(req)
 	if err != nil {
-		return nil, ErrRPCTransport
+		return nil, nil, ErrRPCTransport
 	}
 	// The complete bounded body is checked below; closing only releases transport resources.
 	defer func() { _ = response.Body.Close() }()
 	contentType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
 	encoding := response.Header.Get("Content-Encoding")
 	if err != nil || contentType != "application/json" || response.StatusCode != http.StatusOK ||
-		(encoding != "" && encoding != "identity") || response.ContentLength > int64(c.limits.MaxBytes) {
-		return nil, ErrRPCTransport
+		(encoding != "" && encoding != "identity") || response.ContentLength > int64(maximum) {
+		return nil, nil, ErrRPCTransport
 	}
-	body, err := io.ReadAll(io.LimitReader(response.Body, int64(c.limits.MaxBytes)+1))
-	if err != nil || len(body) > c.limits.MaxBytes {
-		return nil, ErrRPCTransport
+	body, err := io.ReadAll(io.LimitReader(response.Body, int64(maximum)+1))
+	if err != nil || len(body) > maximum {
+		return nil, nil, ErrRPCTransport
 	}
-	return DecodeRPCResult(body, 1, RPCResponseLimits{c.limits.MaxBytes, c.limits.MaxDepth})
+	result, err := DecodeRPCResult(body, 1, RPCResponseLimits{maximum, c.limits.MaxDepth})
+	if err != nil {
+		return nil, nil, err
+	}
+	return body, result, nil
 }

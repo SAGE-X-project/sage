@@ -1,0 +1,61 @@
+name: Registry Node Evidence
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'pkg/agent/registry011/**'
+      - '.github/workflows/registry-node-evidence.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'pkg/agent/registry011/**'
+      - '.github/workflows/registry-node-evidence.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: registry-node-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  observe:
+    name: Read existing Sepolia deployment evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GOFLAGS: -mod=readonly
+      GOTOOLCHAIN: auto
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Record source and bounded read-only execution
+        run: |
+          export SAGE_NODE_EVIDENCE_DIR="$RUNNER_TEMP/registry-node-evidence"
+          mkdir -p "$SAGE_NODE_EVIDENCE_DIR"
+          go version > "$SAGE_NODE_EVIDENCE_DIR/compiler.txt"
+          git rev-parse HEAD > "$SAGE_NODE_EVIDENCE_DIR/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$SAGE_NODE_EVIDENCE_DIR/tree.txt"
+          git ls-files -z pkg/agent/registry011 go.mod go.sum .github/workflows/registry-node-evidence.yml .github/workflows/test.yml docs/dev/registry-source-checks.md | xargs -0 sha256sum > "$SAGE_NODE_EVIDENCE_DIR/source.sha256"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
+          Path(os.environ['SAGE_NODE_EVIDENCE_DIR'], 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
+          PY
+          go test -tags=registry_live -mod=readonly -count=1 -json -run '^TestSepoliaNodeEvidenceLive$' ./pkg/agent/registry011 > "$SAGE_NODE_EVIDENCE_DIR/tests.jsonl"
+          git diff --exit-code
+      - name: Retain original node responses
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: registry-node-evidence
+          path: ${{ runner.temp }}/registry-node-evidence/
+          if-no-files-found: error
+          retention-days: 14

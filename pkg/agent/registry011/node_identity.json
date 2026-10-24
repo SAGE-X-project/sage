@@ -1,0 +1,94 @@
+{
+  "source_commit": "967723542e371dbe943ac9bf18040798e251b917",
+  "spec_commit": "a22a275b4d88f1d415b53cdffc5bed41231b77a0",
+  "registry_address": "0x9361223865e641f9941f4640d8fe34faad54bf23",
+  "registry_id": "eip155:11155111:0x9361223865e641f9941f4640d8fe34faad54bf23",
+  "abi": {
+    "path": "chain-registry-sepolia-abi.json",
+    "sha256": "7000f92bdcd26d84c63d2b71a12c0db12c61e9909b7f4bedb76774381339678e",
+    "functions": 13,
+    "errors": 22,
+    "events": 2
+  },
+  "contracts": [
+    {
+      "name": "RegistryRenderer",
+      "address": "0x74d73d44a0f6a54d40ac6e5fb8b271758747075f",
+      "code_sha256": "fc07a9649209682985b032dd8681d105e8f63e9b585d0a3ee48e4f7f2f6c8cbb"
+    },
+    {
+      "name": "RegistryEd25519",
+      "address": "0x00399c943927a9f16fcfc2fb4b9287c56392e018",
+      "code_sha256": "2016a31ffab422d2f63163f43a057e4f6d52854eee24e99a23d55ac067738cf6"
+    },
+    {
+      "name": "RegistryRules",
+      "address": "0x3ae62e61d81c7223abd19581e7b5caa8bcdc119e",
+      "code_sha256": "4e47c647c60a452ff11123d3f128489a7ca1b9c09978f6a77889cfbe94f058c7"
+    },
+    {
+      "name": "RegistryCallValidator",
+      "address": "0xd1494feceeb21f6448e40f128446c66a08c16a10",
+      "code_sha256": "86daceef58df1b5600b9c35777e217d8fd167782222025fbcd707b1604e56d7d"
+    },
+    {
+      "name": "RegistryStoreFactory",
+      "address": "0xb15945511e8e5fce5566765244dc54c422080da7",
+      "code_sha256": "dbeb77a94ae46eb6edc721a5f26c1de621b193da1872784efa0f9fccb7e48936"
+    },
+    {
+      "name": "RegistryClaimProcessorFactory",
+      "address": "0xb8b0051e61cfaab6782fc9e60b5829295876b4ee",
+      "code_sha256": "b1446a3a3e6a90c681719d141c3b96c9dbcad61740f45fd594927982fe63f0ca"
+    },
+    {
+      "name": "RegistryKeyServiceProcessorFactory",
+      "address": "0x2348833deabb13a80c93b096b27be7cf72ee4a1c",
+      "code_sha256": "1dbbefa8a0738f50a9c6fe99d07642667133547cfbe04fc7d3bb0f8e8af9cf15"
+    },
+    {
+      "name": "RegistryLifecycleProcessorFactory",
+      "address": "0x3c25f62be1416a0223fe840a8cbdb3a3b51b5f50",
+      "code_sha256": "65f7197fe9897508cac0f1418f4b5060af0a844c6595162095486756a157cf43"
+    },
+    {
+      "name": "ChainRegistry",
+      "address": "0x9361223865e641f9941f4640d8fe34faad54bf23",
+      "code_sha256": "a60d19d36382cd5d401ed3f4fd5b0457c0d5f99715ddda80d5a3d1229f8f0ad4"
+    },
+    {
+      "name": "RegistryStore",
+      "address": "0x9a5ea2f922d87041efd62090672f24f7b48440e1",
+      "code_sha256": "4b842cd3d8daa071ec3b7021a38e22de497179a2930a80de27ee875f28cead62"
+    },
+    {
+      "name": "RegistryClaimProcessor",
+      "address": "0x0f2afc847a3cf2b6ebe22b09edab83348a50559f",
+      "code_sha256": "7d689c507d87356c8a06d369cf1727231cb7733c3e090bb02c44fe3b4f4e58a8"
+    },
+    {
+      "name": "RegistryKeyServiceProcessor",
+      "address": "0x14feab43919e753257384702dc3cce21f65a718c",
+      "code_sha256": "f4a53289af8174f728d6d1dafe9d9ad6b5af51c1b64887c57b81bf97df343dc8"
+    },
+    {
+      "name": "RegistryLifecycleProcessor",
+      "address": "0xeb7ed0efe6a153045c5aa7ca1797d6d0d888b197",
+      "code_sha256": "f25f5233c120ee46c136cca719b675ae93edffe5470d7689643e9305a755ae05"
+    }
+  ],
+  "deployer": "0x5ade38c2d961628ef5753411352fc3d9ca765348",
+  "deployment": {
+    "name": "ChainRegistry",
+    "nonce": 8,
+    "hash": "0x0bbe893c6c0765c1f97372d65515b539713fd83f670b8729959a436d2783abb6",
+    "contract_address": "0x9361223865e641f9941f4640d8fe34faad54bf23",
+    "block_number": 11974670,
+    "block_hash": "0x54138f0dbccac32a1cd6fb0ed049fa013e78ca33910dd0471b09efea663d365e",
+    "status": "0x1",
+    "type": "0x2",
+    "gas_used": 88769372,
+    "effective_gas_price_wei": "1013",
+    "fee_wei": "89923373836"
+  }
+}
