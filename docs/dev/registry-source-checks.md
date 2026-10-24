@@ -1,5 +1,10 @@
 # Registry Source clock and checkpoint checks
 
+Source is a Registry observation boundary that can run inside an importing Agent;
+it does not mandate a separate service. See [Agent embedding](agent-embedding.md)
+for the application responsibilities, current HTTP coverage limits and ordered
+demo/example integration. Authenticated recovery is separate from ordinary startup.
+
 `pkg/agent/registry011` provides the clock-window and finalized-header continuity
 checks needed by the SAGE 0.11.0 Source. The governing requirements are CM-09 in
 `profiles/sage-0.11.0/registry-management.md`, revision 2, at sage-spec
