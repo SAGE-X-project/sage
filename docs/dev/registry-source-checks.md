@@ -414,3 +414,90 @@ and a separately labelled `strict-replay-block.json`. It checks **provider-obser
 gas consistency**, not independent EVM execution, header consensus or finality.
 This completes a bounded strict block admission path; complete durable history,
 Source qualification, live Agent lifecycle and operating approval remain separate.
+
+## Local incremental replay journal
+
+`CreateReplayJournal` and `OpenReplayJournal` add an explicit local persistence
+boundary. They do not enroll or ready a Source, authenticate an RPC, grant
+protected use, or establish authenticated absence. The operator must separately
+qualify the directory, filesystem durability, clock, node/ancestry/finality,
+complete code and ABI identities, and independent checkpoint retention. There
+are no operating defaults. The immutable local configuration binds these named
+identities, policy generation, exact deployment header and work limits; supplying
+an identity hash is not proof of its qualification.
+
+Each `ReplayBatch` contains every consecutive complete block after the retained
+cursor (including deployment for the first batch), only newly observed selected
+history items, and separately pinned final state. A private incremental replay
+path derives each global successor through the existing strict body/gas, actual
+caller, command, proof, ACL and lifecycle checks. It carries all consumed and
+expired caller/hash claims, created identities, controller, key tombstones,
+grants, terminal state and version. It never treats a history suffix as a new
+version-one create and never prunes lifetime duplicate indexes. A failed batch
+discards its private state copies. The older complete-range public APIs keep
+their contracts and ceilings.
+
+Batch work counters reset; lifetime state does not. Explicit total journal,
+claim and identity budgets refuse without truncating history or weakening
+protocol limits. Reopening replays all retained batches from deployment; it
+never trusts a serialized state snapshot. This supports more than 4096 total
+blocks through bounded batches, at the cost of bounded full recovery work.
+
+Backfill progress is distinct from fresh finalized selection. Each batch carries
+`SelectedFinalized` and the entire descending ancestor path through its previous
+cursor (initially deployment). Every decoded visited block must match that path;
+the previous finalized selection must also remain on it. Acquisition freshness
+is checked against the fresh selected header, not the historical cursor. The
+supplied ancestor metadata still needs external authentication; hash-shaped
+fields alone cannot establish a real chain. A cursor behind the selected header
+cannot publish. No height-only branch selection or skipped deployment interval
+is permitted.
+
+The existing directory must be empty for explicit creation. `Open` never creates
+missing history. An exclusive local lock is held until `Close`; a crashed
+process's stale lock is not automatically stolen. A separately authenticated
+operator must resolve ownership. This is conservative refusal, not automatic
+crash recovery or a distributed lock. Complete immutable sequence-numbered batch
+files are SHA-256 chained to the configuration and prior batch. Files and the
+directory are synced. A durable PENDING marker precedes append work and is
+removed only after the new batch is synced. A torn or uncertain append,
+quarantine marker, unexpected file, sequence gap or mismatch refuses reopening;
+there is no prefix fallback, truncation, cleanup, reset or repair path. IO failure
+cannot guarantee successful quarantine persistence and is returned as failure.
+The actual filesystem's power-loss behavior remains an external qualification.
+
+`Open` requires the exact independently retained latest `JournalCheckpoint`,
+including sequence, digest, anchor and version; both a rolled-back prefix and an
+unacknowledged newer tail refuse. A writer of the trusted directory can fabricate
+a new self-consistent journal; its hash chain is not authenticity or rollback
+protection without that external trusted checkpoint. Before dependent publication
+the caller must durably retain the returned checkpoint independently and supply
+its exact readback to `Publish`. The API checks equality, not the honesty or
+durability of a caller-provided acknowledgement.
+
+Neither append nor restart enables publication. `ConfirmObservation` requires a
+complete fresh, separately qualified read after the disk commit, with exact
+current anchor and final bytes; it records that new read's original start.
+Publication uses that original start and a current trusted sample after disk
+commit and checkpoint retention. It checks the confirmed epoch,
+completion ordering, observation age and finalized lag again. An old completion
+timestamp cannot be substituted as a new start. Expired, conflicting or unknown
+inputs quarantine dependent use; this API has no quarantine-clearing or
+authenticated reconfiguration operation.
+
+Local deterministic closed JSON is a storage format, not an additional network
+or RFC 8785 wire contract. Reads preflight bounded file sizes, directory counts,
+96-container depth, 32 members per object, 2^22 streamed tokens and configured
+array counts before typed decoding, then compare exact typed re-encoding; unknown/duplicate
+members or repaired spelling do not pass. Fixed names and `os.Root` confine path
+resolution, but do not protect against a writer of the trusted directory, hard
+links, mounts or a compromised host. Embedded gas JSON may be compacted by the
+local encoder; this journal is not original RPC response-byte retention. A Source
+must separately retain those original exchanges and their acquisition bindings.
+The owned temporary-directory runtime tests
+exercise real writes, syncs, restart, exclusivity and finite failures. Their
+synthetic offline blockchain inputs and handwritten expectations do not qualify
+live mutation history, a production filesystem/host, external retention or a
+Source. CI retains their source/events/coverage and applies a separate 90% gate
+to every added production file. No RPC, operating key, paid transaction,
+deployment, hostile runtime producer or local heavy build is added.

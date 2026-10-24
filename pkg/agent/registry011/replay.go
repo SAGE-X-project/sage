@@ -100,14 +100,16 @@ type replayClaimState struct {
 	consumed bool
 }
 type replayRun struct {
-	registry, agent    string
-	contract, outcomes abi.ABI
-	claims             map[replayClaimID]replayClaimState
-	created            map[string]bool
-	state              replayState
-	budget             *replayBudget
-	history            []HistoryBytes
-	steps              []HistoryContentStep
+	registry, agent          string
+	contract, outcomes       abi.ABI
+	claims                   map[replayClaimID]replayClaimState
+	created                  map[string]bool
+	state                    replayState
+	budget                   *replayBudget
+	history                  []HistoryBytes
+	steps                    []HistoryContentStep
+	baseVersion              uint64 // Zero for the existing complete-range API.
+	claimLimit, createdLimit int    // Explicit lifetime work bounds for a journal.
 }
 
 func (r *replayRun) block(ctx context.Context, raw ReplayBlock, b replayDecodedBlock) error {
@@ -206,6 +208,9 @@ func (r *replayRun) event(ctx context.Context, l replayLog, h *types.Header) err
 		if r.created[c.agent] || !present || claim.consumed || h.Number.Uint64() <= claim.block || h.Number.Uint64()-claim.block > 256 {
 			return ErrReplay
 		}
+		if r.createdLimit > 0 && len(r.created) >= r.createdLimit {
+			return ErrReplayUnavailable
+		}
 		claim.consumed = true
 		r.claims[id] = claim
 		r.created[c.agent] = true
@@ -214,7 +219,7 @@ func (r *replayRun) event(ctx context.Context, l replayLog, h *types.Header) err
 		return nil
 	}
 	i := len(r.steps)
-	if i >= len(r.history) || r.history[i].Version != uint64(i)+1 || !bytes.Equal(r.history[i].Command, c.raw) {
+	if i >= len(r.history) || uint64(i) >= ^uint64(0)-r.baseVersion || r.history[i].Version != r.baseVersion+uint64(i)+1 || !bytes.Equal(r.history[i].Command, c.raw) {
 		return ErrReplay
 	}
 	if len(c.keys) > r.budget.limits.MaxProofs-r.budget.proofs {
@@ -248,6 +253,9 @@ func (r *replayRun) commit(l replayLog, h *types.Header, event abi.Event) error 
 	id := replayClaimID{l.frame.From, digest}
 	if _, present := r.claims[id]; present {
 		return ErrReplay
+	}
+	if r.claimLimit > 0 && len(r.claims) >= r.claimLimit {
+		return ErrReplayUnavailable
 	}
 	r.claims[id] = replayClaimState{block: h.Number.Uint64()}
 	return nil
