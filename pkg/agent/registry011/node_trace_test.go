@@ -87,10 +87,17 @@ func TestNodeOwnedWalletCallAndReceiptJoin(t *testing.T) {
 	if _, err := replayDecodeBlock(context.Background(), got.Block, &budget); err != nil {
 		t.Fatal("strict owned block", err)
 	}
+	strict, err := r.ReadReplayBlock(context.Background(), sepoliaDeploymentBlock, nodeTestLimits())
+	if err != nil || strict == nil || len(strict.Block.Executions) != 1 || strict.Block.Gas != nil {
+		t.Fatal("strict legacy block and complete wallet call", err)
+	}
 	// Same inert fixture, inconsistent caller: public acquisition must refuse.
 	trace["from"] = replayTestWallet
 	if got, err := r.ReadNodeBlock(context.Background(), sepoliaDeploymentBlock, nodeTestLimits()); got != nil || err == nil {
 		t.Fatal("trace/tx mismatch")
+	}
+	if got, err := r.ReadReplayBlock(context.Background(), sepoliaDeploymentBlock, nodeTestLimits()); got != nil || err == nil {
+		t.Fatal("strict trace/tx mismatch")
 	}
 }
 

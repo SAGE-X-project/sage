@@ -86,6 +86,7 @@ jobs:
               'pkg/agent/registry011/history_content.go': [0, 0],
               'pkg/agent/registry011/replay.go': [0, 0],
               'pkg/agent/registry011/replay_blocks.go': [0, 0],
+              'pkg/agent/registry011/replay_gas.go': [0, 0],
               'pkg/agent/registry011/replay_commands.go': [0, 0],
               'pkg/agent/registry011/replay_execution.go': [0, 0],
               'pkg/agent/registry011/replay_framing.go': [0, 0],
@@ -93,6 +94,7 @@ jobs:
               'pkg/agent/registry011/replay_schema.go': [0, 0],
               'pkg/agent/registry011/replay_state.go': [0, 0],
               'pkg/agent/registry011/node_blocks.go': [0, 0],
+              'pkg/agent/registry011/node_gas.go': [0, 0],
               'pkg/agent/registry011/node_trace.go': [0, 0],
               'pkg/agent/registry011/node_identity.go': [0, 0],
           }

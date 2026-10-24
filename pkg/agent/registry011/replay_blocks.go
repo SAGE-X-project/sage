@@ -30,6 +30,7 @@ type ReplayBlock struct {
 	HeaderRLP              []byte
 	Transactions, Receipts [][]byte
 	Executions             []ReplayExecution
+	Gas                    *ReplayGasEvidence
 }
 
 type replayBudget struct {
@@ -57,19 +58,16 @@ type replayDecodedBlock struct {
 	receipts types.Receipts
 }
 
-// replayDecodeBlock is the strict command-replay boundary. Content acquisition
-// never changes its gas requirement or supplies an option to bypass it.
+// replayDecodeBlock is the strict command-replay boundary. Pinned fork rules
+// require complete gas evidence after activation; content acquisition cannot
+// bypass this check. Provider gas assertions are not consensus validation.
 func replayDecodeBlock(ctx context.Context, block ReplayBlock, budget *replayBudget) (replayDecodedBlock, error) {
 	result, err := replayDecodeContent(ctx, block, budget)
 	if err != nil {
 		return result, err
 	}
-	var gas uint64
-	if len(result.receipts) > 0 {
-		gas = result.receipts[len(result.receipts)-1].CumulativeGasUsed
-	}
-	if gas != result.header.GasUsed {
-		return result, ErrReplay
+	if err := replayCheckGas(ctx, block, result, budget); err != nil {
+		return result, err
 	}
 	return result, nil
 }
