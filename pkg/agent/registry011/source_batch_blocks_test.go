@@ -111,7 +111,7 @@ func TestSourceBatchCollectsConsecutiveBodiesAndResumesOnlyAfterCursor(t *testin
 }
 
 func TestSourceBatchRefusesBodyLineageAndCumulativeTransactionDrift(t *testing.T) {
-	for _, mode := range []string{"block-lineage-drift", "aggregate-transactions", "caught-up-cursor", "cursor-overflow"} {
+	for _, mode := range []string{"block-lineage-drift", "aggregate-transactions", "caught-up-cursor", "cursor-overflow", "resume-absent"} {
 		t.Run(mode, func(t *testing.T) {
 			client, config, expected, limits, clock, calls := sourceBatchFixture(t, false, mode)
 			if got, err := client.CollectReplayBatch(context.Background(), config, expected, limits, clock); got != nil || err == nil || *calls > limits.MaxRequests {

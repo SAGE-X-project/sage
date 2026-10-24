@@ -625,8 +625,10 @@ All thirteen code identities are checked at the selected block. Record, grants
 and every newly claimed history version are collected at the one exact stop
 hash with EIP-1898 canonical pinning. The current version comes from bounded
 canonical record bytes, rather than an independent counter. Version zero maps
-only an absent, empty record with exact empty grants to the internal empty
-state; this is never an authenticated absence credential. Original response
+only an absent, empty record to the internal empty state. CM-08 specifies that
+`activeGrants` refuses an absent identity, so that read is not issued and no
+successful empty-grants response is fabricated. This internal state is never
+an authenticated absence credential. Original response
 envelopes remain in the returned `Exchanges`.
 
 The returned `SourceBatchEvidence` is a candidate for full journal replay.
@@ -651,3 +653,13 @@ scenario, not a consensus-valid chain extension or an executable attack. These
 tests do not claim a new live collection or actual Registry-authorized Agent
 message exchange. That integration follows the existing work order in
 [the Agent embedding notes](agent-embedding.md).
+
+The same approved RPC can return different native client schemas. The original
+`geth-root-gas.json` response from the read-only CI contains 120 ordinary
+top-level callTracer frames without execution, state or refund dimensions.
+`TestRootGasRecordedMissingDimensionsRemainUnavailable` preserves that refusal
+and checks that it performs no tracer retry. An HTTP success, client-version
+claim or a previous richer response cannot fill these missing values. Such a
+response does not establish strict gas support or Source readiness. The live
+check continues to fail when this required evidence is unavailable; the unit
+test's successful refusal must not be reported as a successful live replay.

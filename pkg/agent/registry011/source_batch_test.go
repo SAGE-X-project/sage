@@ -35,7 +35,7 @@ func sourceBatchFixture(t *testing.T, backfill bool, mode string) (*ReadRPC, Jou
 		config.Observation.MaxAncestryHeaders = 1
 	}
 	var extensions []sourceOwnedBlock
-	if mode == "two-blocks" || mode == "resume-cursor" || mode == "block-lineage-drift" || mode == "aggregate-transactions" {
+	if mode == "two-blocks" || mode == "resume-cursor" || mode == "resume-absent" || mode == "block-lineage-drift" || mode == "aggregate-transactions" {
 		second := sourceNextOwnedBlock(t, sourceRecordedBlock(t), mode == "aggregate-transactions")
 		extensions = append(extensions, second)
 		selected = second.header
@@ -55,13 +55,20 @@ func sourceBatchFixture(t *testing.T, backfill bool, mode string) (*ReadRPC, Jou
 	if mode == "cursor-overflow" {
 		selected.Number = ^uint64(0)
 	}
+	stateHash := config.Deployment.Hash
+	if mode == "two-blocks" || mode == "resume-cursor" || mode == "resume-absent" {
+		stateHash = selected.Hash
+	}
 	encoded, _, err := journalConfiguration(config)
 	if err != nil {
 		t.Fatal(err)
 	}
 	expected := JournalCheckpoint{Digest: journalDigest(encoded), Anchor: config.Deployment}
-	if mode == "resume-cursor" || mode == "caught-up-cursor" || mode == "cursor-overflow" {
+	if mode == "resume-cursor" || mode == "resume-absent" || mode == "caught-up-cursor" || mode == "cursor-overflow" {
 		expected.Sequence = 1
+		if mode == "resume-absent" {
+			expected.Version = 1
+		}
 		if mode == "cursor-overflow" {
 			expected.Anchor = selected
 		}
@@ -168,8 +175,8 @@ func sourceBatchFixture(t *testing.T, backfill bool, mode string) (*ReadRPC, Jou
 			if method.Name != "registryId" {
 				var pin map[string]any
 				_ = json.Unmarshal(request.Params[1], &pin)
-				if pin["blockHash"] != config.Deployment.Hash || pin["requireCanonical"] != true {
-					t.Fatal("state/history used the newer selected block during backfill")
+				if pin["blockHash"] != stateHash || pin["requireCanonical"] != true {
+					t.Fatal("state/history did not use the expected interval stop block")
 				}
 			}
 			var result string
@@ -177,15 +184,16 @@ func sourceBatchFixture(t *testing.T, backfill bool, mode string) (*ReadRPC, Jou
 			case "record":
 				if mode == "history-candidate" {
 					result = returnABI(t, "record", true, steps[1].Record)
+				} else if mode == "nonempty-absence" {
+					result = returnABI(t, "record", false, []byte("{}"))
 				} else {
 					result = returnABI(t, "record", false, []byte{})
 				}
 			case "activeGrants":
-				grants := []byte("[]")
-				if mode == "nonempty-absence" {
-					grants = []byte("[ ]")
+				if mode != "history-candidate" {
+					t.Fatal("CM-08 absent record must not query activeGrants")
 				}
-				result = returnABI(t, "activeGrants", grants)
+				result = returnABI(t, "activeGrants", []byte("[]"))
 			case "historyItem":
 				args, err := method.Inputs.Unpack(data[4:])
 				if err != nil || args[0] != config.Agent {
@@ -267,6 +275,12 @@ func TestSourceBatchRefusesDriftAndBudgetWithoutPartialOutput(t *testing.T) {
 func TestSourceRecordVersionUsesCanonicalStopBytes(t *testing.T) {
 	config := journalTestConfig(t, replayTestInput(t))
 	steps := replayTestSteps(t)
+	if version, err := sourceRecordVersion(config, false, nil, nil); err != nil || version != 0 {
+		t.Fatal("internal absent state", version, err)
+	}
+	if _, err := sourceRecordVersion(config, false, nil, []byte("[]")); !errors.Is(err, ErrRPCState) {
+		t.Fatal("fabricated grants read for absent identity", err)
+	}
 	if version, err := sourceRecordVersion(config, true, steps[1].Record, steps[1].Grants); err != nil || version != 2 {
 		t.Fatal(version, err)
 	}

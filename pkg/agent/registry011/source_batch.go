@@ -1,7 +1,6 @@
 package registry011
 
 import (
-	"bytes"
 	"context"
 	"strconv"
 )
@@ -162,9 +161,15 @@ func collectSourceBatch(ctx context.Context, reads *PinnedAgentReads, config Jou
 	if err != nil {
 		return empty, err
 	}
-	grants, err := pinned.GrantsBytes(ctx)
-	if err != nil {
-		return empty, err
+	var grants []byte
+	// CM-08 makes activeGrants unavailable for an absent identity. Do not
+	// invent a successful [] RPC result or treat that refusal as evidence.
+	// Only the journal's later complete replay can validate this empty state.
+	if present {
+		grants, err = pinned.GrantsBytes(ctx)
+		if err != nil {
+			return empty, err
+		}
 	}
 	version, err := sourceRecordVersion(config, present, record, grants)
 	if err != nil || version < expected.Version {
@@ -212,7 +217,7 @@ func collectSourceBatch(ctx context.Context, reads *PinnedAgentReads, config Jou
 
 func sourceRecordVersion(config JournalConfig, present bool, record, grants []byte) (uint64, error) {
 	if !present {
-		if len(record) != 0 || !bytes.Equal(grants, []byte("[]")) {
+		if len(record) != 0 || len(grants) != 0 {
 			return 0, ErrRPCState
 		}
 		return 0, nil // An empty internal state, never an authenticated absence.
