@@ -82,6 +82,8 @@ jobs:
               'pkg/agent/registry011/source_checkpoint.go': [0, 0],
               'pkg/agent/registry011/source_reconfiguration.go': [0, 0],
               'pkg/agent/registry011/source_retained.go': [0, 0],
+              'pkg/agent/registry011/source_acquisition.go': [0, 0],
+              'pkg/agent/registry011/source_batch.go': [0, 0],
               'pkg/agent/registry011/rpc_response.go': [0, 0],
               'pkg/agent/registry011/rpc_transport.go': [0, 0],
               'pkg/agent/registry011/rpc_reads.go': [0, 0],

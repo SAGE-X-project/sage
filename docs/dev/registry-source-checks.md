@@ -599,3 +599,55 @@ there are no new transactions or deployment keys. Tests bind both originals by
 SHA-256 and use finite in-memory refusals. Production acquisition still needs
 its own fresh evidence. No result here is independent EVM/consensus validation,
 complete Registry history, host qualification or permission for Agent dispatch.
+
+## Bounded collection inside an Agent
+
+`ReadRPC.CollectReplayBatch` joins the existing readers into one bounded
+acquisition for an importing Agent. Supply the complete `JournalConfig`, the
+exact externally retained checkpoint, `SourceReadLimits` and a trusted local
+`SourceClock`. `SepoliaEvidenceDigests` identifies the exact bundled code
+manifest and deployment ABI bytes; a digest is an identity reference, not trust
+enrollment. The configuration must select this precise deployment and bundle.
+
+Every initialization, ancestry, code, block, receipt, trace, state, history and
+final recheck passes through one private RPC scope. Its request, response JSON
+byte and absolute time counters never reset between constituent APIs. Failed
+attempts and consumed failed-response bytes also count. The scope uses the
+existing owned HTTPS transport and sole approved endpoint. No alternative
+provider, tracer retry, caller transport, signature, key or transaction API is
+introduced. The original reader remains usable independently after refusal.
+
+The first batch includes deployment; later batches start immediately after the
+retained cursor. Each batch includes every body/receipt in its interval and the
+entire selected-finalized-to-cursor parent path. A short backfill interval does
+not skip the remaining ancestry or pretend its stop block is current finality.
+All thirteen code identities are checked at the selected block. Record, grants
+and every newly claimed history version are collected at the one exact stop
+hash with EIP-1898 canonical pinning. The current version comes from bounded
+canonical record bytes, rather than an independent counter. Version zero maps
+only an absent, empty record with exact empty grants to the internal empty
+state; this is never an authenticated absence credential. Original response
+envelopes remain in the returned `Exchanges`.
+
+The returned `SourceBatchEvidence` is a candidate for full journal replay.
+`ReplayJournal.Append` must still validate all command effects, signatures,
+permissions, lifetime indexes and final bytes. Successful transport collection
+does not make an invented record authoritative. Historical code at each call,
+provider/clock/storage qualification, exact external checkpoint acknowledgement,
+post-commit confirmation and publication freshness remain separate requirements.
+No method here activates a generation or permits protected Agent dispatch.
+
+The upper bounds are 65,536 attempted requests, 256 MiB of response JSON and
+five minutes per batch; these are implementation ceilings, not operating
+defaults. Explicit per-node and batch replay budgets apply too. A large initial
+ancestry gap can remain unavailable within these bounds. Refusal returns no
+partial batch and must not be handled by inventing an initial checkpoint,
+skipping headers, resetting counters or silently increasing limits.
+
+Tests use finite recorded responses and explicit synthetic header/state
+scenarios. Owned temporary journals check that collection cannot substitute for
+replay. The repeated-transaction block is an offline cumulative-budget refusal
+scenario, not a consensus-valid chain extension or an executable attack. These
+tests do not claim a new live collection or actual Registry-authorized Agent
+message exchange. That integration follows the existing work order in
+[the Agent embedding notes](agent-embedding.md).
