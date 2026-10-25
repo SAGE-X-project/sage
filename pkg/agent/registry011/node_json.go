@@ -234,8 +234,10 @@ func nodeJSONTransaction(raw json.RawMessage, header *types.Header, index uint64
 			return nil, ErrReplay
 		}
 	}
-	// Standard RPC adds the effective price to dynamic-fee transactions; this
-	// metadata is not part of their signed payload or consensus RLP.
+	// This unsigned RPC field is not part of a dynamic-fee transaction's RLP.
+	// The selected provider has reported its signed fee cap here instead of the
+	// effective price. Retain that distinction in Exchanges: accept only these
+	// two bound representations, and never use either as a root-gas witness.
 	if tx.Type() >= types.DynamicFeeTxType && len(m["gasPrice"]) != 0 && !bytes.Equal(bytes.TrimSpace(m["gasPrice"]), []byte("null")) {
 		text, valid := nodeString(m["gasPrice"])
 		price, quantity := replayValue(text)
@@ -243,7 +245,7 @@ func nodeJSONTransaction(raw json.RawMessage, header *types.Header, index uint64
 		if want.Cmp(tx.GasFeeCap()) > 0 {
 			want.Set(tx.GasFeeCap())
 		}
-		if !valid || !quantity || text != "0x"+price.Text(16) || price.Cmp(want) != 0 {
+		if !valid || !quantity || text != "0x"+price.Text(16) || price.Cmp(want) != 0 && price.Cmp(tx.GasFeeCap()) != 0 {
 			return nil, ErrReplay
 		}
 		m["gasPrice"] = json.RawMessage("null")

@@ -845,3 +845,14 @@ metadata accounting, owned work measurements, complete settlement, retained
 clock/deadline checks and persistent CAS must be integrated and qualified before
 protected work. The existing strict verifier and separate policy-activation
 decision remain unchanged.
+
+The retained standard block response in `testdata/standard-block-rpc.json`
+was collected from the sole official RPC in run 40181518482, artifact
+12593854612, `diagnostic-023.bin`. Its 99 dynamic-fee transactions report the
+signed fee cap in the unsigned `gasPrice` field; 80 differ from the computed
+effective price. This provider representation is retained as such, without
+claiming Execution API conformance for that metadata. The adapter accepts
+only the signed cap or the computed effective price, validates the signed
+fee fields and transaction roots independently, and never treats this field
+as a gas witness. A fixture test compares the full response with the existing
+independent block RLP bytes; strict replay still requires its original witness.

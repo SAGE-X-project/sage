@@ -233,6 +233,36 @@ func TestNodeJSONEffectivePriceMetadataAndParityAlias(t *testing.T) {
 	}
 }
 
+// A retained positive provider response keeps RPC-only metadata differences
+// visible. Expected consensus bytes come from the older raw-block fixture.
+func TestNodeJSONRetainedProviderBlock(t *testing.T) {
+	block, _, _, _ := nodeJSONFixtureBytes(t)
+	raw, err := os.ReadFile("testdata/standard-block-rpc.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var envelope struct{ Result json.RawMessage }
+	if json.Unmarshal(raw, &envelope) != nil {
+		t.Fatal("retained envelope")
+	}
+	want, _ := rlp.EncodeToBytes(block)
+	got, err := nodeJSONBlock(context.Background(), envelope.Result, replayHeader(block.Header()), &replayBudget{limits: nodeTestLimits().Replay})
+	if err != nil || !bytes.Equal(got, want) {
+		t.Fatal("retained standard response changed original consensus bytes", err)
+	}
+	var body map[string]json.RawMessage
+	_ = json.Unmarshal(envelope.Result, &body)
+	rows, _ := nodeRawArray(body["transactions"], 1024)
+	rows[0] = nodeJSONEditObject(rows[0], func(m map[string]json.RawMessage) {
+		nodeJSONPut(m, "gasPrice", "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+	})
+	nodeJSONPut(body, "transactions", rows)
+	bad, _ := json.Marshal(body)
+	if got, err := nodeJSONBlock(context.Background(), bad, replayHeader(block.Header()), &replayBudget{limits: nodeTestLimits().Replay}); got != nil || err == nil {
+		t.Fatal("arbitrary reported metadata price accepted")
+	}
+}
+
 func TestNodeJSONNestedArrayPreallocationBounds(t *testing.T) {
 	hash := "0x" + strings.Repeat("1", 64)
 	for _, field := range []string{"accessList", "blobVersionedHashes", "authorizationList"} {
