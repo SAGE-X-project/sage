@@ -600,6 +600,46 @@ SHA-256 and use finite in-memory refusals. Production acquisition still needs
 its own fresh evidence. No result here is independent EVM/consensus validation,
 complete Registry history, host qualification or permission for Agent dispatch.
 
+## Explicit standard JSON block content
+
+`NodeLimits.BlockEncoding = EthereumJSONBlocks` selects `ethereum-json-v1`
+before acquisition. This uses `eth_getBlockByHash(hash, true)` and
+`eth_getBlockReceipts(hash)` at the sole approved origin, with unchanged byte,
+request and time limits. An empty encoding retains the original raw debug RLP
+path; unknown encodings refuse before network work. There is no retry or
+validation-failure fallback between them. The live check explicitly selects the
+standard encoding to remove its dependence on stalled raw debug methods.
+
+The standard encoding supports the selected post-Amsterdam PoS shape, requiring
+all 23 known header fields, including the block access-list hash and slot number.
+Missing/null header fields, unknown fields, duplicate JSON names, unsupported
+shapes, nonempty uncle lists, oversized arrays and mismatched hash/ordinal
+metadata refuse. The pinned go-ethereum 1.17.5 codec reconstructs consensus RLP
+from complete signed transactions, withdrawals and receipts. Transaction hashes
+and recovered senders, withdrawal and transaction roots, receipt/log locations,
+receipt types/status and cumulative paid gas remain bound to that exact block.
+Typed array counts and original JSON bytes are bounded before allocation.
+This encoding caps each access, authorization and blob-hash lists and storage-key list at
+16,384 entries, withdrawals at 16, topics per log at four, and nesting at 32.
+These are explicit implementation ceilings, not new protocol or operating defaults.
+
+Reconstructed RLP is **derived consensus data**, not an original RLP response.
+`Exchanges` retains the unchanged original JSON envelopes and exact standard
+method parameters. The existing strict decoder still verifies canonical RLP,
+the header identity, full body/receipt commitments, gas witnesses, Registry
+callers/logs and canonical/finalized rechecks. JSON acquisition cannot supply
+missing execution/state/refund dimensions, and never changes a failed strict
+result to PASS. Actual method availability and the complete gas witness still
+require fresh CI; code compatibility tests do not qualify an operating Source.
+
+Finite units compare every reconstructed consensus byte with the existing
+120-transaction RLP and receipt originals, test omissions and inconsistent
+metadata, and preserve refusal of the recorded dimensionless gas response.
+Only normal positive responses use an owned TLS server at runtime. Refusal
+scenarios remain inert data units. The new production file retains the 90%
+per-file gate. No endpoint, signing, transaction, policy activation or protected
+Agent dispatch API is added.
+
 ## Bounded collection inside an Agent
 
 `ReadRPC.CollectReplayBatch` joins the existing readers into one bounded

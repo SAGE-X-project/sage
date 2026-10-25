@@ -56,6 +56,11 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 		t.Fatal("pin", err)
 	}
 	limits := nodeTestLimits()
+	// Select standard content acquisition before issuing any block/receipt read.
+	// It never falls back after refusal, and the same strict gas checks follow.
+	limits.BlockEncoding = EthereumJSONBlocks
+	report["block_encoding"] = EthereumJSONBlocks
+	report["consensus_bytes_basis"] = "derived canonical RLP from retained standard JSON; not original RLP response bytes"
 	limits.Replay.MaxTransactions = 1024
 	limits.Replay.MaxFrames = 256
 	limits.Replay.MaxLogs = 4096
