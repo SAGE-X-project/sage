@@ -891,3 +891,18 @@ transaction still requires a complete witness; values are not inferred from an
 out-of-gas label. Fresh live CI must establish whether the selected transaction-result
 contract is supported at the official RPC. Source review and fixture success do
 not establish actual provider qualification or Source readiness.
+
+### Separate module acquisition from live checks
+
+Run40205227654's provider-capture job failed during package setup, before any
+test ran: the Go module proxy terminated HTTP/2 streams while downloading
+`go-eth-kzg` and `fastssz`. The original failed artifact12603267628 is retained;
+this setup failure is not a provider-capture result.
+
+Both node-evidence jobs acquire and verify the locked modules before testing.
+Only that single acquisition command selects the documented
+[`GODEBUG=http2client=0`](https://pkg.go.dev/net/http#hdr-HTTP_2) setting.
+Its JSON result, errors and verification output are retained with the artifact.
+The setting is not exported to the tests. Existing module versions, checksum
+verification, TLS verification, RPC selection, request limits and refusal checks
+remain unchanged. There is no retry loop or automatic RPC fallback.
