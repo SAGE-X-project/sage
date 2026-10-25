@@ -26,7 +26,7 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatal(err)
 	}
-	report := map[string]any{"scope": "thirteen runtime identities, one existing Registry creation, and provider-observed gas consistency for its complete block; no independent EVM/consensus validation, complete history, mutation lifecycle or Source qualification", "rpc": SepoliaRPCURL, "started_utc": time.Now().UTC().Format(time.RFC3339Nano), "paid_transactions": 0, "source_ready": false}
+	report := map[string]any{"scope": "thirteen runtime identities, one existing Registry creation, and provider-observed gas consistency for its complete block; no independent EVM/consensus validation, complete history, mutation lifecycle or Source qualification", "rpc": SepoliaRPCURL, "started_utc": time.Now().UTC().Format(time.RFC3339Nano), "paid_transactions": 0, "source_ready": false, "gas_acquisition": "stateGasTracer transaction result, selected before acquisition"}
 	defer func() {
 		report["finished_utc"] = time.Now().UTC().Format(time.RFC3339Nano)
 		b, e := json.MarshalIndent(report, "", "  ")
@@ -56,6 +56,11 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 		t.Fatal("pin", err)
 	}
 	limits := nodeTestLimits()
+	// Select standard content acquisition before issuing any block/receipt read.
+	// It never falls back after refusal, and the same strict gas checks follow.
+	limits.BlockEncoding = EthereumJSONBlocks
+	report["block_encoding"] = EthereumJSONBlocks
+	report["consensus_bytes_basis"] = "derived canonical RLP from retained standard JSON; not original RLP response bytes"
 	limits.Replay.MaxTransactions = 1024
 	limits.Replay.MaxFrames = 256
 	limits.Replay.MaxLogs = 4096
@@ -84,9 +89,10 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 		report["gas_accounting_status"] = "UNSUPPORTED for strict command replay"
 	}
 	report["result"] = "OBSERVED within declared content scope"
-	// Select the separately qualified native top-only gas contract explicitly.
-	// This is not a retry of another tracer or a relaxation after refusal.
-	strict, err := r.ReadReplayBlockWithRootGas(ctx, sepoliaDeploymentBlock, limits)
+	// Select the existing transaction-result gas contract explicitly. It can
+	// observe runtime failures that occur before call/create hooks run. This
+	// selection is fixed before acquisition, with no retry or other tracer.
+	strict, err := r.ReadReplayBlock(ctx, sepoliaDeploymentBlock, limits)
 	if err != nil {
 		report["strict_gas_error"] = err.Error()
 		t.Fatal("strict block gas evidence", err)

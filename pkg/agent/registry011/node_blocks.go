@@ -22,7 +22,12 @@ type NodeLimits struct {
 	Replay                           ReplayLimits
 	MaxRequests, MaxWireBytes        int
 	AcquisitionTimeout, TraceTimeout time.Duration
+	// BlockEncoding is selected before acquisition. Empty retains raw debug RLP.
+	// EthereumJSONBlocks uses standard JSON methods with the SAME strict checks.
+	BlockEncoding string
 }
+
+const EthereumJSONBlocks = "ethereum-json-v1"
 
 // NodeExchange retains exact successful response bytes and their fixed-method
 // request parameters. These are public RPC evidence, not trust credentials.
@@ -64,6 +69,10 @@ func (r *PinnedAgentReads) nodeStart(ctx context.Context, limits NodeLimits) (*n
 		return nil, nil, ErrConfiguration
 	}
 	child, cancel := context.WithTimeout(ctx, limits.AcquisitionTimeout)
+	if limits.BlockEncoding != "" && limits.BlockEncoding != EthereumJSONBlocks {
+		cancel()
+		return nil, nil, ErrConfiguration
+	}
 	return &nodeAcquisition{reads: r, limits: limits, ctx: child, remaining: limits.MaxWireBytes, work: replayBudget{limits: limits.Replay}}, cancel, nil
 }
 
@@ -192,15 +201,11 @@ func (a *nodeAcquisition) block(number uint64) (*NodeBlockEvidence, replayDecode
 	if h.Number != number || (number == a.reads.header.Number && h != a.reads.header) {
 		return nil, zero, ErrRPCState
 	}
-	result, err := a.call("debug_getRawBlock", []any{h.Hash})
+	raw, err := a.blockBytes(h)
 	if err != nil {
 		return nil, zero, err
 	}
-	if len(result) > 2*a.limits.Replay.MaxEvidenceBytes+4 {
-		return nil, zero, ErrReplayUnavailable
-	}
-	raw, ok := nodeData(result)
-	if !ok || len(raw) > a.limits.Replay.MaxEvidenceBytes {
+	if len(raw) > a.limits.Replay.MaxEvidenceBytes {
 		return nil, zero, ErrReplayUnavailable
 	}
 	if !nodeBlockCount(raw, a.limits.Replay.MaxTransactions) {
@@ -236,20 +241,9 @@ func (a *nodeAcquisition) block(number uint64) (*NodeBlockEvidence, replayDecode
 		}
 		out.Block.Transactions = append(out.Block.Transactions, b)
 	}
-	result, err = a.call("debug_getRawReceipts", []any{h.Hash})
+	out.Block.Receipts, err = a.receiptBytes(&block)
 	if err != nil {
 		return nil, zero, err
-	}
-	receipts, ok := nodeRawArray(result, a.limits.Replay.MaxTransactions)
-	if !ok || len(receipts) != len(out.Block.Transactions) {
-		return nil, zero, ErrReplay
-	}
-	for _, receipt := range receipts {
-		b, ok := nodeData(receipt)
-		if !ok {
-			return nil, zero, ErrReplayUnavailable
-		}
-		out.Block.Receipts = append(out.Block.Receipts, b)
 	}
 	decoded, err := replayDecodeContent(a.ctx, out.Block, &a.work)
 	if err != nil {

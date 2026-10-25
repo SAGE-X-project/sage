@@ -274,3 +274,22 @@ func TestRootGasRequiresExplicitReceiptOutcome(t *testing.T) {
 		})
 	}
 }
+
+// The approved endpoint returned this finite original response in CI. Its
+// ordinary callTracer frames contain no execution/state/refund dimensions.
+// Preserve refusal rather than inventing those values or retrying a tracer.
+func TestRootGasRecordedMissingDimensionsRemainUnavailable(t *testing.T) {
+	b, err := os.ReadFile("testdata/geth-root-gas.json")
+	h := sha256.Sum256(b)
+	if err != nil || hex.EncodeToString(h[:]) != "062123b94d9281906d131f496be06691a5af2385577c4fa99ea7c86c344ee2c1" {
+		t.Fatal("original dimensionless root trace", err)
+	}
+	calls := 0
+	r := rootGasFixture(t, func([]byte) []byte {
+		calls++
+		return b
+	})
+	if out, err := r.ReadReplayBlockWithRootGas(context.Background(), sepoliaDeploymentBlock, nodeTestLimits()); out != nil || err != ErrReplayUnavailable || calls != 1 {
+		t.Fatal("missing dimensions accepted or implicitly retried", err, calls)
+	}
+}

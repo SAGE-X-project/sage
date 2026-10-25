@@ -49,6 +49,8 @@ jobs:
           names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
           Path(os.environ['SAGE_NODE_EVIDENCE_DIR'], 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
           PY
+          GODEBUG=http2client=0 go mod download -json > "$SAGE_NODE_EVIDENCE_DIR/modules.json" 2> "$SAGE_NODE_EVIDENCE_DIR/modules.stderr"
+          go mod verify > "$SAGE_NODE_EVIDENCE_DIR/modules-verify.txt"
           go test -tags=registry_live -mod=readonly -count=1 -json -run '^TestSepoliaNodeEvidenceLive$' ./pkg/agent/registry011 > "$SAGE_NODE_EVIDENCE_DIR/tests.jsonl"
           git diff --exit-code
       - name: Retain original node responses
@@ -57,5 +59,64 @@ jobs:
         with:
           name: registry-node-evidence
           path: ${{ runner.temp }}/registry-node-evidence/
+          if-no-files-found: error
+          retention-days: 14
+
+  provider-capture:
+    name: Capture candidate provider transport evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GOFLAGS: -mod=readonly
+      GOTOOLCHAIN: auto
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Check data-only capture with owned TLS and the selected RPC
+        run: |
+          export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
+          mkdir -p "$SAGE_PROVIDER_CAPTURE_DIR/source"
+          go version > "$SAGE_PROVIDER_CAPTURE_DIR/compiler.txt"
+          git rev-parse HEAD > "$SAGE_PROVIDER_CAPTURE_DIR/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$SAGE_PROVIDER_CAPTURE_DIR/tree.txt"
+          git ls-files -z pkg/agent/registry011 go.mod go.sum .github/workflows/registry-node-evidence.yml .github/workflows/test.yml docs/dev/registry-source-checks.md | xargs -0 sha256sum > "$SAGE_PROVIDER_CAPTURE_DIR/source.sha256"
+          cp pkg/agent/registry011/provider_*.go "$SAGE_PROVIDER_CAPTURE_DIR/source/"
+          cp pkg/agent/registry011/rpc_response.go "$SAGE_PROVIDER_CAPTURE_DIR/source/"
+          python3 - <<'PYCONTEXT'
+          import json, os
+          from pathlib import Path
+          names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
+          Path(os.environ['SAGE_PROVIDER_CAPTURE_DIR'], 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
+          PYCONTEXT
+          GODEBUG=http2client=0 go mod download -json > "$SAGE_PROVIDER_CAPTURE_DIR/modules.json" 2> "$SAGE_PROVIDER_CAPTURE_DIR/modules.stderr"
+          go mod verify > "$SAGE_PROVIDER_CAPTURE_DIR/modules-verify.txt"
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -json -run '^TestProviderCapture' -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
+          go tool cover -func="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" > "$SAGE_PROVIDER_CAPTURE_DIR/functions.txt"
+          python3 - <<'PYCOVERAGE'
+          import os
+          from pathlib import Path
+          targets = {'provider_capture.go': [0, 0], 'provider_http.go': [0, 0]}
+          for line in Path(os.environ['SAGE_PROVIDER_CAPTURE_DIR'], 'coverage.out').read_text().splitlines()[1:]:
+              location, statements, count = line.split()
+              name = location.rsplit(':', 1)[0].rsplit('/', 1)[-1]
+              if name in targets:
+                  targets[name][0] += int(statements)
+                  targets[name][1] += int(statements) if int(count) else 0
+          for name, (total, covered) in targets.items():
+              assert total and covered * 100 >= total * 90, (name, covered, total)
+              print(name, covered, total)
+          PYCOVERAGE
+          git diff --exit-code
+      - name: Retain original candidate capture evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: provider-transport-capture
+          path: ${{ runner.temp }}/provider-transport-capture/
           if-no-files-found: error
           retention-days: 14

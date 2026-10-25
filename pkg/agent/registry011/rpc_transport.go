@@ -35,8 +35,9 @@ type RPCTransportLimits struct {
 // production constructor owns its transport: no environment proxy, cookie jar,
 // caller transport, alternate endpoint or disabled certificate verification.
 type ReadRPC struct {
-	client *http.Client
-	limits RPCTransportLimits
+	client      *http.Client
+	limits      RPCTransportLimits
+	acquisition *rpcAcquisition
 }
 
 func NewSepoliaReadRPC(limits RPCTransportLimits) (*ReadRPC, error) {
@@ -81,6 +82,14 @@ func (c *ReadRPC) callEnvelope(ctx context.Context, method string, params any, m
 		return nil, nil, ErrConfiguration
 	}
 	maximum = min(maximum, c.limits.MaxBytes)
+	if c.acquisition != nil {
+		child, allowed, release, err := c.acquisition.admit(ctx, maximum)
+		if err != nil {
+			return nil, nil, err
+		}
+		defer release()
+		ctx, maximum = child, allowed
+	}
 	// Only internal fixed methods reach this boundary. IDs are scoped to a single
 	// request/response exchange; no batched or asynchronous demultiplexing exists.
 	request, err := json.Marshal(struct {
@@ -111,12 +120,20 @@ func (c *ReadRPC) callEnvelope(ctx context.Context, method string, params any, m
 		return nil, nil, ErrRPCTransport
 	}
 	body, err := io.ReadAll(io.LimitReader(response.Body, int64(maximum)+1))
+	if c.acquisition != nil {
+		c.acquisition.consume(len(body))
+	}
 	if err != nil || len(body) > maximum {
 		return nil, nil, ErrRPCTransport
 	}
 	result, err := DecodeRPCResult(body, 1, RPCResponseLimits{maximum, c.limits.MaxDepth})
 	if err != nil {
 		return nil, nil, err
+	}
+	if c.acquisition != nil {
+		if err := c.acquisition.retain(method, params, body); err != nil {
+			return nil, nil, err
+		}
 	}
 	return body, result, nil
 }

@@ -599,3 +599,310 @@ there are no new transactions or deployment keys. Tests bind both originals by
 SHA-256 and use finite in-memory refusals. Production acquisition still needs
 its own fresh evidence. No result here is independent EVM/consensus validation,
 complete Registry history, host qualification or permission for Agent dispatch.
+
+## Explicit standard JSON block content
+
+`NodeLimits.BlockEncoding = EthereumJSONBlocks` selects `ethereum-json-v1`
+before acquisition. This uses `eth_getBlockByHash(hash, true)` and
+`eth_getBlockReceipts(hash)` at the sole approved origin, with unchanged byte,
+request and time limits. An empty encoding retains the original raw debug RLP
+path; unknown encodings refuse before network work. There is no retry or
+validation-failure fallback between them. The live check explicitly selects the
+standard encoding to remove its dependence on stalled raw debug methods.
+
+The standard encoding supports the selected post-Amsterdam PoS shape, requiring
+all 23 known header fields, including the block access-list hash and slot number.
+Missing/null header fields, unknown fields, duplicate JSON names, unsupported
+shapes, nonempty uncle lists, oversized arrays and mismatched hash/ordinal
+metadata refuse. The pinned go-ethereum 1.17.5 codec reconstructs consensus RLP
+from complete signed transactions, withdrawals and receipts. Transaction hashes
+and recovered senders, withdrawal and transaction roots, receipt/log locations,
+receipt types/status and cumulative paid gas remain bound to that exact block.
+Typed array counts and original JSON bytes are bounded before allocation.
+This encoding caps each access, authorization and blob-hash lists and storage-key list at
+16,384 entries, withdrawals at 16, topics per log at four, and nesting at 32.
+These are explicit implementation ceilings, not new protocol or operating defaults.
+
+Reconstructed RLP is **derived consensus data**, not an original RLP response.
+`Exchanges` retains the unchanged original JSON envelopes and exact standard
+method parameters. The existing strict decoder still verifies canonical RLP,
+the header identity, full body/receipt commitments, gas witnesses, Registry
+callers/logs and canonical/finalized rechecks. JSON acquisition cannot supply
+missing execution/state/refund dimensions, and never changes a failed strict
+result to PASS. Actual method availability and the complete gas witness still
+require fresh CI; code compatibility tests do not qualify an operating Source.
+
+Finite units compare every reconstructed consensus byte with the existing
+120-transaction RLP and receipt originals, test omissions and inconsistent
+metadata, and preserve refusal of the recorded dimensionless gas response.
+Only normal positive responses use an owned TLS server at runtime. Refusal
+scenarios remain inert data units. The new production file retains the 90%
+per-file gate. No endpoint, signing, transaction, policy activation or protected
+Agent dispatch API is added.
+
+## Bounded collection inside an Agent
+
+`ReadRPC.CollectReplayBatch` joins the existing readers into one bounded
+acquisition for an importing Agent. Supply the complete `JournalConfig`, the
+exact externally retained checkpoint, `SourceReadLimits` and a trusted local
+`SourceClock`. `SepoliaEvidenceDigests` identifies the exact bundled code
+manifest and deployment ABI bytes; a digest is an identity reference, not trust
+enrollment. The configuration must select this precise deployment and bundle.
+
+Every initialization, ancestry, code, block, receipt, trace, state, history and
+final recheck passes through one private RPC scope. Its request, response JSON
+byte and absolute time counters never reset between constituent APIs. Failed
+attempts and consumed failed-response bytes also count. The scope uses the
+existing owned HTTPS transport and sole approved endpoint. No alternative
+provider, tracer retry, caller transport, signature, key or transaction API is
+introduced. The original reader remains usable independently after refusal.
+
+The first batch includes deployment; later batches start immediately after the
+retained cursor. Each batch includes every body/receipt in its interval and the
+entire selected-finalized-to-cursor parent path. A short backfill interval does
+not skip the remaining ancestry or pretend its stop block is current finality.
+All thirteen code identities are checked at the selected block. Record, grants
+and every newly claimed history version are collected at the one exact stop
+hash with EIP-1898 canonical pinning. The current version comes from bounded
+canonical record bytes, rather than an independent counter. Version zero maps
+only an absent, empty record to the internal empty state. CM-08 specifies that
+`activeGrants` refuses an absent identity, so that read is not issued and no
+successful empty-grants response is fabricated. This internal state is never
+an authenticated absence credential. Original response
+envelopes remain in the returned `Exchanges`.
+
+The returned `SourceBatchEvidence` is a candidate for full journal replay.
+`ReplayJournal.Append` must still validate all command effects, signatures,
+permissions, lifetime indexes and final bytes. Successful transport collection
+does not make an invented record authoritative. Historical code at each call,
+provider/clock/storage qualification, exact external checkpoint acknowledgement,
+post-commit confirmation and publication freshness remain separate requirements.
+No method here activates a generation or permits protected Agent dispatch.
+
+The upper bounds are 65,536 attempted requests, 256 MiB of response JSON and
+five minutes per batch; these are implementation ceilings, not operating
+defaults. Explicit per-node and batch replay budgets apply too. A large initial
+ancestry gap can remain unavailable within these bounds. Refusal returns no
+partial batch and must not be handled by inventing an initial checkpoint,
+skipping headers, resetting counters or silently increasing limits.
+
+Tests use finite recorded responses and explicit synthetic header/state
+scenarios. Owned temporary journals check that collection cannot substitute for
+replay. The repeated-transaction block is an offline cumulative-budget refusal
+scenario, not a consensus-valid chain extension or an executable attack. These
+tests do not claim a new live collection or actual Registry-authorized Agent
+message exchange. That integration follows the existing work order in
+[the Agent embedding notes](agent-embedding.md).
+
+The same approved RPC can return different native client schemas. The original
+`geth-root-gas.json` response from the read-only CI contains 120 ordinary
+top-level callTracer frames without execution, state or refund dimensions.
+`TestRootGasRecordedMissingDimensionsRemainUnavailable` preserves that refusal
+and checks that it performs no tracer retry. An HTTP success, client-version
+claim or a previous richer response cannot fill these missing values. Such a
+response does not establish strict gas support or Source readiness. The live
+check continues to fail when this required evidence is unavailable; the unit
+test's successful refusal must not be reported as a successful live replay.
+
+## Candidate provider transport capture
+
+`CaptureSepoliaProviderFinality` is a separate, data-only feasibility probe for
+one `eth_getBlockByNumber("finalized", false)` call at the selected official RPC.
+It owns certificate-verifying TLS and negotiates HTTP/1.1 so bounded original
+response headers can be retained before normalization. Whole response-wire bytes
+(including transfer framing) are bounded and retained, and a framed entity must
+be followed by actual EOF on the same reader. Original name/order,
+duplicates of non-framing fields, entity bodies and verified certificate-chain
+hashes are retained. Duplicate framing fields, content compression, trailers,
+redirects, malformed or excessive bytes and invalid JSON-RPC envelopes refuse.
+There is no alternate origin, proxy, caller transport, retry, transaction or
+signing API. A wire budget includes plaintext HTTP framing and both request and
+response bytes; it does not bound TLS packets or the platform network stack.
+
+The sample is diagnostic data, not `ExchangeV1`, a checked batch, a policy
+credential or Source readiness. Its system-root selection, wall timestamps and
+single request are not qualified manifest trust roots, clock samples, durable
+budget tickets, complete ancestry or history. They cannot authorize protected
+Agent dispatch. On read refusal a nonnil sample may retain bounded incomplete
+wire diagnostics with Complete=false, a capture error and no Result. These are
+not a successful exchange or a retry instruction. Existing strict replay, gas
+checks and required node CI remain
+unchanged. Actual policy activation requires a separate later decision.
+
+Finite inert fixture units cover malformed data. An ordinary test owns both TLS
+endpoints and a test-only certificate; it provides no production endpoint or
+certificate override. A separate opt-in CI test performs one official read and
+retains raw source, headers/bodies, TLS metadata and coverage. Its result is only
+transport feasibility, never full provider execution/Registry qualification.
+
+## Candidate policy byte identity
+
+`ParseProviderPolicyCandidate` accepts only bounded, already canonical local
+candidate JSON. All root and nested member sets are closed; duplicate names,
+unknown fields, invalid Unicode, trailing values and alternate encodings refuse.
+Unsigned counts are decimal strings without leading zeroes or overflow. Every
+budget is explicit and positive. Operation ceilings are 65,536 requests,
+256 MiB wire/decoded bytes and five minutes; operation/segment/bootstrap
+budgets must not decrease between scopes. These relations do not prove that a
+workload fits or qualify an estimator, clock or retaining store.
+
+This implementation candidate fixes `format` to
+`sage-provider-registry-observation-v1`, `retention.format` to
+`sage-provider-retention-v1`, and `spec_revision` to the existing normative
+commit `a22a275b4d88f1d415b53cdffc5bed41231b77a0`. These are local candidate
+identifiers, not registered standards or peer message formats. The supported
+instance is the already selected Sepolia genesis, Registry ID and deployment
+block hash. The provider origin remains the sole official RPC, with redirects
+denied and no proxy. Carrier ordering and the explicit trust assumptions and
+unverified guarantees are fixed; artifact digests are checked for spelling only.
+No referenced artifact or operating policy is accepted on the strength of a hash.
+
+The parser computes separate domain-separated identities for policy, instance
+and provider. `BindCandidate` records proposed namespace, Source ID and u64
+generation as candidate metadata. The instance identity excludes policy,
+namespace, Source ID and generation; changing those cannot describe a fresh
+instance or erase a retained root. Neither parsing nor binding selects policy,
+authenticates an Agent setting, enrolls a Source, establishes authoritative
+absence, creates `ExchangeV1` or returns a checked replay/dispatch capability.
+Zero values refuse access and returned bytes/metadata are copies. There is no
+activation method, automatic fallback from strict replay or operating default.
+
+Finite inert fixture tests check schema refusal, inclusive ceilings, identity
+separation, immutable concurrent reads and rejection of fabricated JSON state.
+Fixture digests and numeric limits name no qualified artifacts or operating
+values. Full manifest/artifact qualification, authoritative enrollment,
+durable accounting, owned store/clock checks, replay/history and complete
+bootstrap/catch-up publication remain separate gates. Strict gas checks and
+their required live CI result are unchanged; actual policy activation remains
+a separate decision after qualification.
+
+## Candidate first-enrollment persistence
+
+`OpenCandidateProviderNamespace` opens only an existing Agent-owned retaining
+directory with a preprovisioned canonical `ANCHOR`. The namespace, instance,
+anchor digest and independent expected-tip pin are explicit trusted integration
+inputs. Matching hashes do not authenticate their custody. No production API
+creates the anchor, selects an authority or infers first use from missing data.
+The retaining directory must be independent of candidate staging and trusted
+against external writers, hard links and mount changes; path confinement does
+not establish those assumptions.
+
+Only a null anchor root with no enrollment entry can accept one initial append.
+An exclusive lock, expected old tip, closed bounded inventory, exclusive write,
+file and directory sync, and exact readback precede the private receipt. Existing
+roots, including quarantined, fenced and retired states, cannot be overwritten.
+Changed policy, Source, generation or directory is not proof of a fresh instance.
+Evidence files have an explicit byte ceiling; the lock has fixed seven-byte
+contents. Failed writes, syncs or readbacks produce no receipt and fence the
+handle. A failed close remains an error on later close calls.
+
+`RecoverCandidateProviderEnrollment` recovers only the identical retained first
+operation after a lost ACK and released lock. It verifies exact canonical bytes
+and the expected old pin, resyncs and rereads without rewriting evidence. A lock
+left by a crash is never stolen; authenticated crash recovery is unsupported.
+An independently retained newer tip rejects an empty replacement directory.
+This depends on independent pin custody: losing the directory and its trusted
+high-water state is not detected merely by recomputing a digest.
+
+Snapshots are bound to their owner and current tip; stale, closed and failed
+handles refuse. Receipts expose copied historical diagnostics only. JSON cannot
+restore private state, and no Source API accepts these candidate types. Finite
+unit fixtures and owned temporary-file tests cover first-registration races,
+state combinations, reopen, exact ACK recovery, invalid evidence and I/O failure.
+This component does not qualify an authority, operating filesystem or policy,
+implement later enrollment transitions, account for all resource vectors, or
+authorize Agent messages. Full retention/clock qualification, replay/history,
+bootstrap/catch-up and actual policy activation remain separate gates. Existing
+strict verification and its required live CI result are unchanged.
+
+## Candidate budget accounting model
+
+`CandidateBudgetModel` checks proposed work across all eleven resource counters
+and the operation, segment and bootstrap scopes. It is an ephemeral accounting
+model: it has no persistence, trusted clock, actual-work meter, store authority
+or work-execution capability. Recreating the model cannot be used to reset an
+operational ledger. No Source, capture or replay API accepts its tickets.
+
+The model copies explicit limits from a parsed candidate policy and requires
+an explicit bounded ticket count. All additions are checked by subtraction
+from the ceiling, including u64 maxima. Refused reservations change no state.
+Each new segment consumes one segment count; existing segment histories remain
+after failure. Creating a new segment cannot reset the bootstrap total.
+
+Failed, cancelled and uncertain outcomes charge the full original work vector
+and keep the full capacity upper bounds occupied. Repeating the identical
+outcome is idempotent; conflicting outcomes refuse. There is no success/refund
+or garbage-collection method and no caller-reported actual work is accepted.
+Live/retained capacity counters are conservative projections, not measured file
+sizes. Diagnostic values are copies and JSON cannot restore private state.
+Owner checks reject copied models and foreign tickets. Finite scenario tests
+cover all dimensions, exact limits, overflow, scope isolation, capacity retention
+and concurrent reservations/charges under the race detector.
+
+This arithmetic component does not complete durable Ticket/Settlement/BudgetRoot
+storage, crash recovery, authoritative absence or operating qualification. Full
+metadata accounting, owned work measurements, complete settlement, retained
+clock/deadline checks and persistent CAS must be integrated and qualified before
+protected work. The existing strict verifier and separate policy-activation
+decision remain unchanged.
+
+The retained standard block response in `testdata/standard-block-rpc.json`
+was collected from the sole official RPC in run 40181518482, artifact
+12593854612, `diagnostic-023.bin`. Its 99 dynamic-fee transactions report the
+signed fee cap in the unsigned `gasPrice` field; 80 differ from the computed
+effective price. This provider representation is retained as such, without
+claiming Execution API conformance for that metadata. The adapter accepts
+only the signed cap or the computed effective price, validates the signed
+fee fields and transaction roots independently, and never treats this field
+as a gas witness. A fixture test compares the full response with the existing
+independent block RLP bytes; strict replay still requires its original witness.
+
+
+### Complete gas results for failures before call hooks
+
+The live check explicitly selects the existing `ReadReplayBlock` transaction-result
+contract (`stateGasTracer`) before acquiring strict gas evidence. The request keeps
+the same official RPC, block hash, two-second tracer bound and zero reexecution.
+The selected acquisition issues one gas request and fails if that result is absent,
+incomplete or unsupported. The root-only API remains available with its original
+strict refusal behavior.
+
+The retained `testdata/runtime-oog-root-rpc.json` is the exact `diagnostic-036.bin`
+from run40181838571/artifact12594457975, SHA-256
+`82f084b9df92012822b8a159b403bda6ddccb566bb1bec3f463550fa0ae51e6e`.
+It has120 ordered roots, but index65's runtime out-of-gas result omits all three
+dimensional fields. Its omission is preserved in a finite refusal unit. The
+transaction-result regression uses the separate, unchanged complete native gas
+fixture and retains that same failed transaction.
+
+The pinned [inspector result conversion](https://github.com/paradigmxyz/revm-inspectors/blob/a983a3b69641c56ba070f1318a5e1834dafa525d/src/tracing/debug.rs#L212-L260)
+recovers a call root when runtime gas charging fails before the call/create hooks.
+The [recovery code](https://github.com/paradigmxyz/revm-inspectors/blob/a983a3b69641c56ba070f1318a5e1834dafa525d/src/tracing/mod.rs#L737-L769)
+leaves the unknown execution spec unset; its
+[call-frame builder](https://github.com/paradigmxyz/revm-inspectors/blob/a983a3b69641c56ba070f1318a5e1834dafa525d/src/tracing/builder/geth.rs#L217-L239)
+therefore omits fork-specific dimensions. The transaction-result tracer instead
+reads all four gas amounts directly from the execution result. This is a source
+explanation matching the observed omission, not an attestation of the endpoint's
+binary or routing; the advertised client version remains an unauthenticated claim.
+
+The existing closed gas profiles, receipt deltas, reservation limits, floor/refund
+rules, header totals, signatures, roots and caller checks are unchanged. Every
+transaction still requires a complete witness; values are not inferred from an
+out-of-gas label. Fresh live CI must establish whether the selected transaction-result
+contract is supported at the official RPC. Source review and fixture success do
+not establish actual provider qualification or Source readiness.
+
+### Separate module acquisition from live checks
+
+Run40205227654's provider-capture job failed during package setup, before any
+test ran: the Go module proxy terminated HTTP/2 streams while downloading
+`go-eth-kzg` and `fastssz`. The original failed artifact12603267628 is retained;
+this setup failure is not a provider-capture result.
+
+Both node-evidence jobs acquire and verify the locked modules before testing.
+Only that single acquisition command selects the documented
+[`GODEBUG=http2client=0`](https://pkg.go.dev/net/http#hdr-HTTP_2) setting.
+Its JSON result, errors and verification output are retained with the artifact.
+The setting is not exported to the tests. Existing module versions, checksum
+verification, TLS verification, RPC selection, request limits and refusal checks
+remain unchanged. There is no retry loop or automatic RPC fallback.
