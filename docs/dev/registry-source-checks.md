@@ -856,3 +856,38 @@ only the signed cap or the computed effective price, validates the signed
 fee fields and transaction roots independently, and never treats this field
 as a gas witness. A fixture test compares the full response with the existing
 independent block RLP bytes; strict replay still requires its original witness.
+
+
+### Complete gas results for failures before call hooks
+
+The live check explicitly selects the existing `ReadReplayBlock` transaction-result
+contract (`stateGasTracer`) before acquiring strict gas evidence. The request keeps
+the same official RPC, block hash, two-second tracer bound and zero reexecution.
+The selected acquisition issues one gas request and fails if that result is absent,
+incomplete or unsupported. The root-only API remains available with its original
+strict refusal behavior.
+
+The retained `testdata/runtime-oog-root-rpc.json` is the exact `diagnostic-036.bin`
+from run40181838571/artifact12594457975, SHA-256
+`82f084b9df92012822b8a159b403bda6ddccb566bb1bec3f463550fa0ae51e6e`.
+It has120 ordered roots, but index65's runtime out-of-gas result omits all three
+dimensional fields. Its omission is preserved in a finite refusal unit. The
+transaction-result regression uses the separate, unchanged complete native gas
+fixture and retains that same failed transaction.
+
+The pinned [inspector result conversion](https://github.com/paradigmxyz/revm-inspectors/blob/a983a3b69641c56ba070f1318a5e1834dafa525d/src/tracing/debug.rs#L212-L260)
+recovers a call root when runtime gas charging fails before the call/create hooks.
+The [recovery code](https://github.com/paradigmxyz/revm-inspectors/blob/a983a3b69641c56ba070f1318a5e1834dafa525d/src/tracing/mod.rs#L737-L769)
+leaves the unknown execution spec unset; its
+[call-frame builder](https://github.com/paradigmxyz/revm-inspectors/blob/a983a3b69641c56ba070f1318a5e1834dafa525d/src/tracing/builder/geth.rs#L217-L239)
+therefore omits fork-specific dimensions. The transaction-result tracer instead
+reads all four gas amounts directly from the execution result. This is a source
+explanation matching the observed omission, not an attestation of the endpoint's
+binary or routing; the advertised client version remains an unauthenticated claim.
+
+The existing closed gas profiles, receipt deltas, reservation limits, floor/refund
+rules, header totals, signatures, roots and caller checks are unchanged. Every
+transaction still requires a complete witness; values are not inferred from an
+out-of-gas label. Fresh live CI must establish whether the selected transaction-result
+contract is supported at the official RPC. Source review and fixture success do
+not establish actual provider qualification or Source readiness.
