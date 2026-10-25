@@ -774,3 +774,34 @@ implement later enrollment transitions, account for all resource vectors, or
 authorize Agent messages. Full retention/clock qualification, replay/history,
 bootstrap/catch-up and actual policy activation remain separate gates. Existing
 strict verification and its required live CI result are unchanged.
+
+## Candidate budget accounting model
+
+`CandidateBudgetModel` checks proposed work across all eleven resource counters
+and the operation, segment and bootstrap scopes. It is an ephemeral accounting
+model: it has no persistence, trusted clock, actual-work meter, store authority
+or work-execution capability. Recreating the model cannot be used to reset an
+operational ledger. No Source, capture or replay API accepts its tickets.
+
+The model copies explicit limits from a parsed candidate policy and requires
+an explicit bounded ticket count. All additions are checked by subtraction
+from the ceiling, including u64 maxima. Refused reservations change no state.
+Each new segment consumes one segment count; existing segment histories remain
+after failure. Creating a new segment cannot reset the bootstrap total.
+
+Failed, cancelled and uncertain outcomes charge the full original work vector
+and keep the full capacity upper bounds occupied. Repeating the identical
+outcome is idempotent; conflicting outcomes refuse. There is no success/refund
+or garbage-collection method and no caller-reported actual work is accepted.
+Live/retained capacity counters are conservative projections, not measured file
+sizes. Diagnostic values are copies and JSON cannot restore private state.
+Owner checks reject copied models and foreign tickets. Finite scenario tests
+cover all dimensions, exact limits, overflow, scope isolation, capacity retention
+and concurrent reservations/charges under the race detector.
+
+This arithmetic component does not complete durable Ticket/Settlement/BudgetRoot
+storage, crash recovery, authoritative absence or operating qualification. Full
+metadata accounting, owned work measurements, complete settlement, retained
+clock/deadline checks and persistent CAS must be integrated and qualified before
+protected work. The existing strict verifier and separate policy-activation
+decision remain unchanged.
