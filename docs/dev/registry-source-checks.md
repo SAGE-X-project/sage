@@ -1003,3 +1003,25 @@ owned work/storage measurements, a qualified restart clock and complete history
 and publication. The candidate data types alone do not permit a request or
 establish any of those properties. Actual format adoption and the exact
 manifest/generation activation decision remain separate from their tests.
+
+`CandidateAdmissionTicket` checks proposed V2 reservation data against the
+original intent, all eleven per-operation dimensions, both storage upper
+bounds and a segment identity derived from the intent and ordinal. RPC records
+always reserve positive retained space for their own records and consumption/ACK
+metadata; local work follows the same rule. These are declared upper bounds,
+not a measurement or qualification of the storage overhead. RPC records
+name an allowlisted read method and input/parameter digests; local work has no
+RPC method or request count. These checks do not inspect actual request bytes
+or prove that a reservation covers their worst-case processing cost. Adjacent
+ticket comparison rejects predecessor, sequence and segment resets. It does
+not derive cumulative segment/bootstrap totals or establish a durable debit.
+
+`CandidateConsumption` checks proposed pre-dispatch metadata against that exact
+ticket and original clock/deadline, including bounded wall/monotonic differences.
+Adjacent comparison also refuses clock rollback and the same adjacent ticket.
+It is data validation only: no record consumes a ticket, returns a work permit
+or invokes a transport. Whole-ledger uniqueness, custody commit/ACK, crash
+recovery without redispatch and the owned executor remain required. The parsed
+clock remains a candidate diagnostic type rather than a trusted clock input.
+Finite inert unit scenarios exercise these boundaries; they are not actual
+provider calls, host compromise simulations or operating qualification.
