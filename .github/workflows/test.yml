@@ -111,6 +111,9 @@ jobs:
               'pkg/agent/registry011/provider_enrollment_schema.go': [0, 0],
               'pkg/agent/registry011/provider_enrollment_disk.go': [0, 0],
               'pkg/agent/registry011/provider_budget.go': [0, 0],
+              'pkg/agent/registry011/retention_candidate.go': [0, 0],
+              'pkg/agent/registry011/retention_candidate_disk.go': [0, 0],
+              'pkg/agent/registry011/retention_lock_supported.go': [0, 0],
               'pkg/agent/registry011/node_identity.go': [0, 0],
           }
           for line in Path('coverage.out').read_text().splitlines()[1:]:
