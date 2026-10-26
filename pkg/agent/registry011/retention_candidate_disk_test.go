@@ -14,7 +14,7 @@ import (
 // Refusal scenarios are finite test-only store bytes and private-field states.
 // There is no hostile runtime, exploit, rollback tool or operating-store access.
 func TestCandidateRetentionClosedPrefixRefusals(t *testing.T) {
-	for _, mode := range []string{"unknown-file", "gap", "partial", "entry-format", "entry-namespace", "entry-sequence", "entry-previous", "entry-instance", "entry-operation", "root-status", "root-generation", "root-unknown", "unknown-member", "duplicate-member", "whitespace", "duplicate-instance", "duplicate-operation", "anchor-hash", "anchor-format", "anchor-namespace", "anchor-selection", "anchor-extra", "anchor-missing", "anchor-directory", "entry-directory", "record-limit", "entry-size", "stored-size"} {
+	for _, mode := range []string{"unknown-file", "gap", "partial", "entry-format", "entry-namespace", "entry-sequence", "entry-previous", "entry-instance", "entry-operation", "root-status", "root-generation", "root-unknown", "root-fence", "root-noninitial", "unknown-member", "duplicate-member", "whitespace", "duplicate-instance", "duplicate-operation", "anchor-hash", "anchor-format", "anchor-namespace", "anchor-selection", "anchor-extra", "anchor-missing", "anchor-directory", "entry-directory", "record-limit", "entry-size", "stored-size"} {
 		t.Run(mode, func(t *testing.T) {
 			cfg := retentionTestConfig(t)
 			a := retentionTestOpen(t, cfg)
@@ -51,16 +51,27 @@ func TestCandidateRetentionClosedPrefixRefusals(t *testing.T) {
 				entry.Instance = "invalid"
 			case "entry-operation":
 				entry.Operation = "invalid"
-			case "root-status", "root-generation", "root-unknown":
+			case "root-status", "root-generation", "root-unknown", "root-fence", "root-noninitial":
 				root := contentJSON(entry.Root).(map[string]any)
-				if mode == "root-status" {
+				switch mode {
+				case "root-status":
 					root["status"] = "active"
-				} else if mode == "root-generation" {
+				case "root-generation":
 					root["generation"] = "1"
-				} else {
+				case "root-fence":
+					root["fence"] = "2"
+				case "root-noninitial":
+					root = enrollmentTestRoot(t, false, "enrolling")
+				default:
 					root["unexpected"] = true
 				}
 				entry.Root = providerPolicyTestBytes(t, root)
+				if mode == "root-fence" || mode == "root-noninitial" {
+					valid, err := candidateEnrollmentRoot(root, cfg.Namespace, entry.Instance)
+					if err != nil || !bytes.Equal(valid, entry.Root) {
+						t.Fatal("fixture must pass the root schema before the initial-enrollment check", err)
+					}
+				}
 			case "unknown-member":
 				raw = append(append([]byte{}, raw[:len(raw)-1]...), []byte(`,"Unknown":true}`)...)
 			case "duplicate-member":
@@ -331,5 +342,37 @@ func TestCandidateRetentionMissingPermanentLockRefuses(t *testing.T) {
 	}
 	if _, err := os.Stat(lock); !os.IsNotExist(err) {
 		t.Fatal("ownership inode was recreated")
+	}
+}
+
+// Finite malformed path fixtures only. No concurrent hostile process, writer
+// or operating directory is created or modified by these refusal units.
+func TestCandidateRetentionSelectedPathMustBeRegular(t *testing.T) {
+	for _, mode := range []string{"lock-link", "directory-link"} {
+		t.Run(mode, func(t *testing.T) {
+			cfg := retentionTestConfig(t)
+			switch mode {
+			case "lock-link":
+				name := filepath.Join(cfg.Directory, "AUTHORITY.LOCK")
+				if err := os.Remove(name); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink("ANCHOR", name); err != nil {
+					t.Fatal(err)
+				}
+			case "directory-link":
+				name := filepath.Join(t.TempDir(), "selected")
+				if err := os.Symlink(cfg.Directory, name); err != nil {
+					t.Fatal(err)
+				}
+				cfg.Directory = name
+			}
+			if owner, err := OpenCandidateRetentionLog(cfg); err == nil || owner != nil {
+				if owner != nil {
+					_ = owner.Close()
+				}
+				t.Fatal("linked ownership path accepted")
+			}
+		})
 	}
 }
