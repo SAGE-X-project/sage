@@ -906,3 +906,60 @@ Its JSON result, errors and verification output are retained with the artifact.
 The setting is not exported to the tests. Existing module versions, checksum
 verification, TLS verification, RPC selection, request limits and refusal checks
 remain unchanged. There is no retry loop or automatic RPC fallback.
+
+
+### Pending local retention across process exit
+
+`CandidateRetentionLog` adds a separate bounded local record store for proposed
+initial enrollments. It does not change the existing namespace or replay journal
+storage, their lock lifecycle, the strict verifier or the policy-activation gate.
+The Agent supplies the existing directory, namespace, anchor digest, expected tip
+and explicit inventory/byte ceilings. There is no provision or default directory.
+These values are comparison inputs; their equality authenticates no custodian,
+absence witness, operating policy or selected namespace.
+
+An explicitly pre-existing permanent `AUTHORITY.LOCK` inode uses nonblocking
+exclusive advisory locking on Linux and Darwin. Open never creates or replaces
+it, and Close never removes it. It is not an authority credential.
+Other platforms return unsupported rather than providing unlocked access.
+The opened directory and lock descriptor must match their selected paths before
+and after prefix validation and append. Every cooperating writer must share the
+qualified lock domain. Noncooperating writers, cross-host filesystems, mount or
+backup rollback and replacement of the retaining authority require a separately
+selected and qualified host/store boundary.
+
+The closed initial record binds the namespace, sequence, previous tip, operation
+ID, policy-independent Registry instance and canonical enrolling root. Each read
+validates the whole bounded immutable prefix. Existing instances and operation
+IDs cannot be replaced by choosing another policy, Source ID or candidate path.
+A handle appends at most one record, synchronizes the file and directory, and
+reads back the exact prefix before returning **pending external ACK** evidence.
+This local empty-instance comparison does not establish authoritative absence.
+The byte ceiling covers anchor and entry payloads; it is not a disk-allocation or
+work-budget meter. No record is a Ticket, qualified root, Source or work token.
+
+Normal reopen requires the supplied tip to match the complete local prefix.
+If the external comparison pin is still old, only the identical final enrollment
+with that predecessor, operation and identity can be re-synchronized. Its result
+stays pending and permits no further append. A new expected tip is an external
+selection input; this API does not authenticate or advance it. Production final
+ACK requires a separately qualified custodian protocol with matching durable
+local and external states. In particular:
+
+- Before a write, no entry exists and no pending result is returned.
+- A partial entry or synchronization error returns no result and fences the
+  handle. No truncation, automatic reset or guessed acceptance is available.
+- A complete local tail with the old external pin refuses normal reopen; exact
+  recovery returns only pending local evidence.
+- A new external pin with missing local bytes, a different operation or an extra
+  tail refuses. Recovery never updates or rolls back the external pin.
+
+Finite test-only unit fixtures cover malformed prefixes, stale/foreign reads,
+limits, identity drift, uncertain synchronization and duplicate enrollment.
+The owned-process runtime test performs a normal candidate append and process
+exit with the lock open, then verifies OS release and exact pending recovery.
+It operates only in a temporary fixture directory. These tests do not qualify
+an actual operating filesystem, external custody or authenticated absence.
+Durable eleven-dimensional work accounting, retained clock/deadline integration,
+complete history and publication qualification remain required before operating
+use; this component alone does not complete that integration.
