@@ -17,8 +17,8 @@ type CandidateEnrollmentRoot struct {
 	previous, status, checkpoint, budget, transition string
 }
 
-// CandidateEnrollmentDiagnostic is copied, forgeable data only.
-type CandidateEnrollmentDiagnostic struct {
+// CandidateAdmissionRootDiagnostic is copied, forgeable data only.
+type CandidateAdmissionRootDiagnostic struct {
 	Digest, Status, Previous, Checkpoint, Budget, Transition string
 	Identity                                                 ProviderCandidateIdentity
 	Sequence, Fence                                          uint64
@@ -132,9 +132,9 @@ func (r *CandidateEnrollmentRoot) CanonicalBytes() []byte {
 	}
 	return []byte(r.raw)
 }
-func (r *CandidateEnrollmentRoot) Diagnostic() (CandidateEnrollmentDiagnostic, error) {
+func (r *CandidateEnrollmentRoot) Diagnostic() (CandidateAdmissionRootDiagnostic, error) {
 	if r == nil || r.raw == "" {
-		return CandidateEnrollmentDiagnostic{}, ErrAdmissionCandidate
+		return CandidateAdmissionRootDiagnostic{}, ErrAdmissionCandidate
 	}
-	return CandidateEnrollmentDiagnostic{r.digest, r.status, r.previous, r.checkpoint, r.budget, r.transition, r.identity, r.sequence, r.fence}, nil
+	return CandidateAdmissionRootDiagnostic{r.digest, r.status, r.previous, r.checkpoint, r.budget, r.transition, r.identity, r.sequence, r.fence}, nil
 }

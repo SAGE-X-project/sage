@@ -113,7 +113,7 @@ func TestAdmissionCandidateRootClosedSchema(t *testing.T) {
 			case "overflow":
 				value.(map[string]any)["sequence"] = "18446744073709551616"
 			}
-			raw := providerPolicyTestBytes(t, value)
+			raw := admissionTestBytes(t, value)
 			if mode == "noncanonical" {
 				raw = append(raw, '\n')
 			}
@@ -215,4 +215,15 @@ func TestAdmissionCandidateRootCopiesAndV1Isolation(t *testing.T) {
 	if err := json.Unmarshal([]byte(`{}`), &CandidateEnrollmentRoot{}); err != ErrAdmissionCandidate {
 		t.Fatal("JSON restored private data")
 	}
+}
+
+// These finite schema fixtures contain ASCII keys/strings and no HTML escapes;
+// standard sorted map JSON is canonical for their values, including null/array.
+func admissionTestBytes(t *testing.T, value any) []byte {
+	t.Helper()
+	raw, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
 }

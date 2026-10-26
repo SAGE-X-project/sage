@@ -365,6 +365,10 @@ jobs:
       - name: Build binaries
         run: make build
 
+      - name: Compile Registry verification package
+        shell: bash
+        run: go test -mod=readonly -c -o "$RUNNER_TEMP/registry011.test" ./pkg/agent/registry011
+
       - name: Verify binaries
         shell: bash
         run: |

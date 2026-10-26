@@ -129,7 +129,7 @@ func TestAdmissionCandidateIntentClosedFields(t *testing.T) {
 				clock["wall_ms"] = "0"
 				clock["uncertainty_ms"] = "1"
 			}
-			raw := providerPolicyTestBytes(t, value)
+			raw := admissionTestBytes(t, value)
 			if mode == "noncanonical" {
 				raw = append(raw, '\n')
 			}
