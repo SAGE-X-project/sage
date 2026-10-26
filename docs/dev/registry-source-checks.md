@@ -963,3 +963,43 @@ an actual operating filesystem, external custody or authenticated absence.
 Durable eleven-dimensional work accounting, retained clock/deadline integration,
 complete history and publication qualification remain required before operating
 use; this component alone does not complete that integration.
+
+
+### Proposed pre-request admission data
+
+`CandidateEnrollmentRoot` and `CandidateAdmissionIntent` parse separately
+versioned local candidate data. They do not change the existing V1 parsers,
+SAGE0.10.0 messages, strict verification, operating format selection or policy
+activation. No Source, RPC, retained-store or work-admission API accepts them.
+
+The proposed V2 enrollment root represents an enrolling state with a budget
+reference before a real replay checkpoint exists. A pure transition comparison
+checks same identity, exact predecessor/sequence and supported status/fence
+changes. It neither authenticates these roots nor verifies their referenced
+evidence. Active shape requires checkpoint, budget and transition references;
+parsing or comparing that shape grants no active Source authority. Generation
+migration, owner transfer and authenticated reconfiguration remain unsupported.
+
+The proposed admission intent references the original initial enrolling anchor
+and a bounded original clock/deadline. It contains no future finality exchange,
+ticket or later root, avoiding the first-request content-hash cycle. For this
+candidate implementation the limits artifact is the exact canonical
+`policy.limits` subtree and its ordinary SHA-256 digest. The deadline equals
+the original earliest wall bound plus the explicitly supplied bootstrap
+budget. Arithmetic overflow and unsupported signed-clock ranges refuse.
+These are local candidate relations, not operating values or a trusted clock.
+The copied clock diagnostic has a separate type from the trusted-input sample.
+
+Both parsers require explicit bounded canonical input and the previously parsed
+candidate identity. Missing/extra/duplicate fields, foreign context, ambiguous
+JSON, invalid integer representations and unsupported transitions refuse.
+JSON cannot reconstruct their private state, and returned bytes are copies.
+Finite unit fixtures cover initial/intermediate/active shapes, transition
+refusals, original deadline arithmetic, context binding and V1 isolation.
+
+The remaining integration still needs versioned ticket/consumption/settlement
+and budget records, qualified composite custody and durable one-use admission,
+owned work/storage measurements, a qualified restart clock and complete history
+and publication. The candidate data types alone do not permit a request or
+establish any of those properties. Actual format adoption and the exact
+manifest/generation activation decision remain separate from their tests.
