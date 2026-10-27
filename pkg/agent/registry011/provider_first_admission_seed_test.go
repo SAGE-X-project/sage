@@ -141,6 +141,196 @@ func TestProviderFirstAdmissionIntentConstructionRefusesIncompleteCandidateData(
 	}
 }
 
+// This is inert reservation DATA, not the prospective operation estimator or
+// an actual hold. Only first-ticket formatting is measured in these units.
+func providerFirstTicketReservationData() providerOperationReservation {
+	w := candidateWorkVector{1, 1024, 1, 0, 0, 0, 0, 0, 1, 1, 1}
+	return providerOperationReservation{work: w, execution: w, live: 1000, retained: 1000}
+}
+
+func TestProviderFirstFinalizedCheckAccountsEachComparisonAndConstruction(t *testing.T) {
+	s, f, _, _, _ := providerFirstAdmissionSeedFixture(t)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	r, err := newProviderIntegrationRequest("eth_getBlockByNumber", []any{"finalized", false})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, clocks := f.meter.actual, f.meter.clocks
+	if !r.firstFinalizedObserved(f.meter) {
+		t.Fatal("closed finalized DATA refused")
+	}
+	// Native text comparisons pay 2*len+1 without converting to raw bytes.
+	// Head encoding/string retention and wire joining are separate events.
+	var want candidateWorkVector
+	for _, raw := range []string{r.method, r.params, r.body, r.head, r.wire} {
+		want[10] += 2*uint64(len(raw)) + 1
+	}
+	head, wire := uint64(len(r.head)), uint64(len(r.wire))
+	want[10] += head*head + 1 + head + 1 + wire + 1
+	for k, n := range want {
+		if f.meter.actual[k]-before[k] != n {
+			t.Fatal("fixed request check omitted or invented a primitive invocation", k)
+		}
+	}
+	const n uint64 = 64 << 10
+	if 7*(n*n+1)+17*(2*n+65) > providerFirstAdmissionTicketUpper()[10] || f.meter.clocks != clocks || s.last != nil {
+		t.Fatal("unchanged ticket upper omitted actual quadratic/linear costs or sampled a clock")
+	}
+}
+
+func TestProviderFirstAdmissionTicketConstructionPreservesOriginalBytesAndClock(t *testing.T) {
+	s, f, _, _, intent := providerFirstAdmissionSeedFixture(t)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	request, err := newProviderIntegrationRequest("eth_getBlockByNumber", []any{"finalized", false})
+	if err != nil {
+		t.Fatal(err)
+	}
+	clock, err := f.sampleLocked()
+	if err != nil {
+		t.Fatal(err)
+	}
+	reservation := providerFirstTicketReservationData()
+	before, stored, held, clocks := f.meter.actual, s.stored, s.scanControl.held, f.meter.clocks
+	ticket, err := providerFirstAdmissionTicketDataObserved(s.config.policy, intent, request, reservation, providerClockDiagnostic(clock), f.meter)
+	if err != nil || ticket == nil {
+		t.Fatal("observed first-ticket DATA", err)
+	}
+	p := contentJSON([]byte(s.config.policy.raw)).(map[string]any)
+	duration, ok := providerCandidateUint(p["limits"].(map[string]any)["operation"].(map[string]any)["deadline_ms"], true)
+	if !ok {
+		t.Fatal("expected operation duration")
+	}
+	deadline := min(uint64(clock.WallMS-clock.UncertaintyMS)+duration, intent.deadline)
+	id := intent.identity
+	expectedRaw := providerPolicyTestBytes(t, map[string]any{"format": "sage-provider-budget-ticket-v2", "admission_digest": intent.digest, "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": "0", "fence": strconv.FormatUint(intent.fence, 10), "sequence": "0", "previous_ticket": nil, "segment": candidateAdmissionSegment(intent.digest, 0), "kind": "rpc-capture", "input_digest": request.inputDigest, "method": request.method, "params_digest": request.paramsDigest, "reservation": candidateLedgerWorkObject(reservation.work), "live_disk_reserved": "1000", "retained_bytes_reserved": "1000", "deadline_wall_ms": strconv.FormatUint(deadline, 10)})
+	if ticket.raw != string(expectedRaw) || ticket.digest != enrollmentTestHash("sage-provider-budget-ticket-v2", expectedRaw) || ticket.deadline != deadline || ticket.intent != intent || ticket.sequence != 0 || ticket.segment != 0 {
+		t.Fatal("ticket changed its original clock, closed bytes or first segment")
+	}
+	plain, err := providerFirstAdmissionTicketDataObserved(s.config.policy, intent, request, reservation, providerClockDiagnostic(clock), nil)
+	if err != nil || plain == nil || plain.raw != ticket.raw || plain.digest != ticket.digest {
+		t.Fatal("pure expected ticket DATA changed its bytes", err)
+	}
+	if f.meter.actual[2]-before[2] != uint64(2*len(s.config.policy.raw)+len(ticket.raw)) || f.meter.actual[10] <= before[10] || f.meter.clocks != clocks || s.stored != stored || s.scanControl.held != held || s.last != nil || s.sequence != 1 || f.body.active {
+		t.Fatal("formatting skipped observation, sampled a new clock or created retained authority")
+	}
+	for k, upper := range providerFirstAdmissionTicketUpper() {
+		if f.meter.actual[k]-before[k] > upper {
+			t.Fatal("ticket formatter exceeded its separate logical component", k)
+		}
+	}
+}
+
+func TestProviderFirstAdmissionTicketConstructionRefusesIncompleteData(t *testing.T) {
+	s, f, _, _, original := providerFirstAdmissionSeedFixture(t)
+	for _, mode := range []string{"policy", "policy-size", "intent", "intent-size", "intent-hash", "identity", "request", "method-size", "params-size", "body-size", "head-size", "wire-size", "input-hash", "params-hash", "wire-digest", "params-digest", "not-finalized", "body", "head", "wire", "clock", "expired", "sum", "overflow", "live", "retained", "requests", "segments", "wire-upper", "remaining-request", "remaining-wire", "remaining-segment", "evm", "policy-bytes", "policy-limits", "policy-clock", "duration", "budget"} {
+		t.Run(mode, func(t *testing.T) {
+			p, i := *s.config.policy, *original
+			policy, intent := &p, &i
+			request, err := newProviderIntegrationRequest("eth_getBlockByNumber", []any{"finalized", false})
+			if err != nil {
+				t.Fatal(err)
+			}
+			clock, reservation := original.clock, providerFirstTicketReservationData()
+			var meter *providerWorkMeter // Pure refusal DATA except the last quota case.
+			switch mode {
+			case "policy":
+				policy = nil
+			case "policy-size":
+				p.raw = strings.Repeat(" ", 64<<10+1)
+			case "intent":
+				intent = nil
+			case "intent-size":
+				i.raw = strings.Repeat(" ", 64<<10+1)
+			case "intent-hash":
+				i.digest = "incomplete finite DATA"
+			case "identity":
+				i.identity.Namespace = "incomplete finite DATA"
+			case "request":
+				request = nil
+			case "method-size":
+				request.method = strings.Repeat("a", 65)
+			case "params-size":
+				request.params = strings.Repeat(" ", 8<<10+1)
+			case "body-size":
+				request.body = strings.Repeat(" ", 16<<10+1)
+			case "head-size":
+				request.head = strings.Repeat(" ", 513)
+			case "wire-size":
+				request.wire = strings.Repeat(" ", 16<<10+1)
+			case "input-hash", "wire-digest":
+				request.inputDigest = "incomplete finite DATA"
+				if mode == "wire-digest" {
+					request.inputDigest = admissionTestDigest("b")
+				}
+			case "params-hash", "params-digest":
+				request.paramsDigest = "incomplete finite DATA"
+				if mode == "params-digest" {
+					request.paramsDigest = admissionTestDigest("b")
+				}
+			case "not-finalized":
+				request.params = `["latest",false]`
+			case "body":
+				request.body = "[]"
+			case "head":
+				request.head = "finite DATA"
+			case "wire":
+				request.wire = "finite DATA"
+			case "clock":
+				clock.Epoch = admissionTestDigest("b")
+			case "expired":
+				i.deadline = uint64(clock.WallMS - clock.UncertaintyMS)
+			case "sum":
+				reservation.work[10]++
+			case "overflow":
+				reservation.execution[10], reservation.remaining[10] = ^uint64(0), 1
+			case "live":
+				reservation.live = 0
+			case "retained":
+				reservation.retained--
+			case "requests":
+				reservation.execution[0], reservation.work[0] = 0, 0
+			case "segments":
+				reservation.execution[8], reservation.work[8] = 0, 0
+			case "wire-upper":
+				reservation.execution[1], reservation.work[1] = uint64(len(request.wire)), uint64(len(request.wire))
+			case "remaining-request":
+				reservation.execution[0], reservation.remaining[0] = 0, 1
+			case "remaining-wire":
+				reservation.execution[1]--
+				reservation.remaining[1] = 1
+			case "remaining-segment":
+				reservation.execution[8], reservation.remaining[8] = 0, 1
+			case "evm":
+				reservation.execution[3], reservation.work[3] = 1, 1
+			case "policy-bytes", "policy-limits", "policy-clock", "duration":
+				m := contentJSON([]byte(p.raw)).(map[string]any)
+				switch mode {
+				case "policy-bytes":
+					p.raw = `[]`
+				case "policy-limits":
+					delete(m, "limits")
+				case "policy-clock":
+					delete(m, "clock")
+				case "duration":
+					m["limits"].(map[string]any)["operation"].(map[string]any)["deadline_ms"] = "18446744073709551615"
+				}
+				if mode != "policy-bytes" {
+					p.raw = string(providerIntegrationJSON(m))
+				}
+			case "budget":
+				meter = f.meter
+				meter.upper[10] = meter.actual[10]
+			}
+			stored, held := s.stored, s.scanControl.held
+			if got, err := providerFirstAdmissionTicketDataObserved(policy, intent, request, reservation, clock, meter); err == nil || got != nil || s.stored != stored || s.scanControl.held != held || s.last != nil {
+				t.Fatal("incomplete candidate ticket created a result or retained authority", mode)
+			}
+		})
+	}
+}
+
 func providerFirstAdmissionSeedInput(t *testing.T, owner, view *providerCustodyStore, kind string, raw []byte) providerIntegrationObject {
 	t.Helper()
 	object, err := newProviderIntegrationObject(kind, raw, owner.config.bounds.maximumObjectBytes)

@@ -1423,3 +1423,15 @@ constructor; it does not cover the rest of the first transaction. Candidate
 typed-replay units use this constructor, while pure expected DATA keeps the
 same byte contract. Neither form selects a retaining owner, persists E1,
 renews a hold, or creates an acknowledgment or execution permission.
+
+The proposed first ticket also has an observed formatter. It checks the fixed
+finalized request and independently hashes its wire bytes and parameters,
+preserving the supplied original operation clock and immutable admission
+deadline. Its separate logical component covers twenty-four successful
+formatting primitives. The five native text comparisons do not convert their
+inputs to raw bytes. Seven events have quadratic byte weights and seventeen
+have linear weights; these fit the conservative logical upper. The
+request constructor and the complete prospective
+operation estimate remain separate costs; supplying reservation DATA does not
+qualify that estimate, debit a hold, authorize a request or persist an E1.
+Finite invalid-input and quota units check those boundaries without dispatch.

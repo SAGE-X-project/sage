@@ -105,6 +105,19 @@ func providerFirstAdmissionIntentUpper() candidateWorkVector {
 	return work
 }
 
+// Only first-ticket formatting, not the request constructor or prospective
+// operation quote: codecs3/encodes4/hashes5/copies7/comparisons5=24 primitives.
+// The fixed request uses native text comparisons, without raw conversion.
+// Seven quadratic events cost at most7*(n*n+1), and17 linear events cost at
+// most17*(2*n+65); at n=65536 they fit24*(n*n+n+64).
+// No request execution, clock read, write or physical reservation occurs here.
+func providerFirstAdmissionTicketUpper() candidateWorkVector {
+	const n uint64 = 64 << 10
+	var work candidateWorkVector
+	work[2], work[10] = 3*n, 24*(n*n+n+64)
+	return work
+}
+
 // Future-only C/S storage DATA. It does not include I/E1 and cannot fund that
 // earlier write. The eventual V4 builders must enforce the quoted closed
 // metadata caps and independently compare every original retained delta.

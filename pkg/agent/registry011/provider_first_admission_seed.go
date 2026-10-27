@@ -60,6 +60,53 @@ func providerFirstAdmissionIntentDataObserved(policy *ProviderPolicyCandidate, c
 	return parseCandidateAdmissionIntentObserved(policy, context, anchor, raw, 64<<10, meter)
 }
 
+// Format proposed first-ticket DATA from a separate prospective quote. This
+// does not establish that quote's complete work/physical qualification, hold
+// resources, consume a request, or authorize IO. The future concrete owner must
+// derive its own quote and bind the original pre-E1 sample before calling it.
+func providerFirstAdmissionTicketDataObserved(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, request *providerIntegrationRequest, reservation providerOperationReservation, clock CandidateClockDiagnostic, meter *providerWorkMeter) (*CandidateAdmissionTicket, error) {
+	if policy == nil || policy.raw == "" || len(policy.raw) > 64<<10 || intent == nil || intent.raw == "" || len(intent.raw) > 64<<10 || !lowerHash(intent.digest) || policy.policy != intent.identity.Policy || request == nil || len(request.method) > 64 || len(request.params) > 8<<10 || len(request.body) > 16<<10 || len(request.head) > 512 || len(request.wire) > 16<<10 || !lowerHash(request.inputDigest) || !lowerHash(request.paramsDigest) || !candidateLedgerClockAdvance(intent.clock, clock) || candidateLedgerExpired(clock, intent.deadline) {
+		return nil, errProviderIntegration
+	}
+	id := intent.identity
+	for _, digest := range []string{id.Policy, id.Namespace, id.Instance, id.SourceID} {
+		if !lowerHash(digest) {
+			return nil, errProviderIntegration
+		}
+	}
+	total, err := providerFrontierWorkTotal(reservation.execution, reservation.remaining)
+	if err != nil || total != reservation.work || reservation.live == 0 || reservation.retained != reservation.live || total[0] != 1 || total[8] != 1 || total[1] <= uint64(len(request.wire)) || reservation.remaining[0] != 0 || reservation.remaining[1] != 0 || reservation.remaining[8] != 0 || meter != nil && !meter.preflight(providerEncodeEvent, 64<<10) {
+		return nil, errProviderIntegration
+	}
+	for coordinate := 3; coordinate <= 7; coordinate++ {
+		if total[coordinate] != 0 {
+			return nil, errProviderIntegration
+		}
+	}
+	if !request.firstFinalizedObserved(meter) {
+		return nil, errProviderIntegration
+	}
+	input, ok := providerIntegrationObjectDigestObserved("request", providerReplayPhaseBytes(request.wire, meter), meter)
+	params := providerReplayDigest("sage-provider-params-v1", providerReplayPhaseBytes(request.params, meter), meter)
+	if !ok || input != request.inputDigest || params == "" || params != request.paramsDigest {
+		return nil, errProviderIntegration
+	}
+	p, policyOK := providerReplayJSON(providerReplayPhaseBytes(policy.raw, meter), meter).(map[string]any)
+	limits, limitsOK := p["limits"].(map[string]any)
+	operation, operationOK := limits["operation"].(map[string]any)
+	duration, durationOK := providerCandidateUint(operation["deadline_ms"], true)
+	deadline, deadlineOK := providerUpperSum(uint64(clock.WallMS-clock.UncertaintyMS), duration)
+	if !policyOK || !limitsOK || !operationOK || !durationOK || !deadlineOK || deadline > math.MaxInt64 || !providerCandidateLimits(limits) || !providerCandidateClock(p["clock"]) {
+		return nil, errProviderIntegration
+	}
+	segment := candidateAdmissionSegmentObserved(intent.digest, 0, meter)
+	if segment == "" {
+		return nil, errProviderIntegration
+	}
+	raw := providerReplayCanonical(map[string]any{"format": "sage-provider-budget-ticket-v2", "admission_digest": intent.digest, "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": "0", "fence": strconv.FormatUint(intent.fence, 10), "sequence": "0", "previous_ticket": nil, "segment": segment, "kind": "rpc-capture", "input_digest": input, "method": request.method, "params_digest": params, "reservation": candidateLedgerWorkObject(reservation.work), "live_disk_reserved": strconv.FormatUint(reservation.live, 10), "retained_bytes_reserved": strconv.FormatUint(reservation.retained, 10), "deadline_wall_ms": strconv.FormatUint(min(deadline, intent.deadline), 10)}, 64<<10, meter)
+	return parseCandidateAdmissionTicketObserved(policy, intent, 0, raw, 64<<10, meter)
+}
+
 // The first typed admit must contain exactly one semantically referenced
 // binding. E0 is the already independently replayed prefix boundary, not the
 // later live HEAD or producer maps. Original scan controls/chunks supply the
