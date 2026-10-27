@@ -93,7 +93,7 @@ func (g *providerGuardianOwner) fits(m *providerWorkMeter) bool {
 // Claim work was irreversibly debited before this first sample. The start is
 // a per-claim sublimit; it never replaces the original admission clock/epoch.
 func (g *providerGuardianOwner) sampleLocked() (ClockSample, error) {
-	if !g.fits(g.meter) {
+	if g == nil || !g.fits(g.meter) {
 		return ClockSample{}, errProviderIntegration
 	}
 	now, err := g.store.samplePrimitive()

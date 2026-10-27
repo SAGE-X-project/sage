@@ -6,7 +6,7 @@ func TestProviderGuardianBoundsHaveSeparateLifetimeAndClosedAuxiliaryCaps(t *tes
 	config, _ := providerGuardianConfigFixture(t)
 	b := config.bounds
 	g := *b.guardian
-	raw := g.object()
+	raw := contentJSON(providerIntegrationJSON(g.object()))
 	parsed, ok := providerGuardianBoundsValue(raw, b)
 	if !ok || parsed != g || !g.valid(b) {
 		t.Fatal("explicit closed lifetime did not round trip")
@@ -73,6 +73,19 @@ func TestProviderGuardianBoundsHaveSeparateLifetimeAndClosedAuxiliaryCaps(t *tes
 		if _, ok := providerGuardianBoundsValue(value, b); ok {
 			t.Fatal("incomplete bounds became a selected upper")
 		}
+	}
+	for _, mode := range []string{"capacity", "scalar"} {
+		t.Run(mode, func(t *testing.T) {
+			value := contentJSON(providerIntegrationJSON(g.object())).(map[string]any)
+			if mode == "capacity" {
+				value["per_claim"].(map[string]any)["clock_reads"] = "invalid"
+			} else {
+				value["maximum_attempts"] = "invalid"
+			}
+			if _, ok := providerGuardianBoundsValue(value, b); ok {
+				t.Fatal("non-numeric closed bound created a capacity", mode)
+			}
+		})
 	}
 }
 

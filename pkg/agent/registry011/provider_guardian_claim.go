@@ -74,7 +74,10 @@ func (g *providerGuardianOwner) claimRoomLocked(next uint64) bool {
 // meter. A retained claim acknowledges metadata only; a later exact T and its
 // composite admission binding still have to be independently retained.
 func (g *providerGuardianOwner) retainClaimLocked(target string) error {
-	if !g.fits(g.meter) || g.phase != providerGuardianMetadata || !lowerHash(target) || g.claim.target != "" || g.claim.operation != "" {
+	if g == nil || !g.fits(g.meter) || g.phase != providerGuardianMetadata || !lowerHash(target) || g.claim.target != "" || g.claim.operation != "" {
+		if g != nil && g.owner == g && g.store != nil && g.store.guardian == g && g.active {
+			g.failLocked() // A consumed claim cannot recover from invalid state.
+		}
 		return errProviderIntegration
 	}
 	s, m := g.store, g.meter

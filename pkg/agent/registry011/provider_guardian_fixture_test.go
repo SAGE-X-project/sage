@@ -89,7 +89,7 @@ func providerGuardianStoreFixture(t *testing.T) *providerCustodyStore {
 	return s
 }
 
-func providerGuardianFirstFixture(t *testing.T) (*providerCustodyStore, *providerFirstOperationOwner) {
+func providerGuardianPreparedFixture(t *testing.T) *providerCustodyStore {
 	t.Helper()
 	s := providerGuardianStoreFixture(t)
 	x := mustProviderBindingCodec(t, s.config)
@@ -105,6 +105,12 @@ func providerGuardianFirstFixture(t *testing.T) (*providerCustodyStore, *provide
 	if _, err := s.scanControl.inspectBeforeAdmission(target); err != nil {
 		t.Fatal("V5 independent original scan", err)
 	}
+	return s
+}
+
+func providerGuardianFirstFixture(t *testing.T) (*providerCustodyStore, *providerFirstOperationOwner) {
+	t.Helper()
+	s := providerGuardianPreparedFixture(t)
 	o, err := newProviderFirstOperationCandidate(s)
 	if err != nil {
 		t.Fatalf("V5 first open: %v; seq=%d F=%+v", err, s.sequence, s.firstAdmissionOwner)
