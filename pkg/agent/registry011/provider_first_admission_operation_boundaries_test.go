@@ -183,3 +183,62 @@ func TestProviderFirstOperationMissingLiveCommandDataCannotDispatch(t *testing.T
 		})
 	}
 }
+
+func TestProviderFirstOperationCannotSettleWithoutItsOriginalConsumption(t *testing.T) {
+	var missing *providerFirstOperationOwner
+	if result, err := missing.executeCandidate(nil); err == nil || result != nil {
+		t.Fatal("missing owner executed")
+	}
+	s, o := providerFirstOperationFixture(t)
+	before, stored := o.execution.actual, s.stored
+	success := false
+	result, err := o.finishLocked(nil, nil, errProviderIntegration, &success)
+	if err == nil || result != nil || success || s.sequence != 2 || s.stored != stored || s.last != nil || o.execution.actual != before || o.remaining != nil || o.settlement {
+		t.Fatal("settlement without the original consumed ticket performed work")
+	}
+}
+
+// A proposed coordinator packet can disagree with the retained transaction
+// arguments. These finite in-memory cases must fail before the first write;
+// no altered original is persisted and no hostile peer runs.
+func TestProviderFirstOperationCustodianRefusesDifferentProposedOriginals(t *testing.T) {
+	for _, mode := range []string{"intent", "fresh-object"} {
+		t.Run(mode, func(t *testing.T) {
+			s, o := providerFirstOperationFixture(t)
+			s.mu.Lock()
+			defer s.mu.Unlock()
+			c, meter := o.integration, o.execution
+			clock, err := c.currentClock()
+			if err != nil {
+				t.Fatal(err)
+			}
+			consumption, err := providerFirstOperationConsumptionData(c.firstTicket, providerClockDiagnostic(clock), meter)
+			if err != nil {
+				t.Fatal(err)
+			}
+			change, err := c.ledger.AppendCandidateConsumption(consumption)
+			if err != nil {
+				t.Fatal(err)
+			}
+			o.state = providerFirstOperationConsumption
+			p, err := providerFirstOperationChangeData(s, c.root, c.ledger, o.indexes, s.frontierReplay.current, "consume", consumption.digest, change, []providerIntegrationObjectInput{{"consumption", providerReplayPhaseBytes(consumption.raw, meter)}}, providerClockDiagnostic(clock), meter)
+			if err != nil {
+				t.Fatal(err)
+			}
+			intent, commit, frontier := p.intent, p.commit, p.frontier
+			fresh := append([]providerIntegrationObject(nil), p.fresh...)
+			o.change = p
+			switch mode {
+			case "intent":
+				p.intent = []byte("different finite proposed intent")
+			case "fresh-object":
+				p.fresh[0].raw += " "
+			}
+			stored := s.stored
+			cost, err := s.frontierReplay.retainOperationOwnedLocked(s, p.inventory, fresh, intent, commit, frontier, p.after, nil, nil, o)
+			if err == nil || cost != (providerFrontierRetention{}) || !s.failed || !s.frontierReplay.failed || !s.frontierFiles.failed || s.sequence != 2 || s.stored != stored || meter.actual[9] != 0 || meter.actual[0] != 0 || s.last != nil || o.consumption {
+				t.Fatal("different proposed originals reached a retained C or released its hold", mode)
+			}
+		})
+	}
+}

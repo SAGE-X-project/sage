@@ -27,7 +27,7 @@ func TestProviderFirstOperationDataBuildersRefuseMissingOrInconsistentEvidence(t
 				s.activeMeter.Store(o.execution)
 			}()
 			clock := c.firstTicket.intent.clock
-			end := ClockSample{ClockID: clock.ClockID, Epoch: clock.Epoch, WallMS: clock.WallMS, MonotonicMS: clock.MonotonicMS, UncertaintyMS: clock.UncertaintyMS}
+			end := ClockSample(clock)
 			var err error
 			switch {
 			case strings.HasPrefix(mode, "consumption-"):
