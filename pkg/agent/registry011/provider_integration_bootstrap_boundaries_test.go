@@ -1,6 +1,7 @@
 package registry011
 
 import (
+	"encoding/json"
 	"strconv"
 	"testing"
 )
@@ -12,6 +13,12 @@ func TestProviderBootstrapCannotInstallFromChangedOrIncompleteLocalData(t *testi
 			// changed value below is local finite UNIT data, never a malicious
 			// peer or a payload sent over a transport.
 			c, s := providerRetainedFirstExchangeFixture(t)
+			// An RPC result is ordinary JSON, not retained canonical metadata.
+			// Decode the normal wire object before making finite unit changes.
+			var value map[string]any
+			if err := json.Unmarshal([]byte(c.firstResult), &value); err != nil {
+				t.Fatal("normal RPC result fixture", err)
+			}
 			switch mode {
 			case "missing-exchange":
 				c.firstExchange = ""
@@ -22,19 +29,15 @@ func TestProviderBootstrapCannotInstallFromChangedOrIncompleteLocalData(t *testi
 			case "header-shape":
 				c.firstResult = `{}`
 			case "number":
-				value := contentJSON([]byte(c.firstResult)).(map[string]any)
 				value["number"] = "0x00"
 				c.firstResult = string(providerIntegrationJSON(value))
 			case "timestamp":
-				value := contentJSON([]byte(c.firstResult)).(map[string]any)
 				value["timestamp"] = "unknown"
 				c.firstResult = string(providerIntegrationJSON(value))
 			case "old-height":
-				value := contentJSON([]byte(c.firstResult)).(map[string]any)
 				value["number"] = "0x" + strconv.FormatUint(sepoliaDeploymentBlock-1, 16)
 				c.firstResult = string(providerIntegrationJSON(value))
 			case "changed-hash":
-				value := contentJSON([]byte(c.firstResult)).(map[string]any)
 				value["hash"] = admissionTestDigest("f")
 				c.firstResult = string(providerIntegrationJSON(value))
 			case "clock":
