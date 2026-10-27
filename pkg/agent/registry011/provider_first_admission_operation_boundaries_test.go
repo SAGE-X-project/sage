@@ -78,11 +78,12 @@ func TestProviderFirstOperationMissingOriginalsOrDestinationsNeverDispatch(t *te
 				}
 			}
 			ctx := context.Background()
-			if mode == "cancelled" {
+			switch mode {
+			case "cancelled":
 				cancelled, cancel := context.WithCancel(ctx)
 				cancel()
 				ctx = cancelled
-			} else if mode == "missing-context" {
+			case "missing-context":
 				ctx = nil
 			}
 			var err error

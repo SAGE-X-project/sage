@@ -58,22 +58,13 @@ func providerFirstOperationCapture(ctx context.Context, conn *tls.Conn, limits P
 		return nil, errProviderIntegration
 	}
 	state := conn.ConnectionState()
-	if !providerIntegrationCertificates(state, certificates, meter) {
+	chains, err := providerFirstOperationTLSIdentity(state, certificates, meter)
+	if err != nil {
 		return nil, errProviderIntegration
 	}
-	// Identity construction hashes each bounded original certificate and
-	// encodes its 32-byte digest. Charge both separately from the TLS event.
-	for _, chain := range state.VerifiedChains {
-		for _, certificate := range chain {
-			if !meter.event(providerHashEvent, uint64(len(certificate.Raw))) || !meter.event(providerEncodeEvent, 32) || !meter.event(providerCopyEvent, 66) {
-				return nil, errProviderIntegration
-			}
-		}
-	}
-	chains, err := providerTLSIdentity(state)
 	deadline, hasDeadline := ctx.Deadline()
 	remaining := uint64(limits.WireBytes - len(request.wire))
-	if err != nil || !hasDeadline || conn.SetDeadline(deadline) != nil {
+	if !hasDeadline || conn.SetDeadline(deadline) != nil {
 		return nil, errProviderIntegration
 	}
 	wire := providerReplayPhaseBytes(request.wire, meter)
@@ -108,4 +99,34 @@ func providerFirstOperationCapture(ctx context.Context, conn *tls.Conn, limits P
 	}
 	complete = true
 	return &ProviderTransportSample{Endpoint: SepoliaRPCURL, Method: request.method, HTTPVersion: "HTTP/1.1", RequestHead: requestHead, RequestBody: requestBody, ResponseHead: head, ResponseBody: body, ResponseWire: raw.Bytes(), Result: result, Headers: headers, TLSVersion: state.Version, CipherSuite: state.CipherSuite, ServerName: state.ServerName, VerifiedChains: chains, WireBytes: len(wire) + consumed, Started: started, Finished: time.Now(), Complete: true}, nil
+}
+
+// Invalid TLS states are finite unit DATA. A zero tls.Conn is not a usable Go
+// connection and must never be manufactured as a runtime refusal scenario.
+// Real capture always obtains this state from its normal verified connection.
+func providerFirstOperationTLSIdentity(state tls.ConnectionState, certificates providerTLSBounds, meter *providerWorkMeter) ([][]string, error) {
+	complete := false
+	defer func() {
+		if !complete {
+			meter.refuse()
+		}
+	}()
+	if meter == nil || meter.closed || meter.failed || !state.HandshakeComplete || state.Version < tls.VersionTLS12 || state.ServerName != "rpc.sepolia.ethpandaops.io" || state.NegotiatedProtocol != "" && state.NegotiatedProtocol != "http/1.1" || len(state.VerifiedChains) == 0 || !providerIntegrationCertificates(state, certificates, meter) {
+		return nil, errProviderIntegration
+	}
+	// Identity construction hashes each bounded original certificate and
+	// encodes its 32-byte digest. Charge both separately from the TLS event.
+	for _, chain := range state.VerifiedChains {
+		for _, certificate := range chain {
+			if !meter.event(providerHashEvent, uint64(len(certificate.Raw))) || !meter.event(providerEncodeEvent, 32) || !meter.event(providerCopyEvent, 66) {
+				return nil, errProviderIntegration
+			}
+		}
+	}
+	chains, err := providerTLSIdentity(state)
+	if err != nil {
+		return nil, errProviderIntegration
+	}
+	complete = true
+	return chains, nil
 }

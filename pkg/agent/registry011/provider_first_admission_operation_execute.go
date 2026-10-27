@@ -42,7 +42,7 @@ func (o *providerFirstOperationOwner) executeCandidateWithConnection(ctx context
 	}
 	var sample *ProviderTransportSample
 	if err == nil {
-		defer connection.Close()
+		defer func() { _ = connection.Close() }()
 		sample, err = providerFirstOperationCapture(bounded, connection, o.plan.capture, o.request, o.execution, o.tls)
 	}
 	return o.finishLocked(permit, sample, err, &success)

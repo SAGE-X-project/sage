@@ -77,7 +77,7 @@ func TestProviderFirstOperationCaptureUpperRefusesUnsupportedFiniteShapes(t *tes
 }
 
 func TestProviderFirstOperationCaptureRefusesBeforeNormalPeerUse(t *testing.T) {
-	for _, mode := range []string{"context", "cancelled", "connection", "request", "meter", "store", "revision", "detached", "scan", "remaining", "closed", "failed", "limits", "certificates", "request-bytes", "wire-upper", "decoded-upper", "work-upper", "unverified", "receive-limit", "certificate-size", "deadline", "closed-connection"} {
+	for _, mode := range []string{"context", "cancelled", "connection", "request", "meter", "store", "revision", "detached", "scan", "remaining", "closed", "failed", "limits", "certificates", "request-bytes", "wire-upper", "decoded-upper", "work-upper", "receive-limit", "certificate-size", "deadline", "closed-connection"} {
 		t.Run(mode, func(t *testing.T) {
 			request, err := newProviderIntegrationRequest("eth_getBlockByNumber", []any{"finalized", false})
 			if err != nil {
@@ -85,12 +85,7 @@ func TestProviderFirstOperationCaptureRefusesBeforeNormalPeerUse(t *testing.T) {
 			}
 			limits, certificates := providerTestLimits(), providerTLSBounds{1, 1, 8 << 10}
 			meter, upper := providerFirstCaptureMeter(t, request, limits, certificates)
-			var conn *tls.Conn
-			if mode == "receive-limit" || mode == "certificate-size" || mode == "deadline" || mode == "closed-connection" {
-				conn = providerIntegrationOwnedTLS(t, request.body, `{"jsonrpc":"2.0","id":1,"result":"normal"}`)
-			} else {
-				conn = &tls.Conn{} // Invalid-data guards never use a connection.
-			}
+			conn := providerIntegrationOwnedTLS(t, request.body, `{"jsonrpc":"2.0","id":1,"result":"normal"}`)
 			ctx, cancel := context.WithTimeout(context.Background(), limits.Timeout)
 			defer cancel()
 			switch mode {
@@ -148,6 +143,44 @@ func TestProviderFirstOperationCaptureRefusesBeforeNormalPeerUse(t *testing.T) {
 			}
 			if meter != nil && !meter.failed {
 				t.Fatal("failed capture left a reusable observer", mode)
+			}
+		})
+	}
+}
+
+func TestProviderFirstOperationTLSIdentityRefusesFiniteUnverifiedStateOrQuota(t *testing.T) {
+	request, err := newProviderIntegrationRequest("eth_getBlockByNumber", []any{"finalized", false})
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn := providerIntegrationOwnedTLS(t, request.body, `{"jsonrpc":"2.0","id":1,"result":"normal"}`)
+	for _, mode := range []string{"unverified", "empty-chain", "nil-certificate", "empty-der", "hash-quota", "encode-quota", "copy-quota"} {
+		t.Run(mode, func(t *testing.T) {
+			certificates := providerTLSBounds{1, 1, 8 << 10}
+			meter, _ := providerFirstCaptureMeter(t, request, providerTestLimits(), certificates)
+			state := conn.ConnectionState()
+			der := uint64(len(state.VerifiedChains[0][0].Raw))
+			switch mode {
+			case "unverified":
+				state = tls.ConnectionState{}
+			case "empty-chain":
+				state.VerifiedChains = state.VerifiedChains[:1:1]
+				state.VerifiedChains = append(state.VerifiedChains[:0:0], nil)
+			case "nil-certificate":
+				state.VerifiedChains = append(state.VerifiedChains[:0:0], append(state.VerifiedChains[0][:0:0], nil))
+			case "empty-der":
+				certificate := *state.VerifiedChains[0][0]
+				certificate.Raw = nil
+				state.VerifiedChains = append(state.VerifiedChains[:0:0], append(state.VerifiedChains[0][:0:0], &certificate))
+			case "hash-quota":
+				meter.upper[10] = der + 1
+			case "encode-quota":
+				meter.upper[10] = 2*der + 2 + 32*32
+			case "copy-quota":
+				meter.upper[10] = 2*der + 2 + 32*32 + 1 + 66
+			}
+			if identity, err := providerFirstOperationTLSIdentity(state, certificates, meter); err == nil || identity != nil || !meter.failed {
+				t.Fatal("finite invalid TLS DATA or incomplete measurement returned an identity", mode)
 			}
 		})
 	}
