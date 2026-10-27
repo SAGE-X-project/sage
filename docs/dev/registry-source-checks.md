@@ -1025,3 +1025,57 @@ recovery without redispatch and the owned executor remain required. The parsed
 clock remains a candidate diagnostic type rather than a trusted clock input.
 Finite inert unit scenarios exercise these boundaries; they are not actual
 provider calls, host compromise simulations or operating qualification.
+
+### Proposed bounded admission ledger
+
+`CandidateAdmissionSettlement` validates proposed V2 terminal data against one
+ticket. A complete outcome requires a bounded end clock, retained-result hash
+and actual-work declaration within every reserved dimension. Failed, cancelled
+and uncertain outcomes contain neither actual work nor a result hash; they may
+close a reservation after expiry without extending its original deadline.
+These declarations are candidate data, not owned measurements or retained ACKs.
+
+`CandidateAdmissionLedger` is an ephemeral, owner-bound model of one complete
+candidate-data prefix. Its first ticket may be local work or any parsed
+allowlisted read. It does not qualify the actual bootstrap's first finalized
+request, its exact method/parameters or owned request bytes. Those independent
+checks remain mandatory in the later owned executor and bootstrap integration;
+this generic model cannot substitute for them. It retains every ticket,
+consumption and terminal state for
+its bounded lifetime. A reserved ticket can be consumed once or terminally
+charged without consumption. Complete settlement requires consumption first.
+Any terminal state refuses further consumption or settlement, including reuse
+separated by other tickets. Mutex serialization covers this model only.
+
+Every outcome transfers the full original reservation from outstanding to
+charged, even if a complete record declares less actual work. All eleven
+operation, segment and bootstrap dimensions remain bounded. Charged segments
+and both live and retained storage upper bounds are never refunded. Candidate
+clocks must advance across record kinds; a retained expired sample prevents
+new tickets or consumption while allowing later full-charge terminal recovery.
+No sample becomes a trusted clock input.
+
+Each append generates one fixed-shape ledger node and one budget root linked
+to exact predecessors. The initial change also includes three explicit empty
+anchors. Appends never clone, serialize or rehash the historical prefix. All
+quota checks and new metadata preparation precede model mutation. Immutable
+limits bound the lifetime to 4,096 records, 16 MiB of record payload and 64 MiB
+of generated metadata; callers must supply smaller or equal positive bounds.
+Individual generated nodes and roots are limited to 8,192 bytes. These model
+quotas do not measure physical allocation or qualify an operating work budget.
+
+`ReplayCandidateAdmissionLedger` reconstructs typed candidate records once in
+order and compares every exact budget root. Payload and expected-root bytes
+have separate preflight quotas; expected roots are a subset of generated
+metadata and are not counted twice. A successfully created prefix remains
+replayable with identical bounds. Any refusal returns no reconstructed model.
+Finite inert unit scenarios cover terminal ordering, nonadjacent reuse, all
+resource dimensions, storage peaks, clock expiry, quota boundaries, unchanged
+state after refusal and generation-to-replay equality.
+
+These candidate types do not persist records, authenticate absence, implement
+custody CAS or ACK, issue work permits, dispatch requests or resume work after
+a restart. Recreating a model loses state and cannot reset an operating ledger.
+Qualified durable storage, independent custody, an owned clock and executor,
+complete history, bootstrap and publication remain required. Existing V1 and
+SAGE 0.10.0 formats, strict checks and operating-policy activation are unchanged.
