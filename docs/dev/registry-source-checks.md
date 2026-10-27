@@ -1359,3 +1359,15 @@ duration also includes any wait after inspection. Any failed or uncertain
 finishing primitive permanently closes the owner and retains the full hold.
 There is no success/ACK path yet: mandatory first-I binding, independent
 seeded typed E1 replay and qualified custody remain separate work.
+
+The closed scan-admission binding format names only existing E0, setup, scan
+head/high-water/attempt, target, terminal chunk and admission digests. It binds
+the original clock/deadline and exact open, cumulative scan and total uppers;
+live occupancy is derived from the same committed retained upper. A metered
+reader reconstructs H0 through the bound historical H_k from both original
+copies and every original intent/commit. It recalculates the held sum and
+policy capacities, paying again for each repeat read/codec/hash/copy. A later
+provisional current scan head cannot substitute for that historical evidence.
+The returned seed is only arithmetic DATA: target/chunk/I/E1 validation,
+mandatory typed object integration and current-pin qualification are still
+required before any concrete finishing or custody result can be accepted.

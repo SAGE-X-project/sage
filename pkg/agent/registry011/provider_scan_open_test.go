@@ -1,6 +1,11 @@
 package registry011
 
-import "testing"
+import (
+	"bytes"
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestProviderScanOpenKeepsExactSetupAndMainHighwaterBytes(t *testing.T) {
 	s := providerScanStoreFixture(t)
@@ -84,5 +89,28 @@ func TestProviderScanDomainHashIncludesItsZeroSeparator(t *testing.T) {
 	before := m.actual[10]
 	if got := x.hash("abc", []byte("def")); got != providerCandidateHash("abc", []byte("def")) || m.actual[10]-before != 8 {
 		t.Fatal("hash metric lost domain NUL or invocation")
+	}
+}
+
+func TestProviderScanOpenRefusesMismatchedOriginalControlWithoutRepair(t *testing.T) {
+	first := providerFirstAdmissionBoundsFixture()
+	config, clock := providerScanProvisionedFixtureWithFirst(t, &first)
+	name := filepath.Join(config.evidenceDirectory, "SCAN-HEAD")
+	// Inert inconsistent DATA in a fresh owned fixture, never an operating root.
+	original := []byte(`{"format":"incomplete-control-data"}`)
+	if err := os.WriteFile(name, original, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if s, err := openProviderScanCandidate(config, clock); err == nil || s != nil {
+		t.Fatal("mismatched original selected a fresh bootstrap owner")
+	}
+	got, err := os.ReadFile(name)
+	if err != nil || !bytes.Equal(got, original) {
+		t.Fatal("refusal replaced or repaired a prior control original", err)
+	}
+	for _, path := range []string{filepath.Join(config.custodyDirectory, providerCustodyName("setup-intent", 0)), filepath.Join(config.evidenceDirectory, providerCustodyName("setup-claim", 0))} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatal("initial refusal created a new setup prefix", err)
+		}
 	}
 }

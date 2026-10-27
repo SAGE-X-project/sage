@@ -92,6 +92,27 @@ func TestProviderFrontierCustodyNilOwnerIsNotAnExecutionFactory(t *testing.T) {
 	}
 }
 
+func TestProviderFrontierCustodyRequiresCompleteTypedOriginalsBeforeWriting(t *testing.T) {
+	for _, mode := range []string{"empty-original", "missing-replayer"} {
+		t.Run(mode, func(t *testing.T) {
+			f, u, r := providerFrontierWriterFixture(t)
+			s := f.store
+			record := u.records[0]
+			after := providerFrontierNextFileHead(t, f, record)
+			fresh := append([]providerIntegrationObject(nil), record.fresh...)
+			if mode == "empty-original" {
+				fresh[0].raw = ""
+			} else {
+				r.body = nil
+			}
+			stored, retained, head := s.stored, s.retainedRaw, f.pinRaw
+			if _, err := r.retain(s, record.inventory, fresh, record.intent, record.commit, record.frontier, after); err == nil || !s.failed || !r.failed || !f.failed || s.stored != stored || s.retainedRaw != retained || s.sequence != 0 || f.pinRaw != head || f.pending != nil || len(s.objects) != 0 || s.last != nil {
+				t.Fatal("incomplete typed closure wrote or accepted a frontier", mode)
+			}
+		})
+	}
+}
+
 func TestProviderFrontierSealPreflightMatchesBothActualDebitBoundaries(t *testing.T) {
 	m, _ := providerPrivateLedgerFixture(t, 2, 4)
 	failed := ledgerTestSettlement(t, m.lastTicket, "failed", 20)
