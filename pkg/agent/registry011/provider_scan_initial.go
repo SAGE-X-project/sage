@@ -55,6 +55,26 @@ func (i *providerScanInitialInspection) afterRead(disk *retentionDisk, name stri
 	return true
 }
 
+// The retained lock is deliberately empty. General immutable-object reads
+// reject empty payloads, so inspect this already locked descriptor separately
+// without weakening that primitive. A successful zero-byte original read is
+// still one observed target object and one logical read invocation.
+func (i *providerScanInitialInspection) emptyLock(disk *retentionDisk) bool {
+	if !i.beforeRead(disk, "AUTHORITY.LOCK", 1) || !i.meter.preflight(providerReadEvent, 1) || disk.checkIdentity() != nil {
+		return false
+	}
+	info, err := disk.lock.Stat()
+	if err != nil || info.Size() != 0 {
+		return false
+	}
+	var probe [1]byte
+	n, err := disk.lock.ReadAt(probe[:], 0)
+	if n != 0 || err != io.EOF || disk.checkIdentity() != nil || !i.meter.event(providerReadEvent, 0) {
+		return false
+	}
+	return i.afterRead(disk, "AUTHORITY.LOCK", 0)
+}
+
 // Reserve the entire last nonempty setup record PLUS both complete catalogs
 // before any target original read or catalog allocation. The finite profile
 // may refuse; it never buys another chunk/deadline or reports partial success.
@@ -198,8 +218,7 @@ func (c *providerScanControl) inspectInitial(rawTarget []byte) (*providerScanEmp
 		return nil, errProviderIntegration
 	}
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {
-		lock, err := s.read(disk, "AUTHORITY.LOCK", 1)
-		if err != nil || len(lock) != 0 {
+		if !i.emptyLock(disk) {
 			return nil, errProviderIntegration
 		}
 	}

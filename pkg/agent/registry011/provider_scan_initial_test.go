@@ -57,7 +57,7 @@ func TestProviderScanInitialInspectsTheWholeFrozenEmptyPrefix(t *testing.T) {
 }
 
 func TestProviderScanInitialRefusesUnknownTargetOrCatalogWithoutRefund(t *testing.T) {
-	for _, mode := range []string{"wrong-digest", "unknown-file", "later-stage"} {
+	for _, mode := range []string{"wrong-digest", "unknown-file", "nonempty-lock", "later-stage"} {
 		t.Run(mode, func(t *testing.T) {
 			s := providerScanStoreFixture(t)
 			raw, a := providerScanInitialTargetFixture(t, s)
@@ -67,6 +67,10 @@ func TestProviderScanInitialRefusesUnknownTargetOrCatalogWithoutRefund(t *testin
 			case "unknown-file":
 				if os.WriteFile(filepath.Join(s.config.evidenceDirectory, "ordinary-note"), []byte("ordinary unrelated file"), 0600) != nil {
 					t.Fatal("finite unrelated file fixture")
+				}
+			case "nonempty-lock":
+				if os.WriteFile(filepath.Join(s.config.evidenceDirectory, "AUTHORITY.LOCK"), []byte("ordinary invalid lock contents"), 0600) != nil {
+					t.Fatal("finite lock-size refusal fixture")
 				}
 			case "later-stage":
 				x, _ := newProviderScanCodec(s.config, nil)
@@ -83,6 +87,98 @@ func TestProviderScanInitialRefusesUnknownTargetOrCatalogWithoutRefund(t *testin
 			held, stored := s.scanControl.held, s.stored
 			if chunk, err := s.scanControl.inspectInitial(raw); err == nil || chunk != nil || !s.failed || !s.scanControl.failed || s.scanControl.held != held || s.stored != stored || s.last != nil || s.activeMeter.Load() != nil {
 				t.Fatal("partial or wrong target became complete/refunded")
+			}
+		})
+	}
+}
+
+// These are finite observer-state units, not restored scan owners or a path
+// around the separately claimed, one-use inspectInitial entry point.
+func TestProviderScanInitialObserverRefusesForeignOrExhaustedReads(t *testing.T) {
+	s := providerScanStoreFixture(t)
+	for _, mode := range []string{"owner", "inactive", "failed", "completed", "meter", "foreign-root", "objects", "bytes"} {
+		t.Run(mode, func(t *testing.T) {
+			m := &providerWorkMeter{scan: s.scanControl, upper: s.config.bounds.scan.chunkWork, maximumClocks: 8}
+			m.owner = m
+			i := &providerScanInitialInspection{control: s.scanControl, meter: m, active: true, targetNames: map[string]bool{"custody:ANCHOR": true}}
+			i.owner = i
+			s.activeMeter.Store(m)
+			defer s.activeMeter.Store(nil)
+			disk := s.custody
+			switch mode {
+			case "owner":
+				i.owner = nil
+			case "inactive":
+				i.active = false
+			case "failed":
+				i.failed = true
+			case "completed":
+				i.completed = true
+			case "meter":
+				s.activeMeter.Store(nil)
+			case "foreign-root":
+				disk = nil
+			case "objects":
+				i.objects = s.config.bounds.scan.chunkObjects
+			case "bytes":
+				i.rawBytes = s.config.bounds.scan.chunkRawBytes
+			}
+			beforeObjects, beforeBytes := i.objects, i.rawBytes
+			if i.beforeRead(disk, "ANCHOR", 1) || i.afterRead(disk, "ANCHOR", 1) || !i.failed || i.objects != beforeObjects || i.rawBytes != beforeBytes {
+				t.Fatal("unowned or exhausted observation advanced its counts")
+			}
+			if mode == "foreign-root" && i.key(disk, "ANCHOR") != "" {
+				t.Fatal("foreign root became part of the target")
+			}
+		})
+	}
+}
+
+func TestProviderScanInitialCatalogRefusesIncompleteOrUnfundedObservation(t *testing.T) {
+	for _, mode := range []string{"work", "clock", "directory", "closed-root", "missing-required", "required-limit"} {
+		t.Run(mode, func(t *testing.T) {
+			s := providerScanStoreFixture(t)
+			m := &providerWorkMeter{scan: s.scanControl, upper: s.config.bounds.scan.chunkWork, maximumClocks: 64}
+			m.owner = m
+			i := &providerScanInitialInspection{control: s.scanControl, meter: m, active: true, required: make(map[string]bool), observed: make(map[string]bool)}
+			i.owner = i
+			// Fixture catalog only. No inspection, parsed target, result or
+			// execution capability is restored from these expected names.
+			for _, disk := range []*retentionDisk{s.custody, s.evidence} {
+				names, err := providerDirectoryNames(disk, 32)
+				if err != nil {
+					t.Fatal(err)
+				}
+				for name := range names {
+					i.required[i.key(disk, name)] = true
+				}
+			}
+			s.activeMeter.Store(m)
+			defer s.activeMeter.Store(nil)
+			switch mode {
+			case "work":
+				m.upper = candidateWorkVector{}
+			case "clock":
+				s.clock.mu.Lock()
+				s.clock.read = s.clock.maximum
+				s.clock.mu.Unlock()
+			case "directory":
+				if err := os.Mkdir(filepath.Join(s.config.evidenceDirectory, "ordinary-folder"), 0700); err != nil {
+					t.Fatal(err)
+				}
+			case "closed-root":
+				if err := s.custody.root.Close(); err != nil {
+					t.Fatal(err)
+				}
+			case "missing-required":
+				i.required["evidence:missing-required-record"] = true
+			case "required-limit":
+				for n := uint64(0); n <= s.config.bounds.scan.maximumCatalogEntries; n++ {
+					i.required[providerCustodyName("finite-unit-required", n)] = true
+				}
+			}
+			if i.catalog() || i.completed || s.last != nil {
+				t.Fatal("incomplete or unfunded catalog became complete")
 			}
 		})
 	}

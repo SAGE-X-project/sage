@@ -103,11 +103,12 @@ func TestProviderScanPureSchemasRefuseMissingConfigAndBadInitialRecords(t *testi
 	s := providerScanStoreFixture(t)
 	for _, mode := range []string{"initial-link", "ordinal", "missing-link"} {
 		x := h
-		if mode == "initial-link" {
+		switch mode {
+		case "initial-link":
 			x.previous = admissionTestDigest("f")
-		} else if mode == "ordinal" {
+		case "ordinal":
 			x.ordinal = s.config.bounds.scan.maximumAttempts + 1
-		} else {
+		default:
 			x.ordinal = 1
 		}
 		if _, err := x.bytes(s.config); err == nil {
