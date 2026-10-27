@@ -39,9 +39,10 @@ func (b *providerScanBody) valid() bool {
 
 func (b *providerScanBody) key(disk *retentionDisk, name string) (string, bool) {
 	prefix := ""
-	if disk == b.control.store.custody {
+	switch disk {
+	case b.control.store.custody:
 		prefix = "custody:"
-	} else if disk == b.control.store.evidence {
+	case b.control.store.evidence:
 		prefix = "evidence:"
 	}
 	if prefix == "" || uint64(len(name)) > b.control.store.config.bounds.scan.maximumFilenameBytes {
