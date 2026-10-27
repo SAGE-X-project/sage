@@ -31,13 +31,13 @@ func newProviderFrontierReplayObserved(config providerCustodyConfig, meter *prov
 		return nil, errProviderIntegration
 	}
 	profile, domain := providerIntegrationProfileBytes(config.bounds, config.capture)
-	if meter != nil && (!meter.event(providerEncodeEvent, uint64(len(profile))) || !meter.event(providerHashEvent, uint64(len(profile)+1+len(domain))) || !meter.event(providerCodecEvent, uint64(len(config.policy.raw)))) {
+	if meter != nil && (!meter.event(providerEncodeEvent, uint64(len(profile))) || !meter.event(providerHashEvent, uint64(len(profile)+1+len(domain)))) {
 		return nil, errProviderIntegration
 	}
 	if config.profile != providerCandidateHash(domain, profile) {
 		return nil, errProviderIntegration
 	}
-	parsedPolicy, err := ParseProviderPolicyCandidate([]byte(config.policy.raw), 64<<10)
+	parsedPolicy, err := parseProviderPolicyCandidateObserved([]byte(config.policy.raw), 64<<10, meter)
 	if err != nil || *parsedPolicy != *config.policy {
 		return nil, errProviderIntegration
 	}
@@ -191,7 +191,8 @@ func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventor
 	// Every newly retained inventory entry must have been semantically required
 	// by the independent typed reconstruction, not merely hashed/read once.
 	for _, object := range fresh {
-		if !s.requiredReferences[object.kind+":"+object.digest] {
+		key, ok := providerReplayRefKey(providerIntegrationObjectRef{kind: object.kind, digest: object.digest}, r.meter)
+		if !ok || !s.requiredReferences[key] {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
 	}

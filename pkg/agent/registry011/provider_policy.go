@@ -3,7 +3,6 @@ package registry011
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"strconv"
 )
@@ -56,13 +55,17 @@ func (*ProviderCandidateContext) UnmarshalJSON([]byte) error {
 // Inputs must not be concurrently mutated; no caller-owned bytes are retained.
 // Raw JSON must already be canonical; this API never repairs a digest input.
 func ParseProviderPolicyCandidate(raw []byte, maximumBytes int) (*ProviderPolicyCandidate, error) {
+	return parseProviderPolicyCandidateObserved(raw, maximumBytes, nil)
+}
+
+func parseProviderPolicyCandidateObserved(raw []byte, maximumBytes int, meter *providerWorkMeter) (*ProviderPolicyCandidate, error) {
 	if maximumBytes <= 0 || maximumBytes > 64<<10 {
 		return nil, ErrConfiguration
 	}
 	if len(raw) == 0 || len(raw) > maximumBytes {
 		return nil, ErrProviderPolicyCandidate
 	}
-	m := contentObject(contentJSON(raw), "format", "spec_revision", "implementation_artifact", "instance", "provider", "finality", "trace_format", "carrier_formats", "fork_artifact", "limits", "clock", "retention", "assumptions", "claims")
+	m := contentObject(providerReplayJSON(raw, meter), "format", "spec_revision", "implementation_artifact", "instance", "provider", "finality", "trace_format", "carrier_formats", "fork_artifact", "limits", "clock", "retention", "assumptions", "claims")
 	if m == nil || m["format"] != "sage-provider-registry-observation-v1" ||
 		m["spec_revision"] != "a22a275b4d88f1d415b53cdffc5bed41231b77a0" ||
 		!providerCandidateDigest(m["implementation_artifact"]) || !providerCandidateDigest(m["fork_artifact"]) ||
@@ -72,13 +75,20 @@ func ParseProviderPolicyCandidate(raw []byte, maximumBytes int) (*ProviderPolicy
 	}
 	// The input is JCS. Marshal only already-checked ASCII string objects; their
 	// lexical member order and JSON escaping are identical to these JCS subtrees.
-	instance, _ := json.Marshal(m["instance"])
-	provider, _ := json.Marshal(m["provider"])
-	return &ProviderPolicyCandidate{
-		raw: string(raw), policy: providerCandidateHash("sage-provider-policy-v1", raw),
-		instance: providerCandidateHash("sage-registry-instance-v1", instance),
-		provider: providerCandidateHash("sage-provider-origin-v1", provider),
-	}, nil
+	instance := providerReplayMarshal(m["instance"], uint64(maximumBytes), meter)
+	provider := providerReplayMarshal(m["provider"], uint64(maximumBytes), meter)
+	if len(instance) == 0 || len(provider) == 0 {
+		return nil, ErrProviderPolicyCandidate
+	}
+	p := &ProviderPolicyCandidate{
+		raw: providerReplayString(raw, meter), policy: providerReplayDigest("sage-provider-policy-v1", raw, meter),
+		instance: providerReplayDigest("sage-registry-instance-v1", instance, meter),
+		provider: providerReplayDigest("sage-provider-origin-v1", provider, meter),
+	}
+	if p.raw == "" || p.policy == "" || p.instance == "" || p.provider == "" {
+		return nil, ErrProviderPolicyCandidate
+	}
+	return p, nil
 }
 
 // CanonicalBytes returns a fresh diagnostic copy. A zero candidate returns nil.

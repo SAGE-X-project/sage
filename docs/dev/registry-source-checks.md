@@ -1264,3 +1264,16 @@ copy when a canonical lower-case value requires no allocation. Pure nil callers
 keep the original public/legacy accounting contract. The ordinary pin parser
 unit uses references selected from its preexisting fixture only as DATA inputs;
 it is explicitly not the full independent-map catalog inspector still required.
+
+The private original-file replay reader creates fresh object, operation,
+binding, setup, position, ledger and index state under the already claimed scan
+body observer. It reads structural setup closure from both roots, then reads
+each main intent/pending/commit/frontier, V2 inventory, new object original and
+all typed transitive/high-water originals. Setup `expected_tip` obligations are
+closed against reconstructed main positions, rather than accepted during the
+first structural pass. Policy parsing observes its two subtree encoders, copied
+raw bytes and three domain hashes. Neither the reader nor its lineage predicate
+is a complete scan: whole-record chunk reservations, raw/catalog accounting,
+both catalog EOFs, retained command/chunk/settlement receipts and the private
+scan-to-first-admission binding remain integration requirements. The finite
+owned-file tests do not qualify an operating host, clock or retaining authority.

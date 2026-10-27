@@ -22,7 +22,15 @@ type providerCustodyReplay struct {
 }
 
 func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
-	ref, exists := s.objects[kind+":"+digest]
+	var scanMeter *providerWorkMeter
+	if m := s.activeMeter.Load(); m != nil && m.scan != nil {
+		scanMeter = m
+	}
+	key, keyOK := providerReplayRefKey(providerIntegrationObjectRef{kind: kind, digest: digest}, scanMeter)
+	if !keyOK {
+		return nil, errProviderIntegration
+	}
+	ref, exists := s.objects[key]
 	if !exists || ref.kind != kind || ref.digest != digest || ref.bytes > s.config.bounds.maximumObjectBytes {
 		return nil, errProviderIntegration
 	}
@@ -32,12 +40,10 @@ func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
 	raw, err := s.read(s.evidence, providerObjectName(kind, digest), int64(ref.bytes))
 	domain, _ := providerIntegrationDomain(kind)
 	hashBytes := uint64(len(raw) + len(domain))
-	var scanMeter *providerWorkMeter
-	if m := s.activeMeter.Load(); m != nil && m.scan != nil && domain != "" {
+	if scanMeter != nil && domain != "" {
 		// The new scan path observes the actual domain separator as well.
 		// Existing non-scan measurement subjects remain unchanged.
 		hashBytes++
-		scanMeter = m
 	}
 	if !s.event(providerHashEvent, hashBytes) || scanMeter == nil && domain != "" && !s.event(providerCodecEvent, uint64(len(raw))) {
 		return nil, errProviderIntegration
@@ -53,7 +59,7 @@ func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
 		}
 	}
 	if s.requiredReferences != nil {
-		s.requiredReferences[kind+":"+digest] = true
+		s.requiredReferences[key] = true
 	}
 	return raw, nil
 }

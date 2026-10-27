@@ -111,7 +111,7 @@ jobs:
               'provider_frontier_custody_open.go',
               'provider_scan_bounds.go', 'provider_scan_codec.go', 'provider_scan_open.go',
               'provider_scan_control.go', 'provider_scan_control_records.go',
-              'provider_scan_initial.go', 'provider_scan_target.go',
+              'provider_scan_initial.go', 'provider_scan_target.go', 'provider_scan_replay.go',
               'provider_replay_codec.go',
               'provider_integration.go', 'provider_integration_admission.go',
               'provider_integration_bootstrap.go', 'provider_integration_budget.go',
