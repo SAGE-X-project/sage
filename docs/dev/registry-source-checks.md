@@ -1204,7 +1204,9 @@ meter separately from the producer's creation-time setup observation. Typed
 enrollment, admission, ticket, consumption and settlement parsing observes each
 actual input and repeated policy decode, standard closed-schema encoding,
 ordinary or domain-separated hash, and retained string copy. The scan object
-reader also counts the domain NUL and its separate repeated format parse.
+reader also counts the domain NUL and its one actual format parse; the digest
+helper hashes without parsing. Repeating an object read counts those invocations
+again rather than reusing a previous diagnostic.
 Existing public DATA parsers retain their exact bytes and nil-observer behavior;
 they cannot select a scan meter or grant an acknowledgment. An inactive or
 different body observer refuses before typed replay. This does not yet close

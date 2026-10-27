@@ -79,7 +79,7 @@ func TestProviderReplayPrimitiveObservationPreservesExactBytesAndDomain(t *testi
 
 func TestProviderReplayLimitsPreserveTheExistingPublicPolicyBound(t *testing.T) {
 	policy, context, anchor, object := admissionTestIntentFixture(t, nil)
-	limits := contentJSON([]byte(policy.raw)).(map[string]any)["limits"]
+	limits := contentJSON([]byte(policy.raw)).(map[string]any)["limits"].(map[string]any)
 	want := providerPolicyTestBytes(t, limits)
 	if raw := providerReplayMarshal(limits, 64<<10, nil); !bytes.Equal(raw, want) {
 		t.Fatal("the existing policy bound was confused with ledger-node size")
@@ -179,7 +179,7 @@ func TestProviderReplayTypedParsersObserveEveryRepeatedPolicyDecode(t *testing.T
 	}
 }
 
-func TestProviderReplayScanReadsIncludeRepeatedDecodeAndDomainSeparator(t *testing.T) {
+func TestProviderReplayScanReadsObserveEachActualDecodeAndDomainSeparator(t *testing.T) {
 	u := providerFrontierUnitFixture(t)
 	s := u.s
 	c := &providerScanControl{store: s}
@@ -193,10 +193,10 @@ func TestProviderReplayScanReadsIncludeRepeatedDecodeAndDomainSeparator(t *testi
 		t.Fatal("ordinary retained object DATA", err)
 	}
 	n := uint64(len(raw))
-	// Object digest validation parses once; the separate format check parses
-	// those same original bytes again. Neither call is replaced by the other.
-	wantUnits := 2*(n*n+1) + (n + 1) + uint64(len("sage-provider-enrollment-v2")+1) + n + 1
-	if m.actual[2] != 2*n || m.actual[10] != wantUnits {
+	// Object digest validation hashes only. The subsequent format check is
+	// one actual decode; the former pre-observation must not count it again.
+	wantUnits := n*n + 1 + (n + 1) + uint64(len("sage-provider-enrollment-v2")+1) + n + 1
+	if m.actual[2] != n || m.actual[10] != wantUnits {
 		t.Fatal("retained object reread/parse/hash invocation omitted", m.actual, wantUnits)
 	}
 	before := m.actual

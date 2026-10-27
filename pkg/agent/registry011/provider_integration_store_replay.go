@@ -39,7 +39,7 @@ func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
 		hashBytes++
 		scanMeter = m
 	}
-	if !s.event(providerHashEvent, hashBytes) || domain != "" && !s.event(providerCodecEvent, uint64(len(raw))) {
+	if !s.event(providerHashEvent, hashBytes) || scanMeter == nil && domain != "" && !s.event(providerCodecEvent, uint64(len(raw))) {
 		return nil, errProviderIntegration
 	}
 	actual, valid := providerIntegrationObjectDigest(kind, raw)
