@@ -173,6 +173,11 @@ func (r *providerFrontierReplay) retainOperationOwnedLocked(s *providerCustodySt
 	if !s.exactFrontierMain(next, inventory, intent, commit) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
+	// The live append must derive the same wire-binding index as a full
+	// original scan. A producer's in-memory exchange is not that index.
+	if operation != nil && operation.state == providerFirstOperationSettlement && len(fresh) == 11 && operation.bindRetainedExchangeLocked(s, fresh) != nil {
+		return providerFrontierRetention{}, errProviderIntegration
+	}
 	cost, err := r.applyWithHighwater(s, inventory, fresh, intent, commit, frontier, after)
 	if err != nil || cost.stored != total || s.write(s.custody, s.name("frontier", next), frontier) != nil {
 		return providerFrontierRetention{}, errProviderIntegration

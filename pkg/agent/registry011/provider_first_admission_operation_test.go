@@ -63,6 +63,9 @@ func TestProviderFirstOperationConnectsOriginalConsumptionOneCaptureAndSettlemen
 	if o.state != providerFirstOperationDone || !o.consumption || !o.settlement || o.permit == nil || !o.permit.used || o.permit.ack != nil || s.last != nil || s.sequence != 4 || len(s.objects) != 38 || s.stored != stored || s.scanControl.held != held || o.clocks != 11 || o.execution.clocks != 7 || o.remaining.clocks != 4 || !o.execution.closed || !o.execution.claimed || o.execution.failed || !o.remaining.closed || o.remaining.failed || s.activeMeter.Load() != nil || string(result.result) != `"0x1"` || result.exchange != s.frontierReplay.body.firstExchange || result.highwater != s.frontierFiles.pin || result.enrollment != s.enrollment {
 		t.Fatal("capture bypassed a boundary, reused a hold or returned operating authority")
 	}
+	if len(s.bindings) != 1 || !lowerHash(s.bindings[result.exchange]) || o.bindRetainedExchangeLocked(s, nil) == nil {
+		t.Fatal("retained exchange lacked its unique original binding or reopened S")
+	}
 	var responseWire uint64
 	for _, ref := range s.objects {
 		if ref.kind == "response" {

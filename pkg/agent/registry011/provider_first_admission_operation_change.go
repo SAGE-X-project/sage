@@ -19,6 +19,65 @@ type providerFirstOperationChange struct {
 
 func (*providerFirstOperationChange) UnmarshalJSON([]byte) error { return errProviderIntegration }
 
+// Only the just-retained successful first S can populate this private index.
+// Read and hash its original binding, then let independent typed replay check
+// the complete X/request/response/TLS closure again. No cached producer bytes
+// or restored receipt can stand in for the retained original.
+func (o *providerFirstOperationOwner) bindRetainedExchangeLocked(s *providerCustodyStore, fresh []providerIntegrationObject) error {
+	if o == nil || !o.selectedLocked() || o.store != s || o.state != providerFirstOperationSettlement || !o.consumption || !o.settlement || s.sequence != 3 || s.activeMeter.Load() != o.remaining || len(fresh) != 11 || s.bindings == nil || len(s.bindings) != 0 {
+		return errProviderIntegration
+	}
+	binding, exchange, err := providerFirstOperationExchangeReferences(fresh)
+	if err != nil {
+		return errProviderIntegration
+	}
+	raw, err := s.object("wire-binding", binding)
+	if err != nil || providerFirstOperationBindingExchange(raw, exchange, o.remaining) != nil {
+		return errProviderIntegration
+	}
+	s.bindings[exchange] = binding
+	return nil
+}
+
+// Select only two unique references from the bounded proposed inventory.
+// The returned digests remain DATA until their retained originals are checked.
+func providerFirstOperationExchangeReferences(fresh []providerIntegrationObject) (string, string, error) {
+	if len(fresh) != 11 {
+		return "", "", errProviderIntegration
+	}
+	var binding, exchange string
+	for _, object := range fresh {
+		switch object.kind {
+		case "wire-binding":
+			if binding != "" {
+				return "", "", errProviderIntegration
+			}
+			binding = object.digest
+		case "exchange":
+			if exchange != "" {
+				return "", "", errProviderIntegration
+			}
+			exchange = object.digest
+		}
+	}
+	if !lowerHash(binding) || !lowerHash(exchange) {
+		return "", "", errProviderIntegration
+	}
+	return binding, exchange, nil
+}
+
+// This finite DATA validator grants no ACK or execution permission.
+func providerFirstOperationBindingExchange(raw []byte, exchange string, meter *providerWorkMeter) error {
+	if meter == nil || meter.closed || meter.failed || len(raw) == 0 || len(raw) > candidateLedgerMetadataLimit {
+		return errProviderIntegration
+	}
+	m := contentObject(providerReplayJSON(raw, meter), "format", "exchange_digest", "request_wire_digest", "response_wire_digest", "tls_digest")
+	if meter.failed || m == nil || m["format"] != "sage-provider-wire-binding-v1" || !providerCandidateDigest(m["exchange_digest"]) || !providerCandidateDigest(m["request_wire_digest"]) || !providerCandidateDigest(m["response_wire_digest"]) || !providerCandidateDigest(m["tls_digest"]) || !providerReplayTextEqual(contentString(m["exchange_digest"]), exchange, meter) {
+		return errProviderIntegration
+	}
+	return nil
+}
+
 // The first consumption has no predecessor. The caller still has to retain
 // this original and independently validate it before its one allowed RPC.
 func providerFirstOperationConsumptionData(ticket *CandidateAdmissionTicket, clock CandidateClockDiagnostic, meter *providerWorkMeter) (*CandidateConsumption, error) {

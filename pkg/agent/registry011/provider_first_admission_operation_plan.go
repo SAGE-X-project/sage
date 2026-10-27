@@ -59,7 +59,9 @@ func providerFirstOperationPlanUpper(b providerIntegrationBounds, global Provide
 	// C/X:452Q/2824L, additional coordinator100Q/250L, and32 bounded
 	// model/output/literal comparisons. R has its distinct S/result graph.
 	execution, e := providerFirstOperationPhaseUpper(n, 552, 3106, 7, 29, storage.consumption, headroom)
-	remaining, f := providerFirstOperationPhaseUpper(n, 569, 3279, 5, 37, storage.settlement, headroom)
+	// The retained binding index adds two original decodes and five linear
+	// events: reference/path copies, read, domain hash and exchange comparison.
+	remaining, f := providerFirstOperationPhaseUpper(n, 571, 3284, 5, 37, storage.settlement, headroom)
 	captureUpper, g := providerFirstOperationCaptureUpper(uint64(len(providerFirstOperationRequestWire)), capture, *b.tls)
 	if !a || !c || !e || !f || !g {
 		return p, false
@@ -111,6 +113,9 @@ func providerFirstOperationMemoryUpper(b providerIntegrationBounds, capture Prov
 	// and identity, plus the largest declared serializer preflight scratch.
 	raw, c := providerUpperProduct(storage.raw, 3)
 	metadata, d := providerUpperProduct(b.maximumMetadataPerCommit, 8)
+	// The original bytes are already in the readback row. Two additional
+	// typed decodes use the binding's closed metadata cap, plus one map entry.
+	bindingScratch, bindingOK := providerUpperProduct(candidateLedgerMetadataLimit, 2)
 	wire, e := providerUpperProduct(uint64(capture.WireBytes), 3)
 	head, f := providerUpperProduct(uint64(capture.HeaderBytes), 3)
 	// Eight possible simultaneous bodies/results: live sample2, retained
@@ -120,9 +125,9 @@ func providerFirstOperationMemoryUpper(b providerIntegrationBounds, capture Prov
 	certificates, i := providerUpperProduct(uint64(b.tls.chains), uint64(b.tls.certificates))
 	der, j := providerUpperProduct(certificates, uint64(b.tls.certificateBytes))
 	digests, k := providerUpperProduct(certificates, 2*69)
-	scratch, l := providerUpperSum(raw, metadata, wire, head, body, request, der, digests, maximum)
+	scratch, l := providerUpperSum(raw, metadata, bindingScratch, wire, head, body, request, der, digests, maximum)
 	models, m := b.continuation.residentUpper(1, 6, 1, 38, schemas, scratch)
-	entries, n := providerUpperSum(3*14, 4*11, 128, certificates)
+	entries, n := providerUpperSum(3*14, 4*11, 128, certificates, 1)
 	collections, o := providerUpperProduct(entries, max(b.continuation.objectMemoryOverhead, b.scan.filenameEntryOverhead))
 	// Static layout only; allocator and host upper qualification are separate.
 	// Each count names an actual simultaneously reachable fixed struct.
@@ -147,5 +152,5 @@ func providerFirstOperationMemoryUpper(b providerIntegrationBounds, capture Prov
 		}
 	}
 	memory, p := providerUpperSum(first.memory, models, collections, native)
-	return memory, a && c && d && e && f && g && h && i && j && k && l && m && n && o && p && memory <= b.scan.maximumResidentBytes && memory <= b.continuation.maximumResidentBytes
+	return memory, a && c && d && bindingOK && e && f && g && h && i && j && k && l && m && n && o && p && memory <= b.scan.maximumResidentBytes && memory <= b.continuation.maximumResidentBytes
 }

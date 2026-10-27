@@ -107,3 +107,79 @@ func TestProviderFirstOperationMissingOriginalsOrDestinationsNeverDispatch(t *te
 		})
 	}
 }
+
+func TestProviderFirstOperationInitialAvailabilityCannotBorrowFutureWork(t *testing.T) {
+	for _, mode := range []string{"closed-inspection", "incomplete-records", "physical-capacity", "finishing-allowance", "missing-enrollment", "admission-destination"} {
+		t.Run(mode, func(t *testing.T) {
+			s, f := providerFirstOperationPreparedFixture(t)
+			before, stored := f.meter.actual, s.stored
+			switch mode {
+			case "closed-inspection":
+				f.meter.closed = true
+			case "incomplete-records":
+				f.records = 3
+			case "physical-capacity":
+				plan, ok := providerFirstOperationPlanUpper(s.config.bounds, s.config.capture, f.scanPin.ordinal, f.records, s.retainedRaw, f.readerOutput)
+				if !ok {
+					t.Fatal("scalar quote")
+				}
+				limits := *s.firstLimits
+				limits.live = stored + plan.storage.physical - 1
+				s.firstLimits = &limits
+			case "finishing-allowance":
+				limits := *s.config.bounds.firstAdmission
+				limits.work[10] = 1
+				s.config.bounds.firstAdmission, f.limits = &limits, limits
+			case "missing-enrollment":
+				if s.evidence.root.Remove(providerObjectName("enrollment", s.enrollment)) != nil {
+					t.Fatal("owned missing original")
+				}
+			case "admission-destination":
+				if s.custody.root.Mkdir(s.name("intent", 2), 0700) != nil {
+					t.Fatal("owned unavailable destination")
+				}
+			}
+			if data, err := newProviderFirstOperationCandidate(s); err == nil || data != nil || s.sequence != 1 || s.stored < stored || s.last != nil || s.activeMeter.Load() != nil {
+				t.Fatal("initial uncertainty created a request owner or refunded a hold", mode)
+			}
+			if mode != "missing-enrollment" && mode != "admission-destination" && f.meter.actual != before {
+				t.Fatal("unfunded initial work performed a primitive", mode)
+			}
+		})
+	}
+}
+
+// The inconsistent private states below remain finite unit DATA; they never
+// write a changed original or run a malformed peer. Each selected live owner
+// must refuse before producing C, a request or a reusable receipt.
+func TestProviderFirstOperationMissingLiveCommandDataCannotDispatch(t *testing.T) {
+	for _, mode := range []string{"no-clock", "later-first-ticket", "spent-consumption", "absent-change"} {
+		t.Run(mode, func(t *testing.T) {
+			s, o := providerFirstOperationFixture(t)
+			stored := s.stored
+			var err error
+			switch mode {
+			case "no-clock":
+				s.clock.failed = true
+			case "later-first-ticket":
+				ticket := *o.integration.firstTicket
+				ticket.sequence = 1
+				o.integration.firstTicket = &ticket
+			case "spent-consumption":
+				ledger := o.integration.ledger
+				state := ledger.tickets[o.integration.firstTicket.digest]
+				state.consumption = &CandidateConsumption{}
+				ledger.tickets[o.integration.firstTicket.digest] = state
+			case "absent-change":
+				o.state = providerFirstOperationConsumption
+				err = o.commitLocked("consume", admissionTestDigest("a"), nil, nil, o.integration.intent.clock)
+			}
+			if mode != "absent-change" {
+				_, err = o.consumeLocked()
+			}
+			if err == nil || s.sequence != 2 || s.stored != stored || s.last != nil || o.permit != nil || o.execution.actual[0] != 0 || o.execution.actual[9] != 0 {
+				t.Fatal("missing live command state wrote, dispatched or created an ACK", mode)
+			}
+		})
+	}
+}
