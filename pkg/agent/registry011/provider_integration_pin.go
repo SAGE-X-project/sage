@@ -6,10 +6,14 @@ import (
 )
 
 func providerPinInput(start, agent string) []byte {
+	return providerPinInputObserved(start, agent, nil)
+}
+
+func providerPinInputObserved(start, agent string, meter *providerWorkMeter) []byte {
 	if !lowerHash(start) || !rpcAgent(agent) {
 		return nil
 	}
-	return providerIntegrationJSON(map[string]string{"format": "sage-provider-owned-pin-input-v1", "bootstrap_start": start, "registry": SepoliaRegistryAddress, "agent": agent})
+	return providerReplayCanonical(map[string]string{"format": "sage-provider-owned-pin-input-v1", "bootstrap_start": start, "registry": SepoliaRegistryAddress, "agent": agent}, 4096, meter)
 }
 
 // This initial pin reuses the first retained finalized exchange. In particular
@@ -95,29 +99,41 @@ func (s *providerCustodyStore) checkPinResults(results [4]json.RawMessage) bool 
 }
 
 func providerCheckPinPart(part int, result json.RawMessage) bool {
+	return providerCheckPinPartObserved(part, result, nil)
+}
+
+func providerCheckPinPartObserved(part int, result json.RawMessage, meter *providerWorkMeter) bool {
 	var chain, version string
 	switch part {
 	case 0:
-		return json.Unmarshal(result, &chain) == nil && chain == "0xaa36a7"
+		return providerReplayUnmarshal(result, &chain, meter) == nil && chain == "0xaa36a7"
 	case 1:
-		genesis, err := providerDecodeHeader(result)
+		genesis, err := providerDecodeHeaderObserved(result, meter)
 		return err == nil && genesis.Hash == sepoliaGenesis && genesis.Number == 0
 	case 2:
-		return json.Unmarshal(result, &version) == nil && len(version) != 0 && len(version) <= 1024
+		return providerReplayUnmarshal(result, &version, meter) == nil && len(version) != 0 && len(version) <= 1024
 	case 3:
-		values, _, err := rpcABI(result, false, 128)
-		return err == nil && string(values[0]) == "eip155:11155111:"+SepoliaRegistryAddress
+		values, _, err := rpcABIObserved(result, false, meter, 128)
+		if err != nil {
+			return false
+		}
+		text := providerReplayString(values[0], meter)
+		return text != "" && providerReplayTextEqual(text, "eip155:11155111:"+SepoliaRegistryAddress, meter)
 	}
 	return false
 }
 
 func providerDecodeHeader(raw []byte) (FinalizedHeader, error) {
+	return providerDecodeHeaderObserved(raw, nil)
+}
+
+func providerDecodeHeaderObserved(raw []byte, meter *providerWorkMeter) (FinalizedHeader, error) {
 	var value struct{ Hash, ParentHash, Number, Timestamp string }
-	if json.Unmarshal(raw, &value) != nil {
+	if providerReplayUnmarshal(raw, &value, meter) != nil {
 		return FinalizedHeader{}, errProviderIntegration
 	}
-	number, a := rpcQuantity(value.Number)
-	timestamp, b := rpcQuantity(value.Timestamp)
+	number, a := rpcQuantityObserved(value.Number, meter)
+	timestamp, b := rpcQuantityObserved(value.Timestamp, meter)
 	header := FinalizedHeader{value.Hash, value.ParentHash, number, timestamp}
 	if !a || !b || !validHeader(header) {
 		return FinalizedHeader{}, errProviderIntegration
@@ -126,6 +142,10 @@ func providerDecodeHeader(raw []byte) (FinalizedHeader, error) {
 }
 
 func providerPinRequests(selected string) ([4]*providerIntegrationRequest, error) {
+	return providerPinRequestsObserved(selected, nil)
+}
+
+func providerPinRequestsObserved(selected string, meter *providerWorkMeter) ([4]*providerIntegrationRequest, error) {
 	var requests [4]*providerIntegrationRequest
 	if !lowerHash(selected) {
 		return requests, errProviderIntegration
@@ -134,7 +154,7 @@ func providerPinRequests(selected string) ([4]*providerIntegrationRequest, error
 	params := providerPinParams(selected)
 	for i := range requests {
 		var err error
-		requests[i], err = newProviderIntegrationRequest(methods[i], params[i])
+		requests[i], err = newProviderIntegrationRequestObserved(methods[i], params[i], meter)
 		if err != nil {
 			return requests, err
 		}

@@ -1255,3 +1255,12 @@ the successful byte-read/copy work already observed. Finite tests use ordinary
 memory bytes and the existing normal owned TLS fixture; no hostile peer is added.
 The remaining pin/ABI-specific parser paths still need the same integration,
 and none of these parser results is a scan completion or custody credential.
+
+The independent pin path uses the same observer for rebuilding all four exact
+requests, reading the child settlement and its policy, base64/RPC validation,
+and the pinned ABI JSON-string, hex and fixed-word decoders. Revalidation repeats
+these charges. The observed lower-case hex check scans bytes without claiming a
+copy when a canonical lower-case value requires no allocation. Pure nil callers
+keep the original public/legacy accounting contract. The ordinary pin parser
+unit uses references selected from its preexisting fixture only as DATA inputs;
+it is explicitly not the full independent-map catalog inspector still required.
