@@ -11,10 +11,11 @@ import (
 // No returned private handle is a qualified root principal or execution ACK.
 func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwnedClock) (*providerCustodyStore, error) {
 	id, b := config.identity, config.bounds
-	if b.scan == nil || !b.valid() || !config.capture.valid() || !b.methods.fits(config.capture) || !providerScanSetupFits(config) || !b.scan.fits(providerScanOpenUpper(config), providerScanUpper{}) || clock == nil || clock.policy != id.Policy || config.attempt != 0 || config.expectedTip != config.anchor || config.expectedSetupTip != config.anchor || !lowerHash(config.anchor) || !lowerHash(config.expectedScanHead) || config.custodyDirectory == "" || config.evidenceDirectory == "" {
+	stored, storedOK := providerGuardianInitialStored(b)
+	if b.scan == nil || !b.valid() || !storedOK || !config.capture.valid() || !b.methods.fits(config.capture) || !providerScanSetupFits(config) || !b.scan.fits(providerScanOpenUpper(config), providerScanUpper{}) || clock == nil || clock.policy != id.Policy || config.attempt != 0 || config.expectedTip != config.anchor || config.expectedSetupTip != config.anchor || !lowerHash(config.anchor) || !lowerHash(config.expectedScanHead) || config.custodyDirectory == "" || config.evidenceDirectory == "" {
 		return nil, ErrConfiguration
 	}
-	s := &providerCustodyStore{config: config, clock: clock, tip: config.anchor, stored: b.setupRetained, objects: make(map[string]providerIntegrationObjectRef), operations: make(map[string]bool), bindings: make(map[string]string)}
+	s := &providerCustodyStore{config: config, clock: clock, tip: config.anchor, stored: stored, objects: make(map[string]providerIntegrationObjectRef), operations: make(map[string]bool), bindings: make(map[string]string)}
 	s.owner = s
 	setupOwner := &providerScanControl{store: s}
 	setupOwner.owner = setupOwner
@@ -26,6 +27,13 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 	if err != nil || !s.firstAdmissionLimits(x) || !providerFirstAdmissionCapacity(s, providerScanOpenUpper(config)) {
 		return nil, ErrConfiguration
 	}
+	if b.guardian != nil {
+		g, err := newProviderGuardianBeforeOpenCandidate(s)
+		if err != nil {
+			return nil, ErrConfiguration
+		}
+		s.guardian = g
+	}
 	// The single O is held before any original-root observation. Actual
 	// durable root-operation admission remains a separate unqualified boundary.
 	initial, err := s.sample()
@@ -33,6 +41,14 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 		return nil, errProviderIntegration
 	}
 	s.setupOrigin = initial
+	if s.guardian != nil {
+		// One original sample, before any root observation. No subsequent
+		// process, claim, recovered DATA or later ticket may replace it.
+		if s.guardian.original != (ClockSample{}) || s.guardian.clock != clock {
+			return nil, errProviderIntegration
+		}
+		s.guardian.original = initial
+	}
 	succeeded := false
 	defer func() {
 		if !succeeded {

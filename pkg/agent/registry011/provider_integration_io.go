@@ -56,6 +56,12 @@ func (s *providerCustodyStore) event(kind providerWorkEvent, bytes uint64) bool 
 }
 
 func (s *providerCustodyStore) sample() (ClockSample, error) {
+	if m := s.activeMeter.Load(); m != nil && m.guardian != nil {
+		if m.guardian.store != s {
+			return ClockSample{}, errProviderIntegration
+		}
+		return m.guardian.sampleLocked()
+	}
 	if m := s.activeMeter.Load(); m != nil && m.firstAdmission != nil {
 		if m.firstAdmission.store != s {
 			return ClockSample{}, errProviderIntegration

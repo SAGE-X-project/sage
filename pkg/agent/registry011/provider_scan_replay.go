@@ -6,18 +6,19 @@ package registry011
 // catalogs, deferred lineage closure and the retained command/receipt chain.
 // Callers hold the original store mutex and its already claimed body meter.
 type providerScanReplayReader struct {
-	owner       *providerScanReplayReader
-	control     *providerScanControl
-	view        *providerCustodyStore
-	replay      *providerFrontierReplay
-	meter       *providerWorkMeter
-	target      providerScanTarget
-	selected    providerFrontierHighwater
-	attempt     providerScanAttempt
-	nextSetup   uint64
-	positions   map[string]providerCustodyPosition
-	outputUpper uint64
-	failed      bool
+	owner           *providerScanReplayReader
+	control         *providerScanControl
+	view            *providerCustodyStore
+	replay          *providerFrontierReplay
+	meter           *providerWorkMeter
+	target          providerScanTarget
+	selected        providerFrontierHighwater
+	attempt         providerScanAttempt
+	nextSetup       uint64
+	positions       map[string]providerCustodyPosition
+	outputUpper     uint64
+	guardianGenesis bool
+	failed          bool
 }
 
 func (*providerScanReplayReader) UnmarshalJSON([]byte) error { return errProviderIntegration }
@@ -293,6 +294,9 @@ func (i *providerScanReplayReader) lineage() bool {
 	head, err := h.bytesObserved(v.config, meter)
 	current, readErr := v.read(v.custody, "HEAD", int64(v.config.bounds.maximumMetadataPerCommit))
 	if err != nil || readErr != nil || h != i.selected || h.setup != i.target.setup || h.frontier != i.target.frontier || !providerReplayEqual(head, current, meter) {
+		return false
+	}
+	if v.config.bounds.guardian != nil && v.sequence == 1 && i.replay.body.intent == nil && !i.guardianInitialLineage() {
 		return false
 	}
 	i.failed = false

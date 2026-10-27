@@ -86,7 +86,7 @@ func (f *providerFirstAdmissionOwner) adoptCustodianLocked(reader *providerScanR
 		return false
 	}
 	s, v, r := f.store, reader.view, reader.replay
-	if v == s || r == nil || r.owner != r || r.body == nil || r.indexes == nil || r.body.intent != nil || r.body.ledger != nil || r.setupOrdinal != 0 || r.meter != f.meter || r.indexes.meter != f.meter || r.body.meter != f.meter || s.frontierFiles.pin != f.mainPin || s.sequence != v.sequence || s.tip != v.tip || s.enrollment != v.enrollment || s.objectsRoot != v.objectsRoot || s.setupTip != v.setupTip || s.setupOrigin != v.setupOrigin || len(v.objects) != 7 || len(v.setups) != 1 || s.stored != f.plan.stored || s.scanControl.held != f.plan.held || s.retainedRaw < v.retainedRaw || !providerReplayTextEqual(s.frontierFiles.pinRaw, f.mainRaw, f.meter) {
+	if v == s || r == nil || r.owner != r || r.body == nil || r.indexes == nil || r.body.intent != nil || r.body.ledger != nil || r.setupOrdinal != 0 || r.meter != f.meter || r.indexes.meter != f.meter || r.body.meter != f.meter || s.frontierFiles.pin != f.mainPin || s.sequence != v.sequence || s.tip != v.tip || s.enrollment != v.enrollment || s.objectsRoot != v.objectsRoot || s.setupTip != v.setupTip || s.setupOrigin != v.setupOrigin || len(v.objects) != providerInitialObjectCount(s.config.bounds) || len(v.setups) != 1 || s.stored != f.plan.stored || s.scanControl.held != f.plan.held || s.retainedRaw < v.retainedRaw || !providerReplayTextEqual(s.frontierFiles.pinRaw, f.mainRaw, f.meter) {
 		return false
 	}
 	// Keep original physical holds and the measured aggregate retainedRaw,

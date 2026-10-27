@@ -41,7 +41,7 @@ func providerFirstOperationPhaseUpper(n, q, linear, clocks, syncs, raw, headroom
 
 func providerFirstOperationPlanUpper(b providerIntegrationBounds, global ProviderCaptureLimits, ordinal, records, retained, output uint64) (providerFirstOperationPlan, bool) {
 	var p providerFirstOperationPlan
-	if !b.valid() || b.firstAdmission == nil || b.maximumObjects < 38 || b.maximumEntries < 14 {
+	if !b.valid() || b.firstAdmission == nil || b.maximumObjects < providerInitialObjectCount(b)+31 || b.maximumEntries < 14 {
 		return p, false
 	}
 	storage, ok := providerFirstOperationStorageUpper(b, global, uint64(len(providerFirstOperationRequestWire)))
@@ -126,7 +126,7 @@ func providerFirstOperationMemoryUpper(b providerIntegrationBounds, capture Prov
 	der, j := providerUpperProduct(certificates, uint64(b.tls.certificateBytes))
 	digests, k := providerUpperProduct(certificates, 2*69)
 	scratch, l := providerUpperSum(raw, metadata, bindingScratch, wire, head, body, request, der, digests, maximum)
-	models, m := b.continuation.residentUpper(1, 6, 1, 38, schemas, scratch)
+	models, m := b.continuation.residentUpper(1, 6, 1, uint64(providerInitialObjectCount(b)+31), schemas, scratch)
 	entries, n := providerUpperSum(3*14, 4*11, 128, certificates, 1)
 	collections, o := providerUpperProduct(entries, max(b.continuation.objectMemoryOverhead, b.scan.filenameEntryOverhead))
 	// Static layout only; allocator and host upper qualification are separate.

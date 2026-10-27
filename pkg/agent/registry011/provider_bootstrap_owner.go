@@ -39,11 +39,29 @@ func providerBootstrapUpper(b providerIntegrationBounds) (candidateWorkVector, u
 	units, i := providerUpperProduct(units, 512)
 	decoded, j := providerUpperProduct(n, 512)
 	work[2], work[9], work[10] = decoded, bytes, units
+	if b.guardian != nil {
+		extra, extraPhysical, extraOK := providerGuardianBootstrapExtraUpper(b)
+		if !extraOK || b.maximumEntries < 8 || b.maximumObjects < 8 {
+			return candidateWorkVector{}, 0, false
+		}
+		for k, amount := range extra {
+			var ok bool
+			work[k], ok = providerUpperSum(work[k], amount)
+			if !ok {
+				return candidateWorkVector{}, 0, false
+			}
+		}
+		var ok bool
+		physical, ok = providerUpperSum(physical, extraPhysical)
+		if !ok {
+			return candidateWorkVector{}, 0, false
+		}
+	}
 	return work, physical, a && c && d && e && f && g && h && i && j
 }
 
 func (o *providerBootstrapOwner) writing(s *providerCustodyStore) bool {
-	return o != nil && o.store == s && s.bootstrapOwner == o && o.started && !o.used && !o.done && !o.failed && o.meter != nil && o.meter.owner == o.meter && !o.meter.closed && !o.meter.failed && s.activeMeter.Load() == o.meter && s.sequence == 0 && s.enrollment == "" && s.stored == s.config.bounds.setupRetained && s.frontierFiles != nil && s.frontierFiles.pinRaw == o.before && s.setupOrigin == o.origin
+	return o != nil && o.store == s && s.bootstrapOwner == o && o.started && !o.used && !o.done && !o.failed && o.meter != nil && o.meter.owner == o.meter && !o.meter.closed && !o.meter.failed && s.activeMeter.Load() == o.meter && s.sequence == 0 && s.enrollment == "" && providerGuardianStoredMatches(s.config.bounds, s.stored) && s.frontierFiles != nil && s.frontierFiles.pinRaw == o.before && s.setupOrigin == o.origin
 }
 
 func (o *providerBootstrapOwner) consume(bytes uint64) bool {
@@ -51,7 +69,7 @@ func (o *providerBootstrapOwner) consume(bytes uint64) bool {
 		return false
 	}
 	total, ok := providerUpperSum(o.setupPhysical, bytes)
-	if !ok || total > o.store.stored {
+	if !ok || total > o.store.config.bounds.setupRetained {
 		return false
 	}
 	o.used, o.physical = true, total
@@ -88,7 +106,7 @@ func (s *providerCustodyStore) enrollBeforeScan() (*CandidateEnrollmentRoot, err
 	}()
 	work, physical, ok := providerBootstrapUpper(s.config.bounds)
 	whole, physicalOK := providerUpperSum(o.setupPhysical, physical)
-	if !ok || !physicalOK || whole > s.stored || o.setupPhysical > s.stored || m.clocks > m.maximumClocks || m.maximumClocks-m.clocks < 8 {
+	if !ok || !physicalOK || whole > s.config.bounds.setupRetained || o.setupPhysical > s.config.bounds.setupRetained || m.clocks > m.maximumClocks || m.maximumClocks-m.clocks < 8 {
 		return nil, errProviderIntegration
 	}
 	for k, n := range work {
@@ -96,7 +114,7 @@ func (s *providerCustodyStore) enrollBeforeScan() (*CandidateEnrollmentRoot, err
 			return nil, errProviderIntegration
 		}
 	}
-	if _, room := s.config.bounds.continuation.residentUpper(1, 1, 1, 7, physical, 2*physical); !room {
+	if _, room := s.config.bounds.continuation.residentUpper(1, 1, 1, uint64(providerInitialObjectCount(s.config.bounds)), physical, 2*physical); !room {
 		return nil, errProviderIntegration
 	}
 	o.planned = physical
@@ -108,8 +126,11 @@ func (s *providerCustodyStore) enrollBeforeScan() (*CandidateEnrollmentRoot, err
 	if err != nil {
 		return nil, errProviderIntegration
 	}
+	if s.guardian != nil && s.guardian.installGenesisLocked(o) != nil {
+		return nil, errProviderIntegration
+	}
 	end, err := s.sample()
-	if err != nil || !o.clock(end) || !o.used || m.failed || s.stored != s.config.bounds.setupRetained || s.retainedRaw > o.physical {
+	if err != nil || !o.clock(end) || !o.used || m.failed || !providerGuardianStoredMatches(s.config.bounds, s.stored) || s.retainedRaw > o.physical {
 		return nil, errProviderIntegration
 	}
 	o.done, success = true, true
@@ -153,6 +174,13 @@ func (s *providerCustodyStore) buildInitialEnrollment(m *providerWorkMeter) (*Ca
 		fresh = append(fresh, object)
 	}
 	fresh = append(fresh, delta.mutations[0].object)
+	if s.guardian != nil {
+		origin, err := s.guardian.originBeforeEnrollmentLocked(m)
+		if err != nil {
+			return nil, errProviderIntegration
+		}
+		fresh = append(fresh, origin)
+	}
 	inventory, err := newProviderFrontierInventoryObserved(s.objectsRoot, fresh, s.config.bounds.maximumEntries, min(s.config.bounds.maximumStoredBytes, 64<<20), m)
 	clock, clockErr := s.sample()
 	if err != nil || clockErr != nil || !s.bootstrapOwner.clock(clock) {

@@ -64,6 +64,9 @@ func (f *providerFirstAdmissionOwner) replayEnrollmentPassLocked(custodian bool)
 	if !r.lineage() || r.replay.body.anchor == nil || r.replay.body.anchor.digest != r.target.enrollment || r.replay.body.anchor.budget != "" || r.replay.body.intent != nil || r.replay.body.ledger != nil || !f.control.readHighwater(f.scanPin) || !f.control.checkMainPin() {
 		return nil, errProviderIntegration
 	}
+	if s.guardian != nil && !s.guardian.checkFirstOriginalsLocked(f, r.view) {
+		return nil, errProviderIntegration
+	}
 	if _, err := f.sampleLocked(); err != nil || m.failed || b.active || s.frontierFiles.pin != f.mainPin || s.frontierFiles.pinRaw != f.mainRaw {
 		return nil, errProviderIntegration
 	}

@@ -114,6 +114,9 @@ func (o *providerFirstOperationOwner) failLocked() {
 	if o.first != nil {
 		o.first.abortLocked()
 	}
+	if g := o.store.guardian; g != nil && g.first == o {
+		g.failLocked()
+	}
 	if r := o.store.frontierReplay; r != nil {
 		r.failed = true
 	}

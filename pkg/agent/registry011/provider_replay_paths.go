@@ -51,6 +51,8 @@ func providerReplayPhaseBytes(value string, meter *providerWorkMeter) []byte {
 			store = meter.scan.store
 		} else if meter.integration != nil {
 			store = meter.integration.store
+		} else if meter.guardian != nil {
+			store = meter.guardian.store
 		}
 	}
 	if store == nil || store.config.bounds.firstAdmission == nil {
@@ -74,6 +76,8 @@ func providerReplayPhaseRawTextEqual(raw []byte, text string, meter *providerWor
 			store = meter.scan.store
 		} else if meter.integration != nil {
 			store = meter.integration.store
+		} else if meter.guardian != nil {
+			store = meter.guardian.store
 		}
 	}
 	if store == nil || store.config.bounds.firstAdmission == nil {

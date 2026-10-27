@@ -61,12 +61,13 @@ func providerFirstAdmissionPlanUpper(b providerIntegrationBounds, ordinal, recor
 	// both ledger/schema copies, three inventories and maximum codec scratch.
 	schemas, schemaOK := providerUpperSum(retained, output, raw)
 	scratch, scratchOK := providerUpperSum(raw, raw, raw, 8*b.maximumMetadataPerCommit, 1<<20)
-	model, modelOK := b.continuation.residentUpper(1, 3, 1, 21, schemas, scratch)
-	old, oldOK := b.continuation.residentUpper(1, 2, 1, 7, retained, 0)
+	initialObjects := uint64(providerInitialObjectCount(b))
+	model, modelOK := b.continuation.residentUpper(1, 3, 1, initialObjects+14, schemas, scratch)
+	old, oldOK := b.continuation.residentUpper(1, 2, 1, initialObjects, retained, 0)
 	// Use the reader's maximum incoming-entry reservation, not just the
 	// seven originals it ultimately reads. Three such map/catalog/name sets
 	// cover the closing inspection, coordinator and custodian lifetimes.
-	count, countOK := providerUpperSum(21, uint64(b.maximumEntries))
+	count, countOK := providerUpperSum(initialObjects, 14, uint64(b.maximumEntries))
 	entries, entriesOK := providerUpperProduct(count, 3)
 	catalog, catalogOK := providerUpperProduct(b.scan.maximumCatalogEntries, 2)
 	entries, moreOK := providerUpperSum(entries, uint64(b.maximumEntries), 4, 3, 2, catalog, 8)
@@ -81,6 +82,24 @@ func providerFirstAdmissionPlanUpper(b providerIntegrationBounds, ordinal, recor
 	}
 	p.work[2], p.work[9], p.work[10] = decoded, raw, units
 	p.clocks, p.raw, p.physical, p.memory = clocks, raw, physical, memory
+	if b.guardian != nil {
+		extra, fits := providerGuardianFirstExtraUpper(b)
+		ram, ramOK := providerGuardianMemoryExtra(b)
+		if !fits || !ramOK {
+			return providerFirstAdmissionPlan{}, false
+		}
+		for i, amount := range extra {
+			var sumOK bool
+			p.work[i], sumOK = providerUpperSum(p.work[i], amount)
+			if !sumOK {
+				return providerFirstAdmissionPlan{}, false
+			}
+		}
+		p.memory, ramOK = providerUpperSum(p.memory, ram)
+		if !ramOK || p.memory > b.scan.maximumResidentBytes || p.memory > b.continuation.maximumResidentBytes {
+			return providerFirstAdmissionPlan{}, false
+		}
+	}
 	return p, true
 }
 

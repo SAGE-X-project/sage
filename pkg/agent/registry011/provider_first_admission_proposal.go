@@ -37,7 +37,7 @@ func providerFirstAdmissionProposalWithRequestData(f *providerFirstAdmissionOwne
 		return nil, errProviderIntegration
 	}
 	s, m, body := f.store, f.meter, input.replay.body
-	if s.config.bounds.maximumEntries < 14 || len(input.view.objects) != 7 || s.config.bounds.maximumObjects-len(input.view.objects) < 14 {
+	if s.config.bounds.maximumEntries < 14 || len(input.view.objects) != providerInitialObjectCount(s.config.bounds) || s.config.bounds.maximumObjects-len(input.view.objects) < 14 {
 		return nil, errProviderIntegration
 	}
 	i, err := providerFirstAdmissionIntentDataObserved(s.config.policy, body.context, body.anchor, f.mainPin.commit, providerClockDiagnostic(f.origin), m)
@@ -103,7 +103,7 @@ func providerFirstAdmissionProposalWithRequestData(f *providerFirstAdmissionOwne
 		return nil, errProviderIntegration
 	}
 	fresh := make([]providerIntegrationObject, 0, 14)
-	for _, item := range []providerIntegrationObjectInput{{"admission", providerReplayPhaseBytes(i.raw, m)}, {"scan-admission-binding", bound}, {"request", providerReplayPhaseBytes(request.wire, m)}, {"params", providerReplayPhaseBytes(request.params, m)}, {"ticket", providerReplayPhaseBytes(ticket.raw, m)}, {"budget", providerReplayPhaseBytes(ledger.current.raw, m)}, {"enrollment", rootRaw}} {
+	for _, item := range []providerIntegrationObjectInput{{"admission", providerReplayPhaseBytes(i.raw, m)}, {providerAdmissionBindingKind(s.config.bounds), bound}, {"request", providerReplayPhaseBytes(request.wire, m)}, {"params", providerReplayPhaseBytes(request.params, m)}, {"ticket", providerReplayPhaseBytes(ticket.raw, m)}, {"budget", providerReplayPhaseBytes(ledger.current.raw, m)}, {"enrollment", rootRaw}} {
 		object, objectErr := newProviderIntegrationObjectObserved(item.kind, item.raw, 64<<10, m)
 		if objectErr != nil {
 			return nil, errProviderIntegration

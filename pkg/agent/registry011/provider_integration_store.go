@@ -53,6 +53,7 @@ type providerCustodyStore struct {
 	bootstrapOwner               *providerBootstrapOwner
 	firstAdmissionOwner          *providerFirstAdmissionOwner
 	firstOperation               *providerFirstOperationOwner
+	guardian                     *providerGuardianOwner
 	activeMeter                  atomic.Pointer[providerWorkMeter]
 	newReferences                []providerIntegrationObjectRef
 	requiredReferences           map[string]bool

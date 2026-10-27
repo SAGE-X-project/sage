@@ -29,6 +29,7 @@ type providerWorkMeter struct {
 	scanBody                      *providerScanBody
 	firstAdmission                *providerFirstAdmissionOwner
 	firstOperation                *providerFirstOperationOwner
+	guardian                      *providerGuardianOwner
 	clocks, maximumClocks         uint64
 	ticket                        string
 	upper, remaining, reservation candidateWorkVector
@@ -87,7 +88,7 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 // use n+1, and actual clock/sync calls use1. These logical units still need
 // independent worst-case CPU/profile qualification before operating selection.
 func (m *providerWorkMeter) event(kind providerWorkEvent, bytes uint64) bool {
-	if kind == providerClockEvent && m != nil && (m.scan != nil || m.firstOperation != nil) {
+	if kind == providerClockEvent && m != nil && (m.scan != nil || m.firstOperation != nil || m.guardian != nil) {
 		m.mu.Lock()
 		if m.maximumClocks == 0 || m.clocks >= m.maximumClocks || m.closed || m.failed {
 			m.failed = true
@@ -152,6 +153,9 @@ func (m *providerWorkMeter) preflightWork(work candidateWorkVector) bool {
 // meter. Moving to the next nonempty record never resets actual/clock/upper.
 // Ordinary integration/legacy meters have no scan body and retain their API.
 func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
+	if m.guardian != nil {
+		return m.guardian.fits(m)
+	}
 	if m.firstOperation != nil {
 		return m.firstOperation.fits(m)
 	}
@@ -198,6 +202,9 @@ func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
 }
 
 func (m *providerWorkMeter) hasOwner() bool {
+	if m.guardian != nil {
+		return m.integration == nil && m.scan == nil && m.guardian.owner == m.guardian
+	}
 	return m.integration != nil && m.scan == nil || m.integration == nil && m.scan != nil && m.scan.owner == m.scan
 }
 

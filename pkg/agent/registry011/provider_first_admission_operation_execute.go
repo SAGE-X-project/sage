@@ -108,6 +108,9 @@ func (o *providerFirstOperationOwner) finishLocked(permit *providerIntegrationPe
 	if !o.selectedLocked() || o.remaining.failed || !providerFirstOperationModelsEqual(s, o.indexes, s.frontierReplay.indexes, o.remaining) {
 		return nil, errProviderIntegration
 	}
+	if s.guardian != nil && !s.guardian.handoffFirstLocked(o) {
+		return nil, errProviderIntegration
+	}
 	// Include the final bounded equality check in R, never in E's actual.
 	result.remaining = o.remaining.actual
 	o.remaining.mu.Lock()

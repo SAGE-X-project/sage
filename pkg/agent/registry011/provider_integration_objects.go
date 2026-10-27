@@ -48,6 +48,12 @@ func providerIntegrationDomain(kind string) (string, bool) {
 		return "sage-provider-authority-setup-v1", true
 	case "setup-commit":
 		return "sage-provider-authority-setup-commit-v1", true
+	case "guardian-origin":
+		return providerGuardianOriginDomain, true
+	case "guardian-admission-binding":
+		return "sage-provider-guardian-admission-binding-v1", true
+	case "scan-admission-binding-v5":
+		return "sage-provider-scan-admission-binding-v2", true
 	case "enrollment":
 		return "sage-provider-enrollment-v2", true
 	case "admission":

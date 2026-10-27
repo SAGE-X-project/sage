@@ -124,7 +124,7 @@ func (r *providerCustodyReplay) admissionScanSeed(s *providerCustodyStore) (*pro
 		if !r.meter.event(providerCompareEvent, uint64(len(ref.kind))) {
 			return nil, errProviderIntegration
 		}
-		if ref.kind == "scan-admission-binding" {
+		if ref.kind == providerAdmissionBindingKind(s.config.bounds) {
 			want, ok := providerReplayRefKey(ref, r.meter)
 			if digest != "" || !ok || key != want {
 				return nil, errProviderIntegration
@@ -132,7 +132,7 @@ func (r *providerCustodyReplay) admissionScanSeed(s *providerCustodyStore) (*pro
 			digest = ref.digest
 		}
 	}
-	raw, readErr := s.object("scan-admission-binding", digest)
+	raw, readErr := s.object(providerAdmissionBindingKind(s.config.bounds), digest)
 	x, codecErr := newProviderScanCodec(s.config, r.meter)
 	if readErr != nil || codecErr != nil {
 		return nil, errProviderIntegration

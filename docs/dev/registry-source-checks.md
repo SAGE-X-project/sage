@@ -1509,3 +1509,21 @@ actual host/profile/filesystem/clock qualification, Registry-backed selectively
 signed Agent exchange and policy activation remain separate requirements.
 The added files enter the existing per-file 90% inventory and current-revision
 CI gates; this description does not claim their tests or required CI passed.
+
+
+The private V5 candidate additionally separates the initial open/enrollment
+reservation from a lifetime hold for subsequent metadata work. Its origin is
+retained before the first enrollment, its genesis follows that enrollment, and
+the initial admission binds both original records and the future hold. Two
+independent original-file replays derive the same seed. The original first
+operation hands off only after its durable settlement and model comparison;
+its execution and settlement observers remain closed.
+
+A subsequent guardian claim consumes the same finite lifetime and original
+clock before any new formatting or observation. Its immutable intent, claim,
+commit and high-water must be read back under the selected two-root store.
+This metadata acknowledgment is not a ticket or a dispatch permit. The
+continuing ticket/consumption/settlement binding, full history, operating
+qualification and Registry-backed Agent exchange are separate remaining
+connections; these candidate checks do not claim their completion. No public
+4096-record limit, existing profile, or message-signing scope is changed.

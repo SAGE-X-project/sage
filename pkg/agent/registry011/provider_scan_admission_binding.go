@@ -17,6 +17,27 @@ type providerScanAdmissionBinding struct {
 func (*providerScanAdmissionBinding) UnmarshalJSON([]byte) error { return errProviderIntegration }
 
 func (x *providerScanCodec) admissionBinding(v providerScanAdmissionBinding) ([]byte, error) {
+	m, err := x.admissionBindingObject(v)
+	if err != nil {
+		return nil, errProviderIntegration
+	}
+	if x.config.bounds.guardian != nil {
+		data, _, err := providerGuardianExpectedInitial(x, v.e0, v.frontier, v.setup, v.clock)
+		if err != nil {
+			return nil, errProviderIntegration
+		}
+		combined, ok := providerScanUpperSum(v.total, data.upper)
+		if !ok {
+			return nil, errProviderIntegration
+		}
+		m["format"] = "sage-provider-scan-admission-binding-v2"
+		m["guardian_origin_digest"], m["guardian_genesis_head_digest"], m["guardian_future_upper_digest"] = data.origin, data.genesis, data.future
+		m["combined_initial_upper"] = combined.object()
+	}
+	return x.encode(m)
+}
+
+func (x *providerScanCodec) admissionBindingObject(v providerScanAdmissionBinding) (map[string]any, error) {
 	if x == nil || x.config.bounds.firstAdmission == nil || x.config.bounds.scan == nil || v.ordinal == 0 || v.ordinal > x.config.bounds.scan.maximumAttempts || v.held.retained == 0 || v.held.clocks == 0 || v.open != providerScanOpenUpper(x.config) || !x.config.bounds.scan.fits(v.open, v.held) || !candidateLedgerClockAdvance(v.clock, v.clock) {
 		return nil, errProviderIntegration
 	}
@@ -37,11 +58,15 @@ func (x *providerScanCodec) admissionBinding(v providerScanAdmissionBinding) ([]
 	m["scan_ordinal"], m["deadline_wall_ms"], m["pre_i_live_upper"] = strconv.FormatUint(v.ordinal, 10), strconv.FormatUint(v.deadline, 10), strconv.FormatUint(v.live, 10)
 	m["original_clock"] = providerDiagnosticClockObject(v.clock)
 	m["open_upper"], m["cumulative_scan_held"], m["total_pre_i_upper"] = v.open.object(), v.held.object(), v.total.object()
-	return x.encode(m)
+	return m, nil
 }
 
 func (x *providerScanCodec) parseAdmissionBinding(raw []byte) (providerScanAdmissionBinding, error) {
-	m := contentObject(x.decode(raw), "format", "namespace", "instance_key", "generation", "fence", "profile", "e0_commit", "e0_frontier", "setup_head", "scan_head", "scan_highwater", "scan_attempt", "scan_ordinal", "target", "last_chunk", "admission_digest", "original_clock", "deadline_wall_ms", "open_upper", "cumulative_scan_held", "total_pre_i_upper", "pre_i_live_upper")
+	keys := []string{"format", "namespace", "instance_key", "generation", "fence", "profile", "e0_commit", "e0_frontier", "setup_head", "scan_head", "scan_highwater", "scan_attempt", "scan_ordinal", "target", "last_chunk", "admission_digest", "original_clock", "deadline_wall_ms", "open_upper", "cumulative_scan_held", "total_pre_i_upper", "pre_i_live_upper"}
+	if x.config.bounds.guardian != nil {
+		keys = append(keys, "guardian_origin_digest", "guardian_genesis_head_digest", "guardian_future_upper_digest", "combined_initial_upper")
+	}
+	m := contentObject(x.decode(raw), keys...)
 	ordinal, a := providerCandidateUint(m["scan_ordinal"], true)
 	deadline, b := providerCandidateUint(m["deadline_wall_ms"], true)
 	live, c := providerCandidateUint(m["pre_i_live_upper"], true)
@@ -139,5 +164,31 @@ func replayProviderAdmissionControlData(s *providerCustodyStore, meter *provider
 	if !ok || metadata > s.config.bounds.continuation.maximumMetadataBytes {
 		return nil, errProviderIntegration
 	}
+	if s.config.bounds.guardian != nil {
+		data, err := providerGuardianInitialOriginals(s, meter, binding.e0, binding.frontier, binding.setup, binding.clock)
+		if err != nil {
+			return nil, errProviderIntegration
+		}
+		total, ok = providerScanUpperSum(total, data.upper)
+		var metadataOK bool
+		metadata, metadataOK = providerUpperSum(metadata, data.metadata)
+		if !ok || !metadataOK || metadata > s.config.bounds.continuation.maximumMetadataBytes {
+			return nil, errProviderIntegration
+		}
+	}
 	return &providerAdmissionControlData{providerLedgerInitialCharge{total.work, total.retained}, metadata}, nil
+}
+
+func providerAdmissionBindingKind(b providerIntegrationBounds) string {
+	if b.guardian != nil {
+		return "scan-admission-binding-v5"
+	}
+	return "scan-admission-binding"
+}
+
+func providerInitialObjectCount(b providerIntegrationBounds) int {
+	if b.guardian != nil {
+		return 8
+	}
+	return 7
 }

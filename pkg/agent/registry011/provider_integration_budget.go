@@ -17,6 +17,9 @@ func providerIntegrationProfileBytes(b providerIntegrationBounds, capture Provid
 	if b.firstAdmission != nil {
 		format, domain = "sage-provider-owned-profile-v4", "sage-provider-store-profile-v4"
 	}
+	if b.guardian != nil {
+		format, domain = "sage-provider-owned-profile-v5", "sage-provider-store-profile-v5"
+	}
 	raw := providerIntegrationJSON(map[string]any{"format": format, "store": b.profileObject(), "capture": map[string]string{"timeout_ns": strconv.FormatInt(int64(capture.Timeout), 10), "header_bytes": strconv.Itoa(capture.HeaderBytes), "body_bytes": strconv.Itoa(capture.BodyBytes), "wire_bytes": strconv.Itoa(capture.WireBytes), "json_depth": strconv.Itoa(capture.JSONDepth)}})
 	return raw, domain
 }
@@ -63,6 +66,10 @@ func (b providerIntegrationBounds) profileObject() map[string]any {
 		out["scan_receipt_accounting"] = "two-original-copies-v2-readback-codec-and-final-catalog-v1"
 		out["bootstrap_accounting"] = "same-open-meter-through-original-enrollment-prepaid-v1"
 	}
+	if b.guardian != nil {
+		out["format"], out["guardian"] = "sage-provider-store-profile-v5", b.guardian.object()
+		out["continuation_accounting"] = "pre-h0-guardian-hold-same-live-original-models-v1"
+	}
 	for name, value := range values {
 		out[name] = strconv.FormatUint(value, 10)
 	}
@@ -80,6 +87,7 @@ type providerIntegrationBounds struct {
 	tls                      *providerTLSBounds
 	scan                     *providerScanBounds
 	firstAdmission           *providerFirstAdmissionBounds
+	guardian                 *providerGuardianBounds
 	maximumCommits           int
 	maximumObjects           int
 	maximumEntries           int
@@ -109,6 +117,9 @@ func (b providerIntegrationBounds) valid() bool {
 		return false
 	}
 	if b.firstAdmission != nil && (b.scan == nil || !b.firstAdmission.valid(b)) {
+		return false
+	}
+	if b.guardian != nil && (b.firstAdmission == nil || !b.guardian.valid(b)) {
 		return false
 	}
 	return candidateLedgerBoundsValid(b.ledger) && b.maximumCommits > 0 && uint64(b.maximumCommits) <= commits && b.maximumObjects > 0 && uint64(b.maximumObjects) <= objects && b.maximumEntries > 0 && b.maximumEntries <= entries &&

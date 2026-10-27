@@ -65,6 +65,13 @@ func providerFirstAdmissionCapacity(s *providerCustodyStore, held providerScanUp
 	if s.config.bounds.firstAdmission == nil {
 		return true // Preserve the existing V3 DATA-only contract byte-for-byte.
 	}
+	if b := s.config.bounds.guardian; b != nil {
+		var ok bool
+		held, ok = providerScanUpperSum(held, providerScanUpper{work: b.lifetime.work, retained: b.lifetime.retained, clocks: b.lifetime.clocks})
+		if !ok {
+			return false
+		}
+	}
 	limits := s.firstLimits
 	if limits == nil || held.retained > limits.live || held.retained > limits.retained || held.retained > s.config.bounds.maximumStoredBytes {
 		return false

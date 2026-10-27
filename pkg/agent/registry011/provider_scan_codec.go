@@ -26,6 +26,11 @@ func newProviderScanCodec(config providerCustodyConfig, meter *providerWorkMeter
 	if !x.event(providerEncodeEvent, uint64(len(raw))) || len(raw) == 0 || uint64(len(raw)) > config.bounds.maximumMetadataPerCommit || x.hash(domain, raw) != config.profile {
 		return nil, errProviderIntegration
 	}
+	if config.bounds.guardian != nil {
+		if _, err := x.guardianBoundsBytes(); err != nil {
+			return nil, errProviderIntegration
+		}
+	}
 	return x, nil
 }
 

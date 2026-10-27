@@ -25,7 +25,7 @@ type providerCustodyReplay struct {
 
 func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
 	var scanMeter *providerWorkMeter
-	if m := s.activeMeter.Load(); m != nil && (m.scan != nil || m.firstOperation != nil) {
+	if m := s.activeMeter.Load(); m != nil && (m.scan != nil || m.firstOperation != nil || m.guardian != nil) {
 		scanMeter = m
 	}
 	key, keyOK := providerReplayRefKey(providerIntegrationObjectRef{kind: kind, digest: digest}, scanMeter)
@@ -89,6 +89,11 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		claim, claimErr := s.object("setup", selected.claim)
 		if err != nil || claimErr != nil || !providerReplayEqual(commit, providerSetupCommitObserved(claim, r.meter), r.meter) {
 			return errProviderIntegration
+		}
+		if s.config.bounds.guardian != nil {
+			if _, err := providerGuardianOriginOriginal(s, r.meter, selected.commit, providerClockDiagnostic(s.setupOrigin)); err != nil {
+				return errProviderIntegration
+			}
 		}
 		r.anchor = root
 		return nil
