@@ -100,10 +100,11 @@ func providerCanonicalBase64(value any, maximum int) ([]byte, bool) {
 
 func providerIntegrationCipher(transport map[string]any) bool {
 	version, a := providerCandidateUint(transport["tls_version"], true)
-	cipher, b := providerCandidateUint(transport["cipher_suite"], true)
-	if !a || !b {
+	cipherValue, b := providerCandidateUint(transport["cipher_suite"], true)
+	if !a || !b || cipherValue > 65535 {
 		return false
 	}
+	cipher := uint16(cipherValue)
 	if version == tls.VersionTLS13 {
 		return cipher == tls.TLS_AES_128_GCM_SHA256 || cipher == tls.TLS_AES_256_GCM_SHA384 || cipher == tls.TLS_CHACHA20_POLY1305_SHA256
 	}
