@@ -112,7 +112,7 @@ jobs:
               'provider_scan_bounds.go', 'provider_scan_codec.go', 'provider_scan_open.go',
               'provider_scan_control.go', 'provider_scan_control_records.go',
               'provider_scan_initial.go', 'provider_scan_target.go', 'provider_scan_replay.go', 'provider_scan_body.go', 'provider_scan_receipts.go',
-              'provider_first_admission_bounds.go', 'provider_first_admission_owner.go', 'provider_scan_admission_binding.go', 'provider_ledger_initial_charge.go', 'provider_bootstrap_owner.go', 'provider_replay_paths.go',
+              'provider_first_admission_bounds.go', 'provider_first_admission_owner.go', 'provider_scan_admission_binding.go', 'provider_scan_receipt_replay.go', 'provider_ledger_initial_charge.go', 'provider_bootstrap_owner.go', 'provider_replay_paths.go',
               'provider_replay_codec.go',
               'provider_integration.go', 'provider_integration_admission.go',
               'provider_integration_bootstrap.go', 'provider_integration_budget.go',

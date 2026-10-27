@@ -65,7 +65,8 @@ func (x *providerScanCodec) parseAdmissionBinding(raw []byte) (providerScanAdmis
 // files; a later SCAN-HEAD is neither substituted nor treated as a permit.
 // The caller holds store.mu and still owes target/chunk/I/E1 typed validation.
 func replayProviderAdmissionControls(s *providerCustodyStore, meter *providerWorkMeter, binding providerScanAdmissionBinding) (*providerLedgerInitialCharge, error) {
-	if !s.valid() || meter == nil || meter.owner != meter || meter.failed || meter.closed || s.activeMeter.Load() != meter || !(meter.scan != nil && meter.scan.store == s || meter.integration != nil && meter.integration.store == s) || binding.clock != providerClockDiagnostic(s.setupOrigin) {
+	owned := meter != nil && (meter.scan != nil && meter.scan.store == s || meter.integration != nil && meter.integration.store == s)
+	if !s.valid() || meter == nil || meter.owner != meter || meter.failed || meter.closed || s.activeMeter.Load() != meter || !owned || binding.clock != providerClockDiagnostic(s.setupOrigin) {
 		return nil, errProviderIntegration
 	}
 	x, err := newProviderScanCodec(s.config, meter)

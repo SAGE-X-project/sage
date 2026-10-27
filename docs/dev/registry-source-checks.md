@@ -1371,3 +1371,13 @@ provisional current scan head cannot substitute for that historical evidence.
 The returned seed is only arithmetic DATA: target/chunk/I/E1 validation,
 mandatory typed object integration and current-pin qualification are still
 required before any concrete finishing or custody result can be accepted.
+
+The separate receipt reader follows the immutable terminal chunk backward to
+index zero, reading both original command/chunk copies at each record. It
+checks the exact historical attempt/target, command bytes, contiguous cursors,
+counter differences, cumulative work bounds and clock order, and requires
+setup zero with zero prior totals. Memory does not grow with chain length;
+each repeated read and codec spends the current owned meter. Finishing also
+takes an owned sample after every bounded record. The returned diagnostic
+closure and once-counted schema byte total are DATA: they neither authenticate
+past physical work nor replace frozen-target reconstruction or typed E1.

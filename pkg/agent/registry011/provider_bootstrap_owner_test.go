@@ -149,6 +149,31 @@ func TestProviderBootstrapPrepaidPhaseIsOneUseAndBoundedByTheOldHold(t *testing.
 	}
 }
 
+func TestProviderBootstrapWriterRefusesAnInsufficientPrepaidPhaseBeforeFiles(t *testing.T) {
+	s := providerBootstrapOwnerFixture(t)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	o, r := s.bootstrapOwner, s.frontierReplay
+	m := o.meter
+	stored, held, pin := s.stored, s.scanControl.held, s.frontierFiles.pinRaw
+	// A fixed deficient phase inside the genuine old O. No new meter or
+	// operating quota is injected, and the normal builder still derives cost.
+	o.started, o.planned = true, 1
+	s.activeMeter.Store(m)
+	r.meter, r.body.meter, r.indexes.meter = m, m, m
+	defer func() {
+		m.refuse()
+		m.mu.Lock()
+		m.closed = true
+		m.mu.Unlock()
+		s.activeMeter.Store(nil)
+		r.meter, r.body.meter, r.indexes.meter = nil, nil, nil
+	}()
+	if root, err := s.buildInitialEnrollment(m); err == nil || root != nil || !s.failed || !r.failed || !s.frontierFiles.failed || o.used || s.sequence != 0 || s.stored != stored || s.scanControl.held != held || s.frontierFiles.pinRaw != pin || s.frontierFiles.pending != nil || len(s.objects) != 0 || s.last != nil {
+		t.Fatal("writer exceeded its deficient prepaid phase or wrote an original", err)
+	}
+}
+
 func TestProviderBootstrapPlanRequiresItsFreshFiniteProfile(t *testing.T) {
 	s := providerBootstrapOwnerFixture(t)
 	work, physical, ok := providerBootstrapUpper(s.config.bounds)

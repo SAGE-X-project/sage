@@ -114,3 +114,16 @@ func TestProviderScanOpenRefusesMismatchedOriginalControlWithoutRepair(t *testin
 		}
 	}
 }
+
+func TestProviderScanOpenRejectsADifferentWellFormedExpectedHeadBeforeSetup(t *testing.T) {
+	config, clock := providerScanProvisionedFixture(t)
+	config.expectedScanHead = admissionTestDigest("f")
+	if s, err := openProviderScanCandidate(config, clock); err != errProviderIntegration || s != nil {
+		t.Fatal("initial original head did not fail at retained control validation", err)
+	}
+	for _, path := range []string{filepath.Join(config.custodyDirectory, providerCustodyName("setup-intent", 0)), filepath.Join(config.evidenceDirectory, providerCustodyName("setup-claim", 0))} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatal("wrong selected head created a new setup prefix", err)
+		}
+	}
+}
