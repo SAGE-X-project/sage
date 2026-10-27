@@ -69,7 +69,8 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 	}
 	kind, operation := contentString(intent["kind"]), contentString(intent["operation"])
 	if kind == "enroll" {
-		if r.anchor != nil || root.sequence != 0 || root.budget != "" || operation != providerCandidateHash("sage-provider-enroll-operation-v1", []byte(s.config.anchor+root.identity.Instance+root.identity.Policy+root.identity.SourceID)) {
+		joined := providerReplayJoin([]string{s.config.anchor, root.identity.Instance, root.identity.Policy, root.identity.SourceID}, r.meter)
+		if r.anchor != nil || root.sequence != 0 || root.budget != "" || joined == "" || operation != providerReplayDigest("sage-provider-enroll-operation-v1", []byte(joined), r.meter) {
 			return errProviderIntegration
 		}
 		selected, exists := s.setupForBoundary(s.tip)
@@ -78,7 +79,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		}
 		commit, err := s.object("setup-commit", selected.commit)
 		claim, claimErr := s.object("setup", selected.claim)
-		if err != nil || claimErr != nil || !bytes.Equal(commit, providerSetupCommit(claim)) {
+		if err != nil || claimErr != nil || !providerReplayEqual(commit, providerSetupCommitObserved(claim, r.meter), r.meter) {
 			return errProviderIntegration
 		}
 		r.anchor = root
@@ -122,7 +123,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 			if !ok {
 				return errProviderIntegration
 			}
-			if m["segment"] != candidateAdmissionSegment(r.intent.digest, segment) {
+			if m["segment"] != candidateAdmissionSegmentObserved(r.intent.digest, segment, r.meter) {
 				segment++
 			}
 		}
@@ -194,13 +195,13 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		// exact replay before they can receive this ACK. No generic acceptance.
 		return errProviderIntegration
 	}
-	if change == nil || change.digest != root.budget || !bytes.Equal(budget, []byte(change.raw)) {
+	if change == nil || change.digest != root.budget || !providerReplayEqual(budget, []byte(change.raw), r.meter) {
 		return errProviderIntegration
 	}
 	for _, node := range change.LedgerNodeBytes() {
-		digest := providerCandidateHash("sage-provider-ledger-node-v1", node)
+		digest := providerReplayDigest("sage-provider-ledger-node-v1", node, r.meter)
 		raw, err := s.object("ledger-node", digest)
-		if err != nil || !bytes.Equal(raw, node) {
+		if err != nil || !providerReplayEqual(raw, node, r.meter) {
 			return errProviderIntegration
 		}
 	}

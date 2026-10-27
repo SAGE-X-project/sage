@@ -1,7 +1,5 @@
 package registry011
 
-import "bytes"
-
 // A separate custodian reconstructs this state from its exact retained prefix.
 // It never shares the coordinator's provisional ledger or index maps. This
 // typed replay is deliberately not an external current-tip selection/CAS, a
@@ -120,7 +118,7 @@ func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventor
 		link.frontier = providerReplayDigest("sage-provider-custody-frontier-v1", prior, r.meter)
 	}
 	kind, operation := contentString(m["kind"]), contentString(m["operation"])
-	if !checkProviderFrontierIntentObserved(intent, link, root, inventory, kind, operation, s.config.bounds, r.meter) || !providerReplayEqual(commit, providerFrontierCommitObserved(intent, r.meter), r.meter) || providerCheckNewEnrollment(s, root, kind) != nil {
+	if !checkProviderFrontierIntentObserved(intent, link, root, inventory, kind, operation, s.config.bounds, r.meter) || !providerReplayEqual(commit, providerFrontierCommitObserved(intent, r.meter), r.meter) || providerCheckNewEnrollmentObserved(s, root, kind, r.meter) != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	claimed, err := parseProviderFrontierRecordObserved(frontier, s.config.identity, r.meter)
@@ -151,7 +149,7 @@ func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventor
 	if err != nil || !providerReplayEqual(raw, frontier, r.meter) || s.sequence != 0 && !checkProviderFrontierAdvanceObserved(r.current, derived, r.meter) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	cost, err := providerFrontierRetentionCost(s.config.identity, inventory, fresh, intent, commit, frontier, s.config.bounds)
+	cost, err := providerFrontierRetentionCostObserved(s.config.identity, inventory, fresh, intent, commit, frontier, s.config.bounds, r.meter)
 	if err != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
@@ -348,7 +346,7 @@ func (r *providerFrontierReplay) setupBytes(s *providerCustodyStore, through int
 		config := s.config
 		config.attempt, config.expectedTip, config.expectedSetupTip = ordinal, setup.expectedTip, previous
 		clock := ClockSample{ClockID: setup.clock.ClockID, Epoch: setup.clock.Epoch, WallMS: setup.clock.WallMS, MonotonicMS: setup.clock.MonotonicMS, UncertaintyMS: setup.clock.UncertaintyMS}
-		if a != nil || b != nil || c != nil || setup.ordinal != ordinal || !bytes.Equal(claim, intent) || !bytes.Equal(claim, providerCustodySetup(config, clock)) || !bytes.Equal(commit, providerSetupCommit(claim)) || providerCandidateHash("sage-provider-authority-setup-v1", claim) != setup.claim || providerCandidateHash("sage-provider-authority-setup-commit-v1", commit) != setup.commit {
+		if a != nil || b != nil || c != nil || setup.ordinal != ordinal || !providerReplayEqual(claim, intent, r.meter) || !providerReplayEqual(claim, providerCustodySetupDiagnosticObserved(config, providerClockDiagnostic(clock), r.meter), r.meter) || !providerReplayEqual(commit, providerSetupCommitObserved(claim, r.meter), r.meter) || providerReplayDigest("sage-provider-authority-setup-v1", claim, r.meter) != setup.claim || providerReplayDigest("sage-provider-authority-setup-commit-v1", commit, r.meter) != setup.commit {
 			return 0, false
 		}
 		var ok bool

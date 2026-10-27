@@ -148,8 +148,21 @@ func providerCustodySetup(config providerCustodyConfig, clock ClockSample) []byt
 }
 
 func providerCustodySetupDiagnostic(config providerCustodyConfig, clock CandidateClockDiagnostic) []byte {
+	return providerCustodySetupDiagnosticObserved(config, clock, nil)
+}
+
+func providerCustodySetupDiagnosticObserved(config providerCustodyConfig, clock CandidateClockDiagnostic, meter *providerWorkMeter) []byte {
 	id, b := config.identity, config.bounds
-	raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-authority-setup-v1", "namespace": id.Namespace, "instance_key": id.Instance, "policy": id.Policy, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "anchor": config.anchor, "expected_tip": config.expectedTip, "previous_setup_commit": config.expectedSetupTip, "operation": providerCandidateHash("sage-provider-setup-operation-v1", []byte(config.anchor+id.Instance+id.Policy+id.SourceID)), "profile": config.profile, "attempt": strconv.Itoa(config.attempt), "clock": providerDiagnosticClockObject(clock), "work": candidateLedgerWorkObject(b.setupWork), "live_upper": strconv.FormatUint(b.setupLive, 10), "retained_upper": strconv.FormatUint(b.setupRetained, 10), "maximum_clock_reads": strconv.FormatUint(b.setupMaximumClockReads, 10), "maximum_duration_ms": strconv.FormatUint(b.setupMaximumDurationMS, 10)})
+	joined := providerReplayJoin([]string{config.anchor, id.Instance, id.Policy, id.SourceID}, meter)
+	operation := providerReplayDigest("sage-provider-setup-operation-v1", []byte(joined), meter)
+	if joined == "" || operation == "" {
+		return nil
+	}
+	maximum := uint64(1 << 20)
+	if meter != nil {
+		maximum = b.maximumMetadataPerCommit
+	}
+	raw := providerReplayCanonical(map[string]any{"format": "sage-provider-authority-setup-v1", "namespace": id.Namespace, "instance_key": id.Instance, "policy": id.Policy, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "anchor": config.anchor, "expected_tip": config.expectedTip, "previous_setup_commit": config.expectedSetupTip, "operation": operation, "profile": config.profile, "attempt": strconv.Itoa(config.attempt), "clock": providerDiagnosticClockObject(clock), "work": candidateLedgerWorkObject(b.setupWork), "live_upper": strconv.FormatUint(b.setupLive, 10), "retained_upper": strconv.FormatUint(b.setupRetained, 10), "maximum_clock_reads": strconv.FormatUint(b.setupMaximumClockReads, 10), "maximum_duration_ms": strconv.FormatUint(b.setupMaximumDurationMS, 10)}, maximum, meter)
 	return raw
 }
 

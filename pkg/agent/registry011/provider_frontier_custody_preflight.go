@@ -5,8 +5,8 @@ package registry011
 // retained-original replay independently derives and debits the actual amount
 // afterward. An upper never appears as actual measurement or a permission.
 func (r *providerFrontierReplay) preflightRetention(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after providerFrontierHighwater) error {
-	base, err := providerFrontierRetentionCost(s.config.identity, inventory, fresh, intent, commit, frontier, s.config.bounds)
-	m := providerFrontierIntentObject(intent)
+	base, err := providerFrontierRetentionCostObserved(s.config.identity, inventory, fresh, intent, commit, frontier, s.config.bounds, r.meter)
+	m := providerFrontierIntentObjectObserved(intent, r.meter)
 	if err != nil || m == nil {
 		return errProviderIntegration
 	}

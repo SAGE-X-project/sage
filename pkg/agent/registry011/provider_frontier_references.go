@@ -1,7 +1,5 @@
 package registry011
 
-import "bytes"
-
 // Cached private maps are valid only under the selected append-only custodian
 // assumptions. Every transitive old payload/head used in a new transition is
 // still read from its retained original object and checked against that state.
@@ -18,7 +16,7 @@ func (r *providerFrontierReplay) checkOldMaterials(s *providerCustodyStore, kind
 	}
 	if r.body.anchor != nil {
 		original, err := s.object("enrollment", r.body.anchor.digest)
-		if err != nil || !bytes.Equal(original, []byte(r.body.anchor.raw)) {
+		if err != nil || !providerReplayEqual(original, []byte(r.body.anchor.raw), r.meter) {
 			return errProviderIntegration
 		}
 	} else if kind != "enroll" {
@@ -36,7 +34,7 @@ func (r *providerFrontierReplay) checkOldMaterials(s *providerCustodyStore, kind
 		{"budget", m.current.digest, m.current.raw},
 	} {
 		original, err := s.object(ref.kind, ref.digest)
-		if err != nil || !bytes.Equal(original, []byte(ref.raw)) {
+		if err != nil || !providerReplayEqual(original, []byte(ref.raw), r.meter) {
 			return errProviderIntegration
 		}
 	}
@@ -58,7 +56,7 @@ func (r *providerFrontierReplay) checkOldMaterials(s *providerCustodyStore, kind
 			objectKind = "settlement"
 		}
 		payload, err := s.object(objectKind, operation)
-		value, ok := contentJSON(payload).(map[string]any)
+		value, ok := providerReplayJSON(payload, r.meter).(map[string]any)
 		if err != nil || !ok {
 			return errProviderIntegration
 		}
@@ -74,18 +72,18 @@ func (r *providerFrontierReplay) checkOldMaterials(s *providerCustodyStore, kind
 		return errProviderIntegration
 	}
 	original, err := s.object("ticket", state.ticket.digest)
-	if err != nil || !bytes.Equal(original, []byte(state.ticket.raw)) || r.body.checkTicketBytes(s, state.ticket) != nil {
+	if err != nil || !providerReplayEqual(original, []byte(state.ticket.raw), r.meter) || r.body.checkTicketBytes(s, state.ticket) != nil {
 		return errProviderIntegration
 	}
 	if state.consumption != nil {
 		original, err := s.object("consumption", state.consumption.digest)
-		if err != nil || !bytes.Equal(original, []byte(state.consumption.raw)) {
+		if err != nil || !providerReplayEqual(original, []byte(state.consumption.raw), r.meter) {
 			return errProviderIntegration
 		}
 	}
 	if kind == "consume" && m.lastConsumption != nil {
 		original, err := s.object("consumption", m.lastConsumption.digest)
-		if err != nil || !bytes.Equal(original, []byte(m.lastConsumption.raw)) {
+		if err != nil || !providerReplayEqual(original, []byte(m.lastConsumption.raw), r.meter) {
 			return errProviderIntegration
 		}
 	}

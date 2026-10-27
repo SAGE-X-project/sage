@@ -18,11 +18,15 @@ type providerCustodyPosition struct {
 }
 
 func providerSetupCommit(claim []byte) []byte {
-	m, ok := contentJSON(claim).(map[string]any)
+	return providerSetupCommitObserved(claim, nil)
+}
+
+func providerSetupCommitObserved(claim []byte, meter *providerWorkMeter) []byte {
+	m, ok := providerReplayJSON(claim, meter).(map[string]any)
 	if !ok || m["format"] != "sage-provider-authority-setup-v1" {
 		return nil
 	}
-	return providerIntegrationJSON(map[string]any{"format": "sage-provider-authority-setup-commit-v1", "anchor": m["anchor"], "namespace": m["namespace"], "instance_key": m["instance_key"], "attempt": m["attempt"], "previous_setup_commit": m["previous_setup_commit"], "operation": m["operation"], "claim_digest": providerCandidateHash("sage-provider-authority-setup-v1", claim)})
+	return providerReplayCanonical(map[string]any{"format": "sage-provider-authority-setup-commit-v1", "anchor": m["anchor"], "namespace": m["namespace"], "instance_key": m["instance_key"], "attempt": m["attempt"], "previous_setup_commit": m["previous_setup_commit"], "operation": m["operation"], "claim_digest": providerReplayDigest("sage-provider-authority-setup-v1", claim, meter)}, candidateLedgerMetadataLimit, meter)
 }
 
 // A setup charge is an independently retained prefix, not a single local file.

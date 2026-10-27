@@ -1237,3 +1237,10 @@ request/result parsers must be observed too, and a complete original catalog
 reader must drive this independent model. An arithmetic unit fixture or a
 metered page seal does not qualify an actual principal, acknowledge custody,
 restore execution, activate policy or make an Agent Source ready.
+
+The same independent observer now covers the repeated setup/profile/high-water,
+retention-rederivation and old-material checks as well. Finite units compare
+ordinary retained E0/first-ticket files under independently rebuilt ledger and
+index state. These tests still do not supply a full original catalog reader,
+retained scan-command/chunk/settlement chain, full request/result observation,
+selected host authority or any operating acknowledgment.

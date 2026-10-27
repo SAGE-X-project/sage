@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"strings"
 )
 
 // Concrete primitive observation for independent typed replay. A nil meter
@@ -84,4 +85,19 @@ func providerReplayRefKey(ref providerIntegrationObjectRef, meter *providerWorkM
 		return "", false
 	}
 	return providerIntegrationRefKey(ref), true
+}
+
+func providerReplayJoin(parts []string, meter *providerWorkMeter) string {
+	var total uint64
+	for _, part := range parts {
+		var ok bool
+		total, ok = providerUpperSum(total, uint64(len(part)))
+		if !ok {
+			return ""
+		}
+	}
+	if meter != nil && !meter.event(providerCopyEvent, total) {
+		return ""
+	}
+	return strings.Join(parts, "")
 }

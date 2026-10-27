@@ -11,6 +11,10 @@ type providerFrontierRetention struct {
 }
 
 func providerFrontierRetentionCost(id ProviderCandidateIdentity, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, bounds providerIntegrationBounds) (providerFrontierRetention, error) {
+	return providerFrontierRetentionCostObserved(id, inventory, fresh, intent, commit, frontier, bounds, nil)
+}
+
+func providerFrontierRetentionCostObserved(id ProviderCandidateIdentity, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, bounds providerIntegrationBounds, meter *providerWorkMeter) (providerFrontierRetention, error) {
 	if inventory == nil || bounds.continuation == nil || !bounds.valid() || len(fresh) == 0 || len(fresh) > bounds.maximumEntries || len(fresh) != len(inventory.entries) || len(inventory.raw) == 0 || len(inventory.raw) > 64<<10 || len(intent) == 0 || uint64(len(intent)) > bounds.maximumMetadataPerCommit || len(commit) == 0 || uint64(len(commit)) > bounds.maximumMetadataPerCommit || len(frontier) == 0 || len(frontier) > 64<<10 {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
@@ -51,11 +55,11 @@ func providerFrontierRetentionCost(id ProviderCandidateIdentity, inventory *prov
 	if _, ok = bounds.continuation.residentUpper(0, 0, 0, uint64(len(fresh)), scratch, scratch); !ok {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	derived, err := newProviderFrontierInventory(inventory.previous, fresh, bounds.maximumEntries, min(bounds.maximumStoredBytes, 64<<20))
-	if err != nil || derived.raw != inventory.raw || derived.digest != inventory.digest || derived.payloadBytes != inventory.payloadBytes {
+	derived, err := newProviderFrontierInventoryObserved(inventory.previous, fresh, bounds.maximumEntries, min(bounds.maximumStoredBytes, 64<<20), meter)
+	if err != nil || !providerReplayEqual([]byte(derived.raw), []byte(inventory.raw), meter) || derived.digest != inventory.digest || derived.payloadBytes != inventory.payloadBytes {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	if !checkProviderFrontierRetention(id, inventory, intent, commit, frontier) {
+	if !checkProviderFrontierRetentionObserved(id, inventory, intent, commit, frontier, meter) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	metadata, ok = providerUpperSum(metadata, extra)
@@ -77,16 +81,20 @@ func providerFrontierRetentionCost(id ProviderCandidateIdentity, inventory *prov
 // confirms a physical write, or authorizes execution. Parsers keep their exact
 // canonical-byte requirement, and the final encoding agreement stays explicit.
 func checkProviderFrontierRetention(id ProviderCandidateIdentity, inventory *providerIntegrationInventory, intent, commit, frontier []byte) bool {
+	return checkProviderFrontierRetentionObserved(id, inventory, intent, commit, frontier, nil)
+}
+
+func checkProviderFrontierRetentionObserved(id ProviderCandidateIdentity, inventory *providerIntegrationInventory, intent, commit, frontier []byte, meter *providerWorkMeter) bool {
 	if inventory == nil {
 		return false
 	}
-	m := providerFrontierIntentObject(intent)
-	f, err := parseProviderFrontierRecord(frontier, id)
-	if m == nil || err != nil || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["generation"] != strconv.FormatUint(id.Generation, 10) || m["sequence"] != strconv.FormatUint(f.sequence, 10) || m["fence"] != strconv.FormatUint(f.fence, 10) || m["objects_root"] != inventory.digest || string(providerFrontierCommit(intent)) != string(commit) || f.commit != providerCandidateHash("sage-provider-custody-commit-v2", commit) || f.objects != inventory.digest || f.enrollment != m["new_enrollment_root"] || f.setup != m["setup_head"] || providerNullableDigest(f.previous) != m["previous_frontier"] {
+	m := providerFrontierIntentObjectObserved(intent, meter)
+	f, err := parseProviderFrontierRecordObserved(frontier, id, meter)
+	if m == nil || err != nil || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["generation"] != strconv.FormatUint(id.Generation, 10) || m["sequence"] != strconv.FormatUint(f.sequence, 10) || m["fence"] != strconv.FormatUint(f.fence, 10) || m["objects_root"] != inventory.digest || !providerReplayEqual(providerFrontierCommitObserved(intent, meter), commit, meter) || f.commit != providerReplayDigest("sage-provider-custody-commit-v2", commit, meter) || f.objects != inventory.digest || f.enrollment != m["new_enrollment_root"] || f.setup != m["setup_head"] || providerNullableDigest(f.previous) != m["previous_frontier"] {
 		return false
 	}
-	canonical, err := f.bytes()
-	return err == nil && string(canonical) == string(frontier) && string(providerIntegrationJSON(m)) == string(intent)
+	canonical, err := f.bytesObserved(meter)
+	return err == nil && providerReplayEqual(canonical, frontier, meter) && providerReplayEqual(providerReplayCanonical(m, uint64(len(intent)), meter), intent, meter)
 }
 
 // Closed accounting classes prevent a new kind from silently becoming free.

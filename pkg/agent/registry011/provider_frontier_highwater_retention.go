@@ -1,7 +1,5 @@
 package registry011
 
-import "bytes"
-
 // Derive exact high-water byte charges from independently retained originals.
 // Historical setup HEAD copies were physically charged by their own setup
 // claim; their original lengths enter the common ledger once at the next main
@@ -22,7 +20,7 @@ func (r *providerFrontierReplay) highwaterRetention(s *providerCustodyStore, aft
 	if !ok {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	before, raw, err := s.originalHighwater(ordinal)
+	before, raw, err := s.originalHighwaterObserved(ordinal, r.meter)
 	if err != nil || before.sequence != s.sequence || before.commit != s.tip || before.setup != s.setups[priorSetup].commit {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
@@ -31,8 +29,8 @@ func (r *providerFrontierReplay) highwaterRetention(s *providerCustodyStore, aft
 			return providerFrontierRetention{}, errProviderIntegration
 		}
 	} else {
-		previous, err := r.current.bytes()
-		if err != nil || before.frontier != providerCandidateHash("sage-provider-custody-frontier-v1", previous) || before.setup != r.current.setup || before.fence != r.current.fence {
+		previous, err := r.current.bytesObserved(r.meter)
+		if err != nil || before.frontier != providerReplayDigest("sage-provider-custody-frontier-v1", previous, r.meter) || before.setup != r.current.setup || before.fence != r.current.fence {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
 	}
@@ -48,11 +46,11 @@ func (r *providerFrontierReplay) highwaterRetention(s *providerCustodyStore, aft
 		if !ok {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
-		next, raw, err := s.originalHighwater(ordinal)
+		next, raw, err := s.originalHighwaterObserved(ordinal, r.meter)
 		claim, a := s.read(s.custody, providerCustodyName("setup-intent", uint64(attempt)), int64(s.config.bounds.maximumMetadataPerCommit))
 		local, b := s.read(s.evidence, providerCustodyName("setup-claim", uint64(attempt)), int64(s.config.bounds.maximumMetadataPerCommit))
 		completed, c := s.read(s.custody, providerCustodyName("setup-commit", uint64(attempt)), int64(s.config.bounds.maximumMetadataPerCommit))
-		if err != nil || a != nil || b != nil || c != nil || !bytes.Equal(claim, local) || !checkProviderHighwaterSetup(before, next, s.config, claim, completed) || next.setup != s.setups[attempt].commit {
+		if err != nil || a != nil || b != nil || c != nil || !providerReplayEqual(claim, local, r.meter) || !checkProviderHighwaterSetupObserved(before, next, s.config, claim, completed, r.meter) || next.setup != s.setups[attempt].commit {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
 		copyBytes, aOK := providerUpperProduct(2, uint64(len(raw)))
@@ -62,10 +60,10 @@ func (r *providerFrontierReplay) highwaterRetention(s *providerCustodyStore, aft
 		}
 		before = next
 	}
-	if before.setup != setup.commit || !checkProviderHighwaterMain(before, after, s.config, intent, commit, frontier) {
+	if before.setup != setup.commit || !checkProviderHighwaterMainObserved(before, after, s.config, intent, commit, frontier, r.meter) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	newRaw, err := after.bytes(s.config)
+	newRaw, err := after.bytesObserved(s.config, r.meter)
 	cost, ok := providerHighwaterFileCost(uint64(len(newRaw)), s.config.bounds)
 	metadata, sumOK := providerUpperSum(cost.metadata, priorBytes)
 	if err != nil || !ok || !sumOK || metadata > s.config.bounds.continuation.maximumMetadataBytes {
@@ -76,6 +74,10 @@ func (r *providerFrontierReplay) highwaterRetention(s *providerCustodyStore, aft
 }
 
 func (s *providerCustodyStore) originalHighwater(ordinal uint64) (providerFrontierHighwater, []byte, error) {
+	return s.originalHighwaterObserved(ordinal, nil)
+}
+
+func (s *providerCustodyStore) originalHighwaterObserved(ordinal uint64, meter *providerWorkMeter) (providerFrontierHighwater, []byte, error) {
 	maximum, ok := providerUpperSum(uint64(s.config.bounds.maximumCommits), uint64(s.config.bounds.maximumSetupRecoveries))
 	if !ok || ordinal > maximum {
 		return providerFrontierHighwater{}, nil, errProviderIntegration
@@ -84,7 +86,7 @@ func (s *providerCustodyStore) originalHighwater(ordinal uint64) (providerFronti
 	if err != nil {
 		return providerFrontierHighwater{}, nil, errProviderIntegration
 	}
-	h, err := parseProviderFrontierHighwater(raw, s.config)
+	h, err := parseProviderFrontierHighwaterObserved(raw, s.config, meter)
 	if err != nil || h.ordinal != ordinal {
 		return providerFrontierHighwater{}, nil, errProviderIntegration
 	}

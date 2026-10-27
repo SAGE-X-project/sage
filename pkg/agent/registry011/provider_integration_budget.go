@@ -23,6 +23,22 @@ func providerIntegrationProfile(b providerIntegrationBounds, capture ProviderCap
 	return providerCandidateHash(domain, raw)
 }
 
+// The observer charges each actual profile rebuild separately. It cannot
+// turn a configured profile digest into physical host qualification.
+func providerIntegrationProfileObserved(b providerIntegrationBounds, capture ProviderCaptureLimits, meter *providerWorkMeter) string {
+	if meter == nil {
+		return providerIntegrationProfile(b, capture)
+	}
+	if b.maximumMetadataPerCommit == 0 || b.maximumMetadataPerCommit > 1<<20 || !meter.preflight(providerEncodeEvent, b.maximumMetadataPerCommit) {
+		return ""
+	}
+	raw, domain := providerIntegrationProfileBytes(b, capture)
+	if len(raw) == 0 || uint64(len(raw)) > b.maximumMetadataPerCommit || !meter.event(providerEncodeEvent, uint64(len(raw))) {
+		return ""
+	}
+	return providerReplayDigest(domain, raw, meter)
+}
+
 func (b providerIntegrationBounds) profileObject() map[string]any {
 	values := map[string]uint64{"maximum_records": uint64(b.ledger.MaximumRecords), "maximum_payload_bytes": b.ledger.MaximumPayloadBytes, "maximum_metadata_bytes": b.ledger.MaximumMetadataBytes, "maximum_commits": uint64(b.maximumCommits), "maximum_objects": uint64(b.maximumObjects), "maximum_entries": uint64(b.maximumEntries), "maximum_object_bytes": b.maximumObjectBytes, "maximum_stored_bytes": b.maximumStoredBytes, "maximum_metadata_per_commit": b.maximumMetadataPerCommit, "file_overhead_bytes": b.fileOverheadBytes, "maximum_setup_recoveries": uint64(b.maximumSetupRecoveries), "setup_live": b.setupLive, "setup_retained": b.setupRetained, "setup_maximum_clock_reads": b.setupMaximumClockReads, "setup_maximum_duration_ms": b.setupMaximumDurationMS}
 	out := map[string]any{"format": "sage-provider-store-profile-v1", "setup_work": candidateLedgerWorkObject(b.setupWork)}

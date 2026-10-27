@@ -116,6 +116,10 @@ func (s *providerCustodyStore) commit(kind, operation string, root *CandidateEnr
 }
 
 func providerCheckNewEnrollment(s *providerCustodyStore, after *CandidateEnrollmentRoot, kind string) error {
+	return providerCheckNewEnrollmentObserved(s, after, kind, nil)
+}
+
+func providerCheckNewEnrollmentObserved(s *providerCustodyStore, after *CandidateEnrollmentRoot, kind string, meter *providerWorkMeter) error {
 	if s.enrollment == "" {
 		if kind != "enroll" || after.sequence != 0 || after.fence != 1 || after.status != "enrolling" {
 			return errProviderIntegration
@@ -123,7 +127,7 @@ func providerCheckNewEnrollment(s *providerCustodyStore, after *CandidateEnrollm
 		return nil
 	}
 	raw, err := s.read(s.evidence, providerObjectName("enrollment", s.enrollment), int64(s.config.bounds.maximumObjectBytes))
-	before, parseErr := ParseCandidateEnrollmentRoot(&ProviderCandidateContext{s.config.identity, true}, raw, 64<<10)
+	before, parseErr := parseCandidateEnrollmentRootObserved(&ProviderCandidateContext{s.config.identity, true}, raw, 64<<10, meter)
 	if err != nil || parseErr != nil {
 		return errProviderIntegration
 	}
