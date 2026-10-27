@@ -195,7 +195,10 @@ func TestProviderReplayScanReadsObserveEachActualDecodeAndDomainSeparator(t *tes
 	n := uint64(len(raw))
 	// Object digest validation hashes only. The subsequent format check is
 	// one actual decode; the former pre-observation must not count it again.
-	wantUnits := n*n + 1 + (n + 1) + uint64(len("sage-provider-enrollment-v2")+1) + n + 1
+	// The scan now also funds its one concrete lookup-key copy BEFORE the
+	// original read; the same key is reused for the required-reference map.
+	keyUnits := uint64(len("enrollment")+1+len(u.root.digest)) + 1
+	wantUnits := n*n + 1 + (n + 1) + uint64(len("sage-provider-enrollment-v2")+1) + n + 1 + keyUnits
 	if m.actual[2] != n || m.actual[10] != wantUnits {
 		t.Fatal("retained object reread/parse/hash invocation omitted", m.actual, wantUnits)
 	}
@@ -207,6 +210,13 @@ func TestProviderReplayScanReadsObserveEachActualDecodeAndDomainSeparator(t *tes
 		if m.actual[index] != 2*count {
 			t.Fatal("second original read borrowed an earlier measurement")
 		}
+	}
+	short := &providerWorkMeter{scan: c, upper: m.upper}
+	short.owner = short
+	short.upper[10] = keyUnits - 1
+	s.activeMeter.Store(short)
+	if raw, err := s.object("enrollment", u.root.digest); err == nil || raw != nil || !short.failed || short.actual != (candidateWorkVector{}) {
+		t.Fatal("unfunded key copy reached original IO or decoding")
 	}
 }
 

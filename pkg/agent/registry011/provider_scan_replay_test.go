@@ -319,7 +319,12 @@ func TestProviderScanReaderConsumesAnOriginalSetupTailAtTheFinalMainPosition(t *
 	s.setups, s.setupTip = append(s.setups, setup), setup.commit
 	s.setupCommits[setup.commit] = setup.claim
 	i, _, _ := providerScanReaderFromStoreFixture(t, s)
-	if i.setup() != nil || i.setup() != nil || i.main() != nil || !i.lineage() || i.replay.current.setup == i.target.setup || i.view.setupTip != i.target.setup {
+	for ordinal := 0; ordinal < 2; ordinal++ {
+		if err := i.setup(); err != nil {
+			t.Fatal("ordinary sequential setup original", ordinal, err)
+		}
+	}
+	if i.main() != nil || !i.lineage() || i.replay.current.setup == i.target.setup || i.view.setupTip != i.target.setup {
 		t.Fatal("final setup tail was skipped or retroactively applied to E0")
 	}
 	// Replacing only proposed target metadata cannot change the replayed I/B.
@@ -352,5 +357,19 @@ func TestProviderScanReaderProspectiveMapCapsRefuseBeforeOriginalReads(t *testin
 				t.Fatal("RAM refusal followed original IO, decoding or map growth")
 			}
 		})
+	}
+}
+
+func TestProviderScanReaderFinalHeadMustStillBeReadable(t *testing.T) {
+	i, s, _ := providerScanReaderFixture(t, true)
+	if i.setup() != nil || i.main() != nil {
+		t.Fatal("ordinary original prefix")
+	}
+	held, stored := s.scanControl.held, s.stored
+	if err := os.Remove(filepath.Join(s.config.custodyDirectory, "HEAD")); err != nil {
+		t.Fatal(err)
+	}
+	if i.lineage() || !i.failed || s.last != nil || s.scanControl.held != held || s.stored != stored {
+		t.Fatal("unavailable final head produced completion or released a charge")
 	}
 }

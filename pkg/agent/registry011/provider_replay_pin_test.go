@@ -113,4 +113,8 @@ func TestProviderReplayPinClosureReadsOrdinaryOwnedChildOriginals(t *testing.T) 
 	if meter.failed || meter.actual[0] != 0 || meter.actual[1] != 0 || meter.actual[3] != 0 {
 		t.Fatal("retained parser invented new transport or block work")
 	}
+	before := meter.actual
+	if _, err := replay.pinResults(view, digests, "unselected"); err == nil || meter.actual != before {
+		t.Fatal("an absent selected block reached child-original processing")
+	}
 }
