@@ -2,6 +2,54 @@ package registry011
 
 import "testing"
 
+func TestProviderFrontierSetupDataRequiresOriginalOrdinalClockAndFiles(t *testing.T) {
+	for _, mode := range []string{"ordinal", "rewind", "new-setup-clock", "anchor-read", "setup-original", "recovery-original", "record-range"} {
+		t.Run(mode, func(t *testing.T) {
+			_, s, r := providerFrontierBeforeTicketData(t)
+			s.setups = append([]providerSetupReference(nil), s.setups...)
+			clock := r.current.clock
+			clock.MonotonicMS += 2
+			switch mode {
+			case "ordinal":
+				s.setups[0].ordinal = -1
+			case "rewind":
+				r.setupOrdinal = 1
+			case "new-setup-clock":
+				next := s.setups[0]
+				next.ordinal, next.expectedTip = 1, s.tip
+				s.setups = append(s.setups, next)
+				r.current.clock.MonotonicMS += 1
+			case "anchor-read":
+				r.setupOrdinal = -1
+				s.config.bounds.maximumMetadataPerCommit = 1
+			case "setup-original":
+				r.setupOrdinal = -1
+				s.setups[0].claim = admissionTestDigest("f")
+			case "recovery-original":
+				next := s.setups[0]
+				next.ordinal, next.expectedTip = 1, s.tip
+				s.setups = append(s.setups, next)
+			case "record-range":
+				if _, ok := r.setupBytes(s, -1); ok {
+					t.Fatal("setup range rewound")
+				}
+				return
+			}
+			if mode == "anchor-read" || mode == "setup-original" || mode == "recovery-original" {
+				through := 0
+				if mode == "recovery-original" {
+					through = 1
+				}
+				if _, ok := r.setupBytes(s, through); ok {
+					t.Fatal("missing or changed setup originals passed", mode)
+				}
+			} else if _, err := r.setupAtBoundary(s, clock); err == nil {
+				t.Fatal("invalid setup order or clock passed", mode)
+			}
+		})
+	}
+}
+
 func providerFrontierBeforeTicketData(t *testing.T) (*providerFrontierUnit, *providerCustodyStore, *providerFrontierReplay) {
 	t.Helper()
 	u := providerFrontierUnitFixture(t)
