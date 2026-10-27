@@ -226,14 +226,22 @@ func TestAdmissionCandidateLedgerPayloadRecordMetadataQuotas(t *testing.T) {
 func TestAdmissionCandidateLedgerOverflowAndForeignRecords(t *testing.T) {
 	object := providerPolicyTestObject()
 	for _, level := range []string{"operation", "segment", "bootstrap"} {
-		object["limits"].(map[string]any)[level].(map[string]any)["wire_bytes"] = strconv.FormatUint(math.MaxUint64, 10)
+		// Wire bytes have a separate per-operation cap. Work units admit the
+		// full u64 range, so this reaches cumulative overflow without using an
+		// invalid policy or bypassing the policy parser.
+		object["limits"].(map[string]any)[level].(map[string]any)["work_units"] = strconv.FormatUint(math.MaxUint64, 10)
 	}
 	p, i, raw := admissionTestTicketPolicyFixture(t, object)
-	raw["reservation"].(map[string]any)["wire_bytes"] = strconv.FormatUint(math.MaxUint64, 10)
+	raw["reservation"].(map[string]any)["work_units"] = strconv.FormatUint(math.MaxUint64, 10)
 	first := admissionTestTicket(t, p, i, 0, raw)
 	m := ledgerTestModel(t, p, i, first, ledgerTestBounds())
 	second := ledgerTestNext(t, p, first, 0)
 	ledgerTestRefusesWithoutMutation(t, m, func() error { _, err := m.AppendCandidateTicket(second); return err })
+	charged := ledgerTestModel(t, p, i, first, ledgerTestBounds())
+	if _, err := charged.AppendCandidateSettlement(ledgerTestSettlement(t, first, "failed", 10)); err != nil {
+		t.Fatal(err)
+	}
+	ledgerTestRefusesWithoutMutation(t, charged, func() error { _, err := charged.AppendCandidateTicket(second); return err })
 	_, _, foreign := ledgerTestFirst(t, nil)
 	ledgerTestRefusesWithoutMutation(t, m, func() error { _, err := m.AppendCandidateTicket(foreign); return err })
 	ledgerTestRefusesWithoutMutation(t, m, func() error {
