@@ -55,7 +55,7 @@ func (c *providerIntegration) pinAgent(ctx context.Context, agent string) (*Pinn
 		if err != nil {
 			return nil, err
 		}
-		if !permit.meter.event(providerCodecEvent, uint64(len(result))) || !providerCheckPinPart(i, result) {
+		if !c.store.checkPinPart(i, result) {
 			return nil, errProviderIntegration
 		}
 		digests[i] = c.lastExchange
@@ -65,7 +65,7 @@ func (c *providerIntegration) pinAgent(ctx context.Context, agent string) (*Pinn
 	results, err := c.store.replay.pinResults(c.store, digests, c.selected.Hash)
 	var observed candidateWorkVector
 	observed[3] = 1 // The owned pin parser decodes the one genesis header.
-	if err != nil || !permit.meter.add(observed) || !providerCheckPinResults(results) {
+	if err != nil || !permit.meter.add(observed) || !c.store.checkPinResults(results) {
 		return nil, errProviderIntegration
 	}
 	raw = providerIntegrationJSON(map[string]any{"format": "sage-provider-owned-pin-v1", "input": input.digest, "selected_block_hash": c.selected.Hash, "exchanges": digests[:]})
@@ -80,6 +80,22 @@ func (c *providerIntegration) pinAgent(ctx context.Context, agent string) (*Pinn
 func providerCheckPinResults(results [4]json.RawMessage) bool {
 	for i, result := range results {
 		if !providerCheckPinPart(i, result) {
+			return false
+		}
+	}
+	return true
+}
+
+// Each validation invocation decodes its actual input again, even when it is
+// the same header material. A prior decode or a generous reservation cannot
+// stand in for observing this invocation's bytes and logical work events.
+func (s *providerCustodyStore) checkPinPart(part int, result json.RawMessage) bool {
+	return s.event(providerCodecEvent, uint64(len(result))) && providerCheckPinPart(part, result)
+}
+
+func (s *providerCustodyStore) checkPinResults(results [4]json.RawMessage) bool {
+	for i, result := range results {
+		if !s.checkPinPart(i, result) {
 			return false
 		}
 	}

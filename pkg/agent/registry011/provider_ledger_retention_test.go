@@ -53,16 +53,20 @@ func TestProviderLedgerRetainedPayloadCannotResetAtPageBoundary(t *testing.T) {
 	if err := m.applyProviderBoundary(boundary, []byte(boundary.pageObject.raw), []byte(seal.raw), heads); err != nil {
 		t.Fatal(err)
 	}
+	closedPage := m.current
+	if m.addProviderRetention(closedPage, 19, 31) == nil || m.current != closedPage {
+		t.Fatal("unrelated storage opened a new empty page without a typed record")
+	}
+	first := m.lastTicket
+	next := ledgerTestNext(t, policy, first, 0)
+	if _, err := m.AppendCandidateTicket(next); err != nil || m.lastTicket.previous != first.digest || m.current.privatePayload != 17 {
+		t.Fatal("next record discarded retained plaintext", err)
+	}
 	if err := m.addProviderRetention(m.current, 19, 31); err != nil {
 		t.Fatal(err)
 	}
 	if m.continuation.auxiliaryPayload != 36 || m.continuation.sealedExternal != 17 || m.current.privatePayload != 36 || m.continuation.auxiliaryMetadata != 60 {
 		t.Fatal("page replenished lifetime retention")
-	}
-	first := m.lastTicket
-	next := ledgerTestNext(t, policy, first, 0)
-	if _, err := m.AppendCandidateTicket(next); err != nil || m.lastTicket.previous != first.digest || m.current.privatePayload != 36 {
-		t.Fatal("next record discarded retained plaintext", err)
 	}
 }
 

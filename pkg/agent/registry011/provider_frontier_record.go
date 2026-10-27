@@ -53,7 +53,9 @@ func providerNullableDigest(digest string) any {
 }
 
 func providerDiagnosticClockObject(clock CandidateClockDiagnostic) map[string]string {
-	return providerClockObject(ClockSample{ClockID: clock.ClockID, Epoch: clock.Epoch, WallMS: clock.WallMS, MonotonicMS: clock.MonotonicMS, UncertaintyMS: clock.UncertaintyMS})
+	// Serialization of retained diagnostic DATA needs no trusted sample or
+	// owned-clock reconstruction, in either direction.
+	return map[string]string{"id": clock.ClockID, "epoch": clock.Epoch, "wall_ms": strconv.FormatInt(clock.WallMS, 10), "monotonic_ms": strconv.FormatInt(clock.MonotonicMS, 10), "uncertainty_ms": strconv.FormatInt(clock.UncertaintyMS, 10)}
 }
 
 func (f providerFrontierRecord) bytes() ([]byte, error) {

@@ -20,7 +20,7 @@ func providerFrontierIntentFixture(t *testing.T) (providerFrontierLink, *Candida
 	}
 	link := providerFrontierLink{identity: root.identity, fence: root.fence, commit: admissionTestDigest("4"), setup: admissionTestDigest("5"), objects: empty.digest}
 	d := m.intent.clock
-	clock := ClockSample{ClockID: d.ClockID, Epoch: d.Epoch, WallMS: d.WallMS, MonotonicMS: d.MonotonicMS, UncertaintyMS: d.UncertaintyMS}
+	clock := ClockSample(d) // Inert unit data, never an owned-clock constructor.
 	return link, root, inventory, clock, bounds
 }
 

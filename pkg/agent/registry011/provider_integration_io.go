@@ -70,7 +70,7 @@ func (c *providerIntegration) restoreMeter(m *providerWorkMeter) {
 		return
 	}
 	active := c.store.activeMeter.Load()
-	if active != nil && active != m && !(active.authority && active.integration == c && active.ticket == m.ticket) {
+	if active != nil && active != m && (!active.authority || active.integration != c || active.ticket != m.ticket) {
 		c.failed = true
 		return
 	}

@@ -10,6 +10,10 @@ import (
 // Every value here is inert arithmetic fixture data. No store/frontier,
 // operating policy, network transport or dispatch permission is constructed.
 func providerPrivateLedgerFixture(t *testing.T, pageRecords, records uint64) (*CandidateAdmissionLedger, *ProviderPolicyCandidate) {
+	return providerPrivateLedgerFixtureWithDeadline(t, pageRecords, records, 1000)
+}
+
+func providerPrivateLedgerFixtureWithDeadline(t *testing.T, pageRecords, records, deadlineMS uint64) (*CandidateAdmissionLedger, *ProviderPolicyCandidate) {
 	t.Helper()
 	object := providerPolicyTestObject()
 	limits := object["limits"].(map[string]any)
@@ -18,6 +22,8 @@ func providerPrivateLedgerFixture(t *testing.T, pageRecords, records uint64) (*C
 		for key := range values {
 			if key != "deadline_ms" {
 				values[key] = "65536"
+			} else {
+				values[key] = strconv.FormatUint(deadlineMS, 10)
 			}
 		}
 	}

@@ -18,6 +18,135 @@ func providerPinResultFixture(t *testing.T) [4]json.RawMessage {
 	}
 }
 
+func TestProviderPinRepeatedValidationCountsEveryDecoderInvocation(t *testing.T) {
+	s, policy, candidate, primitive := providerStoreFixture(t)
+	c, err := newProviderIntegration(s, policy, candidate, primitive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	results := providerPinResultFixture(t)
+	var decoded, units uint64
+	for _, raw := range results {
+		n := uint64(len(raw))
+		decoded += n
+		units += n*n + 1
+	}
+	m := newProviderWorkMeter(c, providerOperationReservation{execution: candidateWorkVector{2: 2 * decoded, 10: 2 * units}})
+	s.activeMeter.Store(m)
+	defer s.activeMeter.Store(nil)
+	// The same retained header does not make a second parser invocation free.
+	for run := uint64(1); run <= 2; run++ {
+		if !s.checkPinResults(results) || m.actual[2] != run*decoded || m.actual[10] != run*units || m.actual[0] != 0 || m.actual[1] != 0 || m.actual[3] != 0 {
+			t.Fatal("revalidation lost codec events or invented network/block work")
+		}
+	}
+	before := m.actual
+	if s.checkPinPart(0, results[0]) || !m.failed || m.actual != before {
+		t.Fatal("decoder ran after its unchanged reservation was exhausted")
+	}
+}
+
+func TestProviderPinMalformedResultRetainsItsObservedValidationCost(t *testing.T) {
+	s, policy, candidate, primitive := providerStoreFixture(t)
+	c, err := newProviderIntegration(s, policy, candidate, primitive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := newProviderWorkMeter(c, providerOperationReservation{execution: candidateWorkVector{2: 16, 10: 256}})
+	s.activeMeter.Store(m)
+	defer s.activeMeter.Store(nil)
+	if s.checkPinPart(0, json.RawMessage(`{}`)) || m.actual[2] != 2 || m.actual[10] != 5 || m.actual[0] != 0 || m.actual[1] != 0 {
+		t.Fatal("invalid result was refunded or counted as network work")
+	}
+}
+
+func TestProviderPinSettlementCountsBothInputsAndRefusesIncompleteMeasurement(t *testing.T) {
+	owner, ticket, _, _ := providerMeterFixture(t)
+	raw := providerPolicyTestBytes(t, ledgerTestSettlementObject(ticket, "complete", 1))
+	// Inert decoder data: the proposed actual_work in this record is never
+	// accepted as an owned measurement, persisted ACK or operating credential.
+	a, b := uint64(len(raw)), uint64(len(ticket.policy))
+	decoded := a + b
+	units := a*a + 1 + b*b + 1 + uint64(len("sage-provider-budget-settlement-v2")+1) + a + 1 + a + 1
+	for _, mode := range []string{"normal", "policy-budget", "hash-budget", "bad-record", "nil-ticket", "empty-record", "oversize-record"} {
+		t.Run(mode, func(t *testing.T) {
+			s := &providerCustodyStore{}
+			m := newProviderWorkMeter(owner, providerOperationReservation{execution: candidateWorkVector{2: decoded, 10: units}})
+			s.activeMeter.Store(m)
+			selected, input := ticket, raw
+			switch mode {
+			case "policy-budget":
+				m.upper[2] = decoded - 1
+			case "hash-budget":
+				m.upper[10] = units - 1
+			case "bad-record":
+				input = []byte(`{}`)
+			case "nil-ticket":
+				selected = nil
+			case "empty-record":
+				input = nil
+			case "oversize-record":
+				input = make([]byte, 64<<10+1)
+			}
+			result, err := s.parsePinSettlement(selected, input)
+			if mode == "normal" {
+				if err != nil || result == nil || m.failed || m.actual[2] != decoded || m.actual[10] != units || m.actual[0] != 0 || m.actual[1] != 0 || m.actual[9] != 0 {
+					t.Fatal("two decoder inputs were merged, omitted or used as work authority", err)
+				}
+			} else if err == nil || result != nil {
+				t.Fatal("invalid or underfunded decoder produced a result")
+			} else if (mode == "policy-budget" || mode == "hash-budget" || mode == "bad-record") && !m.failed {
+				t.Fatal("partial/failed parser left a usable measurement")
+			}
+		})
+	}
+}
+
+func TestProviderLocalPrimitiveReservesOnlyEachClosedHeaderCommand(t *testing.T) {
+	s, policy, candidate, primitive := providerStoreFixture(t)
+	c, err := newProviderIntegration(s, policy, candidate, primitive)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.firstExchange, c.firstResult = admissionTestDigest("a"), `{"normal":"inert bounded input"}`
+	bootstrap, err := c.localPrimitive(c.firstExchange, nil)
+	if err != nil || bootstrap.blocks != 1 || bootstrap.transactions != 0 || bootstrap.frames != 0 || bootstrap.logs != 0 || bootstrap.proofs != 0 || bootstrap.capture != primitive.capture || bootstrap.maximumCreatedObjects != primitive.maximumCreatedObjects {
+		t.Fatal("bootstrap reserved unrelated EVM replay work", err)
+	}
+	c.bootstrap = admissionTestDigest("b")
+	raw := providerPinInput(c.bootstrap, "fixture-agent")
+	input := providerCandidateHash("sage-provider-owned-pin-input-v1", raw)
+	objects := []providerIntegrationObjectInput{{"pin-input", raw}}
+	pin, err := c.localPrimitive(input, objects)
+	if err != nil || pin != bootstrap {
+		t.Fatal("closed pin did not keep the same exact header bound", err)
+	}
+	for _, mode := range []string{"unknown", "extra-object", "wrong-kind", "wrong-input", "wrong-raw", "already-pinned"} {
+		t.Run(mode, func(t *testing.T) {
+			selected := input
+			extra := append([]providerIntegrationObjectInput(nil), objects...)
+			switch mode {
+			case "unknown":
+				selected, extra = admissionTestDigest("f"), nil
+			case "extra-object":
+				extra = append(extra, extra[0])
+			case "wrong-kind":
+				extra[0].kind = "unknown"
+			case "wrong-input":
+				selected = admissionTestDigest("f")
+			case "wrong-raw":
+				extra[0].raw = []byte(`{}`)
+			case "already-pinned":
+				c.pin = admissionTestDigest("f")
+				defer func() { c.pin = "" }()
+			}
+			if _, err := c.localPrimitive(selected, extra); err == nil {
+				t.Fatal("unsupported input borrowed a closed command's reservation")
+			}
+		})
+	}
+}
+
 func TestProviderIntegrationPinInputAndRequestsAreExact(t *testing.T) {
 	start, selected := admissionTestDigest("a"), admissionTestDigest("b")
 	raw := providerPinInput(start, "Agent_1")

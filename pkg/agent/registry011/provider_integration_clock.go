@@ -84,5 +84,5 @@ func (c *providerOwnedClock) sample() (ClockSample, error) {
 // Only this direction exists: owned samples may be copied into retained
 // candidate metadata. No JSON/candidate diagnostic can reconstruct this clock.
 func providerClockDiagnostic(sample ClockSample) CandidateClockDiagnostic {
-	return CandidateClockDiagnostic{ClockID: sample.ClockID, Epoch: sample.Epoch, WallMS: sample.WallMS, MonotonicMS: sample.MonotonicMS, UncertaintyMS: sample.UncertaintyMS}
+	return CandidateClockDiagnostic(sample)
 }

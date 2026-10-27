@@ -21,6 +21,12 @@ func (p providerFrontierLink) valid() bool {
 }
 
 func providerFrontierIntent(p providerFrontierLink, root *CandidateEnrollmentRoot, inventory *providerIntegrationInventory, kind, operation string, clock ClockSample, bounds providerIntegrationBounds) ([]byte, error) {
+	return providerFrontierIntentDiagnostic(p, root, inventory, kind, operation, providerClockDiagnostic(clock), bounds)
+}
+
+// This closed DATA encoder is also used when independently checking retained
+// bytes. A diagnostic never reconstructs an owned clock or an execution input.
+func providerFrontierIntentDiagnostic(p providerFrontierLink, root *CandidateEnrollmentRoot, inventory *providerIntegrationInventory, kind, operation string, clock CandidateClockDiagnostic, bounds providerIntegrationBounds) ([]byte, error) {
 	if !p.valid() || bounds.continuation == nil || !bounds.valid() || !providerIndexedCustodyKind(kind) || !lowerHash(operation) || root == nil || root.identity != p.identity || root.fence != p.fence || root.raw == "" || inventory == nil || inventory.previous != p.objects || (p.sequence == 0) != (kind == "enroll") {
 		return nil, errProviderIntegration
 	}
@@ -38,7 +44,7 @@ func providerFrontierIntent(p providerFrontierLink, root *CandidateEnrollmentRoo
 	if err != nil || checked.digest != inventory.digest {
 		return nil, errProviderIntegration
 	}
-	sample := providerClockDiagnostic(clock)
+	sample := clock
 	if !candidateLedgerClockAdvance(sample, sample) || sample.ClockID == "" || !lowerHash(sample.Epoch) {
 		return nil, errProviderIntegration
 	}
@@ -46,7 +52,7 @@ func providerFrontierIntent(p providerFrontierLink, root *CandidateEnrollmentRoo
 		"format": "sage-provider-custody-intent-v2", "namespace": p.identity.Namespace, "instance_key": p.identity.Instance,
 		"generation": strconv.FormatUint(p.identity.Generation, 10), "fence": strconv.FormatUint(p.fence, 10), "sequence": strconv.FormatUint(p.sequence+1, 10),
 		"previous_commit": p.commit, "expected_enrollment_root": providerNullableDigest(p.enrollment), "new_enrollment_root": root.digest,
-		"objects_root": inventory.digest, "operation": operation, "kind": kind, "policy": p.identity.Policy, "clock": providerClockObject(clock),
+		"objects_root": inventory.digest, "operation": operation, "kind": kind, "policy": p.identity.Policy, "clock": providerDiagnosticClockObject(clock),
 		"metadata_reservation": providerCustodyMetadata(bounds), "previous_frontier": providerNullableDigest(p.frontier), "setup_head": p.setup,
 	})
 	if len(raw) == 0 || uint64(len(raw)) > bounds.maximumMetadataPerCommit {
@@ -69,7 +75,7 @@ func checkProviderFrontierIntent(raw []byte, p providerFrontierLink, root *Candi
 	if !ok {
 		return false
 	}
-	want, err := providerFrontierIntent(p, root, inventory, kind, operation, ClockSample{ClockID: clock.ClockID, Epoch: clock.Epoch, WallMS: clock.WallMS, MonotonicMS: clock.MonotonicMS, UncertaintyMS: clock.UncertaintyMS}, bounds)
+	want, err := providerFrontierIntentDiagnostic(p, root, inventory, kind, operation, clock, bounds)
 	return err == nil && string(raw) == string(want)
 }
 

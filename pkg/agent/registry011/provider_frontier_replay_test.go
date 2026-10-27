@@ -41,6 +41,15 @@ func providerFrontierUnitFixtureWithClock(t *testing.T, owned *providerOwnedCloc
 func providerFrontierUnitFixtureMode(t *testing.T, owned *providerOwnedClock, highwater bool) *providerFrontierUnit {
 	t.Helper()
 	model, policy := providerPrivateLedgerFixture(t, 8, 32)
+	if owned != nil {
+		// Select the existing normal owned-store fixture's five-minute envelope
+		// BEFORE its new original clock/setup/I. The one-second arithmetic
+		// fixture and all already failed runs remain unchanged, never renewed.
+		model, policy = providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
+		if owned.policy != policy.policy {
+			t.Fatal("normal owned fixture clock belongs to another policy")
+		}
+	}
 	id := model.intent.identity
 	context := &ProviderCandidateContext{id, true}
 	rootObject := admissionTestRootObject(t)
@@ -78,7 +87,7 @@ func providerFrontierUnitFixtureMode(t *testing.T, owned *providerOwnedClock, hi
 	}
 	t.Cleanup(func() { _ = evidence.close() })
 	d := model.intent.clock
-	clock := ClockSample{ClockID: d.ClockID, Epoch: d.Epoch, WallMS: d.WallMS, MonotonicMS: d.MonotonicMS, UncertaintyMS: d.UncertaintyMS}
+	clock := ClockSample(d) // Inert data; the optional owned backend samples itself.
 	if owned != nil {
 		clock, err = owned.sample()
 		if err != nil {

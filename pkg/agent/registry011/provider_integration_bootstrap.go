@@ -16,7 +16,11 @@ func (c *providerIntegration) beginLocalObjects(input string, objects []provider
 	if c.prepare() != nil || !lowerHash(input) {
 		return nil, errProviderIntegration
 	}
-	reservation, err := providerEstimateOperation(c.store.config.bounds, c.primitive, 0, c.store.retainedRaw, false, false)
+	primitive, err := c.localPrimitive(input, objects)
+	if err != nil {
+		return nil, err
+	}
+	reservation, err := providerEstimateOperation(c.store.config.bounds, primitive, 0, c.store.retainedRaw, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -30,6 +34,31 @@ func (c *providerIntegration) beginLocalObjects(input string, objects []provider
 		return nil, errProviderIntegration
 	}
 	return permit, nil
+}
+
+// These two closed commands decode one header each. They do not execute EVM
+// transactions/frames/logs/proofs, so reserving the unrelated full replay
+// maxima would exhaust the shared lifetime quota before the second command.
+// Unsupported local input cannot borrow this narrower reservation.
+func (c *providerIntegration) localPrimitive(input string, objects []providerIntegrationObjectInput) (providerPrimitiveBounds, error) {
+	if !c.valid() || !lowerHash(input) {
+		return providerPrimitiveBounds{}, errProviderIntegration
+	}
+	bootstrap := c.bootstrap == "" && lowerHash(c.firstExchange) && input == c.firstExchange && c.firstResult != "" && len(objects) == 0
+	pin := false
+	if lowerHash(c.bootstrap) && c.pin == "" && len(objects) == 1 && objects[0].kind == "pin-input" {
+		m := contentObject(contentJSON(objects[0].raw), "format", "bootstrap_start", "registry", "agent")
+		if m != nil {
+			expected := providerPinInput(c.bootstrap, contentString(m["agent"]))
+			pin = len(expected) != 0 && string(expected) == string(objects[0].raw) && input == providerCandidateHash("sage-provider-owned-pin-input-v1", expected)
+		}
+	}
+	if !bootstrap && !pin {
+		return providerPrimitiveBounds{}, errProviderIntegration
+	}
+	primitive := c.primitive
+	primitive.blocks, primitive.transactions, primitive.frames, primitive.logs, primitive.proofs = 1, 0, 0, 0, 0
+	return primitive, nil
 }
 
 // Called once after the first real RPC has been settled and durably retained.
@@ -69,10 +98,27 @@ func (c *providerIntegration) installBootstrap() error {
 		c.failed = true
 		return errProviderIntegration
 	}
+	// These are additional decoder invocations after the consumption permit,
+	// not work already observed by the earlier admission or result decoder.
+	if !permit.meter.event(providerCodecEvent, uint64(len(c.policy.raw))) || !permit.meter.event(providerCodecEvent, uint64(len(c.intent.raw))) {
+		c.failed = true
+		return errProviderIntegration
+	}
 	p := contentJSON([]byte(c.policy.raw)).(map[string]any)
 	i := contentJSON([]byte(c.intent.raw)).(map[string]any)
 	id := c.intent.identity
-	raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-start-v2", "admission_digest": c.intent.digest, "policy": id.Policy, "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "bootstrap_id": providerCandidateHash("sage-provider-bootstrap-id-v2", []byte(c.intent.digest)), "enrollment_anchor_root": c.anchor.digest, "selected_finality_exchange": c.firstExchange, "selected_block_hash": selected.Hash, "deployment_block_hash": p["instance"].(map[string]any)["deployment_hash"], "prior_published_checkpoint": nil, "initial_clock": providerClockObject(c.store.setupOrigin), "deadline_wall_ms": strconv.FormatUint(c.intent.deadline, 10), "limits_digest": i["limits_digest"]})
+	const bootstrapDomain = "sage-provider-bootstrap-id-v2"
+	if !permit.meter.event(providerHashEvent, uint64(len(bootstrapDomain)+1+len(c.intent.digest))) {
+		c.failed = true
+		return errProviderIntegration
+	}
+	bootstrapID := providerCandidateHash(bootstrapDomain, []byte(c.intent.digest))
+	raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-start-v2", "admission_digest": c.intent.digest, "policy": id.Policy, "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "bootstrap_id": bootstrapID, "enrollment_anchor_root": c.anchor.digest, "selected_finality_exchange": c.firstExchange, "selected_block_hash": selected.Hash, "deployment_block_hash": p["instance"].(map[string]any)["deployment_hash"], "prior_published_checkpoint": nil, "initial_clock": providerClockObject(c.store.setupOrigin), "deadline_wall_ms": strconv.FormatUint(c.intent.deadline, 10), "limits_digest": i["limits_digest"]})
+	// Observe the encoder and the new object's decoder/hash/copy separately.
+	if !permit.meter.event(providerEncodeEvent, uint64(len(raw))) || !permit.meter.event(providerCodecEvent, uint64(len(raw))) || !permit.meter.event(providerHashEvent, uint64(len(raw)+len("sage-provider-start-v2")+1)) || !permit.meter.event(providerCopyEvent, uint64(len(raw))) {
+		c.failed = true
+		return errProviderIntegration
+	}
 	start, err := newProviderIntegrationObject("bootstrap", raw, c.store.config.bounds.maximumObjectBytes)
 	if err != nil {
 		c.failed = true
@@ -80,7 +126,7 @@ func (c *providerIntegration) installBootstrap() error {
 	}
 	var blocks candidateWorkVector
 	blocks[3] = 1
-	if !permit.meter.add(blocks) || !permit.meter.event(providerCodecEvent, uint64(len(raw))) || !permit.meter.event(providerHashEvent, uint64(len(raw))) || !permit.meter.event(providerCopyEvent, uint64(len(raw))) {
+	if !permit.meter.add(blocks) {
 		c.failed = true
 		return errProviderIntegration
 	}

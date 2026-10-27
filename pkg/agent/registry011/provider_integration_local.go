@@ -11,7 +11,7 @@ func (c *providerIntegration) finishLocalResult(permit *providerIntegrationPermi
 	default:
 		return "", errProviderIntegration
 	}
-	if !permit.meter.event(providerEncodeEvent, uint64(len(raw))) || !permit.meter.event(providerHashEvent, uint64(len(raw))) || !permit.meter.event(providerCopyEvent, uint64(len(raw))) {
+	if !permit.meter.event(providerEncodeEvent, uint64(len(raw))) || !permit.meter.event(providerCodecEvent, uint64(len(raw))) || !permit.meter.event(providerHashEvent, uint64(len("sage-provider-owned-pin-v1")+1+len(raw))) || !permit.meter.event(providerCopyEvent, uint64(len(raw))) {
 		c.failed = true
 		return "", errProviderIntegration
 	}

@@ -141,8 +141,12 @@ func openProviderCustody(config providerCustodyConfig, clock *providerOwnedClock
 }
 
 func providerCustodySetup(config providerCustodyConfig, clock ClockSample) []byte {
+	return providerCustodySetupDiagnostic(config, providerClockDiagnostic(clock))
+}
+
+func providerCustodySetupDiagnostic(config providerCustodyConfig, clock CandidateClockDiagnostic) []byte {
 	id, b := config.identity, config.bounds
-	raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-authority-setup-v1", "namespace": id.Namespace, "instance_key": id.Instance, "policy": id.Policy, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "anchor": config.anchor, "expected_tip": config.expectedTip, "previous_setup_commit": config.expectedSetupTip, "operation": providerCandidateHash("sage-provider-setup-operation-v1", []byte(config.anchor+id.Instance+id.Policy+id.SourceID)), "profile": config.profile, "attempt": strconv.Itoa(config.attempt), "clock": providerClockObject(clock), "work": candidateLedgerWorkObject(b.setupWork), "live_upper": strconv.FormatUint(b.setupLive, 10), "retained_upper": strconv.FormatUint(b.setupRetained, 10), "maximum_clock_reads": strconv.FormatUint(b.setupMaximumClockReads, 10), "maximum_duration_ms": strconv.FormatUint(b.setupMaximumDurationMS, 10)})
+	raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-authority-setup-v1", "namespace": id.Namespace, "instance_key": id.Instance, "policy": id.Policy, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "anchor": config.anchor, "expected_tip": config.expectedTip, "previous_setup_commit": config.expectedSetupTip, "operation": providerCandidateHash("sage-provider-setup-operation-v1", []byte(config.anchor+id.Instance+id.Policy+id.SourceID)), "profile": config.profile, "attempt": strconv.Itoa(config.attempt), "clock": providerDiagnosticClockObject(clock), "work": candidateLedgerWorkObject(b.setupWork), "live_upper": strconv.FormatUint(b.setupLive, 10), "retained_upper": strconv.FormatUint(b.setupRetained, 10), "maximum_clock_reads": strconv.FormatUint(b.setupMaximumClockReads, 10), "maximum_duration_ms": strconv.FormatUint(b.setupMaximumDurationMS, 10)})
 	return raw
 }
 

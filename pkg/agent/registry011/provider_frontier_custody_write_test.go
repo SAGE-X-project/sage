@@ -7,7 +7,7 @@ import (
 
 func providerFrontierWriterFixture(t *testing.T) (*providerFrontierFiles, *providerFrontierUnit, *providerFrontierReplay) {
 	t.Helper()
-	_, policy := providerPrivateLedgerFixture(t, 8, 32)
+	_, policy := providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
 	clock, err := newProviderOwnedClock(policy, 512, 100, 100)
 	if err != nil {
 		t.Fatal(err)
@@ -146,7 +146,7 @@ func TestProviderFrontierSealPreflightMatchesBothActualDebitBoundaries(t *testin
 }
 
 func TestProviderFrontierCustodyRetainsTheWholeNormalFailedTicketAndFinalSeal(t *testing.T) {
-	_, policy := providerPrivateLedgerFixture(t, 8, 32)
+	_, policy := providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
 	clock, err := newProviderOwnedClock(policy, 512, 100, 100)
 	if err != nil {
 		t.Fatal(err)

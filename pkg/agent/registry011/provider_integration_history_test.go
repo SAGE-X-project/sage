@@ -42,7 +42,7 @@ func TestProviderIntegrationCollectionScopeAndModeRefuseBeforeReads(t *testing.T
 			t.Fatal("provider collection started without an owned scope")
 		}
 	}
-	if _, err := collectSourceBatchMode(nil, nil, JournalConfig{}, JournalCheckpoint{}, SourceReadLimits{}, nil, nodeIdentity{}, sourceAcquisitionMode(255)); err == nil {
+	if _, err := collectSourceBatchMode(context.Background(), nil, JournalConfig{}, JournalCheckpoint{}, SourceReadLimits{}, nil, nodeIdentity{}, sourceAcquisitionMode(255)); err == nil {
 		t.Fatal("unknown acquisition mode")
 	}
 }

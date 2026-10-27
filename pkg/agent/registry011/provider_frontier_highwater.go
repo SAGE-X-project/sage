@@ -97,6 +97,5 @@ func checkProviderHighwaterSetup(before, after providerFrontierHighwater, config
 	}
 	copy := config
 	copy.attempt, copy.expectedTip, copy.expectedSetupTip = int(attempt), before.commit, before.setup
-	sample := ClockSample{ClockID: clock.ClockID, Epoch: clock.Epoch, WallMS: clock.WallMS, MonotonicMS: clock.MonotonicMS, UncertaintyMS: clock.UncertaintyMS}
-	return bytes.Equal(claim, providerCustodySetup(copy, sample)) && bytes.Equal(commit, providerSetupCommit(claim)) && after.setup == providerCandidateHash("sage-provider-authority-setup-commit-v1", commit)
+	return bytes.Equal(claim, providerCustodySetupDiagnostic(copy, clock)) && bytes.Equal(commit, providerSetupCommit(claim)) && after.setup == providerCandidateHash("sage-provider-authority-setup-commit-v1", commit)
 }
