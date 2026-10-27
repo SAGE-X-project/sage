@@ -1,6 +1,9 @@
 package registry011
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func providerFirstAdmissionOwnerFixture(t *testing.T) (*providerCustodyStore, *providerFirstAdmissionOwner) {
 	t.Helper()
@@ -161,5 +164,89 @@ func TestProviderFirstAdmissionHasNoUnownedSampleOrFailureFactory(t *testing.T) 
 	}
 	if owner, err := newProviderFirstAdmissionOwner(nil, nil, ClockSample{}); err == nil || owner != nil {
 		t.Fatal("missing completed inspection produced a live owner")
+	}
+}
+
+func TestProviderFirstAdmissionCommonSamplesUseTheSameOriginalClock(t *testing.T) {
+	s, f := providerFirstAdmissionOwnerFixture(t)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := f.startLocked(); err != nil {
+		t.Fatal(err)
+	}
+	clocks, stored, held := f.meter.clocks, s.stored, s.scanControl.held
+	sample, err := s.sample()
+	if err != nil || f.meter.clocks != clocks+1 || !candidateLedgerClockAdvance(providerClockDiagnostic(f.inspected), providerClockDiagnostic(sample)) || s.stored != stored || s.scanControl.held != held || s.last != nil {
+		t.Fatal("shared writer clock bypassed F or sampled twice", err)
+	}
+	view := &providerCustodyStore{}
+	view.activeMeter.Store(f.meter)
+	if _, err := view.sample(); err == nil || f.meter.clocks != clocks+1 {
+		t.Fatal("foreign view sampled the finishing owner")
+	}
+	s.clock.mu.Lock()
+	s.clock.read = s.clock.maximum
+	s.clock.mu.Unlock()
+	if _, err := s.sample(); err == nil || !s.failed || !f.meter.closed || f.state != providerFirstAdmissionFailed || s.activeMeter.Load() != nil {
+		t.Fatal("uncertain shared sample kept a reusable finishing owner")
+	}
+}
+
+func TestProviderFirstAdmissionOriginalTextCopiesUseCurrentHeldWork(t *testing.T) {
+	if !providerReplayPhaseRawTextEqual([]byte("ordinary DATA"), "ordinary DATA", nil) || providerReplayPhaseRawTextEqual([]byte("ordinary DATA"), "other DATA", &providerWorkMeter{}) {
+		t.Fatal("legacy pure DATA comparison changed")
+	}
+	s, f := providerFirstAdmissionOwnerFixture(t)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := f.startLocked(); err != nil {
+		t.Fatal(err)
+	}
+	before, stored, held := f.meter.actual, s.stored, s.scanControl.held
+	if !providerReplayPhaseRawTextEqual([]byte("ordinary DATA"), "ordinary DATA", f.meter) || f.meter.actual[10] <= before[10] || f.meter.actual[2] != before[2] || s.stored != stored || s.scanControl.held != held || s.last != nil {
+		t.Fatal("V4 copy/compare was unobserved or reclassified as decoding")
+	}
+	f.meter.upper[10] = f.meter.actual[10]
+	if providerReplayPhaseRawTextEqual([]byte("ordinary DATA"), "ordinary DATA", f.meter) || !f.meter.failed || s.last != nil || s.stored != stored || s.scanControl.held != held {
+		t.Fatal("unfunded V4 original text comparison succeeded")
+	}
+}
+
+func TestProviderFirstAdmissionInventoryOrderingHasAnExactFiniteWorkBound(t *testing.T) {
+	s, f := providerFirstAdmissionOwnerFixture(t)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := f.startLocked(); err != nil {
+		t.Fatal(err)
+	}
+	entries := make([]providerIntegrationObjectRef, 14)
+	for n := range entries {
+		entries[n] = providerIntegrationObjectRef{"response", "0x" + strings.Repeat(string("0123456789abcd"[13-n]), 64), 1}
+	}
+	before, stored, held := f.meter.actual, s.stored, s.scanControl.held
+	if !providerInventoryOrderObserved(entries, f.meter) {
+		t.Fatal("bounded original finishing order was refused")
+	}
+	// Reverse input reaches n*(n-1)/2 comparisons. Each comparison pays
+	// two key copies of length75 (76 units each) and one150-byte compare.
+	comparisons := uint64(14 * 13 / 2)
+	if f.meter.actual[10]-before[10] != comparisons*(76+76+151) || f.meter.actual[2] != before[2] || s.stored != stored || s.scanControl.held != held || s.last != nil {
+		t.Fatal("sort work omitted a copy/comparison or changed the original hold")
+	}
+	for n := 1; n < len(entries); n++ {
+		if providerIntegrationRefKey(entries[n-1]) >= providerIntegrationRefKey(entries[n]) {
+			t.Fatal("finite sort changed canonical inventory order")
+		}
+	}
+	before = f.meter.actual
+	if !providerInventoryOrderObserved(entries, f.meter) || f.meter.actual[10]-before[10] != 13*(76+76+151) {
+		t.Fatal("ordered input did not stop each bounded inner loop")
+	}
+	if !providerInventoryOrderObserved(nil, f.meter) || providerInventoryOrderObserved(make([]providerIntegrationObjectRef, 257), f.meter) {
+		t.Fatal("empty or excessive inventory bound")
+	}
+	f.meter.upper[10] = f.meter.actual[10]
+	if providerInventoryOrderObserved(entries, f.meter) || !f.meter.failed || s.last != nil || s.stored != stored || s.scanControl.held != held {
+		t.Fatal("unfunded key copies produced a completed order")
 	}
 }

@@ -1385,3 +1385,19 @@ past physical work nor replace frozen-target reconstruction or typed E1.
 First-admission finishing replays E0 from fresh original setup/main maps under the same held inspection meter. It drops its closed inspection caches while retaining the full returned-output RAM upper, checks the exact original main/scan heads and samples the original clock throughout. This supplies candidate typed inputs only: the first admission, mandatory binding, seeded E1 write, acknowledgment and operating Agent integration remain incomplete. Finite missing-original, budget, clock, owner and RAM units do not qualify an operating filesystem or principal.
 
 For the V4 first typed admission, one mandatory scan binding names the independently replayed E0 boundary and original historical Hk/command/chunk chain. The original O+Q seed enters bootstrap charged and disk-used totals before the first ticket append. Both original copies of scan metadata are charged once to the separate common metadata quota; old physical files are not rewritten or charged as fresh E1 files. Pure candidate DATA units compare seeded B0 and reject a zero-seed expected record. They do not implement or qualify the still-pending prepaid first-E1 writer, custody acknowledgment or operating Agent. Legacy/public zero-seed behavior is unchanged.
+
+Common store samples during first-admission finishing now route through that
+same live owner, applying both its original deadline and its finishing limits.
+Foreign views cannot sample its clock. Original-byte/text comparisons pay for
+their copies and comparisons under the current meter. First-finishing inventory
+sorting has a concrete bound of n*(n-1)/2 comparisons, with two observed key
+copies per comparison; earlier sorting and event contracts remain unchanged.
+
+The first-E1 storage quote separately accounts for14 fresh objects and all21
+possible file allocations, including the uncertain pending head. Its binding
+allowance conservatively uses the configured metadata cap even though that
+codec actually enforces both this cap and8192 bytes. This is an intentional
+overestimate, not a correction of an earlier64KiB underestimate.
+This quote is only the physical-file component. Complete work, resident-memory
+and clock preflight, the prepaid writer, original readbacks and operating
+qualification still remain; a quote or successful unit does not authorize them.

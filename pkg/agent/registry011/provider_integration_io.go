@@ -56,6 +56,18 @@ func (s *providerCustodyStore) event(kind providerWorkEvent, bytes uint64) bool 
 }
 
 func (s *providerCustodyStore) sample() (ClockSample, error) {
+	if m := s.activeMeter.Load(); m != nil && m.firstAdmission != nil {
+		if m.firstAdmission.store != s {
+			return ClockSample{}, errProviderIntegration
+		}
+		return m.firstAdmission.sampleLocked()
+	}
+	return s.samplePrimitive()
+}
+
+// Only the generic non-F path and the exact first-finishing owner call this
+// primitive. F validates the returned time before any caller can use it.
+func (s *providerCustodyStore) samplePrimitive() (ClockSample, error) {
 	if !s.event(providerClockEvent, 0) {
 		return ClockSample{}, errProviderIntegration
 	}

@@ -140,7 +140,14 @@ func (f *providerFrontierFiles) advanceClaimedLocked(after providerFrontierHighw
 	raw, err := after.bytesObserved(s.config, meter)
 	cost, ok := providerHighwaterFileCost(uint64(len(raw)), s.config.bounds)
 	retained, retainedOK := providerUpperSum(s.retainedRaw, cost.metadata)
-	prepaid := claim != nil && claim.owner == f && !claim.used && claim.before == f.pinRaw && claim.after == string(raw) && claim.stored == s.stored && claim.headCost == cost && claim.kind == kind && claim.intent == string(input) && claim.commit == string(commit) && claim.frontier == string(frontier)
+	prepaid := claim != nil && claim.owner == f && !claim.used && claim.stored == s.stored && claim.headCost == cost && claim.kind == kind
+	if prepaid {
+		if s.config.bounds.firstAdmission != nil {
+			prepaid = meter != nil && providerReplayPhaseTextEqual(claim.before, f.pinRaw, meter) && providerReplayPhaseRawTextEqual(raw, claim.after, meter) && providerReplayPhaseRawTextEqual(input, claim.intent, meter) && providerReplayPhaseRawTextEqual(commit, claim.commit, meter) && providerReplayPhaseRawTextEqual(frontier, claim.frontier, meter)
+		} else {
+			prepaid = claim.before == f.pinRaw && claim.after == string(raw) && claim.intent == string(input) && claim.commit == string(commit) && claim.frontier == string(frontier)
+		}
+	}
 	if !valid || err != nil || !ok || !retainedOK || claim != nil && !prepaid || !f.readExact("HEAD", providerReplayBytes(f.pinRaw, meter)) || !f.readExact(s.name("highwater", f.pin.ordinal), providerReplayBytes(f.pinRaw, meter)) || !prepaid && !candidateCapacity(0, s.stored, cost.stored, s.config.bounds.maximumStoredBytes) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}

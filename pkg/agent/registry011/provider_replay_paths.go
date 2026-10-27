@@ -64,3 +64,20 @@ func providerReplayPhaseTextEqual(left, right string, meter *providerWorkMeter) 
 	b := providerReplayPhaseBytes(right, meter)
 	return providerReplayEqual(a, b, meter)
 }
+
+// A V4 original-byte/private-text comparison pays for the real text copy and
+// comparison. Earlier callers preserve their existing zero-extra-event path.
+func providerReplayPhaseRawTextEqual(raw []byte, text string, meter *providerWorkMeter) bool {
+	var store *providerCustodyStore
+	if meter != nil {
+		if meter.scan != nil {
+			store = meter.scan.store
+		} else if meter.integration != nil {
+			store = meter.integration.store
+		}
+	}
+	if store == nil || store.config.bounds.firstAdmission == nil {
+		return string(raw) == text
+	}
+	return providerReplayEqual(raw, providerReplayBytes(text, meter), meter)
+}

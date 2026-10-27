@@ -188,12 +188,7 @@ func newProviderInventoryObserved(version int, previous string, objects []provid
 		total += uint64(len(object.raw))
 		entries = append(entries, providerIntegrationObjectRef{object.kind, object.digest, uint64(len(object.raw))})
 	}
-	sort.Slice(entries, func(a, b int) bool {
-		left, aOK := providerReplayRefKey(entries[a], meter)
-		right, bOK := providerReplayRefKey(entries[b], meter)
-		return aOK && bOK && (meter == nil || meter.event(providerCompareEvent, uint64(len(left)+len(right)))) && left < right
-	})
-	if meter != nil && meter.failed {
+	if !providerInventoryOrderObserved(entries, meter) {
 		return nil, errProviderIntegration
 	}
 	for n := 1; n < len(entries); n++ {
@@ -213,6 +208,38 @@ func newProviderInventoryObserved(version int, previous string, objects []provid
 		return nil, errProviderIntegration
 	}
 	return &providerIntegrationInventory{retained, digest, previous, entries, total}, nil
+}
+
+// The first finishing phase has a concrete quadratic comparison bound. It
+// does not depend on the Go library's sorting implementation: at most
+// n*(n-1)/2 comparisons, each with two observed key copies. Earlier phases
+// keep their existing sort and event contract. Neither path returns authority.
+func providerInventoryOrderObserved(entries []providerIntegrationObjectRef, meter *providerWorkMeter) bool {
+	if meter != nil && meter.firstAdmission != nil {
+		if len(entries) > 256 {
+			return false
+		}
+		for n := 1; n < len(entries); n++ {
+			for k := n; k > 0; k-- {
+				left, aOK := providerReplayRefKey(entries[k-1], meter)
+				right, bOK := providerReplayRefKey(entries[k], meter)
+				if !aOK || !bOK || !meter.event(providerCompareEvent, uint64(len(left)+len(right))) {
+					return false
+				}
+				if left <= right {
+					break
+				}
+				entries[k-1], entries[k] = entries[k], entries[k-1]
+			}
+		}
+		return !meter.failed
+	}
+	sort.Slice(entries, func(a, b int) bool {
+		left, aOK := providerReplayRefKey(entries[a], meter)
+		right, bOK := providerReplayRefKey(entries[b], meter)
+		return aOK && bOK && (meter == nil || meter.event(providerCompareEvent, uint64(len(left)+len(right)))) && left < right
+	})
+	return meter == nil || !meter.failed
 }
 
 func providerIntegrationRefKey(ref providerIntegrationObjectRef) string {

@@ -96,7 +96,7 @@ func (f *providerFirstAdmissionOwner) sampleLocked() (ClockSample, error) {
 		f.abortLocked()
 		return ClockSample{}, errProviderIntegration
 	}
-	sample, err := f.store.sample()
+	sample, err := f.store.samplePrimitive()
 	if err != nil || !candidateLedgerClockAdvance(providerClockDiagnostic(f.inspected), providerClockDiagnostic(sample)) || candidateLedgerExpired(providerClockDiagnostic(sample), f.attempt.deadline) || uint64(sample.MonotonicMS-f.inspected.MonotonicMS) > f.limits.durationMS || uint64(sample.MonotonicMS-f.origin.MonotonicMS) > f.store.config.bounds.scan.totalDurationMS {
 		f.abortLocked()
 		return ClockSample{}, errProviderIntegration

@@ -144,3 +144,43 @@ func TestProviderFirstAdmissionLimitDecoderRefusesMalformedOrUnfundedData(t *tes
 		t.Fatal("unfunded decoder populated a capacity")
 	}
 }
+
+func TestProviderFirstAdmissionStorageQuoteIncludesBindingAndEveryTemporaryCopy(t *testing.T) {
+	first := providerFirstAdmissionBoundsFixture()
+	config, _ := providerScanProvisionedFixtureWithFirst(t, &first)
+	b := config.bounds // Candidate arithmetic only; no store/owner is opened.
+	raw, physical, ok := providerFirstAdmissionStorageUpper(b)
+	// Conservative closed file quote: binding and intent/pending/commit;
+	// I/ticket/E1/inventory/frontier; B0/four nodes/three mutations/two heads;
+	// request and params. All21 allocations include HEAD.pending.
+	want := 4*b.maximumMetadataPerCommit + 5*65536 + 10*8192 + 16384 + 8192
+	if !ok || raw != want || physical != want+21*b.fileOverheadBytes {
+		t.Fatal("first storage quote omitted an original or temporary copy")
+	}
+	// This quote intentionally grows all four metadata allowances. The actual
+	// binding still has min(m,8192) as its codec cap. No encoded binding, store,
+	// previously provisioned profile, hold or finishing owner is enlarged.
+	b.maximumMetadataPerCommit *= 2
+	largeRaw, largePhysical, ok := providerFirstAdmissionStorageUpper(b)
+	if !ok || largeRaw != raw+4*config.bounds.maximumMetadataPerCommit || largePhysical != physical+4*config.bounds.maximumMetadataPerCommit {
+		t.Fatal("conservative metadata quote did not scale arithmetically")
+	}
+	for _, mode := range []string{"legacy", "entries", "objects", "metadata", "capacity"} {
+		x := config.bounds
+		switch mode {
+		case "legacy":
+			x.firstAdmission = nil
+		case "entries":
+			x.maximumEntries = 13
+		case "objects":
+			x.maximumObjects = 20
+		case "metadata":
+			x.maximumMetadataPerCommit = 0
+		case "capacity":
+			x.maximumStoredBytes = physical - 1
+		}
+		if _, _, ok := providerFirstAdmissionStorageUpper(x); ok {
+			t.Fatal("unfunded candidate first storage shape accepted", mode)
+		}
+	}
+}

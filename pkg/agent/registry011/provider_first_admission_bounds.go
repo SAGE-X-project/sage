@@ -74,3 +74,22 @@ func providerFirstAdmissionCapacity(s *providerCustodyStore, held providerScanUp
 	}
 	return true
 }
+
+// Quote only the first E1 physical files. This is one component of the
+// prospective plan, not that full plan, a reservation, or permission to write.
+// Fourteen fresh objects plus five main files and two head copies are21
+// possible allocations. HEAD.pending stays charged on uncertain outcomes.
+// Binding is capped by min(metadata cap,8192). This quote deliberately uses
+// the metadata cap alone as a conservative overestimate of that one file.
+func providerFirstAdmissionStorageUpper(b providerIntegrationBounds) (uint64, uint64, bool) {
+	if b.firstAdmission == nil || !b.valid() || b.maximumEntries < 14 || b.maximumObjects < 21 {
+		return 0, 0, false
+	}
+	// Conservative binding + intent/pending/commit:4m. I/ticket/enrollment + inventory/
+	// frontier:5*64KiB. B0/4 nodes/3 mutations + two head copies:10*8KiB.
+	metadata, a := providerUpperProduct(b.maximumMetadataPerCommit, 4)
+	raw, c := providerUpperSum(metadata, 5*(64<<10), 10*candidateLedgerMetadataLimit, 16<<10, 8<<10)
+	allocation, d := providerUpperProduct(b.fileOverheadBytes, 21)
+	physical, e := providerUpperSum(raw, allocation)
+	return raw, physical, a && c && d && e && physical <= b.maximumStoredBytes
+}
