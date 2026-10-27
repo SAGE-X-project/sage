@@ -1,6 +1,9 @@
 package registry011
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 // This independent view reads only this test's normal owned originals. It has
 // no live owner, ACK, dispatch permit, operating principal or recovery power.
@@ -41,7 +44,7 @@ func TestProviderIntegrationSetupDataRequiresTheOriginalClockAndEnvelope(t *test
 			case "future-wall":
 				now.WallMS--
 			case "future-mono":
-				now.MonotonicMS--
+				c["monotonic_ms"] = strconv.FormatInt(now.MonotonicMS+1, 10)
 			case "uncertainty":
 				c["uncertainty_ms"] = "99"
 			case "work":
@@ -145,5 +148,29 @@ func TestProviderIntegrationInventoryReadRejectsMissingOrUnfundedOriginals(t *te
 	}
 	if !s.valid() || s.sequence != 2 || s.replay.ledger == nil {
 		t.Fatal("independent parser data changed the live owner")
+	}
+}
+
+func TestProviderIntegrationPrefixDataCannotTruncateAnExistingCompletePrefix(t *testing.T) {
+	_, s := providerPendingIntegrationUnit(t)
+	now, err := s.sample()
+	if err != nil {
+		t.Fatal(err)
+	}
+	view := providerReadDataView(t, s)
+	if view.loadPrefix(now) != nil || view.sequence != s.sequence || view.tip != s.tip || view.enrollment != s.enrollment {
+		t.Fatal("independent original-prefix read disagrees with normal fixture")
+	}
+	short := providerReadDataView(t, s)
+	short.config.bounds.maximumCommits = 1
+	if short.loadPrefix(now) == nil {
+		t.Fatal("end-of-cap was misreported as the end of the retained history")
+	}
+	closed := providerReadDataView(t, s)
+	if s.close() != nil {
+		t.Fatal("normal owned store close")
+	}
+	if closed.loadPrefix(now) == nil {
+		t.Fatal("closed original root produced a complete prefix")
 	}
 }

@@ -8,6 +8,22 @@ func TestProviderFrontierRetentionRequiresCanonicalOriginalBytes(t *testing.T) {
 	if _, err := providerFrontierRetentionCost(id, inventory, fresh, intent, commit, append(append([]byte(nil), frontier...), '\n'), bounds); err == nil {
 		t.Fatal("noncanonical frontier acquired a retention quote")
 	}
+	// A matching commit hash still cannot make a noncanonical intent original
+	// acceptable. Rebind only this finite DATA fixture's derived values.
+	intent = append(append([]byte(nil), intent...), '\n')
+	commit = providerFrontierCommit(intent)
+	f, err := parseProviderFrontierRecord(frontier, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.commit = providerCandidateHash("sage-provider-custody-commit-v2", commit)
+	frontier, err = f.bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := providerFrontierRetentionCost(id, inventory, fresh, intent, commit, frontier, bounds); err == nil {
+		t.Fatal("matching commit hid noncanonical intent bytes")
+	}
 }
 
 func TestProviderFrontierHighwaterRequiresOriginalPriorState(t *testing.T) {
@@ -64,7 +80,7 @@ func TestProviderFrontierHighwaterRequiresOriginalPriorState(t *testing.T) {
 }
 
 func TestProviderFrontierOldMaterialReferencesCannotUseCachedDataAlone(t *testing.T) {
-	for _, mode := range []string{"index", "anchor", "no-anchor", "invalid-ledger", "no-intent", "admission", "budget", "node", "missing-ticket", "ticket", "unknown-consumption", "unknown-settlement", "unknown-kind"} {
+	for _, mode := range []string{"index", "anchor", "no-anchor", "invalid-ledger", "no-intent", "admission", "budget", "node", "missing-ticket", "missing-ticket-state", "ticket", "unknown-consumption", "unknown-settlement", "unknown-kind"} {
 		t.Run(mode, func(t *testing.T) {
 			u := providerFrontierUnitFixture(t)
 			u.firstTicket(t, 1)
@@ -92,6 +108,8 @@ func TestProviderFrontierOldMaterialReferencesCannotUseCachedDataAlone(t *testin
 				delete(s.objects, "ledger-node:"+r.body.ledger.current.heads[0])
 			case "missing-ticket":
 				r.body.ledger.lastTicket = nil
+			case "missing-ticket-state":
+				delete(r.body.ledger.tickets, r.body.ledger.lastTicket.digest)
 			case "ticket":
 				delete(s.objects, "ticket:"+r.body.ledger.lastTicket.digest)
 			case "unknown-consumption":
@@ -110,5 +128,39 @@ func TestProviderFrontierOldMaterialReferencesCannotUseCachedDataAlone(t *testin
 				t.Fatal("cached state replaced a required retained original", mode)
 			}
 		})
+	}
+}
+
+func TestProviderFrontierHighwaterQuoteRejectsInsufficientInertMetadataProfile(t *testing.T) {
+	u := providerFrontierUnitFixture(t)
+	config, private := u.s.config, *u.s.config.bounds.continuation
+	private.maximumMetadataBytes, private.pageMetadataBytes = 1, 1
+	config.bounds.continuation, config.bounds.ledger.MaximumMetadataBytes = &private, 1
+	config.profile = providerIntegrationProfile(config.bounds, config.capture)
+	if !config.bounds.valid() {
+		t.Fatal("finite insufficient profile must be structurally valid")
+	}
+	// These are only high-water quote inputs, not an admitted prefix or a
+	// selected profile. No constructor/ACK/dispatch accepts this DATA view.
+	s := &providerCustodyStore{config: config, custody: u.s.custody, evidence: u.s.evidence, tip: config.anchor, setups: u.s.setups}
+	r := &providerFrontierReplay{setupOrdinal: -1}
+	h0 := providerFrontierHighwater{identity: config.identity, fence: 1, profile: config.profile, commit: config.anchor, setup: s.setups[0].commit}
+	raw, err := h0.bytes(config)
+	if err != nil || s.custody.write(providerCustodyName("highwater", 0), raw) != nil {
+		t.Fatal("normal immutable quote input", err)
+	}
+	record := u.records[0]
+	f, err := parseProviderFrontierRecord(record.frontier, config.identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	h1 := h0
+	h1.ordinal, h1.sequence, h1.previous = 1, 1, providerCandidateHash("sage-provider-custody-highwater-v1", raw)
+	h1.commit, h1.frontier = f.commit, providerCandidateHash("sage-provider-custody-frontier-v1", record.frontier)
+	if !checkProviderHighwaterMain(h0, h1, config, record.intent, record.commit, record.frontier) {
+		t.Fatal("finite data must reach the common metadata-cap check")
+	}
+	if _, err := r.highwaterRetention(s, h1, s.setups[0], record.intent, record.commit, record.frontier); err == nil {
+		t.Fatal("both original head copies escaped the selected metadata cap")
 	}
 }

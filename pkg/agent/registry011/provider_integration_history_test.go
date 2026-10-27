@@ -46,3 +46,53 @@ func TestProviderIntegrationCollectionScopeAndModeRefuseBeforeReads(t *testing.T
 		t.Fatal("unknown acquisition mode")
 	}
 }
+
+func TestProviderCollectionPredicateRequiresAnUnsettledLocalCommand(t *testing.T) {
+	for _, mode := range []string{"normal-data", "absent-meter", "foreign", "authority", "closed", "failed", "nested", "missing-ticket", "nil-ticket", "rpc-ticket", "unconsumed", "terminal", "header"} {
+		t.Run(mode, func(t *testing.T) {
+			c, s := providerPendingIntegrationUnit(t)
+			// This is a finite DATA predicate test only. These labels and the
+			// typed placeholders never come from retained completed work, so
+			// they cannot qualify Source, authorize collection or reach I/O.
+			c.bootstrap, c.pin = admissionTestDigest("a"), admissionTestDigest("b")
+			c.selected = FinalizedHeader{admissionTestDigest("a"), admissionTestDigest("b"), sepoliaDeploymentBlock, 1}
+			ticket := *c.firstTicket
+			ticket.kind = "local-work"
+			c.ledger.tickets[ticket.digest] = candidateLedgerTicket{ticket: &ticket, consumption: &CandidateConsumption{}}
+			meter := newProviderWorkMeter(c, providerOperationReservation{})
+			meter.ticket = ticket.digest
+			s.activeMeter.Store(meter)
+			defer s.activeMeter.Store(nil)
+			reads := &PinnedAgentReads{rpc: &ReadRPC{acquisition: &rpcAcquisition{integration: c}}, header: c.selected}
+			switch mode {
+			case "absent-meter":
+				s.activeMeter.Store(nil)
+			case "foreign":
+				meter.integration = &providerIntegration{}
+			case "authority":
+				meter.authority = true
+			case "closed":
+				meter.closed = true
+			case "failed":
+				meter.failed = true
+			case "nested":
+				meter.parent = &providerWorkMeter{}
+			case "missing-ticket":
+				delete(c.ledger.tickets, ticket.digest)
+			case "nil-ticket":
+				c.ledger.tickets[ticket.digest] = candidateLedgerTicket{}
+			case "rpc-ticket":
+				ticket.kind = "rpc-capture"
+			case "unconsumed":
+				c.ledger.tickets[ticket.digest] = candidateLedgerTicket{ticket: &ticket}
+			case "terminal":
+				c.ledger.tickets[ticket.digest] = candidateLedgerTicket{ticket: &ticket, consumption: &CandidateConsumption{}, terminal: admissionTestDigest("f")}
+			case "header":
+				reads.header.Number++
+			}
+			if providerCollectionScope(reads) != (mode == "normal-data") {
+				t.Fatal("local-command DATA predicate did not match its scope", mode)
+			}
+		})
+	}
+}

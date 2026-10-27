@@ -153,6 +153,13 @@ func TestProviderFrontierCustodyRetainsTheWholeNormalFailedTicketAndFinalSeal(t 
 	}
 	u := providerFrontierUnitFixtureMode(t, clock, true)
 	ticket := u.firstTicket(t, 0)
+	// Finite retained consumption data adds the real T/C/S typed closure to
+	// this normal file test. It is never an execution permit and no work runs.
+	consumed := ledgerTestConsumption(t, ticket, nil, 0)
+	if _, err := u.ledger.AppendCandidateConsumption(consumed); err != nil {
+		t.Fatal(err)
+	}
+	u.transitionData(t, "consume", "consumption", []byte(consumed.raw), 0)
 	failed := ledgerTestSettlement(t, ticket, "failed", 0)
 	if _, err := u.ledger.AppendCandidateSettlement(failed); err != nil {
 		t.Fatal(err)
@@ -187,7 +194,7 @@ func TestProviderFrontierCustodyRetainsTheWholeNormalFailedTicketAndFinalSeal(t 
 			t.Fatal("normal owned full retention through seal", err)
 		}
 	}
-	if !r.body.ledger.continuation.final || r.body.ledger.current.privateMetadata != u.ledger.current.privateMetadata || r.body.ledger.current.privatePayload != u.ledger.current.privatePayload || r.current.seal != seal.digest || r.current.checkpoint != "" || f.store.last != nil {
+	if !r.body.ledger.continuation.final || r.body.ledger.lastConsumption == nil || r.indexes.tickets[ticket.digest].consumption != consumed.digest || r.body.ledger.current.privateMetadata != u.ledger.current.privateMetadata || r.body.ledger.current.privatePayload != u.ledger.current.privatePayload || r.current.seal != seal.digest || r.current.checkpoint != "" || f.store.last != nil {
 		t.Fatal("final seal lost common metadata or invented publication/ACK")
 	}
 }
