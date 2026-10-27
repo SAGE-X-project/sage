@@ -112,6 +112,7 @@ jobs:
               'provider_scan_bounds.go', 'provider_scan_codec.go', 'provider_scan_open.go',
               'provider_scan_control.go', 'provider_scan_control_records.go',
               'provider_scan_initial.go', 'provider_scan_target.go', 'provider_scan_replay.go', 'provider_scan_body.go',
+              'provider_first_admission_bounds.go', 'provider_ledger_initial_charge.go',
               'provider_replay_codec.go',
               'provider_integration.go', 'provider_integration_admission.go',
               'provider_integration_bootstrap.go', 'provider_integration_budget.go',
@@ -131,7 +132,7 @@ jobs:
               targets[name] = [0, 0]
           discovered = {
               item.name
-              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go', 'provider_scan*.go', 'provider_replay*.go')
+              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go', 'provider_scan*.go', 'provider_replay*.go', 'provider_first_admission*.go')
               for item in Path('pkg/agent/registry011').glob(pattern)
               if not item.name.endswith('_test.go')
           }

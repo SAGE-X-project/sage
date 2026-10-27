@@ -58,6 +58,8 @@ type CandidateAdmissionLedger struct {
 	providerStart string
 	// Only independent private replay binds a live observer; public DATA uses nil.
 	meter *providerWorkMeter
+	// Private arithmetic seed only. Public constructors leave this zero.
+	initialTotals candidateLedgerTotals
 	// Non-nil only in the private connected continuation's arithmetic model.
 	// The exported candidate constructor leaves this nil and keeps its complete
 	// original lifetime cap; this field is never a custody ACK or work permit.
@@ -108,6 +110,10 @@ func NewCandidateAdmissionLedger(policy *ProviderPolicyCandidate, intent *Candid
 }
 
 func newCandidateAdmissionLedgerObserved(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, first *CandidateAdmissionTicket, bounds CandidateLedgerBounds, meter *providerWorkMeter) (*CandidateAdmissionLedger, error) {
+	return newCandidateAdmissionLedgerSeeded(policy, intent, first, bounds, meter, nil)
+}
+
+func newCandidateAdmissionLedgerSeeded(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, first *CandidateAdmissionTicket, bounds CandidateLedgerBounds, meter *providerWorkMeter, seed *providerLedgerInitialCharge) (*CandidateAdmissionLedger, error) {
 	if policy == nil || policy.raw == "" || intent == nil || intent.raw == "" || policy.policy != intent.identity.Policy || !candidateLedgerBoundsValid(bounds) {
 		return nil, ErrConfiguration
 	}
@@ -126,6 +132,13 @@ func newCandidateAdmissionLedgerObserved(policy *ProviderPolicyCandidate, intent
 	}
 	m.live, _ = providerCandidateUint(limits["live_disk_bytes"], true)
 	m.retained, _ = providerCandidateUint(limits["retained_bytes"], true)
+	if seed != nil {
+		if !seed.fits(m) {
+			return nil, ErrAdmissionLedger
+		}
+		m.initialTotals.bootstrap.charged = seed.work
+		m.initialTotals.liveUsed, m.initialTotals.retainedUsed = seed.retained, seed.retained
+	}
 	for i, kind := range []string{"tickets", "consumptions", "settlements"} {
 		raw := candidateLedgerNodeObserved(intent.digest, kind, 0, "", "", meter)
 		if len(raw) == 0 || len(raw) > candidateLedgerMetadataLimit || !candidateCapacity(0, m.initialBytes, uint64(len(raw)), bounds.MaximumMetadataBytes) {
@@ -167,7 +180,7 @@ func (m *CandidateAdmissionLedger) appendTicket(ticket *CandidateAdmissionTicket
 	if _, exists := m.tickets[ticket.digest]; exists {
 		return nil, ErrAdmissionLedger
 	}
-	var totals candidateLedgerTotals
+	totals := m.initialTotals
 	clock := m.intent.clock
 	if m.current != nil {
 		totals, clock = m.current.totals, m.current.clock

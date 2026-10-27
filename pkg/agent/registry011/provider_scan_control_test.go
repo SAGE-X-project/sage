@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 )
 
@@ -15,6 +16,10 @@ func providerScanBoundsFixture(store providerIntegrationBounds) providerScanBoun
 // A fresh isolated candidate is provisioned before its new original clock.
 // It has no registered Agent, selected principal, dispatch permit or Source.
 func providerScanProvisionedFixture(t *testing.T) (providerCustodyConfig, *providerOwnedClock) {
+	return providerScanProvisionedFixtureWithFirst(t, nil)
+}
+
+func providerScanProvisionedFixtureWithFirst(t *testing.T, first *providerFirstAdmissionBounds) (providerCustodyConfig, *providerOwnedClock) {
 	t.Helper()
 	model, policy := providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
 	b, capture := providerFrontierBoundsFixture()
@@ -26,12 +31,26 @@ func providerScanProvisionedFixture(t *testing.T) (providerCustodyConfig, *provi
 	scan := providerScanBoundsFixture(b)
 	scan.maximumChunks = scan.maximumRecords
 	b.scan = &scan
+	b.firstAdmission = first
+	if first != nil {
+		// Inert isolated candidate values, never an operating policy/profile.
+		b.setupLive = b.setupRetained
+		m := contentJSON(policy.CanonicalBytes()).(map[string]any)
+		bootstrap := m["limits"].(map[string]any)["bootstrap"].(map[string]any)
+		bootstrap["decoded_bytes"], bootstrap["disk_bytes_written"], bootstrap["work_units"] = strconv.FormatUint(1<<34, 10), strconv.FormatUint(1<<34, 10), strconv.FormatUint(1<<62, 10)
+		var err error
+		policy, err = ParseProviderPolicyCandidate(providerPolicyTestBytes(t, m), 64<<10)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
 	profile := providerIntegrationProfile(b, capture)
 	empty, err := newProviderFrontierInventory("", nil, b.maximumEntries, 64<<20)
 	if err != nil {
 		t.Fatal(err)
 	}
 	id := model.intent.identity
+	id.Policy = policy.policy
 	anchor := providerIntegrationJSON(map[string]any{"format": "sage-provider-custody-anchor-v1", "namespace": id.Namespace, "instance_key": id.Instance, "profile": profile, "initial_objects_root": empty.digest})
 	anchorHash := providerCandidateHash("sage-provider-custody-anchor-v1", anchor)
 	root := t.TempDir()

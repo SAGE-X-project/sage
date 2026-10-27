@@ -49,6 +49,7 @@ type providerCustodyStore struct {
 	scanControl                  *providerScanControl
 	initialInspection            *providerScanInitialInspection
 	scanBody                     *providerScanBody
+	firstLimits                  *providerFirstAdmissionLimits
 	activeMeter                  atomic.Pointer[providerWorkMeter]
 	newReferences                []providerIntegrationObjectRef
 	requiredReferences           map[string]bool

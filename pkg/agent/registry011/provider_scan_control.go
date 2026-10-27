@@ -183,7 +183,8 @@ func (c *providerScanControl) claim(a providerScanAttempt) error {
 	}
 	held, ok := providerScanUpperSum(c.held, preparation, body)
 	addition, addOK := providerScanUpperSum(preparation, body)
-	if !ok || !addOK || c.held != c.pin.held || !s.config.bounds.scan.fits(providerScanOpenUpper(s.config), held) || !candidateCapacity(0, s.stored, addition.retained, s.config.bounds.maximumStoredBytes) {
+	total, totalOK := providerScanUpperSum(providerScanOpenUpper(s.config), held)
+	if !ok || !addOK || !totalOK || c.held != c.pin.held || !s.config.bounds.scan.fits(providerScanOpenUpper(s.config), held) || !providerFirstAdmissionCapacity(s, total) || !candidateCapacity(0, s.stored, addition.retained, s.config.bounds.maximumStoredBytes) {
 		return errProviderIntegration
 	}
 	c.held, s.stored, c.failed = held, s.stored+addition.retained, true

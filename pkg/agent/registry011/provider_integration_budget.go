@@ -14,6 +14,9 @@ func providerIntegrationProfileBytes(b providerIntegrationBounds, capture Provid
 	if b.scan != nil {
 		format, domain = "sage-provider-owned-profile-v3", "sage-provider-store-profile-v3"
 	}
+	if b.firstAdmission != nil {
+		format, domain = "sage-provider-owned-profile-v4", "sage-provider-store-profile-v4"
+	}
 	raw := providerIntegrationJSON(map[string]any{"format": format, "store": b.profileObject(), "capture": map[string]string{"timeout_ns": strconv.FormatInt(int64(capture.Timeout), 10), "header_bytes": strconv.Itoa(capture.HeaderBytes), "body_bytes": strconv.Itoa(capture.BodyBytes), "wire_bytes": strconv.Itoa(capture.WireBytes), "json_depth": strconv.Itoa(capture.JSONDepth)}})
 	return raw, domain
 }
@@ -54,6 +57,10 @@ func (b providerIntegrationBounds) profileObject() map[string]any {
 	if b.scan != nil {
 		out["format"], out["scan"] = "sage-provider-store-profile-v3", b.scan.object()
 	}
+	if b.firstAdmission != nil {
+		out["format"], out["first_admission"] = "sage-provider-store-profile-v4", b.firstAdmission.object()
+		out["live_accounting"] = providerFirstAdmissionLiveAccounting
+	}
 	for name, value := range values {
 		out[name] = strconv.FormatUint(value, 10)
 	}
@@ -70,6 +77,7 @@ type providerIntegrationBounds struct {
 	methods                  *providerMethodBounds
 	tls                      *providerTLSBounds
 	scan                     *providerScanBounds
+	firstAdmission           *providerFirstAdmissionBounds
 	maximumCommits           int
 	maximumObjects           int
 	maximumEntries           int
@@ -96,6 +104,9 @@ func (b providerIntegrationBounds) valid() bool {
 		return false
 	}
 	if b.scan != nil && (b.continuation == nil || !b.scan.valid(b)) {
+		return false
+	}
+	if b.firstAdmission != nil && (b.scan == nil || !b.firstAdmission.valid(b)) {
 		return false
 	}
 	return candidateLedgerBoundsValid(b.ledger) && b.maximumCommits > 0 && uint64(b.maximumCommits) <= commits && b.maximumObjects > 0 && uint64(b.maximumObjects) <= objects && b.maximumEntries > 0 && b.maximumEntries <= entries &&

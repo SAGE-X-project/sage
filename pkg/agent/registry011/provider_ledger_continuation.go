@@ -38,13 +38,17 @@ func newProviderContinuingLedger(policy *ProviderPolicyCandidate, intent *Candid
 }
 
 func newProviderContinuingLedgerObserved(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, first *CandidateAdmissionTicket, bounds providerLedgerBounds, meter *providerWorkMeter) (*CandidateAdmissionLedger, error) {
+	return newProviderContinuingLedgerSeeded(policy, intent, first, bounds, meter, nil)
+}
+
+func newProviderContinuingLedgerSeeded(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, first *CandidateAdmissionTicket, bounds providerLedgerBounds, meter *providerWorkMeter, seed *providerLedgerInitialCharge) (*CandidateAdmissionLedger, error) {
 	if !bounds.valid() {
 		return nil, ErrConfiguration
 	}
 	// Only the first record is made by the existing constructor. Neither this
 	// model nor later pages are ever returned through a public candidate factory.
 	initial := CandidateLedgerBounds{int(bounds.pageRecords), min(bounds.pagePayloadBytes, 16<<20), min(bounds.pageMetadataBytes, 64<<20)}
-	m, err := newCandidateAdmissionLedgerObserved(policy, intent, first, initial, meter)
+	m, err := newCandidateAdmissionLedgerSeeded(policy, intent, first, initial, meter, seed)
 	if err != nil {
 		return nil, err
 	}

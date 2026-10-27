@@ -23,7 +23,7 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 	s.activeMeter.Store(meter)
 	defer s.activeMeter.Store(nil)
 	x, err := newProviderScanCodec(config, meter)
-	if err != nil {
+	if err != nil || !s.firstAdmissionLimits(x) || !providerFirstAdmissionCapacity(s, providerScanOpenUpper(config)) {
 		return nil, ErrConfiguration
 	}
 	// The single O is held before any original-root observation. Actual

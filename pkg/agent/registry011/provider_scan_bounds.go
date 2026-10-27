@@ -162,6 +162,12 @@ func providerScanBodyUpper(config providerCustodyConfig) (providerScanUpper, err
 	}
 	body.retained, ok = providerUpperProduct(one.retained, b.maximumChunks)
 	body.clocks = b.maximumClockReads
+	if first := config.bounds.firstAdmission; first != nil {
+		if !ok {
+			return providerScanUpper{}, errProviderIntegration
+		}
+		body, ok = providerScanUpperSum(body, providerScanUpper{first.work, first.retained, first.clocks})
+	}
 	if !ok || !b.fits(providerScanOpenUpper(config), body) {
 		return providerScanUpper{}, errProviderIntegration
 	}

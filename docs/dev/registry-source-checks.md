@@ -1288,3 +1288,16 @@ work snapshot and spends the already held output upper. The returned chunk
 bytes remain unretained candidate DATA. This path requires existing E0/index
 anchor originals and rejects a post-I target: it cannot supply an admitted
 post-I command/S chain, the first-I scan binding, an ACK or operating readiness.
+
+The optional V4 candidate profile fixes a separate finite first-admission
+envelope before H0. Its canonical live-accounting rule derives live occupancy
+from the same committed upper that includes all retained and temporary copies.
+Opening observes and caches the policy capacities under O; a later scan claim
+checks all bootstrap work coordinates and both disk capacities before holding
+P+B. B includes the complete first-E1 envelope, so a future ticket cannot fund
+its own uncertain creation. Old profiles retain their original bytes and cannot
+be adopted as V4. Private ledger arithmetic can seed the original pre-I charged
+work and both disk-used totals before the first ticket; exported constructors
+still start at zero and keep the original lifetime cap. These primitives are
+not yet the retained chunk/binding/typed first-E1 writer, an authenticated
+restart, a qualified physical bound or permission to send Agent messages.
