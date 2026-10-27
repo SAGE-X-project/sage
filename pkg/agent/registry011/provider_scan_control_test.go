@@ -34,6 +34,7 @@ func providerScanProvisionedFixtureWithFirst(t *testing.T, first *providerFirstA
 	b.firstAdmission = first
 	if first != nil {
 		// Inert isolated candidate values, never an operating policy/profile.
+		b.setupWork[2] = 64 << 20
 		b.setupLive = b.setupRetained
 		m := contentJSON(policy.CanonicalBytes()).(map[string]any)
 		bootstrap := m["limits"].(map[string]any)["bootstrap"].(map[string]any)

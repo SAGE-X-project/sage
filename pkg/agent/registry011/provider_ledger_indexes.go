@@ -151,11 +151,11 @@ func (s *providerLedgerIndexes) prepare(kind, operation string, sequence uint64,
 	if _, ok := s.bounds.residentUpper(tickets, sequence, segments, 0, potential, 8*candidateLedgerMetadataLimit); !ok {
 		return nil, ErrAdmissionLedger
 	}
-	actual, valid := providerIntegrationObjectDigestObserved(entry.kind, []byte(entry.raw), s.meter)
+	actual, valid := providerIntegrationObjectDigestObserved(entry.kind, providerReplayPhaseBytes(entry.raw, s.meter), s.meter)
 	if !valid || actual != entry.digest {
 		return nil, ErrAdmissionLedger
 	}
-	parsedRoot, err := parseCandidateEnrollmentRootObserved(&ProviderCandidateContext{identity: s.identity, bound: true}, []byte(root.raw), candidateLedgerMetadataLimit, s.meter)
+	parsedRoot, err := parseCandidateEnrollmentRootObserved(&ProviderCandidateContext{identity: s.identity, bound: true}, providerReplayPhaseBytes(root.raw, s.meter), candidateLedgerMetadataLimit, s.meter)
 	if err != nil || parsedRoot.digest != root.digest || parsedRoot.identity != root.identity || parsedRoot.fence != root.fence || parsedRoot.sequence != root.sequence || parsedRoot.budget != root.budget {
 		return nil, ErrAdmissionLedger
 	}
@@ -192,7 +192,7 @@ func (s *providerLedgerIndexes) prepare(kind, operation string, sequence uint64,
 			if err != nil || exact != entry {
 				return nil, ErrAdmissionLedger
 			}
-			value := providerReplayJSON([]byte(entry.raw), s.meter)
+			value := providerReplayJSON(providerReplayPhaseBytes(entry.raw, s.meter), s.meter)
 			seal, ok := value.(map[string]any)
 			if !ok || entry.kind != "ledger-seal" || seal["admission_digest"] != admission || seal["budget_root"] != budget || seal["ticket_index_root"] != s.heads[0] || seal["operation_index_root"] != s.heads[1] || seal["segment_totals_root"] != s.heads[2] {
 				return nil, ErrAdmissionLedger
@@ -229,7 +229,7 @@ func (s *providerLedgerIndexes) prepareLedgerMutation(d *providerIndexDelta, kin
 		}
 		ticket, transition = m.lastConsumption.ticket, "consumption"
 	case "settle":
-		value, ok := providerReplayJSON([]byte(entry.raw), s.meter).(map[string]any)
+		value, ok := providerReplayJSON(providerReplayPhaseBytes(entry.raw, s.meter), s.meter).(map[string]any)
 		if !ok {
 			return ErrAdmissionLedger
 		}
@@ -242,7 +242,7 @@ func (s *providerLedgerIndexes) prepareLedgerMutation(d *providerIndexDelta, kin
 	if ticket == nil || entry.kind != transition || len(m.current.nodes) == 0 {
 		return ErrAdmissionLedger
 	}
-	latest := contentObject(providerReplayJSON([]byte(m.current.nodes[len(m.current.nodes)-1]), s.meter), "format", "admission_digest", "kind", "index", "previous", "entry")
+	latest := contentObject(providerReplayJSON(providerReplayPhaseBytes(m.current.nodes[len(m.current.nodes)-1], s.meter), s.meter), "format", "admission_digest", "kind", "index", "previous", "entry")
 	if latest == nil || latest["entry"] != entry.digest || latest["admission_digest"] != m.intent.digest {
 		return ErrAdmissionLedger
 	}
@@ -396,11 +396,11 @@ func (s *providerLedgerIndexes) checkMutation(node providerIndexMutation, admiss
 	if node.chain < 0 || node.chain > 2 || !lowerHash(node.key) || !lowerHash(node.object.digest) {
 		return ErrAdmissionLedger
 	}
-	value := contentObject(providerReplayJSON([]byte(node.object.raw), s.meter), "format", "admission_digest", "kind", "index", "previous", "key", "expected", "value", "entry_digest", "budget_root")
+	value := contentObject(providerReplayJSON(providerReplayPhaseBytes(node.object.raw, s.meter), s.meter), "format", "admission_digest", "kind", "index", "previous", "key", "expected", "value", "entry_digest", "budget_root")
 	if value == nil || value["format"] != "sage-provider-index-mutation-v1" || value["kind"] != []string{"tickets", "operations", "segments"}[node.chain] || value["index"] != strconv.FormatUint(s.counts[node.chain], 10) || value["previous"] != s.heads[node.chain] || value["key"] != node.key || !bytesEqualProviderValueObserved(value["expected"], node.expected, s.meter) || !bytesEqualProviderValueObserved(value["value"], node.value, s.meter) || contentString(value["admission_digest"]) != admission || !providerCandidateDigest(value["entry_digest"]) {
 		return ErrAdmissionLedger
 	}
-	actual, ok := providerIntegrationObjectDigestObserved("index-mutation", []byte(node.object.raw), s.meter)
+	actual, ok := providerIntegrationObjectDigestObserved("index-mutation", providerReplayPhaseBytes(node.object.raw, s.meter), s.meter)
 	if !ok || actual != node.object.digest {
 		return ErrAdmissionLedger
 	}

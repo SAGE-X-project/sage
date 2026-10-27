@@ -179,7 +179,7 @@ func newProviderInventoryObserved(version int, previous string, objects []provid
 		if len(object.raw) == 0 || len(object.raw) > 32<<20 || !candidateCapacity(0, total, uint64(len(object.raw)), maximumPayload) {
 			return nil, errProviderIntegration
 		}
-		digest, ok := providerIntegrationObjectDigestObserved(object.kind, []byte(object.raw), meter)
+		digest, ok := providerIntegrationObjectDigestObserved(object.kind, providerReplayPhaseBytes(object.raw, meter), meter)
 		if !ok || digest != object.digest {
 			return nil, errProviderIntegration
 		}

@@ -237,6 +237,43 @@ func TestProviderScanBodyObserverRefusesUnownedOrExhaustedTargetReads(t *testing
 	}
 }
 
+// These finite observer-state scenarios verify refusal without performing a
+// filesystem read or treating a caller's byte count as retained evidence.
+func TestProviderScanBodyAfterReadRefusesLostOwnerRootOrExhaustedCount(t *testing.T) {
+	for _, mode := range []string{"inactive", "foreign-root", "exhausted"} {
+		t.Run(mode, func(t *testing.T) {
+			s, b := providerScanBodyObserverUnit(t)
+			disk := s.custody
+			switch mode {
+			case "inactive":
+				b.active = false
+			case "foreign-root":
+				disk = nil
+			case "exhausted":
+				b.objects = s.config.bounds.scan.maximumObjects
+			}
+			objects, raw := b.objects, b.rawBytes
+			if b.afterRead(disk, "ANCHOR", 1) || b.objects != objects || b.rawBytes != raw {
+				t.Fatal("post-read refusal changed the raw target counters", mode)
+			}
+		})
+	}
+}
+
+func TestProviderScanBodyControlsRefuseIncompleteBothRootCatalogReservation(t *testing.T) {
+	for _, entries := range []uint64{1, 3, 6} {
+		t.Run(providerCustodyName("entries", entries), func(t *testing.T) {
+			s, b := providerScanBodyObserverUnit(t)
+			bounds := *s.config.bounds.scan
+			bounds.maximumCatalogEntries = entries
+			s.config.bounds.scan = &bounds
+			if b.controls() || uint64(len(b.required)) != entries || s.last != nil {
+				t.Fatal("partial control-name reservation completed both roots")
+			}
+		})
+	}
+}
+
 func TestProviderScanBodyCatalogRequiresEveryOriginalAndSufficientClock(t *testing.T) {
 	for _, mode := range []string{"ordinary", "clock", "work", "missing-required", "directory", "closed-root"} {
 		t.Run(mode, func(t *testing.T) {

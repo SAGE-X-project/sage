@@ -56,7 +56,7 @@ func providerFrontierRetentionCostObserved(id ProviderCandidateIdentity, invento
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	derived, err := newProviderFrontierInventoryObserved(inventory.previous, fresh, bounds.maximumEntries, min(bounds.maximumStoredBytes, 64<<20), meter)
-	if err != nil || !providerReplayEqual([]byte(derived.raw), []byte(inventory.raw), meter) || derived.digest != inventory.digest || derived.payloadBytes != inventory.payloadBytes {
+	if err != nil || !providerReplayPhaseTextEqual(derived.raw, inventory.raw, meter) || derived.digest != inventory.digest || derived.payloadBytes != inventory.payloadBytes {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	if !checkProviderFrontierRetentionObserved(id, inventory, intent, commit, frontier, meter) {

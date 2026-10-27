@@ -61,6 +61,7 @@ func (b providerIntegrationBounds) profileObject() map[string]any {
 		out["format"], out["first_admission"] = "sage-provider-store-profile-v4", b.firstAdmission.object()
 		out["live_accounting"] = providerFirstAdmissionLiveAccounting
 		out["scan_receipt_accounting"] = "two-original-copies-v2-readback-codec-and-final-catalog-v1"
+		out["bootstrap_accounting"] = "same-open-meter-through-original-enrollment-prepaid-v1"
 	}
 	for name, value := range values {
 		out[name] = strconv.FormatUint(value, 10)

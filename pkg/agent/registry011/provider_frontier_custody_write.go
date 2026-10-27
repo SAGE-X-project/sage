@@ -25,8 +25,20 @@ func (r *providerFrontierReplay) retain(s *providerCustodyStore, inventory *prov
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return r.retainLocked(s, inventory, fresh, intent, commit, frontier, after, nil)
+}
+
+// The caller holds store.mu. Only the original live bootstrap owner can spend
+// its previously held O on E0; legacy V2/V3 retains the separate charge path.
+func (r *providerFrontierReplay) retainLocked(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after providerFrontierHighwater, prepaid *providerBootstrapOwner) (providerFrontierRetention, error) {
+	if s == nil {
+		return providerFrontierRetention{}, errProviderIntegration
+	}
 	f := s.frontierFiles
-	if !s.valid() || f == nil || !f.valid() || !f.initialized || f.pending != nil || r == nil || s.frontierReplay != r || r.owner != r || r.failed || r.current.sequence != s.sequence || r.indexes == nil || !r.indexes.valid() || s.sequence != 0 && !r.highwater || f.pin.sequence != s.sequence || f.pin.commit != s.tip || f.pin.setup != s.setupTip || inventory == nil || inventory.previous != s.objectsRoot || !checkProviderHighwaterMain(f.pin, after, s.config, intent, commit, frontier) {
+	if s.config.bounds.firstAdmission != nil && (prepaid == nil || !prepaid.writing(s)) || s.config.bounds.firstAdmission == nil && prepaid != nil {
+		return providerFrontierRetention{}, errProviderIntegration
+	}
+	if !s.valid() || f == nil || !f.valid() || !f.initialized || f.pending != nil || r == nil || s.frontierReplay != r || r.owner != r || r.failed || r.current.sequence != s.sequence || r.indexes == nil || !r.indexes.valid() || s.sequence != 0 && !r.highwater || f.pin.sequence != s.sequence || f.pin.commit != s.tip || f.pin.setup != s.setupTip || inventory == nil || inventory.previous != s.objectsRoot || !checkProviderHighwaterMainObserved(f.pin, after, s.config, intent, commit, frontier, r.meter) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	// Once a valid transaction starts, any later uncertainty quarantines BOTH
@@ -37,7 +49,7 @@ func (r *providerFrontierReplay) retain(s *providerCustodyStore, inventory *prov
 			s.failed, f.failed, r.failed = true, true, true
 		}
 	}()
-	if len(fresh) == 0 || len(fresh) > s.config.bounds.maximumEntries || len(s.objects) > s.config.bounds.maximumObjects-len(fresh) || !f.readExact("HEAD", []byte(f.pinRaw)) || !f.readExact(providerCustodyName("highwater", f.pin.ordinal), []byte(f.pinRaw)) {
+	if len(fresh) == 0 || len(fresh) > s.config.bounds.maximumEntries || len(s.objects) > s.config.bounds.maximumObjects-len(fresh) || !f.readExact("HEAD", providerReplayBytes(f.pinRaw, r.meter)) || !f.readExact(s.name("highwater", f.pin.ordinal), providerReplayBytes(f.pinRaw, r.meter)) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	var rawBytes uint64
@@ -64,49 +76,58 @@ func (r *providerFrontierReplay) retain(s *providerCustodyStore, inventory *prov
 	}
 	seen := make(map[string]bool, len(fresh))
 	for _, object := range fresh {
-		key := object.kind + ":" + object.digest
-		if _, exists := s.objects[key]; exists || seen[key] {
+		key, keyOK := providerReplayRefKey(providerIntegrationObjectRef{kind: object.kind, digest: object.digest}, r.meter)
+		if _, exists := s.objects[key]; !keyOK || exists || seen[key] {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
-		domain, known := providerIntegrationDomain(object.kind)
-		if !known || !s.event(providerHashEvent, uint64(len(object.raw)+len(domain))) || !s.event(providerCopyEvent, uint64(len(object.raw))) || domain != "" && !s.event(providerCodecEvent, uint64(len(object.raw))) {
-			return providerFrontierRetention{}, errProviderIntegration
-		}
-		derived, err := newProviderIntegrationObject(object.kind, []byte(object.raw), s.config.bounds.maximumObjectBytes)
+		derived, err := newProviderIntegrationObjectObserved(object.kind, providerReplayBytes(object.raw, r.meter), s.config.bounds.maximumObjectBytes, r.meter)
 		if err != nil || derived != object {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
 		seen[key] = true
 	}
-	base, err := providerFrontierRetentionCost(s.config.identity, inventory, fresh, intent, commit, frontier, s.config.bounds)
-	raw, rawErr := after.bytes(s.config)
+	base, err := providerFrontierRetentionCostObserved(s.config.identity, inventory, fresh, intent, commit, frontier, s.config.bounds, r.meter)
+	raw, rawErr := after.bytesObserved(s.config, r.meter)
 	headCost, headOK := providerHighwaterFileCost(uint64(len(raw)), s.config.bounds)
 	total, totalOK := providerUpperSum(base.stored, headCost.stored)
 	metadataRaw, metaOK := providerUpperSum(rawBytes, uint64(len(inventory.raw)), uint64(2*len(intent)+len(commit)+len(frontier)))
 	retained, retainedOK := providerUpperSum(s.retainedRaw, metadataRaw, headCost.metadata)
-	if err != nil || rawErr != nil || !headOK || !totalOK || !metaOK || !retainedOK || !candidateCapacity(0, s.stored, total, s.config.bounds.maximumStoredBytes) || r.preflight(s, inventory, fresh) != nil || r.preflightRetention(s, inventory, fresh, intent, commit, frontier, after) != nil {
+	if err != nil || rawErr != nil || !headOK || !totalOK || !metaOK || !retainedOK || prepaid == nil && !candidateCapacity(0, s.stored, total, s.config.bounds.maximumStoredBytes) || r.preflight(s, inventory, fresh) != nil || r.preflightRetention(s, inventory, fresh, intent, commit, frontier, after) != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	provisional, parseErr := parseProviderFrontierRecord(frontier, s.config.identity)
+	provisional, parseErr := parseProviderFrontierRecordObserved(frontier, s.config.identity, r.meter)
 	if parseErr != nil || !providerFrontierClockValid(s, provisional) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	// The complete main+head physical charge is held BEFORE the first write.
 	// The file step consumes this exact claim without another charge/refund.
-	s.stored += total
-	claim := &providerFrontierWriteClaim{owner: f, before: f.pinRaw, after: string(raw), kind: "main", intent: string(intent), commit: string(commit), frontier: string(frontier), stored: s.stored, headCost: headCost}
+	if prepaid != nil {
+		if !prepaid.consume(total) {
+			return providerFrontierRetention{}, errProviderIntegration
+		}
+	} else {
+		s.stored += total
+	}
+	claim := &providerFrontierWriteClaim{owner: f, before: f.pinRaw, after: providerReplayString(raw, r.meter), kind: "main", intent: providerReplayString(intent, r.meter), commit: providerReplayString(commit, r.meter), frontier: providerReplayString(frontier, r.meter), stored: s.stored, headCost: headCost}
+	if claim.after == "" || claim.intent == "" || claim.commit == "" || claim.frontier == "" {
+		return providerFrontierRetention{}, errProviderIntegration
+	}
 	f.pending = claim
 	next := s.sequence + 1
-	if s.write(s.custody, providerCustodyName("intent", next), intent) != nil {
+	if s.write(s.custody, s.name("intent", next), intent) != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	for _, object := range fresh {
-		if s.write(s.evidence, providerObjectName(object.kind, object.digest), []byte(object.raw)) != nil {
+		if s.write(s.evidence, s.objectName(object.kind, object.digest), providerReplayBytes(object.raw, r.meter)) != nil {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
-		s.objects[object.kind+":"+object.digest] = providerIntegrationObjectRef{object.kind, object.digest, uint64(len(object.raw))}
+		key, ok := providerReplayRefKey(providerIntegrationObjectRef{kind: object.kind, digest: object.digest}, r.meter)
+		if !ok {
+			return providerFrontierRetention{}, errProviderIntegration
+		}
+		s.objects[key] = providerIntegrationObjectRef{object.kind, object.digest, uint64(len(object.raw))}
 	}
-	if s.write(s.evidence, "inventory-"+inventory.digest[2:], []byte(inventory.raw)) != nil || s.write(s.evidence, providerCustodyName("pending", next), intent) != nil || s.write(s.custody, providerCustodyName("commit", next), commit) != nil {
+	if s.write(s.evidence, s.inventoryName(inventory.digest), providerReplayBytes(inventory.raw, s.activeMeter.Load())) != nil || s.write(s.evidence, s.name("pending", next), intent) != nil || s.write(s.custody, s.name("commit", next), commit) != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	// Independently read every new original object through object(), then derive
@@ -115,15 +136,15 @@ func (r *providerFrontierReplay) retain(s *providerCustodyStore, inventory *prov
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	cost, err := r.applyWithHighwater(s, inventory, fresh, intent, commit, frontier, after)
-	if err != nil || cost.stored != total || s.write(s.custody, providerCustodyName("frontier", next), frontier) != nil {
+	if err != nil || cost.stored != total || s.write(s.custody, s.name("frontier", next), frontier) != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	// Reconfirm main/frontier bytes and the owned clock before and after the
 	// physical head replacement. Late/uncertain state never returns success.
-	if !s.exactFrontierMain(next, inventory, intent, commit) || !s.exactFrontierFile(providerCustodyName("frontier", next), frontier) || !r.currentClockValid(s) {
+	if !s.exactFrontierMain(next, inventory, intent, commit) || !s.exactFrontierFile(s.name("frontier", next), frontier) || !r.currentClockValid(s) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	if _, err := f.advanceClaimedLocked(after, "main", intent, commit, frontier, claim); err != nil || !claim.used || !r.currentClockValid(s) || !s.exactFrontierMain(next, inventory, intent, commit) || !s.exactFrontierFile(providerCustodyName("frontier", next), frontier) {
+	if _, err := f.advanceClaimedLocked(after, "main", intent, commit, frontier, claim); err != nil || !claim.used || !r.currentClockValid(s) || !s.exactFrontierMain(next, inventory, intent, commit) || !s.exactFrontierFile(s.name("frontier", next), frontier) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	s.sequence, s.tip, s.enrollment, s.objectsRoot = next, after.commit, r.current.enrollment, inventory.digest
@@ -133,9 +154,9 @@ func (r *providerFrontierReplay) retain(s *providerCustodyStore, inventory *prov
 }
 
 func (s *providerCustodyStore) exactFrontierMain(sequence uint64, inventory *providerIntegrationInventory, intent, commit []byte) bool {
-	local, err := s.read(s.evidence, "inventory-"+inventory.digest[2:], 64<<10)
-	pending, pendingErr := s.read(s.evidence, providerCustodyName("pending", sequence), int64(s.config.bounds.maximumMetadataPerCommit))
-	return err == nil && pendingErr == nil && bytes.Equal(local, []byte(inventory.raw)) && bytes.Equal(pending, intent) && s.exactFrontierFile(providerCustodyName("intent", sequence), intent) && s.exactFrontierFile(providerCustodyName("commit", sequence), commit)
+	local, err := s.read(s.evidence, s.inventoryName(inventory.digest), 64<<10)
+	pending, pendingErr := s.read(s.evidence, s.name("pending", sequence), int64(s.config.bounds.maximumMetadataPerCommit))
+	return err == nil && pendingErr == nil && providerReplayEqual(local, providerReplayBytes(inventory.raw, s.activeMeter.Load()), s.activeMeter.Load()) && providerReplayEqual(pending, intent, s.activeMeter.Load()) && s.exactFrontierFile(s.name("intent", sequence), intent) && s.exactFrontierFile(s.name("commit", sequence), commit)
 }
 
 func (s *providerCustodyStore) exactFrontierFile(name string, expected []byte) bool {

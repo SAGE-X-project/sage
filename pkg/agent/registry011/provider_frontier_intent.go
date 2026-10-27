@@ -34,7 +34,7 @@ func providerFrontierIntentDiagnosticObserved(p providerFrontierLink, root *Cand
 	if !p.valid() || bounds.continuation == nil || !bounds.valid() || !providerIndexedCustodyKind(kind) || !lowerHash(operation) || root == nil || root.identity != p.identity || root.fence != p.fence || root.raw == "" || inventory == nil || inventory.previous != p.objects || (p.sequence == 0) != (kind == "enroll") {
 		return nil, errProviderIntegration
 	}
-	parsed, err := parseCandidateEnrollmentRootObserved(&ProviderCandidateContext{identity: p.identity, bound: true}, []byte(root.raw), 64<<10, meter)
+	parsed, err := parseCandidateEnrollmentRootObserved(&ProviderCandidateContext{identity: p.identity, bound: true}, providerReplayPhaseBytes(root.raw, meter), 64<<10, meter)
 	if err != nil || parsed.digest != root.digest || parsed.sequence != root.sequence || parsed.budget != root.budget || parsed.fence != root.fence {
 		return nil, errProviderIntegration
 	}
@@ -44,7 +44,7 @@ func providerFrontierIntentDiagnosticObserved(p providerFrontierLink, root *Cand
 	if p.sequence != 0 && (root.sequence != p.sequence || root.previous != p.enrollment) {
 		return nil, errProviderIntegration
 	}
-	checked, err := parseProviderFrontierInventoryObserved([]byte(inventory.raw), p.objects, bounds.maximumEntries, bounds.maximumObjectBytes, min(bounds.maximumStoredBytes, 64<<20), meter)
+	checked, err := parseProviderFrontierInventoryObserved(providerReplayPhaseBytes(inventory.raw, meter), p.objects, bounds.maximumEntries, bounds.maximumObjectBytes, min(bounds.maximumStoredBytes, 64<<20), meter)
 	if err != nil || checked.digest != inventory.digest {
 		return nil, errProviderIntegration
 	}

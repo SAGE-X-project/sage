@@ -26,6 +26,10 @@ func providerScanEnrollmentOriginalsWithFirst(t *testing.T, first *providerFirst
 			t.Fatal(err)
 		}
 		t.Cleanup(func() { _ = s.close() })
+		if _, err := s.enrollBeforeScan(); err != nil {
+			t.Fatal("original O-funded candidate enrollment", err)
+		}
+		return s
 	}
 	context := &ProviderCandidateContext{s.config.identity, true}
 	m := admissionTestRootObject(t)

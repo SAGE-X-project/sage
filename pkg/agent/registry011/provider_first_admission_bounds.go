@@ -26,7 +26,7 @@ func (b providerFirstAdmissionBounds) valid(store providerIntegrationBounds) boo
 }
 
 func (b providerFirstAdmissionBounds) object() map[string]any {
-	return map[string]any{"format": "sage-provider-first-admission-bounds-v1", "work_11": candidateLedgerWorkObject(b.work), "retained_bytes": strconv.FormatUint(b.retained, 10), "live_bytes": strconv.FormatUint(b.live, 10), "maximum_clock_reads": strconv.FormatUint(b.clocks, 10), "maximum_duration_ms": strconv.FormatUint(b.durationMS, 10)}
+	return map[string]any{"format": "sage-provider-first-admission-bounds-v2", "work_11": candidateLedgerWorkObject(b.work), "retained_bytes": strconv.FormatUint(b.retained, 10), "live_bytes": strconv.FormatUint(b.live, 10), "maximum_clock_reads": strconv.FormatUint(b.clocks, 10), "maximum_duration_ms": strconv.FormatUint(b.durationMS, 10)}
 }
 
 // The V4 rule derives both capacities from the SAME committed retained upper.
@@ -41,7 +41,7 @@ func (s *providerCustodyStore) firstAdmissionLimits(x *providerScanCodec) bool {
 	if s.config.bounds.firstAdmission == nil {
 		return true
 	}
-	m, ok := x.decode([]byte(s.config.policy.raw)).(map[string]any)
+	m, ok := x.decode(providerReplayPhaseBytes(s.config.policy.raw, x.meter)).(map[string]any)
 	if !ok {
 		return false
 	}

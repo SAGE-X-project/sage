@@ -47,9 +47,9 @@ func (r *providerFrontierReplay) highwaterRetention(s *providerCustodyStore, aft
 			return providerFrontierRetention{}, errProviderIntegration
 		}
 		next, raw, err := s.originalHighwaterObserved(ordinal, r.meter)
-		claim, a := s.read(s.custody, providerCustodyName("setup-intent", uint64(attempt)), int64(s.config.bounds.maximumMetadataPerCommit))
-		local, b := s.read(s.evidence, providerCustodyName("setup-claim", uint64(attempt)), int64(s.config.bounds.maximumMetadataPerCommit))
-		completed, c := s.read(s.custody, providerCustodyName("setup-commit", uint64(attempt)), int64(s.config.bounds.maximumMetadataPerCommit))
+		claim, a := s.read(s.custody, s.name("setup-intent", uint64(attempt)), int64(s.config.bounds.maximumMetadataPerCommit))
+		local, b := s.read(s.evidence, s.name("setup-claim", uint64(attempt)), int64(s.config.bounds.maximumMetadataPerCommit))
+		completed, c := s.read(s.custody, s.name("setup-commit", uint64(attempt)), int64(s.config.bounds.maximumMetadataPerCommit))
 		if err != nil || a != nil || b != nil || c != nil || !providerReplayEqual(claim, local, r.meter) || !checkProviderHighwaterSetupObserved(before, next, s.config, claim, completed, r.meter) || next.setup != s.setups[attempt].commit {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
@@ -82,7 +82,7 @@ func (s *providerCustodyStore) originalHighwaterObserved(ordinal uint64, meter *
 	if !ok || ordinal > maximum {
 		return providerFrontierHighwater{}, nil, errProviderIntegration
 	}
-	raw, err := s.read(s.custody, providerCustodyName("highwater", ordinal), candidateLedgerMetadataLimit)
+	raw, err := s.read(s.custody, s.name("highwater", ordinal), candidateLedgerMetadataLimit)
 	if err != nil {
 		return providerFrontierHighwater{}, nil, errProviderIntegration
 	}

@@ -37,7 +37,7 @@ func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
 	if kind == "request" && ref.bytes > 16<<10 || kind == "params" && ref.bytes > 8<<10 {
 		return nil, errProviderIntegration
 	}
-	raw, err := s.read(s.evidence, providerObjectName(kind, digest), int64(ref.bytes))
+	raw, err := s.read(s.evidence, s.objectName(kind, digest), int64(ref.bytes))
 	domain, _ := providerIntegrationDomain(kind)
 	hashBytes := uint64(len(raw) + len(domain))
 	if scanMeter != nil && domain != "" {
@@ -76,7 +76,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 	kind, operation := contentString(intent["kind"]), contentString(intent["operation"])
 	if kind == "enroll" {
 		joined := providerReplayJoin([]string{s.config.anchor, root.identity.Instance, root.identity.Policy, root.identity.SourceID}, r.meter)
-		if r.anchor != nil || root.sequence != 0 || root.budget != "" || joined == "" || operation != providerReplayDigest("sage-provider-enroll-operation-v1", []byte(joined), r.meter) {
+		if r.anchor != nil || root.sequence != 0 || root.budget != "" || joined == "" || operation != providerReplayDigest("sage-provider-enroll-operation-v1", providerReplayPhaseBytes(joined, r.meter), r.meter) {
 			return errProviderIntegration
 		}
 		selected, exists := s.setupForBoundary(s.tip)
@@ -201,7 +201,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		// exact replay before they can receive this ACK. No generic acceptance.
 		return errProviderIntegration
 	}
-	if change == nil || change.digest != root.budget || !providerReplayEqual(budget, []byte(change.raw), r.meter) {
+	if change == nil || change.digest != root.budget || !providerReplayEqual(budget, providerReplayPhaseBytes(change.raw, r.meter), r.meter) {
 		return errProviderIntegration
 	}
 	for _, node := range change.LedgerNodeBytes() {
@@ -264,12 +264,12 @@ func (r *providerCustodyReplay) checkTicketBytes(s *providerCustodyStore, ticket
 	}
 	body.Params = providerRequestNumbersObserved(body.Params, r.meter)
 	request, err := newProviderIntegrationRequestObserved(body.Method, body.Params, r.meter)
-	if err != nil || !providerReplayEqual(wire, []byte(request.wire), r.meter) || request.paramsDigest != ticket.params || ticket.sequence == 0 && !request.firstFinalizedObserved(r.meter) {
+	if err != nil || !providerReplayEqual(wire, providerReplayPhaseBytes(request.wire, r.meter), r.meter) || request.paramsDigest != ticket.params || ticket.sequence == 0 && !request.firstFinalizedObserved(r.meter) {
 		return errProviderIntegration
 	}
-	paramsDigest, _ := providerIntegrationObjectDigestObserved("params", []byte(request.params), r.meter)
+	paramsDigest, _ := providerIntegrationObjectDigestObserved("params", providerReplayPhaseBytes(request.params, r.meter), r.meter)
 	params, err := s.object("params", paramsDigest)
-	if err != nil || !providerReplayEqual(params, []byte(request.params), r.meter) {
+	if err != nil || !providerReplayEqual(params, providerReplayPhaseBytes(request.params, r.meter), r.meter) {
 		return errProviderIntegration
 	}
 	return nil

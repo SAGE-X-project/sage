@@ -56,7 +56,7 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {
 		names, e := providerDirectoryNamesObserved(disk, 4, meter)
 		lock, lockErr := disk.lock.Stat()
-		if e != nil || lockErr != nil || lock.Size() != 0 || len(names) != 4 || !names["ANCHOR"] || !names["AUTHORITY.LOCK"] || !names["SCAN-HEAD"] || !names[providerCustodyName("scan-highwater", 0)] {
+		if e != nil || lockErr != nil || lock.Size() != 0 || len(names) != 4 || !names["ANCHOR"] || !names["AUTHORITY.LOCK"] || !names["SCAN-HEAD"] || !names[s.name("scan-highwater", 0)] {
 			return nil, errProviderIntegration
 		}
 	}
@@ -91,11 +91,11 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 	// Provisioned two anchors/locks and four scan originals stay charged too.
 	files, filesOK := providerUpperProduct(13, b.fileOverheadBytes)
 	upper, upperOK := providerUpperSum(uint64(2*len(anchor)+2*len(claim)+len(commit)), controlBytes, 2*candidateLedgerMetadataLimit, files)
-	if !filesOK || !upperOK || upper > b.setupRetained || s.write(s.custody, providerCustodyName("setup-intent", 0), claim) != nil || s.write(s.evidence, providerCustodyName("setup-claim", 0), claim) != nil || s.write(s.custody, providerCustodyName("setup-commit", 0), commit) != nil {
+	if !filesOK || !upperOK || upper > b.setupRetained || s.write(s.custody, s.name("setup-intent", 0), claim) != nil || s.write(s.evidence, s.name("setup-claim", 0), claim) != nil || s.write(s.custody, s.name("setup-commit", 0), commit) != nil {
 		return nil, errProviderIntegration
 	}
 	checker := &providerScanControl{store: s}
-	if !checker.readExact(s.custody, providerCustodyName("setup-intent", 0), claim) || !checker.readExact(s.evidence, providerCustodyName("setup-claim", 0), claim) || !checker.readExact(s.custody, providerCustodyName("setup-commit", 0), commit) {
+	if !checker.readExact(s.custody, s.name("setup-intent", 0), claim) || !checker.readExact(s.evidence, s.name("setup-claim", 0), claim) || !checker.readExact(s.custody, s.name("setup-commit", 0), commit) {
 		return nil, errProviderIntegration
 	}
 	s.setupTip = x.hash("sage-provider-authority-setup-commit-v1", commit)
@@ -108,16 +108,20 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 	s.retainedRaw = uint64(2*len(anchor)+2*len(claim)+len(commit)) + controlBytes
 	h := providerFrontierHighwater{identity: id, fence: 1, profile: config.profile, commit: config.anchor, setup: s.setupTip}
 	head, err := x.encode(map[string]any{"format": "sage-provider-custody-highwater-v1", "namespace": id.Namespace, "instance_key": id.Instance, "generation": strconv.FormatUint(id.Generation, 10), "fence": "1", "ordinal": "0", "previous_highwater": nil, "profile": config.profile, "sequence": "0", "custody_commit": config.anchor, "setup_head": s.setupTip, "frontier": nil})
-	if err != nil || s.write(s.custody, providerCustodyName("highwater", 0), head) != nil || s.write(s.custody, providerCustodyName("HEAD.pending", 0), head) != nil {
+	if err != nil || s.write(s.custody, s.name("highwater", 0), head) != nil || s.write(s.custody, s.name("HEAD.pending", 0), head) != nil {
 		return nil, errProviderIntegration
 	}
 	f := &providerFrontierFiles{store: s}
 	f.owner = f
 	s.frontierFiles = f
-	if f.renameHead(0) != nil || !f.readExact("HEAD", head) || !f.readExact(providerCustodyName("highwater", 0), head) {
+	if f.renameHead(0) != nil || !f.readExact("HEAD", head) || !f.readExact(s.name("highwater", 0), head) {
 		return nil, errProviderIntegration
 	}
-	f.pin, f.pinRaw, f.initialized = h, string(head), true
+	headText := providerReplayString(head, s.copyMeter())
+	if headText == "" {
+		return nil, errProviderIntegration
+	}
+	f.pin, f.pinRaw, f.initialized = h, headText, true
 	s.retainedRaw += uint64(2 * len(head))
 	if _, err := newProviderScanControl(s); err != nil {
 		return nil, errProviderIntegration
@@ -126,8 +130,8 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 		disk     *retentionDisk
 		required []string
 	}{
-		{s.custody, []string{"ANCHOR", "AUTHORITY.LOCK", "SCAN-HEAD", providerCustodyName("scan-highwater", 0), providerCustodyName("setup-intent", 0), providerCustodyName("setup-commit", 0), "HEAD", providerCustodyName("highwater", 0)}},
-		{s.evidence, []string{"ANCHOR", "AUTHORITY.LOCK", "SCAN-HEAD", providerCustodyName("scan-highwater", 0), providerCustodyName("setup-claim", 0)}},
+		{s.custody, []string{"ANCHOR", "AUTHORITY.LOCK", "SCAN-HEAD", s.name("scan-highwater", 0), s.name("setup-intent", 0), s.name("setup-commit", 0), "HEAD", s.name("highwater", 0)}},
+		{s.evidence, []string{"ANCHOR", "AUTHORITY.LOCK", "SCAN-HEAD", s.name("scan-highwater", 0), s.name("setup-claim", 0)}},
 	} {
 		names, e := providerDirectoryNamesObserved(entry.disk, len(entry.required), meter)
 		if e != nil || len(names) != len(entry.required) {
@@ -143,13 +147,21 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 	if err != nil || !candidateLedgerClockAdvance(providerClockDiagnostic(initial), providerClockDiagnostic(end)) || uint64(end.MonotonicMS-initial.MonotonicMS) > b.setupMaximumDurationMS || meter.failed || s.retainedRaw > s.stored || s.custody.checkIdentity() != nil || s.evidence.checkIdentity() != nil {
 		return nil, errProviderIntegration
 	}
+	if b.firstAdmission != nil {
+		s.bootstrapOwner = &providerBootstrapOwner{store: s, meter: meter, setupPhysical: upper, before: f.pinRaw, origin: initial}
+	}
 	succeeded = true
 	return s, nil
 }
 
 func (x *providerScanCodec) setup(clock CandidateClockDiagnostic) ([]byte, error) {
 	c, b, id := x.config, x.config.bounds, x.config.identity
-	operation := x.hash("sage-provider-setup-operation-v1", []byte(c.anchor+id.Instance+id.Policy+id.SourceID))
+	copyMeter := x.meter
+	if c.bounds.firstAdmission == nil {
+		copyMeter = nil
+	}
+	joined := providerReplayJoin([]string{c.anchor, id.Instance, id.Policy, id.SourceID}, copyMeter)
+	operation := x.hash("sage-provider-setup-operation-v1", providerReplayPhaseBytes(joined, x.meter))
 	if !lowerHash(operation) {
 		return nil, errProviderIntegration
 	}

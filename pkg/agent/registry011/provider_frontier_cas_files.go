@@ -89,7 +89,7 @@ func (f *providerFrontierFiles) initializeLocked() (providerFrontierRetention, e
 	if !ok || !mulOK || !sumOK || upper > config.bounds.setupRetained {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	if s.write(s.custody, providerCustodyName("highwater", 0), raw) != nil || s.write(s.custody, providerCustodyName("HEAD.pending", 0), raw) != nil || f.renameHead(0) != nil || !f.readExact("HEAD", raw) || !f.readExact(providerCustodyName("highwater", 0), raw) {
+	if s.write(s.custody, s.name("highwater", 0), raw) != nil || s.write(s.custody, s.name("HEAD.pending", 0), raw) != nil || f.renameHead(0) != nil || !f.readExact("HEAD", raw) || !f.readExact(s.name("highwater", 0), raw) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	f.pin, f.pinRaw, f.initialized, f.failed = h, string(raw), true, false
@@ -129,18 +129,19 @@ func (f *providerFrontierFiles) advanceClaimedLocked(after providerFrontierHighw
 		}
 	}()
 	s := f.store
+	meter := s.activeMeter.Load()
 	valid := false
 	switch kind {
 	case "main":
-		valid = checkProviderHighwaterMain(f.pin, after, s.config, input, commit, frontier)
+		valid = checkProviderHighwaterMainObserved(f.pin, after, s.config, input, commit, frontier, meter)
 	case "setup":
-		valid = len(frontier) == 0 && checkProviderHighwaterSetup(f.pin, after, s.config, input, commit)
+		valid = len(frontier) == 0 && checkProviderHighwaterSetupObserved(f.pin, after, s.config, input, commit, meter)
 	}
-	raw, err := after.bytes(s.config)
+	raw, err := after.bytesObserved(s.config, meter)
 	cost, ok := providerHighwaterFileCost(uint64(len(raw)), s.config.bounds)
 	retained, retainedOK := providerUpperSum(s.retainedRaw, cost.metadata)
 	prepaid := claim != nil && claim.owner == f && !claim.used && claim.before == f.pinRaw && claim.after == string(raw) && claim.stored == s.stored && claim.headCost == cost && claim.kind == kind && claim.intent == string(input) && claim.commit == string(commit) && claim.frontier == string(frontier)
-	if !valid || err != nil || !ok || !retainedOK || claim != nil && !prepaid || !s.event(providerEncodeEvent, uint64(len(raw))) || !f.readExact("HEAD", []byte(f.pinRaw)) || !f.readExact(providerCustodyName("highwater", f.pin.ordinal), []byte(f.pinRaw)) || !prepaid && !candidateCapacity(0, s.stored, cost.stored, s.config.bounds.maximumStoredBytes) {
+	if !valid || err != nil || !ok || !retainedOK || claim != nil && !prepaid || !f.readExact("HEAD", providerReplayBytes(f.pinRaw, meter)) || !f.readExact(s.name("highwater", f.pin.ordinal), providerReplayBytes(f.pinRaw, meter)) || !prepaid && !candidateCapacity(0, s.stored, cost.stored, s.config.bounds.maximumStoredBytes) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	// Retain the full allocation charge after any uncertain write. Neither
@@ -150,10 +151,14 @@ func (f *providerFrontierFiles) advanceClaimedLocked(after providerFrontierHighw
 	} else {
 		s.stored += cost.stored
 	}
-	if s.write(s.custody, providerCustodyName("highwater", after.ordinal), raw) != nil || s.write(s.custody, providerCustodyName("HEAD.pending", after.ordinal), raw) != nil || !f.readExact("HEAD", []byte(f.pinRaw)) || f.renameHead(after.ordinal) != nil || !f.readExact("HEAD", raw) || !f.readExact(providerCustodyName("highwater", after.ordinal), raw) {
+	if s.write(s.custody, s.name("highwater", after.ordinal), raw) != nil || s.write(s.custody, s.name("HEAD.pending", after.ordinal), raw) != nil || !f.readExact("HEAD", providerReplayBytes(f.pinRaw, meter)) || f.renameHead(after.ordinal) != nil || !f.readExact("HEAD", raw) || !f.readExact(s.name("highwater", after.ordinal), raw) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	f.pin, f.pinRaw, f.failed = after, string(raw), false
+	retainedRaw := providerReplayString(raw, meter)
+	if retainedRaw == "" {
+		return providerFrontierRetention{}, errProviderIntegration
+	}
+	f.pin, f.pinRaw, f.failed = after, retainedRaw, false
 	f.pending = nil
 	s.retainedRaw = retained
 	succeeded = true
@@ -178,7 +183,8 @@ func (f *providerFrontierFiles) readExact(name string, expected []byte) bool {
 
 func (f *providerFrontierFiles) renameHead(ordinal uint64) error {
 	s := f.store
-	if s.custody.checkIdentity() != nil || s.evidence.checkIdentity() != nil || !s.event(providerRenameEvent, 0) || s.custody.root.Rename(providerCustodyName("HEAD.pending", ordinal), "HEAD") != nil || !s.event(providerSyncEvent, 0) || s.custody.sync() != nil || s.custody.checkIdentity() != nil || s.evidence.checkIdentity() != nil {
+	pending := s.name("HEAD.pending", ordinal)
+	if pending == "" || s.custody.checkIdentity() != nil || s.evidence.checkIdentity() != nil || !s.event(providerRenameEvent, 0) || s.custody.root.Rename(pending, "HEAD") != nil || !s.event(providerSyncEvent, 0) || s.custody.sync() != nil || s.custody.checkIdentity() != nil || s.evidence.checkIdentity() != nil {
 		if meter := s.activeMeter.Load(); meter != nil {
 			meter.refuse()
 		}
@@ -199,8 +205,8 @@ func (f *providerFrontierFiles) checkInitialPrefix() error {
 		disk  *retentionDisk
 		names []string
 	}{
-		{s.custody, []string{"ANCHOR", "AUTHORITY.LOCK", providerCustodyName("setup-intent", 0), providerCustodyName("setup-commit", 0)}},
-		{s.evidence, []string{"ANCHOR", "AUTHORITY.LOCK", providerCustodyName("setup-claim", 0)}},
+		{s.custody, []string{"ANCHOR", "AUTHORITY.LOCK", s.name("setup-intent", 0), s.name("setup-commit", 0)}},
+		{s.evidence, []string{"ANCHOR", "AUTHORITY.LOCK", s.name("setup-claim", 0)}},
 	} {
 		names, err := providerDirectoryNames(item.disk, len(item.names))
 		if err != nil || len(names) != len(item.names) {
@@ -219,9 +225,9 @@ func (f *providerFrontierFiles) checkInitialPrefix() error {
 	if a != nil || b != nil || err != nil || m == nil || !bytes.Equal(anchor, local) || providerCandidateHash("sage-provider-custody-anchor-v1", anchor) != config.anchor || m["format"] != "sage-provider-custody-anchor-v1" || m["namespace"] != config.identity.Namespace || m["instance_key"] != config.identity.Instance || m["profile"] != config.profile || m["initial_objects_root"] != empty.digest || s.objectsRoot != empty.digest {
 		return errProviderIntegration
 	}
-	claim, a := s.read(s.evidence, providerCustodyName("setup-claim", 0), int64(config.bounds.maximumMetadataPerCommit))
-	intent, b := s.read(s.custody, providerCustodyName("setup-intent", 0), int64(config.bounds.maximumMetadataPerCommit))
-	commit, c := s.read(s.custody, providerCustodyName("setup-commit", 0), int64(config.bounds.maximumMetadataPerCommit))
+	claim, a := s.read(s.evidence, s.name("setup-claim", 0), int64(config.bounds.maximumMetadataPerCommit))
+	intent, b := s.read(s.custody, s.name("setup-intent", 0), int64(config.bounds.maximumMetadataPerCommit))
+	commit, c := s.read(s.custody, s.name("setup-commit", 0), int64(config.bounds.maximumMetadataPerCommit))
 	if a != nil || b != nil || c != nil || !bytes.Equal(claim, intent) || !bytes.Equal(claim, providerCustodySetup(config, s.setupOrigin)) || !bytes.Equal(commit, providerSetupCommit(claim)) || providerCandidateHash("sage-provider-authority-setup-v1", claim) != s.setups[0].claim || providerCandidateHash("sage-provider-authority-setup-commit-v1", commit) != s.setupTip {
 		return errProviderIntegration
 	}

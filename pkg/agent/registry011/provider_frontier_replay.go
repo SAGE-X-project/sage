@@ -37,7 +37,7 @@ func newProviderFrontierReplayObserved(config providerCustodyConfig, meter *prov
 	if config.profile != providerCandidateHash(domain, profile) {
 		return nil, errProviderIntegration
 	}
-	parsedPolicy, err := parseProviderPolicyCandidateObserved([]byte(config.policy.raw), 64<<10, meter)
+	parsedPolicy, err := parseProviderPolicyCandidateObserved(providerReplayPhaseBytes(config.policy.raw, meter), 64<<10, meter)
 	if err != nil || *parsedPolicy != *config.policy {
 		return nil, errProviderIntegration
 	}
@@ -184,7 +184,7 @@ func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventor
 	}
 	if boundary != nil {
 		priorHeads := delta.previous
-		if r.body.ledger.applyProviderBoundary(boundary, []byte(boundary.pageObject.raw), []byte(entry.raw), priorHeads) != nil {
+		if r.body.ledger.applyProviderBoundary(boundary, providerReplayPhaseBytes(boundary.pageObject.raw, r.meter), providerReplayPhaseBytes(entry.raw, r.meter), priorHeads) != nil {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
 	}
@@ -251,7 +251,7 @@ func (r *providerFrontierReplay) applyBody(s *providerCustodyStore, root *Candid
 		seal, err := boundary.sealObject(r.indexes.heads)
 		page, pageErr := s.object("ledger-page", boundary.pageObject.digest)
 		budget, budgetErr := s.object("budget", root.budget)
-		if err != nil || pageErr != nil || budgetErr != nil || !providerReplayEqual(raw, []byte(seal.raw), r.meter) || !providerReplayEqual(page, []byte(boundary.pageObject.raw), r.meter) || !providerReplayEqual(budget, []byte(ledger.current.raw), r.meter) {
+		if err != nil || pageErr != nil || budgetErr != nil || !providerReplayEqual(raw, providerReplayPhaseBytes(seal.raw, r.meter), r.meter) || !providerReplayEqual(page, providerReplayPhaseBytes(boundary.pageObject.raw, r.meter), r.meter) || !providerReplayEqual(budget, providerReplayPhaseBytes(ledger.current.raw, r.meter), r.meter) {
 			return providerIntegrationObject{}, nil, errProviderIntegration
 		}
 		return seal, boundary, nil
@@ -284,7 +284,7 @@ func (r *providerFrontierReplay) checkIndexObjects(s *providerCustodyStore, delt
 	if initial {
 		for _, expected := range r.anchors {
 			raw, err := s.object(expected.kind, expected.digest)
-			if err != nil || !providerReplayEqual(raw, []byte(expected.raw), r.meter) {
+			if err != nil || !providerReplayEqual(raw, providerReplayPhaseBytes(expected.raw, r.meter), r.meter) {
 				return errProviderIntegration
 			}
 		}
@@ -292,7 +292,7 @@ func (r *providerFrontierReplay) checkIndexObjects(s *providerCustodyStore, delt
 	for _, mutation := range delta.mutations {
 		expected := mutation.object
 		raw, err := s.object(expected.kind, expected.digest)
-		if err != nil || !providerReplayEqual(raw, []byte(expected.raw), r.meter) {
+		if err != nil || !providerReplayEqual(raw, providerReplayPhaseBytes(expected.raw, r.meter), r.meter) {
 			return errProviderIntegration
 		}
 	}
@@ -337,9 +337,9 @@ func (r *providerFrontierReplay) setupBytes(s *providerCustodyStore, through int
 	}
 	for ordinal := r.setupOrdinal + 1; ordinal <= through; ordinal++ {
 		setup := s.setups[ordinal]
-		claim, a := s.read(s.evidence, providerCustodyName("setup-claim", uint64(ordinal)), int64(s.config.bounds.maximumMetadataPerCommit))
-		intent, b := s.read(s.custody, providerCustodyName("setup-intent", uint64(ordinal)), int64(s.config.bounds.maximumMetadataPerCommit))
-		commit, c := s.read(s.custody, providerCustodyName("setup-commit", uint64(ordinal)), int64(s.config.bounds.maximumMetadataPerCommit))
+		claim, a := s.read(s.evidence, s.name("setup-claim", uint64(ordinal)), int64(s.config.bounds.maximumMetadataPerCommit))
+		intent, b := s.read(s.custody, s.name("setup-intent", uint64(ordinal)), int64(s.config.bounds.maximumMetadataPerCommit))
+		commit, c := s.read(s.custody, s.name("setup-commit", uint64(ordinal)), int64(s.config.bounds.maximumMetadataPerCommit))
 		previous := s.config.anchor
 		if ordinal != 0 {
 			previous = s.setups[ordinal-1].commit
@@ -361,7 +361,7 @@ func (r *providerFrontierReplay) setupBytes(s *providerCustodyStore, through int
 
 func (r *providerFrontierReplay) deriveFrontier(s *providerCustodyStore, root *CandidateEnrollmentRoot, delta *providerIndexDelta, commit []byte, claimed providerFrontierRecord, clock CandidateClockDiagnostic, setup string) (providerFrontierRecord, error) {
 	initial := providerClockDiagnostic(s.setupOrigin)
-	policy, policyOK := providerReplayJSON([]byte(r.body.policy.raw), r.meter).(map[string]any)
+	policy, policyOK := providerReplayJSON(providerReplayPhaseBytes(r.body.policy.raw, r.meter), r.meter).(map[string]any)
 	if !policyOK {
 		return providerFrontierRecord{}, errProviderIntegration
 	}

@@ -50,6 +50,7 @@ func (c *providerScanControl) readExact(disk *retentionDisk, name string, want [
 }
 
 func (c *providerScanControl) readHighwater(h providerScanHighwater) bool {
+	s := c.store
 	codec, err := newProviderScanCodec(c.store.config, c.store.activeMeter.Load())
 	if err != nil {
 		return false
@@ -60,7 +61,7 @@ func (c *providerScanControl) readHighwater(h providerScanHighwater) bool {
 		return false
 	}
 	for _, disk := range []*retentionDisk{c.store.custody, c.store.evidence} {
-		if !c.readExact(disk, providerCustodyName("scan-highwater", h.ordinal), raw) || !c.readExact(disk, "SCAN-HEAD", head) {
+		if !c.readExact(disk, s.name("scan-highwater", h.ordinal), raw) || !c.readExact(disk, "SCAN-HEAD", head) {
 			return false
 		}
 	}
@@ -78,27 +79,27 @@ func (c *providerScanControl) readPrefix() bool {
 	var h providerScanHighwater
 	raw, err := codec.highwater(h)
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {
-		if err != nil || !c.readExact(disk, providerCustodyName("scan-highwater", 0), raw) {
+		if err != nil || !c.readExact(disk, s.name("scan-highwater", 0), raw) {
 			return false
 		}
 	}
 	for j := uint64(1); j <= c.pin.ordinal; j++ {
-		intent, err := s.read(s.custody, providerCustodyName("scan-intent", j), int64(s.config.bounds.maximumMetadataPerCommit))
+		intent, err := s.read(s.custody, s.name("scan-intent", j), int64(s.config.bounds.maximumMetadataPerCommit))
 		if err != nil {
 			return false
 		}
 		a, err := codec.parseAttempt(intent)
 		deadline, _, deadlineOK := codec.deadline(providerClockDiagnostic(s.setupOrigin))
-		if err != nil || !deadlineOK || a.clock != providerClockDiagnostic(s.setupOrigin) || a.deadline != deadline || a.purpose != "initial-inspection" || a.ordinal != j || !c.readExact(s.evidence, providerCustodyName("scan-claim", j), intent) {
+		if err != nil || !deadlineOK || a.clock != providerClockDiagnostic(s.setupOrigin) || a.deadline != deadline || a.purpose != "initial-inspection" || a.ordinal != j || !c.readExact(s.evidence, s.name("scan-claim", j), intent) {
 			return false
 		}
 		after, commit, err := codec.successor(h, a)
 		next, nextErr := codec.highwater(after)
-		if err != nil || nextErr != nil || !c.readExact(s.custody, providerCustodyName("scan-commit", j), commit) {
+		if err != nil || nextErr != nil || !c.readExact(s.custody, s.name("scan-commit", j), commit) {
 			return false
 		}
 		for _, disk := range []*retentionDisk{s.custody, s.evidence} {
-			if !c.readExact(disk, providerCustodyName("scan-highwater", j), next) {
+			if !c.readExact(disk, s.name("scan-highwater", j), next) {
 				return false
 			}
 		}
@@ -134,7 +135,7 @@ func (c *providerScanControl) checkMainPin() bool {
 	if f == nil || !f.valid() || !f.initialized || f.pending != nil || f.pin.commit != s.tip || f.pin.setup != s.setupTip || f.pin.sequence != s.sequence || f.pin.profile != s.config.profile {
 		return false
 	}
-	return f.readExact("HEAD", []byte(f.pinRaw)) && f.readExact(providerCustodyName("highwater", f.pin.ordinal), []byte(f.pinRaw))
+	return f.readExact("HEAD", providerReplayPhaseBytes(f.pinRaw, s.activeMeter.Load())) && f.readExact(s.name("highwater", f.pin.ordinal), providerReplayPhaseBytes(f.pinRaw, s.activeMeter.Load()))
 }
 
 // Conservative finite control overhead from the closed maximum record size,
@@ -171,7 +172,7 @@ func (c *providerScanControl) claim(a providerScanAttempt) error {
 	s := c.store
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !c.valid() || c.prepared != nil || s.activeMeter.Load() != nil {
+	if !c.valid() || c.prepared != nil || s.activeMeter.Load() != nil || s.config.bounds.firstAdmission != nil && (s.bootstrapOwner == nil || !s.bootstrapOwner.done || s.bootstrapOwner.failed) {
 		return errProviderIntegration
 	}
 	preparation, err := providerScanPreparationUpper(s.config, a.ordinal)
@@ -217,11 +218,11 @@ func (c *providerScanControl) claim(a providerScanAttempt) error {
 	}
 	raw, rawErr := codec.highwater(after)
 	head, headErr := codec.head(after)
-	if rawErr != nil || headErr != nil || s.write(s.custody, providerCustodyName("scan-intent", a.ordinal), intent) != nil || s.write(s.evidence, providerCustodyName("scan-claim", a.ordinal), intent) != nil || s.write(s.custody, providerCustodyName("scan-commit", a.ordinal), commit) != nil {
+	if rawErr != nil || headErr != nil || s.write(s.custody, s.name("scan-intent", a.ordinal), intent) != nil || s.write(s.evidence, s.name("scan-claim", a.ordinal), intent) != nil || s.write(s.custody, s.name("scan-commit", a.ordinal), commit) != nil {
 		return errProviderIntegration
 	}
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {
-		if s.write(disk, providerCustodyName("scan-highwater", a.ordinal), raw) != nil {
+		if s.write(disk, s.name("scan-highwater", a.ordinal), raw) != nil {
 			return errProviderIntegration
 		}
 	}
@@ -229,12 +230,12 @@ func (c *providerScanControl) claim(a providerScanAttempt) error {
 		return errProviderIntegration
 	}
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {
-		pending := providerCustodyName("SCAN-HEAD.pending", a.ordinal)
+		pending := s.name("SCAN-HEAD.pending", a.ordinal)
 		if s.write(disk, pending, head) != nil || !s.event(providerRenameEvent, 0) || disk.checkIdentity() != nil || disk.root.Rename(pending, "SCAN-HEAD") != nil || !s.event(providerSyncEvent, 0) || disk.sync() != nil || disk.checkIdentity() != nil {
 			return errProviderIntegration
 		}
 	}
-	if !c.readExact(s.custody, providerCustodyName("scan-intent", a.ordinal), intent) || !c.readExact(s.evidence, providerCustodyName("scan-claim", a.ordinal), intent) || !c.readExact(s.custody, providerCustodyName("scan-commit", a.ordinal), commit) || !c.readHighwater(after) || !c.checkMainPin() {
+	if !c.readExact(s.custody, s.name("scan-intent", a.ordinal), intent) || !c.readExact(s.evidence, s.name("scan-claim", a.ordinal), intent) || !c.readExact(s.custody, s.name("scan-commit", a.ordinal), commit) || !c.readHighwater(after) || !c.checkMainPin() {
 		return errProviderIntegration
 	}
 	end, err := s.sample()

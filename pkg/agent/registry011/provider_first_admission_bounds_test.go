@@ -93,6 +93,9 @@ func TestProviderFirstAdmissionCachesObservedLimitsBeforeAnyClaim(t *testing.T) 
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = s.close() })
+	if _, err := s.enrollBeforeScan(); err != nil {
+		t.Fatal("funded candidate enrollment before claim capacity checks", err)
+	}
 	want := *s.firstLimits
 	for _, mode := range []string{"missing", "live", "retained", "work"} {
 		t.Run(mode, func(t *testing.T) {

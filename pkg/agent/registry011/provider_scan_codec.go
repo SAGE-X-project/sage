@@ -69,7 +69,7 @@ func (x *providerScanCodec) deadline(clock CandidateClockDiagnostic) (uint64, ui
 	if clock.WallMS < clock.UncertaintyMS {
 		return 0, 0, false
 	}
-	root, ok := x.decode([]byte(x.config.policy.raw)).(map[string]any)
+	root, ok := x.decode(providerReplayPhaseBytes(x.config.policy.raw, x.meter)).(map[string]any)
 	if !ok {
 		return 0, 0, false
 	}

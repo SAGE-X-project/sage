@@ -1320,4 +1320,26 @@ The four readbacks and two receipt decoders have separate output accounting;
 old profile bytes cannot silently acquire that revision. Receipt ownership is
 live and nonserializable. Retained DATA still needs the mandatory first-I
 binding, independently seeded typed E1 replay and qualified custody boundary;
-the owned E0 unit fixture does not provide those operating guarantees.
+the owned E0 candidate does not provide those operating guarantees.
+
+The fresh V4 bootstrap-accounting revision keeps the original open-O meter
+through E0. The first-admission bounds format is separately pinned as V2
+before H0, so an earlier candidate identity cannot acquire this path on reopen.
+The live owner can enter enrollment once, before any scan claim. It compares
+the complete E0 work, resident-memory, clock and physical-file plan with the
+remaining original O before allocation or writes. Its seven new objects are
+the enrollment, three independent index anchors, original setup/commit, and
+one operations-index mutation; inventory, intent/pending/commit/frontier and
+the two new head copies bring the physical plan to fourteen new files.
+
+The physical allowance includes the uncertain pending head. The writer
+consumes that one private phase claim without increasing the already held
+store total. Exact originals are read back and independently replayed with
+different coordinator/custodian index maps under the same O. Every newly
+observed byte/filename copy and serializer spends the current phase, while
+earlier profile filename bytes and copy-accounting behavior remain unchanged.
+The bootstrap meter closes permanently on completion or failure; losing the
+owner or encountering an uncertain original cannot renew O or refund its tail.
+Only a completed E0 can begin its separately funded first inspection. These
+are candidate filesystem and accounting checks, not authenticated absence,
+qualified durability/clock, an ACK, first-I/E1 binding, or Agent-message use.
