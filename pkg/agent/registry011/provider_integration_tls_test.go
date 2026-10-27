@@ -66,7 +66,8 @@ func providerIntegrationOwnedTLS(t *testing.T, request, response string) *tls.Co
 	return conn
 }
 
-func TestProviderIntegrationOwnedBootstrapConnectsCustodyAndOneExchange(t *testing.T) {
+func providerRetainedFirstExchangeFixture(t *testing.T) (*providerIntegration, *providerCustodyStore) {
+	t.Helper()
 	store, policy, candidate, primitive := providerStoreFixture(t)
 	c, err := newProviderIntegration(store, policy, candidate, primitive)
 	if err != nil {
@@ -106,6 +107,11 @@ func TestProviderIntegrationOwnedBootstrapConnectsCustodyAndOneExchange(t *testi
 	if c.firstExchange == "" || c.bootstrap != "" || store.replay.firstExchange != c.firstExchange || c.use(permit) {
 		t.Fatal("exchange manufactured a start or a second dispatch")
 	}
+	return c, store
+}
+
+func TestProviderIntegrationOwnedBootstrapConnectsCustodyAndOneExchange(t *testing.T) {
+	c, store := providerRetainedFirstExchangeFixture(t)
 	if err := c.installBootstrap(); err != nil {
 		t.Fatal(err)
 	}

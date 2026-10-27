@@ -55,13 +55,7 @@ func providerFrontierRetentionCost(id ProviderCandidateIdentity, inventory *prov
 	if err != nil || derived.raw != inventory.raw || derived.digest != inventory.digest || derived.payloadBytes != inventory.payloadBytes {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	m := providerFrontierIntentObject(intent)
-	f, err := parseProviderFrontierRecord(frontier, id)
-	if m == nil || err != nil || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["generation"] != strconv.FormatUint(id.Generation, 10) || m["sequence"] != strconv.FormatUint(f.sequence, 10) || m["fence"] != strconv.FormatUint(f.fence, 10) || m["objects_root"] != inventory.digest || string(providerFrontierCommit(intent)) != string(commit) || f.commit != providerCandidateHash("sage-provider-custody-commit-v2", commit) || f.objects != inventory.digest || f.enrollment != m["new_enrollment_root"] || f.setup != m["setup_head"] || providerNullableDigest(f.previous) != m["previous_frontier"] {
-		return providerFrontierRetention{}, errProviderIntegration
-	}
-	canonical, err := f.bytes()
-	if err != nil || string(canonical) != string(frontier) || string(providerIntegrationJSON(m)) != string(intent) {
+	if !checkProviderFrontierRetention(id, inventory, intent, commit, frontier) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	metadata, ok = providerUpperSum(metadata, extra)
@@ -76,6 +70,23 @@ func providerFrontierRetentionCost(id ProviderCandidateIdentity, inventory *prov
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	return providerFrontierRetention{payload: payload, metadata: metadata, stored: stored, objects: uint64(len(fresh))}, nil
+}
+
+// Keep exact identity/reference/canonical-byte agreement separate from quota
+// arithmetic. Neither this predicate nor a successful data quote owns a prefix,
+// confirms a physical write, or authorizes execution. Parsers keep their exact
+// canonical-byte requirement, and the final encoding agreement stays explicit.
+func checkProviderFrontierRetention(id ProviderCandidateIdentity, inventory *providerIntegrationInventory, intent, commit, frontier []byte) bool {
+	if inventory == nil {
+		return false
+	}
+	m := providerFrontierIntentObject(intent)
+	f, err := parseProviderFrontierRecord(frontier, id)
+	if m == nil || err != nil || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["generation"] != strconv.FormatUint(id.Generation, 10) || m["sequence"] != strconv.FormatUint(f.sequence, 10) || m["fence"] != strconv.FormatUint(f.fence, 10) || m["objects_root"] != inventory.digest || string(providerFrontierCommit(intent)) != string(commit) || f.commit != providerCandidateHash("sage-provider-custody-commit-v2", commit) || f.objects != inventory.digest || f.enrollment != m["new_enrollment_root"] || f.setup != m["setup_head"] || providerNullableDigest(f.previous) != m["previous_frontier"] {
+		return false
+	}
+	canonical, err := f.bytes()
+	return err == nil && string(canonical) == string(frontier) && string(providerIntegrationJSON(m)) == string(intent)
 }
 
 // Closed accounting classes prevent a new kind from silently becoming free.

@@ -30,6 +30,21 @@ func TestProviderLedgerIndexConstructionAndBindingAreFunded(t *testing.T) {
 	}
 }
 
+func TestProviderLedgerIndexMissingHeadOrInvalidChainCannotEncode(t *testing.T) {
+	s, _, _ := providerIndexFixture(t)
+	head := s.heads[0]
+	s.heads[0] = "invalid"
+	if s.valid() {
+		t.Fatal("absent canonical current head was accepted")
+	}
+	s.heads[0] = head
+	for _, chain := range []int{-1, 3} {
+		if _, err := s.mutation(chain, admissionTestDigest("a"), nil, nil, admissionTestDigest("b"), "", ""); err == nil {
+			t.Fatal("unsupported mutation chain encoded")
+		}
+	}
+}
+
 func TestProviderLedgerIndexPreparationRejectsInvalidTypedStateBeforeMutation(t *testing.T) {
 	for _, mode := range []string{"root", "operation", "empty-entry", "entry-hash", "root-hash", "metadata", "resident", "missing-ledger", "pending", "missing-seal", "wrong-receipt", "missing-consumption", "missing-ticket", "missing-node", "wrong-node", "invalid-ticket", "segment-totals"} {
 		t.Run(mode, func(t *testing.T) {

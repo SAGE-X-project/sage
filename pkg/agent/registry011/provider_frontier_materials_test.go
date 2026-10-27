@@ -4,25 +4,22 @@ import "testing"
 
 func TestProviderFrontierRetentionRequiresCanonicalOriginalBytes(t *testing.T) {
 	id, inventory, fresh, intent, commit, frontier, bounds := providerRetentionFixture(t)
+	if !checkProviderFrontierRetention(id, inventory, intent, commit, frontier) || checkProviderFrontierRetention(id, nil, intent, commit, frontier) {
+		t.Fatal("exact original closure did not distinguish an absent inventory")
+	}
 	// Whitespace is finite inert parser data, never written as an operating head.
 	if _, err := providerFrontierRetentionCost(id, inventory, fresh, intent, commit, append(append([]byte(nil), frontier...), '\n'), bounds); err == nil {
 		t.Fatal("noncanonical frontier acquired a retention quote")
 	}
-	// A matching commit hash still cannot make a noncanonical intent original
-	// acceptable. Rebind only this finite DATA fixture's derived values.
-	intent = append(append([]byte(nil), intent...), '\n')
-	commit = providerFrontierCommit(intent)
-	f, err := parseProviderFrontierRecord(frontier, id)
-	if err != nil {
-		t.Fatal(err)
+	// contentJSON itself rejects noncanonical input. In particular, a commit
+	// cannot be derived from it; do not describe a nil derivation as a matching
+	// commit. Test the closed predicate and complete quote with unchanged roots.
+	changed := append(append([]byte(nil), intent...), '\n')
+	if providerFrontierCommit(changed) != nil || checkProviderFrontierRetention(id, inventory, changed, commit, frontier) {
+		t.Fatal("noncanonical intent acquired a matching reference closure")
 	}
-	f.commit = providerCandidateHash("sage-provider-custody-commit-v2", commit)
-	frontier, err = f.bytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := providerFrontierRetentionCost(id, inventory, fresh, intent, commit, frontier, bounds); err == nil {
-		t.Fatal("matching commit hid noncanonical intent bytes")
+	if _, err := providerFrontierRetentionCost(id, inventory, fresh, changed, commit, frontier, bounds); err == nil {
+		t.Fatal("noncanonical intent acquired a retention quote")
 	}
 }
 

@@ -34,6 +34,9 @@ func TestProviderPrivateLedgerInvalidStateCannotAcquireWorkingLimits(t *testing.
 	if _, err := absent.prepareProviderBoundary(false); err == nil {
 		t.Fatal("absent ledger prepared a boundary")
 	}
+	if absent.applyProviderBoundary(nil, nil, nil, [3]string{}) == nil {
+		t.Fatal("absent ledger applied a boundary")
+	}
 }
 
 func TestProviderPrivateLedgerConstructorDoesNotIgnoreInitialCapacity(t *testing.T) {
@@ -52,16 +55,20 @@ func TestProviderPrivateLedgerConstructorDoesNotIgnoreInitialCapacity(t *testing
 }
 
 func TestProviderPrivateLedgerPageRequiresExactRecordsAndFundedCodecSpace(t *testing.T) {
-	for _, mode := range []string{"nil", "resident", "future-metadata", "ordinal", "kind", "entry", "node", "budget"} {
+	for _, mode := range []string{"nil", "invalid-owner", "resident", "future-metadata", "operation-overflow", "ordinal", "kind", "entry", "node", "budget"} {
 		t.Run(mode, func(t *testing.T) {
 			m, _ := providerPrivateLedgerFixture(t, 8, 32)
 			switch mode {
 			case "nil":
 				m = nil
+			case "invalid-owner":
+				m.owner = nil
 			case "resident":
 				m.continuation.bounds.maximumResidentBytes = 1
 			case "future-metadata":
 				m.continuation.bounds.pageMetadataBytes = m.current.metadata
+			case "operation-overflow":
+				m.current.sequence = ^uint64(0)
 			case "ordinal":
 				m.continuation.records[0].ordinal++
 			case "kind":
@@ -81,7 +88,7 @@ func TestProviderPrivateLedgerPageRequiresExactRecordsAndFundedCodecSpace(t *tes
 }
 
 func TestProviderPrivateLedgerSealRequiresExactPendingOwnership(t *testing.T) {
-	for _, mode := range []string{"nil", "index", "used", "auxiliary", "unmatched-seal", "missing-seal", "page"} {
+	for _, mode := range []string{"nil", "index", "used", "auxiliary", "unmatched-seal", "missing-seal", "page", "changed-current", "final-outstanding", "short-nonfinal"} {
 		t.Run(mode, func(t *testing.T) {
 			m, policy := providerPrivateLedgerFixture(t, 2, 4)
 			if _, err := m.AppendCandidateTicket(ledgerTestNext(t, policy, m.lastTicket, 0)); err != nil {
@@ -107,6 +114,14 @@ func TestProviderPrivateLedgerSealRequiresExactPendingOwnership(t *testing.T) {
 				b.sealMetadata = 1
 			case "page":
 				b.page++
+			case "changed-current":
+				current := *m.current
+				current.payload++
+				m.current = &current
+			case "final-outstanding":
+				b.final = true
+			case "short-nonfinal":
+				m.continuation.bounds.pageRecords++
 			}
 			if _, err := b.sealObject(heads); err == nil {
 				t.Fatal("unowned or inconsistent pending seal encoded", mode)
