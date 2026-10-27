@@ -38,7 +38,7 @@ func TestProviderIntegrationCollectionScopeAndModeRefuseBeforeReads(t *testing.T
 		if providerCollectionScope(reads) {
 			t.Fatal("non-owned client became a provider scope")
 		}
-		if _, err := collectSourceBatchMode(context.Background(), reads, JournalConfig{}, JournalCheckpoint{}, SourceReadLimits{}, nil, nodeIdentity{}, sourceProviderStateGas); err == nil {
+		if _, err := collectSourceBatchMode(context.Background(), reads, JournalConfig{}, JournalCheckpoint{}, SourceReadLimits{}, &ObservationChecks{}, nodeIdentity{}, sourceProviderStateGas); err == nil {
 			t.Fatal("provider collection started without an owned scope")
 		}
 	}
