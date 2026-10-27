@@ -21,6 +21,7 @@ type providerScanBody struct {
 	requiredNameBytes                    uint64
 	chunkObjects, chunkBytes             uint64
 	windowStart, windowLimit             candidateWorkVector
+	windowOutput                         candidateWorkVector
 	finalCatalogStart, finalCatalogLimit candidateWorkVector
 	finalCatalog                         bool
 	window, encoding, active, failed     bool
@@ -314,6 +315,7 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 		chunkStart := start
 		if index != 0 {
 			b.windowStart, b.windowLimit = meter.actual, limits.chunkWork
+			b.windowOutput = candidateWorkVector{}
 			b.chunkObjects, b.chunkBytes = 0, 0
 			b.window = true
 			chunkStart, err = s.sample()

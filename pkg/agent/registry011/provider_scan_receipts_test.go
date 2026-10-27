@@ -32,6 +32,9 @@ func TestProviderScanReceiptsRetainBothOriginalCopiesAndFinishBothCatalogs(t *te
 	held, stored, retained := s.scanControl.held, s.stored, s.retainedRaw
 	result, err := s.scanControl.inspectBeforeAdmission(raw)
 	if err != nil || result == nil {
+		if b := s.scanBody; b != nil && b.receipts != nil {
+			t.Logf("inspection counters: commands=%d chunks=%d actual=%v output=%v clocks=%d failed=%t catalog=%d/%d", len(b.receipts.commands), len(b.receipts.chunks), b.meter.actual, b.windowOutput, b.meter.clocks, b.meter.failed, len(b.observed), len(b.required))
+		}
 		t.Fatal("ordinary V4 retained inspection", err)
 	}
 	b := s.scanBody
@@ -63,6 +66,42 @@ func TestProviderScanReceiptsRetainBothOriginalCopiesAndFinishBothCatalogs(t *te
 	}
 	if s.retainedRaw != retained+physicalBytes || r.valid() || r.UnmarshalJSON([]byte(`{}`)) == nil || r.verifyPrevious(x, result.target, 2) {
 		t.Fatal("receipt DATA restored ownership or physical copies were charged twice")
+	}
+}
+
+func TestProviderScanReceiptOutputKeepsCumulativeChargesOutsideTargetWindow(t *testing.T) {
+	_, r, _ := providerScanReceiptObserverUnit(t)
+	b, m := r.body, r.body.meter
+	b.windowStart = m.actual
+	b.windowLimit = candidateWorkVector{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2}
+	before := m.actual
+	b.encoding = true
+	if !m.event(providerWriteEvent, 8) {
+		t.Fatal("already held finite output upper")
+	}
+	b.encoding = false
+	if !m.event(providerReadEvent, 1) || m.actual[9] != before[9]+8 || m.actual[10] != before[10]+11 || b.windowOutput[9] != 8 || b.windowOutput[10] != 9 {
+		t.Fatal("output was counted twice in the target window or omitted globally")
+	}
+	actual := m.actual
+	if m.event(providerReadEvent, 0) || !m.failed || m.actual != actual {
+		t.Fatal("output allowance increased the exhausted target window")
+	}
+}
+
+func TestProviderScanReceiptOutputCannotResetOrExceedCumulativeUpper(t *testing.T) {
+	_, r, _ := providerScanReceiptObserverUnit(t)
+	b, m := r.body, r.body.meter
+	b.windowStart = m.actual
+	b.encoding = true
+	if !m.event(providerWriteEvent, 8) {
+		t.Fatal("finite output")
+	}
+	actual := m.actual
+	m.upper = actual
+	b.windowStart, b.windowOutput = actual, candidateWorkVector{}
+	if m.event(providerWriteEvent, 1) || !m.failed || m.actual != actual || b.windowOutput != (candidateWorkVector{}) {
+		t.Fatal("next window reset the original output ceiling")
 	}
 }
 

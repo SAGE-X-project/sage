@@ -70,6 +70,13 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 		next[i] = m.actual[i] + n
 	}
 	m.actual = next
+	if b := m.scanBody; b != nil && b.encoding && !b.finalCatalog {
+		// Output has its own already held upper. Keep every event in the
+		// cumulative actual while excluding it from the target-only window.
+		for index, n := range work {
+			b.windowOutput[index] += n
+		}
+	}
 	return true
 }
 
@@ -157,7 +164,7 @@ func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
 		return false
 	}
 	for index, n := range work {
-		if m.actual[index] < b.windowStart[index] || !candidateCapacity(0, m.actual[index]-b.windowStart[index], n, b.windowLimit[index]) {
+		if m.actual[index] < b.windowStart[index] || m.actual[index]-b.windowStart[index] < b.windowOutput[index] || !candidateCapacity(0, m.actual[index]-b.windowStart[index]-b.windowOutput[index], n, b.windowLimit[index]) {
 			return false
 		}
 	}

@@ -1311,6 +1311,11 @@ snapshot, and the other checks the exact final filenames after retention.
 Later encoding, writes and the second catalog still spend the original held
 meter even though that work is outside the chunk's earlier diagnostic snapshot.
 Inspection cannot borrow the separately held first-E1 work or clock allowance.
+Output events stay in the same cumulative actual vector, while their observed
+delta is excluded from the target-only subwindow. Starting the next nonempty
+record clears only that subwindow delta, never the cumulative meter or its
+upper. Command retention therefore cannot make a later target read spend its
+write allowance twice, and unused output funds cannot extend target work.
 The four readbacks and two receipt decoders have separate output accounting;
 old profile bytes cannot silently acquire that revision. Receipt ownership is
 live and nonserializable. Retained DATA still needs the mandatory first-I
