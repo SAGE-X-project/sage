@@ -59,10 +59,14 @@ func providerDiagnosticClockObject(clock CandidateClockDiagnostic) map[string]st
 }
 
 func (f providerFrontierRecord) bytes() ([]byte, error) {
+	return f.bytesObserved(nil)
+}
+
+func (f providerFrontierRecord) bytesObserved(meter *providerWorkMeter) ([]byte, error) {
 	if !f.valid() {
 		return nil, errProviderIntegration
 	}
-	raw := providerIntegrationJSON(map[string]any{
+	raw := providerReplayCanonical(map[string]any{
 		"format": "sage-provider-custody-frontier-v1", "namespace": f.identity.Namespace, "instance_key": f.identity.Instance,
 		"generation": strconv.FormatUint(f.identity.Generation, 10), "fence": strconv.FormatUint(f.fence, 10), "sequence": strconv.FormatUint(f.sequence, 10),
 		"previous_frontier": providerNullableDigest(f.previous), "custody_commit": f.commit, "setup_head": f.setup, "objects_root": f.objects, "enrollment_root": f.enrollment,
@@ -70,7 +74,7 @@ func (f providerFrontierRecord) bytes() ([]byte, error) {
 		"ticket_index_root": f.indexes[0], "operation_index_root": f.indexes[1], "segment_totals_root": f.indexes[2],
 		"replay_state_digest": providerNullableDigest(f.replay), "checkpoint": providerNullableDigest(f.checkpoint),
 		"initial_clock": providerDiagnosticClockObject(f.initial), "deadline_wall_ms": strconv.FormatUint(f.deadline, 10), "clock": providerDiagnosticClockObject(f.clock),
-	})
+	}, 64<<10, meter)
 	if len(raw) == 0 || len(raw) > 64<<10 {
 		return nil, errProviderIntegration
 	}
@@ -78,10 +82,14 @@ func (f providerFrontierRecord) bytes() ([]byte, error) {
 }
 
 func parseProviderFrontierRecord(raw []byte, id ProviderCandidateIdentity) (providerFrontierRecord, error) {
+	return parseProviderFrontierRecordObserved(raw, id, nil)
+}
+
+func parseProviderFrontierRecordObserved(raw []byte, id ProviderCandidateIdentity, meter *providerWorkMeter) (providerFrontierRecord, error) {
 	if len(raw) == 0 || len(raw) > 64<<10 {
 		return providerFrontierRecord{}, errProviderIntegration
 	}
-	m := contentObject(contentJSON(raw), "format", "namespace", "instance_key", "generation", "fence", "sequence", "previous_frontier", "custody_commit", "setup_head", "objects_root", "enrollment_root", "admission_digest", "budget_root", "ledger_seal", "ticket_index_root", "operation_index_root", "segment_totals_root", "replay_state_digest", "checkpoint", "initial_clock", "deadline_wall_ms", "clock")
+	m := contentObject(providerReplayJSON(raw, meter), "format", "namespace", "instance_key", "generation", "fence", "sequence", "previous_frontier", "custody_commit", "setup_head", "objects_root", "enrollment_root", "admission_digest", "budget_root", "ledger_seal", "ticket_index_root", "operation_index_root", "segment_totals_root", "replay_state_digest", "checkpoint", "initial_clock", "deadline_wall_ms", "clock")
 	fence, a := providerCandidateUint(m["fence"], true)
 	sequence, b := providerCandidateUint(m["sequence"], true)
 	deadline, c := providerCandidateUint(m["deadline_wall_ms"], true)
@@ -105,11 +113,15 @@ func parseProviderFrontierRecord(raw []byte, id ProviderCandidateIdentity) (prov
 // This relation is checked in addition to typed payload/index replay. It fixes
 // the original clock/deadline and forbids any installed nullable root clearing.
 func checkProviderFrontierAdvance(before, after providerFrontierRecord) bool {
+	return checkProviderFrontierAdvanceObserved(before, after, nil)
+}
+
+func checkProviderFrontierAdvanceObserved(before, after providerFrontierRecord, meter *providerWorkMeter) bool {
 	if !before.valid() || !after.valid() || before.identity != after.identity || before.fence != after.fence || before.sequence == ^uint64(0) || after.sequence != before.sequence+1 || before.initial != after.initial || before.deadline != after.deadline || !candidateLedgerClockAdvance(before.clock, after.clock) {
 		return false
 	}
-	raw, err := before.bytes()
-	if err != nil || after.previous != providerCandidateHash("sage-provider-custody-frontier-v1", raw) {
+	raw, err := before.bytesObserved(meter)
+	if err != nil || after.previous != providerReplayDigest("sage-provider-custody-frontier-v1", raw, meter) {
 		return false
 	}
 	for _, pair := range [][2]string{{before.admission, after.admission}, {before.budget, after.budget}, {before.seal, after.seal}, {before.replay, after.replay}, {before.checkpoint, after.checkpoint}} {

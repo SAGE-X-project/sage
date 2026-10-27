@@ -97,7 +97,7 @@ func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventor
 	if r.preflight(s, inventory, fresh) != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	m := providerFrontierIntentObject(intent)
+	m := providerFrontierIntentObjectObserved(intent, r.meter)
 	if m == nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
@@ -113,17 +113,17 @@ func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventor
 	}
 	link := providerFrontierLink{identity: s.config.identity, fence: root.fence, sequence: s.sequence, commit: s.tip, setup: setup.commit, enrollment: s.enrollment, objects: s.objectsRoot}
 	if s.sequence != 0 {
-		prior, err := r.current.bytes()
+		prior, err := r.current.bytesObserved(r.meter)
 		if err != nil || r.current.commit != s.tip || r.current.enrollment != s.enrollment || r.current.objects != s.objectsRoot {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
-		link.frontier = providerCandidateHash("sage-provider-custody-frontier-v1", prior)
+		link.frontier = providerReplayDigest("sage-provider-custody-frontier-v1", prior, r.meter)
 	}
 	kind, operation := contentString(m["kind"]), contentString(m["operation"])
-	if !checkProviderFrontierIntent(intent, link, root, inventory, kind, operation, s.config.bounds) || !bytes.Equal(commit, providerFrontierCommit(intent)) || providerCheckNewEnrollment(s, root, kind) != nil {
+	if !checkProviderFrontierIntentObserved(intent, link, root, inventory, kind, operation, s.config.bounds, r.meter) || !providerReplayEqual(commit, providerFrontierCommitObserved(intent, r.meter), r.meter) || providerCheckNewEnrollment(s, root, kind) != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	claimed, err := parseProviderFrontierRecord(frontier, s.config.identity)
+	claimed, err := parseProviderFrontierRecordObserved(frontier, s.config.identity, r.meter)
 	if err != nil || !clockOK || claimed.clock != clock || !candidateLedgerClockAdvance(providerClockDiagnostic(s.setupOrigin), clock) || s.sequence != 0 && !candidateLedgerClockAdvance(r.current.clock, clock) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
@@ -147,8 +147,8 @@ func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventor
 	if err != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
-	raw, err := derived.bytes()
-	if err != nil || !bytes.Equal(raw, frontier) || s.sequence != 0 && !checkProviderFrontierAdvance(r.current, derived) {
+	raw, err := derived.bytesObserved(r.meter)
+	if err != nil || !providerReplayEqual(raw, frontier, r.meter) || s.sequence != 0 && !checkProviderFrontierAdvanceObserved(r.current, derived, r.meter) {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	cost, err := providerFrontierRetentionCost(s.config.identity, inventory, fresh, intent, commit, frontier, s.config.bounds)
@@ -240,7 +240,7 @@ func (r *providerFrontierReplay) applyBody(s *providerCustodyStore, root *Candid
 			return providerIntegrationObject{}, nil, errProviderIntegration
 		}
 		raw, err := s.object("ledger-seal", claimed.seal)
-		value, ok := contentJSON(raw).(map[string]any)
+		value, ok := providerReplayJSON(raw, r.meter).(map[string]any)
 		final, boolOK := value["final"].(bool)
 		if err != nil || !ok || !boolOK {
 			return providerIntegrationObject{}, nil, errProviderIntegration
@@ -252,7 +252,7 @@ func (r *providerFrontierReplay) applyBody(s *providerCustodyStore, root *Candid
 		seal, err := boundary.sealObject(r.indexes.heads)
 		page, pageErr := s.object("ledger-page", boundary.pageObject.digest)
 		budget, budgetErr := s.object("budget", root.budget)
-		if err != nil || pageErr != nil || budgetErr != nil || !bytes.Equal(raw, []byte(seal.raw)) || !bytes.Equal(page, []byte(boundary.pageObject.raw)) || !bytes.Equal(budget, []byte(ledger.current.raw)) {
+		if err != nil || pageErr != nil || budgetErr != nil || !providerReplayEqual(raw, []byte(seal.raw), r.meter) || !providerReplayEqual(page, []byte(boundary.pageObject.raw), r.meter) || !providerReplayEqual(budget, []byte(ledger.current.raw), r.meter) {
 			return providerIntegrationObject{}, nil, errProviderIntegration
 		}
 		return seal, boundary, nil
@@ -277,7 +277,7 @@ func (r *providerFrontierReplay) applyBody(s *providerCustodyStore, root *Candid
 	if err != nil {
 		return providerIntegrationObject{}, nil, errProviderIntegration
 	}
-	entry, err := newProviderIntegrationObject(entryKind, raw, 64<<10)
+	entry, err := newProviderIntegrationObjectObserved(entryKind, raw, 64<<10, r.meter)
 	return entry, nil, err
 }
 
@@ -285,7 +285,7 @@ func (r *providerFrontierReplay) checkIndexObjects(s *providerCustodyStore, delt
 	if initial {
 		for _, expected := range r.anchors {
 			raw, err := s.object(expected.kind, expected.digest)
-			if err != nil || !bytes.Equal(raw, []byte(expected.raw)) {
+			if err != nil || !providerReplayEqual(raw, []byte(expected.raw), r.meter) {
 				return errProviderIntegration
 			}
 		}
@@ -293,7 +293,7 @@ func (r *providerFrontierReplay) checkIndexObjects(s *providerCustodyStore, delt
 	for _, mutation := range delta.mutations {
 		expected := mutation.object
 		raw, err := s.object(expected.kind, expected.digest)
-		if err != nil || !bytes.Equal(raw, []byte(expected.raw)) {
+		if err != nil || !providerReplayEqual(raw, []byte(expected.raw), r.meter) {
 			return errProviderIntegration
 		}
 	}
@@ -362,7 +362,10 @@ func (r *providerFrontierReplay) setupBytes(s *providerCustodyStore, through int
 
 func (r *providerFrontierReplay) deriveFrontier(s *providerCustodyStore, root *CandidateEnrollmentRoot, delta *providerIndexDelta, commit []byte, claimed providerFrontierRecord, clock CandidateClockDiagnostic, setup string) (providerFrontierRecord, error) {
 	initial := providerClockDiagnostic(s.setupOrigin)
-	policy := contentJSON([]byte(r.body.policy.raw)).(map[string]any)
+	policy, policyOK := providerReplayJSON([]byte(r.body.policy.raw), r.meter).(map[string]any)
+	if !policyOK {
+		return providerFrontierRecord{}, errProviderIntegration
+	}
 	limits := policy["limits"].(map[string]any)
 	duration, ok := providerCandidateUint(limits["bootstrap"].(map[string]any)["deadline_ms"], true)
 	if !ok || initial.WallMS < initial.UncertaintyMS {
@@ -372,13 +375,18 @@ func (r *providerFrontierReplay) deriveFrontier(s *providerCustodyStore, root *C
 	if !ok {
 		return providerFrontierRecord{}, errProviderIntegration
 	}
-	f := providerFrontierRecord{identity: s.config.identity, fence: root.fence, sequence: s.sequence + 1, commit: providerCandidateHash("sage-provider-custody-commit-v2", commit), setup: setup, objects: contentString(contentJSON(commit).(map[string]any)["objects_root"]), enrollment: root.digest, indexes: delta.previous, initial: initial, clock: clock, deadline: deadline}
+	completed, commitOK := providerReplayJSON(commit, r.meter).(map[string]any)
+	commitDigest := providerReplayDigest("sage-provider-custody-commit-v2", commit, r.meter)
+	if !commitOK || commitDigest == "" {
+		return providerFrontierRecord{}, errProviderIntegration
+	}
+	f := providerFrontierRecord{identity: s.config.identity, fence: root.fence, sequence: s.sequence + 1, commit: commitDigest, setup: setup, objects: contentString(completed["objects_root"]), enrollment: root.digest, indexes: delta.previous, initial: initial, clock: clock, deadline: deadline}
 	if s.sequence != 0 {
-		raw, err := r.current.bytes()
+		raw, err := r.current.bytesObserved(r.meter)
 		if err != nil {
 			return providerFrontierRecord{}, errProviderIntegration
 		}
-		f.previous = providerCandidateHash("sage-provider-custody-frontier-v1", raw)
+		f.previous = providerReplayDigest("sage-provider-custody-frontier-v1", raw, r.meter)
 		f.seal, f.replay, f.checkpoint = r.current.seal, r.current.replay, r.current.checkpoint
 	}
 	if r.body.intent != nil {

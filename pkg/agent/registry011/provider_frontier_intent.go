@@ -27,10 +27,14 @@ func providerFrontierIntent(p providerFrontierLink, root *CandidateEnrollmentRoo
 // This closed DATA encoder is also used when independently checking retained
 // bytes. A diagnostic never reconstructs an owned clock or an execution input.
 func providerFrontierIntentDiagnostic(p providerFrontierLink, root *CandidateEnrollmentRoot, inventory *providerIntegrationInventory, kind, operation string, clock CandidateClockDiagnostic, bounds providerIntegrationBounds) ([]byte, error) {
+	return providerFrontierIntentDiagnosticObserved(p, root, inventory, kind, operation, clock, bounds, nil)
+}
+
+func providerFrontierIntentDiagnosticObserved(p providerFrontierLink, root *CandidateEnrollmentRoot, inventory *providerIntegrationInventory, kind, operation string, clock CandidateClockDiagnostic, bounds providerIntegrationBounds, meter *providerWorkMeter) ([]byte, error) {
 	if !p.valid() || bounds.continuation == nil || !bounds.valid() || !providerIndexedCustodyKind(kind) || !lowerHash(operation) || root == nil || root.identity != p.identity || root.fence != p.fence || root.raw == "" || inventory == nil || inventory.previous != p.objects || (p.sequence == 0) != (kind == "enroll") {
 		return nil, errProviderIntegration
 	}
-	parsed, err := ParseCandidateEnrollmentRoot(&ProviderCandidateContext{identity: p.identity, bound: true}, []byte(root.raw), 64<<10)
+	parsed, err := parseCandidateEnrollmentRootObserved(&ProviderCandidateContext{identity: p.identity, bound: true}, []byte(root.raw), 64<<10, meter)
 	if err != nil || parsed.digest != root.digest || parsed.sequence != root.sequence || parsed.budget != root.budget || parsed.fence != root.fence {
 		return nil, errProviderIntegration
 	}
@@ -40,7 +44,7 @@ func providerFrontierIntentDiagnostic(p providerFrontierLink, root *CandidateEnr
 	if p.sequence != 0 && (root.sequence != p.sequence || root.previous != p.enrollment) {
 		return nil, errProviderIntegration
 	}
-	checked, err := parseProviderFrontierInventory([]byte(inventory.raw), p.objects, bounds.maximumEntries, bounds.maximumObjectBytes, min(bounds.maximumStoredBytes, 64<<20))
+	checked, err := parseProviderFrontierInventoryObserved([]byte(inventory.raw), p.objects, bounds.maximumEntries, bounds.maximumObjectBytes, min(bounds.maximumStoredBytes, 64<<20), meter)
 	if err != nil || checked.digest != inventory.digest {
 		return nil, errProviderIntegration
 	}
@@ -48,13 +52,13 @@ func providerFrontierIntentDiagnostic(p providerFrontierLink, root *CandidateEnr
 	if !candidateLedgerClockAdvance(sample, sample) || sample.ClockID == "" || !lowerHash(sample.Epoch) {
 		return nil, errProviderIntegration
 	}
-	raw := providerIntegrationJSON(map[string]any{
+	raw := providerReplayCanonical(map[string]any{
 		"format": "sage-provider-custody-intent-v2", "namespace": p.identity.Namespace, "instance_key": p.identity.Instance,
 		"generation": strconv.FormatUint(p.identity.Generation, 10), "fence": strconv.FormatUint(p.fence, 10), "sequence": strconv.FormatUint(p.sequence+1, 10),
 		"previous_commit": p.commit, "expected_enrollment_root": providerNullableDigest(p.enrollment), "new_enrollment_root": root.digest,
 		"objects_root": inventory.digest, "operation": operation, "kind": kind, "policy": p.identity.Policy, "clock": providerDiagnosticClockObject(clock),
 		"metadata_reservation": providerCustodyMetadata(bounds), "previous_frontier": providerNullableDigest(p.frontier), "setup_head": p.setup,
-	})
+	}, bounds.maximumMetadataPerCommit, meter)
 	if len(raw) == 0 || uint64(len(raw)) > bounds.maximumMetadataPerCommit {
 		return nil, errProviderIntegration
 	}
@@ -64,10 +68,14 @@ func providerFrontierIntentDiagnostic(p providerFrontierLink, root *CandidateEnr
 // Closed format checking is deliberately followed by independently deriving
 // the exact intent from the old private link, typed root and inventory.
 func checkProviderFrontierIntent(raw []byte, p providerFrontierLink, root *CandidateEnrollmentRoot, inventory *providerIntegrationInventory, kind, operation string, bounds providerIntegrationBounds) bool {
+	return checkProviderFrontierIntentObserved(raw, p, root, inventory, kind, operation, bounds, nil)
+}
+
+func checkProviderFrontierIntentObserved(raw []byte, p providerFrontierLink, root *CandidateEnrollmentRoot, inventory *providerIntegrationInventory, kind, operation string, bounds providerIntegrationBounds, meter *providerWorkMeter) bool {
 	if len(raw) == 0 || uint64(len(raw)) > bounds.maximumMetadataPerCommit {
 		return false
 	}
-	m := providerFrontierIntentObject(raw)
+	m := providerFrontierIntentObjectObserved(raw, meter)
 	if m == nil {
 		return false
 	}
@@ -75,15 +83,19 @@ func checkProviderFrontierIntent(raw []byte, p providerFrontierLink, root *Candi
 	if !ok {
 		return false
 	}
-	want, err := providerFrontierIntentDiagnostic(p, root, inventory, kind, operation, clock, bounds)
-	return err == nil && string(raw) == string(want)
+	want, err := providerFrontierIntentDiagnosticObserved(p, root, inventory, kind, operation, clock, bounds, meter)
+	return err == nil && providerReplayEqual(raw, want, meter)
 }
 
 func providerFrontierIntentObject(raw []byte) map[string]any {
+	return providerFrontierIntentObjectObserved(raw, nil)
+}
+
+func providerFrontierIntentObjectObserved(raw []byte, meter *providerWorkMeter) map[string]any {
 	if len(raw) == 0 || len(raw) > 1<<20 {
 		return nil
 	}
-	m := contentObject(contentJSON(raw), "format", "namespace", "instance_key", "generation", "fence", "sequence", "previous_commit", "expected_enrollment_root", "new_enrollment_root", "objects_root", "operation", "kind", "policy", "clock", "metadata_reservation", "previous_frontier", "setup_head")
+	m := contentObject(providerReplayJSON(raw, meter), "format", "namespace", "instance_key", "generation", "fence", "sequence", "previous_commit", "expected_enrollment_root", "new_enrollment_root", "objects_root", "operation", "kind", "policy", "clock", "metadata_reservation", "previous_frontier", "setup_head")
 	if m == nil || m["format"] != "sage-provider-custody-intent-v2" {
 		return nil
 	}
@@ -91,7 +103,11 @@ func providerFrontierIntentObject(raw []byte) map[string]any {
 }
 
 func providerFrontierCommit(intent []byte) []byte {
-	m := providerFrontierIntentObject(intent)
+	return providerFrontierCommitObserved(intent, nil)
+}
+
+func providerFrontierCommitObserved(intent []byte, meter *providerWorkMeter) []byte {
+	m := providerFrontierIntentObjectObserved(intent, meter)
 	if m == nil {
 		return nil
 	}
@@ -99,6 +115,10 @@ func providerFrontierCommit(intent []byte) []byte {
 	for _, name := range []string{"namespace", "instance_key", "generation", "fence", "sequence", "previous_commit", "new_enrollment_root", "objects_root", "operation", "previous_frontier", "setup_head"} {
 		commit[name] = m[name]
 	}
-	commit["format"], commit["intent_digest"] = "sage-provider-custody-commit-v2", providerCandidateHash("sage-provider-custody-intent-v2", intent)
-	return providerIntegrationJSON(commit)
+	digest := providerReplayDigest("sage-provider-custody-intent-v2", intent, meter)
+	if digest == "" {
+		return nil
+	}
+	commit["format"], commit["intent_digest"] = "sage-provider-custody-commit-v2", digest
+	return providerReplayCanonical(commit, 1<<20, meter)
 }

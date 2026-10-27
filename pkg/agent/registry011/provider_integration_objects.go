@@ -1,8 +1,6 @@
 package registry011
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"sort"
 	"strconv"
@@ -97,20 +95,25 @@ func providerIntegrationDomain(kind string) (string, bool) {
 }
 
 func providerIntegrationObjectDigest(kind string, raw []byte) (string, bool) {
+	return providerIntegrationObjectDigestObserved(kind, raw, nil)
+}
+
+func providerIntegrationObjectDigestObserved(kind string, raw []byte, meter *providerWorkMeter) (string, bool) {
 	domain, ok := providerIntegrationDomain(kind)
 	if !ok {
 		return "", false
 	}
-	if domain != "" {
-		return providerCandidateHash(domain, raw), true
-	}
-	sum := sha256.Sum256(raw)
-	return "0x" + hex.EncodeToString(sum[:]), true
+	digest := providerReplayDigest(domain, raw, meter)
+	return digest, digest != ""
 }
 
 // A format check here is deliberately weaker than semantic validation. Only
 // the connected transition builder may introduce these objects into custody.
 func newProviderIntegrationObject(kind string, raw []byte, maximum uint64) (providerIntegrationObject, error) {
+	return newProviderIntegrationObjectObserved(kind, raw, maximum, nil)
+}
+
+func newProviderIntegrationObjectObserved(kind string, raw []byte, maximum uint64, meter *providerWorkMeter) (providerIntegrationObject, error) {
 	if maximum == 0 || maximum > 32<<20 || len(raw) == 0 || uint64(len(raw)) > maximum {
 		return providerIntegrationObject{}, errProviderIntegration
 	}
@@ -122,13 +125,17 @@ func newProviderIntegrationObject(kind string, raw []byte, maximum uint64) (prov
 		return providerIntegrationObject{}, errProviderIntegration
 	}
 	if domain != "" {
-		m, ok := contentJSON(raw).(map[string]any)
+		m, ok := providerReplayJSON(raw, meter).(map[string]any)
 		if !ok || m["format"] != domain {
 			return providerIntegrationObject{}, errProviderIntegration
 		}
 	}
-	digest, _ := providerIntegrationObjectDigest(kind, raw)
-	return providerIntegrationObject{kind, digest, string(raw)}, nil
+	digest, valid := providerIntegrationObjectDigestObserved(kind, raw, meter)
+	retained := providerReplayString(raw, meter)
+	if !valid || retained == "" {
+		return providerIntegrationObject{}, errProviderIntegration
+	}
+	return providerIntegrationObject{kind, digest, retained}, nil
 }
 
 // Each node adds only new object references to an exact retained predecessor.
@@ -143,6 +150,10 @@ func newProviderFrontierInventory(previous string, objects []providerIntegration
 	return newProviderInventory(2, previous, objects, maximumEntries, maximumPayload)
 }
 
+func newProviderFrontierInventoryObserved(previous string, objects []providerIntegrationObject, maximumEntries int, maximumPayload uint64, meter *providerWorkMeter) (*providerIntegrationInventory, error) {
+	return newProviderInventoryObserved(2, previous, objects, maximumEntries, maximumPayload, meter)
+}
+
 func providerInventoryDomain(version int) (string, int, bool) {
 	switch version {
 	case 1:
@@ -154,6 +165,10 @@ func providerInventoryDomain(version int) (string, int, bool) {
 }
 
 func newProviderInventory(version int, previous string, objects []providerIntegrationObject, maximumEntries int, maximumPayload uint64) (*providerIntegrationInventory, error) {
+	return newProviderInventoryObserved(version, previous, objects, maximumEntries, maximumPayload, nil)
+}
+
+func newProviderInventoryObserved(version int, previous string, objects []providerIntegrationObject, maximumEntries int, maximumPayload uint64, meter *providerWorkMeter) (*providerIntegrationInventory, error) {
 	domain, cap, valid := providerInventoryDomain(version)
 	if !valid || maximumEntries <= 0 || maximumEntries > cap || maximumPayload == 0 || maximumPayload > 64<<20 || previous != "" && !lowerHash(previous) || len(objects) > maximumEntries || len(objects) == 0 && previous != "" {
 		return nil, errProviderIntegration
@@ -164,7 +179,7 @@ func newProviderInventory(version int, previous string, objects []providerIntegr
 		if len(object.raw) == 0 || len(object.raw) > 32<<20 || !candidateCapacity(0, total, uint64(len(object.raw)), maximumPayload) {
 			return nil, errProviderIntegration
 		}
-		digest, ok := providerIntegrationObjectDigest(object.kind, []byte(object.raw))
+		digest, ok := providerIntegrationObjectDigestObserved(object.kind, []byte(object.raw), meter)
 		if !ok || digest != object.digest {
 			return nil, errProviderIntegration
 		}
@@ -172,18 +187,30 @@ func newProviderInventory(version int, previous string, objects []providerIntegr
 		entries = append(entries, providerIntegrationObjectRef{object.kind, object.digest, uint64(len(object.raw))})
 	}
 	sort.Slice(entries, func(a, b int) bool {
-		return providerIntegrationRefKey(entries[a]) < providerIntegrationRefKey(entries[b])
+		left, aOK := providerReplayRefKey(entries[a], meter)
+		right, bOK := providerReplayRefKey(entries[b], meter)
+		return aOK && bOK && (meter == nil || meter.event(providerCompareEvent, uint64(len(left)+len(right)))) && left < right
 	})
+	if meter != nil && meter.failed {
+		return nil, errProviderIntegration
+	}
 	for n := 1; n < len(entries); n++ {
-		if providerIntegrationRefKey(entries[n-1]) == providerIntegrationRefKey(entries[n]) {
+		left, aOK := providerReplayRefKey(entries[n-1], meter)
+		right, bOK := providerReplayRefKey(entries[n], meter)
+		if !aOK || !bOK || meter != nil && !meter.event(providerCompareEvent, uint64(len(left)+len(right))) || left == right {
 			return nil, errProviderIntegration
 		}
 	}
-	raw := providerInventoryBytes(domain, previous, entries)
-	if len(raw) > 64<<10 {
+	raw := providerInventoryBytesObserved(domain, previous, entries, meter)
+	if len(raw) == 0 || len(raw) > 64<<10 {
 		return nil, errProviderIntegration
 	}
-	return &providerIntegrationInventory{string(raw), providerCandidateHash(domain, raw), previous, entries, total}, nil
+	digest := providerReplayDigest(domain, raw, meter)
+	retained := providerReplayString(raw, meter)
+	if digest == "" || retained == "" {
+		return nil, errProviderIntegration
+	}
+	return &providerIntegrationInventory{retained, digest, previous, entries, total}, nil
 }
 
 func providerIntegrationRefKey(ref providerIntegrationObjectRef) string {
@@ -195,6 +222,13 @@ func providerIntegrationInventoryBytes(previous string, entries []providerIntegr
 }
 
 func providerInventoryBytes(domain, previous string, entries []providerIntegrationObjectRef) []byte {
+	return providerInventoryBytesObserved(domain, previous, entries, nil)
+}
+
+func providerInventoryBytesObserved(domain, previous string, entries []providerIntegrationObjectRef, meter *providerWorkMeter) []byte {
+	if meter != nil && (len(entries) > 256 || !meter.preflight(providerEncodeEvent, 64<<10)) {
+		return nil
+	}
 	var parent any
 	if previous != "" {
 		parent = previous
@@ -203,7 +237,7 @@ func providerInventoryBytes(domain, previous string, entries []providerIntegrati
 	for _, e := range entries {
 		items = append(items, map[string]string{"kind": e.kind, "digest": e.digest, "bytes": strconv.FormatUint(e.bytes, 10)})
 	}
-	raw := providerIntegrationJSON(map[string]any{"format": domain, "previous": parent, "entries": items})
+	raw := providerReplayCanonical(map[string]any{"format": domain, "previous": parent, "entries": items}, 64<<10, meter)
 	return raw
 }
 
@@ -215,12 +249,20 @@ func parseProviderFrontierInventory(raw []byte, expectedPrevious string, maximum
 	return parseProviderInventory(2, raw, expectedPrevious, maximumEntries, maximumObject, maximumPayload)
 }
 
+func parseProviderFrontierInventoryObserved(raw []byte, expectedPrevious string, maximumEntries int, maximumObject, maximumPayload uint64, meter *providerWorkMeter) (*providerIntegrationInventory, error) {
+	return parseProviderInventoryObserved(2, raw, expectedPrevious, maximumEntries, maximumObject, maximumPayload, meter)
+}
+
 func parseProviderInventory(version int, raw []byte, expectedPrevious string, maximumEntries int, maximumObject, maximumPayload uint64) (*providerIntegrationInventory, error) {
+	return parseProviderInventoryObserved(version, raw, expectedPrevious, maximumEntries, maximumObject, maximumPayload, nil)
+}
+
+func parseProviderInventoryObserved(version int, raw []byte, expectedPrevious string, maximumEntries int, maximumObject, maximumPayload uint64, meter *providerWorkMeter) (*providerIntegrationInventory, error) {
 	domain, cap, valid := providerInventoryDomain(version)
 	if !valid || maximumEntries <= 0 || maximumEntries > cap || maximumObject == 0 || maximumObject > 32<<20 || maximumPayload == 0 || maximumPayload > 64<<20 || len(raw) == 0 || len(raw) > 64<<10 || expectedPrevious != "" && !lowerHash(expectedPrevious) {
 		return nil, errProviderIntegration
 	}
-	m := contentObject(contentJSON(raw), "format", "previous", "entries")
+	m := contentObject(providerReplayJSON(raw, meter), "format", "previous", "entries")
 	if m == nil || m["format"] != domain || expectedPrevious == "" && m["previous"] != nil || expectedPrevious != "" && m["previous"] != expectedPrevious {
 		return nil, errProviderIntegration
 	}
@@ -239,11 +281,20 @@ func parseProviderInventory(version int, raw []byte, expectedPrevious string, ma
 			return nil, errProviderIntegration
 		}
 		entry := providerIntegrationObjectRef{kind, digest, size}
-		if len(entries) > 0 && providerIntegrationRefKey(entries[len(entries)-1]) >= providerIntegrationRefKey(entry) {
-			return nil, errProviderIntegration
+		if len(entries) > 0 {
+			left, aOK := providerReplayRefKey(entries[len(entries)-1], meter)
+			right, bOK := providerReplayRefKey(entry, meter)
+			if !aOK || !bOK || meter != nil && !meter.event(providerCompareEvent, uint64(len(left)+len(right))) || left >= right {
+				return nil, errProviderIntegration
+			}
 		}
 		total += size
 		entries = append(entries, entry)
 	}
-	return &providerIntegrationInventory{string(raw), providerCandidateHash(domain, raw), expectedPrevious, entries, total}, nil
+	digest := providerReplayDigest(domain, raw, meter)
+	retained := providerReplayString(raw, meter)
+	if digest == "" || retained == "" {
+		return nil, errProviderIntegration
+	}
+	return &providerIntegrationInventory{retained, digest, expectedPrevious, entries, total}, nil
 }

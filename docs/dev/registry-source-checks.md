@@ -1210,6 +1210,15 @@ again rather than reusing a previous diagnostic.
 Existing public DATA parsers retain their exact bytes and nil-observer behavior;
 they cannot select a scan meter or grant an acknowledgment. An inactive or
 different body observer refuses before typed replay. This does not yet close
-all frontier, index, page and retention codec paths, nor implement the complete
+all index, page, setup, high-water and retention codec paths, nor implement the complete
 main-prefix scanner or its command/chunk/settlement bridge. Those paths must be
 observed before any complete scan-work or operating qualification claim.
+
+Frontier record, intent, commit, object and inventory codecs also have concrete
+observed variants. Independent replay uses them to reproduce existing bytes,
+including repeated root/inventory decoding, canonical encoding, sorting,
+comparison and domain-separated hashing. A consumed allowance refuses before
+the next primitive; it never returns a partial record as success. Nil-observer
+DATA callers preserve the existing V1/V2 schema and digest contracts. These
+additional observations do not confer custody authority or close the remaining
+ledger, high-water, full-prefix and operating qualification requirements.

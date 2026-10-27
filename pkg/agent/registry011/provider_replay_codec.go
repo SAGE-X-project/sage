@@ -1,6 +1,7 @@
 package registry011
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -57,4 +58,30 @@ func providerReplayMarshal(value any, maximum uint64, meter *providerWorkMeter) 
 		return nil
 	}
 	return raw
+}
+
+func providerReplayCanonical(value any, maximum uint64, meter *providerWorkMeter) []byte {
+	// Existing store metadata bounds permit at most1MiB. Individual closed
+	// record callers still supply their original, often smaller, limit.
+	if maximum == 0 || maximum > 1<<20 || meter != nil && !meter.preflight(providerEncodeEvent, maximum) {
+		return nil
+	}
+	raw := providerIntegrationJSON(value)
+	if len(raw) == 0 || uint64(len(raw)) > maximum || meter != nil && !meter.event(providerEncodeEvent, uint64(len(raw))) {
+		return nil
+	}
+	return raw
+}
+
+func providerReplayEqual(a, b []byte, meter *providerWorkMeter) bool {
+	return (meter == nil || meter.event(providerCompareEvent, uint64(len(a))+uint64(len(b)))) && bytes.Equal(a, b)
+}
+
+// Preserve the existing composite byte ordering, including prefix kinds such
+// as pin/pin-input. Every actual temporary key copy is funded before creation.
+func providerReplayRefKey(ref providerIntegrationObjectRef, meter *providerWorkMeter) (string, bool) {
+	if meter != nil && !meter.event(providerCopyEvent, uint64(len(ref.kind)+1+len(ref.digest))) {
+		return "", false
+	}
+	return providerIntegrationRefKey(ref), true
 }
