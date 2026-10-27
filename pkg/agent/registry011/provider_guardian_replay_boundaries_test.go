@@ -3,6 +3,7 @@ package registry011
 import "testing"
 
 func TestProviderContinuingPrefixRejectsDifferentConsumptionAndBudgetData(t *testing.T) {
+	t.Parallel()
 	s, o := providerContinuingPreparedFixture(t)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -34,6 +35,7 @@ func TestProviderContinuingPrefixRejectsDifferentConsumptionAndBudgetData(t *tes
 }
 
 func TestProviderGuardianTypedReplayRejectsMissingOrDifferentIncomingBindings(t *testing.T) {
+	t.Parallel()
 	s, o := providerContinuingPreparedFixture(t)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -78,6 +80,7 @@ func TestProviderGuardianTypedReplayRejectsMissingOrDifferentIncomingBindings(t 
 }
 
 func TestProviderGuardianTypedMainReplayCannotReuseCompletedConsumption(t *testing.T) {
+	t.Parallel()
 	s, o := providerContinuingPreparedFixture(t)
 	s.mu.Lock()
 	defer s.mu.Unlock()

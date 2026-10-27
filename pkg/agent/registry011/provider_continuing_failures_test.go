@@ -8,6 +8,7 @@ import (
 // Fixed local quota/metadata states and ordinary owned unavailable paths only.
 // No hostile transport, changed executable, host bypass or retry is used.
 func TestProviderContinuingBootstrapKeepsHoldsOnLateLocalRefusal(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"policy", "blocks", "measurement", "settlement-path", "last-clock"} {
 		t.Run(mode, func(t *testing.T) {
 			s, o := providerContinuingPreparedFixture(t)
@@ -41,6 +42,7 @@ func TestProviderContinuingBootstrapKeepsHoldsOnLateLocalRefusal(t *testing.T) {
 }
 
 func TestProviderContinuingAdmissionCannotSkipUnavailableGuardianOrMainOriginals(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"claim-path", "main-path", "guardian-cache", "prior-guardian"} {
 		t.Run(mode, func(t *testing.T) {
 			s, g := providerContinuingSettledFixture(t, true)
@@ -69,6 +71,7 @@ func TestProviderContinuingAdmissionCannotSkipUnavailableGuardianOrMainOriginals
 }
 
 func TestProviderContinuingHelpersRejectMissingOrUnretainedChanges(t *testing.T) {
+	t.Parallel()
 	s, o := providerContinuingPreparedFixture(t)
 	s.mu.Lock()
 	defer s.mu.Unlock()

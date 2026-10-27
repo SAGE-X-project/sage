@@ -3,6 +3,7 @@ package registry011
 import "testing"
 
 func TestProviderContinuingProspectiveBoundsAreDataAndRequireEveryOriginalDimension(t *testing.T) {
+	t.Parallel()
 	s, g := providerContinuingSettledFixture(t, true)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -63,6 +64,7 @@ func TestProviderContinuingProspectiveBoundsAreDataAndRequireEveryOriginalDimens
 }
 
 func TestProviderContinuingPrefixDataDoesNotBecomeASelection(t *testing.T) {
+	t.Parallel()
 	s, o := providerContinuingPreparedFixture(t)
 	s.mu.Lock()
 	defer s.mu.Unlock()

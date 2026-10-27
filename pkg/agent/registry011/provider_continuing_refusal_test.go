@@ -8,6 +8,7 @@ import (
 // Faults are fixed finite unit states. There is no runtime hostile peer,
 // generated exploit, swapped filesystem or means to bypass a host control.
 func TestProviderContinuingAdmissionRefusesUnavailablePrefixesWithoutReset(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"small-original-claim", "prefix-count", "prefix-main", "clock-capacity", "budget", "already-started"} {
 		t.Run(mode, func(t *testing.T) {
 			var s *providerCustodyStore
@@ -47,6 +48,7 @@ func TestProviderContinuingAdmissionRefusesUnavailablePrefixesWithoutReset(t *te
 }
 
 func TestProviderContinuingExecutionRefusesFiniteUnavailableState(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"context", "cancelled", "ticket", "purpose", "guardian", "ticket-original", "binding-original", "metadata", "prefix", "clock", "execution-quota"} {
 		t.Run(mode, func(t *testing.T) {
 			s, o := providerContinuingPreparedFixture(t)
@@ -93,6 +95,7 @@ func TestProviderContinuingExecutionRefusesFiniteUnavailableState(t *testing.T) 
 }
 
 func TestProviderContinuingPrivateConsumptionBurnsAtMostOnce(t *testing.T) {
+	t.Parallel()
 	s, o := providerContinuingPreparedFixture(t)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -113,6 +116,7 @@ func TestProviderContinuingPrivateConsumptionBurnsAtMostOnce(t *testing.T) {
 }
 
 func TestProviderContinuingBurnRefusalNeverRestoresThePermit(t *testing.T) {
+	t.Parallel()
 	for _, mode := range []string{"prefix", "clock", "request"} {
 		t.Run(mode, func(t *testing.T) {
 			s, o := providerContinuingPreparedFixture(t)
@@ -144,6 +148,7 @@ func TestProviderContinuingBurnRefusalNeverRestoresThePermit(t *testing.T) {
 }
 
 func TestProviderContinuingMissingAndCopiedOwnersCannotSupplyAuthority(t *testing.T) {
+	t.Parallel()
 	var missing *providerContinuingOwner
 	if missing.selectedLocked() || missing.fits(nil) || missing.writingLocked(nil) || missing.consumeStorageLocked(1) || missing.compositeLocked() ||
 		missing.burnLocked(nil) || missing.beginRemainingLocked(nil) || missing.releaseLocked() || missing.consumeGuardianStorageLocked(1) {

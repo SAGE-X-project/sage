@@ -5,6 +5,7 @@ import "testing"
 // These are finite DATA comparisons under one isolated observer. Passing this
 // predicate does not install a prefix, retain a transition or supply a permit.
 func TestProviderContinuingDeltaRejectsDifferentOwnedModelsAndChangedValues(t *testing.T) {
+	t.Parallel()
 	s, o := providerContinuingPreparedFixture(t)
 	s.mu.Lock()
 	defer s.mu.Unlock()

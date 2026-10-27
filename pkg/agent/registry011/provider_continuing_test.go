@@ -58,6 +58,7 @@ func providerContinuingPreparedFixture(t *testing.T) (*providerCustodyStore, *pr
 }
 
 func TestProviderContinuingBootstrapRetainsOwnTicketConsumptionAndSettlement(t *testing.T) {
+	t.Parallel()
 	s, g := providerContinuingSettledFixture(t, true)
 	first := g.first
 	oldE, oldR, oldClocks, origin, before, raw := first.execution.actual, first.remaining.actual, first.clocks, s.setupOrigin, s.stored, s.retainedRaw
@@ -106,6 +107,7 @@ func TestProviderContinuingBootstrapRetainsOwnTicketConsumptionAndSettlement(t *
 }
 
 func TestProviderContinuingInvalidOriginalResultGetsOnlyFullChargeFailedSettlement(t *testing.T) {
+	t.Parallel()
 	s, _ := providerContinuingSettledFixture(t, false)
 	o, err := newProviderContinuingBootstrapCandidate(s)
 	if err != nil {

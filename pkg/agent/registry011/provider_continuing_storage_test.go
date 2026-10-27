@@ -3,6 +3,7 @@ package registry011
 import "testing"
 
 func TestProviderContinuingConsumptionPhysicalClaimIsExactAndOneUse(t *testing.T) {
+	t.Parallel()
 	s, o := providerContinuingPreparedFixture(t)
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -46,6 +47,7 @@ func TestProviderContinuingConsumptionPhysicalClaimIsExactAndOneUse(t *testing.T
 }
 
 func TestProviderContinuingSegmentSelectionKeepsTheOriginalLedger(t *testing.T) {
+	t.Parallel()
 	s, o := providerContinuingPreparedFixture(t)
 	s.mu.Lock()
 	defer s.mu.Unlock()

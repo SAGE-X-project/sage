@@ -8,6 +8,7 @@ import (
 // RPC-shaped values here are inert proposals. The live owner still has a
 // different retained local T and cannot write, consume or dispatch them.
 func TestProviderContinuingChangeReusesOnlyExactExistingRequestOriginals(t *testing.T) {
+	t.Parallel()
 	for _, reuse := range []bool{false, true} {
 		t.Run(strconv.FormatBool(reuse), func(t *testing.T) {
 			s, o := providerContinuingPreparedFixture(t)
@@ -26,16 +27,24 @@ func TestProviderContinuingChangeReusesOnlyExactExistingRequestOriginals(t *test
 			value := contentJSON([]byte(o.ticket.raw)).(map[string]any)
 			value["sequence"], value["previous_ticket"] = strconv.FormatUint(o.ticket.sequence+1, 10), o.ticket.digest
 			value["kind"], value["input_digest"], value["method"], value["params_digest"] = "rpc-capture", request.inputDigest, request.method, request.paramsDigest
-			work := o.plan.reservation.work
-			work[0], work[1], work[8] = 1, 1000, 0
+			// This is a deliberately small inert DATA proposal, not a live
+			// RPC execution quote. Do not copy the local E/R reservation.
+			work := candidateWorkVector{1, 1000, 4096, 0, 0, 0, 0, 0, 0, 4096, 1 << 30}
 			value["reservation"] = candidateLedgerWorkObject(work)
 			ticket, err := parseCandidateAdmissionTicketObserved(c.policy, c.intent, o.ticket.segment, providerIntegrationJSON(value), 64<<10, m)
 			if err != nil {
 				t.Fatal("inert proposed ticket", err)
 			}
+			if !candidateFits(candidateBudgetTotals{}, ticket.work, c.ledger.limits[0]) ||
+				!candidateFits(c.ledger.segments[ticket.segment], ticket.work, c.ledger.limits[1]) ||
+				!candidateFits(c.ledger.current.totals.bootstrap, ticket.work, c.ledger.limits[2]) ||
+				!candidateCapacity(c.ledger.current.totals.liveUsed, c.ledger.current.totals.liveReserved, ticket.live, c.ledger.live) ||
+				!candidateCapacity(c.ledger.current.totals.retainedUsed, c.ledger.current.totals.retainedHeld, ticket.retained, c.ledger.retained) {
+				t.Fatal("inert proposal does not fit the unchanged owned model's limits")
+			}
 			change, err := c.ledger.AppendCandidateTicket(ticket)
 			if err != nil {
-				t.Fatal("inert proposed ledger", err)
+				t.Fatalf("inert proposed ledger: %v; valid=%v successor=%v segment=%+v bootstrap=%+v operationLimit=%v segmentLimit=%v bootstrapLimit=%v page=%d/%d", err, c.ledger.valid(), CheckCandidateTicketSuccessor(o.ticket, ticket), c.ledger.segments[ticket.segment], c.ledger.current.totals.bootstrap, c.ledger.limits[0], c.ledger.limits[1], c.ledger.limits[2], len(c.ledger.continuation.records), c.ledger.continuation.bounds.pageRecords)
 			}
 			x, err := newProviderScanCodec(s.config, m)
 			if err != nil {
@@ -71,6 +80,7 @@ func TestProviderContinuingChangeReusesOnlyExactExistingRequestOriginals(t *test
 }
 
 func TestProviderContinuingChangeRejectsMalformedUnretainedData(t *testing.T) {
+	t.Parallel()
 	s, o := providerContinuingPreparedFixture(t)
 	s.mu.Lock()
 	defer s.mu.Unlock()
