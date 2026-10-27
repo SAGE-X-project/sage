@@ -1435,3 +1435,13 @@ request constructor and the complete prospective
 operation estimate remain separate costs; supplying reservation DATA does not
 qualify that estimate, debit a hold, authorize a request or persist an E1.
 Finite invalid-input and quota units check those boundaries without dispatch.
+
+The complete first-admit proposal now builds its fourteen new objects,
+inventory, frontier and expected next high-water using newly derived
+coordinator indexes. Original control and receipt copies supply the O+Q seed
+and common metadata charge. A separate typed replay reconstructs the same
+delta from owned fixture originals without importing those coordinator maps.
+These remain proposed DATA: the complete resource preflight, prepaid physical
+writer, current-head replacement, qualified acknowledgment and execution are
+still required. Finite fresh profiles select their limits before H0 to check
+decoded-budget exhaustion; no existing hold or operating profile is enlarged.
