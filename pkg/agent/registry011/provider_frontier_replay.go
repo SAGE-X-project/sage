@@ -236,6 +236,11 @@ func (r *providerFrontierReplay) preflight(s *providerCustodyStore, inventory *p
 		return errProviderIntegration
 	}
 	s.requiredReferences = make(map[string]bool)
+	if s.config.bounds.guardian != nil {
+		// The bound inventory is the only finite incoming reference slice.
+		// Every original still has to be semantically consumed below.
+		s.newReferences = inventory.entries
+	}
 	return nil
 }
 

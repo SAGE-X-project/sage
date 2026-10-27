@@ -7,7 +7,7 @@ package registry011
 func (g *providerGuardianOwner) startClaimLocked(purpose string) error {
 	if !g.selectedLocked() || !providerGuardianPurpose(purpose) || !g.initialized || !g.admitted || !g.ready || g.active ||
 		g.claim != nil || g.meter != nil || g.first == nil || g.first.state != providerFirstOperationDone ||
-		g.ordinal != g.pin.ordinal || g.ordinal >= g.bounds.attempts || g.integration == nil || g.indexes == nil {
+		g.ordinal != g.pin.ordinal || g.ordinal >= g.bounds.attempts || g.integration == nil || g.indexes == nil || g.continuing != nil || g.prefix.owner != g {
 		return errProviderIntegration
 	}
 	s, c := g.store, g.integration
@@ -29,6 +29,7 @@ func (g *providerGuardianOwner) startClaimLocked(purpose string) error {
 	// clock samples and filesystem observations below spend this new role.
 	g.ordinal, g.before, g.beforeRaw = next, g.pin, g.pinRaw
 	g.active, g.ready, g.phase = true, false, providerGuardianMetadata
+	g.claimPhysical, g.claimRaw = 0, 0
 	g.claim = &providerGuardianAttemptData{origin: g.origin, purpose: purpose, main: g.main.commit, frontier: g.main.frontier, setup: g.main.setup, admission: c.intent.digest, ordinal: next, deadline: g.pin.deadline, clock: providerClockDiagnostic(g.original)}
 	m := &providerWorkMeter{guardian: g, upper: g.bounds.claim.work, maximumClocks: g.bounds.claim.clocks}
 	m.owner, g.meter = m, m
@@ -137,6 +138,8 @@ func (g *providerGuardianOwner) retainClaimLocked(target string) error {
 	g.physical += physical // The full G lifetime was held once before H0.
 	g.raw += raw
 	g.metadata += raw
+	g.auxiliaryMetadata += raw
+	g.claimPhysical, g.claimRaw = physical, raw
 	s.retainedRaw += raw
 	if _, err := g.sampleLocked(); err != nil {
 		return errProviderIntegration

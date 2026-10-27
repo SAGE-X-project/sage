@@ -62,7 +62,7 @@ func providerGuardianMemoryExtra(b providerIntegrationBounds) (uint64, bool) {
 	scratch, c := providerUpperProduct(n, 3)
 	scratch, d := providerUpperSum(scratch, 6*candidateLedgerMetadataLimit)
 	scratch, e := providerUpperProduct(scratch, b.continuation.codecMemoryMultiplier)
-	native, f := providerUpperSum(uint64(reflect.TypeFor[providerGuardianOwner]().Size()), 2*uint64(reflect.TypeFor[providerGuardianBounds]().Size()), 3*uint64(reflect.TypeFor[providerGuardianHeadData]().Size()), 2*uint64(reflect.TypeFor[providerGuardianInitialData]().Size()))
+	native, f := providerUpperSum(uint64(reflect.TypeFor[providerGuardianOwner]().Size()), 2*uint64(reflect.TypeFor[providerGuardianBounds]().Size()), 3*uint64(reflect.TypeFor[providerGuardianHeadData]().Size()), 2*uint64(reflect.TypeFor[providerGuardianInitialData]().Size()), 2*uint64(reflect.TypeFor[providerGuardianReplay]().Size()))
 	total, g := providerUpperSum(entries, scratch, native)
 	return total, a && c && d && e && f && g
 }

@@ -56,6 +56,15 @@ func (g *providerGuardianOwner) handoffFirstLocked(o *providerFirstOperationOwne
 		g.pin.ordinal != 0 || g.ordinal != 0 || g.claim != nil || g.meter != nil {
 		return false
 	}
+	r := g.store.frontierReplay.body.guardian
+	if r == nil || r.failed || !r.consumed || !r.terminal || r.head != g.pin || r.metadata != g.genesisMetadata || r.ticket != g.integration.ledger.lastTicket.digest {
+		return false
+	}
+	prefix, ok := providerContinuingPrefixData(g)
+	if !ok {
+		return false
+	}
+	g.prefix = prefix
 	g.main, g.ready = g.store.frontierFiles.pin, true
 	return true
 }

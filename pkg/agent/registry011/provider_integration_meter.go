@@ -30,6 +30,7 @@ type providerWorkMeter struct {
 	firstAdmission                *providerFirstAdmissionOwner
 	firstOperation                *providerFirstOperationOwner
 	guardian                      *providerGuardianOwner
+	continuing                    *providerContinuingOwner
 	clocks, maximumClocks         uint64
 	ticket                        string
 	upper, remaining, reservation candidateWorkVector
@@ -88,7 +89,7 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 // use n+1, and actual clock/sync calls use1. These logical units still need
 // independent worst-case CPU/profile qualification before operating selection.
 func (m *providerWorkMeter) event(kind providerWorkEvent, bytes uint64) bool {
-	if kind == providerClockEvent && m != nil && (m.scan != nil || m.firstOperation != nil || m.guardian != nil) {
+	if kind == providerClockEvent && m != nil && (m.scan != nil || m.firstOperation != nil || m.guardian != nil || m.continuing != nil) {
 		m.mu.Lock()
 		if m.maximumClocks == 0 || m.clocks >= m.maximumClocks || m.closed || m.failed {
 			m.failed = true
@@ -97,6 +98,14 @@ func (m *providerWorkMeter) event(kind providerWorkEvent, bytes uint64) bool {
 		}
 		m.clocks++
 		if o := m.firstOperation; o != nil {
+			if o.clocks >= 11 {
+				m.failed = true
+				m.mu.Unlock()
+				return false
+			}
+			o.clocks++
+		}
+		if o := m.continuing; o != nil {
 			if o.clocks >= 11 {
 				m.failed = true
 				m.mu.Unlock()
@@ -158,6 +167,9 @@ func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
 	}
 	if m.firstOperation != nil {
 		return m.firstOperation.fits(m)
+	}
+	if m.continuing != nil {
+		return m.continuing.fits(m)
 	}
 	if m.firstAdmission != nil {
 		return m.firstAdmission.fits(work)

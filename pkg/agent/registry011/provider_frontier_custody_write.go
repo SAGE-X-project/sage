@@ -43,18 +43,28 @@ func (r *providerFrontierReplay) retainOwnedLocked(s *providerCustodyStore, inve
 // The third role spends only a separately pre-I-held first C/S allocation.
 // It cannot retain E0/E1, enable a generic V4 writer or adopt retained DATA.
 func (r *providerFrontierReplay) retainOperationOwnedLocked(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after providerFrontierHighwater, prepaid *providerBootstrapOwner, first *providerFirstAdmissionOwner, operation *providerFirstOperationOwner) (providerFrontierRetention, error) {
+	return r.retainAllOwnedLocked(s, inventory, fresh, intent, commit, frontier, after, prepaid, first, operation, nil)
+}
+
+// The fourth closed role can spend G only for its bound T and its separate
+// newly held P only for that T's C/S. It cannot borrow any older E/R owner.
+func (r *providerFrontierReplay) retainContinuingOwnedLocked(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after providerFrontierHighwater, operation *providerContinuingOwner) (providerFrontierRetention, error) {
+	return r.retainAllOwnedLocked(s, inventory, fresh, intent, commit, frontier, after, nil, nil, nil, operation)
+}
+
+func (r *providerFrontierReplay) retainAllOwnedLocked(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after providerFrontierHighwater, prepaid *providerBootstrapOwner, first *providerFirstAdmissionOwner, operation *providerFirstOperationOwner, continuing *providerContinuingOwner) (providerFrontierRetention, error) {
 	if s == nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	f := s.frontierFiles
-	held := prepaid != nil || first != nil || operation != nil
+	held := prepaid != nil || first != nil || operation != nil || continuing != nil
 	roles := 0
-	for _, present := range [3]bool{prepaid != nil, first != nil, operation != nil} {
+	for _, present := range [4]bool{prepaid != nil, first != nil, operation != nil, continuing != nil} {
 		if present {
 			roles++
 		}
 	}
-	if roles > 1 || s.config.bounds.firstAdmission != nil && (prepaid == nil || !prepaid.writing(s)) && (first == nil || !first.writingLocked(s)) && (operation == nil || !operation.writingLocked(s)) || s.config.bounds.firstAdmission == nil && held {
+	if roles > 1 || s.config.bounds.firstAdmission != nil && (prepaid == nil || !prepaid.writing(s)) && (first == nil || !first.writingLocked(s)) && (operation == nil || !operation.writingLocked(s)) && (continuing == nil || !continuing.writingLocked(s)) || s.config.bounds.firstAdmission == nil && held {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	if !s.valid() || f == nil || !f.valid() || !f.initialized || f.pending != nil || r == nil || s.frontierReplay != r || r.owner != r || r.failed || r.current.sequence != s.sequence || r.indexes == nil || !r.indexes.valid() || s.sequence != 0 && !r.highwater || f.pin.sequence != s.sequence || f.pin.commit != s.tip || f.pin.setup != s.setupTip || inventory == nil || inventory.previous != s.objectsRoot || !checkProviderHighwaterMainObserved(f.pin, after, s.config, intent, commit, frontier, r.meter) {
@@ -68,8 +78,14 @@ func (r *providerFrontierReplay) retainOperationOwnedLocked(s *providerCustodySt
 			s.failed, f.failed, r.failed = true, true, true
 		}
 	}()
+	var selected *providerFirstOperationChange
 	if operation != nil {
-		selected := operation.change
+		selected = operation.change
+	}
+	if continuing != nil {
+		selected = continuing.change
+	}
+	if operation != nil || continuing != nil {
 		if selected == nil || selected.inventory != inventory || selected.after != after || len(selected.fresh) != len(fresh) || !providerReplayEqual(selected.intent, intent, r.meter) || !providerReplayEqual(selected.commit, commit, r.meter) || !providerReplayEqual(selected.frontier, frontier, r.meter) {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
@@ -141,6 +157,10 @@ func (r *providerFrontierReplay) retainOperationOwnedLocked(s *providerCustodySt
 		}
 	} else if operation != nil {
 		if !operation.consumeStorageLocked(total) {
+			return providerFrontierRetention{}, errProviderIntegration
+		}
+	} else if continuing != nil {
+		if !continuing.consumeStorageLocked(total) {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
 	} else {

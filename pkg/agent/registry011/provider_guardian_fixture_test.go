@@ -11,6 +11,16 @@ import (
 // or an increase to an existing namespace or public protocol boundary.
 func providerGuardianConfigFixture(t *testing.T) (providerCustodyConfig, *providerOwnedClock) {
 	t.Helper()
+	return providerGuardianConfigWithClaimFixture(t, 16<<20)
+}
+
+// Explicit fresh test-profile input is fixed before anchor/H0/clock creation.
+// It is never applied to an existing namespace or an operating profile.
+func providerGuardianConfigWithClaimFixture(t *testing.T, decoded uint64) (providerCustodyConfig, *providerOwnedClock) {
+	t.Helper()
+	if decoded != 16<<20 && decoded != 64<<20 {
+		t.Fatal("unsupported isolated test profile")
+	}
 	first := providerFirstWriterBounds()
 	config, _ := providerScanProvisionedFixtureWithFirstPolicy(t, &first, true)
 	b := &config.bounds
@@ -25,7 +35,7 @@ func providerGuardianConfigFixture(t *testing.T) (providerCustodyConfig, *provid
 	b.scan = &scan
 	b.ledger.MaximumRecords = int(page.pageRecords)
 	b.setupLive, b.setupRetained, b.setupWork[2] = 2<<20, 2<<20, 128<<20
-	claim := providerGuardianCapacity{work: candidateWorkVector{0, 0, 16 << 20, 0, 0, 0, 0, 0, 0, 512 << 10, 1 << 52}, retained: 512 << 10, live: 512 << 10, clocks: 64, duration: 300000, records: 6, objects: 4, raw: 512 << 10, metadata: 512 << 10, resident: 128 << 20}
+	claim := providerGuardianCapacity{work: candidateWorkVector{0, 0, decoded, 0, 0, 0, 0, 0, 0, 512 << 10, 1 << 52}, retained: 512 << 10, live: 512 << 10, clocks: 64, duration: 300000, records: 6, objects: 4, raw: 512 << 10, metadata: 512 << 10, resident: 128 << 20}
 	lifetime := claim
 	const attempts uint64 = 32
 	for i := range lifetime.work {

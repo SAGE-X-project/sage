@@ -223,8 +223,18 @@ func (i *providerScanReplayReader) main() error {
 		return errProviderIntegration
 	}
 	after, _, err := v.originalHighwaterObserved(n+uint64(setup), meter)
+	guardianBefore := i.replay.body.guardianRawBytes()
 	cost, applyErr := i.replay.applyWithHighwater(v, inventory, fresh, intent, commit, frontier, after)
-	if err != nil || applyErr != nil || !i.resident(0, cost.metadata+cost.payload, 5*maximum+64<<10) {
+	guardianAfter := i.replay.body.guardianRawBytes()
+	if guardianAfter < guardianBefore {
+		return errProviderIntegration
+	}
+	// G originals are outside each main inventory. This scanner counts their
+	// independently reconstructed delta once; the live writer counted them
+	// when it retained them and must not receive this scanner-only increment.
+	rawAdded, rawOK := providerUpperSum(cost.metadata, cost.payload, guardianAfter-guardianBefore)
+	wholeRaw, wholeOK := providerUpperSum(v.retainedRaw, rawAdded)
+	if err != nil || applyErr != nil || !rawOK || !wholeOK || wholeRaw > v.config.bounds.maximumStoredBytes || !i.resident(0, rawAdded, 5*maximum+64<<10) {
 		return errProviderIntegration
 	}
 	m := providerFrontierIntentObjectObserved(intent, meter)
@@ -239,7 +249,7 @@ func (i *providerScanReplayReader) main() error {
 	v.sequence, v.tip, v.enrollment, v.objectsRoot = n, f.commit, f.enrollment, f.objects
 	v.operations[operation] = true
 	i.positions[v.tip] = providerCustodyPosition{sequence: n, clock: clock}
-	v.retainedRaw += cost.metadata + cost.payload
+	v.retainedRaw = wholeRaw
 	v.requiredReferences = nil
 	i.failed = false
 	return nil
@@ -297,6 +307,9 @@ func (i *providerScanReplayReader) lineage() bool {
 		return false
 	}
 	if v.config.bounds.guardian != nil && v.sequence == 1 && i.replay.body.intent == nil && !i.guardianInitialLineage() {
+		return false
+	}
+	if v.config.bounds.guardian != nil && v.sequence > 1 && !i.guardianFinalLineage() {
 		return false
 	}
 	i.failed = false

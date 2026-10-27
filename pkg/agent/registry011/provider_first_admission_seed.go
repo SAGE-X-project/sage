@@ -164,5 +164,5 @@ func (r *providerCustodyReplay) admissionScanSeed(s *providerCustodyStore) (*pro
 	if !ok || !commonOK || common > s.config.bounds.continuation.maximumMetadataBytes || common > s.config.bounds.continuation.pageMetadataBytes {
 		return nil, errProviderIntegration
 	}
-	return &providerAdmissionControlData{controls.seed, metadata}, nil
+	return &providerAdmissionControlData{seed: controls.seed, metadata: metadata, guardian: controls.guardian}, nil
 }

@@ -158,15 +158,23 @@ func (r *providerCustodyReplay) checkStart(s *providerCustodyStore, digest strin
 	raw, err := s.object("bootstrap", digest)
 	m := contentObject(providerReplayJSON(raw, r.meter), "format", "admission_digest", "policy", "namespace", "instance_key", "source_id", "generation", "bootstrap_id", "enrollment_anchor_root", "selected_finality_exchange", "selected_block_hash", "deployment_block_hash", "prior_published_checkpoint", "initial_clock", "deadline_wall_ms", "limits_digest")
 	id := r.intent.identity
-	i, intentOK := providerReplayJSON([]byte(r.intent.raw), r.meter).(map[string]any)
+	var intentRaw, policyRaw, admissionRaw []byte
+	if r.meter != nil && r.meter.continuing != nil {
+		intentRaw = providerReplayPhaseBytes(r.intent.raw, r.meter)
+		policyRaw = providerReplayPhaseBytes(r.policy.raw, r.meter)
+		admissionRaw = providerReplayPhaseBytes(r.intent.digest, r.meter)
+	} else {
+		intentRaw, policyRaw, admissionRaw = []byte(r.intent.raw), []byte(r.policy.raw), []byte(r.intent.digest)
+	}
+	i, intentOK := providerReplayJSON(intentRaw, r.meter).(map[string]any)
 	if !intentOK {
 		return errProviderIntegration
 	}
-	p, policyOK := providerReplayJSON([]byte(r.policy.raw), r.meter).(map[string]any)
+	p, policyOK := providerReplayJSON(policyRaw, r.meter).(map[string]any)
 	if !policyOK {
 		return errProviderIntegration
 	}
-	if err != nil || m == nil || m["format"] != "sage-provider-start-v2" || m["admission_digest"] != r.intent.digest || m["policy"] != id.Policy || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["source_id"] != id.SourceID || m["generation"] != strconv.FormatUint(id.Generation, 10) || m["bootstrap_id"] != providerReplayDigest("sage-provider-bootstrap-id-v2", []byte(r.intent.digest), r.meter) || m["enrollment_anchor_root"] != r.anchor.digest || m["selected_finality_exchange"] != r.firstExchange || m["deployment_block_hash"] != p["instance"].(map[string]any)["deployment_hash"] || m["prior_published_checkpoint"] != nil || m["deadline_wall_ms"] != i["deadline_wall_ms"] || m["limits_digest"] != i["limits_digest"] || !providerReplayEqual(providerReplayCanonical(m["initial_clock"], 4096, r.meter), providerReplayCanonical(i["initial_clock"], 4096, r.meter), r.meter) {
+	if err != nil || m == nil || m["format"] != "sage-provider-start-v2" || m["admission_digest"] != r.intent.digest || m["policy"] != id.Policy || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["source_id"] != id.SourceID || m["generation"] != strconv.FormatUint(id.Generation, 10) || m["bootstrap_id"] != providerReplayDigest("sage-provider-bootstrap-id-v2", admissionRaw, r.meter) || m["enrollment_anchor_root"] != r.anchor.digest || m["selected_finality_exchange"] != r.firstExchange || m["deployment_block_hash"] != p["instance"].(map[string]any)["deployment_hash"] || m["prior_published_checkpoint"] != nil || m["deadline_wall_ms"] != i["deadline_wall_ms"] || m["limits_digest"] != i["limits_digest"] || !providerReplayEqual(providerReplayCanonical(m["initial_clock"], 4096, r.meter), providerReplayCanonical(i["initial_clock"], 4096, r.meter), r.meter) {
 		return errProviderIntegration
 	}
 	x, err := s.object("exchange", r.firstExchange)

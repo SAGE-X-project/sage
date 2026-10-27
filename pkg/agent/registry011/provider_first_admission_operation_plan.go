@@ -56,6 +56,13 @@ func providerFirstOperationPlanUpper(b providerIntegrationBounds, global Provide
 	headroom, a := providerUpperProduct(maximum, maximum)
 	headroom, c := providerUpperSum(headroom, 1, b.maximumObjectBytes, 1)
 	n := max(b.maximumMetadataPerCommit, uint64(64<<10), b.maximumObjectBytes, uint64(capture.WireBytes))
+	if b.guardian != nil {
+		// This first closed graph accepts only its typed E0/E1/C/X/S
+		// schemas and the method-specific header transport/exchange sizes.
+		// A larger global object ceiling belongs to later methods. Every
+		// actual decoder still preflights its own length and fails closed.
+		n = max(b.maximumMetadataPerCommit, uint64(64<<10), storage.transport, storage.exchange, uint64(capture.WireBytes))
+	}
 	// C/X:452Q/2824L, additional coordinator100Q/250L, and32 bounded
 	// model/output/literal comparisons. R has its distinct S/result graph.
 	execution, e := providerFirstOperationPhaseUpper(n, 552, 3106, 7, 29, storage.consumption, headroom)

@@ -5,7 +5,7 @@ package registry011
 // Later histories use their own typed G chain, never substitute current HEAD
 // for this immutable genesis or demand that a later HEAD still equal G0.
 func (i *providerScanReplayReader) guardianInitialLineage() bool {
-	if i == nil || i.view == nil || i.replay == nil || i.replay.body == nil || i.view.sequence != 1 || i.replay.body.intent != nil || i.view.config.bounds.guardian == nil {
+	if i == nil || i.meter == nil || i.meter.closed || i.meter.failed || i.view == nil || i.replay == nil || i.replay.body == nil || i.view.sequence != 1 || i.replay.body.intent != nil || i.view.config.bounds.guardian == nil {
 		return false
 	}
 	v, m := i.view, i.meter
@@ -27,4 +27,22 @@ func (i *providerScanReplayReader) guardianInitialLineage() bool {
 		v.retainedRaw, i.guardianGenesis = raw, true
 	}
 	return true
+}
+
+// Only the original full reader closes the latest G chain against its current
+// original HEAD. An orphan consumed G claim or a later metadata tail cannot
+// be hidden by selecting an earlier ordinary main-custody prefix.
+func (i *providerScanReplayReader) guardianFinalLineage() bool {
+	if i == nil || i.meter == nil || i.meter.closed || i.meter.failed || i.view == nil || i.replay == nil || i.replay.body == nil || i.replay.body.guardian == nil || i.view.config.bounds.guardian == nil {
+		return false
+	}
+	v, g := i.view, i.replay.body.guardian
+	x, err := newProviderScanCodec(v.config, i.meter)
+	if err != nil {
+		return false
+	}
+	expected, err := x.guardianHead(g.head)
+	current, readErr := v.read(v.custody, "GUARDIAN-HEAD", candidateLedgerMetadataLimit)
+	immutable, immutableErr := v.read(v.custody, v.name("guardian-highwater", g.head.ordinal), candidateLedgerMetadataLimit)
+	return err == nil && readErr == nil && immutableErr == nil && x.equal(expected, current) && x.equal(expected, immutable) && !i.meter.failed
 }

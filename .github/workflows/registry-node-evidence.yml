@@ -142,12 +142,24 @@ jobs:
               'provider_guardian_initial.go', 'provider_guardian_lineage.go',
               'provider_guardian_originals.go', 'provider_guardian_owner.go',
               'provider_guardian_records.go',
+              'provider_continuing_bootstrap.go',
+              'provider_continuing_change.go',
+              'provider_continuing_commit.go',
+              'provider_continuing_consumption.go',
+              'provider_continuing_models.go',
+              'provider_continuing_open.go',
+              'provider_continuing_owner.go',
+              'provider_continuing_plan.go',
+              'provider_continuing_prefix.go',
+              'provider_continuing_records.go',
+              'provider_guardian_admission_binding.go',
+              'provider_guardian_replay.go',
           ]
           for name in connected:
               targets[name] = [0, 0]
           discovered = {
               item.name
-              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go', 'provider_scan*.go', 'provider_replay*.go', 'provider_first_admission*.go', 'provider_bootstrap*.go', 'provider_guardian*.go')
+              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go', 'provider_scan*.go', 'provider_replay*.go', 'provider_first_admission*.go', 'provider_bootstrap*.go', 'provider_guardian*.go', 'provider_continuing*.go')
               for item in Path('pkg/agent/registry011').glob(pattern)
               if not item.name.endswith('_test.go')
           }

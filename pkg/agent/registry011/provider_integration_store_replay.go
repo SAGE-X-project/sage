@@ -21,11 +21,12 @@ type providerCustodyReplay struct {
 	meter         *providerWorkMeter
 	frontier      *providerFrontierReplay
 	scanMetadata  uint64
+	guardian      *providerGuardianReplay
 }
 
 func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
 	var scanMeter *providerWorkMeter
-	if m := s.activeMeter.Load(); m != nil && (m.scan != nil || m.firstOperation != nil || m.guardian != nil) {
+	if m := s.activeMeter.Load(); m != nil && (m.scan != nil || m.firstOperation != nil || m.guardian != nil || m.continuing != nil) {
 		scanMeter = m
 	}
 	key, keyOK := providerReplayRefKey(providerIntegrationObjectRef{kind: kind, digest: digest}, scanMeter)
@@ -152,6 +153,15 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		if err != nil || r.checkTicketBytes(s, ticket) != nil {
 			return errProviderIntegration
 		}
+		if s.config.bounds.guardian != nil {
+			if r.ledger == nil {
+				if initialScan == nil || r.guardianFirstTicket(s, ticket, initialScan.guardian) != nil {
+					return errProviderIntegration
+				}
+			} else if r.guardianTicket(s, ticket) != nil {
+				return errProviderIntegration
+			}
+		}
 		if r.ledger == nil {
 			if s.config.bounds.continuation != nil {
 				if s.config.bounds.firstAdmission != nil {
@@ -192,6 +202,9 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		if err != nil {
 			return errProviderIntegration
 		}
+		if s.config.bounds.guardian != nil && !r.guardianConsumption(consumption) {
+			return errProviderIntegration
+		}
 		change, err = r.ledger.AppendCandidateConsumption(consumption)
 		if err != nil {
 			return errProviderIntegration
@@ -212,6 +225,9 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		ticket := entry.ticket
 		settlement, err := parseCandidateAdmissionSettlementObserved(ticket, payload, 64<<10, r.meter)
 		if err != nil || settlement.outcome == "complete" && r.checkResult(s, settlement) != nil {
+			return errProviderIntegration
+		}
+		if s.config.bounds.guardian != nil && !r.guardianSettlement(settlement) {
 			return errProviderIntegration
 		}
 		change, err = r.ledger.AppendCandidateSettlement(settlement)

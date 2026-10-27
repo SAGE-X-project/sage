@@ -102,6 +102,7 @@ func replayProviderAdmissionControls(s *providerCustodyStore, meter *providerWor
 type providerAdmissionControlData struct {
 	seed     providerLedgerInitialCharge
 	metadata uint64
+	guardian *providerGuardianInitialData
 }
 
 func replayProviderAdmissionControlData(s *providerCustodyStore, meter *providerWorkMeter, binding providerScanAdmissionBinding) (*providerAdmissionControlData, error) {
@@ -164,11 +165,13 @@ func replayProviderAdmissionControlData(s *providerCustodyStore, meter *provider
 	if !ok || metadata > s.config.bounds.continuation.maximumMetadataBytes {
 		return nil, errProviderIntegration
 	}
+	var guardian *providerGuardianInitialData
 	if s.config.bounds.guardian != nil {
 		data, err := providerGuardianInitialOriginals(s, meter, binding.e0, binding.frontier, binding.setup, binding.clock)
 		if err != nil {
 			return nil, errProviderIntegration
 		}
+		guardian = data
 		total, ok = providerScanUpperSum(total, data.upper)
 		var metadataOK bool
 		metadata, metadataOK = providerUpperSum(metadata, data.metadata)
@@ -176,7 +179,7 @@ func replayProviderAdmissionControlData(s *providerCustodyStore, meter *provider
 			return nil, errProviderIntegration
 		}
 	}
-	return &providerAdmissionControlData{providerLedgerInitialCharge{total.work, total.retained}, metadata}, nil
+	return &providerAdmissionControlData{seed: providerLedgerInitialCharge{total.work, total.retained}, metadata: metadata, guardian: guardian}, nil
 }
 
 func providerAdmissionBindingKind(b providerIntegrationBounds) string {

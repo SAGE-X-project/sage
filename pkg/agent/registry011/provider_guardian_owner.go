@@ -22,6 +22,9 @@ type providerGuardianOwner struct {
 	pinRaw, beforeRaw                            string
 	main                                         providerFrontierHighwater
 	first                                        *providerFirstOperationOwner
+	continuing                                   *providerContinuingOwner
+	prefix                                       providerContinuingPrefix
+	claimPhysical, claimRaw, auxiliaryMetadata   uint64
 	integration                                  *providerIntegration
 	indexes                                      *providerLedgerIndexes
 	meter                                        *providerWorkMeter

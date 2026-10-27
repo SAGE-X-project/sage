@@ -1527,3 +1527,26 @@ continuing ticket/consumption/settlement binding, full history, operating
 qualification and Registry-backed Agent exchange are separate remaining
 connections; these candidate checks do not claim their completion. No public
 4096-record limit, existing profile, or message-signing scope is changed.
+
+
+The next private V5 local operation binds its unchanged TicketV2 and a new
+guardian admission record in the same retained inventory. It keeps two separate
+live typed models and compares only the affected entries after each independently
+retained transition; the previously established private prefix is checked before
+advancing. This does not reconstruct authority after process loss.
+
+A distinct C/S allocation is held before T. The original guardian lifetime pays
+only its own metadata and T; the new execution observer pays C and the closed
+BootstrapStart command, and the separate remaining observer pays S. The command
+re-reads the retained first exchange and settlement instead of trusting a copied
+diagnostic result. Its private receipt is burned once before further work. A
+same-segment ticket reserves no new segment; advancing one segment is separately
+charged without resetting the original lifetime. Missing state or uncertainty
+keeps the full hold and closes the owner.
+
+The new source includes finite refusal and ordinary owned TLS/FS scenarios. Its
+current-revision CI and individual production-file90% gates still have to pass.
+Subsequent RPC/pin/history commands, page seals, complete final original scans,
+operating host/profile qualification and Registry-backed selective Agent message
+exchange remain required. This local command does not select a Source, enable
+a public dispatch permit, or activate policy.
