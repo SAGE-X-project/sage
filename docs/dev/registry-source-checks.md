@@ -1474,3 +1474,11 @@ activate an operating policy. Actual future operation admission/execution,
 post-admission scan commands, complete history/final closure, selected
 host/principal and filesystem/clock/profile qualification, Registry-backed
 selectively signed Agent exchange and publication gates remain required.
+
+The Test workflow retains the focused Registry source evidence in a separate
+Registry Source Checks job with the existing fifteen-minute limit. The
+required Go Tests job waits for it and explicitly rejects every prerequisite
+result except success before running its own checks. The full race and
+coverage run, coverage requirements and DID, handshake, identity and HTTP
+checks keep their existing commands and artifacts. Each job has its original
+finite time limit; the complete workflow must succeed at the current revision.
