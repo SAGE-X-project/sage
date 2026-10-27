@@ -19,6 +19,9 @@ func TestProviderMethodCaptureAndCombinedWorkRefuseInvalidInertBounds(t *testing
 		if got, err := providerFrontierWorkTotal(execution, remaining); err == nil || got != (candidateWorkVector{}) {
 			t.Fatal("combined execution and authority reservation wrapped", i)
 		}
+		if got, err := providerFrontierReservation(execution, remaining, 1, 2); err == nil || got != (providerOperationReservation{}) {
+			t.Fatal("overflowing coordinates produced a physical quote", i)
+		}
 	}
 	// Inert selector input only; never opened, admitted or used for transport.
 	bounds.methods = nil

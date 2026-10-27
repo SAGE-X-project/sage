@@ -55,7 +55,7 @@ func providerOwnedPinChildrenUnit(t *testing.T) (*providerIntegration, *provider
 }
 
 func TestProviderIntegrationOwnedPinClosureRetainsEveryChildAndParent(t *testing.T) {
-	for _, mode := range []string{"normal", "missing-child", "unfunded-header", "unused-parent"} {
+	for _, mode := range []string{"normal", "missing-child", "unfunded-header", "unused-parent", "wrong-input"} {
 		t.Run(mode, func(t *testing.T) {
 			c, parent, input, digests := providerOwnedPinChildrenUnit(t)
 			before := c.ledger.current.counts
@@ -66,8 +66,14 @@ func TestProviderIntegrationOwnedPinClosureRetainsEveryChildAndParent(t *testing
 				parent.meter.upper[3] = 0
 			case "unused-parent":
 				parent.used = false // Inert local finalization refusal; no dispatch.
+			case "wrong-input":
+				input = admissionTestDigest("f")
 			}
+			measured := parent.meter.actual
 			pin, err := c.finishPinResult(parent, input, digests)
+			if mode == "wrong-input" && parent.meter.actual != measured {
+				t.Fatal("wrong input reached retained child parsing before refusal")
+			}
 			if mode == "normal" {
 				if err != nil || !lowerHash(pin) || c.ledger.current.counts != [3]uint64{7, 7, 7} || c.store.sequence != 22 || c.root.status != "enrolling" || c.root.checkpoint != "" {
 					t.Fatal("normal owned closure skipped or invented work", err)
@@ -83,6 +89,10 @@ func TestProviderIntegrationOwnedPinClosureRetainsEveryChildAndParent(t *testing
 }
 
 func TestProviderIntegrationPinPreparationRefusesBeforeChildWork(t *testing.T) {
+	c, _ := providerPendingIntegrationUnit(t)
+	if pin, err := c.finishPinResult(nil, admissionTestDigest("a"), [4]string{}); err == nil || pin != "" {
+		t.Fatal("absent original local permit reached pin reconstruction")
+	}
 	for _, mode := range []string{"object", "preparation"} {
 		t.Run(mode, func(t *testing.T) {
 			c, s := providerRetainedFirstExchangeFixture(t)

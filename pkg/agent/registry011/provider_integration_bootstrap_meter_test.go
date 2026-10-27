@@ -75,8 +75,9 @@ func TestProviderBootstrapObjectCountsRepeatedValidationAndRefusesUnfundedWork(t
 		t.Fatal("bounded bootstrap data or its measured scope", err)
 	}
 	a, b, n := uint64(len(c.policy.raw)), uint64(len(c.intent.raw)), uint64(len(raw))
-	if baseline.actual[2] != a+b+2*n {
-		t.Fatal("policy, intent, encoder and decoder input not individually counted")
+	// Encoding is a separate weighted work event, not a decoded-byte event.
+	if baseline.actual[2] != a+b+n {
+		t.Fatal("policy, intent and object decoder bytes not individually counted")
 	}
 	for _, mode := range []string{"policy", "intent", "identifier-hash", "encoder", "object-size"} {
 		t.Run(mode, func(t *testing.T) {
@@ -91,7 +92,7 @@ func TestProviderBootstrapObjectCountsRepeatedValidationAndRefusesUnfundedWork(t
 			case "identifier-hash":
 				meter.upper[10] = a*a + b*b + 2
 			case "encoder":
-				meter.upper[2] = a + b
+				meter.upper[10] = a*a + b*b + 2 + uint64(len("sage-provider-bootstrap-id-v2")+1+len(c.intent.digest)) + 1
 			case "object-size":
 				s.config.bounds.maximumObjectBytes = n - 1
 			}

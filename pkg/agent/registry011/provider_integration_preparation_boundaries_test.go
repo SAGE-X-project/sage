@@ -1,6 +1,17 @@
 package registry011
 
-import "testing"
+import (
+	"testing"
+	"time"
+)
+
+func TestProviderIntegrationInitialBudgetRefusalCannotInstallIntent(t *testing.T) {
+	capture := ProviderCaptureLimits{Timeout: 2 * time.Second, HeaderBytes: 8 << 10, BodyBytes: 16 << 10, WireBytes: 64 << 10, JSONDepth: 64}
+	s, policy, candidate, primitive := providerStoreFixtureWithLedger(t, capture, CandidateLedgerBounds{4096, 1, 64 << 20})
+	if c, err := newProviderIntegration(s, policy, candidate, primitive); err == nil || c != nil || s.sequence != 1 || s.replay.intent != nil || s.replay.ledger != nil {
+		t.Fatal("insufficient selected payload profile installed initial admission")
+	}
+}
 
 func TestProviderIntegrationInitialObjectsMustFitBeforeEnrollment(t *testing.T) {
 	s, policy, candidate, primitive := providerStoreFixture(t)
@@ -39,13 +50,14 @@ func TestProviderIntegrationPreparationRefusesUnfundedPrimitiveAndEncoder(t *tes
 					copy.raw = string(providerIntegrationJSON(m))
 					c.root = &copy
 				case "node":
-					meter.upper[2] = 0
+					meter.upper[10] = 0
 				case "metadata":
-					var nodeBytes uint64
+					var nodeUnits uint64
 					for _, raw := range c.ledger.current.LedgerNodeBytes() {
-						nodeBytes += uint64(len(raw))
+						n := uint64(len(raw))
+						nodeUnits += n*n + 1
 					}
-					meter.upper[2] = nodeBytes
+					meter.upper[10] = nodeUnits
 				case "object":
 					extra = []providerIntegrationObjectInput{{"unsupported", []byte("{}")}}
 				}

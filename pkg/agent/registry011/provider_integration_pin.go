@@ -149,6 +149,9 @@ func providerPinParams(selected string) [4]any {
 // A closed local result still requires the exact retained child exchanges and
 // the original live parent permit. This helper cannot acquire or dispatch RPC.
 func (c *providerIntegration) finishPinResult(permit *providerIntegrationPermit, input string, digests [4]string) (string, error) {
+	if !c.valid() || permit == nil || permit.owner != c || !permit.used || permit.request != nil || permit.ticket == nil || permit.ticket.intent != c.intent || permit.ticket.kind != "local-work" || permit.ticket.input != input || permit.meter == nil || permit.meter.integration != c || permit.meter.ticket != permit.ticket.digest || c.store.activeMeter.Load() != permit.meter || !lowerHash(input) {
+		return "", errProviderIntegration
+	}
 	// The live path uses the same independently retained typed response closure
 	// that ACK readback uses; no success is inferred merely from HTTP status.
 	results, err := c.store.replay.pinResults(c.store, digests, c.selected.Hash)

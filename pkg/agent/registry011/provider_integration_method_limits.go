@@ -210,15 +210,7 @@ func providerEstimateFrontierOperation(store providerIntegrationBounds, primitiv
 		execution[8] = 1
 	}
 	remaining := candidateWorkVector{0, 0, decoded, 0, 0, 0, 0, 0, 0, disk, units}
-	total, err := providerFrontierWorkTotal(execution, remaining)
-	if err != nil {
-		return providerOperationReservation{}, err
-	}
-	capacity, ok := providerUpperProduct(disk, 2)
-	if !ok || capacity > store.maximumStoredBytes {
-		return providerOperationReservation{}, errProviderIntegration
-	}
-	return providerOperationReservation{work: total, execution: execution, remaining: remaining, live: capacity, retained: capacity}, nil
+	return providerFrontierReservation(execution, remaining, disk, store.maximumStoredBytes)
 }
 
 // Execution and authority work share every coordinate without wraparound.
@@ -232,4 +224,17 @@ func providerFrontierWorkTotal(execution, remaining candidateWorkVector) (candid
 		}
 	}
 	return total, nil
+}
+
+// Combine resource coordinates and physical holding before returning a quote.
+func providerFrontierReservation(execution, remaining candidateWorkVector, disk, maximumStoredBytes uint64) (providerOperationReservation, error) {
+	total, err := providerFrontierWorkTotal(execution, remaining)
+	if err != nil {
+		return providerOperationReservation{}, err
+	}
+	capacity, ok := providerUpperProduct(disk, 2)
+	if !ok || capacity > maximumStoredBytes {
+		return providerOperationReservation{}, errProviderIntegration
+	}
+	return providerOperationReservation{work: total, execution: execution, remaining: remaining, live: capacity, retained: capacity}, nil
 }

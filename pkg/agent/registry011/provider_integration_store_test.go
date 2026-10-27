@@ -16,6 +16,11 @@ func providerStoreFixture(t *testing.T) (*providerCustodyStore, *ProviderPolicyC
 }
 
 func providerStoreFixtureWithCapture(t *testing.T, capture ProviderCaptureLimits) (*providerCustodyStore, *ProviderPolicyCandidate, *ProviderCandidateContext, providerPrimitiveBounds) {
+	return providerStoreFixtureWithLedger(t, capture, CandidateLedgerBounds{4096, 16 << 20, 64 << 20})
+}
+
+// Choose an isolated test profile before its anchor, setup and original clock.
+func providerStoreFixtureWithLedger(t *testing.T, capture ProviderCaptureLimits, ledger CandidateLedgerBounds) (*providerCustodyStore, *ProviderPolicyCandidate, *ProviderCandidateContext, providerPrimitiveBounds) {
 	t.Helper()
 	object := providerPolicyTestObject()
 	for _, level := range []string{"operation", "segment", "bootstrap"} {
@@ -37,7 +42,7 @@ func providerStoreFixtureWithCapture(t *testing.T, capture ProviderCaptureLimits
 		t.Fatal(err)
 	}
 	id, _ := candidate.Identity()
-	bounds := providerIntegrationBounds{ledger: CandidateLedgerBounds{4096, 16 << 20, 64 << 20}, maximumCommits: 256, maximumObjects: 4096, maximumEntries: 64, maximumObjectBytes: 64 << 10, maximumStoredBytes: 64 << 20, maximumMetadataPerCommit: 16 << 10, fileOverheadBytes: 4096, maximumSetupRecoveries: 3, setupWork: candidateWorkVector{0, 0, 1 << 20, 0, 0, 0, 0, 0, 0, 1 << 20, 1 << 60}, setupLive: 2 << 20, setupRetained: 1 << 20, setupMaximumClockReads: 65536, setupMaximumDurationMS: 300000}
+	bounds := providerIntegrationBounds{ledger: ledger, maximumCommits: 256, maximumObjects: 4096, maximumEntries: 64, maximumObjectBytes: 64 << 10, maximumStoredBytes: 64 << 20, maximumMetadataPerCommit: 16 << 10, fileOverheadBytes: 4096, maximumSetupRecoveries: 3, setupWork: candidateWorkVector{0, 0, 1 << 20, 0, 0, 0, 0, 0, 0, 1 << 20, 1 << 60}, setupLive: 2 << 20, setupRetained: 1 << 20, setupMaximumClockReads: 65536, setupMaximumDurationMS: 300000}
 	profile := providerIntegrationProfile(bounds, capture)
 	empty, err := newProviderIntegrationInventory("", nil, 64, 64<<20)
 	if err != nil {
