@@ -41,21 +41,8 @@ func providerIntegrationCaptureWithBounds(ctx context.Context, conn *tls.Conn, l
 		return nil, errProviderIntegration
 	}
 	state := conn.ConnectionState()
-	if len(state.VerifiedChains) > certificates.chains {
+	if !providerIntegrationCertificates(state, certificates, meter) {
 		return nil, errProviderIntegration
-	}
-	for _, chain := range state.VerifiedChains {
-		if len(chain) > certificates.certificates {
-			return nil, errProviderIntegration
-		}
-		for _, certificate := range chain {
-			if certificate == nil || len(certificate.Raw) > certificates.certificateBytes {
-				return nil, errProviderIntegration
-			}
-			if !meter.event(providerTLSEvent, uint64(len(certificate.Raw))) {
-				return nil, errProviderIntegration
-			}
-		}
 	}
 	chains, err := providerTLSIdentity(state)
 	deadline, ok := ctx.Deadline()
@@ -87,4 +74,29 @@ func providerIntegrationCaptureWithBounds(ctx context.Context, conn *tls.Conn, l
 	}
 	sample.Result, sample.Complete = result, true
 	return sample, nil
+}
+
+// Check the already verified TLS state separately so finite certificate data
+// can exercise shape and quota refusals without a hostile TLS peer. This is
+// still only the fixed primitive's input validation, never origin verification
+// or permission to dispatch; the real connection and providerTLSIdentity remain
+// mandatory above, and every observed DER input has the same metered event.
+func providerIntegrationCertificates(state tls.ConnectionState, bounds providerTLSBounds, meter *providerWorkMeter) bool {
+	if !bounds.valid() || meter == nil || len(state.VerifiedChains) > bounds.chains {
+		return false
+	}
+	for _, chain := range state.VerifiedChains {
+		if len(chain) > bounds.certificates {
+			return false
+		}
+		for _, certificate := range chain {
+			if certificate == nil || len(certificate.Raw) > bounds.certificateBytes {
+				return false
+			}
+			if !meter.event(providerTLSEvent, uint64(len(certificate.Raw))) {
+				return false
+			}
+		}
+	}
+	return true
 }

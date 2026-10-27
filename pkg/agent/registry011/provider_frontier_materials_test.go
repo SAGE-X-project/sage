@@ -1,0 +1,114 @@
+package registry011
+
+import "testing"
+
+func TestProviderFrontierRetentionRequiresCanonicalOriginalBytes(t *testing.T) {
+	id, inventory, fresh, intent, commit, frontier, bounds := providerRetentionFixture(t)
+	// Whitespace is finite inert parser data, never written as an operating head.
+	if _, err := providerFrontierRetentionCost(id, inventory, fresh, intent, commit, append(append([]byte(nil), frontier...), '\n'), bounds); err == nil {
+		t.Fatal("noncanonical frontier acquired a retention quote")
+	}
+}
+
+func TestProviderFrontierHighwaterRequiresOriginalPriorState(t *testing.T) {
+	for _, mode := range []string{"prior-tip", "prior-frontier", "missing-next", "ordinal-cap", "ordinal-overflow"} {
+		t.Run(mode, func(t *testing.T) {
+			u, s, heads := providerHighwaterRetentionFixture(t)
+			r, err := newProviderFrontierReplay(s.config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			first := u.records[0]
+			if mode == "ordinal-overflow" {
+				// Finite impossible DATA state must refuse before an original read.
+				s.sequence, r.current.sequence, r.setupOrdinal = ^uint64(0), ^uint64(0), 1
+				s.setups = append(s.setups, s.setups[0])
+				setup := s.setups[1]
+				setup.ordinal = 1
+				if _, err := r.highwaterRetention(s, heads[1], setup, first.intent, first.commit, first.frontier); err == nil {
+					t.Fatal("overflow wrapped an original high-water ordinal")
+				}
+				return
+			}
+			if mode == "ordinal-cap" {
+				if _, _, err := s.originalHighwater(uint64(s.config.bounds.maximumCommits+s.config.bounds.maximumSetupRecoveries) + 1); err == nil {
+					t.Fatal("unbounded high-water original read")
+				}
+				return
+			}
+			if mode == "prior-tip" {
+				s.tip = admissionTestDigest("f")
+				if _, err := r.highwaterRetention(s, heads[1], s.setups[0], first.intent, first.commit, first.frontier); err == nil {
+					t.Fatal("prior immutable head did not bind current commit")
+				}
+				return
+			}
+			for _, object := range first.fresh {
+				s.objects[object.kind+":"+object.digest] = providerIntegrationObjectRef{object.kind, object.digest, uint64(len(object.raw))}
+			}
+			if _, err := r.applyWithHighwater(s, first.inventory, first.fresh, first.intent, first.commit, first.frontier, heads[1]); err != nil {
+				t.Fatal(err)
+			}
+			s.sequence, s.tip, s.enrollment, s.objectsRoot = r.current.sequence, r.current.commit, r.current.enrollment, r.current.objects
+			if mode == "prior-frontier" {
+				r.current.fence++ // Independent DATA view disagrees with unchanged H1.
+			} else {
+				s.sequence, r.current.sequence = 2, 2 // No H2 original exists in fixture.
+			}
+			next := u.records[1]
+			if _, err := r.highwaterRetention(s, heads[2], s.setups[0], next.intent, next.commit, next.frontier); err == nil {
+				t.Fatal("missing or mismatched prior original became a quote")
+			}
+		})
+	}
+}
+
+func TestProviderFrontierOldMaterialReferencesCannotUseCachedDataAlone(t *testing.T) {
+	for _, mode := range []string{"index", "anchor", "no-anchor", "invalid-ledger", "no-intent", "admission", "budget", "node", "missing-ticket", "ticket", "unknown-consumption", "unknown-settlement", "unknown-kind"} {
+		t.Run(mode, func(t *testing.T) {
+			u := providerFrontierUnitFixture(t)
+			u.firstTicket(t, 1)
+			r, s, kind, operation := u.r, u.s, "admit", u.ledger.lastTicket.digest
+			if r.checkOldMaterials(s, kind, operation) != nil {
+				t.Fatal("normal retained originals do not match their DATA view")
+			}
+			switch mode {
+			case "index":
+				delete(s.objects, "index-mutation:"+r.indexes.heads[0])
+				delete(s.objects, "index-empty:"+r.indexes.heads[0])
+			case "anchor":
+				delete(s.objects, "enrollment:"+r.body.anchor.digest)
+			case "no-anchor":
+				r.body.anchor = nil
+			case "invalid-ledger":
+				r.body.ledger.owner = nil
+			case "no-intent":
+				r.body.intent = nil
+			case "admission":
+				delete(s.objects, "admission:"+r.body.intent.digest)
+			case "budget":
+				delete(s.objects, "budget:"+r.body.ledger.current.digest)
+			case "node":
+				delete(s.objects, "ledger-node:"+r.body.ledger.current.heads[0])
+			case "missing-ticket":
+				r.body.ledger.lastTicket = nil
+			case "ticket":
+				delete(s.objects, "ticket:"+r.body.ledger.lastTicket.digest)
+			case "unknown-consumption":
+				kind, operation = "consume", admissionTestDigest("f")
+			case "unknown-settlement":
+				kind, operation = "settle", admissionTestDigest("f")
+			case "unknown-kind":
+				// Old-material lookup is not transition authorization. Its finite
+				// default does no additional operation lookup; typed apply rejects it.
+				if r.checkOldMaterials(s, "unknown", admissionTestDigest("f")) != nil {
+					t.Fatal("unrelated DATA lookup unexpectedly required a ticket")
+				}
+				return
+			}
+			if r.checkOldMaterials(s, kind, operation) == nil {
+				t.Fatal("cached state replaced a required retained original", mode)
+			}
+		})
+	}
+}

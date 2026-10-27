@@ -93,6 +93,18 @@ func TestProviderFrontierInterleavedSetupChargesOldCopiesOnceAndOnlyNewAllocatio
 	if err != nil || again != cost {
 		t.Fatal("read-only quote changed retained accounting", err)
 	}
+	// Only independent DATA references change; every original file stays intact.
+	wrongSetup := setup
+	wrongSetup.commit = admissionTestDigest("f")
+	if _, err := prior.highwaterRetention(view, h3, wrongSetup, record.intent, record.commit, record.frontier); err == nil {
+		t.Fatal("quote used another selected setup head")
+	}
+	saved := view.setups[1]
+	view.setups[1].commit = admissionTestDigest("f")
+	if _, err := prior.highwaterRetention(view, h3, setup, record.intent, record.commit, record.frontier); err == nil {
+		t.Fatal("cached setup replaced its unchanged high-water original")
+	}
+	view.setups[1] = saved
 }
 
 func TestProviderFrontierHighwaterRetentionRejectsAbsentAndCrossedState(t *testing.T) {

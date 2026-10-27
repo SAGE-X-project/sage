@@ -49,9 +49,10 @@ func TestProviderAbortRetainsFullChargeOrOutstandingWorkWithoutDispatch(t *testi
 			if err != nil || !c.use(permit) {
 				t.Fatal("normal consumed unit ticket", err)
 			}
-			if mode == "unavailable-clock" {
+			switch mode {
+			case "unavailable-clock":
 				c.clock.maximum = c.clock.read
-			} else if mode == "absent-permit" {
+			case "absent-permit":
 				permit = nil
 			}
 			c.failLocal(permit)
