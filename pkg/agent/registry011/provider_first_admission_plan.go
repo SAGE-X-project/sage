@@ -100,6 +100,15 @@ func (f *providerFirstAdmissionOwner) planLocked() bool {
 			return false
 		}
 	}
+	// The F/B counters cannot replenish the original backend's finite calls.
+	// Inspect its remaining capacity without taking or inventing a sample.
+	c := s.clock
+	c.mu.Lock()
+	clockRoom := c.owner == c && !c.failed && c.id == f.origin.ClockID && c.epoch == f.origin.Epoch && c.policy == s.config.policy.policy && candidateCapacity(0, c.read, p.clocks, c.maximum)
+	c.mu.Unlock()
+	if !clockRoom {
+		return false
+	}
 	p.owner, p.stored, p.held = f, s.stored, s.scanControl.held
 	f.plan = &p
 	return true

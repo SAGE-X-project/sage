@@ -42,7 +42,7 @@ func (r *providerFrontierReplay) retainOwnedLocked(s *providerCustodyStore, inve
 	}
 	f := s.frontierFiles
 	held := prepaid != nil || first != nil
-	if prepaid != nil && first != nil || s.config.bounds.firstAdmission != nil && !(prepaid != nil && prepaid.writing(s) || first != nil && first.writingLocked(s)) || s.config.bounds.firstAdmission == nil && held {
+	if prepaid != nil && first != nil || s.config.bounds.firstAdmission != nil && (prepaid == nil || !prepaid.writing(s)) && (first == nil || !first.writingLocked(s)) || s.config.bounds.firstAdmission == nil && held {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	if !s.valid() || f == nil || !f.valid() || !f.initialized || f.pending != nil || r == nil || s.frontierReplay != r || r.owner != r || r.failed || r.current.sequence != s.sequence || r.indexes == nil || !r.indexes.valid() || s.sequence != 0 && !r.highwater || f.pin.sequence != s.sequence || f.pin.commit != s.tip || f.pin.setup != s.setupTip || inventory == nil || inventory.previous != s.objectsRoot || !checkProviderHighwaterMainObserved(f.pin, after, s.config, intent, commit, frontier, r.meter) {

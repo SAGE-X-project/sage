@@ -61,13 +61,15 @@ func (s *providerCustodyStore) retainFirstAdmissionCandidate(reservation provide
 	f.plan.used = true
 	r := s.frontierReplay
 	cost, err := r.retainOwnedLocked(s, p.inventory, p.fresh, p.claim, p.commit, p.frontier, p.after, nil, f)
-	if err != nil || cost.objects != 14 || !f.physicalUsed || cost.stored != f.physical || s.stored != f.plan.stored || s.scanControl.held != f.plan.held || s.sequence != 2 || s.frontierFiles.pin != p.after || s.last != nil || r.body.intent == nil || r.body.ledger == nil || r.body.intent.digest != p.intent.digest || r.body.ledger == p.ledger || r.body.ledger.current.digest != p.ledger.current.digest || r.body.ledger.current.totals != p.ledger.current.totals || r.body.anchor.digest != p.root.digest || r.indexes == p.indexes {
+	if err != nil || cost.objects != 14 || !f.physicalUsed || cost.stored != f.physical || s.stored != f.plan.stored || s.scanControl.held != f.plan.held || s.sequence != 2 || s.frontierFiles.pin != p.after || s.last != nil || r.body.intent == nil || r.body.ledger == nil || r.body.anchor == nil || r.body.intent.digest != p.intent.digest || r.body.ledger == p.ledger || r.body.ledger.current.digest != p.ledger.current.digest || r.body.ledger.current.totals != p.ledger.current.totals || r.body.intent.anchor != r.body.anchor.digest || r.current.enrollment != p.root.digest || s.enrollment != r.current.enrollment || r.indexes == p.indexes {
 		return nil, errProviderIntegration
 	}
 	if _, err := f.sampleLocked(); err != nil || f.meter.failed || f.meter.closed {
 		return nil, errProviderIntegration
 	}
-	data := &providerFirstAdmissionRetainedData{r.body.intent.digest, r.body.ledger.lastTicket.digest, r.body.ledger.current.digest, r.body.anchor.digest, s.frontierFiles.pin, f.meter.actual, f.physical}
+	// The immutable E0 anchor remains the admission's anchor. The newly
+	// retained E1 enrollment is the independently derived current frontier.
+	data := &providerFirstAdmissionRetainedData{r.body.intent.digest, r.body.ledger.lastTicket.digest, r.body.ledger.current.digest, r.current.enrollment, s.frontierFiles.pin, f.meter.actual, f.physical}
 	// Observers deliberately keep the now-closed meter. Clearing/reopening it
 	// would allow an unqualified next operation to mutate this retained DATA.
 	f.state = providerFirstAdmissionRetained

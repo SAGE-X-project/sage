@@ -44,7 +44,7 @@ func TestProviderFirstAdmissionCandidateRetainsOriginalsOnceUnderTheOriginalHold
 		t.Fatalf("candidate first E1 failed: %v; state=%d actual=%v clocks=%d plan=%+v physical=%d sequence=%d", err, f.state, f.meter.actual, f.meter.clocks, f.plan, f.physical, s.sequence)
 	}
 	r := s.frontierReplay
-	if f.state != providerFirstAdmissionRetained || !f.replayStarted || !f.custodianStarted || !f.physicalUsed || f.plan == nil || !f.plan.used || s.stored != stored || s.scanControl.held != held || s.last != nil || s.sequence != 2 || s.frontierFiles.pending != nil || s.frontierFiles.pin != data.highwater || r == original || len(s.objects) != 21 || r.body.ledger == nil || r.body.intent == nil || r.body.anchor.digest != data.enrollment || r.body.ledger.current.digest != data.budget || r.body.ledger.lastTicket.digest != data.ticket || r.body.intent.digest != data.admission {
+	if f.state != providerFirstAdmissionRetained || !f.replayStarted || !f.custodianStarted || !f.physicalUsed || f.plan == nil || !f.plan.used || s.stored != stored || s.scanControl.held != held || s.last != nil || s.sequence != 2 || s.frontierFiles.pending != nil || s.frontierFiles.pin != data.highwater || r == original || len(s.objects) != 21 || r.body.ledger == nil || r.body.intent == nil || r.current.enrollment != data.enrollment || s.enrollment != data.enrollment || r.body.anchor.digest != r.body.intent.anchor || r.body.anchor.digest == data.enrollment || r.body.ledger.current.digest != data.budget || r.body.ledger.lastTicket.digest != data.ticket || r.body.intent.digest != data.admission {
 		t.Fatal("candidate imported coordinator state, repeated a hold or returned authority")
 	}
 	written := f.meter.actual[9] - before[9]
@@ -84,7 +84,7 @@ func TestProviderFirstAdmissionCandidateRetainsOriginalsOnceUnderTheOriginalHold
 }
 
 func TestProviderFirstAdmissionCandidateRefusesInsufficientOriginalProfilesBeforeAnyIO(t *testing.T) {
-	for _, mode := range []string{"original-decoded", "physical", "clock", "work"} {
+	for _, mode := range []string{"original-decoded", "physical", "clock", "work", "clock-backend"} {
 		t.Run(mode, func(t *testing.T) {
 			first := providerFirstWriterBounds()
 			switch mode {
@@ -98,11 +98,28 @@ func TestProviderFirstAdmissionCandidateRefusesInsufficientOriginalProfilesBefor
 				first.work[10] = 1
 			}
 			s, f := providerFirstWriterFixture(t, first)
+			if mode == "clock-backend" {
+				// Finite exhaustion only; the original clock/epoch is retained.
+				s.clock.mu.Lock()
+				s.clock.maximum = s.clock.read
+				s.clock.mu.Unlock()
+			}
 			actual, clocks, stored, retained, held, pin := f.meter.actual, f.meter.clocks, s.stored, s.retainedRaw, s.scanControl.held, s.frontierFiles.pin
 			if data, err := s.retainFirstAdmissionCandidate(providerFirstTicketReservationData()); err == nil || data != nil || f.meter.actual != actual || f.meter.clocks != clocks || f.replayStarted || f.custodianStarted || f.physicalUsed || f.plan != nil || s.stored != stored || s.retainedRaw != retained || s.scanControl.held != held || s.frontierFiles.pin != pin || s.sequence != 1 || !s.failed || !f.meter.closed || f.state != providerFirstAdmissionFailed || s.last != nil {
 				t.Fatal("insufficient original profile performed IO or invented a larger hold", mode)
 			}
 		})
+	}
+}
+
+func TestProviderFirstAdmissionCandidateRefusesAClosedPreparedMeterBeforeIO(t *testing.T) {
+	s, f := providerFirstWriterFixture(t, providerFirstWriterBounds())
+	f.meter.mu.Lock()
+	f.meter.closed = true
+	f.meter.mu.Unlock()
+	actual, clocks, stored, held := f.meter.actual, f.meter.clocks, s.stored, s.scanControl.held
+	if data, err := s.retainFirstAdmissionCandidate(providerFirstTicketReservationData()); err == nil || data != nil || f.meter.actual != actual || f.meter.clocks != clocks || s.stored != stored || s.scanControl.held != held || !s.failed || f.state != providerFirstAdmissionFailed || s.last != nil {
+		t.Fatal("a closed prepared meter was restarted, sampled or refunded")
 	}
 }
 
