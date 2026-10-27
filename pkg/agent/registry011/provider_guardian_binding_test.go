@@ -110,9 +110,10 @@ func TestProviderGuardianBindingRejectsFiniteInvalidIdentityAndRoleData(t *testi
 				m["purpose"] = "bootstrap-admission"
 			}
 			raw = providerIntegrationJSON(m)
-			if mode == "null" {
+			switch mode {
+			case "null":
 				raw = []byte("null")
-			} else if mode == "noncanonical" {
+			case "noncanonical":
 				raw = append(raw, '\n')
 			}
 			if _, err := x.parseGuardianAdmissionBinding(raw); err == nil {

@@ -131,7 +131,11 @@ func TestProviderContinuingBurnRefusalNeverRestoresThePermit(t *testing.T) {
 				o.request = &providerIntegrationRequest{}
 				permit.request = o.request
 			}
-			if o.burnLocked(permit) || !permit.used || o.state != providerContinuingUsed || o.burnLocked(permit) || s.sequence != 6 {
+			expected := providerContinuingUsed
+			if mode == "clock" {
+				expected = providerContinuingFailed // The owned sampler quarantines its caller.
+			}
+			if o.burnLocked(permit) || !permit.used || o.state != expected || o.burnLocked(permit) || s.sequence != 6 {
 				t.Fatal("post-burn refusal recovered a permission", mode)
 			}
 			o.failLocked()
