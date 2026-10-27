@@ -10,11 +10,21 @@ type providerTicketIndexValue struct {
 }
 
 func providerTicketIndexFromState(state candidateLedgerTicket) (providerTicketIndexValue, error) {
+	return providerTicketIndexFromStateObserved(state, nil)
+}
+
+// The future connected owner observes the segment's canonical encode and
+// domain hash. Legacy callers keep their original nil-observer contract.
+func providerTicketIndexFromStateObserved(state candidateLedgerTicket, meter *providerWorkMeter) (providerTicketIndexValue, error) {
 	if state.ticket == nil || state.ticket.raw == "" || state.ticket.intent == nil {
 		return providerTicketIndexValue{}, ErrAdmissionLedger
 	}
 	t := state.ticket
-	value := providerTicketIndexValue{ticket: t.digest, sequence: t.sequence, segment: candidateAdmissionSegment(t.intent.digest, t.segment), input: t.input, settlement: state.terminal}
+	segment := candidateAdmissionSegmentObserved(t.intent.digest, t.segment, meter)
+	if !lowerHash(segment) {
+		return providerTicketIndexValue{}, ErrAdmissionLedger
+	}
+	value := providerTicketIndexValue{ticket: t.digest, sequence: t.sequence, segment: segment, input: t.input, settlement: state.terminal}
 	if state.consumption != nil {
 		if state.consumption.ticket == nil || state.consumption.ticket.digest != t.digest {
 			return providerTicketIndexValue{}, ErrAdmissionLedger

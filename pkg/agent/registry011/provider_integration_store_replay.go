@@ -25,7 +25,7 @@ type providerCustodyReplay struct {
 
 func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
 	var scanMeter *providerWorkMeter
-	if m := s.activeMeter.Load(); m != nil && m.scan != nil {
+	if m := s.activeMeter.Load(); m != nil && (m.scan != nil || m.firstOperation != nil) {
 		scanMeter = m
 	}
 	key, keyOK := providerReplayRefKey(providerIntegrationObjectRef{kind: kind, digest: digest}, scanMeter)

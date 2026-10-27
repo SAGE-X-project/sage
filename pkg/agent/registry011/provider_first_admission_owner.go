@@ -27,6 +27,7 @@ type providerFirstAdmissionOwner struct {
 	custodian          *providerScanReplayReader
 	custodianAdopted   bool
 	plan               *providerFirstAdmissionPlan
+	operation          *providerFirstOperationOwner
 	physicalUsed       bool
 	physical           uint64
 	origin, inspected  ClockSample

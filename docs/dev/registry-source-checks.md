@@ -1482,3 +1482,30 @@ result except success before running its own checks. The full race and
 coverage run, coverage requirements and DID, handshake, identity and HTTP
 checks keep their existing commands and artifacts. Each job has its original
 finite time limit; the complete workflow must succeed at the current revision.
+
+The separate initial-only connected candidate binds its future execution and
+remaining envelopes before I/T0. It keeps the original first-E1 F observer and
+its physical hold, adds a distinct once-held C/S allocation, and compares a
+complete simultaneous RAM plan before its first original read. The largest
+declared serializer preflight stays separate from actual codec inputs. Only
+the second independent custodian's original state is installed; the separate
+coordinator receives the exact retained charge and is compared before F closes
+and both observers transfer to the newly pre-funded owner.
+
+This private candidate retains C before burning its one-use receipt, uses the
+fixed official Sepolia connection once, then retains and independently replays
+S with a separately funded remaining observer. A failed execution cannot be
+reported as measured complete work, regain its receipt or release its original
+hold. Exact C/S original files, frontier replacement and readbacks precede any
+returned diagnostic result. The production entry accepts no endpoint or
+transport callback. Ordinary owned TLS tests exercise the private byte path;
+finite missing-state and quota units do not create hostile runtime peers.
+
+The earlier candidate-only E1 entry remains DATA-only and permanently closed.
+It cannot construct this new owner after returning. Neither candidate selects
+an operating principal, publishes a custody acknowledgment or creates a Source.
+Post-admission scan commands, the complete deployment/history/final closure,
+actual host/profile/filesystem/clock qualification, Registry-backed selectively
+signed Agent exchange and policy activation remain separate requirements.
+The added files enter the existing per-file 90% inventory and current-revision
+CI gates; this description does not claim their tests or required CI passed.

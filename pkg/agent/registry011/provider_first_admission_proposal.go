@@ -10,6 +10,7 @@ type providerFirstAdmissionProposal struct {
 	root                    *CandidateEnrollmentRoot
 	ledger                  *CandidateAdmissionLedger
 	indexes                 *providerLedgerIndexes
+	delta                   *providerIndexDelta
 	binding                 providerScanAdmissionBinding
 	fresh                   []providerIntegrationObject
 	inventory               *providerIntegrationInventory
@@ -26,6 +27,12 @@ func (*providerFirstAdmissionProposal) UnmarshalJSON([]byte) error { return errP
 // complete F work/RAM/clock plan and independently derive the future-only quote.
 // The caller holds the original store mutex throughout all original reads.
 func providerFirstAdmissionProposalData(f *providerFirstAdmissionOwner, input *providerScanReplayReader, reservation providerOperationReservation, clock CandidateClockDiagnostic) (*providerFirstAdmissionProposal, error) {
+	return providerFirstAdmissionProposalWithRequestData(f, input, reservation, clock, nil)
+}
+
+// Only the live future owner can supply the once-observed fixed request before
+// I. The original DATA-only entry constructs it at its original position.
+func providerFirstAdmissionProposalWithRequestData(f *providerFirstAdmissionOwner, input *providerScanReplayReader, reservation providerOperationReservation, clock CandidateClockDiagnostic, request *providerIntegrationRequest) (*providerFirstAdmissionProposal, error) {
 	if f == nil || f.store == nil || f.state != providerFirstAdmissionStarted || !f.fits(candidateWorkVector{}) || input == nil || !input.valid() || input.control != f.control || input.meter != f.meter || input.selected != f.mainPin || input.view.sequence != 1 || input.replay == nil || input.replay.owner != input.replay || input.replay.body == nil || input.replay.setupOrdinal != 0 || input.replay.body.anchor == nil || input.replay.body.intent != nil || input.replay.body.ledger != nil || input.replay.current.admission != "" || input.replay.current.budget != "" || !candidateLedgerClockAdvance(providerClockDiagnostic(f.inspected), clock) || candidateLedgerExpired(clock, f.attempt.deadline) {
 		return nil, errProviderIntegration
 	}
@@ -34,7 +41,12 @@ func providerFirstAdmissionProposalData(f *providerFirstAdmissionOwner, input *p
 		return nil, errProviderIntegration
 	}
 	i, err := providerFirstAdmissionIntentDataObserved(s.config.policy, body.context, body.anchor, f.mainPin.commit, providerClockDiagnostic(f.origin), m)
-	request, requestErr := newProviderIntegrationRequestObserved("eth_getBlockByNumber", []any{"finalized", false}, m)
+	var requestErr error
+	if request == nil {
+		request, requestErr = newProviderIntegrationRequestObserved("eth_getBlockByNumber", []any{"finalized", false}, m)
+	} else if f.operation == nil || f.operation.request != request || !f.operation.selectedLocked() || reservation != f.operation.plan.reservation {
+		return nil, errProviderIntegration
+	}
 	if err != nil || requestErr != nil {
 		return nil, errProviderIntegration
 	}
@@ -136,5 +148,5 @@ func providerFirstAdmissionProposalData(f *providerFirstAdmissionOwner, input *p
 	if err != nil || !after.validObserved(s.config, m) || m.failed {
 		return nil, errProviderIntegration
 	}
-	return &providerFirstAdmissionProposal{i, request, ticket, root, ledger, indexes, binding, fresh, inventory, claim, commit, raw, after}, nil
+	return &providerFirstAdmissionProposal{intent: i, request: request, ticket: ticket, root: root, ledger: ledger, indexes: indexes, delta: delta, binding: binding, fresh: fresh, inventory: inventory, claim: claim, commit: commit, frontier: raw, after: after}, nil
 }

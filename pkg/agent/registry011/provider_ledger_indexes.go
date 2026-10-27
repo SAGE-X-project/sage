@@ -250,7 +250,11 @@ func (s *providerLedgerIndexes) prepareLedgerMutation(d *providerIndexDelta, kin
 	if !exists {
 		return ErrAdmissionLedger
 	}
-	after, err := providerTicketIndexFromState(state)
+	var observer *providerWorkMeter
+	if providerFirstOperationObserved(s.meter) {
+		observer = s.meter
+	}
+	after, err := providerTicketIndexFromStateObserved(state, observer)
 	if err != nil {
 		return err
 	}

@@ -22,7 +22,7 @@ func (s *providerCustodyStore) retainFirstAdmissionCandidate(reservation provide
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	f := s.firstAdmissionOwner
-	if !s.valid() || f == nil || f.store != s || f.state != providerFirstAdmissionPrepared {
+	if !s.valid() || f == nil || f.store != s || f.state != providerFirstAdmissionPrepared || f.operation != nil || s.firstOperation != nil {
 		return nil, errProviderIntegration
 	}
 	if f.startLocked() != nil {

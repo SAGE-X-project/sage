@@ -44,7 +44,13 @@ func (r *providerCustodyReplay) checkExchange(s *providerCustodyStore, settlemen
 	if err != nil || m == nil || m["format"] != "sage-provider-exchange-v2" || m["policy"] != id.Policy || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["source_id"] != id.SourceID || m["generation"] != strconv.FormatUint(id.Generation, 10) || m["ticket_digest"] != ticket.digest || m["provider_digest"] != id.Provider {
 		return errProviderIntegration
 	}
-	p, policyOK := providerReplayJSON([]byte(r.policy.raw), r.meter).(map[string]any)
+	var policyRaw []byte
+	if providerFirstOperationObserved(r.meter) {
+		policyRaw = providerReplayPhaseBytes(r.policy.raw, r.meter)
+	} else {
+		policyRaw = []byte(r.policy.raw)
+	}
+	p, policyOK := providerReplayJSON(policyRaw, r.meter).(map[string]any)
 	if !policyOK {
 		return errProviderIntegration
 	}

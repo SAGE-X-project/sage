@@ -33,8 +33,8 @@ func (b providerFirstAdmissionBounds) object() map[string]any {
 // No additional live field is smuggled into the existing exact control schema.
 // All original and temporary copies must be covered by its finite derivation.
 type providerFirstAdmissionLimits struct {
-	work           candidateWorkVector
-	live, retained uint64
+	work, operation, segment candidateWorkVector
+	live, retained           uint64
 }
 
 func (s *providerCustodyStore) firstAdmissionLimits(x *providerScanCodec) bool {
@@ -50,12 +50,14 @@ func (s *providerCustodyStore) firstAdmissionLimits(x *providerScanCodec) bool {
 		return false
 	}
 	work, a := candidateAdmissionWorkLimit(limits["bootstrap"])
+	operation, operationOK := candidateAdmissionWorkLimit(limits["operation"])
+	segment, segmentOK := candidateAdmissionWorkLimit(limits["segment"])
 	live, b := providerCandidateUint(limits["live_disk_bytes"], true)
 	retained, c := providerCandidateUint(limits["retained_bytes"], true)
-	if !a || !b || !c {
+	if !a || !b || !c || !operationOK || !segmentOK {
 		return false
 	}
-	s.firstLimits = &providerFirstAdmissionLimits{work, live, retained}
+	s.firstLimits = &providerFirstAdmissionLimits{work: work, operation: operation, segment: segment, live: live, retained: retained}
 	return true
 }
 

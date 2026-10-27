@@ -20,6 +20,10 @@ func providerScanProvisionedFixture(t *testing.T) (providerCustodyConfig, *provi
 }
 
 func providerScanProvisionedFixtureWithFirst(t *testing.T, first *providerFirstAdmissionBounds) (providerCustodyConfig, *providerOwnedClock) {
+	return providerScanProvisionedFixtureWithFirstPolicy(t, first, false)
+}
+
+func providerScanProvisionedFixtureWithFirstPolicy(t *testing.T, first *providerFirstAdmissionBounds, operation bool) (providerCustodyConfig, *providerOwnedClock) {
 	t.Helper()
 	model, policy := providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
 	b, capture := providerFrontierBoundsFixture()
@@ -39,6 +43,18 @@ func providerScanProvisionedFixtureWithFirst(t *testing.T, first *providerFirstA
 		m := contentJSON(policy.CanonicalBytes()).(map[string]any)
 		bootstrap := m["limits"].(map[string]any)["bootstrap"].(map[string]any)
 		bootstrap["decoded_bytes"], bootstrap["disk_bytes_written"], bootstrap["work_units"] = strconv.FormatUint(1<<34, 10), strconv.FormatUint(1<<34, 10), strconv.FormatUint(1<<62, 10)
+		if operation {
+			// A different isolated policy is selected BEFORE profile/anchor/H0
+			// or clock creation. No live namespace or existing cap is raised.
+			// The selected header's X upper fits128KiB. A smaller fresh object
+			// ceiling also keeps the complete E+R decoded quote below the
+			// unchanged public operation policy maximum of256MiB.
+			b.maximumObjectBytes = 128 << 10
+			for _, level := range []string{"operation", "segment"} {
+				values := m["limits"].(map[string]any)[level].(map[string]any)
+				values["decoded_bytes"], values["disk_bytes_written"], values["work_units"] = strconv.FormatUint(256<<20, 10), strconv.FormatUint(1<<34, 10), strconv.FormatUint(1<<62, 10)
+			}
+		}
 		var err error
 		policy, err = ParseProviderPolicyCandidate(providerPolicyTestBytes(t, m), 64<<10)
 		if err != nil {

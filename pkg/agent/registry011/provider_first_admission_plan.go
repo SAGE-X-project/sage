@@ -92,6 +92,19 @@ func (f *providerFirstAdmissionOwner) planLocked() bool {
 	}
 	s, m := f.store, f.meter
 	p, ok := providerFirstAdmissionPlanUpper(s.config.bounds, f.scanPin.ordinal, f.records, s.retainedRaw, f.readerOutput)
+	if o := f.operation; o != nil {
+		if !o.selectedLocked() || o.first != f || o.plan.memory == 0 {
+			return false
+		}
+		for coordinate, amount := range o.plan.firstExtra {
+			var fits bool
+			p.work[coordinate], fits = providerUpperSum(p.work[coordinate], amount)
+			if !fits {
+				return false
+			}
+		}
+		p.memory = o.plan.memory
+	}
 	if !ok || p.physical > f.limits.retained || p.raw > f.limits.work[9] || s.retainedRaw > s.stored || s.scanControl.held != f.scanPin.held || s.scanControl.pin != f.scanPin || s.stored < f.limits.retained || !f.fits(p.work) || !candidateCapacity(0, m.clocks, p.clocks, m.maximumClocks) || !candidateCapacity(0, m.clocks-f.startClocks, p.clocks, f.limits.clocks) {
 		return false
 	}
@@ -104,7 +117,16 @@ func (f *providerFirstAdmissionOwner) planLocked() bool {
 	// Inspect its remaining capacity without taking or inventing a sample.
 	c := s.clock
 	c.mu.Lock()
-	clockRoom := c.owner == c && !c.failed && c.id == f.origin.ClockID && c.epoch == f.origin.Epoch && c.policy == s.config.policy.policy && candidateCapacity(0, c.read, p.clocks, c.maximum)
+	clockNeed := p.clocks
+	if f.operation != nil {
+		var fits bool
+		clockNeed, fits = providerUpperSum(clockNeed, 11)
+		if !fits {
+			c.mu.Unlock()
+			return false
+		}
+	}
+	clockRoom := c.owner == c && !c.failed && c.id == f.origin.ClockID && c.epoch == f.origin.Epoch && c.policy == s.config.policy.policy && candidateCapacity(0, c.read, clockNeed, c.maximum)
 	c.mu.Unlock()
 	if !clockRoom {
 		return false

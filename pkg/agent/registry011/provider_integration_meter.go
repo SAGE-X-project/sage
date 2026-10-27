@@ -28,6 +28,7 @@ type providerWorkMeter struct {
 	scan                          *providerScanControl
 	scanBody                      *providerScanBody
 	firstAdmission                *providerFirstAdmissionOwner
+	firstOperation                *providerFirstOperationOwner
 	clocks, maximumClocks         uint64
 	ticket                        string
 	upper, remaining, reservation candidateWorkVector
@@ -86,7 +87,7 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 // use n+1, and actual clock/sync calls use1. These logical units still need
 // independent worst-case CPU/profile qualification before operating selection.
 func (m *providerWorkMeter) event(kind providerWorkEvent, bytes uint64) bool {
-	if kind == providerClockEvent && m != nil && m.scan != nil {
+	if kind == providerClockEvent && m != nil && (m.scan != nil || m.firstOperation != nil) {
 		m.mu.Lock()
 		if m.maximumClocks == 0 || m.clocks >= m.maximumClocks || m.closed || m.failed {
 			m.failed = true
@@ -94,6 +95,14 @@ func (m *providerWorkMeter) event(kind providerWorkEvent, bytes uint64) bool {
 			return false
 		}
 		m.clocks++
+		if o := m.firstOperation; o != nil {
+			if o.clocks >= 11 {
+				m.failed = true
+				m.mu.Unlock()
+				return false
+			}
+			o.clocks++
+		}
 		m.mu.Unlock()
 	}
 	work, ok := providerEventVector(kind, bytes)
@@ -110,6 +119,16 @@ func (m *providerWorkMeter) preflight(kind providerWorkEvent, bytes uint64) bool
 	work, ok := providerEventVector(kind, bytes)
 	if !ok {
 		return m.refuse()
+	}
+	return m.preflightWork(work)
+}
+
+// Check a whole closed primitive envelope without recording it as actual.
+// The concrete owner serializes the primitive and all later measured events;
+// a successful preflight cannot be exported, serialized or used as an ACK.
+func (m *providerWorkMeter) preflightWork(work candidateWorkVector) bool {
+	if m == nil {
+		return false
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -133,6 +152,9 @@ func (m *providerWorkMeter) preflight(kind providerWorkEvent, bytes uint64) bool
 // meter. Moving to the next nonempty record never resets actual/clock/upper.
 // Ordinary integration/legacy meters have no scan body and retain their API.
 func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
+	if m.firstOperation != nil {
+		return m.firstOperation.fits(m)
+	}
 	if m.firstAdmission != nil {
 		return m.firstAdmission.fits(work)
 	}
