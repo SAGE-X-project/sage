@@ -23,6 +23,12 @@ type providerScanReplayReader struct {
 func (*providerScanReplayReader) UnmarshalJSON([]byte) error { return errProviderIntegration }
 
 func newProviderScanReplayReader(c *providerScanControl, meter *providerWorkMeter, rawTarget []byte) (*providerScanReplayReader, error) {
+	return newProviderScanReplayReaderWithOutput(c, meter, rawTarget, 0)
+}
+
+// Already returned diagnostic output can remain live during first finishing.
+// Include its original full upper before constructing a second replay view.
+func newProviderScanReplayReaderWithOutput(c *providerScanControl, meter *providerWorkMeter, rawTarget []byte, output uint64) (*providerScanReplayReader, error) {
 	r, err := newProviderFrontierScanReplay(c, meter)
 	if err != nil {
 		return nil, errProviderIntegration
@@ -46,7 +52,7 @@ func newProviderScanReplayReader(c *providerScanControl, meter *providerWorkMete
 	v := &providerCustodyStore{custody: s.custody, evidence: s.evidence, config: s.config, clock: s.clock, scanBody: s.scanBody, tip: s.config.anchor, objects: make(map[string]providerIntegrationObjectRef), bindings: make(map[string]string), operations: make(map[string]bool), setupCommits: make(map[string]string)}
 	v.owner = v
 	v.activeMeter.Store(meter)
-	i := &providerScanReplayReader{control: c, view: v, replay: r, meter: meter, target: target, selected: f.pin, attempt: *c.prepared, positions: make(map[string]providerCustodyPosition)}
+	i := &providerScanReplayReader{control: c, view: v, replay: r, meter: meter, target: target, selected: f.pin, attempt: *c.prepared, positions: make(map[string]providerCustodyPosition), outputUpper: output}
 	i.owner = i
 	if !i.resident(0, 0, 4*s.config.bounds.maximumMetadataPerCommit+64<<10) {
 		return nil, errProviderIntegration

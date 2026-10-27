@@ -1381,3 +1381,5 @@ each repeated read and codec spends the current owned meter. Finishing also
 takes an owned sample after every bounded record. The returned diagnostic
 closure and once-counted schema byte total are DATA: they neither authenticate
 past physical work nor replace frozen-target reconstruction or typed E1.
+
+First-admission finishing replays E0 from fresh original setup/main maps under the same held inspection meter. It drops its closed inspection caches while retaining the full returned-output RAM upper, checks the exact original main/scan heads and samples the original clock throughout. This supplies candidate typed inputs only: the first admission, mandatory binding, seeded E1 write, acknowledgment and operating Agent integration remain incomplete. Finite missing-original, budget, clock, owner and RAM units do not qualify an operating filesystem or principal.

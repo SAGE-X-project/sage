@@ -20,6 +20,8 @@ type providerFirstAdmissionOwner struct {
 	mainRaw, targetRaw string
 	lastChunk          string
 	records            uint64
+	readerOutput       uint64
+	replayStarted      bool
 	origin, inspected  ClockSample
 	limits             providerFirstAdmissionBounds
 	startWork, upper   candidateWorkVector
@@ -43,6 +45,7 @@ func newProviderFirstAdmissionOwner(b *providerScanBody, result *providerScanDat
 		return nil, errProviderIntegration
 	}
 	f := &providerFirstAdmissionOwner{store: s, body: b, meter: m, control: b.control, attempt: *b.control.prepared, scanPin: b.control.pin, mainPin: s.frontierFiles.pin, mainRaw: s.frontierFiles.pinRaw, targetRaw: b.targetRaw, lastChunk: b.receipts.chunks[len(b.receipts.chunks)-1], records: result.records, origin: s.setupOrigin, inspected: inspected, limits: *s.config.bounds.firstAdmission, startWork: m.actual, upper: m.upper, startClocks: m.clocks, maximumClocks: m.maximumClocks, state: providerFirstAdmissionPrepared}
+	f.readerOutput = b.reader.outputUpper
 	return f, nil
 }
 
@@ -54,7 +57,7 @@ func (f *providerFirstAdmissionOwner) startLocked() error {
 		return errProviderIntegration
 	}
 	s, m, b := f.store, f.meter, f.body
-	if !s.valid() || m == nil || m.owner != m || m.closed || m.failed || m.firstAdmission != nil || m.actual != f.startWork || m.clocks != f.startClocks || m.upper != f.upper || m.maximumClocks != f.maximumClocks || m.scan != f.control || m.scanBody != b || s.activeMeter.Load() != nil || b == nil || b.active || b.failed || b.meter != m || s.scanBody != b || s.scanControl != f.control || !f.control.valid() || f.control.prepared == nil || *f.control.prepared != f.attempt || f.control.pin != f.scanPin || s.frontierFiles == nil || !s.frontierFiles.valid() || s.frontierFiles.pin != f.mainPin || s.frontierFiles.pinRaw != f.mainRaw || s.setupOrigin != f.origin || s.config.bounds.firstAdmission == nil || *s.config.bounds.firstAdmission != f.limits {
+	if !s.valid() || m == nil || m.owner != m || m.closed || m.failed || m.firstAdmission != nil || m.actual != f.startWork || m.clocks != f.startClocks || m.upper != f.upper || m.maximumClocks != f.maximumClocks || m.scan != f.control || m.scanBody != b || s.activeMeter.Load() != nil || b == nil || b.active || b.failed || b.reader == nil || b.reader.outputUpper != f.readerOutput || f.replayStarted || b.meter != m || s.scanBody != b || s.scanControl != f.control || !f.control.valid() || f.control.prepared == nil || *f.control.prepared != f.attempt || f.control.pin != f.scanPin || s.frontierFiles == nil || !s.frontierFiles.valid() || s.frontierFiles.pin != f.mainPin || s.frontierFiles.pinRaw != f.mainRaw || s.setupOrigin != f.origin || s.config.bounds.firstAdmission == nil || *s.config.bounds.firstAdmission != f.limits {
 		f.abortLocked()
 		return errProviderIntegration
 	}

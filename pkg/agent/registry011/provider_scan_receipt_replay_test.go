@@ -4,6 +4,13 @@ import "testing"
 
 func TestProviderAdmissionReceiptReplayChecksBothOriginalChainsWithoutRestoringBody(t *testing.T) {
 	s, f, _, binding := providerScanBindingFixture(t)
+	original, readErr := s.evidence.read(providerScanReceiptName("chunk", binding.lastChunk, nil), int64(s.config.bounds.maximumMetadataPerCommit))
+	last, ok := contentJSON(original).(map[string]any)
+	objects, objectsOK := providerCandidateUint(last["cumulative_objects"], false)
+	bytes, bytesOK := providerCandidateUint(last["cumulative_bytes"], false)
+	if readErr != nil || !ok || !objectsOK || !bytesOK {
+		t.Fatal("original last-record fixture diagnostics", readErr)
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := f.startLocked(); err != nil {
@@ -13,7 +20,10 @@ func TestProviderAdmissionReceiptReplayChecksBothOriginalChainsWithoutRestoringB
 	var prior *providerScanReceiptClosure
 	for n := 0; n < 2; n++ {
 		closure, err := replayProviderAdmissionReceipts(s, f.meter, binding)
-		if err != nil || closure == nil || closure.records != f.records || closure.objects != f.body.objects || closure.bytes != f.body.rawBytes || closure.metadata == 0 || closure.end.ClockID != f.origin.ClockID || closure.end.Epoch != f.origin.Epoch || f.meter.actual[2] <= before[2] || f.meter.actual[10] <= before[10] || f.meter.clocks != clocks+f.records || f.body.active || s.last != nil || s.stored != stored || s.scanControl.held != held || closure.UnmarshalJSON(nil) == nil {
+		// The retained record ends before its own encoding/write/readbacks and
+		// second catalog. Compare the exact recorded snapshot, while keeping
+		// those later operations inside the separate cumulative live B meter.
+		if err != nil || closure == nil || closure.records != f.records || closure.objects != objects || closure.bytes != bytes || closure.objects > f.body.objects || closure.bytes > f.body.rawBytes || closure.metadata == 0 || closure.end.ClockID != f.origin.ClockID || closure.end.Epoch != f.origin.Epoch || f.meter.actual[2] <= before[2] || f.meter.actual[10] <= before[10] || f.meter.clocks != clocks+f.records || f.body.active || s.last != nil || s.stored != stored || s.scanControl.held != held || closure.UnmarshalJSON(nil) == nil {
 			t.Fatal("original receipt replay reset B, reused measurement or restored an owner", err)
 		}
 		if prior != nil && *prior != *closure {
@@ -85,7 +95,7 @@ func TestProviderAdmissionReceiptCursorDataRejectsSkippedAndInvalidTransitions(t
 		if providerScanReceiptStep(pair.start, pair.end) != pair.valid {
 			t.Fatal("closed record skipped or changed cursor order", pair)
 		}
-		if cursor, ok := providerScanReceiptCursor(pair.start.object()); !ok || cursor != pair.start {
+		if cursor, ok := providerScanReceiptCursor(contentJSON(providerIntegrationJSON(pair.start.object()))); !ok || cursor != pair.start {
 			t.Fatal("canonical cursor DATA did not roundtrip")
 		}
 	}

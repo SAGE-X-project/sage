@@ -127,3 +127,20 @@ func TestProviderScanOpenRejectsADifferentWellFormedExpectedHeadBeforeSetup(t *t
 		}
 	}
 }
+
+func TestProviderScanOpenRejectsANoncanonicalPolicyOriginalBeforeSetup(t *testing.T) {
+	config, clock := providerScanProvisionedFixture(t)
+	policy := *config.policy
+	// Fixed invalid configuration DATA only. Keep the closed profile and
+	// identity fields so the independent policy-original check is exercised.
+	policy.raw += "\n"
+	config.policy = &policy
+	if s, err := openProviderScanCandidate(config, clock); err != errProviderIntegration || s != nil {
+		t.Fatal("inconsistent policy original survived independent parsing", err)
+	}
+	for _, path := range []string{filepath.Join(config.custodyDirectory, providerCustodyName("setup-intent", 0)), filepath.Join(config.evidenceDirectory, providerCustodyName("setup-claim", 0))} {
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatal("invalid policy created a setup prefix", err)
+		}
+	}
+}
