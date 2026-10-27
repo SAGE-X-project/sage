@@ -1401,3 +1401,16 @@ overestimate, not a correction of an earlier64KiB underestimate.
 This quote is only the physical-file component. Complete work, resident-memory
 and clock preflight, the prepaid writer, original readbacks and operating
 qualification still remain; a quote or successful unit does not authorize them.
+
+Future first-ticket storage is quoted separately for consumption and settlement:
+fourteen plus eighteen possible file allocations, including each pending head.
+The quote includes base64 expansion, JSON header escaping and structure, the
+first-chain certificate digests, and transport bytes both inside the exchange
+and in the separate TLS object. It neither includes nor subtracts the earlier
+first-E1 hold and does not use the legacy double-capacity estimator. These are
+conditional serialization components: the future V4 builders must enforce the
+stated consumption/settlement/wire-binding and fixed-metadata caps. Complete
+work/RAM/clock bounds, concrete T/C/S retention and one-use execution remain
+unfinished; the quote creates no ticket, reservation, acknowledgment or permit.
+The remaining response wire ceiling must also fit one retained object; aggregate
+disk capacity and a small JSON body cannot replace that separate size check.

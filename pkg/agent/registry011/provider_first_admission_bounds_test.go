@@ -1,6 +1,10 @@
 package registry011
 
-import "testing"
+import (
+	"encoding/base64"
+	"strings"
+	"testing"
+)
 
 func providerFirstAdmissionBoundsFixture() providerFirstAdmissionBounds {
 	return providerFirstAdmissionBounds{work: candidateWorkVector{0, 0, 1 << 20, 0, 0, 0, 0, 0, 0, 1 << 20, 1 << 50}, retained: 2 << 20, live: 2 << 20, clocks: 64, durationMS: 300000}
@@ -182,5 +186,122 @@ func TestProviderFirstAdmissionStorageQuoteIncludesBindingAndEveryTemporaryCopy(
 		if _, _, ok := providerFirstAdmissionStorageUpper(x); ok {
 			t.Fatal("unfunded candidate first storage shape accepted", mode)
 		}
+	}
+}
+
+func TestProviderFirstOperationStorageSeparatesFutureConsumptionAndSettlement(t *testing.T) {
+	first := providerFirstAdmissionBoundsFixture()
+	config, _ := providerScanProvisionedFixtureWithFirst(t, &first)
+	request, err := newProviderIntegrationRequest("eth_getBlockByNumber", []any{"finalized", false})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := config.bounds
+	quote, ok := providerFirstOperationStorageUpper(b, config.capture, uint64(len(request.wire)))
+	if !ok || quote.transport == 0 || quote.exchange <= quote.transport {
+		t.Fatal("finite future-only storage quote")
+	}
+	// Independent C/S file inventory: C has consumption/B/enrollment/node/
+	// three mutations; S adds X/response/TLS/wire binding. Each has five
+	// main files and two possible head copies, hence14+18 allocations.
+	c := 8*uint64(8192) + 3*65536 + 3*b.maximumMetadataPerCommit
+	s := 9*uint64(8192) + 3*65536 + 3*b.maximumMetadataPerCommit + quote.exchange + uint64(b.methods.header.wire) + quote.transport
+	if quote.consumption != c || quote.settlement != s || quote.raw != c+s || quote.physical != c+s+32*b.fileOverheadBytes {
+		t.Fatal("future C/S omitted or doubled files/transport copies")
+	}
+	// Quoting future storage neither includes the first21-file E1 quote nor
+	// obtains funds from it. Both remain independent arithmetic components.
+	_, firstPhysical, valid := providerFirstAdmissionStorageUpper(b)
+	if !valid || quote.physical == firstPhysical || quote.physical == 2*(c+s+32*b.fileOverheadBytes) {
+		t.Fatal("future-only quote reused the old double-capacity estimator")
+	}
+	b.maximumMetadataPerCommit *= 2
+	larger, valid := providerFirstOperationStorageUpper(b, config.capture, uint64(len(request.wire)))
+	if !valid || larger.physical != quote.physical+6*config.bounds.maximumMetadataPerCommit || larger.transport != quote.transport || larger.exchange != quote.exchange {
+		t.Fatal("C/S metadata quote silently included earlier first-E1 files")
+	}
+}
+
+func TestProviderFirstOperationStorageRefusesUnboundedOrUnfundedCandidateData(t *testing.T) {
+	first := providerFirstAdmissionBoundsFixture()
+	config, _ := providerScanProvisionedFixtureWithFirst(t, &first)
+	for _, mode := range []string{"legacy", "global", "request-zero", "request-limit", "request-wire", "object", "store"} {
+		t.Run(mode, func(t *testing.T) {
+			b, capture, request := config.bounds, config.capture, uint64(256)
+			switch mode {
+			case "legacy":
+				b.firstAdmission = nil
+			case "global":
+				capture.Timeout = 0
+			case "request-zero":
+				request = 0
+			case "request-limit":
+				request = 16<<10 + 1
+			case "request-wire":
+				// Pure scalar DATA; the selected header wire class cannot hold it.
+				copy := *b.methods
+				copy.header.body, copy.header.wire = 4<<10, 12<<10
+				b.methods, request = &copy, 12<<10
+			case "object":
+				b.maximumObjectBytes = 8192
+			case "store":
+				b.maximumStoredBytes = 1
+			}
+			if quote, ok := providerFirstOperationStorageUpper(b, capture, request); ok || quote != (providerFirstOperationStorage{}) {
+				t.Fatal("invalid future C/S quote", mode)
+			}
+		})
+	}
+}
+
+// Serialization-bound DATA only. No sample is completed, retained, returned
+// through an exchange factory, or used to qualify a TLS/Registry/Agent peer.
+func TestProviderFirstOperationStorageCoversIndependentJSONAndBase64Bytes(t *testing.T) {
+	first := providerFirstAdmissionBoundsFixture()
+	config, _ := providerScanProvisionedFixtureWithFirst(t, &first)
+	request, err := newProviderIntegrationRequest("eth_getBlockByNumber", []any{"finalized", false})
+	if err != nil {
+		t.Fatal(err)
+	}
+	quote, ok := providerFirstOperationStorageUpper(config.bounds, config.capture, uint64(len(request.wire)))
+	if !ok {
+		t.Fatal("finite serialization upper")
+	}
+	headers := make([]map[string]string, 128)
+	for n := range headers {
+		headers[n] = map[string]string{"name": "X-Example", "value": `an "ordinary" value`}
+	}
+	chain := make([]string, config.bounds.tls.certificates)
+	for n := range chain {
+		chain[n] = admissionTestDigest("a")
+	}
+	transport := map[string]any{"endpoint": SepoliaRPCURL, "method": "POST", "http_version": "HTTP/1.1", "status": "200", "response_headers": headers, "tls_version": "65535", "cipher_suite": "65535", "server_name": "rpc.sepolia.ethpandaops.io", "verified_chain": chain, "roots_artifact": admissionTestDigest("a"), "redirects": "0", "proxy": "none"}
+	clock := map[string]string{"id": strings.Repeat(`"`, 256), "epoch": admissionTestDigest("a"), "wall_ms": "9223372036854775807", "monotonic_ms": "9223372036854775807", "uncertainty_ms": "9223372036854775807"}
+	metadata := map[string]any{"format": "sage-provider-exchange-v2", "policy": admissionTestDigest("a"), "namespace": admissionTestDigest("a"), "instance_key": admissionTestDigest("a"), "source_id": admissionTestDigest("a"), "generation": "18446744073709551615", "ticket_digest": admissionTestDigest("a"), "provider_digest": admissionTestDigest("a"), "transport": transport, "request": base64.RawURLEncoding.EncodeToString([]byte(request.body)), "response": base64.RawURLEncoding.EncodeToString([]byte(strings.Repeat("ordinary bytes ", config.bounds.methods.header.body/15))), "clock_start": clock, "clock_end": clock}
+	rawTransport, rawExchange := providerIntegrationJSON(transport), providerIntegrationJSON(metadata)
+	if len(rawTransport) == 0 || len(rawExchange) == 0 || uint64(len(rawTransport)) > quote.transport || uint64(len(rawExchange)) > quote.exchange {
+		t.Fatal("JSON structure, escaping, identity or base64 bytes exceeded quote")
+	}
+}
+
+func TestProviderFirstOperationStorageChecksTheSeparateResponseObjectLimit(t *testing.T) {
+	first := providerFirstAdmissionBoundsFixture()
+	config, _ := providerScanProvisionedFixtureWithFirst(t, &first)
+	b := config.bounds
+	methods := *b.methods
+	methods.header.body, methods.header.wire = 1024, 256<<10
+	b.methods, b.maximumObjectBytes = &methods, 128<<10
+	// Finite scalar DATA: small body/X/TLS do not bound a separate raw wire
+	// object. No network, completion, retained object or admission is made.
+	if quote, ok := providerFirstOperationStorageUpper(b, config.capture, 256); ok || quote != (providerFirstOperationStorage{}) {
+		t.Fatal("aggregate capacity hid an oversized single response object")
+	}
+	b.maximumObjectBytes = uint64(methods.header.wire) - 256
+	if _, ok := providerFirstOperationStorageUpper(b, config.capture, 256); !ok {
+		t.Fatal("exact response-object upper boundary refused")
+	}
+	b.maximumObjectBytes--
+	if _, ok := providerFirstOperationStorageUpper(b, config.capture, 256); ok {
+		t.Fatal("response-object upper exceeding the boundary accepted")
 	}
 }
