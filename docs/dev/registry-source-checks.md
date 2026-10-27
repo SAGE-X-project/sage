@@ -1079,3 +1079,89 @@ a restart. Recreating a model loses state and cannot reset an operating ledger.
 Qualified durable storage, independent custody, an owned clock and executor,
 complete history, bootstrap and publication remain required. Existing V1 and
 SAGE 0.10.0 formats, strict checks and operating-policy activation are unchanged.
+
+### Private connected provider candidate
+
+The private coordinator joins retained request bytes, admission, consumption,
+the owned HTTP/TLS capture and independently reconstructed settlement. Its first
+request is exactly the finalized-header read retained before admission. A later
+closed Registry pin reuses that start and admits the chain ID, genesis header,
+client version and Registry identifier reads individually. Each result is
+checked before issuing the next read. Local parsing also has a separately
+consumed ticket; successful HTTP alone cannot complete that local command.
+
+The Agent owns this coordinator. A Registry Source denotes the Agent's state
+observation boundary. HTTP message signing and selection of covered components
+remain governed by the adopted messaging profile and the Agent's integration
+logic. The evidence collector does not introduce a blanket message-signing rule.
+
+All eleven work coordinates remain owned measurements. Execution and remaining
+retention/readback envelopes are separate, finite reservations fixed before
+work. Terminal outcomes retain the full original charge. Complete measurements
+end before their own future settlement storage; that later work is covered by
+the already reserved remaining envelope. Wire counts include both plaintext
+HTTP directions, headers and transfer framing. TLS records and kernel traffic
+have a different accounting boundary.
+
+The separate private continuation draft preserves global ticket tombstones,
+consumption and settlement sequences, original clocks and deadlines across
+pages. A nonfinal page is full; only a quiescent final admission may seal a short
+page. Page, seal and index metadata share one cumulative quota. Page maps and
+codec scratch are preflighted before allocation. Index application reconstructs
+the exact typed transition again; well-formed JSON and a matching hash cannot
+clear terminal history. A pending seal permits only its single exact operation
+and pre-seal index heads. These arithmetic/cache objects remain separate from
+durable custody authentication.
+
+V2 inventory, intent, commit and frontier data have distinct domains and exact
+predecessors. The initial frontier has no future admission or budget reference.
+A later enrollment root must immediately follow the existing one. Parsing these
+records does not implement external current-tip CAS, qualify a filesystem or
+restore an old permit. The V1 opener explicitly refuses a continuation profile;
+there is no automatic transition when its existing complete-lifetime cap is
+reached. Concrete V2 custody, full scans and full-history publication are still
+required before this candidate can become an operating Source.
+
+The V2 candidate also has an initial-only metadata store and a typed retained
+delta writer. It opens only two preprovisioned distinct roots with exact empty
+anchor/lock views. Finite setup reservation covers the initial high-water's two
+copies before setup writes. Each later transaction checks complete physical,
+resident, global and active-page bounds before retaining its immutable intent,
+objects, inventory, pending record and commit. Independent replay reads those
+originals, derives the frontier and combines custody, index and high-water bytes
+in one common debit. The high-water's generated pending file becomes HEAD only
+after exact predecessor checks; sync, readback and owned-clock checks surround
+that replacement. All store/file/replay owners remain quarantined after an
+uncertain transaction, and no reservation or partial file is refunded.
+
+Closing a page checks both the nonclosing debit with its still-reserved future
+page upper and the later exact page/seal debit. The private one-use file claim
+prevents the already reserved high-water allocation from being charged twice.
+Global original admission, clock, deadlines and ticket tombstones remain fixed.
+The legacy whole-prefix store cannot accept this continuation profile.
+
+These file and typed-writer results are retained metadata only. A candidate
+empty view is not independently authenticated absence; a HEAD file or a private
+pointer does not qualify a retaining principal. The opener cannot recreate a
+live owner from a completed prefix. Whole selected-prefix initial, inspection
+and final scans, qualified custody/clock/filesystem selection, the coordinator
+acknowledgment boundary and complete history/publication remain required for
+operating use. No candidate metadata result grants protected-message authority.
+
+The tagged `TestProviderCaptureConnectedAdmissionAndRegistryPin` is a bounded
+normal read-only probe against the sole configured Sepolia TLS origin. It uses
+isolated, explicitly unqualified test stores, retains the original custody and
+request/response bytes under `connected/`, and reports `source_ready=false`,
+`policy_activated=false` and zero paid transactions. Its request ceiling is the
+existing twenty seconds and its overall context is two minutes; failures are
+retained without retries or endpoint changes. A successful probe establishes
+only that joined admission/bootstrap/pin subject, not complete Registry history
+or protected Agent message authority.
+
+The provider CI job measures the new files directly in one tagged test run,
+including finite units, normal owned TLS/filesystem checks and that official
+read-only probe. It requires ninety percent statement coverage for each listed
+source file and checks the list against the complete connected source inventory.
+It does not union previous jobs, older sources or distinct operating subjects
+to qualify a new implementation. Actual custody, clock, resource feasibility,
+full-history readiness and policy activation retain their separate gates.
