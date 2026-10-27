@@ -1182,9 +1182,19 @@ readback. Any uncertain result quarantines the owner and keeps the full hold.
 The concrete codec counts repeated encoding, decoding, hashing and comparison
 calls; caller-reported counters or a smaller body upper cannot qualify a claim.
 
-This control writer implements initial-inspection metadata only. The bounded
-scan body, retained command/chunk completion, independently qualified root
-principal and post-admission coordinator acknowledgment are still required.
+This control writer implements initial-inspection metadata only. A one-use
+bounded empty-prefix inspection now independently checks the original anchor,
+setup and main high-water, reconstructs its empty state and exhausts the exact
+two-root catalogs under the same held claim and original clock. Every target
+reread contributes its actual bytes and validation count. An unknown file,
+different target or insufficient final-record/catalog upper refuses without
+refund. The result is private diagnostic data. Before E0 the empty index
+anchors have no retained inventory originals, so the result deliberately cannot
+claim to be a retained ScanChunk, settlement or execution acknowledgment.
+
+Full main/history/recovery scanning, retained command/chunk completion, the
+independently qualified root principal and post-admission coordinator
+acknowledgment are still required.
 Neither a candidate prepared attempt nor two matching directories is an actual
 irreversible retaining service, complete inspection or permission to execute
 an Agent operation. Recovery cannot reconstruct such permission from JSON.

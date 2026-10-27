@@ -8,6 +8,9 @@ func (s *providerCustodyStore) read(disk *retentionDisk, name string, maximum in
 	if maximum <= 0 {
 		return nil, errProviderIntegration
 	}
+	if s.initialInspection != nil && s.initialInspection.active && !s.initialInspection.beforeRead(disk, name, uint64(maximum)) {
+		return nil, errProviderIntegration
+	}
 	if m := s.activeMeter.Load(); m != nil && !m.preflight(providerReadEvent, uint64(maximum)) {
 		return nil, errProviderIntegration
 	}
@@ -19,6 +22,9 @@ func (s *providerCustodyStore) read(disk *retentionDisk, name string, maximum in
 		return nil, err
 	}
 	if !s.event(providerReadEvent, uint64(len(raw))) {
+		return nil, errProviderIntegration
+	}
+	if s.initialInspection != nil && s.initialInspection.active && !s.initialInspection.afterRead(disk, name, uint64(len(raw))) {
 		return nil, errProviderIntegration
 	}
 	return raw, nil

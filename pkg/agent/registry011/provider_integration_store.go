@@ -47,6 +47,7 @@ type providerCustodyStore struct {
 	frontierFiles                *providerFrontierFiles
 	frontierReplay               *providerFrontierReplay
 	scanControl                  *providerScanControl
+	initialInspection            *providerScanInitialInspection
 	activeMeter                  atomic.Pointer[providerWorkMeter]
 	newReferences                []providerIntegrationObjectRef
 	requiredReferences           map[string]bool

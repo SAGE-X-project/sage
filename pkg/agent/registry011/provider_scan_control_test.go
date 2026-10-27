@@ -9,12 +9,12 @@ import (
 
 func providerScanBoundsFixture(store providerIntegrationBounds) providerScanBounds {
 	work := candidateWorkVector{0, 0, 16 << 20, 0, 0, 0, 0, 0, 0, 0, 1 << 50}
-	return providerScanBounds{maximumAttempts: 4, maximumRecords: uint64(store.maximumCommits + store.maximumSetupRecoveries + 1), maximumObjects: 1 << 20, maximumRawBytes: 1 << 30, maximumPages: store.continuation.maximumPages, maximumChunks: 1024, chunkRecords: 8, chunkObjects: 4096, chunkRawBytes: 8 << 20, maximumResidentBytes: store.continuation.maximumResidentBytes, filenameEntryOverhead: 256, maximumFilenameBytes: 255, maximumClockReads: 65536, chunkDurationMS: 300000, totalDurationMS: 300000, maximumCatalogEntries: 200000, maximumCatalogNameBytes: 32 << 20, maximumPreIRetainedBytes: store.maximumStoredBytes, maximumPreIClockReads: 1 << 20, chunkWork: work, maximumPreIWork: candidateWorkVector{0, 0, 1 << 34, 0, 0, 0, 0, 0, 0, store.maximumStoredBytes, 1 << 62}}
+	return providerScanBounds{maximumAttempts: 4, maximumRecords: uint64(store.maximumCommits + store.maximumSetupRecoveries + 1), maximumObjects: 1 << 20, maximumRawBytes: 1 << 30, maximumPages: store.continuation.maximumPages, maximumChunks: 1024, chunkRecords: 8, chunkObjects: 4096, chunkRawBytes: 8 << 20, maximumResidentBytes: store.continuation.maximumResidentBytes, filenameEntryOverhead: 256, maximumFilenameBytes: 255, maximumClockReads: 65536, chunkDurationMS: 300000, totalDurationMS: 300000, maximumCatalogEntries: 4096, maximumCatalogNameBytes: 1 << 20, maximumPreIRetainedBytes: store.maximumStoredBytes, maximumPreIClockReads: 1 << 20, chunkWork: work, maximumPreIWork: candidateWorkVector{0, 0, 1 << 34, 0, 0, 0, 0, 0, 0, store.maximumStoredBytes, 1 << 62}}
 }
 
 // A fresh isolated candidate is provisioned before its new original clock.
 // It has no registered Agent, selected principal, dispatch permit or Source.
-func providerScanStoreFixture(t *testing.T) *providerCustodyStore {
+func providerScanProvisionedFixture(t *testing.T) (providerCustodyConfig, *providerOwnedClock) {
 	t.Helper()
 	model, policy := providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
 	b, capture := providerFrontierBoundsFixture()
@@ -57,6 +57,12 @@ func providerScanStoreFixture(t *testing.T) *providerCustodyStore {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return config, clock
+}
+
+func providerScanStoreFixture(t *testing.T) *providerCustodyStore {
+	t.Helper()
+	config, clock := providerScanProvisionedFixture(t)
 	s, err := openProviderFrontierCandidate(config, clock)
 	if err != nil {
 		t.Fatal("fresh candidate open", err)
