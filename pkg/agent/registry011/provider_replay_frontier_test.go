@@ -19,7 +19,7 @@ func TestProviderReplayCanonicalAndComparisonObserveActualInvocations(t *testing
 	if providerReplayEqual(want, []byte("different ordinary data"), m) {
 		t.Fatal("comparison ignored the actual bytes")
 	}
-	for _, maximum := range []uint64{0, (1 << 20) + 1, 1} {
+	for _, maximum := range []uint64{0, (4 << 20) + 1, 1} {
 		if providerReplayCanonical(value, maximum, nil) != nil {
 			t.Fatal("unsupported or insufficient encoding bound")
 		}

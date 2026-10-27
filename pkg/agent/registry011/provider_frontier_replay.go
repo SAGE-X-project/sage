@@ -63,7 +63,7 @@ func newProviderFrontierScanReplay(c *providerScanControl, meter *providerWorkMe
 	if err != nil {
 		return nil, err
 	}
-	r.meter, r.body.meter = meter, meter
+	r.meter, r.body.meter, r.indexes.meter = meter, meter, meter
 	return r, nil
 }
 
@@ -85,7 +85,7 @@ func (r *providerFrontierReplay) applyWithHighwater(s *providerCustodyStore, inv
 }
 
 func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after *providerFrontierHighwater) (providerFrontierRetention, error) {
-	if r == nil || r.owner != r || r.failed || r.body == nil || r.indexes == nil || !r.indexes.valid() || s == nil || r.meter != r.body.meter || r.meter != nil && s.activeMeter.Load() != r.meter || s.config.bounds.continuation == nil || r.indexes.identity != s.config.identity || r.indexes.bounds != *s.config.bounds.continuation || s.sequence != r.current.sequence || s.config.policy != r.body.policy {
+	if r == nil || r.owner != r || r.failed || r.body == nil || r.indexes == nil || !r.indexes.valid() || s == nil || r.meter != r.body.meter || r.meter != r.indexes.meter || r.meter != nil && s.activeMeter.Load() != r.meter || s.config.bounds.continuation == nil || r.indexes.identity != s.config.identity || r.indexes.bounds != *s.config.bounds.continuation || s.sequence != r.current.sequence || s.config.policy != r.body.policy {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	r.failed = true

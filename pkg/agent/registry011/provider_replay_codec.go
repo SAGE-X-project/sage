@@ -61,9 +61,9 @@ func providerReplayMarshal(value any, maximum uint64, meter *providerWorkMeter) 
 }
 
 func providerReplayCanonical(value any, maximum uint64, meter *providerWorkMeter) []byte {
-	// Existing store metadata bounds permit at most1MiB. Individual closed
-	// record callers still supply their original, often smaller, limit.
-	if maximum == 0 || maximum > 1<<20 || meter != nil && !meter.preflight(providerEncodeEvent, maximum) {
+	// The existing closed page encoder permits4MiB. Store metadata callers
+	// still supply their original1MiB or smaller record limit.
+	if maximum == 0 || maximum > 4<<20 || meter != nil && !meter.preflight(providerEncodeEvent, maximum) {
 		return nil
 	}
 	raw := providerIntegrationJSON(value)

@@ -18,6 +18,7 @@ type providerLedgerIndexes struct {
 	admission   string
 	schemaBytes uint64
 	ledger      *CandidateAdmissionLedger
+	meter       *providerWorkMeter
 }
 
 type providerIndexMutation struct {
@@ -65,11 +66,8 @@ func newProviderLedgerIndexesObserved(id ProviderCandidateIdentity, fence uint64
 		if meter != nil && !meter.preflight(providerEncodeEvent, 4096) {
 			return nil, nil, errProviderIntegration
 		}
-		raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-index-empty-v1", "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "fence": strconv.FormatUint(fence, 10), "kind": kind})
-		if meter != nil && (!meter.event(providerEncodeEvent, uint64(len(raw))) || !meter.event(providerCodecEvent, uint64(len(raw))) || !meter.event(providerHashEvent, uint64(len(raw)+1+len("sage-provider-index-empty-v1"))) || !meter.event(providerCopyEvent, uint64(len(raw)))) {
-			return nil, nil, errProviderIntegration
-		}
-		anchor, err := newProviderIntegrationObject("index-empty", raw, 4096)
+		raw := providerReplayCanonical(map[string]any{"format": "sage-provider-index-empty-v1", "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "fence": strconv.FormatUint(fence, 10), "kind": kind}, 4096, meter)
+		anchor, err := newProviderIntegrationObjectObserved("index-empty", raw, 4096, meter)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -85,7 +83,7 @@ func (s *providerLedgerIndexes) bindLedger(m *CandidateAdmissionLedger) error {
 }
 
 func (s *providerLedgerIndexes) bindRetainedLedger(m *CandidateAdmissionLedger, prior providerFrontierRetention) error {
-	if !s.valid() || s.ledger != nil || s.admission != "" || len(s.operations) != 1 || len(s.tickets) != 0 || len(s.segments) != 0 || m == nil || !m.valid() || m.continuation == nil || m.continuation.bounds != s.bounds || m.intent.identity != s.identity || m.intent.fence != s.fence || m.continuation.auxiliaryMetadata != 0 {
+	if !s.valid() || s.ledger != nil || s.admission != "" || len(s.operations) != 1 || len(s.tickets) != 0 || len(s.segments) != 0 || m == nil || !m.valid() || m.continuation == nil || m.continuation.bounds != s.bounds || m.intent.identity != s.identity || m.intent.fence != s.fence || m.continuation.auxiliaryMetadata != 0 || s.meter != m.meter {
 		return ErrAdmissionLedger
 	}
 	metadata, ok := providerUpperSum(s.schemaBytes, prior.metadata)
@@ -100,7 +98,7 @@ func (s *providerLedgerIndexes) bindRetainedLedger(m *CandidateAdmissionLedger, 
 }
 
 func (s *providerLedgerIndexes) valid() bool {
-	if s == nil || s.owner != s || !s.bounds.valid() || s.tickets == nil || s.operations == nil || s.segments == nil || s.fence == 0 || s.admission != "" && !lowerHash(s.admission) {
+	if s == nil || s.meter != nil && (s.meter.failed || s.meter.closed) || s.owner != s || !s.bounds.valid() || s.tickets == nil || s.operations == nil || s.segments == nil || s.fence == 0 || s.admission != "" && !lowerHash(s.admission) {
 		return false
 	}
 	for _, head := range s.heads {
@@ -119,8 +117,8 @@ func (s *providerLedgerIndexes) mutation(chain int, key string, expected, value 
 	if admission != "" {
 		admissionValue, budgetValue = admission, budget
 	}
-	raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-index-mutation-v1", "admission_digest": admissionValue, "kind": []string{"tickets", "operations", "segments"}[chain], "index": strconv.FormatUint(s.counts[chain], 10), "previous": s.heads[chain], "key": key, "expected": expected, "value": value, "entry_digest": entry, "budget_root": budgetValue})
-	object, err := newProviderIntegrationObject("index-mutation", raw, candidateLedgerMetadataLimit)
+	raw := providerReplayCanonical(map[string]any{"format": "sage-provider-index-mutation-v1", "admission_digest": admissionValue, "kind": []string{"tickets", "operations", "segments"}[chain], "index": strconv.FormatUint(s.counts[chain], 10), "previous": s.heads[chain], "key": key, "expected": expected, "value": value, "entry_digest": entry, "budget_root": budgetValue}, candidateLedgerMetadataLimit, s.meter)
+	object, err := newProviderIntegrationObjectObserved("index-mutation", raw, candidateLedgerMetadataLimit, s.meter)
 	return providerIndexMutation{chain, key, expected, value, object}, err
 }
 
@@ -153,11 +151,11 @@ func (s *providerLedgerIndexes) prepare(kind, operation string, sequence uint64,
 	if _, ok := s.bounds.residentUpper(tickets, sequence, segments, 0, potential, 8*candidateLedgerMetadataLimit); !ok {
 		return nil, ErrAdmissionLedger
 	}
-	actual, valid := providerIntegrationObjectDigest(entry.kind, []byte(entry.raw))
+	actual, valid := providerIntegrationObjectDigestObserved(entry.kind, []byte(entry.raw), s.meter)
 	if !valid || actual != entry.digest {
 		return nil, ErrAdmissionLedger
 	}
-	parsedRoot, err := ParseCandidateEnrollmentRoot(&ProviderCandidateContext{identity: s.identity, bound: true}, []byte(root.raw), candidateLedgerMetadataLimit)
+	parsedRoot, err := parseCandidateEnrollmentRootObserved(&ProviderCandidateContext{identity: s.identity, bound: true}, []byte(root.raw), candidateLedgerMetadataLimit, s.meter)
 	if err != nil || parsedRoot.digest != root.digest || parsedRoot.identity != root.identity || parsedRoot.fence != root.fence || parsedRoot.sequence != root.sequence || parsedRoot.budget != root.budget {
 		return nil, ErrAdmissionLedger
 	}
@@ -194,7 +192,7 @@ func (s *providerLedgerIndexes) prepare(kind, operation string, sequence uint64,
 			if err != nil || exact != entry {
 				return nil, ErrAdmissionLedger
 			}
-			value := contentJSON([]byte(entry.raw))
+			value := providerReplayJSON([]byte(entry.raw), s.meter)
 			seal, ok := value.(map[string]any)
 			if !ok || entry.kind != "ledger-seal" || seal["admission_digest"] != admission || seal["budget_root"] != budget || seal["ticket_index_root"] != s.heads[0] || seal["operation_index_root"] != s.heads[1] || seal["segment_totals_root"] != s.heads[2] {
 				return nil, ErrAdmissionLedger
@@ -231,7 +229,7 @@ func (s *providerLedgerIndexes) prepareLedgerMutation(d *providerIndexDelta, kin
 		}
 		ticket, transition = m.lastConsumption.ticket, "consumption"
 	case "settle":
-		value, ok := contentJSON([]byte(entry.raw)).(map[string]any)
+		value, ok := providerReplayJSON([]byte(entry.raw), s.meter).(map[string]any)
 		if !ok {
 			return ErrAdmissionLedger
 		}
@@ -244,7 +242,7 @@ func (s *providerLedgerIndexes) prepareLedgerMutation(d *providerIndexDelta, kin
 	if ticket == nil || entry.kind != transition || len(m.current.nodes) == 0 {
 		return ErrAdmissionLedger
 	}
-	latest := contentObject(contentJSON([]byte(m.current.nodes[len(m.current.nodes)-1])), "format", "admission_digest", "kind", "index", "previous", "entry")
+	latest := contentObject(providerReplayJSON([]byte(m.current.nodes[len(m.current.nodes)-1]), s.meter), "format", "admission_digest", "kind", "index", "previous", "entry")
 	if latest == nil || latest["entry"] != entry.digest || latest["admission_digest"] != m.intent.digest {
 		return ErrAdmissionLedger
 	}
@@ -273,7 +271,7 @@ func (s *providerLedgerIndexes) prepareLedgerMutation(d *providerIndexDelta, kin
 	if kind == "consume" {
 		return nil
 	}
-	segmentKey := candidateAdmissionSegment(m.intent.digest, ticket.segment)
+	segmentKey := candidateAdmissionSegmentObserved(m.intent.digest, ticket.segment, s.meter)
 	before, known := s.segments[segmentKey]
 	if !known {
 		if kind != "admit" || ticket.segment != uint64(len(s.segments)) {
@@ -326,7 +324,7 @@ func (s *providerLedgerIndexes) applyRetained(d *providerIndexDelta, retained pr
 	}
 	for i, node := range d.mutations {
 		original := expected.mutations[i]
-		if node.chain != original.chain || node.key != original.key || node.object != original.object || !bytesEqualProviderValue(node.expected, original.expected) || !bytesEqualProviderValue(node.value, original.value) {
+		if node.chain != original.chain || node.key != original.key || node.object != original.object || !bytesEqualProviderValueObserved(node.expected, original.expected, s.meter) || !bytesEqualProviderValueObserved(node.value, original.value, s.meter) {
 			return ErrAdmissionLedger
 		}
 	}
@@ -398,11 +396,11 @@ func (s *providerLedgerIndexes) checkMutation(node providerIndexMutation, admiss
 	if node.chain < 0 || node.chain > 2 || !lowerHash(node.key) || !lowerHash(node.object.digest) {
 		return ErrAdmissionLedger
 	}
-	value := contentObject(contentJSON([]byte(node.object.raw)), "format", "admission_digest", "kind", "index", "previous", "key", "expected", "value", "entry_digest", "budget_root")
-	if value == nil || value["format"] != "sage-provider-index-mutation-v1" || value["kind"] != []string{"tickets", "operations", "segments"}[node.chain] || value["index"] != strconv.FormatUint(s.counts[node.chain], 10) || value["previous"] != s.heads[node.chain] || value["key"] != node.key || !bytesEqualProviderValue(value["expected"], node.expected) || !bytesEqualProviderValue(value["value"], node.value) || contentString(value["admission_digest"]) != admission || !providerCandidateDigest(value["entry_digest"]) {
+	value := contentObject(providerReplayJSON([]byte(node.object.raw), s.meter), "format", "admission_digest", "kind", "index", "previous", "key", "expected", "value", "entry_digest", "budget_root")
+	if value == nil || value["format"] != "sage-provider-index-mutation-v1" || value["kind"] != []string{"tickets", "operations", "segments"}[node.chain] || value["index"] != strconv.FormatUint(s.counts[node.chain], 10) || value["previous"] != s.heads[node.chain] || value["key"] != node.key || !bytesEqualProviderValueObserved(value["expected"], node.expected, s.meter) || !bytesEqualProviderValueObserved(value["value"], node.value, s.meter) || contentString(value["admission_digest"]) != admission || !providerCandidateDigest(value["entry_digest"]) {
 		return ErrAdmissionLedger
 	}
-	actual, ok := providerIntegrationObjectDigest("index-mutation", []byte(node.object.raw))
+	actual, ok := providerIntegrationObjectDigestObserved("index-mutation", []byte(node.object.raw), s.meter)
 	if !ok || actual != node.object.digest {
 		return ErrAdmissionLedger
 	}
@@ -426,20 +424,29 @@ func (s *providerLedgerIndexes) checkMutation(node providerIndexMutation, admiss
 		}
 	case 2:
 		parsed, ok := parseProviderSegmentIndex(node.value)
-		if !ok || node.key != candidateAdmissionSegment(admission, parsed.index) {
+		if !ok || node.key != candidateAdmissionSegmentObserved(admission, parsed.index, s.meter) {
 			return ErrAdmissionLedger
 		}
 		if before, exists := s.segments[node.key]; exists {
 			expected = before.object()
 		}
 	}
-	if !bytesEqualProviderValue(expected, node.expected) {
+	if !bytesEqualProviderValueObserved(expected, node.expected, s.meter) {
 		return ErrAdmissionLedger
 	}
 	return nil
 }
 
 func bytesEqualProviderValue(a, b any) bool {
-	left, right := providerIntegrationJSON(a), providerIntegrationJSON(b)
-	return left != nil && right != nil && string(left) == string(right)
+	return bytesEqualProviderValueObserved(a, b, nil)
+}
+
+func bytesEqualProviderValueObserved(a, b any, meter *providerWorkMeter) bool {
+	if meter == nil {
+		left, right := providerIntegrationJSON(a), providerIntegrationJSON(b)
+		return left != nil && right != nil && string(left) == string(right)
+	}
+	left := providerReplayCanonical(a, candidateLedgerMetadataLimit, meter)
+	right := providerReplayCanonical(b, candidateLedgerMetadataLimit, meter)
+	return left != nil && right != nil && providerReplayEqual(left, right, meter)
 }

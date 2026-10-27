@@ -132,7 +132,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		}
 		if r.ledger == nil {
 			if s.config.bounds.continuation != nil {
-				r.ledger, err = newProviderContinuingLedger(r.policy, r.intent, ticket, *s.config.bounds.continuation)
+				r.ledger, err = newProviderContinuingLedgerObserved(r.policy, r.intent, ticket, *s.config.bounds.continuation, r.meter)
 			} else {
 				r.ledger, err = NewCandidateAdmissionLedger(r.policy, r.intent, ticket, s.config.bounds.ledger)
 			}

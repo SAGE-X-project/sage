@@ -1,9 +1,6 @@
 package registry011
 
-import (
-	"bytes"
-	"strconv"
-)
+import "strconv"
 
 const providerLedgerSealLimit uint64 = 64 << 10
 
@@ -26,13 +23,18 @@ type providerLedgerRecord struct {
 	kind, entry, node, budget string
 }
 
-func (m *CandidateAdmissionLedger) noteProviderRecord(kind, entry string, change *CandidateAdmissionLedgerChange) {
+func (m *CandidateAdmissionLedger) noteProviderRecord(kind, entry string, change *CandidateAdmissionLedgerChange) error {
 	c := m.continuation
 	if c == nil {
-		return
+		return nil
 	}
 	node := change.nodes[len(change.nodes)-1]
-	c.records = append(c.records, providerLedgerRecord{change.sequence, kind, entry, providerCandidateHash("sage-provider-ledger-node-v1", []byte(node)), change.digest})
+	digest := providerReplayDigest("sage-provider-ledger-node-v1", []byte(node), m.meter)
+	if digest == "" {
+		return ErrAdmissionLedger
+	}
+	c.records = append(c.records, providerLedgerRecord{change.sequence, kind, entry, digest, change.digest})
+	return nil
 }
 
 func (m *CandidateAdmissionLedger) providerPage() (providerIntegrationObject, error) {
@@ -80,11 +82,11 @@ func (m *CandidateAdmissionLedger) providerPage() (providerIntegrationObject, er
 	if c.page != 0 {
 		previousPage, previousBudget = c.lastPage, c.lastBudget
 	}
-	raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-ledger-page-v1", "admission_digest": m.intent.digest, "index": strconv.FormatUint(c.page, 10), "previous_page": previousPage, "first_record": strconv.FormatUint(c.sealedRecords, 10), "last_record": strconv.FormatUint(c.records[len(c.records)-1].ordinal, 10), "previous_budget": previousBudget, "last_budget": m.current.digest, "records": records})
+	raw := providerReplayCanonical(map[string]any{"format": "sage-provider-ledger-page-v1", "admission_digest": m.intent.digest, "index": strconv.FormatUint(c.page, 10), "previous_page": previousPage, "first_record": strconv.FormatUint(c.sealedRecords, 10), "last_record": strconv.FormatUint(c.records[len(c.records)-1].ordinal, 10), "previous_budget": previousBudget, "last_budget": m.current.digest, "records": records}, pageUpper, m.meter)
 	if uint64(len(raw)) > pageUpper {
 		return providerIntegrationObject{}, ErrAdmissionLedger
 	}
-	return newProviderIntegrationObject("ledger-page", raw, 4<<20)
+	return newProviderIntegrationObjectObserved("ledger-page", raw, 4<<20, m.meter)
 }
 
 func (b *providerLedgerBoundary) sealObject(indexHeads [3]string) (providerIntegrationObject, error) {
@@ -114,8 +116,8 @@ func (b *providerLedgerBoundary) sealObject(indexHeads [3]string) (providerInteg
 		counts[kind], heads[kind] = strconv.FormatUint(state.counts[i], 10), state.heads[i]
 	}
 	clock := ClockSample{ClockID: m.intent.clock.ClockID, Epoch: m.intent.clock.Epoch, WallMS: m.intent.clock.WallMS, MonotonicMS: m.intent.clock.MonotonicMS, UncertaintyMS: m.intent.clock.UncertaintyMS}
-	raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-ledger-seal-v1", "admission_digest": m.intent.digest, "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "fence": strconv.FormatUint(m.intent.fence, 10), "page_index": strconv.FormatUint(c.page, 10), "previous_seal": previous, "page_root": b.pageObject.digest, "final": b.final, "budget_root": state.digest, "counts": counts, "heads": heads, "charged": candidateLedgerWorkObject(state.totals.bootstrap.charged), "outstanding": candidateLedgerWorkObject(state.totals.bootstrap.outstanding), "live_used": strconv.FormatUint(state.totals.liveUsed, 10), "live_reserved": strconv.FormatUint(state.totals.liveReserved, 10), "retained_used": strconv.FormatUint(state.totals.retainedUsed, 10), "retained_reserved": strconv.FormatUint(state.totals.retainedHeld, 10), "payload_bytes": strconv.FormatUint(payload, 10), "metadata_bytes": strconv.FormatUint(metadata, 10), "ticket_index_root": indexHeads[0], "operation_index_root": indexHeads[1], "segment_totals_root": indexHeads[2], "initial_clock": providerClockObject(clock), "deadline_wall_ms": strconv.FormatUint(m.intent.deadline, 10)})
-	object, err := newProviderIntegrationObject("ledger-seal", raw, providerLedgerSealLimit)
+	raw := providerReplayCanonical(map[string]any{"format": "sage-provider-ledger-seal-v1", "admission_digest": m.intent.digest, "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "fence": strconv.FormatUint(m.intent.fence, 10), "page_index": strconv.FormatUint(c.page, 10), "previous_seal": previous, "page_root": b.pageObject.digest, "final": b.final, "budget_root": state.digest, "counts": counts, "heads": heads, "charged": candidateLedgerWorkObject(state.totals.bootstrap.charged), "outstanding": candidateLedgerWorkObject(state.totals.bootstrap.outstanding), "live_used": strconv.FormatUint(state.totals.liveUsed, 10), "live_reserved": strconv.FormatUint(state.totals.liveReserved, 10), "retained_used": strconv.FormatUint(state.totals.retainedUsed, 10), "retained_reserved": strconv.FormatUint(state.totals.retainedHeld, 10), "payload_bytes": strconv.FormatUint(payload, 10), "metadata_bytes": strconv.FormatUint(metadata, 10), "ticket_index_root": indexHeads[0], "operation_index_root": indexHeads[1], "segment_totals_root": indexHeads[2], "initial_clock": providerClockObject(clock), "deadline_wall_ms": strconv.FormatUint(m.intent.deadline, 10)}, providerLedgerSealLimit, m.meter)
+	object, err := newProviderIntegrationObjectObserved("ledger-seal", raw, providerLedgerSealLimit, m.meter)
 	if err != nil || b.sealDigest != "" && b.sealDigest != object.digest {
 		return providerIntegrationObject{}, ErrAdmissionLedger
 	}
@@ -169,7 +171,7 @@ func (m *CandidateAdmissionLedger) applyProviderBoundary(b *providerLedgerBounda
 		return ErrAdmissionLedger
 	}
 	seal, err := b.sealObject(indexHeads)
-	if err != nil || !bytes.Equal(pageRaw, []byte(b.pageObject.raw)) || !bytes.Equal(sealRaw, []byte(seal.raw)) {
+	if err != nil || !providerReplayEqual(pageRaw, []byte(b.pageObject.raw), m.meter) || !providerReplayEqual(sealRaw, []byte(seal.raw), m.meter) {
 		return ErrAdmissionLedger
 	}
 	c := m.continuation

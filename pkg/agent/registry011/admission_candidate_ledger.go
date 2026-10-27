@@ -1,7 +1,6 @@
 package registry011
 
 import (
-	"encoding/json"
 	"errors"
 	"math"
 	"strconv"
@@ -57,6 +56,8 @@ type CandidateAdmissionLedger struct {
 	// Only the private connected owner installs the actual retained start. The
 	// public candidate-data constructor always leaves this field empty.
 	providerStart string
+	// Only independent private replay binds a live observer; public DATA uses nil.
+	meter *providerWorkMeter
 	// Non-nil only in the private connected continuation's arithmetic model.
 	// The exported candidate constructor leaves this nil and keeps its complete
 	// original lifetime cap; this field is never a custody ACK or work permit.
@@ -103,15 +104,22 @@ func candidateLedgerBoundsValid(b CandidateLedgerBounds) bool {
 // bind the first finalized method, parameters and owned request bytes; success
 // here establishes none of those conditions and never authorizes dispatch.
 func NewCandidateAdmissionLedger(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, first *CandidateAdmissionTicket, bounds CandidateLedgerBounds) (*CandidateAdmissionLedger, error) {
+	return newCandidateAdmissionLedgerObserved(policy, intent, first, bounds, nil)
+}
+
+func newCandidateAdmissionLedgerObserved(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, first *CandidateAdmissionTicket, bounds CandidateLedgerBounds, meter *providerWorkMeter) (*CandidateAdmissionLedger, error) {
 	if policy == nil || policy.raw == "" || intent == nil || intent.raw == "" || policy.policy != intent.identity.Policy || !candidateLedgerBoundsValid(bounds) {
 		return nil, ErrConfiguration
 	}
 	if first == nil || first.raw == "" || first.intent.digest != intent.digest || first.policy != policy.raw || first.sequence != 0 || first.segment != 0 || first.previous != "" || first.work[8] != 1 {
 		return nil, ErrAdmissionLedger
 	}
-	m := &CandidateAdmissionLedger{policy: policy.raw, intent: intent, bounds: bounds, tickets: make(map[string]candidateLedgerTicket), segments: make(map[uint64]candidateBudgetTotals)}
+	m := &CandidateAdmissionLedger{policy: policy.raw, intent: intent, bounds: bounds, meter: meter, tickets: make(map[string]candidateLedgerTicket), segments: make(map[uint64]candidateBudgetTotals)}
 	m.owner = m
-	p := contentJSON([]byte(policy.raw)).(map[string]any)
+	p, ok := providerReplayJSON([]byte(policy.raw), meter).(map[string]any)
+	if !ok {
+		return nil, ErrAdmissionLedger
+	}
 	limits := p["limits"].(map[string]any)
 	for i, level := range []string{"operation", "segment", "bootstrap"} {
 		m.limits[i], _ = candidateAdmissionWorkLimit(limits[level])
@@ -119,13 +127,18 @@ func NewCandidateAdmissionLedger(policy *ProviderPolicyCandidate, intent *Candid
 	m.live, _ = providerCandidateUint(limits["live_disk_bytes"], true)
 	m.retained, _ = providerCandidateUint(limits["retained_bytes"], true)
 	for i, kind := range []string{"tickets", "consumptions", "settlements"} {
-		raw := candidateLedgerNode(intent.digest, kind, 0, "", "")
-		if len(raw) > candidateLedgerMetadataLimit || !candidateCapacity(0, m.initialBytes, uint64(len(raw)), bounds.MaximumMetadataBytes) {
+		raw := candidateLedgerNodeObserved(intent.digest, kind, 0, "", "", meter)
+		if len(raw) == 0 || len(raw) > candidateLedgerMetadataLimit || !candidateCapacity(0, m.initialBytes, uint64(len(raw)), bounds.MaximumMetadataBytes) {
 			return nil, ErrAdmissionLedger
 		}
-		m.initialNodes = append(m.initialNodes, string(raw))
+		retained := providerReplayString(raw, meter)
+		digest := providerReplayDigest("sage-provider-ledger-node-v1", raw, meter)
+		if retained == "" || digest == "" {
+			return nil, ErrAdmissionLedger
+		}
+		m.initialNodes = append(m.initialNodes, retained)
 		m.initialBytes += uint64(len(raw))
-		m.initialHeads[i] = providerCandidateHash("sage-provider-ledger-node-v1", raw)
+		m.initialHeads[i] = digest
 	}
 	if _, err := m.appendTicket(first); err != nil {
 		return nil, err
@@ -135,7 +148,7 @@ func NewCandidateAdmissionLedger(policy *ProviderPolicyCandidate, intent *Candid
 }
 
 func (m *CandidateAdmissionLedger) valid() bool {
-	return m.owner == m && m.policy != "" && m.intent != nil && m.current != nil && m.current.raw != "" && m.tickets != nil && m.segments != nil && candidateLedgerBoundsValid(m.bounds) && (m.continuation == nil || m.continuation.valid(m))
+	return m != nil && (m.meter == nil || !m.meter.failed && !m.meter.closed) && m.owner == m && m.policy != "" && m.intent != nil && m.current != nil && m.current.raw != "" && m.tickets != nil && m.segments != nil && candidateLedgerBoundsValid(m.bounds) && (m.continuation == nil || m.continuation.valid(m))
 }
 
 func (m *CandidateAdmissionLedger) AppendCandidateTicket(ticket *CandidateAdmissionTicket) (*CandidateAdmissionLedgerChange, error) {
@@ -173,10 +186,12 @@ func (m *CandidateAdmissionLedger) appendTicket(ticket *CandidateAdmissionTicket
 	if err != nil {
 		return nil, err
 	}
+	if err := m.noteProviderRecord("ticket", ticket.digest, change); err != nil {
+		return nil, err
+	}
 	m.tickets[ticket.digest] = candidateLedgerTicket{ticket: ticket}
 	m.segments[ticket.segment] = segment
 	m.lastTicket, m.current = ticket, change
-	m.noteProviderRecord("ticket", ticket.digest, change)
 	return change, nil
 }
 
@@ -204,10 +219,12 @@ func (m *CandidateAdmissionLedger) AppendCandidateConsumption(consumption *Candi
 	if err != nil {
 		return nil, err
 	}
+	if err := m.noteProviderRecord("consumption", consumption.digest, change); err != nil {
+		return nil, err
+	}
 	state.consumption = consumption
 	m.tickets[consumption.ticket.digest] = state
 	m.lastConsumption, m.current = consumption, change
-	m.noteProviderRecord("consumption", consumption.digest, change)
 	return change, nil
 }
 
@@ -249,11 +266,13 @@ func (m *CandidateAdmissionLedger) AppendCandidateSettlement(settlement *Candida
 	if err != nil {
 		return nil, err
 	}
+	if err := m.noteProviderRecord("settlement", settlement.digest, change); err != nil {
+		return nil, err
+	}
 	state.terminal = settlement.digest
 	m.tickets[ticket.digest] = state
 	m.segments[ticket.segment] = segment
 	m.current = change
-	m.noteProviderRecord("settlement", settlement.digest, change)
 	return change, nil
 }
 
@@ -296,34 +315,45 @@ func (m *CandidateAdmissionLedger) prepare(kind int, payload, entry string, tota
 	}
 	change.counts[kind]++
 	names := [...]string{"tickets", "consumptions", "settlements"}
-	node := candidateLedgerNode(m.intent.digest, names[kind], change.counts[kind], change.heads[kind], entry)
-	change.heads[kind] = providerCandidateHash("sage-provider-ledger-node-v1", node)
-	raw := candidateLedgerBudget(m.intent, change.sequence, previous, change.heads, totals)
+	node := candidateLedgerNodeObserved(m.intent.digest, names[kind], change.counts[kind], change.heads[kind], entry, m.meter)
+	change.heads[kind] = providerReplayDigest("sage-provider-ledger-node-v1", node, m.meter)
+	raw := candidateLedgerBudgetObserved(m.intent, change.sequence, previous, change.heads, totals, m.meter)
 	if m.providerStart != "" {
-		value := contentJSON(raw).(map[string]any)
+		value, ok := providerReplayJSON(raw, m.meter).(map[string]any)
+		if !ok {
+			return nil, ErrAdmissionLedger
+		}
 		value["bootstrap_start"] = m.providerStart
-		raw, _ = json.Marshal(value)
+		raw = providerReplayMarshal(value, candidateLedgerMetadataLimit, m.meter)
 	}
-	if len(node) > candidateLedgerMetadataLimit || len(raw) > candidateLedgerMetadataLimit || !candidateCapacity(0, change.metadata, uint64(len(node))+uint64(len(raw)), metadataLimit) || m.continuation != nil && !m.continuation.allows(m, records, uint64(len(payload)), uint64(len(node))+uint64(len(raw)), kind == 0) {
+	if len(node) == 0 || len(raw) == 0 || change.heads[kind] == "" || len(node) > candidateLedgerMetadataLimit || len(raw) > candidateLedgerMetadataLimit || !candidateCapacity(0, change.metadata, uint64(len(node))+uint64(len(raw)), metadataLimit) || m.continuation != nil && !m.continuation.allows(m, records, uint64(len(payload)), uint64(len(node))+uint64(len(raw)), kind == 0) {
 		return nil, ErrAdmissionLedger
 	}
-	change.raw, change.digest = string(raw), providerCandidateHash("sage-provider-budget-root-v2", raw)
+	change.raw, change.digest = providerReplayString(raw, m.meter), providerReplayDigest("sage-provider-budget-root-v2", raw, m.meter)
+	nodeText := providerReplayString(node, m.meter)
+	if change.raw == "" || change.digest == "" || nodeText == "" {
+		return nil, ErrAdmissionLedger
+	}
 	change.totals, change.clock = totals, clock
 	change.payload += uint64(len(payload))
 	change.metadata += uint64(len(node)) + uint64(len(raw))
-	change.nodes = []string{string(node)}
+	change.nodes = []string{nodeText}
 	if m.current == nil {
-		change.nodes = append(append([]string(nil), m.initialNodes...), string(node))
+		change.nodes = append(append([]string(nil), m.initialNodes...), nodeText)
 	}
 	return change, nil
 }
 
 func candidateLedgerNode(admission, kind string, index uint64, previous, entry string) []byte {
+	return candidateLedgerNodeObserved(admission, kind, index, previous, entry, nil)
+}
+
+func candidateLedgerNodeObserved(admission, kind string, index uint64, previous, entry string, meter *providerWorkMeter) []byte {
 	var previousValue, entryValue any
 	if index != 0 {
 		previousValue, entryValue = previous, entry
 	}
-	raw, _ := json.Marshal(map[string]any{"format": "sage-provider-ledger-node-v1", "admission_digest": admission, "kind": kind, "index": strconv.FormatUint(index, 10), "previous": previousValue, "entry": entryValue})
+	raw := providerReplayMarshal(map[string]any{"format": "sage-provider-ledger-node-v1", "admission_digest": admission, "kind": kind, "index": strconv.FormatUint(index, 10), "previous": previousValue, "entry": entryValue}, candidateLedgerMetadataLimit, meter)
 	return raw
 }
 
@@ -337,8 +367,12 @@ func candidateLedgerWorkObject(work candidateWorkVector) map[string]string {
 }
 
 func candidateLedgerBudget(intent *CandidateAdmissionIntent, sequence uint64, previous any, heads [3]string, totals candidateLedgerTotals) []byte {
+	return candidateLedgerBudgetObserved(intent, sequence, previous, heads, totals, nil)
+}
+
+func candidateLedgerBudgetObserved(intent *CandidateAdmissionIntent, sequence uint64, previous any, heads [3]string, totals candidateLedgerTotals, meter *providerWorkMeter) []byte {
 	id := intent.identity
-	raw, _ := json.Marshal(map[string]any{"format": "sage-provider-budget-root-v2", "admission_digest": intent.digest, "bootstrap_start": nil, "namespace": id.Namespace, "instance_key": id.Instance, "generation": strconv.FormatUint(id.Generation, 10), "fence": strconv.FormatUint(intent.fence, 10), "sequence": strconv.FormatUint(sequence, 10), "previous_root": previous, "tickets_root": heads[0], "consumptions_root": heads[1], "settlements_root": heads[2], "charged": candidateLedgerWorkObject(totals.bootstrap.charged), "outstanding": candidateLedgerWorkObject(totals.bootstrap.outstanding), "live_disk_used": strconv.FormatUint(totals.liveUsed, 10), "live_disk_reserved": strconv.FormatUint(totals.liveReserved, 10), "retained_bytes": strconv.FormatUint(totals.retainedUsed, 10), "retained_bytes_reserved": strconv.FormatUint(totals.retainedHeld, 10), "deadline_wall_ms": strconv.FormatUint(intent.deadline, 10)})
+	raw := providerReplayMarshal(map[string]any{"format": "sage-provider-budget-root-v2", "admission_digest": intent.digest, "bootstrap_start": nil, "namespace": id.Namespace, "instance_key": id.Instance, "generation": strconv.FormatUint(id.Generation, 10), "fence": strconv.FormatUint(intent.fence, 10), "sequence": strconv.FormatUint(sequence, 10), "previous_root": previous, "tickets_root": heads[0], "consumptions_root": heads[1], "settlements_root": heads[2], "charged": candidateLedgerWorkObject(totals.bootstrap.charged), "outstanding": candidateLedgerWorkObject(totals.bootstrap.outstanding), "live_disk_used": strconv.FormatUint(totals.liveUsed, 10), "live_disk_reserved": strconv.FormatUint(totals.liveReserved, 10), "retained_bytes": strconv.FormatUint(totals.retainedUsed, 10), "retained_bytes_reserved": strconv.FormatUint(totals.retainedHeld, 10), "deadline_wall_ms": strconv.FormatUint(intent.deadline, 10)}, candidateLedgerMetadataLimit, meter)
 	return raw
 }
 

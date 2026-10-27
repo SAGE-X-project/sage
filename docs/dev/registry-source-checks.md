@@ -1222,3 +1222,18 @@ the next primitive; it never returns a partial record as success. Nil-observer
 DATA callers preserve the existing V1/V2 schema and digest contracts. These
 additional observations do not confer custody authority or close the remaining
 ledger, high-water, full-prefix and operating qualification requirements.
+
+The private independent replay also attaches its original live observer to its
+own ledger and index models. Every repeated node/budget encoding, policy decode,
+index value re-encoding/comparison, page/seal rebuild and retained-object digest
+uses that same observer. A refusal cannot install the partly built ledger or
+index change. Public candidate construction keeps a nil observer and its original
+4096-record contract; private metadata and page encoders retain their existing
+8192-byte and 4 MiB ceilings. The closed page encoder ceiling is not an increase
+of a store metadata limit or the public lifetime cap.
+
+These hooks remain incomplete integration work: setup/high-water/retention and
+request/result parsers must be observed too, and a complete original catalog
+reader must drive this independent model. An arithmetic unit fixture or a
+metered page seal does not qualify an actual principal, acknowledge custody,
+restore execution, activate policy or make an Agent Source ready.

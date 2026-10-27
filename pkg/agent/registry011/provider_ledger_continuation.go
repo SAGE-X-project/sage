@@ -34,18 +34,24 @@ func (*providerLedgerContinuation) UnmarshalJSON([]byte) error { return ErrAdmis
 func (*providerLedgerBoundary) UnmarshalJSON([]byte) error     { return ErrAdmissionLedger }
 
 func newProviderContinuingLedger(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, first *CandidateAdmissionTicket, bounds providerLedgerBounds) (*CandidateAdmissionLedger, error) {
+	return newProviderContinuingLedgerObserved(policy, intent, first, bounds, nil)
+}
+
+func newProviderContinuingLedgerObserved(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, first *CandidateAdmissionTicket, bounds providerLedgerBounds, meter *providerWorkMeter) (*CandidateAdmissionLedger, error) {
 	if !bounds.valid() {
 		return nil, ErrConfiguration
 	}
 	// Only the first record is made by the existing constructor. Neither this
 	// model nor later pages are ever returned through a public candidate factory.
 	initial := CandidateLedgerBounds{int(bounds.pageRecords), min(bounds.pagePayloadBytes, 16<<20), min(bounds.pageMetadataBytes, 64<<20)}
-	m, err := NewCandidateAdmissionLedger(policy, intent, first, initial)
+	m, err := newCandidateAdmissionLedgerObserved(policy, intent, first, initial, meter)
 	if err != nil {
 		return nil, err
 	}
 	m.continuation = &providerLedgerContinuation{owner: m, bounds: bounds}
-	m.noteProviderRecord("ticket", first.digest, m.current)
+	if err := m.noteProviderRecord("ticket", first.digest, m.current); err != nil {
+		return nil, err
+	}
 	if !m.valid() || !m.continuation.allowsInitial(m) {
 		return nil, ErrAdmissionLedger
 	}
