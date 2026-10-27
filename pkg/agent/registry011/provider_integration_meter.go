@@ -26,6 +26,7 @@ type providerWorkMeter struct {
 	owner                         *providerWorkMeter
 	integration                   *providerIntegration
 	scan                          *providerScanControl
+	scanBody                      *providerScanBody
 	clocks, maximumClocks         uint64
 	ticket                        string
 	upper, remaining, reservation candidateWorkVector
@@ -54,6 +55,10 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if m.owner != m || !m.hasOwner() || m.failed || m.closed {
+		return false
+	}
+	if !m.fitsScanWindow(work) {
+		m.failed = true
 		return false
 	}
 	var next candidateWorkVector
@@ -103,9 +108,38 @@ func (m *providerWorkMeter) preflight(kind providerWorkEvent, bytes uint64) bool
 	if m.owner != m || !m.hasOwner() || m.closed || m.failed {
 		return false
 	}
+	if !m.fitsScanWindow(work) {
+		m.failed = true
+		return false
+	}
 	for i, n := range work {
 		if !candidateCapacity(0, m.actual[i], n, m.upper[i]) {
 			m.failed = true
+			return false
+		}
+	}
+	return true
+}
+
+// A scan window is a sublimit of the original claimed body's one cumulative
+// meter. Moving to the next nonempty record never resets actual/clock/upper.
+// Ordinary integration/legacy meters have no scan body and retain their API.
+func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
+	b := m.scanBody
+	if b == nil {
+		return true
+	}
+	if b.owner != b || b.meter != m || b.control != m.scan || b.control == nil || b.control.store == nil || b.control.store.scanBody != b || !b.active || b.failed {
+		return false
+	}
+	if b.encoding {
+		return true // The original B includes a separate finite output upper.
+	}
+	if !b.window {
+		return false
+	}
+	for index, n := range work {
+		if m.actual[index] < b.windowStart[index] || !candidateCapacity(0, m.actual[index]-b.windowStart[index], n, b.windowLimit[index]) {
 			return false
 		}
 	}

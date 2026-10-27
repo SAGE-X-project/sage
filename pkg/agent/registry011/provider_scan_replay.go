@@ -6,17 +6,18 @@ package registry011
 // catalogs, deferred lineage closure and the retained command/receipt chain.
 // Callers hold the original store mutex and its already claimed body meter.
 type providerScanReplayReader struct {
-	owner     *providerScanReplayReader
-	control   *providerScanControl
-	view      *providerCustodyStore
-	replay    *providerFrontierReplay
-	meter     *providerWorkMeter
-	target    providerScanTarget
-	selected  providerFrontierHighwater
-	attempt   providerScanAttempt
-	nextSetup uint64
-	positions map[string]providerCustodyPosition
-	failed    bool
+	owner       *providerScanReplayReader
+	control     *providerScanControl
+	view        *providerCustodyStore
+	replay      *providerFrontierReplay
+	meter       *providerWorkMeter
+	target      providerScanTarget
+	selected    providerFrontierHighwater
+	attempt     providerScanAttempt
+	nextSetup   uint64
+	positions   map[string]providerCustodyPosition
+	outputUpper uint64
+	failed      bool
 }
 
 func (*providerScanReplayReader) UnmarshalJSON([]byte) error { return errProviderIntegration }
@@ -42,7 +43,7 @@ func newProviderScanReplayReader(c *providerScanControl, meter *providerWorkMete
 	// These immutable handles/configuration belong to the same selected
 	// candidate. No objects, bindings, operations, indexes or setup maps are
 	// imported from its provisional coordinator state.
-	v := &providerCustodyStore{custody: s.custody, evidence: s.evidence, config: s.config, clock: s.clock, tip: s.config.anchor, objects: make(map[string]providerIntegrationObjectRef), bindings: make(map[string]string), operations: make(map[string]bool), setupCommits: make(map[string]string)}
+	v := &providerCustodyStore{custody: s.custody, evidence: s.evidence, config: s.config, clock: s.clock, scanBody: s.scanBody, tip: s.config.anchor, objects: make(map[string]providerIntegrationObjectRef), bindings: make(map[string]string), operations: make(map[string]bool), setupCommits: make(map[string]string)}
 	v.owner = v
 	v.activeMeter.Store(meter)
 	i := &providerScanReplayReader{control: c, view: v, replay: r, meter: meter, target: target, selected: f.pin, attempt: *c.prepared, positions: make(map[string]providerCustodyPosition)}
@@ -71,7 +72,7 @@ func (i *providerScanReplayReader) valid() bool {
 func (i *providerScanReplayReader) resident(objects, payload, scratch uint64) bool {
 	v, b := i.view, i.view.config.bounds
 	count, a := providerUpperSum(uint64(len(v.objects)), objects)
-	retained, c := providerUpperSum(v.retainedRaw, payload)
+	retained, c := providerUpperSum(v.retainedRaw, payload, i.outputUpper)
 	// Three worst-case global object maps coexist: references, wire bindings
 	// and semantically required references. The incoming fresh-object slice
 	// has its own entries; it is not covered by those three map counts.
@@ -85,9 +86,11 @@ func (i *providerScanReplayReader) resident(objects, payload, scratch uint64) bo
 	reader, e := providerUpperProduct(entries, b.scan.filenameEntryOverhead)
 	reader, f := providerUpperProduct(reader, 2)
 	// Include all finite catalog names reserved for the eventual full scan.
-	names, g := providerUpperProduct(b.scan.maximumCatalogNameBytes, 2)
+	prefixes, prefixOK := providerUpperProduct(b.scan.maximumCatalogEntries, 9)
+	names, nameOK := providerUpperSum(b.scan.maximumCatalogNameBytes, prefixes)
+	names, g := providerUpperProduct(names, 2)
 	reader, h := providerUpperSum(reader, names)
-	if !a || !c || !d || !setupOK || !setupMulOK || !positionOK || !operationOK || !catalogOK || !entriesOK || !e || !f || !g || !h || count > uint64(b.maximumObjects) {
+	if !a || !c || !d || !setupOK || !setupMulOK || !positionOK || !operationOK || !catalogOK || !entriesOK || !e || !f || !prefixOK || !nameOK || !g || !h || count > uint64(b.maximumObjects) {
 		return false
 	}
 	tickets, segments := uint64(0), uint64(0)

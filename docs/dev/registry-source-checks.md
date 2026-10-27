@@ -1277,3 +1277,14 @@ is a complete scan: whole-record chunk reservations, raw/catalog accounting,
 both catalog EOFs, retained command/chunk/settlement receipts and the private
 scan-to-first-admission binding remain integration requirements. The finite
 owned-file tests do not qualify an operating host, clock or retaining authority.
+
+The separate pre-admission body joins that reader to one claimed cumulative
+meter, bounded nonempty setup/main windows and both exact directory catalogs.
+It keeps successful raw target reads, including repeats, separate from catalog
+name work and separately checked live scan-control files. The final main
+window reserves the entire finite catalog before its first target record read;
+both EOFs and every required name must agree. Chunk encoding occurs after the
+work snapshot and spends the already held output upper. The returned chunk
+bytes remain unretained candidate DATA. This path requires existing E0/index
+anchor originals and rejects a post-I target: it cannot supply an admitted
+post-I command/S chain, the first-I scan binding, an ACK or operating readiness.
