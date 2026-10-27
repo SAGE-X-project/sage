@@ -35,6 +35,9 @@ func TestProviderFirstAdmissionHasDistinctPreprovisionedProfile(t *testing.T) {
 	if err != nil || oldErr != nil || !ok || full != want {
 		t.Fatal("first-E1 costs were not held in the complete B before I", err, oldErr)
 	}
+	if _, err := s.enrollBeforeScan(); err != nil {
+		t.Fatal("original O-funded enrollment before inspection", err)
+	}
 	if err := s.scanControl.claim(providerScanAttemptFixture(t, s, s.scanControl.pin)); err != nil || s.scanControl.held.retained < first.retained || s.last != nil {
 		t.Fatal("ordinary fresh claim omitted its finite first-E1 hold", err)
 	}

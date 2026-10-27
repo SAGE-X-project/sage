@@ -27,6 +27,7 @@ type providerWorkMeter struct {
 	integration                   *providerIntegration
 	scan                          *providerScanControl
 	scanBody                      *providerScanBody
+	firstAdmission                *providerFirstAdmissionOwner
 	clocks, maximumClocks         uint64
 	ticket                        string
 	upper, remaining, reservation candidateWorkVector
@@ -70,7 +71,7 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 		next[i] = m.actual[i] + n
 	}
 	m.actual = next
-	if b := m.scanBody; b != nil && b.encoding && !b.finalCatalog {
+	if b := m.scanBody; b != nil && m.firstAdmission == nil && b.encoding && !b.finalCatalog {
 		// Output has its own already held upper. Keep every event in the
 		// cumulative actual while excluding it from the target-only window.
 		for index, n := range work {
@@ -132,6 +133,9 @@ func (m *providerWorkMeter) preflight(kind providerWorkEvent, bytes uint64) bool
 // meter. Moving to the next nonempty record never resets actual/clock/upper.
 // Ordinary integration/legacy meters have no scan body and retain their API.
 func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
+	if m.firstAdmission != nil {
+		return m.firstAdmission.fits(work)
+	}
 	b := m.scanBody
 	if b == nil {
 		return true

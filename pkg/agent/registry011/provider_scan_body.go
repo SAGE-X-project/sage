@@ -24,6 +24,8 @@ type providerScanBody struct {
 	windowOutput                         candidateWorkVector
 	finalCatalogStart, finalCatalogLimit candidateWorkVector
 	finalCatalog                         bool
+	lineageComplete                      bool
+	targetRaw                            string
 	window, encoding, active, failed     bool
 }
 
@@ -256,7 +258,7 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 		}
 		beforeFirst = &base
 		receiptRAM, ramOK := providerUpperProduct(2*limits.maximumChunks, 66+limits.filenameEntryOverhead)
-		outputUpper, outputOK = providerUpperSum(outputUpper, receiptRAM)
+		outputUpper, outputOK = providerUpperSum(outputUpper, receiptRAM, s.config.bounds.maximumMetadataPerCommit, 2048)
 		if !ramOK {
 			return nil, errProviderIntegration
 		}
@@ -291,6 +293,16 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 		return nil, errProviderIntegration // No post-I path without admitted T/C/S.
 	}
 	b.reader.outputUpper = outputUpper
+	if beforeFirst != nil {
+		// Capture immutable bounded target DATA while the original B is active.
+		// Its copy uses the already held output allowance, before final IO.
+		b.encoding = true
+		b.targetRaw = providerReplayString(rawTarget, meter)
+		b.encoding = false
+		if b.targetRaw == "" {
+			return nil, errProviderIntegration
+		}
+	}
 	if !b.reader.resident(0, 0, 5*s.config.bounds.maximumMetadataPerCommit+64<<10) || !b.controls() {
 		return nil, errProviderIntegration
 	}
@@ -309,6 +321,7 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 		}
 	}
 	result := &providerScanDataResult{target: c.prepared.target, start: providerClockDiagnostic(start)}
+	inspected := start
 	cursor := providerScanCursor{"setup", 0}
 	previous := ""
 	for index := uint64(0); index < records; index++ {
@@ -389,6 +402,7 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 			if !b.reader.lineage() || !b.emptyLock(s.custody) || !b.emptyLock(s.evidence) || !c.checkMainPin() || !c.readHighwater(c.pin) {
 				return nil, errProviderIntegration
 			}
+			b.lineageComplete = true
 			// The catalog upper was held before this record began. Expanding
 			// its sublimit now consumes that reservation, never a new claim.
 			b.windowLimit = limits.chunkWork
@@ -457,11 +471,19 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 				if finishErr != nil || !candidateLedgerClockAdvance(providerClockDiagnostic(end), providerClockDiagnostic(finish)) || candidateLedgerExpired(providerClockDiagnostic(finish), c.prepared.deadline) || uint64(finish.MonotonicMS-s.setupOrigin.MonotonicMS) > limits.totalDurationMS || meter.failed {
 					return nil, errProviderIntegration
 				}
+				inspected = finish
 			}
 		}
 		result.chunks = append(result.chunks, raw)
 		b.encoding = false
 		cursor, result.end = next, providerClockDiagnostic(end)
+	}
+	if b.receipts != nil {
+		owner, err := newProviderFirstAdmissionOwner(b, result, inspected)
+		if err != nil {
+			return nil, errProviderIntegration
+		}
+		s.firstAdmissionOwner = owner // No fallible primitive follows the handoff.
 	}
 	succeeded = true
 	return result, nil // Candidate DATA, never S/ACK/Source.

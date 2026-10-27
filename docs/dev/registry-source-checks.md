@@ -1343,3 +1343,19 @@ owner or encountering an uncertain original cannot renew O or refund its tail.
 Only a completed E0 can begin its separately funded first inspection. These
 are candidate filesystem and accounting checks, not authenticated absence,
 qualified durability/clock, an ACK, first-I/E1 binding, or Agent-message use.
+
+A terminal V4 inspection now prepares one private finishing owner while the
+original store mutex and B meter are still held. Its bounded immutable target
+copy is charged before final IO, and the handoff follows both final catalogs,
+lineage closure and the final owned sample. No IO follows that handoff. The
+normal return still closes the inspection body and detaches the active meter.
+Starting finishing requires the exact unused store-owned object, original
+meter/counters/uppers, predecessor pins, setup origin and unchanged profile.
+It marks the owner started before any primitive and reattaches that same B
+without reactivating inspection or receipt APIs. Finishing work and clock
+deltas must fit the already held first-E1 envelope as well as cumulative B.
+Owned samples retain the original deadline and setup duration; the finishing
+duration also includes any wait after inspection. Any failed or uncertain
+finishing primitive permanently closes the owner and retains the full hold.
+There is no success/ACK path yet: mandatory first-I binding, independent
+seeded typed E1 replay and qualified custody remain separate work.
