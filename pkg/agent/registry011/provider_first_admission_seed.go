@@ -1,5 +1,10 @@
 package registry011
 
+import (
+	"math"
+	"strconv"
+)
+
 // A historical replay view may read the exact same immutable roots/config as
 // its active concrete owner. It never substitutes its provisional maps for
 // that owner or installs a new meter, current pin or retaining principal.
@@ -17,6 +22,42 @@ func providerAdmissionOriginalOwner(s *providerCustodyStore, m *providerWorkMete
 		return nil
 	}
 	return owner
+}
+
+// Construct immutable proposed I bytes with the current observer. Inputs and
+// output remain candidate DATA: only the future concrete first transaction
+// can bind them to its original F/pins and complete prepaid E1 persistence.
+// Nil-meter pure DATA construction cannot select an owner or acknowledge IO.
+func providerFirstAdmissionIntentDataObserved(policy *ProviderPolicyCandidate, context *ProviderCandidateContext, anchor *CandidateEnrollmentRoot, authority string, clock CandidateClockDiagnostic, meter *providerWorkMeter) (*CandidateAdmissionIntent, error) {
+	if policy == nil || policy.raw == "" || len(policy.raw) > 64<<10 || context == nil || anchor == nil || !lowerHash(authority) || len(clock.ClockID) == 0 || len(clock.ClockID) > 256 || !lowerHash(clock.Epoch) || !candidateLedgerClockAdvance(clock, clock) || clock.WallMS < clock.UncertaintyMS {
+		return nil, errProviderIntegration
+	}
+	id, err := context.Identity()
+	if err != nil || id.Policy != policy.policy || anchor.identity != id || anchor.sequence != 0 || anchor.budget != "" || anchor.status != "enrolling" || meter != nil && !meter.preflight(providerEncodeEvent, 64<<10) {
+		return nil, errProviderIntegration
+	}
+	for _, digest := range []string{id.Policy, id.Namespace, id.Instance, id.SourceID, id.Provider, anchor.digest} {
+		if !lowerHash(digest) {
+			return nil, errProviderIntegration
+		}
+	}
+	p, ok := providerReplayJSON(providerReplayPhaseBytes(policy.raw, meter), meter).(map[string]any)
+	limits, limitsOK := p["limits"].(map[string]any)
+	bootstrap, bootstrapOK := limits["bootstrap"].(map[string]any)
+	duration, durationOK := providerCandidateUint(bootstrap["deadline_ms"], true)
+	deadline, deadlineOK := providerUpperSum(uint64(clock.WallMS-clock.UncertaintyMS), duration)
+	if !ok || !limitsOK || !bootstrapOK || !durationOK || !deadlineOK || deadline > math.MaxInt64 || !providerCandidateLimits(limits) || !providerCandidateClock(p["clock"]) {
+		return nil, errProviderIntegration
+	}
+	limitsRaw := providerReplayMarshal(limits, 64<<10, meter)
+	limitsDigest := providerReplayDigest("", limitsRaw, meter)
+	joined := providerReplayJoin([]string{authority, id.Instance}, meter)
+	admissionID := providerReplayDigest("sage-provider-admission-id-v1", providerReplayPhaseBytes(joined, meter), meter)
+	if len(limitsRaw) == 0 || limitsDigest == "" || joined == "" || admissionID == "" {
+		return nil, errProviderIntegration
+	}
+	raw := providerReplayCanonical(map[string]any{"format": "sage-provider-admission-intent-v1", "policy": id.Policy, "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": "0", "fence": strconv.FormatUint(anchor.fence, 10), "admission_id": admissionID, "enrollment_anchor_root": anchor.digest, "prior_published_checkpoint": nil, "initial_clock": providerDiagnosticClockObject(clock), "deadline_wall_ms": strconv.FormatUint(deadline, 10), "limits_digest": limitsDigest, "authority_metadata_root": authority}, 64<<10, meter)
+	return parseCandidateAdmissionIntentObserved(policy, context, anchor, raw, 64<<10, meter)
 }
 
 // The first typed admit must contain exactly one semantically referenced

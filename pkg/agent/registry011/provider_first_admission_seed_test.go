@@ -2,6 +2,7 @@ package registry011
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -21,7 +22,8 @@ func providerFirstAdmissionSeedFixture(t *testing.T) (*providerCustodyStore, *pr
 		t.Fatal(err)
 	}
 	c := &providerIntegration{store: s, policy: s.config.policy, context: r.replay.body.context, anchor: r.replay.body.anchor}
-	if err := c.makeIntent(s.tip); err != nil {
+	c.intent, err = providerFirstAdmissionIntentDataObserved(c.policy, c.context, c.anchor, f.mainPin.commit, providerClockDiagnostic(f.origin), f.meter)
+	if err != nil {
 		t.Fatal("expected immutable first-I DATA", err)
 	}
 	binding.admission = c.intent.digest
@@ -33,6 +35,110 @@ func providerFirstAdmissionSeedFixture(t *testing.T) (*providerCustodyStore, *pr
 	r.replay.body.intent = c.intent // The apply test below clears and reparses it.
 	r.view.requiredReferences = make(map[string]bool)
 	return s, f, r, binding, c.intent
+}
+
+func TestProviderFirstAdmissionIntentConstructionPreservesBytesAndObservedCopies(t *testing.T) {
+	s, f := providerFirstAdmissionOwnerFixture(t)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if err := f.startLocked(); err != nil {
+		t.Fatal(err)
+	}
+	r, err := f.replayEnrollmentLocked()
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, stored, held := f.meter.actual, s.stored, s.scanControl.held
+	intent, err := providerFirstAdmissionIntentDataObserved(s.config.policy, r.replay.body.context, r.replay.body.anchor, f.mainPin.commit, providerClockDiagnostic(f.origin), f.meter)
+	if err != nil || intent == nil {
+		t.Fatal("observed immutable I DATA", err)
+	}
+	expected := &providerIntegration{store: s, policy: s.config.policy, context: r.replay.body.context, anchor: r.replay.body.anchor}
+	if err := expected.makeIntent(f.mainPin.commit); err != nil || expected.intent.raw != intent.raw || expected.intent.digest != intent.digest || intent.deadline != f.attempt.deadline || intent.clock != providerClockDiagnostic(s.setupOrigin) {
+		t.Fatal("I bytes, original epoch or deadline changed", err)
+	}
+	plain, err := providerFirstAdmissionIntentDataObserved(s.config.policy, r.replay.body.context, r.replay.body.anchor, f.mainPin.commit, providerClockDiagnostic(f.origin), nil)
+	if err != nil || plain == nil || plain.raw != intent.raw || plain.digest != intent.digest {
+		t.Fatal("pure expected DATA changed the immutable byte contract", err)
+	}
+	if f.meter.actual[2]-before[2] != uint64(2*len(s.config.policy.raw)+len(intent.raw)) || f.meter.actual[10] <= before[10] || s.stored != stored || s.scanControl.held != held || s.last != nil || s.sequence != 1 || f.body.active || r.replay.body.intent != nil {
+		t.Fatal("I construction omitted current decoding or created retained state")
+	}
+	for k, upper := range providerFirstAdmissionIntentUpper() {
+		if f.meter.actual[k]-before[k] > upper {
+			t.Fatal("I primitives exceeded their separate logical component", k)
+		}
+	}
+}
+
+func TestProviderFirstAdmissionIntentConstructionRefusesIncompleteCandidateData(t *testing.T) {
+	s, f, reader, _, _ := providerFirstAdmissionSeedFixture(t)
+	for _, mode := range []string{"policy", "context", "unbound", "anchor", "authority", "clock", "clock-size", "identity", "status", "anchor-digest", "policy-size", "policy-bytes", "policy-limits", "policy-clock", "duration", "underflow", "budget"} {
+		t.Run(mode, func(t *testing.T) {
+			policy, context, anchor, authority, clock := s.config.policy, reader.replay.body.context, reader.replay.body.anchor, f.mainPin.commit, providerClockDiagnostic(f.origin)
+			var meter *providerWorkMeter // Pure expected parser DATA except final budget case.
+			switch mode {
+			case "policy":
+				policy = nil
+			case "context":
+				context = nil
+			case "unbound":
+				copy := *context
+				copy.bound = false
+				context = &copy
+			case "anchor":
+				anchor = nil
+			case "authority":
+				authority = "unselected finite DATA"
+			case "clock":
+				clock.Epoch = ""
+			case "clock-size":
+				clock.ClockID = strings.Repeat("a", 257)
+			case "identity":
+				copy := *policy
+				copy.policy = admissionTestDigest("b")
+				policy = &copy
+			case "status":
+				copy := *anchor
+				copy.status = "not-enrolling"
+				anchor = &copy
+			case "anchor-digest":
+				copy := *anchor
+				copy.digest = "unselected finite DATA"
+				anchor = &copy
+			case "policy-size":
+				copy := *policy
+				copy.raw = strings.Repeat(" ", 64<<10+1)
+				policy = &copy
+			case "policy-bytes", "policy-limits", "policy-clock", "duration":
+				copy := *policy
+				m := contentJSON([]byte(policy.raw)).(map[string]any)
+				switch mode {
+				case "policy-bytes":
+					copy.raw = `[]`
+				case "policy-limits":
+					delete(m, "limits")
+				case "policy-clock":
+					delete(m, "clock")
+				case "duration":
+					m["limits"].(map[string]any)["bootstrap"].(map[string]any)["deadline_ms"] = "18446744073709551615"
+				}
+				if mode != "policy-bytes" {
+					copy.raw = string(providerIntegrationJSON(m))
+				}
+				policy = &copy
+			case "underflow":
+				clock.UncertaintyMS = clock.WallMS + 1
+			case "budget":
+				meter = f.meter
+				meter.upper[10] = meter.actual[10]
+			}
+			stored, held := s.stored, s.scanControl.held
+			if got, err := providerFirstAdmissionIntentDataObserved(policy, context, anchor, authority, clock, meter); err == nil || got != nil || s.stored != stored || s.scanControl.held != held || s.last != nil {
+				t.Fatal("incomplete I candidate became a result or retaining authority", mode)
+			}
+		})
+	}
 }
 
 func providerFirstAdmissionSeedInput(t *testing.T, owner, view *providerCustodyStore, kind string, raw []byte) providerIntegrationObject {

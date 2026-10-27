@@ -94,6 +94,17 @@ func providerFirstAdmissionStorageUpper(b providerIntegrationBounds) (uint64, ui
 	return raw, physical, a && c && d && e && physical <= b.maximumStoredBytes
 }
 
+// One proposed-I construction only: policy copy/decode twice, limits encode/
+// hash twice, joined admission-ID copy/copy/hash, and I encode/decode/hash/copy.
+// The15 actual primitives have input at most64KiB (plus fixed hash domains).
+// This logical component neither reserves F nor covers the rest of E1.
+func providerFirstAdmissionIntentUpper() candidateWorkVector {
+	const n uint64 = 64 << 10
+	var work candidateWorkVector
+	work[2], work[10] = 3*n, 15*(n*n+n+64)
+	return work
+}
+
 // Future-only C/S storage DATA. It does not include I/E1 and cannot fund that
 // earlier write. The eventual V4 builders must enforce the quoted closed
 // metadata caps and independently compare every original retained delta.

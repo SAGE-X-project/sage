@@ -1414,3 +1414,12 @@ work/RAM/clock bounds, concrete T/C/S retention and one-use execution remain
 unfinished; the quote creates no ticket, reservation, acknowledgment or permit.
 The remaining response wire ceiling must also fit one retained object; aggregate
 disk capacity and a small JSON body cannot replace that separate size check.
+
+The proposed first admission can now be encoded with the current observer,
+preserving the existing immutable bytes, original epoch/deadline and limits
+digest. Both policy decodes, their byte copies and every encode/hash are
+accounted separately. A fifteen-primitive logical component bounds this one
+constructor; it does not cover the rest of the first transaction. Candidate
+typed-replay units use this constructor, while pure expected DATA keeps the
+same byte contract. Neither form selects a retaining owner, persists E1,
+renews a hold, or creates an acknowledgment or execution permission.
