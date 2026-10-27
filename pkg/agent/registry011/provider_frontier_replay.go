@@ -21,14 +21,28 @@ type providerFrontierReplay struct {
 func (*providerFrontierReplay) UnmarshalJSON([]byte) error { return errProviderIntegration }
 
 func newProviderFrontierReplay(config providerCustodyConfig) (*providerFrontierReplay, error) {
-	if config.bounds.continuation == nil || !config.bounds.valid() || !config.capture.valid() || !config.bounds.methods.fits(config.capture) || config.policy == nil || config.policy.raw == "" || config.identity.Policy != config.policy.policy || config.identity.Instance != config.policy.instance || config.identity.Provider != config.policy.provider || config.profile != providerIntegrationProfile(config.bounds, config.capture) {
+	return newProviderFrontierReplayObserved(config, nil)
+}
+
+func newProviderFrontierReplayObserved(config providerCustodyConfig, meter *providerWorkMeter) (*providerFrontierReplay, error) {
+	if config.bounds.continuation == nil || !config.bounds.valid() || !config.capture.valid() || !config.bounds.methods.fits(config.capture) || config.policy == nil || config.policy.raw == "" || config.identity.Policy != config.policy.policy || config.identity.Instance != config.policy.instance || config.identity.Provider != config.policy.provider {
+		return nil, errProviderIntegration
+	}
+	if meter != nil && !meter.preflight(providerEncodeEvent, config.bounds.maximumMetadataPerCommit) {
+		return nil, errProviderIntegration
+	}
+	profile, domain := providerIntegrationProfileBytes(config.bounds, config.capture)
+	if meter != nil && (!meter.event(providerEncodeEvent, uint64(len(profile))) || !meter.event(providerHashEvent, uint64(len(profile)+1+len(domain))) || !meter.event(providerCodecEvent, uint64(len(config.policy.raw)))) {
+		return nil, errProviderIntegration
+	}
+	if config.profile != providerCandidateHash(domain, profile) {
 		return nil, errProviderIntegration
 	}
 	parsedPolicy, err := ParseProviderPolicyCandidate([]byte(config.policy.raw), 64<<10)
 	if err != nil || *parsedPolicy != *config.policy {
 		return nil, errProviderIntegration
 	}
-	indexes, anchors, err := newProviderLedgerIndexes(config.identity, 1, *config.bounds.continuation)
+	indexes, anchors, err := newProviderLedgerIndexesObserved(config.identity, 1, *config.bounds.continuation, meter)
 	if err != nil {
 		return nil, errProviderIntegration
 	}

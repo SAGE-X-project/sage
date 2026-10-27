@@ -25,6 +25,8 @@ type providerWorkMeter struct {
 	mu                            sync.Mutex
 	owner                         *providerWorkMeter
 	integration                   *providerIntegration
+	scan                          *providerScanControl
+	clocks, maximumClocks         uint64
 	ticket                        string
 	upper, remaining, reservation candidateWorkVector
 	actual                        candidateWorkVector
@@ -51,7 +53,7 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.owner != m || m.integration == nil || m.failed || m.closed {
+	if m.owner != m || !m.hasOwner() || m.failed || m.closed {
 		return false
 	}
 	var next candidateWorkVector
@@ -71,6 +73,16 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 // use n+1, and actual clock/sync calls use1. These logical units still need
 // independent worst-case CPU/profile qualification before operating selection.
 func (m *providerWorkMeter) event(kind providerWorkEvent, bytes uint64) bool {
+	if kind == providerClockEvent && m != nil && m.scan != nil {
+		m.mu.Lock()
+		if m.maximumClocks == 0 || m.clocks >= m.maximumClocks || m.closed || m.failed {
+			m.failed = true
+			m.mu.Unlock()
+			return false
+		}
+		m.clocks++
+		m.mu.Unlock()
+	}
 	work, ok := providerEventVector(kind, bytes)
 	if !ok {
 		return m.refuse()
@@ -88,7 +100,7 @@ func (m *providerWorkMeter) preflight(kind providerWorkEvent, bytes uint64) bool
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.owner != m || m.integration == nil || m.closed || m.failed {
+	if m.owner != m || !m.hasOwner() || m.closed || m.failed {
 		return false
 	}
 	for i, n := range work {
@@ -98,6 +110,10 @@ func (m *providerWorkMeter) preflight(kind providerWorkEvent, bytes uint64) bool
 		}
 	}
 	return true
+}
+
+func (m *providerWorkMeter) hasOwner() bool {
+	return m.integration != nil && m.scan == nil || m.integration == nil && m.scan != nil && m.scan.owner == m.scan
 }
 
 func providerEventVector(kind providerWorkEvent, bytes uint64) (candidateWorkVector, bool) {
@@ -149,7 +165,7 @@ func (m *providerWorkMeter) finish(owner *providerIntegration, ticket *Candidate
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.owner != m || m.integration != owner || m.authority || m.failed || m.closed || m.ticket != ticket.digest || ticket.work != m.reservation || m.actual[8] != ticket.work[8] || m.actual[9] == 0 || m.actual[10] == 0 || !candidateLedgerClockAdvance(ticket.intent.clock, providerClockDiagnostic(clock)) || candidateLedgerExpired(providerClockDiagnostic(clock), ticket.deadline) {
+	if m.owner != m || m.scan != nil || m.integration != owner || m.authority || m.failed || m.closed || m.ticket != ticket.digest || ticket.work != m.reservation || m.actual[8] != ticket.work[8] || m.actual[9] == 0 || m.actual[10] == 0 || !candidateLedgerClockAdvance(ticket.intent.clock, providerClockDiagnostic(clock)) || candidateLedgerExpired(providerClockDiagnostic(clock), ticket.deadline) {
 		m.failed = true
 		return nil, errProviderIntegration
 	}
@@ -170,7 +186,7 @@ func (m *providerMeasuredWork) claim(owner *providerIntegration, ticket *Candida
 	v := m.meter
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	if v.owner != v || v.integration != owner || v.failed || !v.closed || v.claimed || v.ticket != ticket.digest || v.end != clock {
+	if v.owner != v || v.scan != nil || v.integration != owner || v.failed || !v.closed || v.claimed || v.ticket != ticket.digest || v.end != clock {
 		return candidateWorkVector{}, false
 	}
 	v.claimed = true

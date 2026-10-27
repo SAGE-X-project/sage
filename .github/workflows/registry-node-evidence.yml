@@ -109,6 +109,8 @@ jobs:
               'provider_frontier_cas_files.go',
               'provider_frontier_custody_preflight.go', 'provider_frontier_custody_write.go',
               'provider_frontier_custody_open.go',
+              'provider_scan_bounds.go', 'provider_scan_codec.go', 'provider_scan_open.go',
+              'provider_scan_control.go', 'provider_scan_control_records.go',
               'provider_integration.go', 'provider_integration_admission.go',
               'provider_integration_bootstrap.go', 'provider_integration_budget.go',
               'provider_integration_clock.go', 'provider_integration_exchange.go',
@@ -127,7 +129,7 @@ jobs:
               targets[name] = [0, 0]
           discovered = {
               item.name
-              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go')
+              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go', 'provider_scan*.go')
               for item in Path('pkg/agent/registry011').glob(pattern)
               if not item.name.endswith('_test.go')
           }

@@ -47,6 +47,10 @@ func (*providerLedgerIndexes) UnmarshalJSON([]byte) error { return ErrAdmissionL
 func (*providerIndexDelta) UnmarshalJSON([]byte) error    { return ErrAdmissionLedger }
 
 func newProviderLedgerIndexes(id ProviderCandidateIdentity, fence uint64, bounds providerLedgerBounds) (*providerLedgerIndexes, []providerIntegrationObject, error) {
+	return newProviderLedgerIndexesObserved(id, fence, bounds, nil)
+}
+
+func newProviderLedgerIndexesObserved(id ProviderCandidateIdentity, fence uint64, bounds providerLedgerBounds, meter *providerWorkMeter) (*providerLedgerIndexes, []providerIntegrationObject, error) {
 	if !lowerHash(id.Namespace) || !lowerHash(id.Instance) || !lowerHash(id.SourceID) || fence == 0 || !bounds.valid() || bounds.maximumMetadataBytes < 3*4096 {
 		return nil, nil, ErrAdmissionLedger
 	}
@@ -58,7 +62,13 @@ func newProviderLedgerIndexes(id ProviderCandidateIdentity, fence uint64, bounds
 	s.owner = s
 	anchors := make([]providerIntegrationObject, 0, 3)
 	for index, kind := range []string{"tickets", "operations", "segments"} {
+		if meter != nil && !meter.preflight(providerEncodeEvent, 4096) {
+			return nil, nil, errProviderIntegration
+		}
 		raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-index-empty-v1", "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "fence": strconv.FormatUint(fence, 10), "kind": kind})
+		if meter != nil && (!meter.event(providerEncodeEvent, uint64(len(raw))) || !meter.event(providerCodecEvent, uint64(len(raw))) || !meter.event(providerHashEvent, uint64(len(raw)+1+len("sage-provider-index-empty-v1"))) || !meter.event(providerCopyEvent, uint64(len(raw)))) {
+			return nil, nil, errProviderIntegration
+		}
 		anchor, err := newProviderIntegrationObject("index-empty", raw, 4096)
 		if err != nil {
 			return nil, nil, err

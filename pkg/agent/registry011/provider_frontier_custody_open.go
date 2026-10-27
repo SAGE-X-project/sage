@@ -11,6 +11,12 @@ import (
 // authentication of absence, principal qualification or an operating Source.
 // Reopen/recovery is inspection-only and is deliberately not this constructor.
 func openProviderFrontierCandidate(config providerCustodyConfig, clock *providerOwnedClock) (*providerCustodyStore, error) {
+	if config.bounds.scan != nil {
+		return openProviderScanCandidate(config, clock)
+	}
+	if config.expectedScanHead != "" {
+		return nil, ErrConfiguration
+	}
 	r, err := newProviderFrontierReplay(config)
 	id := config.identity
 	if err != nil || clock == nil || clock.policy != id.Policy || config.attempt != 0 || config.expectedTip != config.anchor || config.expectedSetupTip != config.anchor || !lowerHash(config.anchor) || !lowerHash(id.Namespace) || !lowerHash(id.Instance) || !lowerHash(id.Policy) || !lowerHash(id.SourceID) || !lowerHash(id.Provider) || id.Generation != 0 || config.custodyDirectory == "" || config.evidenceDirectory == "" {

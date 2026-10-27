@@ -1165,3 +1165,26 @@ source file and checks the list against the complete connected source inventory.
 It does not union previous jobs, older sources or distinct operating subjects
 to qualify a new implementation. Actual custody, clock, resource feasibility,
 full-history readiness and policy activation retain their separate gates.
+
+The fresh private V3 candidate profile adds explicit scan and cumulative
+pre-admission limits. It requires separately provisioned initial scan high-water
+and HEAD originals in both roots and their independently configured digest.
+Adding scan limits never converts existing V1/V2 files or recreates missing
+initial records. The initial setup upper is held once and includes the bounded
+new original-file, directory and codec observations.
+
+A candidate scan attempt holds its complete preparation and whole-profile body
+uppers before parsing policy data, encoding control records or reading the old
+control prefix. Each of the eleven work coordinates, retained bytes and clock
+reads accumulates without refund. The two roots retain matching intent/claim,
+commit and high-water originals before sequential HEAD replacement and exact
+readback. Any uncertain result quarantines the owner and keeps the full hold.
+The concrete codec counts repeated encoding, decoding, hashing and comparison
+calls; caller-reported counters or a smaller body upper cannot qualify a claim.
+
+This control writer implements initial-inspection metadata only. The bounded
+scan body, retained command/chunk completion, independently qualified root
+principal and post-admission coordinator acknowledgment are still required.
+Neither a candidate prepared attempt nor two matching directories is an actual
+irreversible retaining service, complete inspection or permission to execute
+an Agent operation. Recovery cannot reconstruct such permission from JSON.

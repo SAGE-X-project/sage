@@ -23,6 +23,7 @@ type providerCustodyConfig struct {
 	capture                                        ProviderCaptureLimits
 	bounds                                         providerIntegrationBounds
 	attempt                                        int
+	expectedScanHead                               string
 }
 
 type providerCustodyStore struct {
@@ -45,6 +46,7 @@ type providerCustodyStore struct {
 	replay                       *providerCustodyReplay
 	frontierFiles                *providerFrontierFiles
 	frontierReplay               *providerFrontierReplay
+	scanControl                  *providerScanControl
 	activeMeter                  atomic.Pointer[providerWorkMeter]
 	newReferences                []providerIntegrationObjectRef
 	requiredReferences           map[string]bool
@@ -174,6 +176,10 @@ func (s *providerCustodyStore) close() error {
 // Read one bounded directory entry at a time: an unexpected or excessive tail
 // refuses without allocating a slice proportional to an untrusted directory.
 func providerDirectoryNames(disk *retentionDisk, maximum int) (map[string]bool, error) {
+	return providerDirectoryNamesObserved(disk, maximum, nil)
+}
+
+func providerDirectoryNamesObserved(disk *retentionDisk, maximum int, meter *providerWorkMeter) (map[string]bool, error) {
 	if maximum <= 0 || disk.checkIdentity() != nil {
 		return nil, errProviderIntegration
 	}
@@ -184,11 +190,20 @@ func providerDirectoryNames(disk *retentionDisk, maximum int) (map[string]bool, 
 	defer func() { _ = f.Close() }()
 	names := make(map[string]bool)
 	for len(names) <= maximum {
+		if meter != nil && !meter.preflight(providerReadEvent, 255) {
+			return nil, errProviderIntegration
+		}
 		items, err := f.ReadDir(1)
 		if err == io.EOF && len(items) == 0 {
+			if meter != nil && !meter.event(providerReadEvent, 0) {
+				return nil, errProviderIntegration
+			}
 			return names, nil
 		}
 		if err != nil || len(items) != 1 || !items[0].Type().IsRegular() || names[items[0].Name()] {
+			return nil, errProviderIntegration
+		}
+		if meter != nil && (!meter.event(providerReadEvent, uint64(len(items[0].Name()))) || !meter.event(providerCompareEvent, uint64(len(items[0].Name())))) {
 			return nil, errProviderIntegration
 		}
 		names[items[0].Name()] = true

@@ -6,12 +6,20 @@ import (
 	"strconv"
 )
 
-func providerIntegrationProfile(b providerIntegrationBounds, capture ProviderCaptureLimits) string {
+func providerIntegrationProfileBytes(b providerIntegrationBounds, capture ProviderCaptureLimits) ([]byte, string) {
 	format, domain := "sage-provider-owned-profile-v1", "sage-provider-store-profile-v1"
 	if b.continuation != nil {
 		format, domain = "sage-provider-owned-profile-v2", "sage-provider-store-profile-v2"
 	}
+	if b.scan != nil {
+		format, domain = "sage-provider-owned-profile-v3", "sage-provider-store-profile-v3"
+	}
 	raw := providerIntegrationJSON(map[string]any{"format": format, "store": b.profileObject(), "capture": map[string]string{"timeout_ns": strconv.FormatInt(int64(capture.Timeout), 10), "header_bytes": strconv.Itoa(capture.HeaderBytes), "body_bytes": strconv.Itoa(capture.BodyBytes), "wire_bytes": strconv.Itoa(capture.WireBytes), "json_depth": strconv.Itoa(capture.JSONDepth)}})
+	return raw, domain
+}
+
+func providerIntegrationProfile(b providerIntegrationBounds, capture ProviderCaptureLimits) string {
+	raw, domain := providerIntegrationProfileBytes(b, capture)
 	return providerCandidateHash(domain, raw)
 }
 
@@ -26,6 +34,9 @@ func (b providerIntegrationBounds) profileObject() map[string]any {
 		if b.tls != nil {
 			out["tls"] = b.tls.object()
 		}
+	}
+	if b.scan != nil {
+		out["format"], out["scan"] = "sage-provider-store-profile-v3", b.scan.object()
 	}
 	for name, value := range values {
 		out[name] = strconv.FormatUint(value, 10)
@@ -42,6 +53,7 @@ type providerIntegrationBounds struct {
 	continuation             *providerLedgerBounds
 	methods                  *providerMethodBounds
 	tls                      *providerTLSBounds
+	scan                     *providerScanBounds
 	maximumCommits           int
 	maximumObjects           int
 	maximumEntries           int
@@ -65,6 +77,9 @@ func (b providerIntegrationBounds) valid() bool {
 		}
 		commits, objects, entries = c.maximumCommits, c.maximumObjects, 256
 	} else if b.methods != nil || b.tls != nil {
+		return false
+	}
+	if b.scan != nil && (b.continuation == nil || !b.scan.valid(b)) {
 		return false
 	}
 	return candidateLedgerBoundsValid(b.ledger) && b.maximumCommits > 0 && uint64(b.maximumCommits) <= commits && b.maximumObjects > 0 && uint64(b.maximumObjects) <= objects && b.maximumEntries > 0 && b.maximumEntries <= entries &&
