@@ -132,6 +132,24 @@ func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
 	if b.owner != b || b.meter != m || b.control != m.scan || b.control == nil || b.control.store == nil || b.control.store.scanBody != b || !b.active || b.failed {
 		return false
 	}
+	if limit := b.beforeFirst; limit != nil {
+		if m.clocks > limit.clocks {
+			return false
+		}
+		for index, n := range work {
+			if !candidateCapacity(0, m.actual[index], n, limit.work[index]) {
+				return false // First-E1 funds cannot be borrowed by inspection.
+			}
+		}
+	}
+	if b.finalCatalog {
+		for index, n := range work {
+			if m.actual[index] < b.finalCatalogStart[index] || !candidateCapacity(0, m.actual[index]-b.finalCatalogStart[index], n, b.finalCatalogLimit[index]) {
+				return false
+			}
+		}
+		return true
+	}
 	if b.encoding {
 		return true // The original B includes a separate finite output upper.
 	}

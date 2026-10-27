@@ -1301,3 +1301,18 @@ work and both disk-used totals before the first ticket; exported constructors
 still start at zero and keep the original lifetime cap. These primitives are
 not yet the retained chunk/binding/typed first-E1 writer, an authenticated
 restart, a qualified physical bound or permission to send Agent messages.
+
+V4 additionally commits its receipt-accounting revision in the profile before
+H0. Its command/chunk V2 records name the exact selected scan HEAD, high-water
+and attempt, and retain two immutable original copies with observed readbacks.
+Earlier originals are re-read before each next nonempty record. The final
+record reserves both full catalogs before starting: one precedes its chunk
+snapshot, and the other checks the exact final filenames after retention.
+Later encoding, writes and the second catalog still spend the original held
+meter even though that work is outside the chunk's earlier diagnostic snapshot.
+Inspection cannot borrow the separately held first-E1 work or clock allowance.
+The four readbacks and two receipt decoders have separate output accounting;
+old profile bytes cannot silently acquire that revision. Receipt ownership is
+live and nonserializable. Retained DATA still needs the mandatory first-I
+binding, independently seeded typed E1 replay and qualified custody boundary;
+the owned E0 unit fixture does not provide those operating guarantees.

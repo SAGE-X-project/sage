@@ -10,8 +10,23 @@ import (
 // One ordinary original enrollment is retained through the existing candidate
 // writer. The future reader never receives these coordinator maps or inputs.
 func providerScanEnrollmentOriginals(t *testing.T) *providerCustodyStore {
+	return providerScanEnrollmentOriginalsWithFirst(t, nil)
+}
+
+func providerScanEnrollmentOriginalsWithFirst(t *testing.T, first *providerFirstAdmissionBounds) *providerCustodyStore {
 	t.Helper()
-	s := providerScanStoreFixture(t)
+	var s *providerCustodyStore
+	if first == nil {
+		s = providerScanStoreFixture(t)
+	} else {
+		config, clock := providerScanProvisionedFixtureWithFirst(t, first)
+		var err error
+		s, err = openProviderFrontierCandidate(config, clock)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = s.close() })
+	}
 	context := &ProviderCandidateContext{s.config.identity, true}
 	m := admissionTestRootObject(t)
 	m["policy"] = s.config.identity.Policy

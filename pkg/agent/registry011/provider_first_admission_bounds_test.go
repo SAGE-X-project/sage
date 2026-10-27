@@ -28,6 +28,9 @@ func TestProviderFirstAdmissionHasDistinctPreprovisionedProfile(t *testing.T) {
 	}
 	full, err := providerScanBodyUpper(config)
 	oldBody, oldErr := providerScanBodyUpper(providerCustodyConfig{bounds: old})
+	// V4 additionally funds the two closed receipt decoders, independently of
+	// the four original readbacks; old V3 keeps its original output bound.
+	oldBody.work[2] += 2 * config.bounds.maximumMetadataPerCommit * config.bounds.scan.maximumChunks
 	want, ok := providerScanUpperSum(oldBody, providerScanUpper{first.work, first.retained, first.clocks})
 	if err != nil || oldErr != nil || !ok || full != want {
 		t.Fatal("first-E1 costs were not held in the complete B before I", err, oldErr)

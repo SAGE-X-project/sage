@@ -134,6 +134,23 @@ func (b providerScanBounds) fits(open, held providerScanUpper) bool {
 // of a small reservation. Chunk snapshots exclude their later encoding, so a
 // separate finite output/retention upper is included for EVERY possible chunk.
 func providerScanBodyUpper(config providerCustodyConfig) (providerScanUpper, error) {
+	body, err := providerScanInspectionUpper(config)
+	if err != nil {
+		return providerScanUpper{}, err
+	}
+	ok := true
+	if first := config.bounds.firstAdmission; first != nil {
+		body, ok = providerScanUpperSum(body, providerScanUpper{first.work, first.retained, first.clocks})
+	}
+	if !ok || !config.bounds.scan.fits(providerScanOpenUpper(config), body) {
+		return providerScanUpper{}, errProviderIntegration
+	}
+	return body, nil
+}
+
+// The inspection sublimit excludes the separately held first-E1 envelope.
+// V4 includes four original readbacks and two closed receipt decoders per pair.
+func providerScanInspectionUpper(config providerCustodyConfig) (providerScanUpper, error) {
 	if config.bounds.scan == nil || !config.bounds.valid() {
 		return providerScanUpper{}, errProviderIntegration
 	}
@@ -149,6 +166,13 @@ func providerScanBodyUpper(config providerCustodyConfig) (providerScanUpper, err
 		return providerScanUpper{}, errProviderIntegration
 	}
 	output := providerScanUpper{candidateWorkVector{0, 0, bytes, 0, 0, 0, 0, 0, 0, bytes, units}, retained, 0}
+	if config.bounds.firstAdmission != nil {
+		decoded, ok := providerUpperProduct(n, 6)
+		if !ok {
+			return providerScanUpper{}, errProviderIntegration
+		}
+		output.work[2] = decoded
+	}
 	one, ok := providerScanUpperSum(providerScanUpper{work: b.chunkWork}, output)
 	if !ok {
 		return providerScanUpper{}, errProviderIntegration
@@ -162,12 +186,6 @@ func providerScanBodyUpper(config providerCustodyConfig) (providerScanUpper, err
 	}
 	body.retained, ok = providerUpperProduct(one.retained, b.maximumChunks)
 	body.clocks = b.maximumClockReads
-	if first := config.bounds.firstAdmission; first != nil {
-		if !ok {
-			return providerScanUpper{}, errProviderIntegration
-		}
-		body, ok = providerScanUpperSum(body, providerScanUpper{first.work, first.retained, first.clocks})
-	}
 	if !ok || !b.fits(providerScanOpenUpper(config), body) {
 		return providerScanUpper{}, errProviderIntegration
 	}

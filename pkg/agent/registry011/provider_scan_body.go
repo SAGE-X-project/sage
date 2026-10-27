@@ -5,21 +5,25 @@ import (
 	"strconv"
 )
 
-// This is an unretained pre-I DATA inspection. It is not an S/ACK or a
-// qualified Source. Post-I command/S admission and the O+Q/I binding are
-// separate prerequisites; this entry point deliberately cannot scan after I.
+// V3 returns unretained pre-I DATA. V4 retains exact command/chunk originals;
+// neither mode supplies an S/ACK or qualified Source. Post-I command/S and the
+// O+Q/I binding remain separate; this entry point cannot scan after I.
 type providerScanBody struct {
-	owner                               *providerScanBody
-	control                             *providerScanControl
-	meter                               *providerWorkMeter
-	reader                              *providerScanReplayReader
-	required                            map[string]byte //1 target,2 verified live control
-	observed                            map[string]bool
-	objects, rawBytes, catalogNameBytes uint64
-	requiredNameBytes                   uint64
-	chunkObjects, chunkBytes            uint64
-	windowStart, windowLimit            candidateWorkVector
-	window, encoding, active, failed    bool
+	owner                                *providerScanBody
+	control                              *providerScanControl
+	meter                                *providerWorkMeter
+	reader                               *providerScanReplayReader
+	receipts                             *providerScanReceipts
+	beforeFirst                          *providerScanUpper
+	required                             map[string]byte //1 target,2 verified live control
+	observed                             map[string]bool
+	objects, rawBytes, catalogNameBytes  uint64
+	requiredNameBytes                    uint64
+	chunkObjects, chunkBytes             uint64
+	windowStart, windowLimit             candidateWorkVector
+	finalCatalogStart, finalCatalogLimit candidateWorkVector
+	finalCatalog                         bool
+	window, encoding, active, failed     bool
 }
 
 type providerScanDataResult struct {
@@ -228,7 +232,7 @@ func providerScanBodyResident(config providerCustodyConfig, output uint64) bool 
 
 // One nonempty setup/main record uses one already prepaid subwindow. There
 // is no JSON/cursor resume, renewed budget/deadline or zero-record heartbeat.
-// The resulting closed chunk bytes remain unretained DATA with no S/ACK.
+// Returned bytes remain DATA with no S/ACK, even when V4 retains originals.
 func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*providerScanDataResult, error) {
 	if c == nil || c.store == nil {
 		return nil, errProviderIntegration
@@ -243,10 +247,23 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 	records, ok := providerUpperSum(s.frontierFiles.pin.ordinal, 1)
 	outputUpper, outputOK := providerUpperProduct(2*s.config.bounds.maximumMetadataPerCommit, limits.maximumChunks)
 	catalogUpper, catalogOK := providerScanCatalogWork(s.config)
+	var beforeFirst *providerScanUpper
+	if s.config.bounds.firstAdmission != nil {
+		base, baseErr := providerScanInspectionUpper(s.config)
+		if baseErr != nil {
+			return nil, errProviderIntegration
+		}
+		beforeFirst = &base
+		receiptRAM, ramOK := providerUpperProduct(2*limits.maximumChunks, 66+limits.filenameEntryOverhead)
+		outputUpper, outputOK = providerUpperSum(outputUpper, receiptRAM)
+		if !ramOK {
+			return nil, errProviderIntegration
+		}
+	}
 	if !ok || !outputOK || !catalogOK || !providerScanBodyResident(s.config, outputUpper) || records > limits.maximumRecords || records > limits.maximumChunks || limits.chunkRecords == 0 {
 		return nil, errProviderIntegration
 	}
-	b := &providerScanBody{control: c, required: make(map[string]byte), observed: make(map[string]bool), active: true, window: true, windowLimit: limits.chunkWork}
+	b := &providerScanBody{control: c, beforeFirst: beforeFirst, required: make(map[string]byte), observed: make(map[string]bool), active: true, window: true, windowLimit: limits.chunkWork}
 	b.owner = b
 	meter := &providerWorkMeter{scan: c, scanBody: b, upper: c.prepared.body.work, maximumClocks: c.prepared.body.clocks}
 	meter.owner, b.meter = meter, meter
@@ -276,6 +293,12 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 	if !b.reader.resident(0, 0, 5*s.config.bounds.maximumMetadataPerCommit+64<<10) || !b.controls() {
 		return nil, errProviderIntegration
 	}
+	if beforeFirst != nil {
+		b.receipts, err = newProviderScanReceipts(b, x)
+		if err != nil {
+			return nil, errProviderIntegration
+		}
+	}
 	// Existing typed index anchors must have actual original files even in the
 	// setup chunk. Do not serialize computed future anchors before E0 exists.
 	for _, anchor := range b.reader.replay.anchors {
@@ -301,20 +324,51 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 		last := index+1 == records
 		if last {
 			for k, n := range catalogUpper {
+				if b.receipts != nil {
+					var valid bool
+					n, valid = providerUpperProduct(n, 2)
+					if !valid {
+						return nil, errProviderIntegration
+					}
+				}
 				if n > b.windowLimit[k] {
 					return nil, errProviderIntegration
 				}
 				b.windowLimit[k] -= n
 			}
-			if meter.clocks > meter.maximumClocks || limits.maximumCatalogEntries+2 > meter.maximumClocks-meter.clocks {
+			catalogClocks, valid := providerUpperSum(limits.maximumCatalogEntries, 2)
+			if b.receipts != nil && valid {
+				catalogClocks, valid = providerUpperProduct(catalogClocks, 2)
+				if valid {
+					catalogClocks, valid = providerUpperSum(catalogClocks, 1) // Retention finishing sample.
+				}
+			}
+			clockMaximum := meter.maximumClocks
+			if b.beforeFirst != nil {
+				clockMaximum = min(clockMaximum, b.beforeFirst.clocks)
+			}
+			if !valid || meter.clocks > clockMaximum || catalogClocks > clockMaximum-meter.clocks {
 				return nil, errProviderIntegration
 			}
 		}
-		command, err := x.command(result.target, index, previous, cursor)
+		var command []byte
+		commandDomain := "sage-provider-scan-command-v1"
+		if b.receipts != nil {
+			if !b.receipts.verifyPrevious(x, result.target, index) {
+				return nil, errProviderIntegration
+			}
+			command, err = b.receipts.command(x, result.target, index, previous, cursor)
+			commandDomain = providerScanCommandV2
+		} else {
+			command, err = x.command(result.target, index, previous, cursor)
+		}
 		if err != nil {
 			return nil, errProviderIntegration
 		}
-		commandDigest := x.hash("sage-provider-scan-command-v1", command)
+		commandDigest := x.hash(commandDomain, command)
+		if b.receipts != nil && !b.receipts.retain(x, "command", commandDigest, command) {
+			return nil, errProviderIntegration
+		}
 		next := cursor
 		if cursor.phase == "setup" {
 			err = b.reader.setup()
@@ -336,6 +390,11 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 			// The catalog upper was held before this record began. Expanding
 			// its sublimit now consumes that reservation, never a new claim.
 			b.windowLimit = limits.chunkWork
+			if b.receipts != nil {
+				for k, n := range catalogUpper {
+					b.windowLimit[k] -= n // The second full pass is still held.
+				}
+			}
 			if !b.catalog() {
 				return nil, errProviderIntegration
 			}
@@ -359,18 +418,49 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 		f := b.reader.replay.current
 		heads := b.reader.replay.indexes.heads
 		b.window, b.encoding = false, true
-		raw, err := x.encode(map[string]any{"format": "sage-provider-scan-chunk-v1", "target": result.target, "command_digest": commandDigest, "index": strconv.FormatUint(index, 10), "previous_chunk": providerNullableDigest(previous), "cursor_start": cursor.object(), "cursor_end": next.object(), "records": "1", "objects": strconv.FormatUint(b.chunkObjects, 10), "bytes": strconv.FormatUint(b.chunkBytes, 10), "cumulative_records": strconv.FormatUint(result.records, 10), "cumulative_objects": strconv.FormatUint(result.objects, 10), "cumulative_bytes": strconv.FormatUint(result.rawBytes, 10), "replay_state_digest": providerNullableDigest(f.replay), "ticket_index_root": heads[0], "operation_index_root": heads[1], "segment_totals_root": heads[2], "clock_start": providerClockObject(chunkStart), "clock_end": providerClockObject(end), "work": candidateLedgerWorkObject(work), "cumulative_work": candidateLedgerWorkObject(result.work)})
+		chunk := map[string]any{"format": "sage-provider-scan-chunk-v1", "target": result.target, "command_digest": commandDigest, "index": strconv.FormatUint(index, 10), "previous_chunk": providerNullableDigest(previous), "cursor_start": cursor.object(), "cursor_end": next.object(), "records": "1", "objects": strconv.FormatUint(b.chunkObjects, 10), "bytes": strconv.FormatUint(b.chunkBytes, 10), "cumulative_records": strconv.FormatUint(result.records, 10), "cumulative_objects": strconv.FormatUint(result.objects, 10), "cumulative_bytes": strconv.FormatUint(result.rawBytes, 10), "replay_state_digest": providerNullableDigest(f.replay), "ticket_index_root": heads[0], "operation_index_root": heads[1], "segment_totals_root": heads[2], "clock_start": providerClockObject(chunkStart), "clock_end": providerClockObject(end), "work": candidateLedgerWorkObject(work), "cumulative_work": candidateLedgerWorkObject(result.work)}
+		chunkDomain := "sage-provider-scan-chunk-v1"
+		if b.receipts != nil {
+			chunkDomain = providerScanChunkV2
+			b.receipts.bind(chunk, chunkDomain)
+		}
+		raw, err := x.encode(chunk)
 		if err != nil {
 			return nil, errProviderIntegration
 		}
-		previous = x.hash("sage-provider-scan-chunk-v1", raw)
+		previous = x.hash(chunkDomain, raw)
 		if previous == "" {
 			return nil, errProviderIntegration
+		}
+		if b.receipts != nil {
+			b.window = true
+			if !b.receipts.retain(x, "chunk", previous, raw) {
+				return nil, errProviderIntegration
+			}
+			if last {
+				// Same final nonempty record, with a second catalog reservation
+				// held before it began. No new record, claim or empty heartbeat.
+				b.encoding, b.finalCatalog = false, true
+				b.finalCatalogStart, b.finalCatalogLimit = meter.actual, catalogUpper
+				clear(b.observed)
+				b.catalogNameBytes = 0
+				if !b.catalog() {
+					return nil, errProviderIntegration
+				}
+				b.finalCatalog, b.encoding = false, true
+				if !c.checkMainPin() || !c.readHighwater(c.pin) {
+					return nil, errProviderIntegration
+				}
+				finish, finishErr := s.sample()
+				if finishErr != nil || !candidateLedgerClockAdvance(providerClockDiagnostic(end), providerClockDiagnostic(finish)) || candidateLedgerExpired(providerClockDiagnostic(finish), c.prepared.deadline) || uint64(finish.MonotonicMS-s.setupOrigin.MonotonicMS) > limits.totalDurationMS || meter.failed {
+					return nil, errProviderIntegration
+				}
+			}
 		}
 		result.chunks = append(result.chunks, raw)
 		b.encoding = false
 		cursor, result.end = next, providerClockDiagnostic(end)
 	}
 	succeeded = true
-	return result, nil // All bytes remain unretained DATA, not S/ACK/Source.
+	return result, nil // Candidate DATA, never S/ACK/Source.
 }
