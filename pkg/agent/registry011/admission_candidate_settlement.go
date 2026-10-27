@@ -21,17 +21,24 @@ type CandidateSettlementDiagnostic struct {
 func (*CandidateAdmissionSettlement) UnmarshalJSON([]byte) error { return ErrAdmissionCandidate }
 
 func ParseCandidateAdmissionSettlement(ticket *CandidateAdmissionTicket, raw []byte, maximumBytes int) (*CandidateAdmissionSettlement, error) {
+	return parseCandidateAdmissionSettlementObserved(ticket, raw, maximumBytes, nil)
+}
+
+func parseCandidateAdmissionSettlementObserved(ticket *CandidateAdmissionTicket, raw []byte, maximumBytes int, meter *providerWorkMeter) (*CandidateAdmissionSettlement, error) {
 	if ticket == nil || ticket.raw == "" || maximumBytes <= 0 || maximumBytes > 64<<10 {
 		return nil, ErrConfiguration
 	}
 	if len(raw) == 0 || len(raw) > maximumBytes {
 		return nil, ErrAdmissionCandidate
 	}
-	m := contentObject(contentJSON(raw), "format", "ticket_digest", "outcome", "actual_work", "retained_root", "clock_end")
+	m := contentObject(providerReplayJSON(raw, meter), "format", "ticket_digest", "outcome", "actual_work", "retained_root", "clock_end")
 	if m == nil || m["format"] != "sage-provider-budget-settlement-v2" || m["ticket_digest"] != ticket.digest {
 		return nil, ErrAdmissionCandidate
 	}
-	p := contentJSON([]byte(ticket.policy)).(map[string]any)
+	p, policyOK := providerReplayJSON([]byte(ticket.policy), meter).(map[string]any)
+	if !policyOK {
+		return nil, ErrAdmissionCandidate
+	}
 	clock, ok := candidateAdmissionClock(m["clock_end"], p["clock"].(map[string]any))
 	if !ok || !candidateLedgerClockAdvance(ticket.intent.clock, clock) {
 		return nil, ErrAdmissionCandidate
@@ -56,7 +63,12 @@ func ParseCandidateAdmissionSettlement(ticket *CandidateAdmissionTicket, raw []b
 	default:
 		return nil, ErrAdmissionCandidate
 	}
-	return &CandidateAdmissionSettlement{string(raw), providerCandidateHash("sage-provider-budget-settlement-v2", raw), ticket, outcome, actual, contentString(m["retained_root"]), clock}, nil
+	digest := providerReplayDigest("sage-provider-budget-settlement-v2", raw, meter)
+	retained := providerReplayString(raw, meter)
+	if digest == "" || retained == "" {
+		return nil, ErrAdmissionCandidate
+	}
+	return &CandidateAdmissionSettlement{retained, digest, ticket, outcome, actual, contentString(m["retained_root"]), clock}, nil
 }
 
 // This checks candidate sample relations only, never a fresh trusted clock.

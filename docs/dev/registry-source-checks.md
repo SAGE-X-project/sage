@@ -1198,3 +1198,16 @@ acknowledgment are still required.
 Neither a candidate prepared attempt nor two matching directories is an actual
 irreversible retaining service, complete inspection or permission to execute
 an Agent operation. Recovery cannot reconstruct such permission from JSON.
+
+The independent pre-admission replay instance keeps its already claimed body
+meter separately from the producer's creation-time setup observation. Typed
+enrollment, admission, ticket, consumption and settlement parsing observes each
+actual input and repeated policy decode, standard closed-schema encoding,
+ordinary or domain-separated hash, and retained string copy. The scan object
+reader also counts the domain NUL and its separate repeated format parse.
+Existing public DATA parsers retain their exact bytes and nil-observer behavior;
+they cannot select a scan meter or grant an acknowledgment. An inactive or
+different body observer refuses before typed replay. This does not yet close
+all frontier, index, page and retention codec paths, nor implement the complete
+main-prefix scanner or its command/chunk/settlement bridge. Those paths must be
+observed before any complete scan-work or operating qualification claim.

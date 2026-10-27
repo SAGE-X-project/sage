@@ -13,6 +13,7 @@ type providerFrontierReplay struct {
 	anchors      []providerIntegrationObject
 	current      providerFrontierRecord
 	preI         providerFrontierRetention
+	meter        *providerWorkMeter
 	setupOrdinal int
 	highwater    bool
 	failed       bool
@@ -51,6 +52,21 @@ func newProviderFrontierReplayObserved(config providerCustodyConfig, meter *prov
 	return r, nil
 }
 
+// Creation-time setup observation must not leave its expired setup meter
+// attached to the producer cache. Only this independent pre-I scan instance
+// keeps the one live, already claimed body meter for its typed DATA reads.
+func newProviderFrontierScanReplay(c *providerScanControl, meter *providerWorkMeter) (*providerFrontierReplay, error) {
+	if !c.valid() || c.prepared == nil || meter == nil || meter.owner != meter || meter.scan != c || meter.integration != nil || meter.failed || meter.closed || c.store.activeMeter.Load() != meter || meter.upper != c.prepared.body.work || meter.maximumClocks != c.prepared.body.clocks {
+		return nil, errProviderIntegration
+	}
+	r, err := newProviderFrontierReplayObserved(c.store.config, meter)
+	if err != nil {
+		return nil, err
+	}
+	r.meter, r.body.meter = meter, meter
+	return r, nil
+}
+
 // apply consumes retained data only. The surrounding concrete custodian must
 // have checked its independently selected current composite tip before any
 // write. After this typed delta it must perform and read back that exact CAS
@@ -69,7 +85,7 @@ func (r *providerFrontierReplay) applyWithHighwater(s *providerCustodyStore, inv
 }
 
 func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after *providerFrontierHighwater) (providerFrontierRetention, error) {
-	if r == nil || r.owner != r || r.failed || r.body == nil || r.indexes == nil || !r.indexes.valid() || s == nil || s.config.bounds.continuation == nil || r.indexes.identity != s.config.identity || r.indexes.bounds != *s.config.bounds.continuation || s.sequence != r.current.sequence || s.config.policy != r.body.policy {
+	if r == nil || r.owner != r || r.failed || r.body == nil || r.indexes == nil || !r.indexes.valid() || s == nil || r.meter != r.body.meter || r.meter != nil && s.activeMeter.Load() != r.meter || s.config.bounds.continuation == nil || r.indexes.identity != s.config.identity || r.indexes.bounds != *s.config.bounds.continuation || s.sequence != r.current.sequence || s.config.policy != r.body.policy {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	r.failed = true
@@ -91,7 +107,7 @@ func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventor
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	rootRaw, err := s.object("enrollment", contentString(m["new_enrollment_root"]))
-	root, parseErr := ParseCandidateEnrollmentRoot(r.body.context, rootRaw, 64<<10)
+	root, parseErr := parseCandidateEnrollmentRootObserved(r.body.context, rootRaw, 64<<10, r.meter)
 	if err != nil || parseErr != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}

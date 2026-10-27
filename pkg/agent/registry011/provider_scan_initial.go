@@ -155,7 +155,7 @@ func (c *providerScanControl) inspectInitial(rawTarget []byte) (*providerScanEmp
 	if err != nil {
 		return nil, errProviderIntegration
 	}
-	i.replay, err = newProviderFrontierReplayObserved(s.config, meter)
+	i.replay, err = newProviderFrontierScanReplay(c, meter)
 	if err != nil {
 		return nil, errProviderIntegration
 	}

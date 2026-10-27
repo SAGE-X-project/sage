@@ -18,6 +18,7 @@ type providerCustodyReplay struct {
 	ledger        *CandidateAdmissionLedger
 	start         string
 	firstExchange string
+	meter         *providerWorkMeter
 }
 
 func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
@@ -30,7 +31,15 @@ func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
 	}
 	raw, err := s.read(s.evidence, providerObjectName(kind, digest), int64(ref.bytes))
 	domain, _ := providerIntegrationDomain(kind)
-	if !s.event(providerHashEvent, uint64(len(raw)+len(domain))) || domain != "" && !s.event(providerCodecEvent, uint64(len(raw))) {
+	hashBytes := uint64(len(raw) + len(domain))
+	var scanMeter *providerWorkMeter
+	if m := s.activeMeter.Load(); m != nil && m.scan != nil && domain != "" {
+		// The new scan path observes the actual domain separator as well.
+		// Existing non-scan measurement subjects remain unchanged.
+		hashBytes++
+		scanMeter = m
+	}
+	if !s.event(providerHashEvent, hashBytes) || domain != "" && !s.event(providerCodecEvent, uint64(len(raw))) {
 		return nil, errProviderIntegration
 	}
 	actual, valid := providerIntegrationObjectDigest(kind, raw)
@@ -38,7 +47,7 @@ func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
 		return nil, errProviderIntegration
 	}
 	if domain != "" {
-		m, ok := contentJSON(raw).(map[string]any)
+		m, ok := providerReplayJSON(raw, scanMeter).(map[string]any)
 		if !ok || m["format"] != domain {
 			return nil, errProviderIntegration
 		}
@@ -50,8 +59,11 @@ func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
 }
 
 func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string]any) error {
+	if r == nil || s == nil || r.meter != nil && s.activeMeter.Load() != r.meter {
+		return errProviderIntegration
+	}
 	raw, err := s.object("enrollment", contentString(intent["new_enrollment_root"]))
-	root, parseErr := ParseCandidateEnrollmentRoot(r.context, raw, 64<<10)
+	root, parseErr := parseCandidateEnrollmentRootObserved(r.context, raw, 64<<10, r.meter)
 	if err != nil || parseErr != nil {
 		return errProviderIntegration
 	}
@@ -83,7 +95,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 	switch kind {
 	case "admit":
 		if r.intent == nil {
-			b, ok := contentJSON(budget).(map[string]any)
+			b, ok := providerReplayJSON(budget, r.meter).(map[string]any)
 			if !ok || b["format"] != "sage-provider-budget-root-v2" {
 				return errProviderIntegration
 			}
@@ -91,8 +103,9 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 			if err != nil {
 				return errProviderIntegration
 			}
-			r.intent, err = ParseCandidateAdmissionIntent(r.policy, r.context, r.anchor, i, 64<<10)
-			if err != nil || contentJSON(i).(map[string]any)["authority_metadata_root"] != s.tip || r.intent.clock != providerClockDiagnostic(s.setupOrigin) {
+			r.intent, err = parseCandidateAdmissionIntentObserved(r.policy, r.context, r.anchor, i, 64<<10, r.meter)
+			originalIntent, intentOK := providerReplayJSON(i, r.meter).(map[string]any)
+			if err != nil || !intentOK || originalIntent["authority_metadata_root"] != s.tip || r.intent.clock != providerClockDiagnostic(s.setupOrigin) {
 				return errProviderIntegration
 			}
 		}
@@ -105,7 +118,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		segment := uint64(0)
 		if r.ledger != nil {
 			segment = r.ledger.lastTicket.segment
-			m, ok := contentJSON(payload).(map[string]any)
+			m, ok := providerReplayJSON(payload, r.meter).(map[string]any)
 			if !ok {
 				return errProviderIntegration
 			}
@@ -113,7 +126,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 				segment++
 			}
 		}
-		ticket, err := ParseCandidateAdmissionTicket(r.policy, r.intent, segment, payload, 64<<10)
+		ticket, err := parseCandidateAdmissionTicketObserved(r.policy, r.intent, segment, payload, 64<<10, r.meter)
 		if err != nil || r.checkTicketBytes(s, ticket) != nil {
 			return errProviderIntegration
 		}
@@ -137,7 +150,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		if err != nil || r.ledger == nil {
 			return errProviderIntegration
 		}
-		m, ok := contentJSON(payload).(map[string]any)
+		m, ok := providerReplayJSON(payload, r.meter).(map[string]any)
 		if !ok {
 			return errProviderIntegration
 		}
@@ -146,7 +159,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 			return errProviderIntegration
 		}
 		ticket := entry.ticket
-		consumption, err := ParseCandidateConsumption(ticket, payload, 64<<10)
+		consumption, err := parseCandidateConsumptionObserved(ticket, payload, 64<<10, r.meter)
 		if err != nil {
 			return errProviderIntegration
 		}
@@ -159,7 +172,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		if err != nil || r.ledger == nil {
 			return errProviderIntegration
 		}
-		m, ok := contentJSON(payload).(map[string]any)
+		m, ok := providerReplayJSON(payload, r.meter).(map[string]any)
 		if !ok {
 			return errProviderIntegration
 		}
@@ -168,7 +181,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 			return errProviderIntegration
 		}
 		ticket := entry.ticket
-		settlement, err := ParseCandidateAdmissionSettlement(ticket, payload, 64<<10)
+		settlement, err := parseCandidateAdmissionSettlementObserved(ticket, payload, 64<<10, r.meter)
 		if err != nil || settlement.outcome == "complete" && r.checkResult(s, settlement) != nil {
 			return errProviderIntegration
 		}

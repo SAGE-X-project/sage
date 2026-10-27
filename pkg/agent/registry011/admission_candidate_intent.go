@@ -1,11 +1,6 @@
 package registry011
 
-import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
-	"math"
-)
+import "math"
 
 // CandidateAdmissionIntent is immutable proposed pre-request data. It names an
 // existing candidate initial anchor and original clock/deadline, with no RPC
@@ -44,6 +39,10 @@ func (*CandidateAdmissionIntent) UnmarshalJSON([]byte) error { return ErrAdmissi
 // artifact digest is SHA-256 of the exact canonical policy.limits subtree, not
 // a new wire-message digest or an authentication claim.
 func ParseCandidateAdmissionIntent(policy *ProviderPolicyCandidate, context *ProviderCandidateContext, anchor *CandidateEnrollmentRoot, raw []byte, maximumBytes int) (*CandidateAdmissionIntent, error) {
+	return parseCandidateAdmissionIntentObserved(policy, context, anchor, raw, maximumBytes, nil)
+}
+
+func parseCandidateAdmissionIntentObserved(policy *ProviderPolicyCandidate, context *ProviderCandidateContext, anchor *CandidateEnrollmentRoot, raw []byte, maximumBytes int, meter *providerWorkMeter) (*CandidateAdmissionIntent, error) {
 	id, err := context.Identity()
 	if err != nil || policy == nil || policy.raw == "" || maximumBytes <= 0 || maximumBytes > 64<<10 {
 		return nil, ErrConfiguration
@@ -54,7 +53,7 @@ func ParseCandidateAdmissionIntent(policy *ProviderPolicyCandidate, context *Pro
 	if len(raw) == 0 || len(raw) > maximumBytes {
 		return nil, ErrAdmissionCandidate
 	}
-	m := contentObject(contentJSON(raw), "format", "policy", "namespace", "instance_key", "source_id", "generation", "fence", "admission_id", "enrollment_anchor_root", "prior_published_checkpoint", "initial_clock", "deadline_wall_ms", "limits_digest", "authority_metadata_root")
+	m := contentObject(providerReplayJSON(raw, meter), "format", "policy", "namespace", "instance_key", "source_id", "generation", "fence", "admission_id", "enrollment_anchor_root", "prior_published_checkpoint", "initial_clock", "deadline_wall_ms", "limits_digest", "authority_metadata_root")
 	if m == nil || m["format"] != "sage-provider-admission-intent-v1" || m["policy"] != id.Policy || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["source_id"] != id.SourceID || m["enrollment_anchor_root"] != anchor.digest || m["prior_published_checkpoint"] != nil || !providerCandidateDigest(m["admission_id"]) || !providerCandidateDigest(m["authority_metadata_root"]) {
 		return nil, ErrAdmissionCandidate
 	}
@@ -64,12 +63,15 @@ func ParseCandidateAdmissionIntent(policy *ProviderPolicyCandidate, context *Pro
 	if !a || !b || !c || generation != id.Generation || fence != anchor.fence || deadline > math.MaxInt64 {
 		return nil, ErrAdmissionCandidate
 	}
-	p := contentJSON([]byte(policy.raw)).(map[string]any)
+	p, policyOK := providerReplayJSON([]byte(policy.raw), meter).(map[string]any)
+	if !policyOK {
+		return nil, ErrAdmissionCandidate
+	}
 	// This subtree contains only validated ASCII names and decimal strings, so
 	// standard sorted object encoding has the same bytes as the policy's JCS.
-	limitsRaw, _ := json.Marshal(p["limits"])
-	limitSum := sha256.Sum256(limitsRaw)
-	if m["limits_digest"] != "0x"+hex.EncodeToString(limitSum[:]) {
+	limitsRaw := providerReplayMarshal(p["limits"], 64<<10, meter)
+	limitsDigest := providerReplayDigest("", limitsRaw, meter)
+	if len(limitsRaw) == 0 || limitsDigest == "" || m["limits_digest"] != limitsDigest {
 		return nil, ErrAdmissionCandidate
 	}
 	clock, ok := candidateAdmissionClock(m["initial_clock"], p["clock"].(map[string]any))
@@ -87,7 +89,12 @@ func ParseCandidateAdmissionIntent(policy *ProviderPolicyCandidate, context *Pro
 	if duration > math.MaxInt64-initialLower || deadline != initialLower+duration {
 		return nil, ErrAdmissionCandidate
 	}
-	return &CandidateAdmissionIntent{string(raw), providerCandidateHash("sage-provider-admission-intent-v1", raw), id, anchor.digest, fence, clock, deadline}, nil
+	digest := providerReplayDigest("sage-provider-admission-intent-v1", raw, meter)
+	retained := providerReplayString(raw, meter)
+	if digest == "" || retained == "" {
+		return nil, ErrAdmissionCandidate
+	}
+	return &CandidateAdmissionIntent{retained, digest, id, anchor.digest, fence, clock, deadline}, nil
 }
 
 func candidateAdmissionClock(value any, policy map[string]any) (CandidateClockDiagnostic, bool) {
