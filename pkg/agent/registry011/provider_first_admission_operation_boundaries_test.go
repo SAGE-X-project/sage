@@ -186,7 +186,7 @@ func TestProviderFirstOperationMissingLiveCommandDataCannotDispatch(t *testing.T
 
 func TestProviderFirstOperationCannotSettleWithoutItsOriginalConsumption(t *testing.T) {
 	var missing *providerFirstOperationOwner
-	if result, err := missing.executeCandidate(nil); err == nil || result != nil {
+	if result, err := missing.executeCandidate(context.Background()); err == nil || result != nil {
 		t.Fatal("missing owner executed")
 	}
 	s, o := providerFirstOperationFixture(t)
