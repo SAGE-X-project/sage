@@ -146,9 +146,10 @@ func TestProviderIntegrationStartDataReconstructsOnlyTheRetainedFinalizedHeader(
 			default:
 				exchange := contentJSON(x).(map[string]any)
 				response := "!"
-				if mode == "response-rpc" {
+				switch mode {
+				case "response-rpc":
 					response = base64.RawURLEncoding.EncodeToString([]byte("{}"))
-				} else if mode == "response-header" {
+				case "response-header":
 					response = base64.RawURLEncoding.EncodeToString([]byte(`{"jsonrpc":"2.0","id":1,"result":{"hash":"invalid"}}`))
 				}
 				exchange["response"] = response

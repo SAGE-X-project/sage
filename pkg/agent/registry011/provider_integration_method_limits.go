@@ -109,7 +109,12 @@ func (b providerMethodBounds) capture(request *providerIntegrationRequest, globa
 	default:
 		return ProviderCaptureLimits{}, errProviderIntegration
 	}
-	if limit.body > global.BodyBytes || limit.wire > global.WireBytes || len(request.wire) >= limit.wire {
+	return limit.capture(global, len(request.wire))
+}
+
+// Keep the final capture validation at the selected-class boundary as well.
+func (limit providerMethodLimit) capture(global ProviderCaptureLimits, requestBytes int) (ProviderCaptureLimits, error) {
+	if limit.body > global.BodyBytes || limit.wire > global.WireBytes || requestBytes >= limit.wire {
 		return ProviderCaptureLimits{}, errProviderIntegration
 	}
 	global.BodyBytes, global.WireBytes = limit.body, limit.wire
@@ -123,8 +128,11 @@ func (c *providerIntegration) operationPrimitive(request *providerIntegrationReq
 	if !c.valid() || request == nil {
 		return providerPrimitiveBounds{}, errProviderIntegration
 	}
-	primitive := c.primitive
-	b := c.store.config.bounds
+	return c.store.config.bounds.operationPrimitive(request, c.primitive)
+}
+
+// This selector returns bounded DATA, never an admitted operation or permit.
+func (b providerIntegrationBounds) operationPrimitive(request *providerIntegrationRequest, primitive providerPrimitiveBounds) (providerPrimitiveBounds, error) {
 	if b.continuation == nil {
 		return primitive, nil
 	}
@@ -202,16 +210,26 @@ func providerEstimateFrontierOperation(store providerIntegrationBounds, primitiv
 		execution[8] = 1
 	}
 	remaining := candidateWorkVector{0, 0, decoded, 0, 0, 0, 0, 0, 0, disk, units}
-	var total candidateWorkVector
-	for i := range total {
-		total[i], ok = providerUpperSum(execution[i], remaining[i])
-		if !ok {
-			return providerOperationReservation{}, errProviderIntegration
-		}
+	total, err := providerFrontierWorkTotal(execution, remaining)
+	if err != nil {
+		return providerOperationReservation{}, err
 	}
 	capacity, ok := providerUpperProduct(disk, 2)
 	if !ok || capacity > store.maximumStoredBytes {
 		return providerOperationReservation{}, errProviderIntegration
 	}
 	return providerOperationReservation{work: total, execution: execution, remaining: remaining, live: capacity, retained: capacity}, nil
+}
+
+// Execution and authority work share every coordinate without wraparound.
+func providerFrontierWorkTotal(execution, remaining candidateWorkVector) (candidateWorkVector, error) {
+	var total candidateWorkVector
+	for i := range total {
+		var ok bool
+		total[i], ok = providerUpperSum(execution[i], remaining[i])
+		if !ok {
+			return candidateWorkVector{}, errProviderIntegration
+		}
+	}
+	return total, nil
 }

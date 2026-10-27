@@ -6,6 +6,31 @@ import (
 	"time"
 )
 
+func TestProviderMethodCaptureAndCombinedWorkRefuseInvalidInertBounds(t *testing.T) {
+	bounds, global := providerFrontierBoundsFixture()
+	invalid := global
+	invalid.Timeout = 0
+	if _, err := bounds.methods.scalar.capture(invalid, 1); err == nil {
+		t.Fatal("selected class erased invalid global transport limits")
+	}
+	for i := range (candidateWorkVector{}) {
+		var execution, remaining candidateWorkVector
+		execution[i], remaining[i] = ^uint64(0), 1
+		if got, err := providerFrontierWorkTotal(execution, remaining); err == nil || got != (candidateWorkVector{}) {
+			t.Fatal("combined execution and authority reservation wrapped", i)
+		}
+	}
+	// Inert selector input only; never opened, admitted or used for transport.
+	bounds.methods = nil
+	request, err := newProviderIntegrationRequest("eth_chainId", []any{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := bounds.operationPrimitive(request, providerPrimitiveBounds{capture: global}); err == nil {
+		t.Fatal("missing selected method class borrowed legacy allowances")
+	}
+}
+
 func providerFrontierBoundsFixture() (providerIntegrationBounds, ProviderCaptureLimits) {
 	ledger := providerLedgerBoundsFixture()
 	methods := providerMethodBounds{scalar: providerMethodLimit{1024, 16 << 10}, header: providerMethodLimit{16 << 10, 32 << 10}, code: providerMethodLimit{64 << 10, 128 << 10}, state: providerMethodLimit{64 << 10, 128 << 10}, block: providerMethodLimit{64 << 10, 128 << 10}, receipts: providerMethodLimit{64 << 10, 128 << 10}, gas: providerMethodLimit{16 << 10, 64 << 10}, execution: providerMethodLimit{128 << 10, 256 << 10}}

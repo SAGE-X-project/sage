@@ -2,6 +2,31 @@ package registry011
 
 import "testing"
 
+func TestProviderFrontierDerivationRefusesClockAndPriorStateDisagreement(t *testing.T) {
+	for _, mode := range []string{"initial-clock", "prior", "missing-ledger"} {
+		t.Run(mode, func(t *testing.T) {
+			u, s, r := providerFrontierBeforeTicketData(t)
+			record := u.records[1]
+			claimed, err := parseProviderFrontierRecord(record.frontier, s.config.identity)
+			if err != nil {
+				t.Fatal(err)
+			}
+			delta := &providerIndexDelta{previous: r.current.indexes}
+			switch mode {
+			case "initial-clock":
+				s.setupOrigin.WallMS, s.setupOrigin.UncertaintyMS = 0, 1
+			case "prior":
+				r.current.fence = 0
+			case "missing-ledger":
+				r.body.intent, r.body.ledger = u.ledger.intent, nil
+			}
+			if _, err := r.deriveFrontier(s, u.root, delta, record.commit, claimed, claimed.clock, claimed.setup); err == nil {
+				t.Fatal("inconsistent finite derivation data produced a frontier", mode)
+			}
+		})
+	}
+}
+
 func TestProviderFrontierSetupDataRequiresOriginalOrdinalClockAndFiles(t *testing.T) {
 	for _, mode := range []string{"ordinal", "rewind", "new-setup-clock", "anchor-read", "setup-original", "recovery-original", "record-range"} {
 		t.Run(mode, func(t *testing.T) {

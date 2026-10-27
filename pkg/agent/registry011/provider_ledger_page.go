@@ -101,13 +101,9 @@ func (b *providerLedgerBoundary) sealObject(indexHeads [3]string) (providerInteg
 		return providerIntegrationObject{}, ErrAdmissionLedger
 	}
 	id := m.intent.identity
-	metadata, ok := providerUpperSum(state.metadata, state.privateMetadata)
-	if !ok {
-		return providerIntegrationObject{}, ErrAdmissionLedger
-	}
-	payload, ok := providerUpperSum(state.payload, state.privatePayload)
-	if !ok {
-		return providerIntegrationObject{}, ErrAdmissionLedger
+	metadata, payload, err := providerLedgerStateBytes(state)
+	if err != nil {
+		return providerIntegrationObject{}, err
 	}
 	var previous any
 	if c.page != 0 {
@@ -202,4 +198,17 @@ func (m *CandidateAdmissionLedger) applyProviderBoundary(b *providerLedgerBounda
 	c.pending = nil
 	m.current = &updated
 	return nil
+}
+
+// Seal totals include both primary and auxiliary retained bytes.
+func providerLedgerStateBytes(state *CandidateAdmissionLedgerChange) (uint64, uint64, error) {
+	metadata, ok := providerUpperSum(state.metadata, state.privateMetadata)
+	if !ok {
+		return 0, 0, ErrAdmissionLedger
+	}
+	payload, ok := providerUpperSum(state.payload, state.privatePayload)
+	if !ok {
+		return 0, 0, ErrAdmissionLedger
+	}
+	return metadata, payload, nil
 }

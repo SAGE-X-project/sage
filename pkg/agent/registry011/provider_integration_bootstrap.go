@@ -98,39 +98,52 @@ func (c *providerIntegration) installBootstrap() error {
 		c.failed = true
 		return errProviderIntegration
 	}
+	start, raw, err := c.bootstrapObject(permit.meter, selected)
+	if err != nil {
+		c.failed = true
+		return err
+	}
+	return c.finishBootstrap(permit, selected, start, raw)
+}
+
+// bootstrapObject derives retained DATA after the owned header was validated.
+// It observes each codec/hash/copy invocation and returns no ACK or authority.
+func (c *providerIntegration) bootstrapObject(meter *providerWorkMeter, selected FinalizedHeader) (providerIntegrationObject, []byte, error) {
 	// These are additional decoder invocations after the consumption permit,
 	// not work already observed by the earlier admission or result decoder.
-	if !permit.meter.event(providerCodecEvent, uint64(len(c.policy.raw))) || !permit.meter.event(providerCodecEvent, uint64(len(c.intent.raw))) {
-		c.failed = true
-		return errProviderIntegration
+	if !meter.event(providerCodecEvent, uint64(len(c.policy.raw))) || !meter.event(providerCodecEvent, uint64(len(c.intent.raw))) {
+		return providerIntegrationObject{}, nil, errProviderIntegration
 	}
 	p := contentJSON([]byte(c.policy.raw)).(map[string]any)
 	i := contentJSON([]byte(c.intent.raw)).(map[string]any)
 	id := c.intent.identity
 	const bootstrapDomain = "sage-provider-bootstrap-id-v2"
-	if !permit.meter.event(providerHashEvent, uint64(len(bootstrapDomain)+1+len(c.intent.digest))) {
-		c.failed = true
-		return errProviderIntegration
+	if !meter.event(providerHashEvent, uint64(len(bootstrapDomain)+1+len(c.intent.digest))) {
+		return providerIntegrationObject{}, nil, errProviderIntegration
 	}
 	bootstrapID := providerCandidateHash(bootstrapDomain, []byte(c.intent.digest))
 	raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-start-v2", "admission_digest": c.intent.digest, "policy": id.Policy, "namespace": id.Namespace, "instance_key": id.Instance, "source_id": id.SourceID, "generation": strconv.FormatUint(id.Generation, 10), "bootstrap_id": bootstrapID, "enrollment_anchor_root": c.anchor.digest, "selected_finality_exchange": c.firstExchange, "selected_block_hash": selected.Hash, "deployment_block_hash": p["instance"].(map[string]any)["deployment_hash"], "prior_published_checkpoint": nil, "initial_clock": providerClockObject(c.store.setupOrigin), "deadline_wall_ms": strconv.FormatUint(c.intent.deadline, 10), "limits_digest": i["limits_digest"]})
 	// Observe the encoder and the new object's decoder/hash/copy separately.
-	if !permit.meter.event(providerEncodeEvent, uint64(len(raw))) || !permit.meter.event(providerCodecEvent, uint64(len(raw))) || !permit.meter.event(providerHashEvent, uint64(len(raw)+len("sage-provider-start-v2")+1)) || !permit.meter.event(providerCopyEvent, uint64(len(raw))) {
-		c.failed = true
-		return errProviderIntegration
+	if !meter.event(providerEncodeEvent, uint64(len(raw))) || !meter.event(providerCodecEvent, uint64(len(raw))) || !meter.event(providerHashEvent, uint64(len(raw)+len("sage-provider-start-v2")+1)) || !meter.event(providerCopyEvent, uint64(len(raw))) {
+		return providerIntegrationObject{}, nil, errProviderIntegration
 	}
 	start, err := newProviderIntegrationObject("bootstrap", raw, c.store.config.bounds.maximumObjectBytes)
 	if err != nil {
-		c.failed = true
-		return err
+		return providerIntegrationObject{}, nil, err
 	}
+	return start, raw, nil
+}
+
+// Finalization remains private and follows the original consumed local work.
+// Any uncertain accounting, clock, settlement or readback disables this owner.
+func (c *providerIntegration) finishBootstrap(permit *providerIntegrationPermit, selected FinalizedHeader, start providerIntegrationObject, raw []byte) error {
 	var blocks candidateWorkVector
 	blocks[3] = 1
 	if !permit.meter.add(blocks) {
 		c.failed = true
 		return errProviderIntegration
 	}
-	clock, err = c.store.sample()
+	clock, err := c.store.sample()
 	if err != nil {
 		c.failed = true
 		return errProviderIntegration

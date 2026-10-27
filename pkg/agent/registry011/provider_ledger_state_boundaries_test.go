@@ -2,6 +2,25 @@ package registry011
 
 import "testing"
 
+func TestProviderLedgerSealByteTotalsIncludeAuxiliaryAndRejectWraparound(t *testing.T) {
+	state := &CandidateAdmissionLedgerChange{metadata: 3, privateMetadata: 5, payload: 7, privatePayload: 11}
+	metadata, payload, err := providerLedgerStateBytes(state)
+	if err != nil || metadata != 8 || payload != 18 {
+		t.Fatal("auxiliary byte totals omitted", err)
+	}
+	for _, mode := range []string{"metadata", "payload"} {
+		copy := *state
+		if mode == "metadata" {
+			copy.metadata = ^uint64(0)
+		} else {
+			copy.payload = ^uint64(0)
+		}
+		if a, b, err := providerLedgerStateBytes(&copy); err == nil || a != 0 || b != 0 {
+			t.Fatal("inert byte total wrapped", mode)
+		}
+	}
+}
+
 // Finite parser/arithmetic state only: these cases do not write a frontier,
 // qualify a principal, renew a clock or supply an execution acknowledgment.
 func TestProviderPrivateLedgerInvalidStateCannotAcquireWorkingLimits(t *testing.T) {

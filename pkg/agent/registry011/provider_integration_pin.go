@@ -60,19 +60,11 @@ func (c *providerIntegration) pinAgent(ctx context.Context, agent string) (*Pinn
 		}
 		digests[i] = c.lastExchange
 	}
-	// The live path uses the same independently retained typed response closure
-	// that ACK readback uses; no success is inferred merely from HTTP status.
-	results, err := c.store.replay.pinResults(c.store, digests, c.selected.Hash)
-	var observed candidateWorkVector
-	observed[3] = 1 // The owned pin parser decodes the one genesis header.
-	if err != nil || !permit.meter.add(observed) || !c.store.checkPinResults(results) {
-		return nil, errProviderIntegration
-	}
-	raw = providerIntegrationJSON(map[string]any{"format": "sage-provider-owned-pin-v1", "input": input.digest, "selected_block_hash": c.selected.Hash, "exchanges": digests[:]})
-	c.pin, err = c.finishLocalResult(permit, "pin", raw)
+	pin, err := c.finishPinResult(permit, input.digest, digests)
 	if err != nil {
 		return nil, err
 	}
+	c.pin = pin
 	accepted = true
 	return reads, nil
 }
@@ -152,4 +144,19 @@ func providerPinRequests(selected string) ([4]*providerIntegrationRequest, error
 
 func providerPinParams(selected string) [4]any {
 	return [4]any{[]any{}, []any{"0x0", false}, []any{}, []any{map[string]string{"to": SepoliaRegistryAddress, "data": "0x04ef898d"}, map[string]any{"blockHash": selected, "requireCanonical": true}}}
+}
+
+// A closed local result still requires the exact retained child exchanges and
+// the original live parent permit. This helper cannot acquire or dispatch RPC.
+func (c *providerIntegration) finishPinResult(permit *providerIntegrationPermit, input string, digests [4]string) (string, error) {
+	// The live path uses the same independently retained typed response closure
+	// that ACK readback uses; no success is inferred merely from HTTP status.
+	results, err := c.store.replay.pinResults(c.store, digests, c.selected.Hash)
+	var observed candidateWorkVector
+	observed[3] = 1 // The owned pin parser decodes the one genesis header.
+	if err != nil || !permit.meter.add(observed) || !c.store.checkPinResults(results) {
+		return "", errProviderIntegration
+	}
+	raw := providerIntegrationJSON(map[string]any{"format": "sage-provider-owned-pin-v1", "input": input, "selected_block_hash": c.selected.Hash, "exchanges": digests[:]})
+	return c.finishLocalResult(permit, "pin", raw)
 }
