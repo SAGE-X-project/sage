@@ -5,10 +5,24 @@ package registry011
 // typed DATA for the later first-I transaction; no E1, ACK or permit is made.
 // The concrete transaction holds store.mu and has already started this owner.
 func (f *providerFirstAdmissionOwner) replayEnrollmentLocked() (*providerScanReplayReader, error) {
-	if f == nil || f.store == nil || f.store.firstAdmissionOwner != f || f.state != providerFirstAdmissionStarted || f.replayStarted {
+	return f.replayEnrollmentPassLocked(false)
+}
+
+// The custodian owns a distinct irreversible pass. It never restores the
+// inspection body, reuses its reader, or shares coordinator ledger/index maps.
+func (f *providerFirstAdmissionOwner) replayCustodianLocked() (*providerScanReplayReader, error) {
+	return f.replayEnrollmentPassLocked(true)
+}
+
+func (f *providerFirstAdmissionOwner) replayEnrollmentPassLocked(custodian bool) (*providerScanReplayReader, error) {
+	if f == nil || f.store == nil || f.store.firstAdmissionOwner != f || f.state != providerFirstAdmissionStarted || !custodian && f.replayStarted || custodian && (!f.replayStarted || f.custodianStarted || f.plan == nil || f.plan.owner != f) {
 		return nil, errProviderIntegration
 	}
-	f.replayStarted = true // No repeated initialization, even after uncertainty.
+	if custodian {
+		f.custodianStarted = true
+	} else {
+		f.replayStarted = true
+	}
 	s, m, b := f.store, f.meter, f.body
 	success := false
 	defer func() {
@@ -16,7 +30,7 @@ func (f *providerFirstAdmissionOwner) replayEnrollmentLocked() (*providerScanRep
 			f.abortLocked()
 		}
 	}()
-	if !s.valid() || m == nil || m.firstAdmission != f || !f.fits(candidateWorkVector{}) || b == nil || b.active || b.reader == nil || f.readerOutput == 0 || s.frontierFiles == nil || s.frontierFiles.pin != f.mainPin || s.frontierFiles.pinRaw != f.mainRaw || s.scanControl != f.control || f.control.prepared == nil || *f.control.prepared != f.attempt || f.control.pin != f.scanPin || s.setupOrigin != f.origin || f.mainPin.sequence != 1 || f.records != f.mainPin.ordinal+1 {
+	if !s.valid() || m == nil || m.firstAdmission != f || !f.fits(candidateWorkVector{}) || b == nil || b.active || !custodian && b.reader == nil || f.readerOutput == 0 || s.frontierFiles == nil || s.frontierFiles.pin != f.mainPin || s.frontierFiles.pinRaw != f.mainRaw || s.scanControl != f.control || f.control.prepared == nil || *f.control.prepared != f.attempt || f.control.pin != f.scanPin || s.setupOrigin != f.origin || f.mainPin.sequence != 1 || f.records != f.mainPin.ordinal+1 {
 		return nil, errProviderIntegration
 	}
 	// One sample before construction, one per setup/main record and one after
@@ -54,5 +68,8 @@ func (f *providerFirstAdmissionOwner) replayEnrollmentLocked() (*providerScanRep
 		return nil, errProviderIntegration
 	}
 	success = true
+	if custodian {
+		f.custodian = r
+	}
 	return r, nil
 }

@@ -4,6 +4,7 @@ const (
 	providerFirstAdmissionPrepared = iota + 1
 	providerFirstAdmissionStarted
 	providerFirstAdmissionFailed
+	providerFirstAdmissionRetained
 )
 
 // A terminal inspection can hand its exact live B meter to one private
@@ -22,6 +23,12 @@ type providerFirstAdmissionOwner struct {
 	records            uint64
 	readerOutput       uint64
 	replayStarted      bool
+	custodianStarted   bool
+	custodian          *providerScanReplayReader
+	custodianAdopted   bool
+	plan               *providerFirstAdmissionPlan
+	physicalUsed       bool
+	physical           uint64
 	origin, inspected  ClockSample
 	limits             providerFirstAdmissionBounds
 	startWork, upper   candidateWorkVector
@@ -57,7 +64,7 @@ func (f *providerFirstAdmissionOwner) startLocked() error {
 		return errProviderIntegration
 	}
 	s, m, b := f.store, f.meter, f.body
-	if !s.valid() || m == nil || m.owner != m || m.closed || m.failed || m.firstAdmission != nil || m.actual != f.startWork || m.clocks != f.startClocks || m.upper != f.upper || m.maximumClocks != f.maximumClocks || m.scan != f.control || m.scanBody != b || s.activeMeter.Load() != nil || b == nil || b.active || b.failed || b.reader == nil || b.reader.outputUpper != f.readerOutput || f.replayStarted || b.meter != m || s.scanBody != b || s.scanControl != f.control || !f.control.valid() || f.control.prepared == nil || *f.control.prepared != f.attempt || f.control.pin != f.scanPin || s.frontierFiles == nil || !s.frontierFiles.valid() || s.frontierFiles.pin != f.mainPin || s.frontierFiles.pinRaw != f.mainRaw || s.setupOrigin != f.origin || s.config.bounds.firstAdmission == nil || *s.config.bounds.firstAdmission != f.limits {
+	if !s.valid() || m == nil || m.owner != m || m.closed || m.failed || m.firstAdmission != nil || m.actual != f.startWork || m.clocks != f.startClocks || m.upper != f.upper || m.maximumClocks != f.maximumClocks || m.scan != f.control || m.scanBody != b || s.activeMeter.Load() != nil || b == nil || b.active || b.failed || b.reader == nil || b.reader.outputUpper != f.readerOutput || f.replayStarted || f.custodianStarted || f.custodian != nil || f.custodianAdopted || f.plan != nil || f.physicalUsed || f.physical != 0 || b.meter != m || s.scanBody != b || s.scanControl != f.control || !f.control.valid() || f.control.prepared == nil || *f.control.prepared != f.attempt || f.control.pin != f.scanPin || s.frontierFiles == nil || !s.frontierFiles.valid() || s.frontierFiles.pin != f.mainPin || s.frontierFiles.pinRaw != f.mainRaw || s.setupOrigin != f.origin || s.config.bounds.firstAdmission == nil || *s.config.bounds.firstAdmission != f.limits {
 		f.abortLocked()
 		return errProviderIntegration
 	}
@@ -107,7 +114,7 @@ func (f *providerFirstAdmissionOwner) sampleLocked() (ClockSample, error) {
 // This is only failure closure. Success remains unavailable until a concrete
 // first-I/binding/seeded-E1 transaction and exact original readbacks exist.
 func (f *providerFirstAdmissionOwner) abortLocked() {
-	if f == nil || f.store == nil || f.store.firstAdmissionOwner != f {
+	if f == nil || f.store == nil || f.store.firstAdmissionOwner != f || f.state == providerFirstAdmissionRetained {
 		return
 	}
 	f.state, f.store.failed = providerFirstAdmissionFailed, true

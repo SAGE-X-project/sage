@@ -31,11 +31,18 @@ func (r *providerFrontierReplay) retain(s *providerCustodyStore, inventory *prov
 // The caller holds store.mu. Only the original live bootstrap owner can spend
 // its previously held O on E0; legacy V2/V3 retains the separate charge path.
 func (r *providerFrontierReplay) retainLocked(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after providerFrontierHighwater, prepaid *providerBootstrapOwner) (providerFrontierRetention, error) {
+	return r.retainOwnedLocked(s, inventory, fresh, intent, commit, frontier, after, prepaid, nil)
+}
+
+// The two closed prepaid roles cannot substitute for each other. O retains
+// initial E0 only; F retains the first E1 only, from its original B hold.
+func (r *providerFrontierReplay) retainOwnedLocked(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after providerFrontierHighwater, prepaid *providerBootstrapOwner, first *providerFirstAdmissionOwner) (providerFrontierRetention, error) {
 	if s == nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	f := s.frontierFiles
-	if s.config.bounds.firstAdmission != nil && (prepaid == nil || !prepaid.writing(s)) || s.config.bounds.firstAdmission == nil && prepaid != nil {
+	held := prepaid != nil || first != nil
+	if prepaid != nil && first != nil || s.config.bounds.firstAdmission != nil && !(prepaid != nil && prepaid.writing(s) || first != nil && first.writingLocked(s)) || s.config.bounds.firstAdmission == nil && held {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	if !s.valid() || f == nil || !f.valid() || !f.initialized || f.pending != nil || r == nil || s.frontierReplay != r || r.owner != r || r.failed || r.current.sequence != s.sequence || r.indexes == nil || !r.indexes.valid() || s.sequence != 0 && !r.highwater || f.pin.sequence != s.sequence || f.pin.commit != s.tip || f.pin.setup != s.setupTip || inventory == nil || inventory.previous != s.objectsRoot || !checkProviderHighwaterMainObserved(f.pin, after, s.config, intent, commit, frontier, r.meter) {
@@ -92,7 +99,7 @@ func (r *providerFrontierReplay) retainLocked(s *providerCustodyStore, inventory
 	total, totalOK := providerUpperSum(base.stored, headCost.stored)
 	metadataRaw, metaOK := providerUpperSum(rawBytes, uint64(len(inventory.raw)), uint64(2*len(intent)+len(commit)+len(frontier)))
 	retained, retainedOK := providerUpperSum(s.retainedRaw, metadataRaw, headCost.metadata)
-	if err != nil || rawErr != nil || !headOK || !totalOK || !metaOK || !retainedOK || prepaid == nil && !candidateCapacity(0, s.stored, total, s.config.bounds.maximumStoredBytes) || r.preflight(s, inventory, fresh) != nil || r.preflightRetention(s, inventory, fresh, intent, commit, frontier, after) != nil {
+	if err != nil || rawErr != nil || !headOK || !totalOK || !metaOK || !retainedOK || !held && !candidateCapacity(0, s.stored, total, s.config.bounds.maximumStoredBytes) || r.preflight(s, inventory, fresh) != nil || r.preflightRetention(s, inventory, fresh, intent, commit, frontier, after) != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	provisional, parseErr := parseProviderFrontierRecordObserved(frontier, s.config.identity, r.meter)
@@ -103,6 +110,10 @@ func (r *providerFrontierReplay) retainLocked(s *providerCustodyStore, inventory
 	// The file step consumes this exact claim without another charge/refund.
 	if prepaid != nil {
 		if !prepaid.consume(total) {
+			return providerFrontierRetention{}, errProviderIntegration
+		}
+	} else if first != nil {
+		if !first.consumeLocked(total) {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
 	} else {

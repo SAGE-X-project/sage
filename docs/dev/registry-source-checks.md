@@ -1445,3 +1445,32 @@ These remain proposed DATA: the complete resource preflight, prepaid physical
 writer, current-head replacement, qualified acknowledgment and execution are
 still required. Finite fresh profiles select their limits before H0 to check
 decoded-budget exhaustion; no existing hold or operating profile is enlarged.
+
+The candidate first-E1 entry now compares a complete initial-only prospective
+plan before its first original read, I encoding or collection growth. It
+includes two fresh E0 replays, the fourteen-object proposal, two independent
+control/receipt closures, common typed storage, original readbacks and the
+head replacement. Logical codec/byte weights, decoded bytes, new write bytes,
+physical allocation, clock reads and simultaneous resident data have separate
+checked bounds. Maximum encoder/read preflight headroom is reserved separately
+from actual input-length events. An insufficient original profile refuses
+before IO; larger isolated test profiles are selected before their new H0.
+
+Only the second original reader's maps and typed replay enter the physical
+custodian. Its E0-only metadata is not substituted for the original aggregate
+retained byte counter, and the typed admission adds original scan metadata
+once. The existing B already holds the finite F physical upper: the first-E1
+claim consumes that hold once without another stored-byte debit or any refund
+on an uncertain write. O and F remain distinct closed prepaid roles. Exact
+write, typed original replay, frontier/head replacement and original readback
+must all finish before retained candidate diagnostics are returned.
+
+Success permanently closes the original meter, keeping that closed observer
+attached to the retained typed state. Failure permanently closes the same
+owner/store and preserves its full prior hold. This candidate-only entry takes
+future reservation DATA and returns no custody acknowledgment, integration,
+Source or request permit. It does not qualify a future-only T/C/S estimate or
+activate an operating policy. Actual future operation admission/execution,
+post-admission scan commands, complete history/final closure, selected
+host/principal and filesystem/clock/profile qualification, Registry-backed
+selectively signed Agent exchange and publication gates remain required.
