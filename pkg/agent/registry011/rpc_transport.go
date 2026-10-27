@@ -82,6 +82,9 @@ func (c *ReadRPC) callEnvelope(ctx context.Context, method string, params any, m
 		return nil, nil, ErrConfiguration
 	}
 	maximum = min(maximum, c.limits.MaxBytes)
+	if c.acquisition != nil && c.acquisition.integration != nil {
+		return c.acquisition.integration.execute(ctx, method, params, maximum)
+	}
 	if c.acquisition != nil {
 		child, allowed, release, err := c.acquisition.admit(ctx, maximum)
 		if err != nil {

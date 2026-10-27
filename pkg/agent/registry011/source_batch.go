@@ -90,8 +90,33 @@ func (c *ReadRPC) CollectReplayBatch(ctx context.Context, config JournalConfig, 
 }
 
 func collectSourceBatch(ctx context.Context, reads *PinnedAgentReads, config JournalConfig, expected JournalCheckpoint, limits SourceReadLimits, checks *ObservationChecks, identity nodeIdentity) (ReplayBatch, error) {
+	return collectSourceBatchMode(ctx, reads, config, expected, limits, checks, identity, sourceRootGas)
+}
+
+type sourceAcquisitionMode uint8
+
+const (
+	sourceRootGas sourceAcquisitionMode = iota
+	sourceProviderStateGas
+)
+
+// The mode is selected before collection. An old V1 acquisition never falls
+// back to the provider path after a root-gas failure.
+func collectSourceBatchMode(ctx context.Context, reads *PinnedAgentReads, config JournalConfig, expected JournalCheckpoint, limits SourceReadLimits, checks *ObservationChecks, identity nodeIdentity, mode sourceAcquisitionMode) (ReplayBatch, error) {
 	var empty ReplayBatch
+	if ctx == nil || reads == nil || reads.rpc == nil || checks == nil || mode != sourceRootGas && mode != sourceProviderStateGas {
+		return empty, ErrConfiguration
+	}
+	if mode == sourceProviderStateGas && !providerCollectionScope(reads) {
+		return empty, ErrConfiguration
+	}
 	selected, base := reads.header, expected.Anchor
+	if mode == sourceProviderStateGas {
+		c := reads.rpc.acquisition.integration
+		if !providerHistoryCapacity(c.store.config.bounds.ledger, c.ledger.current.counts, base, selected) {
+			return empty, ErrReplayUnavailable
+		}
+	}
 	if selected.Number < base.Number || selected.Number-base.Number > config.Observation.MaxAncestryHeaders || selected.Number-base.Number > uint64(limits.MaxRequests) {
 		return empty, ErrReplayUnavailable
 	}
@@ -134,7 +159,14 @@ func collectSourceBatch(ctx context.Context, reads *PinnedAgentReads, config Jou
 	}
 	stop := begin + min(uint64(config.Replay.MaxBlocks)-1, selected.Number-begin)
 	for height := begin; ; height++ {
-		observed, err := reads.ReadReplayBlockWithRootGas(ctx, height, limits.Node)
+		var observed *NodeBlockEvidence
+		var err error
+		switch mode {
+		case sourceRootGas:
+			observed, err = reads.ReadReplayBlockWithRootGas(ctx, height, limits.Node)
+		case sourceProviderStateGas:
+			observed, err = reads.ReadReplayBlock(ctx, height, limits.Node)
+		}
 		if err != nil {
 			return empty, err
 		}

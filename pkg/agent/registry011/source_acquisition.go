@@ -30,6 +30,9 @@ type rpcAcquisition struct {
 	deadline            time.Time
 	context             context.Context
 	exchanges           []NodeExchange
+	// Non-nil only for the private connected Agent adapter. The legacy scope
+	// constructor never installs, strips or replaces this mandatory gate.
+	integration *providerIntegration
 }
 
 func newSourceAcquisition(ctx context.Context, client *ReadRPC, limits SourceReadLimits) (*ReadRPC, context.Context, context.CancelFunc, error) {

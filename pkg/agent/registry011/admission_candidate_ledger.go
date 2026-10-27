@@ -54,6 +54,13 @@ type CandidateAdmissionLedger struct {
 	initialNodes    []string
 	initialHeads    [3]string
 	initialBytes    uint64
+	// Only the private connected owner installs the actual retained start. The
+	// public candidate-data constructor always leaves this field empty.
+	providerStart string
+	// Non-nil only in the private connected continuation's arithmetic model.
+	// The exported candidate constructor leaves this nil and keeps its complete
+	// original lifetime cap; this field is never a custody ACK or work permit.
+	continuation *providerLedgerContinuation
 }
 
 // CandidateAdmissionLedgerChange owns candidate metadata only. Its bytes are
@@ -66,8 +73,12 @@ type CandidateAdmissionLedgerChange struct {
 	counts            [3]uint64
 	totals            candidateLedgerTotals
 	payload, metadata uint64
-	nodes             []string
-	clock             CandidateClockDiagnostic
+	// Additional retained private continuation metadata. The public candidate
+	// model leaves this zero; its serialized budget and original caps are intact.
+	privateMetadata uint64
+	privatePayload  uint64
+	nodes           []string
+	clock           CandidateClockDiagnostic
 }
 
 type CandidateAdmissionLedgerDiagnostic struct {
@@ -124,7 +135,7 @@ func NewCandidateAdmissionLedger(policy *ProviderPolicyCandidate, intent *Candid
 }
 
 func (m *CandidateAdmissionLedger) valid() bool {
-	return m.owner == m && m.policy != "" && m.intent != nil && m.current != nil && m.current.raw != "" && m.tickets != nil && m.segments != nil && candidateLedgerBoundsValid(m.bounds)
+	return m.owner == m && m.policy != "" && m.intent != nil && m.current != nil && m.current.raw != "" && m.tickets != nil && m.segments != nil && candidateLedgerBoundsValid(m.bounds) && (m.continuation == nil || m.continuation.valid(m))
 }
 
 func (m *CandidateAdmissionLedger) AppendCandidateTicket(ticket *CandidateAdmissionTicket) (*CandidateAdmissionLedgerChange, error) {
@@ -165,6 +176,7 @@ func (m *CandidateAdmissionLedger) appendTicket(ticket *CandidateAdmissionTicket
 	m.tickets[ticket.digest] = candidateLedgerTicket{ticket: ticket}
 	m.segments[ticket.segment] = segment
 	m.lastTicket, m.current = ticket, change
+	m.noteProviderRecord("ticket", ticket.digest, change)
 	return change, nil
 }
 
@@ -195,6 +207,7 @@ func (m *CandidateAdmissionLedger) AppendCandidateConsumption(consumption *Candi
 	state.consumption = consumption
 	m.tickets[consumption.ticket.digest] = state
 	m.lastConsumption, m.current = consumption, change
+	m.noteProviderRecord("consumption", consumption.digest, change)
 	return change, nil
 }
 
@@ -240,6 +253,7 @@ func (m *CandidateAdmissionLedger) AppendCandidateSettlement(settlement *Candida
 	m.tickets[ticket.digest] = state
 	m.segments[ticket.segment] = segment
 	m.current = change
+	m.noteProviderRecord("settlement", settlement.digest, change)
 	return change, nil
 }
 
@@ -251,6 +265,13 @@ func candidateLedgerExpired(clock CandidateClockDiagnostic, deadline uint64) boo
 // cloned, recursively replayed or rehashed. Refusal never changes the model.
 func (m *CandidateAdmissionLedger) prepare(kind int, payload, entry string, totals candidateLedgerTotals, clock CandidateClockDiagnostic) (*CandidateAdmissionLedgerChange, error) {
 	if kind < 0 || kind > 2 {
+		return nil, ErrAdmissionLedger
+	}
+	if m.continuation != nil && len(payload) > candidateLedgerMetadataLimit {
+		return nil, ErrAdmissionLedger
+	}
+	recordLimit, payloadLimit, metadataLimit, valid := m.workingLimits()
+	if !valid {
 		return nil, ErrAdmissionLedger
 	}
 	change := &CandidateAdmissionLedgerChange{admission: m.intent.digest, heads: m.initialHeads, metadata: m.initialBytes}
@@ -265,12 +286,12 @@ func (m *CandidateAdmissionLedger) prepare(kind int, payload, entry string, tota
 	}
 	var records uint64
 	for _, count := range change.counts {
-		if !candidateCapacity(0, records, count, uint64(m.bounds.MaximumRecords)) {
+		if !candidateCapacity(0, records, count, recordLimit) {
 			return nil, ErrAdmissionLedger
 		}
 		records += count
 	}
-	if records >= uint64(m.bounds.MaximumRecords) || !candidateCapacity(0, change.payload, uint64(len(payload)), m.bounds.MaximumPayloadBytes) {
+	if records >= recordLimit || !candidateCapacity(0, change.payload, uint64(len(payload)), payloadLimit) {
 		return nil, ErrAdmissionLedger
 	}
 	change.counts[kind]++
@@ -278,7 +299,12 @@ func (m *CandidateAdmissionLedger) prepare(kind int, payload, entry string, tota
 	node := candidateLedgerNode(m.intent.digest, names[kind], change.counts[kind], change.heads[kind], entry)
 	change.heads[kind] = providerCandidateHash("sage-provider-ledger-node-v1", node)
 	raw := candidateLedgerBudget(m.intent, change.sequence, previous, change.heads, totals)
-	if len(node) > candidateLedgerMetadataLimit || len(raw) > candidateLedgerMetadataLimit || !candidateCapacity(0, change.metadata, uint64(len(node))+uint64(len(raw)), m.bounds.MaximumMetadataBytes) {
+	if m.providerStart != "" {
+		value := contentJSON(raw).(map[string]any)
+		value["bootstrap_start"] = m.providerStart
+		raw, _ = json.Marshal(value)
+	}
+	if len(node) > candidateLedgerMetadataLimit || len(raw) > candidateLedgerMetadataLimit || !candidateCapacity(0, change.metadata, uint64(len(node))+uint64(len(raw)), metadataLimit) || m.continuation != nil && !m.continuation.allows(m, records, uint64(len(payload)), uint64(len(node))+uint64(len(raw)), kind == 0) {
 		return nil, ErrAdmissionLedger
 	}
 	change.raw, change.digest = string(raw), providerCandidateHash("sage-provider-budget-root-v2", raw)
@@ -350,5 +376,10 @@ func (c *CandidateAdmissionLedgerChange) Diagnostic() (CandidateAdmissionLedgerD
 	if c == nil || c.raw == "" {
 		return CandidateAdmissionLedgerDiagnostic{}, ErrAdmissionLedger
 	}
-	return CandidateAdmissionLedgerDiagnostic{BudgetRoot: c.digest, Admission: c.admission, Sequence: c.sequence, Tickets: c.counts[0], Consumptions: c.counts[1], Settlements: c.counts[2], Charged: c.totals.bootstrap.charged.diagnostic(), Outstanding: c.totals.bootstrap.outstanding.diagnostic(), LiveUsedUpper: c.totals.liveUsed, LiveReservedUpper: c.totals.liveReserved, RetainedUsedUpper: c.totals.retainedUsed, RetainedReservedUpper: c.totals.retainedHeld, PayloadBytes: c.payload, MetadataBytes: c.metadata, LedgerHeads: c.heads, CandidateClock: c.clock}, nil
+	metadata, valid := providerUpperSum(c.metadata, c.privateMetadata)
+	payload, payloadValid := providerUpperSum(c.payload, c.privatePayload)
+	if !valid || !payloadValid {
+		return CandidateAdmissionLedgerDiagnostic{}, ErrAdmissionLedger
+	}
+	return CandidateAdmissionLedgerDiagnostic{BudgetRoot: c.digest, Admission: c.admission, Sequence: c.sequence, Tickets: c.counts[0], Consumptions: c.counts[1], Settlements: c.counts[2], Charged: c.totals.bootstrap.charged.diagnostic(), Outstanding: c.totals.bootstrap.outstanding.diagnostic(), LiveUsedUpper: c.totals.liveUsed, LiveReservedUpper: c.totals.liveReserved, RetainedUsedUpper: c.totals.retainedUsed, RetainedReservedUpper: c.totals.retainedHeld, PayloadBytes: payload, MetadataBytes: metadata, LedgerHeads: c.heads, CandidateClock: c.clock}, nil
 }
