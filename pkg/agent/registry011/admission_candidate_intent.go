@@ -63,7 +63,7 @@ func parseCandidateAdmissionIntentObserved(policy *ProviderPolicyCandidate, cont
 	if !a || !b || !c || generation != id.Generation || fence != anchor.fence || deadline > math.MaxInt64 {
 		return nil, ErrAdmissionCandidate
 	}
-	p, policyOK := providerReplayJSON([]byte(policy.raw), meter).(map[string]any)
+	p, policyOK := providerReplayJSON(providerReplayPhaseBytes(policy.raw, meter), meter).(map[string]any)
 	if !policyOK {
 		return nil, ErrAdmissionCandidate
 	}

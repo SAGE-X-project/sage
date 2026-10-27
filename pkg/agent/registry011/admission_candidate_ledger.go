@@ -122,7 +122,7 @@ func newCandidateAdmissionLedgerSeeded(policy *ProviderPolicyCandidate, intent *
 	}
 	m := &CandidateAdmissionLedger{policy: policy.raw, intent: intent, bounds: bounds, meter: meter, tickets: make(map[string]candidateLedgerTicket), segments: make(map[uint64]candidateBudgetTotals)}
 	m.owner = m
-	p, ok := providerReplayJSON([]byte(policy.raw), meter).(map[string]any)
+	p, ok := providerReplayJSON(providerReplayPhaseBytes(policy.raw, meter), meter).(map[string]any)
 	if !ok {
 		return nil, ErrAdmissionLedger
 	}

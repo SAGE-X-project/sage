@@ -19,6 +19,8 @@ type providerCustodyReplay struct {
 	start         string
 	firstExchange string
 	meter         *providerWorkMeter
+	frontier      *providerFrontierReplay
+	scanMetadata  uint64
 }
 
 func (s *providerCustodyStore) object(kind, digest string) ([]byte, error) {
@@ -99,6 +101,7 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		return errProviderIntegration
 	}
 	var change *CandidateAdmissionLedgerChange
+	var initialScan *providerAdmissionControlData
 	switch kind {
 	case "admit":
 		if r.intent == nil {
@@ -114,6 +117,13 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 			originalIntent, intentOK := providerReplayJSON(i, r.meter).(map[string]any)
 			if err != nil || !intentOK || originalIntent["authority_metadata_root"] != s.tip || r.intent.clock != providerClockDiagnostic(s.setupOrigin) {
 				return errProviderIntegration
+			}
+			if s.config.bounds.firstAdmission != nil {
+				initialScan, err = r.admissionScanSeed(s)
+				if err != nil {
+					return errProviderIntegration
+				}
+				r.scanMetadata = initialScan.metadata
 			}
 		}
 		payload, err := s.object("ticket", operation)
@@ -139,7 +149,14 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 		}
 		if r.ledger == nil {
 			if s.config.bounds.continuation != nil {
-				r.ledger, err = newProviderContinuingLedgerObserved(r.policy, r.intent, ticket, *s.config.bounds.continuation, r.meter)
+				if s.config.bounds.firstAdmission != nil {
+					if initialScan == nil {
+						return errProviderIntegration
+					}
+					r.ledger, err = newProviderContinuingLedgerSeeded(r.policy, r.intent, ticket, *s.config.bounds.continuation, r.meter, &initialScan.seed)
+				} else {
+					r.ledger, err = newProviderContinuingLedgerObserved(r.policy, r.intent, ticket, *s.config.bounds.continuation, r.meter)
+				}
 			} else {
 				r.ledger, err = NewCandidateAdmissionLedger(r.policy, r.intent, ticket, s.config.bounds.ledger)
 			}
@@ -204,7 +221,8 @@ func (r *providerCustodyReplay) apply(s *providerCustodyStore, intent map[string
 	if change == nil || change.digest != root.budget || !providerReplayEqual(budget, providerReplayPhaseBytes(change.raw, r.meter), r.meter) {
 		return errProviderIntegration
 	}
-	for _, node := range change.LedgerNodeBytes() {
+	for _, originalNode := range change.nodes {
+		node := providerReplayPhaseBytes(originalNode, r.meter)
 		digest := providerReplayDigest("sage-provider-ledger-node-v1", node, r.meter)
 		raw, err := s.object("ledger-node", digest)
 		if err != nil || !providerReplayEqual(raw, node, r.meter) {

@@ -29,7 +29,7 @@ func (m *CandidateAdmissionLedger) noteProviderRecord(kind, entry string, change
 		return nil
 	}
 	node := change.nodes[len(change.nodes)-1]
-	digest := providerReplayDigest("sage-provider-ledger-node-v1", []byte(node), m.meter)
+	digest := providerReplayDigest("sage-provider-ledger-node-v1", providerReplayPhaseBytes(node, m.meter), m.meter)
 	if digest == "" {
 		return ErrAdmissionLedger
 	}
@@ -171,7 +171,7 @@ func (m *CandidateAdmissionLedger) applyProviderBoundary(b *providerLedgerBounda
 		return ErrAdmissionLedger
 	}
 	seal, err := b.sealObject(indexHeads)
-	if err != nil || !providerReplayEqual(pageRaw, []byte(b.pageObject.raw), m.meter) || !providerReplayEqual(sealRaw, []byte(seal.raw), m.meter) {
+	if err != nil || !providerReplayEqual(pageRaw, providerReplayPhaseBytes(b.pageObject.raw, m.meter), m.meter) || !providerReplayEqual(sealRaw, providerReplayPhaseBytes(seal.raw, m.meter), m.meter) {
 		return ErrAdmissionLedger
 	}
 	c := m.continuation

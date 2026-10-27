@@ -125,7 +125,7 @@ func replayProviderAdmissionReceipts(s *providerCustodyStore, meter *providerWor
 		commandDigest := contentString(chunk["command_digest"])
 		command, _, commandErr := readProviderAdmissionReceipt(s, x, binding, "command", commandDigest)
 		expected, encodeErr := data.command(x, binding.target, index, previous, start)
-		metadata, metadataOK := providerUpperSum(result.metadata, uint64(len(raw)), uint64(len(command)))
+		metadata, metadataOK := providerUpperSum(result.metadata, uint64(2*len(raw)), uint64(2*len(command)))
 		if commandErr != nil || encodeErr != nil || !x.equal(command, expected) || !metadataOK || metadata > s.config.bounds.continuation.maximumMetadataBytes {
 			return nil, errProviderIntegration
 		}

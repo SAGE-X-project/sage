@@ -58,7 +58,7 @@ func parseCandidateAdmissionTicketObserved(policy *ProviderPolicyCandidate, inte
 	if sequence == 0 && m["previous_ticket"] != nil || sequence != 0 && !providerCandidateDigest(m["previous_ticket"]) {
 		return nil, ErrAdmissionCandidate
 	}
-	p, policyOK := providerReplayJSON([]byte(policy.raw), meter).(map[string]any)
+	p, policyOK := providerReplayJSON(providerReplayPhaseBytes(policy.raw, meter), meter).(map[string]any)
 	if !policyOK {
 		return nil, ErrAdmissionCandidate
 	}

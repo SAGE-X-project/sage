@@ -46,7 +46,7 @@ func parseCandidateConsumptionObserved(ticket *CandidateAdmissionTicket, raw []b
 	if !a || !b || !c || generation != id.Generation || fence != ticket.intent.fence || sequence == 0 && m["previous_consumption"] != nil || sequence != 0 && !providerCandidateDigest(m["previous_consumption"]) {
 		return nil, ErrAdmissionCandidate
 	}
-	policy, policyOK := providerReplayJSON([]byte(ticket.policy), meter).(map[string]any)
+	policy, policyOK := providerReplayJSON(providerReplayPhaseBytes(ticket.policy, meter), meter).(map[string]any)
 	if !policyOK {
 		return nil, ErrAdmissionCandidate
 	}

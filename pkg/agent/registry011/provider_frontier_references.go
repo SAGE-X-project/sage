@@ -16,7 +16,7 @@ func (r *providerFrontierReplay) checkOldMaterials(s *providerCustodyStore, kind
 	}
 	if r.body.anchor != nil {
 		original, err := s.object("enrollment", r.body.anchor.digest)
-		if err != nil || !providerReplayEqual(original, []byte(r.body.anchor.raw), r.meter) {
+		if err != nil || !providerReplayEqual(original, providerReplayPhaseBytes(r.body.anchor.raw, r.meter), r.meter) {
 			return errProviderIntegration
 		}
 	} else if kind != "enroll" {
@@ -34,7 +34,7 @@ func (r *providerFrontierReplay) checkOldMaterials(s *providerCustodyStore, kind
 		{"budget", m.current.digest, m.current.raw},
 	} {
 		original, err := s.object(ref.kind, ref.digest)
-		if err != nil || !providerReplayEqual(original, []byte(ref.raw), r.meter) {
+		if err != nil || !providerReplayEqual(original, providerReplayPhaseBytes(ref.raw, r.meter), r.meter) {
 			return errProviderIntegration
 		}
 	}
@@ -72,18 +72,18 @@ func (r *providerFrontierReplay) checkOldMaterials(s *providerCustodyStore, kind
 		return errProviderIntegration
 	}
 	original, err := s.object("ticket", state.ticket.digest)
-	if err != nil || !providerReplayEqual(original, []byte(state.ticket.raw), r.meter) || r.body.checkTicketBytes(s, state.ticket) != nil {
+	if err != nil || !providerReplayEqual(original, providerReplayPhaseBytes(state.ticket.raw, r.meter), r.meter) || r.body.checkTicketBytes(s, state.ticket) != nil {
 		return errProviderIntegration
 	}
 	if state.consumption != nil {
 		original, err := s.object("consumption", state.consumption.digest)
-		if err != nil || !providerReplayEqual(original, []byte(state.consumption.raw), r.meter) {
+		if err != nil || !providerReplayEqual(original, providerReplayPhaseBytes(state.consumption.raw, r.meter), r.meter) {
 			return errProviderIntegration
 		}
 	}
 	if kind == "consume" && m.lastConsumption != nil {
 		original, err := s.object("consumption", m.lastConsumption.digest)
-		if err != nil || !providerReplayEqual(original, []byte(m.lastConsumption.raw), r.meter) {
+		if err != nil || !providerReplayEqual(original, providerReplayPhaseBytes(m.lastConsumption.raw, r.meter), r.meter) {
 			return errProviderIntegration
 		}
 	}

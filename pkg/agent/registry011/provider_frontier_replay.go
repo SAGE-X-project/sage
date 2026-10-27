@@ -47,6 +47,7 @@ func newProviderFrontierReplayObserved(config providerCustodyConfig, meter *prov
 	}
 	r := &providerFrontierReplay{body: &providerCustodyReplay{context: &ProviderCandidateContext{config.identity, true}, policy: config.policy}, indexes: indexes, anchors: anchors, setupOrdinal: -1}
 	r.owner = r
+	r.body.frontier = r
 	return r, nil
 }
 
@@ -133,6 +134,13 @@ func (r *providerFrontierReplay) applyRetained(s *providerCustodyStore, inventor
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	if r.body.ledger != nil && r.indexes.ledger == nil {
+		if s.config.bounds.firstAdmission != nil {
+			metadata, ok := providerUpperSum(r.preI.metadata, r.body.scanMetadata)
+			if !ok || r.body.scanMetadata == 0 || metadata > r.indexes.bounds.maximumMetadataBytes {
+				return providerFrontierRetention{}, errProviderIntegration
+			}
+			r.preI.metadata = metadata
+		}
 		if err := r.indexes.bindRetainedLedger(r.body.ledger, r.preI); err != nil {
 			return providerFrontierRetention{}, errProviderIntegration
 		}

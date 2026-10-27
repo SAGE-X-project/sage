@@ -35,7 +35,7 @@ func parseCandidateAdmissionSettlementObserved(ticket *CandidateAdmissionTicket,
 	if m == nil || m["format"] != "sage-provider-budget-settlement-v2" || m["ticket_digest"] != ticket.digest {
 		return nil, ErrAdmissionCandidate
 	}
-	p, policyOK := providerReplayJSON([]byte(ticket.policy), meter).(map[string]any)
+	p, policyOK := providerReplayJSON(providerReplayPhaseBytes(ticket.policy, meter), meter).(map[string]any)
 	if !policyOK {
 		return nil, ErrAdmissionCandidate
 	}

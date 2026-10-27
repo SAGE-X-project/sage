@@ -52,6 +52,8 @@ func providerIntegrationDomain(kind string) (string, bool) {
 		return "sage-provider-enrollment-v2", true
 	case "admission":
 		return "sage-provider-admission-intent-v1", true
+	case "scan-admission-binding":
+		return providerScanAdmissionBindingDomain, true
 	case "ticket":
 		return "sage-provider-budget-ticket-v2", true
 	case "consumption":

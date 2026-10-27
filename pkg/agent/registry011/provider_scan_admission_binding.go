@@ -65,6 +65,21 @@ func (x *providerScanCodec) parseAdmissionBinding(raw []byte) (providerScanAdmis
 // files; a later SCAN-HEAD is neither substituted nor treated as a permit.
 // The caller holds store.mu and still owes target/chunk/I/E1 typed validation.
 func replayProviderAdmissionControls(s *providerCustodyStore, meter *providerWorkMeter, binding providerScanAdmissionBinding) (*providerLedgerInitialCharge, error) {
+	data, err := replayProviderAdmissionControlData(s, meter, binding)
+	if err != nil {
+		return nil, err
+	}
+	return &data.seed, nil
+}
+
+// Original control metadata is separate from prepaid physical allocation and
+// work. Count each retained original copy once for the common typed ledger.
+type providerAdmissionControlData struct {
+	seed     providerLedgerInitialCharge
+	metadata uint64
+}
+
+func replayProviderAdmissionControlData(s *providerCustodyStore, meter *providerWorkMeter, binding providerScanAdmissionBinding) (*providerAdmissionControlData, error) {
 	owned := meter != nil && (meter.scan != nil && meter.scan.store == s || meter.integration != nil && meter.integration.store == s)
 	if !s.valid() || meter == nil || meter.owner != meter || meter.failed || meter.closed || s.activeMeter.Load() != meter || !owned || binding.clock != providerClockDiagnostic(s.setupOrigin) {
 		return nil, errProviderIntegration
@@ -88,6 +103,7 @@ func replayProviderAdmissionControls(s *providerCustodyStore, meter *providerWor
 			return nil, errProviderIntegration
 		}
 	}
+	metadata := uint64(2 * len(raw)) // Both immutable H0 originals.
 	var last providerScanAttempt
 	for ordinal := uint64(1); ordinal <= binding.ordinal; ordinal++ {
 		original, readErr := s.read(s.custody, s.name("scan-intent", ordinal), int64(s.config.bounds.maximumMetadataPerCommit))
@@ -105,6 +121,11 @@ func replayProviderAdmissionControls(s *providerCustodyStore, meter *providerWor
 				return nil, errProviderIntegration
 			}
 		}
+		var metadataOK bool
+		metadata, metadataOK = providerUpperSum(metadata, uint64(2*len(original)+len(commit)+2*len(next)))
+		if !metadataOK || metadata > s.config.bounds.continuation.maximumMetadataBytes {
+			return nil, errProviderIntegration
+		}
 		h, last = after, a
 	}
 	raw, rawErr = x.highwater(h)
@@ -114,5 +135,9 @@ func replayProviderAdmissionControls(s *providerCustodyStore, meter *providerWor
 	if rawErr != nil || headErr != nil || !ok || h.held != binding.held || total != binding.total || total.retained != binding.live || h.ordinal != binding.ordinal || h.target != binding.target || h.intent != binding.attempt || last.setup != binding.setup || last.custody != binding.e0 || x.hash(providerScanHighwaterDomain, raw) != binding.highwater || x.hash(providerScanHeadDomain, head) != binding.head || !capacity.firstAdmissionLimits(x) || !providerFirstAdmissionCapacity(capacity, total) || meter.failed {
 		return nil, errProviderIntegration
 	}
-	return &providerLedgerInitialCharge{total.work, total.retained}, nil
+	metadata, ok = providerUpperSum(metadata, uint64(2*len(head)))
+	if !ok || metadata > s.config.bounds.continuation.maximumMetadataBytes {
+		return nil, errProviderIntegration
+	}
+	return &providerAdmissionControlData{providerLedgerInitialCharge{total.work, total.retained}, metadata}, nil
 }
