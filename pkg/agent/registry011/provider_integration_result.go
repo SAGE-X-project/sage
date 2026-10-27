@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/base64"
-	"encoding/json"
 	"strconv"
 )
 
@@ -40,12 +39,15 @@ func (r *providerCustodyReplay) checkResult(s *providerCustodyStore, settlement 
 func (r *providerCustodyReplay) checkExchange(s *providerCustodyStore, settlement *CandidateAdmissionSettlement) error {
 	ticket := settlement.ticket
 	raw, err := s.object("exchange", settlement.retained)
-	m := contentObject(contentJSON(raw), "format", "policy", "namespace", "instance_key", "source_id", "generation", "ticket_digest", "provider_digest", "transport", "request", "response", "clock_start", "clock_end")
+	m := contentObject(providerReplayJSON(raw, r.meter), "format", "policy", "namespace", "instance_key", "source_id", "generation", "ticket_digest", "provider_digest", "transport", "request", "response", "clock_start", "clock_end")
 	id := r.intent.identity
 	if err != nil || m == nil || m["format"] != "sage-provider-exchange-v2" || m["policy"] != id.Policy || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["source_id"] != id.SourceID || m["generation"] != strconv.FormatUint(id.Generation, 10) || m["ticket_digest"] != ticket.digest || m["provider_digest"] != id.Provider {
 		return errProviderIntegration
 	}
-	p := contentJSON([]byte(r.policy.raw)).(map[string]any)
+	p, policyOK := providerReplayJSON([]byte(r.policy.raw), r.meter).(map[string]any)
+	if !policyOK {
+		return errProviderIntegration
+	}
 	start, a := candidateAdmissionClock(m["clock_start"], p["clock"].(map[string]any))
 	end, b := candidateAdmissionClock(m["clock_end"], p["clock"].(map[string]any))
 	consumption := r.ledger.tickets[ticket.digest].consumption
@@ -54,15 +56,15 @@ func (r *providerCustodyReplay) checkExchange(s *providerCustodyStore, settlemen
 	}
 	request, err := s.object("request", ticket.input)
 	parts := bytes.SplitN(request, []byte("\r\n\r\n"), 2)
-	body, valid := providerCanonicalBase64(m["request"], 16<<10)
-	response, responseValid := providerCanonicalBase64(m["response"], s.config.capture.BodyBytes)
-	if err != nil || len(parts) != 2 || !valid || !responseValid || !bytes.Equal(parts[1], body) {
+	body, valid := providerCanonicalBase64Observed(m["request"], 16<<10, r.meter)
+	response, responseValid := providerCanonicalBase64Observed(m["response"], s.config.capture.BodyBytes, r.meter)
+	if err != nil || len(parts) != 2 || !valid || !responseValid || !providerReplayEqual(parts[1], body, r.meter) {
 		return errProviderIntegration
 	}
-	if !s.event(providerCodecEvent, uint64(len(response))) {
+	if r.meter == nil && !s.event(providerCodecEvent, uint64(len(response))) {
 		return errProviderIntegration
 	}
-	if _, err := DecodeRPCResult(response, 1, RPCResponseLimits{s.config.capture.BodyBytes, s.config.capture.JSONDepth}); err != nil {
+	if _, err := decodeRPCResultObserved(response, 1, RPCResponseLimits{s.config.capture.BodyBytes, s.config.capture.JSONDepth}, r.meter); err != nil {
 		return errProviderIntegration
 	}
 	transport := contentObject(m["transport"], "endpoint", "method", "http_version", "status", "response_headers", "tls_version", "cipher_suite", "server_name", "verified_chain", "roots_artifact", "redirects", "proxy")
@@ -78,24 +80,35 @@ func (r *providerCustodyReplay) checkExchange(s *providerCustodyStore, settlemen
 			return errProviderIntegration
 		}
 	}
-	metadata := providerIntegrationJSON(transport)
-	digest, _ := providerIntegrationObjectDigest("tls", metadata)
+	metadata := providerReplayCanonical(transport, 1<<20, r.meter)
+	digest, _ := providerIntegrationObjectDigestObserved("tls", metadata, r.meter)
 	retainedMetadata, err := s.object("tls", digest)
 	bindingBytes, bindingErr := s.object("wire-binding", s.bindings[settlement.retained])
-	binding := contentObject(contentJSON(bindingBytes), "format", "exchange_digest", "request_wire_digest", "response_wire_digest", "tls_digest")
-	if err != nil || bindingErr != nil || binding == nil || binding["exchange_digest"] != settlement.retained || binding["request_wire_digest"] != ticket.input || binding["tls_digest"] != digest || !bytes.Equal(metadata, retainedMetadata) || r.matchResponse(s, contentString(binding["response_wire_digest"]), transport["response_headers"], response) != nil {
+	binding := contentObject(providerReplayJSON(bindingBytes, r.meter), "format", "exchange_digest", "request_wire_digest", "response_wire_digest", "tls_digest")
+	if err != nil || bindingErr != nil || binding == nil || binding["exchange_digest"] != settlement.retained || binding["request_wire_digest"] != ticket.input || binding["tls_digest"] != digest || !providerReplayEqual(metadata, retainedMetadata, r.meter) || r.matchResponse(s, contentString(binding["response_wire_digest"]), transport["response_headers"], response) != nil {
 		return errProviderIntegration
 	}
 	return nil
 }
 
 func providerCanonicalBase64(value any, maximum int) ([]byte, bool) {
+	return providerCanonicalBase64Observed(value, maximum, nil)
+}
+
+func providerCanonicalBase64Observed(value any, maximum int, meter *providerWorkMeter) ([]byte, bool) {
 	s, ok := value.(string)
 	if !ok || maximum <= 0 || len(s) == 0 || len(s) > base64.RawURLEncoding.EncodedLen(maximum) {
 		return nil, false
 	}
+	if meter != nil && !meter.event(providerCodecEvent, uint64(len(s))) {
+		return nil, false
+	}
 	raw, err := base64.RawURLEncoding.DecodeString(s)
-	return raw, err == nil && len(raw) <= maximum && base64.RawURLEncoding.EncodeToString(raw) == s
+	if err != nil || len(raw) > maximum || meter != nil && !meter.event(providerEncodeEvent, uint64(len(raw))) {
+		return nil, false
+	}
+	encoded := base64.RawURLEncoding.EncodeToString(raw)
+	return raw, (meter == nil || meter.event(providerCompareEvent, uint64(len(s)+len(encoded)))) && encoded == s
 }
 
 func providerIntegrationCipher(transport map[string]any) bool {
@@ -112,7 +125,7 @@ func providerIntegrationCipher(transport map[string]any) bool {
 }
 
 func (r *providerCustodyReplay) matchResponse(s *providerCustodyStore, digest string, headers any, body []byte) error {
-	wanted := providerIntegrationJSON(headers)
+	wanted := providerReplayCanonical(headers, 1<<20, r.meter)
 	items, ok := headers.([]any)
 	if !ok || len(items) == 0 || len(items) > s.config.capture.HeaderBytes/4 {
 		return errProviderIntegration
@@ -121,15 +134,15 @@ func (r *providerCustodyReplay) matchResponse(s *providerCustodyStore, digest st
 	if err != nil || len(raw) > s.config.capture.WireBytes {
 		return errProviderIntegration
 	}
-	_, parsedHeaders, parsedBody, _, parseErr := readProviderHTTP(bufio.NewReader(bytes.NewReader(raw)), s.config.capture)
-	if parseErr != nil || !bytes.Equal(body, parsedBody) {
+	_, parsedHeaders, parsedBody, _, parseErr := readProviderHTTPObserved(bufio.NewReader(bytes.NewReader(raw)), s.config.capture, r.meter, uint64(len(raw)))
+	if parseErr != nil || !providerReplayEqual(body, parsedBody, r.meter) {
 		return errProviderIntegration
 	}
 	values := make([]map[string]string, 0, len(parsedHeaders))
 	for _, header := range parsedHeaders {
 		values = append(values, map[string]string{"name": header.Name, "value": header.Value})
 	}
-	if !bytes.Equal(wanted, providerIntegrationJSON(values)) {
+	if !providerReplayEqual(wanted, providerReplayCanonical(values, 1<<20, r.meter), r.meter) {
 		return errProviderIntegration
 	}
 	return nil
@@ -137,25 +150,31 @@ func (r *providerCustodyReplay) matchResponse(s *providerCustodyStore, digest st
 
 func (r *providerCustodyReplay) checkStart(s *providerCustodyStore, digest string) error {
 	raw, err := s.object("bootstrap", digest)
-	m := contentObject(contentJSON(raw), "format", "admission_digest", "policy", "namespace", "instance_key", "source_id", "generation", "bootstrap_id", "enrollment_anchor_root", "selected_finality_exchange", "selected_block_hash", "deployment_block_hash", "prior_published_checkpoint", "initial_clock", "deadline_wall_ms", "limits_digest")
+	m := contentObject(providerReplayJSON(raw, r.meter), "format", "admission_digest", "policy", "namespace", "instance_key", "source_id", "generation", "bootstrap_id", "enrollment_anchor_root", "selected_finality_exchange", "selected_block_hash", "deployment_block_hash", "prior_published_checkpoint", "initial_clock", "deadline_wall_ms", "limits_digest")
 	id := r.intent.identity
-	i := contentJSON([]byte(r.intent.raw)).(map[string]any)
-	p := contentJSON([]byte(r.policy.raw)).(map[string]any)
-	if err != nil || m == nil || m["format"] != "sage-provider-start-v2" || m["admission_digest"] != r.intent.digest || m["policy"] != id.Policy || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["source_id"] != id.SourceID || m["generation"] != strconv.FormatUint(id.Generation, 10) || m["bootstrap_id"] != providerCandidateHash("sage-provider-bootstrap-id-v2", []byte(r.intent.digest)) || m["enrollment_anchor_root"] != r.anchor.digest || m["selected_finality_exchange"] != r.firstExchange || m["deployment_block_hash"] != p["instance"].(map[string]any)["deployment_hash"] || m["prior_published_checkpoint"] != nil || m["deadline_wall_ms"] != i["deadline_wall_ms"] || m["limits_digest"] != i["limits_digest"] || !bytes.Equal(providerIntegrationJSON(m["initial_clock"]), providerIntegrationJSON(i["initial_clock"])) {
+	i, intentOK := providerReplayJSON([]byte(r.intent.raw), r.meter).(map[string]any)
+	if !intentOK {
+		return errProviderIntegration
+	}
+	p, policyOK := providerReplayJSON([]byte(r.policy.raw), r.meter).(map[string]any)
+	if !policyOK {
+		return errProviderIntegration
+	}
+	if err != nil || m == nil || m["format"] != "sage-provider-start-v2" || m["admission_digest"] != r.intent.digest || m["policy"] != id.Policy || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["source_id"] != id.SourceID || m["generation"] != strconv.FormatUint(id.Generation, 10) || m["bootstrap_id"] != providerReplayDigest("sage-provider-bootstrap-id-v2", []byte(r.intent.digest), r.meter) || m["enrollment_anchor_root"] != r.anchor.digest || m["selected_finality_exchange"] != r.firstExchange || m["deployment_block_hash"] != p["instance"].(map[string]any)["deployment_hash"] || m["prior_published_checkpoint"] != nil || m["deadline_wall_ms"] != i["deadline_wall_ms"] || m["limits_digest"] != i["limits_digest"] || !providerReplayEqual(providerReplayCanonical(m["initial_clock"], 4096, r.meter), providerReplayCanonical(i["initial_clock"], 4096, r.meter), r.meter) {
 		return errProviderIntegration
 	}
 	x, err := s.object("exchange", r.firstExchange)
-	xObject, ok := contentJSON(x).(map[string]any)
+	xObject, ok := providerReplayJSON(x, r.meter).(map[string]any)
 	if err != nil || !ok {
 		return errProviderIntegration
 	}
-	response, valid := providerCanonicalBase64(xObject["response"], s.config.capture.BodyBytes)
+	response, valid := providerCanonicalBase64Observed(xObject["response"], s.config.capture.BodyBytes, r.meter)
 	if !valid {
 		return errProviderIntegration
 	}
-	result, err := DecodeRPCResult(response, 1, RPCResponseLimits{s.config.capture.BodyBytes, s.config.capture.JSONDepth})
+	result, err := decodeRPCResultObserved(response, 1, RPCResponseLimits{s.config.capture.BodyBytes, s.config.capture.JSONDepth}, r.meter)
 	var header struct{ Hash, ParentHash, Number, Timestamp string }
-	if err != nil || json.Unmarshal(result, &header) != nil {
+	if err != nil || providerReplayUnmarshal(result, &header, r.meter) != nil {
 		return errProviderIntegration
 	}
 	number, a := rpcQuantity(header.Number)

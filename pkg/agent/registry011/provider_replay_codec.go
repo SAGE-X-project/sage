@@ -101,3 +101,14 @@ func providerReplayJoin(parts []string, meter *providerWorkMeter) string {
 	}
 	return strings.Join(parts, "")
 }
+
+func providerReplayUnmarshal(raw []byte, value any, meter *providerWorkMeter) error {
+	if meter != nil && !meter.event(providerCodecEvent, uint64(len(raw))) {
+		return errProviderIntegration
+	}
+	return json.Unmarshal(raw, value)
+}
+
+func providerReplayTextEqual(a, b string, meter *providerWorkMeter) bool {
+	return (meter == nil || meter.event(providerCompareEvent, uint64(len(a)+len(b)))) && a == b
+}

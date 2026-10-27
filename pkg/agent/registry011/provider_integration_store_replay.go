@@ -230,7 +230,13 @@ func (r *providerCustodyReplay) checkTicketBytes(s *providerCustodyStore, ticket
 	if len(parts) != 2 {
 		return errProviderIntegration
 	}
-	if !utf8.Valid(parts[1]) || !validRPCUnicode(parts[1]) {
+	if r.meter != nil && !r.meter.event(providerCompareEvent, uint64(len(parts[1]))) || !utf8.Valid(parts[1]) {
+		return errProviderIntegration
+	}
+	if r.meter != nil && !r.meter.event(providerCompareEvent, uint64(len(parts[1]))) || !validRPCUnicode(parts[1]) {
+		return errProviderIntegration
+	}
+	if r.meter != nil && !r.meter.event(providerCodecEvent, uint64(len(parts[1]))) {
 		return errProviderIntegration
 	}
 	decoder := json.NewDecoder(bytes.NewReader(parts[1]))
@@ -247,17 +253,17 @@ func (r *providerCustodyReplay) checkTicketBytes(s *providerCustodyStore, ticket
 		Method  string `json:"method"`
 		Params  any    `json:"params"`
 	}
-	if json.Unmarshal(parts[1], &body) != nil || body.Version != "2.0" || body.ID != 1 || body.Method != ticket.method {
+	if providerReplayUnmarshal(parts[1], &body, r.meter) != nil || body.Version != "2.0" || body.ID != 1 || body.Method != ticket.method {
 		return errProviderIntegration
 	}
-	body.Params = providerRequestNumbers(body.Params)
-	request, err := newProviderIntegrationRequest(body.Method, body.Params)
-	if err != nil || !bytes.Equal(wire, []byte(request.wire)) || request.paramsDigest != ticket.params || ticket.sequence == 0 && !request.firstFinalized() {
+	body.Params = providerRequestNumbersObserved(body.Params, r.meter)
+	request, err := newProviderIntegrationRequestObserved(body.Method, body.Params, r.meter)
+	if err != nil || !providerReplayEqual(wire, []byte(request.wire), r.meter) || request.paramsDigest != ticket.params || ticket.sequence == 0 && !request.firstFinalizedObserved(r.meter) {
 		return errProviderIntegration
 	}
-	paramsDigest, _ := providerIntegrationObjectDigest("params", []byte(request.params))
+	paramsDigest, _ := providerIntegrationObjectDigestObserved("params", []byte(request.params), r.meter)
 	params, err := s.object("params", paramsDigest)
-	if err != nil || !bytes.Equal(params, []byte(request.params)) {
+	if err != nil || !providerReplayEqual(params, []byte(request.params), r.meter) {
 		return errProviderIntegration
 	}
 	return nil
@@ -266,6 +272,13 @@ func (r *providerCustodyReplay) checkTicketBytes(s *providerCustodyStore, ticket
 // Only the exact fixed tracer option numeric0 is supported. Every other JSON
 // number remains an unsupported type and the closed request builder refuses.
 func providerRequestNumbers(value any) any {
+	return providerRequestNumbersObserved(value, nil)
+}
+
+func providerRequestNumbersObserved(value any, meter *providerWorkMeter) any {
+	if meter != nil && !meter.event(providerCompareEvent, 1) {
+		return nil
+	}
 	switch v := value.(type) {
 	case float64:
 		if v == 0 {
@@ -273,11 +286,11 @@ func providerRequestNumbers(value any) any {
 		}
 	case []any:
 		for i := range v {
-			v[i] = providerRequestNumbers(v[i])
+			v[i] = providerRequestNumbersObserved(v[i], meter)
 		}
 	case map[string]any:
 		for key := range v {
-			v[key] = providerRequestNumbers(v[key])
+			v[key] = providerRequestNumbersObserved(v[key], meter)
 		}
 	}
 	return value

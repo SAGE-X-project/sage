@@ -1244,3 +1244,14 @@ ordinary retained E0/first-ticket files under independently rebuilt ledger and
 index state. These tests still do not supply a full original catalog reader,
 retained scan-command/chunk/settlement chain, full request/result observation,
 selected host authority or any operating acknowledgment.
+
+Request rebuilding and retained response reconstruction have concrete observer
+paths as well. They preserve the original request parts, observe the RPC token,
+envelope and version JSON passes separately, and observe base64 decode/re-encode,
+header parsing, standard HTTP framing and nested RPC validation. Observed HTTP
+framing receives the actual original wire length from the retained-byte reader;
+it cannot accept an unknown caller-reported input size. Failed header reads keep
+the successful byte-read/copy work already observed. Finite tests use ordinary
+memory bytes and the existing normal owned TLS fixture; no hostile peer is added.
+The remaining pin/ABI-specific parser paths still need the same integration,
+and none of these parser results is a scan completion or custody credential.
