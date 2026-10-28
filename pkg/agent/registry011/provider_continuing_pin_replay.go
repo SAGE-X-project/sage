@@ -9,15 +9,13 @@ func (r *providerCustodyReplay) continuingPinResults(s *providerCustodyStore, di
 	if r == nil || s == nil || r.meter == nil || r.meter.closed || r.meter.failed || s.activeMeter.Load() != r.meter || r.ledger == nil || !lowerHash(selected) {
 		return results, errProviderIntegration
 	}
-	for i, digest := range digests {
+	for _, digest := range digests {
 		if !lowerHash(digest) {
 			return results, errProviderIntegration
 		}
-		for j := 0; j < i; j++ {
-			if digest == digests[j] {
-				return results, errProviderIntegration
-			}
-		}
+	}
+	if !providerContinuingPinDistinct(digests) {
+		return results, errProviderIntegration
 	}
 	requests, err := providerPinRequestsObserved(selected, r.meter)
 	if err != nil {

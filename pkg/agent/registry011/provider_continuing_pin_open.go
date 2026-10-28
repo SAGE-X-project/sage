@@ -8,15 +8,13 @@ func newProviderContinuingPinCandidate(s *providerCustodyStore, agent string, di
 	if s == nil || !rpcAgent(agent) {
 		return nil, errProviderIntegration
 	}
-	for i, digest := range digests {
+	for _, digest := range digests {
 		if !lowerHash(digest) {
 			return nil, errProviderIntegration
 		}
-		for j := 0; j < i; j++ {
-			if digest == digests[j] {
-				return nil, errProviderIntegration
-			}
-		}
+	}
+	if !providerContinuingPinDistinct(digests) {
+		return nil, errProviderIntegration
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

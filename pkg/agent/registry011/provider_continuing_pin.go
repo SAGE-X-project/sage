@@ -115,16 +115,20 @@ func providerContinuingPinObject(input, selected string, exchanges [4]string, me
 	if !lowerHash(input) || !lowerHash(selected) || meter == nil || meter.closed || meter.failed {
 		return providerIntegrationObject{}, errProviderIntegration
 	}
-	for i, digest := range exchanges {
+	for _, digest := range exchanges {
 		if !lowerHash(digest) {
 			return providerIntegrationObject{}, errProviderIntegration
 		}
-		for j := 0; j < i; j++ {
-			if digest == exchanges[j] {
-				return providerIntegrationObject{}, errProviderIntegration
-			}
-		}
+	}
+	if !providerContinuingPinDistinct(exchanges) {
+		return providerIntegrationObject{}, errProviderIntegration
 	}
 	raw := providerReplayCanonical(map[string]any{"format": "sage-provider-owned-pin-v1", "input": input, "selected_block_hash": selected, "exchanges": exchanges[:]}, 4096, meter)
 	return newProviderIntegrationObjectObserved("pin", raw, 4096, meter)
+}
+
+// Fixed four-element input: the six comparisons have constant array indexes.
+// This avoids ambiguous variable-index bounds without suppressing a scanner.
+func providerContinuingPinDistinct(v [4]string) bool {
+	return v[0] != v[1] && v[0] != v[2] && v[0] != v[3] && v[1] != v[2] && v[1] != v[3] && v[2] != v[3]
 }

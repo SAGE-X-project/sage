@@ -107,7 +107,7 @@ func TestProviderContinuingPinRejectsMissingAndDuplicateInputWithoutAuthority(t 
 	if _, ok := providerContinuingPinMemoryUpper(nil, nil, providerFirstOperationStorage{}, 0, 0, [4]uint64{}); ok {
 		t.Fatal("missing guardian produced resident quote")
 	}
-	if _, _, err := providerContinuingPinSelected(nil, nil, nil); err == nil {
+	if _, err := providerContinuingPinSelected(nil, nil, nil); err == nil {
 		t.Fatal("missing original bootstrap selected a block")
 	}
 	if _, err := (*providerCustodyReplay)(nil).continuingPinResults(nil, digests, admissionTestDigest("a")); err == nil {
@@ -204,5 +204,20 @@ func TestProviderContinuingPinObjectKeepsExactBoundedData(t *testing.T) {
 				t.Fatal("incomplete DATA was encoded", mode)
 			}
 		})
+	}
+}
+
+func TestProviderContinuingPinDistinctChecksAllSixPairs(t *testing.T) {
+	t.Parallel()
+	original := [4]string{"a", "b", "c", "d"}
+	if !providerContinuingPinDistinct(original) {
+		t.Fatal("four distinct bounded inputs refused")
+	}
+	for _, pair := range [6][2]int{{0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {2, 3}} {
+		v := original
+		v[pair[1]] = v[pair[0]]
+		if providerContinuingPinDistinct(v) {
+			t.Fatal("duplicate pair accepted", pair)
+		}
 	}
 }
