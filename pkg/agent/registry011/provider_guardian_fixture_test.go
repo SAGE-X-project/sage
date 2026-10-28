@@ -18,14 +18,19 @@ func providerGuardianConfigFixture(t *testing.T) (providerCustodyConfig, *provid
 // It is never applied to an existing namespace or an operating profile.
 func providerGuardianConfigWithClaimFixture(t *testing.T, decoded uint64) (providerCustodyConfig, *providerOwnedClock) {
 	t.Helper()
-	if decoded != 16<<20 && decoded != 64<<20 {
+	return providerGuardianConfigWithPageFixture(t, decoded, 6)
+}
+
+func providerGuardianConfigWithPageFixture(t *testing.T, decoded, records uint64) (providerCustodyConfig, *providerOwnedClock) {
+	t.Helper()
+	if decoded != 16<<20 && decoded != 50<<20 && decoded != 64<<20 || records != 6 && records != 9 {
 		t.Fatal("unsupported isolated test profile")
 	}
 	first := providerFirstWriterBounds()
 	config, _ := providerScanProvisionedFixtureWithFirstPolicy(t, &first, true)
 	b := &config.bounds
 	page := *b.continuation
-	page.pageRecords, page.maximumPages, page.maximumObjects = 6, 6, 512
+	page.pageRecords, page.maximumPages, page.maximumObjects = records, 6, 512
 	page.maximumCommits = page.maximumRecords + page.maximumPages + 2
 	b.continuation, b.maximumObjects, b.maximumCommits = &page, int(page.maximumObjects), int(page.maximumCommits)
 	scan := *b.scan

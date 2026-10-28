@@ -223,7 +223,7 @@ func newProviderInventoryObserved(version int, previous string, objects []provid
 // n*(n-1)/2 comparisons, each with two observed key copies. Earlier phases
 // keep their existing sort and event contract. Neither path returns authority.
 func providerInventoryOrderObserved(entries []providerIntegrationObjectRef, meter *providerWorkMeter) bool {
-	if meter != nil && (meter.firstAdmission != nil || meter.firstOperation != nil) {
+	if meter != nil && (meter.firstAdmission != nil || providerFirstOperationObserved(meter)) {
 		if len(entries) > 256 {
 			return false
 		}

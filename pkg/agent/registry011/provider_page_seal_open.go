@@ -8,6 +8,23 @@ func sealProviderContinuingPageCandidate(s *providerCustodyStore) (*providerPage
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	o, err := newProviderPageSealCandidateLocked(s)
+	if err != nil {
+		return nil, errProviderIntegration
+	}
+	defer o.failLocked() // Successful release has already closed this one-use role.
+	if _, err := o.retainLocked(); err != nil {
+		return nil, errProviderIntegration
+	}
+	return o.releaseLocked()
+}
+
+// The same lock spans all three closed phases. Only this constructor consumes
+// G and creates the one-use role; no callback or restored owner is accepted.
+func newProviderPageSealCandidateLocked(s *providerCustodyStore) (*providerPageSealOwner, error) {
+	if s == nil {
+		return nil, errProviderIntegration
+	}
 	g := s.guardian
 	if !s.valid() || g == nil || g.sealing != nil || g.continuing != nil || g.integration == nil ||
 		g.integration.ledger == nil || !lowerHash(g.integration.bootstrap) ||
@@ -76,23 +93,61 @@ func sealProviderContinuingPageCandidate(s *providerCustodyStore) (*providerPage
 		return nil, errProviderIntegration
 	}
 	o.change = change
+	success = true
+	return o, nil
+}
+
+// Retain both independently checked models before returning any result.
+// The old private prefix remains selected during the affected-data check.
+func (o *providerPageSealOwner) retainLocked() (providerFrontierRetention, error) {
+	var empty providerFrontierRetention
+	if !o.selectedLocked() || o.change == nil || o.retained || o.boundary == nil || len(o.change.fresh) != 5 {
+		o.failLocked()
+		return empty, errProviderIntegration
+	}
+	success := false
+	defer func() {
+		if !success {
+			o.failLocked()
+		}
+	}()
+	g, change := o.guardian, o.change
+	s, c, m := g.store, g.integration, g.meter
+	page, seal := change.fresh[0], change.fresh[1]
 	cost, err := s.frontierReplay.retainSealingOwnedLocked(s, change.inventory, change.fresh, change.intent, change.commit, change.frontier, change.after, o)
 	if err != nil || cost.objects != 5 || s.stored != o.stored || s.last != nil || s.frontierFiles.pin != change.after ||
 		g.indexes.applyRetained(change.delta, cost) != nil ||
-		c.ledger.applyProviderBoundary(boundary, providerReplayPhaseBytes(page.raw, m), providerReplayPhaseBytes(seal.raw, m), change.delta.previous) != nil ||
+		c.ledger.applyProviderBoundary(o.boundary, providerReplayPhaseBytes(page.raw, m), providerReplayPhaseBytes(seal.raw, m), change.delta.previous) != nil ||
 		!providerPageSealModelsEqual(o, cost) {
-		return nil, errProviderIntegration
+		return empty, errProviderIntegration
 	}
 	c.root = change.root
+	o.retained, success = true, true
+	return cost, nil
+}
+
+func (o *providerPageSealOwner) releaseLocked() (*providerPageSealData, error) {
+	if !o.selectedLocked() || !o.retained || o.change == nil {
+		o.failLocked()
+		return nil, errProviderIntegration
+	}
+	success := false
+	defer func() {
+		if !success {
+			o.failLocked()
+		}
+	}()
+	g := o.guardian
+	s, c, m := g.store, g.integration, g.meter
 	prefix, ok := providerContinuingPrefixData(g)
 	if !ok {
 		return nil, errProviderIntegration
 	}
-	g.prefix, o.retained = prefix, true
+	g.prefix = prefix
 	if _, err := g.sampleLocked(); err != nil || !g.continuingPrefixMatchesLocked() {
 		return nil, errProviderIntegration
 	}
-	result := &providerPageSealData{page: page.digest, seal: seal.digest, enrollment: c.root.digest, main: s.frontierFiles.pin, guardian: g.pin, physical: o.physical}
+	result := &providerPageSealData{page: o.binding.page, seal: o.binding.seal, enrollment: c.root.digest, main: s.frontierFiles.pin, guardian: g.pin, physical: o.physical}
 	m.mu.Lock()
 	m.closed = true
 	m.mu.Unlock()

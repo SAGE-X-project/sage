@@ -1,20 +1,10 @@
 package registry011
 
-import (
-	"context"
-	"testing"
-)
+import "testing"
 
 func providerPageSealReadyFixture(t *testing.T) (*providerCustodyStore, *providerGuardianOwner) {
 	t.Helper()
-	s, o := providerContinuingPreparedFixture(t)
-	if _, err := o.executeBootstrapCandidate(context.Background()); err != nil {
-		t.Fatal("normal local bootstrap before page boundary", err)
-	}
-	if len(o.integration.ledger.continuation.records) != 6 || !o.guardian.ready || s.sequence != 7 {
-		t.Fatal("ordinary T/C/S pairs did not fill their selected page")
-	}
-	return s, o.guardian
+	return providerPageSealReadyWithProfileFixture(t, 64<<20, 6)
 }
 
 func TestProviderPageSealRetainsBothBoundariesWithoutExecutionOrRefund(t *testing.T) {
@@ -37,7 +27,8 @@ func TestProviderPageSealRetainsBothBoundariesWithoutExecutionOrRefund(t *testin
 		c.ledger.current.counts != counts || c.ledger.current.digest != budget || c.ledger.current.totals.bootstrap.charged != charged ||
 		c.ledger.lastTicket != ticket || c.ledger.lastConsumption != consumed || page.page != 1 || len(page.records) != 0 ||
 		page.sealedRecords != 6 || page.lastPage != result.page || page.lastSeal != result.seal || page.lastBudget != budget ||
-		g.prefix == oldPrefix || !g.continuingPrefixMatchesLocked() || result.physical == 0 {
+		g.prefix == oldPrefix || g.prefix.owner != g || g.prefix.main != result.main || g.prefix.page.page != 1 ||
+		g.continuingPrefixMatchesLocked() || result.physical == 0 {
 		t.Fatal("page boundary minted work, reset a lifetime, refunded G, or omitted independent retention")
 	}
 	// The next ordinal is still part of the original lifetime. This is only

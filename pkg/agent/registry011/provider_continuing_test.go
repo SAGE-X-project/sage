@@ -10,7 +10,12 @@ import (
 // existing namespace, public operation limit or CI threshold is increased.
 func providerContinuingSettledFixture(t *testing.T, header bool) (*providerCustodyStore, *providerGuardianOwner) {
 	t.Helper()
-	config, clock := providerGuardianConfigWithClaimFixture(t, 64<<20)
+	return providerContinuingSettledWithProfileFixture(t, header, 64<<20, 6)
+}
+
+func providerContinuingSettledWithProfileFixture(t *testing.T, header bool, decoded, records uint64) (*providerCustodyStore, *providerGuardianOwner) {
+	t.Helper()
+	config, clock := providerGuardianConfigWithPageFixture(t, decoded, records)
 	s, err := openProviderFrontierCandidate(config, clock)
 	if err != nil {
 		t.Fatal("fresh continuation profile", err)
