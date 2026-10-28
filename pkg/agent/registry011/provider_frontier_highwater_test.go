@@ -1,6 +1,9 @@
 package registry011
 
-import "testing"
+import (
+	"strconv"
+	"testing"
+)
 
 func providerHighwaterFixture(t *testing.T) (*providerFrontierUnit, providerFrontierHighwater, providerFrontierHighwater) {
 	t.Helper()
@@ -153,5 +156,49 @@ func TestProviderHighwaterMainRefusesClosedDataUnderAnotherPolicy(t *testing.T) 
 	// dispatch or selected authority. Policy must still bind to the fixed context.
 	if checkProviderHighwaterMain(before, after, u.s.config, intent, commit, frontier) {
 		t.Fatal("high-water relation omitted the selected context policy")
+	}
+}
+
+// These are finite retained DATA comparisons, without dispatch or a live role.
+func TestProviderHighwaterSetupAttemptBoundaries(t *testing.T) {
+	u, _, base := providerHighwaterFixture(t)
+	config := u.s.config
+	config.bounds.maximumSetupRecoveries = 64
+	config.profile = providerIntegrationProfile(config.bounds, config.capture)
+	base.profile = config.profile
+	sample := u.clock
+	sample.WallMS++
+	sample.MonotonicMS++
+	for _, attempt := range []int{1, 64} {
+		t.Run(strconv.Itoa(attempt), func(t *testing.T) {
+			before := base
+			before.ordinal = before.sequence + uint64(attempt-1)
+			previous, err := before.bytes(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			copy := config
+			copy.attempt, copy.expectedTip, copy.expectedSetupTip = attempt, before.commit, before.setup
+			claim := providerCustodySetup(copy, sample)
+			commit := providerSetupCommit(claim)
+			after := before
+			after.ordinal++
+			after.previous = providerCandidateHash("sage-provider-custody-highwater-v1", previous)
+			after.setup = providerCandidateHash("sage-provider-authority-setup-commit-v1", commit)
+			if !checkProviderHighwaterSetup(before, after, config, claim, commit) {
+				t.Fatal("valid setup attempt boundary refused")
+			}
+			for _, invalid := range []string{"0", "65", "2147483648", "9223372036854775808", "18446744073709551615"} {
+				m := contentJSON(claim).(map[string]any)
+				m["attempt"] = invalid
+				raw := providerIntegrationJSON(m)
+				completed := providerSetupCommit(raw)
+				bad := after
+				bad.setup = providerCandidateHash("sage-provider-authority-setup-commit-v1", completed)
+				if checkProviderHighwaterSetup(before, bad, config, raw, completed) {
+					t.Fatalf("invalid setup attempt %s accepted", invalid)
+				}
+			}
+		})
 	}
 }

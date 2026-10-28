@@ -113,7 +113,8 @@ func checkProviderHighwaterSetupObserved(before, after providerFrontierHighwater
 	m, ok := providerReplayJSON(claim, meter).(map[string]any)
 	attempt, a := providerCandidateUint(m["attempt"], false)
 	clock, b := providerStoredClock(m["clock"])
-	if !ok || !a || !b || attempt == 0 || attempt != after.ordinal-after.sequence || attempt > uint64(config.bounds.maximumSetupRecoveries) || m["expected_tip"] != before.commit || m["previous_setup_commit"] != before.setup {
+	// Bound the native int conversion here as well as in the validated profile.
+	if !ok || !a || !b || attempt == 0 || attempt > 64 || attempt != after.ordinal-after.sequence || attempt > uint64(config.bounds.maximumSetupRecoveries) || m["expected_tip"] != before.commit || m["previous_setup_commit"] != before.setup {
 		return false
 	}
 	copy := config
