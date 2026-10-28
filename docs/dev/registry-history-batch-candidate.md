@@ -60,3 +60,48 @@ The selected demo preparation target is the current Mac/current user with a
 repository-external dedicated data directory. Host, clock, filesystem and
 custody qualification remain actual evidence obligations; selecting that target
 does not itself activate a policy or authorize new registration transactions.
+
+## Bounded retained-original reader candidate
+
+The private ordinary-content reader checks an exact request, parameters,
+response or TLS object against its declared length and ordinary SHA-256 digest.
+It opens only the existing content-derived filename within the selected
+retention root. It checks the opened file and path identity/size before and
+after reading, probes EOF, checks the directory/lock identities, and refuses a
+different digest. It returns a digest only. It does not parse the object's
+schema or validate command, identity, caller, gas, history or publication.
+
+Each reader owns a reusable 8,192-byte buffer, a one-byte EOF buffer and SHA-256
+state. Calls are serialized. After valid preflight, an I/O or cancellation
+failure poisons the reader; an invalid plan or missing context is refused
+before I/O. Two independent
+replay owners must have separate readers and independently read the originals.
+Reusing a workspace resets only its hash state, never an authority budget,
+clock epoch, consumed permission or checkpoint. Creating a reader is not
+enrollment and cannot restore a failed execution permit.
+
+For an admitted original of N bytes (1<=N<=32MiB), one scan has these source
+call bounds:
+
+| Quantity | Upper |
+|---|---:|
+| Explicit reusable byte buffers | 8,193 bytes |
+| Bytes requested from the file, including EOF probe | N+1 |
+| Bytes supplied to SHA-256 writes | N |
+| Chunk ReadAt calls plus final EOF probe | ceil(N/8192)+1 |
+| SHA-256 Write calls | ceil(N/8192) |
+| Non-read filesystem calls | 14 |
+
+The fourteen calls are two four-call directory/lock identity checks and the
+object's Lstat/Open/Stat/Stat/Lstat/Close. Counts refer to Go source calls, not
+kernel retry counts or qualified elapsed time. The byte-buffer term excludes
+path/filename, file and metadata objects, hash-native overhead, returned digest,
+owner/model/custody state and allocator behavior. Those need separate whole
+program bounds; do not assume immediate garbage collection between scans.
+
+The prospective upper remains unchanged after failure. This helper has no
+hold, refund, dispatch, ACK, clock-sampling or Source-ready API. Its caller
+must separately fund all work and bracket it with the original qualified
+clock before use. Existing collectors and all of their checks and resident
+quotes are unchanged. The grouped execution owner, full numerical certificate,
+whole-history cursor and final C0/Dp/C1 inspection are still required.
