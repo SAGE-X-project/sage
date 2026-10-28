@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func historyOriginalPlan(t *testing.T, kind string, payload []byte) providerHistoryOriginalPlan {
@@ -47,6 +48,15 @@ func historyOriginalReader(t *testing.T, d *retentionDisk) *providerHistoryOrigi
 }
 
 func TestProviderHistoryOriginalFixedWorkBounds(t *testing.T) {
+	for _, row := range []struct {
+		bytes uint64
+		size  int64
+		valid bool
+	}{{0, 0, false}, {1, 1, true}, {32 << 20, 32 << 20, true}, {32<<20 + 1, 0, false}, {^uint64(0), 0, false}} {
+		if size, ok := providerHistoryOriginalSize(row.bytes); size != row.size || ok != row.valid {
+			t.Fatal("invalid or overflowing byte count reached file offsets")
+		}
+	}
 	for _, row := range []struct{ size, reads, writes uint64 }{
 		{1, 2, 1}, {8191, 2, 1}, {8192, 2, 1}, {8193, 3, 2}, {32 << 20, 4097, 4096},
 	} {
@@ -98,6 +108,14 @@ func TestProviderHistoryOriginalRejectsUnboundedPlans(t *testing.T) {
 	}
 	if err := json.Unmarshal([]byte(`{}`), &zero); err == nil {
 		t.Fatal("JSON must not reconstruct a plan or permission")
+	}
+	p := historyOriginalPlan(t, "response", []byte("abc"))
+	for _, size := range []int64{0, 2, 4, -1, 1 << 40} {
+		changed := p
+		changed.size = size
+		if _, err := changed.upper(); err == nil {
+			t.Fatal("a changed file offset reused an earlier byte reservation")
+		}
 	}
 }
 
@@ -184,6 +202,58 @@ func TestProviderHistoryOriginalRefusesFixedInvalidFiles(t *testing.T) {
 			}
 		})
 	}
+	// Compare fixed metadata snapshots after fixture preparation, never a
+	// concurrent filesystem replacement or a callback during a live read.
+	dir := t.TempDir()
+	firstPath, otherPath := filepath.Join(dir, "first"), filepath.Join(dir, "other")
+	for _, name := range []string{firstPath, otherPath} {
+		if err := os.WriteFile(name, []byte("abc"), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	before, err := os.Stat(firstPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := os.Stat(otherPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	directory, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(firstPath, time.Unix(1, 0), time.Unix(1, 0)); err != nil {
+		t.Fatal(err)
+	}
+	changedTime, err := os.Stat(firstPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range []struct {
+		name          string
+		before, after os.FileInfo
+		size          int64
+		valid         bool
+	}{
+		{"same", before, before, 3, true},
+		{"missing-before", nil, before, 3, false},
+		{"missing-after", before, nil, 3, false},
+		{"empty-size", before, before, 0, false},
+		{"negative-size", before, before, -1, false},
+		{"large-size", before, before, 32<<20 + 1, false},
+		{"directory-before", directory, before, 3, false},
+		{"directory-after", before, directory, 3, false},
+		{"different-size", before, before, 2, false},
+		{"different-identity", before, other, 3, false},
+		{"different-time", before, changedTime, 3, false},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			if providerHistoryOriginalSameFile(row.before, row.after, row.size) != row.valid {
+				t.Fatal("file metadata drift was accepted or the original was refused")
+			}
+		})
+	}
 }
 
 func TestProviderHistoryOriginalRejectsMissingContextOrDisk(t *testing.T) {
@@ -200,9 +270,6 @@ func TestProviderHistoryOriginalRejectsMissingContextOrDisk(t *testing.T) {
 			t.Fatal("unowned reader accepted")
 		}
 	}
-	if digest, err := reader.scan(nil, p); err == nil || digest != "" || reader.failed {
-		t.Fatal("missing context accepted")
-	}
 	var zero providerHistoryOriginalPlan
 	if digest, err := reader.scan(context.Background(), zero); err == nil || digest != "" || reader.failed {
 		t.Fatal("unbounded original acquired a reader")
@@ -212,11 +279,22 @@ func TestProviderHistoryOriginalRejectsMissingContextOrDisk(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if digest, err := reader.scan(ctx, p); err == nil || digest != "" || !reader.failed {
-		t.Fatal("cancelled acquisition accepted or remained reusable")
-	}
-	if digest, err := reader.scan(context.Background(), p); err == nil || digest != "" {
-		t.Fatal("failed reader was reused")
+	for _, row := range []struct {
+		name   string
+		ctx    context.Context
+		failed bool
+	}{{"missing-context", nil, false}, {"cancelled-context", ctx, true}} {
+		t.Run(row.name, func(t *testing.T) {
+			reader := historyOriginalReader(t, d)
+			if digest, err := reader.scan(row.ctx, p); err == nil || digest != "" || reader.failed != row.failed {
+				t.Fatal("invalid context acquired a read or lost its expected quarantine state")
+			}
+			if row.failed {
+				if digest, err := reader.scan(context.Background(), p); err == nil || digest != "" {
+					t.Fatal("failed reader was reused")
+				}
+			}
+		})
 	}
 	closed := historyOriginalReader(t, d)
 	if err := d.root.Close(); err != nil {

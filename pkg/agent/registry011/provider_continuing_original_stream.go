@@ -24,12 +24,14 @@ type providerHistoryOriginalWork struct {
 type providerHistoryOriginalPlan struct {
 	reference providerIntegrationObjectRef
 	maximum   uint64
+	size      int64
 }
 
 func (*providerHistoryOriginalPlan) UnmarshalJSON([]byte) error { return ErrConfiguration }
 
 func newProviderHistoryOriginalPlan(ref providerIntegrationObjectRef, maximum uint64) (providerHistoryOriginalPlan, error) {
-	if maximum == 0 || maximum > 32<<20 || ref.bytes == 0 || ref.bytes > maximum || !lowerHash(ref.digest) {
+	size, ok := providerHistoryOriginalSize(ref.bytes)
+	if !ok || maximum == 0 || maximum > 32<<20 || ref.bytes > maximum || !lowerHash(ref.digest) {
 		return providerHistoryOriginalPlan{}, ErrConfiguration
 	}
 	switch ref.kind {
@@ -45,12 +47,12 @@ func newProviderHistoryOriginalPlan(ref providerIntegrationObjectRef, maximum ui
 	default:
 		return providerHistoryOriginalPlan{}, ErrConfiguration
 	}
-	return providerHistoryOriginalPlan{ref, maximum}, nil
+	return providerHistoryOriginalPlan{ref, maximum, size}, nil
 }
 
 func (p providerHistoryOriginalPlan) upper() (providerHistoryOriginalWork, error) {
-	if _, err := newProviderHistoryOriginalPlan(p.reference, p.maximum); err != nil {
-		return providerHistoryOriginalWork{}, err
+	if derived, err := newProviderHistoryOriginalPlan(p.reference, p.maximum); err != nil || derived != p {
+		return providerHistoryOriginalWork{}, ErrConfiguration
 	}
 	// Each ReadAt has one bounded chunk; the final one-byte probe must return
 	// EOF. Two checkIdentity calls use four metadata operations each. The
@@ -58,6 +60,31 @@ func (p providerHistoryOriginalPlan) upper() (providerHistoryOriginalWork, error
 	// These count Go source calls, not kernel retries or CPU/time guarantees.
 	chunks := (p.reference.bytes-1)/providerHistoryOriginalChunk + 1
 	return providerHistoryOriginalWork{p.reference.bytes + 1, p.reference.bytes, chunks + 1, chunks, 14, providerHistoryOriginalChunk + 1}, nil
+}
+
+// Pure finite validation separates size conversion and observed metadata from
+// I/O effects. Unsafe concurrent file replacement is not needed to test it.
+func providerHistoryOriginalSize(bytes uint64) (int64, bool) {
+	if bytes == 0 || bytes > 32<<20 {
+		return 0, false
+	}
+	return int64(bytes), true
+}
+
+func providerHistoryOriginalSameFile(before, after os.FileInfo, size int64) bool {
+	if before == nil || after == nil || size <= 0 || size > 32<<20 {
+		return false
+	}
+	if !before.Mode().IsRegular() || !after.Mode().IsRegular() {
+		return false
+	}
+	if before.Size() != size || after.Size() != size {
+		return false
+	}
+	if !os.SameFile(before, after) {
+		return false
+	}
+	return before.ModTime().Equal(after.ModTime())
 }
 
 // This workspace reuses its explicit byte buffers and fixed SHA-256 state;
@@ -122,16 +149,11 @@ func (r *providerHistoryOriginalReader) scan(ctx context.Context, p providerHist
 		}
 	}()
 	opened, err := f.Stat()
-	if err != nil || !os.SameFile(info, opened) || opened.Size() != info.Size() || !opened.Mode().IsRegular() {
+	if err != nil || !providerHistoryOriginalSameFile(info, opened, p.size) {
 		return "", ErrCandidateRetention
 	}
 	r.hash.Reset() // Reuses hash memory; does not reset any resource lifetime.
-	// The constructor enforces <=32MiB. Keep the bound explicit at this cast
-	// too; neither a large platform word nor a forged plan can widen it.
-	if p.reference.bytes > 32<<20 {
-		return "", ErrConfiguration
-	}
-	size := int64(p.reference.bytes)
+	size := p.size // Independently rederived by upper before opening the file.
 	for offset := int64(0); offset < size; {
 		if ctx.Err() != nil {
 			return "", ErrCandidateRetention
@@ -152,7 +174,7 @@ func (r *providerHistoryOriginalReader) scan(ctx context.Context, p providerHist
 	}
 	after, statErr := f.Stat()
 	path, pathErr := disk.root.Lstat(name)
-	if statErr != nil || pathErr != nil || !os.SameFile(info, after) || !os.SameFile(info, path) || after.Size() != size || path.Size() != size || !after.Mode().IsRegular() || !path.Mode().IsRegular() || !after.ModTime().Equal(info.ModTime()) || !path.ModTime().Equal(info.ModTime()) {
+	if statErr != nil || pathErr != nil || !providerHistoryOriginalSameFile(info, after, size) || !providerHistoryOriginalSameFile(info, path, size) {
 		return "", ErrCandidateRetention
 	}
 	closed = true
