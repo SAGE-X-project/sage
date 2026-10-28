@@ -10,7 +10,12 @@ import (
 // before this helper constructs the next request; there is no parent permit.
 func providerContinuingPinReadyFixture(t *testing.T) (*providerCustodyStore, *providerGuardianOwner, [4]string) {
 	t.Helper()
-	s, g := providerContinuingRPCReadyWithSelectionFixture(t, &providerScanFixtureSelection{pin: true})
+	return providerContinuingPinReadyWithSelectionFixture(t, &providerScanFixtureSelection{pin: true, pinResidentGiB: true})
+}
+
+func providerContinuingPinReadyWithSelectionFixture(t *testing.T, selection *providerScanFixtureSelection) (*providerCustodyStore, *providerGuardianOwner, [4]string) {
+	t.Helper()
+	s, g := providerContinuingRPCReadyWithSelectionFixture(t, selection)
 	selected := admissionTestDigest("a")
 	requests, err := providerPinRequests(selected)
 	if err != nil {
@@ -140,7 +145,7 @@ func TestProviderContinuingPinRejectsMissingAndDuplicateInputWithoutAuthority(t 
 
 func TestProviderContinuingPinUnretainedChildrenLeaveOnlyFailedSettlement(t *testing.T) {
 	t.Parallel()
-	s, g := providerContinuingRPCReadyWithSelectionFixture(t, &providerScanFixtureSelection{pin: true})
+	s, g := providerContinuingRPCReadyWithSelectionFixture(t, &providerScanFixtureSelection{pin: true, pinResidentGiB: true})
 	// Finite nonexistent lookup hints are never written as original X/S and
 	// never sent over a connection. C must still be irreversibly consumed.
 	digests := [4]string{admissionTestDigest("a"), admissionTestDigest("b"), admissionTestDigest("c"), admissionTestDigest("d")}

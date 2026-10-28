@@ -29,7 +29,7 @@ func TestProviderCaptureContinuingPinRetainsSameBlockRegistryIdentity(t *testing
 	// in the original official-origin sample. It neither changes the old 1/4
 	// refusal subject nor treats a prior sample as this connection's identity.
 	tls := providerTLSBounds{2, 5, 8 << 10}
-	config, clock := providerGuardianConfigWithSelectionFixture(t, 64<<20, 6, &providerScanFixtureSelection{capture: &capture, tls: &tls, pin: true})
+	config, clock := providerGuardianConfigWithSelectionFixture(t, 64<<20, 6, &providerScanFixtureSelection{capture: &capture, tls: &tls, pin: true, pinResidentGiB: true})
 	s, err := openProviderFrontierCandidate(config, clock)
 	if err != nil {
 		t.Fatal("fresh isolated retained pipeline", err)

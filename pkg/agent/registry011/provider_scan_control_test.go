@@ -33,6 +33,7 @@ type providerScanFixtureSelection struct {
 	tls            *providerTLSBounds
 	continuingWire bool
 	pin            bool
+	pinResidentGiB bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -61,6 +62,9 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 		// Separate immutable test inputs chosen before every profile/anchor/H0.
 		// Existing subjects and operating defaults remain unchanged.
 		private.maximumResidentBytes = 512 << 20
+		if selected.pinResidentGiB {
+			private.maximumResidentBytes = 1 << 30
+		}
 	}
 	b.continuation = &private
 	b.maximumCommits, b.maximumObjects = int(private.maximumCommits), int(private.maximumObjects)
