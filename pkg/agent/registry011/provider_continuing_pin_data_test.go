@@ -180,3 +180,60 @@ func TestProviderContinuingPinProfileDataDisagreementRefusesBeforeNewOriginal(t 
 		t.Fatal("failed profile DATA restored an admission or a physical hold")
 	}
 }
+
+// A read-only unit view cannot substitute missing or inconsistent lookup DATA
+// for an original binding. It borrows the immutable first exchange only;
+// it cannot create an admission, close an observer or change the owned store.
+func TestProviderContinuingPinReadViewRequiresCompleteAncillaryData(t *testing.T) {
+	t.Parallel()
+	s, g := providerContinuingRPCReadyWithSelectionFixture(t, &providerScanFixtureSelection{pin: true, pinResidentGiB: true})
+	stored, ordinal, tip, origin := s.stored, g.ordinal, s.frontierFiles.pin, s.setupOrigin
+	first, digest := g.first.request, g.integration.firstExchange
+	capture, err := s.config.bounds.methods.capture(first, s.config.capture)
+	if err != nil {
+		t.Fatal("original first request class", err)
+	}
+	limits, ok := providerOperationStorageUpper(s.config.bounds, capture, uint64(len(first.wire)))
+	if !ok {
+		t.Fatal("original first request storage bounds")
+	}
+	view, meter := providerPinUnitReadView(s, 1<<60)
+	r := &providerCustodyReplay{meter: meter, ledger: g.integration.ledger}
+	value, err := r.continuingPinSettlement(view, digest, first, capture, limits)
+	if err != nil || value == nil || value.retained != digest || view.valid() {
+		t.Fatal("original read-only settlement precondition", err)
+	}
+	for _, mode := range []string{"missing-binding-index", "different-request", "missing-transport", "different-transport"} {
+		view, meter := providerPinUnitReadView(s, 1<<60)
+		r := &providerCustodyReplay{meter: meter, ledger: g.integration.ledger}
+		if mode == "missing-binding-index" {
+			view.bindings = map[string]string{}
+			if value, err := r.continuingPinSettlement(view, digest, first, capture, limits); err == nil || value != nil {
+				t.Fatal("unattached missing lookup DATA yielded a settlement")
+			}
+		} else {
+			request := *first
+			exchange := map[string]any{}
+			switch mode {
+			case "different-request":
+				request.inputDigest = admissionTestDigest("f")
+				if request.inputDigest == first.inputDigest {
+					t.Fatal("unit request DATA must differ")
+				}
+			case "different-transport":
+				// Finite nil-valued local DATA, never written or dispatched.
+				transport := map[string]any{}
+				for _, key := range []string{"endpoint", "method", "http_version", "status", "response_headers", "tls_version", "cipher_suite", "server_name", "verified_chain", "roots_artifact", "redirects", "proxy"} {
+					transport[key] = nil
+				}
+				exchange["transport"] = transport
+			}
+			if r.continuingPinAncillaryBounds(view, digest, &request, exchange, capture, limits) {
+				t.Fatal("incomplete or inconsistent unit DATA replaced originals", mode)
+			}
+		}
+		if view.valid() || meter.actual[9] != 0 || s.activeMeter.Load() != nil || s.stored != stored || g.ordinal != ordinal || s.frontierFiles.pin != tip || s.setupOrigin != origin || s.failed || !g.ready || g.active {
+			t.Fatal("read-only ancillary unit changed original authority", mode)
+		}
+	}
+}
