@@ -48,7 +48,12 @@ func (r *providerCustodyReplay) checkPin(s *providerCustodyStore, settlement *Ca
 		}
 		digests[i] = contentString(value)
 	}
-	results, err := r.pinResults(s, digests, selected)
+	var results [4]json.RawMessage
+	if s.config.bounds.guardian != nil {
+		results, err = r.continuingPinResults(s, digests, selected)
+	} else {
+		results, err = r.pinResults(s, digests, selected)
+	}
 	if err != nil {
 		return errProviderIntegration
 	}

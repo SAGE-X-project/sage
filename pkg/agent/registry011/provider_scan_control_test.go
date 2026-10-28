@@ -32,6 +32,7 @@ type providerScanFixtureSelection struct {
 	capture        *ProviderCaptureLimits
 	tls            *providerTLSBounds
 	continuingWire bool
+	pin            bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -56,6 +57,11 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 		b.tls = &copied
 	}
 	private := model.continuation.bounds
+	if selected != nil && selected.pin {
+		// Separate immutable test inputs chosen before every profile/anchor/H0.
+		// Existing subjects and operating defaults remain unchanged.
+		private.maximumResidentBytes = 512 << 20
+	}
 	b.continuation = &private
 	b.maximumCommits, b.maximumObjects = int(private.maximumCommits), int(private.maximumObjects)
 	b.ledger = CandidateLedgerBounds{int(private.pageRecords), min(private.pagePayloadBytes, 16<<20), min(private.pageMetadataBytes, 64<<20)}
@@ -78,16 +84,23 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 			// ceiling also keeps the complete E+R decoded quote below the
 			// unchanged public operation policy maximum of256MiB.
 			b.maximumObjectBytes = 128 << 10
+			if selected != nil && selected.pin {
+				b.maximumObjectBytes = 256 << 10
+			}
 			for _, level := range []string{"operation", "segment"} {
 				values := m["limits"].(map[string]any)[level].(map[string]any)
 				values["decoded_bytes"], values["disk_bytes_written"], values["work_units"] = strconv.FormatUint(256<<20, 10), strconv.FormatUint(1<<34, 10), strconv.FormatUint(1<<62, 10)
 			}
 		}
-		if operation && selected != nil && selected.continuingWire {
+		if operation && selected != nil && (selected.continuingWire || selected.pin) {
 			// This fresh test input funds the header and three scalar reservations
 			// before profile/anchor/H0/clock. Existing 65536-byte subjects stay intact.
 			for _, level := range []string{"operation", "segment", "bootstrap"} {
-				m["limits"].(map[string]any)[level].(map[string]any)["wire_bytes"] = "131072"
+				wire := "131072"
+				if selected.pin {
+					wire = "262144"
+				}
+				m["limits"].(map[string]any)[level].(map[string]any)["wire_bytes"] = wire
 			}
 		}
 		var err error

@@ -49,6 +49,9 @@ func providerGuardianConfigWithSelectionFixture(t *testing.T, decoded, records u
 	b.ledger.MaximumRecords = int(page.pageRecords)
 	b.setupLive, b.setupRetained, b.setupWork[2] = 2<<20, 2<<20, 128<<20
 	claim := providerGuardianCapacity{work: candidateWorkVector{0, 0, decoded, 0, 0, 0, 0, 0, 0, 512 << 10, 1 << 52}, retained: 512 << 10, live: 512 << 10, clocks: 64, duration: 300000, records: 6, objects: 4, raw: 512 << 10, metadata: 512 << 10, resident: 128 << 20}
+	if selected != nil && selected.pin {
+		claim.resident = 512 << 20
+	}
 	lifetime := claim
 	const attempts uint64 = 32
 	for i := range lifetime.work {

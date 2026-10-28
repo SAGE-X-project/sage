@@ -16,6 +16,7 @@ const (
 // metadata allowance. Its new P is held before T; its E/R are distinct from
 // the closed first operation and every earlier continuing operation.
 type providerContinuingOwner struct {
+	pin                  *providerContinuingPinCommand
 	owner                *providerContinuingOwner
 	guardian             *providerGuardianOwner
 	store                *providerCustodyStore

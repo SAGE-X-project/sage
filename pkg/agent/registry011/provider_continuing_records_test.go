@@ -122,10 +122,12 @@ func TestProviderContinuingChangeInputsAreClosed(t *testing.T) {
 		names []string
 	}{
 		{"admit", []string{"guardian-admission-binding", "ticket"}},
+		{"admit", []string{"pin-input", "guardian-admission-binding", "ticket"}},
 		{"admit", []string{"request", "params", "guardian-admission-binding", "ticket"}},
 		{"consume", []string{"consumption"}},
 		{"settle", []string{"settlement"}},
 		{"settle", []string{"bootstrap", "settlement"}},
+		{"settle", []string{"pin", "settlement"}},
 		{"settle", []string{"exchange", "response", "tls", "wire-binding", "settlement"}},
 	} {
 		values := make([]providerIntegrationObjectInput, len(inputs.names))
@@ -134,6 +136,22 @@ func TestProviderContinuingChangeInputsAreClosed(t *testing.T) {
 		}
 		if !providerContinuingChangeInputs(inputs.kind, values) || providerContinuingChangeInputs("unknown", values) || providerContinuingChangeInputs(inputs.kind, nil) {
 			t.Fatal("closed input list changed", inputs.kind)
+		}
+		// Refuse every finite wrong kind and every adjacent reordering.
+		// These lists are inert DATA; no original or role is constructed.
+		for i := range values {
+			bad := append([]providerIntegrationObjectInput(nil), values...)
+			bad[i].kind = "unsupported-unit-kind"
+			if providerContinuingChangeInputs(inputs.kind, bad) {
+				t.Fatal("changed input kind", inputs.kind, i)
+			}
+			if i+1 < len(values) {
+				bad = append([]providerIntegrationObjectInput(nil), values...)
+				bad[i], bad[i+1] = bad[i+1], bad[i]
+				if providerContinuingChangeInputs(inputs.kind, bad) {
+					t.Fatal("reordered input", inputs.kind, i)
+				}
+			}
 		}
 		values[len(values)-1].kind = "unsupported-unit-kind"
 		if providerContinuingChangeInputs(inputs.kind, values) {

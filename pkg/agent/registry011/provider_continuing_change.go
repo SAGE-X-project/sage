@@ -137,6 +137,9 @@ func providerContinuingChangeInputs(kind string, extra []providerIntegrationObje
 		if len(extra) == 2 {
 			return extra[0].kind == "guardian-admission-binding" && extra[1].kind == "ticket"
 		}
+		if len(extra) == 3 {
+			return extra[0].kind == "pin-input" && extra[1].kind == "guardian-admission-binding" && extra[2].kind == "ticket"
+		}
 		return len(extra) == 4 && extra[0].kind == "request" && extra[1].kind == "params" && extra[2].kind == "guardian-admission-binding" && extra[3].kind == "ticket"
 	case "consume":
 		return len(extra) == 1 && extra[0].kind == "consumption"
@@ -145,7 +148,7 @@ func providerContinuingChangeInputs(kind string, extra []providerIntegrationObje
 			return extra[0].kind == "settlement"
 		}
 		if len(extra) == 2 {
-			return extra[0].kind == "bootstrap" && extra[1].kind == "settlement"
+			return (extra[0].kind == "bootstrap" || extra[0].kind == "pin") && extra[1].kind == "settlement"
 		}
 		return len(extra) == 5 && extra[0].kind == "exchange" && extra[1].kind == "response" && extra[2].kind == "tls" && extra[3].kind == "wire-binding" && extra[4].kind == "settlement"
 	}
