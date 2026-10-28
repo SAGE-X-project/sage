@@ -52,4 +52,11 @@ func TestProviderGuardianSealReplayRefusesMissingBoundaryData(t *testing.T) {
 			}
 		})
 	}
+	// The original observer has only one work unit left in this finite unit
+	// model. A reference comparison must refuse before any original read.
+	g.meter.actual[10] = g.meter.upper[10] - 1
+	if _, err := body.guardianSealBefore(s); err == nil || !g.meter.failed ||
+		s.frontierFiles.pin != before || s.stored != stored || len(s.objects) != objects {
+		t.Fatal("unfunded replay reference comparison returned a boundary")
+	}
 }

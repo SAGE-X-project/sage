@@ -129,6 +129,11 @@ func writeValue(buf *bytes.Buffer, v interface{}) error {
 
 // lessUTF16 orders strings by their UTF-16 code units (RFC 8785 Section 3.2.3).
 func lessUTF16(a, b string) bool {
+	// ASCII bytes are the same unsigned UTF-16 code units. Keep the full
+	// UTF-16 path for every other name; canonical bytes never change.
+	if asciiPropertyName(a) && asciiPropertyName(b) {
+		return a < b
+	}
 	ua, ub := utf16.Encode([]rune(a)), utf16.Encode([]rune(b))
 	for i := 0; i < len(ua) && i < len(ub); i++ {
 		if ua[i] != ub[i] {
@@ -136,6 +141,15 @@ func lessUTF16(a, b string) bool {
 		}
 	}
 	return len(ua) < len(ub)
+}
+
+func asciiPropertyName(value string) bool {
+	for i := 0; i < len(value); i++ {
+		if value[i] >= utf8.RuneSelf {
+			return false
+		}
+	}
+	return true
 }
 
 // writeString escapes s as ECMAScript JSON.stringify does (RFC 8785 Section 3.2.2.2).
