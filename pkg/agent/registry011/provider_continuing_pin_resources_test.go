@@ -103,8 +103,8 @@ func TestProviderContinuingPinResourcesAreBoundedDataWithoutAnOwner(t *testing.T
 					t.Fatal("normal arithmetic quote lost its independent dimensions")
 				}
 				for _, size := range sizes {
-					if size < bounds.maximumObjectBytes {
-						t.Fatal("unbounded hinted original size was omitted")
+					if size == 0 || size > bounds.maximumObjectBytes {
+						t.Fatal("fixed child class does not fit the bounded original profile")
 					}
 				}
 			} else if ok || p != (providerContinuingPlan{}) || storage != (providerFirstOperationStorage{}) || maximum != 0 || sizes != ([4]uint64{}) {

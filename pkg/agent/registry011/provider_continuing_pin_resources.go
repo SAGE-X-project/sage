@@ -24,12 +24,13 @@ func providerContinuingPinResourceUpper(b providerIntegrationBounds, global Prov
 		if !valid || !product || !sum || child.exchange > 4<<20 || child.transport > 4<<20 {
 			return empty, providerFirstOperationStorage{}, 0, [4]uint64{}, false
 		}
-		sizes[i] = max(n, b.maximumObjectBytes, uint64(capture.WireBytes), base64/3)
+		sizes[i] = max(n, child.exchange, child.transport, uint64(capture.WireBytes), base64/3)
 		maximum = max(maximum, sizes[i])
 	}
 	headroom, a := providerUpperProduct(maximum, maximum)
 	headroom, c := providerUpperSum(headroom, b.maximumObjectBytes, 2)
-	// R3 closed table: actual child43Q/76L is additional to all metadata.
+	// The original43Q/76L child closure remains. First-read bounds add
+	// separately funded4Q/12L per child in EACH independent E and R.
 	// Two separate5Q/9L input rechecks cover C/S old-material invocations.
 	execution, e := providerFirstOperationPhaseUpper(n, 655, 3595, 7, 29, storage.consumption, headroom)
 	remaining, f := providerFirstOperationPhaseUpper(n, 594, 3327, 5, 37, storage.settlement, headroom)
@@ -38,7 +39,7 @@ func providerContinuingPinResourceUpper(b providerIntegrationBounds, global Prov
 	}
 	validatorQ, validatorL := [4]uint64{1, 5, 1, 4}, [4]uint64{0, 8, 0, 7}
 	for i, size := range sizes {
-		row := []providerRPCSizeRow{{size, 43 + validatorQ[i], 76 + validatorL[i]}}
+		row := []providerRPCSizeRow{{size, 47 + validatorQ[i], 88 + validatorL[i]}}
 		capture := captures[i]
 		head, h := providerUpperProduct(uint64(capture.HeaderBytes), 13)
 		body, j := providerUpperProduct(uint64(capture.BodyBytes), 4)

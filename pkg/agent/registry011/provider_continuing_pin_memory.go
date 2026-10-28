@@ -36,8 +36,17 @@ func providerContinuingPinMemoryUpper(g *providerGuardianOwner, command *provide
 		requests, k := providerUpperProduct(uint64(len(request.wire)), 3)
 		classScratch, l := providerUpperProduct(2*(16<<10)+(8<<10), 2)
 		value, m := providerUpperSum(originals, decoded, intermediate, wire, head, body, requests, classScratch)
+		// Keep both independent phase binding/class/canonical families. No
+		// previous original, historical peak or request allocation is removed.
+		codecFactor, boundedA := providerUpperProduct(b.continuation.codecMemoryMultiplier, 2)
+		codecFactor, boundedB := providerUpperSum(2, codecFactor)
+		bindings, boundedC := providerUpperProduct(codecFactor, 8192)
+		canonicals, boundedD := providerUpperProduct(sizes[i], 2)
+		boundedScratch, boundedE := providerUpperSum(bindings, canonicals, 69, 5*256)
+		boundedScratch, boundedF := providerUpperProduct(boundedScratch, 2)
+		value, boundedG := providerUpperSum(value, boundedScratch)
 		childScratch, added = providerUpperSum(childScratch, value)
-		if !a || !c || !e || !f || !h || !j || !k || !l || !m || !added {
+		if !a || !c || !e || !f || !h || !j || !k || !l || !m || !boundedA || !boundedB || !boundedC || !boundedD || !boundedE || !boundedF || !boundedG || !added {
 			return 0, false
 		}
 	}
@@ -66,7 +75,9 @@ func providerContinuingPinMemoryUpper(g *providerGuardianOwner, command *provide
 		{uint64(reflect.TypeFor[providerGuardianAdmissionBinding]().Size()), 2},
 		{uint64(reflect.TypeFor[providerContinuingPinData]().Size()), 1},
 		{uint64(reflect.TypeFor[providerIntegrationBounds]().Size()), 1},
-		{uint64(reflect.TypeFor[ProviderCaptureLimits]().Size()), 1},
+		{uint64(reflect.TypeFor[ProviderCaptureLimits]().Size()), 9},
+		{uint64(reflect.TypeFor[providerFirstOperationStorage]().Size()), 8},
+		{uint64(reflect.TypeFor[providerIntegrationObjectRef]().Size()), 80},
 		{uint64(reflect.TypeFor[[4]*providerIntegrationRequest]().Size()), 1},
 		{uint64(reflect.TypeFor[[4]ProviderCaptureLimits]().Size()), 1},
 		{uint64(reflect.TypeFor[[4]uint64]().Size()), 2},

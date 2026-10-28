@@ -123,7 +123,7 @@ func TestProviderContinuingPinRejectsMissingAndDuplicateInputWithoutAuthority(t 
 	if _, err := (*providerCustodyReplay)(nil).continuingPinResults(nil, digests, admissionTestDigest("a")); err == nil {
 		t.Fatal("unowned replay produced pin results")
 	}
-	if _, err := (*providerCustodyReplay)(nil).continuingPinSettlement(nil, digests[0], nil); err == nil {
+	if _, err := (*providerCustodyReplay)(nil).continuingPinSettlement(nil, digests[0], nil, ProviderCaptureLimits{}, providerFirstOperationStorage{}); err == nil {
 		t.Fatal("unowned replay selected a settlement")
 	}
 	if _, err := providerContinuingPinObject(digests[0], digests[1], digests, nil); err == nil {

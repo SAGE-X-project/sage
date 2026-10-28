@@ -74,8 +74,44 @@ func TestProviderContinuingPinSelectedDataRequiresOriginalAndExpectedAdmission(t
 	if err != nil {
 		t.Fatal(err)
 	}
-	if value, err := r.continuingPinSettlement(view, g.integration.firstExchange, requests[0]); err == nil || value != nil {
+	capture, err := s.config.bounds.methods.capture(requests[0], s.config.capture)
+	if err != nil {
+		t.Fatal("unit expected method capture", err)
+	}
+	limits, ok := providerOperationStorageUpper(s.config.bounds, capture, uint64(len(requests[0].wire)))
+	if !ok {
+		t.Fatal("unit expected method storage bounds")
+	}
+	if value, err := r.continuingPinSettlement(view, g.integration.firstExchange, requests[0], capture, limits); err == nil || value != nil {
 		t.Fatal("a different retained method supplied the requested unit settlement")
+	}
+	// Copy a typed lookup row into an invalid, unattached unit ledger. Only
+	// its terminal hint is absent; no original S or actual ledger is changed.
+	view, meter = providerPinUnitReadView(s, 1<<60)
+	first := g.first.request
+	firstTicket := g.integration.firstTicket
+	if first == nil || firstTicket == nil || first != g.integration.first || firstTicket.kind != "rpc-capture" || firstTicket.input != first.inputDigest || firstTicket.method != first.method || firstTicket.params != first.paramsDigest {
+		t.Fatal("first original request and ticket are not linked")
+	}
+	capture, err = s.config.bounds.methods.capture(first, s.config.capture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	limits, ok = providerOperationStorageUpper(s.config.bounds, capture, uint64(len(first.wire)))
+	if !ok {
+		t.Fatal("unit first-exchange storage bounds")
+	}
+	entry, exists := g.integration.ledger.tickets[firstTicket.digest]
+	if !exists || entry.ticket != firstTicket || entry.consumption == nil || !lowerHash(entry.terminal) {
+		t.Fatal("original first ticket lacks its completed typed row")
+	}
+	entry.terminal = admissionTestDigest("f")
+	if _, exists := view.objects[providerIntegrationRefKey(providerIntegrationObjectRef{kind: "settlement", digest: entry.terminal})]; exists {
+		t.Fatal("unit absent settlement hint unexpectedly exists")
+	}
+	r = &providerCustodyReplay{meter: meter, ledger: &CandidateAdmissionLedger{tickets: map[string]candidateLedgerTicket{firstTicket.digest: entry}}}
+	if value, err := r.continuingPinSettlement(view, g.integration.firstExchange, first, capture, limits); err == nil || value != nil || view.valid() {
+		t.Fatal("absent terminal hint yielded an original unit settlement")
 	}
 	if s.failed || !g.ready || g.active || s.activeMeter.Load() != nil || s.stored != stored || g.ordinal != ordinal || s.frontierFiles.pin != tip {
 		t.Fatal("detached unit DATA checks changed the original owner")
@@ -86,7 +122,7 @@ func TestProviderContinuingPinReplayRejectsInvalidLookupDataBeforeAnyRead(t *tes
 	t.Parallel()
 	for _, mode := range []string{"bad-digest", "duplicate", "request-budget"} {
 		meter := newProviderWorkMeter(&providerIntegration{}, providerOperationReservation{})
-		s := &providerCustodyStore{}
+		s := &providerCustodyStore{config: providerCustodyConfig{bounds: providerIntegrationBounds{methods: &providerMethodBounds{}}}}
 		s.activeMeter.Store(meter)
 		r := &providerCustodyReplay{meter: meter, ledger: &CandidateAdmissionLedger{}}
 		digests := [4]string{admissionTestDigest("a"), admissionTestDigest("b"), admissionTestDigest("c"), admissionTestDigest("d")}
@@ -107,5 +143,40 @@ func TestProviderContinuingPinReplayRejectsInvalidLookupDataBeforeAnyRead(t *tes
 				t.Fatal("invalid unit lookup yielded an original response", mode)
 			}
 		}
+	}
+}
+
+func TestProviderContinuingPinSelectedRequiresUnitInputs(t *testing.T) {
+	t.Parallel()
+	// No originals, filesystem, owner or counter are present in this guard.
+	if value, err := providerContinuingPinSelected(nil, nil, nil); err == nil || value != "" {
+		t.Fatal("missing unit inputs yielded selected DATA")
+	}
+}
+
+func TestProviderContinuingPinProfileDataDisagreementRefusesBeforeNewOriginal(t *testing.T) {
+	t.Parallel()
+	s, g := providerContinuingRPCReadyWithSelectionFixture(t, &providerScanFixtureSelection{pin: true, pinResidentGiB: true})
+	stored, sequence, ordinal, main, head := s.stored, s.sequence, g.ordinal, s.frontierFiles.pin, g.pin
+	priorTicket := g.integration.ledger.lastTicket
+	profile, origin := s.config.profile, s.setupOrigin
+	// Fixed in-memory configuration DATA only. Both local copies disagree
+	// with their original profile bytes; no original, identity, key, permit,
+	// closed observer or stored profile is changed or replaced.
+	if profile == admissionTestDigest("f") {
+		t.Fatal("unit disagreement must differ from the original profile")
+	}
+	s.config.profile = admissionTestDigest("f")
+	g.config.profile = s.config.profile
+	digests := [4]string{admissionTestDigest("a"), admissionTestDigest("b"), admissionTestDigest("c"), admissionTestDigest("d")}
+	o, err := newProviderContinuingPinCandidate(s, "example-agent", digests)
+	// The constructor holds P before rebuilding the profile in its codec.
+	// The wrong DATA digest must refuse there, before any new G original/T.
+	failed := g.continuing
+	if err == nil || o != nil || failed == nil || failed.state != providerContinuingFailed || !s.failed || !g.failed || g.ready || s.activeMeter.Load() != nil || g.ordinal != ordinal+1 || g.pin != head || g.phase != providerGuardianMetadata || s.sequence != sequence || s.frontierFiles.pin != main || g.integration.ledger.lastTicket != priorTicket || s.setupOrigin != origin || g.original != origin || g.first.config.profile != profile || failed.plan.physical == 0 || s.stored != stored+failed.plan.physical || failed.ticket != nil || failed.execution != nil || failed.remaining != nil || g.claim == nil || g.claim.target != "" || g.integration.pin != "" {
+		t.Fatal("profile DATA disagreement did not reach the held pre-original refusal", err)
+	}
+	if value, err := newProviderContinuingPinCandidate(s, "example-agent", digests); err == nil || value != nil || s.stored != stored+failed.plan.physical || g.ordinal != ordinal+1 {
+		t.Fatal("failed profile DATA restored an admission or a physical hold")
 	}
 }

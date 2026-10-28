@@ -6,7 +6,7 @@ import "encoding/json"
 // original X/S/transport/binding/class closure with its own current observer.
 func (r *providerCustodyReplay) continuingPinResults(s *providerCustodyStore, digests [4]string, selected string) ([4]json.RawMessage, error) {
 	var results [4]json.RawMessage
-	if r == nil || s == nil || r.meter == nil || r.meter.closed || r.meter.failed || s.activeMeter.Load() != r.meter || r.ledger == nil || !lowerHash(selected) {
+	if r == nil || s == nil || r.meter == nil || r.meter.closed || r.meter.failed || s.activeMeter.Load() != r.meter || r.ledger == nil || s.config.bounds.methods == nil || !lowerHash(selected) {
 		return results, errProviderIntegration
 	}
 	for _, digest := range digests {
@@ -22,7 +22,15 @@ func (r *providerCustodyReplay) continuingPinResults(s *providerCustodyStore, di
 		return results, err
 	}
 	for i, digest := range digests {
-		settlement, err := r.continuingPinSettlement(s, digest, requests[i])
+		capture, err := s.config.bounds.methods.captureObserved(requests[i], s.config.capture, r.meter)
+		if err != nil {
+			return results, errProviderIntegration
+		}
+		limits, valid := providerOperationStorageUpper(s.config.bounds, capture, uint64(len(requests[i].wire)))
+		if !valid {
+			return results, errProviderIntegration
+		}
+		settlement, err := r.continuingPinSettlement(s, digest, requests[i], capture, limits)
 		if err != nil || r.checkExchange(s, settlement) != nil {
 			return results, errProviderIntegration
 		}
@@ -34,8 +42,11 @@ func (r *providerCustodyReplay) continuingPinResults(s *providerCustodyStore, di
 	return results, nil
 }
 
-func (r *providerCustodyReplay) continuingPinSettlement(s *providerCustodyStore, digest string, request *providerIntegrationRequest) (*CandidateAdmissionSettlement, error) {
-	if r == nil || s == nil || r.meter == nil || s.activeMeter.Load() != r.meter || r.ledger == nil || request == nil || !lowerHash(digest) {
+func (r *providerCustodyReplay) continuingPinSettlement(s *providerCustodyStore, digest string, request *providerIntegrationRequest, capture ProviderCaptureLimits, limits providerFirstOperationStorage) (*CandidateAdmissionSettlement, error) {
+	if r == nil || s == nil || r.meter == nil || s.activeMeter.Load() != r.meter || r.ledger == nil || request == nil || !capture.valid() || !lowerHash(digest) {
+		return nil, errProviderIntegration
+	}
+	if !r.continuingPinBoundOriginal(s, "exchange", digest, limits.exchange) {
 		return nil, errProviderIntegration
 	}
 	raw, err := s.object("exchange", digest)
@@ -47,12 +58,18 @@ func (r *providerCustodyReplay) continuingPinSettlement(s *providerCustodyStore,
 	if !exists || entry.ticket == nil || entry.ticket.kind != "rpc-capture" || entry.ticket.method != request.method || entry.ticket.input != request.inputDigest || entry.ticket.params != request.paramsDigest || entry.consumption == nil || !lowerHash(entry.terminal) {
 		return nil, errProviderIntegration
 	}
+	if !r.continuingPinBoundOriginal(s, "settlement", entry.terminal, 64<<10) {
+		return nil, errProviderIntegration
+	}
 	raw, err = s.object("settlement", entry.terminal)
 	if err != nil {
 		return nil, errProviderIntegration
 	}
 	settlement, err := s.parsePinSettlementObserved(entry.ticket, raw, r.meter)
 	if err != nil || settlement.outcome != "complete" || settlement.retained != digest {
+		return nil, errProviderIntegration
+	}
+	if !r.continuingPinAncillaryBounds(s, digest, request, m, capture, limits) {
 		return nil, errProviderIntegration
 	}
 	return settlement, nil

@@ -34,6 +34,7 @@ type providerScanFixtureSelection struct {
 	continuingWire bool
 	pin            bool
 	pinResidentGiB bool
+	pinLargeObject bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -90,6 +91,9 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 			b.maximumObjectBytes = 128 << 10
 			if selected != nil && selected.pin {
 				b.maximumObjectBytes = 256 << 10
+				if selected.pinLargeObject {
+					b.maximumObjectBytes = 1 << 20
+				}
 			}
 			for _, level := range []string{"operation", "segment"} {
 				values := m["limits"].(map[string]any)[level].(map[string]any)
