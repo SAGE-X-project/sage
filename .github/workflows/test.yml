@@ -105,6 +105,7 @@ jobs:
           from pathlib import Path
           targets = {
               'pkg/agent/internal/rfc8785/rfc8785.go': [0, 0],
+              'pkg/agent/internal/rfc8785/native.go': [0, 0],
               'pkg/agent/registry010/eip155_observer010.go': [0, 0],
               'pkg/agent/didsource010/eip155.go': [0, 0],
               'pkg/agent/registry011/source_checkpoint.go': [0, 0],

@@ -42,6 +42,13 @@ import (
 
 // Marshal encodes v with encoding/json and returns its canonical form.
 func Marshal(v interface{}) ([]byte, error) {
+	if nativeCanonicalValue(v, 0) {
+		var buf bytes.Buffer
+		if err := writeNativeCanonicalValue(&buf, v); err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}
 	raw, err := json.Marshal(v)
 	if err != nil {
 		return nil, err

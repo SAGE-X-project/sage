@@ -15,13 +15,17 @@ func providerContinuingPinReadyFixture(t *testing.T) (*providerCustodyStore, *pr
 
 func providerContinuingPinReadyWithSelectionFixture(t *testing.T, selection *providerScanFixtureSelection) (*providerCustodyStore, *providerGuardianOwner, [4]string) {
 	t.Helper()
+	return providerContinuingPinReadyWithResultsFixture(t, selection, providerPinResultFixture(t))
+}
+
+func providerContinuingPinReadyWithResultsFixture(t *testing.T, selection *providerScanFixtureSelection, results [4]json.RawMessage) (*providerCustodyStore, *providerGuardianOwner, [4]string) {
+	t.Helper()
 	s, g := providerContinuingRPCReadyWithSelectionFixture(t, selection)
 	selected := admissionTestDigest("a")
 	requests, err := providerPinRequests(selected)
 	if err != nil {
 		t.Fatal(err)
 	}
-	results := providerPinResultFixture(t)
 	var digests [4]string
 	for i, request := range requests {
 		if i == 2 {
