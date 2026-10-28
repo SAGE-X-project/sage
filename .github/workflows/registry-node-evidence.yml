@@ -65,7 +65,7 @@ jobs:
   provider-capture:
     name: Capture candidate provider transport evidence
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     env:
       GOFLAGS: -mod=readonly
       GOTOOLCHAIN: auto
