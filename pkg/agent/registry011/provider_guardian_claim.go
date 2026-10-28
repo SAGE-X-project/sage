@@ -7,7 +7,7 @@ package registry011
 func (g *providerGuardianOwner) startClaimLocked(purpose string) error {
 	if !g.selectedLocked() || !providerGuardianPurpose(purpose) || !g.initialized || !g.admitted || !g.ready || g.active ||
 		g.claim != nil || g.meter != nil || g.first == nil || g.first.state != providerFirstOperationDone ||
-		g.ordinal != g.pin.ordinal || g.ordinal >= g.bounds.attempts || g.integration == nil || g.indexes == nil || g.continuing != nil || g.prefix.owner != g {
+		g.ordinal != g.pin.ordinal || g.ordinal >= g.bounds.attempts || g.integration == nil || g.indexes == nil || g.continuing != nil || g.sealing != nil || g.prefix.owner != g {
 		return errProviderIntegration
 	}
 	s, c := g.store, g.integration

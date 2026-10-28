@@ -23,6 +23,7 @@ type providerGuardianOwner struct {
 	main                                         providerFrontierHighwater
 	first                                        *providerFirstOperationOwner
 	continuing                                   *providerContinuingOwner
+	sealing                                      *providerPageSealOwner
 	prefix                                       providerContinuingPrefix
 	claimPhysical, claimRaw, auxiliaryMetadata   uint64
 	integration                                  *providerIntegration

@@ -49,7 +49,7 @@ func (r *providerFrontierReplay) preflightRetention(s *providerCustodyStore, inv
 	}
 	kind := contentString(m["kind"])
 	ledger := r.body.ledger
-	if s.config.bounds.guardian != nil && kind == "admit" && ledger != nil {
+	if s.config.bounds.guardian != nil && (kind == "admit" || kind == "seal") && ledger != nil {
 		// Before any new main file, retain room for the independently rebuilt
 		// G-original delta as well. This is only an upper, not an actual debit.
 		var ok bool

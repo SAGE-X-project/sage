@@ -130,6 +130,32 @@ func TestProviderContinuingChangeRejectsMalformedUnretainedData(t *testing.T) {
 			}
 		})
 	}
+	t.Run("incomplete-rpc-settlement", func(t *testing.T) {
+		// These format-only DATA objects are deliberately not a settlement
+		// of the selected consumed ticket. They must fail semantic/index
+		// preparation without retaining a response or gaining a permit.
+		extra := []providerIntegrationObjectInput{
+			{"exchange", []byte(`{"format":"sage-provider-exchange-v2"}`)},
+			{"response", []byte(`{}`)},
+			{"tls", []byte(`{}`)},
+			{"wire-binding", []byte(`{"format":"sage-provider-wire-binding-v1"}`)},
+			{"settlement", []byte(`{"format":"sage-provider-budget-settlement-v2"}`)},
+		}
+		operation, ok := providerIntegrationObjectDigestObserved("settlement", extra[4].raw, m)
+		if !ok {
+			t.Fatal("inert settlement DATA digest")
+		}
+		stored, sequence, pin := s.stored, s.sequence, s.frontierFiles.pin
+		if proposal, err := providerContinuingChangeData(s, c.root, c.ledger, o.indexes, s.frontierReplay.current, "settle", operation, change, extra, providerClockDiagnostic(clock), m); err == nil || proposal != nil {
+			t.Fatal("format-only unretained DATA became a semantic settlement")
+		}
+		if s.stored != stored || s.sequence != sequence || s.frontierFiles.pin != pin || o.permit != nil || o.change != nil {
+			t.Fatal("refused settlement DATA changed custody or execution")
+		}
+	})
+	if providerContinuingChangeMeter(nil, nil) {
+		t.Fatal("missing meter obtained a change role")
+	}
 	if s.sequence != 5 || o.permit != nil || o.change != nil || m.actual[0] != 0 || m.actual[1] != 0 || m.actual[9] != 0 {
 		t.Fatal("invalid DATA changed custody or execution")
 	}

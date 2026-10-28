@@ -52,6 +52,8 @@ func providerIntegrationDomain(kind string) (string, bool) {
 		return providerGuardianOriginDomain, true
 	case "guardian-admission-binding":
 		return "sage-provider-guardian-admission-binding-v1", true
+	case "guardian-seal-binding":
+		return "sage-provider-guardian-seal-binding-v1", true
 	case "scan-admission-binding-v5":
 		return "sage-provider-scan-admission-binding-v2", true
 	case "enrollment":

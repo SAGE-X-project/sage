@@ -53,18 +53,27 @@ func (r *providerFrontierReplay) retainContinuingOwnedLocked(s *providerCustodyS
 }
 
 func (r *providerFrontierReplay) retainAllOwnedLocked(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after providerFrontierHighwater, prepaid *providerBootstrapOwner, first *providerFirstAdmissionOwner, operation *providerFirstOperationOwner, continuing *providerContinuingOwner) (providerFrontierRetention, error) {
+	return r.retainClosedOwnedLocked(s, inventory, fresh, intent, commit, frontier, after, prepaid, first, operation, continuing, nil)
+}
+
+// The fifth role spends G metadata only for one closed page-seal transition.
+func (r *providerFrontierReplay) retainSealingOwnedLocked(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after providerFrontierHighwater, sealing *providerPageSealOwner) (providerFrontierRetention, error) {
+	return r.retainClosedOwnedLocked(s, inventory, fresh, intent, commit, frontier, after, nil, nil, nil, nil, sealing)
+}
+
+func (r *providerFrontierReplay) retainClosedOwnedLocked(s *providerCustodyStore, inventory *providerIntegrationInventory, fresh []providerIntegrationObject, intent, commit, frontier []byte, after providerFrontierHighwater, prepaid *providerBootstrapOwner, first *providerFirstAdmissionOwner, operation *providerFirstOperationOwner, continuing *providerContinuingOwner, sealing *providerPageSealOwner) (providerFrontierRetention, error) {
 	if s == nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	f := s.frontierFiles
-	held := prepaid != nil || first != nil || operation != nil || continuing != nil
+	held := prepaid != nil || first != nil || operation != nil || continuing != nil || sealing != nil
 	roles := 0
-	for _, present := range [4]bool{prepaid != nil, first != nil, operation != nil, continuing != nil} {
+	for _, present := range [5]bool{prepaid != nil, first != nil, operation != nil, continuing != nil, sealing != nil} {
 		if present {
 			roles++
 		}
 	}
-	if roles > 1 || s.config.bounds.firstAdmission != nil && (prepaid == nil || !prepaid.writing(s)) && (first == nil || !first.writingLocked(s)) && (operation == nil || !operation.writingLocked(s)) && (continuing == nil || !continuing.writingLocked(s)) || s.config.bounds.firstAdmission == nil && held {
+	if roles > 1 || s.config.bounds.firstAdmission != nil && (prepaid == nil || !prepaid.writing(s)) && (first == nil || !first.writingLocked(s)) && (operation == nil || !operation.writingLocked(s)) && (continuing == nil || !continuing.writingLocked(s)) && (sealing == nil || !sealing.writingLocked(s)) || s.config.bounds.firstAdmission == nil && held {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	if !s.valid() || f == nil || !f.valid() || !f.initialized || f.pending != nil || r == nil || s.frontierReplay != r || r.owner != r || r.failed || r.current.sequence != s.sequence || r.indexes == nil || !r.indexes.valid() || s.sequence != 0 && !r.highwater || f.pin.sequence != s.sequence || f.pin.commit != s.tip || f.pin.setup != s.setupTip || inventory == nil || inventory.previous != s.objectsRoot || !checkProviderHighwaterMainObserved(f.pin, after, s.config, intent, commit, frontier, r.meter) {
@@ -85,7 +94,10 @@ func (r *providerFrontierReplay) retainAllOwnedLocked(s *providerCustodyStore, i
 	if continuing != nil {
 		selected = continuing.change
 	}
-	if operation != nil || continuing != nil {
+	if sealing != nil {
+		selected = sealing.change
+	}
+	if operation != nil || continuing != nil || sealing != nil {
 		if selected == nil || selected.inventory != inventory || selected.after != after || len(selected.fresh) != len(fresh) || !providerReplayEqual(selected.intent, intent, r.meter) || !providerReplayEqual(selected.commit, commit, r.meter) || !providerReplayEqual(selected.frontier, frontier, r.meter) {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
@@ -161,6 +173,10 @@ func (r *providerFrontierReplay) retainAllOwnedLocked(s *providerCustodyStore, i
 		}
 	} else if continuing != nil {
 		if !continuing.consumeStorageLocked(total) {
+			return providerFrontierRetention{}, errProviderIntegration
+		}
+	} else if sealing != nil {
+		if !sealing.consumeStorageLocked(total) {
 			return providerFrontierRetention{}, errProviderIntegration
 		}
 	} else {

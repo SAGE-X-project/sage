@@ -251,10 +251,18 @@ func (r *providerFrontierReplay) applyBody(s *providerCustodyStore, root *Candid
 		if ledger == nil || claimed.seal == "" || root.budget != ledger.current.digest {
 			return providerIntegrationObject{}, nil, errProviderIntegration
 		}
+		var binding providerGuardianSealBinding
+		if s.config.bounds.guardian != nil {
+			var err error
+			binding, err = r.body.guardianSealBefore(s)
+			if err != nil {
+				return providerIntegrationObject{}, nil, errProviderIntegration
+			}
+		}
 		raw, err := s.object("ledger-seal", claimed.seal)
 		value, ok := providerReplayJSON(raw, r.meter).(map[string]any)
 		final, boolOK := value["final"].(bool)
-		if err != nil || !ok || !boolOK {
+		if err != nil || !ok || !boolOK || s.config.bounds.guardian != nil && final {
 			return providerIntegrationObject{}, nil, errProviderIntegration
 		}
 		boundary, err := ledger.prepareProviderBoundary(final)
@@ -265,6 +273,9 @@ func (r *providerFrontierReplay) applyBody(s *providerCustodyStore, root *Candid
 		page, pageErr := s.object("ledger-page", boundary.pageObject.digest)
 		budget, budgetErr := s.object("budget", root.budget)
 		if err != nil || pageErr != nil || budgetErr != nil || !providerReplayEqual(raw, providerReplayPhaseBytes(seal.raw, r.meter), r.meter) || !providerReplayEqual(page, providerReplayPhaseBytes(boundary.pageObject.raw, r.meter), r.meter) || !providerReplayEqual(budget, providerReplayPhaseBytes(ledger.current.raw, r.meter), r.meter) {
+			return providerIntegrationObject{}, nil, errProviderIntegration
+		}
+		if s.config.bounds.guardian != nil && (binding.page != boundary.pageObject.digest || binding.seal != seal.digest || binding.budget != ledger.current.digest || binding.indexes != r.indexes.heads) {
 			return providerIntegrationObject{}, nil, errProviderIntegration
 		}
 		return seal, boundary, nil

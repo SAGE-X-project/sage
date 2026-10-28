@@ -78,7 +78,8 @@ func providerContinuingBudgetData(value *CandidateAdmissionLedgerChange) provide
 }
 
 func providerContinuingPageData(value *providerLedgerContinuation) (providerContinuingPagePin, bool) {
-	if value == nil || value.pending != nil || value.final || len(value.records) == 0 {
+	if value == nil || value.pending != nil || value.final || !value.valid(value.owner) ||
+		len(value.records) == 0 && (value.page == 0 || value.sealedRecords == 0 || !lowerHash(value.lastSeal) || !lowerHash(value.lastPage) || !lowerHash(value.lastBudget)) {
 		return providerContinuingPagePin{}, false
 	}
 	return providerContinuingPagePin{page: value.page, sealedRecords: value.sealedRecords, sealedPayload: value.sealedPayload, sealedMetadata: value.sealedMetadata, extraMetadata: value.extraMetadata, sealedExtra: value.sealedExtra, auxiliaryMetadata: value.auxiliaryMetadata, sealedAuxiliary: value.sealedAuxiliary, auxiliaryPayload: value.auxiliaryPayload, sealedExternal: value.sealedExternal, lastSeal: value.lastSeal, lastPage: value.lastPage, lastBudget: value.lastBudget, records: len(value.records)}, true

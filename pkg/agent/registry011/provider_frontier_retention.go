@@ -105,7 +105,7 @@ func providerFrontierRetentionClass(kind string) int {
 		return 0
 	case "request", "params", "response", "tls":
 		return 1
-	case "setup", "setup-commit", "enrollment", "admission", "scan-admission-binding", "scan-admission-binding-v5", "guardian-origin", "guardian-admission-binding", "exchange", "wire-binding", "bootstrap", "pin-input", "pin", "segment", "batch", "checkpoint", "verification-receipt":
+	case "setup", "setup-commit", "enrollment", "admission", "scan-admission-binding", "scan-admission-binding-v5", "guardian-origin", "guardian-admission-binding", "guardian-seal-binding", "exchange", "wire-binding", "bootstrap", "pin-input", "pin", "segment", "batch", "checkpoint", "verification-receipt":
 		return 2
 	}
 	return -1

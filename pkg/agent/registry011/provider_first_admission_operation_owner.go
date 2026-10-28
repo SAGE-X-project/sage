@@ -136,5 +136,5 @@ func (o *providerFirstOperationOwner) failLocked() {
 // Observation routing is explicit only for the newly bound first-operation
 // metric. The original DATA-only F and every legacy metric stay unchanged.
 func providerFirstOperationObserved(meter *providerWorkMeter) bool {
-	return meter != nil && (meter.continuing != nil || meter.guardian != nil && meter.guardian.continuing != nil || meter.firstOperation != nil || meter.firstAdmission != nil && meter.firstAdmission.operation != nil)
+	return meter != nil && (meter.continuing != nil || meter.guardian != nil && (meter.guardian.continuing != nil || meter.guardian.sealing != nil) || meter.firstOperation != nil || meter.firstAdmission != nil && meter.firstAdmission.operation != nil)
 }
