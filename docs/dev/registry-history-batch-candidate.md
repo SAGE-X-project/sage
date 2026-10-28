@@ -143,3 +143,34 @@ Neither this component nor a positive scalar envelope supplies a sufficient
 whole-history certificate, a group ACK, a cursor or Source readiness. The
 closed grouped permission/custody source and complete cost derivation still
 have to close together before whole-history acquisition.
+
+## Ordered group request table candidate
+
+A new private preparation table fixes the program identifier, finite purpose,
+stage ordinal and each distinct member ordinal, exact method, reconstructed
+HTTP request/params identities, symbolic method class and all selected capture
+limits. Its copied fixed array has at most32 members; canonical metadata is at
+most64KiB. These are candidate preparation bounds, not a selected operating
+profile or proof that the corresponding full group fits a custody commit.
+
+The constructor rebuilds every request from bounded original parameter DATA,
+checks its complete HTTP bytes and both digest contracts, and derives the class
+again. Equal numeric caps never substitute for a method class. Caller pointers
+and slices are not retained. Identical requests occupy separate ordered slots
+and therefore remain separate future permissions and resource invocations.
+
+An explicit parser reconstructs a table against the independently supplied
+original requests and fixed expected program, purpose, stage and method bounds,
+and compares the exact canonical original metadata. It does not accept a JSON
+role or a digest-only claimed acknowledgement. The table domain is a private
+candidate record format, not a change to the Agent wire protocol or RFC9421.
+
+Both construction and parsing return DATA only. Neither validates that a
+request is the next command allowed by the whole-history grammar. The future
+program must validate that grammar and its response dependencies against prior
+originals, fund all work beforeH0, retain independently acknowledged T/C/S,
+consume all members before dispatch, and quarantine failure under its original
+hold. Those duties, the complete numeric costs, qualified clocks, independent
+readers and final C0/Dp/C1 are not provided by this preparation table. No current
+Source, owner, meter or transport uses it, and the existing per-RPC path and its
+full-width reservations remain unchanged.
