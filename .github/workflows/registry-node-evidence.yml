@@ -169,6 +169,8 @@ jobs:
               'provider_continuing_plan.go',
               'provider_continuing_history_plan.go',
               'provider_continuing_original_stream.go',
+              'provider_continuing_input_budget.go',
+              'provider_continuing_original_budget.go',
               'provider_continuing_prefix.go',
               'provider_continuing_records.go',
               'provider_guardian_admission_binding.go',

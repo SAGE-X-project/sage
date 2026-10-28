@@ -105,3 +105,41 @@ must separately fund all work and bracket it with the original qualified
 clock before use. Existing collectors and all of their checks and resident
 quotes are unchanged. The grouped execution owner, full numerical certificate,
 whole-history cursor and final C0/Dp/C1 inspection are still required.
+
+## Pre-input byte accounting candidate
+
+The new private input guard copies a fixed, disjoint array of event-class
+ceilings. Each row fixes a maximum input width W, cumulative input bytes U and
+invocations J. Under a separately proven per-invocation width bound, the
+existing codec/encode metric is bounded by W*U+J; linear byte events use U+J.
+Zero-byte invocations still consume their own call. Arithmetic, cross-class
+sums, cumulative bytes and invocation counts are checked before input effects.
+An incomplete, exhausted or failed instance cannot be resized, refunded or
+restored from JSON. Multi-class claims are consumed atomically.
+
+The original-reader adapter derives its claim from the retained reference,
+consuming N+1 read bytes with ceil(N/8192)+1 calls and N hash bytes with
+ceil(N/8192) calls before invoking the concrete reader. Every underlying input
+is at most8192 bytes; the final read is the separate one-byte EOF probe. A
+second read of the same original consumes a second claim. Failure retains the
+whole attempted claim and closes the input-guard instance. The guard serializes
+its debit with the actual scan; it does not accept an input-operation callback.
+
+This is prospective input accounting, not measured actual work or a retained
+whole-program hold. The private constructor can create an accounting instance;
+creating another instance does not restore operational capacity. No current
+Source, transport, custody owner or meter accepts it as authority. The future
+grouped owner must derive its immutable rows, create exactly one original
+instance per independent role under its previously retained full hold, bind
+the original program/epoch/stage, and consume its own one-use member permission
+before dispatch. Those connections are not implemented by this helper.
+
+The adapter covers read/hash INPUT rows only. The fourteen filesystem metadata
+calls, digest/path construction, allocator/native costs, owned clocks, storage,
+semantic replay, failure custody and final scans remain separately funded
+whole-program obligations. In particular the existing per-RPC full-width
+reservations are unchanged: this guard cannot discount or replace them.
+Neither this component nor a positive scalar envelope supplies a sufficient
+whole-history certificate, a group ACK, a cursor or Source readiness. The
+closed grouped permission/custody source and complete cost derivation still
+have to close together before whole-history acquisition.
