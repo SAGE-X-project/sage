@@ -28,15 +28,32 @@ func providerScanProvisionedFixtureWithFirstPolicy(t *testing.T, first *provider
 }
 
 // An optional separate test profile is fixed before its first anchor/H0/clock.
+type providerScanFixtureSelection struct {
+	capture        *ProviderCaptureLimits
+	tls            *providerTLSBounds
+	continuingWire bool
+}
+
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
+	return providerScanProvisionedFixtureWithSelection(t, first, operation, &providerScanFixtureSelection{capture: selected})
+}
+
+func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *providerScanFixtureSelection) (providerCustodyConfig, *providerOwnedClock) {
 	t.Helper()
 	model, policy := providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
 	b, capture := providerFrontierBoundsFixture()
-	if selected != nil {
-		if !selected.valid() || !b.methods.fits(*selected) {
+	if selected != nil && selected.capture != nil {
+		if !selected.capture.valid() || !b.methods.fits(*selected.capture) {
 			t.Fatal("incomplete isolated capture profile")
 		}
-		capture = *selected
+		capture = *selected.capture
+	}
+	if selected != nil && selected.tls != nil {
+		if !selected.tls.valid() {
+			t.Fatal("incomplete isolated TLS profile")
+		}
+		copied := *selected.tls
+		b.tls = &copied
 	}
 	private := model.continuation.bounds
 	b.continuation = &private
@@ -64,6 +81,13 @@ func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirs
 			for _, level := range []string{"operation", "segment"} {
 				values := m["limits"].(map[string]any)[level].(map[string]any)
 				values["decoded_bytes"], values["disk_bytes_written"], values["work_units"] = strconv.FormatUint(256<<20, 10), strconv.FormatUint(1<<34, 10), strconv.FormatUint(1<<62, 10)
+			}
+		}
+		if operation && selected != nil && selected.continuingWire {
+			// This fresh test input funds the header and three scalar reservations
+			// before profile/anchor/H0/clock. Existing 65536-byte subjects stay intact.
+			for _, level := range []string{"operation", "segment", "bootstrap"} {
+				m["limits"].(map[string]any)[level].(map[string]any)["wire_bytes"] = "131072"
 			}
 		}
 		var err error

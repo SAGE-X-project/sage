@@ -25,7 +25,11 @@ func TestProviderCaptureContinuingRPCUsesOriginalLifetimeAndOfficialOrigin(t *te
 	}
 	_, capture := providerFrontierBoundsFixture()
 	capture.Timeout = 20 * time.Second // Same existing official-read ceiling, chosen before H0.
-	config, clock := providerGuardianConfigWithCaptureFixture(t, 64<<20, 6, &capture)
+	// A separate fresh TLS test subject admits the two verified paths seen
+	// in the original official-origin sample. It neither changes the old 1/4
+	// refusal subject nor treats a prior sample as this connection's identity.
+	tls := providerTLSBounds{2, 5, 8 << 10}
+	config, clock := providerGuardianConfigWithSelectionFixture(t, 64<<20, 6, &providerScanFixtureSelection{capture: &capture, tls: &tls, continuingWire: true})
 	s, err := openProviderFrontierCandidate(config, clock)
 	if err != nil {
 		t.Fatal("fresh isolated retained pipeline", err)

@@ -14,8 +14,12 @@ func providerContinuingSettledFixture(t *testing.T, header bool) (*providerCusto
 }
 
 func providerContinuingSettledWithProfileFixture(t *testing.T, header bool, decoded, records uint64) (*providerCustodyStore, *providerGuardianOwner) {
+	return providerContinuingSettledWithSelectionFixture(t, header, decoded, records, nil)
+}
+
+func providerContinuingSettledWithSelectionFixture(t *testing.T, header bool, decoded, records uint64, selected *providerScanFixtureSelection) (*providerCustodyStore, *providerGuardianOwner) {
 	t.Helper()
-	config, clock := providerGuardianConfigWithPageFixture(t, decoded, records)
+	config, clock := providerGuardianConfigWithSelectionFixture(t, decoded, records, selected)
 	s, err := openProviderFrontierCandidate(config, clock)
 	if err != nil {
 		t.Fatal("fresh continuation profile", err)

@@ -201,7 +201,7 @@ func (m *CandidateAdmissionLedger) chargeProviderStorage(before *CandidateAdmiss
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	c := m.continuation
-	if !m.valid() || c == nil || c.final || m.current != before || payload == 0 && added == 0 || !c.payloadRoom(m, payload) || !c.metadataRoom(m, uint64(len(c.records)), added) {
+	if !m.valid() || c == nil || c.final || m.current != before || payload == 0 && added == 0 || len(c.records) == 0 && payload != 0 || !c.payloadRoom(m, payload) || !c.metadataRoom(m, uint64(len(c.records)), added) {
 		return ErrAdmissionLedger
 	}
 	if c.pending != nil {

@@ -40,3 +40,34 @@ func TestProviderNextPageMetadataReservesOneEntryWithoutAnEmptyPage(t *testing.T
 		t.Fatal("a scalar quote produced a ledger record")
 	}
 }
+
+// The next G can account for its metadata before T, while payload still needs
+// a typed page record. Neither scalar accounting creates an execution role.
+func TestProviderNextEmptyPageAcceptsOnlyMetadata(t *testing.T) {
+	t.Parallel()
+	m, _ := providerPrivateLedgerFixture(t, 1, 2)
+	boundary, err := m.prepareProviderBoundary(false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	heads := [3]string{admissionTestDigest("a"), admissionTestDigest("b"), admissionTestDigest("c")}
+	seal, err := boundary.sealObject(heads)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := m.applyProviderBoundary(boundary, []byte(boundary.pageObject.raw), []byte(seal.raw), heads); err != nil {
+		t.Fatal(err)
+	}
+	before := m.current
+	for _, delta := range [][2]uint64{{1, 0}, {1, 1}} {
+		if m.addProviderRetention(before, delta[0], delta[1]) == nil || m.current != before {
+			t.Fatal("untyped payload entered an empty page")
+		}
+	}
+	if err := m.addProviderRetention(before, 0, 31); err != nil || m.current.privatePayload != before.privatePayload || m.current.privateMetadata != before.privateMetadata+31 || m.current.counts != before.counts || m.current.totals != before.totals || len(m.continuation.records) != 0 {
+		t.Fatal("metadata-only next entry changed records or replenished a lifetime", err)
+	}
+	if _, err := m.prepareProviderBoundary(false); err == nil {
+		t.Fatal("metadata serialized an empty page")
+	}
+}

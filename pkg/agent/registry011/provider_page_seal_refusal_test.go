@@ -7,8 +7,12 @@ import (
 )
 
 func providerPageSealReadyWithProfileFixture(t *testing.T, decoded, records uint64) (*providerCustodyStore, *providerGuardianOwner) {
+	return providerPageSealReadyWithSelectionFixture(t, decoded, records, nil)
+}
+
+func providerPageSealReadyWithSelectionFixture(t *testing.T, decoded, records uint64, selected *providerScanFixtureSelection) (*providerCustodyStore, *providerGuardianOwner) {
 	t.Helper()
-	s, g := providerContinuingSettledWithProfileFixture(t, true, decoded, records)
+	s, g := providerContinuingSettledWithSelectionFixture(t, true, decoded, records, selected)
 	o, err := newProviderContinuingBootstrapCandidate(s)
 	if err != nil {
 		t.Fatal("normal local admission before page", err)

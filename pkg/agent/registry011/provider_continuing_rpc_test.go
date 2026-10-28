@@ -7,8 +7,12 @@ import (
 )
 
 func providerContinuingRPCReadyFixture(t *testing.T) (*providerCustodyStore, *providerGuardianOwner) {
+	return providerContinuingRPCReadyWithSelectionFixture(t, nil)
+}
+
+func providerContinuingRPCReadyWithSelectionFixture(t *testing.T, selected *providerScanFixtureSelection) (*providerCustodyStore, *providerGuardianOwner) {
 	t.Helper()
-	s, g := providerPageSealReadyFixture(t)
+	s, g := providerPageSealReadyWithSelectionFixture(t, 64<<20, 6, selected)
 	if _, err := sealProviderContinuingPageCandidate(s); err != nil {
 		t.Fatal("normal completed page before read-only RPC", err)
 	}
@@ -17,7 +21,7 @@ func providerContinuingRPCReadyFixture(t *testing.T) (*providerCustodyStore, *pr
 
 func TestProviderContinuingRPCKeepsOriginalLifetimeAcrossRequestsAndPages(t *testing.T) {
 	t.Parallel()
-	s, g := providerContinuingRPCReadyFixture(t)
+	s, g := providerContinuingRPCReadyWithSelectionFixture(t, &providerScanFixtureSelection{continuingWire: true})
 	first := g.first
 	origin, initial, oldE, oldR := s.setupOrigin, g.integration.firstExchange, first.execution.actual, first.remaining.actual
 	methods := []string{"eth_chainId", "web3_clientVersion", "eth_chainId"}
