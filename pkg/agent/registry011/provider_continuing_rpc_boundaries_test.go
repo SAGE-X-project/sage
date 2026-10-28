@@ -12,6 +12,31 @@ import (
 func TestProviderContinuingRPCPlanRejectsIncompleteProspectiveData(t *testing.T) {
 	t.Parallel()
 	s, g := providerContinuingRPCReadyFixture(t)
+	// The old R is closed. A new, genuinely debited G must own even this
+	// prospective calculation; no closed observer is restored or cleared.
+	old := g.integration.ledger.meter
+	if old == nil || !old.closed {
+		t.Fatal("original completed observer")
+	}
+	s.mu.Lock()
+	if err := g.startClaimLocked("rpc-admission"); err != nil {
+		s.mu.Unlock()
+		t.Fatal("new original G", err)
+	}
+	claim := g.claim
+	s.mu.Unlock()
+	if value, err := newProviderContinuingRPCCandidate(s, "eth_chainId", []any{}); err == nil || value != nil || g.claim != claim || g.failed || s.failed {
+		t.Fatal("another request replaced the active G")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	defer g.failLocked()
+	// Only the still-live new G observer is attached to the arithmetic model.
+	// This test creates neither an execution owner, T, C nor a retained claim.
+	if g.meter == old || g.meter.closed || s.activeMeter.Load() != g.meter {
+		t.Fatal("new G observer was not selected")
+	}
+	g.integration.ledger.meter = g.meter
 	request, err := newProviderIntegrationRequest("eth_chainId", []any{})
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +73,7 @@ func TestProviderContinuingRPCPlanRejectsIncompleteProspectiveData(t *testing.T)
 	g.first.plan.memory = ^uint64(0)
 	_, ok = providerContinuingRPCPlan(g, request, capture)
 	g.first.plan.memory = priorPeak
-	if ok || s.frontierFiles.pin != before || s.activeMeter.Load() != nil || g.active || !g.ready {
+	if ok || s.frontierFiles.pin != before || s.activeMeter.Load() != g.meter || !g.active || g.ready || g.continuing != nil || g.integration.ledger.meter == old || !old.closed {
 		t.Fatal("resident overflow created a request or changed original state")
 	}
 }

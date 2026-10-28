@@ -7,7 +7,7 @@ import (
 
 func TestProviderContinuingRPCRefusesUnavailableAdmissionBeforeDispatch(t *testing.T) {
 	t.Parallel()
-	for _, mode := range []string{"request", "class", "prefix", "clock-capacity", "claim-original", "guardian-data", "segment-data", "main-original"} {
+	for _, mode := range []string{"request", "class", "object-class", "prefix", "clock-capacity", "claim-original", "guardian-data", "segment-data", "main-original"} {
 		t.Run(mode, func(t *testing.T) {
 			t.Parallel()
 			s, g := providerContinuingRPCReadyFixture(t)
@@ -20,6 +20,11 @@ func TestProviderContinuingRPCRefusesUnavailableAdmissionBeforeDispatch(t *testi
 			case "class":
 				method = "debug_traceTransaction"
 				params = []any{admissionTestDigest("a"), map[string]any{"tracer": "unsupported-unit-class"}}
+			case "object-class":
+				// The original128KiB object profile must refuse the larger declared
+				// state class before T or any dial; it cannot borrow a scalar allowance.
+				method = "eth_call"
+				params = []any{map[string]string{"to": SepoliaRegistryAddress, "data": "0x04ef898d"}, map[string]any{"blockHash": g.integration.selected.Hash, "requireCanonical": true}}
 			case "prefix":
 				g.prefix.mapSizes[0]++
 			case "clock-capacity":

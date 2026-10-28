@@ -77,6 +77,9 @@ func TestProviderContinuingRPCDataDoesNotCreateAnExecutionRole(t *testing.T) {
 	if o, err := newProviderContinuingRPCCandidate(nil, "eth_chainId", []any{}); err == nil || o != nil {
 		t.Fatal("missing store admitted RPC")
 	}
+	if o, err := newProviderContinuingRPCCandidate(&providerCustodyStore{}, "eth_chainId", []any{}); err == nil || o != nil {
+		t.Fatal("empty store DATA admitted an RPC")
+	}
 	if value, err := (*providerContinuingOwner)(nil).executeRPCCandidate(context.Background()); err == nil || value != nil {
 		t.Fatal("missing owner executed RPC")
 	}
