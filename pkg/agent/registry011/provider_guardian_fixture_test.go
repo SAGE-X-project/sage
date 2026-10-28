@@ -22,12 +22,16 @@ func providerGuardianConfigWithClaimFixture(t *testing.T, decoded uint64) (provi
 }
 
 func providerGuardianConfigWithPageFixture(t *testing.T, decoded, records uint64) (providerCustodyConfig, *providerOwnedClock) {
+	return providerGuardianConfigWithCaptureFixture(t, decoded, records, nil)
+}
+
+func providerGuardianConfigWithCaptureFixture(t *testing.T, decoded, records uint64, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
 	t.Helper()
 	if decoded != 16<<20 && decoded != 50<<20 && decoded != 64<<20 || records != 6 && records != 9 {
 		t.Fatal("unsupported isolated test profile")
 	}
 	first := providerFirstWriterBounds()
-	config, _ := providerScanProvisionedFixtureWithFirstPolicy(t, &first, true)
+	config, _ := providerScanProvisionedFixtureWithCapture(t, &first, true, selected)
 	b := &config.bounds
 	page := *b.continuation
 	page.pageRecords, page.maximumPages, page.maximumObjects = records, 6, 512

@@ -144,7 +144,10 @@ func (c *providerLedgerContinuation) allows(m *CandidateAdmissionLedger, records
 // record. These are separate from T/C/S nodes and budget bytes. Exact page and
 // seal bytes are debited on sealing; the reserved upper is never a quota reset.
 func (c *providerLedgerContinuation) metadataRoom(m *CandidateAdmissionLedger, records, added uint64) bool {
-	page, ok := providerLedgerPageUpper(records)
+	// A newly opened page may retain G metadata before its first T. Reserve
+	// that next entry without serializing an empty page, changing record
+	// counts, releasing an old hold or minting any execution permission.
+	page, ok := providerLedgerPageUpper(max(records, uint64(1)))
 	if !ok {
 		return false
 	}

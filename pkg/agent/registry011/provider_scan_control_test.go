@@ -24,9 +24,20 @@ func providerScanProvisionedFixtureWithFirst(t *testing.T, first *providerFirstA
 }
 
 func providerScanProvisionedFixtureWithFirstPolicy(t *testing.T, first *providerFirstAdmissionBounds, operation bool) (providerCustodyConfig, *providerOwnedClock) {
+	return providerScanProvisionedFixtureWithCapture(t, first, operation, nil)
+}
+
+// An optional separate test profile is fixed before its first anchor/H0/clock.
+func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
 	t.Helper()
 	model, policy := providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
 	b, capture := providerFrontierBoundsFixture()
+	if selected != nil {
+		if !selected.valid() || !b.methods.fits(*selected) {
+			t.Fatal("incomplete isolated capture profile")
+		}
+		capture = *selected
+	}
 	private := model.continuation.bounds
 	b.continuation = &private
 	b.maximumCommits, b.maximumObjects = int(private.maximumCommits), int(private.maximumObjects)

@@ -12,6 +12,7 @@ func TestProviderContinuingRPCRefusesUnavailableAdmissionBeforeDispatch(t *testi
 			t.Parallel()
 			s, g := providerContinuingRPCReadyFixture(t)
 			stored, main, origin, ordinal := s.stored, s.frontierFiles.pin, s.setupOrigin, g.ordinal
+			priorTicket, metadata := g.integration.ledger.lastTicket, g.integration.ledger.current.privateMetadata
 			method, params := "eth_chainId", []any{}
 			switch mode {
 			case "request":
@@ -42,6 +43,14 @@ func TestProviderContinuingRPCRefusesUnavailableAdmissionBeforeDispatch(t *testi
 			if err == nil || o != nil || !g.failed || !s.failed || g.ready || g.ordinal != ordinal+1 || s.frontierFiles.pin != main || s.setupOrigin != origin ||
 				s.stored < stored || s.last != nil || s.activeMeter.Load() != nil {
 				t.Fatal("refused RPC restored an original hold or advanced main", mode, err)
+			}
+			if mode == "segment-data" || mode == "main-original" {
+				if g.pin.ordinal != ordinal+1 || g.integration.ledger.current.privateMetadata <= metadata {
+					t.Fatal("later refusal was masked by an earlier empty-page metadata failure", mode)
+				}
+			}
+			if mode == "main-original" && (g.integration.ledger.lastTicket == priorTicket || g.integration.ledger.lastTicket.sequence != priorTicket.sequence+1) {
+				t.Fatal("unavailable main original was not reached after the next ticket append")
 			}
 		})
 	}

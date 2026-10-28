@@ -32,7 +32,7 @@ func TestProviderContinuingRPCKeepsOriginalLifetimeAcrossRequestsAndPages(t *tes
 		before, ordinal := s.stored, g.ordinal
 		o, err := newProviderContinuingRPCCandidate(s, method, []any{})
 		if err != nil {
-			t.Fatalf("new retained request %d: %v G=%+v", i, err, g)
+			t.Fatalf("new retained request %d: %v Gphase=%d Ghead=%d ordinal=%d main=%d ticket=%d metadata=%d meter=%+v", i, err, g.phase, g.pin.ordinal, g.ordinal, s.sequence, g.integration.ledger.lastTicket.sequence, g.integration.ledger.current.privateMetadata, g.meter)
 		}
 		if o.request == nil || o.ticket.kind != "rpc-capture" || o.ticket.input != o.request.inputDigest || o.ticket.params != o.request.paramsDigest ||
 			g.ordinal != ordinal+1 || s.stored != before+o.plan.physical || o.execution == first.execution || o.remaining != nil || o.execution.actual != (candidateWorkVector{}) {
