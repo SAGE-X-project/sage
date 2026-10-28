@@ -22,19 +22,7 @@ func (r *providerCustodyReplay) continuingPinResults(s *providerCustodyStore, di
 		return results, err
 	}
 	for i, digest := range digests {
-		capture, err := s.config.bounds.methods.captureObserved(requests[i], s.config.capture, r.meter)
-		if err != nil {
-			return results, errProviderIntegration
-		}
-		limits, valid := providerOperationStorageUpper(s.config.bounds, capture, uint64(len(requests[i].wire)))
-		if !valid {
-			return results, errProviderIntegration
-		}
-		settlement, err := r.continuingPinSettlement(s, digest, requests[i], capture, limits)
-		if err != nil || r.checkExchange(s, settlement) != nil {
-			return results, errProviderIntegration
-		}
-		results[i], err = r.completedExchangeResult(s, digest, requests[i])
+		results[i], err = r.historyExchangeResultView(s, digest, requests[i])
 		if err != nil {
 			return results, errProviderIntegration
 		}
