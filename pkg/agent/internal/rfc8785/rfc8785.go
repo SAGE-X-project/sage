@@ -158,8 +158,16 @@ func writeString(buf *bytes.Buffer, s string) error {
 		return errors.New("jcs: string is not valid UTF-8")
 	}
 	buf.WriteByte('"')
-	for _, r := range s {
-		switch r {
+	start := 0
+	for i := 0; i < len(s); i++ {
+		value := s[i]
+		if value >= 0x20 && value != '"' && value != '\\' {
+			continue
+		}
+		// UTF-8 was checked above. Copy every unchanged byte in one span;
+		// all escaped characters are single-byte ASCII code points.
+		buf.WriteString(s[start:i])
+		switch value {
 		case '"':
 			buf.WriteString(`\"`)
 		case '\\':
@@ -175,13 +183,11 @@ func writeString(buf *bytes.Buffer, s string) error {
 		case '\t':
 			buf.WriteString(`\t`)
 		default:
-			if r < 0x20 {
-				fmt.Fprintf(buf, `\u%04x`, r)
-			} else {
-				buf.WriteRune(r)
-			}
+			fmt.Fprintf(buf, `\u%04x`, value)
 		}
+		start = i + 1
 	}
+	buf.WriteString(s[start:])
 	buf.WriteByte('"')
 	return nil
 }

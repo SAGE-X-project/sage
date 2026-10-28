@@ -84,6 +84,21 @@ func providerFirstOperationPlanUpper(b providerIntegrationBounds, global Provide
 	head, h := providerUpperProduct(uint64(global.HeaderBytes), 13)
 	body, i := providerUpperProduct(uint64(global.BodyBytes), 4)
 	remaining[10], ok = providerUpperSum(remaining[10], head, body, 5)
+	if b.guardian != nil {
+		// The V5 retained result derives its request's selected method class.
+		// Fund that additional independent small reconstruction before I.
+		class, classOK := providerRPCClassExtraUpper(n)
+		if !classOK {
+			return p, false
+		}
+		for i, amount := range class {
+			var fits bool
+			remaining[i], fits = providerUpperSum(remaining[i], amount)
+			if !fits {
+				return p, false
+			}
+		}
+	}
 	total, reservationErr := providerFrontierWorkTotal(execution, remaining)
 	if !h || !i || !ok || reservationErr != nil {
 		return p, false
@@ -132,7 +147,11 @@ func providerFirstOperationMemoryUpper(b providerIntegrationBounds, capture Prov
 	certificates, i := providerUpperProduct(uint64(b.tls.chains), uint64(b.tls.certificates))
 	der, j := providerUpperProduct(certificates, uint64(b.tls.certificateBytes))
 	digests, k := providerUpperProduct(certificates, 2*69)
-	scratch, l := providerUpperSum(raw, metadata, bindingScratch, wire, head, body, request, der, digests, maximum)
+	var classScratch uint64
+	if b.guardian != nil {
+		classScratch = 2*(16<<10) + 8<<10 + 2*uint64(reflect.TypeFor[providerIntegrationRequest]().Size())
+	}
+	scratch, l := providerUpperSum(raw, metadata, bindingScratch, wire, head, body, request, der, digests, maximum, classScratch)
 	models, m := b.continuation.residentUpper(1, 6, 1, uint64(providerInitialObjectCount(b)+31), schemas, scratch)
 	entries, n := providerUpperSum(3*14, 4*11, 128, certificates, 1)
 	collections, o := providerUpperProduct(entries, max(b.continuation.objectMemoryOverhead, b.scan.filenameEntryOverhead))

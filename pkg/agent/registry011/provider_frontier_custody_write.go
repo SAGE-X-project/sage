@@ -214,6 +214,9 @@ func (r *providerFrontierReplay) retainClosedOwnedLocked(s *providerCustodyStore
 	if operation != nil && operation.state == providerFirstOperationSettlement && len(fresh) == 11 && operation.bindRetainedExchangeLocked(s, fresh) != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
+	if continuing != nil && continuing.state == providerContinuingSettlement && len(fresh) == 11 && continuing.bindRetainedExchangeLocked(s, fresh) != nil {
+		return providerFrontierRetention{}, errProviderIntegration
+	}
 	cost, err := r.applyWithHighwater(s, inventory, fresh, intent, commit, frontier, after)
 	if err != nil || cost.stored != total || s.write(s.custody, s.name("frontier", next), frontier) != nil {
 		return providerFrontierRetention{}, errProviderIntegration

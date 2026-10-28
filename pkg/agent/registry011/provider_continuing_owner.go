@@ -33,6 +33,7 @@ type providerContinuingOwner struct {
 	ticket               *CandidateAdmissionTicket
 	previousTicket       *CandidateAdmissionTicket
 	request              *providerIntegrationRequest
+	capture              ProviderCaptureLimits
 	change               *providerFirstOperationChange
 	permit               *providerIntegrationPermit
 	execution, remaining *providerWorkMeter
@@ -53,7 +54,7 @@ func (o *providerContinuingOwner) selectedLocked() bool {
 	}
 	g, s := o.guardian, o.store
 	return g.selectedLocked() && g.continuing == o && g.active && !g.ready && g.admitted &&
-		g.store == s && s.config == o.config && o.config == g.config && o.config.policy != nil &&
+		g.store == s && s.config == o.config && o.config == g.config && providerContinuingProfileMatches(g) && o.config.policy != nil &&
 		*o.config.policy == o.policy && o.policy == g.policy && s.clock == o.clock && g.clock == o.clock &&
 		s.setupOrigin == o.original && g.original == o.original && s.stored == o.stored && s.last == nil &&
 		g.integration == o.integration && g.indexes == o.indexes && o.integration != nil && o.integration.valid() &&
@@ -158,4 +159,17 @@ func (o *providerContinuingOwner) consumeStorageLocked(physical uint64) bool {
 		o.settlement = true
 	}
 	return true
+}
+
+// The original first owner retains value snapshots of the pre-I profile.
+// Pointer identity alone cannot establish unchanged method/TLS/scan limits.
+// These are fixed-size scalar comparisons, not replay or a renewed owner.
+func providerContinuingProfileMatches(g *providerGuardianOwner) bool {
+	if g == nil || g.first == nil || g.store == nil || g.store.firstLimits == nil {
+		return false
+	}
+	b, first := g.config.bounds, g.first
+	return b.continuation != nil && b.methods != nil && b.tls != nil && b.scan != nil && b.firstAdmission != nil &&
+		*b.continuation == first.continuation && *b.methods == first.methods && *b.tls == first.tls &&
+		*b.scan == first.scan && *b.firstAdmission == first.firstBounds && *g.store.firstLimits == first.limits
 }

@@ -116,14 +116,36 @@ func providerFirstOperationSettlementData(c *providerIntegration, ticket *Candid
 // execution meter is still open. These are diagnostic originals, not a Source
 // qualification or permission to publish the observed response to an Agent.
 func providerFirstOperationExchangeData(c *providerIntegration, permit *providerIntegrationPermit, sample *ProviderTransportSample, clock ClockSample, meter *providerWorkMeter) ([]providerIntegrationObjectInput, string, error) {
-	if !c.valid() || c.store.config.bounds.firstAdmission == nil || !c.primitive.capture.valid() || permit == nil || permit.owner != c || permit.ticket == nil || permit.request == nil || !permit.used || meter == nil || meter != permit.meter || meter.integration != c || meter.scan != nil || meter.authority || meter.closed || meter.failed || c.store.activeMeter.Load() != meter || sample == nil || !sample.Complete || sample.CaptureError != "" || sample.Endpoint != SepoliaRPCURL || sample.Method != permit.request.method || sample.HTTPVersion != "HTTP/1.1" || sample.ServerName != "rpc.sepolia.ethpandaops.io" || sample.WireBytes <= len(permit.request.wire) || sample.WireBytes > c.primitive.capture.WireBytes || len(sample.ResponseWire) != sample.WireBytes-len(permit.request.wire) || len(sample.ResponseBody) > c.primitive.capture.BodyBytes || len(sample.Headers) > min(c.primitive.capture.HeaderBytes/4, 128) || len(sample.VerifiedChains) == 0 || len(sample.VerifiedChains[0]) == 0 || len(sample.VerifiedChains[0]) > c.store.config.bounds.tls.certificates || !candidateLedgerClockAdvance(providerClockDiagnostic(permit.clock), providerClockDiagnostic(clock)) || candidateLedgerExpired(providerClockDiagnostic(clock), permit.ticket.deadline) {
-		return nil, "", errProviderIntegration
-	}
-	if !providerReplayPhaseRawTextEqual(sample.RequestHead, permit.request.head, meter) || !providerReplayPhaseRawTextEqual(sample.RequestBody, permit.request.body, meter) {
+	if !c.valid() || permit == nil || permit.request == nil {
 		return nil, "", errProviderIntegration
 	}
 	quoted, ok := providerFirstOperationStorageUpper(c.store.config.bounds, c.store.config.capture, uint64(len(permit.request.wire)))
 	if !ok {
+		return nil, "", errProviderIntegration
+	}
+	return providerExchangeData(c, permit, sample, clock, meter, c.primitive.capture, quoted)
+}
+
+// The later live owner supplies its already bound method class, and this
+// builder derives storage from that same class without changing global caps.
+func providerOperationExchangeData(c *providerIntegration, permit *providerIntegrationPermit, sample *ProviderTransportSample, clock ClockSample, meter *providerWorkMeter, capture ProviderCaptureLimits) ([]providerIntegrationObjectInput, string, error) {
+	if !c.valid() || permit == nil || permit.request == nil {
+		return nil, "", errProviderIntegration
+	}
+	quoted, ok := providerOperationStorageUpper(c.store.config.bounds, capture, uint64(len(permit.request.wire)))
+	if !ok {
+		return nil, "", errProviderIntegration
+	}
+	return providerExchangeData(c, permit, sample, clock, meter, capture, quoted)
+}
+
+// Private construction DATA only. The owning operation still enforces its
+// exact original request and bound class before burn, capture and retention.
+func providerExchangeData(c *providerIntegration, permit *providerIntegrationPermit, sample *ProviderTransportSample, clock ClockSample, meter *providerWorkMeter, capture ProviderCaptureLimits, quoted providerFirstOperationStorage) ([]providerIntegrationObjectInput, string, error) {
+	if !c.valid() || c.store.config.bounds.firstAdmission == nil || !capture.valid() || permit == nil || permit.owner != c || permit.ticket == nil || permit.request == nil || !permit.used || meter == nil || meter != permit.meter || meter.integration != c || meter.scan != nil || meter.authority || meter.closed || meter.failed || c.store.activeMeter.Load() != meter || sample == nil || !sample.Complete || sample.CaptureError != "" || sample.Endpoint != SepoliaRPCURL || sample.Method != permit.request.method || sample.HTTPVersion != "HTTP/1.1" || sample.ServerName != "rpc.sepolia.ethpandaops.io" || sample.WireBytes <= len(permit.request.wire) || sample.WireBytes > capture.WireBytes || len(sample.ResponseWire) != sample.WireBytes-len(permit.request.wire) || len(sample.ResponseBody) > capture.BodyBytes || len(sample.Headers) > min(capture.HeaderBytes/4, 128) || len(sample.VerifiedChains) == 0 || len(sample.VerifiedChains[0]) == 0 || len(sample.VerifiedChains[0]) > c.store.config.bounds.tls.certificates || !candidateLedgerClockAdvance(providerClockDiagnostic(permit.clock), providerClockDiagnostic(clock)) || candidateLedgerExpired(providerClockDiagnostic(clock), permit.ticket.deadline) {
+		return nil, "", errProviderIntegration
+	}
+	if !providerReplayPhaseRawTextEqual(sample.RequestHead, permit.request.head, meter) || !providerReplayPhaseRawTextEqual(sample.RequestBody, permit.request.body, meter) {
 		return nil, "", errProviderIntegration
 	}
 	p, ok := providerReplayJSON(providerReplayPhaseBytes(c.policy.raw, meter), meter).(map[string]any)
@@ -136,7 +158,7 @@ func providerFirstOperationExchangeData(c *providerIntegration, permit *provider
 	for _, header := range sample.Headers {
 		var fits bool
 		headerBytes, fits = providerUpperSum(headerBytes, uint64(len(header.Name)), uint64(len(header.Value)))
-		if !fits || headerBytes > uint64(c.primitive.capture.HeaderBytes) {
+		if !fits || headerBytes > uint64(capture.HeaderBytes) {
 			return nil, "", errProviderIntegration
 		}
 		headers = append(headers, map[string]string{"name": header.Name, "value": header.Value})

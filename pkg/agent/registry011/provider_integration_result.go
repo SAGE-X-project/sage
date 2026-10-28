@@ -62,15 +62,23 @@ func (r *providerCustodyReplay) checkExchange(s *providerCustodyStore, settlemen
 	}
 	request, err := s.object("request", ticket.input)
 	parts := bytes.SplitN(request, []byte("\r\n\r\n"), 2)
+	capture := s.config.capture
+	if s.config.bounds.guardian != nil {
+		var classErr error
+		capture, classErr = providerRetainedMethodCapture(s, ticket, request, r.meter)
+		if classErr != nil {
+			return errProviderIntegration
+		}
+	}
 	body, valid := providerCanonicalBase64Observed(m["request"], 16<<10, r.meter)
-	response, responseValid := providerCanonicalBase64Observed(m["response"], s.config.capture.BodyBytes, r.meter)
+	response, responseValid := providerCanonicalBase64Observed(m["response"], capture.BodyBytes, r.meter)
 	if err != nil || len(parts) != 2 || !valid || !responseValid || !providerReplayEqual(parts[1], body, r.meter) {
 		return errProviderIntegration
 	}
 	if r.meter == nil && !s.event(providerCodecEvent, uint64(len(response))) {
 		return errProviderIntegration
 	}
-	if _, err := decodeRPCResultObserved(response, 1, RPCResponseLimits{s.config.capture.BodyBytes, s.config.capture.JSONDepth}, r.meter); err != nil {
+	if _, err := decodeRPCResultObserved(response, 1, RPCResponseLimits{capture.BodyBytes, capture.JSONDepth}, r.meter); err != nil {
 		return errProviderIntegration
 	}
 	transport := contentObject(m["transport"], "endpoint", "method", "http_version", "status", "response_headers", "tls_version", "cipher_suite", "server_name", "verified_chain", "roots_artifact", "redirects", "proxy")
@@ -91,7 +99,7 @@ func (r *providerCustodyReplay) checkExchange(s *providerCustodyStore, settlemen
 	retainedMetadata, err := s.object("tls", digest)
 	bindingBytes, bindingErr := s.object("wire-binding", s.bindings[settlement.retained])
 	binding := contentObject(providerReplayJSON(bindingBytes, r.meter), "format", "exchange_digest", "request_wire_digest", "response_wire_digest", "tls_digest")
-	if err != nil || bindingErr != nil || binding == nil || binding["exchange_digest"] != settlement.retained || binding["request_wire_digest"] != ticket.input || binding["tls_digest"] != digest || !providerReplayEqual(metadata, retainedMetadata, r.meter) || r.matchResponse(s, contentString(binding["response_wire_digest"]), transport["response_headers"], response) != nil {
+	if err != nil || bindingErr != nil || binding == nil || binding["exchange_digest"] != settlement.retained || binding["request_wire_digest"] != ticket.input || binding["tls_digest"] != digest || !providerReplayEqual(metadata, retainedMetadata, r.meter) || r.matchResponseWithCapture(s, contentString(binding["response_wire_digest"]), transport["response_headers"], response, capture) != nil {
 		return errProviderIntegration
 	}
 	return nil
@@ -131,16 +139,23 @@ func providerIntegrationCipher(transport map[string]any) bool {
 }
 
 func (r *providerCustodyReplay) matchResponse(s *providerCustodyStore, digest string, headers any, body []byte) error {
+	return r.matchResponseWithCapture(s, digest, headers, body, s.config.capture)
+}
+
+func (r *providerCustodyReplay) matchResponseWithCapture(s *providerCustodyStore, digest string, headers any, body []byte, capture ProviderCaptureLimits) error {
+	if !capture.valid() {
+		return errProviderIntegration
+	}
 	wanted := providerReplayCanonical(headers, 1<<20, r.meter)
 	items, ok := headers.([]any)
-	if !ok || len(items) == 0 || len(items) > s.config.capture.HeaderBytes/4 {
+	if !ok || len(items) == 0 || len(items) > capture.HeaderBytes/4 {
 		return errProviderIntegration
 	}
 	raw, err := s.object("response", digest)
-	if err != nil || len(raw) > s.config.capture.WireBytes {
+	if err != nil || len(raw) > capture.WireBytes {
 		return errProviderIntegration
 	}
-	_, parsedHeaders, parsedBody, _, parseErr := readProviderHTTPObserved(bufio.NewReader(bytes.NewReader(raw)), s.config.capture, r.meter, uint64(len(raw)))
+	_, parsedHeaders, parsedBody, _, parseErr := readProviderHTTPObserved(bufio.NewReader(bytes.NewReader(raw)), capture, r.meter, uint64(len(raw)))
 	if parseErr != nil || !providerReplayEqual(body, parsedBody, r.meter) {
 		return errProviderIntegration
 	}

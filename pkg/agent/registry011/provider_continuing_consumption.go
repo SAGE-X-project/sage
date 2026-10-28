@@ -89,7 +89,24 @@ func (o *providerContinuingOwner) burnLocked(permit *providerIntegrationPermit) 
 		return false
 	}
 	work[8] = o.ticket.segment - o.previousTicket.segment
-	if o.ticket.kind != "local-work" || o.request != nil || !o.execution.add(work) {
+	switch o.ticket.kind {
+	case "local-work":
+		if o.request != nil || o.capture != (ProviderCaptureLimits{}) {
+			return false
+		}
+	case "rpc-capture":
+		if o.request == nil || o.config.bounds.methods == nil || o.request.inputDigest != o.ticket.input || o.request.method != o.ticket.method || o.request.paramsDigest != o.ticket.params {
+			return false
+		}
+		capture, err := o.config.bounds.methods.captureObserved(o.request, o.config.capture, o.execution)
+		if err != nil || capture != o.capture {
+			return false
+		}
+		work[0] = 1
+	default:
+		return false
+	}
+	if !o.execution.add(work) {
 		return false
 	}
 	permit.clock = clock

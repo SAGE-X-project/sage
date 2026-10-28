@@ -61,6 +61,12 @@ func (b providerMethodBounds) object() map[string]any {
 }
 
 func (b providerMethodBounds) capture(request *providerIntegrationRequest, global ProviderCaptureLimits) (ProviderCaptureLimits, error) {
+	return b.captureObserved(request, global, nil)
+}
+
+// Live G selection observes each parameter decode independently. The legacy
+// wrapper remains a bounded DATA selector and gains no operation authority.
+func (b providerMethodBounds) captureObserved(request *providerIntegrationRequest, global ProviderCaptureLimits, meter *providerWorkMeter) (ProviderCaptureLimits, error) {
 	if !b.fits(global) || request == nil || len(request.params) > 8<<10 || len(request.wire) > 16<<10 {
 		return ProviderCaptureLimits{}, errProviderIntegration
 	}
@@ -77,7 +83,7 @@ func (b providerMethodBounds) capture(request *providerIntegrationRequest, globa
 	case "eth_getBlockReceipts", "debug_getRawReceipts":
 		limit = b.receipts
 	case "eth_getBlockByHash", "eth_getBlockByNumber":
-		params, ok := contentJSON([]byte(request.params)).([]any)
+		params, ok := providerReplayJSON(providerReplayPhaseBytes(request.params, meter), meter).([]any)
 		if !ok || len(params) != 2 {
 			return ProviderCaptureLimits{}, errProviderIntegration
 		}
@@ -90,7 +96,7 @@ func (b providerMethodBounds) capture(request *providerIntegrationRequest, globa
 			limit = b.block
 		}
 	case "debug_traceTransaction", "debug_traceBlockByHash":
-		params, ok := contentJSON([]byte(request.params)).([]any)
+		params, ok := providerReplayJSON(providerReplayPhaseBytes(request.params, meter), meter).([]any)
 		if !ok || len(params) != 2 {
 			return ProviderCaptureLimits{}, errProviderIntegration
 		}
