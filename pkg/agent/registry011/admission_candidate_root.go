@@ -31,6 +31,10 @@ func (*CandidateEnrollmentRoot) UnmarshalJSON([]byte) error { return ErrAdmissio
 // All digests name proposed data; parsing does not qualify their referenced
 // evidence, select a format/policy or authenticate any clock/store/authority.
 func ParseCandidateEnrollmentRoot(context *ProviderCandidateContext, raw []byte, maximumBytes int) (*CandidateEnrollmentRoot, error) {
+	return parseCandidateEnrollmentRootObserved(context, raw, maximumBytes, nil)
+}
+
+func parseCandidateEnrollmentRootObserved(context *ProviderCandidateContext, raw []byte, maximumBytes int, meter *providerWorkMeter) (*CandidateEnrollmentRoot, error) {
 	id, err := context.Identity()
 	if err != nil || maximumBytes <= 0 || maximumBytes > 64<<10 {
 		return nil, ErrConfiguration
@@ -38,7 +42,7 @@ func ParseCandidateEnrollmentRoot(context *ProviderCandidateContext, raw []byte,
 	if len(raw) == 0 || len(raw) > maximumBytes {
 		return nil, ErrAdmissionCandidate
 	}
-	m := contentObject(contentJSON(raw), "format", "namespace", "instance_key", "policy", "source_id", "generation", "sequence", "previous_root", "status", "checkpoint", "budget_root", "transition_root", "fence")
+	m := contentObject(providerReplayJSON(raw, meter), "format", "namespace", "instance_key", "policy", "source_id", "generation", "sequence", "previous_root", "status", "checkpoint", "budget_root", "transition_root", "fence")
 	if m == nil || m["format"] != "sage-provider-enrollment-v2" || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["policy"] != id.Policy || m["source_id"] != id.SourceID {
 		return nil, ErrAdmissionCandidate
 	}
@@ -69,7 +73,12 @@ func ParseCandidateEnrollmentRoot(context *ProviderCandidateContext, raw []byte,
 			return nil, ErrAdmissionCandidate
 		}
 	}
-	return &CandidateEnrollmentRoot{raw: string(raw), digest: providerCandidateHash("sage-provider-enrollment-v2", raw), identity: id, sequence: sequence, fence: fence, previous: contentString(m["previous_root"]), status: status, checkpoint: contentString(m["checkpoint"]), budget: contentString(m["budget_root"]), transition: contentString(m["transition_root"])}, nil
+	digest := providerReplayDigest("sage-provider-enrollment-v2", raw, meter)
+	retained := providerReplayString(raw, meter)
+	if digest == "" || retained == "" {
+		return nil, ErrAdmissionCandidate
+	}
+	return &CandidateEnrollmentRoot{raw: retained, digest: digest, identity: id, sequence: sequence, fence: fence, previous: contentString(m["previous_root"]), status: status, checkpoint: contentString(m["checkpoint"]), budget: contentString(m["budget_root"]), transition: contentString(m["transition_root"])}, nil
 }
 
 func candidateEnrollmentStatus(status string) bool {

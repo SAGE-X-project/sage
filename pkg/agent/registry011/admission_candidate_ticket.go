@@ -1,7 +1,6 @@
 package registry011
 
 import (
-	"encoding/json"
 	"math"
 	"strconv"
 )
@@ -31,13 +30,17 @@ func (*CandidateAdmissionTicket) UnmarshalJSON([]byte) error { return ErrAdmissi
 // Actual cumulative accounting, request bytes/params, worst-case estimator,
 // custody, metadata costs and operation consumption remain unqualified.
 func ParseCandidateAdmissionTicket(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, segment uint64, raw []byte, maximumBytes int) (*CandidateAdmissionTicket, error) {
+	return parseCandidateAdmissionTicketObserved(policy, intent, segment, raw, maximumBytes, nil)
+}
+
+func parseCandidateAdmissionTicketObserved(policy *ProviderPolicyCandidate, intent *CandidateAdmissionIntent, segment uint64, raw []byte, maximumBytes int, meter *providerWorkMeter) (*CandidateAdmissionTicket, error) {
 	if policy == nil || policy.raw == "" || intent == nil || intent.raw == "" || policy.policy != intent.identity.Policy || maximumBytes <= 0 || maximumBytes > 64<<10 {
 		return nil, ErrConfiguration
 	}
 	if len(raw) == 0 || len(raw) > maximumBytes {
 		return nil, ErrAdmissionCandidate
 	}
-	m := contentObject(contentJSON(raw), "format", "admission_digest", "namespace", "instance_key", "source_id", "generation", "fence", "sequence", "previous_ticket", "segment", "kind", "input_digest", "method", "params_digest", "reservation", "live_disk_reserved", "retained_bytes_reserved", "deadline_wall_ms")
+	m := contentObject(providerReplayJSON(raw, meter), "format", "admission_digest", "namespace", "instance_key", "source_id", "generation", "fence", "sequence", "previous_ticket", "segment", "kind", "input_digest", "method", "params_digest", "reservation", "live_disk_reserved", "retained_bytes_reserved", "deadline_wall_ms")
 	id := intent.identity
 	if m == nil || m["format"] != "sage-provider-budget-ticket-v2" || m["admission_digest"] != intent.digest || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["source_id"] != id.SourceID || !providerCandidateDigest(m["input_digest"]) {
 		return nil, ErrAdmissionCandidate
@@ -55,12 +58,16 @@ func ParseCandidateAdmissionTicket(policy *ProviderPolicyCandidate, intent *Cand
 	if sequence == 0 && m["previous_ticket"] != nil || sequence != 0 && !providerCandidateDigest(m["previous_ticket"]) {
 		return nil, ErrAdmissionCandidate
 	}
-	p := contentJSON([]byte(policy.raw)).(map[string]any)
+	p, policyOK := providerReplayJSON(providerReplayPhaseBytes(policy.raw, meter), meter).(map[string]any)
+	if !policyOK {
+		return nil, ErrAdmissionCandidate
+	}
 	limits := p["limits"].(map[string]any)
 	segments, _ := providerCandidateUint(limits["bootstrap"].(map[string]any)["segments"], true)
 	liveLimit, _ := providerCandidateUint(limits["live_disk_bytes"], true)
 	retainedLimit, _ := providerCandidateUint(limits["retained_bytes"], true)
-	if segment >= segments || live > liveLimit || retained > retainedLimit || m["segment"] != candidateAdmissionSegment(intent.digest, segment) {
+	segmentDigest := candidateAdmissionSegmentObserved(intent.digest, segment, meter)
+	if segment >= segments || live > liveLimit || retained > retainedLimit || segmentDigest == "" || m["segment"] != segmentDigest {
 		return nil, ErrAdmissionCandidate
 	}
 	work, ok := candidateAdmissionWork(m["reservation"])
@@ -87,12 +94,24 @@ func ParseCandidateAdmissionTicket(policy *ProviderPolicyCandidate, intent *Cand
 	default:
 		return nil, ErrAdmissionCandidate
 	}
-	return &CandidateAdmissionTicket{string(raw), providerCandidateHash("sage-provider-budget-ticket-v2", raw), intent, sequence, segment, live, retained, deadline, contentString(m["previous_ticket"]), kind, contentString(m["input_digest"]), contentString(m["method"]), contentString(m["params_digest"]), work, policy.raw}, nil
+	digest := providerReplayDigest("sage-provider-budget-ticket-v2", raw, meter)
+	retainedRaw := providerReplayString(raw, meter)
+	if digest == "" || retainedRaw == "" {
+		return nil, ErrAdmissionCandidate
+	}
+	return &CandidateAdmissionTicket{retainedRaw, digest, intent, sequence, segment, live, retained, deadline, contentString(m["previous_ticket"]), kind, contentString(m["input_digest"]), contentString(m["method"]), contentString(m["params_digest"]), work, policy.raw}, nil
 }
 
 func candidateAdmissionSegment(admission string, index uint64) string {
-	raw, _ := json.Marshal(map[string]string{"admission_digest": admission, "index": strconv.FormatUint(index, 10)})
-	return providerCandidateHash("sage-provider-budget-segment-v1", raw)
+	return candidateAdmissionSegmentObserved(admission, index, nil)
+}
+
+func candidateAdmissionSegmentObserved(admission string, index uint64, meter *providerWorkMeter) string {
+	raw := providerReplayMarshal(map[string]string{"admission_digest": admission, "index": strconv.FormatUint(index, 10)}, 4096, meter)
+	if len(raw) == 0 {
+		return ""
+	}
+	return providerReplayDigest("sage-provider-budget-segment-v1", raw, meter)
 }
 
 func candidateAdmissionWork(value any) (candidateWorkVector, bool) {

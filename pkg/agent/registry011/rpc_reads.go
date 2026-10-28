@@ -215,7 +215,11 @@ func rpcWord(value uint64) []byte {
 // returned by the four pinned Registry reads. All ranges are checked before
 // slicing/copying; offsets must follow ABI declaration order with no gaps.
 func rpcABI(result json.RawMessage, hasBool bool, maxima ...int) ([][]byte, bool, error) {
-	data, err := rpcData(result)
+	return rpcABIObserved(result, hasBool, nil, maxima...)
+}
+
+func rpcABIObserved(result json.RawMessage, hasBool bool, meter *providerWorkMeter, maxima ...int) ([][]byte, bool, error) {
+	data, err := rpcDataObserved(result, meter)
 	fields := len(maxima)
 	if hasBool {
 		fields++
@@ -225,8 +229,9 @@ func rpcABI(result json.RawMessage, hasBool bool, maxima ...int) ([][]byte, bool
 	}
 	present := false
 	index := 0
+	var zeros [32]byte
 	if hasBool {
-		if !bytes.Equal(data[:31], make([]byte, 31)) || data[31] > 1 {
+		if !providerReplayEqual(data[:31], zeros[:31], meter) || data[31] > 1 {
 			return nil, false, ErrRPCState
 		}
 		present = data[31] == 1
@@ -235,19 +240,22 @@ func rpcABI(result json.RawMessage, hasBool bool, maxima ...int) ([][]byte, bool
 	cursor := fields * 32
 	values := make([][]byte, 0, len(maxima))
 	for _, maximum := range maxima {
-		offset, ok := rpcUint(data[index : index+32])
+		offset, ok := rpcUintObserved(data[index:index+32], meter)
 		index += 32
 		if !ok || offset != uint64(cursor) || len(data)-cursor < 32 {
 			return nil, false, ErrRPCState
 		}
-		length, ok := rpcUint(data[cursor : cursor+32])
+		length, ok := rpcUintObserved(data[cursor:cursor+32], meter)
 		cursor += 32
 		if !ok || length > uint64(maximum) || length > uint64(len(data)-cursor) {
 			return nil, false, ErrRPCState
 		}
 		size := int(length)
 		padded := size + (32-size%32)%32
-		if padded > len(data)-cursor || !bytes.Equal(data[cursor+size:cursor+padded], make([]byte, padded-size)) {
+		if padded > len(data)-cursor || !providerReplayEqual(data[cursor+size:cursor+padded], zeros[:padded-size], meter) {
+			return nil, false, ErrRPCState
+		}
+		if meter != nil && !meter.event(providerCopyEvent, uint64(size)) {
 			return nil, false, ErrRPCState
 		}
 		values = append(values, append([]byte(nil), data[cursor:cursor+size]...))
@@ -260,12 +268,29 @@ func rpcABI(result json.RawMessage, hasBool bool, maxima ...int) ([][]byte, bool
 }
 
 func rpcUint(word []byte) (uint64, bool) {
+	return rpcUintObserved(word, nil)
+}
+
+func rpcUintObserved(word []byte, meter *providerWorkMeter) (uint64, bool) {
+	if meter != nil && !meter.event(providerCodecEvent, uint64(len(word))) {
+		return 0, false
+	}
 	return binary.BigEndian.Uint64(word[24:]), bytes.Equal(word[:24], make([]byte, 24))
 }
 
 func rpcData(raw json.RawMessage) ([]byte, error) {
+	return rpcDataObserved(raw, nil)
+}
+
+func rpcDataObserved(raw json.RawMessage, meter *providerWorkMeter) ([]byte, error) {
 	var text string
-	if json.Unmarshal(raw, &text) != nil || len(text) < 2 || text[:2] != "0x" || len(text)%2 != 0 || strings.ToLower(text) != text {
+	if providerReplayUnmarshal(raw, &text, meter) != nil || len(text) < 2 || text[:2] != "0x" || len(text)%2 != 0 {
+		return nil, ErrRPCState
+	}
+	if !rpcLowerHexObserved(text, meter) {
+		return nil, ErrRPCState
+	}
+	if meter != nil && !meter.event(providerCodecEvent, uint64(len(text)-2)) {
 		return nil, ErrRPCState
 	}
 	data, err := hex.DecodeString(text[2:])
@@ -276,11 +301,38 @@ func rpcData(raw json.RawMessage) ([]byte, error) {
 }
 
 func rpcQuantity(text string) (uint64, bool) {
-	if len(text) < 3 || text[:2] != "0x" || (len(text) > 3 && text[2] == '0') || strings.ToLower(text) != text {
+	return rpcQuantityObserved(text, nil)
+}
+
+func rpcQuantityObserved(text string, meter *providerWorkMeter) (uint64, bool) {
+	if len(text) < 3 || text[:2] != "0x" || len(text) > 3 && text[2] == '0' || !rpcLowerHexObserved(text, meter) || meter != nil && !meter.event(providerCodecEvent, uint64(len(text)-2)) {
 		return 0, false
 	}
 	value, err := strconv.ParseUint(text[2:], 16, 64)
-	return value, err == nil && strconv.FormatUint(value, 16) == text[2:]
+	if err != nil || meter != nil && !meter.preflight(providerEncodeEvent, 16) {
+		return 0, false
+	}
+	canonical := strconv.FormatUint(value, 16)
+	if meter != nil && !meter.event(providerEncodeEvent, uint64(len(canonical))) {
+		return 0, false
+	}
+	return value, providerReplayTextEqual(canonical, text[2:], meter)
+}
+
+func rpcLowerHexObserved(text string, meter *providerWorkMeter) bool {
+	if meter == nil {
+		return strings.ToLower(text) == text
+	}
+	// Successful hex input is ASCII. No copy is invented when already lower.
+	if !meter.event(providerCompareEvent, uint64(len(text))) {
+		return false
+	}
+	for index := 2; index < len(text); index++ {
+		if text[index] >= 'A' && text[index] <= 'F' {
+			return false
+		}
+	}
+	return true // The following hex decoder refuses every non-hex code point.
 }
 func rpcAddress(text string) bool {
 	return len(text) == 42 && lowerHash("0x"+strings.Repeat("0", 24)+strings.TrimPrefix(text, "0x")) && text != "0x"+strings.Repeat("0", 40)

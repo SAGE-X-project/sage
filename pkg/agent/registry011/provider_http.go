@@ -20,13 +20,29 @@ func providerRequestHead(length int) []byte {
 // readProviderHead stops at the bounded original header terminator. It does not
 // let an HTTP library merge duplicate framing fields or discard wire order.
 func readProviderHead(r *bufio.Reader, maximum int) ([]byte, error) {
+	return readProviderHeadObserved(r, maximum, nil)
+}
+
+func readProviderHeadObserved(r *bufio.Reader, maximum int, meter *providerWorkMeter) ([]byte, error) {
 	var head []byte
 	for len(head) <= maximum {
+		if meter != nil && !meter.preflight(providerReadEvent, 1) {
+			return nil, ErrProviderCapture
+		}
 		b, err := r.ReadByte()
 		if err != nil {
+			if meter != nil {
+				meter.event(providerReadEvent, 0)
+			}
+			return nil, ErrProviderCapture
+		}
+		if meter != nil && (!meter.event(providerReadEvent, 1) || !meter.event(providerCopyEvent, 1)) {
 			return nil, ErrProviderCapture
 		}
 		head = append(head, b)
+		if len(head) >= 4 && meter != nil && !meter.event(providerCompareEvent, 8) {
+			return nil, ErrProviderCapture
+		}
 		if len(head) >= 4 && bytes.Equal(head[len(head)-4:], []byte("\r\n\r\n")) {
 			if len(head) > maximum {
 				return nil, ErrProviderCapture
@@ -84,12 +100,19 @@ func providerHeaderFields(head []byte) ([]ProviderHeader, error) {
 }
 
 func readProviderHTTP(reader *bufio.Reader, limits ProviderCaptureLimits) ([]byte, []ProviderHeader, []byte, json.RawMessage, error) {
-	if !limits.valid() {
+	return readProviderHTTPObserved(reader, limits, nil, 0)
+}
+
+func readProviderHTTPObserved(reader *bufio.Reader, limits ProviderCaptureLimits, meter *providerWorkMeter, wireBytes uint64) ([]byte, []ProviderHeader, []byte, json.RawMessage, error) {
+	if !limits.valid() || meter != nil && (wireBytes == 0 || wireBytes > uint64(limits.WireBytes)) {
 		return nil, nil, nil, nil, ErrConfiguration
 	}
-	head, err := readProviderHead(reader, limits.HeaderBytes)
+	head, err := readProviderHeadObserved(reader, limits.HeaderBytes, meter)
 	if err != nil {
 		return nil, nil, nil, nil, err
+	}
+	if meter != nil && !meter.event(providerCodecEvent, uint64(len(head))) {
+		return nil, nil, nil, nil, ErrProviderCapture
 	}
 	headers, err := providerHeaderFields(head)
 	if err != nil {
@@ -118,6 +141,9 @@ func readProviderHTTP(reader *bufio.Reader, limits ProviderCaptureLimits) ([]byt
 	}
 	request := &http.Request{Method: http.MethodPost}
 	framed := bufio.NewReader(io.MultiReader(bytes.NewReader(head), reader))
+	if meter != nil && !meter.event(providerCodecEvent, wireBytes) {
+		return nil, nil, nil, nil, ErrProviderCapture
+	}
 	response, err := http.ReadResponse(framed, request)
 	if err != nil {
 		return nil, nil, nil, nil, ErrProviderCapture
@@ -126,16 +152,27 @@ func readProviderHTTP(reader *bufio.Reader, limits ProviderCaptureLimits) ([]byt
 	if response.StatusCode != http.StatusOK || response.Proto != "HTTP/1.1" || response.Uncompressed {
 		return nil, nil, nil, nil, ErrProviderCapture
 	}
+	if meter != nil && !meter.preflight(providerReadEvent, uint64(limits.BodyBytes)+1) {
+		return nil, nil, nil, nil, ErrProviderCapture
+	}
 	body, err := io.ReadAll(io.LimitReader(response.Body, int64(limits.BodyBytes)+1))
-	if err != nil || len(body) > limits.BodyBytes || len(response.Trailer) != 0 {
+	if meter != nil && !meter.event(providerReadEvent, uint64(len(body))) || err != nil || len(body) > limits.BodyBytes || len(response.Trailer) != 0 {
 		return nil, nil, nil, nil, ErrProviderCapture
 	}
 	// Exactly one exchange on a Connection: close request must reach real EOF.
 	// Check the SAME buffered reader: a second reader would hide prefetched tail.
-	if _, err := framed.ReadByte(); err != io.EOF {
+	if meter != nil && !meter.preflight(providerReadEvent, 1) {
 		return nil, nil, nil, nil, ErrProviderCapture
 	}
-	result, err := DecodeRPCResult(body, 1, RPCResponseLimits{limits.BodyBytes, limits.JSONDepth})
+	_, eofErr := framed.ReadByte()
+	n := uint64(0)
+	if eofErr == nil {
+		n = 1
+	}
+	if meter != nil && !meter.event(providerReadEvent, n) || eofErr != io.EOF {
+		return nil, nil, nil, nil, ErrProviderCapture
+	}
+	result, err := decodeRPCResultObserved(body, 1, RPCResponseLimits{limits.BodyBytes, limits.JSONDepth}, meter)
 	if err != nil {
 		return nil, nil, nil, nil, ErrProviderCapture
 	}

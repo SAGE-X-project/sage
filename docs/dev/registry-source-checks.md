@@ -1079,3 +1079,474 @@ a restart. Recreating a model loses state and cannot reset an operating ledger.
 Qualified durable storage, independent custody, an owned clock and executor,
 complete history, bootstrap and publication remain required. Existing V1 and
 SAGE 0.10.0 formats, strict checks and operating-policy activation are unchanged.
+
+### Private connected provider candidate
+
+The private coordinator joins retained request bytes, admission, consumption,
+the owned HTTP/TLS capture and independently reconstructed settlement. Its first
+request is exactly the finalized-header read retained before admission. A later
+closed Registry pin reuses that start and admits the chain ID, genesis header,
+client version and Registry identifier reads individually. Each result is
+checked before issuing the next read. Local parsing also has a separately
+consumed ticket; successful HTTP alone cannot complete that local command.
+
+The Agent owns this coordinator. A Registry Source denotes the Agent's state
+observation boundary. HTTP message signing and selection of covered components
+remain governed by the adopted messaging profile and the Agent's integration
+logic. The evidence collector does not introduce a blanket message-signing rule.
+
+All eleven work coordinates remain owned measurements. Execution and remaining
+retention/readback envelopes are separate, finite reservations fixed before
+work. Terminal outcomes retain the full original charge. Complete measurements
+end before their own future settlement storage; that later work is covered by
+the already reserved remaining envelope. Wire counts include both plaintext
+HTTP directions, headers and transfer framing. TLS records and kernel traffic
+have a different accounting boundary.
+
+The separate private continuation draft preserves global ticket tombstones,
+consumption and settlement sequences, original clocks and deadlines across
+pages. A nonfinal page is full; only a quiescent final admission may seal a short
+page. Page, seal and index metadata share one cumulative quota. Page maps and
+codec scratch are preflighted before allocation. Index application reconstructs
+the exact typed transition again; well-formed JSON and a matching hash cannot
+clear terminal history. A pending seal permits only its single exact operation
+and pre-seal index heads. These arithmetic/cache objects remain separate from
+durable custody authentication.
+
+V2 inventory, intent, commit and frontier data have distinct domains and exact
+predecessors. The initial frontier has no future admission or budget reference.
+A later enrollment root must immediately follow the existing one. Parsing these
+records does not implement external current-tip CAS, qualify a filesystem or
+restore an old permit. The V1 opener explicitly refuses a continuation profile;
+there is no automatic transition when its existing complete-lifetime cap is
+reached. Concrete V2 custody, full scans and full-history publication are still
+required before this candidate can become an operating Source.
+
+The V2 candidate also has an initial-only metadata store and a typed retained
+delta writer. It opens only two preprovisioned distinct roots with exact empty
+anchor/lock views. Finite setup reservation covers the initial high-water's two
+copies before setup writes. Each later transaction checks complete physical,
+resident, global and active-page bounds before retaining its immutable intent,
+objects, inventory, pending record and commit. Independent replay reads those
+originals, derives the frontier and combines custody, index and high-water bytes
+in one common debit. The high-water's generated pending file becomes HEAD only
+after exact predecessor checks; sync, readback and owned-clock checks surround
+that replacement. All store/file/replay owners remain quarantined after an
+uncertain transaction, and no reservation or partial file is refunded.
+
+Closing a page checks both the nonclosing debit with its still-reserved future
+page upper and the later exact page/seal debit. The private one-use file claim
+prevents the already reserved high-water allocation from being charged twice.
+Global original admission, clock, deadlines and ticket tombstones remain fixed.
+The legacy whole-prefix store cannot accept this continuation profile.
+
+These file and typed-writer results are retained metadata only. A candidate
+empty view is not independently authenticated absence; a HEAD file or a private
+pointer does not qualify a retaining principal. The opener cannot recreate a
+live owner from a completed prefix. Whole selected-prefix initial, inspection
+and final scans, qualified custody/clock/filesystem selection, the coordinator
+acknowledgment boundary and complete history/publication remain required for
+operating use. No candidate metadata result grants protected-message authority.
+
+The tagged `TestProviderCaptureConnectedAdmissionAndRegistryPin` is a bounded
+normal read-only probe against the sole configured Sepolia TLS origin. It uses
+isolated, explicitly unqualified test stores, retains the original custody and
+request/response bytes under `connected/`, and reports `source_ready=false`,
+`policy_activated=false` and zero paid transactions. Its request ceiling is the
+existing twenty seconds and its overall context is two minutes; failures are
+retained without retries or endpoint changes. A successful probe establishes
+only that joined admission/bootstrap/pin subject, not complete Registry history
+or protected Agent message authority.
+
+The provider CI job measures the new files directly in one tagged test run,
+including finite units, normal owned TLS/filesystem checks and that official
+read-only probe. It requires ninety percent statement coverage for each listed
+source file and checks the list against the complete connected source inventory.
+It does not union previous jobs, older sources or distinct operating subjects
+to qualify a new implementation. Actual custody, clock, resource feasibility,
+full-history readiness and policy activation retain their separate gates.
+
+The fresh private V3 candidate profile adds explicit scan and cumulative
+pre-admission limits. It requires separately provisioned initial scan high-water
+and HEAD originals in both roots and their independently configured digest.
+Adding scan limits never converts existing V1/V2 files or recreates missing
+initial records. The initial setup upper is held once and includes the bounded
+new original-file, directory and codec observations.
+
+A candidate scan attempt holds its complete preparation and whole-profile body
+uppers before parsing policy data, encoding control records or reading the old
+control prefix. Each of the eleven work coordinates, retained bytes and clock
+reads accumulates without refund. The two roots retain matching intent/claim,
+commit and high-water originals before sequential HEAD replacement and exact
+readback. Any uncertain result quarantines the owner and keeps the full hold.
+The concrete codec counts repeated encoding, decoding, hashing and comparison
+calls; caller-reported counters or a smaller body upper cannot qualify a claim.
+
+This control writer implements initial-inspection metadata only. A one-use
+bounded empty-prefix inspection now independently checks the original anchor,
+setup and main high-water, reconstructs its empty state and exhausts the exact
+two-root catalogs under the same held claim and original clock. Every target
+reread contributes its actual bytes and validation count. An unknown file,
+different target or insufficient final-record/catalog upper refuses without
+refund. The result is private diagnostic data. Before E0 the empty index
+anchors have no retained inventory originals, so the result deliberately cannot
+claim to be a retained ScanChunk, settlement or execution acknowledgment.
+
+Full main/history/recovery scanning, retained command/chunk completion, the
+independently qualified root principal and post-admission coordinator
+acknowledgment are still required.
+Neither a candidate prepared attempt nor two matching directories is an actual
+irreversible retaining service, complete inspection or permission to execute
+an Agent operation. Recovery cannot reconstruct such permission from JSON.
+
+The independent pre-admission replay instance keeps its already claimed body
+meter separately from the producer's creation-time setup observation. Typed
+enrollment, admission, ticket, consumption and settlement parsing observes each
+actual input and repeated policy decode, standard closed-schema encoding,
+ordinary or domain-separated hash, and retained string copy. The scan object
+reader also counts the domain NUL and its one actual format parse; the digest
+helper hashes without parsing. Repeating an object read counts those invocations
+again rather than reusing a previous diagnostic.
+Existing public DATA parsers retain their exact bytes and nil-observer behavior;
+they cannot select a scan meter or grant an acknowledgment. An inactive or
+different body observer refuses before typed replay. This does not yet close
+all index, page, setup, high-water and retention codec paths, nor implement the complete
+main-prefix scanner or its command/chunk/settlement bridge. Those paths must be
+observed before any complete scan-work or operating qualification claim.
+
+Frontier record, intent, commit, object and inventory codecs also have concrete
+observed variants. Independent replay uses them to reproduce existing bytes,
+including repeated root/inventory decoding, canonical encoding, sorting,
+comparison and domain-separated hashing. A consumed allowance refuses before
+the next primitive; it never returns a partial record as success. Nil-observer
+DATA callers preserve the existing V1/V2 schema and digest contracts. These
+additional observations do not confer custody authority or close the remaining
+ledger, high-water, full-prefix and operating qualification requirements.
+
+The private independent replay also attaches its original live observer to its
+own ledger and index models. Every repeated node/budget encoding, policy decode,
+index value re-encoding/comparison, page/seal rebuild and retained-object digest
+uses that same observer. A refusal cannot install the partly built ledger or
+index change. Public candidate construction keeps a nil observer and its original
+4096-record contract; private metadata and page encoders retain their existing
+8192-byte and 4 MiB ceilings. The closed page encoder ceiling is not an increase
+of a store metadata limit or the public lifetime cap.
+
+These hooks remain incomplete integration work: setup/high-water/retention and
+request/result parsers must be observed too, and a complete original catalog
+reader must drive this independent model. An arithmetic unit fixture or a
+metered page seal does not qualify an actual principal, acknowledge custody,
+restore execution, activate policy or make an Agent Source ready.
+
+The same independent observer now covers the repeated setup/profile/high-water,
+retention-rederivation and old-material checks as well. Finite units compare
+ordinary retained E0/first-ticket files under independently rebuilt ledger and
+index state. These tests still do not supply a full original catalog reader,
+retained scan-command/chunk/settlement chain, full request/result observation,
+selected host authority or any operating acknowledgment.
+
+Request rebuilding and retained response reconstruction have concrete observer
+paths as well. They preserve the original request parts, observe the RPC token,
+envelope and version JSON passes separately, and observe base64 decode/re-encode,
+header parsing, standard HTTP framing and nested RPC validation. Observed HTTP
+framing receives the actual original wire length from the retained-byte reader;
+it cannot accept an unknown caller-reported input size. Failed header reads keep
+the successful byte-read/copy work already observed. Finite tests use ordinary
+memory bytes and the existing normal owned TLS fixture; no hostile peer is added.
+The remaining pin/ABI-specific parser paths still need the same integration,
+and none of these parser results is a scan completion or custody credential.
+
+The independent pin path uses the same observer for rebuilding all four exact
+requests, reading the child settlement and its policy, base64/RPC validation,
+and the pinned ABI JSON-string, hex and fixed-word decoders. Revalidation repeats
+these charges. The observed lower-case hex check scans bytes without claiming a
+copy when a canonical lower-case value requires no allocation. Pure nil callers
+keep the original public/legacy accounting contract. The ordinary pin parser
+unit uses references selected from its preexisting fixture only as DATA inputs;
+it is explicitly not the full independent-map catalog inspector still required.
+
+The private original-file replay reader creates fresh object, operation,
+binding, setup, position, ledger and index state under the already claimed scan
+body observer. It reads structural setup closure from both roots, then reads
+each main intent/pending/commit/frontier, V2 inventory, new object original and
+all typed transitive/high-water originals. Setup `expected_tip` obligations are
+closed against reconstructed main positions, rather than accepted during the
+first structural pass. Policy parsing observes its two subtree encoders, copied
+raw bytes and three domain hashes. Neither the reader nor its lineage predicate
+is a complete scan: whole-record chunk reservations, raw/catalog accounting,
+both catalog EOFs, retained command/chunk/settlement receipts and the private
+scan-to-first-admission binding remain integration requirements. The finite
+owned-file tests do not qualify an operating host, clock or retaining authority.
+
+The separate pre-admission body joins that reader to one claimed cumulative
+meter, bounded nonempty setup/main windows and both exact directory catalogs.
+It keeps successful raw target reads, including repeats, separate from catalog
+name work and separately checked live scan-control files. The final main
+window reserves the entire finite catalog before its first target record read;
+both EOFs and every required name must agree. Chunk encoding occurs after the
+work snapshot and spends the already held output upper. The returned chunk
+bytes remain unretained candidate DATA. This path requires existing E0/index
+anchor originals and rejects a post-I target: it cannot supply an admitted
+post-I command/S chain, the first-I scan binding, an ACK or operating readiness.
+
+The optional V4 candidate profile fixes a separate finite first-admission
+envelope before H0. Its canonical live-accounting rule derives live occupancy
+from the same committed upper that includes all retained and temporary copies.
+Opening observes and caches the policy capacities under O; a later scan claim
+checks all bootstrap work coordinates and both disk capacities before holding
+P+B. B includes the complete first-E1 envelope, so a future ticket cannot fund
+its own uncertain creation. Old profiles retain their original bytes and cannot
+be adopted as V4. Private ledger arithmetic can seed the original pre-I charged
+work and both disk-used totals before the first ticket; exported constructors
+still start at zero and keep the original lifetime cap. These primitives are
+not yet the retained chunk/binding/typed first-E1 writer, an authenticated
+restart, a qualified physical bound or permission to send Agent messages.
+
+V4 additionally commits its receipt-accounting revision in the profile before
+H0. Its command/chunk V2 records name the exact selected scan HEAD, high-water
+and attempt, and retain two immutable original copies with observed readbacks.
+Earlier originals are re-read before each next nonempty record. The final
+record reserves both full catalogs before starting: one precedes its chunk
+snapshot, and the other checks the exact final filenames after retention.
+Later encoding, writes and the second catalog still spend the original held
+meter even though that work is outside the chunk's earlier diagnostic snapshot.
+Inspection cannot borrow the separately held first-E1 work or clock allowance.
+Output events stay in the same cumulative actual vector, while their observed
+delta is excluded from the target-only subwindow. Starting the next nonempty
+record clears only that subwindow delta, never the cumulative meter or its
+upper. Command retention therefore cannot make a later target read spend its
+write allowance twice, and unused output funds cannot extend target work.
+The four readbacks and two receipt decoders have separate output accounting;
+old profile bytes cannot silently acquire that revision. Receipt ownership is
+live and nonserializable. Retained DATA still needs the mandatory first-I
+binding, independently seeded typed E1 replay and qualified custody boundary;
+the owned E0 candidate does not provide those operating guarantees.
+
+The fresh V4 bootstrap-accounting revision keeps the original open-O meter
+through E0. The first-admission bounds format is separately pinned as V2
+before H0, so an earlier candidate identity cannot acquire this path on reopen.
+The live owner can enter enrollment once, before any scan claim. It compares
+the complete E0 work, resident-memory, clock and physical-file plan with the
+remaining original O before allocation or writes. Its seven new objects are
+the enrollment, three independent index anchors, original setup/commit, and
+one operations-index mutation; inventory, intent/pending/commit/frontier and
+the two new head copies bring the physical plan to fourteen new files.
+
+The physical allowance includes the uncertain pending head. The writer
+consumes that one private phase claim without increasing the already held
+store total. Exact originals are read back and independently replayed with
+different coordinator/custodian index maps under the same O. Every newly
+observed byte/filename copy and serializer spends the current phase, while
+earlier profile filename bytes and copy-accounting behavior remain unchanged.
+The bootstrap meter closes permanently on completion or failure; losing the
+owner or encountering an uncertain original cannot renew O or refund its tail.
+Only a completed E0 can begin its separately funded first inspection. These
+are candidate filesystem and accounting checks, not authenticated absence,
+qualified durability/clock, an ACK, first-I/E1 binding, or Agent-message use.
+
+A terminal V4 inspection now prepares one private finishing owner while the
+original store mutex and B meter are still held. Its bounded immutable target
+copy is charged before final IO, and the handoff follows both final catalogs,
+lineage closure and the final owned sample. No IO follows that handoff. The
+normal return still closes the inspection body and detaches the active meter.
+Starting finishing requires the exact unused store-owned object, original
+meter/counters/uppers, predecessor pins, setup origin and unchanged profile.
+It marks the owner started before any primitive and reattaches that same B
+without reactivating inspection or receipt APIs. Finishing work and clock
+deltas must fit the already held first-E1 envelope as well as cumulative B.
+Owned samples retain the original deadline and setup duration; the finishing
+duration also includes any wait after inspection. Any failed or uncertain
+finishing primitive permanently closes the owner and retains the full hold.
+There is no success/ACK path yet: mandatory first-I binding, independent
+seeded typed E1 replay and qualified custody remain separate work.
+
+The closed scan-admission binding format names only existing E0, setup, scan
+head/high-water/attempt, target, terminal chunk and admission digests. It binds
+the original clock/deadline and exact open, cumulative scan and total uppers;
+live occupancy is derived from the same committed retained upper. A metered
+reader reconstructs H0 through the bound historical H_k from both original
+copies and every original intent/commit. It recalculates the held sum and
+policy capacities, paying again for each repeat read/codec/hash/copy. A later
+provisional current scan head cannot substitute for that historical evidence.
+The returned seed is only arithmetic DATA: target/chunk/I/E1 validation,
+mandatory typed object integration and current-pin qualification are still
+required before any concrete finishing or custody result can be accepted.
+
+The separate receipt reader follows the immutable terminal chunk backward to
+index zero, reading both original command/chunk copies at each record. It
+checks the exact historical attempt/target, command bytes, contiguous cursors,
+counter differences, cumulative work bounds and clock order, and requires
+setup zero with zero prior totals. Memory does not grow with chain length;
+each repeated read and codec spends the current owned meter. Finishing also
+takes an owned sample after every bounded record. The returned diagnostic
+closure and once-counted schema byte total are DATA: they neither authenticate
+past physical work nor replace frozen-target reconstruction or typed E1.
+
+First-admission finishing replays E0 from fresh original setup/main maps under the same held inspection meter. It drops its closed inspection caches while retaining the full returned-output RAM upper, checks the exact original main/scan heads and samples the original clock throughout. This supplies candidate typed inputs only: the first admission, mandatory binding, seeded E1 write, acknowledgment and operating Agent integration remain incomplete. Finite missing-original, budget, clock, owner and RAM units do not qualify an operating filesystem or principal.
+
+For the V4 first typed admission, one mandatory scan binding names the independently replayed E0 boundary and original historical Hk/command/chunk chain. The original O+Q seed enters bootstrap charged and disk-used totals before the first ticket append. Both original copies of scan metadata are charged once to the separate common metadata quota; old physical files are not rewritten or charged as fresh E1 files. Pure candidate DATA units compare seeded B0 and reject a zero-seed expected record. They do not implement or qualify the still-pending prepaid first-E1 writer, custody acknowledgment or operating Agent. Legacy/public zero-seed behavior is unchanged.
+
+Common store samples during first-admission finishing now route through that
+same live owner, applying both its original deadline and its finishing limits.
+Foreign views cannot sample its clock. Original-byte/text comparisons pay for
+their copies and comparisons under the current meter. First-finishing inventory
+sorting has a concrete bound of n*(n-1)/2 comparisons, with two observed key
+copies per comparison; earlier sorting and event contracts remain unchanged.
+
+The first-E1 storage quote separately accounts for14 fresh objects and all21
+possible file allocations, including the uncertain pending head. Its binding
+allowance conservatively uses the configured metadata cap even though that
+codec actually enforces both this cap and8192 bytes. This is an intentional
+overestimate, not a correction of an earlier64KiB underestimate.
+This quote is only the physical-file component. Complete work, resident-memory
+and clock preflight, the prepaid writer, original readbacks and operating
+qualification still remain; a quote or successful unit does not authorize them.
+
+Future first-ticket storage is quoted separately for consumption and settlement:
+fourteen plus eighteen possible file allocations, including each pending head.
+The quote includes base64 expansion, JSON header escaping and structure, the
+first-chain certificate digests, and transport bytes both inside the exchange
+and in the separate TLS object. It neither includes nor subtracts the earlier
+first-E1 hold and does not use the legacy double-capacity estimator. These are
+conditional serialization components: the future V4 builders must enforce the
+stated consumption/settlement/wire-binding and fixed-metadata caps. Complete
+work/RAM/clock bounds, concrete T/C/S retention and one-use execution remain
+unfinished; the quote creates no ticket, reservation, acknowledgment or permit.
+The remaining response wire ceiling must also fit one retained object; aggregate
+disk capacity and a small JSON body cannot replace that separate size check.
+
+The proposed first admission can now be encoded with the current observer,
+preserving the existing immutable bytes, original epoch/deadline and limits
+digest. Both policy decodes, their byte copies and every encode/hash are
+accounted separately. A fifteen-primitive logical component bounds this one
+constructor; it does not cover the rest of the first transaction. Candidate
+typed-replay units use this constructor, while pure expected DATA keeps the
+same byte contract. Neither form selects a retaining owner, persists E1,
+renews a hold, or creates an acknowledgment or execution permission.
+
+The proposed first ticket also has an observed formatter. It checks the fixed
+finalized request and independently hashes its wire bytes and parameters,
+preserving the supplied original operation clock and immutable admission
+deadline. Its separate logical component covers twenty-four successful
+formatting primitives. The five native text comparisons do not convert their
+inputs to raw bytes. Seven events have quadratic byte weights and seventeen
+have linear weights; these fit the conservative logical upper. The
+request constructor and the complete prospective
+operation estimate remain separate costs; supplying reservation DATA does not
+qualify that estimate, debit a hold, authorize a request or persist an E1.
+Finite invalid-input and quota units check those boundaries without dispatch.
+
+The complete first-admit proposal now builds its fourteen new objects,
+inventory, frontier and expected next high-water using newly derived
+coordinator indexes. Original control and receipt copies supply the O+Q seed
+and common metadata charge. A separate typed replay reconstructs the same
+delta from owned fixture originals without importing those coordinator maps.
+These remain proposed DATA: the complete resource preflight, prepaid physical
+writer, current-head replacement, qualified acknowledgment and execution are
+still required. Finite fresh profiles select their limits before H0 to check
+decoded-budget exhaustion; no existing hold or operating profile is enlarged.
+
+The candidate first-E1 entry now compares a complete initial-only prospective
+plan before its first original read, I encoding or collection growth. It
+includes two fresh E0 replays, the fourteen-object proposal, two independent
+control/receipt closures, common typed storage, original readbacks and the
+head replacement. Logical codec/byte weights, decoded bytes, new write bytes,
+physical allocation, clock reads and simultaneous resident data have separate
+checked bounds. Maximum encoder/read preflight headroom is reserved separately
+from actual input-length events. An insufficient original profile refuses
+before IO; larger isolated test profiles are selected before their new H0.
+
+Only the second original reader's maps and typed replay enter the physical
+custodian. Its E0-only metadata is not substituted for the original aggregate
+retained byte counter, and the typed admission adds original scan metadata
+once. The existing B already holds the finite F physical upper: the first-E1
+claim consumes that hold once without another stored-byte debit or any refund
+on an uncertain write. O and F remain distinct closed prepaid roles. Exact
+write, typed original replay, frontier/head replacement and original readback
+must all finish before retained candidate diagnostics are returned.
+
+Success permanently closes the original meter, keeping that closed observer
+attached to the retained typed state. Failure permanently closes the same
+owner/store and preserves its full prior hold. This candidate-only entry takes
+future reservation DATA and returns no custody acknowledgment, integration,
+Source or request permit. It does not qualify a future-only T/C/S estimate or
+activate an operating policy. Actual future operation admission/execution,
+post-admission scan commands, complete history/final closure, selected
+host/principal and filesystem/clock/profile qualification, Registry-backed
+selectively signed Agent exchange and publication gates remain required.
+
+The Test workflow retains the focused Registry source evidence in a separate
+Registry Source Checks job with the existing fifteen-minute limit. The
+required Go Tests job waits for it and explicitly rejects every prerequisite
+result except success before running its own checks. The full race and
+coverage run, coverage requirements and DID, handshake, identity and HTTP
+checks keep their existing commands and artifacts. Each job has its original
+finite time limit; the complete workflow must succeed at the current revision.
+
+The separate initial-only connected candidate binds its future execution and
+remaining envelopes before I/T0. It keeps the original first-E1 F observer and
+its physical hold, adds a distinct once-held C/S allocation, and compares a
+complete simultaneous RAM plan before its first original read. The largest
+declared serializer preflight stays separate from actual codec inputs. Only
+the second independent custodian's original state is installed; the separate
+coordinator receives the exact retained charge and is compared before F closes
+and both observers transfer to the newly pre-funded owner.
+
+This private candidate retains C before burning its one-use receipt, uses the
+fixed official Sepolia connection once, then retains and independently replays
+S with a separately funded remaining observer. A failed execution cannot be
+reported as measured complete work, regain its receipt or release its original
+hold. Exact C/S original files, frontier replacement and readbacks precede any
+returned diagnostic result. The production entry accepts no endpoint or
+transport callback. Ordinary owned TLS tests exercise the private byte path;
+finite missing-state and quota units do not create hostile runtime peers.
+
+The earlier candidate-only E1 entry remains DATA-only and permanently closed.
+It cannot construct this new owner after returning. Neither candidate selects
+an operating principal, publishes a custody acknowledgment or creates a Source.
+Post-admission scan commands, the complete deployment/history/final closure,
+actual host/profile/filesystem/clock qualification, Registry-backed selectively
+signed Agent exchange and policy activation remain separate requirements.
+The added files enter the existing per-file 90% inventory and current-revision
+CI gates; this description does not claim their tests or required CI passed.
+
+
+The private V5 candidate additionally separates the initial open/enrollment
+reservation from a lifetime hold for subsequent metadata work. Its origin is
+retained before the first enrollment, its genesis follows that enrollment, and
+the initial admission binds both original records and the future hold. Two
+independent original-file replays derive the same seed. The original first
+operation hands off only after its durable settlement and model comparison;
+its execution and settlement observers remain closed.
+
+A subsequent guardian claim consumes the same finite lifetime and original
+clock before any new formatting or observation. Its immutable intent, claim,
+commit and high-water must be read back under the selected two-root store.
+This metadata acknowledgment is not a ticket or a dispatch permit. The
+continuing ticket/consumption/settlement binding, full history, operating
+qualification and Registry-backed Agent exchange are separate remaining
+connections; these candidate checks do not claim their completion. No public
+4096-record limit, existing profile, or message-signing scope is changed.
+
+
+The next private V5 local operation binds its unchanged TicketV2 and a new
+guardian admission record in the same retained inventory. It keeps two separate
+live typed models and compares only the affected entries after each independently
+retained transition; the previously established private prefix is checked before
+advancing. This does not reconstruct authority after process loss.
+
+A distinct C/S allocation is held before T. The original guardian lifetime pays
+only its own metadata and T; the new execution observer pays C and the closed
+BootstrapStart command, and the separate remaining observer pays S. The command
+re-reads the retained first exchange and settlement instead of trusting a copied
+diagnostic result. Its private receipt is burned once before further work. A
+same-segment ticket reserves no new segment; advancing one segment is separately
+charged without resetting the original lifetime. Missing state or uncertainty
+keeps the full hold and closes the owner.
+
+The new source includes finite refusal and ordinary owned TLS/FS scenarios. Its
+current-revision CI and individual production-file90% gates still have to pass.
+Subsequent RPC/pin/history commands, page seals, complete final original scans,
+operating host/profile qualification and Registry-backed selective Agent message
+exchange remain required. This local command does not select a Source, enable
+a public dispatch permit, or activate policy.

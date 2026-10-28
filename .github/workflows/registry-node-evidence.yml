@@ -65,7 +65,7 @@ jobs:
   provider-capture:
     name: Capture candidate provider transport evidence
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     env:
       GOFLAGS: -mod=readonly
       GOTOOLCHAIN: auto
@@ -77,7 +77,7 @@ jobs:
         with:
           go-version: '1.26.10'
           cache: true
-      - name: Check data-only capture with owned TLS and the selected RPC
+      - name: Check provider candidates with owned TLS and the selected RPC
         run: |
           export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
           mkdir -p "$SAGE_PROVIDER_CAPTURE_DIR/source"
@@ -85,8 +85,8 @@ jobs:
           git rev-parse HEAD > "$SAGE_PROVIDER_CAPTURE_DIR/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$SAGE_PROVIDER_CAPTURE_DIR/tree.txt"
           git ls-files -z pkg/agent/registry011 go.mod go.sum .github/workflows/registry-node-evidence.yml .github/workflows/test.yml docs/dev/registry-source-checks.md | xargs -0 sha256sum > "$SAGE_PROVIDER_CAPTURE_DIR/source.sha256"
-          cp pkg/agent/registry011/provider_*.go "$SAGE_PROVIDER_CAPTURE_DIR/source/"
-          cp pkg/agent/registry011/rpc_response.go "$SAGE_PROVIDER_CAPTURE_DIR/source/"
+          cp pkg/agent/registry011/*.go pkg/agent/registry011/*.json "$SAGE_PROVIDER_CAPTURE_DIR/source/"
+          cp -R pkg/agent/registry011/testdata "$SAGE_PROVIDER_CAPTURE_DIR/source/"
           python3 - <<'PYCONTEXT'
           import json, os
           from pathlib import Path
@@ -95,12 +95,93 @@ jobs:
           PYCONTEXT
           GODEBUG=http2client=0 go mod download -json > "$SAGE_PROVIDER_CAPTURE_DIR/modules.json" 2> "$SAGE_PROVIDER_CAPTURE_DIR/modules.stderr"
           go mod verify > "$SAGE_PROVIDER_CAPTURE_DIR/modules-verify.txt"
-          go test -tags=provider_capture_live -mod=readonly -race -count=1 -json -run '^TestProviderCapture' -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -json -run '^TestProvider' -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
           go tool cover -func="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" > "$SAGE_PROVIDER_CAPTURE_DIR/functions.txt"
           python3 - <<'PYCOVERAGE'
           import os
           from pathlib import Path
           targets = {'provider_capture.go': [0, 0], 'provider_http.go': [0, 0]}
+          connected = [
+              'provider_frontier_intent.go', 'provider_frontier_record.go',
+              'provider_frontier_retention.go', 'provider_frontier_replay.go',
+              'provider_frontier_references.go', 'provider_frontier_highwater.go',
+              'provider_frontier_highwater_retention.go', 'provider_frontier_cas_files.go',
+              'provider_frontier_custody_preflight.go', 'provider_frontier_custody_write.go',
+              'provider_frontier_custody_open.go', 'provider_scan_bounds.go',
+              'provider_scan_codec.go', 'provider_scan_open.go',
+              'provider_scan_control.go', 'provider_scan_control_records.go',
+              'provider_scan_initial.go', 'provider_scan_target.go',
+              'provider_scan_replay.go', 'provider_scan_body.go',
+              'provider_scan_receipts.go', 'provider_first_admission_bounds.go',
+              'provider_first_admission_owner.go', 'provider_first_admission_replay.go',
+              'provider_first_admission_seed.go', 'provider_first_admission_proposal.go',
+              'provider_first_admission_plan.go', 'provider_first_admission_write.go',
+              'provider_scan_admission_binding.go', 'provider_scan_receipt_replay.go',
+              'provider_ledger_initial_charge.go', 'provider_bootstrap_owner.go',
+              'provider_replay_paths.go', 'provider_first_admission_operation_capture.go',
+              'provider_first_admission_operation_change.go', 'provider_first_admission_operation_commit.go',
+              'provider_first_admission_operation_execute.go', 'provider_first_admission_operation_models.go',
+              'provider_first_admission_operation_open.go', 'provider_first_admission_operation_owner.go',
+              'provider_first_admission_operation_plan.go', 'provider_replay_codec.go',
+              'provider_integration.go', 'provider_integration_admission.go',
+              'provider_integration_bootstrap.go', 'provider_integration_budget.go',
+              'provider_integration_clock.go', 'provider_integration_exchange.go',
+              'provider_integration_history.go', 'provider_integration_io.go',
+              'provider_integration_local.go', 'provider_integration_meter.go',
+              'provider_integration_method_limits.go', 'provider_integration_objects.go',
+              'provider_integration_pin.go', 'provider_integration_pin_replay.go',
+              'provider_integration_request.go', 'provider_integration_result.go',
+              'provider_integration_setup.go', 'provider_integration_store.go',
+              'provider_integration_store_commit.go', 'provider_integration_store_read.go',
+              'provider_integration_store_replay.go', 'provider_integration_transport.go',
+              'provider_ledger_continuation.go', 'provider_ledger_index_values.go',
+              'provider_ledger_indexes.go', 'provider_ledger_limits.go',
+              'provider_ledger_page.go', 'provider_guardian_bounds.go',
+              'provider_guardian_claim.go', 'provider_guardian_cost.go',
+              'provider_guardian_first.go', 'provider_guardian_genesis.go',
+              'provider_guardian_initial.go', 'provider_guardian_lineage.go',
+              'provider_guardian_originals.go', 'provider_guardian_owner.go',
+              'provider_guardian_records.go',
+              'provider_continuing_bootstrap.go',
+              'provider_continuing_rpc_binding.go',
+              'provider_continuing_rpc_class.go',
+              'provider_continuing_rpc_cost.go',
+              'provider_continuing_rpc_execute.go',
+              'provider_continuing_rpc_memory.go',
+              'provider_continuing_rpc_open.go',
+              'provider_continuing_rpc_plan.go', 'provider_continuing_pin.go', 'provider_continuing_pin_open.go', 'provider_continuing_pin_replay.go', 'provider_continuing_pin_plan.go', 'provider_continuing_pin_resources.go', 'provider_continuing_pin_read_bounds.go', 'provider_continuing_exchange_view.go', 'provider_continuing_pin_memory.go',
+              'provider_continuing_rpc_resources.go',
+              'provider_continuing_rpc_storage.go',
+              'provider_guardian_seal_binding.go',
+              'provider_guardian_seal_replay.go',
+              'provider_page_seal_change.go',
+              'provider_page_seal_models.go',
+              'provider_page_seal_open.go',
+              'provider_page_seal_owner.go',
+              'provider_page_seal_plan.go',
+              'provider_page_seal_storage.go',
+              'provider_continuing_change.go',
+              'provider_continuing_commit.go',
+              'provider_continuing_consumption.go',
+              'provider_continuing_models.go',
+              'provider_continuing_open.go',
+              'provider_continuing_owner.go',
+              'provider_continuing_plan.go',
+              'provider_continuing_history_plan.go',
+              'provider_continuing_prefix.go',
+              'provider_continuing_records.go',
+              'provider_guardian_admission_binding.go',
+              'provider_guardian_replay.go',
+          ]
+          for name in connected:
+              targets[name] = [0, 0]
+          discovered = {
+              item.name
+              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go', 'provider_scan*.go', 'provider_replay*.go', 'provider_first_admission*.go', 'provider_bootstrap*.go', 'provider_guardian*.go', 'provider_continuing*.go', 'provider_page_seal*.go')
+              for item in Path('pkg/agent/registry011').glob(pattern)
+              if not item.name.endswith('_test.go')
+          }
+          assert set(connected) == discovered, ('coverage inventory mismatch', sorted(discovered - set(connected)), sorted(set(connected) - discovered))
           for line in Path(os.environ['SAGE_PROVIDER_CAPTURE_DIR'], 'coverage.out').read_text().splitlines()[1:]:
               location, statements, count = line.split()
               name = location.rsplit(':', 1)[0].rsplit('/', 1)[-1]

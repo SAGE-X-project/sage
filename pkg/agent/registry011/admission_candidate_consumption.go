@@ -25,13 +25,17 @@ func (*CandidateConsumption) UnmarshalJSON([]byte) error { return ErrAdmissionCa
 // ticket, immutable original intent and bounded clock relations. All samples
 // remain JSON-derived candidate data and cannot serve as trusted clock inputs.
 func ParseCandidateConsumption(ticket *CandidateAdmissionTicket, raw []byte, maximumBytes int) (*CandidateConsumption, error) {
+	return parseCandidateConsumptionObserved(ticket, raw, maximumBytes, nil)
+}
+
+func parseCandidateConsumptionObserved(ticket *CandidateAdmissionTicket, raw []byte, maximumBytes int, meter *providerWorkMeter) (*CandidateConsumption, error) {
 	if ticket == nil || ticket.raw == "" || maximumBytes <= 0 || maximumBytes > 64<<10 {
 		return nil, ErrConfiguration
 	}
 	if len(raw) == 0 || len(raw) > maximumBytes {
 		return nil, ErrAdmissionCandidate
 	}
-	m := contentObject(contentJSON(raw), "format", "ticket_digest", "namespace", "instance_key", "source_id", "generation", "fence", "sequence", "previous_consumption", "kind", "input_digest", "clock_start")
+	m := contentObject(providerReplayJSON(raw, meter), "format", "ticket_digest", "namespace", "instance_key", "source_id", "generation", "fence", "sequence", "previous_consumption", "kind", "input_digest", "clock_start")
 	id := ticket.intent.identity
 	if m == nil || m["format"] != "sage-provider-budget-consumption-v1" || m["ticket_digest"] != ticket.digest || m["namespace"] != id.Namespace || m["instance_key"] != id.Instance || m["source_id"] != id.SourceID || m["kind"] != ticket.kind || m["input_digest"] != ticket.input {
 		return nil, ErrAdmissionCandidate
@@ -42,12 +46,20 @@ func ParseCandidateConsumption(ticket *CandidateAdmissionTicket, raw []byte, max
 	if !a || !b || !c || generation != id.Generation || fence != ticket.intent.fence || sequence == 0 && m["previous_consumption"] != nil || sequence != 0 && !providerCandidateDigest(m["previous_consumption"]) {
 		return nil, ErrAdmissionCandidate
 	}
-	policy := contentJSON([]byte(ticket.policy)).(map[string]any)
+	policy, policyOK := providerReplayJSON(providerReplayPhaseBytes(ticket.policy, meter), meter).(map[string]any)
+	if !policyOK {
+		return nil, ErrAdmissionCandidate
+	}
 	clock, ok := candidateAdmissionClock(m["clock_start"], policy["clock"].(map[string]any))
 	if !ok || !candidateConsumptionClock(ticket, clock, policy) {
 		return nil, ErrAdmissionCandidate
 	}
-	return &CandidateConsumption{string(raw), providerCandidateHash("sage-provider-budget-consumption-v1", raw), ticket, sequence, contentString(m["previous_consumption"]), clock}, nil
+	digest := providerReplayDigest("sage-provider-budget-consumption-v1", raw, meter)
+	retained := providerReplayString(raw, meter)
+	if digest == "" || retained == "" {
+		return nil, ErrAdmissionCandidate
+	}
+	return &CandidateConsumption{retained, digest, ticket, sequence, contentString(m["previous_consumption"]), clock}, nil
 }
 
 func candidateConsumptionClock(ticket *CandidateAdmissionTicket, end CandidateClockDiagnostic, policy map[string]any) bool {

@@ -30,11 +30,24 @@ type RPCResponseLimits struct {
 // The transport must enforce the body limit while reading, before allocating
 // an unbounded body; this function cannot undo an earlier unbounded allocation.
 func DecodeRPCResult(body []byte, requestID uint64, limits RPCResponseLimits) (json.RawMessage, error) {
+	return decodeRPCResultObserved(body, requestID, limits, nil)
+}
+
+func decodeRPCResultObserved(body []byte, requestID uint64, limits RPCResponseLimits, meter *providerWorkMeter) (json.RawMessage, error) {
 	if limits.MaxBytes <= 0 || limits.MaxDepth <= 0 || limits.MaxDepth > 128 ||
 		requestID == 0 || requestID > 1<<53-1 {
 		return nil, ErrConfiguration
 	}
-	if len(body) == 0 || len(body) > limits.MaxBytes || !utf8.Valid(body) || !validRPCUnicode(body) {
+	if len(body) == 0 || len(body) > limits.MaxBytes {
+		return nil, ErrRPCResponse
+	}
+	if meter != nil && !meter.event(providerCompareEvent, uint64(len(body))) || !utf8.Valid(body) {
+		return nil, ErrRPCResponse
+	}
+	if meter != nil && !meter.event(providerCompareEvent, uint64(len(body))) || !validRPCUnicode(body) {
+		return nil, ErrRPCResponse
+	}
+	if meter != nil && !meter.event(providerCodecEvent, uint64(len(body))) {
 		return nil, ErrRPCResponse
 	}
 	decoder := json.NewDecoder(bytes.NewReader(body))
@@ -46,16 +59,19 @@ func DecodeRPCResult(body []byte, requestID uint64, limits RPCResponseLimits) (j
 		return nil, ErrRPCResponse
 	}
 	var envelope map[string]json.RawMessage
-	if json.Unmarshal(body, &envelope) != nil || len(envelope) != 3 ||
+	if providerReplayUnmarshal(body, &envelope, meter) != nil || len(envelope) != 3 ||
 		string(envelope["id"]) != strconv.FormatUint(requestID, 10) {
 		return nil, ErrRPCResponse
 	}
 	var version string
-	if json.Unmarshal(envelope["jsonrpc"], &version) != nil || version != "2.0" {
+	if providerReplayUnmarshal(envelope["jsonrpc"], &version, meter) != nil || version != "2.0" {
 		return nil, ErrRPCResponse
 	}
 	result, present := envelope["result"]
 	if !present {
+		return nil, ErrRPCResponse
+	}
+	if meter != nil && !meter.event(providerCopyEvent, uint64(len(result))) {
 		return nil, ErrRPCResponse
 	}
 	return append(json.RawMessage(nil), result...), nil
