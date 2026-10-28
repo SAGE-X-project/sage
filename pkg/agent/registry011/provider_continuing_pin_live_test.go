@@ -103,9 +103,10 @@ func TestProviderCaptureContinuingPinRetainsSameBlockRegistryIdentity(t *testing
 	if _, err := sealProviderContinuingPageCandidate(s); err != nil {
 		t.Fatal("page before local pin", err)
 	}
+	proposal := providerContinuingPinQuoteFixture(t, g, start.selected.Hash)
 	pin, err := newProviderContinuingPinCandidate(s, "example-agent", digests)
 	if err != nil {
-		t.Fatalf("official pin admission: %v G=%+v", err, g.meter)
+		t.Fatalf("official pin admission: %v G=%+v proposal=%+v", err, g.meter, proposal)
 	}
 	value, err := pin.executePinCandidate(ctx)
 	if err != nil || value == nil {

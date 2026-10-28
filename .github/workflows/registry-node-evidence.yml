@@ -149,7 +149,7 @@ jobs:
               'provider_continuing_rpc_execute.go',
               'provider_continuing_rpc_memory.go',
               'provider_continuing_rpc_open.go',
-              'provider_continuing_rpc_plan.go', 'provider_continuing_pin.go', 'provider_continuing_pin_open.go', 'provider_continuing_pin_replay.go', 'provider_continuing_pin_plan.go', 'provider_continuing_pin_memory.go',
+              'provider_continuing_rpc_plan.go', 'provider_continuing_pin.go', 'provider_continuing_pin_open.go', 'provider_continuing_pin_replay.go', 'provider_continuing_pin_plan.go', 'provider_continuing_pin_resources.go', 'provider_continuing_pin_memory.go',
               'provider_continuing_rpc_resources.go',
               'provider_continuing_rpc_storage.go',
               'provider_guardian_seal_binding.go',

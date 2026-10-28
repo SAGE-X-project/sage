@@ -54,9 +54,10 @@ func TestProviderContinuingPinRevalidatesFourOriginalClosuresWithDistinctWork(t 
 	original, initial, bootstrap := s.setupOrigin, g.integration.firstExchange, g.integration.bootstrap
 	oldE, oldR := g.first.execution.actual, g.first.remaining.actual
 	before, ordinal := s.stored, g.ordinal
+	proposal := providerContinuingPinQuoteFixture(t, g, admissionTestDigest("a"))
 	o, err := newProviderContinuingPinCandidate(s, "example-agent", digests)
 	if err != nil {
-		t.Fatalf("new local pin T: %v G=%+v", err, g.meter)
+		t.Fatalf("new local pin T: %v G=%+v proposal=%+v", err, g.meter, proposal)
 	}
 	if o.ticket.kind != "local-work" || o.request != nil || o.pin == nil || o.pin.parent != o || o.pin.exchanges != digests || o.ticket.input != o.pin.input.digest || o.state != providerContinuingPrepared || g.ordinal != ordinal+1 || s.stored != before+o.plan.physical {
 		t.Fatal("local admission borrowed a child permit or lost its own hold")
@@ -143,9 +144,10 @@ func TestProviderContinuingPinUnretainedChildrenLeaveOnlyFailedSettlement(t *tes
 	// Finite nonexistent lookup hints are never written as original X/S and
 	// never sent over a connection. C must still be irreversibly consumed.
 	digests := [4]string{admissionTestDigest("a"), admissionTestDigest("b"), admissionTestDigest("c"), admissionTestDigest("d")}
+	proposal := providerContinuingPinQuoteFixture(t, g, admissionTestDigest("a"))
 	o, err := newProviderContinuingPinCandidate(s, "example-agent", digests)
 	if err != nil {
-		t.Fatalf("separately funded local admission: %v G=%+v", err, g.meter)
+		t.Fatalf("separately funded local admission: %v G=%+v proposal=%+v", err, g.meter, proposal)
 	}
 	held := s.stored
 	data, err := o.executePinCandidate(context.Background())
