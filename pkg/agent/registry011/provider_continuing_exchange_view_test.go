@@ -178,3 +178,70 @@ func TestProviderHistoryBodyBindingUsesExactCanonicalEncoding(t *testing.T) {
 		t.Fatal("unfunded unit encoding was not refused")
 	}
 }
+
+// Each disagreement is confined to new, unattached lookup/configuration DATA.
+// The original policy, clock, request, T/C/S, indexes and files stay intact.
+func TestProviderHistoryExchangeViewRejectsConflictingPhaseData(t *testing.T) {
+	t.Parallel()
+	s, g := providerContinuingRPCReadyWithSelectionFixture(t, &providerScanFixtureSelection{pin: true, pinResidentGiB: true})
+	stored, sequence, ordinal, tip := s.stored, s.sequence, g.ordinal, s.frontierFiles.pin
+	origin, oldE, oldR := s.setupOrigin, g.first.execution.actual, g.first.remaining.actual
+	first, digest := g.first.request, g.integration.firstExchange
+	view, meter := providerPinUnitReadView(s, 1<<60)
+	r := &providerCustodyReplay{meter: meter, ledger: g.integration.ledger, intent: g.integration.intent, policy: g.integration.policy}
+	if result, err := r.historyExchangeResultView(view, digest, first); err != nil || result == nil || view.valid() {
+		t.Fatal("complete original DATA precondition", err)
+	}
+	for _, mode := range []string{"policy-fields", "consumption-clock", "expected-wire", "policy-roots", "missing-tls", "missing-response"} {
+		view, meter := providerPinUnitReadView(s, 1<<60)
+		r := &providerCustodyReplay{meter: meter, ledger: g.integration.ledger, intent: g.integration.intent, policy: g.integration.policy}
+		expected := *first
+		switch mode {
+		case "policy-fields":
+			policy := *g.integration.policy
+			policy.raw = "{}"
+			r.policy = &policy
+		case "consumption-clock":
+			entry, exists := g.integration.ledger.tickets[g.integration.firstTicket.digest]
+			if !exists || entry.consumption == nil || entry.consumption.clock.ClockID == "" {
+				t.Fatal("original consumption clock precondition")
+			}
+			consumption := *entry.consumption
+			consumption.clock.ClockID = ""
+			entry.consumption = &consumption
+			r.ledger = &CandidateAdmissionLedger{tickets: map[string]candidateLedgerTicket{g.integration.firstTicket.digest: entry}}
+		case "expected-wire":
+			expected.wire += "x"
+		case "policy-roots":
+			policy := *g.integration.policy
+			data, valid := contentJSON([]byte(policy.raw)).(map[string]any)
+			if !valid {
+				t.Fatal("original policy DATA precondition")
+			}
+			provider, valid := data["provider"].(map[string]any)
+			if !valid || provider["tls_roots_artifact"] == admissionTestDigest("f") {
+				t.Fatal("original roots DATA precondition")
+			}
+			provider["tls_roots_artifact"] = admissionTestDigest("f")
+			policy.raw = string(providerIntegrationJSON(data))
+			r.policy = &policy
+		case "missing-tls", "missing-response":
+			missing := "tls"
+			if mode == "missing-response" {
+				missing = "response"
+			}
+			view.objects = make(map[string]providerIntegrationObjectRef)
+			for key, value := range s.objects {
+				if value.kind != missing {
+					view.objects[key] = value
+				}
+			}
+		}
+		if result, err := r.historyExchangeResultView(view, digest, &expected); err == nil || result != nil || view.valid() || meter.actual[2] == 0 || meter.actual[9] != 0 {
+			t.Fatal("conflicting unit DATA yielded a checked original result", mode)
+		}
+	}
+	if s.failed || !g.ready || g.active || s.activeMeter.Load() != nil || s.stored != stored || s.sequence != sequence || g.ordinal != ordinal || s.frontierFiles.pin != tip || s.setupOrigin != origin || g.first.execution.actual != oldE || g.first.remaining.actual != oldR {
+		t.Fatal("detached unit disagreements changed the actual owner")
+	}
+}
