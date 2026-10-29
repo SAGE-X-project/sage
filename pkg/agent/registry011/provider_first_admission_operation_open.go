@@ -56,6 +56,9 @@ func newProviderFirstOperationCandidate(s *providerCustodyStore) (*providerFirst
 	owner = &providerFirstOperationOwner{store: s, first: f, plan: plan, config: s.config, policy: *s.config.policy, continuation: *s.config.bounds.continuation, methods: *s.config.bounds.methods, tls: *s.config.bounds.tls, scan: *s.config.bounds.scan, firstBounds: *s.config.bounds.firstAdmission, limits: limits, clock: s.clock, origin: s.setupOrigin, stored: s.stored, state: providerFirstOperationPrepared}
 	owner.owner = owner
 	s.firstOperation, f.operation = owner, owner
+	if s.config.bounds.history != nil && (s.history == nil || !s.history.bindFirstOwnerLocked(owner)) {
+		return nil, errProviderIntegration
+	}
 	if s.guardian != nil && !s.guardian.bindFirstOwnerLocked(owner) {
 		return nil, errProviderIntegration
 	}
@@ -100,6 +103,9 @@ func newProviderFirstOperationCandidate(s *providerCustodyStore) (*providerFirst
 	c := &providerIntegration{store: s, policy: s.config.policy, context: r.body.context, clock: s.clock, primitive: providerPrimitiveBounds{capture: plan.capture, maximumCreatedObjects: 32}, anchor: r.body.anchor, root: p.root, intent: p.intent, ledger: p.ledger, first: request, firstTicket: p.ticket}
 	c.owner = c
 	owner.integration, owner.indexes = c, p.indexes
+	if s.config.bounds.history != nil && (s.history == nil || !s.history.bindFirstIntegrationLocked(owner)) {
+		return nil, errProviderIntegration
+	}
 	if s.guardian != nil && !s.guardian.bindFirstIntegrationLocked(owner) {
 		return nil, errProviderIntegration
 	}

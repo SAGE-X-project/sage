@@ -48,6 +48,13 @@ type providerHistoryProgramOwner struct {
 	preparation, body           providerScanUpper
 	inspectionPhase             uint8
 	clockClaim                  *providerHistoryClockClaim
+	firstOwner                  *providerFirstOperationOwner
+	firstAdmission              *providerFirstAdmissionOwner
+	firstMeter                  *providerWorkMeter
+	firstMain                   providerFrontierHighwater
+	firstIntegration            *providerIntegration
+	firstIndexes                *providerLedgerIndexes
+	start                       *providerHistoryProgramStart
 }
 
 func (*providerHistoryProgramOwner) UnmarshalJSON([]byte) error { return errProviderIntegration }
@@ -99,7 +106,9 @@ func (p *providerHistoryProgramOwner) matchesLocked() bool {
 		p.config.bounds.firstAdmission == nil || *p.config.bounds.firstAdmission != p.first ||
 		p.config.policy == nil || *p.config.policy != p.policy || !p.bounds.valid(p.config.bounds) ||
 		p.store.firstLimits == nil || *p.store.firstLimits != p.limits || p.store.clock != p.clock || p.clock == nil ||
-		p.clock.history != p || p.store.stored != p.held.retained {
+		p.clock.history != p || p.store.stored != p.held.retained ||
+		p.firstOwner != nil && (p.store.firstOperation != p.firstOwner || p.firstAdmission == nil || p.firstMeter == nil ||
+			p.store.firstAdmissionOwner != p.firstAdmission || p.firstOwner.first != p.firstAdmission || p.firstAdmission.meter != p.firstMeter) {
 		return false
 	}
 	c := p.clock

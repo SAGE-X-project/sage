@@ -178,6 +178,7 @@ jobs:
               'provider_history_program_bounds.go',
               'provider_history_program_owner.go',
               'provider_history_program_clock.go',
+              'provider_history_program_start.go',
               'provider_continuing_prefix.go',
               'provider_continuing_records.go',
               'provider_guardian_admission_binding.go',
