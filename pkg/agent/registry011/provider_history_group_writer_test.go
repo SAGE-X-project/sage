@@ -23,6 +23,9 @@ func historyAdmissionWriterFixture(t *testing.T) (*providerHistoryGroupOwner, pr
 	if err != nil {
 		t.Fatal(err)
 	}
+	if o.parent.firstAdmission == nil || o.parent.firstAdmission.body == nil || o.parent.firstAdmission.body.receipts != nil {
+		t.Fatal("first admission must release its closed inspection receipt cache")
+	}
 	// These test-only positive scalars do not prove source-derived costs or
 	// permit capture. The whole synthetic input predates anchor/H0/clock.
 	upper := providerHistoryGroupUpper{physical: 8 << 20, retainedRaw: 4 << 20, payload: 128 << 10, metadata: 2 << 20, objects: 8, files: 64, clocks: 16}
@@ -61,6 +64,68 @@ func TestProviderHistoryAdmissionWriterRetainsIndependentOriginalsBeforePublishi
 	}
 	if again, err := o.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || again != nil || o.last != ack || s.stored != held || o.pin != ack.pin {
 		t.Fatal("same admission minted another ACK or returned a consumed hold")
+	}
+}
+
+func TestProviderHistoryAdmissionCatalogRequiresSelectedOriginals(t *testing.T) {
+	for _, mode := range []string{"chunk-custody-missing", "chunk-evidence-missing", "chunk-custody-changed", "chunk-evidence-changed",
+		"command-custody-missing", "command-evidence-missing", "command-custody-changed", "command-evidence-changed", "selected-count", "selected-tail"} {
+		t.Run(mode, func(t *testing.T) {
+			o, upper := historyAdmissionWriterFixture(t)
+			s, first, pin, held, raw := o.store, o.parent.firstAdmission, o.pin, o.store.stored, o.store.retainedRaw
+			chunkName := providerScanReceiptName("chunk", first.lastChunk, nil)
+			original, err := os.ReadFile(filepath.Join(s.config.custodyDirectory, chunkName))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var fields map[string]any
+			if err := json.Unmarshal(original, &fields); err != nil {
+				t.Fatal(err)
+			}
+			command := contentString(fields["command_digest"])
+			if !lowerHash(command) || first.records == 0 || first.mainPin.ordinal != first.records-1 {
+				t.Fatal("negative case requires the selected complete original chain")
+			}
+			if mode == "selected-count" {
+				first.records++
+			} else if mode == "selected-tail" {
+				first.lastChunk = command // A real digest in the wrong domain.
+			} else {
+				kind, directory, remove := "chunk", s.config.custodyDirectory, true
+				switch mode {
+				case "chunk-evidence-missing", "chunk-evidence-changed", "command-evidence-missing", "command-evidence-changed":
+					directory = s.config.evidenceDirectory
+				}
+				switch mode {
+				case "command-custody-missing", "command-evidence-missing", "command-custody-changed", "command-evidence-changed":
+					kind = "command"
+				}
+				switch mode {
+				case "chunk-custody-changed", "chunk-evidence-changed", "command-custody-changed", "command-evidence-changed":
+					remove = false
+				}
+				name := chunkName
+				if kind == "command" {
+					name = providerScanReceiptName(kind, command, nil)
+				}
+				// Finite inert input in this test's private roots only. Neither
+				// a peer nor an external Registry or path is contacted.
+				path := filepath.Join(directory, name)
+				if remove {
+					err = os.Remove(path)
+				} else {
+					err = os.WriteFile(path, []byte("inert changed receipt"), 0600)
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+			if ack, err := o.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil ||
+				!o.failed || !s.failed || !o.meter.failed || !o.meter.closed || s.activeMeter.Load() != nil || o.pin != pin || s.frontierFiles.pin != pin ||
+				s.stored != held || s.retainedRaw != raw || o.retention != (providerHistoryStorageCharge{}) || s.frontierFiles.historyPending != nil {
+				t.Fatal("invalid selected original reached retention or returned admission authority")
+			}
+		})
 	}
 }
 

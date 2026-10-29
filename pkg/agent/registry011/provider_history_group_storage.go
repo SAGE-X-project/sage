@@ -74,13 +74,15 @@ func newProviderHistoryInventoryObserved(previous string, objects []providerHist
 	}
 	// Preflight every scalar and the aggregate before hashing or building maps.
 	fresh := uint64(0)
-	for i, object := range objects {
+	previousKind := ""
+	for _, object := range objects {
 		if _, known := providerHistoryStoredDomain(object.kind); !known || !lowerHash(object.digest) || len(object.raw) == 0 || len(object.raw) > providerHistoryOriginalPackBytes ||
 			!candidateCapacity(0, fresh, uint64(len(object.raw)), 64<<20) ||
-			i > 0 && objects[i-1].kind >= object.kind {
+			previousKind != "" && previousKind >= object.kind {
 			return nil, errProviderIntegration
 		}
 		fresh += uint64(len(object.raw))
+		previousKind = object.kind
 	}
 	v := &providerHistoryInventory{previous: previous, count: len(objects)}
 	rows := make([]map[string]string, len(objects))

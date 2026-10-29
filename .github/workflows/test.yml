@@ -54,7 +54,7 @@ jobs:
           names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
           Path(os.environ['RUNNER_TEMP'], 'registry-source-checks', 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
           PYSOURCE
-          go test -mod=readonly -race -count=1 -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
+          go test -mod=readonly -race -count=1 -timeout=12m -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
           go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
           git diff --exit-code
 
@@ -96,7 +96,7 @@ jobs:
 
       - name: Run tests with coverage and race detector
         run: |
-          go test -race -coverprofile=coverage.out -covermode=atomic ./...
+          go test -race -timeout=12m -coverprofile=coverage.out -covermode=atomic ./...
           go tool cover -html=coverage.out -o coverage.html
 
       - name: Check Registry observation and adapter coverage

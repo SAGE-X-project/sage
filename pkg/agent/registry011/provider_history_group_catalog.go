@@ -1,7 +1,5 @@
 package registry011
 
-import "strconv"
-
 // Derive the allowed first bridge catalog from its selected inventory hash,
 // original legacy inventory chain, and the already replayed setup/main prefix.
 // Directory enumeration is only a comparison against this independently
@@ -59,12 +57,8 @@ func (o *providerHistoryGroupOwner) prepareAdmissionCatalogLocked(c *providerHis
 	first := o.parent.firstAdmission
 	if first == nil || first.body != s.scanBody || first.control != s.scanControl || first.control == nil ||
 		first.control.owner != first.control || first.control.pin != first.scanPin || first.control.prepared == nil || *first.control.prepared != first.attempt ||
-		first.body == nil || first.body.receipts == nil || first.body.receipts.body != first.body ||
-		first.records == 0 || first.records > s.config.bounds.scan.maximumChunks || !first.control.readPrefix() {
-		return false
-	}
-	receipts := first.body.receipts
-	if uint64(len(receipts.chunks)) != first.records || len(receipts.commands) != len(receipts.chunks) || receipts.chunks[len(receipts.chunks)-1] != first.lastChunk {
+		first.body == nil || first.records == 0 || first.records > s.config.bounds.scan.maximumChunks ||
+		first.mainPin.ordinal != first.records-1 || !lowerHash(first.lastChunk) || !first.control.readPrefix() {
 		return false
 	}
 	codec, err := newProviderScanCodec(s.config, m)
@@ -74,8 +68,13 @@ func (o *providerHistoryGroupOwner) prepareAdmissionCatalogLocked(c *providerHis
 	highwater, a := codec.highwater(first.scanPin)
 	head, b := codec.head(first.scanPin)
 	attempt, e := codec.attempt(first.attempt)
-	if a != nil || b != nil || e != nil || codec.hash(providerScanHighwaterDomain, highwater) != receipts.highwater ||
-		codec.hash(providerScanHeadDomain, head) != receipts.head || codec.hash(providerScanIntentDomain, attempt) != receipts.attempt {
+	// First admission deliberately discarded the closed inspection caches.
+	// Reconstruct only receipt context DATA from the selected live snapshot;
+	// this neither restores the old body nor replays its clock or authority.
+	binding := providerScanAdmissionBinding{target: first.attempt.target,
+		head: codec.hash(providerScanHeadDomain, head), highwater: codec.hash(providerScanHighwaterDomain, highwater),
+		attempt: codec.hash(providerScanIntentDomain, attempt)}
+	if a != nil || b != nil || e != nil || !lowerHash(binding.head) || !lowerHash(binding.highwater) || !lowerHash(binding.target) || binding.attempt != first.scanPin.intent {
 		return false
 	}
 	for root := range before {
@@ -93,28 +92,33 @@ func (o *providerHistoryGroupOwner) prepareAdmissionCatalogLocked(c *providerHis
 			return false
 		}
 	}
-	previousChunk := ""
-	for index := range receipts.chunks {
-		for _, pair := range []struct{ kind, domain, digest string }{
-			{"command", providerScanCommandV2, receipts.commands[index]}, {"chunk", providerScanChunkV2, receipts.chunks[index]},
-		} {
+	data := &providerScanReceipts{head: binding.head, highwater: binding.highwater, attempt: binding.attempt}
+	digest, wantCursor := first.lastChunk, (providerScanCursor{"done", 0})
+	for remaining := first.records; remaining > 0; remaining-- {
+		_, chunk, readErr := readProviderAdmissionReceipt(s, codec, binding, "chunk", digest)
+		index, indexOK := providerCandidateUint(chunk["index"], false)
+		start, startOK := providerScanReceiptCursor(chunk["cursor_start"])
+		end, endOK := providerScanReceiptCursor(chunk["cursor_end"])
+		previous := contentString(chunk["previous_chunk"])
+		if readErr != nil || !indexOK || index != remaining-1 || !startOK || !endOK || end != wantCursor || !providerScanReceiptStep(start, end) ||
+			!providerIndexNullableDigest(chunk["previous_chunk"]) || (index == 0) != (previous == "") || index == 0 && start != (providerScanCursor{"setup", 0}) {
+			return false
+		}
+		commandDigest := contentString(chunk["command_digest"])
+		command, _, commandErr := readProviderAdmissionReceipt(s, codec, binding, "command", commandDigest)
+		expected, encodeErr := data.command(codec, binding.target, index, previous, start)
+		if commandErr != nil || encodeErr != nil || !codec.equal(command, expected) {
+			return false
+		}
+		for _, pair := range []struct{ kind, digest string }{{"chunk", digest}, {"command", commandDigest}} {
 			name := providerScanReceiptName(pair.kind, pair.digest, m)
-			for root, disk := range []*retentionDisk{s.custody, s.evidence} {
+			for root := range before {
 				if !add(root, name) {
-					return false
-				}
-				raw, err := s.read(disk, name, int64(s.config.bounds.maximumMetadataPerCommit))
-				fields := receipts.decode(codec, pair.kind, raw)
-				canonical, encoded := codec.encode(fields)
-				if err != nil || fields == nil || encoded != nil || !codec.equal(raw, canonical) || codec.hash(pair.domain, raw) != pair.digest ||
-					fields["format"] != pair.domain || fields["scan_head"] != receipts.head || fields["scan_highwater"] != receipts.highwater || fields["scan_attempt"] != receipts.attempt ||
-					fields["target"] != first.attempt.target || fields["index"] != strconv.Itoa(index) || fields["previous_chunk"] != providerNullableDigest(previousChunk) ||
-					pair.kind == "chunk" && fields["command_digest"] != receipts.commands[index] {
 					return false
 				}
 			}
 		}
-		previousChunk = receipts.chunks[index]
+		digest, wantCursor = previous, start
 	}
 	seen := make(map[string]bool)
 	cursor := o.start.objects
