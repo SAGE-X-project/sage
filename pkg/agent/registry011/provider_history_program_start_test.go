@@ -140,3 +140,39 @@ func TestProviderHistoryProgramStartRefusesPrematureAndFailedFirstExchange(t *te
 		t.Fatal("failed first exchange initialized or refunded its future program")
 	}
 }
+
+// Finite in-package fault injection only. These cases refuse before I, C or
+// request dispatch. No malformed peer, external operation or clock reset is used.
+func TestProviderHistoryProgramStartRefusesStaleBridgeOrUnavailableClockBeforeAdmission(t *testing.T) {
+	for _, mode := range []string{"stale-bridge", "unavailable-clock"} {
+		t.Run(mode, func(t *testing.T) {
+			s := providerHistoryProvisionedInspectionFixture(t, providerScanFixtureSelection{historyProgram: true})
+			p, stored, reads := s.history, s.stored, s.clock.read
+			held, pin := p.held, s.frontierFiles.pin
+			switch mode {
+			case "stale-bridge":
+				// A stale receipt-shaped value cannot precede the one live first
+				// owner. It does not authenticate an earlier execution or ACK.
+				p.start = &providerHistoryProgramStart{parent: p}
+			case "unavailable-clock":
+				// The first E0 pass has four qualified observations. Refuse the
+				// next one without reading a different backend or borrowing the
+				// program's remaining lifetime. The original hold stays spent.
+				p.clockCeiling = reads + 4
+			}
+			o, err := newProviderFirstOperationCandidate(s)
+			if err != errProviderIntegration || o != nil || !s.failed || !p.failed || !s.clock.historyRevoked || s.stored != stored || p.held != held ||
+				s.sequence != 1 || s.frontierFiles.pin != pin || s.last != nil || s.firstOperation == nil || s.firstOperation.state != providerFirstOperationFailed ||
+				s.firstOperation.permit != nil || s.firstOperation.integration != nil || s.activeMeter.Load() != nil || p.startReadyLocked() {
+				t.Fatal("unavailable original reached admission, dispatch or a renewed hold", mode, err)
+			}
+			f := s.firstAdmissionOwner
+			if mode == "stale-bridge" && (f.replayStarted || f.custodianStarted || s.clock.read != reads) {
+				t.Fatal("stale handoff reached an original pass or clock")
+			}
+			if mode == "unavailable-clock" && (!f.replayStarted || f.custodianStarted || s.clock.read != reads+4 || f.meter.clocks-f.startClocks != 5) {
+				t.Fatal("first-pass boundary was skipped or a new backend was sampled")
+			}
+		})
+	}
+}
