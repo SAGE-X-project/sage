@@ -178,6 +178,11 @@ func TestProviderHistoryGroupOwnerIdleAndCopiesCannotClaimClockOrPhase(t *testin
 	if o, err := newProviderHistoryGroupOwnerCandidate(absent); err == nil || o != nil {
 		t.Fatal("absent store initialized a group owner")
 	}
+	var missing *providerHistoryGroupOwner
+	if missing.identityLocked() {
+		t.Fatal("absent controller checked an identity")
+	}
+	missing.failLocked() // An absent controller cannot quarantine another one.
 	s := providerHistoryGroupStartFixture(t, true)
 	o, err := newProviderHistoryGroupOwnerCandidate(s)
 	if err != nil {
@@ -191,6 +196,20 @@ func TestProviderHistoryGroupOwnerIdleAndCopiesCannotClaimClockOrPhase(t *testin
 		t.Fatal("idle group obtained an initialization or execution role")
 	}
 	s.activeMeter.Store(nil)
+	actual := m.actual
+	if o.identityLocked() {
+		t.Fatal("idle controller obtained an original identity-read role")
+	}
+	func() {
+		custody, evidence := s.custody, s.evidence
+		// Absent unit handles make any original read an immediate test
+		// failure. A later meter refusal cannot disguise an earlier read.
+		s.custody, s.evidence = nil, nil
+		defer func() { s.custody, s.evidence = custody, evidence }()
+		if model, scope, err := o.initialModelLocked(); err == nil || model != nil || scope != (providerHistoryCustodyScope{}) || m.actual != actual || s.clock.read != reads {
+			t.Fatal("idle controller replayed originals outside its initialization role")
+		}
+	}()
 	copy := *o
 	copy.phase = "initializing"
 	if copy.activeLocked(m) || copy.fits(m) {

@@ -205,3 +205,25 @@ func TestProviderHistoryCustodyFrameObservationPreservesBytesAndRefusesDepletion
 		})
 	}
 }
+
+func TestProviderHistoryCustodyFrameRefusesInsufficientMetadataCapacity(t *testing.T) {
+	config, scope := providerHistoryFrameFixture(t)
+	want := providerHistoryFrameData(t, config, scope, scope.initial, "admit", 1)
+	// This is an isolated DATA copy, never installed in the live store or
+	// used to select another profile, renew a hold or create an owner.
+	short := config
+	short.bounds.maximumMetadataPerCommit = 1
+	short.profile = providerIntegrationProfile(short.bounds, short.capture)
+	selected := scope
+	selected.initial.profile = short.profile
+	if !short.bounds.valid() || !selected.initial.valid(short) {
+		t.Fatal("closed scalar context required before the metadata refusal")
+	}
+	if raw, err := selected.initial.bytes(short); err != nil || len(raw) == 0 || len(want.intent) <= int(short.bounds.maximumMetadataPerCommit) {
+		t.Fatal("the precursor pin must encode and the intent must exceed capacity", err)
+	}
+	got, err := newProviderHistoryCustodyFrameObserved(short, selected, selected.initial, 1, "admit", want.previousInventory, want.inventory, want.previousModel, want.model, want.operation, want.clock, nil)
+	if err == nil || got != nil || config.profile != scope.initial.profile {
+		t.Fatal("undersized metadata capacity returned a frame or changed the selected original profile")
+	}
+}
