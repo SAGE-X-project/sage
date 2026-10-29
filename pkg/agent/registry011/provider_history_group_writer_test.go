@@ -86,11 +86,12 @@ func TestProviderHistoryAdmissionCatalogRequiresSelectedOriginals(t *testing.T) 
 			if !lowerHash(command) || first.records == 0 || first.mainPin.ordinal != first.records-1 {
 				t.Fatal("negative case requires the selected complete original chain")
 			}
-			if mode == "selected-count" {
+			switch mode {
+			case "selected-count":
 				first.records++
-			} else if mode == "selected-tail" {
+			case "selected-tail":
 				first.lastChunk = command // A real digest in the wrong domain.
-			} else {
+			default:
 				kind, directory, remove := "chunk", s.config.custodyDirectory, true
 				switch mode {
 				case "chunk-evidence-missing", "chunk-evidence-changed", "command-evidence-missing", "command-evidence-changed":
