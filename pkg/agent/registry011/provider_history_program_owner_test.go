@@ -248,6 +248,18 @@ func TestProviderHistoryProgramGenericEntrypointsRefuseBeforeEffects(t *testing.
 		t.Fatal("generic refusal fixture did not pass the existing structural guard")
 	}
 	beforeRead, beforeStored := s.clock.read, s.stored
+	candidate := &ProviderCandidateContext{identity: s.config.identity, bound: true}
+	primitive := providerPrimitiveBounds{capture: s.config.capture, maximumCreatedObjects: 32}
+	id, identityErr := candidate.Identity()
+	if identityErr != nil || id != s.config.identity || s.enrollment != "" || s.sequence != 0 || !primitive.capture.valid() || primitive.maximumCreatedObjects > uint64(s.config.bounds.maximumEntries) {
+		t.Fatal("constructor refusal lacked valid matching candidate inputs")
+	}
+	if _, err := newProviderIntegration(s, s.config.policy, candidate, primitive); err != ErrConfiguration || c.makeIntent(admissionTestDigest("a")) == nil {
+		t.Fatal("generic constructor or intent accepted whole-program mode")
+	}
+	if _, err := (*providerIntegration)(nil).currentClock(); err == nil {
+		t.Fatal("missing integration supplied an original clock")
+	}
 	if c.prepare() == nil || c.legacyAllowed() {
 		t.Fatal("generic preparation accepted whole-program mode")
 	}

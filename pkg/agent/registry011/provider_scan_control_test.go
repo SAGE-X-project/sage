@@ -29,13 +29,14 @@ func providerScanProvisionedFixtureWithFirstPolicy(t *testing.T, first *provider
 
 // An optional separate test profile is fixed before its first anchor/H0/clock.
 type providerScanFixtureSelection struct {
-	capture        *ProviderCaptureLimits
-	tls            *providerTLSBounds
-	continuingWire bool
-	pin            bool
-	pinResidentGiB bool
-	pinLargeObject bool
-	historyProgram bool
+	capture             *ProviderCaptureLimits
+	tls                 *providerTLSBounds
+	continuingWire      bool
+	pin                 bool
+	pinResidentGiB      bool
+	pinLargeObject      bool
+	historyProgram      bool
+	historyShortStartup bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -119,7 +120,7 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 		}
 	}
 	if selected != nil && selected.historyProgram {
-		providerHistoryProvisionedTestBounds(t, &b, capture)
+		providerHistoryProvisionedTestBounds(t, &b, capture, selected.historyShortStartup)
 	}
 	profile := providerIntegrationProfile(b, capture)
 	empty, err := newProviderFrontierInventory("", nil, b.maximumEntries, 64<<20)

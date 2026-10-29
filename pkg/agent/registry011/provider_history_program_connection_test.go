@@ -2,14 +2,18 @@ package registry011
 
 import (
 	"context"
+	"os"
+	"path/filepath"
+	"reflect"
 	"testing"
+	"time"
 )
 
 // Only tests can mint this synthetic witness. These isolated originals are
 // provisioned with their new profile BEFORE anchor/H0/clock creation. They
 // exercise real owner hooks, not a source-cost certificate, group ACK or any
 // operating selection. Production has no corresponding derivation factory.
-func providerHistoryProvisionedTestBounds(t *testing.T, b *providerIntegrationBounds, capture ProviderCaptureLimits) {
+func providerHistoryProvisionedTestBounds(t *testing.T, b *providerIntegrationBounds, capture ProviderCaptureLimits, shortStartup bool) {
 	t.Helper()
 	if b.firstAdmission == nil || b.scan == nil || b.history != nil {
 		t.Fatal("fresh first-operation test profile required")
@@ -38,6 +42,11 @@ func providerHistoryProvisionedTestBounds(t *testing.T, b *providerIntegrationBo
 		startup: providerScanUpper{work: plan.reservation.work, retained: plan.storage.physical, clocks: 11},
 		stages:  1, records: 3, commits: 3, catalogEntries: 10, catalogNameBytes: 2550, resident: 1 << 20, durationMS: 300000,
 	}
+	if shortStartup {
+		// Deliberately insufficient TEST input, fixed before every original.
+		// The live first-P constructor must independently reject this byte.
+		h.startup.retained--
+	}
 	h.derivation = &providerHistoryProgramDerivation{}
 	h.derivation.owner = h.derivation
 	h.derivation.snapshot = *h
@@ -47,10 +56,10 @@ func providerHistoryProvisionedTestBounds(t *testing.T, b *providerIntegrationBo
 	}
 }
 
-func providerHistoryProvisionedFirstFixture(t *testing.T) (*providerCustodyStore, *providerFirstOperationOwner) {
+func providerHistoryProvisionedInspectionFixture(t *testing.T, selected providerScanFixtureSelection) *providerCustodyStore {
 	t.Helper()
 	first := providerFirstWriterBounds()
-	config, clock := providerScanProvisionedFixtureWithSelection(t, &first, true, &providerScanFixtureSelection{historyProgram: true})
+	config, clock := providerScanProvisionedFixtureWithSelection(t, &first, true, &selected)
 	if clock.read != 0 || clock.history != nil {
 		t.Fatal("test profile was selected after observation")
 	}
@@ -79,6 +88,13 @@ func providerHistoryProvisionedFirstFixture(t *testing.T) (*providerCustodyStore
 	if _, err := s.scanControl.inspectBeforeAdmission(target); err != nil || s.firstAdmissionOwner == nil || s.history.inspectionPhase != 2 || s.stored != held.retained {
 		t.Fatal("original scan charged the parent twice or lost its observer", err)
 	}
+	return s
+}
+
+func providerHistoryProvisionedFirstFixture(t *testing.T) (*providerCustodyStore, *providerFirstOperationOwner) {
+	t.Helper()
+	s := providerHistoryProvisionedInspectionFixture(t, providerScanFixtureSelection{historyProgram: true})
+	held := s.history.held
 	o, err := newProviderFirstOperationCandidate(s)
 	if err != nil || o == nil {
 		t.Fatal("original first operation under its pre-held reservation", err)
@@ -87,6 +103,75 @@ func providerHistoryProvisionedFirstFixture(t *testing.T) (*providerCustodyStore
 		t.Fatal("first operation recharged storage or imported a replay model")
 	}
 	return s, o
+}
+
+func providerHistoryProvisionedOriginalBytes(t *testing.T, config providerCustodyConfig) map[string]string {
+	t.Helper()
+	result := make(map[string]string)
+	for _, dir := range []string{config.custodyDirectory, config.evidenceDirectory} {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatal("isolated original directory", err)
+		}
+		for _, entry := range entries {
+			name := filepath.Join(dir, entry.Name())
+			raw, err := os.ReadFile(name)
+			if err != nil {
+				t.Fatal("isolated original bytes", err)
+			}
+			result[name] = string(raw)
+		}
+	}
+	return result
+}
+
+func TestProviderHistoryProgramOpenFailurePreservesOriginalsAndRevokesTheClock(t *testing.T) {
+	for _, mode := range []string{"clock-capacity", "native-clock-window", "missing-anchor"} {
+		t.Run(mode, func(t *testing.T) {
+			first := providerFirstWriterBounds()
+			config, clock := providerScanProvisionedFixtureWithSelection(t, &first, true, &providerScanFixtureSelection{historyProgram: true})
+			held, ok := providerHistoryWholeHold(config.bounds)
+			if !ok {
+				t.Fatal("complete isolated test hold")
+			}
+			switch mode {
+			case "clock-capacity":
+				clock.maximum = held.clocks - 1
+			case "native-clock-window":
+				// Finite in-package fault injection only. A nonpositive backend
+				// window must be refused before the native clock is read.
+				clock.readWindow = -time.Nanosecond
+			case "missing-anchor":
+				if err := os.Remove(filepath.Join(config.evidenceDirectory, "ANCHOR")); err != nil {
+					t.Fatal("remove only this test's original", err)
+				}
+			}
+			before := providerHistoryProvisionedOriginalBytes(t, config)
+			s, err := openProviderFrontierCandidate(config, clock)
+			if s != nil {
+				_ = s.close()
+			}
+			if err == nil || s != nil || !reflect.DeepEqual(before, providerHistoryProvisionedOriginalBytes(t, config)) {
+				t.Fatal("failed open accepted authority or changed original files", err)
+			}
+			if mode == "clock-capacity" {
+				if clock.read != 0 || clock.history != nil {
+					t.Fatal("insufficient lifetime was refused after observation")
+				}
+			} else if clock.history == nil || !clock.history.failed || !clock.historyRevoked || clock.history.held != held {
+				t.Fatal("failed original open refunded or restored its backend")
+			}
+		})
+	}
+}
+
+func TestProviderHistoryProgramFirstOperationRejectsInsufficientPreheldStorage(t *testing.T) {
+	s := providerHistoryProvisionedInspectionFixture(t, providerScanFixtureSelection{historyProgram: true, historyShortStartup: true})
+	p, stored, reads := s.history, s.stored, s.clock.read
+	o, err := newProviderFirstOperationCandidate(s)
+	if err == nil || o != nil || !s.failed || s.firstAdmissionOwner.state != providerFirstAdmissionFailed || p.startupClaimed || s.firstOperation != nil || s.stored != stored || s.clock.read != reads || s.sequence != 1 || s.last != nil {
+		t.Fatal("one missing prepaid byte reached admission, request or a new hold", err)
+	}
 }
 
 func TestProviderHistoryProgramConnectsOriginalOpenInspectionAndFirstExchange(t *testing.T) {
