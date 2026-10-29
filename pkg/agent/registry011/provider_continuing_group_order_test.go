@@ -54,11 +54,12 @@ func TestProviderHistoryGroupOrderRejectsSkippedAndRepeatedTransitions(t *testin
 				if !o.consumeAll() {
 					t.Fatal("normal consume failed")
 				}
-				if state == "consume-twice" {
+				switch state {
+				case "consume-twice":
 					result = o.consumeAll()
-				} else if state == "begin-before-confirmation" {
+				case "begin-before-confirmation":
 					result = o.begin(0)
-				} else {
+				default:
 					if !o.confirmConsumption() {
 						t.Fatal("normal confirmation failed")
 					}
