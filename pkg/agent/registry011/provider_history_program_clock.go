@@ -21,6 +21,9 @@ func (p *providerHistoryProgramOwner) clockRoleLocked(m *providerWorkMeter) bool
 		return false
 	}
 	s := p.store
+	if m.historyGroup != nil {
+		return p.group != nil && p.group == m.historyGroup && p.group.activeLocked(m)
+	}
 	if m == p.openMeter {
 		if m.scan != p.openControl || m.integration != nil || m.scanBody != nil || m.firstAdmission != nil || m.firstOperation != nil || m.upper != p.config.bounds.setupWork || m.maximumClocks != p.config.bounds.setupMaximumClockReads || p.startupClaimed {
 			return false

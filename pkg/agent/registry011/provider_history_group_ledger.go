@@ -31,13 +31,24 @@ type providerHistoryGroupTotals struct {
 func (*providerHistoryGroupLedger) UnmarshalJSON([]byte) error { return ErrConfiguration }
 
 func newProviderHistoryGroupLedger(program, profile, costs, initial string, maximumStages uint64, maximum providerHistoryGroupTotals) (*providerHistoryGroupLedger, error) {
+	return newProviderHistoryGroupLedgerObserved(program, profile, costs, initial, maximumStages, maximum, nil)
+}
+
+func newProviderHistoryGroupLedgerObserved(program, profile, costs, initial string, maximumStages uint64, maximum providerHistoryGroupTotals, meter *providerWorkMeter) (*providerHistoryGroupLedger, error) {
 	if !lowerHash(program) || !lowerHash(profile) || !lowerHash(costs) || !lowerHash(initial) ||
 		maximumStages == 0 || maximumStages > (1<<20)/3 || !maximum.valid() {
 		return nil, ErrConfiguration
 	}
 	l := &providerHistoryGroupLedger{program: program, profile: profile, costs: costs, initial: initial, maximumStages: maximumStages, maximum: maximum, phase: "prepared"}
 	l.owner = l
-	l.head = providerCandidateHash(providerHistoryGroupRootDomain, l.root())
+	raw := l.rootObserved(meter)
+	if len(raw) == 0 {
+		return nil, ErrConfiguration
+	}
+	l.head = providerReplayDigest(providerHistoryGroupRootDomain, raw, meter)
+	if l.head == "" {
+		return nil, ErrConfiguration
+	}
 	return l, nil
 }
 
@@ -102,6 +113,10 @@ func (t providerHistoryGroupTotals) object() map[string]any {
 }
 
 func (l *providerHistoryGroupLedger) root() []byte {
+	return l.rootObserved(nil)
+}
+
+func (l *providerHistoryGroupLedger) rootObserved(meter *providerWorkMeter) []byte {
 	var ticket, consumption any
 	if l.ticket != nil {
 		ticket = l.ticket.digest
@@ -109,12 +124,12 @@ func (l *providerHistoryGroupLedger) root() []byte {
 	if l.consumption != nil {
 		consumption = l.consumption.digest
 	}
-	return providerIntegrationJSON(map[string]any{
+	return providerReplayCanonical(map[string]any{
 		"format": providerHistoryGroupRootDomain, "program": l.program, "profile": l.profile, "cost_revision": l.costs,
 		"initial": l.initial, "previous": l.previous, "entry": l.entry, "stage": strconv.FormatUint(l.stage, 10), "sequence": strconv.FormatUint(l.sequence, 10),
 		"maximum_stages": strconv.FormatUint(l.maximumStages, 10), "maximum": l.maximum.object(), "charged": l.charged.object(),
 		"phase": l.phase, "ticket": ticket, "consumption": consumption, "failed": l.failed, "terminal": l.terminal,
-	})
+	}, candidateLedgerMetadataLimit, meter)
 }
 
 func (l *providerHistoryGroupLedger) valid() bool {

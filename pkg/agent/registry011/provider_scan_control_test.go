@@ -37,6 +37,7 @@ type providerScanFixtureSelection struct {
 	pinLargeObject      bool
 	historyProgram      bool
 	historyShortStartup bool
+	historyGroupInit    bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -121,6 +122,17 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 	}
 	if selected != nil && selected.historyProgram {
 		providerHistoryProvisionedTestBounds(t, &b, capture, selected.historyShortStartup)
+		if selected.historyGroupInit {
+			h := b.history
+			// A synthetic, pre-anchor initialization TEST envelope only.
+			// This is not a whole-history cost or operating certificate.
+			h.future.work[2], h.future.work[10] = 4<<20, 1<<46
+			h.resident = 64 << 20
+			h.derivation.snapshot = *h
+			if !b.valid() {
+				t.Fatal("fresh group initialization test profile")
+			}
+		}
 	}
 	profile := providerIntegrationProfile(b, capture)
 	empty, err := newProviderFrontierInventory("", nil, b.maximumEntries, 64<<20)

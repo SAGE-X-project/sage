@@ -55,6 +55,7 @@ type providerHistoryProgramOwner struct {
 	firstIntegration            *providerIntegration
 	firstIndexes                *providerLedgerIndexes
 	start                       *providerHistoryProgramStart
+	group                       *providerHistoryGroupOwner
 }
 
 func (*providerHistoryProgramOwner) UnmarshalJSON([]byte) error { return errProviderIntegration }

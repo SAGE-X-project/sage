@@ -57,6 +57,9 @@ func (u providerHistoryGroupUpper) object() map[string]any {
 // cardinality is the exact table count; the old single-request ticket contract
 // is not broadened. The retained inventory digest is DATA to be independently
 // reconstructed by the real custodian, never accepted as an ACK by this codec.
+// inventory is the PREVIOUS committed object inventory, before this record.
+// The new object inventory can include the record; its digest belongs only in
+// the outer custody frame, which is excluded from that object inventory.
 type providerHistoryGroupTicket struct {
 	program, profile, costs, previous, inventory string
 	table                                        providerHistoryGroupTable
