@@ -58,7 +58,7 @@ func providerHistoryOriginalKind(purpose string, index int) string {
 	return "tls"
 }
 
-func providerHistoryOriginalSize(kind string, size uint64) bool {
+func providerHistoryPackOriginalSize(kind string, size uint64) bool {
 	return size > 0 && size <= providerHistoryOriginalPackBytes &&
 		(kind == "request" && size <= 16<<10 || kind == "response" || kind == "tls" && size <= 64<<10)
 }
@@ -72,7 +72,7 @@ func newProviderHistoryOriginalPackObserved(stage uint64, table, purpose string,
 	// an oversized later entry cannot make an earlier entry fund a larger pack.
 	payload := uint64(0)
 	for i, input := range inputs {
-		if input.kind != providerHistoryOriginalKind(purpose, i) || !providerHistoryOriginalSize(input.kind, uint64(len(input.raw))) ||
+		if input.kind != providerHistoryOriginalKind(purpose, i) || !providerHistoryPackOriginalSize(input.kind, uint64(len(input.raw))) ||
 			!candidateCapacity(0, payload, uint64(len(input.raw)), maximum-uint64(len(providerHistoryOriginalPackMagic)+4)) {
 			return nil, errProviderIntegration
 		}
@@ -167,7 +167,7 @@ func parseProviderHistoryOriginalPackObserved(raw []byte, expected string, stage
 		size, sizeOK := providerCandidateUint(row["bytes"], true)
 		kind, digest := contentString(row["kind"]), contentString(row["digest"])
 		if row == nil || row["ordinal"] != strconv.Itoa(first+i/stride) || kind != providerHistoryOriginalKind(purpose, i) ||
-			!sizeOK || !providerHistoryOriginalSize(kind, size) || !lowerHash(digest) || size > uint64(len(raw)-start) {
+			!sizeOK || !providerHistoryPackOriginalSize(kind, size) || !lowerHash(digest) || size > uint64(len(raw)-start) {
 			return nil, errProviderIntegration
 		}
 		end := start + int(size)
