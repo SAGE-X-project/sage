@@ -16,6 +16,9 @@ type providerHistoryWriteClaim struct {
 	count           int
 	highwater       string
 	request, ticket providerHistoryStoredReference
+	consumption     providerHistoryStoredReference
+	admission       *providerHistoryGroupAcknowledgment
+	order           *providerHistoryGroupOrder
 	purpose         string
 	members         int
 	upper           providerHistoryGroupUpper
@@ -183,19 +186,28 @@ func (o *providerHistoryGroupOwner) retainAdmissionCandidate(purpose string, req
 	s.retainedRaw += charge.raw // The complete checked sum was held above.
 	claim.used, s.frontierFiles.historyPending, o.phase = true, nil, "admitted"
 	ack := &providerHistoryGroupAcknowledgment{o, claim, frame.after}
-	o.last = ack
+	o.last, o.admission = ack, ack
 	s.activeMeter.Store(nil)
 	succeeded = true
 	return ack, nil
 }
 
 func (o *providerHistoryGroupOwner) claimActiveLocked(c *providerHistoryWriteClaim) bool {
-	return o != nil && c != nil && c.owner == c && c.group == o && c.meter == o.meter && !c.used &&
-		c.frame != nil && c.frame.before == o.pin && c.frame.stage == 1 && c.frame.phase == "admit" &&
-		c.inventory != nil && c.count == 2 && c.inventory.count == c.count &&
-		c.coordinator != nil && c.coordinator.owner == c.coordinator && c.coordinator.ticket != nil &&
-		c.request == c.inventory.entries[0] && c.ticket == c.inventory.entries[1] && c.request.kind == "requests" && c.ticket.kind == "ticket" &&
-		o.store.frontierFiles.historyPending == c && o.activeLocked(o.meter)
+	if o == nil || c == nil || c.owner != c || c.group != o || c.meter != o.meter || c.used ||
+		c.frame == nil || c.frame.before != o.pin || c.frame.stage != 1 || c.inventory == nil || c.inventory.count != c.count ||
+		c.coordinator == nil || c.coordinator.owner != c.coordinator || c.coordinator.ticket == nil ||
+		o.store.frontierFiles.historyPending != c || !o.activeLocked(o.meter) {
+		return false
+	}
+	switch c.frame.phase {
+	case "admit":
+		return c.count == 2 && c.request == c.inventory.entries[0] && c.ticket == c.inventory.entries[1] &&
+			c.request.kind == "requests" && c.ticket.kind == "ticket"
+	case "consume":
+		return c.count == 1 && c.admission == o.admission && c.consumption == c.inventory.entries[0] &&
+			c.consumption.kind == "consumption" && c.inventory.previous == o.inventory && c.coordinator.phase == "consumed"
+	}
+	return false
 }
 
 func (o *providerHistoryGroupOwner) admissionCatalogFitsLocked(c *providerHistoryWriteClaim) bool {
@@ -283,12 +295,24 @@ func (o *providerHistoryGroupOwner) readAdmissionLocked(c *providerHistoryWriteC
 	if !o.claimActiveLocked(c) || c.renamed != renamed {
 		return nil, errProviderIntegration
 	}
-	s, m, f := o.store, o.meter, o.store.frontierFiles
-	head := f.pinRaw
+	if c.frame.phase == "consume" {
+		return o.readConsumptionLocked(c, renamed)
+	}
+	head := o.store.frontierFiles.pinRaw
 	if renamed {
 		head = c.highwater
 	}
-	if !f.readExact("HEAD", providerReplayBytes(head, m)) || !f.readExact(s.name("highwater", o.pin.ordinal), providerReplayBytes(f.pinRaw, m)) ||
+	return o.readAdmissionDataLocked(c, o.pin, o.store.frontierFiles.pinRaw, o.custodian, head)
+}
+
+// This returns independently reconstructed DATA only. Its callers separately
+// select either the active T claim or the already acknowledged original T.
+func (o *providerHistoryGroupOwner) readAdmissionDataLocked(c *providerHistoryWriteClaim, before providerFrontierHighwater, beforeRaw string, base *providerHistoryGroupLedger, head string) (*providerHistoryGroupLedger, error) {
+	if c == nil || c.frame == nil || c.inventory == nil || c.count != 2 || c.inventory.count != 2 || c.coordinator == nil || c.coordinator.ticket == nil || base == nil || !o.activeLocked(o.meter) {
+		return nil, errProviderIntegration
+	}
+	s, m, f := o.store, o.meter, o.store.frontierFiles
+	if !f.readExact("HEAD", providerReplayBytes(head, m)) || !f.readExact(s.name("highwater", before.ordinal), providerReplayBytes(beforeRaw, m)) ||
 		!f.readExact(s.name("highwater", c.frame.after.ordinal), providerReplayBytes(c.highwater, m)) {
 		return nil, errProviderIntegration
 	}
@@ -315,11 +339,11 @@ func (o *providerHistoryGroupOwner) readAdmissionLocked(c *providerHistoryWriteC
 	if err != nil {
 		return nil, errProviderIntegration
 	}
-	ticket, err := parseProviderHistoryGroupTicketObserved(providerReplayBytes(originals[1].raw, m), o.parent.bounds.program, s.config.profile, o.parent.bounds.costs, o.custodian.head, o.start.objects, table, c.upper, m)
+	ticket, err := parseProviderHistoryGroupTicketObserved(providerReplayBytes(originals[1].raw, m), o.parent.bounds.program, s.config.profile, o.parent.bounds.costs, base.head, o.start.objects, table, c.upper, m)
 	if err != nil || !providerReplayTextEqual(ticket.digest, c.ticket.digest, m) {
 		return nil, errProviderIntegration
 	}
-	model := providerHistoryLedgerCopy(o.custodian)
+	model := providerHistoryLedgerCopy(base)
 	if model == nil || model.admitObserved(ticket, m) != nil || !providerReplayTextEqual(model.head, c.coordinator.head, m) {
 		return nil, errProviderIntegration
 	}
@@ -327,10 +351,10 @@ func (o *providerHistoryGroupOwner) readAdmissionLocked(c *providerHistoryWriteC
 	pending, b := s.read(s.evidence, s.name("history-pending", c.frame.after.sequence), providerHistoryCustodyFrameBytes)
 	commit, d := s.read(s.custody, s.name("commit", c.frame.after.sequence), providerHistoryCustodyFrameBytes)
 	frontier, e := s.read(s.custody, s.name("frontier", c.frame.after.sequence), providerHistoryCustodyFrameBytes)
-	frame, err := parseProviderHistoryCustodyFrameObserved(s.config, o.scope, o.pin, c.frame.after, intent, commit, frontier, m)
+	frame, err := parseProviderHistoryCustodyFrameObserved(s.config, o.scope, before, c.frame.after, intent, commit, frontier, m)
 	if a != nil || b != nil || d != nil || e != nil || err != nil || !providerReplayEqual(intent, pending, m) ||
-		frame.previousInventory != o.start.objects || frame.inventory != c.inventory.digest || frame.previousModel != o.custodian.head ||
-		frame.model != model.head || frame.operation != ticket.digest || frame.phase != "admit" || frame.stage != 1 {
+		frame.previousInventory != o.start.objects || frame.inventory != c.inventory.digest || frame.previousModel != base.head ||
+		frame.model != model.head || frame.operation != ticket.digest || frame.phase != "admit" || frame.stage != 1 || frame.clock != c.frame.clock {
 		return nil, errProviderIntegration
 	}
 	return model, nil

@@ -6,12 +6,13 @@ package registry011
 // derived set. An unknown observed name is never adopted as an allowed name.
 func (o *providerHistoryGroupOwner) prepareAdmissionCatalogLocked(c *providerHistoryWriteClaim) bool {
 	if c == nil || c.owner != c || c.group != o || c.frame == nil || c.inventory == nil || c.count <= 0 || c.count > len(c.fresh) || c.inventory.count != c.count ||
-		o == nil || o.phase != "preparing-admit" || !o.activeLocked(o.meter) || o.pin != o.start.main || o.pin.sequence != 4 ||
+		o == nil || o.phase != "preparing-admit" && o.phase != "preparing-consume" || !o.activeLocked(o.meter) || o.start.main.sequence != 4 ||
+		o.phase == "preparing-admit" && o.pin != o.start.main || o.phase == "preparing-consume" && !o.admissionShapeLocked() ||
 		o.pin.ordinal > uint64(o.store.config.bounds.maximumCommits+o.store.config.bounds.maximumSetupRecoveries) ||
 		len(o.store.objects) > o.store.config.bounds.maximumObjects || len(o.store.setups) == 0 || len(o.store.setups) > o.store.config.bounds.maximumSetupRecoveries+1 {
 		return false
 	}
-	s, m := o.store, o.meter
+	s, m, initial := o.store, o.meter, o.start.main
 	var before [2]map[string]bool
 	for i := range before {
 		before[i] = make(map[string]bool)
@@ -31,12 +32,12 @@ func (o *providerHistoryGroupOwner) prepareAdmissionCatalogLocked(c *providerHis
 	if !add(0, "HEAD") {
 		return false
 	}
-	for i := uint64(0); i <= o.pin.ordinal; i++ {
+	for i := uint64(0); i <= initial.ordinal; i++ {
 		if !add(0, s.name("highwater", i)) {
 			return false
 		}
 	}
-	for i := uint64(1); i <= o.pin.sequence; i++ {
+	for i := uint64(1); i <= initial.sequence; i++ {
 		for _, kind := range []string{"intent", "commit", "frontier"} {
 			if !add(0, s.name(kind, i)) {
 				return false
@@ -122,7 +123,7 @@ func (o *providerHistoryGroupOwner) prepareAdmissionCatalogLocked(c *providerHis
 	}
 	seen := make(map[string]bool)
 	cursor := o.start.objects
-	for range o.pin.sequence {
+	for range initial.sequence {
 		if !lowerHash(cursor) || !add(1, s.inventoryName(cursor)) {
 			return false
 		}
@@ -149,6 +150,21 @@ func (o *providerHistoryGroupOwner) prepareAdmissionCatalogLocked(c *providerHis
 	empty, err := newProviderFrontierInventoryObserved("", nil, s.config.bounds.maximumEntries, 64<<20, m)
 	if err != nil || !providerReplayTextEqual(cursor, empty.digest, m) || len(seen) != len(s.objects) {
 		return false
+	}
+	if o.phase == "preparing-consume" {
+		// Extend the independently derived initial catalog by the exact
+		// acknowledged T delta. Never copy a cached before/after catalog.
+		prior := o.admission.claim
+		for i := range prior.count {
+			if !add(1, providerHistoryStoredName(prior.inventory.entries[i], m)) {
+				return false
+			}
+		}
+		if !add(1, providerHistoryInventoryName(prior.inventory.digest, m)) || !add(1, s.name("history-pending", prior.frame.after.sequence)) ||
+			!add(0, s.name("intent", prior.frame.after.sequence)) || !add(0, s.name("commit", prior.frame.after.sequence)) ||
+			!add(0, s.name("frontier", prior.frame.after.sequence)) || !add(0, s.name("highwater", prior.frame.after.ordinal)) {
+			return false
+		}
 	}
 	var after [2]map[string]bool
 	for i := range after {

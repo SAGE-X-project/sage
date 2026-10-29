@@ -39,6 +39,7 @@ type providerScanFixtureSelection struct {
 	historyShortStartup bool
 	historyGroupInit    bool
 	historyGroupWrite   bool
+	historyGroupConsume bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -142,6 +143,10 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 			h.future.physical, h.future.retainedRaw, h.future.payload, h.future.metadata = 8<<20, 4<<20, 128<<10, 2<<20
 			h.future.objects, h.future.files, h.future.clocks = 8, 64, 32
 			h.catalogEntries, h.catalogNameBytes, h.resident = 2048, 2048*255, 64<<20
+			if selected.historyGroupConsume {
+				// Synthetic maximum-member TEST input selected before H0.
+				h.future.work[0], h.future.work[1] = providerHistoryGroupMembers, providerHistoryGroupMembers
+			}
 			h.derivation.snapshot = *h
 			if !b.valid() {
 				t.Fatal("fresh admission-writer test profile")

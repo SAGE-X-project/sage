@@ -19,6 +19,8 @@ type providerHistoryGroupOwner struct {
 	retention   providerHistoryStorageCharge
 	inventory   string
 	last        *providerHistoryGroupAcknowledgment
+	admission   *providerHistoryGroupAcknowledgment
+	order       *providerHistoryGroupOrder
 	window      bool
 	windowStart candidateWorkVector
 	windowUpper candidateWorkVector
@@ -110,22 +112,27 @@ func (o *providerHistoryGroupOwner) activeLocked(m *providerWorkMeter) bool {
 		o.store != nil && o.store.owner == o.store && o.store.history == o.parent && !o.store.closed && !o.store.failed &&
 		o.start == o.parent.start && o.start != nil && o.start.owner == o.start && o.start.parent == o.parent &&
 		o.meter == m && m != nil && m.owner == m && m.historyGroup == o && m.integration == nil && m.scan == nil &&
-		m.firstAdmission == nil && m.firstOperation == nil && m.guardian == nil && m.continuing == nil && m.parent == nil && m.authority &&
+		m.scanBody == nil && m.firstAdmission == nil && m.firstOperation == nil && m.guardian == nil && m.continuing == nil && m.parent == nil && m.authority &&
 		o.store.activeMeter.Load() == m && o.store.config == o.parent.config && o.store.stored == o.parent.held.retained &&
 		m.upper == o.parent.bounds.future.work && m.maximumClocks == o.parent.bounds.future.clocks &&
 		o.store.frontierFiles != nil && o.store.frontierFiles.valid() && o.store.frontierFiles.initialized &&
 		o.store.frontierFiles.pending == nil && o.store.frontierFiles.pin == o.pin &&
-		o.pin == o.start.main && o.store.sequence == o.pin.sequence && o.store.tip == o.pin.commit && o.store.setupTip == o.pin.setup
+		o.store.sequence == o.pin.sequence && o.store.tip == o.pin.commit && o.store.setupTip == o.pin.setup
 	if !common {
 		return false
 	}
 	pending := o.store.frontierFiles.historyPending
 	switch o.phase {
 	case "initializing", "preparing-admit":
-		return pending == nil
+		return o.pin == o.start.main && pending == nil
 	case "writing-admit":
-		return pending != nil && pending.owner == pending && pending.group == o && pending.meter == m && !pending.used &&
+		return o.pin == o.start.main && pending != nil && pending.owner == pending && pending.group == o && pending.meter == m && !pending.used &&
 			pending.frame != nil && pending.frame.before == o.pin && pending.frame.stage == 1 && pending.frame.phase == "admit"
+	case "preparing-consume":
+		return pending == nil && o.admissionShapeLocked()
+	case "writing-consume":
+		return o.admissionShapeLocked() && pending != nil && pending.owner == pending && pending.group == o && pending.meter == m && !pending.used &&
+			pending.admission == o.admission && pending.frame != nil && pending.frame.before == o.pin && pending.frame.stage == 1 && pending.frame.phase == "consume"
 	}
 	return false
 }
@@ -190,24 +197,37 @@ func (o *providerHistoryGroupOwner) identityLocked() bool {
 }
 
 func (o *providerHistoryGroupOwner) initialModelLocked() (*providerHistoryGroupLedger, providerHistoryCustodyScope, error) {
+	if o == nil || o.store == nil || o.store.frontierFiles == nil {
+		return nil, providerHistoryCustodyScope{}, errProviderIntegration
+	}
+	return o.initialModelAtLocked(o.pin, o.store.frontierFiles.pinRaw, o.store.frontierFiles.pinRaw)
+}
+
+// An immutable initial pin is replay DATA. Selecting it never moves the live
+// pin, reinstalls an earlier role, or resets an observer/clock.
+func (o *providerHistoryGroupOwner) initialModelAtLocked(pin providerFrontierHighwater, initialRaw, currentRaw string) (*providerHistoryGroupLedger, providerHistoryCustodyScope, error) {
 	var empty providerHistoryCustodyScope
-	if !o.activeLocked(o.meter) {
+	if !o.activeLocked(o.meter) || pin != o.start.main {
 		return nil, empty, errProviderIntegration
 	}
 	s, m, p := o.store, o.meter, o.parent
 	maximum := int64(s.config.bounds.maximumMetadataPerCommit)
 	head, a := s.read(s.custody, "HEAD", maximum)
-	immutable, b := s.read(s.custody, s.name("highwater", o.pin.ordinal), maximum)
-	frontier, c := s.read(s.custody, s.name("frontier", o.pin.sequence), maximum)
-	commit, d := s.read(s.custody, s.name("commit", o.pin.sequence), maximum)
-	expected := providerReplayPhaseBytes(s.frontierFiles.pinRaw, m)
-	if a != nil || b != nil || c != nil || d != nil || !providerReplayEqual(head, expected, m) || !providerReplayEqual(immutable, expected, m) ||
-		providerReplayDigest("sage-provider-custody-frontier-v1", frontier, m) != o.pin.frontier ||
-		providerReplayDigest("sage-provider-custody-commit-v2", commit, m) != o.pin.commit {
+	immutable, b := s.read(s.custody, s.name("highwater", pin.ordinal), maximum)
+	frontier, c := s.read(s.custody, s.name("frontier", pin.sequence), maximum)
+	commit, d := s.read(s.custody, s.name("commit", pin.sequence), maximum)
+	expected := providerReplayPhaseBytes(initialRaw, m)
+	current := expected
+	if o.phase != "initializing" {
+		current = providerReplayPhaseBytes(currentRaw, m)
+	}
+	if a != nil || b != nil || c != nil || d != nil || !providerReplayEqual(head, current, m) || !providerReplayEqual(immutable, expected, m) ||
+		providerReplayDigest("sage-provider-custody-frontier-v1", frontier, m) != pin.frontier ||
+		providerReplayDigest("sage-provider-custody-commit-v2", commit, m) != pin.commit {
 		return nil, empty, errProviderIntegration
 	}
 	f, err := parseProviderFrontierRecordObserved(frontier, s.config.identity, m)
-	if err != nil || f.sequence != o.pin.sequence || f.commit != o.pin.commit || f.setup != o.pin.setup || f.budget != o.start.budget ||
+	if err != nil || f.sequence != pin.sequence || f.commit != pin.commit || f.setup != pin.setup || f.budget != o.start.budget ||
 		f.enrollment != o.start.enrollment || f.objects != o.start.objects || f.admission != o.start.admission {
 		return nil, empty, errProviderIntegration
 	}
@@ -217,7 +237,7 @@ func (o *providerHistoryGroupOwner) initialModelLocked() (*providerHistoryGroupL
 	}
 	initial := providerReplayCanonical(map[string]any{
 		"format": "sage-provider-history-initial-model-v1", "program": p.bounds.program, "profile": s.config.profile, "cost_revision": p.bounds.costs,
-		"initial_frontier": o.pin.frontier, "first_exchange": o.start.exchange, "budget": f.budget, "inventory": f.objects,
+		"initial_frontier": pin.frontier, "first_exchange": o.start.exchange, "budget": f.budget, "inventory": f.objects,
 	}, candidateLedgerMetadataLimit, m)
 	if len(initial) == 0 {
 		return nil, empty, errProviderIntegration
@@ -230,7 +250,7 @@ func (o *providerHistoryGroupOwner) initialModelLocked() (*providerHistoryGroupL
 	if err != nil {
 		return nil, empty, errProviderIntegration
 	}
-	return model, providerHistoryCustodyScope{initial: o.pin, exchange: o.start.exchange, origin: providerClockDiagnostic(p.original)}, nil
+	return model, providerHistoryCustodyScope{initial: pin, exchange: o.start.exchange, origin: providerClockDiagnostic(p.original)}, nil
 }
 
 func (o *providerHistoryGroupOwner) failLocked() {
@@ -238,6 +258,15 @@ func (o *providerHistoryGroupOwner) failLocked() {
 		return
 	}
 	o.failed, o.phase = true, "failed"
+	if o.order != nil {
+		o.order.refuse() // Preserve every already consumed bit.
+	}
+	if o.store != nil && o.store.frontierFiles != nil {
+		c := o.store.frontierFiles.historyPending
+		if c != nil && c.owner == c && c.group == o && c.meter == o.meter && c.order != nil {
+			c.order.refuse() // Also close the original when a cached pointer changed.
+		}
+	}
 	o.parent.failLocked()
 	o.store.failed = true
 	if o.meter != nil && o.meter.owner == o.meter {

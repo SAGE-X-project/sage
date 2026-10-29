@@ -74,7 +74,7 @@ jobs:
     needs: registry_source_checks
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Require successful Registry Source evidence

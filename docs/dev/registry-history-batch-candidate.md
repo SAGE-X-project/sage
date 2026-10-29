@@ -171,8 +171,8 @@ program must validate that grammar and its response dependencies against prior
 originals, fund all work beforeH0, retain independently acknowledged T/C/S,
 consume all members before dispatch, and quarantine failure under its original
 hold. Those duties, the complete numeric costs, qualified clocks, independent
-readers and final C0/Dp/C1 are not provided by this preparation table. No current
-Source, owner, meter or transport uses it, and the existing per-RPC path and its
+readers and final C0/Dp/C1 are not provided by this preparation table. The private first-group owner uses the table in its retained T and C records,
+but exposes no Source or network-permit API. The existing per-RPC path and its
 full-width reservations remain unchanged.
 
 ## Ordered member bookkeeping candidate
@@ -186,15 +186,34 @@ dispatched masks and close the counter; they cannot advance or reset it.
 A normally closed counter preserves its complete history. Copies and JSON
 records cannot recreate the original counter.
 
-This is serialized in-memory bookkeeping only. Its constructor and confirmation
-method do not verify an original T or C acknowledgement, reserve resources,
-retain consumption, authenticate a result or grant a network permit. No current
-Source, owner, meter or transport accepts it as authority. A future concrete
-owner must keep its original counter under the same owner lock, create it only
-after independent T verification, consume all members before the concrete C
-write, verify the actual independent C acknowledgement before confirmation,
-and verify S plus independent comparison before closing. Every failure must
-also quarantine that concrete owner and keep the complete admitted charge.
+This remains serialized in-memory bookkeeping, not transport authority. The
+private first-group writer now creates its original counter only after replaying
+an actual retained T, consumes every member before writing C, and confirms it
+only after independent C readback, physical HEAD replacement and the original
+end-clock checks succeed. Counter confirmation precedes the single serialized
+logical pin/model/ACK publication. A failed or uncertain write preserves every
+consumed bit and the complete admitted upper while quarantining the same owner.
+A copied ACK or counter never reinstalls a writer or renews a window.
+
+The C path reconstructs the initial model from its selected immutable original
+pin and replays the original request pack, T, inventory and framing under the
+current original observer. This does not move today's HEAD back, restore a
+closed inspection cache, or revive an earlier observer/clock role. Its permitted
+catalog derives from the initial selected prefix plus the acknowledged T delta;
+it does not accept directory contents or cached allowed-name maps as authority.
+C uses the unspent suffix of T's exact group work/clock window and the same
+pre-observation lifetime hold. The independently replayed T clock remains the
+elapsed-time anchor through C; a new short C bracket cannot renew its five-minute
+group interval. It cannot select fresh scalar limits.
+
+Ordered transport execution, result-original semantics and successful/failed S
+retention remain required. A concrete executor must bind its original C ACK and
+counter before any member can be dispatched, preserve the exact ordinal order,
+and verify independently retained S before closing. No current transport accepts
+the private C ACK or its confirmed bookkeeping as a network permit. The complete
+source-derived work, native memory/live-set, storage, clocks and failure/recovery
+certificate and its production factory remain unimplemented. The provisioned
+unit fixture is not operating qualification or a whole-program cost proof.
 
 Creating a second DATA counter cannot restore operational capacity. Program,
 table and original-instance identity must be bound and checked by the actual
