@@ -38,6 +38,7 @@ type providerScanFixtureSelection struct {
 	historyProgram      bool
 	historyShortStartup bool
 	historyGroupInit    bool
+	historyGroupWrite   bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -131,6 +132,19 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 			h.derivation.snapshot = *h
 			if !b.valid() {
 				t.Fatal("fresh group initialization test profile")
+			}
+		}
+		if selected.historyGroupWrite {
+			h := b.history
+			// A separate, inert writer TEST envelope selected before H0.
+			// No operating cap, source certificate or existing subject changes.
+			h.future.work[2], h.future.work[9], h.future.work[10] = 64<<20, 32<<20, 1<<55
+			h.future.physical, h.future.retainedRaw, h.future.payload, h.future.metadata = 8<<20, 4<<20, 128<<10, 2<<20
+			h.future.objects, h.future.files, h.future.clocks = 8, 64, 32
+			h.catalogEntries, h.catalogNameBytes, h.resident = 2048, 2048*255, 64<<20
+			h.derivation.snapshot = *h
+			if !b.valid() {
+				t.Fatal("fresh admission-writer test profile")
 			}
 		}
 	}

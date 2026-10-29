@@ -165,7 +165,7 @@ func (m *providerWorkMeter) preflightWork(work candidateWorkVector) bool {
 // Ordinary integration/legacy meters have no scan body and retain their API.
 func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
 	if m.historyGroup != nil {
-		return m.historyGroup.fits(m)
+		return m.historyGroup.fitsWork(m, work)
 	}
 	if m.guardian != nil {
 		return m.guardian.fits(m)

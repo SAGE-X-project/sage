@@ -16,6 +16,14 @@ type providerHistoryGroupOwner struct {
 	custodian   *providerHistoryGroupLedger
 	phase       string
 	failed      bool
+	retention   providerHistoryStorageCharge
+	inventory   string
+	last        *providerHistoryGroupAcknowledgment
+	window      bool
+	windowStart candidateWorkVector
+	windowUpper candidateWorkVector
+	clockStart  uint64
+	clockUpper  uint64
 }
 
 func (*providerHistoryGroupOwner) UnmarshalJSON([]byte) error { return errProviderIntegration }
@@ -98,7 +106,7 @@ func newProviderHistoryGroupOwnerCandidate(s *providerCustodyStore) (*providerHi
 }
 
 func (o *providerHistoryGroupOwner) activeLocked(m *providerWorkMeter) bool {
-	return o != nil && o.owner == o && !o.failed && o.phase == "initializing" && o.parent != nil && o.parent.group == o &&
+	common := o != nil && o.owner == o && !o.failed && o.parent != nil && o.parent.group == o &&
 		o.store != nil && o.store.owner == o.store && o.store.history == o.parent && !o.store.closed && !o.store.failed &&
 		o.start == o.parent.start && o.start != nil && o.start.owner == o.start && o.start.parent == o.parent &&
 		o.meter == m && m != nil && m.owner == m && m.historyGroup == o && m.integration == nil && m.scan == nil &&
@@ -108,10 +116,42 @@ func (o *providerHistoryGroupOwner) activeLocked(m *providerWorkMeter) bool {
 		o.store.frontierFiles != nil && o.store.frontierFiles.valid() && o.store.frontierFiles.initialized &&
 		o.store.frontierFiles.pending == nil && o.store.frontierFiles.pin == o.pin &&
 		o.pin == o.start.main && o.store.sequence == o.pin.sequence && o.store.tip == o.pin.commit && o.store.setupTip == o.pin.setup
+	if !common {
+		return false
+	}
+	pending := o.store.frontierFiles.historyPending
+	switch o.phase {
+	case "initializing", "preparing-admit":
+		return pending == nil
+	case "writing-admit":
+		return pending != nil && pending.owner == pending && pending.group == o && pending.meter == m && !pending.used &&
+			pending.frame != nil && pending.frame.before == o.pin && pending.frame.stage == 1 && pending.frame.phase == "admit"
+	}
+	return false
 }
 
 func (o *providerHistoryGroupOwner) fits(m *providerWorkMeter) bool {
 	return o.activeLocked(m) && o.parent.matchesLocked()
+}
+
+// Called with the same cumulative meter mutex held. A group is a sublimit,
+// never a replacement observer or a reset of the pre-H0 lifetime actuals.
+func (o *providerHistoryGroupOwner) fitsWork(m *providerWorkMeter, incoming candidateWorkVector) bool {
+	if !o.fits(m) {
+		return false
+	}
+	if o.phase == "initializing" {
+		return !o.window
+	}
+	if !o.window || m.clocks < o.clockStart || m.clocks-o.clockStart > o.clockUpper {
+		return false
+	}
+	for i, n := range incoming {
+		if m.actual[i] < o.windowStart[i] || !candidateCapacity(0, m.actual[i]-o.windowStart[i], n, o.windowUpper[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 func (o *providerHistoryGroupOwner) clockFits(clock ClockSample) bool {
