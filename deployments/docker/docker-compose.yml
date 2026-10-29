@@ -143,7 +143,7 @@ services:
 
   # Swagger UI (API Documentation)
   swagger-ui:
-    image: swaggerapi/swagger-ui:latest@sha256:9ae209e3791e6fa78e1426769bf54562a043caa969287bfd3779428ece4930e5
+    image: swaggerapi/swagger-ui:latest@sha256:f9b8432be04e320406157e26c3ff52a7e9a4bea7eabe5477e9636791737eb119
     container_name: sage-swagger-ui
     restart: unless-stopped
     ports:
