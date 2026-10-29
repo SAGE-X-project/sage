@@ -172,6 +172,7 @@ jobs:
               'provider_continuing_input_budget.go',
               'provider_continuing_original_budget.go',
               'provider_continuing_group_members.go',
+              'provider_continuing_group_order.go',
               'provider_continuing_prefix.go',
               'provider_continuing_records.go',
               'provider_guardian_admission_binding.go',

@@ -174,3 +174,32 @@ hold. Those duties, the complete numeric costs, qualified clocks, independent
 readers and final C0/Dp/C1 are not provided by this preparation table. No current
 Source, owner, meter or transport uses it, and the existing per-RPC path and its
 full-width reservations remain unchanged.
+
+## Ordered member bookkeeping candidate
+
+A separate private counter models irreversible all-member consumption, a
+separate consumption-confirmation step and one in-flight member in exact
+ordinal order. A valid group has one to32members. Every member bit is consumed
+before the first begin. Completed ordinals cannot be repeated, skipped or
+reordered. Invalid transitions and explicit failures retain the consumed and
+dispatched masks and close the counter; they cannot advance or reset it.
+A normally closed counter preserves its complete history. Copies and JSON
+records cannot recreate the original counter.
+
+This is serialized in-memory bookkeeping only. Its constructor and confirmation
+method do not verify an original T or C acknowledgement, reserve resources,
+retain consumption, authenticate a result or grant a network permit. No current
+Source, owner, meter or transport accepts it as authority. A future concrete
+owner must keep its original counter under the same owner lock, create it only
+after independent T verification, consume all members before the concrete C
+write, verify the actual independent C acknowledgement before confirmation,
+and verify S plus independent comparison before closing. Every failure must
+also quarantine that concrete owner and keep the complete admitted charge.
+
+Creating a second DATA counter cannot restore operational capacity. Program,
+table and original-instance identity must be bound and checked by the actual
+parent. Source-derived transition, string-validation, native-memory, clock,
+retention and failure costs still belong to the uncompleted whole-program
+certificate. The counter itself implements none of those effects or checks,
+and its finite state tests are not proof of durable group execution, whole
+history, final publication or Source readiness.
