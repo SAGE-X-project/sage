@@ -42,6 +42,13 @@ import (
 
 // Marshal encodes v with encoding/json and returns its canonical form.
 func Marshal(v interface{}) ([]byte, error) {
+	if nativeCanonicalValue(v, 0) {
+		var buf bytes.Buffer
+		if err := writeNativeCanonicalValue(&buf, v); err != nil {
+			return nil, err
+		}
+		return buf.Bytes(), nil
+	}
 	raw, err := json.Marshal(v)
 	if err != nil {
 		return nil, err
@@ -129,6 +136,11 @@ func writeValue(buf *bytes.Buffer, v interface{}) error {
 
 // lessUTF16 orders strings by their UTF-16 code units (RFC 8785 Section 3.2.3).
 func lessUTF16(a, b string) bool {
+	// ASCII bytes are the same unsigned UTF-16 code units. Keep the full
+	// UTF-16 path for every other name; canonical bytes never change.
+	if asciiPropertyName(a) && asciiPropertyName(b) {
+		return a < b
+	}
 	ua, ub := utf16.Encode([]rune(a)), utf16.Encode([]rune(b))
 	for i := 0; i < len(ua) && i < len(ub); i++ {
 		if ua[i] != ub[i] {
@@ -138,14 +150,31 @@ func lessUTF16(a, b string) bool {
 	return len(ua) < len(ub)
 }
 
+func asciiPropertyName(value string) bool {
+	for i := 0; i < len(value); i++ {
+		if value[i] >= utf8.RuneSelf {
+			return false
+		}
+	}
+	return true
+}
+
 // writeString escapes s as ECMAScript JSON.stringify does (RFC 8785 Section 3.2.2.2).
 func writeString(buf *bytes.Buffer, s string) error {
 	if !utf8.ValidString(s) {
 		return errors.New("jcs: string is not valid UTF-8")
 	}
 	buf.WriteByte('"')
-	for _, r := range s {
-		switch r {
+	start := 0
+	for i := 0; i < len(s); i++ {
+		value := s[i]
+		if value >= 0x20 && value != '"' && value != '\\' {
+			continue
+		}
+		// UTF-8 was checked above. Copy every unchanged byte in one span;
+		// all escaped characters are single-byte ASCII code points.
+		buf.WriteString(s[start:i])
+		switch value {
 		case '"':
 			buf.WriteString(`\"`)
 		case '\\':
@@ -161,13 +190,11 @@ func writeString(buf *bytes.Buffer, s string) error {
 		case '\t':
 			buf.WriteString(`\t`)
 		default:
-			if r < 0x20 {
-				fmt.Fprintf(buf, `\u%04x`, r)
-			} else {
-				buf.WriteRune(r)
-			}
+			fmt.Fprintf(buf, `\u%04x`, value)
 		}
+		start = i + 1
 	}
+	buf.WriteString(s[start:])
 	buf.WriteByte('"')
 	return nil
 }

@@ -227,7 +227,7 @@ jobs:
       - name: Install go-licenses v2
         run: |
           export GOTOOLCHAIN=local
-          go install github.com/google/go-licenses/v2@v2.0.1
+          GODEBUG=http2client=0 go install github.com/google/go-licenses/v2@v2.0.1
 
       - name: Check Go licenses
         # github.com/gagliardetto/treeout is MIT (LICENSE in its repository) but

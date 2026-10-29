@@ -19,14 +19,69 @@ env:
   GOFLAGS: -mod=readonly
 
 jobs:
-  # Go tests with the race detector. The job name carries no Go version so
-  # the branch ruleset that requires it does not go stale on a toolchain bump.
-  test-go:
-    name: Go Tests
+  # Retain the focused Registry evidence in its own unchanged15-minute window.
+  # The required Go Tests job explicitly gates on this job's success.
+  registry_source_checks:
+    name: Registry Source Checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: go mod download && go mod verify
+
+      - name: Verify Registry Source clock and checkpoint checks
+        run: |
+          mkdir -p "$RUNNER_TEMP/registry-source-checks/source"
+          go version > "$RUNNER_TEMP/registry-source-checks/compiler.txt"
+          git rev-parse HEAD > "$RUNNER_TEMP/registry-source-checks/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/registry-source-checks/tree.txt"
+          git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md docs/dev/agent-embedding.md docs/INDEX.md go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml .gitleaks.toml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
+          cp pkg/agent/registry011/*.go pkg/agent/registry011/*.json "$RUNNER_TEMP/registry-source-checks/source/"
+          cp -R pkg/agent/registry011/testdata "$RUNNER_TEMP/registry-source-checks/source/"
+          python3 - <<'PYSOURCE'
+          import json, os
+          from pathlib import Path
+          names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
+          Path(os.environ['RUNNER_TEMP'], 'registry-source-checks', 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
+          PYSOURCE
+          go test -mod=readonly -race -count=1 -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
+          go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
+          git diff --exit-code
+
+      - name: Retain Registry Source clock and checkpoint evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: registry-source-checks
+          path: ${{ runner.temp }}/registry-source-checks/
+          if-no-files-found: error
+          retention-days: 14
+
+  # Go tests with the race detector. The job name carries no Go version so
+  # the branch ruleset that requires it does not go stale on a toolchain bump.
+  test-go:
+    name: Go Tests
+    needs: registry_source_checks
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Require successful Registry Source evidence
+        env:
+          REGISTRY_SOURCE_RESULT: ${{ needs.registry_source_checks.result }}
+        run: test "$REGISTRY_SOURCE_RESULT" = "success"
+
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -49,9 +104,53 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           targets = {
+              'pkg/agent/internal/rfc8785/rfc8785.go': [0, 0],
+              'pkg/agent/internal/rfc8785/native.go': [0, 0],
               'pkg/agent/registry010/eip155_observer010.go': [0, 0],
               'pkg/agent/didsource010/eip155.go': [0, 0],
               'pkg/agent/registry011/source_checkpoint.go': [0, 0],
+              'pkg/agent/registry011/source_reconfiguration.go': [0, 0],
+              'pkg/agent/registry011/source_retained.go': [0, 0],
+              'pkg/agent/registry011/source_acquisition.go': [0, 0],
+              'pkg/agent/registry011/source_batch.go': [0, 0],
+              'pkg/agent/registry011/rpc_response.go': [0, 0],
+              'pkg/agent/registry011/rpc_transport.go': [0, 0],
+              'pkg/agent/registry011/rpc_reads.go': [0, 0],
+              'pkg/agent/registry011/history_content.go': [0, 0],
+              'pkg/agent/registry011/replay.go': [0, 0],
+              'pkg/agent/registry011/replay_blocks.go': [0, 0],
+              'pkg/agent/registry011/replay_gas.go': [0, 0],
+              'pkg/agent/registry011/replay_stream.go': [0, 0],
+              'pkg/agent/registry011/replay_journal.go': [0, 0],
+              'pkg/agent/registry011/journal_disk.go': [0, 0],
+              'pkg/agent/registry011/replay_commands.go': [0, 0],
+              'pkg/agent/registry011/replay_execution.go': [0, 0],
+              'pkg/agent/registry011/replay_framing.go': [0, 0],
+              'pkg/agent/registry011/replay_proofs.go': [0, 0],
+              'pkg/agent/registry011/replay_schema.go': [0, 0],
+              'pkg/agent/registry011/replay_state.go': [0, 0],
+              'pkg/agent/registry011/node_blocks.go': [0, 0],
+              'pkg/agent/registry011/node_json.go': [0, 0],
+              'pkg/agent/registry011/node_gas.go': [0, 0],
+              'pkg/agent/registry011/node_root_gas.go': [0, 0],
+              'pkg/agent/registry011/node_trace.go': [0, 0],
+              'pkg/agent/registry011/provider_policy.go': [0, 0],
+              'pkg/agent/registry011/provider_policy_schema.go': [0, 0],
+              'pkg/agent/registry011/provider_enrollment.go': [0, 0],
+              'pkg/agent/registry011/provider_enrollment_schema.go': [0, 0],
+              'pkg/agent/registry011/provider_enrollment_disk.go': [0, 0],
+              'pkg/agent/registry011/provider_budget.go': [0, 0],
+              'pkg/agent/registry011/retention_candidate.go': [0, 0],
+              'pkg/agent/registry011/retention_candidate_disk.go': [0, 0],
+              'pkg/agent/registry011/retention_lock_supported.go': [0, 0],
+              'pkg/agent/registry011/admission_candidate_root.go': [0, 0],
+              'pkg/agent/registry011/admission_candidate_intent.go': [0, 0],
+              'pkg/agent/registry011/admission_candidate_ticket.go': [0, 0],
+              'pkg/agent/registry011/admission_candidate_consumption.go': [0, 0],
+              'pkg/agent/registry011/admission_candidate_settlement.go': [0, 0],
+              'pkg/agent/registry011/admission_candidate_ledger.go': [0, 0],
+              'pkg/agent/registry011/admission_candidate_ledger_replay.go': [0, 0],
+              'pkg/agent/registry011/node_identity.go': [0, 0],
           }
           for line in Path('coverage.out').read_text().splitlines()[1:]:
               location, statements, count = line.split()
@@ -65,34 +164,6 @@ jobs:
                   raise SystemExit(f'{target}: {covered}/{total} statements; requires 90%')
               print(f'Coverage for {target} = {covered / total:.1%}')
           PY
-
-      - name: Verify Registry Source clock and checkpoint checks
-        run: |
-          mkdir -p "$RUNNER_TEMP/registry-source-checks/source"
-          go version > "$RUNNER_TEMP/registry-source-checks/compiler.txt"
-          git rev-parse HEAD > "$RUNNER_TEMP/registry-source-checks/revision.txt"
-          git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/registry-source-checks/tree.txt"
-          git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md go.mod go.sum .github/workflows/test.yml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
-          cp pkg/agent/registry011/*.go "$RUNNER_TEMP/registry-source-checks/source/"
-          cp -R pkg/agent/registry011/testdata "$RUNNER_TEMP/registry-source-checks/source/"
-          python3 - <<'PYSOURCE'
-          import json, os
-          from pathlib import Path
-          names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
-          Path(os.environ['RUNNER_TEMP'], 'registry-source-checks', 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
-          PYSOURCE
-          go test -mod=readonly -race -count=1 -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
-          go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
-          git diff --exit-code
-
-      - name: Retain Registry Source clock and checkpoint evidence
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: registry-source-checks
-          path: ${{ runner.temp }}/registry-source-checks/
-          if-no-files-found: error
-          retention-days: 14
 
       - name: Verify adopted DID modules and safe consumer runtime
         shell: bash
@@ -327,6 +398,10 @@ jobs:
 
       - name: Build binaries
         run: make build
+
+      - name: Compile Registry verification package
+        shell: bash
+        run: go test -mod=readonly -c -o "$RUNNER_TEMP/registry011.test" ./pkg/agent/registry011
 
       - name: Verify binaries
         shell: bash

@@ -40,8 +40,10 @@ require (
 	github.com/crate-crypto/go-eth-kzg v1.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
+	github.com/emicklei/dot v1.6.2 // indirect
 	github.com/ethereum/c-kzg-4844/v2 v2.1.8 // indirect
 	github.com/fatih/color v1.18.0 // indirect
+	github.com/ferranbt/fastssz v0.1.4 // indirect
 	github.com/fjl/jsonw v0.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gagliardetto/binary v0.8.0 // indirect
@@ -50,17 +52,22 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
+	github.com/gofrs/flock v0.12.1 // indirect
+	github.com/golang/snappy v1.0.1-0.20260716114414-9ae09f520e93 // indirect
 	github.com/holiman/uint256 v1.3.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/klauspost/compress v1.19.1 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/go-testing-interface v1.14.1 // indirect
+	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/mostynb/zstdpool-freelist v0.0.0-20201229113212-927304c0c3b1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oasisprotocol/curve25519-voi v0.0.0-20251114093237-2ab5a27a1729 // indirect
@@ -90,4 +97,5 @@ require (
 	golang.org/x/text v0.42.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
