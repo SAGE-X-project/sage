@@ -54,6 +54,7 @@ type providerCustodyStore struct {
 	firstAdmissionOwner          *providerFirstAdmissionOwner
 	firstOperation               *providerFirstOperationOwner
 	guardian                     *providerGuardianOwner
+	history                      *providerHistoryProgramOwner
 	activeMeter                  atomic.Pointer[providerWorkMeter]
 	newReferences                []providerIntegrationObjectRef
 	requiredReferences           map[string]bool
@@ -95,6 +96,9 @@ func openProviderCustody(config providerCustodyConfig, clock *providerOwnedClock
 		!lowerHash(config.anchor) || !lowerHash(config.expectedTip) || !lowerHash(config.expectedSetupTip) || config.profile != providerIntegrationProfile(config.bounds, config.capture) ||
 		!lowerHash(id.Namespace) || !lowerHash(id.Instance) || !lowerHash(id.Policy) || !lowerHash(id.SourceID) || id.Generation != 0 || clock == nil ||
 		config.custodyDirectory == "" || config.evidenceDirectory == "" {
+		return nil, ErrConfiguration
+	}
+	if !clock.claimLegacy(id.Policy) {
 		return nil, ErrConfiguration
 	}
 	custody, err := openRetentionDisk(config.custodyDirectory)
@@ -177,7 +181,8 @@ func providerClockObject(clock ClockSample) map[string]string {
 }
 
 func (s *providerCustodyStore) valid() bool {
-	return s != nil && s.owner == s && !s.failed && !s.closed && s.custody != nil && s.evidence != nil && s.clock != nil && s.config.bounds.valid() && s.objects != nil && s.operations != nil
+	return s != nil && s.owner == s && !s.failed && !s.closed && s.custody != nil && s.evidence != nil && s.clock != nil && s.config.bounds.valid() && s.objects != nil && s.operations != nil &&
+		(s.config.bounds.history == nil && s.history == nil || s.config.bounds.history != nil && s.history != nil && s.history.matchesLocked())
 }
 
 func (s *providerCustodyStore) close() error {
@@ -190,6 +195,9 @@ func (s *providerCustodyStore) close() error {
 		return errProviderIntegration
 	}
 	s.closed = true
+	if s.history != nil {
+		s.history.failLocked()
+	}
 	return errors.Join(s.evidence.close(), s.custody.close())
 }
 

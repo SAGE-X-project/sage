@@ -25,7 +25,7 @@ func (c *providerIntegration) pinAgent(ctx context.Context, agent string) (*Pinn
 	}
 	c.command.Lock()
 	defer c.command.Unlock()
-	if !c.valid() || c.bootstrap == "" || c.pin != "" || !rpcAgent(agent) {
+	if !c.legacyAllowed() || c.bootstrap == "" || c.pin != "" || !rpcAgent(agent) {
 		return nil, errProviderIntegration
 	}
 	raw := providerPinInput(c.bootstrap, agent)
@@ -169,7 +169,7 @@ func providerPinParams(selected string) [4]any {
 // A closed local result still requires the exact retained child exchanges and
 // the original live parent permit. This helper cannot acquire or dispatch RPC.
 func (c *providerIntegration) finishPinResult(permit *providerIntegrationPermit, input string, digests [4]string) (string, error) {
-	if !c.valid() || permit == nil || permit.owner != c || !permit.used || permit.request != nil || permit.ticket == nil || permit.ticket.intent != c.intent || permit.ticket.kind != "local-work" || permit.ticket.input != input || permit.meter == nil || permit.meter.integration != c || permit.meter.ticket != permit.ticket.digest || c.store.activeMeter.Load() != permit.meter || !lowerHash(input) {
+	if !c.legacyAllowed() || permit == nil || permit.owner != c || !permit.used || permit.request != nil || permit.ticket == nil || permit.ticket.intent != c.intent || permit.ticket.kind != "local-work" || permit.ticket.input != input || permit.meter == nil || permit.meter.integration != c || permit.meter.ticket != permit.ticket.digest || c.store.activeMeter.Load() != permit.meter || !lowerHash(input) {
 		return "", errProviderIntegration
 	}
 	// The live path uses the same independently retained typed response closure

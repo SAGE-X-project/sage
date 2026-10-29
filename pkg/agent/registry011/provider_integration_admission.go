@@ -25,7 +25,7 @@ func (c *providerIntegration) admitRPC(request *providerIntegrationRequest, firs
 }
 
 func (c *providerIntegration) admit(kind, input, method, params string, reservation providerOperationReservation, extra []providerIntegrationObjectInput) (*CandidateAdmissionTicket, error) {
-	if !c.valid() || !lowerHash(input) {
+	if !c.legacyAllowed() || !lowerHash(input) {
 		return nil, errProviderIntegration
 	}
 	meter, err := c.attachMeter(reservation)
@@ -99,7 +99,7 @@ func (c *providerIntegration) admit(kind, input, method, params string, reservat
 }
 
 func (c *providerIntegration) commitChange(kind, operation string, change *CandidateAdmissionLedgerChange, extra []providerIntegrationObjectInput) (*providerCustodyAcknowledgment, error) {
-	if !c.valid() || change == nil || change.raw == "" || change.admission != c.intent.digest {
+	if !c.legacyAllowed() || change == nil || change.raw == "" || change.admission != c.intent.digest {
 		return nil, errProviderIntegration
 	}
 	before := c.root
@@ -133,7 +133,7 @@ func (c *providerIntegration) commitChange(kind, operation string, change *Candi
 }
 
 func (c *providerIntegration) consume(ticket *CandidateAdmissionTicket, request *providerIntegrationRequest) (*providerIntegrationPermit, error) {
-	if !c.valid() || ticket == nil || ticket.intent != c.intent || ticket.kind == "rpc-capture" && (request == nil || ticket.input != request.inputDigest || ticket.method != request.method || ticket.params != request.paramsDigest) || ticket.kind == "local-work" && request != nil {
+	if !c.legacyAllowed() || ticket == nil || ticket.intent != c.intent || ticket.kind == "rpc-capture" && (request == nil || ticket.input != request.inputDigest || ticket.method != request.method || ticket.params != request.paramsDigest) || ticket.kind == "local-work" && request != nil {
 		return nil, errProviderIntegration
 	}
 	meter := c.meters[ticket.digest]
@@ -168,7 +168,7 @@ func (c *providerIntegration) consume(ticket *CandidateAdmissionTicket, request 
 }
 
 func (c *providerIntegration) use(permit *providerIntegrationPermit) bool {
-	if !c.valid() || permit == nil || permit.owner != c || permit.used || permit.ticket == nil || permit.ack == nil || permit.root != c.root || !c.store.confirms(permit.ack, permit.ack.operation, permit.root) {
+	if !c.legacyAllowed() || permit == nil || permit.owner != c || permit.used || permit.ticket == nil || permit.ack == nil || permit.root != c.root || !c.store.confirms(permit.ack, permit.ack.operation, permit.root) {
 		return false
 	}
 	// Even an expired permit is burned; no retry/recovered ACK dispatch exists.

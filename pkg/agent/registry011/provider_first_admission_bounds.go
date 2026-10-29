@@ -65,6 +65,19 @@ func providerFirstAdmissionCapacity(s *providerCustodyStore, held providerScanUp
 	if s.config.bounds.firstAdmission == nil {
 		return true // Preserve the existing V3 DATA-only contract byte-for-byte.
 	}
+	if b := s.config.bounds.history; b != nil {
+		if !b.valid(s.config.bounds) || !providerHistoryUpperWithin(held, providerHistoryPreIUpper(s.config.bounds)) {
+			return false
+		}
+		// Inspection readers can check capacity from selected DATA without
+		// recreating the live parent. Always charge its complete disjoint hold,
+		// not a smaller observed prefix or another copy of O/P/future work.
+		var ok bool
+		held, ok = providerHistoryWholeHold(s.config.bounds)
+		if !ok {
+			return false
+		}
+	}
 	if b := s.config.bounds.guardian; b != nil {
 		var ok bool
 		held, ok = providerScanUpperSum(held, providerScanUpper{work: b.lifetime.work, retained: b.lifetime.retained, clocks: b.lifetime.clocks})

@@ -121,6 +121,9 @@ func (f *providerFrontierFiles) advanceClaimedLocked(after providerFrontierHighw
 	if !f.valid() || !f.initialized || f.pending != claim {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
+	if f.store.config.bounds.history != nil && claim == nil {
+		return providerFrontierRetention{}, errProviderIntegration
+	}
 	f.failed = true
 	succeeded := false
 	defer func() {

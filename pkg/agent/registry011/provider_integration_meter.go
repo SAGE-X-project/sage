@@ -32,6 +32,7 @@ type providerWorkMeter struct {
 	guardian                      *providerGuardianOwner
 	continuing                    *providerContinuingOwner
 	clocks, maximumClocks         uint64
+	historyClockClaims            uint64
 	ticket                        string
 	upper, remaining, reservation candidateWorkVector
 	actual                        candidateWorkVector

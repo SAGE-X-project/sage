@@ -34,16 +34,25 @@ func newProviderFirstOperationCandidate(s *providerCustodyStore) (*providerFirst
 		held, heldOK = providerScanUpperSum(held, providerScanUpper{work: g.lifetime.work, retained: g.lifetime.retained, clocks: g.lifetime.clocks})
 	}
 	limits := *s.firstLimits
-	if !ok || !heldOK || !candidateCapacity(0, s.stored, plan.storage.physical, s.config.bounds.maximumStoredBytes) || !candidateCapacity(0, s.stored, plan.storage.physical, limits.live) || !candidateCapacity(0, s.stored, plan.storage.physical, limits.retained) {
+	if !ok || !heldOK {
 		return nil, errProviderIntegration
 	}
 	for coordinate, n := range plan.reservation.work {
-		if n > limits.operation[coordinate] || n > limits.segment[coordinate] || !candidateCapacity(held.work[coordinate], 0, n, limits.work[coordinate]) {
+		if n > limits.operation[coordinate] || n > limits.segment[coordinate] || s.config.bounds.history == nil && !candidateCapacity(held.work[coordinate], 0, n, limits.work[coordinate]) {
 			return nil, errProviderIntegration
 		}
 	}
-	// P is distinct from the already held O/B/F. All uncertainty retains both.
-	s.stored += plan.storage.physical
+	if s.config.bounds.history != nil {
+		if s.history == nil || s.scanControl.held != s.history.inspection || !providerFirstAdmissionCapacity(s, held) || !s.history.claimStartupLocked(plan) {
+			return nil, errProviderIntegration
+		}
+	} else {
+		if !candidateCapacity(0, s.stored, plan.storage.physical, s.config.bounds.maximumStoredBytes) || !candidateCapacity(0, s.stored, plan.storage.physical, limits.live) || !candidateCapacity(0, s.stored, plan.storage.physical, limits.retained) {
+			return nil, errProviderIntegration
+		}
+		// Legacy P is distinct from O/B/F. V6 already held it before H0.
+		s.stored += plan.storage.physical
+	}
 	owner = &providerFirstOperationOwner{store: s, first: f, plan: plan, config: s.config, policy: *s.config.policy, continuation: *s.config.bounds.continuation, methods: *s.config.bounds.methods, tls: *s.config.bounds.tls, scan: *s.config.bounds.scan, firstBounds: *s.config.bounds.firstAdmission, limits: limits, clock: s.clock, origin: s.setupOrigin, stored: s.stored, state: providerFirstOperationPrepared}
 	owner.owner = owner
 	s.firstOperation, f.operation = owner, owner

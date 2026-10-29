@@ -108,6 +108,9 @@ func (o *providerFirstOperationOwner) failLocked() {
 		return
 	}
 	o.state, o.store.failed = providerFirstOperationFailed, true
+	if o.store.history != nil {
+		o.store.history.failLocked()
+	}
 	if o.integration != nil {
 		o.integration.failed = true
 	}

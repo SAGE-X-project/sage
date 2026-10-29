@@ -185,12 +185,27 @@ func (c *providerScanControl) claim(a providerScanAttempt) error {
 	held, ok := providerScanUpperSum(c.held, preparation, body)
 	addition, addOK := providerScanUpperSum(preparation, body)
 	total, totalOK := providerScanUpperSum(providerScanOpenUpper(s.config), held)
-	if !ok || !addOK || !totalOK || c.held != c.pin.held || !s.config.bounds.scan.fits(providerScanOpenUpper(s.config), held) || !providerFirstAdmissionCapacity(s, total) || !candidateCapacity(0, s.stored, addition.retained, s.config.bounds.maximumStoredBytes) {
+	if !ok || !addOK || !totalOK || c.held != c.pin.held || !s.config.bounds.scan.fits(providerScanOpenUpper(s.config), held) || !providerFirstAdmissionCapacity(s, total) {
 		return errProviderIntegration
 	}
-	c.held, s.stored, c.failed = held, s.stored+addition.retained, true
+	if s.config.bounds.history != nil {
+		if s.history == nil || !s.history.claimInspectionLocked(c.held, preparation, body) {
+			return errProviderIntegration
+		}
+	} else {
+		if !candidateCapacity(0, s.stored, addition.retained, s.config.bounds.maximumStoredBytes) {
+			return errProviderIntegration
+		}
+		s.stored += addition.retained
+	}
+	c.held, c.failed = held, true
 	m := &providerWorkMeter{scan: c, upper: preparation.work, maximumClocks: preparation.clocks}
 	m.owner = m
+	if s.history != nil && !s.history.bindInspectionMeterLocked(m, false) {
+		s.history.failLocked()
+		s.failed = true
+		return errProviderIntegration
+	}
 	s.activeMeter.Store(m)
 	defer s.activeMeter.Store(nil)
 	succeeded := false
