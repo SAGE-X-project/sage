@@ -20,9 +20,10 @@ func historyDispatchReplayFixture(t *testing.T, count int) (*providerHistoryGrou
 func TestProviderHistoryDispatchPreparationReplaysCommittedCWithoutRewinding(t *testing.T) {
 	for _, count := range []int{1, 3, providerHistoryGroupMembers} {
 		name := "one"
-		if count == 3 {
+		switch count {
+		case 3:
 			name = "several"
-		} else if count == providerHistoryGroupMembers {
+		case providerHistoryGroupMembers:
 			name = "maximum"
 		}
 		t.Run(name, func(t *testing.T) {
@@ -177,7 +178,8 @@ func TestProviderHistoryDispatchPreparationDerivesCatalogWithoutReusingCachedNam
 			o, ack := historyDispatchReplayFixture(t, 1)
 			s, a, c := o.store, o.admission.claim, ack.claim
 			a.beforeCatalog, a.afterCatalog, c.beforeCatalog, c.afterCatalog = [2]map[string]bool{}, [2]map[string]bool{}, [2]map[string]bool{}, [2]map[string]bool{}
-			if mode == "custody-extra" || mode == "evidence-extra" {
+			switch mode {
+			case "custody-extra", "evidence-extra":
 				directory := s.config.custodyDirectory
 				if mode == "evidence-extra" {
 					directory = s.config.evidenceDirectory
@@ -185,7 +187,7 @@ func TestProviderHistoryDispatchPreparationDerivesCatalogWithoutReusingCachedNam
 				if err := os.WriteFile(filepath.Join(directory, "inert-unrecognized-unit-name"), []byte("inert"), 0600); err != nil {
 					t.Fatal(err)
 				}
-			} else if mode == "missing-selected-chunk" || mode == "missing-selected-command" {
+			case "missing-selected-chunk", "missing-selected-command":
 				first := o.parent.firstAdmission
 				name := providerScanReceiptName("chunk", first.lastChunk, nil)
 				if mode == "missing-selected-command" {

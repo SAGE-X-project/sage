@@ -65,7 +65,7 @@ jobs:
   provider-capture:
     name: Capture candidate provider transport evidence
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       GOFLAGS: -mod=readonly
       GOTOOLCHAIN: auto
@@ -95,7 +95,7 @@ jobs:
           PYCONTEXT
           GODEBUG=http2client=0 go mod download -json > "$SAGE_PROVIDER_CAPTURE_DIR/modules.json" 2> "$SAGE_PROVIDER_CAPTURE_DIR/modules.stderr"
           go mod verify > "$SAGE_PROVIDER_CAPTURE_DIR/modules-verify.txt"
-          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=12m -json -run '^TestProvider' -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=15m -json -run '^TestProvider' -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
           go tool cover -func="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" > "$SAGE_PROVIDER_CAPTURE_DIR/functions.txt"
           python3 - <<'PYCOVERAGE'
           import os

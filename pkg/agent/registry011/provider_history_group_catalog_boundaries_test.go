@@ -178,3 +178,84 @@ func TestProviderHistoryAdmissionCatalogCopyDepletionKeepsCumulativeWork(t *test
 		})
 	}
 }
+
+// One genuine retained T supplies the closed observer and acknowledged claim.
+// Each helper result is catalog DATA only: no C, pending write, transport or
+// new clock allowance is installed, and negative cases keep cumulative charges.
+func TestProviderHistoryCatalogExtensionRefusesUnretainedOrRepeatedOriginals(t *testing.T) {
+	o, admission := historyConsumptionFixture(t, 1)
+	s, m, claim := o.store, o.meter, admission.claim
+	s.mu.Lock()
+	t.Cleanup(func() { o.failLocked(); s.mu.Unlock() })
+	o.phase = "preparing-consume"
+	s.activeMeter.Store(m)
+	if !o.activeLocked(m) || !o.admissionShapeLocked() || !claim.used || !claim.renamed {
+		t.Fatal("genuine retained T must remain the only acknowledged prefix")
+	}
+	initial, ok := o.initialHistoryCatalogLocked()
+	if !ok {
+		t.Fatal("original initial namespace")
+	}
+	clone := func() [2]map[string]bool {
+		var names [2]map[string]bool
+		for root := range names {
+			names[root] = make(map[string]bool, len(initial[root])+9)
+			for name := range initial[root] {
+				names[root][name] = true
+			}
+		}
+		return names
+	}
+	positive := clone()
+	if !o.extendHistoryCatalogLocked(positive, claim) || len(positive[0]) != len(initial[0])+4 || len(positive[1]) != len(initial[1])+claim.count+2 {
+		t.Fatal("exact original T namespace positive control")
+	}
+	memberName := providerHistoryStoredName(claim.inventory.entries[0], m)
+	inventoryName := providerHistoryInventoryName(claim.inventory.digest, m)
+	if memberName == "" || inventoryName == "" || initial[1][memberName] || initial[1][inventoryName] || !positive[1][memberName] || !positive[1][inventoryName] {
+		t.Fatal("negative names must select the positive original extension")
+	}
+	pin, raw, held, retained, payload, reads := o.pin, s.frontierFiles.pinRaw, s.stored, o.retention, s.retainedRaw, s.clock.read
+	coordinator, custodian := o.coordinator, o.custodian
+	for _, mode := range []string{"nil-claim", "copied-claim", "unretained", "unrenamed", "foreign-meter", "nil-derived-evidence", "duplicate-member", "duplicate-inventory", "duplicate-control"} {
+		t.Run(mode, func(t *testing.T) {
+			names := clone()
+			candidate := *claim
+			candidate.owner = &candidate
+			input := &candidate
+			switch mode {
+			case "nil-claim":
+				input = nil
+			case "copied-claim":
+				candidate.owner = claim
+			case "unretained":
+				candidate.used = false
+			case "unrenamed":
+				candidate.renamed = false
+			case "foreign-meter":
+				candidate.meter = &providerWorkMeter{}
+			case "nil-derived-evidence":
+				names[1] = nil
+			case "duplicate-member":
+				names[1][memberName] = true
+			case "duplicate-inventory":
+				names[1][inventoryName] = true
+			case "duplicate-control":
+				names[0][s.name("intent", claim.frame.after.sequence)] = true
+			}
+			before := m.actual
+			if o.extendHistoryCatalogLocked(names, input) || m.failed || m.closed || !o.activeLocked(m) ||
+				o.pin != pin || s.frontierFiles.pin != pin || s.frontierFiles.pinRaw != raw || o.last != admission || o.admission != admission ||
+				o.coordinator != coordinator || o.custodian != custodian || o.order != nil || o.dispatch != nil ||
+				s.stored != held || o.retention != retained || s.retainedRaw != payload || s.clock.read != reads ||
+				s.frontierFiles.historyPending != nil || m.actual[0] != before[0] || m.actual[1] != before[1] || m.actual[9] != before[9] {
+				t.Fatal("invalid or repeated originals supplied an extended namespace or changed authority")
+			}
+			for i, n := range before {
+				if m.actual[i] < n {
+					t.Fatal("catalog refusal refunded original cumulative work", i)
+				}
+			}
+		})
+	}
+}
