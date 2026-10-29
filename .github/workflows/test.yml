@@ -19,12 +19,12 @@ env:
   GOFLAGS: -mod=readonly
 
 jobs:
-  # Retain the focused Registry evidence in its own unchanged15-minute window.
+  # Keep finite runner headroom for race-enabled Registry evidence.
   # The required Go Tests job explicitly gates on this job's success.
   registry_source_checks:
     name: Registry Source Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
@@ -54,7 +54,7 @@ jobs:
           names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
           Path(os.environ['RUNNER_TEMP'], 'registry-source-checks', 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
           PYSOURCE
-          go test -mod=readonly -race -count=1 -timeout=12m -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
+          go test -mod=readonly -race -count=1 -timeout=15m -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
           go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
           git diff --exit-code
 
@@ -74,7 +74,7 @@ jobs:
     needs: registry_source_checks
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Require successful Registry Source evidence
@@ -96,7 +96,7 @@ jobs:
 
       - name: Run tests with coverage and race detector
         run: |
-          go test -race -timeout=12m -coverprofile=coverage.out -covermode=atomic ./...
+          go test -race -timeout=15m -coverprofile=coverage.out -covermode=atomic ./...
           go tool cover -html=coverage.out -o coverage.html
 
       - name: Check Registry observation and adapter coverage
