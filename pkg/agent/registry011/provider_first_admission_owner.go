@@ -119,6 +119,9 @@ func (f *providerFirstAdmissionOwner) abortLocked() {
 		return
 	}
 	f.state, f.store.failed = providerFirstAdmissionFailed, true
+	if f.store.history != nil {
+		f.store.history.failLocked()
+	}
 	if f.control != nil {
 		f.control.failed = true
 	}

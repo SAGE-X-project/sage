@@ -271,6 +271,11 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 	meter := &providerWorkMeter{scan: c, scanBody: b, upper: c.prepared.body.work, maximumClocks: c.prepared.body.clocks}
 	meter.owner, b.meter = meter, meter
 	s.scanBody = b
+	if s.history != nil && !s.history.bindInspectionMeterLocked(meter, true) {
+		s.history.failLocked()
+		s.failed = true
+		return nil, errProviderIntegration
+	}
 	s.activeMeter.Store(meter)
 	defer s.activeMeter.Store(nil)
 	defer func() { b.active = false }()

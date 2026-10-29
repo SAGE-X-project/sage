@@ -15,6 +15,9 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 	if b.scan == nil || !b.valid() || !storedOK || !config.capture.valid() || !b.methods.fits(config.capture) || !providerScanSetupFits(config) || !b.scan.fits(providerScanOpenUpper(config), providerScanUpper{}) || clock == nil || clock.policy != id.Policy || config.attempt != 0 || config.expectedTip != config.anchor || config.expectedSetupTip != config.anchor || !lowerHash(config.anchor) || !lowerHash(config.expectedScanHead) || config.custodyDirectory == "" || config.evidenceDirectory == "" {
 		return nil, ErrConfiguration
 	}
+	if b.history == nil && !clock.claimLegacy(id.Policy) {
+		return nil, ErrConfiguration
+	}
 	s := &providerCustodyStore{config: config, clock: clock, tip: config.anchor, stored: stored, objects: make(map[string]providerIntegrationObjectRef), operations: make(map[string]bool), bindings: make(map[string]string)}
 	s.owner = s
 	setupOwner := &providerScanControl{store: s}
@@ -34,13 +37,27 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 		}
 		s.guardian = g
 	}
+	if b.history != nil {
+		if _, err := newProviderHistoryProgramBeforeOpenCandidate(s); err != nil {
+			return nil, ErrConfiguration
+		}
+	}
 	// The single O is held before any original-root observation. Actual
 	// durable root-operation admission remains a separate unqualified boundary.
 	initial, err := s.sample()
 	if err != nil {
+		if s.history != nil {
+			s.history.failLocked()
+		}
 		return nil, errProviderIntegration
 	}
-	s.setupOrigin = initial
+	if s.history != nil {
+		if !s.history.bindOriginalLocked(initial) {
+			return nil, errProviderIntegration
+		}
+	} else {
+		s.setupOrigin = initial
+	}
 	if s.guardian != nil {
 		// One original sample, before any root observation. No subsequent
 		// process, claim, recovered DATA or later ticket may replace it.
@@ -53,6 +70,9 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 	defer func() {
 		if !succeeded {
 			s.failed = true
+			if s.history != nil {
+				s.history.failLocked()
+			}
 			if s.evidence != nil {
 				_ = s.evidence.close()
 			}

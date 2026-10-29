@@ -16,17 +16,20 @@ var errProviderOwnedClock = errors.New("registry011: owned integration clock una
 // selection must independently qualify the clock artifact and uncertainty.
 // Candidate JSON never supplies a sample or an operating callback here.
 type providerOwnedClock struct {
-	mu          sync.Mutex
-	owner       *providerOwnedClock
-	origin      time.Time
-	id, epoch   string
-	policy      string
-	uncertainty int64
-	readWindow  time.Duration
-	maximum     uint64
-	read        uint64
-	last        ClockSample
-	failed      bool
+	mu             sync.Mutex
+	owner          *providerOwnedClock
+	origin         time.Time
+	id, epoch      string
+	policy         string
+	uncertainty    int64
+	readWindow     time.Duration
+	maximum        uint64
+	read           uint64
+	last           ClockSample
+	failed         bool
+	legacyClaims   uint64
+	history        *providerHistoryProgramOwner
+	historyRevoked bool
 }
 
 // The finite setup envelope must cover construction and every permitted read.
@@ -55,11 +58,40 @@ func newProviderOwnedClock(policy *ProviderPolicyCandidate, maximum uint64, base
 func (*providerOwnedClock) UnmarshalJSON([]byte) error { return errProviderOwnedClock }
 
 func (c *providerOwnedClock) sample() (ClockSample, error) {
+	return c.sampleForHistory(nil, nil)
+}
+
+// Legacy stores record their use before opening either root. A future whole
+// program cannot reserve a backend already handed to one of those stores,
+// even if that store has not taken its first sample or its open later fails.
+func (c *providerOwnedClock) claimLegacy(policy string) bool {
+	if c == nil {
+		return false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.owner != c || c.failed || c.history != nil || c.policy != policy || c.maximum == 0 || c.read >= c.maximum || c.legacyClaims >= 1<<20 {
+		return false
+	}
+	c.legacyClaims++
+	return true
+}
+
+// The original backend admits only the one pre-H0 parent after reservation.
+// No diagnostic, second store, direct legacy call or copied parent can spend
+// its samples. Refusal occurs before the counter or native clock is touched.
+func (c *providerOwnedClock) sampleForHistory(parent *providerHistoryProgramOwner, claim *providerHistoryClockClaim) (ClockSample, error) {
 	if c == nil {
 		return ClockSample{}, errProviderOwnedClock
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.history != parent || parent == nil && claim != nil || parent != nil && (c.historyRevoked || parent.owner != parent || parent.clock != c || parent.store == nil || parent.store.history != parent || !parent.clockSelectionMatches(c) || c.read >= parent.clockCeiling || parent.original == (ClockSample{}) && c.read != parent.initialRead || claim == nil || claim.owner != claim || claim.parent != parent || parent.clockClaim != claim || claim.used || claim.expectedRead != c.read || claim.meter == nil || parent.store.activeMeter.Load() != claim.meter) {
+		return ClockSample{}, errProviderOwnedClock
+	}
+	if claim != nil {
+		claim.used = true // Burn even when the following native read fails.
+	}
 	if c.owner != c || c.failed || c.maximum == 0 || c.read >= c.maximum || c.origin.IsZero() || !lowerHash(c.epoch) || c.id == "" || c.uncertainty <= 0 || c.readWindow <= 0 {
 		return ClockSample{}, errProviderOwnedClock
 	}
@@ -75,6 +107,10 @@ func (c *providerOwnedClock) sample() (ClockSample, error) {
 	sample := ClockSample{ClockID: c.id, Epoch: c.epoch, WallMS: now.UnixMilli(), MonotonicMS: now.Sub(c.origin).Milliseconds(), UncertaintyMS: c.uncertainty}
 	if sample.WallMS < sample.UncertaintyMS || sample.MonotonicMS < 0 || c.read > 1 && !candidateLedgerClockAdvance(providerClockDiagnostic(c.last), providerClockDiagnostic(sample)) {
 		c.failed = true
+		return ClockSample{}, errProviderOwnedClock
+	}
+	if parent != nil && parent.original != (ClockSample{}) && (sample.MonotonicMS < parent.original.MonotonicMS || uint64(sample.MonotonicMS-parent.original.MonotonicMS) > parent.bounds.durationMS) {
+		c.failed, c.historyRevoked = true, true
 		return ClockSample{}, errProviderOwnedClock
 	}
 	c.last = sample

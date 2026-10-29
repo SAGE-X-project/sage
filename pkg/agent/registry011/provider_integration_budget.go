@@ -20,6 +20,9 @@ func providerIntegrationProfileBytes(b providerIntegrationBounds, capture Provid
 	if b.guardian != nil {
 		format, domain = "sage-provider-owned-profile-v5", "sage-provider-store-profile-v5"
 	}
+	if b.history != nil {
+		format, domain = "sage-provider-owned-profile-v6", "sage-provider-store-profile-v6"
+	}
 	raw := providerIntegrationJSON(map[string]any{"format": format, "store": b.profileObject(), "capture": map[string]string{"timeout_ns": strconv.FormatInt(int64(capture.Timeout), 10), "header_bytes": strconv.Itoa(capture.HeaderBytes), "body_bytes": strconv.Itoa(capture.BodyBytes), "wire_bytes": strconv.Itoa(capture.WireBytes), "json_depth": strconv.Itoa(capture.JSONDepth)}})
 	return raw, domain
 }
@@ -70,6 +73,10 @@ func (b providerIntegrationBounds) profileObject() map[string]any {
 		out["format"], out["guardian"] = "sage-provider-store-profile-v5", b.guardian.object()
 		out["continuation_accounting"] = "pre-h0-guardian-hold-same-live-original-models-v1"
 	}
+	if b.history != nil {
+		out["format"], out["history"] = "sage-provider-store-profile-v6", b.history.object()
+		out["continuation_accounting"] = "pre-h0-whole-program-independent-parent-v1"
+	}
 	for name, value := range values {
 		out[name] = strconv.FormatUint(value, 10)
 	}
@@ -88,6 +95,7 @@ type providerIntegrationBounds struct {
 	scan                     *providerScanBounds
 	firstAdmission           *providerFirstAdmissionBounds
 	guardian                 *providerGuardianBounds
+	history                  *providerHistoryProgramBounds
 	maximumCommits           int
 	maximumObjects           int
 	maximumEntries           int
@@ -120,6 +128,9 @@ func (b providerIntegrationBounds) valid() bool {
 		return false
 	}
 	if b.guardian != nil && (b.firstAdmission == nil || !b.guardian.valid(b)) {
+		return false
+	}
+	if b.history != nil && !b.history.valid(b) {
 		return false
 	}
 	return candidateLedgerBoundsValid(b.ledger) && b.maximumCommits > 0 && uint64(b.maximumCommits) <= commits && b.maximumObjects > 0 && uint64(b.maximumObjects) <= objects && b.maximumEntries > 0 && b.maximumEntries <= entries &&

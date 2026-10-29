@@ -105,3 +105,162 @@ must separately fund all work and bracket it with the original qualified
 clock before use. Existing collectors and all of their checks and resident
 quotes are unchanged. The grouped execution owner, full numerical certificate,
 whole-history cursor and final C0/Dp/C1 inspection are still required.
+
+## Pre-input byte accounting candidate
+
+The new private input guard copies a fixed, disjoint array of event-class
+ceilings. Each row fixes a maximum input width W, cumulative input bytes U and
+invocations J. Under a separately proven per-invocation width bound, the
+existing codec/encode metric is bounded by W*U+J; linear byte events use U+J.
+Zero-byte invocations still consume their own call. Arithmetic, cross-class
+sums, cumulative bytes and invocation counts are checked before input effects.
+An incomplete, exhausted or failed instance cannot be resized, refunded or
+restored from JSON. Multi-class claims are consumed atomically.
+
+The original-reader adapter derives its claim from the retained reference,
+consuming N+1 read bytes with ceil(N/8192)+1 calls and N hash bytes with
+ceil(N/8192) calls before invoking the concrete reader. Every underlying input
+is at most8192 bytes; the final read is the separate one-byte EOF probe. A
+second read of the same original consumes a second claim. Failure retains the
+whole attempted claim and closes the input-guard instance. The guard serializes
+its debit with the actual scan; it does not accept an input-operation callback.
+
+This is prospective input accounting, not measured actual work or a retained
+whole-program hold. The private constructor can create an accounting instance;
+creating another instance does not restore operational capacity. No current
+Source, transport, custody owner or meter accepts it as authority. The future
+grouped owner must derive its immutable rows, create exactly one original
+instance per independent role under its previously retained full hold, bind
+the original program/epoch/stage, and consume its own one-use member permission
+before dispatch. Those connections are not implemented by this helper.
+
+The adapter covers read/hash INPUT rows only. The fourteen filesystem metadata
+calls, digest/path construction, allocator/native costs, owned clocks, storage,
+semantic replay, failure custody and final scans remain separately funded
+whole-program obligations. In particular the existing per-RPC full-width
+reservations are unchanged: this guard cannot discount or replace them.
+Neither this component nor a positive scalar envelope supplies a sufficient
+whole-history certificate, a group ACK, a cursor or Source readiness. The
+closed grouped permission/custody source and complete cost derivation still
+have to close together before whole-history acquisition.
+
+## Ordered group request table candidate
+
+A new private preparation table fixes the program identifier, finite purpose,
+stage ordinal and each distinct member ordinal, exact method, reconstructed
+HTTP request/params identities, symbolic method class and all selected capture
+limits. Its copied fixed array has at most32 members; canonical metadata is at
+most64KiB. These are candidate preparation bounds, not a selected operating
+profile or proof that the corresponding full group fits a custody commit.
+
+The constructor rebuilds every request from bounded original parameter DATA,
+checks its complete HTTP bytes and both digest contracts, and derives the class
+again. Equal numeric caps never substitute for a method class. Caller pointers
+and slices are not retained. Identical requests occupy separate ordered slots
+and therefore remain separate future permissions and resource invocations.
+
+An explicit parser reconstructs a table against the independently supplied
+original requests and fixed expected program, purpose, stage and method bounds,
+and compares the exact canonical original metadata. It does not accept a JSON
+role or a digest-only claimed acknowledgement. The table domain is a private
+candidate record format, not a change to the Agent wire protocol or RFC9421.
+
+Both construction and parsing return DATA only. Neither validates that a
+request is the next command allowed by the whole-history grammar. The future
+program must validate that grammar and its response dependencies against prior
+originals, fund all work beforeH0, retain independently acknowledged T/C/S,
+consume all members before dispatch, and quarantine failure under its original
+hold. Those duties, the complete numeric costs, qualified clocks, independent
+readers and final C0/Dp/C1 are not provided by this preparation table. The private first-group owner uses the table in its retained T and C records,
+but exposes no Source or network-permit API. The existing per-RPC path and its
+full-width reservations remain unchanged.
+
+## Ordered member bookkeeping candidate
+
+A separate private counter models irreversible all-member consumption, a
+separate consumption-confirmation step and one in-flight member in exact
+ordinal order. A valid group has one to32members. Every member bit is consumed
+before the first begin. Completed ordinals cannot be repeated, skipped or
+reordered. Invalid transitions and explicit failures retain the consumed and
+dispatched masks and close the counter; they cannot advance or reset it.
+A normally closed counter preserves its complete history. Copies and JSON
+records cannot recreate the original counter.
+
+This remains serialized in-memory bookkeeping, not transport authority. The
+private first-group writer now creates its original counter only after replaying
+an actual retained T, consumes every member before writing C, and confirms it
+only after independent C readback, physical HEAD replacement and the original
+end-clock checks succeed. Counter confirmation precedes the single serialized
+logical pin/model/ACK publication. A failed or uncertain write preserves every
+consumed bit and the complete admitted upper while quarantining the same owner.
+A copied ACK or counter never reinstalls a writer or renews a window.
+
+The C path reconstructs the initial model from its selected immutable original
+pin and replays the original request pack, T, inventory and framing under the
+current original observer. This does not move today's HEAD back, restore a
+closed inspection cache, or revive an earlier observer/clock role. Its permitted
+catalog derives from the initial selected prefix plus the acknowledged T delta;
+it does not accept directory contents or cached allowed-name maps as authority.
+C uses the unspent suffix of T's exact group work/clock window and the same
+pre-observation lifetime hold. The independently replayed T clock remains the
+elapsed-time anchor through C; a new short C bracket cannot renew its five-minute
+group interval. It cannot select fresh scalar limits.
+
+Ordered transport execution, result-original semantics and successful/failed S
+retention remain required. A concrete executor must bind its original C ACK and
+counter before any member can be dispatched, preserve the exact ordinal order,
+and verify independently retained S before closing. No current transport accepts
+the private C ACK or its confirmed bookkeeping as a network permit. The complete
+source-derived work, native memory/live-set, storage, clocks and failure/recovery
+certificate and its production factory remain unimplemented. The provisioned
+unit fixture is not operating qualification or a whole-program cost proof.
+
+Creating a second DATA counter cannot restore operational capacity. Program,
+table and original-instance identity must be bound and checked by the actual
+parent. Source-derived transition, string-validation, native-memory, clock,
+retention and failure costs still belong to the uncompleted whole-program
+certificate. The counter itself implements none of those effects or checks,
+and its finite state tests are not proof of durable group execution, whole
+history, final publication or Source readiness.
+
+
+## Committed group replay preparation
+
+Within the unfinished dispatch and settlement bundle, an original C
+acknowledgment can prepare two independent initial/T/C replay models without
+rewinding the current phase to T or replacing the current C pin, last ACK or
+models. The initial namespace and exact T/C file deltas are derived again;
+discarded catalog caches do not select allowed names. Every retained request,
+T/C object, inventory, frame and immutable highwater is read under the current
+C HEAD. The original observer, group work window, native clock ceiling and T
+time origin remain cumulative. No new hold, counter, clock backend or refund
+is introduced. Failure after entry quarantines the original consumed state.
+
+The private preparation object is not an execution permit, retained S or a
+completed group. Actual ordered connection attempts, bound response/TLS
+originals, S and terminal recovery, complete eleven-coordinate costs and peak
+resident memory, and the production derivation factory are still required
+before collecting the complete history or selecting an operating Source.
+Source review, actual unit/runtime execution and CI evidence are separate
+gates; preparing the code does not satisfy them.
+
+
+## Ordered result original DATA
+
+A separate bounded parser reconstructs each original HTTP/RPC envelope and
+its canonical TLS-identity record from the selected binary result pack. The
+retained T supplies the exact request table and capture class; the enclosing
+settlement replay must select the completed prefix. Member digests are derived
+from actual original response/TLS hashes plus program, stage, table, T, C,
+request and ordinal bindings, including distinct identities for equal wire
+bytes at different ordinals. A shorter prefix cannot become complete S.
+
+TLS records retain the existing bounded verified-certificate digest chains and
+selected roots artifact; parsing these records is DATA validation, not a new
+certificate or live origin attestation. The concrete closed capture owner
+still must bind the real verified connection and retain its actual originals.
+HTTP/RPC framing and id validation do not prove method-specific chain/block/
+execution semantics. No result DATA can issue a permit, publish S or return
+a protected Agent result. Those connections and full cost/live-set derivation
+remain unfinished. New scenario and normal owned-TLS tests are prepared; no
+execution or CI acceptance is implied by this source proposal.

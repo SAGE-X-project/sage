@@ -16,6 +16,7 @@ type providerFrontierFiles struct {
 	pin                 providerFrontierHighwater
 	pinRaw              string
 	pending             *providerFrontierWriteClaim
+	historyPending      *providerHistoryWriteClaim
 	initialized, failed bool
 }
 
@@ -58,7 +59,7 @@ func (f *providerFrontierFiles) initialize() (providerFrontierRetention, error) 
 // initializeLocked is also the outer store transaction's entry point. The
 // caller must hold store.mu for the complete transaction, including this step.
 func (f *providerFrontierFiles) initializeLocked() (providerFrontierRetention, error) {
-	if !f.valid() || f.initialized {
+	if !f.valid() || f.initialized || f.historyPending != nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	f.failed = true
@@ -118,7 +119,10 @@ func (f *providerFrontierFiles) advanceLocked(after providerFrontierHighwater, k
 }
 
 func (f *providerFrontierFiles) advanceClaimedLocked(after providerFrontierHighwater, kind string, input, commit, frontier []byte, claim *providerFrontierWriteClaim) (providerFrontierRetention, error) {
-	if !f.valid() || !f.initialized || f.pending != claim {
+	if !f.valid() || !f.initialized || f.pending != claim || f.historyPending != nil {
+		return providerFrontierRetention{}, errProviderIntegration
+	}
+	if f.store.config.bounds.history != nil && claim == nil {
 		return providerFrontierRetention{}, errProviderIntegration
 	}
 	f.failed = true

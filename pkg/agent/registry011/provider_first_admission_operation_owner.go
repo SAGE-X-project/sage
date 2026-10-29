@@ -108,6 +108,9 @@ func (o *providerFirstOperationOwner) failLocked() {
 		return
 	}
 	o.state, o.store.failed = providerFirstOperationFailed, true
+	if o.store.history != nil {
+		o.store.history.failLocked()
+	}
 	if o.integration != nil {
 		o.integration.failed = true
 	}
@@ -133,8 +136,8 @@ func (o *providerFirstOperationOwner) failLocked() {
 	o.store.activeMeter.Store(nil)
 }
 
-// Observation routing is explicit only for the newly bound first-operation
-// metric. The original DATA-only F and every legacy metric stay unchanged.
+// Observation routing is explicit for the closed pre-H0 owner metrics. The
+// original DATA-only F and every legacy metric keep their original behavior.
 func providerFirstOperationObserved(meter *providerWorkMeter) bool {
-	return meter != nil && (meter.continuing != nil || meter.guardian != nil && (meter.guardian.continuing != nil || meter.guardian.sealing != nil) || meter.firstOperation != nil || meter.firstAdmission != nil && meter.firstAdmission.operation != nil)
+	return meter != nil && (meter.historyGroup != nil || meter.continuing != nil || meter.guardian != nil && (meter.guardian.continuing != nil || meter.guardian.sealing != nil) || meter.firstOperation != nil || meter.firstAdmission != nil && meter.firstAdmission.operation != nil)
 }

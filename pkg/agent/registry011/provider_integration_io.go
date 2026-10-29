@@ -80,14 +80,28 @@ func (s *providerCustodyStore) sample() (ClockSample, error) {
 // Only the generic non-F path and the exact first-finishing owner call this
 // primitive. F validates the returned time before any caller can use it.
 func (s *providerCustodyStore) samplePrimitive() (ClockSample, error) {
+	if s == nil || s.config.bounds.history != nil && (s.history == nil || !s.history.matchesLocked()) || s.config.bounds.history == nil && s.history != nil {
+		return ClockSample{}, errProviderIntegration
+	}
+	m := s.activeMeter.Load()
+	if s.history != nil && !s.history.clockRoleLocked(m) {
+		return ClockSample{}, errProviderIntegration
+	}
 	if !s.event(providerClockEvent, 0) {
 		return ClockSample{}, errProviderIntegration
 	}
-	return s.clock.sample()
+	var claim *providerHistoryClockClaim
+	if s.history != nil {
+		claim = s.history.issueClockClaimLocked(m)
+		if claim == nil {
+			return ClockSample{}, errProviderIntegration
+		}
+	}
+	return s.clock.sampleForHistory(s.history, claim)
 }
 
 func (c *providerIntegration) attachMeter(reservation providerOperationReservation) (*providerWorkMeter, error) {
-	if !c.valid() {
+	if !c.legacyAllowed() {
 		return nil, errProviderIntegration
 	}
 	parent := c.store.activeMeter.Load()
@@ -101,6 +115,9 @@ func (c *providerIntegration) attachMeter(reservation providerOperationReservati
 }
 
 func (c *providerIntegration) restoreMeter(m *providerWorkMeter) {
+	if c == nil || c.store == nil || c.store.config.bounds.history != nil || c.store.history != nil {
+		return
+	}
 	if m == nil || m.integration != c {
 		c.failed = true
 		return
@@ -114,7 +131,7 @@ func (c *providerIntegration) restoreMeter(m *providerWorkMeter) {
 }
 
 func (c *providerIntegration) beginRemaining(permit *providerIntegrationPermit) error {
-	if permit == nil || permit.owner != c || !permit.used || permit.meter == nil || permit.meter.integration != c || permit.meter.ticket != permit.ticket.digest || c.store.activeMeter.Load() != permit.meter {
+	if !c.legacyAllowed() || permit == nil || permit.owner != c || !permit.used || permit.meter == nil || permit.meter.integration != c || permit.meter.ticket != permit.ticket.digest || c.store.activeMeter.Load() != permit.meter {
 		return errProviderIntegration
 	}
 	m := newProviderWorkMeter(c, providerOperationReservation{work: permit.ticket.work, execution: permit.meter.remaining})

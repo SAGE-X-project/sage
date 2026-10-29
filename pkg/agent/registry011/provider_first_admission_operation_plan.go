@@ -177,6 +177,20 @@ func providerFirstOperationMemoryUpper(b providerIntegrationBounds, capture Prov
 			return 0, false
 		}
 	}
+	if b.history != nil {
+		// The original parent remains reachable while the first operation
+		// preserves its scalar handoff. Count both concrete structs and their
+		// allocation pointers; this is static layout, not allocator or host
+		// qualification and not a complete future-program memory certificate.
+		for _, size := range []uint64{uint64(reflect.TypeFor[providerHistoryProgramOwner]().Size()), uint64(reflect.TypeFor[providerHistoryProgramStart]().Size())} {
+			allocation, fits := providerUpperSum(size, uint64(reflect.TypeFor[*byte]().Size()))
+			var totalOK bool
+			native, totalOK = providerUpperSum(native, allocation)
+			if !fits || !totalOK {
+				return 0, false
+			}
+		}
+	}
 	memory, p := providerUpperSum(first.memory, models, collections, native)
 	return memory, a && c && d && bindingOK && e && f && g && h && i && j && k && l && m && n && o && p && memory <= b.scan.maximumResidentBytes && memory <= b.continuation.maximumResidentBytes
 }

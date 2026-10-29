@@ -111,6 +111,9 @@ func (o *providerFirstOperationOwner) finishLocked(permit *providerIntegrationPe
 	if s.guardian != nil && !s.guardian.handoffFirstLocked(o) {
 		return nil, errProviderIntegration
 	}
+	if s.config.bounds.history != nil && (s.history == nil || !s.history.handoffFirstLocked(o)) {
+		return nil, errProviderIntegration
+	}
 	// Include the final bounded equality check in R, never in E's actual.
 	result.remaining = o.remaining.actual
 	o.remaining.mu.Lock()

@@ -8,7 +8,7 @@ import (
 )
 
 func (c *providerIntegration) finishRPC(permit *providerIntegrationPermit, sample *ProviderTransportSample, executionErr error) (json.RawMessage, json.RawMessage, error) {
-	if !c.valid() || permit == nil || permit.owner != c || !permit.used || permit.request == nil {
+	if !c.legacyAllowed() || permit == nil || permit.owner != c || !permit.used || permit.request == nil {
 		return nil, nil, errProviderIntegration
 	}
 	clock, err := c.store.sample()
@@ -75,6 +75,9 @@ func (c *providerIntegration) finishRPC(permit *providerIntegrationPermit, sampl
 }
 
 func (c *providerIntegration) exchangeObject(permit *providerIntegrationPermit, sample *ProviderTransportSample, clock ClockSample) (providerIntegrationObject, error) {
+	if !c.legacyAllowed() || permit == nil || permit.request == nil || sample == nil {
+		return providerIntegrationObject{}, errProviderIntegration
+	}
 	r := permit.request
 	if sample.Endpoint != SepoliaRPCURL || sample.Method != r.method || sample.HTTPVersion != "HTTP/1.1" || sample.ServerName != "rpc.sepolia.ethpandaops.io" || !sample.Complete || sample.CaptureError != "" || !bytes.Equal(sample.RequestHead, []byte(r.head)) || !bytes.Equal(sample.RequestBody, []byte(r.body)) || sample.WireBytes > c.primitive.capture.WireBytes || sample.WireBytes <= len(r.wire) || len(sample.VerifiedChains) == 0 || len(sample.VerifiedChains[0]) == 0 || len(sample.Headers) > c.primitive.capture.HeaderBytes/4 || !candidateLedgerClockAdvance(providerClockDiagnostic(permit.clock), providerClockDiagnostic(clock)) {
 		return providerIntegrationObject{}, errProviderIntegration
@@ -95,6 +98,9 @@ func (c *providerIntegration) exchangeObject(permit *providerIntegrationPermit, 
 // owner's measured vector through clock_end; future S/retention/ACK work belongs
 // to its already reserved remaining envelope and cannot become a fake measure.
 func (c *providerIntegration) settle(ticket *CandidateAdmissionTicket, outcome, retained string, clock ClockSample, extra []providerIntegrationObjectInput, measurement *providerMeasuredWork) error {
+	if !c.legacyAllowed() || ticket == nil {
+		return errProviderIntegration
+	}
 	var actual, result any
 	if outcome == "complete" {
 		work, ok := measurement.claim(c, ticket, clock)

@@ -29,12 +29,17 @@ func providerScanProvisionedFixtureWithFirstPolicy(t *testing.T, first *provider
 
 // An optional separate test profile is fixed before its first anchor/H0/clock.
 type providerScanFixtureSelection struct {
-	capture        *ProviderCaptureLimits
-	tls            *providerTLSBounds
-	continuingWire bool
-	pin            bool
-	pinResidentGiB bool
-	pinLargeObject bool
+	capture             *ProviderCaptureLimits
+	tls                 *providerTLSBounds
+	continuingWire      bool
+	pin                 bool
+	pinResidentGiB      bool
+	pinLargeObject      bool
+	historyProgram      bool
+	historyShortStartup bool
+	historyGroupInit    bool
+	historyGroupWrite   bool
+	historyGroupConsume bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -117,6 +122,37 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 			t.Fatal(err)
 		}
 	}
+	if selected != nil && selected.historyProgram {
+		providerHistoryProvisionedTestBounds(t, &b, capture, selected.historyShortStartup)
+		if selected.historyGroupInit {
+			h := b.history
+			// A synthetic, pre-anchor initialization TEST envelope only.
+			// This is not a whole-history cost or operating certificate.
+			h.future.work[2], h.future.work[10] = 4<<20, 1<<46
+			h.resident = 64 << 20
+			h.derivation.snapshot = *h
+			if !b.valid() {
+				t.Fatal("fresh group initialization test profile")
+			}
+		}
+		if selected.historyGroupWrite {
+			h := b.history
+			// A separate, inert writer TEST envelope selected before H0.
+			// No operating cap, source certificate or existing subject changes.
+			h.future.work[2], h.future.work[9], h.future.work[10] = 64<<20, 32<<20, 1<<55
+			h.future.physical, h.future.retainedRaw, h.future.payload, h.future.metadata = 8<<20, 4<<20, 128<<10, 2<<20
+			h.future.objects, h.future.files, h.future.clocks = 8, 64, 32
+			h.catalogEntries, h.catalogNameBytes, h.resident = 2048, 2048*255, 64<<20
+			if selected.historyGroupConsume {
+				// Synthetic maximum-member TEST input selected before H0.
+				h.future.work[0], h.future.work[1] = providerHistoryGroupMembers, providerHistoryGroupMembers
+			}
+			h.derivation.snapshot = *h
+			if !b.valid() {
+				t.Fatal("fresh admission-writer test profile")
+			}
+		}
+	}
 	profile := providerIntegrationProfile(b, capture)
 	empty, err := newProviderFrontierInventory("", nil, b.maximumEntries, 64<<20)
 	if err != nil {
@@ -145,7 +181,11 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 			}
 		}
 	}
-	clock, err := newProviderOwnedClock(policy, 4096, 100, 100)
+	maximumClocks := uint64(4096)
+	if selected != nil && selected.historyProgram {
+		maximumClocks = 1 << 20
+	}
+	clock, err := newProviderOwnedClock(policy, maximumClocks, 100, 100)
 	if err != nil {
 		t.Fatal(err)
 	}
