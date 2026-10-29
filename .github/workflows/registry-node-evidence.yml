@@ -177,6 +177,7 @@ jobs:
               'provider_history_group_ledger.go',
               'provider_history_custody_frame.go',
               'provider_history_group_owner.go',
+              'provider_history_original_pack.go',
               'provider_history_program_bounds.go',
               'provider_history_program_owner.go',
               'provider_history_program_clock.go',
