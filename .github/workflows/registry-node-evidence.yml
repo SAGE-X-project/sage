@@ -181,6 +181,8 @@ jobs:
               'provider_history_group_storage.go',
               'provider_history_group_writer.go',
               'provider_history_group_catalog.go', 'provider_history_group_consumption.go',
+              'provider_history_group_replay.go',
+              'provider_history_group_results.go',
               'provider_history_program_bounds.go',
               'provider_history_program_owner.go',
               'provider_history_program_clock.go',

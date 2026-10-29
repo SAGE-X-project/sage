@@ -222,3 +222,45 @@ retention and failure costs still belong to the uncompleted whole-program
 certificate. The counter itself implements none of those effects or checks,
 and its finite state tests are not proof of durable group execution, whole
 history, final publication or Source readiness.
+
+
+## Committed group replay preparation
+
+Within the unfinished dispatch and settlement bundle, an original C
+acknowledgment can prepare two independent initial/T/C replay models without
+rewinding the current phase to T or replacing the current C pin, last ACK or
+models. The initial namespace and exact T/C file deltas are derived again;
+discarded catalog caches do not select allowed names. Every retained request,
+T/C object, inventory, frame and immutable highwater is read under the current
+C HEAD. The original observer, group work window, native clock ceiling and T
+time origin remain cumulative. No new hold, counter, clock backend or refund
+is introduced. Failure after entry quarantines the original consumed state.
+
+The private preparation object is not an execution permit, retained S or a
+completed group. Actual ordered connection attempts, bound response/TLS
+originals, S and terminal recovery, complete eleven-coordinate costs and peak
+resident memory, and the production derivation factory are still required
+before collecting the complete history or selecting an operating Source.
+Source review, actual unit/runtime execution and CI evidence are separate
+gates; preparing the code does not satisfy them.
+
+
+## Ordered result original DATA
+
+A separate bounded parser reconstructs each original HTTP/RPC envelope and
+its canonical TLS-identity record from the selected binary result pack. The
+retained T supplies the exact request table and capture class; the enclosing
+settlement replay must select the completed prefix. Member digests are derived
+from actual original response/TLS hashes plus program, stage, table, T, C,
+request and ordinal bindings, including distinct identities for equal wire
+bytes at different ordinals. A shorter prefix cannot become complete S.
+
+TLS records retain the existing bounded verified-certificate digest chains and
+selected roots artifact; parsing these records is DATA validation, not a new
+certificate or live origin attestation. The concrete closed capture owner
+still must bind the real verified connection and retain its actual originals.
+HTTP/RPC framing and id validation do not prove method-specific chain/block/
+execution semantics. No result DATA can issue a permit, publish S or return
+a protected Agent result. Those connections and full cost/live-set derivation
+remain unfinished. New scenario and normal owned-TLS tests are prepared; no
+execution or CI acceptance is implied by this source proposal.

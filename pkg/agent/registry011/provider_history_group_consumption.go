@@ -189,6 +189,25 @@ func (o *providerHistoryGroupOwner) readConsumptionLocked(c *providerHistoryWrit
 	if err != nil {
 		return nil, errProviderIntegration
 	}
+	return o.readConsumptionDataLocked(c, o.pin, o.inventory, base, head)
+}
+
+// Replaying committed C selects historical DATA explicitly. It never changes
+// the live phase, current pin, last acknowledgment or the original T/C models.
+func (o *providerHistoryGroupOwner) readConsumptionDataLocked(c *providerHistoryWriteClaim, before providerFrontierHighwater, previousInventory string, base *providerHistoryGroupLedger, head string) (*providerHistoryGroupLedger, error) {
+	if o == nil || c == nil || c.owner != c || c.group != o || c.meter != o.meter || c.frame == nil || c.inventory == nil ||
+		c.count != 1 || c.inventory.count != 1 || c.consumption != c.inventory.entries[0] || c.consumption.kind != "consumption" ||
+		c.coordinator == nil || base == nil || base.ticket == nil || base.phase != "admitted" ||
+		c.frame.before != before || !lowerHash(previousInventory) || !o.activeLocked(o.meter) {
+		return nil, errProviderIntegration
+	}
+	s, m := o.store, o.meter
+	beforeRaw, err := before.bytesObserved(s.config, m)
+	if err != nil || !s.frontierFiles.readExact("HEAD", providerReplayBytes(head, m)) ||
+		!s.frontierFiles.readExact(s.name("highwater", before.ordinal), beforeRaw) ||
+		!s.frontierFiles.readExact(s.name("highwater", c.frame.after.ordinal), providerReplayBytes(c.highwater, m)) {
+		return nil, errProviderIntegration
+	}
 	ref := c.consumption
 	raw, err := s.read(s.evidence, providerHistoryStoredName(ref, m), int64(ref.bytes))
 	if err != nil || uint64(len(raw)) != ref.bytes {
@@ -202,10 +221,10 @@ func (o *providerHistoryGroupOwner) readConsumptionLocked(c *providerHistoryWrit
 	if err != nil {
 		return nil, errProviderIntegration
 	}
-	if _, err := parseProviderHistoryInventoryObserved(inventoryRaw, o.inventory, c.inventory.digest, []providerHistoryStoredObject{object}, min(s.config.bounds.maximumMetadataPerCommit, candidateLedgerMetadataLimit), m); err != nil {
+	if _, err := parseProviderHistoryInventoryObserved(inventoryRaw, previousInventory, c.inventory.digest, []providerHistoryStoredObject{object}, min(s.config.bounds.maximumMetadataPerCommit, candidateLedgerMetadataLimit), m); err != nil {
 		return nil, errProviderIntegration
 	}
-	consumption, err := parseProviderHistoryGroupConsumptionObserved(raw, base.ticket, base.head, o.inventory, m)
+	consumption, err := parseProviderHistoryGroupConsumptionObserved(raw, base.ticket, base.head, previousInventory, m)
 	if err != nil {
 		return nil, errProviderIntegration
 	}
@@ -217,10 +236,10 @@ func (o *providerHistoryGroupOwner) readConsumptionLocked(c *providerHistoryWrit
 	pending, b := s.read(s.evidence, s.name("history-pending", c.frame.after.sequence), providerHistoryCustodyFrameBytes)
 	commit, d := s.read(s.custody, s.name("commit", c.frame.after.sequence), providerHistoryCustodyFrameBytes)
 	frontier, e := s.read(s.custody, s.name("frontier", c.frame.after.sequence), providerHistoryCustodyFrameBytes)
-	frame, err := parseProviderHistoryCustodyFrameObserved(s.config, o.scope, o.pin, c.frame.after, intent, commit, frontier, m)
+	frame, err := parseProviderHistoryCustodyFrameObserved(s.config, o.scope, before, c.frame.after, intent, commit, frontier, m)
 	if a != nil || b != nil || d != nil || e != nil || err != nil || !providerReplayEqual(intent, pending, m) ||
-		frame.previousInventory != o.inventory || frame.inventory != c.inventory.digest || frame.previousModel != base.head ||
-		frame.model != model.head || frame.operation != consumption.digest || frame.phase != "consume" || frame.stage != 1 {
+		frame.previousInventory != previousInventory || frame.inventory != c.inventory.digest || frame.previousModel != base.head ||
+		frame.model != model.head || frame.operation != consumption.digest || frame.phase != "consume" || frame.stage != 1 || frame.clock != c.frame.clock {
 		return nil, errProviderIntegration
 	}
 	return model, nil

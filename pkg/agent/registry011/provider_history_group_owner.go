@@ -21,6 +21,7 @@ type providerHistoryGroupOwner struct {
 	last        *providerHistoryGroupAcknowledgment
 	admission   *providerHistoryGroupAcknowledgment
 	order       *providerHistoryGroupOrder
+	dispatch    *providerHistoryGroupDispatch
 	window      bool
 	windowStart candidateWorkVector
 	windowUpper candidateWorkVector
@@ -130,6 +131,8 @@ func (o *providerHistoryGroupOwner) activeLocked(m *providerWorkMeter) bool {
 			pending.frame != nil && pending.frame.before == o.pin && pending.frame.stage == 1 && pending.frame.phase == "admit"
 	case "preparing-consume":
 		return pending == nil && o.admissionShapeLocked()
+	case "preparing-dispatch":
+		return pending == nil && o.dispatch == nil && o.consumptionShapeLocked()
 	case "writing-consume":
 		return o.admissionShapeLocked() && pending != nil && pending.owner == pending && pending.group == o && pending.meter == m && !pending.used &&
 			pending.admission == o.admission && pending.frame != nil && pending.frame.before == o.pin && pending.frame.stage == 1 && pending.frame.phase == "consume"

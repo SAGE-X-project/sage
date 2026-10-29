@@ -25,6 +25,8 @@ func historyConsumptionFixtureWithCap(t *testing.T, count int, dimension string,
 		upper.retainedRaw = min(upper.retainedRaw, maximum)
 		upper.payload = min(upper.payload, maximum)
 		upper.metadata = min(upper.metadata, maximum)
+	case "decoded-work":
+		upper.custody[2] = maximum
 	case "raw":
 		upper.retainedRaw = min(upper.retainedRaw, maximum)
 		upper.payload = min(upper.payload, maximum)
