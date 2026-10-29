@@ -3,7 +3,7 @@ package registry011
 import "testing"
 
 func TestProviderHistoryProgramBoundsRejectUnfundedResourceDomains(t *testing.T) {
-	for _, mode := range []string{"first", "scan", "continuation", "guardian", "program", "costs", "future", "stages", "stage-limit", "records", "commits", "objects", "catalog", "names", "resident", "duration", "startup", "clocks", "requests", "wire", "work", "physical", "clock-total", "derivation", "derivation-owner", "derivation-snapshot"} {
+	for _, mode := range []string{"first", "scan", "continuation", "guardian", "program", "costs", "future", "stages", "stage-limit", "records", "commits", "objects", "catalog", "names", "resident", "duration", "startup", "clocks", "requests", "wire", "work", "physical", "clock-total", "pre-i-open-clock", "pre-i-open-work", "derivation", "derivation-owner", "derivation-snapshot"} {
 		t.Run(mode, func(t *testing.T) {
 			s := providerHistoryParentScalarFixture(t)
 			store, h := s.config.bounds, *s.config.bounds.history
@@ -54,6 +54,10 @@ func TestProviderHistoryProgramBoundsRejectUnfundedResourceDomains(t *testing.T)
 				h.startup.retained = store.maximumStoredBytes
 			case "clock-total":
 				h.startup.clocks = 1 << 20
+			case "pre-i-open-clock":
+				store.scan.maximumPreIClockReads = store.setupMaximumClockReads - 1
+			case "pre-i-open-work":
+				store.scan.maximumPreIWork[10] = store.setupWork[10] - 1
 			case "derivation":
 				h.derivation = nil
 			case "derivation-owner":

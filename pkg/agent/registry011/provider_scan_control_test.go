@@ -35,6 +35,7 @@ type providerScanFixtureSelection struct {
 	pin            bool
 	pinResidentGiB bool
 	pinLargeObject bool
+	historyProgram bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -117,6 +118,9 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 			t.Fatal(err)
 		}
 	}
+	if selected != nil && selected.historyProgram {
+		providerHistoryProvisionedTestBounds(t, &b, capture)
+	}
 	profile := providerIntegrationProfile(b, capture)
 	empty, err := newProviderFrontierInventory("", nil, b.maximumEntries, 64<<20)
 	if err != nil {
@@ -145,7 +149,11 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 			}
 		}
 	}
-	clock, err := newProviderOwnedClock(policy, 4096, 100, 100)
+	maximumClocks := uint64(4096)
+	if selected != nil && selected.historyProgram {
+		maximumClocks = 1 << 20
+	}
+	clock, err := newProviderOwnedClock(policy, maximumClocks, 100, 100)
 	if err != nil {
 		t.Fatal(err)
 	}

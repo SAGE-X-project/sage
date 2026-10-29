@@ -14,14 +14,20 @@ import (
 func providerHistoryParentScalarFixture(t *testing.T) *providerCustodyStore {
 	t.Helper()
 	first := providerFirstAdmissionBoundsFixture()
-	config, clock := providerScanProvisionedFixtureWithFirst(t, &first)
+	config, _ := providerScanProvisionedFixtureWithFirst(t, &first)
 	scan := *config.bounds.scan
 	scan.maximumPreIRetainedBytes /= 2
 	scan.maximumPreIWork[2] /= 2
 	scan.maximumPreIWork[9] /= 2
 	scan.maximumPreIWork[10] /= 2
-	scan.maximumClockReads, scan.maximumPreIClockReads = 256, 1024
+	// Preserve the complete original O allowance. The new inert parent must
+	// include it, rather than selecting a pre-I clock cap below that allowance.
+	scan.maximumPreIClockReads /= 2
 	config.bounds.scan = &scan
+	clock, err := newProviderOwnedClock(config.policy, 1<<20, 100, 100)
+	if err != nil {
+		t.Fatal("separate whole-program scalar clock fixture", err)
+	}
 	work := candidateWorkVector{}
 	for i := range work {
 		work[i] = 1
@@ -284,7 +290,7 @@ func TestProviderHistoryProgramUnclaimedHeadRefusesBeforeNativeIO(t *testing.T) 
 }
 
 func TestProviderHistoryProgramClockEnforcesLifetimeAndSelectedBackend(t *testing.T) {
-	for _, mode := range []string{"ceiling", "origin", "window", "uncertainty", "maximum"} {
+	for _, mode := range []string{"ceiling", "origin", "monotonic-origin", "origin-location", "window", "uncertainty", "maximum"} {
 		t.Run(mode, func(t *testing.T) {
 			s, p := providerHistoryParentBoundScalarFixture(t)
 			if !s.event(providerClockEvent, 0) {
@@ -301,6 +307,10 @@ func TestProviderHistoryProgramClockEnforcesLifetimeAndSelectedBackend(t *testin
 				before = s.clock.read
 			case "origin":
 				s.clock.origin = s.clock.origin.Add(-time.Second)
+			case "monotonic-origin":
+				s.clock.origin = s.clock.origin.Round(0)
+			case "origin-location":
+				s.clock.origin = s.clock.origin.UTC()
 			case "window":
 				s.clock.readWindow++
 			case "uncertainty":

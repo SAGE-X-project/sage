@@ -44,6 +44,7 @@ func (b providerHistoryProgramBounds) valid(store providerIntegrationBounds) boo
 	physical, physicalOK := providerUpperSum(store.scan.maximumPreIRetainedBytes, b.startup.retained, b.future.physical)
 	clocks, clockOK := providerUpperSum(store.scan.maximumPreIClockReads, b.startup.clocks, b.future.clocks)
 	return ok && names <= b.catalogNameBytes && physicalOK && physical <= store.maximumStoredBytes && clockOK && clocks <= 1<<20 &&
+		providerHistoryUpperWithin(providerScanUpper{work: store.setupWork, retained: store.setupRetained, clocks: store.setupMaximumClockReads}, providerHistoryPreIUpper(store)) &&
 		b.derivation != nil && b.derivation.owner == b.derivation && b.derivation.snapshot == b
 }
 

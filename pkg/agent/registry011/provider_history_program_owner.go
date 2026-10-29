@@ -2,6 +2,21 @@ package registry011
 
 import "time"
 
+// Exact immutable backend selection. Struct equality deliberately includes
+// the native time origin's monotonic component and location representation;
+// equality of wall instants alone cannot preserve this selected backend.
+type providerHistoryClockSelection struct {
+	id, epoch, policy string
+	origin            time.Time
+	window            time.Duration
+	uncertainty       int64
+	maximum           uint64
+}
+
+func providerHistoryClockSelectionOf(c *providerOwnedClock) providerHistoryClockSelection {
+	return providerHistoryClockSelection{c.id, c.epoch, c.policy, c.origin, c.readWindow, c.uncertainty, c.maximum}
+}
+
 // This live reservation is installed before the FIRST owned sample/root read.
 // It cannot dispatch, return a protected result or select an operating Source.
 // Retained E0/initial binding, real group writers and their independent ACKs
@@ -19,11 +34,7 @@ type providerHistoryProgramOwner struct {
 	first                       providerFirstAdmissionBounds
 	limits                      providerFirstAdmissionLimits
 	clock                       *providerOwnedClock
-	clockID, clockEpoch         string
-	clockOrigin                 time.Time
-	clockWindow                 time.Duration
-	clockUncertainty            int64
-	clockMaximum                uint64
+	clockSelection              providerHistoryClockSelection
 	original                    ClockSample
 	held                        providerScanUpper
 	preI                        providerScanUpper
@@ -69,10 +80,10 @@ func newProviderHistoryProgramBeforeOpenCandidate(s *providerCustodyStore) (*pro
 	if c.owner != c || c.failed || c.history != nil || c.legacyClaims != 0 || c.policy != s.config.identity.Policy || !sumOK || ceiling > c.maximum {
 		return nil, errProviderIntegration
 	}
-	p := &providerHistoryProgramOwner{store: s, config: s.config, policy: *s.config.policy, bounds: *s.config.bounds.history, scan: *s.config.bounds.scan, continuation: *s.config.bounds.continuation, methods: *s.config.bounds.methods, tls: *s.config.bounds.tls, first: *s.config.bounds.firstAdmission, limits: limits, clock: c, clockID: c.id, clockEpoch: c.epoch, held: held, preI: providerHistoryPreIUpper(s.config.bounds), initialRead: c.read, clockCeiling: ceiling}
+	p := &providerHistoryProgramOwner{store: s, config: s.config, policy: *s.config.policy, bounds: *s.config.bounds.history, scan: *s.config.bounds.scan, continuation: *s.config.bounds.continuation, methods: *s.config.bounds.methods, tls: *s.config.bounds.tls, first: *s.config.bounds.firstAdmission, limits: limits, clock: c, held: held, preI: providerHistoryPreIUpper(s.config.bounds), initialRead: c.read, clockCeiling: ceiling}
 	p.owner = p
 	p.openMeter, p.openControl = m, m.scan
-	p.clockOrigin, p.clockWindow, p.clockUncertainty, p.clockMaximum = c.origin, c.readWindow, c.uncertainty, c.maximum
+	p.clockSelection = providerHistoryClockSelectionOf(c)
 	s.history, c.history = p, p
 	return p, nil
 }
@@ -122,7 +133,7 @@ func (p *providerHistoryProgramOwner) bindOriginalLocked(sample ClockSample) boo
 // Caller holds the backend mutex. None of the selected backend's epoch,
 // uncertainty, native origin/window or finite lifetime can be swapped later.
 func (p *providerHistoryProgramOwner) clockSelectionMatches(c *providerOwnedClock) bool {
-	return c.id == p.clockID && c.epoch == p.clockEpoch && c.policy == p.policy.policy && c.origin == p.clockOrigin && c.readWindow == p.clockWindow && c.uncertainty == p.clockUncertainty && c.maximum == p.clockMaximum
+	return providerHistoryClockSelectionOf(c) == p.clockSelection
 }
 
 // Match inspection subclaims to the one pre-H0 maximum. The pre-I bound
