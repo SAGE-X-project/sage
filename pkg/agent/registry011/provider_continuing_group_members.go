@@ -1,8 +1,6 @@
 package registry011
 
 import (
-	"bytes"
-	"encoding/json"
 	"strconv"
 )
 
@@ -33,6 +31,10 @@ type providerHistoryGroupTable struct {
 func (*providerHistoryGroupTable) UnmarshalJSON([]byte) error { return ErrConfiguration }
 
 func newProviderHistoryGroupTable(program, purpose string, stage uint64, requests []*providerIntegrationRequest, bounds providerMethodBounds, global ProviderCaptureLimits) (*providerHistoryGroupTable, error) {
+	return newProviderHistoryGroupTableObserved(program, purpose, stage, requests, bounds, global, nil)
+}
+
+func newProviderHistoryGroupTableObserved(program, purpose string, stage uint64, requests []*providerIntegrationRequest, bounds providerMethodBounds, global ProviderCaptureLimits, meter *providerWorkMeter) (*providerHistoryGroupTable, error) {
 	if !lowerHash(program) || stage == 0 || stage > 1<<53 || len(requests) == 0 || len(requests) > providerHistoryGroupMembers || !bounds.fits(global) {
 		return nil, ErrConfiguration
 	}
@@ -43,43 +45,50 @@ func newProviderHistoryGroupTable(program, purpose string, stage uint64, request
 	}
 	t := &providerHistoryGroupTable{program: program, purpose: purpose, stage: stage, count: len(requests)}
 	for i, input := range requests {
-		request, err := providerHistoryGroupRequestCopy(input)
+		request, err := providerHistoryGroupRequestCopyObserved(input, meter)
 		if err != nil {
 			return nil, err
 		}
-		class, err := providerHistoryGroupRequestClass(&request)
+		class, err := providerHistoryGroupRequestClassObserved(&request, meter)
 		if err != nil {
 			return nil, err
 		}
-		capture, err := bounds.capture(&request, global)
+		capture, err := bounds.captureObserved(&request, global, meter)
 		if err != nil {
 			return nil, err
 		}
 		t.members[i] = providerHistoryGroupMember{request, class, capture}
 	}
-	raw := providerIntegrationJSON(t.object())
+	raw := providerReplayCanonical(t.object(), providerHistoryGroupTableBytes, meter)
 	if len(raw) == 0 || len(raw) > providerHistoryGroupTableBytes {
 		return nil, ErrConfiguration
 	}
-	t.raw = string(raw)
-	t.digest = providerCandidateHash(providerHistoryGroupTableDomain, raw)
+	t.raw = providerReplayString(raw, meter)
+	t.digest = providerReplayDigest(providerHistoryGroupTableDomain, raw, meter)
+	if t.raw == "" || t.digest == "" {
+		return nil, ErrConfiguration
+	}
 	return t, nil
 }
 
 // Rebuild the whole request, including its original HTTP bytes and both
 // different digest contracts. No caller-supplied digest alone is accepted.
 func providerHistoryGroupRequestCopy(input *providerIntegrationRequest) (providerIntegrationRequest, error) {
+	return providerHistoryGroupRequestCopyObserved(input, nil)
+}
+
+func providerHistoryGroupRequestCopyObserved(input *providerIntegrationRequest, meter *providerWorkMeter) (providerIntegrationRequest, error) {
 	var empty providerIntegrationRequest
 	if input == nil || len(input.params) == 0 || len(input.params) > 8<<10 || len(input.body) == 0 || len(input.body) > 16<<10 ||
 		len(input.head) == 0 || len(input.head) > 512 || len(input.wire) == 0 || len(input.wire) > 16<<10 {
 		return empty, ErrConfiguration
 	}
 	var params any
-	if json.Unmarshal([]byte(input.params), &params) != nil {
+	if providerReplayUnmarshal(providerReplayBytes(input.params, meter), &params, meter) != nil {
 		return empty, ErrConfiguration
 	}
-	copy, err := newProviderIntegrationRequest(input.method, providerRequestNumbers(params))
-	if err != nil || *copy != *input {
+	copy, err := newProviderIntegrationRequestObserved(input.method, providerRequestNumbersObserved(params, meter), meter)
+	if err != nil || !providerHistoryGroupRequestEqualObserved(copy, input, meter) {
 		return empty, ErrConfiguration
 	}
 	return *copy, nil
@@ -89,6 +98,10 @@ func providerHistoryGroupRequestCopy(input *providerIntegrationRequest) (provide
 // numeric ceilings: two explicitly selected classes may have identical caps.
 // The existing selector separately verifies the chosen capture at construction.
 func providerHistoryGroupRequestClass(r *providerIntegrationRequest) (string, error) {
+	return providerHistoryGroupRequestClassObserved(r, nil)
+}
+
+func providerHistoryGroupRequestClassObserved(r *providerIntegrationRequest, meter *providerWorkMeter) (string, error) {
 	if r == nil || len(r.params) > 8<<10 {
 		return "", ErrConfiguration
 	}
@@ -105,7 +118,7 @@ func providerHistoryGroupRequestClass(r *providerIntegrationRequest) (string, er
 		return "receipts", nil
 	}
 	var params []any
-	if json.Unmarshal([]byte(r.params), &params) != nil || len(params) != 2 {
+	if providerReplayUnmarshal(providerReplayBytes(r.params, meter), &params, meter) != nil || len(params) != 2 {
 		return "", ErrConfiguration
 	}
 	switch r.method {
@@ -156,12 +169,27 @@ func (t *providerHistoryGroupTable) object() map[string]any {
 // original requests. It returns only newly reconstructed DATA. ACK provenance,
 // program semantics, prior ledger state and admission remain separate checks.
 func parseProviderHistoryGroupTable(raw []byte, program, purpose string, stage uint64, requests []*providerIntegrationRequest, bounds providerMethodBounds, global ProviderCaptureLimits) (*providerHistoryGroupTable, error) {
+	return parseProviderHistoryGroupTableObserved(raw, program, purpose, stage, requests, bounds, global, nil)
+}
+
+func parseProviderHistoryGroupTableObserved(raw []byte, program, purpose string, stage uint64, requests []*providerIntegrationRequest, bounds providerMethodBounds, global ProviderCaptureLimits, meter *providerWorkMeter) (*providerHistoryGroupTable, error) {
 	if len(raw) == 0 || len(raw) > providerHistoryGroupTableBytes {
 		return nil, ErrConfiguration
 	}
-	t, err := newProviderHistoryGroupTable(program, purpose, stage, requests, bounds, global)
-	if err != nil || !bytes.Equal(raw, []byte(t.raw)) {
+	t, err := newProviderHistoryGroupTableObserved(program, purpose, stage, requests, bounds, global, meter)
+	if err != nil || !providerReplayEqual(raw, providerReplayBytes(t.raw, meter), meter) {
 		return nil, ErrConfiguration
 	}
 	return t, nil
+}
+
+// Value copies retain immutable strings; every reconstructed string field is
+// compared separately under the same observer before the request is accepted.
+func providerHistoryGroupRequestEqualObserved(a, b *providerIntegrationRequest, meter *providerWorkMeter) bool {
+	for _, pair := range [7][2]string{{a.method, b.method}, {a.params, b.params}, {a.body, b.body}, {a.head, b.head}, {a.wire, b.wire}, {a.inputDigest, b.inputDigest}, {a.paramsDigest, b.paramsDigest}} {
+		if !providerReplayTextEqual(pair[0], pair[1], meter) {
+			return false
+		}
+	}
+	return true
 }

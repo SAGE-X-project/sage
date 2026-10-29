@@ -133,10 +133,17 @@ func (l *providerHistoryGroupLedger) rootObserved(meter *providerWorkMeter) []by
 }
 
 func (l *providerHistoryGroupLedger) valid() bool {
+	return l.validObserved(nil)
+}
+
+func (l *providerHistoryGroupLedger) validObserved(meter *providerWorkMeter) bool {
 	if l == nil || l.owner != l || !lowerHash(l.program) || !lowerHash(l.profile) || !lowerHash(l.costs) || !lowerHash(l.initial) ||
 		l.failed || l.terminal || l.maximumStages == 0 || l.maximumStages > (1<<20)/3 || l.stage > l.maximumStages ||
-		l.sequence > 1<<20 || !l.maximum.valid() || !l.charged.within(l.maximum) ||
-		providerCandidateHash(providerHistoryGroupRootDomain, l.root()) != l.head {
+		l.sequence > 1<<20 || !l.maximum.valid() || !l.charged.within(l.maximum) {
+		return false
+	}
+	raw := l.rootObserved(meter)
+	if len(raw) == 0 || !providerReplayTextEqual(providerReplayDigest(providerHistoryGroupRootDomain, raw, meter), l.head, meter) {
 		return false
 	}
 	switch l.phase {
@@ -145,14 +152,14 @@ func (l *providerHistoryGroupLedger) valid() bool {
 	case "settled":
 		return l.stage > 0 && l.sequence == 3*l.stage && lowerHash(l.previous) && lowerHash(l.entry) && l.ticket == nil && l.consumption == nil
 	case "admitted", "consumed":
-		if l.ticket == nil || !providerHistoryGroupTicketValid(l.ticket) || l.ticket.program != l.program ||
+		if l.ticket == nil || !providerHistoryGroupTicketValidObserved(l.ticket, meter) || l.ticket.program != l.program ||
 			l.ticket.profile != l.profile || l.ticket.costs != l.costs || l.ticket.table.stage != l.stage+1 || !lowerHash(l.previous) {
 			return false
 		}
 		if l.phase == "admitted" {
-			return l.sequence == 3*l.stage+1 && l.entry == l.ticket.digest && l.consumption == nil
+			return l.sequence == 3*l.stage+1 && providerReplayTextEqual(l.entry, l.ticket.digest, meter) && l.consumption == nil
 		}
-		return l.sequence == 3*l.stage+2 && providerHistoryGroupConsumptionValid(l.consumption, l.ticket) && l.entry == l.consumption.digest
+		return l.sequence == 3*l.stage+2 && providerHistoryGroupConsumptionValidObserved(l.consumption, l.ticket, meter) && providerReplayTextEqual(l.entry, l.consumption.digest, meter)
 	}
 	return false
 }
@@ -166,19 +173,34 @@ func (l *providerHistoryGroupLedger) refuse() error {
 	return ErrConfiguration
 }
 
-func (l *providerHistoryGroupLedger) advance(phase, entry string) {
+// Failure after an admitted debit quarantines this model without restoring
+// any charged coordinate. A failed encode/hash cannot manufacture a new root.
+func (l *providerHistoryGroupLedger) advanceObserved(phase, entry string, meter *providerWorkMeter) error {
 	l.previous, l.phase, l.entry = l.head, phase, entry
 	l.sequence++
-	l.head = providerCandidateHash(providerHistoryGroupRootDomain, l.root())
+	raw := l.rootObserved(meter)
+	if len(raw) == 0 {
+		return l.refuse()
+	}
+	root := providerReplayDigest(providerHistoryGroupRootDomain, raw, meter)
+	if root == "" {
+		return l.refuse()
+	}
+	l.head = root
+	return nil
 }
 
 // The caller must pass the independently reconstructed original T, including
 // its own table. This model performs typed replay only. A producer digest or
 // this model's successful return cannot acknowledge a filesystem transaction.
 func (l *providerHistoryGroupLedger) admit(ticket *providerHistoryGroupTicket) error {
-	if !l.valid() || l.stage >= l.maximumStages || l.phase != "prepared" && l.phase != "settled" ||
-		!providerHistoryGroupTicketValid(ticket) || ticket.program != l.program || ticket.profile != l.profile ||
-		ticket.costs != l.costs || ticket.previous != l.head || ticket.table.stage != l.stage+1 {
+	return l.admitObserved(ticket, nil)
+}
+
+func (l *providerHistoryGroupLedger) admitObserved(ticket *providerHistoryGroupTicket, meter *providerWorkMeter) error {
+	if !l.validObserved(meter) || l.stage >= l.maximumStages || l.phase != "prepared" && l.phase != "settled" ||
+		!providerHistoryGroupTicketValidObserved(ticket, meter) || ticket.program != l.program || ticket.profile != l.profile ||
+		ticket.costs != l.costs || !providerReplayTextEqual(ticket.previous, l.head, meter) || ticket.table.stage != l.stage+1 {
 		return l.refuse()
 	}
 	charged, ok := l.charged.add(ticket.upper, l.maximum)
@@ -187,37 +209,58 @@ func (l *providerHistoryGroupLedger) admit(ticket *providerHistoryGroupTicket) e
 	}
 	copy := *ticket
 	l.ticket, l.charged = &copy, charged
-	l.advance("admitted", ticket.digest)
-	return nil
+	return l.advanceObserved("admitted", ticket.digest, meter)
 }
 
 func (l *providerHistoryGroupLedger) consume(consumption *providerHistoryGroupConsumption) error {
-	if !l.valid() || l.phase != "admitted" || !providerHistoryGroupConsumptionValid(consumption, l.ticket) || consumption.previous != l.head {
+	return l.consumeObserved(consumption, nil)
+}
+
+func (l *providerHistoryGroupLedger) consumeObserved(consumption *providerHistoryGroupConsumption, meter *providerWorkMeter) error {
+	if !l.validObserved(meter) || l.phase != "admitted" || !providerHistoryGroupConsumptionValidObserved(consumption, l.ticket, meter) || !providerReplayTextEqual(consumption.previous, l.head, meter) {
 		return l.refuse()
 	}
 	copy := *consumption
 	l.consumption = &copy
-	l.advance("consumed", consumption.digest)
-	return nil
+	return l.advanceObserved("consumed", consumption.digest, meter)
 }
 
 func (l *providerHistoryGroupLedger) settle(settlement *providerHistoryGroupSettlement) error {
-	if !l.valid() || l.phase != "consumed" || settlement == nil || settlement.previous != l.head || settlement.count < 0 || settlement.count > providerHistoryGroupMembers {
+	return l.settleObserved(settlement, nil)
+}
+
+func (l *providerHistoryGroupLedger) settleObserved(settlement *providerHistoryGroupSettlement, meter *providerWorkMeter) error {
+	if !l.validObserved(meter) || l.phase != "consumed" || settlement == nil || !providerReplayTextEqual(settlement.previous, l.head, meter) || settlement.count < 0 || settlement.count > providerHistoryGroupMembers {
 		return l.refuse()
 	}
-	copy, err := newProviderHistoryGroupSettlement(l.ticket, l.consumption, settlement.previous, settlement.inventory, settlement.outcome, settlement.failure, settlement.results[:settlement.count])
-	if err != nil || *copy != *settlement {
+	copy, err := newProviderHistoryGroupSettlementObserved(l.ticket, l.consumption, settlement.previous, settlement.inventory, settlement.outcome, settlement.failure, settlement.results[:settlement.count], meter)
+	if err != nil || !providerHistoryGroupSettlementEqualObserved(copy, settlement, meter) {
 		return l.refuse()
 	}
 	// Retain the exact S reference in the root's predecessor chain. No actual
 	// report is subtracted from the admitted upper after success or failure.
 	l.ticket, l.consumption = nil, nil
 	l.stage++
+	phase := "settled"
 	if settlement.outcome == "failed" {
-		l.failed, l.terminal = true, true
-		l.advance("failed", settlement.digest)
-	} else {
-		l.advance("settled", settlement.digest)
+		l.failed, l.terminal, phase = true, true, "failed"
 	}
-	return nil
+	return l.advanceObserved(phase, settlement.digest, meter)
+}
+
+// The other fields are the exact inputs of the reconstruction above. Its
+// derived ticket/C identifiers, entire fixed result array and encoded binding
+// are compared explicitly, including any replaced unused array tail.
+func providerHistoryGroupSettlementEqualObserved(a, b *providerHistoryGroupSettlement, meter *providerWorkMeter) bool {
+	for _, pair := range [4][2]string{{a.ticket, b.ticket}, {a.consumption, b.consumption}, {a.raw, b.raw}, {a.digest, b.digest}} {
+		if !providerReplayTextEqual(pair[0], pair[1], meter) {
+			return false
+		}
+	}
+	for i := range a.results {
+		if !providerReplayTextEqual(a.results[i], b.results[i], meter) {
+			return false
+		}
+	}
+	return true
 }

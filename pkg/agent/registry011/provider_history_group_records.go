@@ -1,7 +1,6 @@
 package registry011
 
 import (
-	"bytes"
 	"strconv"
 )
 
@@ -70,8 +69,13 @@ type providerHistoryGroupTicket struct {
 func (*providerHistoryGroupTicket) UnmarshalJSON([]byte) error { return ErrConfiguration }
 
 func newProviderHistoryGroupTicket(program, profile, costs, previous, inventory string, table *providerHistoryGroupTable, upper providerHistoryGroupUpper) (*providerHistoryGroupTicket, error) {
+	return newProviderHistoryGroupTicketObserved(program, profile, costs, previous, inventory, table, upper, nil)
+}
+
+func newProviderHistoryGroupTicketObserved(program, profile, costs, previous, inventory string, table *providerHistoryGroupTable, upper providerHistoryGroupUpper, meter *providerWorkMeter) (*providerHistoryGroupTicket, error) {
 	if !lowerHash(program) || !lowerHash(profile) || !lowerHash(costs) || !lowerHash(previous) || !lowerHash(inventory) ||
-		table == nil || table.program != program || table.stage == 0 || table.stage > 1<<53 || !lowerHash(table.digest) || !upper.valid(table.count) {
+		table == nil || table.program != program || table.stage == 0 || table.stage > 1<<53 || !lowerHash(table.digest) ||
+		len(table.raw) == 0 || len(table.raw) > providerHistoryGroupTableBytes || !upper.valid(table.count) {
 		return nil, ErrConfiguration
 	}
 	switch table.purpose {
@@ -83,34 +87,45 @@ func newProviderHistoryGroupTicket(program, profile, costs, previous, inventory 
 	// field with its former digest cannot enter a new typed ticket.
 	// Table construction fixes capture per member. Its raw/digest alone is not
 	// a substitute for reconstruction; compare the closed representation here.
-	rawTable := providerIntegrationJSON(table.object())
-	if len(rawTable) == 0 || len(rawTable) > providerHistoryGroupTableBytes ||
-		!bytes.Equal(rawTable, []byte(table.raw)) || providerCandidateHash(providerHistoryGroupTableDomain, rawTable) != table.digest {
-		return nil, ErrConfiguration
-	}
 	for i := range table.count {
 		request := &table.members[i].request
-		copy, err := providerHistoryGroupRequestCopy(request)
-		class, classErr := providerHistoryGroupRequestClass(request)
-		if err != nil || classErr != nil || copy != *request || class != table.members[i].class || !table.members[i].capture.valid() {
+		copy, err := providerHistoryGroupRequestCopyObserved(request, meter)
+		class, classErr := providerHistoryGroupRequestClassObserved(request, meter)
+		if err != nil || classErr != nil || !providerHistoryGroupRequestEqualObserved(&copy, request, meter) || !providerReplayTextEqual(class, table.members[i].class, meter) || !table.members[i].capture.valid() {
 			return nil, ErrConfiguration
 		}
 	}
+	// Reconstruct bounded active requests BEFORE encoding the table object.
+	// A damaged private field must not enlarge encoder/copy scratch beyond
+	// the admitted table limit, even when its old raw/digest is retained.
+	rawTable := providerReplayCanonical(table.object(), providerHistoryGroupTableBytes, meter)
+	if len(rawTable) == 0 || len(rawTable) > providerHistoryGroupTableBytes ||
+		!providerReplayEqual(rawTable, providerReplayBytes(table.raw, meter), meter) || !providerReplayTextEqual(providerReplayDigest(providerHistoryGroupTableDomain, rawTable, meter), table.digest, meter) {
+		return nil, ErrConfiguration
+	}
+
 	t := &providerHistoryGroupTicket{program: program, profile: profile, costs: costs, previous: previous, inventory: inventory, table: *table, upper: upper}
-	raw := providerIntegrationJSON(t.object())
+	raw := providerReplayCanonical(t.object(), candidateLedgerMetadataLimit, meter)
 	if len(raw) == 0 || len(raw) > candidateLedgerMetadataLimit {
 		return nil, ErrConfiguration
 	}
-	t.raw, t.digest = string(raw), providerCandidateHash(providerHistoryGroupTicketDomain, raw)
+	t.raw, t.digest = providerReplayString(raw, meter), providerReplayDigest(providerHistoryGroupTicketDomain, raw, meter)
+	if t.raw == "" || t.digest == "" {
+		return nil, ErrConfiguration
+	}
 	return t, nil
 }
 
 func providerHistoryGroupTicketValid(t *providerHistoryGroupTicket) bool {
-	if t == nil {
+	return providerHistoryGroupTicketValidObserved(t, nil)
+}
+
+func providerHistoryGroupTicketValidObserved(t *providerHistoryGroupTicket, meter *providerWorkMeter) bool {
+	if t == nil || len(t.raw) == 0 || len(t.raw) > candidateLedgerMetadataLimit {
 		return false
 	}
-	copy, err := newProviderHistoryGroupTicket(t.program, t.profile, t.costs, t.previous, t.inventory, &t.table, t.upper)
-	return err == nil && *copy == *t
+	copy, err := newProviderHistoryGroupTicketObserved(t.program, t.profile, t.costs, t.previous, t.inventory, &t.table, t.upper, meter)
+	return err == nil && providerReplayTextEqual(copy.raw, t.raw, meter) && providerReplayTextEqual(copy.digest, t.digest, meter)
 }
 
 func (t *providerHistoryGroupTicket) object() map[string]any {
@@ -129,11 +144,15 @@ func (t *providerHistoryGroupTicket) object() map[string]any {
 // Exact byte equality rejects missing/extra/duplicate keys and noncanonical
 // numbers without loading authority or trusting producer-side decoded state.
 func parseProviderHistoryGroupTicket(raw []byte, program, profile, costs, previous, inventory string, table *providerHistoryGroupTable, upper providerHistoryGroupUpper) (*providerHistoryGroupTicket, error) {
+	return parseProviderHistoryGroupTicketObserved(raw, program, profile, costs, previous, inventory, table, upper, nil)
+}
+
+func parseProviderHistoryGroupTicketObserved(raw []byte, program, profile, costs, previous, inventory string, table *providerHistoryGroupTable, upper providerHistoryGroupUpper, meter *providerWorkMeter) (*providerHistoryGroupTicket, error) {
 	if len(raw) == 0 || len(raw) > candidateLedgerMetadataLimit {
 		return nil, ErrConfiguration
 	}
-	t, err := newProviderHistoryGroupTicket(program, profile, costs, previous, inventory, table, upper)
-	if err != nil || !bytes.Equal(raw, []byte(t.raw)) {
+	t, err := newProviderHistoryGroupTicketObserved(program, profile, costs, previous, inventory, table, upper, meter)
+	if err != nil || !providerReplayEqual(raw, providerReplayBytes(t.raw, meter), meter) {
 		return nil, ErrConfiguration
 	}
 	return t, nil
@@ -150,39 +169,55 @@ func (*providerHistoryGroupConsumption) UnmarshalJSON([]byte) error { return Err
 // This encodes the irreversible all-member debit. It is not a retained C or
 // an independently acknowledged consumption, and cannot dispatch a member.
 func newProviderHistoryGroupConsumption(ticket *providerHistoryGroupTicket, previous, inventory string) (*providerHistoryGroupConsumption, error) {
-	if !providerHistoryGroupTicketValid(ticket) || !lowerHash(previous) || !lowerHash(inventory) {
+	return newProviderHistoryGroupConsumptionObserved(ticket, previous, inventory, nil)
+}
+
+func newProviderHistoryGroupConsumptionObserved(ticket *providerHistoryGroupTicket, previous, inventory string, meter *providerWorkMeter) (*providerHistoryGroupConsumption, error) {
+	if !providerHistoryGroupTicketValidObserved(ticket, meter) || !lowerHash(previous) || !lowerHash(inventory) {
 		return nil, ErrConfiguration
 	}
 	all, ok := providerHistoryMemberPrefix(ticket.table.count)
 	if !ok {
 		return nil, ErrConfiguration
 	}
-	raw := providerIntegrationJSON(map[string]any{
+	raw := providerReplayCanonical(map[string]any{
 		"format": providerHistoryGroupConsumptionDomain, "program": ticket.program,
 		"stage": strconv.FormatUint(ticket.table.stage, 10), "table": ticket.table.digest,
 		"ticket": ticket.digest, "previous": previous, "inventory": inventory,
 		"all_consumed": strconv.FormatUint(uint64(all), 10),
-	})
-	return &providerHistoryGroupConsumption{ticket.digest, previous, inventory, all, string(raw), providerCandidateHash(providerHistoryGroupConsumptionDomain, raw)}, nil
+	}, candidateLedgerMetadataLimit, meter)
+	text, digest := providerReplayString(raw, meter), providerReplayDigest(providerHistoryGroupConsumptionDomain, raw, meter)
+	if len(raw) == 0 || text == "" || digest == "" {
+		return nil, ErrConfiguration
+	}
+	return &providerHistoryGroupConsumption{ticket.digest, previous, inventory, all, text, digest}, nil
 }
 
 func parseProviderHistoryGroupConsumption(raw []byte, ticket *providerHistoryGroupTicket, previous, inventory string) (*providerHistoryGroupConsumption, error) {
+	return parseProviderHistoryGroupConsumptionObserved(raw, ticket, previous, inventory, nil)
+}
+
+func parseProviderHistoryGroupConsumptionObserved(raw []byte, ticket *providerHistoryGroupTicket, previous, inventory string, meter *providerWorkMeter) (*providerHistoryGroupConsumption, error) {
 	if len(raw) == 0 || len(raw) > candidateLedgerMetadataLimit {
 		return nil, ErrConfiguration
 	}
-	c, err := newProviderHistoryGroupConsumption(ticket, previous, inventory)
-	if err != nil || !bytes.Equal(raw, []byte(c.raw)) {
+	c, err := newProviderHistoryGroupConsumptionObserved(ticket, previous, inventory, meter)
+	if err != nil || !providerReplayEqual(raw, providerReplayBytes(c.raw, meter), meter) {
 		return nil, ErrConfiguration
 	}
 	return c, nil
 }
 
 func providerHistoryGroupConsumptionValid(c *providerHistoryGroupConsumption, ticket *providerHistoryGroupTicket) bool {
-	if c == nil {
+	return providerHistoryGroupConsumptionValidObserved(c, ticket, nil)
+}
+
+func providerHistoryGroupConsumptionValidObserved(c *providerHistoryGroupConsumption, ticket *providerHistoryGroupTicket, meter *providerWorkMeter) bool {
+	if c == nil || len(c.raw) == 0 || len(c.raw) > candidateLedgerMetadataLimit {
 		return false
 	}
-	copy, err := newProviderHistoryGroupConsumption(ticket, c.previous, c.inventory)
-	return err == nil && *copy == *c
+	copy, err := newProviderHistoryGroupConsumptionObserved(ticket, c.previous, c.inventory, meter)
+	return err == nil && copy.consumed == c.consumed && providerReplayTextEqual(copy.ticket, c.ticket, meter) && providerReplayTextEqual(copy.raw, c.raw, meter) && providerReplayTextEqual(copy.digest, c.digest, meter)
 }
 
 type providerHistoryGroupSettlement struct {
@@ -201,7 +236,11 @@ func (*providerHistoryGroupSettlement) UnmarshalJSON([]byte) error { return ErrC
 // The actual writer must independently reconstruct every referenced original;
 // passing these shape checks does not establish result semantics or closure.
 func newProviderHistoryGroupSettlement(ticket *providerHistoryGroupTicket, consumption *providerHistoryGroupConsumption, previous, inventory, outcome, failure string, results []string) (*providerHistoryGroupSettlement, error) {
-	if !providerHistoryGroupTicketValid(ticket) || !providerHistoryGroupConsumptionValid(consumption, ticket) ||
+	return newProviderHistoryGroupSettlementObserved(ticket, consumption, previous, inventory, outcome, failure, results, nil)
+}
+
+func newProviderHistoryGroupSettlementObserved(ticket *providerHistoryGroupTicket, consumption *providerHistoryGroupConsumption, previous, inventory, outcome, failure string, results []string, meter *providerWorkMeter) (*providerHistoryGroupSettlement, error) {
+	if !providerHistoryGroupTicketValidObserved(ticket, meter) || !providerHistoryGroupConsumptionValidObserved(consumption, ticket, meter) ||
 		!lowerHash(previous) || !lowerHash(inventory) || len(results) > ticket.table.count {
 		return nil, ErrConfiguration
 	}
@@ -230,11 +269,14 @@ func newProviderHistoryGroupSettlement(ticket *providerHistoryGroupTicket, consu
 	}
 	// Copy before encoding; a caller slice cannot later replace the ordered
 	// retained-result commitment or turn a failed prefix into complete DATA.
-	raw := providerIntegrationJSON(s.object(ticket))
+	raw := providerReplayCanonical(s.object(ticket), candidateLedgerMetadataLimit, meter)
 	if len(raw) == 0 || len(raw) > candidateLedgerMetadataLimit {
 		return nil, ErrConfiguration
 	}
-	s.raw, s.digest = string(raw), providerCandidateHash(providerHistoryGroupSettlementDomain, raw)
+	s.raw, s.digest = providerReplayString(raw, meter), providerReplayDigest(providerHistoryGroupSettlementDomain, raw, meter)
+	if s.raw == "" || s.digest == "" {
+		return nil, ErrConfiguration
+	}
 	return s, nil
 }
 
@@ -250,11 +292,15 @@ func (s *providerHistoryGroupSettlement) object(t *providerHistoryGroupTicket) m
 }
 
 func parseProviderHistoryGroupSettlement(raw []byte, ticket *providerHistoryGroupTicket, consumption *providerHistoryGroupConsumption, previous, inventory, outcome, failure string, results []string) (*providerHistoryGroupSettlement, error) {
+	return parseProviderHistoryGroupSettlementObserved(raw, ticket, consumption, previous, inventory, outcome, failure, results, nil)
+}
+
+func parseProviderHistoryGroupSettlementObserved(raw []byte, ticket *providerHistoryGroupTicket, consumption *providerHistoryGroupConsumption, previous, inventory, outcome, failure string, results []string, meter *providerWorkMeter) (*providerHistoryGroupSettlement, error) {
 	if len(raw) == 0 || len(raw) > candidateLedgerMetadataLimit {
 		return nil, ErrConfiguration
 	}
-	s, err := newProviderHistoryGroupSettlement(ticket, consumption, previous, inventory, outcome, failure, results)
-	if err != nil || !bytes.Equal(raw, []byte(s.raw)) {
+	s, err := newProviderHistoryGroupSettlementObserved(ticket, consumption, previous, inventory, outcome, failure, results, meter)
+	if err != nil || !providerReplayEqual(raw, providerReplayBytes(s.raw, meter), meter) {
 		return nil, ErrConfiguration
 	}
 	return s, nil
