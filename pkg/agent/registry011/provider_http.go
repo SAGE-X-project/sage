@@ -26,6 +26,16 @@ func readProviderHead(r *bufio.Reader, maximum int) ([]byte, error) {
 func readProviderHeadObserved(r *bufio.Reader, maximum int, meter *providerWorkMeter) ([]byte, error) {
 	var head []byte
 	for len(head) <= maximum {
+		if next, handled, complete, err := tryReadProviderBufferedHeadObserved(r, maximum, head, meter); handled {
+			if err != nil {
+				return nil, err
+			}
+			head = next
+			if complete {
+				return head, nil
+			}
+			continue
+		}
 		if meter != nil && !meter.preflight(providerReadEvent, 1) {
 			return nil, ErrProviderCapture
 		}
@@ -51,6 +61,69 @@ func readProviderHeadObserved(r *bufio.Reader, maximum int, meter *providerWorkM
 		}
 	}
 	return nil, ErrProviderCapture
+}
+
+// Admit only an already buffered, callback-free group primitive. Its original
+// store lock and this meter lock keep every checked owner/window stable while
+// ReadByte consumes at most Buffered bytes, so no fill or external read occurs.
+// The complete upper must fit before using this path; otherwise the unchanged
+// byte path preserves the exact refusal prefix and sticky failure behavior.
+// No positive result survives this call, and every logical event is retained.
+func tryReadProviderBufferedHeadObserved(r *bufio.Reader, maximum int, head []byte, meter *providerWorkMeter) ([]byte, bool, bool, error) {
+	if meter == nil || meter.historyGroup == nil || r == nil || maximum <= len(head) {
+		return head, false, false, nil
+	}
+	count := min(r.Buffered(), maximum-len(head))
+	if count == 0 {
+		return head, false, false, nil
+	}
+	// Each successful byte has read(1)+copy(1) = 4 logical units.
+	// Starting with byte four, the original compare(8) adds another 9.
+	comparisons := count
+	if len(head) < 3 {
+		comparisons = max(0, count-(3-len(head)))
+	}
+	byteWork, byteOK := providerUpperProduct(uint64(count), 4)
+	compareWork, compareOK := providerUpperProduct(uint64(comparisons), 9)
+	units, sumOK := providerUpperSum(byteWork, compareWork)
+	if !byteOK || !compareOK || !sumOK {
+		return head, false, false, nil
+	}
+	meter.mu.Lock()
+	defer meter.mu.Unlock()
+	// Other roles retain their original add/scan-output behavior. In
+	// particular an unrelated scan body is never silently skipped here.
+	if meter.historyGroup == nil || meter.historyRecovery != nil || meter.scanBody != nil || meter.owner != meter || meter.failed || meter.closed || !meter.hasOwner() {
+		return head, false, false, nil
+	}
+	var upper candidateWorkVector
+	upper[10] = units
+	if !meter.fitsOwnedWindow(upper) {
+		return head, false, false, nil
+	}
+	for i, value := range upper {
+		if !candidateCapacity(0, meter.actual[i], value, meter.upper[i]) {
+			return head, false, false, nil
+		}
+	}
+	for range count {
+		b, err := r.ReadByte()
+		if err != nil {
+			// Impossible for the exclusively held Buffered prefix, but
+			// retain the original failed-read(0) logical event if refused.
+			meter.actual[10]++
+			return nil, true, false, ErrProviderCapture
+		}
+		meter.actual[10] += 4
+		head = append(head, b)
+		if len(head) >= 4 {
+			meter.actual[10] += 9
+			if bytes.Equal(head[len(head)-4:], []byte("\r\n\r\n")) {
+				return head, true, true, nil
+			}
+		}
+	}
+	return head, true, false, nil
 }
 
 func providerHeaderFields(head []byte) ([]ProviderHeader, error) {
