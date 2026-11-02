@@ -66,7 +66,7 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 	if m.owner != m || !m.hasOwner() || m.failed || m.closed {
 		return false
 	}
-	if !m.fitsScanWindow(work) {
+	if !m.fitsOwnedWindow(work) {
 		m.failed = true
 		return false
 	}
@@ -156,7 +156,7 @@ func (m *providerWorkMeter) preflightWork(work candidateWorkVector) bool {
 	if m.owner != m || !m.hasOwner() || m.closed || m.failed {
 		return false
 	}
-	if !m.fitsScanWindow(work) {
+	if !m.fitsOwnedWindow(work) {
 		m.failed = true
 		return false
 	}
@@ -169,15 +169,19 @@ func (m *providerWorkMeter) preflightWork(work candidateWorkVector) bool {
 	return true
 }
 
-// A scan window is a sublimit of the original claimed body's one cumulative
-// meter. Moving to the next nonempty record never resets actual/clock/upper.
-// Ordinary integration/legacy meters have no scan body and retain their API.
-func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
+// Called only after hasOwner succeeds in the SAME add/preflight critical
+// section. The original group store lock and meter mutex remain held; no
+// callback, I/O, clock sample or state mutation separates the two checks.
+// Reuse that owner check only here, never across primitives. Every original
+// parent, window, clock and work limit is still checked for this invocation.
+// A scan window is a sublimit of the original cumulative observer; moving
+// records never resets actual/clock/upper. Non-group roles keep their checks.
+func (m *providerWorkMeter) fitsOwnedWindow(work candidateWorkVector) bool {
 	if m.historyRecovery != nil {
 		return m.historyRecovery.activeLocked(m)
 	}
 	if m.historyGroup != nil {
-		return m.historyGroup.fitsWork(m, work)
+		return m.historyGroup.fitsWorkAfterOwnerCheck(m, work)
 	}
 	if m.guardian != nil {
 		return m.guardian.fits(m)

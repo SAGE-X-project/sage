@@ -418,9 +418,9 @@ func TestProviderHistoryStageFinalScalarClosureRequiresOriginalRoleAndBounds(t *
 	phase, active, start, clockStart := o.phase, s.activeMeter.Load(), o.advanceStart, o.advanceClockStart
 	o.phase, o.advanceStart, o.advanceClockStart = "advancing", m.actual, m.clocks
 	s.activeMeter.Store(m)
-	if !o.fitsWork(m, candidateWorkVector{}) {
+	if !o.fitsWork(m, candidateWorkVector{}) || !m.preflightWork(candidateWorkVector{}) || !m.add(candidateWorkVector{}) {
 		s.mu.Unlock()
-		t.Fatal("valid original scalar control")
+		t.Fatal("valid original scalar and observer control")
 	}
 	for _, mode := range []string{"authority", "active-meter", "config", "row", "clock-selection", "window", "window-upper", "advance-start", "stage-baseline"} {
 		authority, config, rows, window, windowUpper, advanceStart, baseline := m.authority, s.config, o.parent.dispatchBounds, o.window, o.windowUpper, o.advanceStart, o.stageRetentionStart
@@ -450,6 +450,15 @@ func TestProviderHistoryStageFinalScalarClosureRequiresOriginalRoleAndBounds(t *
 		}
 		work, reads := m.actual, s.clock.read
 		accepted := o.fitsWork(m, candidateWorkVector{})
+		// These fixed owner-shape faults must be checked again after the
+		// preceding positive call. Refusal here never enters a work window,
+		// charges actual work or needs a failed-observer reset.
+		if mode == "authority" || mode == "active-meter" || mode == "stage-baseline" {
+			if m.preflightWork(candidateWorkVector{}) || m.add(candidateWorkVector{}) || m.failed || m.actual != work || s.clock.read != reads {
+				s.mu.Unlock()
+				t.Fatal("a prior valid primitive concealed changed original ownership", mode)
+			}
+		}
 		m.authority, s.config, o.parent.dispatchBounds, o.window, o.windowUpper, o.advanceStart, o.stageRetentionStart = authority, config, rows, window, windowUpper, advanceStart, baseline
 		s.clock.mu.Lock()
 		s.clock.maximum = maximum

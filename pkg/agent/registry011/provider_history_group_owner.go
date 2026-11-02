@@ -213,7 +213,15 @@ func (o *providerHistoryGroupOwner) fits(m *providerWorkMeter) bool {
 // Called with the same cumulative meter mutex held. A group is a sublimit,
 // never a replacement observer or a reset of the pre-H0 lifetime actuals.
 func (o *providerHistoryGroupOwner) fitsWork(m *providerWorkMeter, incoming candidateWorkVector) bool {
-	if !o.fits(m) || !o.firstPWorkFits(m, incoming) {
+	return o.activeLocked(m) && o.fitsWorkAfterOwnerCheck(m, incoming)
+}
+
+// Callers reusing a prior owner check hold store.mu and meter.mu throughout
+// that same pure primitive. Standalone fitsWork validates the owner itself
+// immediately before this call. Every subsequent parent/first-P/global-window/
+// own-advance limit remains here; no authorization is cached across calls.
+func (o *providerHistoryGroupOwner) fitsWorkAfterOwnerCheck(m *providerWorkMeter, incoming candidateWorkVector) bool {
+	if o == nil || o.parent == nil || !o.parent.matchesLocked() || !o.firstPWorkFits(m, incoming) {
 		return false
 	}
 	if o.phase == "initializing" {

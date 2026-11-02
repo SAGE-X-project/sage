@@ -34,7 +34,7 @@ func providerHistoryNativeInputBoundObserved(m *providerWorkMeter) (providerHist
 		// predicates. In particular recovery must not match a healthy parent.
 		return wide, true
 	}
-	if !o.fitsWork(m, candidateWorkVector{}) {
+	if !o.fitsWorkAfterOwnerCheck(m, candidateWorkVector{}) {
 		m.failed = true
 		return providerHistoryNativeInputBounds{}, false
 	}

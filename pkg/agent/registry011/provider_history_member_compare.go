@@ -31,7 +31,7 @@ func providerHistoryMemberComparisonWeightObserved[T comparable](value T, m *pro
 			}
 		}
 	}
-	if fast && m.hasOwner() && m.historyGroup.fitsWork(m, room) {
+	if fast && m.hasOwner() && m.historyGroup.fitsWorkAfterOwnerCheck(m, room) {
 		defer m.mu.Unlock()
 		visit = func() bool { m.actual[10]++; return true }
 	} else {
