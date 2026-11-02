@@ -2,6 +2,7 @@ package registry011
 
 import (
 	"encoding/binary"
+	"math"
 	"strconv"
 )
 
@@ -192,7 +193,8 @@ func parseProviderHistoryFailureOriginalObserved(raw []byte, expected string, ti
 	received, b := providerCandidateUint(v["response_read"], false)
 	total, c := providerUpperSum(metadata, written, received)
 	member := ticket.table.members[ordinal]
-	if v == nil || !a || !b || !c || total != uint64(len(raw)) || written > uint64(len(member.request.wire)) || received > uint64(member.capture.WireBytes)+1 {
+	if v == nil || !a || !b || written > math.MaxInt || received > math.MaxInt || !c || total != uint64(len(raw)) ||
+		written > uint64(len(member.request.wire)) || received > uint64(member.capture.WireBytes)+1 {
 		return nil, errProviderIntegration
 	}
 	prefix := raw[int(metadata):int(metadata+written)]

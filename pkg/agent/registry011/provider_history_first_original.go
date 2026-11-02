@@ -3,6 +3,7 @@ package registry011
 import (
 	"bufio"
 	"bytes"
+	"math"
 	"strconv"
 )
 
@@ -52,7 +53,7 @@ func (p *providerHistoryFirstPOriginals) active() bool {
 }
 
 func (p *providerHistoryFirstPOriginals) read(disk *retentionDisk, name string, maximum uint64) ([]byte, error) {
-	if !p.active() || maximum == 0 || maximum > p.bounds.raw || !candidateCapacity(0, p.raw, maximum, p.bounds.raw) {
+	if !p.active() || maximum == 0 || maximum > math.MaxInt64 || maximum > p.bounds.raw || !candidateCapacity(0, p.raw, maximum, p.bounds.raw) {
 		return nil, errProviderIntegration
 	}
 	raw, err := p.group.store.read(disk, name, int64(maximum))

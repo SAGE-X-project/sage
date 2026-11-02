@@ -153,7 +153,8 @@ func TestProviderHistorySemanticFoldRefusesInvalidSelectionAndCallOrdering(t *te
 			f, in := historySemanticFixture(t, 11)
 			var err error
 			if mode == "nil-context" {
-				err = f.beginWindowCandidate(nil)
+				var absentContext context.Context
+				err = f.beginWindowCandidate(absentContext)
 			} else {
 				if f.beginWindowCandidate(context.Background()) != nil {
 					t.Fatal("normal window")

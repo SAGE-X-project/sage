@@ -3,7 +3,9 @@ package registry011
 import (
 	"context"
 	"crypto/tls"
+	"encoding/binary"
 	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -235,7 +237,7 @@ func TestProviderHistoryFailureOriginalRejectsChangedFramingAndContexts(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, mode := range []string{"magic", "length", "header", "payload", "truncated", "extra", "digest", "ordinal", "roots", "too-small"} {
+	for _, mode := range []string{"magic", "length", "header", "payload", "truncated", "extra", "digest", "ordinal", "roots", "too-small", "written-int-max", "written-int-overflow", "received-int-max", "received-int-overflow"} {
 		t.Run(mode, func(t *testing.T) {
 			raw := []byte(original.raw)
 			digest, selectedRoots, ordinal, maximum := original.digest, roots, 0, uint64(providerHistoryOriginalPackBytes)
@@ -260,8 +262,36 @@ func TestProviderHistoryFailureOriginalRejectsChangedFramingAndContexts(t *testi
 				selectedRoots = admissionTestDigest("e")
 			case "too-small":
 				maximum = uint64(len(raw) - 1)
+			case "written-int-max", "written-int-overflow", "received-int-max", "received-int-overflow":
+				// Fixed in-memory metadata only; never allocate the declared
+				// byte count or pass this rejected DATA to a live connection.
+				start := len(providerHistoryFailureMagic) + 4
+				header := int(binary.BigEndian.Uint32(raw[len(providerHistoryFailureMagic):start]))
+				var fields map[string]any
+				if json.Unmarshal(raw[start:start+header], &fields) != nil {
+					t.Fatal("genuine failure header precursor")
+				}
+				field, count := "request_written", uint64(math.MaxInt)
+				if mode == "received-int-max" || mode == "received-int-overflow" {
+					field = "response_read"
+				}
+				if mode == "written-int-overflow" || mode == "received-int-overflow" {
+					count++
+				}
+				fields[field] = strconv.FormatUint(count, 10)
+				encoded := providerReplayCanonical(fields, providerHistoryFailureHeaderBytes, nil)
+				if len(encoded) == 0 || len(encoded) > providerHistoryFailureHeaderBytes {
+					t.Fatal("bounded integer metadata")
+				}
+				payload := append([]byte(nil), raw[start+header:]...)
+				raw = append([]byte(providerHistoryFailureMagic), make([]byte, 4)...)
+				binary.BigEndian.PutUint32(raw[len(providerHistoryFailureMagic):start], uint32(len(encoded)))
+				raw = append(raw, encoded...)
+				raw = append(raw, payload...)
 			}
-			if got, err := parseProviderHistoryFailureOriginalObserved(raw, digest, ticket, consumption, ordinal, selectedRoots, bounds, maximum, historyGroupCodecMeter()); err == nil || got != nil {
+			meter := historyGroupCodecMeter()
+			if got, err := parseProviderHistoryFailureOriginalObserved(raw, digest, ticket, consumption, ordinal, selectedRoots, bounds, maximum, meter); err == nil || got != nil ||
+				meter.actual[0] != 0 || meter.actual[1] != 0 || meter.clocks != 0 {
 				t.Fatal("changed failure DATA was accepted", mode)
 			}
 		})
