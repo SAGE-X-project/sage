@@ -131,13 +131,14 @@ func TestProviderHistoryOriginalCancellationAroundRenameKeepsEarlierArchive(t *t
 			phase := strings.SplitN(mode, "-", 2)[0]
 			var admission *providerHistoryGroupAcknowledgment
 			var dispatch *providerHistoryGroupDispatch
-			if phase == "consume" {
+			switch phase {
+			case "consume":
 				var err error
 				admission, err = o.retainAdmissionCandidate(context.Background(), "identity", []*providerIntegrationRequest{historyGroupRequest(t, "web3_clientVersion", []any{})}, historyMultistageTestUpper(s.config.capture))
 				if err != nil || admission == nil {
 					t.Fatal("genuine second T before C cancellation", err)
 				}
-			} else if phase == "settle" {
+			case "settle":
 				dispatch = historyMultistageDispatch(t, o, 2)
 				historyRetainNormalPrefix(t, o, dispatch, 1)
 			}

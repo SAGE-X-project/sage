@@ -218,7 +218,8 @@ func TestProviderHistoryNodeJSONObservationKeepsDuplicateContextAndLocationGuard
 			t.Fatal("invalid original JSON", raw)
 		}
 	}
-	if nodeJSONPreflight(nil, []byte(`{}`), &replayBudget{limits: limits, observer: providerHistoryNodeJSONUnitMeter()}) || nodeJSONPreflight(context.Background(), nil, nil) {
+	var absentContext context.Context
+	if nodeJSONPreflight(absentContext, []byte(`{}`), &replayBudget{limits: limits, observer: providerHistoryNodeJSONUnitMeter()}) || nodeJSONPreflight(context.Background(), nil, nil) {
 		t.Fatal("missing original context/budget")
 	}
 	ctx, cancel := context.WithCancel(context.Background())

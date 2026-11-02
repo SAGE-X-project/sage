@@ -146,7 +146,7 @@ func TestProviderHistoryBinaryWrapperJSONBodyKeepsCanonicalBytesAndOriginalPrefl
 	if len(f.block.Uncles()) != 0 || len(f.block.Withdrawals()) > 16 {
 		t.Fatal("ordinary existing JSON body precursor")
 	}
-	var canonical uint64 = uint64(len(f.header))
+	canonical := uint64(len(f.header))
 	for _, raw := range f.raw.Transactions {
 		canonical += uint64(len(raw))
 	}

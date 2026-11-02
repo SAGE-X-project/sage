@@ -65,7 +65,7 @@ func TestProviderHistoryNodeSigningExactRowsMatchGenericConsensusProjection(t *t
 		preimage := historyNodeBindingPreimage(t, tx)
 		y := uint64(len(preimage))
 		units := y*y + y + 2
-		var signer types.Signer = types.LatestSignerForChainID(big.NewInt(11155111))
+		signer := types.LatestSignerForChainID(big.NewInt(11155111))
 		if tx.Type() == types.LegacyTxType && !tx.Protected() {
 			signer = types.HomesteadSigner{}
 		}

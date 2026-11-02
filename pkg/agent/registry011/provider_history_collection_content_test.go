@@ -493,9 +493,10 @@ func TestProviderHistoryCollectionStreamingAppliesOnlyCompleteBlocksAcrossOrigin
 				t.Fatal("the last original S did not select all eight remaining effects")
 			}
 			ctx := context.Background()
-			if mode == "last-trace-unavailable" {
+			switch mode {
+			case "last-trace-unavailable":
 				results[7] = historyCollectionBoundaryResult(t, []byte(`"ordinary unavailable fixture"`))
-			} else if mode == "cancelled" {
+			case "cancelled":
 				var cancel context.CancelFunc
 				ctx, cancel = context.WithCancel(ctx)
 				cancel()

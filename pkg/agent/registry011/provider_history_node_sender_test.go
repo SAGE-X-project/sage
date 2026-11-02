@@ -13,7 +13,7 @@ func TestProviderHistoryNodeSigningHashesMatchPinnedSupportedTypes(t *testing.T)
 	// The existing finite unsigned DATA values test only signing-preimage
 	// encodings; they claim no account authorization or valid blob proof.
 	for i, tx := range providerHistoryNodeJSONUnitTransactions() {
-		var signer types.Signer = types.LatestSignerForChainID(big.NewInt(11155111))
+		signer := types.LatestSignerForChainID(big.NewInt(11155111))
 		if tx.Type() == types.LegacyTxType && !tx.Protected() {
 			signer = types.HomesteadSigner{}
 		}

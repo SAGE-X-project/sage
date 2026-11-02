@@ -114,12 +114,13 @@ func TestProviderHistorySemanticObserverQuarantinesFailedComparisons(t *testing.
 			historySemanticApply(t, f, in, 1, 1)
 			step := replayTestSteps(t)[0]
 			var err error
-			if mode == "wrong-observer" {
+			switch mode {
+			case "wrong-observer":
 				f.window.budget.observer = providerHistorySemanticUnitMeter()
 				err = f.compareStateCandidate(context.Background(), true, step.Record, step.Grants)
-			} else if mode == "record" {
+			case "record":
 				err = f.compareStateCandidate(context.Background(), true, append(bytes.Clone(step.Record), ' '), step.Grants)
-			} else {
+			default:
 				if f.compareStateCandidate(context.Background(), true, step.Record, step.Grants) != nil {
 					t.Fatal("normal separate stop state precursor")
 				}

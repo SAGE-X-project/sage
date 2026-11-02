@@ -328,9 +328,10 @@ func TestProviderHistoryRoleBindingCountsConserveVariableOriginalGrammar(t *test
 			var total providerHistoryRoleBindingCalls
 			for prior := uint64(0); prior < groups; prior++ {
 				members := uint64(1)
-				if pattern == 1 {
+				switch pattern {
+				case 1:
 					members = 32
-				} else if pattern == 2 {
+				case 2:
 					members = 1 + (19*prior+7*groups)%32
 				}
 				calls, ok := providerHistoryCollectionRoleBindingCallsBound(prior, requests, members, prior+1 < groups)

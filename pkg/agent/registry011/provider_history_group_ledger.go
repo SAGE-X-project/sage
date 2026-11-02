@@ -292,7 +292,9 @@ func (l *providerHistoryGroupLedger) settle(settlement *providerHistoryGroupSett
 }
 
 func (l *providerHistoryGroupLedger) settleObserved(settlement *providerHistoryGroupSettlement, meter *providerWorkMeter) error {
-	return l.settleOriginalsObserved(nil, settlement, nil, nil, meter)
+	// Keep the legacy wrapper context-free; collection replay must reject it.
+	var absentContext context.Context
+	return l.settleOriginalsObserved(absentContext, settlement, nil, nil, meter)
 }
 
 // Results here must be decoded from this reader's own original pack/spools.

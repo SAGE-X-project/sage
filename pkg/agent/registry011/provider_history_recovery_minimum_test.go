@@ -25,9 +25,10 @@ func TestProviderHistoryRecoveryGroupAdmitsRemainingFilesBeforeCheckpointArrays(
 			}
 			t.Run(name, func(t *testing.T) {
 				count := 1
-				if subject.name == "settled-two" {
+				switch subject.name {
+				case "settled-two":
 					count = 2
-				} else if subject.name == "failed-one-of-three" {
+				case "failed-one-of-three":
 					count = 3
 				}
 				var o *providerHistoryGroupOwner

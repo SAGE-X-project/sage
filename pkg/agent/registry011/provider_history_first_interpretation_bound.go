@@ -381,10 +381,7 @@ func providerHistoryCollectionBoundaryRoleModelUpper(manifest *providerHistoryCo
 	out.tiers[5] = providerHistoryBoundaryNormalTier{caps.state, phase.state.normal}
 	out.tiers[6] = providerHistoryBoundaryNormalTier{caps.grants, phase.grants.normal}
 	out.tiers[10].count = a.sum(caps.content, caps.effects) // assigned subgraph only
-	var ancestryItem candidateWorkVector
-	for coordinate, units := range header.normal {
-		ancestryItem[coordinate] = units
-	}
+	ancestryItem := header.normal
 	ancestryItem[10] = a.sum(ancestryItem[10], 133)
 	assign := func(first int, items, groups uint64, item candidateWorkVector, overhead uint64) {
 		full, rest := items/providerHistoryGroupMembers, items%providerHistoryGroupMembers

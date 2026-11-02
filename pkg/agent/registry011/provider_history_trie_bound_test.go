@@ -26,7 +26,10 @@ func TestProviderHistoryTrieUpperMatchesIndependentLiteralsAndSharedBytes(t *tes
 	}
 	// Derive the node coefficient independently from original source events.
 	want := 256 + 6*532*532 + 7 + 360 + 126 + 66 + 119 + 6 + 6*17*33 + (16 + 6*532 + 7) + 7*33
-	if want != 1705896 || providerHistoryTrieNodeLogical != want {
+	if want != 1705896 {
+		t.Fatal("independent source stages changed the coefficient")
+	}
+	if providerHistoryTrieNodeLogical != want {
 		t.Fatal("changed source stages require rederiving the coefficient")
 	}
 }

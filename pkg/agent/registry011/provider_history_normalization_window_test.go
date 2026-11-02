@@ -282,7 +282,8 @@ func TestProviderHistoryNormalizationReadyBlockRequiresOriginalWindowObserver(t 
 	}
 	c = historyCollectionContentStep(t, c, in, methods)
 	m, before := c.semantic.observer, c.semantic.observer.actual
-	if c.applyReadyBlocksObserved(nil, m) || c.applyReadyBlocksObserved(context.Background(), nil) ||
+	var absentContext context.Context
+	if c.applyReadyBlocksObserved(absentContext, m) || c.applyReadyBlocksObserved(context.Background(), nil) ||
 		c.applyReadyBlocksObserved(context.Background(), providerHistoryExecutionUnitMeter()) || m.actual != before {
 		t.Fatal("a foreign or missing original context entered replay", m.actual, before)
 	}

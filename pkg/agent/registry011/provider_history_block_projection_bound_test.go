@@ -414,11 +414,12 @@ func TestProviderHistoryBlockProjectionRefusesOrdinaryJSONBoundaryMismatches(t *
 	wantHeader := replayHeader(block.Header())
 	for _, mode := range []string{"from", "quantities", "header-binding", "unknown-field", "receipt-location"} {
 		a, b := bytes.Clone(blockJSON), bytes.Clone(receiptJSON)
-		if mode == "header-binding" {
+		switch mode {
+		case "header-binding":
 			hash := block.Hash()
 			hash[31] ^= 1
 			a = nodeJSONEditObject(a, func(m map[string]json.RawMessage) { nodeJSONPut(m, "hash", hash.Hex()) })
-		} else if mode == "receipt-location" {
+		case "receipt-location":
 			var rows []json.RawMessage
 			if json.Unmarshal(b, &rows) != nil || len(rows) == 0 {
 				t.Fatal("ordinary receipt precursor")
@@ -431,7 +432,7 @@ func TestProviderHistoryBlockProjectionRefusesOrdinaryJSONBoundaryMismatches(t *
 			if err != nil {
 				t.Fatal(err)
 			}
-		} else {
+		default:
 			a = nodeJSONEditObject(a, func(object map[string]json.RawMessage) {
 				var rows []json.RawMessage
 				if json.Unmarshal(object["transactions"], &rows) != nil || len(rows) == 0 {

@@ -212,9 +212,10 @@ func TestProviderHistoryBoundaryInterpretationFundsOriginalIdentityAndAncestry(t
 			results := historyCollectionBoundaryResults(t, c, headers, table)
 			before := append([]providerHistoryMemberResult(nil), results...)
 			pair := cost.opening
-			if phase == "ancestry" {
+			switch phase {
+			case "ancestry":
 				pair = cost.ancestry
-			} else if phase == "close" {
+			case "close":
 				pair = cost.closing
 			}
 			m := historyBoundaryRPCMeter(pair.envelope)

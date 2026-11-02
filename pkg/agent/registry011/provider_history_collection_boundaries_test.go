@@ -68,15 +68,16 @@ func historyCollectionBoundaryResults(t *testing.T, c *providerHistoryCollection
 		}
 		return historyCollectionBoundaryResult(t, envelope.Result)
 	}
-	if c.phase == "open" {
+	switch c.phase {
+	case "open":
 		results[0], results[1], results[2], results[3], results[4] = read("chain"), read("genesis"), read("identity-at-anchor"), read("client"), historyCollectionBoundaryHeader(t, c.selection.selected)
 		for i, code := range c.selection.input.codes {
 			results[5+i] = read("code-" + code.Name)
 		}
-	} else if c.phase == "close" {
+	case "close":
 		results[0], results[1], results[2] = historyCollectionBoundaryHeader(t, headers[c.low-sepoliaDeploymentBlock]), historyCollectionBoundaryHeader(t, c.selection.selected), historyCollectionBoundaryHeader(t, c.selection.selected)
 		results[3], results[4], results[5], results[6] = read("chain"), read("genesis"), read("identity-at-anchor"), read("client")
-	} else {
+	default:
 		for i := range results {
 			results[i] = historyCollectionBoundaryResult(t, []byte(`"inert unsupported content"`))
 		}
