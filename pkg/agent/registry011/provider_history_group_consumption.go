@@ -14,15 +14,27 @@ func (o *providerHistoryGroupOwner) admissionShapeLocked() bool {
 	if o == nil || o.owner != o || o.start == nil || o.admission == nil || o.admission != o.last || o.admission.owner != o ||
 		o.admission.pin != o.pin || o.coordinator == nil || o.custodian == nil || o.coordinator == o.custodian ||
 		o.coordinator.owner != o.coordinator || o.custodian.owner != o.custodian ||
-		o.coordinator.phase != "admitted" || o.custodian.phase != "admitted" || o.coordinator.head != o.custodian.head ||
-		o.stageBaseLocked() == nil || o.coordinator.stage+1 != o.nextStageLocked() || o.custodian.stage+1 != o.nextStageLocked() ||
+		o.coordinator.phase != "admitted" || o.custodian.phase != "admitted" || o.coordinator.head != o.custodian.head {
+		return false
+	}
+	// The original store lock keeps this pure selection stable for this
+	// scalar call. Revalidate it on every call; retain no cross-call cache.
+	base := o.stageBaseLocked()
+	if base == nil {
+		return false
+	}
+	stage := base.frame.stage + 1
+	if stage > o.parent.bounds.stages {
+		stage = 0 // Preserve nextStageLocked's original invalid-stage value.
+	}
+	if o.coordinator.stage+1 != stage || o.custodian.stage+1 != stage ||
 		o.coordinator.sequence != 3*o.coordinator.stage+1 || o.custodian.sequence != 3*o.custodian.stage+1 ||
 		o.coordinator.ticket == nil || o.custodian.ticket == nil || o.coordinator.ticket == o.custodian.ticket {
 		return false
 	}
 	c := o.admission.claim
 	return c != nil && c.owner == c && c.group == o && c.meter == o.meter && c.used && c.renamed &&
-		c.frame != nil && o.stageBaseLocked() != nil && c.frame.before == o.stageBefore.pin && c.frame.after == o.pin && c.frame.phase == "admit" && c.frame.stage == o.nextStageLocked() &&
+		c.frame != nil && c.frame.before == o.stageBefore.pin && c.frame.after == o.pin && c.frame.phase == "admit" && c.frame.stage == stage &&
 		c.inventory != nil && c.inventory.count == 2 && c.inventory.digest == o.inventory && c.count == 2 &&
 		c.request == c.inventory.entries[0] && c.ticket == c.inventory.entries[1] && c.request.kind == "requests" && c.ticket.kind == "ticket" &&
 		c.coordinator == o.coordinator && c.members > 0 && c.members <= providerHistoryGroupMembers

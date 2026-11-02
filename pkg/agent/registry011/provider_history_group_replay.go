@@ -37,8 +37,20 @@ func (o *providerHistoryGroupOwner) committedConsumptionShapeLocked() bool {
 		o.admission == o.last || o.admission.owner != o || o.last.owner != o || o.last.pin != o.pin ||
 		o.coordinator == nil || o.custodian == nil || o.coordinator == o.custodian ||
 		o.coordinator.owner != o.coordinator || o.custodian.owner != o.custodian ||
-		o.coordinator.phase != "consumed" || o.custodian.phase != "consumed" ||
-		o.stageBaseLocked() == nil || o.coordinator.stage+1 != o.nextStageLocked() || o.custodian.stage+1 != o.nextStageLocked() ||
+		o.coordinator.phase != "consumed" || o.custodian.phase != "consumed" {
+		return false
+	}
+	// The original store lock keeps this pure selection stable for this
+	// scalar call. Revalidate it on every call; retain no cross-call cache.
+	base := o.stageBaseLocked()
+	if base == nil {
+		return false
+	}
+	stage := base.frame.stage + 1
+	if stage > o.parent.bounds.stages {
+		stage = 0 // Preserve nextStageLocked's original invalid-stage value.
+	}
+	if o.coordinator.stage+1 != stage || o.custodian.stage+1 != stage ||
 		o.coordinator.sequence != 3*o.coordinator.stage+2 || o.custodian.sequence != 3*o.custodian.stage+2 ||
 		o.coordinator.head != o.custodian.head || o.coordinator.ticket == nil || o.custodian.ticket == nil ||
 		o.coordinator.ticket == o.custodian.ticket || o.coordinator.consumption == nil || o.custodian.consumption == nil ||
@@ -47,12 +59,12 @@ func (o *providerHistoryGroupOwner) committedConsumptionShapeLocked() bool {
 	}
 	t, c := o.admission.claim, o.last.claim
 	if t == nil || t.owner != t || t.group != o || t.meter != o.meter || !t.used || !t.renamed ||
-		t.frame == nil || t.frame.before != o.stageBefore.pin || t.frame.after != o.admission.pin || t.frame.phase != "admit" || t.frame.stage != o.nextStageLocked() ||
+		t.frame == nil || t.frame.before != o.stageBefore.pin || t.frame.after != o.admission.pin || t.frame.phase != "admit" || t.frame.stage != stage ||
 		t.inventory == nil || t.count != 2 || t.inventory.count != 2 || t.request != t.inventory.entries[0] || t.ticket != t.inventory.entries[1] ||
 		t.request.kind != "requests" || t.ticket.kind != "ticket" || t.coordinator == nil || t.coordinator.owner != t.coordinator ||
 		t.coordinator.phase != "admitted" || t.coordinator.ticket == nil || t.members < 1 || t.members > providerHistoryGroupMembers ||
 		c == nil || c.owner != c || c.group != o || c.meter != o.meter || !c.used || !c.renamed || c.admission != o.admission ||
-		c.frame == nil || c.frame.before != o.admission.pin || c.frame.after != o.pin || c.frame.phase != "consume" || c.frame.stage != o.nextStageLocked() ||
+		c.frame == nil || c.frame.before != o.admission.pin || c.frame.after != o.pin || c.frame.phase != "consume" || c.frame.stage != stage ||
 		c.inventory == nil || c.count != 1 || c.inventory.count != 1 || c.inventory.previous != t.inventory.digest ||
 		c.inventory.digest != o.inventory || c.consumption != c.inventory.entries[0] || c.consumption.kind != "consumption" ||
 		c.coordinator != o.coordinator || c.order == nil || c.order != o.order || c.order.owner != c.order || !c.order.valid() ||
