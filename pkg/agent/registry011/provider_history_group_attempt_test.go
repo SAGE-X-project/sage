@@ -102,7 +102,12 @@ func TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals(t *tes
 					o.phase != "dispatch-prepared" || o.pin != pin || s.frontierFiles.pin != pin || o.last != ack || s.stored != held ||
 					s.activeMeter.Load() != nil || o.windowStart != window || o.clockStart != clocks ||
 					o.retention.objects != retained.objects+2 || o.retention.files != retained.files+2 {
-					t.Fatal("member was not independently retained under the original C/hold/order", err)
+					// Retained fixture counters only; no extra clock sample or
+					// product operation may change the failed invocation.
+					t.Fatal("member was not independently retained under the original C/hold/order",
+						"ordinal", ordinal, "retained", d.retained, "work", m.actual,
+						"window-start", o.windowStart, "window-upper", o.windowUpper,
+						"clocks", m.clocks, "clock-start", o.clockStart, "clock-upper", o.clockUpper, err)
 				}
 				last := original.attempt
 				recovery := o.parent.recovery

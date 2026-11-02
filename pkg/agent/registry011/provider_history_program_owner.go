@@ -118,18 +118,15 @@ func newProviderHistoryProgramBeforeOpenCandidate(s *providerCustodyStore) (*pro
 // All fields here are scalars/value snapshots. A changed profile, capacity,
 // copied owner or reassigned clock cannot preserve the original reservation.
 func (p *providerHistoryProgramOwner) matchesLocked() bool {
-	if p == nil || p.owner != p || p.failed || p.recovery == nil || !p.recovery.unspentLocked() || p.store == nil || p.store.history != p || p.store.closed || p.store.failed ||
-		p.store.config != p.config || p.config.bounds.history == nil || *p.config.bounds.history != p.bounds ||
-		p.config.bounds.scan == nil || *p.config.bounds.scan != p.scan || p.store.guardian != nil ||
-		p.config.bounds.continuation == nil || *p.config.bounds.continuation != p.continuation ||
-		p.config.bounds.methods == nil || *p.config.bounds.methods != p.methods || p.config.bounds.tls == nil || *p.config.bounds.tls != p.tls ||
-		p.config.bounds.firstAdmission == nil || *p.config.bounds.firstAdmission != p.first ||
-		p.config.policy == nil || *p.config.policy != p.policy || !p.bounds.valid(p.config.bounds) ||
-		p.bounds.derivation.dispatch != p.dispatchBounds || p.bounds.derivation.admission != p.collectionAdmission || !p.collectionMatchesLocked() ||
-		p.store.firstLimits == nil || *p.store.firstLimits != p.limits || p.store.clock != p.clock || p.clock == nil ||
-		p.clock.history != p || p.store.stored != p.held.retained ||
-		p.firstOwner != nil && (p.store.firstOperation != p.firstOwner || p.firstAdmission == nil || p.firstMeter == nil ||
-			p.store.firstAdmissionOwner != p.firstAdmission || p.firstOwner.first != p.firstAdmission || p.firstAdmission.meter != p.firstMeter) {
+	// unspentLocked validates observerShapeLocked, including this exact
+	// parent's configuration, selected bounds, derivation, collection, first
+	// limits and first-owner links. Bind its parent/store before reusing those
+	// checks within this call. No callback, external I/O, native sample or
+	// state change separates them; nothing is cached for another invocation.
+	if p == nil || p.owner != p || p.failed || p.recovery == nil || p.store == nil ||
+		p.recovery.parent != p || p.recovery.store != p.store || !p.recovery.unspentLocked() ||
+		p.store.closed || p.store.failed || p.store.clock != p.clock || p.clock == nil ||
+		p.clock.history != p || p.store.stored != p.held.retained {
 		return false
 	}
 	c := p.clock

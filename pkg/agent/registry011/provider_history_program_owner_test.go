@@ -77,6 +77,45 @@ func providerHistoryParentBoundScalarFixture(t *testing.T) (*providerCustodyStor
 	return s, p
 }
 
+// Finite pre-open UNIT states only. Neither store is opened with these
+// synthetic derivations, and matching must not sample a native clock.
+func TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings(t *testing.T) {
+	for _, mode := range []string{"foreign-recovery", "foreign-store", "used", "active", "closed", "failed", "continuation", "first-admission", "dispatch"} {
+		t.Run(mode, func(t *testing.T) {
+			local, foreign := providerHistoryParentScalarFixture(t), providerHistoryParentScalarFixture(t)
+			parent, err := newProviderHistoryProgramBeforeOpenCandidate(local)
+			other, otherErr := newProviderHistoryProgramBeforeOpenCandidate(foreign)
+			if err != nil || otherErr != nil || parent == nil || other == nil || !parent.matchesLocked() || !other.matchesLocked() || local.clock.read != 0 || foreign.clock.read != 0 {
+				t.Fatal("independent pre-open scalar controls", err, otherErr)
+			}
+			held, stored, original := parent.held, local.stored, parent.original
+			switch mode {
+			case "foreign-recovery":
+				parent.recovery = other.recovery
+			case "foreign-store":
+				parent.recovery.store = foreign
+			case "used":
+				parent.recovery.used = true
+			case "active":
+				parent.recovery.active = true
+			case "closed":
+				parent.recovery.closed = true
+			case "failed":
+				parent.recovery.failed = true
+			case "continuation":
+				local.config.bounds.continuation = nil
+			case "first-admission":
+				local.config.bounds.firstAdmission = nil
+			case "dispatch":
+				parent.bounds.derivation.dispatch.memberClocks++
+			}
+			if parent.matchesLocked() || parent.failed || parent.held != held || local.stored != stored || parent.original != original || local.clock.read != 0 || foreign.clock.read != 0 {
+				t.Fatal("detached or changed selection matched or changed the original reservation")
+			}
+		})
+	}
+}
+
 func TestProviderHistoryProgramRefusesNumbersAndJSONBeforeObservation(t *testing.T) {
 	s := providerHistoryParentScalarFixture(t)
 	s.config.bounds.history.derivation = nil
