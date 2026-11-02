@@ -349,15 +349,26 @@ func TestProviderHistoryMemberReplayPreservesGrowingMembersAndFailureRecovery(t 
 }
 
 func TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot(t *testing.T) {
-	c, in, _ := historyCollectionContentFixture(t, 4)
-	l := historyCollectionLedger(t, c)
-	f := l.collection.semantic
-	historySemanticApply(t, f, in, 0, 2)
-	// This is isolated semantic DATA, not a physical C or live dispatch seal.
-	l.head = providerReplayDigest(providerHistoryGroupRootDomain, l.rootObserved(f.observer), f.observer)
-	if !l.validObserved(f.observer) {
-		t.Fatal("valid owned semantic DATA precursor")
+	// This copy check needs an allocated semantic window, not a fabricated
+	// post-ancestry ledger. Select the smallest complete synthetic interval
+	// before constructing its cursor and enter the window through ordinary
+	// original-shaped T/C/S DATA. No Source or live dispatch is constructed.
+	in := replayTestInput(t)
+	in.Blocks, in.History = in.Blocks[:1], nil
+	in.Anchor = journalTestHeader(t, in.Blocks[0])
+	c, _, methods := historyCollectionContentInputFixture(t, 1, in, SepoliaAmsterdamRootExecutionGasProfile)
+	if !c.initial() {
+		t.Fatal("semantic copy fixture must start at the genuine initial DATA cut")
 	}
+	l := historyCollectionLedger(t, c)
+	settlement, results := historyCollectionPendingSettlement(t, l, nil, methods)
+	m := l.collection.semantic.observer
+	if err := l.settleOriginalsObserved(context.Background(), settlement, results, methods, m); err != nil ||
+		l.stage != 1 || l.phase != "settled" || l.collection.completed != 1 || l.collection.phase != "content" ||
+		l.collection.semantic.window == nil || !l.validObserved(m) || c.completed != 0 || !c.initial() {
+		t.Fatal("normal initial T/C/S DATA did not open an independent semantic window", err)
+	}
+	f := l.collection.semantic
 	w := f.window
 	contractMethods, outcomeEvents := len(w.run.contract.Methods), len(w.run.outcomes.Events)
 	for key := range w.run.contract.Methods {

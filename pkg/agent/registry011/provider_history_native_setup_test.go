@@ -24,10 +24,19 @@ func TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes(t *tes
 			if err != nil {
 				t.Fatal(err)
 			}
-			before := replayTestClone(t, header)
+			before := types.CopyHeader(header)
+			if !reflect.DeepEqual(before, header) {
+				t.Fatal("independent native header snapshot differs before encoding")
+			}
 			actual, err := providerHistoryNativeBlockBytesObserved(header, block.Transactions(), withdrawals, len(want), providerHistorySemanticUnitMeter())
-			if err != nil || !bytes.Equal(actual, want) || !reflect.DeepEqual(before, header) {
-				t.Fatal("transient observed body changed pinned complete RLP or input header", err)
+			if err != nil {
+				t.Fatal("normal observed native block encoding refused", err)
+			}
+			if !bytes.Equal(actual, want) {
+				t.Fatal("observed native block bytes differ from the complete independent RLP")
+			}
+			if !reflect.DeepEqual(before, header) {
+				t.Fatal("observed native block encoding changed its input header")
 			}
 		})
 	}
@@ -161,10 +170,19 @@ func TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance(t *testi
 				maximum = len(want)
 				meter.upper = candidateWorkVector{}
 			}
-			before := replayTestClone(t, header)
+			before := types.CopyHeader(header)
+			if !reflect.DeepEqual(before, header) {
+				t.Fatal("independent native header snapshot differs before encoding")
+			}
 			result, encodeErr := providerHistoryNativeBlockBytesObserved(header, block.Transactions(), block.Withdrawals(), maximum, meter)
-			if encodeErr == nil || result != nil || !meter.failed || !reflect.DeepEqual(header, before) {
-				t.Fatal("failed native encoding published bytes, restored allowance or changed its input", mode, encodeErr)
+			if encodeErr == nil || result != nil {
+				t.Fatal("failed native encoding published bytes or omitted its error", mode, encodeErr)
+			}
+			if !meter.failed {
+				t.Fatal("failed native encoding did not retain the original failed observer", mode)
+			}
+			if !reflect.DeepEqual(header, before) {
+				t.Fatal("failed native encoding changed its input header", mode)
 			}
 		})
 	}

@@ -54,6 +54,9 @@ jobs:
           names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
           Path(os.environ['RUNNER_TEMP'], 'registry-source-checks', 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
           PYSOURCE
+          # Check the recent fixture and native-byte regressions before the full suite.
+          # This separate log neither supplies coverage nor replaces complete evidence.
+          go test -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance)$' ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/regression-controls.jsonl"
           go test -mod=readonly -race -count=1 -timeout=60m -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
           go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
           git diff --exit-code
