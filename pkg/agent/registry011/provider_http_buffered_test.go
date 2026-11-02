@@ -33,9 +33,9 @@ func TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition(t *testing.T) {
 	o := historyBufferedHeadFixture(t)
 	for _, row := range []struct {
 		name, wire, head, rest string
-		maximum               int
-		units                 uint64
-		failed                bool
+		maximum                int
+		units                  uint64
+		failed                 bool
 	}{
 		{"terminator", "\r\n\r\nTAIL", "\r\n\r\n", "TAIL", 64, 25, false},
 		{"one-prefix", "a\r\n\r\nTAIL", "a\r\n\r\n", "TAIL", 64, 38, false},

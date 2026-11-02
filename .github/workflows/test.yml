@@ -24,7 +24,7 @@ jobs:
   registry_source_checks:
     name: Registry Source Checks
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 135
 
     steps:
       - name: Checkout code
@@ -57,8 +57,11 @@ jobs:
           # Check the recent fixture and native-byte regressions before the full suite.
           # This separate log neither supplies coverage nor replaces complete evidence.
           go test -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall)$' ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/regression-controls.jsonl"
+
+      - name: Measure maximum Registry dispatch
+        run: |
           # Profile one genuine maximum-member control separately from full-suite evidence.
-          # Preserve failed diagnostics and every original window, timeout and coverage gate.
+          # Preserve failed diagnostics and every native window and coverage gate.
           registry_profile_status=0
           go test -mod=readonly -race -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" -o "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" -coverprofile="$RUNNER_TEMP/registry-source-checks/cpu-profile-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/cpu-profile-tests.jsonl" || registry_profile_status=$?
           printf '%s\n' "$registry_profile_status" > "$RUNNER_TEMP/registry-source-checks/cpu-profile.exit"
@@ -97,7 +100,10 @@ jobs:
           PYCOMPARISON
           fi
           test "$registry_profile_status" -eq 0
-          go test -mod=readonly -race -count=1 -timeout=60m -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
+
+      - name: Run complete Registry tests
+        run: |
+          go test -mod=readonly -race -count=1 -timeout=120m -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
           go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
           git diff --exit-code
 

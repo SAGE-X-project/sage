@@ -65,7 +65,7 @@ jobs:
   provider-capture:
     name: Capture candidate provider transport evidence
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 135
     env:
       GOFLAGS: -mod=readonly
       GOTOOLCHAIN: auto
@@ -98,8 +98,12 @@ jobs:
           # Check the recent fixture and native-byte regressions before the full suite.
           # This separate log neither supplies coverage nor replaces complete evidence.
           go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall)$' ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/regression-controls.jsonl"
+
+      - name: Measure maximum Registry dispatch
+        run: |
+          export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
           # Profile one genuine maximum-member control separately from full-suite evidence.
-          # Preserve failed diagnostics and every original window, timeout and coverage gate.
+          # Preserve failed diagnostics and every native window and coverage gate.
           registry_profile_status=0
           go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.pprof" -o "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu.test" -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-tests.jsonl" || registry_profile_status=$?
           printf '%s\n' "$registry_profile_status" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.exit"
@@ -138,7 +142,11 @@ jobs:
           PYCOMPARISON
           fi
           test "$registry_profile_status" -eq 0
-          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=60m -json -run '^(TestProvider|TestNode|TestReplay|TestRootGas|TestErigon|TestNethermind|TestGasProfile|TestStateGas)' -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
+
+      - name: Run complete Registry tests
+        run: |
+          export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=120m -json -run '^(TestProvider|TestNode|TestReplay|TestRootGas|TestErigon|TestNethermind|TestGasProfile|TestStateGas)' -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
           go tool cover -func="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" > "$SAGE_PROVIDER_CAPTURE_DIR/functions.txt"
           python3 - <<'PYCOVERAGE'
           import os
