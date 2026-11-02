@@ -42,6 +42,10 @@ func historyFirstFinalizedStore(t *testing.T, response string, manifest *provide
 	t.Helper()
 	_, capture := providerFrontierBoundsFixture()
 	capture.Timeout = 10 * time.Second
+	if manifest != nil {
+		// Carry the exact original manifest selection into H0.
+		capture = manifest.input.capture
+	}
 	s := providerHistoryProvisionedInspectionFixture(t, providerScanFixtureSelection{
 		capture: &capture, pin: true, pinLargeObject: true, historyProgram: true, historyGroupWrite: true,
 		historyGroupConsume: true, historyGroupDispatch: true, historyRecoveryNamespace: true, historyRecoveryLegacy: true,

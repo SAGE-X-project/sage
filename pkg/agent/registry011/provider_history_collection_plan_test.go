@@ -38,9 +38,8 @@ func historyCollectionPlanTimeFixture(t *testing.T, blocks, window, content, tim
 	if err != nil || c == nil || !c.valid() {
 		t.Fatal("inert explicit plan fixture", err)
 	}
-	b, capture := providerFrontierBoundsFixture()
-	capture.Timeout = 10 * time.Second
-	return c, b, capture
+	b, _ := providerFrontierBoundsFixture()
+	return c, b, in.capture
 }
 
 func historyCollectionPlan(t *testing.T, c *providerHistoryCollectionCursor, b providerIntegrationBounds, capture ProviderCaptureLimits) *providerHistoryGroupTable {

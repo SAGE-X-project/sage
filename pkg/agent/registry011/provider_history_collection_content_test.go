@@ -129,13 +129,13 @@ func historyCollectionContentResults(t *testing.T, c *providerHistoryCollectionC
 		if present {
 			record = string(replayTestSteps(t)[c.high-1].Record)
 		}
-		results[0] = encode(returnABI(t, "record", present, record))
+		results[0] = encode(returnABI(t, "record", present, []byte(record)))
 	case "grants":
-		results[0] = encode(returnABI(t, "activeGrants", string(replayTestSteps(t)[c.high-1].Grants)))
+		results[0] = encode(returnABI(t, "activeGrants", []byte(replayTestSteps(t)[c.high-1].Grants)))
 	case "history":
 		for i := range results {
 			h := in.History[c.historyNext+uint64(i)-1]
-			results[i] = encode(returnABI(t, "historyItem", string(h.Entry), string(h.Command)))
+			results[i] = encode(returnABI(t, "historyItem", []byte(h.Entry), []byte(h.Command)))
 		}
 	case "close":
 		results[0] = historyCollectionBoundaryHeader(t, journalTestHeader(t, in.Blocks[c.high]))

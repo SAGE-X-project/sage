@@ -66,6 +66,7 @@ func TestProviderHistoryHealthyFirstOriginalRejectsUnusableHeaderAfterRealOwnedT
 			case "above-maximum":
 				in.maximumSelected--
 				in.blocks--
+				in.native--
 				in.presentStops = 3
 			case "old-time":
 				in.journal.Deployment.Timestamp = historyFirstFinalizedHeader().Timestamp + 1

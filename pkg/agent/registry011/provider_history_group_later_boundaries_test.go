@@ -185,8 +185,10 @@ func TestProviderHistoryLaterStageFailuresPreserveEarlierArchivesThroughFullInsp
 func TestProviderHistoryLaterStageSuccessfulSettlementHasAnActualPositiveNativeTail(t *testing.T) {
 	_, capture := providerFrontierBoundsFixture()
 	rows := providerHistoryDispatchBounds{
-		member:  candidateWorkVector{0: 1, 1: uint64(capture.WireBytes + 1), 2: 4 << 20, 9: 128 << 10, 10: 1 << 48},
-		closure: candidateWorkVector{2: 32 << 20, 9: 1 << 20, 10: 1 << 50}, memberClocks: 2, closureClocks: 2, tailMS: 5000,
+		member: candidateWorkVector{0: 1, 1: uint64(capture.WireBytes + 1), 2: 4 << 20, 9: 128 << 10, 10: 1 << 48},
+		// Select a finite positive UNIT tail before H0 for full retained replay
+		// with the race detector; the actual elapsed-tail assertion stays below.
+		closure: candidateWorkVector{2: 32 << 20, 9: 1 << 20, 10: 1 << 50}, memberClocks: 2, closureClocks: 2, tailMS: 60000,
 	}
 	o := historyMultistageOwnerWithRows(t, 2, &rows)
 	original, held, ceiling := o.parent.original, o.store.stored, o.parent.clockCeiling

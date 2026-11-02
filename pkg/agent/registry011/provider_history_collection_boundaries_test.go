@@ -302,12 +302,15 @@ func TestProviderHistoryCollectionWindowCloseRechecksWithoutRefreshingSelection(
 }
 
 func TestProviderHistoryCollectionStateSealsInputAndCopiesBothArrays(t *testing.T) {
-	c, headers, methods := historyCollectionBoundaryFixture(t, 7, 4)
-	for c.mode == "ancestry" {
-		c = historyCollectionBoundaryStep(t, c, headers, methods)
+	c, input, methods := historyCollectionContentFixture(t, 4)
+	// Derive the effects and their pending blocks through the original
+	// transitions; an effects array without its pending evidence is invalid.
+	for groups := 0; c.phase != "effects" && c.phase != "done" && groups < 200; groups++ {
+		c = historyCollectionContentStep(t, c, input, methods)
 	}
-	c.phase = "effects" // Separate inert array-copy scenario; never a live S.
-	c.effects = []providerHistoryCollectionEffect{{headers[0].Hash, admissionTestDigest("e"), headers[0].Number, 0}}
+	if c.phase != "effects" || len(c.effects) == 0 || len(c.pending) == 0 {
+		t.Fatal("complete pending-effects DATA precursor")
+	}
 	before := c.commitmentObserved(providerReplayUnitMeter())
 	copy := c.copyObserved(c.semantic.observer)
 	if before == "" || copy == nil || copy == c || copy.owner != copy || &copy.spine[0] == &c.spine[0] || &copy.effects[0] == &c.effects[0] || copy.commitmentObserved(providerReplayUnitMeter()) != before {

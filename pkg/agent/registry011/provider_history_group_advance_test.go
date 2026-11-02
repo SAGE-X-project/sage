@@ -77,7 +77,9 @@ func historyMultistageOwnerWithRows(t *testing.T, stages uint64, rows *providerH
 func historyMultistageOwnerWithMemberEnvelope(t *testing.T, stages uint64, rows *providerHistoryDispatchBounds, members int) *providerHistoryGroupOwner {
 	t.Helper()
 	_, capture := providerFrontierBoundsFixture()
-	capture.Timeout = 10 * time.Second
+	// Race-instrumented original-prefix replays precede the owned transport.
+	// Select this finite UNIT allowance before H0, within the existing lifetime.
+	capture.Timeout = 2 * time.Minute
 	s := providerHistoryProvisionedInspectionFixture(t, providerScanFixtureSelection{capture: &capture,
 		pin: true, pinLargeObject: true, historyProgram: true, historyGroupWrite: true, historyGroupConsume: true,
 		historyGroupDispatch: true, historyDispatchRows: rows, historyStages: stages, historyStageMembers: members, historyRecoveryNamespace: true, historyRecoveryLegacy: true, historyRecoveryGroup: true})
@@ -549,7 +551,7 @@ func TestProviderHistoryStageAdvanceRetiresScratchWithoutMutatingOldModelsOrOrig
 				t.Fatal("retirement changed original checkpoint or ACK provenance", i)
 			}
 		}
-		if *checkpoint.memberArchive != archive || *d.order != order || !archive.shapeLocked(o.parent.recovery, checkpoint) ||
+		if *checkpoint.memberArchive != archive || *d.order != order || !checkpoint.memberArchive.shapeLocked(o.parent.recovery, checkpoint) ||
 			o.store.stored != oldHeld || o.retention != oldRetention {
 			t.Fatal("retirement changed archive/consumed bits or refunded reservation")
 		}

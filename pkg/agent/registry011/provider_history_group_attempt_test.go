@@ -30,7 +30,8 @@ func historyMemberDispatchFixtureWithRecoverySelection(t *testing.T, count int, 
 func historyMemberDispatchFixtureWithRecoveryGroupSelection(t *testing.T, count int, rows *providerHistoryDispatchBounds, namespace, legacy, group bool) (*providerHistoryGroupOwner, *providerHistoryGroupDispatch) {
 	t.Helper()
 	_, capture := providerFrontierBoundsFixture()
-	capture.Timeout = 10 * time.Second
+	// The pre-H0 UNIT profile includes both race-instrumented original replays.
+	capture.Timeout = 2 * time.Minute
 	s := providerHistoryProvisionedInspectionFixture(t, providerScanFixtureSelection{
 		capture: &capture,
 		pin:     true, pinLargeObject: true, historyProgram: true, historyGroupWrite: true, historyGroupConsume: true, historyGroupDispatch: true,

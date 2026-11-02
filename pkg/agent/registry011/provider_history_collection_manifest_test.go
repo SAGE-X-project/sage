@@ -26,7 +26,8 @@ func historyCollectionInput(t *testing.T) providerHistoryCollectionInput {
 	copy(in.codes[:], identity.Contracts)
 	in.journal.Deployment = FinalizedHeader{identity.Deployment.BlockHash, admissionTestDigest("d"), sepoliaDeploymentBlock, historyFirstFinalizedHeader().Timestamp - 10}
 	_, in.capture = providerFrontierBoundsFixture()
-	in.capture.Timeout = 10 * time.Second
+	// Finite pre-H0 UNIT allowance for the complete original-prefix replays.
+	in.capture.Timeout = 2 * time.Minute
 	return in
 }
 
@@ -230,6 +231,7 @@ func TestProviderHistoryCollectionRefusesOriginalHeaderAboveMaximumAfterOwnedFir
 	in := historyCollectionInput(t)
 	in.maximumSelected--
 	in.blocks--
+	in.native--
 	in.presentStops = 3
 	m := historyCollectionManifest(t, in)
 	s := historyFirstFinalizedStore(t, historyFirstFinalizedResponse(t), m)
