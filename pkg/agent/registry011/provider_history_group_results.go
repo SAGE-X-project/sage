@@ -83,6 +83,18 @@ func parseProviderHistoryTLSOriginalObserved(raw []byte, ticket *providerHistory
 	if len(raw) == 0 || len(raw) > 64<<10 || !providerHistoryResultContextObserved(ticket, consumption, ordinal, meter) || !bounds.valid() || !lowerHash(roots) {
 		return errProviderIntegration
 	}
+	return parseProviderHistoryTLSOriginalAfterContextObserved(raw, ticket, consumption, ordinal, roots, bounds, meter)
+}
+
+// Both callers have just validated the original T/C in the same pure parse.
+// No caller callback, external I/O, native clock sample or T/C mutation
+// intervenes. Standalone TLS
+// replay retains its complete fresh context check above; every member still
+// checks its own exact TLS fields, ordinal, request and canonical bytes here.
+func parseProviderHistoryTLSOriginalAfterContextObserved(raw []byte, ticket *providerHistoryGroupTicket, consumption *providerHistoryGroupConsumption, ordinal int, roots string, bounds providerTLSBounds, meter *providerWorkMeter) error {
+	if len(raw) == 0 || len(raw) > 64<<10 || ticket == nil || consumption == nil || ordinal < 0 || ordinal >= ticket.table.count || ordinal >= len(ticket.table.members) || !bounds.valid() || !lowerHash(roots) {
+		return errProviderIntegration
+	}
 	v := contentObject(providerReplayJSON(raw, meter), "format", "program", "stage", "table", "ticket", "consumption", "ordinal", "request", "endpoint", "http_version", "server_name", "tls_version", "cipher_suite", "verified_chains", "roots_artifact")
 	if v == nil || v["format"] != providerHistoryTLSOriginalDomain || v["program"] != ticket.program || v["stage"] != strconv.FormatUint(ticket.table.stage, 10) ||
 		v["table"] != ticket.table.digest || v["ticket"] != ticket.digest || v["consumption"] != consumption.digest || v["ordinal"] != strconv.Itoa(ordinal) ||
@@ -131,7 +143,9 @@ func parseProviderHistoryResultPackObserved(raw []byte, expected string, ticket 
 		if !responseOK || !tlsOK {
 			return nil, [providerHistoryGroupMembers]providerHistoryMemberResult{}, errProviderIntegration
 		}
-		results[i], err = parseProviderHistoryMemberOriginalsObserved(response, tlsOriginal, ticket, consumption, i, roots, bounds, meter)
+		// The complete original T/C was checked at this call's entry. Only
+		// that invariant is reused inside this local byte-only pack parse.
+		results[i], err = parseProviderHistoryMemberOriginalsAfterContextObserved(response, tlsOriginal, ticket, consumption, i, roots, bounds, meter)
 		if err != nil {
 			return nil, [providerHistoryGroupMembers]providerHistoryMemberResult{}, errProviderIntegration
 		}
@@ -150,6 +164,28 @@ func parseProviderHistoryMemberOriginalsObserved(response, tlsOriginal string, t
 		parseProviderHistoryTLSOriginalObserved(providerReplayBytes(tlsOriginal, meter), ticket, consumption, ordinal, roots, bounds, meter) != nil {
 		return providerHistoryMemberResult{}, errProviderIntegration
 	}
+	return parseProviderHistoryMemberResponseAfterTLSObserved(response, tlsOriginal, ticket, consumption, ordinal, meter)
+}
+
+// This is local to a single result-pack parse after its fresh complete T/C
+// check. It stores no validation cache or authority and is never reused by a
+// later call. All response limits, TLS bindings and metered byte work remain.
+func parseProviderHistoryMemberOriginalsAfterContextObserved(response, tlsOriginal string, ticket *providerHistoryGroupTicket, consumption *providerHistoryGroupConsumption, ordinal int, roots string, bounds providerTLSBounds, meter *providerWorkMeter) (providerHistoryMemberResult, error) {
+	if ticket == nil || ordinal < 0 || ordinal >= ticket.table.count || ordinal >= len(ticket.table.members) {
+		return providerHistoryMemberResult{}, errProviderIntegration
+	}
+	member := &ticket.table.members[ordinal]
+	if len(response) == 0 || len(response) > member.capture.WireBytes-len(member.request.wire) ||
+		parseProviderHistoryTLSOriginalAfterContextObserved(providerReplayBytes(tlsOriginal, meter), ticket, consumption, ordinal, roots, bounds, meter) != nil {
+		return providerHistoryMemberResult{}, errProviderIntegration
+	}
+	return parseProviderHistoryMemberResponseAfterTLSObserved(response, tlsOriginal, ticket, consumption, ordinal, meter)
+}
+
+// Only the two preceding parsers enter this common response primitive after
+// the same complete per-member TLS verification. It acquires no live role.
+func parseProviderHistoryMemberResponseAfterTLSObserved(response, tlsOriginal string, ticket *providerHistoryGroupTicket, consumption *providerHistoryGroupConsumption, ordinal int, meter *providerWorkMeter) (providerHistoryMemberResult, error) {
+	member := &ticket.table.members[ordinal]
 	wire := providerReplayBytes(response, meter)
 	if len(wire) != len(response) {
 		return providerHistoryMemberResult{}, errProviderIntegration

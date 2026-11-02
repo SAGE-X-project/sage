@@ -48,6 +48,10 @@ func TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal(t *testing.T) {
 			}
 			seen := map[string]bool{}
 			for i := range count {
+				independent, independentErr := parseProviderHistoryMemberOriginalsObserved(inputs[2*i].raw, inputs[2*i+1].raw, ticket, consumption, i, roots, bounds, historyGroupCodecMeter())
+				if independentErr != nil || independent != results[i] {
+					t.Fatal("pack replay differs from a fresh complete standalone member parse", i, independentErr)
+				}
 				if !lowerHash(results[i].digest) || seen[results[i].digest] || results[i].result != `"0xaa36a7"` || results[i].response != `{"jsonrpc":"2.0","id":1,"result":"0xaa36a7"}` {
 					t.Fatal("even identical response bytes must bind distinct original member ordinals", i)
 				}
@@ -385,6 +389,70 @@ func TestProviderHistoryTLSDataAlwaysChargesItsOriginalRequestCopiesAndCompariso
 			}
 			if raw, err := newProviderHistoryTLSOriginalObserved(ticket, consumption, 0, sample, roots, bounds, meter); err == nil || raw != "" || meter.actual != expected || meter.failed {
 				t.Fatal("new history DATA omitted an original copy/comparison or confused semantic refusal with budget failure", mode, meter.actual, expected)
+			}
+		})
+	}
+}
+
+// Finite UNIT field changes only. A previous successful DATA parse must not
+// cache T/C validity for a later call or for the standalone member parser.
+func TestProviderHistoryResultPackRevalidatesContextOnEveryCall(t *testing.T) {
+	for _, mode := range []string{"ticket-profile", "ticket-last-request", "consumption-mask", "consumption-raw"} {
+		t.Run(mode, func(t *testing.T) {
+			ticket, consumption, inputs, roots, bounds := historyResultDataFixture(t, 3)
+			pack, err := newProviderHistoryOriginalPackObserved(ticket.table.stage, ticket.table.digest, "results", 0, 3, inputs, providerHistoryOriginalPackBytes, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			beforeT, beforeC := *ticket, *consumption
+			meter := historyGroupCodecMeter()
+			parsed, results, err := parseProviderHistoryResultPackObserved([]byte(pack.raw), pack.digest, ticket, consumption, 3, roots, bounds, providerHistoryOriginalPackBytes, meter)
+			if err != nil || parsed == nil || !lowerHash(results[2].digest) || *ticket != beforeT || *consumption != beforeC || meter.failed {
+				t.Fatal("fresh original DATA control or input preservation", err)
+			}
+			switch mode {
+			case "ticket-profile":
+				ticket.profile = admissionTestDigest("9")
+			case "ticket-last-request":
+				ticket.table.members[2].request.head += "x"
+			case "consumption-mask":
+				consumption.consumed ^= 1
+			case "consumption-raw":
+				consumption.raw += " "
+			}
+			parsed, results, err = parseProviderHistoryResultPackObserved([]byte(pack.raw), pack.digest, ticket, consumption, 3, roots, bounds, providerHistoryOriginalPackBytes, meter)
+			if err == nil || parsed != nil || results != ([providerHistoryGroupMembers]providerHistoryMemberResult{}) || meter.actual[0] != 0 || meter.actual[1] != 0 || meter.clocks != 0 {
+				t.Fatal("later pack call reused the prior original context or gained a live role")
+			}
+			if result, err := parseProviderHistoryMemberOriginalsObserved(inputs[0].raw, inputs[1].raw, ticket, consumption, 0, roots, bounds, historyGroupCodecMeter()); err == nil || result != (providerHistoryMemberResult{}) {
+				t.Fatal("standalone parser skipped its fresh complete context check")
+			}
+		})
+	}
+}
+
+// Rebuild the enclosing pack after a bounded inert last-member field change.
+// The pack digest is then correct, so only the per-member binding can refuse.
+func TestProviderHistoryResultPackKeepsLastMemberBindings(t *testing.T) {
+	for _, field := range []string{"ordinal", "request", "ticket", "consumption", "roots_artifact"} {
+		t.Run(field, func(t *testing.T) {
+			ticket, consumption, inputs, roots, bounds := historyResultDataFixture(t, 3)
+			var fields map[string]any
+			if err := json.Unmarshal([]byte(inputs[5].raw), &fields); err != nil {
+				t.Fatal(err)
+			}
+			if field == "ordinal" {
+				fields[field] = "0"
+			} else {
+				fields[field] = admissionTestDigest("9")
+			}
+			inputs[5].raw = string(providerReplayCanonical(fields, 64<<10, nil))
+			pack, err := newProviderHistoryOriginalPackObserved(ticket.table.stage, ticket.table.digest, "results", 0, 3, inputs, providerHistoryOriginalPackBytes, nil)
+			if err != nil {
+				t.Fatal("inert UNIT pack precursor", err)
+			}
+			if parsed, results, err := parseProviderHistoryResultPackObserved([]byte(pack.raw), pack.digest, ticket, consumption, 3, roots, bounds, providerHistoryOriginalPackBytes, historyGroupCodecMeter()); err == nil || parsed != nil || results != ([providerHistoryGroupMembers]providerHistoryMemberResult{}) {
+				t.Fatal("correct enclosing digest hid a changed last-member binding")
 			}
 		})
 	}
