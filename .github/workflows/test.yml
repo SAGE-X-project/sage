@@ -354,6 +354,10 @@ jobs:
       - name: Run go vet
         run: go vet ./...
 
+      - name: Test codegraph file boundaries
+        working-directory: tools/codegraph
+        run: go test -mod=readonly -race -count=1 -timeout=2m -json ./...
+
       - name: Check layer boundaries (codegraph)
         working-directory: tools/codegraph
         run: go run . -dir ../.. -out /tmp/codegraph -layer-baseline layer-baseline.txt

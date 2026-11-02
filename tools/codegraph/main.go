@@ -108,12 +108,12 @@ func main() {
 	}
 
 	g := build(root)
-	must(os.MkdirAll(*out, 0o755))
+	must(os.MkdirAll(*out, 0o750))
 	writeJSON(filepath.Join(*out, "graph.json"), g)
-	must(os.WriteFile(filepath.Join(*out, "summary.md"), []byte(summarize(g)), 0o644))
-	must(os.WriteFile(filepath.Join(*out, "entrypoints.md"), []byte(entrypoints(g)), 0o644))
+	must(os.WriteFile(filepath.Join(*out, "summary.md"), []byte(summarize(g)), 0o600))
+	must(os.WriteFile(filepath.Join(*out, "entrypoints.md"), []byte(entrypoints(g)), 0o600))
 	if prev != nil {
-		must(os.WriteFile(filepath.Join(*out, "delta.md"), []byte(delta(prev, g)), 0o644))
+		must(os.WriteFile(filepath.Join(*out, "delta.md"), []byte(delta(prev, g)), 0o600))
 	}
 	fmt.Printf("codegraph: %d packages, %d symbols, %d edges -> %s\n",
 		len(g.Packages), len(g.Symbols), len(g.Edges), *out)
@@ -170,7 +170,7 @@ func layerViolations(g *Graph) []string {
 // checkLayerBaseline returns the violations that are not listed in the
 // baseline file. Blank lines and lines starting with '#' are ignored.
 func checkLayerBaseline(g *Graph, path string) []string {
-	b, err := os.ReadFile(path)
+	b, err := readSelectedFile(path)
 	must(err)
 	allowed := map[string]bool{}
 	for _, line := range strings.Split(string(b), "\n") {
@@ -197,7 +197,7 @@ func must(err error) {
 }
 
 func loadGraph(path string) *Graph {
-	b, err := os.ReadFile(path)
+	b, err := readSelectedFile(path)
 	must(err)
 	var g Graph
 	must(json.Unmarshal(b, &g))
@@ -207,7 +207,7 @@ func loadGraph(path string) *Graph {
 func writeJSON(path string, v any) {
 	b, err := json.MarshalIndent(v, "", " ")
 	must(err)
-	must(os.WriteFile(path, b, 0o644))
+	must(os.WriteFile(path, b, 0o600))
 }
 
 // ---- build -----------------------------------------------------------------
@@ -673,8 +673,23 @@ func deref(t types.Type) types.Type {
 	return t
 }
 
+// CLI inputs explicitly select their parent directory. Keep the leaf read
+// inside that directory, including when the leaf is a symbolic link.
+func readSelectedFile(path string) ([]byte, error) {
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
+		return nil, err
+	}
+	data, readErr := root.ReadFile(filepath.Base(path))
+	closeErr := root.Close()
+	if readErr != nil {
+		return nil, readErr
+	}
+	return data, closeErr
+}
+
 func countLines(path string) int {
-	b, err := os.ReadFile(path)
+	b, err := readSelectedFile(path)
 	if err != nil {
 		return 0
 	}

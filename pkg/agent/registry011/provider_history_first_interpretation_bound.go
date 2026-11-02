@@ -467,7 +467,7 @@ func (m providerHistoryBoundaryRoleModel) rankedUpper(count uint64, weighted boo
 					best = index
 				}
 			}
-			if best < 0 {
+			if best < 0 || best >= len(seen) {
 				return empty, empty, false
 			}
 			seen[best] = true
