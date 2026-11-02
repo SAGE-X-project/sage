@@ -458,19 +458,20 @@ func (m providerHistoryBoundaryRoleModel) rankedUpper(count uint64, weighted boo
 	var a providerHistoryReadArithmetic
 	var normal, prefixes candidateWorkVector
 	for coordinate := range normal {
-		var seen [11]bool
+		// The fixed eleven tiers use eleven bits; no selected index writes an array.
+		var seen uint16
 		left, rank := count, uint64(0)
 		for step := 0; step < len(m.tiers) && left > 0; step++ {
 			best := -1
 			for index, tier := range m.tiers {
-				if !seen[index] && tier.count > 0 && (best < 0 || tier.work[coordinate] > m.tiers[best].work[coordinate]) {
+				if seen&(1<<index) == 0 && tier.count > 0 && (best < 0 || tier.work[coordinate] > m.tiers[best].work[coordinate]) {
 					best = index
 				}
 			}
-			if best < 0 || best >= len(seen) {
+			if best < 0 || best >= len(m.tiers) {
 				return empty, empty, false
 			}
-			seen[best] = true
+			seen |= 1 << best
 			tier := m.tiers[best]
 			take := min(left, tier.count)
 			normal[coordinate] = a.sum(normal[coordinate], a.product(take, tier.work[coordinate]))

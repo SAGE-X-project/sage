@@ -592,3 +592,29 @@ func TestProviderHistoryBoundaryRoleModelRefusesInvalidSourceAndLateOverflow(t *
 		t.Fatal("incoming phase-envelope overflow retained a partial future")
 	}
 }
+
+func TestProviderHistoryBoundaryRankedPrefixSelectsEveryFixedTier(t *testing.T) {
+	model := providerHistoryBoundaryRoleModel{groups: 11}
+	for index := range model.tiers {
+		model.tiers[index] = providerHistoryBoundaryNormalTier{1, candidateWorkVector{0: uint64(index + 1), 1: uint64(11 - index), 10: 1}}
+	}
+	before := model
+	// Opposite marginal orders require both end tiers and all eleven flags.
+	// These literal prefix sums are independent of the selector's traversal.
+	normal := [...]uint64{0, 11, 21, 30, 38, 45, 51, 56, 60, 63, 65, 66}
+	prefixes := [...]uint64{0, 0, 11, 32, 62, 100, 145, 196, 252, 312, 375, 440}
+	itemPrefixes := [...]uint64{0, 0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55}
+	for count, value := range normal {
+		k := uint64(count)
+		got, sums, ok := model.rankedUpper(k, true)
+		want := candidateWorkVector{0: value, 1: value, 10: k}
+		wantSums := candidateWorkVector{0: prefixes[count], 1: prefixes[count], 10: itemPrefixes[count]}
+		if !ok || got != want || sums != wantSums || model != before {
+			t.Fatal("all fixed tier positions must retain their original marginal costs and prefix sums", count, got, sums)
+		}
+		plain, unused, ok := model.rankedUpper(k, false)
+		if !ok || plain != want || unused != (candidateWorkVector{}) || model != before {
+			t.Fatal("unweighted selection must preserve costs without spending a weighted result", count, plain, unused)
+		}
+	}
+}
