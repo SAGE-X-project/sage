@@ -94,9 +94,87 @@ jobs:
       - name: Install dependencies
         run: go mod download && go mod verify
 
-      - name: Run tests with coverage and race detector
+      - name: Download successful Registry Source evidence
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: registry-source-checks
+          path: ${{ runner.temp }}/verified-registry-source
+
+      - name: Verify Registry evidence and partition the complete package set
         run: |
-          go test -race -timeout=60m -coverprofile=coverage.out -covermode=atomic ./...
+          go list ./... > packages-all.txt
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          source = Path(os.environ['RUNNER_TEMP'], 'verified-registry-source')
+          context = json.loads((source / 'context.json').read_text())
+          for name in ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_REF', 'GITHUB_REPOSITORY']:
+              if context.get(name) != os.environ[name]:
+                  raise SystemExit(f'Registry Source evidence context mismatch: {name}')
+          source_attempt = int(context['GITHUB_RUN_ATTEMPT'])
+          if context.get('GITHUB_JOB') != 'registry_source_checks' or not 1 <= source_attempt <= int(os.environ['GITHUB_RUN_ATTEMPT']):
+              raise SystemExit('Registry Source job or attempt mismatch')
+          for filename, args in [('revision.txt', ['git', 'rev-parse', 'HEAD']), ('tree.txt', ['git', 'rev-parse', 'HEAD^{tree}']), ('compiler.txt', ['go', 'version'])]:
+              if (source / filename).read_text() != subprocess.check_output(args, text=True):
+                  raise SystemExit(f'Registry Source evidence identity mismatch: {filename}')
+          paths = ['pkg/agent/registry011', 'docs/dev/registry-source-checks.md', 'docs/dev/agent-embedding.md', 'docs/INDEX.md', 'go.mod', 'go.sum', '.github/workflows/test.yml', '.github/workflows/registry-node-evidence.yml', '.gitleaks.toml']
+          tracked = subprocess.check_output(['git', 'ls-files', '-z', *paths]).decode().split('\0')[:-1]
+          expected = {name: hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in tracked}
+          recorded = {}
+          for line in (source / 'source.sha256').read_text().splitlines():
+              digest, name = line.split('  ', 1)
+              if name in recorded:
+                  raise SystemExit('Duplicate Registry Source file identity')
+              recorded[name] = digest
+          if not expected or recorded != expected:
+              raise SystemExit('Registry Source evidence does not match this complete source selection')
+          registry = 'github.com/sage-x-project/sage/pkg/agent/registry011'
+          passed, ran = 0, 0
+          for line in (source / 'tests.jsonl').read_text().splitlines():
+              event = json.loads(line)
+              if event.get('Action') == 'fail':
+                  raise SystemExit('Registry Source evidence contains a failed test')
+              if event.get('Package') == registry:
+                  passed += event.get('Action') == 'pass' and not event.get('Test')
+                  ran += event.get('Action') == 'run' and bool(event.get('Test'))
+          if passed != 1 or not ran:
+              raise SystemExit('Registry Source evidence has no complete successful package run')
+          packages = Path('packages-all.txt').read_text().splitlines()
+          if len(packages) != len(set(packages)) or packages.count(registry) != 1:
+              raise SystemExit('Complete package inventory must contain Registry exactly once')
+          remaining = [name for name in packages if name != registry]
+          if not remaining:
+              raise SystemExit('Remaining package inventory is empty')
+          Path('packages-other.txt').write_text('\n'.join(remaining) + '\n')
+          receipt = {'registry_package': registry, 'source_run': context['GITHUB_RUN_ID'], 'source_attempt': source_attempt, 'consumer_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']), 'revision': (source / 'revision.txt').read_text().strip(), 'registry_named_runs': ran, 'all_packages': packages, 'remaining_packages': remaining}
+          Path('registry-source-reuse.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(f'Verified Registry Source package; running every other package: {len(remaining)} of {len(packages)}')
+          PY
+
+      - name: Run remaining tests with coverage and race detector
+        shell: bash
+        run: |
+          mapfile -t packages < packages-other.txt
+          go test -race -count=1 -timeout=60m -coverprofile=coverage-other.out -covermode=atomic "${packages[@]}"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/'
+          registry = Path(os.environ['RUNNER_TEMP'], 'verified-registry-source', 'coverage.out')
+          merged, seen = [], set()
+          for path, is_registry in [(registry, True), (Path('coverage-other.out'), False)]:
+              lines = path.read_text().splitlines()
+              if len(lines) < 2 or lines[0] != 'mode: atomic':
+                  raise SystemExit(f'Missing atomic coverage: {path}')
+              for line in lines[1:]:
+                  location, statements, count = line.split()
+                  filename = location.rsplit(':', 1)[0]
+                  if filename.startswith(prefix) != is_registry or location in seen or int(statements) < 0 or int(count) < 0:
+                      raise SystemExit(f'Coverage source overlap or invalid row: {location}')
+                  seen.add(location)
+                  merged.append(line)
+          Path('coverage.out').write_text('mode: atomic\n' + '\n'.join(merged) + '\n')
+          PY
           go tool cover -html=coverage.out -o coverage.html
 
       - name: Check Registry observation and adapter coverage
@@ -293,7 +371,14 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-report
-          path: coverage.html
+          path: |
+            coverage.html
+            coverage.out
+            coverage-other.out
+            packages-all.txt
+            packages-other.txt
+            registry-source-reuse.json
+          if-no-files-found: error
           retention-days: 7
 
   # Go contract bindings must match the ABIs published by sage-contracts at
@@ -356,7 +441,20 @@ jobs:
 
       - name: Test codegraph file boundaries
         working-directory: tools/codegraph
-        run: go test -mod=readonly -race -count=1 -timeout=2m -json ./...
+        run: |
+          go test -mod=readonly -race -count=1 -timeout=2m -json -coverprofile="$RUNNER_TEMP/codegraph-io.coverage" -covermode=atomic ./...
+          go tool cover -func="$RUNNER_TEMP/codegraph-io.coverage" > "$RUNNER_TEMP/codegraph-functions.txt"
+          python3 - "$RUNNER_TEMP/codegraph-functions.txt" <<'PY'
+          import json
+          import sys
+          from decimal import Decimal
+          from pathlib import Path
+          rows = [line.split() for line in Path(sys.argv[1]).read_text().splitlines()]
+          measured = [Decimal(row[2].removesuffix('%')) for row in rows if len(row) == 3 and row[1] == 'readSelectedFile']
+          if len(measured) != 1 or measured[0] < Decimal('90'):
+              raise SystemExit('readSelectedFile requires one measured coverage result of at least 90%')
+          print(json.dumps({'coverage_subject': 'readSelectedFile', 'measured_percent': str(measured[0]), 'required_percent': '90'}))
+          PY
 
       - name: Check layer boundaries (codegraph)
         working-directory: tools/codegraph
