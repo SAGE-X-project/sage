@@ -15,7 +15,7 @@ func TestProviderHistoryAppliedCursorPartsMatchIndependentComponentRows(t *testi
 	}{
 		{1, 0, 0, 1, 143939044, 5, false},
 		{8, 2, 2, 3, 718172437, 546, true},
-		{1 << 20, 163840, 10, 16384, 2981966179119, 9078280, true},
+		{1 << 20, 163840, 10, 16384, 2981797523759, 9078280, true},
 	} {
 		l := providerHistoryCollectionCursorLimits{Spine: tc.spine, Effects: tc.effects, PendingBlocks: tc.blocks, Transactions: tc.txs, EvidenceBytes: 64 << 20, BodyBytes: 8 << 20}
 		kinds, history := providerHistoryAppliedStateKinds{ConfirmedEmpty: !tc.window}, uint64(0)
@@ -43,7 +43,8 @@ func TestProviderHistoryAppliedCursorPartsMatchIndependentComponentRows(t *testi
 		// Portable event arguments only; no native/backing allocation claim.
 		copies := tc.copy64 - tc.blocks*152 - tc.effects*16 - 4*tc.blocks*tc.txs*8 + tc.blocks*uint64(reflect.TypeFor[providerHistoryCollectionBlock]().Size()) +
 			tc.effects*uint64(reflect.TypeFor[string]().Size()) + 4*tc.blocks*tc.txs*uint64(strconv.IntSize/8)
-		want.normalCopy[10] += copies
+		normalCopies := copies - 4*tc.blocks*(tc.txs-min(tc.txs, l.BodyBytes/516))*uint64(strconv.IntSize/8)
+		want.normalCopy[10] += normalCopies
 		want.envelopeCopy[10] += copies
 		if got, ok := providerHistoryAppliedCursorUpper(l, history, kinds); !ok || got != want {
 			t.Fatal("cursor root/copy differs from independent disjoint rows", tc, got, want)
@@ -64,6 +65,68 @@ func TestProviderHistoryAppliedCursorPartsMatchIndependentComponentRows(t *testi
 	}
 	if got, ok := providerHistoryAppliedCursorUpper(valid, 0, providerHistoryAppliedStateKinds{WorkingEmpty: true}); ok || got != (providerHistoryAppliedCursorCost{}) {
 		t.Fatal("missing working branch acquired a source kind")
+	}
+}
+
+func TestProviderHistoryAppliedCursorReceiptCountKeepsIncomingEnvelopes(t *testing.T) {
+	// These finite numeric selections price one retained block, not decoding
+	// permission. The literal 131762 is the two list-item rows plus their two
+	// byte-root framing events per additional receipt/transaction pair.
+	l := providerHistoryCollectionCursorLimits{Spine: 1, PendingBlocks: 1, Transactions: 16384, EvidenceBytes: 65536, BodyBytes: 1}
+	kinds := providerHistoryAppliedStateKinds{ConfirmedEmpty: true}
+	base, ok := providerHistoryAppliedCursorUpper(l, 0, kinds)
+	if !ok {
+		t.Fatal("zero retained-row cardinality precursor")
+	}
+	for _, tc := range []struct{ body, retained uint64 }{
+		{1, 0}, {515, 0}, {516, 1}, {1031, 1}, {1032, 2}, {65536, 127}, {8 << 20, 16256},
+	} {
+		l.BodyBytes = tc.body
+		got, valid := providerHistoryAppliedCursorUpper(l, 0, kinds)
+		wantRoot, wantCopy := base.normalCommitment, base.normalCopy
+		wantRoot[10] += tc.retained * 131762
+		wantCopy[10] += tc.retained * (131762 + 4*uint64(strconv.IntSize/8))
+		if !valid || got.normalCommitment != wantRoot || got.normalCopy != wantCopy ||
+			got.envelopeCommitment != base.envelopeCommitment || got.envelopeCopy != base.envelopeCopy {
+			t.Fatal("receipt boundary changed full incoming arrays or normal event rows", tc, valid)
+		}
+	}
+	// The independently selected transaction cap still wins when smaller.
+	l.Transactions = 1
+	capped, valid := providerHistoryAppliedCursorUpper(l, 0, kinds)
+	if !valid || capped.normalCommitment[10] != base.normalCommitment[10]+131762 ||
+		capped.normalCopy[10] != base.normalCopy[10]+131762+4*uint64(strconv.IntSize/8) {
+		t.Fatal("normal receipt count bypassed the original transaction cap")
+	}
+}
+
+func TestProviderHistoryAppliedReceiptCardinalityFundsOriginalPendingCopy(t *testing.T) {
+	c := historyCollectionCursorCostPending(t)
+	l := historyCollectionCursorCostLimits(t, c)
+	// Widen only this prospective DATA quote. The source selection, real
+	// decoder, cursor, original observer and existing allowance stay intact.
+	l.Transactions = 16384
+	parts, ok := providerHistoryAppliedCursorUpper(l, uint64(c.selection.input.journal.Replay.History.MaxBytes), providerHistoryAppliedStateKinds{})
+	if !ok {
+		t.Fatal("prospective retained-receipt copy allowance")
+	}
+	for _, block := range c.pending {
+		if uint64(block.transactionCount) > min(l.Transactions, l.BodyBytes/516) {
+			t.Fatal("original successful decoder retained too many receipt rows")
+		}
+	}
+	original := c.semantic.observer
+	before, beforeUpper := original.actual, original.upper
+	want := c.commitmentObserved(providerHistorySemanticUnitMeter())
+	copied := c.copyObserved(original)
+	if copied == nil || copied == c || copied.semantic.observer != original || original.failed || original.upper != beforeUpper ||
+		want == "" || copied.commitmentObserved(providerHistorySemanticUnitMeter()) != want {
+		t.Fatal("normal retained copy changed its original meaning, observer or allowance")
+	}
+	for coordinate, actual := range original.actual {
+		if actual < before[coordinate] || actual-before[coordinate] > parts.normalCopy[coordinate] {
+			t.Fatal("original pending copy escaped the retained-receipt row", coordinate)
+		}
 	}
 }
 

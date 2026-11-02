@@ -2,6 +2,26 @@ package registry011
 
 import "testing"
 
+func TestProviderHistoryPointwiseCursorKeepsLargerIncomingCopyDelta(t *testing.T) {
+	l := providerHistoryCollectionCursorLimits{Spine: 1, PendingBlocks: 1, Transactions: 16384, EvidenceBytes: 65536, BodyBytes: 516}
+	kinds := providerHistoryAppliedStateKinds{ConfirmedEmpty: true}
+	one, ok := providerHistoryAppliedCursorUpper(l, 0, kinds)
+	got, valid := (providerHistoryCollectionStateRootCalls{2, 1}).pointwisePartsUpper(l, 0, kinds)
+	if !ok || !valid {
+		t.Fatal("retained array versus full incoming copy precursor")
+	}
+	for coordinate := range got.headroom {
+		root := one.envelopeCommitment[coordinate] - one.normalCommitment[coordinate]
+		copied := one.envelopeCopy[coordinate] - one.normalCopy[coordinate]
+		if got.headroom[coordinate] != max(root, copied) || got.normal[coordinate] != one.normalCommitment[coordinate]+one.normalCopy[coordinate] {
+			t.Fatal("copy-specific incoming headroom was lost", coordinate)
+		}
+	}
+	if one.envelopeCopy[10]-one.normalCopy[10] <= one.envelopeCommitment[10]-one.normalCommitment[10] {
+		t.Fatal("fixture did not exercise the larger full-array copy delta")
+	}
+}
+
 func TestProviderHistoryPointwiseCursorWorkKeepsChildAndScopeParts(t *testing.T) {
 	for _, emptyState := range []bool{false, true} {
 		kinds := providerHistoryAppliedStateKinds{ConfirmedEmpty: emptyState}

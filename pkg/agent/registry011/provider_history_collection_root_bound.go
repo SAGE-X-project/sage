@@ -360,9 +360,9 @@ func (c providerHistoryCollectionStateRootCalls) pointwisePartsUpper(l providerH
 	var out providerHistoryCursorPointwiseParts
 	for i := range out.normal {
 		out.normal[i] = a.sum(a.product(rootOnly, one.normalCommitment[i]), a.product(c.copies, one.normalCopy[i]))
-		// The current child's two differences are equal: full-copy normal
-		// and envelope add the SAME snapshot/copy events to their root.
-		// Taking both maxima also explicitly preserves either call type.
+		// A normal retained copy can use receipt/body cardinality while its
+		// incoming envelope keeps full arrays. The differences need not be
+		// equal; preserve the larger first-refusal delta for either call.
 		root := a.difference(one.envelopeCommitment[i], one.normalCommitment[i])
 		copied := a.difference(one.envelopeCopy[i], one.normalCopy[i])
 		out.headroom[i] = max(root, copied)

@@ -117,13 +117,18 @@ func providerHistoryAppliedCursorUpper(l providerHistoryCollectionCursorLimits, 
 	effects := a.product(l.Effects, a.sum(266, value("effects", 393)))
 	profile := uint64(max(len(SepoliaAmsterdamGasProfile), len(SepoliaAmsterdamNethermindGasProfile), len(SepoliaAmsterdamRootRegularGasProfile), len(SepoliaAmsterdamRootExecutionGasProfile)))
 	bytesRoot := func(n uint64) uint64 { return a.sum(a.product(2, n), uint64(len("collection-pending-bytes")), 3) }
+	// A successfully retained receipt has a mandatory 256-byte bloom. Both
+	// original receipt encodings require at least 516 JSON bytes per row;
+	// canonical receipt count equals transaction count before retention. This
+	// narrows only normal retained arrays, never incoming or failed decoding.
+	normalTransactions := min(l.Transactions, l.BodyBytes/516)
 	// A stored unapplied block has header+ALL tx+ALL receipts<=selected E,
 	// checked by replayDecodeContent before retention. Gas has a SEPARATE
 	// selected-E budget, not another per-transaction allowance. Its original
 	// preflights and all deferred list siblings remain in the old envelope.
-	byteParts := a.sum(a.product(4, l.EvidenceBytes), a.product(a.sum(a.product(2, l.Transactions), 2), uint64(len("collection-pending-bytes"))+3))
+	byteParts := a.sum(a.product(4, l.EvidenceBytes), a.product(a.sum(a.product(2, normalTransactions), 2), uint64(len("collection-pending-bytes"))+3))
 	block := a.sum(133, byteParts, a.product(2, value("pending-list", 90)),
-		a.product(a.product(2, l.Transactions), value("pending-list-item", 256)), 2*profile, 1, value("pending-block", 829))
+		a.product(a.product(2, normalTransactions), value("pending-list-item", 256)), 2*profile, 1, value("pending-block", 829))
 	// pending-batch180 also dominates the actual pending-empty77 branch.
 	// Effect trace results are separate from gas/base bytes and keep their
 	// own per-field capture.BodyBytes bound; no unproved aggregate is used.
@@ -136,16 +141,20 @@ func providerHistoryAppliedCursorUpper(l providerHistoryCollectionCursorLimits, 
 		// the independently complete eligible semantic child envelope.
 		out.envelopeCommitment[coordinate] = a.sum(a.difference(old.commitment[coordinate], oldSemantic[coordinate]), semantic.envelope[coordinate])
 	}
-	copyUnits := a.sum(l.Spine, l.Effects, 4,
-		a.product(l.PendingBlocks, a.sum(uint64(reflect.TypeFor[providerHistoryCollectionBlock]().Size()),
-			a.product(a.product(4, l.Transactions), uint64(strconv.IntSize/8)), 2)),
-		a.product(l.Effects, uint64(reflect.TypeFor[string]().Size())))
+	copyUnits := func(transactions uint64) uint64 {
+		return a.sum(l.Spine, l.Effects, 4,
+			a.product(l.PendingBlocks, a.sum(uint64(reflect.TypeFor[providerHistoryCollectionBlock]().Size()),
+				a.product(a.product(4, transactions), uint64(strconv.IntSize/8)), 2)),
+			a.product(l.Effects, uint64(reflect.TypeFor[string]().Size())))
+	}
 	for coordinate := range out.normalCopy {
 		out.normalCopy[coordinate] = a.sum(out.normalCommitment[coordinate], snapshot[coordinate])
 		out.envelopeCopy[coordinate] = a.sum(out.envelopeCommitment[coordinate], snapshot[coordinate])
 	}
-	out.normalCopy[10] = a.sum(out.normalCopy[10], copyUnits)
-	out.envelopeCopy[10] = a.sum(out.envelopeCopy[10], copyUnits)
+	out.normalCopy[10] = a.sum(out.normalCopy[10], copyUnits(normalTransactions))
+	// All pre-success and deferred caller states retain the original full-T
+	// envelope, including its independent full array-copy allowance.
+	out.envelopeCopy[10] = a.sum(out.envelopeCopy[10], copyUnits(l.Transactions))
 	if a.failed {
 		return empty, false
 	}
