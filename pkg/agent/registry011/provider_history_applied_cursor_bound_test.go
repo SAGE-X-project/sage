@@ -13,9 +13,9 @@ func TestProviderHistoryAppliedCursorPartsMatchIndependentComponentRows(t *testi
 		spine, effects, blocks, txs, normal10, copy64 uint64
 		window                                        bool
 	}{
-		{1, 0, 0, 1, 143939044, 5, false},
-		{8, 2, 2, 3, 718172437, 546, true},
-		{1 << 20, 163840, 10, 16384, 2981797523759, 9078280, true},
+		{1, 0, 0, 1, 143778564, 5, false},
+		{8, 2, 2, 3, 716888597, 546, true},
+		{1 << 20, 163840, 10, 16384, 2813522047279, 9078280, true},
 	} {
 		l := providerHistoryCollectionCursorLimits{Spine: tc.spine, Effects: tc.effects, PendingBlocks: tc.blocks, Transactions: tc.txs, EvidenceBytes: 64 << 20, BodyBytes: 8 << 20}
 		kinds, history := providerHistoryAppliedStateKinds{ConfirmedEmpty: !tc.window}, uint64(0)
@@ -401,7 +401,7 @@ func TestProviderHistoryRoleCursorPartsMatchIndependentUniformRowsAndPartitions(
 	// Closed empty-fold/no-window root constants and full original envelope.
 	// Copy's architecture-dependent explicit event sizes are adjusted only
 	// as declared by the original structs; this is not allocator/native RAM.
-	const normal, envelope uint64 = 145225421, 4765216463
+	const normal, envelope uint64 = 145064941, 4765216463
 	copyExtra := uint64(reflect.TypeFor[providerHistorySemanticFold]().Size()+reflect.TypeFor[replayStream]().Size()+reflect.TypeFor[replayState]().Size()+4*reflect.TypeFor[string]().Size()) + 558
 	quote := func(roots, copies uint64) candidateWorkVector {
 		return candidateWorkVector{10: roots*normal + copies*copyExtra + envelope - normal}
@@ -475,12 +475,18 @@ func TestProviderHistoryRoleCursorClosureKeepsFailedBeforeStateCost(t *testing.T
 	if !ok || !valid {
 		t.Fatal("independent original-child prerequisites failed")
 	}
+	// Receipt-body limits retain16256 pairs while the incoming full copy
+	// still allows16384. The extra128*4*10 word copies stay in headroom.
+	if b.envelopeCopy[10]-b.normalCopy[10] != b.envelopeCommitment[10]-b.normalCommitment[10]+5120*uint64(strconv.IntSize/8) {
+		t.Fatal("full incoming array-copy difference was lost")
+	}
 	got, ok := providerHistoryCollectionRoleCursorUpper(0, false, bands)
 	var success, failed, want candidateWorkVector
 	for i := range want {
 		// Fixed source calls: success has45before roots incl15copies plus
 		// nineafter roots. Failed has48before incl12copies and NOafter.
-		bh, ah := b.envelopeCommitment[i]-b.normalCommitment[i], a.envelopeCommitment[i]-a.normalCommitment[i]
+		bh := max(b.envelopeCommitment[i]-b.normalCommitment[i], b.envelopeCopy[i]-b.normalCopy[i])
+		ah := max(a.envelopeCommitment[i]-a.normalCommitment[i], a.envelopeCopy[i]-a.normalCopy[i])
 		success[i] = 30*b.normalCommitment[i] + 15*b.normalCopy[i] + 9*a.normalCommitment[i] + max(bh, ah)
 		failed[i] = 36*b.normalCommitment[i] + 12*b.normalCopy[i] + bh
 		want[i] = max(success[i], failed[i])

@@ -113,7 +113,7 @@ func providerHistoryAppliedCursorUpper(l providerHistoryCollectionCursorLimits, 
 	const metadata uint64 = 8192
 	manifest := a.sum(a.product(metadata, metadata), 1, metadata, 1,
 		a.product(metadata, metadata), 1, metadata, uint64(len("sage-provider-history-collection-manifest-v1")), 2, 133)
-	spine := a.sum(a.product(l.Spine, value("spine", 402)), a.product(a.difference(l.Spine, 1), 133))
+	spine := a.sum(a.product(l.Spine, providerHistoryTypedSpineMaximumWork), a.product(a.difference(l.Spine, 1), 133))
 	effects := a.product(l.Effects, a.sum(266, value("effects", 393)))
 	profile := uint64(max(len(SepoliaAmsterdamGasProfile), len(SepoliaAmsterdamNethermindGasProfile), len(SepoliaAmsterdamRootRegularGasProfile), len(SepoliaAmsterdamRootExecutionGasProfile)))
 	bytesRoot := func(n uint64) uint64 { return a.sum(a.product(2, n), uint64(len("collection-pending-bytes")), 3) }

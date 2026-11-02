@@ -283,6 +283,7 @@ jobs:
               'provider_history_collection_plan.go',
               'provider_history_collection_calls.go',
               'provider_history_collection_state.go',
+              'provider_history_typed_spine.go',
               'provider_history_collection_boundaries.go',
               'provider_history_collection_content.go',
               'provider_history_collection_transitions.go',

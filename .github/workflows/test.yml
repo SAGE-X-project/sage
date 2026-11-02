@@ -229,6 +229,7 @@ jobs:
               'pkg/agent/registry011/admission_candidate_ledger.go': [0, 0],
               'pkg/agent/registry011/admission_candidate_ledger_replay.go': [0, 0],
               'pkg/agent/registry011/node_identity.go': [0, 0],
+              'pkg/agent/registry011/provider_history_typed_spine.go': [0, 0],
           }
           for line in Path('coverage.out').read_text().splitlines()[1:]:
               location, statements, count = line.split()

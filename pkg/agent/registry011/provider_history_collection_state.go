@@ -62,7 +62,7 @@ func (c *providerHistoryCollectionCursor) commitmentObserved(meter *providerWork
 		if header.Number == c.selection.input.journal.Deployment.Number && header != c.selection.input.journal.Deployment {
 			return ""
 		}
-		spine = providerHistoryCollectionSpineDigestObserved(spine, i, header, meter)
+		spine = providerHistoryCollectionTypedSpineDigestObserved(spine, i, header, meter)
 		if spine == "" {
 			return ""
 		}
