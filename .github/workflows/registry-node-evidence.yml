@@ -98,6 +98,25 @@ jobs:
           # Check the recent fixture and native-byte regressions before the full suite.
           # This separate log neither supplies coverage nor replaces complete evidence.
           go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance)$' ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/regression-controls.jsonl"
+          # Profile one genuine maximum-member control separately from full-suite evidence.
+          # Preserve failed diagnostics and every original window, timeout and coverage gate.
+          registry_profile_status=0
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.pprof" -o "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu.test" -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-tests.jsonl" || registry_profile_status=$?
+          printf '%s\n' "$registry_profile_status" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.exit"
+          go tool pprof -top -nodecount=50 -sample_index=cpu "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu.test" "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-flat.txt"
+          go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu.test" "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-cumulative.txt"
+          sha256sum "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu.test" "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.sha256"
+          python3 - "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-tests.jsonl" <<'PYPROFILE'
+          import json, sys
+          from pathlib import Path
+          target = 'TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals/32'
+          events = [json.loads(line) for line in Path(sys.argv[1]).read_text().splitlines() if line.strip()]
+          starts = [e for e in events if e.get('Test') == target and e.get('Action') == 'run']
+          ends = [e for e in events if e.get('Test') == target and e.get('Action') in ('pass', 'fail')]
+          if len(starts) != 1 or len(ends) != 1:
+              raise SystemExit('CPU diagnostic has no complete maximum-member test result')
+          PYPROFILE
+          test "$registry_profile_status" -eq 0
           go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=60m -json -run '^(TestProvider|TestNode|TestReplay|TestRootGas|TestErigon|TestNethermind|TestGasProfile|TestStateGas)' -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
           go tool cover -func="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" > "$SAGE_PROVIDER_CAPTURE_DIR/functions.txt"
           python3 - <<'PYCOVERAGE'
