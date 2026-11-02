@@ -12,7 +12,32 @@ func providerHistoryMemberComparisonWeightObserved[T comparable](value T, m *pro
 		return 0, false
 	}
 	remaining := uint64(65536)
-	strings, ok := providerHistoryMemberStringWeightObserved(reflect.ValueOf(value), m, 0, &remaining)
+	visit := func() bool { return m.event(providerCompareEvent, 0) }
+	// The caller already serializes the original group with store.mu. This
+	// primitive traverses only a copied comparable value: no pointer contents,
+	// methods, I/O, clock samples or caller hooks can change its owner/window.
+	// If ALL possible visits fit every original limit, keep meter.mu for the
+	// bounded walk instead of rebuilding the same whole owner at every node.
+	// Debit each actual visited node, not the prospective maximum. Without
+	// that complete headroom, preserve the original per-node refusal path.
+	m.mu.Lock()
+	room := candidateWorkVector{10: remaining}
+	fast := m.owner == m && !m.failed && !m.closed && m.historyGroup != nil && m.historyRecovery == nil
+	if fast {
+		for coordinate, units := range room {
+			if !candidateCapacity(0, m.actual[coordinate], units, m.upper[coordinate]) {
+				fast = false
+				break
+			}
+		}
+	}
+	if fast && m.hasOwner() && m.historyGroup.fitsWork(m, room) {
+		defer m.mu.Unlock()
+		visit = func() bool { m.actual[10]++; return true }
+	} else {
+		m.mu.Unlock()
+	}
+	strings, ok := providerHistoryMemberStringWeightWithVisit(reflect.ValueOf(value), 0, &remaining, visit)
 	if !ok {
 		return 0, false
 	}
@@ -21,7 +46,16 @@ func providerHistoryMemberComparisonWeightObserved[T comparable](value T, m *pro
 }
 
 func providerHistoryMemberStringWeightObserved(v reflect.Value, m *providerWorkMeter, depth int, remaining *uint64) (uint64, bool) {
-	if m == nil || remaining == nil || *remaining == 0 || depth > 32 || !m.event(providerCompareEvent, 0) {
+	if m == nil {
+		return 0, false
+	}
+	return providerHistoryMemberStringWeightWithVisit(v, depth, remaining, func() bool { return m.event(providerCompareEvent, 0) })
+}
+
+// Only the two fixed internal debit closures above call this walker. Neither
+// a visitation function nor a held observer is accepted by any public API.
+func providerHistoryMemberStringWeightWithVisit(v reflect.Value, depth int, remaining *uint64, visit func() bool) (uint64, bool) {
+	if visit == nil || remaining == nil || *remaining == 0 || depth > 32 || !visit() {
 		return 0, false
 	}
 	*remaining -= 1
@@ -31,7 +65,7 @@ func providerHistoryMemberStringWeightObserved(v reflect.Value, m *providerWorkM
 		return uint64(v.Len()), true
 	case reflect.Struct:
 		for i := 0; i < v.NumField(); i++ {
-			part, ok := providerHistoryMemberStringWeightObserved(v.Field(i), m, depth+1, remaining)
+			part, ok := providerHistoryMemberStringWeightWithVisit(v.Field(i), depth+1, remaining, visit)
 			if !ok {
 				return 0, false
 			}
@@ -43,7 +77,7 @@ func providerHistoryMemberStringWeightObserved(v reflect.Value, m *providerWorkM
 		}
 	case reflect.Array:
 		for i := 0; i < v.Len(); i++ {
-			part, ok := providerHistoryMemberStringWeightObserved(v.Index(i), m, depth+1, remaining)
+			part, ok := providerHistoryMemberStringWeightWithVisit(v.Index(i), depth+1, remaining, visit)
 			if !ok {
 				return 0, false
 			}
