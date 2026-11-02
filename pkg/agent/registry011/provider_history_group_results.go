@@ -128,36 +128,51 @@ func parseProviderHistoryResultPackObserved(raw []byte, expected string, ticket 
 	for i := range count {
 		_, response, responseOK := pack.original(2 * i)
 		_, tlsOriginal, tlsOK := pack.original(2*i + 1)
-		member := &ticket.table.members[i]
-		if !responseOK || !tlsOK || len(response) == 0 || len(response) > member.capture.WireBytes-len(member.request.wire) ||
-			parseProviderHistoryTLSOriginalObserved(providerReplayBytes(tlsOriginal, meter), ticket, consumption, i, roots, bounds, meter) != nil {
+		if !responseOK || !tlsOK {
 			return nil, [providerHistoryGroupMembers]providerHistoryMemberResult{}, errProviderIntegration
 		}
-		wire := providerReplayBytes(response, meter)
-		if len(wire) != len(response) {
+		results[i], err = parseProviderHistoryMemberOriginalsObserved(response, tlsOriginal, ticket, consumption, i, roots, bounds, meter)
+		if err != nil {
 			return nil, [providerHistoryGroupMembers]providerHistoryMemberResult{}, errProviderIntegration
 		}
-		reader := bufio.NewReader(bytes.NewReader(wire))
-		_, _, body, result, readErr := readProviderHTTPObserved(reader, member.capture, meter, uint64(len(wire)))
-		if readErr != nil {
-			return nil, [providerHistoryGroupMembers]providerHistoryMemberResult{}, errProviderIntegration
-		}
-		responseDigest := providerReplayDigest("", wire, meter)
-		tlsDigest := providerReplayDigest("", providerReplayBytes(tlsOriginal, meter), meter)
-		binding := providerReplayCanonical(map[string]any{
-			"format": providerHistoryMemberResultDomain, "program": ticket.program, "stage": strconv.FormatUint(ticket.table.stage, 10),
-			"table": ticket.table.digest, "ticket": ticket.digest, "consumption": consumption.digest, "ordinal": strconv.Itoa(i),
-			"request": member.request.inputDigest, "response": responseDigest, "tls": tlsDigest,
-		}, candidateLedgerMetadataLimit, meter)
-		if responseDigest == "" || tlsDigest == "" || len(binding) == 0 {
-			return nil, [providerHistoryGroupMembers]providerHistoryMemberResult{}, errProviderIntegration
-		}
-		digest := providerReplayDigest(providerHistoryMemberResultDomain, binding, meter)
-		responseBody, rpcResult := providerReplayString(body, meter), providerReplayString(result, meter)
-		if digest == "" || responseBody == "" || rpcResult == "" {
-			return nil, [providerHistoryGroupMembers]providerHistoryMemberResult{}, errProviderIntegration
-		}
-		results[i] = providerHistoryMemberResult{digest, responseBody, rpcResult}
 	}
 	return pack, results, nil
+}
+
+// The same byte semantics apply to a completed original pair before S exists.
+// This pure DATA parser acquires no transport, execution role or authority.
+func parseProviderHistoryMemberOriginalsObserved(response, tlsOriginal string, ticket *providerHistoryGroupTicket, consumption *providerHistoryGroupConsumption, ordinal int, roots string, bounds providerTLSBounds, meter *providerWorkMeter) (providerHistoryMemberResult, error) {
+	if ticket == nil || ordinal < 0 || ordinal >= ticket.table.count || ordinal >= len(ticket.table.members) {
+		return providerHistoryMemberResult{}, errProviderIntegration
+	}
+	member := &ticket.table.members[ordinal]
+	if len(response) == 0 || len(response) > member.capture.WireBytes-len(member.request.wire) ||
+		parseProviderHistoryTLSOriginalObserved(providerReplayBytes(tlsOriginal, meter), ticket, consumption, ordinal, roots, bounds, meter) != nil {
+		return providerHistoryMemberResult{}, errProviderIntegration
+	}
+	wire := providerReplayBytes(response, meter)
+	if len(wire) != len(response) {
+		return providerHistoryMemberResult{}, errProviderIntegration
+	}
+	reader := bufio.NewReader(bytes.NewReader(wire))
+	_, _, body, result, err := readProviderHTTPObserved(reader, member.capture, meter, uint64(len(wire)))
+	if err != nil {
+		return providerHistoryMemberResult{}, errProviderIntegration
+	}
+	responseDigest := providerReplayDigest("", wire, meter)
+	tlsDigest := providerReplayDigest("", providerReplayBytes(tlsOriginal, meter), meter)
+	binding := providerReplayCanonical(map[string]any{
+		"format": providerHistoryMemberResultDomain, "program": ticket.program, "stage": strconv.FormatUint(ticket.table.stage, 10),
+		"table": ticket.table.digest, "ticket": ticket.digest, "consumption": consumption.digest, "ordinal": strconv.Itoa(ordinal),
+		"request": member.request.inputDigest, "response": responseDigest, "tls": tlsDigest,
+	}, candidateLedgerMetadataLimit, meter)
+	if responseDigest == "" || tlsDigest == "" || len(binding) == 0 {
+		return providerHistoryMemberResult{}, errProviderIntegration
+	}
+	digest := providerReplayDigest(providerHistoryMemberResultDomain, binding, meter)
+	responseBody, rpcResult := providerReplayString(body, meter), providerReplayString(result, meter)
+	if digest == "" || responseBody == "" || rpcResult == "" {
+		return providerHistoryMemberResult{}, errProviderIntegration
+	}
+	return providerHistoryMemberResult{digest, responseBody, rpcResult}, nil
 }

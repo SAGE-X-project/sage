@@ -56,11 +56,14 @@ func providerFirstOperationPlanUpper(b providerIntegrationBounds, global Provide
 	headroom, a := providerUpperProduct(maximum, maximum)
 	headroom, c := providerUpperSum(headroom, 1, b.maximumObjectBytes, 1)
 	n := max(b.maximumMetadataPerCommit, uint64(64<<10), b.maximumObjectBytes, uint64(capture.WireBytes))
-	if b.guardian != nil {
+	if b.guardian != nil || b.history != nil {
 		// This first closed graph accepts only its typed E0/E1/C/X/S
 		// schemas and the method-specific header transport/exchange sizes.
 		// A larger global object ceiling belongs to later methods. Every
 		// actual decoder still preflights its own length and fails closed.
+		// History adds scalar ownership/handoff checks to this same graph;
+		// it does not supply a later group's arbitrary object or result pack.
+		// Keep the wider original serializer/global-object headroom above.
 		n = max(b.maximumMetadataPerCommit, uint64(64<<10), storage.transport, storage.exchange, uint64(capture.WireBytes))
 	}
 	// C/X:452Q/2824L, additional coordinator100Q/250L, and32 bounded

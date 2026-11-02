@@ -49,7 +49,7 @@ func historyConsumptionFixtureWithCap(t *testing.T, count int, dimension string,
 	for i := range requests {
 		requests[i] = historyGroupSimple(t)
 	}
-	ack, err := o.retainAdmissionCandidate("selection", requests, upper)
+	ack, err := o.retainAdmissionCandidate(context.Background(), "selection", requests, upper)
 	if err != nil || ack == nil {
 		t.Fatal("genuine independently retained T", err)
 	}
@@ -68,7 +68,7 @@ func TestProviderHistoryConsumptionRetainsAllMembersWithoutRenewingItsWindow(t *
 			held, raw, reads := s.stored, s.retainedRaw, s.clock.read
 			workStart, clockStart, window, clocks := o.windowStart, o.clockStart, o.windowUpper, o.clockUpper
 			priorCoordinator, priorCustodian, retained := o.coordinator, o.custodian, o.retention
-			ack, err := o.retainConsumptionCandidate(admission)
+			ack, err := o.retainConsumptionCandidate(context.Background(), admission)
 			if err != nil || ack == nil {
 				t.Fatal("funded C after original T", err)
 			}
@@ -96,7 +96,7 @@ func TestProviderHistoryConsumptionRetainsAllMembersWithoutRenewingItsWindow(t *
 				t.Fatal("C HEAD is not its retained original", err)
 			}
 			afterWork, afterClocks := m.actual, s.clock.read
-			if again, err := o.retainConsumptionCandidate(admission); err == nil || again != nil || o.last != ack || m.actual != afterWork || s.clock.read != afterClocks || s.stored != held {
+			if again, err := o.retainConsumptionCandidate(context.Background(), admission); err == nil || again != nil || o.last != ack || m.actual != afterWork || s.clock.read != afterClocks || s.stored != held {
 				t.Fatal("consumed T produced a second C or renewed its original meter")
 			}
 		})
@@ -105,7 +105,7 @@ func TestProviderHistoryConsumptionRetainsAllMembersWithoutRenewingItsWindow(t *
 
 func TestProviderHistoryConsumptionRefusesCopiedAndDetachedAdmissionBeforeObservation(t *testing.T) {
 	var missing *providerHistoryGroupOwner
-	if ack, err := missing.retainConsumptionCandidate(nil); err == nil || ack != nil {
+	if ack, err := missing.retainConsumptionCandidate(context.Background(), nil); err == nil || ack != nil {
 		t.Fatal("missing owner")
 	}
 	for _, mode := range []string{"nil-ack", "copied-ack", "detached-owner", "missing-window", "closed-meter", "existing-order", "auxiliary-scan-body"} {
@@ -132,7 +132,7 @@ func TestProviderHistoryConsumptionRefusesCopiedAndDetachedAdmissionBeforeObserv
 				o.meter.scanBody = &providerScanBody{}
 			}
 			s, m, pin, reads, actual, held := o.store, o.meter, o.pin, o.store.clock.read, o.meter.actual, o.store.stored
-			if ack, err := o.retainConsumptionCandidate(input); err == nil || ack != nil || o.last != admission || o.pin != pin || s.frontierFiles.pin != pin ||
+			if ack, err := o.retainConsumptionCandidate(context.Background(), input); err == nil || ack != nil || o.last != admission || o.pin != pin || s.frontierFiles.pin != pin ||
 				s.clock.read != reads || m.actual != actual || s.activeMeter.Load() != nil || s.frontierFiles.historyPending != nil || s.stored != held {
 				t.Fatal("unbound C began observation or supplied authority")
 			}
@@ -172,7 +172,7 @@ func TestProviderHistoryConsumptionReplaysItsSelectedAdmissionOriginals(t *testi
 				}
 			}
 			pin, held, raw, retained := o.pin, s.stored, s.retainedRaw, o.retention
-			if ack, err := o.retainConsumptionCandidate(admission); err == nil || ack != nil || o.last != admission || !o.failed || !s.failed || !o.meter.failed || !o.meter.closed ||
+			if ack, err := o.retainConsumptionCandidate(context.Background(), admission); err == nil || ack != nil || o.last != admission || !o.failed || !s.failed || !o.meter.failed || !o.meter.closed ||
 				o.pin != pin || s.frontierFiles.pin != pin || s.stored != held || s.retainedRaw != raw || o.retention != retained || o.order != nil || s.activeMeter.Load() != nil {
 				t.Fatal("changed prior original reached C retention or renewed authority")
 			}
@@ -246,7 +246,7 @@ func TestProviderHistoryConsumptionKeepsEveryMemberConsumedOnWriteOrReadbackFail
 				}
 				return os.WriteFile(path, []byte("inert owned unit fault"), 0600)
 			}
-			if ack, err := o.retainConsumptionCandidate(admission); err == nil || ack != nil || !injected || o.last != admission || !o.failed || !s.failed || !o.meter.failed || !o.meter.closed ||
+			if ack, err := o.retainConsumptionCandidate(context.Background(), admission); err == nil || ack != nil || !injected || o.last != admission || !o.failed || !s.failed || !o.meter.failed || !o.meter.closed ||
 				o.pin != pin || s.frontierFiles.pin != pin || s.stored != held || s.retainedRaw != raw || s.activeMeter.Load() != nil ||
 				o.order == nil || o.order.consumed != 1 || o.retention.objects != 3 || o.retention.files != 17 {
 				t.Fatal("C failure published its provisional pin, omitted consumption or refunded its admitted hold")
@@ -276,7 +276,7 @@ func TestProviderHistoryConsumptionUsesTheOriginalClockAndRemainingGroupWork(t *
 			case "remaining-work":
 				o.windowUpper[10] = actual[10] - start[10]
 			}
-			if ack, err := o.retainConsumptionCandidate(admission); err == nil || ack != nil || o.last != admission || !o.failed || !s.failed || !m.failed || !m.closed ||
+			if ack, err := o.retainConsumptionCandidate(context.Background(), admission); err == nil || ack != nil || o.last != admission || !o.failed || !s.failed || !m.failed || !m.closed ||
 				o.pin != pin || s.frontierFiles.pin != pin || s.stored != held || s.retainedRaw != raw || o.windowStart != start || o.clockStart != clockStart || s.activeMeter.Load() != nil {
 				t.Fatal("C renewed its original clock, work window or hold after depletion")
 			}
@@ -320,7 +320,7 @@ func TestProviderHistoryConsumptionKeepsTheOriginalAdmissionElapsedAnchor(t *tes
 func TestProviderHistoryConsumptionRefusesCumulativeGroupStorageBeyondItsOriginalTicket(t *testing.T) {
 	control, controlAdmission := historyConsumptionFixture(t, 1)
 	diagnostic := control.retention
-	controlC, err := control.retainConsumptionCandidate(controlAdmission)
+	controlC, err := control.retainConsumptionCandidate(context.Background(), controlAdmission)
 	if err != nil || controlC == nil {
 		t.Fatal("separate original T-through-C positive control", err)
 	}
@@ -346,7 +346,7 @@ func TestProviderHistoryConsumptionRefusesCumulativeGroupStorageBeyondItsOrigina
 			if selected != maximum || actual > maximum || additional <= maximum-actual {
 				t.Fatal("this independent T must actually fit its smaller admitted group cap")
 			}
-			if ack, err := o.retainConsumptionCandidate(admission); err == nil || ack != nil || o.last != admission || !o.failed || !s.failed || !o.meter.failed || !o.meter.closed ||
+			if ack, err := o.retainConsumptionCandidate(context.Background(), admission); err == nil || ack != nil || o.last != admission || !o.failed || !s.failed || !o.meter.failed || !o.meter.closed ||
 				o.pin != pin || s.frontierFiles.pin != pin || s.stored != held || s.retainedRaw != raw || o.retention != retained || o.order != nil ||
 				s.activeMeter.Load() != nil || s.frontierFiles.historyPending != nil {
 				t.Fatal("C borrowed the larger parent capacity or refunded its original T charge")

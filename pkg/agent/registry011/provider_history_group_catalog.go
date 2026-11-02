@@ -6,26 +6,47 @@ package registry011
 // derived set. An unknown observed name is never adopted as an allowed name.
 func (o *providerHistoryGroupOwner) prepareAdmissionCatalogLocked(c *providerHistoryWriteClaim) bool {
 	if c == nil || c.owner != c || c.group != o || c.frame == nil || c.inventory == nil || c.count <= 0 || c.count > len(c.fresh) || c.inventory.count != c.count ||
-		o == nil || o.phase != "preparing-admit" && o.phase != "preparing-consume" || !o.activeLocked(o.meter) || o.start.main.sequence != 4 ||
-		o.phase == "preparing-admit" && o.pin != o.start.main || o.phase == "preparing-consume" && !o.admissionShapeLocked() ||
+		o == nil || o.phase != "preparing-admit" && o.phase != "preparing-consume" && o.phase != "preparing-settle" && o.phase != "preparing-failed-settle" || !o.activeLocked(o.meter) || o.start.main.sequence != 4 ||
+		o.phase == "preparing-admit" && !o.admissionBaseShapeLocked() || o.phase == "preparing-consume" && !o.admissionShapeLocked() ||
 		o.pin.ordinal > uint64(o.store.config.bounds.maximumCommits+o.store.config.bounds.maximumSetupRecoveries) ||
 		len(o.store.objects) > o.store.config.bounds.maximumObjects || len(o.store.setups) == 0 || len(o.store.setups) > o.store.config.bounds.maximumSetupRecoveries+1 {
 		return false
 	}
-	s, m := o.store, o.meter
-	before, ok := o.initialHistoryCatalogLocked()
+	before, ok := o.prefixHistoryCatalogLocked(o.stageBefore)
 	if !ok {
 		return false
 	}
 	if o.phase == "preparing-consume" && !o.extendHistoryCatalogLocked(before, o.admission.claim) {
 		return false
 	}
+	if o.phase == "preparing-settle" || o.phase == "preparing-failed-settle" {
+		if c.dispatch == nil || c.dispatch != o.dispatch || !c.dispatch.completedMemberShapeLocked() && !c.dispatch.failedMemberShapeLocked() {
+			return false
+		}
+		before, ok = c.dispatch.originalCatalogNamesLocked()
+		if !ok {
+			return false
+		}
+	}
+	after, ok := o.afterHistoryCatalogLocked(before, c)
+	if !ok {
+		return false
+	}
+	c.beforeCatalog, c.afterCatalog = before, after
+	return true
+}
+
+func (o *providerHistoryGroupOwner) afterHistoryCatalogLocked(before [2]map[string]bool, c *providerHistoryWriteClaim) ([2]map[string]bool, bool) {
+	if o == nil || !o.activeLocked(o.meter) || c == nil || c.owner != c || c.group != o || c.frame == nil || c.inventory == nil || c.count <= 0 || c.count > len(c.fresh) || c.inventory.count != c.count || before[0] == nil || before[1] == nil {
+		return [2]map[string]bool{}, false
+	}
+	s, m := o.store, o.meter
 	var after [2]map[string]bool
 	for i := range after {
 		after[i] = make(map[string]bool, len(before[i])+9)
 		for name := range before[i] {
 			if !m.event(providerCopyEvent, uint64(len(name))) {
-				return false
+				return [2]map[string]bool{}, false
 			}
 			after[i][name] = true
 		}
@@ -39,21 +60,40 @@ func (o *providerHistoryGroupOwner) prepareAdmissionCatalogLocked(c *providerHis
 	}
 	for i := range c.count {
 		if !addAfter(1, providerHistoryStoredName(c.inventory.entries[i], m)) {
-			return false
+			return [2]map[string]bool{}, false
 		}
 	}
 	if !addAfter(1, providerHistoryInventoryName(c.inventory.digest, m)) || !addAfter(1, s.name("history-pending", c.frame.after.sequence)) ||
 		!addAfter(0, s.name("intent", c.frame.after.sequence)) || !addAfter(0, s.name("commit", c.frame.after.sequence)) ||
 		!addAfter(0, s.name("frontier", c.frame.after.sequence)) || !addAfter(0, s.name("highwater", c.frame.after.ordinal)) {
-		return false
+		return [2]map[string]bool{}, false
 	}
-	c.beforeCatalog, c.afterCatalog = before, after
-	return true
+	return after, true
 }
 
 func (o *providerHistoryGroupOwner) exactAdmissionCatalogLocked(c *providerHistoryWriteClaim, after bool) bool {
 	if c == nil || c.owner != c || c.group != o || o == nil || !o.activeLocked(o.meter) {
 		return false
+	}
+	if c.frame != nil && c.frame.phase == "settle" {
+		if c.dispatch == nil || c.dispatch != o.dispatch || !c.dispatch.completedMemberShapeLocked() && !c.dispatch.failedMemberShapeLocked() {
+			return false
+		}
+		want, ok := c.dispatch.originalCatalogNamesLocked()
+		if !ok {
+			return false
+		}
+		if after {
+			want, ok = o.afterHistoryCatalogLocked(want, c)
+			if !ok {
+				return false
+			}
+		}
+		pending := ""
+		if after && !c.renamed {
+			pending = o.store.name("HEAD.pending", c.frame.after.ordinal)
+		}
+		return o.exactHistoryCatalogLocked(want, pending)
 	}
 	want := c.beforeCatalog
 	if after {

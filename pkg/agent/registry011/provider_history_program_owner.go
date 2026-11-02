@@ -22,40 +22,46 @@ func providerHistoryClockSelectionOf(c *providerOwnedClock) providerHistoryClock
 // Retained E0/initial binding, real group writers and their independent ACKs
 // remain mandatory before the future execution role can be constructed.
 type providerHistoryProgramOwner struct {
-	owner                       *providerHistoryProgramOwner
-	store                       *providerCustodyStore
-	config                      providerCustodyConfig
-	policy                      ProviderPolicyCandidate
-	bounds                      providerHistoryProgramBounds
-	scan                        providerScanBounds
-	continuation                providerLedgerBounds
-	methods                     providerMethodBounds
-	tls                         providerTLSBounds
-	first                       providerFirstAdmissionBounds
-	limits                      providerFirstAdmissionLimits
-	clock                       *providerOwnedClock
-	clockSelection              providerHistoryClockSelection
-	original                    ClockSample
-	held                        providerScanUpper
-	preI                        providerScanUpper
-	inspection                  providerScanUpper
-	initialRead, clockCeiling   uint64
-	startupClaimed, failed      bool
-	openMeter                   *providerWorkMeter
-	openControl                 *providerScanControl
-	inspectionControl           *providerScanControl
-	preparationMeter, bodyMeter *providerWorkMeter
-	preparation, body           providerScanUpper
-	inspectionPhase             uint8
-	clockClaim                  *providerHistoryClockClaim
-	firstOwner                  *providerFirstOperationOwner
-	firstAdmission              *providerFirstAdmissionOwner
-	firstMeter                  *providerWorkMeter
-	firstMain                   providerFrontierHighwater
-	firstIntegration            *providerIntegration
-	firstIndexes                *providerLedgerIndexes
-	start                       *providerHistoryProgramStart
-	group                       *providerHistoryGroupOwner
+	owner                           *providerHistoryProgramOwner
+	store                           *providerCustodyStore
+	config                          providerCustodyConfig
+	policy                          ProviderPolicyCandidate
+	bounds                          providerHistoryProgramBounds
+	scan                            providerScanBounds
+	continuation                    providerLedgerBounds
+	methods                         providerMethodBounds
+	tls                             providerTLSBounds
+	first                           providerFirstAdmissionBounds
+	limits                          providerFirstAdmissionLimits
+	clock                           *providerOwnedClock
+	clockSelection                  providerHistoryClockSelection
+	original                        ClockSample
+	held                            providerScanUpper
+	preI                            providerScanUpper
+	inspection                      providerScanUpper
+	initialRead, clockCeiling       uint64
+	startupClaimed, failed          bool
+	openMeter                       *providerWorkMeter
+	openControl                     *providerScanControl
+	inspectionControl               *providerScanControl
+	preparationMeter, bodyMeter     *providerWorkMeter
+	preparation, body               providerScanUpper
+	inspectionPhase                 uint8
+	clockClaim                      *providerHistoryClockClaim
+	firstOwner                      *providerFirstOperationOwner
+	firstAdmission                  *providerFirstAdmissionOwner
+	firstMeter                      *providerWorkMeter
+	firstMain                       providerFrontierHighwater
+	firstIntegration                *providerIntegration
+	firstIndexes                    *providerLedgerIndexes
+	start                           *providerHistoryProgramStart
+	group                           *providerHistoryGroupOwner
+	dispatchBounds                  providerHistoryDispatchBounds
+	collectionAdmission             providerHistoryCollectionAdmissionBounds
+	recovery                        *providerHistoryRecoveryOwner
+	collectionInput                 providerHistoryCollectionInput
+	collectionRaw, collectionDigest string
+	collectionCounts                providerHistoryCollectionCounts
 }
 
 func (*providerHistoryProgramOwner) UnmarshalJSON([]byte) error { return errProviderIntegration }
@@ -69,7 +75,7 @@ func newProviderHistoryProgramBeforeOpenCandidate(s *providerCustodyStore) (*pro
 	held, ok := providerHistoryWholeHold(s.config.bounds)
 	limits, c := *s.firstLimits, s.clock
 	m := s.activeMeter.Load()
-	if m == nil || m.owner != m || m.scan == nil || m.scan.owner != m.scan || m.scan.store != s || m.integration != nil || m.scanBody != nil || m.firstAdmission != nil || m.firstOperation != nil || m.upper != s.config.bounds.setupWork || m.maximumClocks != s.config.bounds.setupMaximumClockReads {
+	if m == nil || m.owner != m || m.scan == nil || m.scan.owner != m.scan || m.scan.store != s || m.historyRecovery != nil || m.integration != nil || m.scanBody != nil || m.firstAdmission != nil || m.firstOperation != nil || m.upper != s.config.bounds.setupWork || m.maximumClocks != s.config.bounds.setupMaximumClockReads {
 		return nil, errProviderIntegration
 	}
 	if !ok || held.retained != s.stored || held.retained > limits.live || held.retained > limits.retained {
@@ -90,8 +96,21 @@ func newProviderHistoryProgramBeforeOpenCandidate(s *providerCustodyStore) (*pro
 	}
 	p := &providerHistoryProgramOwner{store: s, config: s.config, policy: *s.config.policy, bounds: *s.config.bounds.history, scan: *s.config.bounds.scan, continuation: *s.config.bounds.continuation, methods: *s.config.bounds.methods, tls: *s.config.bounds.tls, first: *s.config.bounds.firstAdmission, limits: limits, clock: c, held: held, preI: providerHistoryPreIUpper(s.config.bounds), initialRead: c.read, clockCeiling: ceiling}
 	p.owner = p
+	p.dispatchBounds = s.config.bounds.history.derivation.dispatch
+	p.collectionAdmission = s.config.bounds.history.derivation.admission
+	if selected := p.bounds.collection; selected != nil {
+		if !selected.validSnapshot() || selected.input.capture != p.config.capture {
+			return nil, errProviderIntegration
+		}
+		p.collectionInput, p.collectionRaw, p.collectionDigest = selected.input, selected.raw, selected.digest
+		p.collectionCounts = selected.counts
+	}
 	p.openMeter, p.openControl = m, m.scan
 	p.clockSelection = providerHistoryClockSelectionOf(c)
+	p.recovery = newProviderHistoryRecoveryBeforeOpen(p)
+	if p.recovery == nil {
+		return nil, errProviderIntegration
+	}
 	s.history, c.history = p, p
 	return p, nil
 }
@@ -99,13 +118,14 @@ func newProviderHistoryProgramBeforeOpenCandidate(s *providerCustodyStore) (*pro
 // All fields here are scalars/value snapshots. A changed profile, capacity,
 // copied owner or reassigned clock cannot preserve the original reservation.
 func (p *providerHistoryProgramOwner) matchesLocked() bool {
-	if p == nil || p.owner != p || p.failed || p.store == nil || p.store.history != p || p.store.closed || p.store.failed ||
+	if p == nil || p.owner != p || p.failed || p.recovery == nil || !p.recovery.unspentLocked() || p.store == nil || p.store.history != p || p.store.closed || p.store.failed ||
 		p.store.config != p.config || p.config.bounds.history == nil || *p.config.bounds.history != p.bounds ||
 		p.config.bounds.scan == nil || *p.config.bounds.scan != p.scan || p.store.guardian != nil ||
 		p.config.bounds.continuation == nil || *p.config.bounds.continuation != p.continuation ||
 		p.config.bounds.methods == nil || *p.config.bounds.methods != p.methods || p.config.bounds.tls == nil || *p.config.bounds.tls != p.tls ||
 		p.config.bounds.firstAdmission == nil || *p.config.bounds.firstAdmission != p.first ||
 		p.config.policy == nil || *p.config.policy != p.policy || !p.bounds.valid(p.config.bounds) ||
+		p.bounds.derivation.dispatch != p.dispatchBounds || p.bounds.derivation.admission != p.collectionAdmission || !p.collectionMatchesLocked() ||
 		p.store.firstLimits == nil || *p.store.firstLimits != p.limits || p.store.clock != p.clock || p.clock == nil ||
 		p.clock.history != p || p.store.stored != p.held.retained ||
 		p.firstOwner != nil && (p.store.firstOperation != p.firstOwner || p.firstAdmission == nil || p.firstMeter == nil ||

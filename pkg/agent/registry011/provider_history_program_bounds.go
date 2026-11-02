@@ -13,9 +13,11 @@ type providerHistoryProgramBounds struct {
 	program, costs                           string
 	future                                   providerHistoryGroupTotals
 	startup                                  providerScanUpper
+	recovery                                 providerHistoryRecoveryBounds
 	stages, records, commits, catalogEntries uint64
 	catalogNameBytes, resident, durationMS   uint64
 	derivation                               *providerHistoryProgramDerivation
+	collection                               *providerHistoryCollectionManifest
 }
 
 // This is a source-derivation witness, NOT a budget, Source, principal, ACK or
@@ -24,39 +26,53 @@ type providerHistoryProgramBounds struct {
 // Keeping the witness separate prevents an unfinished numeric profile from
 // reaching H0 while those rows are still NOT_DERIVED.
 type providerHistoryProgramDerivation struct {
-	owner    *providerHistoryProgramDerivation
-	snapshot providerHistoryProgramBounds
+	owner     *providerHistoryProgramDerivation
+	snapshot  providerHistoryProgramBounds
+	dispatch  providerHistoryDispatchBounds
+	admission providerHistoryCollectionAdmissionBounds
 }
 
 func (*providerHistoryProgramBounds) UnmarshalJSON([]byte) error     { return ErrConfiguration }
 func (*providerHistoryProgramDerivation) UnmarshalJSON([]byte) error { return ErrConfiguration }
 
 func (b providerHistoryProgramBounds) valid(store providerIntegrationBounds) bool {
+	if b.collection != nil && !b.collection.validSnapshot() {
+		return false
+	}
 	if store.firstAdmission == nil || store.scan == nil || store.continuation == nil || store.guardian != nil ||
-		!lowerHash(b.program) || !lowerHash(b.costs) || !b.future.valid() ||
+		!lowerHash(b.program) || !lowerHash(b.costs) || !b.future.valid() || !b.recovery.valid(store, b.catalogEntries) ||
 		b.stages == 0 || b.stages > (1<<20)/3 || b.records < 3*b.stages || b.records > store.continuation.maximumRecords ||
 		b.commits < 3*b.stages || b.commits > uint64(store.maximumCommits) || b.future.objects > uint64(store.maximumObjects) ||
 		b.catalogEntries < b.future.files || b.catalogEntries == 0 || b.resident == 0 || b.resident > store.continuation.maximumResidentBytes ||
 		b.durationMS == 0 || b.durationMS > 1<<53 || b.startup.retained == 0 || b.startup.clocks < 11 || b.startup.work[0] != 1 || b.startup.work[1] == 0 || b.startup.work[10] == 0 {
 		return false
 	}
+	archiveSlots, archiveOK := providerHistoryRecoveryArchiveSlots(b.stages)
 	names, ok := providerUpperProduct(b.catalogEntries, 255)
 	physical, physicalOK := providerUpperSum(store.scan.maximumPreIRetainedBytes, b.startup.retained, b.future.physical)
 	clocks, clockOK := providerUpperSum(store.scan.maximumPreIClockReads, b.startup.clocks, b.future.clocks)
-	return ok && names <= b.catalogNameBytes && physicalOK && physical <= store.maximumStoredBytes && clockOK && clocks <= 1<<20 &&
+	return archiveOK && archiveSlots <= b.resident && ok && names <= b.catalogNameBytes && physicalOK && physical <= store.maximumStoredBytes && clockOK && clocks <= 1<<20 &&
 		providerHistoryUpperWithin(providerScanUpper{work: store.setupWork, retained: store.setupRetained, clocks: store.setupMaximumClockReads}, providerHistoryPreIUpper(store)) &&
-		b.derivation != nil && b.derivation.owner == b.derivation && b.derivation.snapshot == b
+		b.derivation != nil && b.derivation.owner == b.derivation && b.derivation.snapshot == b &&
+		(b.stages == 1 || b.derivation.dispatch.advanceValid())
 }
 
 func (b providerHistoryProgramBounds) object() map[string]any {
-	return map[string]any{
+	out := map[string]any{
 		"format": providerHistoryProgramBoundsDomain, "program": b.program, "cost_revision": b.costs,
-		"future": b.future.object(), "startup": b.startup.object(),
+		"future": b.future.object(), "startup": b.startup.object(), "recovery_inspection": b.recovery.object(),
 		"maximum_stages": strconv.FormatUint(b.stages, 10), "maximum_records": strconv.FormatUint(b.records, 10),
 		"maximum_commits": strconv.FormatUint(b.commits, 10), "catalog_entries": strconv.FormatUint(b.catalogEntries, 10),
 		"catalog_name_bytes": strconv.FormatUint(b.catalogNameBytes, 10), "resident_bytes": strconv.FormatUint(b.resident, 10),
 		"duration_ms": strconv.FormatUint(b.durationMS, 10),
 	}
+	if b.collection != nil {
+		out["collection_manifest"] = map[string]string{"digest": b.collection.digest, "raw": b.collection.raw}
+		if b.derivation != nil && b.derivation.admission != (providerHistoryCollectionAdmissionBounds{}) {
+			out["collection_admission_maximum"] = b.derivation.admission.maximum.object()
+		}
+	}
+	return out
 }
 
 func providerHistoryPreIUpper(b providerIntegrationBounds) providerScanUpper {
@@ -64,15 +80,15 @@ func providerHistoryPreIUpper(b providerIntegrationBounds) providerScanUpper {
 }
 
 // The old initial seed remains restricted to2/9/10. This separate sum covers
-// the pre-I maximum (which ALREADY includes O), fixed first P, and all future
-// history work. It is never inserted into that old seed or charged a second
+// the pre-I maximum (which ALREADY includes O), fixed first P, all future
+// history work and the disjoint original read-only recovery row. It is never inserted into that old seed or charged a second
 // time for each child. The internal derivation must justify each disjoint row.
 func providerHistoryWholeHold(b providerIntegrationBounds) (providerScanUpper, bool) {
 	if b.history == nil || b.scan == nil {
 		return providerScanUpper{}, false
 	}
 	h := b.history
-	return providerScanUpperSum(providerHistoryPreIUpper(b), h.startup, providerScanUpper{work: h.future.work, retained: h.future.physical, clocks: h.future.clocks})
+	return providerScanUpperSum(providerHistoryPreIUpper(b), h.startup, providerScanUpper{work: h.future.work, retained: h.future.physical, clocks: h.future.clocks}, providerScanUpper{work: h.recovery.work})
 }
 
 func providerHistoryUpperWithin(value, maximum providerScanUpper) bool {
@@ -85,4 +101,60 @@ func providerHistoryUpperWithin(value, maximum providerScanUpper) bool {
 		}
 	}
 	return true
+}
+
+// Work and clock DATA for a source-cost subgraph, not a budget witness,
+// owner, reservation, native-time bound or execution capability. Storage and
+// native/backing/peak/lifetime RAM remain separate domains.
+type providerHistoryStageWorkCost struct {
+	work   candidateWorkVector
+	clocks uint64
+}
+
+// Compose ONE original T window. before covers the complete T/C/dispatch
+// prefix, including its own incoming envelopes. preparation covers actual
+// work already entered for the current member BEFORE remaining() preflight.
+// Each full member row includes that preparation and every nested capture,
+// retention and deferred envelope; closure must cover success AND known
+// failure. Those source-completeness obligations are not proved by this sum.
+//
+// At ordinal k the unchanged guard adds (count-k)*FULLmember+closure to an
+// actual prefix bounded by before+k*member+preparation. The extra preparation
+// is therefore retained ONCE in EACH original T upper. Adding a whole extra
+// member would incorrectly increase RPC/wire permission. Own advance remains
+// inside this old T window; each full result still belongs in the irrevocable
+// future SUM. Initialization, recovery, final/page, native time/RAM and the
+// source derivation factory are not supplied or authorized by numeric DATA.
+func providerHistoryCollectionStageWorkUpper(before, preparation providerHistoryStageWorkCost, rows providerHistoryDispatchBounds, count int, advancing bool) (providerHistoryStageWorkCost, bool) {
+	var empty providerHistoryStageWorkCost
+	if count < 1 || count > providerHistoryGroupMembers || !rows.valid() ||
+		before.work[0] != 0 || before.work[1] != 0 || preparation.work[0] != 0 || preparation.work[1] != 0 ||
+		preparation.clocks > rows.memberClocks || advancing && !rows.advanceValid() {
+		return empty, false
+	}
+	for coordinate, value := range preparation.work {
+		if value > rows.member[coordinate] {
+			return empty, false
+		}
+	}
+	remaining, clocks, ok := rows.remaining(count)
+	if !ok {
+		return empty, false
+	}
+	var a providerHistoryReadArithmetic
+	var out providerHistoryStageWorkCost
+	for coordinate := range out.work {
+		out.work[coordinate] = a.sum(before.work[coordinate], preparation.work[coordinate], remaining[coordinate])
+		if advancing {
+			out.work[coordinate] = a.sum(out.work[coordinate], rows.advance[coordinate])
+		}
+	}
+	out.clocks = a.sum(before.clocks, preparation.clocks, clocks)
+	if advancing {
+		out.clocks = a.sum(out.clocks, rows.advanceClocks)
+	}
+	if a.failed {
+		return empty, false
+	}
+	return out, true
 }

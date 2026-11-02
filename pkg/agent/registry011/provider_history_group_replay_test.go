@@ -1,6 +1,7 @@
 package registry011
 
 import (
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -10,7 +11,7 @@ import (
 func historyDispatchReplayFixture(t *testing.T, count int) (*providerHistoryGroupOwner, *providerHistoryGroupAcknowledgment) {
 	t.Helper()
 	o, admission := historyConsumptionFixture(t, count)
-	ack, err := o.retainConsumptionCandidate(admission)
+	ack, err := o.retainConsumptionCandidate(context.Background(), admission)
 	if err != nil || ack == nil || !o.consumptionShapeLocked() || o.phase != "consumed" {
 		t.Fatal("original first exchange, retained T and retained C are mandatory", err)
 	}
@@ -32,7 +33,7 @@ func TestProviderHistoryDispatchPreparationReplaysCommittedCWithoutRewinding(t *
 			coordinator, custodian, order, admission := o.coordinator, o.custodian, o.order, o.admission
 			actual, reads, held, retained, payload := m.actual, s.clock.read, s.stored, o.retention, s.retainedRaw
 			windowStart, windowUpper, clockStart, clockUpper := o.windowStart, o.windowUpper, o.clockStart, o.clockUpper
-			d, err := o.prepareDispatchCandidate(ack)
+			d, err := o.prepareDispatchCandidate(context.Background(), ack)
 			if err != nil || d == nil || d != o.dispatch || d.owner != d || d.group != o || d.acknowledgment != ack || d.order != order || d.meter != m ||
 				d.coordinator == coordinator || d.custodian == custodian || d.coordinator == d.custodian ||
 				d.coordinator.ticket == d.custodian.ticket || d.coordinator.consumption == d.custodian.consumption ||
@@ -46,7 +47,7 @@ func TestProviderHistoryDispatchPreparationReplaysCommittedCWithoutRewinding(t *
 				t.Fatal("preparation changed live C, shared a replay, dispatched, rewound or renewed an original window", err)
 			}
 			after, clocks := m.actual, s.clock.read
-			if repeated, err := o.prepareDispatchCandidate(ack); err == nil || repeated != nil || o.dispatch != d || m.actual != after || s.clock.read != clocks {
+			if repeated, err := o.prepareDispatchCandidate(context.Background(), ack); err == nil || repeated != nil || o.dispatch != d || m.actual != after || s.clock.read != clocks {
 				t.Fatal("same C produced a second preparation or observed an idle role")
 			}
 		})
@@ -55,7 +56,7 @@ func TestProviderHistoryDispatchPreparationReplaysCommittedCWithoutRewinding(t *
 
 func TestProviderHistoryDispatchPreparationRefusesDetachedInputsBeforeObservation(t *testing.T) {
 	var absent *providerHistoryGroupOwner
-	if d, err := absent.prepareDispatchCandidate(nil); err == nil || d != nil {
+	if d, err := absent.prepareDispatchCandidate(context.Background(), nil); err == nil || d != nil {
 		t.Fatal("missing owner")
 	}
 	for _, mode := range []string{"nil-ack", "copied-ack", "old-T-ack", "copied-owner", "copied-order", "missing-order", "used-prefix", "unconfirmed", "closed-meter", "failed-meter", "copied-meter", "scan-body", "legacy-role", "authority", "changed-window", "changed-clock-window", "changed-upper", "pending-legacy"} {
@@ -108,7 +109,7 @@ func TestProviderHistoryDispatchPreparationRefusesDetachedInputsBeforeObservatio
 			}
 			m, s := o.meter, o.store
 			actual, reads, pin, held, retained := m.actual, s.clock.read, o.pin, s.stored, o.retention
-			if d, err := o.prepareDispatchCandidate(input); err == nil || d != nil || o.dispatch != nil || m.actual != actual || s.clock.read != reads ||
+			if d, err := o.prepareDispatchCandidate(context.Background(), input); err == nil || d != nil || o.dispatch != nil || m.actual != actual || s.clock.read != reads ||
 				o.pin != pin || s.frontierFiles.pin != pin || o.last != ack || s.stored != held || o.retention != retained || s.activeMeter.Load() != nil {
 				t.Fatal("detached or already used C reached observation or dispatch")
 			}
@@ -163,7 +164,7 @@ func TestProviderHistoryDispatchPreparationRequiresRetainedInitialTAndCOriginals
 				}
 			}
 			pin, held, retained, actual := o.pin, s.stored, o.retention, o.meter.actual
-			if d, err := o.prepareDispatchCandidate(ack); err == nil || d != nil || o.dispatch != nil || !o.failed || !s.failed || !o.meter.failed || !o.meter.closed ||
+			if d, err := o.prepareDispatchCandidate(context.Background(), ack); err == nil || d != nil || o.dispatch != nil || !o.failed || !s.failed || !o.meter.failed || !o.meter.closed ||
 				o.pin != pin || s.frontierFiles.pin != pin || o.last != ack || o.retention != retained || s.stored != held || s.activeMeter.Load() != nil ||
 				o.order.consumed != 1 || o.order.sent != 0 || o.order.next != 0 || o.order.state != providerHistoryOrderFailed || o.meter.actual[10] <= actual[10] {
 				t.Fatal("changed committed original granted preparation, rewound C or refunded consumed state")
@@ -210,7 +211,7 @@ func TestProviderHistoryDispatchPreparationDerivesCatalogWithoutReusingCachedNam
 					t.Fatal(err)
 				}
 			}
-			d, err := o.prepareDispatchCandidate(ack)
+			d, err := o.prepareDispatchCandidate(context.Background(), ack)
 			if mode == "discarded-caches" {
 				if err != nil || d == nil || o.failed {
 					t.Fatal("cached before/after maps replaced independently selected originals", err)
@@ -233,7 +234,7 @@ func TestProviderHistoryDispatchPreparationUsesOriginalNativeClockCeiling(t *tes
 			}
 			o.parent.clockCeiling = reads + allowed
 			actual, start, clockStart := m.actual, o.windowStart, o.clockStart
-			if d, err := o.prepareDispatchCandidate(ack); err == nil || d != nil || o.dispatch != nil || !o.failed || !s.failed || !m.failed || !m.closed ||
+			if d, err := o.prepareDispatchCandidate(context.Background(), ack); err == nil || d != nil || o.dispatch != nil || !o.failed || !s.failed || !m.failed || !m.closed ||
 				o.pin != pin || s.frontierFiles.pin != pin || o.last != ack || s.stored != held || s.clock.read != reads+allowed ||
 				o.windowStart != start || o.clockStart != clockStart || s.activeMeter.Load() != nil || o.order.consumed != 1 || o.order.sent != 0 {
 				t.Fatal("preparation renewed native lifetime, pin, hold or consumed bits")
@@ -265,7 +266,7 @@ func TestProviderHistoryDispatchPreparationRefusesAChangedCachedModel(t *testing
 				t.Fatal("this finite model fault must reach independent original verification")
 			}
 			before, pin := o.meter.actual, o.pin
-			if d, err := o.prepareDispatchCandidate(ack); err == nil || d != nil || o.dispatch != nil || !o.failed || !o.meter.failed || !o.meter.closed ||
+			if d, err := o.prepareDispatchCandidate(context.Background(), ack); err == nil || d != nil || o.dispatch != nil || !o.failed || !o.meter.failed || !o.meter.closed ||
 				o.last != ack || o.pin != pin || o.store.frontierFiles.pin != pin || o.order.consumed != 1 || o.order.sent != 0 || o.meter.actual[10] <= before[10] {
 				t.Fatal("matching caches replaced the independently replayed C")
 			}
@@ -277,7 +278,7 @@ func TestProviderHistoryDispatchPreparationKeepsTheOriginalRemainingWork(t *test
 	control, controlC := historyDispatchReplayFixture(t, 1)
 	used := control.meter.actual[2] - control.windowStart[2]
 	before := control.meter.actual[2]
-	if d, err := control.prepareDispatchCandidate(controlC); err != nil || d == nil || control.meter.actual[2]-before <= 4096 {
+	if d, err := control.prepareDispatchCandidate(context.Background(), controlC); err != nil || d == nil || control.meter.actual[2]-before <= 4096 {
 		t.Fatal("separate original positive control must actually decode the proposed original replay", err)
 	}
 	replayWork := control.meter.actual[2] - before
@@ -289,7 +290,7 @@ func TestProviderHistoryDispatchPreparationKeepsTheOriginalRemainingWork(t *test
 	// Descriptor digit lengths can change, so this uses a wide interior
 	// interval and confirms the actual new T/C precursor and remaining work.
 	o, admission := historyConsumptionFixtureWithCap(t, 1, "decoded-work", used+replayWork/4)
-	ack, err := o.retainConsumptionCandidate(admission)
+	ack, err := o.retainConsumptionCandidate(context.Background(), admission)
 	if err != nil || ack == nil || !o.consumptionShapeLocked() {
 		t.Fatal("new T and C must genuinely fit their smaller original group upper", err)
 	}
@@ -298,7 +299,7 @@ func TestProviderHistoryDispatchPreparationKeepsTheOriginalRemainingWork(t *test
 		t.Fatal("refusal subject did not reach the intended funded-C remaining-work interval")
 	}
 	actual, pin, held, start, clockStart := o.meter.actual, o.pin, o.store.stored, o.windowStart, o.clockStart
-	if d, err := o.prepareDispatchCandidate(ack); err == nil || d != nil || o.dispatch != nil || !o.failed || !o.meter.failed || !o.meter.closed ||
+	if d, err := o.prepareDispatchCandidate(context.Background(), ack); err == nil || d != nil || o.dispatch != nil || !o.failed || !o.meter.failed || !o.meter.closed ||
 		o.pin != pin || o.store.frontierFiles.pin != pin || o.last != ack || o.store.stored != held || o.windowStart != start || o.clockStart != clockStart ||
 		o.order.consumed != 1 || o.order.sent != 0 || o.order.next != 0 || o.store.activeMeter.Load() != nil {
 		t.Fatal("unfunded preparation borrowed a fresh counter, renewed its hold or dispatched")

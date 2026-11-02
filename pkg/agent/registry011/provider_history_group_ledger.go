@@ -1,6 +1,9 @@
 package registry011
 
-import "strconv"
+import (
+	"context"
+	"strconv"
+)
 
 const providerHistoryGroupRootDomain = "sage-provider-history-group-root-v1"
 
@@ -20,6 +23,7 @@ type providerHistoryGroupLedger struct {
 	consumption                      *providerHistoryGroupConsumption
 	phase                            string
 	failed, terminal                 bool
+	collection                       *providerHistoryCollectionCursor // Reconstructed DATA; manifest T remains unavailable.
 }
 
 type providerHistoryGroupTotals struct {
@@ -35,12 +39,25 @@ func newProviderHistoryGroupLedger(program, profile, costs, initial string, maxi
 }
 
 func newProviderHistoryGroupLedgerObserved(program, profile, costs, initial string, maximumStages uint64, maximum providerHistoryGroupTotals, meter *providerWorkMeter) (*providerHistoryGroupLedger, error) {
+	return newProviderHistoryCollectionLedgerObserved(program, profile, costs, initial, maximumStages, maximum, nil, meter)
+}
+
+func newProviderHistoryCollectionLedgerObserved(program, profile, costs, initial string, maximumStages uint64, maximum providerHistoryGroupTotals, collection *providerHistoryCollectionCursor, meter *providerWorkMeter) (*providerHistoryGroupLedger, error) {
 	if !lowerHash(program) || !lowerHash(profile) || !lowerHash(costs) || !lowerHash(initial) ||
 		maximumStages == 0 || maximumStages > (1<<20)/3 || !maximum.valid() {
 		return nil, ErrConfiguration
 	}
 	l := &providerHistoryGroupLedger{program: program, profile: profile, costs: costs, initial: initial, maximumStages: maximumStages, maximum: maximum, phase: "prepared"}
 	l.owner = l
+	if collection != nil {
+		if collection.selection.program != program || !collection.initial() {
+			return nil, ErrConfiguration
+		}
+		l.collection = collection.copyObserved(meter)
+		if l.collection == nil {
+			return nil, ErrConfiguration
+		}
+	}
 	raw := l.rootObserved(meter)
 	if len(raw) == 0 {
 		return nil, ErrConfiguration
@@ -124,12 +141,27 @@ func (l *providerHistoryGroupLedger) rootObserved(meter *providerWorkMeter) []by
 	if l.consumption != nil {
 		consumption = l.consumption.digest
 	}
-	return providerReplayCanonical(map[string]any{
+	value := map[string]any{
 		"format": providerHistoryGroupRootDomain, "program": l.program, "profile": l.profile, "cost_revision": l.costs,
 		"initial": l.initial, "previous": l.previous, "entry": l.entry, "stage": strconv.FormatUint(l.stage, 10), "sequence": strconv.FormatUint(l.sequence, 10),
 		"maximum_stages": strconv.FormatUint(l.maximumStages, 10), "maximum": l.maximum.object(), "charged": l.charged.object(),
 		"phase": l.phase, "ticket": ticket, "consumption": consumption, "failed": l.failed, "terminal": l.terminal,
-	}, candidateLedgerMetadataLimit, meter)
+	}
+	if l.collection != nil {
+		completed := l.stage
+		if l.terminal && l.phase == "failed" && completed > 0 {
+			completed-- // Failed S retains the successful collection prefix.
+		}
+		if l.collection.selection.program != l.program || l.collection.completed != completed {
+			return nil
+		}
+		commitment := l.collection.commitmentObserved(meter)
+		if commitment == "" {
+			return nil
+		}
+		value["collection"] = commitment
+	}
+	return providerReplayCanonical(value, candidateLedgerMetadataLimit, meter)
 }
 
 func (l *providerHistoryGroupLedger) valid() bool {
@@ -162,6 +194,23 @@ func (l *providerHistoryGroupLedger) validObserved(meter *providerWorkMeter) boo
 		return l.sequence == 3*l.stage+2 && providerHistoryGroupConsumptionValidObserved(l.consumption, l.ticket, meter) && providerReplayTextEqual(l.entry, l.consumption.digest, meter)
 	}
 	return false
+}
+
+// Terminal replay DATA has its own check. It must never pass validObserved,
+// which remains the strict live-transition gate. A matching terminal root
+// alone proves neither retained originals, S custody nor failure authority;
+// the concrete reader must independently reconstruct and compare those.
+func (l *providerHistoryGroupLedger) terminalDataValidObserved(meter *providerWorkMeter) bool {
+	if l == nil || l.owner != l || !l.failed || !l.terminal || l.phase != "failed" ||
+		!lowerHash(l.program) || !lowerHash(l.profile) || !lowerHash(l.costs) || !lowerHash(l.initial) ||
+		!lowerHash(l.previous) || !lowerHash(l.entry) || !lowerHash(l.head) ||
+		l.maximumStages == 0 || l.maximumStages > (1<<20)/3 || l.stage == 0 || l.stage > l.maximumStages ||
+		l.sequence > 1<<20 || l.sequence != 3*l.stage || l.ticket != nil || l.consumption != nil ||
+		!l.maximum.valid() || !l.charged.valid() || !l.charged.within(l.maximum) {
+		return false
+	}
+	raw := l.rootObserved(meter)
+	return len(raw) != 0 && providerReplayTextEqual(providerReplayDigest(providerHistoryGroupRootDomain, raw, meter), l.head, meter)
 }
 
 func (l *providerHistoryGroupLedger) refuse() error {
@@ -198,10 +247,23 @@ func (l *providerHistoryGroupLedger) admit(ticket *providerHistoryGroupTicket) e
 }
 
 func (l *providerHistoryGroupLedger) admitObserved(ticket *providerHistoryGroupTicket, meter *providerWorkMeter) error {
+	return l.admitOriginalsObserved(ticket, nil, meter)
+}
+
+func (l *providerHistoryGroupLedger) admitOriginalsObserved(ticket *providerHistoryGroupTicket, methods *providerMethodBounds, meter *providerWorkMeter) error {
 	if !l.validObserved(meter) || l.stage >= l.maximumStages || l.phase != "prepared" && l.phase != "settled" ||
 		!providerHistoryGroupTicketValidObserved(ticket, meter) || ticket.program != l.program || ticket.profile != l.profile ||
 		ticket.costs != l.costs || !providerReplayTextEqual(ticket.previous, l.head, meter) || ticket.table.stage != l.stage+1 {
 		return l.refuse()
+	}
+	if l.collection != nil {
+		if methods == nil || l.collection.completed != l.stage {
+			return l.refuse()
+		}
+		expected, err := l.collection.nextTableObserved(ticket.table.stage, *methods, l.collection.selection.input.capture, meter)
+		if err != nil || !providerHistoryCollectionTableEqualObserved(expected, &ticket.table, meter) {
+			return l.refuse()
+		}
 	}
 	charged, ok := l.charged.add(ticket.upper, l.maximum)
 	if !ok {
@@ -230,6 +292,18 @@ func (l *providerHistoryGroupLedger) settle(settlement *providerHistoryGroupSett
 }
 
 func (l *providerHistoryGroupLedger) settleObserved(settlement *providerHistoryGroupSettlement, meter *providerWorkMeter) error {
+	return l.settleOriginalsObserved(nil, settlement, nil, nil, meter)
+}
+
+// Results here must be decoded from this reader's own original pack/spools.
+// Hash-only S replay cannot advance a collection. Existing nil-profile DATA
+// callers retain their exact old root and transition contract.
+func (l *providerHistoryGroupLedger) settleOriginalsObserved(ctx context.Context, settlement *providerHistoryGroupSettlement, results []providerHistoryMemberResult, methods *providerMethodBounds, meter *providerWorkMeter) error {
+	// Legacy nil-profile DATA retains its context-free wrapper. A real
+	// collection always requires the actual caller context, never a fallback.
+	if ctx != nil && ctx.Err() != nil || l != nil && l.collection != nil && ctx == nil {
+		return l.refuse()
+	}
 	if !l.validObserved(meter) || l.phase != "consumed" || settlement == nil || !providerReplayTextEqual(settlement.previous, l.head, meter) || settlement.count < 0 || settlement.count > providerHistoryGroupMembers {
 		return l.refuse()
 	}
@@ -237,9 +311,28 @@ func (l *providerHistoryGroupLedger) settleObserved(settlement *providerHistoryG
 	if err != nil || !providerHistoryGroupSettlementEqualObserved(copy, settlement, meter) {
 		return l.refuse()
 	}
+	next := l.collection
+	if l.collection != nil && settlement.outcome == "complete" {
+		if len(results) != settlement.count {
+			return l.refuse()
+		}
+		for i, result := range results {
+			if ctx.Err() != nil || !providerReplayTextEqual(result.digest, settlement.results[i], meter) {
+				return l.refuse()
+			}
+		}
+		next, err = l.collection.advanceBoundaryObserved(ctx, &l.ticket.table, results, methods, meter)
+		if err != nil {
+			return l.refuse()
+		}
+	}
+	if ctx != nil && ctx.Err() != nil {
+		return l.refuse()
+	}
 	// Retain the exact S reference in the root's predecessor chain. No actual
 	// report is subtracted from the admitted upper after success or failure.
 	l.ticket, l.consumption = nil, nil
+	l.collection = next
 	l.stage++
 	phase := "settled"
 	if settlement.outcome == "failed" {

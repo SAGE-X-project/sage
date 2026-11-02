@@ -35,6 +35,8 @@ func providerHistoryStoredDomain(kind string) (string, bool) {
 		return providerHistoryGroupTicketDomain, true
 	case "consumption":
 		return providerHistoryGroupConsumptionDomain, true
+	case "failure":
+		return providerHistoryFailureDomain, true
 	case "settlement":
 		return providerHistoryGroupSettlementDomain, true
 	}
@@ -44,7 +46,7 @@ func providerHistoryStoredDomain(kind string) (string, bool) {
 func newProviderHistoryStoredObjectObserved(kind, raw string, maximum uint64, meter *providerWorkMeter) (providerHistoryStoredObject, error) {
 	domain, known := providerHistoryStoredDomain(kind)
 	if !known || len(raw) == 0 || maximum == 0 || maximum > providerHistoryOriginalPackBytes || uint64(len(raw)) > maximum ||
-		kind != "requests" && kind != "results" && len(raw) > candidateLedgerMetadataLimit {
+		kind != "requests" && kind != "results" && kind != "failure" && len(raw) > candidateLedgerMetadataLimit {
 		return providerHistoryStoredObject{}, errProviderIntegration
 	}
 	digest := providerReplayDigest(domain, providerReplayBytes(raw, meter), meter)
@@ -133,7 +135,16 @@ func providerHistoryStorageChargeFor(inventory *providerHistoryInventory, fresh 
 		}
 		n := uint64(len(object.raw))
 		var ok bool
-		if object.kind == "requests" || object.kind == "results" {
+		if object.kind == "failure" {
+			metadata, payload, valid := providerHistoryFailureLayout(object.raw)
+			if !valid {
+				return providerHistoryStorageCharge{}, false
+			}
+			var metaOK bool
+			c.payload, ok = providerUpperSum(c.payload, payload)
+			c.metadata, metaOK = providerUpperSum(c.metadata, metadata)
+			ok = ok && metaOK
+		} else if object.kind == "requests" || object.kind == "results" {
 			c.payload, ok = providerUpperSum(c.payload, n)
 		} else if _, known := providerHistoryStoredDomain(object.kind); known {
 			c.metadata, ok = providerUpperSum(c.metadata, n)
@@ -155,6 +166,20 @@ func providerHistoryStorageChargeFor(inventory *providerHistoryInventory, fresh 
 	}
 	c.objects, c.files, c.metadata, c.raw, c.physical = uint64(len(fresh)), files, metadata, raw, physical
 	return c, true
+}
+
+// Cumulative capacity never substitutes for this stage's original T upper.
+// The baseline is a sealed original checkpoint value, not reported actuals.
+func (c providerHistoryStorageCharge) withinStage(start providerHistoryStorageCharge, upper providerHistoryGroupUpper) bool {
+	values := [6]uint64{c.physical, c.raw, c.payload, c.metadata, c.objects, c.files}
+	before := [6]uint64{start.physical, start.raw, start.payload, start.metadata, start.objects, start.files}
+	limits := [6]uint64{upper.physical, upper.retainedRaw, upper.payload, upper.metadata, upper.objects, upper.files}
+	for i, value := range values {
+		if value < before[i] || value-before[i] > limits[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func (c providerHistoryStorageCharge) add(next providerHistoryStorageCharge, maximum providerHistoryGroupTotals) (providerHistoryStorageCharge, bool) {

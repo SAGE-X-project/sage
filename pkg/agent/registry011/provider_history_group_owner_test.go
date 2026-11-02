@@ -55,6 +55,11 @@ func TestProviderHistoryGroupOwnerInitializesIndependentModelsFromOriginals(t *t
 		!reflect.DeepEqual(before, providerHistoryProvisionedOriginalBytes(t, s.config)) {
 		t.Fatal("initialization renewed allowance, mutated originals or manufactured an ACK")
 	}
+	checkpoint := p.recovery.initial
+	if checkpoint == nil || p.recovery.confirmed != checkpoint || p.recovery.pending != nil || checkpoint.pin != pin || checkpoint.ack != nil ||
+		checkpoint.model != o.coordinator.head || checkpoint.scope != o.scope || !p.recovery.checkpointSelectionLocked(o) {
+		t.Fatal("initial checkpoint was not sealed before the original final sample")
+	}
 	actual, clocks := m.actual, s.clock.read
 	if again, err := newProviderHistoryGroupOwnerCandidate(s); err == nil || again != nil || p.group != o || m.actual != actual || s.clock.read != clocks {
 		t.Fatal("the first bridge initialized a second controller")
@@ -224,5 +229,53 @@ func TestProviderHistoryGroupOwnerIdleAndCopiesCannotClaimClockOrPhase(t *testin
 	s.activeMeter.Store(nil)
 	if json.Unmarshal([]byte(`{}`), &providerHistoryGroupOwner{}) == nil || json.Unmarshal([]byte(`{}`), &providerHistoryCustodyFrame{}) == nil {
 		t.Fatal("JSON reconstructed live ownership")
+	}
+}
+
+func TestProviderHistoryOriginalInitializationIncludesBothCollectionReaders(t *testing.T) {
+	bounds, _ := providerFrontierBoundsFixture()
+	legacy, ok := providerHistoryGroupInitializationUpper(bounds)
+	if !ok {
+		t.Fatal("legacy original initialization precursor")
+	}
+	for _, history := range []*providerHistoryProgramBounds{nil, {}} {
+		bounds.history = history
+		got, valid := providerHistoryGroupInitializationForProfileUpper(bounds)
+		if !valid || got != legacy {
+			t.Fatal("legacy initialization changed", got, legacy, valid)
+		}
+	}
+	in := historyCollectionInput(t)
+	in.firstRead = providerHistoryFirstPReadBounds{objects: 3, raw: 4096, work: candidateWorkVector{2: 8192, 10: 1048576}}
+	manifest := historyCollectionManifest(t, in)
+	bounds.history = &providerHistoryProgramBounds{collection: manifest}
+	before := *manifest
+	got, valid := providerHistoryGroupInitializationForProfileUpper(bounds)
+	want := legacy
+	want[2] += 16384
+	want[10] += 2097152
+	if !valid || got != want || *manifest != before {
+		t.Fatal("the two original readers were omitted, duplicated or mutated", got, want, valid)
+	}
+	in.firstRead.work[10] = (^uint64(0) - legacy[10]) / 2
+	bounds.history.collection = historyCollectionManifest(t, in)
+	got, valid = providerHistoryGroupInitializationForProfileUpper(bounds)
+	if !valid || got[10] != legacy[10]+2*in.firstRead.work[10] {
+		t.Fatal("last finite initialization sum", got, valid)
+	}
+	in.firstRead.work[10]++
+	bounds.history.collection = historyCollectionManifest(t, in)
+	if got, valid := providerHistoryGroupInitializationForProfileUpper(bounds); valid || got != (candidateWorkVector{}) {
+		t.Fatal("late initialization overflow exposed earlier coordinates", got, valid)
+	}
+	bounds.history.collection = manifest
+	manifest.input.firstRead.work[7] = 1
+	if got, valid := providerHistoryGroupInitializationForProfileUpper(bounds); valid || got != (candidateWorkVector{}) {
+		t.Fatal("changed sealed reader data admitted", got, valid)
+	}
+	bounds.history = nil
+	bounds.maximumMetadataPerCommit = ^uint64(0)
+	if got, valid := providerHistoryGroupInitializationForProfileUpper(bounds); valid || got != (candidateWorkVector{}) {
+		t.Fatal("legacy child overflow exposed partial initialization", got, valid)
 	}
 }

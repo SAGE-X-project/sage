@@ -33,6 +33,9 @@ func (s *providerCustodyStore) read(disk *retentionDisk, name string, maximum in
 	if s.scanBody != nil && s.scanBody.active && !s.scanBody.afterRead(disk, name, uint64(len(raw))) {
 		return nil, errProviderIntegration
 	}
+	if m := s.activeMeter.Load(); m != nil && m.replayReads != nil && !m.replayReads.recordLocked(s, disk, name, maximum, raw) {
+		return nil, errProviderIntegration
+	}
 	return raw, nil
 }
 

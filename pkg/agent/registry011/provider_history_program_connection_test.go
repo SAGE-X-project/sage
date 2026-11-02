@@ -38,9 +38,10 @@ func providerHistoryProvisionedTestBounds(t *testing.T, b *providerIntegrationBo
 	work[10] = 128
 	h := &providerHistoryProgramBounds{
 		program: admissionTestDigest("a"), costs: admissionTestDigest("b"),
-		future:  providerHistoryGroupTotals{work: work, physical: 4096, retainedRaw: 1024, payload: 64, metadata: 64, objects: 3, files: 10, clocks: 32},
-		startup: providerScanUpper{work: plan.reservation.work, retained: plan.storage.physical, clocks: 11},
-		stages:  1, records: 3, commits: 3, catalogEntries: 10, catalogNameBytes: 2550, resident: 1 << 20, durationMS: 300000,
+		future:   providerHistoryGroupTotals{work: work, physical: 4096, retainedRaw: 1024, payload: 64, metadata: 64, objects: 3, files: 10, clocks: 32},
+		startup:  providerScanUpper{work: plan.reservation.work, retained: plan.storage.physical, clocks: 11},
+		recovery: providerHistoryRecoveryBounds{work: candidateWorkVector{2: 1 << 20, 10: 1 << 40}, maximumFiles: 20, maximumBytes: 1 << 20},
+		stages:   1, records: 3, commits: 3, catalogEntries: 10, catalogNameBytes: 2550, resident: 1 << 20, durationMS: 300000,
 	}
 	if shortStartup {
 		// Deliberately insufficient TEST input, fixed before every original.
@@ -160,6 +161,15 @@ func TestProviderHistoryProgramOpenFailurePreservesOriginalsAndRevokesTheClock(t
 				}
 			} else if clock.history == nil || !clock.history.failed || !clock.historyRevoked || clock.history.held != held {
 				t.Fatal("failed original open refunded or restored its backend")
+			}
+			if clock.history != nil {
+				r := clock.history.recovery
+				if r == nil || r.used || r.active || !r.closed || !r.failed || !r.meter.closed || !r.meter.failed || r.meter.actual != (candidateWorkVector{}) || r.group != nil || r.originalGroup != nil {
+					t.Fatal("failed original open left its unused recovery lane available")
+				}
+				if mode == "native-clock-window" && (clock.read != 0 || clock.history.store.custody != nil || clock.history.store.evidence != nil) {
+					t.Fatal("first-sample failure was only checked after opening roots")
+				}
 			}
 		})
 	}

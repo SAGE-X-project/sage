@@ -1,5 +1,7 @@
 package registry011
 
+import "context"
+
 // This is arithmetic over diagnostic DATA, not a native clock qualification.
 // The concrete caller must independently replay origin from the retained T.
 func providerHistoryGroupClockFits(origin, current CandidateClockDiagnostic) bool {
@@ -13,12 +15,14 @@ func (o *providerHistoryGroupOwner) admissionShapeLocked() bool {
 		o.admission.pin != o.pin || o.coordinator == nil || o.custodian == nil || o.coordinator == o.custodian ||
 		o.coordinator.owner != o.coordinator || o.custodian.owner != o.custodian ||
 		o.coordinator.phase != "admitted" || o.custodian.phase != "admitted" || o.coordinator.head != o.custodian.head ||
+		o.stageBaseLocked() == nil || o.coordinator.stage+1 != o.nextStageLocked() || o.custodian.stage+1 != o.nextStageLocked() ||
+		o.coordinator.sequence != 3*o.coordinator.stage+1 || o.custodian.sequence != 3*o.custodian.stage+1 ||
 		o.coordinator.ticket == nil || o.custodian.ticket == nil || o.coordinator.ticket == o.custodian.ticket {
 		return false
 	}
 	c := o.admission.claim
 	return c != nil && c.owner == c && c.group == o && c.meter == o.meter && c.used && c.renamed &&
-		c.frame != nil && c.frame.before == o.start.main && c.frame.after == o.pin && c.frame.phase == "admit" && c.frame.stage == 1 &&
+		c.frame != nil && o.stageBaseLocked() != nil && c.frame.before == o.stageBefore.pin && c.frame.after == o.pin && c.frame.phase == "admit" && c.frame.stage == o.nextStageLocked() &&
 		c.inventory != nil && c.inventory.count == 2 && c.inventory.digest == o.inventory && c.count == 2 &&
 		c.request == c.inventory.entries[0] && c.ticket == c.inventory.entries[1] && c.request.kind == "requests" && c.ticket.kind == "ticket" &&
 		c.coordinator == o.coordinator && c.members > 0 && c.members <= providerHistoryGroupMembers
@@ -27,20 +31,19 @@ func (o *providerHistoryGroupOwner) admissionShapeLocked() bool {
 // Reconstruct the original initial model and the entire acknowledged T from
 // retained bytes. Selecting an old immutable pin never changes today's HEAD,
 // old scan caches, original clock or live role. The result is DATA only.
-func (o *providerHistoryGroupOwner) replayCommittedAdmissionLocked(head string) (*providerHistoryGroupLedger, error) {
+func (o *providerHistoryGroupOwner) replayCommittedAdmissionLocked(ctx context.Context, head string) (*providerHistoryGroupLedger, error) {
+	if ctx == nil || ctx.Err() != nil {
+		return nil, errProviderIntegration
+	}
 	if !o.admissionShapeLocked() || !o.activeLocked(o.meter) {
 		return nil, errProviderIntegration
 	}
-	raw, err := o.start.main.bytesObserved(o.store.config, o.meter)
+	before, err := o.replayHealthyPrefixLocked(ctx, o.stageBefore, head)
 	if err != nil {
 		return nil, errProviderIntegration
 	}
-	initial, scope, err := o.initialModelAtLocked(o.start.main, providerReplayString(raw, o.meter), head)
-	if err != nil || scope != o.scope {
-		return nil, errProviderIntegration
-	}
-	model, err := o.readAdmissionDataLocked(o.admission.claim, o.start.main, providerReplayString(raw, o.meter), initial, head)
-	if err != nil || !o.coordinator.validObserved(o.meter) || !o.custodian.validObserved(o.meter) ||
+	model, err := o.readAdmissionDataLocked(o.admission.claim, before.pin, o.stageBefore.head, before.inventory, before.ledger, head)
+	if err != nil || ctx.Err() != nil || !o.coordinator.validObserved(o.meter) || !o.custodian.validObserved(o.meter) ||
 		!providerReplayTextEqual(model.head, o.coordinator.head, o.meter) || !providerReplayTextEqual(model.head, o.custodian.head, o.meter) {
 		return nil, errProviderIntegration
 	}
@@ -50,21 +53,24 @@ func (o *providerHistoryGroupOwner) replayCommittedAdmissionLocked(head string) 
 // C consumes the entire already admitted group. It uses the SAME original
 // group/lifetime work and clock windows, with no renewal or second hold.
 // This private retained acknowledgment does not grant a transport permit.
-func (o *providerHistoryGroupOwner) retainConsumptionCandidate(admission *providerHistoryGroupAcknowledgment) (*providerHistoryGroupAcknowledgment, error) {
+func (o *providerHistoryGroupOwner) retainConsumptionCandidate(ctx context.Context, admission *providerHistoryGroupAcknowledgment) (*providerHistoryGroupAcknowledgment, error) {
+	if ctx == nil || ctx.Err() != nil {
+		return nil, errProviderIntegration
+	}
 	if o == nil || o.store == nil {
 		return nil, errProviderIntegration
 	}
 	s := o.store
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if o.phase != "admitted" || o.failed || o.parent == nil || o.parent.group != o ||
-		admission == nil || admission != o.admission || !o.admissionShapeLocked() || o.order != nil ||
+	if ctx.Err() != nil || o.phase != "admitted" || o.failed || o.parent == nil || o.parent.group != o ||
+		admission == nil || admission != o.admission || !o.admissionShapeLocked() || o.order != nil || o.parent.recovery == nil || o.parent.recovery.order != nil ||
 		s.activeMeter.Load() != nil || s.frontierFiles == nil || s.frontierFiles.pending != nil || s.frontierFiles.historyPending != nil ||
 		!o.window || o.meter == nil || o.meter.owner != o.meter {
 		return nil, errProviderIntegration
 	}
 	m := o.meter
-	if m.historyGroup != o || m.integration != nil || m.scan != nil || m.scanBody != nil || m.firstAdmission != nil ||
+	if m.historyGroup != o || m.historyRecovery != nil || m.integration != nil || m.scan != nil || m.scanBody != nil || m.firstAdmission != nil ||
 		m.firstOperation != nil || m.guardian != nil || m.continuing != nil || m.parent != nil || !m.authority ||
 		m.upper != o.parent.bounds.future.work || m.maximumClocks != o.parent.bounds.future.clocks {
 		return nil, errProviderIntegration
@@ -90,7 +96,7 @@ func (o *providerHistoryGroupOwner) retainConsumptionCandidate(admission *provid
 	if err != nil || !o.clockFits(begin) {
 		return nil, errProviderIntegration
 	}
-	base, err := o.replayCommittedAdmissionLocked(s.frontierFiles.pinRaw)
+	base, err := o.replayCommittedAdmissionLocked(ctx, s.frontierFiles.pinRaw)
 	if err != nil || !providerHistoryGroupClockFits(admission.claim.frame.clock, providerClockDiagnostic(begin)) {
 		return nil, errProviderIntegration
 	}
@@ -107,11 +113,11 @@ func (o *providerHistoryGroupOwner) retainConsumptionCandidate(admission *provid
 	if err != nil {
 		return nil, errProviderIntegration
 	}
-	coordinator := providerHistoryLedgerCopy(base)
+	coordinator := providerHistoryLedgerCopyObserved(base, m)
 	if coordinator == nil || coordinator.consumeObserved(consumption, m) != nil {
 		return nil, errProviderIntegration
 	}
-	frame, err := newProviderHistoryCustodyFrameObserved(s.config, o.scope, o.pin, 1, "consume", o.inventory, inventory.digest, base.head, coordinator.head, consumption.digest, providerClockDiagnostic(begin), m)
+	frame, err := newProviderHistoryCustodyFrameObserved(s.config, o.scope, o.pin, base.ticket.table.stage, "consume", o.inventory, inventory.digest, base.head, coordinator.head, consumption.digest, providerClockDiagnostic(begin), m)
 	if err != nil {
 		return nil, errProviderIntegration
 	}
@@ -119,7 +125,7 @@ func (o *providerHistoryGroupOwner) retainConsumptionCandidate(admission *provid
 	charge, ok := providerHistoryStorageChargeFor(inventory, fresh, frame, uint64(len(raw)), s.config.bounds.fileOverheadBytes)
 	retained, retainedOK := o.retention.add(charge, o.parent.bounds.future)
 	charged, groupOK := o.retention.add(charge, coordinator.charged)
-	if err != nil || !ok || !retainedOK || !groupOK || charged != retained ||
+	if err != nil || !ok || !retainedOK || !groupOK || charged != retained || !retained.withinStage(o.stageRetentionStart, base.ticket.upper) ||
 		uint64(len(s.objects))+retained.objects > uint64(s.config.bounds.maximumObjects) || frame.after.sequence > uint64(s.config.bounds.maximumCommits) {
 		return nil, errProviderIntegration
 	}
@@ -133,22 +139,27 @@ func (o *providerHistoryGroupOwner) retainConsumptionCandidate(admission *provid
 	if err != nil || !order.consumeAll() || order.consumed != consumption.consumed {
 		return nil, errProviderIntegration
 	}
+	if !o.parent.recovery.prepareWriteCheckpointLocked(claim) {
+		return nil, errProviderIntegration
+	}
+	checkpoint, ack := claim.checkpoint, claim.checkpoint.ack
 	// Irreversible consumption precedes every physical C write. Even an
 	// uncertain rename cannot restore any member or suballocation.
 	o.order, claim.order, o.retention = order, order, retained
+	o.parent.recovery.order, o.parent.recovery.consumed = order, order.consumed
 	s.frontierFiles.historyPending, o.phase = claim, "writing-consume"
-	if o.writeAdmissionLocked(claim) != nil {
+	if o.writeAdmissionLocked(ctx, claim) != nil {
 		return nil, errProviderIntegration
 	}
-	custodian, err := o.readConsumptionLocked(claim, true)
+	custodian, err := o.readConsumptionLocked(ctx, claim, true)
 	if err != nil || custodian == coordinator || !providerReplayTextEqual(custodian.head, coordinator.head, m) ||
-		!o.claimActiveLocked(claim) || !o.identityLocked() || !o.consumptionOrderLocked(claim) {
+		!o.claimActiveLocked(claim) || !o.identityLocked() || !o.consumptionOrderLocked(claim) || !o.parent.recovery.pendingCheckpointDataMatchesLocked(claim) {
 		return nil, errProviderIntegration
 	}
 	end, err := s.samplePrimitive()
 	if err != nil || !o.clockFits(end) || !candidateLedgerClockAdvance(providerClockDiagnostic(begin), providerClockDiagnostic(end)) ||
 		!providerHistoryGroupClockFits(admission.claim.frame.clock, providerClockDiagnostic(end)) || m.failed || m.closed ||
-		!o.claimActiveLocked(claim) || !o.consumptionOrderLocked(claim) || !order.confirmConsumption() {
+		!o.claimActiveLocked(claim) || !o.consumptionOrderLocked(claim) || ctx.Err() != nil || !order.confirmConsumption() {
 		return nil, errProviderIntegration
 	}
 	// Confirmation cannot fail after publication: every fallible operation
@@ -158,8 +169,9 @@ func (o *providerHistoryGroupOwner) retainConsumptionCandidate(admission *provid
 	s.sequence, s.tip = frame.after.sequence, frame.after.commit
 	s.retainedRaw += charge.raw
 	claim.used, s.frontierFiles.historyPending, o.phase = true, nil, "consumed"
-	ack := &providerHistoryGroupAcknowledgment{o, claim, frame.after}
 	o.last = ack
+	o.parent.recovery.confirmed, o.parent.recovery.pending, o.parent.recovery.pendingAck = checkpoint, nil, nil
+	o.parent.recovery.consumption = checkpoint
 	s.activeMeter.Store(nil)
 	succeeded = true
 	return ack, nil
@@ -173,7 +185,10 @@ func (o *providerHistoryGroupOwner) consumptionOrderLocked(c *providerHistoryWri
 		c.order.consumed == c.coordinator.consumption.consumed && c.order.sent == 0 && c.order.next == 0
 }
 
-func (o *providerHistoryGroupOwner) readConsumptionLocked(c *providerHistoryWriteClaim, renamed bool) (*providerHistoryGroupLedger, error) {
+func (o *providerHistoryGroupOwner) readConsumptionLocked(ctx context.Context, c *providerHistoryWriteClaim, renamed bool) (*providerHistoryGroupLedger, error) {
+	if ctx == nil || ctx.Err() != nil {
+		return nil, errProviderIntegration
+	}
 	if !o.claimActiveLocked(c) || c.frame.phase != "consume" || c.renamed != renamed || !o.consumptionOrderLocked(c) {
 		return nil, errProviderIntegration
 	}
@@ -185,11 +200,15 @@ func (o *providerHistoryGroupOwner) readConsumptionLocked(c *providerHistoryWrit
 	if !s.frontierFiles.readExact(s.name("highwater", c.frame.after.ordinal), providerReplayBytes(c.highwater, m)) {
 		return nil, errProviderIntegration
 	}
-	base, err := o.replayCommittedAdmissionLocked(head)
+	base, err := o.replayCommittedAdmissionLocked(ctx, head)
 	if err != nil {
 		return nil, errProviderIntegration
 	}
-	return o.readConsumptionDataLocked(c, o.pin, o.inventory, base, head)
+	model, err := o.readConsumptionDataLocked(c, o.pin, o.inventory, base, head)
+	if err != nil || ctx.Err() != nil {
+		return nil, errProviderIntegration
+	}
+	return model, nil
 }
 
 // Replaying committed C selects historical DATA explicitly. It never changes
@@ -228,7 +247,7 @@ func (o *providerHistoryGroupOwner) readConsumptionDataLocked(c *providerHistory
 	if err != nil {
 		return nil, errProviderIntegration
 	}
-	model := providerHistoryLedgerCopy(base)
+	model := providerHistoryLedgerCopyObserved(base, m)
 	if model == nil || model.consumeObserved(consumption, m) != nil || !providerReplayTextEqual(model.head, c.coordinator.head, m) {
 		return nil, errProviderIntegration
 	}
@@ -239,7 +258,7 @@ func (o *providerHistoryGroupOwner) readConsumptionDataLocked(c *providerHistory
 	frame, err := parseProviderHistoryCustodyFrameObserved(s.config, o.scope, before, c.frame.after, intent, commit, frontier, m)
 	if a != nil || b != nil || d != nil || e != nil || err != nil || !providerReplayEqual(intent, pending, m) ||
 		frame.previousInventory != previousInventory || frame.inventory != c.inventory.digest || frame.previousModel != base.head ||
-		frame.model != model.head || frame.operation != consumption.digest || frame.phase != "consume" || frame.stage != 1 || frame.clock != c.frame.clock {
+		frame.model != model.head || frame.operation != consumption.digest || frame.phase != "consume" || frame.stage != base.ticket.table.stage || frame.clock != c.frame.clock {
 		return nil, errProviderIntegration
 	}
 	return model, nil

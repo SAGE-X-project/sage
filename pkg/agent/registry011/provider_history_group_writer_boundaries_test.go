@@ -1,6 +1,7 @@
 package registry011
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -32,7 +33,7 @@ func TestProviderHistoryLedgerCopiesKeepSeparateActiveRecords(t *testing.T) {
 
 func TestProviderHistoryAdmissionWriterKeepsItsHoldWhenClockCallsAreUnavailable(t *testing.T) {
 	var absent *providerHistoryGroupOwner
-	if ack, err := absent.retainAdmissionCandidate("selection", nil, providerHistoryGroupUpper{}); err == nil || ack != nil {
+	if ack, err := absent.retainAdmissionCandidate(context.Background(), "selection", nil, providerHistoryGroupUpper{}); err == nil || ack != nil {
 		t.Fatal("absent writer returned authority")
 	}
 	for _, allowed := range []uint64{0, 1} {
@@ -42,7 +43,7 @@ func TestProviderHistoryAdmissionWriterKeepsItsHoldWhenClockCallsAreUnavailable(
 			// Only reduce the existing test parent's available calls. Never
 			// replace its backend, epoch, observer or cumulative counters.
 			o.parent.clockCeiling = reads + allowed
-			if ack, err := o.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil ||
+			if ack, err := o.retainAdmissionCandidate(context.Background(), "selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil ||
 				!o.failed || !o.meter.failed || !o.meter.closed || !s.failed || !s.clock.historyRevoked || s.activeMeter.Load() != nil ||
 				o.pin != pin || s.frontierFiles.pin != pin || s.stored != held || s.retainedRaw != raw || s.clock.read != reads+allowed {
 				t.Fatal("native call refusal published a pin or renewed the original hold")
@@ -139,7 +140,7 @@ func TestProviderHistoryAdmissionReadbackRefusesOwnedOriginalAndContextFaults(t 
 			}
 			// Every mutation is finite inert data in this fixture's own roots.
 			// No peer, external path, transaction or reusable replay tool exists.
-			if ack, err := o.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil || !injected ||
+			if ack, err := o.retainAdmissionCandidate(context.Background(), "selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil || !injected ||
 				!o.failed || !s.failed || !o.meter.failed || !o.meter.closed || !s.clock.historyRevoked || s.activeMeter.Load() != nil ||
 				o.pin != pin || s.frontierFiles.pin != pin || s.stored != held || s.retainedRaw != raw || o.retention.physical == 0 ||
 				s.frontierFiles.historyPending == nil || s.frontierFiles.historyPending.used {
@@ -167,10 +168,10 @@ func TestProviderHistoryAdmissionPrivateHelpersRefuseDetachedInputs(t *testing.T
 		checked = true
 		before, clocks := o.meter.actual, s.clock.read
 		copy := *c
-		if o.writeAdmissionLocked(&copy) == nil {
+		if o.writeAdmissionLocked(context.Background(), &copy) == nil {
 			t.Fatal("copied claim entered an original write")
 		}
-		if model, err := o.readAdmissionLocked(&copy, false); err == nil || model != nil || o.historyDiskIdentityLocked(nil) || o.writeHistoryFileLocked(s.evidence, "", nil) == nil ||
+		if model, err := o.readAdmissionLocked(context.Background(), &copy, false); err == nil || model != nil || o.historyDiskIdentityLocked(nil) || o.writeHistoryFileLocked(s.evidence, "", nil) == nil ||
 			o.meter.actual != before || s.clock.read != clocks {
 			t.Fatal("detached helper input consumed an event or supplied a model")
 		}
@@ -182,7 +183,7 @@ func TestProviderHistoryAdmissionPrivateHelpersRefuseDetachedInputs(t *testing.T
 		if err := os.WriteFile(headPath, []byte("inert mismatched old HEAD"), 0600); err != nil {
 			return err
 		}
-		err = o.writeAdmissionLocked(c)
+		err = o.writeAdmissionLocked(context.Background(), c)
 		if restoreErr := os.WriteFile(headPath, head, 0600); restoreErr != nil {
 			return restoreErr
 		}
@@ -191,7 +192,7 @@ func TestProviderHistoryAdmissionPrivateHelpersRefuseDetachedInputs(t *testing.T
 		}
 		return nil
 	}
-	if ack, err := o.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err != nil || ack == nil || !checked {
+	if ack, err := o.retainAdmissionCandidate(context.Background(), "selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err != nil || ack == nil || !checked {
 		t.Fatal("separate genuine admission positive control", err)
 	}
 }

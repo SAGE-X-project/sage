@@ -38,7 +38,7 @@ func TestProviderHistoryAdmissionWriterRetainsIndependentOriginalsBeforePublishi
 	o, upper := historyAdmissionWriterFixture(t)
 	s, before, initialCoordinator, initialCustodian := o.store, o.pin, o.coordinator, o.custodian
 	held, raw, reads, meter := s.stored, s.retainedRaw, s.clock.read, o.meter
-	ack, err := o.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper)
+	ack, err := o.retainAdmissionCandidate(context.Background(), "selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper)
 	if err != nil || ack == nil {
 		t.Fatal("funded original admission", err)
 	}
@@ -62,7 +62,7 @@ func TestProviderHistoryAdmissionWriterRetainsIndependentOriginalsBeforePublishi
 			t.Fatal("published admission did not retain exact original", ref.kind, err)
 		}
 	}
-	if again, err := o.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || again != nil || o.last != ack || s.stored != held || o.pin != ack.pin {
+	if again, err := o.retainAdmissionCandidate(context.Background(), "selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || again != nil || o.last != ack || s.stored != held || o.pin != ack.pin {
 		t.Fatal("same admission minted another ACK or returned a consumed hold")
 	}
 }
@@ -121,7 +121,7 @@ func TestProviderHistoryAdmissionCatalogRequiresSelectedOriginals(t *testing.T) 
 					t.Fatal(err)
 				}
 			}
-			if ack, err := o.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil ||
+			if ack, err := o.retainAdmissionCandidate(context.Background(), "selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil ||
 				!o.failed || !s.failed || !o.meter.failed || !o.meter.closed || s.activeMeter.Load() != nil || o.pin != pin || s.frontierFiles.pin != pin ||
 				s.stored != held || s.retainedRaw != raw || o.retention != (providerHistoryStorageCharge{}) || s.frontierFiles.historyPending != nil {
 				t.Fatal("invalid selected original reached retention or returned admission authority")
@@ -216,7 +216,7 @@ func TestProviderHistoryAdmissionWriterRefusesBeforePublishingAndKeepsCharges(t 
 			if !upper.valid(1) {
 				t.Fatal("negative writer scenario requires otherwise valid upper data")
 			}
-			if ack, err := o.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil ||
+			if ack, err := o.retainAdmissionCandidate(context.Background(), "selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil ||
 				!o.failed || !s.failed || !s.history.failed || !s.clock.historyRevoked || !o.meter.failed || !o.meter.closed || s.activeMeter.Load() != nil ||
 				o.pin != pin || s.frontierFiles.pin != pin || s.sequence != pin.sequence || s.tip != pin.commit || s.stored != held || s.retainedRaw != raw ||
 				o.coordinator.phase != "prepared" || o.custodian.phase != "prepared" {
@@ -279,7 +279,7 @@ func TestProviderHistoryAdmissionCopiesCannotBorrowWriterOwnership(t *testing.T)
 	o, upper := historyAdmissionWriterFixture(t)
 	copy := *o
 	before := o.meter.actual
-	if ack, err := copy.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.failed || o.meter.actual != before || o.phase != "prepared" {
+	if ack, err := copy.retainAdmissionCandidate(context.Background(), "selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.failed || o.meter.actual != before || o.phase != "prepared" {
 		t.Fatal("copied owner entered a writer phase")
 	}
 	for _, value := range []any{&providerHistoryWriteClaim{}, &providerHistoryGroupAcknowledgment{}, &providerHistoryInventory{}} {
@@ -314,7 +314,7 @@ func TestProviderHistoryAdmissionWriterRefusesInvalidObserverBeforeWindow(t *tes
 			case "clock-cap":
 				original.maximumClocks--
 			}
-			if ack, err := o.retainAdmissionCandidate("selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil ||
+			if ack, err := o.retainAdmissionCandidate(context.Background(), "selection", []*providerIntegrationRequest{historyGroupSimple(t)}, upper); err == nil || ack != nil || o.last != nil ||
 				o.phase != "prepared" || o.window || o.retention != (providerHistoryStorageCharge{}) || s.frontierFiles.historyPending != nil ||
 				s.activeMeter.Load() != nil || original.actual != before || original.clocks != clocks || s.clock.read != reads || o.pin != pin || s.stored != held {
 				t.Fatal("invalid observer entered admission or changed the original lifetime")

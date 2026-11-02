@@ -164,7 +164,13 @@ func providerCustodySetupDiagnostic(config providerCustodyConfig, clock Candidat
 func providerCustodySetupDiagnosticObserved(config providerCustodyConfig, clock CandidateClockDiagnostic, meter *providerWorkMeter) []byte {
 	id, b := config.identity, config.bounds
 	joined := providerReplayJoin([]string{config.anchor, id.Instance, id.Policy, id.SourceID}, meter)
-	operation := providerReplayDigest("sage-provider-setup-operation-v1", []byte(joined), meter)
+	var original []byte
+	if meter != nil && meter.historyRecovery != nil {
+		original = providerReplayPhaseBytes(joined, meter)
+	} else {
+		original = []byte(joined)
+	}
+	operation := providerReplayDigest("sage-provider-setup-operation-v1", original, meter)
 	if joined == "" || operation == "" {
 		return nil
 	}
@@ -197,6 +203,7 @@ func (s *providerCustodyStore) close() error {
 	s.closed = true
 	if s.history != nil {
 		s.history.failLocked()
+		s.history.recovery.revokeForCloseLocked()
 	}
 	return errors.Join(s.evidence.close(), s.custody.close())
 }

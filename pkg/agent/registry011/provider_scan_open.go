@@ -42,13 +42,26 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 			return nil, ErrConfiguration
 		}
 	}
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			s.failed = true
+			if s.history != nil {
+				s.history.failLocked()
+				s.history.recovery.revokeForCloseLocked()
+			}
+			if s.evidence != nil {
+				_ = s.evidence.close()
+			}
+			if s.custody != nil {
+				_ = s.custody.close()
+			}
+		}
+	}()
 	// The single O is held before any original-root observation. Actual
 	// durable root-operation admission remains a separate unqualified boundary.
 	initial, err := s.sample()
 	if err != nil {
-		if s.history != nil {
-			s.history.failLocked()
-		}
 		return nil, errProviderIntegration
 	}
 	if s.history != nil {
@@ -66,27 +79,15 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 		}
 		s.guardian.original = initial
 	}
-	succeeded := false
-	defer func() {
-		if !succeeded {
-			s.failed = true
-			if s.history != nil {
-				s.history.failLocked()
-			}
-			if s.evidence != nil {
-				_ = s.evidence.close()
-			}
-			if s.custody != nil {
-				_ = s.custody.close()
-			}
-		}
-	}()
 	s.custody, err = openRetentionDisk(config.custodyDirectory)
 	if err != nil {
 		return nil, errProviderIntegration
 	}
 	s.evidence, err = openRetentionDisk(config.evidenceDirectory)
 	if err != nil || os.SameFile(s.custody.directoryInfo, s.evidence.directoryInfo) || os.SameFile(s.custody.lockInfo, s.evidence.lockInfo) {
+		return nil, errProviderIntegration
+	}
+	if s.history != nil && !s.history.recovery.bindOriginalRootsBeforeReadLocked() {
 		return nil, errProviderIntegration
 	}
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {

@@ -35,9 +35,10 @@ func providerHistoryParentScalarFixture(t *testing.T) *providerCustodyStore {
 	work[10] = 128
 	h := &providerHistoryProgramBounds{
 		program: admissionTestDigest("a"), costs: admissionTestDigest("b"),
-		future:  providerHistoryGroupTotals{work: work, physical: 4096, retainedRaw: 1024, payload: 64, metadata: 64, objects: 3, files: 10, clocks: 32},
-		startup: providerScanUpper{work: work, retained: 1024, clocks: 11},
-		stages:  1, records: 3, commits: 3, catalogEntries: 10, catalogNameBytes: 2550, resident: 1 << 20, durationMS: 300000,
+		future:   providerHistoryGroupTotals{work: work, physical: 4096, retainedRaw: 1024, payload: 64, metadata: 64, objects: 3, files: 10, clocks: 32},
+		startup:  providerScanUpper{work: work, retained: 1024, clocks: 11},
+		recovery: providerHistoryRecoveryBounds{work: candidateWorkVector{2: 1 << 20, 10: 1 << 40}, maximumFiles: 20, maximumBytes: 1 << 20},
+		stages:   1, records: 3, commits: 3, catalogEntries: 10, catalogNameBytes: 2550, resident: 1 << 20, durationMS: 300000,
 	}
 	h.derivation = &providerHistoryProgramDerivation{}
 	h.derivation.owner = h.derivation
