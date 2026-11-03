@@ -14,11 +14,12 @@ func TestProviderHistoryRecoveryGroupReadCannotTreatConfirmedOriginalsAsOptional
 			o, _ := historyRecoveryGroupFixture(t, 1)
 			r, _ := historyRecoveryGroupStart(t, o)
 			path := filepath.Join(r.config.custodyDirectory, "HEAD")
-			if mode == "missing" {
+			switch mode {
+			case "missing":
 				if err := os.Remove(path); err != nil {
 					t.Fatal(err)
 				}
-			} else if mode == "empty" {
+			case "empty":
 				if err := os.WriteFile(path, nil, 0600); err != nil {
 					t.Fatal(err)
 				}
