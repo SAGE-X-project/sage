@@ -14,6 +14,7 @@ func historyRecoveryInitialNameUnitData(capacity int) (*providerHistoryRecoveryE
 	r := w.recovery
 	r.parent.bounds.catalogEntries = uint64(capacity)
 	r.parent.bounds.catalogNameBytes = 16 << 10
+	r.initialDescriptor = &providerHistoryRecoveryInitialDescriptor{}
 	r.initialDescriptor.scan.ordinal, r.initialDescriptor.main.ordinal, r.initialDescriptor.setups = 1, 1, 1
 	p := &providerHistoryRecoveryLegacyPrefix{
 		source: &providerHistoryRecoveryInventoryWalk{},
