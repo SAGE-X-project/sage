@@ -50,61 +50,8 @@ func (r *providerHistoryRecoveryOwner) expectedCatalogLocked(ctx context.Context
 		return nil, errProviderIntegration
 	}
 	w := &providerHistoryRecoveryExpectedCatalog{recovery: r, names: make([]providerHistoryRecoveryExpectedName, 0, int(r.parent.bounds.catalogEntries))}
-	p, n := r.legacyPrefixes[pass], r.initialDescriptor
-	for _, evidence := range []bool{false, true} {
-		if !w.add(evidence, "AUTHORITY.LOCK", false) || !w.add(evidence, "ANCHOR", false) || !w.add(evidence, "SCAN-HEAD", false) {
-			return nil, errProviderIntegration
-		}
-		for ordinal := uint64(0); ordinal <= n.scan.ordinal; ordinal++ {
-			if !w.add(evidence, r.catalogOrdinalNameLocked("scan-highwater", ordinal), false) {
-				return nil, errProviderIntegration
-			}
-		}
-	}
-	if !w.add(false, "HEAD", false) {
+	if !w.addInitialNames(r.legacyPrefixes[pass]) {
 		return nil, errProviderIntegration
-	}
-	for ordinal := uint64(0); ordinal <= n.main.ordinal; ordinal++ {
-		if !w.add(false, r.catalogOrdinalNameLocked("highwater", ordinal), false) {
-			return nil, errProviderIntegration
-		}
-	}
-	for ordinal := uint64(0); ordinal < n.setups; ordinal++ {
-		if !w.add(false, r.catalogOrdinalNameLocked("setup-intent", ordinal), false) || !w.add(false, r.catalogOrdinalNameLocked("setup-commit", ordinal), false) ||
-			!w.add(true, r.catalogOrdinalNameLocked("setup-claim", ordinal), false) {
-			return nil, errProviderIntegration
-		}
-	}
-	for ordinal := uint64(1); ordinal <= n.scan.ordinal; ordinal++ {
-		if !w.add(false, r.catalogOrdinalNameLocked("scan-intent", ordinal), false) || !w.add(false, r.catalogOrdinalNameLocked("scan-commit", ordinal), false) ||
-			!w.add(true, r.catalogOrdinalNameLocked("scan-claim", ordinal), false) {
-			return nil, errProviderIntegration
-		}
-	}
-	for i, frame := range p.source.frames {
-		for _, prefix := range []string{"intent", "commit", "frontier"} {
-			if !w.add(false, r.catalogOrdinalNameLocked(prefix, uint64(i+1)), false) {
-				return nil, errProviderIntegration
-			}
-		}
-		if !w.add(true, r.catalogOrdinalNameLocked("pending", uint64(i+1)), false) ||
-			!w.add(true, providerReplayJoin([]string{"inventory-", frame.inventory.digest[2:]}, r.meter), false) {
-			return nil, errProviderIntegration
-		}
-		for _, object := range frame.objects {
-			if !w.add(true, providerReplayJoin([]string{"object-", object.kind, "-", object.digest[2:]}, r.meter), false) {
-				return nil, errProviderIntegration
-			}
-		}
-	}
-	for _, record := range p.scan.records {
-		for _, item := range []struct{ kind, domain, raw string }{{"chunk", providerScanChunkV2, record.chunk}, {"command", providerScanCommandV2, record.command}} {
-			digest := providerReplayDigest(item.domain, providerReplayPhaseBytes(item.raw, r.meter), r.meter)
-			name := providerScanReceiptName(item.kind, digest, r.meter)
-			if !w.add(false, name, false) || !w.add(true, name, false) {
-				return nil, errProviderIntegration
-			}
-		}
 	}
 	for c, count := r.confirmed, uint64(0); c != r.initial; c, count = c.previous, count+1 {
 		if c == nil || count >= r.parent.bounds.records || !w.addCheckpoint(c, false) {
@@ -138,6 +85,69 @@ func (r *providerHistoryRecoveryOwner) expectedCatalogLocked(ctx context.Context
 		return nil, errProviderIntegration
 	}
 	return w, nil
+}
+
+// This private builder formats initial description DATA into bounded names.
+// The caller selects the original models before entry and rechecks readiness
+// after all names are prepared. This helper supplies no reading or ACK role.
+func (w *providerHistoryRecoveryExpectedCatalog) addInitialNames(p *providerHistoryRecoveryLegacyPrefix) bool {
+	r, n := w.recovery, w.recovery.initialDescriptor
+	for _, evidence := range []bool{false, true} {
+		if !w.add(evidence, "AUTHORITY.LOCK", false) || !w.add(evidence, "ANCHOR", false) || !w.add(evidence, "SCAN-HEAD", false) {
+			return false
+		}
+		for ordinal := uint64(0); ordinal <= n.scan.ordinal; ordinal++ {
+			if !w.add(evidence, r.catalogOrdinalNameLocked("scan-highwater", ordinal), false) {
+				return false
+			}
+		}
+	}
+	if !w.add(false, "HEAD", false) {
+		return false
+	}
+	for ordinal := uint64(0); ordinal <= n.main.ordinal; ordinal++ {
+		if !w.add(false, r.catalogOrdinalNameLocked("highwater", ordinal), false) {
+			return false
+		}
+	}
+	for ordinal := uint64(0); ordinal < n.setups; ordinal++ {
+		if !w.add(false, r.catalogOrdinalNameLocked("setup-intent", ordinal), false) || !w.add(false, r.catalogOrdinalNameLocked("setup-commit", ordinal), false) ||
+			!w.add(true, r.catalogOrdinalNameLocked("setup-claim", ordinal), false) {
+			return false
+		}
+	}
+	for ordinal := uint64(1); ordinal <= n.scan.ordinal; ordinal++ {
+		if !w.add(false, r.catalogOrdinalNameLocked("scan-intent", ordinal), false) || !w.add(false, r.catalogOrdinalNameLocked("scan-commit", ordinal), false) ||
+			!w.add(true, r.catalogOrdinalNameLocked("scan-claim", ordinal), false) {
+			return false
+		}
+	}
+	for i, frame := range p.source.frames {
+		for _, prefix := range []string{"intent", "commit", "frontier"} {
+			if !w.add(false, r.catalogOrdinalNameLocked(prefix, uint64(i+1)), false) {
+				return false
+			}
+		}
+		if !w.add(true, r.catalogOrdinalNameLocked("pending", uint64(i+1)), false) ||
+			!w.add(true, providerReplayJoin([]string{"inventory-", frame.inventory.digest[2:]}, r.meter), false) {
+			return false
+		}
+		for _, object := range frame.objects {
+			if !w.add(true, providerReplayJoin([]string{"object-", object.kind, "-", object.digest[2:]}, r.meter), false) {
+				return false
+			}
+		}
+	}
+	for _, record := range p.scan.records {
+		for _, item := range []struct{ kind, domain, raw string }{{"chunk", providerScanChunkV2, record.chunk}, {"command", providerScanCommandV2, record.command}} {
+			digest := providerReplayDigest(item.domain, providerReplayPhaseBytes(item.raw, r.meter), r.meter)
+			name := providerScanReceiptName(item.kind, digest, r.meter)
+			if !w.add(false, name, false) || !w.add(true, name, false) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func (w *providerHistoryRecoveryExpectedCatalog) addCheckpoint(c *providerHistoryRecoveryCheckpoint, optional bool) bool {
