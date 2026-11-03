@@ -36,6 +36,7 @@ type providerFirstOperationOwner struct {
 	request                  *providerIntegrationRequest
 	consumption, settlement  bool
 	state                    int
+	diagnostic               providerFirstOperationDiagnostic
 }
 
 type providerFirstOperationResultData struct {
