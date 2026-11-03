@@ -21,7 +21,43 @@ env:
 jobs:
   # Keep finite runner headroom for race-enabled Registry evidence.
   # The required Go Tests job explicitly gates on this job's success.
+  registry_fixture_check:
+    name: Registry Fixture Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      GOFLAGS: -mod=readonly
+      GOTOOLCHAIN: auto
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Check bounded recovery fixture before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/registry-fixture-check"
+          mkdir -p "$registry_fixture_dir"
+          go version > "$registry_fixture_dir/compiler.txt"
+          git rev-parse HEAD > "$registry_fixture_dir/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$registry_fixture_dir/tree.txt"
+          git ls-files -z pkg/agent/registry011 go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml | xargs -0 sha256sum > "$registry_fixture_dir/source.sha256"
+          # This early unit result never replaces full partitions or their coverage.
+          go test -mod=readonly -race -count=1 -timeout=2m -json -run '^TestProviderHistoryRecoveryInitialNamesKeepEveryFiniteCapacityPrefix$' ./pkg/agent/registry011 > "$registry_fixture_dir/tests.jsonl"
+          git diff --exit-code
+      - name: Retain recovery fixture check
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: registry-fixture-check
+          path: ${{ runner.temp }}/registry-fixture-check/
+          if-no-files-found: error
+          retention-days: 14
+
   registry_source_shard:
+    needs: registry_fixture_check
     name: Registry Source Shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
     strategy:
