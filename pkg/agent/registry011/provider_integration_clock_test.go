@@ -92,9 +92,19 @@ func TestProviderIntegrationClockInvalidStateNeverProducesASample(t *testing.T) 
 				t.Fatal("invalid state acquired clock authority")
 			}
 			if name == "future-origin" || name == "backward-sample" {
-				if !clock.failed {
-					t.Fatal("clock uncertainty was not sticky")
+				want := providerOwnedClockReadBracketRefusal
+				if name == "backward-sample" {
+					want = providerOwnedClockSampleOrderRefusal
 				}
+				if !clock.failed || clock.nativeRefusal != want {
+					t.Fatal("clock uncertainty or its original refusal was not sticky", clock.nativeRefusal)
+				}
+				reads := clock.read
+				if _, err := clock.sample(); err == nil || clock.read != reads || clock.nativeRefusal != want {
+					t.Fatal("a later refused call replaced the first native failure or sampled again")
+				}
+			} else if clock.nativeRefusal != 0 {
+				t.Fatal("pre-native shape refusal claimed a native read failure")
 			}
 		})
 	}

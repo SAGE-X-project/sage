@@ -71,7 +71,7 @@ func (r *providerHistoryRecoveryOwner) beginCatalogCandidate(ctx context.Context
 		r.inventoryWalks != ([2]*providerHistoryRecoveryInventoryWalk{}) || r.scanWalks != ([2]*providerHistoryRecoveryScanWalk{}) ||
 		r.legacyPrefixes != ([2]*providerHistoryRecoveryLegacyPrefix{}) || r.initialModels != ([2]*providerHistoryRecoveryInitialModel{}) ||
 		r.groupModels != ([2]*providerHistoryRecoveryGroupModel{}) || r.completedMemberModels != ([2]*providerHistoryRecoveryCompletedMembers{}) ||
-		r.tailModels != ([2]*providerHistoryRecoveryTailPayloads{}) || r.tailSeals != ([2]providerHistoryRecoveryTailData{}) {
+		r.tailModels != ([2]*providerHistoryRecoveryTailPayloads{}) || r.tailSeals != ([2]*providerHistoryRecoveryTailData{}) {
 		return nil, errProviderIntegration
 	}
 	out, err := r.readCatalogLocked(ctx)

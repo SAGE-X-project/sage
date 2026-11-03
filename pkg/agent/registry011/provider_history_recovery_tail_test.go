@@ -292,7 +292,7 @@ func TestProviderHistoryRecoveryTailRejectsWholeChangedAndUnplannedPayloads(t *t
 			historyRecoveryTailPrecursors(t, r, 0, want)
 			files := r.inputFiles
 			if out, err := r.replayTailPayloadsCandidate(context.Background(), 0); err == nil || out != nil || r.tailModels[0] != nil ||
-				r.tailSeals[0] != (providerHistoryRecoveryTailData{}) || r.inputFiles <= files || r.active || !r.failed || !r.closed || r.catalogAfter != nil {
+				r.tailSeals[0] != nil || r.inputFiles <= files || r.active || !r.failed || !r.closed || r.catalogAfter != nil {
 				t.Fatal("first-missing short circuit hid a changed or impossible later payload", mode, err)
 			}
 		})
@@ -343,13 +343,22 @@ func TestProviderHistoryRecoveryTailSelectionAndFinalSealRejectCopiesAndChangedD
 }
 
 func TestProviderHistoryRecoveryTailPrivateSealsRejectCoherentIntermediateChanges(t *testing.T) {
-	for _, mode := range []string{"incomplete", "digest", "unused-slot"} {
+	for _, mode := range []string{"incomplete", "digest", "unused-slot", "nil-first-seal", "nil-second-seal"} {
 		t.Run(mode, func(t *testing.T) {
-			_, r, want := historyRecoveryCatalogFixture(t, "pending-admission")
+			o, r, want := historyRecoveryCatalogFixture(t, "pending-admission")
 			if _, err := r.beginCatalogCandidate(context.Background()); err != nil {
 				t.Fatal("genuine C0", err)
 			}
 			historyRecoveryCatalogModels(t, r, want)
+			for pass := range 2 {
+				if r.tailSeals[pass] == nil || r.tailSeals[pass] == &r.tailModels[pass].data || *r.tailSeals[pass] != r.tailModels[pass].data {
+					t.Fatal("original private value copy must not alias returned DATA", pass)
+				}
+			}
+			if r.tailSeals[0] == r.tailSeals[1] {
+				t.Fatal("independent observations shared one private seal")
+			}
+			work, reads, held, pin, ack := o.meter.actual, o.store.clock.read, o.store.stored, o.pin, o.last
 			for pass := range 2 {
 				view := &r.tailModels[pass].data
 				switch mode {
@@ -364,7 +373,13 @@ func TestProviderHistoryRecoveryTailPrivateSealsRejectCoherentIntermediateChange
 					view.entries[len(view.entries)-1].digest = providerReplayDigest("", []byte("changed owned unused slot"), nil)
 				}
 			}
-			if out, err := r.finishCatalogCandidate(context.Background()); err == nil || out != nil || r.catalogAfter != nil || r.catalogResult != nil || r.active || !r.failed || !r.closed {
+			if mode == "nil-first-seal" {
+				r.tailSeals[0] = nil
+			} else if mode == "nil-second-seal" {
+				r.tailSeals[1] = nil
+			}
+			if out, err := r.finishCatalogCandidate(context.Background()); err == nil || out != nil || r.catalogAfter != nil || r.catalogResult != nil || r.active || !r.failed || !r.closed ||
+				o.meter.actual != work || o.store.clock.read != reads || o.store.stored != held || o.pin != pin || o.last != ack || !o.failed || !o.meter.failed || !o.meter.closed {
 				t.Fatal("coherent returned DATA replaced original private observation seals", mode, err)
 			}
 		})

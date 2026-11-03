@@ -73,9 +73,12 @@ func (r *providerHistoryRecoveryOwner) replayTailPayloadsCandidate(ctx context.C
 		out.data.count != int(files) || !r.meter.event(providerCopyEvent, providerHistoryRecoveryTailInputs+1) || !r.inputReadyLocked(ctx) {
 		return nil, errProviderIntegration
 	}
-	// The private value seal does not alias the returned DATA array. C1 must
-	// compare both independent passes against these original observation seals.
-	out.complete, r.tailSeals[pass], r.tailModels[pass], accepted = true, out.data, out, true
+	// Retain an independent value copy only after this pass succeeds. The two
+	// bounded seal objects never alias returned DATA. Unused recovery checks
+	// compare nil pointers rather than scanning two unobserved tail arrays.
+	// C1 still compares every original slot against both private copies.
+	seal := out.data
+	out.complete, r.tailSeals[pass], r.tailModels[pass], accepted = true, &seal, out, true
 	return out, nil
 }
 

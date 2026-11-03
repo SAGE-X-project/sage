@@ -46,7 +46,10 @@ func TestProviderHistorySettlementPublishesOnlyAfterOriginalReadbackAndCAS(t *te
 				o.order.state != providerHistoryOrderClosed || !o.order.valid() || s.frontierFiles.historyPending != nil || s.activeMeter.Load() != nil ||
 				s.stored != held || m.failed || m.closed || m.actual[0] != work[0] || m.actual[1] != work[1] || s.clock.read != reads+2 ||
 				o.windowStart != window || o.clockStart != clockStart || o.retention.physical <= retained.physical {
-				t.Fatal("S escaped its original CAS/readback/clock/one-use boundary", err)
+				s.clock.mu.Lock()
+				refusal, last, reads := s.clock.nativeRefusal, s.clock.last, s.clock.read
+				s.clock.mu.Unlock()
+				t.Fatal("S escaped its original CAS/readback/clock/one-use boundary", err, "native-clock-refusal", refusal, "last-sample", last, "clock-reads", reads, "original-window", o.windowStart, "duration-ms", o.parent.bounds.durationMS)
 			}
 			frame := output.ack.claim.frame
 			checkpoint := o.parent.recovery.confirmed

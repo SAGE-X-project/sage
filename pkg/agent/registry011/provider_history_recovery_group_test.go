@@ -85,7 +85,10 @@ func TestProviderHistoryRecoveryGroupReconstructsConsumedSuccessfulAndFailedPref
 						t.Fatal("genuine retained failed-S precursor", err)
 					}
 				} else if out, err := o.retainSettlementCandidate(context.Background(), d); err != nil || out == nil {
-					t.Fatal("genuine successful S precursor", err)
+					s.clock.mu.Lock()
+					refusal, last, reads := s.clock.nativeRefusal, s.clock.last, s.clock.read
+					s.clock.mu.Unlock()
+					t.Fatal("genuine successful S precursor", err, "native-clock-refusal", refusal, "last-sample", last, "clock-reads", reads, "original-window", o.windowStart, "duration-ms", o.parent.bounds.durationMS)
 				}
 			}
 			r, want := historyRecoveryGroupStart(t, o)

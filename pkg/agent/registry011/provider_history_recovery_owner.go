@@ -43,7 +43,7 @@ type providerHistoryRecoveryOwner struct {
 	groupModels                  [2]*providerHistoryRecoveryGroupModel
 	completedMemberModels        [2]*providerHistoryRecoveryCompletedMembers
 	tailModels                   [2]*providerHistoryRecoveryTailPayloads
-	tailSeals                    [2]providerHistoryRecoveryTailData
+	tailSeals                    [2]*providerHistoryRecoveryTailData
 	catalogBefore                *providerHistoryRecoveryCatalog
 	catalogAfter                 *providerHistoryRecoveryCatalog
 	catalogResult                *providerHistoryRecoveryCatalogResult
@@ -112,7 +112,7 @@ func (r *providerHistoryRecoveryOwner) unspentLocked() bool {
 		r.initialModels == ([2]*providerHistoryRecoveryInitialModel{}) &&
 		r.groupModels == ([2]*providerHistoryRecoveryGroupModel{}) &&
 		r.completedMemberModels == ([2]*providerHistoryRecoveryCompletedMembers{}) &&
-		r.tailModels == ([2]*providerHistoryRecoveryTailPayloads{}) && r.tailSeals == ([2]providerHistoryRecoveryTailData{}) &&
+		r.tailModels == ([2]*providerHistoryRecoveryTailPayloads{}) && r.tailSeals == ([2]*providerHistoryRecoveryTailData{}) &&
 		r.catalogBefore == nil && r.catalogAfter == nil && r.catalogResult == nil &&
 		r.observerShapeLocked(r.meter) && !r.meter.failed && !r.meter.closed && r.meter.actual == (candidateWorkVector{})
 }

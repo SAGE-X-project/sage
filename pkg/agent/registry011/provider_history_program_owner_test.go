@@ -388,7 +388,11 @@ func TestProviderHistoryProgramClockEnforcesLifetimeAndSelectedBackend(t *testin
 		t.Fatal("original finite-clock sample", err)
 	}
 	time.Sleep(5 * time.Millisecond)
-	if _, err := s.samplePrimitive(); err == nil || !s.clock.failed || !s.clock.historyRevoked || s.clock.read != 2 {
-		t.Fatal("expired whole-program deadline was renewed")
+	if _, err := s.samplePrimitive(); err == nil || !s.clock.failed || !s.clock.historyRevoked || s.clock.read != 2 || s.clock.nativeRefusal != providerOwnedClockProgramDurationRefusal {
+		t.Fatal("expired whole-program deadline was renewed or its first native refusal was lost", s.clock.nativeRefusal)
+	}
+	work := s.activeMeter.Load().actual
+	if _, err := s.samplePrimitive(); err == nil || s.clock.read != 2 || s.clock.nativeRefusal != providerOwnedClockProgramDurationRefusal || s.activeMeter.Load().actual != work {
+		t.Fatal("failed original clock resumed or rewrote its diagnostic")
 	}
 }

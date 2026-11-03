@@ -11,6 +11,14 @@ import (
 
 var errProviderOwnedClock = errors.New("registry011: owned integration clock unavailable")
 
+// Native refusal diagnostics are recorded only at an existing terminal branch.
+// They never select authority, change an error, trigger a sample or resume use.
+const (
+	providerOwnedClockReadBracketRefusal uint8 = iota + 1
+	providerOwnedClockSampleOrderRefusal
+	providerOwnedClockProgramDurationRefusal
+)
+
 // providerOwnedClock is a private process-lifetime clock backend. Constructing
 // it does not qualify a profile or select a policy. The eventual trusted Agent
 // selection must independently qualify the clock artifact and uncertainty.
@@ -27,6 +35,7 @@ type providerOwnedClock struct {
 	read           uint64
 	last           ClockSample
 	failed         bool
+	nativeRefusal  uint8
 	legacyClaims   uint64
 	history        *providerHistoryProgramOwner
 	historyRevoked bool
@@ -101,16 +110,16 @@ func (c *providerOwnedClock) sampleForHistory(parent *providerHistoryProgramOwne
 	now := time.Now()
 	after := time.Now()
 	if after.Sub(before) < 0 || after.Sub(before) > c.readWindow || now.Before(c.origin) {
-		c.failed = true
+		c.failed, c.nativeRefusal = true, providerOwnedClockReadBracketRefusal
 		return ClockSample{}, errProviderOwnedClock
 	}
 	sample := ClockSample{ClockID: c.id, Epoch: c.epoch, WallMS: now.UnixMilli(), MonotonicMS: now.Sub(c.origin).Milliseconds(), UncertaintyMS: c.uncertainty}
 	if sample.WallMS < sample.UncertaintyMS || sample.MonotonicMS < 0 || c.read > 1 && !candidateLedgerClockAdvance(providerClockDiagnostic(c.last), providerClockDiagnostic(sample)) {
-		c.failed = true
+		c.failed, c.nativeRefusal = true, providerOwnedClockSampleOrderRefusal
 		return ClockSample{}, errProviderOwnedClock
 	}
 	if parent != nil && parent.original != (ClockSample{}) && (sample.MonotonicMS < parent.original.MonotonicMS || uint64(sample.MonotonicMS-parent.original.MonotonicMS) > parent.bounds.durationMS) {
-		c.failed, c.historyRevoked = true, true
+		c.failed, c.historyRevoked, c.nativeRefusal = true, true, providerOwnedClockProgramDurationRefusal
 		return ClockSample{}, errProviderOwnedClock
 	}
 	c.last = sample

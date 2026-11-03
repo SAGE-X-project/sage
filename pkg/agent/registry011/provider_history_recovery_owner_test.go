@@ -323,3 +323,23 @@ func TestProviderHistoryRecoveryRejectsGenericMeasurementRoleInIsolation(t *test
 		})
 	}
 }
+
+// Unused-lane shape checks are scalar-only and must observe every call. These
+// pre-open UNIT selections never open roots or sample the native backend.
+func TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState(t *testing.T) {
+	for slot := range 2 {
+		s := providerHistoryParentScalarFixture(t)
+		p, err := newProviderHistoryProgramBeforeOpenCandidate(s)
+		if err != nil || p == nil || p.recovery == nil || !p.matchesLocked() || !p.recovery.unspentLocked() {
+			t.Fatal("original pre-open unused recovery selection", err)
+		}
+		r := p.recovery
+		held, stored, original, execution, observation := p.held, s.stored, p.original, s.activeMeter.Load().actual, r.meter.actual
+		// Even a nonnil all-zero seal is observed state, not an unused lane.
+		r.tailSeals[slot] = &providerHistoryRecoveryTailData{}
+		if r.unspentLocked() || p.matchesLocked() || p.failed || r.used || r.active || r.closed || r.failed || r.meter.closed || r.meter.failed ||
+			p.held != held || s.stored != stored || p.original != original || s.clock.read != 0 || s.activeMeter.Load().actual != execution || r.meter.actual != observation {
+			t.Fatal("unused seal identity was ignored or shape checking consumed original resources", slot)
+		}
+	}
+}

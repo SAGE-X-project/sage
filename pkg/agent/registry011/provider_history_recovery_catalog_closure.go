@@ -29,7 +29,7 @@ func (r *providerHistoryRecoveryOwner) finishCatalogCandidate(ctx context.Contex
 		return nil, errProviderIntegration
 	}
 	for pass := range 2 {
-		if !r.tailDataEqualLocked(&r.tailModels[pass].data, &r.tailSeals[pass]) ||
+		if !r.tailDataEqualLocked(&r.tailModels[pass].data, r.tailSeals[pass]) ||
 			!r.tailDataEqualLocked(&r.tailModels[pass].data, &r.tailModels[0].data) || pass == 1 && r.tailModels[0] == r.tailModels[1] {
 			return nil, errProviderIntegration
 		}
