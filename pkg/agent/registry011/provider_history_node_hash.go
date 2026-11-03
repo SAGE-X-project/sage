@@ -46,10 +46,7 @@ func nodeHeaderHashObserved(header *types.Header, meter *providerWorkMeter) (com
 		meter.refuse()
 		return common.Hash{}, false
 	}
-	if !meter.event(providerEncodeEvent, uint64(len(raw))) || !meter.event(providerHashEvent, uint64(len(raw))) {
-		return common.Hash{}, false
-	}
-	return crypto.Keccak256Hash(raw), true
+	return nodeEncodedHashObserved(raw, meter)
 }
 
 func nodeTransactionHashObserved(tx *types.Transaction, meter *providerWorkMeter) (common.Hash, bool) {
@@ -81,10 +78,7 @@ func nodeTransactionHashObserved(tx *types.Transaction, meter *providerWorkMeter
 		meter.refuse()
 		return common.Hash{}, false
 	}
-	if !meter.event(providerEncodeEvent, uint64(len(raw))) || !meter.event(providerHashEvent, uint64(len(raw))) {
-		return common.Hash{}, false
-	}
-	return crypto.Keccak256Hash(raw), true
+	return nodeEncodedHashObserved(raw, meter)
 }
 
 func nodeCreateAddressObserved(sender common.Address, nonce uint64, meter *providerWorkMeter) (common.Address, bool) {
@@ -99,12 +93,21 @@ func nodeCreateAddressObserved(sender common.Address, nonce uint64, meter *provi
 		meter.refuse()
 		return common.Address{}, false
 	}
-	if !meter.event(providerEncodeEvent, uint64(len(raw))) || !meter.event(providerHashEvent, uint64(len(raw))) {
+	hash, ok := nodeEncodedHashObserved(raw, meter)
+	if !ok {
 		return common.Address{}, false
 	}
-	hash := crypto.Keccak256Hash(raw)
 	if !meter.event(providerCopyEvent, 20) {
 		return common.Address{}, false
 	}
 	return common.BytesToAddress(hash[12:]), true
+}
+
+// An encoding stage over already bounded bytes. Callers keep their original
+// prospective preflight and native input checks; this helper grants no permit.
+func nodeEncodedHashObserved(raw []byte, meter *providerWorkMeter) (common.Hash, bool) {
+	if !meter.event(providerEncodeEvent, uint64(len(raw))) || !meter.event(providerHashEvent, uint64(len(raw))) {
+		return common.Hash{}, false
+	}
+	return crypto.Keccak256Hash(raw), true
 }

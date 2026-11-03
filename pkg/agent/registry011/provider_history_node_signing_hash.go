@@ -56,15 +56,21 @@ func nodeSigningHashObserved(tx *types.Transaction, meter *providerWorkMeter) (c
 		meter.refuse()
 		return common.Hash{}, ErrReplayUnavailable
 	}
+	return nodeSigningPreimageHashObserved(raw, tx.Type(), meter)
+}
+
+// Only a DATA hashing stage. The original caller still checks the transaction
+// type, chain, complete input bound and RLP preflight before entering here.
+func nodeSigningPreimageHashObserved(raw []byte, kind byte, meter *providerWorkMeter) (common.Hash, error) {
 	if !meter.event(providerEncodeEvent, uint64(len(raw))) {
 		return common.Hash{}, ErrReplayUnavailable
 	}
-	if tx.Type() != types.LegacyTxType {
+	if kind != types.LegacyTxType {
 		if !meter.event(providerCopyEvent, uint64(len(raw)+1)) {
 			return common.Hash{}, ErrReplayUnavailable
 		}
 		typed := make([]byte, len(raw)+1)
-		typed[0] = tx.Type()
+		typed[0] = kind
 		copy(typed[1:], raw)
 		raw = typed
 	}

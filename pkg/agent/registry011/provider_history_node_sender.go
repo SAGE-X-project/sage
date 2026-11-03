@@ -77,7 +77,16 @@ func nodeSenderObserved(tx *types.Transaction, meter *providerWorkMeter) (common
 		return common.Address{}, ErrReplayUnavailable
 	}
 	public, err := crypto.Ecrecover(hash[:], signature[:])
-	if err != nil || len(public) != 65 || public[0] != 4 {
+	if err != nil {
+		return common.Address{}, ErrReplay
+	}
+	return nodeRecoveredPublicKeyAddressObserved(public, meter)
+}
+
+// The original signature reader alone obtains a recovered public key. This
+// private byte-to-address stage supplies DATA, never account authorization.
+func nodeRecoveredPublicKeyAddressObserved(public []byte, meter *providerWorkMeter) (common.Address, error) {
+	if len(public) != 65 || public[0] != 4 {
 		return common.Address{}, ErrReplay
 	}
 	if !meter.event(providerHashEvent, 64) {
