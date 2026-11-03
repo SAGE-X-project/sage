@@ -12,10 +12,14 @@ import (
 
 // UNIT-only numeric inputs, fixed before profile/anchor/H0/clock. This is NOT
 // a production source/native/RAM certificate. Existing fixtures default false.
-func providerHistoryCollectionAdmissionTestBounds(t *testing.T, b *providerIntegrationBounds, capture ProviderCaptureLimits, nativeInputCounts, fullPack bool) {
+func providerHistoryCollectionAdmissionTestBounds(t *testing.T, b *providerIntegrationBounds, capture ProviderCaptureLimits, nativeInputCounts, fullPack, recordedRun bool) {
 	t.Helper()
 	h := b.history
-	if h == nil || h.collection == nil || h.collection.input.blocks != 1 || h.collection.counts.groups != 4 || h.collection.counts.requests != 28 {
+	expectedRequests := uint64(28)
+	if recordedRun {
+		expectedRequests = 29
+	}
+	if h == nil || h.collection == nil || h.collection.input.blocks != 1 || h.collection.counts.groups != 4 || h.collection.counts.requests != expectedRequests {
 		t.Fatal("explicit one-block absent UNIT grammar required before H0")
 	}
 	// This helper receives the explicit collection first-P UNIT selection
@@ -47,6 +51,17 @@ func providerHistoryCollectionAdmissionTestBounds(t *testing.T, b *providerInteg
 		// The shared checked sum below binds these counts in both the stage
 		// and whole original future. Existing profiles keep their zero rows.
 		u.execution[3], u.execution[4], u.execution[6] = 4, 16, 64
+	}
+	if recordedRun {
+		// New UNIT-only rows cover both complete repeated originals, not a
+		// production source-cost proof. Selected before profile/anchor/H0.
+		if !fullPack || h.collection.input.native != 1 || h.collection.input.effects != 0 || h.collection.input.versions != 0 {
+			t.Fatal("recorded absent deployment UNIT has a different grammar")
+		}
+		u.execution[3], u.execution[4], u.execution[6] = 8192, 1<<20, 2<<20
+		h.derivation.dispatch.member[3], h.derivation.dispatch.member[4], h.derivation.dispatch.member[6] = 64, 8192, 16384
+		h.derivation.dispatch.closure[3], h.derivation.dispatch.closure[4], h.derivation.dispatch.closure[6] = 2048, 262144, 1<<20
+		h.durationMS = 1800000
 	}
 	u.execution[0] = providerHistoryGroupMembers
 	wire, ok := providerUpperProduct(providerHistoryGroupMembers, uint64(capture.WireBytes+1))
@@ -95,6 +110,9 @@ func providerHistoryCollectionAdmissionTestBounds(t *testing.T, b *providerInteg
 	h.records, h.commits = 3*h.stages, 3*h.stages
 	h.derivation.dispatch.advance = candidateWorkVector{2: 128 << 20, 10: 1 << 56}
 	h.derivation.dispatch.advanceClocks, h.derivation.dispatch.advanceTailMS = 2, 299999
+	if recordedRun {
+		h.derivation.dispatch.advance[3], h.derivation.dispatch.advance[4], h.derivation.dispatch.advance[6] = 64, 8192, 16384
+	}
 	h.derivation.admission = providerHistoryCollectionAdmissionBounds{h.derivation, h.collection, u}
 	h.derivation.snapshot = *h
 	if !b.valid() {

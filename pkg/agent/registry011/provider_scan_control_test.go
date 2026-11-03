@@ -29,30 +29,31 @@ func providerScanProvisionedFixtureWithFirstPolicy(t *testing.T, first *provider
 
 // An optional separate test profile is fixed before its first anchor/H0/clock.
 type providerScanFixtureSelection struct {
-	capture                    *ProviderCaptureLimits
-	tls                        *providerTLSBounds
-	continuingWire             bool
-	pin                        bool
-	pinResidentGiB             bool
-	pinLargeObject             bool
-	historyProgram             bool
-	historyShortStartup        bool
-	historyGroupInit           bool
-	historyGroupWrite          bool
-	historyGroupConsume        bool
-	historyGroupDispatch       bool
-	historyStages              uint64
-	historyStageMembers        int
-	historyDispatchRows        *providerHistoryDispatchBounds
-	historyCollection          *providerHistoryCollectionManifest
-	historyCollectionAdmission bool
-	historyCollectionFirstP    bool
-	historyCollectionFullPack  bool
-	historyFirstPDecoded       uint64
-	historyNativeInputCounts   bool
-	historyRecoveryNamespace   bool
-	historyRecoveryLegacy      bool
-	historyRecoveryGroup       bool
+	capture                      *ProviderCaptureLimits
+	tls                          *providerTLSBounds
+	continuingWire               bool
+	pin                          bool
+	pinResidentGiB               bool
+	pinLargeObject               bool
+	historyProgram               bool
+	historyShortStartup          bool
+	historyGroupInit             bool
+	historyGroupWrite            bool
+	historyGroupConsume          bool
+	historyGroupDispatch         bool
+	historyStages                uint64
+	historyStageMembers          int
+	historyDispatchRows          *providerHistoryDispatchBounds
+	historyCollection            *providerHistoryCollectionManifest
+	historyCollectionAdmission   bool
+	historyCollectionFirstP      bool
+	historyCollectionFullPack    bool
+	historyCollectionRecordedRun bool
+	historyFirstPDecoded         uint64
+	historyNativeInputCounts     bool
+	historyRecoveryNamespace     bool
+	historyRecoveryLegacy        bool
+	historyRecoveryGroup         bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -63,6 +64,15 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 	t.Helper()
 	model, policy := providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
 	b, capture := providerFrontierBoundsFixture()
+	if selected != nil && selected.historyCollectionRecordedRun {
+		// A separate normal recorded-block UNIT selection before profile/H0.
+		// Existing fixture classes and every operating limit stay unchanged.
+		methods := *b.methods
+		methods.block = providerMethodLimit{224 << 10, 256 << 10}
+		methods.receipts = providerMethodLimit{192 << 10, 224 << 10}
+		methods.gas = providerMethodLimit{32 << 10, 64 << 10}
+		b.methods = &methods
+	}
 	if selected != nil && selected.capture != nil {
 		if !selected.capture.valid() || !b.methods.fits(*selected.capture) {
 			t.Fatal("incomplete isolated capture profile")
@@ -149,6 +159,20 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 					wire = "16777216"
 				}
 				m["limits"].(map[string]any)[level].(map[string]any)["wire_bytes"] = wire
+			}
+		}
+		if selected != nil && selected.historyCollectionRecordedRun {
+			if !selected.historyCollectionFullPack || !selected.historyCollectionAdmission || !selected.historyGroupDispatch {
+				t.Fatal("recorded collection UNIT requires complete original roles before H0")
+			}
+			for _, level := range []string{"operation", "segment", "bootstrap"} {
+				values := m["limits"].(map[string]any)[level].(map[string]any)
+				for _, field := range []string{"blocks", "transactions", "frames", "logs"} {
+					values[field] = "16777216"
+				}
+				if level != "operation" {
+					values["deadline_ms"] = "1800000"
+				}
 			}
 		}
 		var err error
@@ -262,7 +286,7 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 		}
 		b.history.collection = selected.historyCollection
 		if selected.historyCollectionAdmission {
-			providerHistoryCollectionAdmissionTestBounds(t, &b, capture, selected.historyNativeInputCounts, selected.historyCollectionFullPack)
+			providerHistoryCollectionAdmissionTestBounds(t, &b, capture, selected.historyNativeInputCounts, selected.historyCollectionFullPack, selected.historyCollectionRecordedRun)
 		}
 		b.history.derivation.snapshot = *b.history
 		if !b.valid() {

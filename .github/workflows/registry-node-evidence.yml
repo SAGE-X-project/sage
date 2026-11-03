@@ -338,6 +338,7 @@ jobs:
               'provider_history_collection_boundaries.go',
               'provider_history_collection_content.go',
               'provider_history_collection_transitions.go',
+              'provider_history_collection_run.go',
               'provider_history_collection_pending.go',
               'provider_history_native_block.go',
               'provider_history_native_abi.go',
