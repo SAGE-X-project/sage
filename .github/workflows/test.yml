@@ -47,6 +47,15 @@ jobs:
           # This early unit result never replaces full partitions or their coverage.
           go test -mod=readonly -race -count=1 -timeout=2m -json -run '^TestProviderHistoryRecoveryInitialNamesKeepEveryFiniteCapacityPrefix$' ./pkg/agent/registry011 > "$registry_fixture_dir/tests.jsonl"
           git diff --exit-code
+      - name: Check original references before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/registry-fixture-check"
+          reference_status=0
+          # Owned UNIT checks only; full partitions and coverage remain required.
+          go test -mod=readonly -race -count=1 -timeout=8m -json -run '^(TestProviderHistoryCheckpointPreparationRejectsIncompletePhaseAndCapacityData|TestProviderHistoryFailedSettlementRechecksItsActualCompletedPrefix|TestProviderHistoryFailedSettlementShapesRequireOriginalFailureAndPrefixMetadata|TestProviderHistoryFirstOriginalClosureRejectsMissingAndChangedPrivateReferences|TestProviderHistoryInitialCheckpointRejectsMissingPrivateHeadWithoutPublishingData|TestProviderHistoryRecoveryGroupReadRefusesAbsentContextBeforeOriginalInput|TestProviderHistoryRecoveryGroupRejectsInconsistentInitialAndWholeChainData|TestProviderHistoryRecoveryLegacyReferencesCannotReplaceCompleteOriginalFrames|TestProviderHistoryRecoveryLegacyRejectsUnplannedSetupAndDifferentFinalRoots|TestProviderHistorySettlementRejectsChangedConsumedOriginalBeforePublication)$' ./pkg/agent/registry011 > "$registry_fixture_dir/reference-tests.jsonl" || reference_status=$?
+          printf '%s\n' "$reference_status" > "$registry_fixture_dir/reference-tests.exit"
+          git diff --exit-code
+          exit "$reference_status"
       - name: Retain recovery fixture check
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

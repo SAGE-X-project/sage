@@ -1601,3 +1601,23 @@ A successful candidate trial covers only that existing deployment block and the
 explicit provider-trust profile. It does not qualify full history, host custody,
 independent consensus, Source readiness, an Agent exchange or policy activation.
 No keys or transaction-submission methods are used.
+
+
+## Early original-reference checks
+
+Before starting the complete Source and Provider partitions, the existing
+fixture jobs also run the ten new original-reference UNIT roots. They cover the
+first retained reference closure, successful and failed settlement inputs,
+checkpoint preparation, and independent group and legacy reconstruction. The
+Source job uses its ordinary build; the Provider job selects
+`provider_capture_live`, matching its complete partitions. Both keep race,
+count-one execution and separate JSON events and exit status in the existing
+fixture artifact. These checks use only owned test transport and directories.
+
+The original recovery-name fixture check remains unchanged. The new preliminary
+checks have no coverage profile and give no coverage credit; every complete
+partition, source inventory, strict file threshold and downstream consumer gate
+remains required. Their test timeout does not change the original native T
+window, counters, reservations, Registry policy or production readiness. A failed
+entered inspection may close its read-only lane without reading any input; the
+UNIT expectation preserves that fail-closed behavior.
