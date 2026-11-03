@@ -63,7 +63,7 @@ func TestProviderHistoryHealthySettlementRejectsInvalidParserDataBeforeArchivedR
 			// The real checkpoint/archive is read-only; only expected DATA differs.
 			subject := &providerHistoryGroupOwner{store: g.store, meter: m,
 				parent: &providerHistoryProgramOwner{policy: policy, tls: g.parent.tls, recovery: g.parent.recovery}}
-			var input context.Context = context.Background()
+			input := context.Background()
 			var cancelled *historySettlementParseCancelContext
 			switch mode {
 			case "policy-shape":
