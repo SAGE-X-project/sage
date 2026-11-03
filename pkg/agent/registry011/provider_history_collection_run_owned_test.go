@@ -369,3 +369,62 @@ func historyCollectionRunAssertNoReentry(t *testing.T, store *providerCustodySto
 		}
 	}
 }
+
+// A deliberately insufficient UNIT-only member row is selected before the
+// original profile, anchor and H0. The ordinary production entry must refuse
+// before its fixed dial, preserving the already committed T/C and whole hold.
+// The only TLS exchange is the normal owned first-P fixture. No production
+// source/native/RAM derivation or operating allowance is supplied here.
+func TestProviderHistoryCollectionRunRefusesUnfundedMemberBeforeFixedDial(t *testing.T) {
+	manifest, recorded := historyCollectionRecordedRunManifest(t)
+	in := manifest.input
+	rows := providerHistoryDispatchBounds{
+		member:       candidateWorkVector{0: 1, 1: uint64(in.capture.WireBytes + 1), 2: 4 << 20, 9: 128 << 10, 10: 1},
+		closure:      candidateWorkVector{2: 32 << 20, 9: 1 << 20, 10: 1 << 50},
+		memberClocks: 2, closureClocks: 2, tailMS: 100,
+	}
+	store := providerHistoryProvisionedInspectionFixture(t, providerScanFixtureSelection{
+		capture: &in.capture, pin: true, pinLargeObject: true, historyProgram: true,
+		historyGroupWrite: true, historyGroupConsume: true, historyGroupDispatch: true,
+		historyDispatchRows: &rows, historyRecoveryNamespace: true, historyRecoveryLegacy: true,
+		historyCollection: manifest, historyCollectionAdmission: true, historyCollectionFirstP: true,
+		historyCollectionFullPack: true, historyCollectionRecordedRun: true,
+	})
+	parent := store.history
+	if parent.dispatchBounds.member[10] != 1 {
+		t.Fatal("insufficient member row was not fixed in the original test profile")
+	}
+	first, err := newProviderFirstOperationCandidate(store)
+	if err != nil {
+		t.Fatal("original first owner", err)
+	}
+	connection := providerIntegrationOwnedTLS(t, providerFirstOperationRequestBody, string(recorded["canonical-deployment"]))
+	if result, err := first.executeCandidateWithConnection(context.Background(), connection); err != nil || result == nil {
+		t.Fatal("original recorded first P", err)
+	}
+	held, original, ceiling, future := store.stored, parent.original, parent.clockCeiling, parent.bounds.future
+	out, err := parent.runCollectionCandidate(context.Background())
+	group := parent.group
+	if err == nil || out != nil || group == nil || !group.failed || !parent.failed || !store.failed ||
+		group.phase != "failed" || group.meter == nil || !group.meter.failed || !group.meter.closed ||
+		store.activeMeter.Load() != nil || group.dispatch == nil || group.dispatch.attempt == nil ||
+		group.order == nil || group.order.state != providerHistoryOrderFailed ||
+		group.order.consumed != (1<<18)-1 || group.order.sent != 0 || group.order.next != 0 ||
+		group.meter.actual[0] != 0 || group.meter.actual[1] != 0 ||
+		store.stored != held || parent.original != original || parent.clockCeiling != ceiling || parent.bounds.future != future {
+		t.Fatal("unfunded member entered transport or changed the original lifetime", err)
+	}
+	attempt := group.dispatch.attempt
+	if attempt.used || attempt.connection != nil || attempt.original != nil || attempt.failure != nil || attempt.files != 0 ||
+		attempt.begin == (ClockSample{}) || attempt.ordinal != 0 || group.dispatch.retained != 0 ||
+		parent.recovery.memberAttempt != nil || parent.recovery.memberCapture != nil || parent.recovery.completed != 0 {
+		t.Fatal("member preflight refusal became a sent or retained operation")
+	}
+	checkpoint := parent.recovery.confirmed
+	if checkpoint == nil || checkpoint.failedS || checkpoint.frame.phase != "consume" || checkpoint.ack != group.last ||
+		checkpoint.pin != group.pin || group.coordinator == nil || group.custodian == nil ||
+		group.coordinator == group.custodian || group.coordinator.phase != "consumed" || group.coordinator.stage != 0 {
+		t.Fatal("member refusal discarded the committed consumption prefix")
+	}
+	historyCollectionRunAssertNoReentry(t, store, nil)
+}
