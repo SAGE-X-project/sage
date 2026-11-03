@@ -15,21 +15,27 @@ func replayABIsObserved(meter *providerWorkMeter) (abi.ABI, abi.ABI, error) {
 	if meter == nil {
 		return replayABIs()
 	}
-	contractRaw := providerReplayBytes(replayContractABI, meter)
-	if len(contractRaw) != len(replayContractABI) || !meter.event(providerCodecEvent, uint64(len(contractRaw))) {
-		return abi.ABI{}, abi.ABI{}, ErrReplayUnavailable
-	}
-	contract, err := abi.JSON(bytes.NewReader(contractRaw))
+	contract, err := replayABIObserved(replayContractABI, meter)
 	if err != nil {
 		return abi.ABI{}, abi.ABI{}, err
 	}
-	outcomesRaw := providerReplayBytes(replayOutcomesABI, meter)
-	if len(outcomesRaw) != len(replayOutcomesABI) || !meter.event(providerCodecEvent, uint64(len(outcomesRaw))) {
-		return abi.ABI{}, abi.ABI{}, ErrReplayUnavailable
-	}
-	outcomes, err := abi.JSON(bytes.NewReader(outcomesRaw))
+	outcomes, err := replayABIObserved(replayOutcomesABI, meter)
 	if err != nil || !meter.preflightWork(candidateWorkVector{}) {
 		return abi.ABI{}, abi.ABI{}, ErrReplayUnavailable
 	}
 	return contract, outcomes, nil
+}
+
+// Both fixed definitions pass through the same observed copy/parse boundary.
+// Keeping native parsing here also permits small invalid-ABI UNIT cases
+// without modifying either embedded definition or adding a live input route.
+func replayABIObserved(raw string, meter *providerWorkMeter) (abi.ABI, error) {
+	if meter == nil {
+		return abi.ABI{}, ErrReplayUnavailable
+	}
+	owned := providerReplayBytes(raw, meter)
+	if len(owned) != len(raw) || !meter.event(providerCodecEvent, uint64(len(owned))) {
+		return abi.ABI{}, ErrReplayUnavailable
+	}
+	return abi.JSON(bytes.NewReader(owned))
 }
