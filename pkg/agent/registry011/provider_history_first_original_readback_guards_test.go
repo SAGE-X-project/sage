@@ -11,8 +11,8 @@ import (
 // Every fault is confined to a fresh UNIT fixture after its ordinary owned
 // transport has completed. The original profile, references, clock and hold
 // remain selected; no path, peer or execution authority comes from a caller.
-func TestProviderHistoryFirstOriginalRequiresUnchangedRetainedInventoryAndObjects(t *testing.T) {
-	for _, mode := range []string{"intact", "inventory-missing", "inventory-malformed", "object-missing", "object-same-width"} {
+func TestProviderHistoryFirstOriginalRequiresUnchangedRetainedInputs(t *testing.T) {
+	for _, mode := range []string{"intact", "inventory-missing", "inventory-malformed", "object-missing", "object-same-width", "previous-frontier-missing", "previous-frontier-malformed", "consumption-intent-missing", "consumption-commit-missing", "settlement-intent-missing"} {
 		t.Run(mode, func(t *testing.T) {
 			manifest := historyCollectionManifest(t, historyCollectionInput(t))
 			s := historyFirstFinalizedStore(t, historyFirstFinalizedResponse(t), manifest)
@@ -46,10 +46,26 @@ func TestProviderHistoryFirstOriginalRequiresUnchangedRetainedInventoryAndObject
 					t.Fatal("actual retained object required", err)
 				}
 			}
+			if mode == "previous-frontier-missing" || mode == "previous-frontier-malformed" || mode == "consumption-intent-missing" || mode == "consumption-commit-missing" || mode == "settlement-intent-missing" {
+				kind, sequence := "frontier", uint64(3)
+				switch mode {
+				case "consumption-intent-missing":
+					kind = "intent"
+				case "consumption-commit-missing":
+					kind = "commit"
+				case "settlement-intent-missing":
+					kind, sequence = "intent", 4
+				}
+				path = filepath.Join(config.custodyDirectory, s.name(kind, sequence))
+				raw, err = os.ReadFile(path)
+				if err != nil || len(raw) == 0 || raw[0] != '{' {
+					t.Fatal("actual original control record required before the isolated fault", err)
+				}
+			}
 			switch mode {
-			case "inventory-missing", "object-missing":
+			case "inventory-missing", "object-missing", "previous-frontier-missing", "consumption-intent-missing", "consumption-commit-missing", "settlement-intent-missing":
 				err = os.Remove(path)
-			case "inventory-malformed":
+			case "inventory-malformed", "previous-frontier-malformed":
 				raw[0] = '!'
 				err = os.WriteFile(path, raw, 0600)
 			case "object-same-width":
@@ -85,5 +101,19 @@ func TestProviderHistoryFirstOriginalRequiresUnchangedRetainedInventoryAndObject
 				t.Fatal("failed original reconstruction retried or installed fresh execution authority")
 			}
 		})
+	}
+}
+
+func TestProviderHistoryFirstOriginalRejectsMissingOwnersWithoutPartialData(t *testing.T) {
+	var group *providerHistoryGroupOwner
+	if root, cursor, err := group.firstFinalizedInitialRootLocked(providerFrontierRecord{}); err == nil || root != "" || cursor != nil {
+		t.Fatal("missing original owner supplied a history root or cursor")
+	}
+	var input *providerHistoryFirstPOriginals
+	if input.active() || input.load() == nil || input.object("request", admissionTestDigest("a")) != nil || input.unique("request") != "" {
+		t.Fatal("missing original closure supplied retained data or selected an object")
+	}
+	if raw, err := input.read(nil, "HEAD", 1); err == nil || raw != nil {
+		t.Fatal("missing original closure admitted a file read or partial data")
 	}
 }
