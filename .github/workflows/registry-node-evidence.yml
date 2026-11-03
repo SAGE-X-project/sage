@@ -62,9 +62,13 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  provider-capture:
-    name: Capture candidate provider transport evidence
+  provider-capture-shard:
+    name: Provider Transport Shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     timeout-minutes: 135
     env:
       GOFLAGS: -mod=readonly
@@ -84,7 +88,7 @@ jobs:
           go version > "$SAGE_PROVIDER_CAPTURE_DIR/compiler.txt"
           git rev-parse HEAD > "$SAGE_PROVIDER_CAPTURE_DIR/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$SAGE_PROVIDER_CAPTURE_DIR/tree.txt"
-          git ls-files -z pkg/agent/registry011 go.mod go.sum .github/workflows/registry-node-evidence.yml .github/workflows/test.yml docs/dev/registry-source-checks.md | xargs -0 sha256sum > "$SAGE_PROVIDER_CAPTURE_DIR/source.sha256"
+          git ls-files -z .github/scripts/registry_test_shards.py .github/scripts/test_registry_test_shards.py pkg/agent/registry011 go.mod go.sum .github/workflows/registry-node-evidence.yml .github/workflows/test.yml docs/dev/registry-source-checks.md | xargs -0 sha256sum > "$SAGE_PROVIDER_CAPTURE_DIR/source.sha256"
           cp pkg/agent/registry011/*.go pkg/agent/registry011/*.json "$SAGE_PROVIDER_CAPTURE_DIR/source/"
           cp -R pkg/agent/registry011/testdata "$SAGE_PROVIDER_CAPTURE_DIR/source/"
           python3 - <<'PYCONTEXT'
@@ -97,9 +101,12 @@ jobs:
           go mod verify > "$SAGE_PROVIDER_CAPTURE_DIR/modules-verify.txt"
           # Check the recent fixture and native-byte regressions before the full suite.
           # This separate log neither supplies coverage nor replaces complete evidence.
-          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall|TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity|TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState)$' ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/regression-controls.jsonl"
+          if [ "${{ matrix.shard }}" = "0" ]; then
+            go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall|TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity|TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState)$' ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/regression-controls.jsonl"
+          fi
 
       - name: Measure maximum Registry dispatch
+        if: matrix.shard == 0
         run: |
           export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
           # Profile one genuine maximum-member control separately from full-suite evidence.
@@ -143,10 +150,53 @@ jobs:
           fi
           test "$registry_profile_status" -eq 0
 
-      - name: Run complete Registry tests
+      - name: Run complete provider test partition
         run: |
           export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
-          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=120m -json -run '^(TestProvider|TestNode|TestReplay|TestRootGas|TestErigon|TestNethermind|TestGasProfile|TestStateGas)' -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -cover -covermode=atomic -list . -json ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/test-discovery.jsonl"
+          python3 .github/scripts/registry_test_shards.py plan provider "$SAGE_PROVIDER_CAPTURE_DIR" --index '${{ matrix.shard }}'
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=120m -json -run "$(cat "$SAGE_PROVIDER_CAPTURE_DIR/run-pattern.txt")" -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
+          git diff --exit-code
+      - name: Retain original candidate capture evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: provider-transport-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/provider-transport-capture/
+          if-no-files-found: error
+          retention-days: 14
+
+  provider-capture:
+    name: Capture candidate provider transport evidence
+    needs: provider-capture-shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOFLAGS: -mod=readonly
+      GOTOOLCHAIN: auto
+    steps:
+      - name: Require every provider transport partition
+        env:
+          REGISTRY_SHARD_RESULT: ${{ needs.provider-capture-shard.result }}
+        run: test "$REGISTRY_SHARD_RESULT" = "success"
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Download original provider transport partitions
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: provider-transport-shard-*
+          path: ${{ runner.temp }}/provider-transport-partitions
+      - name: Verify complete provider evidence and strict file coverage
+        run: |
+          export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
+          python3 .github/scripts/registry_test_shards.py assemble provider "$RUNNER_TEMP/provider-transport-partitions" --output "$SAGE_PROVIDER_CAPTURE_DIR" > "$RUNNER_TEMP/provider-partition-assembly.json"
+          python3 .github/scripts/registry_test_shards.py verify provider "$SAGE_PROVIDER_CAPTURE_DIR"
           go tool cover -func="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" > "$SAGE_PROVIDER_CAPTURE_DIR/functions.txt"
           python3 - <<'PYCOVERAGE'
           import os

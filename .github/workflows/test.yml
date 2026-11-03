@@ -21,9 +21,13 @@ env:
 jobs:
   # Keep finite runner headroom for race-enabled Registry evidence.
   # The required Go Tests job explicitly gates on this job's success.
-  registry_source_checks:
-    name: Registry Source Checks
+  registry_source_shard:
+    name: Registry Source Shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     timeout-minutes: 135
 
     steps:
@@ -45,7 +49,7 @@ jobs:
           go version > "$RUNNER_TEMP/registry-source-checks/compiler.txt"
           git rev-parse HEAD > "$RUNNER_TEMP/registry-source-checks/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/registry-source-checks/tree.txt"
-          git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md docs/dev/agent-embedding.md docs/INDEX.md go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml .gitleaks.toml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
+          git ls-files -z .github/scripts/registry_test_shards.py .github/scripts/test_registry_test_shards.py pkg/agent/registry011 docs/dev/registry-source-checks.md docs/dev/agent-embedding.md docs/INDEX.md go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml .gitleaks.toml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
           cp pkg/agent/registry011/*.go pkg/agent/registry011/*.json "$RUNNER_TEMP/registry-source-checks/source/"
           cp -R pkg/agent/registry011/testdata "$RUNNER_TEMP/registry-source-checks/source/"
           python3 - <<'PYSOURCE'
@@ -56,9 +60,47 @@ jobs:
           PYSOURCE
           # Check the recent fixture and native-byte regressions before the full suite.
           # This separate log neither supplies coverage nor replaces complete evidence.
-          go test -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall|TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity|TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState)$' ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/regression-controls.jsonl"
+          if [ "${{ matrix.shard }}" = "0" ]; then
+            go test -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall|TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity|TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState)$' ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/regression-controls.jsonl"
+          fi
+
+      - name: Check Registry evidence partition scenarios
+        if: matrix.shard == 0
+        run: |
+          registry_unit_dir="$RUNNER_TEMP/registry-source-checks/partition-unit-coverage"
+          mkdir -p "$registry_unit_dir"
+          python3 - "$registry_unit_dir" > "$RUNNER_TEMP/registry-source-checks/partition-unit-tests.txt" 2>&1 <<'PYPARTITIONCOVER'
+          from pathlib import Path
+          import runpy, sys, trace
+          directory = Path(sys.argv[1])
+          script = Path('.github/scripts/test_registry_test_shards.py').resolve()
+          sys.path.insert(0, str(script.parent))
+          sys.argv = [str(script)]
+          tracer = trace.Trace(count=True, trace=False)
+          status = 0
+          try:
+              tracer.runfunc(runpy.run_path, str(script), run_name='__main__')
+          except SystemExit as exit:
+              status = exit.code if isinstance(exit.code, int) else int(exit.code is not None)
+          finally:
+              tracer.results().write_results(show_missing=True, coverdir=str(directory))
+          if status:
+              raise SystemExit(status)
+          from pathlib import Path
+          import re, sys
+          files = list(directory.rglob('registry_test_shards.cover'))
+          if len(files) != 1:
+              raise SystemExit('Missing unique Registry evidence helper coverage')
+          lines = files[0].read_text().splitlines()
+          covered = sum(bool(re.match(r'^\s*\d+:', line)) for line in lines)
+          missed = sum(line.startswith('>>>>>>') for line in lines)
+          if not covered or covered * 100 < (covered + missed) * 90:
+              raise SystemExit(f'Registry evidence helper: {covered}/{covered + missed}; requires 90%')
+          print(f'Registry evidence helper: {covered}/{covered + missed}; at least 90%')
+          PYPARTITIONCOVER
 
       - name: Measure maximum Registry dispatch
+        if: matrix.shard == 0
         run: |
           # Profile one genuine maximum-member control separately from full-suite evidence.
           # Preserve failed diagnostics and every native window and coverage gate.
@@ -101,13 +143,53 @@ jobs:
           fi
           test "$registry_profile_status" -eq 0
 
-      - name: Run complete Registry tests
+      - name: Run complete Registry test partition
         run: |
-          go test -mod=readonly -race -count=1 -timeout=120m -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
-          go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
+          registry_shard_dir="$RUNNER_TEMP/registry-source-checks"
+          go test -mod=readonly -race -count=1 -cover -covermode=atomic -list . -json ./pkg/agent/registry011 > "$registry_shard_dir/test-discovery.jsonl"
+          python3 .github/scripts/registry_test_shards.py plan source "$registry_shard_dir" --index '${{ matrix.shard }}'
+          go test -mod=readonly -race -count=1 -timeout=120m -json -run "$(cat "$registry_shard_dir/run-pattern.txt")" -coverprofile="$registry_shard_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$registry_shard_dir/tests.jsonl"
           git diff --exit-code
 
       - name: Retain Registry Source clock and checkpoint evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: registry-source-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/registry-source-checks/
+          if-no-files-found: error
+          retention-days: 14
+
+  registry_source_checks:
+    name: Registry Source Checks
+    needs: registry_source_shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Require every Registry Source partition
+        env:
+          REGISTRY_SHARD_RESULT: ${{ needs.registry_source_shard.result }}
+        run: test "$REGISTRY_SHARD_RESULT" = "success"
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Download original Registry Source partitions
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: registry-source-shard-*
+          path: ${{ runner.temp }}/registry-source-partitions
+      - name: Verify complete Registry Source evidence and merge coverage
+        run: |
+          python3 .github/scripts/registry_test_shards.py assemble source "$RUNNER_TEMP/registry-source-partitions" --output "$RUNNER_TEMP/registry-source-checks" > "$RUNNER_TEMP/registry-source-partition-assembly.json"
+          python3 .github/scripts/registry_test_shards.py verify source "$RUNNER_TEMP/registry-source-checks"
+          go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
+          git diff --exit-code
+      - name: Retain complete Registry Source evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -152,6 +234,7 @@ jobs:
       - name: Verify Registry evidence and partition the complete package set
         run: |
           go list ./... > packages-all.txt
+          python3 .github/scripts/registry_test_shards.py verify source "$RUNNER_TEMP/verified-registry-source" > registry-partition-verified.json
           python3 - <<'PY'
           import hashlib, json, os, subprocess
           from pathlib import Path
@@ -166,7 +249,7 @@ jobs:
           for filename, args in [('revision.txt', ['git', 'rev-parse', 'HEAD']), ('tree.txt', ['git', 'rev-parse', 'HEAD^{tree}']), ('compiler.txt', ['go', 'version'])]:
               if (source / filename).read_text() != subprocess.check_output(args, text=True):
                   raise SystemExit(f'Registry Source evidence identity mismatch: {filename}')
-          paths = ['pkg/agent/registry011', 'docs/dev/registry-source-checks.md', 'docs/dev/agent-embedding.md', 'docs/INDEX.md', 'go.mod', 'go.sum', '.github/workflows/test.yml', '.github/workflows/registry-node-evidence.yml', '.gitleaks.toml']
+          paths = ['.github/scripts/registry_test_shards.py', '.github/scripts/test_registry_test_shards.py', 'pkg/agent/registry011', 'docs/dev/registry-source-checks.md', 'docs/dev/agent-embedding.md', 'docs/INDEX.md', 'go.mod', 'go.sum', '.github/workflows/test.yml', '.github/workflows/registry-node-evidence.yml', '.gitleaks.toml']
           tracked = subprocess.check_output(['git', 'ls-files', '-z', *paths]).decode().split('\0')[:-1]
           expected = {name: hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in tracked}
           recorded = {}
@@ -186,7 +269,8 @@ jobs:
               if event.get('Package') == registry:
                   passed += event.get('Action') == 'pass' and not event.get('Test')
                   ran += event.get('Action') == 'run' and bool(event.get('Test'))
-          if passed != 1 or not ran:
+          partition = json.loads(Path('registry-partition-verified.json').read_text())
+          if partition['role'] != 'source' or partition['shards'] != 4 or passed != partition['package_passes'] or not ran:
               raise SystemExit('Registry Source evidence has no complete successful package run')
           packages = Path('packages-all.txt').read_text().splitlines()
           if len(packages) != len(set(packages)) or packages.count(registry) != 1:
@@ -195,7 +279,7 @@ jobs:
           if not remaining:
               raise SystemExit('Remaining package inventory is empty')
           Path('packages-other.txt').write_text('\n'.join(remaining) + '\n')
-          receipt = {'registry_package': registry, 'source_run': context['GITHUB_RUN_ID'], 'source_attempt': source_attempt, 'consumer_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']), 'revision': (source / 'revision.txt').read_text().strip(), 'registry_named_runs': ran, 'all_packages': packages, 'remaining_packages': remaining}
+          receipt = {'registry_package': registry, 'source_run': context['GITHUB_RUN_ID'], 'source_attempt': source_attempt, 'consumer_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']), 'revision': (source / 'revision.txt').read_text().strip(), 'registry_named_runs': ran, 'registry_partition': partition, 'all_packages': packages, 'remaining_packages': remaining}
           Path('registry-source-reuse.json').write_text(json.dumps(receipt, indent=2) + '\n')
           print(f'Verified Registry Source package; running every other package: {len(remaining)} of {len(packages)}')
           PY
