@@ -159,3 +159,33 @@ func TestProviderHistoryRecoveryApplyRejectsChangedRecordBindingsBeforePublicati
 		})
 	}
 }
+
+// Hash-shaped expected metadata cannot replace byte-for-byte equality with
+// the original selected object. This private lookup never opens a new file.
+func TestProviderHistoryRecoveryExactObjectRejectsDifferentExpectedBytes(t *testing.T) {
+	o, r, want := historyRecoveryInventoryFixtureWithLegacy(t, true)
+	historyRecoveryModelPrefix(t, r, 0, want)
+	r.store.mu.Lock()
+	defer r.store.mu.Unlock()
+	m, _ := historyRecoveryMessageDataUnit(t, r)
+	var original providerIntegrationObject
+	for _, object := range m.prefix.source.frames[0].objects {
+		if object.kind == "enrollment" {
+			original = object
+			break
+		}
+	}
+	if original.raw == "" || m.exactObject(original) != nil {
+		t.Fatal("genuine original bytes must satisfy the private equality check")
+	}
+	old, clocks, pin, ack, held := o.meter.actual, o.store.clock.read, o.pin, o.last, o.store.stored
+	files, bytes, work, frontier := r.inputFiles, r.inputBytes, r.meter.actual, m.frontier.current
+	different := original
+	different.raw += "\n"
+	if m.exactObject(different) == nil || r.meter.failed || r.meter.actual[10] <= work[10] ||
+		m.frontier.current != frontier || r.inputFiles != files || r.inputBytes != bytes ||
+		o.meter.actual != old || o.store.clock.read != clocks || o.pin != pin || o.last != ack || o.store.stored != held ||
+		r.initialModels != ([2]*providerHistoryRecoveryInitialModel{}) || !r.activeLocked(r.meter) || o.store.activeMeter.Load() != nil {
+		t.Fatal("different expected bytes escaped the original comparison or changed execution")
+	}
+}
