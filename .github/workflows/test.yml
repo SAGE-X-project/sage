@@ -321,6 +321,7 @@ jobs:
               'pkg/agent/didsource010/eip155.go': [0, 0],
               'pkg/agent/registry011/source_checkpoint.go': [0, 0],
               'pkg/agent/registry011/provider_history_collection_run.go': [0, 0],
+              'pkg/agent/registry011/provider_first_admission_operation_diagnostic.go': [0, 0],
               'pkg/agent/registry011/source_reconfiguration.go': [0, 0],
               'pkg/agent/registry011/source_retained.go': [0, 0],
               'pkg/agent/registry011/source_acquisition.go': [0, 0],
