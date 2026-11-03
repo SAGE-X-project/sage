@@ -51,7 +51,7 @@ jobs:
           PY
           GODEBUG=http2client=0 go mod download -json > "$SAGE_NODE_EVIDENCE_DIR/modules.json" 2> "$SAGE_NODE_EVIDENCE_DIR/modules.stderr"
           go mod verify > "$SAGE_NODE_EVIDENCE_DIR/modules-verify.txt"
-          go test -tags=registry_live -mod=readonly -count=1 -json -run '^TestSepoliaNodeEvidenceLive$' ./pkg/agent/registry011 > "$SAGE_NODE_EVIDENCE_DIR/tests.jsonl"
+          go test -tags=registry_live -mod=readonly -count=1 -json -run '^(TestSepoliaNodeEvidenceLive|TestSepoliaRootGasCandidateEvidenceLive)$' ./pkg/agent/registry011 > "$SAGE_NODE_EVIDENCE_DIR/tests.jsonl"
           git diff --exit-code
       - name: Retain original node responses
         if: always()

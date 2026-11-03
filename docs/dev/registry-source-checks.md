@@ -1571,3 +1571,22 @@ including a nonzero exit result if it fails. This diagnostic is neither another
 attempt nor a replacement for the required successful test and coverage run.
 The existing maximum-dispatch profile and its controls remain separate. Neither
 profile establishes worst-case resources or production environment qualification.
+
+
+## Independent root-gas candidate trial
+
+The opt-in Node workflow also runs a separate `TestSepoliaRootGasCandidateEvidenceLive`
+trial of the existing `ReadReplayBlockWithRootGas` adapter. It selects the top-only
+`callTracer` contract before acquisition, uses the same sole approved endpoint,
+and keeps a separate context, finite limits and `root-gas-candidate` evidence directory.
+It neither reads the strict trial's outcome nor chooses a tracer as a fallback.
+The original stateGasTracer test stays required; its failure still fails the job.
+Both roots execute independently without fail-fast.
+
+The candidate retains passive diagnostics on refusal and, on successful checking,
+the complete block bundle and exact response files with byte lengths and SHA-256.
+The derived gas witness is identified separately from the original responses.
+A successful candidate trial covers only that existing deployment block and the
+explicit provider-trust profile. It does not qualify full history, host custody,
+independent consensus, Source readiness, an Agent exchange or policy activation.
+No keys or transaction-submission methods are used.
