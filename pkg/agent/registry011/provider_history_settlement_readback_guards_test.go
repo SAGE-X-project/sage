@@ -52,12 +52,17 @@ func historySettlementReadbackFault(t *testing.T, o *providerHistoryGroupOwner, 
 		if err != nil || len(raw) == 0 {
 			t.Fatal("actual original file must exist before the isolated fault", mode, err)
 		}
-		*reached = true
 		if mode == "object-same-width" || mode == "inventory-same-width" || mode == "spool-same-width" {
 			raw[len(raw)/2] ^= 1
-			return os.WriteFile(path, raw, 0600)
+			err = os.WriteFile(path, raw, 0600)
+		} else {
+			err = os.Remove(path)
 		}
-		return os.Remove(path)
+		if err != nil {
+			t.Fatal("owned readback fault was not installed", mode, err)
+		}
+		*reached = true
+		return nil
 	}
 	return reached
 }
