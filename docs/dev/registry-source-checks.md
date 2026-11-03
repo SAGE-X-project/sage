@@ -1575,13 +1575,24 @@ profile establishes worst-case resources or production environment qualification
 
 ## Independent root-gas candidate trial
 
-The opt-in Node workflow also runs a separate `TestSepoliaRootGasCandidateEvidenceLive`
+`TestSepoliaRootGasCandidateEvidenceLive` is a separately selectable qualification
 trial of the existing `ReadReplayBlockWithRootGas` adapter. It selects the top-only
 `callTracer` contract before acquisition, uses the same sole approved endpoint,
 and keeps a separate context, finite limits and `root-gas-candidate` evidence directory.
 It neither reads the strict trial's outcome nor chooses a tracer as a fallback.
-The original stateGasTracer test stays required; its failure still fails the job.
-Both roots execute independently without fail-fast.
+
+The recorded combined trial passed the existing stateGasTracer check but refused
+the candidate: one of the 120 transaction-bound root rows lacked its required gas
+dimensions and refund. The candidate remains unqualified. Its failed diagnostics
+are retained; a partial list, receipt-derived replacement, or another tracer's
+result cannot complete its witness. No candidate policy was activated.
+
+The required Node workflow selects the existing stateGasTracer test. A failed
+strict check still fails that job; this trial does not replace it. The candidate
+test remains available for a separately selected qualification run after relevant
+provider capability or source changes. Its complete unit tests remain in the
+ordinary test partitions. A rejected optional candidate is not an additional
+requirement of the currently selected strict profile.
 
 The candidate retains passive diagnostics on refusal and, on successful checking,
 the complete block bundle and exact response files with byte lengths and SHA-256.
