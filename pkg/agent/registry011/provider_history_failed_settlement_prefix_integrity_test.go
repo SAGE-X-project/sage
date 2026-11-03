@@ -45,12 +45,22 @@ func TestProviderHistoryFailedSettlementRechecksItsActualCompletedPrefix(t *test
 			o, d := historyMemberDispatchFixture(t, 2)
 			historyRetainNormalPrefix(t, o, d, 1)
 			s, m, r := o.store, o.meter, o.parent.recovery
-			name := d.originalNameLocked(0, "response")
-			if name == "" || d.retained != 1 || d.originals[0] == nil {
-				t.Fatal("actual completed first member and original response selection required")
+			setupWork, setupClocks, setupReads := m.actual, m.clocks, s.clock.read
+			sealed := r.members[0]
+			if d.retained != 1 || d.originals[0] == nil || sealed == nil || sealed.capture == nil || sealed.capture.intent == nil ||
+				sealed.capture.original != d.originals[0] || sealed.capture.intent.dispatch != d || sealed.capture.intent.ordinal != 0 ||
+				sealed.capture.intent.responseName == "" || m.failed || m.closed || s.activeMeter.Load() != nil {
+				t.Fatal("actual completed first member and original sealed response selection required")
 			}
-			path := filepath.Join(s.config.evidenceDirectory, name)
+			// Filename selection here is UNIT setup while the original meter is
+			// idle. Reuse the completed original's immutable receipt; invoking
+			// originalNameLocked would spend observed work outside its role.
+			path := filepath.Join(s.config.evidenceDirectory, sealed.capture.intent.responseName)
 			before := providerHistoryProvisionedOriginalBytes(t, s.config)
+			if m.actual != setupWork || m.clocks != setupClocks || s.clock.read != setupReads ||
+				m.failed || m.closed || s.activeMeter.Load() != nil {
+				t.Fatal("owned filename setup changed the original idle observer")
+			}
 			ack, pin, confirmed, held, work, upper := o.last, o.pin, r.confirmed, s.stored, m.actual, m.upper
 			syncFile := s.custody.syncFile
 			defer func() { s.custody.syncFile = syncFile }()
