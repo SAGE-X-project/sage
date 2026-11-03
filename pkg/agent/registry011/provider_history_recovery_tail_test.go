@@ -373,9 +373,10 @@ func TestProviderHistoryRecoveryTailPrivateSealsRejectCoherentIntermediateChange
 					view.entries[len(view.entries)-1].digest = providerReplayDigest("", []byte("changed owned unused slot"), nil)
 				}
 			}
-			if mode == "nil-first-seal" {
+			switch mode {
+			case "nil-first-seal":
 				r.tailSeals[0] = nil
-			} else if mode == "nil-second-seal" {
+			case "nil-second-seal":
 				r.tailSeals[1] = nil
 			}
 			if out, err := r.finishCatalogCandidate(context.Background()); err == nil || out != nil || r.catalogAfter != nil || r.catalogResult != nil || r.active || !r.failed || !r.closed ||
