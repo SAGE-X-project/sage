@@ -15,6 +15,7 @@ import registry_test_shards as m
 ROOTS = [
     "TestProviderHistoryCollectionNormal", "TestProviderHistoryRecoveryNormal",
     "TestProviderHistoryNormal", "TestProviderNormal", "ExampleNormal",
+    m.RECOVERY_ROOT,
 ]
 
 
@@ -91,10 +92,28 @@ class EvidenceFixture(unittest.TestCase):
                 self.assertEqual(actual, expected)
                 roots = sorted(set(ROOTS) if role == "source" else set(ROOTS) - {"ExampleNormal"})
                 self.assertEqual(actual["all_roots"], roots)
-                self.assertEqual(actual["package_passes"], 4)
-                self.assertIn(b" 1 6\n", (output / "coverage.out").read_bytes())
+                self.assertEqual(actual["package_passes"], 5)
+                self.assertIn(b" 1 10\n", (output / "coverage.out").read_bytes())
                 self.assertTrue((output / "shards").is_dir())
                 self.assertTrue((output / "source/unit.go").is_file())
+
+    def test_maximum_recovery_has_its_own_complete_process_partition(self):
+        neighbors = [m.RECOVERY_ROOT + "Extra", "TestProviderHistoryRecoveryOther"]
+        for role in ("source", "provider"):
+            with self.subTest(role=role):
+                raw = discovery(ROOTS + neighbors)
+                isolated = m.plan(raw, role, 4)
+                self.assertEqual(isolated["selected_roots"], [m.RECOVERY_ROOT])
+                self.assertEqual(isolated["shards"], 5)
+                self.assertEqual(isolated["format"], "sage-registry-test-partition-v2")
+                self.assertEqual(isolated["run_pattern"], "^(" + m.RECOVERY_ROOT + ")$")
+                ordinary = m.plan(raw, role, 1)["selected_roots"]
+                self.assertNotIn(m.RECOVERY_ROOT, ordinary)
+                self.assertTrue(set(neighbors).issubset(ordinary))
+                self.assertEqual(m.validate_tests(results([m.RECOVERY_ROOT], "/settled-maximum"),
+                                                  isolated["selected_roots"]), 2)
+        with self.assertRaises(ValueError):
+            m.plan(discovery([name for name in ROOTS if name != m.RECOVERY_ROOT]), "source", 4)
 
     def test_unicode_compiled_roots_remain_in_the_complete_partition(self):
         unicode_tests = [
@@ -194,7 +213,7 @@ class EvidenceFixture(unittest.TestCase):
         for raw in bad_discovery:
             with self.subTest(discovery=raw[:80]), self.assertRaises(ValueError):
                 m.discovery(raw, "source")
-        for index in (-1, 4, True):
+        for index in (-1, 5, True):
             with self.subTest(index=index), self.assertRaises(ValueError):
                 m.plan(discovery(), "source", index)
         with self.assertRaises(ValueError):

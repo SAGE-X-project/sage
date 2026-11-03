@@ -12,8 +12,8 @@ import subprocess
 
 PACKAGE = "github.com/sage-x-project/sage/pkg/agent/registry011"
 SOURCE_PREFIX = "pkg/agent/registry011/"
-SHARDS = 4
-FORMAT = "sage-registry-test-partition-v1"
+SHARDS = 5
+FORMAT = "sage-registry-test-partition-v2"
 ROOT = re.compile(r"(?:Test|Example|Fuzz)\w*\Z")
 PROVIDER_PREFIXES = (
     "TestProvider", "TestNode", "TestReplay", "TestRootGas", "TestErigon",
@@ -38,6 +38,7 @@ CONTROLS = (
     "TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity",
     "TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState",
 )
+RECOVERY_ROOT = "TestProviderHistoryRecoveryGroupReconstructsConsumedSuccessfulAndFailedPrefixesTwice"
 CPU_ROOT = "TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals"
 
 
@@ -122,6 +123,8 @@ def discovery(raw, role):
 
 
 def shard_number(name):
+    if name == RECOVERY_ROOT:
+        return 4
     if name.startswith("TestProviderHistoryCollection"):
         return 0
     if name.startswith("TestProviderHistoryRecovery"):

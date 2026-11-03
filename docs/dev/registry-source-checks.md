@@ -1550,3 +1550,24 @@ Subsequent RPC/pin/history commands, page seals, complete final original scans,
 operating host/profile qualification and Registry-backed selective Agent message
 exchange remain required. This local command does not select a Source, enable
 a public dispatch permit, or activate policy.
+
+
+## Complete CI test partitions
+
+The Source and Provider jobs each run five disjoint partitions selected from the
+complete compiled root discovery. The maximum group-recovery root, including
+all of its successful and failed-prefix children, occupies partition 4 alone.
+Other recovery roots remain in partition 1. The evidence format is
+`sage-registry-test-partition-v2`; assembly requires all five original runs,
+the same source identity and the exact complete root union. Missing or failed
+partitions cannot supply the successful Source or Provider evidence.
+
+This separates one expensive fixture from accumulated process instrumentation;
+it does not establish the cause of an earlier native-duration refusal or ensure
+a future pass. The native 300000 ms ceiling, race instrumentation, complete test
+selection, per-file 90% requirement and downstream consumers remain unchanged.
+Partition 4 also retains a CPU profile of that single complete-root invocation,
+including a nonzero exit result if it fails. This diagnostic is neither another
+attempt nor a replacement for the required successful test and coverage run.
+The existing maximum-dispatch profile and its controls remain separate. Neither
+profile establishes worst-case resources or production environment qualification.
