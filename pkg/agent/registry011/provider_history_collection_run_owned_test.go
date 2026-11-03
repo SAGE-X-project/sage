@@ -157,6 +157,7 @@ func TestProviderHistoryCollectionRunConnectsAllOriginalStagesWithRecordedNormal
 		group.meter.actual != work || store.clock.read != clocks || group.pin != pin || group.failed {
 		t.Fatal("completed original collection was entered a second time")
 	}
+	historyCollectionCompletionUnitCases(t, group, out)
 }
 
 // A fixed missing-fixture UNIT value stops before any member dial/write.
