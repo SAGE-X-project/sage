@@ -120,7 +120,14 @@ func (d *providerHistoryGroupDispatch) rootsObservedLocked() string {
 	if d == nil || d.group == nil || !d.group.activeLocked(d.meter) {
 		return ""
 	}
-	v, ok := providerReplayJSON(providerReplayBytes(d.group.parent.policy.raw, d.meter), d.meter).(map[string]any)
+	return providerHistoryTLSRootsObserved(d.group.parent.policy.raw, d.meter)
+}
+
+// Parse bounded policy DATA with its original copy and codec observations.
+// A returned digest is not a selected policy, verified TLS peer or capability;
+// the original live owner and native TLS checks remain required by the caller.
+func providerHistoryTLSRootsObserved(raw string, meter *providerWorkMeter) string {
+	v, ok := providerReplayJSON(providerReplayBytes(raw, meter), meter).(map[string]any)
 	if !ok {
 		return ""
 	}
