@@ -14,7 +14,7 @@ import (
 // public deployment block is not a substitute for deployment-to-current
 // qualification. Every numeric selection precedes profile/anchor/H0; none
 // supplies a production source/native/RAM derivation or operating policy.
-func historyCollectionRecordedRunStore(t *testing.T) (*providerCustodyStore, providerHistoryCollectionInput, map[string]json.RawMessage) {
+func historyCollectionRecordedRunManifest(t *testing.T) (*providerHistoryCollectionManifest, map[string]json.RawMessage) {
 	t.Helper()
 	recorded := nodeRecorded(t)
 	var envelope struct{ Result json.RawMessage }
@@ -26,7 +26,8 @@ func historyCollectionRecordedRunStore(t *testing.T) (*providerCustodyStore, pro
 		t.Fatal("complete original deployment header", err)
 	}
 	in := historyCollectionInput(t)
-	in.journal.Deployment, in.journal.Registry = header, SepoliaRegistryAddress
+	// Keep the journal's required chain-qualified Registry identity.
+	in.journal.Deployment = header
 	in.journal.CodeIdentity, in.journal.ABIIdentity = SepoliaEvidenceDigests()
 	in.journal.Replay.MaxTransactions, in.journal.Replay.MaxFrames = 1024, 256
 	in.journal.Replay.MaxLogs, in.journal.Replay.MaxEvidenceBytes = 4096, 8<<20
@@ -40,6 +41,13 @@ func historyCollectionRecordedRunStore(t *testing.T) (*providerCustodyStore, pro
 	if manifest.counts.groups != 4 || manifest.counts.requests != 29 {
 		t.Fatal("recorded absent grammar differs from handwritten 18/3/1/7 members")
 	}
+	return manifest, recorded
+}
+
+func historyCollectionRecordedRunStore(t *testing.T) (*providerCustodyStore, providerHistoryCollectionInput, map[string]json.RawMessage) {
+	t.Helper()
+	manifest, recorded := historyCollectionRecordedRunManifest(t)
+	in := manifest.input
 	store := providerHistoryProvisionedInspectionFixture(t, providerScanFixtureSelection{
 		capture: &in.capture, pin: true, pinLargeObject: true, historyProgram: true,
 		historyGroupWrite: true, historyGroupConsume: true, historyGroupDispatch: true,
@@ -56,6 +64,18 @@ func historyCollectionRecordedRunStore(t *testing.T) (*providerCustodyStore, pro
 		t.Fatal("original recorded deployment first P", err)
 	}
 	return store, in, recorded
+}
+
+// Check the SAME recorded manifest used by every controller fixture before
+// a store, original owner, clock or transport is created. This early regression
+// proves only input configuration; the full runtime tests remain mandatory.
+func TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity(t *testing.T) {
+	manifest, recorded := historyCollectionRecordedRunManifest(t)
+	if !manifest.validSnapshot() || manifest.input.journal.Registry != "eip155:11155111:"+SepoliaRegistryAddress ||
+		manifest.input.journal.Deployment.Number != sepoliaDeploymentBlock || manifest.input.maximumSelected != sepoliaDeploymentBlock ||
+		manifest.counts.groups != 4 || manifest.counts.requests != 29 || len(recorded["canonical-deployment"]) == 0 {
+		t.Fatal("shared recorded fixture lost its chain-qualified Registry or selected deployment")
+	}
 }
 
 // Handwritten independent request order, rather than invoking the collector's
