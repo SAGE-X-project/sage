@@ -51,7 +51,7 @@ func TestProviderHistoryFailureCapacityRequiresEveryMemberAndTLSBound(t *testing
 	}
 }
 
-func TestProviderHistoryFailureTLSRejectsIncompleteEvidenceBeforeCopy(t *testing.T) {
+func TestProviderHistoryFailureTLSRejectsIncompleteEvidenceBeforePublication(t *testing.T) {
 	for _, mode := range []string{"missing-sample", "unsupported-cipher", "empty-chain", "invalid-digest"} {
 		t.Run(mode, func(t *testing.T) {
 			ticket, _, data, _, bounds := historyFailureDataFixture(t, "read")

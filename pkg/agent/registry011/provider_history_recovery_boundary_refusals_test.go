@@ -85,6 +85,12 @@ func TestProviderHistoryRecoveryTailComparisonAndCancelledInputKeepUnpublishedDa
 		if descriptor.shapeLocked(r, &admitted) || !original.shapeLocked(r, r.confirmed) {
 			t.Fatal("unknown admission purpose acquired a valid shape or changed the original")
 		}
+		descriptor.purpose = original.purpose
+		descriptor.requests.bytes = 0
+		admitted.inventory.entries[0] = descriptor.requests
+		if descriptor.shapeLocked(r, &admitted) || !original.shapeLocked(r, r.confirmed) {
+			t.Fatal("zero-byte request DATA acquired an admission shape or changed its original")
+		}
 		model := providerHistoryRecoveryTailPayloads{recovery: r}
 		plan := providerHistoryRecoveryTailPlan{checkpoint: r.initial, kind: providerHistoryRecoveryAnchorCustody, bytes: 1, raw: "x"}
 		ctx, cancel := context.WithCancel(context.Background())

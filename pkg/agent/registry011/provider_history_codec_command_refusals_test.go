@@ -204,3 +204,20 @@ func TestProviderHistoryStateApplyCloneRefusalPreservesUnpublishedState(t *testi
 		t.Fatal("failed state observer resumed or published a mutation")
 	}
 }
+
+func TestProviderHistoryCommandConsumerRejectsZeroVersionWithoutPartialOutput(t *testing.T) {
+	contract, _, err := replayABIs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	original := replayTestCommand(t, "activate", replayTestWallet, 1, map[string]any{})
+	if _, ok := replayParseCommandObserved(replayTestRegistry, replayTestAgent, original.raw, contract, providerHistoryExecutionUnitMeter()); !ok {
+		t.Fatal("ordinary versioned command precursor")
+	}
+	raw := contentEdit(t, original.raw, func(object map[string]any) { object["expectedVersion"] = "0" })
+	m := providerHistoryExecutionUnitMeter()
+	got, ok := replayParseCommandObserved(replayTestRegistry, replayTestAgent, raw, contract, m)
+	if ok || !reflect.DeepEqual(got, replayCommand{}) || m.failed || m.actual[0] != 0 || m.actual[1] != 0 || m.clocks != 0 {
+		t.Fatal("zero expected version produced partial command DATA or a live effect")
+	}
+}
