@@ -49,6 +49,10 @@ func TestProviderHistoryInitialScanSelectionPreservesOriginalPreparation(t *test
 // They exercise the original short E0/P seam, never production D or a real
 // deployment-to-current profile. No new witness factory is introduced here.
 func historyCallerFreshConfiguration(t *testing.T) (providerCustodyConfig, *providerOwnedClock) {
+	return historyCallerFreshConfigurationWithRefusal(t, "")
+}
+
+func historyCallerFreshConfigurationWithRefusal(t *testing.T, refusal string) (providerCustodyConfig, *providerOwnedClock) {
 	t.Helper()
 	manifest, _ := historyCollectionRecordedRunManifest(t)
 	first := providerFirstWriterBounds()
@@ -58,6 +62,7 @@ func historyCallerFreshConfiguration(t *testing.T) (providerCustodyConfig, *prov
 		historyRecoveryNamespace: true, historyRecoveryLegacy: true,
 		historyCollection: manifest, historyCollectionAdmission: true, historyCollectionFirstP: true,
 		historyCollectionFullPack: true, historyCollectionRecordedRun: true, historyFinalRead: true,
+		historyCallerRefusal: refusal,
 	})
 }
 

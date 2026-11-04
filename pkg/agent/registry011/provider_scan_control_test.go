@@ -57,6 +57,7 @@ type providerScanFixtureSelection struct {
 	historyRecoveryNamespace      bool
 	historyRecoveryLegacy         bool
 	historyRecoveryGroup          bool
+	historyCallerRefusal          string
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -332,6 +333,30 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 		h.derivation.snapshot = *h
 		if !b.valid() {
 			t.Fatal("fresh disjoint successful-final UNIT profile")
+		}
+	}
+	if selected != nil && selected.historyCallerRefusal != "" {
+		// These insufficient UNIT inputs are fixed before profile/anchor/H0
+		// or clock creation. No live owner, allowance or backend is changed.
+		if !selected.historyCollectionRecordedRun || !selected.historyFinalRead || b.history == nil || b.firstAdmission == nil {
+			t.Fatal("caller refusal requires the existing complete recorded UNIT selection")
+		}
+		scan := *b.scan
+		switch selected.historyCallerRefusal {
+		case "enrollment-entries":
+			b.maximumEntries = 6 // E0 requires seven original objects.
+		case "inspection-capacity":
+			// Open and the first-E1 hold each fit, but their combined
+			// inspection/preparation cannot fit this smaller fresh profile.
+			scan.maximumPreIRetainedBytes = max(b.setupRetained, b.firstAdmission.retained)
+		case "inspection-chunks":
+			scan.maximumChunks = 1 // The initial setup/main inspection needs two.
+		default:
+			t.Fatal("unknown isolated caller refusal selection")
+		}
+		b.scan = &scan
+		if !b.valid() {
+			t.Fatal("insufficient caller UNIT input must still have a valid numeric shape")
 		}
 	}
 	profile := providerIntegrationProfile(b, capture)
