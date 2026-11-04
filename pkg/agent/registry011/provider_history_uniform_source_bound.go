@@ -5,11 +5,12 @@ package registry011
 // uncertain-failure, initializer/native/backing/RAM/recovery/final obligations
 // remain separate. Finite DATA never opens H0 or qualifies an operating profile.
 type providerHistoryUniformSourceCost struct {
-	groups              uint64
-	roles               providerHistoryRoleControlParts
-	firstInitialization candidateWorkVector
-	stage, future       providerHistoryStageWorkCost
-	storage             providerHistoryUniformStorageCost
+	groups                 uint64
+	roles                  providerHistoryRoleControlParts
+	firstInitialization    candidateWorkVector
+	initialGuard           candidateWorkVector
+	initial, stage, future providerHistoryStageWorkCost
+	storage                providerHistoryUniformStorageCost
 }
 
 // Each original stage uses the same admitted maximum, apart from the existing
@@ -24,6 +25,17 @@ type providerHistoryUniformSourceCost struct {
 func providerHistoryCollectionUniformSourceUpper(manifest *providerHistoryCollectionManifest, methods providerMethodBounds, certificates providerTLSBounds, maximum uint64, limits providerHistoryRoleSourceLimits) (providerHistoryUniformSourceCost, bool) {
 	var empty providerHistoryUniformSourceCost
 	if !manifest.validSnapshot() || manifest.counts.groups == 0 || manifest.counts.groups > (1<<20)/3 {
+		return empty, false
+	}
+	// Select the real initializer's unchanged incoming guard before compiling
+	// later stages. A selected firstRead overflow refuses the entire result.
+	// This temporary bounds value selects arithmetic only: it has no derivation,
+	// store, owner, original sample or operating authority.
+	guard, guardOK := providerHistoryGroupInitializationForProfileUpper(providerIntegrationBounds{
+		maximumMetadataPerCommit: limits.legacy.metadata,
+		history:                  &providerHistoryProgramBounds{collection: manifest},
+	})
+	if !guardOK {
 		return empty, false
 	}
 	storage, storageOK := providerHistoryCollectionUniformStorageUpper(manifest, methods, certificates, maximum, limits.legacy.metadata, limits.fileOverhead)
@@ -59,12 +71,39 @@ func providerHistoryCollectionUniformSourceUpper(manifest *providerHistoryCollec
 	}
 	selected[3].work[1] = wire
 	roles := providerHistoryRoleControlParts{selected[0], selected[1], selected[2], selected[3], selected[4], selected[5]}
+	// The real constructor preflights TWO SELECTED firstRead rows, not the
+	// possibly smaller source-derived firstInitialization component. Its legacy
+	// initializer guard is additional to those selected rows. Keep that exact
+	// guard at I before adding every full stage; no later stage funds I here.
+	initial, initialOK := providerHistoryAssignedInitializationUpper(roles.initial, first, guard)
 	stage, stageOK := providerHistoryAssignedStageWorkUpper(roles, providerHistoryGroupMembers)
-	future, futureOK := providerHistoryAssignedFutureWorkUpper(roles.initial, first, stage, manifest.counts.groups)
-	if !stageOK || !futureOK {
+	future, futureOK := providerHistoryAssignedFutureWorkUpper(initial, candidateWorkVector{}, stage, manifest.counts.groups)
+	if !initialOK || !stageOK || !futureOK {
 		return empty, false
 	}
-	return providerHistoryUniformSourceCost{manifest.counts.groups, roles, first, stage, future, storage}, true
+	return providerHistoryUniformSourceCost{
+		groups: manifest.counts.groups, roles: roles, firstInitialization: first,
+		initialGuard: guard, initial: initial, stage: stage, future: future, storage: storage,
+	}, true
+}
+
+// Two descriptions of the SAME initializer: assigned source work includes its
+// derived first-read component, while guard is the actual incoming preflight.
+// Take their coordinate maximum here, never their SUM and never a MAX across
+// future stages. No guard clocks are inferred from its work[10] coordinate.
+// This closes only initializer headroom; the other missing source, native,
+// resource and production-factory obligations at the file's start remain.
+func providerHistoryAssignedInitializationUpper(assigned providerHistoryStageWorkCost, first, guard candidateWorkVector) (providerHistoryStageWorkCost, bool) {
+	var out providerHistoryStageWorkCost
+	for coordinate, units := range assigned.work {
+		n, ok := providerUpperSum(units, first[coordinate])
+		if !ok {
+			return providerHistoryStageWorkCost{}, false
+		}
+		out.work[coordinate] = max(n, guard[coordinate])
+	}
+	out.clocks = assigned.clocks
+	return out, true
 }
 
 // Source components only: tailMS and native qualification are deliberately not

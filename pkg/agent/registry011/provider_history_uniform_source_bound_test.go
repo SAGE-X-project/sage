@@ -63,12 +63,68 @@ func TestProviderHistoryUniformSourceUsesOriginalUniformRoleMaxima(t *testing.T)
 		}
 	}
 	for c, units := range got.stage.work {
-		if got.future.work[c] != 40*units+got.roles.initial.work[c]+got.firstInitialization[c] {
-			t.Fatal("a source component or original firstRead bridge was omitted or repeated", c)
+		if got.future.work[c] != 40*units+got.initial.work[c] ||
+			got.initial.work[c] < got.roles.initial.work[c]+got.firstInitialization[c] || got.initial.work[c] < got.initialGuard[c] {
+			t.Fatal("a complete initializer or full admitted stage was omitted or repeated", c)
 		}
 	}
 	if *manifest != original || methods != oldMethods || tls != oldTLS || limits != oldLimits {
 		t.Fatal("numeric compilation changed the sealed source selection")
+	}
+}
+
+func TestProviderHistoryAssignedInitializationPreservesEveryGuardCoordinate(t *testing.T) {
+	// Independent inert rows exercise both sides of the initializer maximum in
+	// every domain. These values grant no store, sample, source or reservation.
+	assigned := providerHistoryStageWorkCost{work: candidateWorkVector{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, clocks: 2}
+	first := candidateWorkVector{11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1}
+	guard := candidateWorkVector{0, 13, 11, 14, 10, 15, 9, 16, 8, 17, 7}
+	want := providerHistoryStageWorkCost{work: candidateWorkVector{12, 13, 12, 14, 12, 15, 12, 16, 12, 17, 12}, clocks: 2}
+	got, ok := providerHistoryAssignedInitializationUpper(assigned, first, guard)
+	if !ok || got != want {
+		t.Fatal("initializer dropped a guard coordinate, doubled the same work or invented clocks", got, ok)
+	}
+	stage := providerHistoryStageWorkCost{work: candidateWorkVector{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}, clocks: 3}
+	future, futureOK := providerHistoryAssignedFutureWorkUpper(got, candidateWorkVector{}, stage, 3)
+	whole := providerHistoryStageWorkCost{work: candidateWorkVector{18, 22, 24, 29, 30, 36, 36, 43, 42, 50, 48}, clocks: 11}
+	if !futureOK || future != whole {
+		t.Fatal("full future SUM borrowed initializer room or added firstRead a second time", future, futureOK)
+	}
+	assigned.work[10], first[10] = ^uint64(0), 1
+	if partial, valid := providerHistoryAssignedInitializationUpper(assigned, first, guard); valid || partial != (providerHistoryStageWorkCost{}) {
+		t.Fatal("late initializer overflow returned earlier coordinates", partial, valid)
+	}
+}
+
+func TestProviderHistoryUniformSourceFundsSelectedInitializerBeforeEveryStage(t *testing.T) {
+	manifest, methods, tls, _, limits := historyRoleSourceInputs(t)
+	limits.legacy.objectBytes = 512 << 10
+	got, ok := providerHistoryCollectionUniformSourceUpper(manifest, methods, tls, 512<<10, limits)
+	// The real64KiB legacy guard is131072 decoded bytes and34364198276
+	// logical units. Add TWO SELECTED64MiB/2^52 firstRead sublimits. The
+	// smaller derived firstRead component cannot replace that incoming guard.
+	want := candidateWorkVector{2: 134348800, 10: 9007233618939268}
+	if !ok || got.initialGuard != want || got.initial.work != want || got.initial.clocks != 2 {
+		t.Fatal("selected firstRead allowance or the original constructor guard was narrowed", got.initialGuard, got.initial, ok)
+	}
+	actualGuard, valid := providerHistoryGroupInitializationForProfileUpper(providerIntegrationBounds{
+		maximumMetadataPerCommit: 8192, history: &providerHistoryProgramBounds{collection: manifest},
+	})
+	if !valid || actualGuard != want {
+		t.Fatal("independent initializer literals disagree with the actual unchanged constructor guard", actualGuard, valid)
+	}
+	for _, row := range []struct {
+		name       string
+		coordinate int
+	}{{"decoded", 2}, {"logical", 10}} {
+		t.Run(row.name, func(t *testing.T) {
+			in := manifest.input
+			in.firstRead.work[row.coordinate] = ^uint64(0)
+			selected := historyCollectionManifest(t, in)
+			if partial, valid := providerHistoryCollectionUniformSourceUpper(selected, methods, tls, 512<<10, limits); valid || partial != (providerHistoryUniformSourceCost{}) {
+				t.Fatal("selected initializer guard overflow escaped as a partial future", partial, valid)
+			}
+		})
 	}
 }
 

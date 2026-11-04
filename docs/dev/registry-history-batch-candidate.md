@@ -4410,10 +4410,32 @@ The active method capture maximum cannot replace the original global wire
 admission; the compiler retains global WireBytes+1 per member.
 
 These are the currently assigned components, not a complete source derivation.
-The original initializer preflight/headroom, other incoming/uncertain-failure,
+Other incoming/uncertain-failure, unassigned initialization,
 recovery/final, native CPU/backing/peak/lifetime RAM and sufficient-and-feasible
 same-profile proof remain required. No native tail, source witness, actual
 caller permission or new resource profile is manufactured by this arithmetic.
 The existing payload/other ceilings and operating inactivity remain unchanged.
-The four storage and five source/arithmetic test roots are authored but have
-not been executed for this unpublished candidate.
+The four storage and five source/arithmetic test roots are included in the
+parent draft. Their complete current CI qualification remains pending.
+
+### Selected initializer admission
+
+The original group constructor preflights its unchanged legacy initializer
+guard plus two SELECTED firstRead work rows. Those selected rows can exceed the
+derived first-reading components. The assigned compiler now retains the exact
+constructor guard from the same metadata and sealed manifest selections.
+
+For each work coordinate, initialization is the maximum of assigned initial
+work plus its derived firstRead bridge and that original constructor guard.
+They describe the same interval, so they are not added as disjoint work. The
+result is added ONCE to the SUM of all full admitted stages. This preserves the
+firstRead sublimit and the separate two-clock count; it never infers samples
+from logical work or borrows a later stage's allowance. A guard or composition
+overflow returns the entire empty result, with no partial future quote.
+
+Two new safe UNIT roots cover independent initializer and whole-future vectors,
+the actual constructor's64KiB guard with two selected64MiB/2^52 firstRead rows,
+and late overflow in both selected work domains. They are NOT_RUN. This fixes
+numeric initializer headroom only. It supplies no production derivation, live
+source, native CPU/backing/peak/lifetime RAM proof or same-profile feasibility,
+and does not classify or fix the separate observed final-reader failure.
