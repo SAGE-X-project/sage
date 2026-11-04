@@ -37,10 +37,17 @@ func providerGuardianBootstrapExtraUpper(b providerIntegrationBounds) (candidate
 	if b.guardian == nil || b.firstAdmission == nil || b.maximumEntries < 8 || b.maximumObjects < 8 {
 		return empty, 0, false
 	}
+	if b.scan == nil || b.continuation == nil {
+		return empty, 0, false
+	}
+	return providerGuardianBootstrapExtraCost(b.maximumMetadataPerCommit, b.fileOverheadBytes)
+}
+
+func providerGuardianBootstrapExtraCost(metadata, overhead uint64) (candidateWorkVector, uint64, bool) {
 	raw, a := providerUpperProduct(3, candidateLedgerMetadataLimit)
-	files, c := providerUpperProduct(3, b.fileOverheadBytes)
+	files, c := providerUpperProduct(3, overhead)
 	physical, d := providerUpperSum(raw, files)
-	work, e := providerGuardianAddedWork(b, 39+3+12+273, 13+6+64+1252, raw)
+	work, e := providerGuardianWorkCost(metadata, 39+3+12+273, 13+6+64+1252, raw)
 	return work, physical, a && c && d && e
 }
 

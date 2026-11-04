@@ -31,6 +31,11 @@ func TestProviderBootstrapCostingPreservesValidatedRuntimeQuotes(t *testing.T) {
 			if !ok || !in.valid() || in.kind != test.kind || in.initialObjectCount() != test.objects {
 				t.Fatal("complete immutable costing shape", ok, in.kind)
 			}
+			bootstrap, physical, ok := in.bootstrapUpper()
+			liveBootstrap, livePhysical, liveOK := providerBootstrapUpper(test.bounds)
+			if !ok || !liveOK || bootstrap != liveBootstrap || physical != livePhysical || bootstrap[0] != 0 || bootstrap[1] != 0 {
+				t.Fatal("original enrollment quote changed", ok, liveOK)
+			}
 			first, ok := in.firstAdmissionPlanUpper(1, 2, 0, 1)
 			liveFirst, liveOK := providerFirstAdmissionPlanUpper(test.bounds, 1, 2, 0, 1)
 			if !ok || !liveOK || first != liveFirst || first.owner != nil || first.used || first.stored != 0 || first.clocks != 18 {
@@ -203,6 +208,9 @@ func TestProviderBootstrapCostingKernelsRefuseInvalidDomainsAndLateOverflow(t *t
 			}
 			if local.valid() {
 				t.Fatal("invalid kernel domain accepted", name)
+			}
+			if work, physical, ok := local.bootstrapUpper(); ok || work != (candidateWorkVector{}) || physical != 0 {
+				t.Fatal("invalid input produced an enrollment quote", name)
 			}
 			if p, ok := local.firstAdmissionPlanUpper(1, 2, 0, 1); ok || p != (providerFirstAdmissionPlan{}) {
 				t.Fatal("invalid input produced a first-admission quote", name)

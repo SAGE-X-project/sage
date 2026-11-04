@@ -145,20 +145,12 @@ func providerScanPreparationUpper(config providerCustodyConfig, ordinal uint64) 
 	if config.bounds.scan == nil || !config.bounds.valid() || ordinal == 0 || ordinal > config.bounds.scan.maximumAttempts {
 		return providerScanUpper{}, errProviderIntegration
 	}
-	n := config.bounds.maximumMetadataPerCommit
-	count, a := providerUpperProduct(ordinal, 128)
-	count, b := providerUpperSum(count, 256)
-	square, d := providerUpperProduct(n, n)
-	units, e := providerUpperSum(square, n, 8)
-	units, f := providerUpperProduct(units, count)
-	decoded, g := providerUpperProduct(n, count)
-	written, h := providerUpperProduct(n, 7)
-	allocation, i := providerUpperProduct(config.bounds.fileOverheadBytes, 7)
-	retained, j := providerUpperSum(written, allocation)
-	if !a || !b || !d || !e || !f || !g || !h || !i || !j {
+	b := config.bounds
+	upper, ok := providerScanPreparationCostUpper(b.maximumMetadataPerCommit, b.fileOverheadBytes, ordinal, b.scan.maximumAttempts)
+	if !ok {
 		return providerScanUpper{}, errProviderIntegration
 	}
-	return providerScanUpper{candidateWorkVector{0, 0, decoded, 0, 0, 0, 0, 0, 0, written, units}, retained, 4}, nil
+	return upper, nil
 }
 
 // Under the store mutex, irreversibly hold P+B BEFORE the first old-control
