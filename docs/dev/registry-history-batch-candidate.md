@@ -4314,4 +4314,32 @@ One terminal failed-S extra is selected coordinatewise across those same active 
 
 The parent combines the six earlier source components with these full-M and closure additions at the same original cuts. I, B, entered P and own advance are unchanged. The existing firstRead initializer bridge, full admitted-stage SUM, extra preparation in dispatch.remaining, clocks, request order, original quotas/windows and all runtime guards remain unchanged. The source/storage additions are checked and any child failure returns the whole zero result. This is not a factory, authority, admission or proof of complete all11 sufficient-and-feasible native resources. Incoming/refusing/recording/typed-context, native backing/peak/lifetime RAM, recovery/final/page and full source binding still need completion before ONE connected publication and fresh native CI.
 
+### Disjoint final reservation and original failed inspection entry
+
+The selected successful-final read envelope and its two additional original
+clock events now belong to the same pre-H0 whole hold. They do not consume the
+failed-inspection row, renew the execution allowance or change the old initial
+seed. A zero final row preserves the existing incomplete candidate profile
+object. A selected final row is committed into that profile and participates
+in the existing checked lifetime clock total and snapshot comparison. This
+reservation alone does not install a final observer or permit its execution.
+
+The original parent also has a private failed-collection inspection entry.
+Only its genuinely failed, closed original group can consume the existing
+one-use read-only lane. One product function runs both complete inventory,
+scan, legacy, initial, group, member and tail reconstructions between the
+original catalog observations. Each pass derives its collection header from
+its own first-response originals. It accepts no producer object resolver,
+replacement clock, execution retry or caller-selected filesystem path.
+Failure or cancellation closes only that inspection lane; returned catalog
+DATA cannot acknowledge a group or authorize a Source or Agent message.
+
+The two added production files are connected to both existing strict 90%
+coverage inventories. Their safe scalar, owned-file and cancellation tests
+are authored but NOT_RUN. The successful final reader/clock role, complete
+source cost compiler, production collection caller, physical resources and
+same-profile sufficiency and feasibility remain unfinished. This unpublished
+part stays in the original connected implementation bundle; it does not
+qualify a smaller operating profile or complete the whole program.
+
 The ordinary offline 256KiB object selection is deliberately rejected for an active 256KiB wire class: the unchanged pre-dial failure guard requires 40+4+16384+W+1=278573 bytes. New UNIT DATA may select 512KiB prospectively before any source/H0; it does not patch an owned source or qualify a deployable profile. Exact 278573/278572, independent per-class literals, inactive/active tracer transitions, original-cut/storage ownership and complete-zero refusals are authored safe UNIT scenarios, not execution results. Four new roots remain NOT_RUN; the new product coverage target remains EACH90 UNMEASURED. Existing published green CI does not validate these unpublished additions.

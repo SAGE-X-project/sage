@@ -14,6 +14,7 @@ type providerHistoryProgramBounds struct {
 	future                                   providerHistoryGroupTotals
 	startup                                  providerScanUpper
 	recovery                                 providerHistoryRecoveryBounds
+	final                                    providerHistoryFinalBounds
 	stages, records, commits, catalogEntries uint64
 	catalogNameBytes, resident, durationMS   uint64
 	derivation                               *providerHistoryProgramDerivation
@@ -39,6 +40,10 @@ func (b providerHistoryProgramBounds) valid(store providerIntegrationBounds) boo
 	if b.collection != nil && !b.collection.validSnapshot() {
 		return false
 	}
+	final, finalOK := b.final.upper()
+	if !finalOK || b.final != (providerHistoryFinalBounds{}) && !b.final.valid(store, b.catalogEntries, b.durationMS) {
+		return false
+	}
 	if store.firstAdmission == nil || store.scan == nil || store.continuation == nil || store.guardian != nil ||
 		!lowerHash(b.program) || !lowerHash(b.costs) || !b.future.valid() || !b.recovery.valid(store, b.catalogEntries) ||
 		b.stages == 0 || b.stages > (1<<20)/3 || b.records < 3*b.stages || b.records > store.continuation.maximumRecords ||
@@ -50,7 +55,7 @@ func (b providerHistoryProgramBounds) valid(store providerIntegrationBounds) boo
 	archiveSlots, archiveOK := providerHistoryRecoveryArchiveSlots(b.stages)
 	names, ok := providerUpperProduct(b.catalogEntries, 255)
 	physical, physicalOK := providerUpperSum(store.scan.maximumPreIRetainedBytes, b.startup.retained, b.future.physical)
-	clocks, clockOK := providerUpperSum(store.scan.maximumPreIClockReads, b.startup.clocks, b.future.clocks)
+	clocks, clockOK := providerUpperSum(store.scan.maximumPreIClockReads, b.startup.clocks, b.future.clocks, final.clocks)
 	return archiveOK && archiveSlots <= b.resident && ok && names <= b.catalogNameBytes && physicalOK && physical <= store.maximumStoredBytes && clockOK && clocks <= 1<<20 &&
 		providerHistoryUpperWithin(providerScanUpper{work: store.setupWork, retained: store.setupRetained, clocks: store.setupMaximumClockReads}, providerHistoryPreIUpper(store)) &&
 		b.derivation != nil && b.derivation.owner == b.derivation && b.derivation.snapshot == b &&
@@ -72,6 +77,9 @@ func (b providerHistoryProgramBounds) object() map[string]any {
 			out["collection_admission_maximum"] = b.derivation.admission.maximum.object()
 		}
 	}
+	if b.final != (providerHistoryFinalBounds{}) {
+		out["successful_final_inspection"] = b.final.object()
+	}
 	return out
 }
 
@@ -81,14 +89,19 @@ func providerHistoryPreIUpper(b providerIntegrationBounds) providerScanUpper {
 
 // The old initial seed remains restricted to2/9/10. This separate sum covers
 // the pre-I maximum (which ALREADY includes O), fixed first P, all future
-// history work and the disjoint original read-only recovery row. It is never inserted into that old seed or charged a second
+// history work, disjoint read-only failure inspection and successful final
+// inspection. It is never inserted into that old seed or charged a second
 // time for each child. The internal derivation must justify each disjoint row.
 func providerHistoryWholeHold(b providerIntegrationBounds) (providerScanUpper, bool) {
 	if b.history == nil || b.scan == nil {
 		return providerScanUpper{}, false
 	}
 	h := b.history
-	return providerScanUpperSum(providerHistoryPreIUpper(b), h.startup, providerScanUpper{work: h.future.work, retained: h.future.physical, clocks: h.future.clocks}, providerScanUpper{work: h.recovery.work})
+	final, ok := h.final.upper()
+	if !ok {
+		return providerScanUpper{}, false
+	}
+	return providerScanUpperSum(providerHistoryPreIUpper(b), h.startup, providerScanUpper{work: h.future.work, retained: h.future.physical, clocks: h.future.clocks}, providerScanUpper{work: h.recovery.work}, final)
 }
 
 func providerHistoryUpperWithin(value, maximum providerScanUpper) bool {
