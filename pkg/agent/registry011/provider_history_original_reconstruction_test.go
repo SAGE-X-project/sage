@@ -36,6 +36,32 @@ func TestProviderHistoryFailedCollectionInspectionRequiresTheOriginalTerminalGro
 	}
 }
 
+func TestProviderHistoryFailedCollectionInspectionClosesCancelledReconstruction(t *testing.T) {
+	group, _ := historyRecoveryGroupFixture(t, 1)
+	p, reader, store := group.parent, group.parent.recovery, group.store
+	work, clocks, held, ack := group.meter.actual, store.clock.read, store.stored, group.last
+	store.mu.Lock()
+	group.failLocked()
+	store.objects, store.frontierReplay, store.bindings = nil, nil, nil
+	store.mu.Unlock()
+	base, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	ctx := &historyOriginalCancellationContext{Context: base, cancel: cancel, reader: reader, phase: "inventory-start"}
+	if out, err := p.inspectFailedCollectionCandidate(ctx); err != errProviderIntegration || out != nil || !ctx.reached ||
+		!reader.used || reader.active || !reader.closed || !reader.failed || !reader.meter.closed || !reader.meter.failed ||
+		reader.catalogBefore == nil || reader.catalogAfter != nil || reader.catalogResult != nil {
+		t.Fatal("cancelled original inspection returned partial data or retained its lane", err)
+	}
+	if group.meter.actual != work || store.clock.read != clocks || store.stored != held || group.last != ack || store.activeMeter.Load() != nil {
+		t.Fatal("cancelled inspection borrowed execution, clocks or the original reservation")
+	}
+	readWork, files, bytes := reader.meter.actual, reader.inputFiles, reader.inputBytes
+	if out, err := p.inspectFailedCollectionCandidate(context.Background()); err != errProviderIntegration || out != nil ||
+		reader.meter.actual != readWork || reader.inputFiles != files || reader.inputBytes != bytes || reader.active || !reader.closed {
+		t.Fatal("fresh context renewed a failed original inspection", err)
+	}
+}
+
 func TestProviderHistoryOriginalReconstructionOwnsBothCompletePasses(t *testing.T) {
 	for _, mode := range []string{"consumed", "settled", "pending-admission"} {
 		t.Run(mode, func(t *testing.T) {
