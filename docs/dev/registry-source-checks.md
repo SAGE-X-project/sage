@@ -1558,18 +1558,24 @@ The Source and Provider jobs each run nine disjoint partitions selected from the
 complete compiled root discovery. The maximum group-recovery root, including
 all of its successful and failed-prefix children, occupies partition 8 alone.
 All other roots use partitions 0 through 7. The evidence format is
-`sage-registry-test-partition-v3`; assembly requires all nine original runs,
+`sage-registry-test-partition-v4`; assembly requires all nine original runs,
 the same source identity and the exact complete root union. Missing or failed
 partitions cannot supply the successful Source or Provider evidence.
 
 The full SHA-256 value of each complete UTF-8 root name modulo eight selects
-its ordinary worker. The last three bits of the digest compute that same value.
-Collection, recovery and final-read families have no additional placement rule;
-only the exact maximum-recovery root is isolated. The preceding Provider worker
-0 reached its two-hour package limit after several final-read scenarios each
-took about 17 minutes. This motivates additional workers rather than a longer
-timeout or a smaller suite. Observed timings guided the worker count, but are
-not inputs to planning and do not guarantee the duration of a new execution.
+its ordinary worker, apart from two exact reviewed placements. The last three
+digest bits compute that same value. The entered-scan cancellation root
+`TestProviderHistoryFinalVerificationAutomaticallyClosesEnteredReadAndLateCancellation`
+uses worker 1; the owned-cleanup-error root
+`TestProviderHistoryFinalDataWithholdsResultAfterOwnedCleanupError` uses worker 7.
+Both otherwise join worker 4. Their complete original fixtures, children and
+assertions move together. Neighbors with additional name characters keep the
+ordinary hash rule. Only the exact maximum-recovery root is isolated.
+The preceding Provider worker 0 reached its two-hour package limit after several
+final-read scenarios each took about 17 minutes. The nine-worker layout and
+explicit placements reduce concentration without extending timeouts or omitting
+tests. Observed timings guide this fixed source configuration but are not live
+planning inputs and do not guarantee the duration of a new execution.
 The assignment is independent of discovery order and Python hash randomization;
 every root and all its children still run in exactly one complete partition.
 Current source identities bind the assignment, and assembly still validates the

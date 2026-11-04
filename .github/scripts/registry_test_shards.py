@@ -13,7 +13,7 @@ import subprocess
 PACKAGE = "github.com/sage-x-project/sage/pkg/agent/registry011"
 SOURCE_PREFIX = "pkg/agent/registry011/"
 SHARDS = 9
-FORMAT = "sage-registry-test-partition-v3"
+FORMAT = "sage-registry-test-partition-v4"
 ROOT = re.compile(r"(?:Test|Example|Fuzz)\w*\Z")
 PROVIDER_PREFIXES = (
     "TestProvider", "TestNode", "TestReplay", "TestRootGas", "TestErigon",
@@ -40,6 +40,10 @@ CONTROLS = (
 )
 RECOVERY_ROOT = "TestProviderHistoryRecoveryGroupReconstructsConsumedSuccessfulAndFailedPrefixesTwice"
 CPU_ROOT = "TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals"
+ORDINARY_PLACEMENT = {
+    "TestProviderHistoryFinalVerificationAutomaticallyClosesEnteredReadAndLateCancellation": 1,
+    "TestProviderHistoryFinalDataWithholdsResultAfterOwnedCleanupError": 7,
+}
 
 
 def require(condition, message):
@@ -125,11 +129,13 @@ def discovery(raw, role):
 def shard_number(name):
     if name == RECOVERY_ROOT:
         return SHARDS - 1
-    # Keep every root and all its children in one complete process. Eight
-    # ordinary workers avoid the old collection/final-family concentration;
-    # the maximum recovery root retains its own ninth process. Assignment
-    # uses only the complete UTF-8 name, never recorded timing or discovery
-    # order. The last three digest bits are the full SHA-256 value modulo8.
+    # Two complete normal-collection scenarios otherwise join worker4.
+    # Their exact reviewed names move whole roots, never individual children.
+    # Planning remains independent of live timing and discovery order.
+    if name in ORDINARY_PLACEMENT:
+        return ORDINARY_PLACEMENT[name]
+    # Every other ordinary root keeps full UTF-8 SHA-256 modulo8. The exact
+    # maximum recovery root above still owns the ninth process by itself.
     return hashlib.sha256(name.encode("utf-8")).digest()[-1] % (SHARDS - 1)
 
 
