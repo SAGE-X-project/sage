@@ -13,6 +13,10 @@ import registry_test_shards as m
 
 
 ROOTS = [
+    "TestProviderPartitionN", "TestProviderPartitionH",
+    "TestProviderPartitionF", "TestProviderPartitionK",
+    "TestProviderPartitionB", "TestProviderPartitionC",
+    "TestProviderPartitionO", "TestProviderPartitionA",
     "TestProviderHistoryCollectionNormal", "TestProviderHistoryRecoveryNormal",
     "TestProviderHistoryNormal", "TestProviderHistoryOther",
     "TestProviderNormal", "ExampleNormal",
@@ -93,8 +97,8 @@ class EvidenceFixture(unittest.TestCase):
                 self.assertEqual(actual, expected)
                 roots = sorted(set(ROOTS) if role == "source" else set(ROOTS) - {"ExampleNormal"})
                 self.assertEqual(actual["all_roots"], roots)
-                self.assertEqual(actual["package_passes"], 5)
-                self.assertIn(b" 1 10\n", (output / "coverage.out").read_bytes())
+                self.assertEqual(actual["package_passes"], 9)
+                self.assertIn(b" 1 36\n", (output / "coverage.out").read_bytes())
                 self.assertTrue((output / "shards").is_dir())
                 self.assertTrue((output / "source/unit.go").is_file())
 
@@ -103,47 +107,55 @@ class EvidenceFixture(unittest.TestCase):
         for role in ("source", "provider"):
             with self.subTest(role=role):
                 raw = discovery(ROOTS + neighbors)
-                isolated = m.plan(raw, role, 4)
+                isolated = m.plan(raw, role, 8)
                 self.assertEqual(isolated["selected_roots"], [m.RECOVERY_ROOT])
-                self.assertEqual(isolated["shards"], 5)
-                self.assertEqual(isolated["format"], "sage-registry-test-partition-v2")
+                self.assertEqual(isolated["shards"], 9)
+                self.assertEqual(isolated["format"], "sage-registry-test-partition-v3")
                 self.assertEqual(isolated["run_pattern"], "^(" + m.RECOVERY_ROOT + ")$")
                 ordinary = m.plan(raw, role, 1)["selected_roots"]
                 self.assertNotIn(m.RECOVERY_ROOT, ordinary)
-                self.assertTrue(set(neighbors).issubset(ordinary))
+                for name in neighbors:
+                    self.assertLess(m.shard_number(name), 8)
+                    self.assertNotIn(name, isolated["selected_roots"])
                 self.assertEqual(m.validate_tests(results([m.RECOVERY_ROOT], "/settled-maximum"),
                                                   isolated["selected_roots"]), 2)
         with self.assertRaises(ValueError):
-            m.plan(discovery([name for name in ROOTS if name != m.RECOVERY_ROOT]), "source", 4)
+            m.plan(discovery([name for name in ROOTS if name != m.RECOVERY_ROOT]), "source", 8)
 
-    def test_history_workers_match_fixed_utf8_hash_and_family_precedence(self):
-        # Independent fixed assignments cover both workers and a UTF-8 root.
-        # Family exceptions still take priority.
+    def test_complete_root_hashing_keeps_only_maximum_recovery_isolated(self):
+        # Independent fixed UTF-8 assignments cover all ordinary workers.
+        # Collection/recovery/final families no longer concentrate together.
         cases = {
-            "TestProviderHistoryNormal": 3,
-            "TestProviderHistoryOther": 2,
-            "TestProviderHistoryFinalOrdinary": 3,
+            "TestProviderPartitionN": 0,
+            "TestProviderPartitionH": 1,
+            "TestProviderHistoryNormal": 2,
+            "TestProviderHistoryOther": 7,
+            "TestProviderHistoryFinalOrdinary": 7,
             "TestProviderHistoryUniformSourceUsesOriginalUniformRoleMaxima": 3,
             "TestProviderHistoryΕ": 2,
-            "TestProviderHistoryCollectionNormal": 0,
-            "TestProviderHistoryRecoveryNormal": 1,
-            m.RECOVERY_ROOT: 4,
-            m.RECOVERY_ROOT + "Extra": 1,
+            "TestProviderHistoryCollectionNormal": 2,
+            "TestProviderHistoryRecoveryNormal": 5,
+            m.RECOVERY_ROOT: 8,
+            m.RECOVERY_ROOT + "Extra": 5,
             "TestProviderNormal": 3,
-            "ExampleNormal": 3,
+            "ExampleNormal": 4,
+            "TestProviderPartitionO": 6,
         }
         for name, expected in cases.items():
             with self.subTest(name=name):
                 self.assertEqual(m.shard_number(name), expected)
 
-    def test_final_read_roots_keep_whole_named_scenarios_across_four_workers(self):
+    def test_final_read_roots_keep_whole_named_scenarios_across_ordinary_workers(self):
         cases = {
-            "TestProviderHistoryFinalVerificationAutomaticallyClosesEnteredReadAndLateCancellation": 0,
-            "TestProviderHistoryFinalFinishRejectsMissingModel": 1,
-            "TestProviderHistoryFinalVerificationClosesAtCatalogEnd": 2,
-            "TestProviderHistoryFinalReaderConnectsCollectionAndTwoFreshOriginalModels": 3,
-            "TestProviderHistoryFinalReaderRefusesUnfundedReadWithoutExecutionBorrow": 1,
+            "TestProviderHistoryFinalVerificationAutomaticallyClosesEnteredReadAndLateCancellation": 4,
+            "TestProviderHistoryFinalFinishRejectsMissingModel": 5,
+            "TestProviderHistoryFinalVerificationClosesAtCatalogEnd": 6,
+            "TestProviderHistoryFinalReaderConnectsCollectionAndTwoFreshOriginalModels": 7,
+            "TestProviderHistoryFinalReaderRefusesUnfundedReadWithoutExecutionBorrow": 2,
             "TestProviderHistoryFinalReaderRefusesUnfundedReadWithoutExecutionBorrowExtra": 0,
+            "TestProviderHistoryFinalDataSurvivesBothOriginalRootsClosing": 6,
+            "TestProviderHistoryFinalDataCancellationStillClosesOriginals": 3,
+            "TestProviderHistoryFinalDataWithholdsResultAfterOwnedCleanupError": 4,
         }
         for name, expected in cases.items():
             with self.subTest(name=name):
@@ -165,7 +177,7 @@ class EvidenceFixture(unittest.TestCase):
                     expected.remove("ExampleNormal")
                 self.assertEqual(sorted(seen), expected)
                 self.assertEqual(len(seen), len(set(seen)))
-                self.assertEqual(m.plan(raw, role, 4)["selected_roots"], [m.RECOVERY_ROOT])
+                self.assertEqual(m.plan(raw, role, 8)["selected_roots"], [m.RECOVERY_ROOT])
 
     def test_history_balance_keeps_complete_disjoint_plans_in_any_discovery_order(self):
         roots = ROOTS + ["TestProviderHistoryFinalOrdinary", "TestProviderHistoryΕ"]
@@ -185,8 +197,8 @@ class EvidenceFixture(unittest.TestCase):
                     observed.extend(first["selected_roots"])
                 self.assertEqual(sorted(observed), expected)
                 self.assertEqual(len(observed), len(set(observed)))
-                self.assertIn("TestProviderHistoryOther", m.plan(discovery(roots), role, 2)["selected_roots"])
-                self.assertIn("TestProviderHistoryNormal", m.plan(discovery(roots), role, 3)["selected_roots"])
+                self.assertIn("TestProviderHistoryOther", m.plan(discovery(roots), role, 7)["selected_roots"])
+                self.assertIn("TestProviderHistoryNormal", m.plan(discovery(roots), role, 2)["selected_roots"])
 
     def test_unicode_compiled_roots_remain_in_the_complete_partition(self):
         unicode_tests = [
@@ -268,6 +280,25 @@ class EvidenceFixture(unittest.TestCase):
                 import shutil
                 shutil.rmtree(directory)
 
+    def test_retired_partition_format_and_missing_last_worker_are_refused(self):
+        for mode in ("old-format", "old-count", "missing-last-worker"):
+            with self.subTest(mode=mode):
+                directory = self.fixture()
+                if mode == "missing-last-worker":
+                    (directory / "registry-source-shard-8").rename(directory / "retired-worker")
+                else:
+                    path = directory / "registry-source-shard-1" / "test-plan.json"
+                    value = json.loads(path.read_bytes())
+                    value["format" if mode == "old-format" else "shards"] = (
+                        "sage-registry-test-partition-v2" if mode == "old-format" else 5)
+                    path.write_bytes(m.encoded(value))
+                output = self.root / "retired-refused"
+                with self.assertRaises(ValueError):
+                    m.assemble(directory, output, "source", self.current)
+                self.assertFalse(output.exists())
+                import shutil
+                shutil.rmtree(directory)
+
     def test_verifier_reopens_children_and_recomputes_merged_evidence(self):
         for file in ("tests.jsonl", "coverage.out", "test-partition.json", "revision.txt", "context.json", "shards/registry-source-shard-0/tests.jsonl"):
             with self.subTest(file=file):
@@ -286,13 +317,14 @@ class EvidenceFixture(unittest.TestCase):
         for raw in bad_discovery:
             with self.subTest(discovery=raw[:80]), self.assertRaises(ValueError):
                 m.discovery(raw, "source")
-        for index in (-1, 5, True):
+        for index in (-1, 9, True):
             with self.subTest(index=index), self.assertRaises(ValueError):
                 m.plan(discovery(), "source", index)
         with self.assertRaises(ValueError):
-            m.plan(discovery(["TestOnly"]), "source", 0)
+            m.plan(discovery(["TestOnly"]), "source", (m.shard_number("TestOnly") + 1) % m.SHARDS)
         with self.assertRaises(ValueError):
-            m.plan(discovery(["TestProviderHistoryCollection" + "x" * 100001]), "source", 0)
+            long_root = "TestProviderHistoryCollection" + "x" * 100001
+            m.plan(discovery([long_root]), "source", m.shard_number(long_root))
         for raw in [results(["TestOther"]), results(["TestOne"]) + results(["TestOne"]), stream([{"Package": m.PACKAGE, "Action": "pass", "Test": "TestOne"}]), stream([{"Package": m.PACKAGE, "Action": "run", "Test": "TestOne"}, {"Package": m.PACKAGE, "Action": "pass"}])]:
             with self.subTest(results=raw[:80]), self.assertRaises(ValueError):
                 m.validate_tests(raw, ["TestOne"])

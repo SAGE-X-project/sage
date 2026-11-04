@@ -1554,31 +1554,26 @@ a public dispatch permit, or activate policy.
 
 ## Complete CI test partitions
 
-The Source and Provider jobs each run five disjoint partitions selected from the
+The Source and Provider jobs each run nine disjoint partitions selected from the
 complete compiled root discovery. The maximum group-recovery root, including
-all of its successful and failed-prefix children, occupies partition 4 alone.
-Other recovery roots remain in partition 1. The evidence format is
-`sage-registry-test-partition-v2`; assembly requires all five original runs,
+all of its successful and failed-prefix children, occupies partition 8 alone.
+All other roots use partitions 0 through 7. The evidence format is
+`sage-registry-test-partition-v3`; assembly requires all nine original runs,
 the same source identity and the exact complete root union. Missing or failed
 partitions cannot supply the successful Source or Provider evidence.
 
-Remaining `TestProviderHistory` roots are divided between partitions 2 and 3
-using the low bit of the first SHA-256 byte of each complete UTF-8 root name.
-The collection/recovery/exact maximum-recovery exceptions retain precedence.
-Successful-final read roots are a separate exception: the full UTF-8 SHA-256
-value modulo four selects partitions 0 through 3, leaving partition 4 isolated.
-The low two bits of the digest's last byte compute that same modulo.
-The exact `TestProviderHistoryFinalReaderRefusesUnfundedReadWithoutExecutionBorrow`
-root instead belongs to worker 1 in both roles. This keeps its complete owned
-readback fixture off worker 2, where the fallback hash would place it. Only that
-exact name is exceptional; similarly named roots retain their ordinary hash.
-The current Source/Provider worker 1 jobs ended in about 40/33 minutes while
-worker 2 remained active beyond 100 minutes. These are observations of the prior
-source, not a measured runtime for the added test or a guarantee for new CI.
+The full SHA-256 value of each complete UTF-8 root name modulo eight selects
+its ordinary worker. The last three bits of the digest compute that same value.
+Collection, recovery and final-read families have no additional placement rule;
+only the exact maximum-recovery root is isolated. The preceding Provider worker
+0 reached its two-hour package limit after several final-read scenarios each
+took about 17 minutes. This motivates additional workers rather than a longer
+timeout or a smaller suite. Observed timings guided the worker count, but are
+not inputs to planning and do not guarantee the duration of a new execution.
 The assignment is independent of discovery order and Python hash randomization;
 every root and all its children still run in exactly one complete partition.
 Current source identities bind the assignment, and assembly still validates the
-exact five-way union before any coverage or downstream consumer can use it.
+exact nine-way union before any coverage or downstream consumer can use it.
 This reduces concentration in one worker; it does not guarantee a future runtime
 or change any test timeout, native bound, race mode or coverage requirement.
 

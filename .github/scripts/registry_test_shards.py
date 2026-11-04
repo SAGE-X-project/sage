@@ -12,8 +12,8 @@ import subprocess
 
 PACKAGE = "github.com/sage-x-project/sage/pkg/agent/registry011"
 SOURCE_PREFIX = "pkg/agent/registry011/"
-SHARDS = 5
-FORMAT = "sage-registry-test-partition-v2"
+SHARDS = 9
+FORMAT = "sage-registry-test-partition-v3"
 ROOT = re.compile(r"(?:Test|Example|Fuzz)\w*\Z")
 PROVIDER_PREFIXES = (
     "TestProvider", "TestNode", "TestReplay", "TestRootGas", "TestErigon",
@@ -40,7 +40,6 @@ CONTROLS = (
 )
 RECOVERY_ROOT = "TestProviderHistoryRecoveryGroupReconstructsConsumedSuccessfulAndFailedPrefixesTwice"
 CPU_ROOT = "TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals"
-FINAL_REFUSAL_ROOT = "TestProviderHistoryFinalReaderRefusesUnfundedReadWithoutExecutionBorrow"
 
 
 def require(condition, message):
@@ -125,25 +124,13 @@ def discovery(raw, role):
 
 def shard_number(name):
     if name == RECOVERY_ROOT:
-        return 4
-    if name.startswith("TestProviderHistoryCollection"):
-        return 0
-    if name.startswith("TestProviderHistoryRecovery"):
-        return 1
-    if name == FINAL_REFUSAL_ROOT:
-        # Keep this complete owned readback fixture off the long-running
-        # ordinary history worker. No child, observer or quota is shared.
-        return 1
-    if name.startswith("TestProviderHistoryFinal"):
-        # Keep each original-read scenario whole, and leave the isolated
-        # maximum-recovery process on worker 4. Full-hash modulo four is
-        # the low two bits of its final byte, independent of discovery order.
-        return hashlib.sha256(name.encode("utf-8")).digest()[-1] % (SHARDS - 1)
-    if name.startswith("TestProviderHistory"):
-        # Spread the remaining history roots without depending on discovery
-        # order, Python's randomized hash seed or timing from an earlier run.
-        return 2 + (hashlib.sha256(name.encode("utf-8")).digest()[0] & 1)
-    return 3
+        return SHARDS - 1
+    # Keep every root and all its children in one complete process. Eight
+    # ordinary workers avoid the old collection/final-family concentration;
+    # the maximum recovery root retains its own ninth process. Assignment
+    # uses only the complete UTF-8 name, never recorded timing or discovery
+    # order. The last three digest bits are the full SHA-256 value modulo8.
+    return hashlib.sha256(name.encode("utf-8")).digest()[-1] % (SHARDS - 1)
 
 
 def plan(raw, role, index):
