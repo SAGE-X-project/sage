@@ -13,6 +13,8 @@ type providerHistoryFinalOwner struct {
 	begin                ClockSample
 	executionWork        candidateWorkVector
 	executionClocks      uint64
+	result               *providerHistoryFinalResult
+	preparedData         providerHistoryFinalData
 	used, closed, failed bool
 }
 
@@ -75,7 +77,7 @@ func (f *providerHistoryFinalOwner) shapeLocked(m *providerWorkMeter) bool {
 
 func (f *providerHistoryFinalOwner) pristineLocked() bool {
 	if f == nil || f.reader == nil || !f.shapeLocked(f.reader.meter) || f.used || f.closed || f.failed || f.begin != (ClockSample{}) ||
-		f.executionWork != (candidateWorkVector{}) || f.executionClocks != 0 {
+		f.executionWork != (candidateWorkVector{}) || f.executionClocks != 0 || f.result != nil || f.preparedData != (providerHistoryFinalData{}) {
 		return false
 	}
 	r, m := f.reader, f.reader.meter
@@ -188,6 +190,9 @@ func (f *providerHistoryFinalOwner) stopLocked(failed bool) {
 	f.failed = f.failed || failed || m.failed
 	f.closed, r.active, r.closed, r.failed, m.closed, m.failed = true, false, true, f.failed, true, f.failed
 	m.mu.Unlock()
+	if f.failed {
+		f.result, f.preparedData = nil, providerHistoryFinalData{}
+	}
 	if f.parent != nil && f.parent.store != nil && f.parent.store.activeMeter.Load() == m {
 		f.parent.store.activeMeter.Store(nil)
 	}

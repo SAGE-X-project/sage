@@ -527,6 +527,7 @@ jobs:
               'provider_history_final_bounds.go',
               'provider_history_final_owner.go',
               'provider_history_final_read.go',
+              'provider_history_final_data.go',
               'provider_history_uniform_storage_bound.go',
               'provider_history_uniform_source_bound.go',
               'provider_history_original_reconstruction.go',

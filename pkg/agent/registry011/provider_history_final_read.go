@@ -3,6 +3,7 @@ package registry011
 import (
 	"context"
 	"crypto/tls"
+	"reflect"
 )
 
 // Private, verified collection DATA, not a Source/page/message authorization.
@@ -15,6 +16,7 @@ type providerHistoryFinalResult struct {
 	cursor     *providerHistoryCollectionCursor
 	begin, end ClockSample
 	work       candidateWorkVector
+	data       providerHistoryFinalData
 }
 
 func (*providerHistoryFinalResult) UnmarshalJSON([]byte) error { return errProviderIntegration }
@@ -99,7 +101,7 @@ func (f *providerHistoryFinalOwner) finishCandidate(ctx context.Context, catalog
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	r, m := f.reader, f.reader.meter
-	if !f.activeLocked(m) || ctx == nil || ctx.Err() != nil || f.begin == (ClockSample{}) ||
+	if !f.activeLocked(m) || ctx == nil || ctx.Err() != nil || f.begin == (ClockSample{}) || f.result != nil || f.preparedData != (providerHistoryFinalData{}) ||
 		catalog == nil || !catalog.selectedLocked(r) || r.pending != nil || r.confirmed.failedS ||
 		r.groupModels[0] == nil || r.groupModels[1] == nil {
 		return nil, errProviderIntegration
@@ -126,6 +128,27 @@ func (f *providerHistoryFinalOwner) finishCandidate(ctx context.Context, catalog
 	}
 	out := &providerHistoryFinalResult{final: f, checkpoint: r.confirmed, catalog: catalog, cursor: copy, begin: f.begin}
 	out.owner = out
+	// Prepare the fixed result while the original final observer is active.
+	// No model/catalog pointer or oversized original backing escapes in DATA.
+	preparation, preparationOK := providerHistoryFinalDataPreparationUpper(uint64(len(f.begin.ClockID)))
+	if !preparationOK || !m.preflightWork(preparation) {
+		return nil, errProviderIntegration
+	}
+	data, dataOK := providerHistoryFinalDataCopyObserved(providerHistoryFinalData{
+		program: f.parent.bounds.program, costs: f.parent.bounds.costs, profile: f.parent.config.profile,
+		manifest: f.parent.collectionDigest, model: r.confirmed.model, commit: r.confirmed.pin.commit, collection: root,
+		selected: a.selection.selected, clockID: f.begin.ClockID, epoch: f.begin.Epoch,
+		beginWall: f.begin.WallMS, beginMonotonic: f.begin.MonotonicMS, beginUncertainty: f.begin.UncertaintyMS,
+		groups: a.completed, sequence: r.confirmed.pin.sequence, files: catalog.files, bytes: catalog.bytes,
+		entries: catalog.entries, names: catalog.names, retention: r.confirmed.retention,
+	}, m)
+	if !dataOK || !m.event(providerCopyEvent, uint64(reflect.TypeFor[providerHistoryFinalData]().Size())) {
+		return nil, errProviderIntegration
+	}
+	out.data = data
+	// Seal the complete DATA and the sole issued result before C1. Only
+	// terminal numeric end/work fields are published to both values later.
+	f.preparedData, f.result = data, out
 	// The catalog witness was current above. Subsequent copies/observations
 	// intentionally stale its work marker; it cannot become a final claim.
 	if !r.finalCatalogRootsLocked(ctx, r.catalogAfter) || !f.activeLocked(m) || m.clocks != 1 || m.historyClockClaims != 1 {
@@ -154,6 +177,10 @@ func (f *providerHistoryFinalOwner) finishCandidate(ctx context.Context, catalog
 		return nil, errProviderIntegration
 	}
 	out.end, out.work = end, m.actual
+	out.data.endWall, out.data.endMonotonic, out.data.endUncertainty = end.WallMS, end.MonotonicMS, end.UncertaintyMS
+	out.data.work = m.actual
+	f.preparedData.endWall, f.preparedData.endMonotonic, f.preparedData.endUncertainty = end.WallMS, end.MonotonicMS, end.UncertaintyMS
+	f.preparedData.work = m.actual
 	r.group.phase = "verified"
 	f.stopLocked(false)
 	return out, nil
