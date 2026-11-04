@@ -23,6 +23,7 @@ func TestProviderHistoryFinalReaderConnectsCollectionAndTwoFreshOriginalModels(t
 	recoveryWork := p.recovery.meter.actual
 	out, err := p.runVerifiedCollectionWithConnectionsCandidate(context.Background(), historyCollectionRecordedRunConnections(t, in, recorded))
 	if err != nil || out == nil {
+		historyFinalFailureDiagnostics(t, f)
 		t.Fatal("normal collection and independent successful readback", err)
 	}
 	r, g := f.reader, p.group
@@ -218,5 +219,21 @@ func historyFinalObservationRouting(t *testing.T, f *providerHistoryFinalOwner) 
 	before = m.actual
 	if !providerInventoryOrderObserved(entries, m) || entries[0].kind != "exchange" || m.actual[10] <= before[10] || m.failed {
 		t.Fatal("final inventory ordering lost bounded observed comparisons")
+	}
+}
+
+// Report only scalar progress and admitted counters after the caller returns.
+// This diagnostic reads no original payloads, invokes no owner predicates and
+// changes no meter, failure flag, cancellation decision or test expectation.
+func historyFinalFailureDiagnostics(t *testing.T, f *providerHistoryFinalOwner) {
+	t.Helper()
+	if f == nil || f.reader == nil || f.reader.meter == nil {
+		t.Log("final reader diagnostic: no selected reader")
+		return
+	}
+	r, m := f.reader, f.reader.meter
+	t.Logf("final reader progress: inputFiles=%d/%d inputBytes=%d/%d clocks=%d claims=%d actual=%v upper=%v catalogBefore=%t catalogAfter=%t catalogResult=%t", r.inputFiles, r.bounds.maximumFiles, r.inputBytes, r.bounds.maximumBytes, m.clocks, m.historyClockClaims, m.actual, m.upper, r.catalogBefore != nil, r.catalogAfter != nil, r.catalogResult != nil)
+	for pass := range 2 {
+		t.Logf("final reader pass %d: inventory=%t scan=%t prefix=%t initial=%t group=%t completed=%t tail=%t", pass, r.inventoryWalks[pass] != nil, r.scanWalks[pass] != nil, r.legacyPrefixes[pass] != nil, r.initialModels[pass] != nil, r.groupModels[pass] != nil, r.completedMemberModels[pass] != nil, r.tailModels[pass] != nil)
 	}
 }
