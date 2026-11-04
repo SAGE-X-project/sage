@@ -14,7 +14,8 @@ import registry_test_shards as m
 
 ROOTS = [
     "TestProviderHistoryCollectionNormal", "TestProviderHistoryRecoveryNormal",
-    "TestProviderHistoryNormal", "TestProviderNormal", "ExampleNormal",
+    "TestProviderHistoryNormal", "TestProviderHistoryOther",
+    "TestProviderNormal", "ExampleNormal",
     m.RECOVERY_ROOT,
 ]
 
@@ -114,6 +115,47 @@ class EvidenceFixture(unittest.TestCase):
                                                   isolated["selected_roots"]), 2)
         with self.assertRaises(ValueError):
             m.plan(discovery([name for name in ROOTS if name != m.RECOVERY_ROOT]), "source", 4)
+
+    def test_history_workers_match_fixed_utf8_hash_and_family_precedence(self):
+        # Independent fixed assignments cover both workers and a UTF-8 root.
+        # Family exceptions still take priority.
+        cases = {
+            "TestProviderHistoryNormal": 3,
+            "TestProviderHistoryOther": 2,
+            "TestProviderHistoryFinalOrdinary": 2,
+            "TestProviderHistoryUniformSourceUsesOriginalUniformRoleMaxima": 3,
+            "TestProviderHistoryΕ": 2,
+            "TestProviderHistoryCollectionNormal": 0,
+            "TestProviderHistoryRecoveryNormal": 1,
+            m.RECOVERY_ROOT: 4,
+            m.RECOVERY_ROOT + "Extra": 1,
+            "TestProviderNormal": 3,
+            "ExampleNormal": 3,
+        }
+        for name, expected in cases.items():
+            with self.subTest(name=name):
+                self.assertEqual(m.shard_number(name), expected)
+
+    def test_history_balance_keeps_complete_disjoint_plans_in_any_discovery_order(self):
+        roots = ROOTS + ["TestProviderHistoryFinalOrdinary", "TestProviderHistoryΕ"]
+        for role in ("source", "provider"):
+            with self.subTest(role=role):
+                expected = sorted(roots if role == "source" else
+                                  [name for name in roots if name != "ExampleNormal"])
+                observed = []
+                for index in range(m.SHARDS):
+                    first = m.plan(discovery(roots), role, index)
+                    reversed_order = m.plan(discovery(list(reversed(roots))), role, index)
+                    self.assertEqual(first["selected_roots"], reversed_order["selected_roots"])
+                    self.assertEqual(first["run_pattern"], reversed_order["run_pattern"])
+                    self.assertEqual(m.validate_tests(results(first["selected_roots"], "/normal"),
+                                                      first["selected_roots"]),
+                                     2 * len(first["selected_roots"]))
+                    observed.extend(first["selected_roots"])
+                self.assertEqual(sorted(observed), expected)
+                self.assertEqual(len(observed), len(set(observed)))
+                self.assertIn("TestProviderHistoryOther", m.plan(discovery(roots), role, 2)["selected_roots"])
+                self.assertIn("TestProviderHistoryNormal", m.plan(discovery(roots), role, 3)["selected_roots"])
 
     def test_unicode_compiled_roots_remain_in_the_complete_partition(self):
         unicode_tests = [

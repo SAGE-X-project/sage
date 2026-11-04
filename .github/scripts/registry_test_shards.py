@@ -130,7 +130,9 @@ def shard_number(name):
     if name.startswith("TestProviderHistoryRecovery"):
         return 1
     if name.startswith("TestProviderHistory"):
-        return 2
+        # Spread the remaining history roots without depending on discovery
+        # order, Python's randomized hash seed or timing from an earlier run.
+        return 2 + (hashlib.sha256(name.encode("utf-8")).digest()[0] & 1)
     return 3
 
 

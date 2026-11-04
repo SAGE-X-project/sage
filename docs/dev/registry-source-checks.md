@@ -1562,6 +1562,16 @@ Other recovery roots remain in partition 1. The evidence format is
 the same source identity and the exact complete root union. Missing or failed
 partitions cannot supply the successful Source or Provider evidence.
 
+Remaining `TestProviderHistory` roots are divided between partitions 2 and 3
+using the low bit of the first SHA-256 byte of each complete UTF-8 root name.
+The collection/recovery/exact maximum-recovery exceptions retain precedence.
+The assignment is independent of discovery order and Python hash randomization;
+every root and all its children still run in exactly one complete partition.
+Current source identities bind the assignment, and assembly still validates the
+exact five-way union before any coverage or downstream consumer can use it.
+This reduces concentration in one worker; it does not guarantee a future runtime
+or change any test timeout, native bound, race mode or coverage requirement.
+
 This separates one expensive fixture from accumulated process instrumentation;
 it does not establish the cause of an earlier native-duration refusal or ensure
 a future pass. The native 300000 ms ceiling, race instrumentation, complete test
