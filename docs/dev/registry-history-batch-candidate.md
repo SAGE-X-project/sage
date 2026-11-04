@@ -4396,3 +4396,24 @@ strict file lists include the new production file with the same90% threshold.
 The existing four typed-context cost regressions also run in both bounded early
 checks before the complete race partitions, under the unchanged8m timeout. No
 native result or coverage improvement is inferred from these source changes.
+
+
+### Uniform assigned source compilation
+
+The numeric source compiler visits every prospective original prior cut in the
+sealed manifest. It retains coordinate maxima separately inside I/B/P/M/C/A,
+then composes B + entered P + 32 full M + C + own A. The unchanged uniform
+admission retains each full stage, including final unused advance room. Future
+work therefore contains the complete stage SUM, plus the assigned initial row
+and the existing firstRead bridge once. It is never only a MAX across stages.
+The active method capture maximum cannot replace the original global wire
+admission; the compiler retains global WireBytes+1 per member.
+
+These are the currently assigned components, not a complete source derivation.
+The original initializer preflight/headroom, other incoming/uncertain-failure,
+recovery/final, native CPU/backing/peak/lifetime RAM and sufficient-and-feasible
+same-profile proof remain required. No native tail, source witness, actual
+caller permission or new resource profile is manufactured by this arithmetic.
+The existing payload/other ceilings and operating inactivity remain unchanged.
+The four storage and five source/arithmetic test roots are authored but have
+not been executed for this unpublished candidate.

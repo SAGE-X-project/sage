@@ -382,6 +382,7 @@ jobs:
               'pkg/agent/registry011/provider_history_final_owner.go': [0, 0],
               'pkg/agent/registry011/provider_history_final_read.go': [0, 0],
               'pkg/agent/registry011/provider_history_uniform_storage_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_uniform_source_bound.go': [0, 0],
               'pkg/agent/registry011/provider_history_original_reconstruction.go': [0, 0],
               'pkg/agent/registry011/provider_first_admission_operation_diagnostic.go': [0, 0],
               'pkg/agent/registry011/source_reconfiguration.go': [0, 0],
