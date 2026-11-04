@@ -79,8 +79,11 @@ func providerHistoryMemberContextUpper(in providerHistoryMemberContextInput) (pr
 		uint64(reflect.TypeFor[providerHistoryMemberAncestorValue]().Size()),
 		uint64(reflect.TypeFor[providerHistoryMemberAncestorFact]().Size()),
 	}
+	// The final row adds17 nodes twice: once in bounds and once in the
+	// derivation snapshot. Each value is final+read structs, work array+11
+	// uints, two input maxima and elapsedMS. String leaves stay unchanged.
 	// One compare(0) per visited node in the actual finite reflection walk.
-	nodes := [6]uint64{1007, 73, 110, 196, 396, 122}
+	nodes := [6]uint64{1041, 73, 110, 196, 396, 122}
 	for i := range out.weights {
 		out.weights[i] = a.sum(sizes[i], strings[i])
 		out.walks[10] = a.sum(out.walks[10], a.product(out.walkCalls[i], nodes[i]))

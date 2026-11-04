@@ -82,7 +82,7 @@ func providerHistoryCollectionRetainedContextRoleUpper(manifest *providerHistory
 	out.beforeWalk = [6]uint64{1, 1, 2, 2, out.ancestors, out.priorMembers}
 	out.beforeEqual = out.beforeWalk
 	out.memberEqual = [6]uint64{4, 2, 4, 8, a.product(4, out.ancestors), a.product(4, out.priorMembers)}
-	nodes := [6]uint64{1007, 73, 110, 196, 396, 122}
+	nodes := [6]uint64{1041, 73, 110, 196, 396, 122}
 	var before, member uint64
 	for i, weight := range out.weights {
 		equality := a.sum(a.product(2, weight), 1)

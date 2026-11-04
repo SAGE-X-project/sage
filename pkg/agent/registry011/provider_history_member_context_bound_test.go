@@ -14,11 +14,11 @@ func TestProviderHistoryMemberContextUpperMatchesIndependentLiterals(t *testing.
 		claimCopies, ancestorRows, facts   uint64
 		memberArrays, heads, totalBase     uint64
 	}{
-		{providerHistoryMemberContextInput{1, 1, 2}, [6]uint64{1, 1, 2, 2, 3, 0}, [6]uint64{5, 3, 6, 10, 15, 0}, 2883, 14, 9309257811, 12, 3, 0, 0, 532, 9309261240},
-		{providerHistoryMemberContextInput{1, 32, 2048}, [6]uint64{1, 1, 2, 2, 3, 0}, [6]uint64{129, 65, 130, 258, 387, 0}, 2883, 262, 236851311561, 260, 3, 0, 0, 17024, 236851331730},
-		{providerHistoryMemberContextInput{2, 3, 2048}, [6]uint64{2, 2, 4, 4, 9, 2}, [6]uint64{14, 8, 16, 28, 69, 10}, 7201, 53, 34473107601, 32, 9, 2, 1, 1596, 34473116451},
-		{providerHistoryMemberContextInput{2, 4, 2048}, [6]uint64{2, 2, 4, 4, 9, 3}, [6]uint64{18, 10, 20, 36, 93, 19}, 7323, 69, 45864870084, 40, 9, 3, 1, 2128, 45864879604},
-		{providerHistoryMemberContextInput{3, 96, 2048}, [6]uint64{3, 3, 6, 6, 18, 96}, [6]uint64{387, 195, 390, 774, 2322, 12384}, 23934, 1557, 1778616684612, 780, 18, 96, 3, 51072, 1778616761175},
+		{providerHistoryMemberContextInput{1, 1, 2}, [6]uint64{1, 1, 2, 2, 3, 0}, [6]uint64{5, 3, 6, 10, 15, 0}, 2917, 14, 9309257811, 12, 3, 0, 0, 532, 9309261274},
+		{providerHistoryMemberContextInput{1, 32, 2048}, [6]uint64{1, 1, 2, 2, 3, 0}, [6]uint64{129, 65, 130, 258, 387, 0}, 2917, 262, 236851311561, 260, 3, 0, 0, 17024, 236851331764},
+		{providerHistoryMemberContextInput{2, 3, 2048}, [6]uint64{2, 2, 4, 4, 9, 2}, [6]uint64{14, 8, 16, 28, 69, 10}, 7269, 53, 34473107601, 32, 9, 2, 1, 1596, 34473116519},
+		{providerHistoryMemberContextInput{2, 4, 2048}, [6]uint64{2, 2, 4, 4, 9, 3}, [6]uint64{18, 10, 20, 36, 93, 19}, 7391, 69, 45864870084, 40, 9, 3, 1, 2128, 45864879672},
+		{providerHistoryMemberContextInput{3, 96, 2048}, [6]uint64{3, 3, 6, 6, 18, 96}, [6]uint64{387, 195, 390, 774, 2322, 12384}, 24036, 1557, 1778616684612, 780, 18, 96, 3, 51072, 1778616761277},
 	} {
 		got, ok := providerHistoryMemberContextUpper(tc.input)
 		sizes := [6]uint64{
@@ -80,7 +80,7 @@ func TestProviderHistoryMemberContextTypeCeilingsMatchActualWalks(t *testing.T) 
 		nodes, leaves uint64
 		depth         int
 	}{
-		{providerHistoryMemberReplayContext{}, 1007, 227, 6}, {providerHistoryCustodyFrame{}, 73, 44, 4},
+		{providerHistoryMemberReplayContext{}, 1041, 227, 6}, {providerHistoryCustodyFrame{}, 73, 44, 4},
 		{providerHistoryMemberReadContext{}, 110, 44, 4}, {providerHistoryMemberClaimInput{}, 196, 83, 5},
 		{providerHistoryMemberAncestorValue{}, 396, 140, 6}, {providerHistoryMemberAncestorFact{}, 122, 28, 4},
 	} {
@@ -122,7 +122,7 @@ func TestProviderHistoryMemberContextBoundCoversGenuineClaimsAndArchivedFacts(t 
 	if !ok {
 		t.Fatal("original directories must fit the separate prospective selection")
 	}
-	historyMemberContextOriginalDATA(t, q.fixed, q.fixedComparison, upper.weights[0], 1007)
+	historyMemberContextOriginalDATA(t, q.fixed, q.fixedComparison, upper.weights[0], 1041)
 	historyMemberContextOriginalDATA(t, q.consumption.frame, q.frameComparison, upper.weights[1], 73)
 	for role := range 2 {
 		historyMemberContextOriginalDATA(t, q.readContexts[role], q.readComparisons[role], upper.weights[2], 110)
@@ -211,16 +211,16 @@ func TestProviderHistoryMemberContextShortageKeepsOriginalWalkPrefix(t *testing.
 	}
 	q, before := d.memberReplaySeal, o.meter.actual
 	weight := q.fixedComparison
-	m := providerHistoryContentUnitMeter(candidateWorkVector{10: 1007 + 2*weight})
+	m := providerHistoryContentUnitMeter(candidateWorkVector{10: 1041 + 2*weight})
 	got, ok := providerHistoryMemberComparisonWeightObserved(q.fixed, m)
-	if !ok || got != weight || m.actual != (candidateWorkVector{10: 1007}) || m.failed {
+	if !ok || got != weight || m.actual != (candidateWorkVector{10: 1041}) || m.failed {
 		t.Fatal("real finite walk must precede its insufficient equality event")
 	}
-	if providerHistoryMemberEqualObserved(q.fixed, q.fixed, got, m) || !m.failed || m.actual != (candidateWorkVector{10: 1007}) {
+	if providerHistoryMemberEqualObserved(q.fixed, q.fixed, got, m) || !m.failed || m.actual != (candidateWorkVector{10: 1041}) {
 		t.Fatal("one-short DATA equality spent or refunded its earlier walk")
 	}
 	if _, ok := providerHistoryMemberComparisonWeightObserved(q.fixed, m); ok ||
-		providerHistoryMemberEqualObserved(q.fixed, q.fixed, got, m) || m.actual != (candidateWorkVector{10: 1007}) ||
+		providerHistoryMemberEqualObserved(q.fixed, q.fixed, got, m) || m.actual != (candidateWorkVector{10: 1041}) ||
 		o.meter.actual != before || q.revoked || !d.memberReplaySelectedLocked() {
 		t.Fatal("spent DATA observer retried or altered its original live owner")
 	}
