@@ -40,6 +40,7 @@ CONTROLS = (
 )
 RECOVERY_ROOT = "TestProviderHistoryRecoveryGroupReconstructsConsumedSuccessfulAndFailedPrefixesTwice"
 CPU_ROOT = "TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals"
+FINAL_REFUSAL_ROOT = "TestProviderHistoryFinalReaderRefusesUnfundedReadWithoutExecutionBorrow"
 
 
 def require(condition, message):
@@ -128,6 +129,10 @@ def shard_number(name):
     if name.startswith("TestProviderHistoryCollection"):
         return 0
     if name.startswith("TestProviderHistoryRecovery"):
+        return 1
+    if name == FINAL_REFUSAL_ROOT:
+        # Keep this complete owned readback fixture off the long-running
+        # ordinary history worker. No child, observer or quota is shared.
         return 1
     if name.startswith("TestProviderHistoryFinal"):
         # Keep each original-read scenario whole, and leave the isolated

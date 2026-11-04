@@ -1568,6 +1568,13 @@ The collection/recovery/exact maximum-recovery exceptions retain precedence.
 Successful-final read roots are a separate exception: the full UTF-8 SHA-256
 value modulo four selects partitions 0 through 3, leaving partition 4 isolated.
 The low two bits of the digest's last byte compute that same modulo.
+The exact `TestProviderHistoryFinalReaderRefusesUnfundedReadWithoutExecutionBorrow`
+root instead belongs to worker 1 in both roles. This keeps its complete owned
+readback fixture off worker 2, where the fallback hash would place it. Only that
+exact name is exceptional; similarly named roots retain their ordinary hash.
+The current Source/Provider worker 1 jobs ended in about 40/33 minutes while
+worker 2 remained active beyond 100 minutes. These are observations of the prior
+source, not a measured runtime for the added test or a guarantee for new CI.
 The assignment is independent of discovery order and Python hash randomization;
 every root and all its children still run in exactly one complete partition.
 Current source identities bind the assignment, and assembly still validates the

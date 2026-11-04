@@ -142,6 +142,8 @@ class EvidenceFixture(unittest.TestCase):
             "TestProviderHistoryFinalFinishRejectsMissingModel": 1,
             "TestProviderHistoryFinalVerificationClosesAtCatalogEnd": 2,
             "TestProviderHistoryFinalReaderConnectsCollectionAndTwoFreshOriginalModels": 3,
+            "TestProviderHistoryFinalReaderRefusesUnfundedReadWithoutExecutionBorrow": 1,
+            "TestProviderHistoryFinalReaderRefusesUnfundedReadWithoutExecutionBorrowExtra": 0,
         }
         for name, expected in cases.items():
             with self.subTest(name=name):
