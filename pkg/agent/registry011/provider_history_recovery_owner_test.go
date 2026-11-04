@@ -38,15 +38,135 @@ func TestProviderHistoryRecoveryBoundsSeparateReadOnlyResources(t *testing.T) {
 			}
 		})
 	}
-	for i := range b.work {
-		if i == 2 || i == 10 {
-			continue
-		}
+	for _, i := range []int{0, 1, 7, 8, 9} {
 		row := b
 		row.work[i] = 1
 		if row.valid(s.config.bounds, catalog) {
 			t.Fatal("read-only lane accepted an effect coordinate", i)
 		}
+	}
+	for _, coordinate := range []int{3, 4, 5, 6} {
+		row := b
+		row.work[coordinate] = 1
+		if !row.valid(s.config.bounds, catalog) {
+			t.Fatal("original historical semantic observation was confused with an effect", coordinate)
+		}
+	}
+}
+
+// Independent structural literals for two monotone original readbacks. This
+// constructs manifest DATA only: no store, native clock, transport or owner of
+// an operating program is opened. JSON additionally prices both its successful
+// projection and one first-aborting projection; RLP has no projection counters.
+func TestProviderHistoryReadSemanticReservationUsesOriginalSourceCounts(t *testing.T) {
+	for _, tc := range []struct {
+		name, encoding string
+		effects        uint64
+		want           candidateWorkVector
+	}{
+		{"rlp", "debug-raw-rlp-v1", 0, candidateWorkVector{3: 4, 4: 6144, 6: 24576}},
+		{"json", EthereumJSONBlocks, 0, candidateWorkVector{3: 8, 4: 10240, 6: 40960}},
+		{"rlp-with-effect", "debug-raw-rlp-v1", 1, candidateWorkVector{3: 4, 4: 6144, 5: 1024, 6: 40960}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			manifest := historyReadSemanticManifest(t, tc.encoding, tc.effects)
+			before := *manifest
+			got, ok := providerHistoryCollectionReadSemanticUpper(manifest)
+			if !ok || got != tc.want || !providerHistoryReadWorkDomain(got) || *manifest != before {
+				t.Fatal("two original readbacks lost their independent source-count literal or changed the selected input", got, ok)
+			}
+		})
+	}
+}
+
+func TestProviderHistoryReadSemanticReservationRefusesUnboundManifest(t *testing.T) {
+	if out, ok := providerHistoryCollectionReadSemanticUpper(nil); ok || out != (candidateWorkVector{}) {
+		t.Fatal("nil manifest returned a structural reservation")
+	}
+	for _, mode := range []string{"copied", "input", "counts", "raw"} {
+		t.Run(mode, func(t *testing.T) {
+			manifest := historyReadSemanticManifest(t, "debug-raw-rlp-v1", 0)
+			switch mode {
+			case "copied":
+				copy := *manifest
+				manifest = &copy
+			case "input":
+				manifest.input.contentBlocks++
+			case "counts":
+				manifest.counts.contentWindows++
+			case "raw":
+				manifest.raw += " "
+			}
+			if out, ok := providerHistoryCollectionReadSemanticUpper(manifest); ok || out != (candidateWorkVector{}) {
+				t.Fatal("unbound manifest returned complete or partial structural work", mode)
+			}
+		})
+	}
+}
+
+func historyReadSemanticManifest(t *testing.T, encoding string, effects uint64) *providerHistoryCollectionManifest {
+	t.Helper()
+	in := historyCollectionInput(t)
+	in.encoding, in.gas = encoding, SepoliaAmsterdamGasProfile
+	in.maximumSelected, in.blocks, in.native = sepoliaDeploymentBlock, 1, 1
+	in.effects, in.versions, in.presentStops = effects, 0, 0
+	in.windowBlocks, in.contentBlocks = 1, 1
+	in.journal.Replay.MaxTransactions, in.journal.Replay.MaxFrames = 1024, 256
+	in.journal.Replay.MaxLogs, in.journal.Replay.MaxEvidenceBytes = 4096, 8<<20
+	in.capture.BodyBytes = 240 << 10
+	return historyCollectionManifest(t, in)
+}
+
+// These are direct shared-decoder primitive checks, not a full block replay or
+// proof of an end-to-end final reader's failure location. Each case uses a fresh
+// genuine failed-inspection owner whose deficient semantic row was selected
+// before H0. No live allowance, role, counter or observer is substituted.
+func TestProviderHistoryReadSemanticPrimitiveRefusalPreservesOriginalPrefix(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		coordinate int
+		observe    func(*replayBudget) bool
+	}{
+		{"block", 3, (*replayBudget).blockObserved},
+		{"transaction", 4, (*replayBudget).transactionObserved},
+		{"frame", 5, (*replayBudget).frameObserved},
+		{"log", 6, func(b *replayBudget) bool { return b.logsObserved(1) }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g, _ := historyMemberDispatchFixture(t, 1)
+			s, r := g.store, g.parent.recovery
+			s.mu.Lock()
+			g.failLocked()
+			s.mu.Unlock()
+			if r.beginInspectionCandidate(context.Background(), g) != nil {
+				t.Fatal("original failed-inspection entry")
+			}
+			s.mu.Lock()
+			m := r.meter
+			m.mu.Lock()
+			eligible := m.owner == m && m.historyRecovery == r && m.hasOwner() && !m.failed && !m.closed &&
+				r.bounds.work[tc.coordinate] == 0 && m.upper[tc.coordinate] == 0
+			m.mu.Unlock()
+			execution, reads, held, pin := g.meter.actual, s.clock.read, s.stored, g.pin
+			if !eligible || !m.event(providerCopyEvent, 0) {
+				s.mu.Unlock()
+				t.Fatal("genuine active original owner before the targeted primitive")
+			}
+			before := m.actual
+			budget := replayBudget{observer: m}
+			if tc.observe(&budget) || !m.failed || m.actual != before || m.clocks != 0 ||
+				tc.observe(&budget) || m.actual != before {
+				s.mu.Unlock()
+				t.Fatal("unfunded shared primitive suppressed its observation, partly debited or retried", tc.coordinate)
+			}
+			r.stopLocked(true)
+			s.mu.Unlock()
+			if !r.used || r.active || !r.closed || !r.failed || !m.closed || !m.failed ||
+				g.meter.actual != execution || s.clock.read != reads || s.stored != held || g.pin != pin ||
+				s.activeMeter.Load() != nil || r.beginInspectionCandidate(context.Background(), g) == nil || m.actual != before {
+				t.Fatal("primitive refusal refunded the original prefix or restored an execution role")
+			}
+		})
 	}
 }
 

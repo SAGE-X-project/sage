@@ -4439,3 +4439,44 @@ and late overflow in both selected work domains. They are NOT_RUN. This fixes
 numeric initializer headroom only. It supplies no production derivation, live
 source, native CPU/backing/peak/lifetime RAM proof or same-profile feasibility,
 and does not classify or fix the separate observed final-reader failure.
+
+### Original reconstruction semantic reservations
+
+Read-only reconstruction still interprets retained blocks, transactions, frames
+and logs through the original observed decoder. These four historical counters
+are not network, proof acquisition, segment acquisition or write permission.
+The recovery and successful-final DATA rows now accept those semantic domains;
+requests, wire bytes, proofs, segments and writes remain zero. The primitive
+allowlist, original owner predicates, sticky refusal and separate clock claims
+are unchanged.
+
+A conditional structural component binds the sealed collection range, replay
+and capture caps to two fresh monotone original reconstruction journeys. It
+retains the existing content component's acquisition, semantic, JSON projection
+and first-aborting-transition counts. The original read-only native selector
+uses its existing64MiB transaction guard; the narrower execution-only selector
+is not substituted. The component returns only block/transaction/frame/log
+DATA. Byte, codec, logical, native CPU, memory and all other caller costs remain
+separate. A failed child or checked multiplication returns the whole zero row.
+
+The owned recorded UNIT fixtures select this component before profile, anchor,
+H0 and either read observer. Recovery and final rows are separate additions to
+the same whole hold; they cannot spend execution or either of the final two
+clock units. Earlier transport-only UNIT fixtures retain their old selections.
+No production derivation factory or operating profile is created by this change.
+
+Independent RLP/JSON/effect literals and unbound-manifest refusals are authored
+alongside a whole-hold separation test. The existing genuine positive final
+readback additionally requires actual funded historical observations. A separate
+pre-H0 UNIT selection omits block capacity and checks entered semantic-read
+refusal after its genuine first-finalized selection, quarantine and no borrowing
+or refund; it does not identify that end-to-end call's exact failing primitive.
+A separate lightweight genuine failed-inspection owner directly exercises each
+shared block/transaction/frame/log primitive's first-false and unchanged actual
+prefix, with sticky cleanup and no reentry. This is not a complete block replay
+or a replacement for the funded final journey and final clock-window tests.
+Both strict inventories include the changed recovery/final bounds files, with
+Source57 and unchanged Provider323 targets and the same per-file90 threshold.
+These changes are NOT_RUN until fresh CI tests this exact source. They address
+the identified structural reservation defect, not every current CI failure or
+full all-eleven/native/resource/feasibility qualification.

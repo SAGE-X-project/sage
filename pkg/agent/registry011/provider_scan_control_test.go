@@ -29,33 +29,34 @@ func providerScanProvisionedFixtureWithFirstPolicy(t *testing.T, first *provider
 
 // An optional separate test profile is fixed before its first anchor/H0/clock.
 type providerScanFixtureSelection struct {
-	capture                      *ProviderCaptureLimits
-	tls                          *providerTLSBounds
-	continuingWire               bool
-	pin                          bool
-	pinResidentGiB               bool
-	pinLargeObject               bool
-	historyProgram               bool
-	historyShortStartup          bool
-	historyGroupInit             bool
-	historyGroupWrite            bool
-	historyGroupConsume          bool
-	historyGroupDispatch         bool
-	historyStages                uint64
-	historyStageMembers          int
-	historyDispatchRows          *providerHistoryDispatchBounds
-	historyCollection            *providerHistoryCollectionManifest
-	historyCollectionAdmission   bool
-	historyCollectionFirstP      bool
-	historyCollectionFullPack    bool
-	historyCollectionRecordedRun bool
-	historyFinalRead             bool
-	historyFinalReadUnits        uint64
-	historyFirstPDecoded         uint64
-	historyNativeInputCounts     bool
-	historyRecoveryNamespace     bool
-	historyRecoveryLegacy        bool
-	historyRecoveryGroup         bool
+	capture                       *ProviderCaptureLimits
+	tls                           *providerTLSBounds
+	continuingWire                bool
+	pin                           bool
+	pinResidentGiB                bool
+	pinLargeObject                bool
+	historyProgram                bool
+	historyShortStartup           bool
+	historyGroupInit              bool
+	historyGroupWrite             bool
+	historyGroupConsume           bool
+	historyGroupDispatch          bool
+	historyStages                 uint64
+	historyStageMembers           int
+	historyDispatchRows           *providerHistoryDispatchBounds
+	historyCollection             *providerHistoryCollectionManifest
+	historyCollectionAdmission    bool
+	historyCollectionFirstP       bool
+	historyCollectionFullPack     bool
+	historyCollectionRecordedRun  bool
+	historyFinalRead              bool
+	historyFinalReadUnits         uint64
+	historyFinalReadWithoutBlocks bool
+	historyFirstPDecoded          uint64
+	historyNativeInputCounts      bool
+	historyRecoveryNamespace      bool
+	historyRecoveryLegacy         bool
+	historyRecoveryGroup          bool
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -290,6 +291,19 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 		if selected.historyCollectionAdmission {
 			providerHistoryCollectionAdmissionTestBounds(t, &b, capture, selected.historyNativeInputCounts, selected.historyCollectionFullPack, selected.historyCollectionRecordedRun)
 		}
+		// These source-derived structural rows belong to the TWO read-only
+		// reconstructions, not the live collector. Select them before profile,
+		// anchor, H0 or either original observer; never borrow execution work.
+		// Earlier transport/shape-only UNIT profiles keep their original rows.
+		if selected.historyCollectionRecordedRun {
+			semantic, ok := providerHistoryCollectionReadSemanticUpper(b.history.collection)
+			if !ok {
+				t.Fatal("finite original collection reconstruction component")
+			}
+			for coordinate := 3; coordinate <= 6; coordinate++ {
+				b.history.recovery.work[coordinate] = semantic[coordinate]
+			}
+		}
 		b.history.derivation.snapshot = *b.history
 		if !b.valid() {
 			t.Fatal("fresh collection UNIT profile")
@@ -303,6 +317,14 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 		h.final = providerHistoryFinalBounds{
 			read:      providerHistoryRecoveryBounds{work: candidateWorkVector{2: 128 << 20, 10: 1 << 56}, maximumFiles: 4096, maximumBytes: 64 << 20},
 			elapsedMS: 300000,
+		}
+		for coordinate := 3; coordinate <= 6; coordinate++ {
+			h.final.read.work[coordinate] = h.recovery.work[coordinate]
+		}
+		if selected.historyFinalReadWithoutBlocks {
+			// A distinct insufficient UNIT selection BEFORE H0. Its actual
+			// decoder cannot fund block observations or borrow execution work.
+			h.final.read.work[3] = 0
 		}
 		if selected.historyFinalReadUnits != 0 {
 			h.final.read.work[10] = selected.historyFinalReadUnits

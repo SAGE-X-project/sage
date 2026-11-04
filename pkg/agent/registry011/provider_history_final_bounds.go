@@ -3,8 +3,8 @@ package registry011
 import "strconv"
 
 // The successful final reader has a disjoint pre-H0 row. It cannot spend the
-// execution or failed-inspection row. Read work is limited to the existing
-// read-only event domain; the two C0/C1 samples are funded separately here.
+// execution or failed-inspection row. Read work includes original historical
+// semantic observations; the two C0/C1 samples are funded separately here.
 // Numeric bounds remain DATA until the complete source derivation exists.
 type providerHistoryFinalBounds struct {
 	read      providerHistoryRecoveryBounds
@@ -28,10 +28,8 @@ func (b providerHistoryFinalBounds) upper() (providerScanUpper, bool) {
 	if b.elapsedMS == 0 || b.elapsedMS > 300000 || b.read.maximumFiles == 0 || b.read.maximumBytes == 0 || b.read.work[2] == 0 || b.read.work[10] == 0 {
 		return empty, false
 	}
-	for coordinate, units := range b.read.work {
-		if coordinate != 2 && coordinate != 10 && units != 0 {
-			return empty, false
-		}
+	if !providerHistoryReadWorkDomain(b.read.work) {
+		return empty, false
 	}
 	units, ok := providerUpperSum(b.read.work[10], 2)
 	if !ok {

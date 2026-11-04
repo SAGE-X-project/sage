@@ -1593,6 +1593,20 @@ This separates one expensive fixture from accumulated process instrumentation;
 it does not establish the cause of an earlier native-duration refusal or ensure
 a future pass. The native 300000 ms ceiling, race instrumentation, complete test
 selection, per-file 90% requirement and downstream consumers remain unchanged.
+
+Original readback also counts the blocks, transactions, frames and logs it
+interprets. A distinct pre-H0 structural read reservation now funds those four
+domains from the sealed collection's source counts for both fresh journeys.
+The recovery and final rows still exclude requests, wire capture, proofs,
+segment acquisition and writes; primitive permissions and two final clock
+claims are unchanged. New safe structural-literal, whole-hold separation,
+entered underfunded-read refusal and genuine-owner first-false primitive
+scenarios are authored but NOT_RUN. The end-to-end refusal does not identify its
+exact failing primitive; the separate primitive test is not a complete original
+block replay. The existing positive readback must observe its real historical
+counters. Both strict inventories include the changed bounds files: Source57,
+Provider323, each still requiring90%. Neither source review nor a partial
+partition result qualifies the complete current suite or coverage.
 Partition 4 also retains a CPU profile of that single complete-root invocation,
 including a nonzero exit result if it fails. This diagnostic is neither another
 attempt nor a replacement for the required successful test and coverage run.

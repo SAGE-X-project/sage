@@ -57,6 +57,46 @@ func TestProviderHistoryFinalReservationIsDisjointBeforeFirstSample(t *testing.T
 	}
 }
 
+func TestProviderHistorySemanticReadReservationsRemainDisjointFromExecution(t *testing.T) {
+	s := providerHistoryParentScalarFixture(t)
+	store, selected := s.config.bounds, *s.config.bounds.history
+	active := s.activeMeter.Load()
+	before, ok := providerHistoryWholeHold(store)
+	if !ok {
+		t.Fatal("existing original whole hold")
+	}
+	recovery := candidateWorkVector{3: 5, 4: 7, 5: 11, 6: 13}
+	for coordinate := 3; coordinate <= 6; coordinate++ {
+		selected.recovery.work[coordinate] = recovery[coordinate]
+	}
+	selected.final = providerHistoryFinalBounds{
+		read: providerHistoryRecoveryBounds{
+			work: candidateWorkVector{2: 19, 3: 17, 4: 23, 5: 29, 6: 31, 10: 71}, maximumFiles: 1, maximumBytes: 1,
+		},
+		elapsedMS: 1,
+	}
+	store.history = &selected
+	selected.derivation.snapshot = selected // Existing scalar UNIT selection before H0.
+	after, valid := providerHistoryWholeHold(store)
+	if !selected.valid(store) || !valid || after.retained != before.retained || after.clocks != before.clocks+2 {
+		t.Fatal("semantic read rows changed storage or the exact two final samples")
+	}
+	for coordinate, actual := range after.work {
+		want := before.work[coordinate] + recovery[coordinate] + selected.final.read.work[coordinate]
+		if coordinate == 10 {
+			want += 2
+		}
+		if actual != want {
+			t.Fatal("independent recovery and final rows overlapped, borrowed execution or were added more than once", coordinate)
+		}
+	}
+	if selected.startup != s.config.bounds.history.startup || selected.future != s.config.bounds.history.future ||
+		providerHistoryPreIUpper(store) != providerHistoryPreIUpper(s.config.bounds) || store.firstAdmission != s.config.bounds.firstAdmission ||
+		s.history != nil || s.clock.read != 0 || s.activeMeter.Load() != active {
+		t.Fatal("read reservation changed the original execution selection or created a live role")
+	}
+}
+
 func TestProviderHistoryFinalReservationRejectsInvalidDomainsAndOverflow(t *testing.T) {
 	base := providerHistoryFinalBounds{
 		read:      providerHistoryRecoveryBounds{work: candidateWorkVector{2: 1, 10: 1}, maximumFiles: 1, maximumBytes: 1},
@@ -92,11 +132,19 @@ func TestProviderHistoryFinalReservationRejectsInvalidDomainsAndOverflow(t *test
 			}
 		})
 	}
-	for coordinate := 3; coordinate < 9; coordinate++ {
+	for _, coordinate := range []int{7, 8} {
 		b := base
 		b.read.work[coordinate] = 1
 		if out, ok := b.upper(); ok || out != (providerScanUpper{}) {
 			t.Fatal("foreign final resource domain", coordinate)
+		}
+	}
+	for _, coordinate := range []int{3, 4, 5, 6} {
+		b := base
+		b.read.work[coordinate] = 1
+		upper, ok := b.upper()
+		if !ok || upper.work[coordinate] != 1 || upper.work[10] != 3 || upper.clocks != 2 {
+			t.Fatal("final reservation lost its historical semantic dimension or borrowed clock work", coordinate)
 		}
 	}
 }

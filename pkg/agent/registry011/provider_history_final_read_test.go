@@ -27,6 +27,11 @@ func TestProviderHistoryFinalReaderConnectsCollectionAndTwoFreshOriginalModels(t
 		t.Fatal("normal collection and independent successful readback", err)
 	}
 	r, g := f.reader, p.group
+	if r.meter.actual[3] == 0 || r.meter.actual[4] == 0 || r.meter.actual[6] == 0 ||
+		r.meter.actual[3] > f.bounds.read.work[3] || r.meter.actual[4] > f.bounds.read.work[4] || r.meter.actual[6] > f.bounds.read.work[6] ||
+		f.bounds.read.work[0] != 0 || f.bounds.read.work[1] != 0 || f.bounds.read.work[7] != 0 || f.bounds.read.work[8] != 0 || f.bounds.read.work[9] != 0 {
+		t.Fatal("final original block/transaction/log observations were suppressed, unfunded or given effects")
+	}
 	if out.owner != out || out.final != f || out.checkpoint != p.recovery.confirmed || out.catalog != r.catalogResult ||
 		out.cursor == nil || out.cursor.phase != "done" || !out.cursor.semantic.atEnd() || out.cursor.completed != 4 ||
 		out.cursor == g.coordinator.collection || out.cursor == g.custodian.collection ||
@@ -64,6 +69,41 @@ func TestProviderHistoryFinalReaderConnectsCollectionAndTwoFreshOriginalModels(t
 		r.meter.actual != work || g.meter.actual != execution || s.clock.read != reads || g.pin != pin || g.failed ||
 		!reflect.DeepEqual(originals, providerHistoryProvisionedOriginalBytes(t, s.config)) {
 		t.Fatal("reentry revived a failure lane, sampled time or changed originals")
+	}
+}
+
+// A distinct, insufficient UNIT selection precedes H0. The benign complete
+// collection runs unchanged; its selected semantic read must be refused without
+// borrowing execution work. This end-to-end assertion does not identify the
+// exact failing primitive. The genuine-owner primitive test checks first-false
+// block/transaction/frame/log debit separately, without another full collection.
+func TestProviderHistoryFinalReaderRefusesUnfundedReadWithoutExecutionBorrow(t *testing.T) {
+	s, in, recorded := historyCollectionRecordedRunStoreWithFinalSelection(t, true, 0, true)
+	p, f := s.history, s.history.final
+	held, origin, ceiling, clocks := s.stored, p.original, p.clockCeiling, s.clock.read
+	recoveryWork := p.recovery.meter.actual
+	if f.bounds.read.work[3] != 0 || f.bounds.read.work[4] == 0 || f.bounds.read.work[6] == 0 {
+		t.Fatal("distinct pre-H0 insufficient structural selection")
+	}
+	out, err := p.runVerifiedCollectionWithConnectionsCandidate(context.Background(), historyCollectionRecordedRunConnections(t, in, recorded))
+	r, g, m := f.reader, p.group, f.reader.meter
+	if err == nil || out != nil || g == nil || !f.used || !f.closed || !f.failed ||
+		!r.used || r.active || !r.closed || !r.failed || !m.closed || !m.failed || m.authority ||
+		m.actual[2] == 0 || m.actual[10] <= 1 || m.actual[3] != 0 || m.actual[4] != 0 || m.actual[5] != 0 || m.actual[6] != 0 ||
+		m.actual[0] != 0 || m.actual[1] != 0 || m.actual[7] != 0 || m.actual[8] != 0 || m.actual[9] != 0 ||
+		m.clocks != 1 || m.historyClockClaims != 1 || r.initialModels[0] == nil || !r.initialModels[0].finalizedSelected ||
+		r.initialModels[0].firstFinalized != in.journal.Deployment || r.groupModels[0] != nil || r.groupModels[1] != nil ||
+		!g.failed || !g.meter.closed || !g.meter.failed || g.meter.actual != f.executionWork || g.meter.clocks != f.executionClocks ||
+		!p.failed || !s.failed || !s.clock.historyRevoked || s.activeMeter.Load() != nil ||
+		s.clock.read != clocks+f.executionClocks+1 || s.stored != held || p.original != origin || p.clockCeiling != ceiling ||
+		p.recovery.meter.actual != recoveryWork || p.recovery.used {
+		t.Fatal("selected unfunded semantic read was accepted, lost its original predecessor or borrowed another role", err)
+	}
+	work, execution, reads, pin := m.actual, g.meter.actual, s.clock.read, g.pin
+	if again, err := f.verifyCandidate(context.Background(), nil); err == nil || again != nil ||
+		m.actual != work || g.meter.actual != execution || s.clock.read != reads || s.stored != held || g.pin != pin ||
+		s.activeMeter.Load() != nil || !f.failed || !g.failed {
+		t.Fatal("failed structural read renewed a counter, original hold, clock or execution role")
 	}
 }
 

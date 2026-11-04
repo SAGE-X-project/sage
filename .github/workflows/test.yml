@@ -378,6 +378,7 @@ jobs:
               'pkg/agent/didsource010/eip155.go': [0, 0],
               'pkg/agent/registry011/source_checkpoint.go': [0, 0],
               'pkg/agent/registry011/provider_history_collection_run.go': [0, 0],
+              'pkg/agent/registry011/provider_history_recovery_bounds.go': [0, 0],
               'pkg/agent/registry011/provider_history_final_bounds.go': [0, 0],
               'pkg/agent/registry011/provider_history_final_owner.go': [0, 0],
               'pkg/agent/registry011/provider_history_final_read.go': [0, 0],
