@@ -1,6 +1,7 @@
 package registry011
 
 import (
+	"context"
 	"encoding/json"
 	"reflect"
 	"testing"
@@ -187,7 +188,7 @@ func TestProviderHistoryFinalDataBindingRejectsChangedValues(t *testing.T) {
 
 func TestProviderHistoryFinalDataReleaseRejectsUnselectedResults(t *testing.T) {
 	for _, out := range []*providerHistoryFinalResult{nil, {}, {final: &providerHistoryFinalOwner{}}} {
-		if got, err := out.closeAndTakeDataCandidate(nil); err == nil || got != (providerHistoryFinalData{}) {
+		if got, err := out.closeAndTakeDataCandidate(context.Background()); err == nil || got != (providerHistoryFinalData{}) {
 			t.Fatal("unselected result produced detached verified DATA", err)
 		}
 	}
