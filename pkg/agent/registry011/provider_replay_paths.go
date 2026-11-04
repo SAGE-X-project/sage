@@ -45,7 +45,7 @@ func (s *providerCustodyStore) copyMeter() *providerWorkMeter {
 // Shared legacy DATA codecs receive the extra copy events only when their
 // concrete current owner belongs to the new pre-H0 V4 accounting revision.
 func providerReplayPhaseBytes(value string, meter *providerWorkMeter) []byte {
-	if meter != nil && meter.historyRecovery != nil {
+	if meter != nil && (meter.historyRecovery != nil || meter.historyFinal != nil) {
 		return providerReplayBytes(value, meter)
 	}
 	var store *providerCustodyStore
@@ -75,7 +75,7 @@ func providerReplayPhaseTextEqual(left, right string, meter *providerWorkMeter) 
 // A V4 original-byte/private-text comparison pays for the real text copy and
 // comparison. Earlier callers preserve their existing zero-extra-event path.
 func providerReplayPhaseRawTextEqual(raw []byte, text string, meter *providerWorkMeter) bool {
-	if meter != nil && meter.historyRecovery != nil {
+	if meter != nil && (meter.historyRecovery != nil || meter.historyFinal != nil) {
 		return providerReplayEqual(raw, providerReplayBytes(text, meter), meter)
 	}
 	var store *providerCustodyStore

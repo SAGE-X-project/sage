@@ -59,6 +59,7 @@ type providerHistoryProgramOwner struct {
 	dispatchBounds                  providerHistoryDispatchBounds
 	collectionAdmission             providerHistoryCollectionAdmissionBounds
 	recovery                        *providerHistoryRecoveryOwner
+	final                           *providerHistoryFinalOwner
 	collectionInput                 providerHistoryCollectionInput
 	collectionRaw, collectionDigest string
 	collectionCounts                providerHistoryCollectionCounts
@@ -110,6 +111,12 @@ func newProviderHistoryProgramBeforeOpenCandidate(s *providerCustodyStore) (*pro
 	p.recovery = newProviderHistoryRecoveryBeforeOpen(p)
 	if p.recovery == nil {
 		return nil, errProviderIntegration
+	}
+	if p.bounds.final != (providerHistoryFinalBounds{}) {
+		p.final = newProviderHistoryFinalBeforeOpen(p)
+		if p.final == nil {
+			return nil, errProviderIntegration
+		}
 	}
 	s.history, c.history = p, p
 	return p, nil

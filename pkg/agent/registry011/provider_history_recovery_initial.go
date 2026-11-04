@@ -57,6 +57,10 @@ func (r *providerHistoryRecoveryOwner) prepareInitialDescriptorLocked(c *provide
 // Scalar provenance and finite shape only. In particular, do not compare with
 // mutable first-body/cache DATA after failure or call a legacy active reader.
 func (r *providerHistoryRecoveryOwner) initialDescriptorShapeLocked(g *providerHistoryGroupOwner) bool {
+	if r != nil && r.final != nil {
+		original := r.recordedOwnerLocked()
+		return original != nil && original.initialDescriptorShapeLocked(g)
+	}
 	if r == nil || r.initialDescriptor == nil || r.initial == nil || r.parent == nil || r.store == nil || g == nil || g != r.originalGroup || r.config.bounds.scan == nil {
 		return false
 	}

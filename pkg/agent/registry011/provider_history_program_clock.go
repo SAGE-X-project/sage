@@ -21,6 +21,9 @@ func (p *providerHistoryProgramOwner) clockRoleLocked(m *providerWorkMeter) bool
 		return false
 	}
 	s := p.store
+	if m.historyFinal != nil {
+		return p.final != nil && m.historyFinal == p.final && p.final.activeLocked(m)
+	}
 	if m.historyGroup != nil {
 		return p.group != nil && p.group == m.historyGroup && p.group.activeLocked(m)
 	}

@@ -46,6 +46,16 @@ func historyCollectionRecordedRunManifest(t *testing.T) (*providerHistoryCollect
 
 func historyCollectionRecordedRunStore(t *testing.T) (*providerCustodyStore, providerHistoryCollectionInput, map[string]json.RawMessage) {
 	t.Helper()
+	return historyCollectionRecordedRunStoreWithFinal(t, false)
+}
+
+func historyCollectionRecordedRunStoreWithFinal(t *testing.T, final bool) (*providerCustodyStore, providerHistoryCollectionInput, map[string]json.RawMessage) {
+	t.Helper()
+	return historyCollectionRecordedRunStoreWithFinalUnits(t, final, 0)
+}
+
+func historyCollectionRecordedRunStoreWithFinalUnits(t *testing.T, final bool, units uint64) (*providerCustodyStore, providerHistoryCollectionInput, map[string]json.RawMessage) {
+	t.Helper()
 	manifest, recorded := historyCollectionRecordedRunManifest(t)
 	in := manifest.input
 	store := providerHistoryProvisionedInspectionFixture(t, providerScanFixtureSelection{
@@ -53,7 +63,7 @@ func historyCollectionRecordedRunStore(t *testing.T) (*providerCustodyStore, pro
 		historyGroupWrite: true, historyGroupConsume: true, historyGroupDispatch: true,
 		historyRecoveryNamespace: true, historyRecoveryLegacy: true,
 		historyCollection: manifest, historyCollectionAdmission: true, historyCollectionFirstP: true,
-		historyCollectionFullPack: true, historyCollectionRecordedRun: true,
+		historyCollectionFullPack: true, historyCollectionRecordedRun: true, historyFinalRead: final, historyFinalReadUnits: units,
 	})
 	first, err := newProviderFirstOperationCandidate(store)
 	if err != nil {

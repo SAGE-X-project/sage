@@ -165,7 +165,7 @@ func providerCustodySetupDiagnosticObserved(config providerCustodyConfig, clock 
 	id, b := config.identity, config.bounds
 	joined := providerReplayJoin([]string{config.anchor, id.Instance, id.Policy, id.SourceID}, meter)
 	var original []byte
-	if meter != nil && meter.historyRecovery != nil {
+	if meter != nil && (meter.historyRecovery != nil || meter.historyFinal != nil) {
 		original = providerReplayPhaseBytes(joined, meter)
 	} else {
 		original = []byte(joined)
@@ -204,6 +204,9 @@ func (s *providerCustodyStore) close() error {
 	if s.history != nil {
 		s.history.failLocked()
 		s.history.recovery.revokeForCloseLocked()
+		if s.history.final != nil {
+			s.history.final.stopLocked(true)
+		}
 	}
 	return errors.Join(s.evidence.close(), s.custody.close())
 }

@@ -4343,3 +4343,29 @@ part stays in the original connected implementation bundle; it does not
 qualify a smaller operating profile or complete the whole program.
 
 The ordinary offline 256KiB object selection is deliberately rejected for an active 256KiB wire class: the unchanged pre-dial failure guard requires 40+4+16384+W+1=278573 bytes. New UNIT DATA may select 512KiB prospectively before any source/H0; it does not patch an owned source or qualify a deployable profile. Exact 278573/278572, independent per-class literals, inactive/active tracer transitions, original-cut/storage ownership and complete-zero refusals are authored safe UNIT scenarios, not execution results. Four new roots remain NOT_RUN; the new product coverage target remains EACH90 UNMEASURED. Existing published green CI does not validate these unpublished additions.
+
+
+### Successful original readback connection (unqualified candidate)
+
+The private verified-collection caller now connects the existing collector to a
+separately selected successful-final observer. The observer is allocated before
+the original H0 and uses the existing final read row plus two clock claims from
+the same original backend. It shares only sealed checkpoint/member provenance
+with the failed-inspection recorder; both independent decoders, inventories,
+semantic models and catalogs belong to the fresh reader. The failed-inspection
+entry still requires a genuinely failed original execution.
+
+A complete healthy last settlement closes its original execution meter without
+refunding its actual prefix. Final verification reconstructs both models from
+the original opened roots, checks the complete catalog and selected end state,
+copies its private result before the final native sample, and closes the final
+observer. Failure quarantines the original collection. Reads cannot spend the
+two reserved clock units or use a writer, network role or replacement clock.
+
+The result remains private collection DATA. This connection does not provide
+production derivation, complete source-cost compilation, native CPU/backing or
+peak/lifetime RAM qualification, profile feasibility, a protected page, Source
+readiness or an operating policy. New owned-TLS tests use the existing benign
+recorded deployment and an explicit UNIT-only profile selected before H0; they
+are not deployment-to-current or production acceptance. Native execution and
+file-level coverage must still be established by CI for this exact source.

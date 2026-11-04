@@ -42,7 +42,7 @@ func (g *providerHistoryRecoveryGroupModel) selectedLocked(r *providerHistoryRec
 	return g != nil && g.owner == g && g.recovery == r && r != nil && g.pass >= 0 && g.pass < len(r.groupModels) &&
 		r.groupModels[g.pass] == g && g.complete && g.initial != nil && g.initial == r.initialModels[g.pass] && g.initial.selectedLocked(r) &&
 		g.ledger != nil && g.ledger.owner == g.ledger && lowerHash(g.confirmedModel) && g.physical != nil &&
-		g.physical.pin == g.pin && g.scope == r.initial.scope && g.physical.recovery == r
+		g.physical.pin == g.pin && g.scope == r.initial.scope && g.physical.recovery == r.recordedOwnerLocked()
 }
 
 func (g *providerHistoryRecoveryGroupModel) read(ctx context.Context, c *providerHistoryRecoveryCheckpoint, kind providerHistoryRecoveryFileKind, index int) ([]byte, bool, error) {

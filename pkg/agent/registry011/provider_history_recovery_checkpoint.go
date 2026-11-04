@@ -185,6 +185,10 @@ func (r *providerHistoryRecoveryOwner) pendingCheckpointDataMatchesLocked(c *pro
 // healthy. It performs no I/O, promotes no pending frame and reads no cached
 // claim catalog/model. Actual retained-byte reconstruction remains mandatory.
 func (r *providerHistoryRecoveryOwner) checkpointSelectionLocked(g *providerHistoryGroupOwner) bool {
+	if r != nil && r.final != nil {
+		original := r.recordedOwnerLocked()
+		return original != nil && original.checkpointSelectionLocked(g)
+	}
 	if r == nil || !r.initialDescriptorShapeLocked(g) || r.parent == nil || g == nil || g.start == nil || r.store == nil || r.store.frontierFiles == nil || r.initial == nil || r.confirmed == nil || r.initial.owner != r.initial ||
 		r.initial.recovery != r || r.initial.group != g || r.initial.previous != nil || r.initial.claim != nil || r.initial.ack != nil || r.initial.admission != nil || r.initial.memberArchive != nil ||
 		r.initial.pin != g.start.main || r.initial.scope.initial != g.start.main ||

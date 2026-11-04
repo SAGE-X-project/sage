@@ -100,6 +100,10 @@ func providerHistoryRecoveryInputUpper(maximum uint64) (candidateWorkVector, boo
 // No path or root supplied by the caller is accepted. A selected checkpoint
 // must be the original pending object or a member of the exact confirmed chain.
 func (r *providerHistoryRecoveryOwner) selectedCheckpointLocked(c *providerHistoryRecoveryCheckpoint) bool {
+	if r != nil && r.final != nil {
+		original := r.recordedOwnerLocked()
+		return original != nil && original.selectedCheckpointLocked(c)
+	}
 	if r == nil || c == nil || c.owner != c || c.recovery != r || c.group != r.originalGroup || !r.checkpointSelectionLocked(r.originalGroup) {
 		return false
 	}
@@ -193,7 +197,7 @@ func (r *providerHistoryRecoveryOwner) inputReadyLocked(ctx context.Context) boo
 	}
 	c := r.parent.clock
 	c.mu.Lock()
-	ok := c.owner == c && c.history == r.parent && c.historyRevoked && r.parent.clockSelectionMatches(c) && c.read >= r.parent.initialRead && c.read <= r.parent.clockCeiling
+	ok := c.owner == c && c.history == r.parent && c.historyRevoked == (r.final == nil) && (r.final == nil || !c.failed) && r.parent.clockSelectionMatches(c) && c.read >= r.parent.initialRead && c.read <= r.parent.clockCeiling
 	c.mu.Unlock()
 	return ok
 }

@@ -21,6 +21,10 @@ func (*providerHistoryRecoveryAdmissionDescriptor) UnmarshalJSON([]byte) error {
 }
 
 func (d *providerHistoryRecoveryAdmissionDescriptor) shapeLocked(r *providerHistoryRecoveryOwner, c *providerHistoryRecoveryCheckpoint) bool {
+	if r != nil && r.final != nil {
+		original := r.recordedOwnerLocked()
+		return original != nil && d.shapeLocked(original, c)
+	}
 	if d == nil || d.owner != d || d.recovery != r || c == nil || c.admission != d || d.checkpoint == nil || d.checkpoint.owner != d.checkpoint ||
 		d.checkpoint.recovery != r || d.checkpoint.admission != d || d.checkpoint.frame.phase != "admit" ||
 		d.checkpoint.frame.stage != c.frame.stage || d.checkpoint.inventory.count != 2 ||

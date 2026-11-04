@@ -60,6 +60,10 @@ func (r *providerHistoryRecoveryOwner) prepareMemberArchiveLocked(c *providerHis
 // array nor a producer model can select an earlier stage's spools. This is safe
 // under the original meter mutex and performs no observations or native work.
 func (a *providerHistoryRecoveryMemberArchive) shapeLocked(r *providerHistoryRecoveryOwner, c *providerHistoryRecoveryCheckpoint) bool {
+	if r != nil && r.final != nil {
+		original := r.recordedOwnerLocked()
+		return original != nil && a.shapeLocked(original, c)
+	}
 	if a == nil || a.owner != a || r == nil || a.recovery != r || c == nil || c.owner != c || c.memberArchive != a || a.checkpoint != c ||
 		c.recovery != r || c.group != r.originalGroup || c.claim == nil || c.claim.owner != c.claim || c.claim.checkpoint != c || c.claim.memberArchive != a ||
 		c.frame.phase != "settle" || a.consumption == nil || a.consumption != c.previous || a.consumption.owner != a.consumption ||

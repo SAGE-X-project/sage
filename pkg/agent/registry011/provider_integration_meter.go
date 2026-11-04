@@ -34,6 +34,7 @@ type providerWorkMeter struct {
 	historyGroup                  *providerHistoryGroupOwner
 	historyInputGroup             *providerHistoryGroupOwner
 	historyRecovery               *providerHistoryRecoveryOwner
+	historyFinal                  *providerHistoryFinalOwner
 	replayReads                   *providerHistoryReplayReads
 	clocks, maximumClocks         uint64
 	historyClockClaims            uint64
@@ -94,10 +95,13 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 // use n+1, and actual clock/sync calls use1. These logical units still need
 // independent worst-case CPU/profile qualification before operating selection.
 func (m *providerWorkMeter) event(kind providerWorkEvent, bytes uint64) bool {
+	if m != nil && m.historyFinal != nil && kind != providerClockEvent && !providerHistoryRecoveryEventAllowed(kind) {
+		return m.refuse()
+	}
 	if m != nil && m.historyRecovery != nil && !providerHistoryRecoveryEventAllowed(kind) {
 		return m.refuse()
 	}
-	if kind == providerClockEvent && m != nil && (m.scan != nil || m.firstOperation != nil || m.guardian != nil || m.continuing != nil || m.historyGroup != nil) {
+	if kind == providerClockEvent && m != nil && (m.scan != nil || m.firstOperation != nil || m.guardian != nil || m.continuing != nil || m.historyGroup != nil || m.historyFinal != nil) {
 		m.mu.Lock()
 		if m.maximumClocks == 0 || m.clocks >= m.maximumClocks || m.closed || m.failed {
 			m.failed = true
@@ -131,6 +135,9 @@ func (m *providerWorkMeter) event(kind providerWorkEvent, bytes uint64) bool {
 }
 
 func (m *providerWorkMeter) preflight(kind providerWorkEvent, bytes uint64) bool {
+	if m != nil && m.historyFinal != nil && kind != providerClockEvent && !providerHistoryRecoveryEventAllowed(kind) {
+		return m.refuse()
+	}
 	if m != nil && m.historyRecovery != nil && !providerHistoryRecoveryEventAllowed(kind) {
 		return m.refuse()
 	}
@@ -177,6 +184,9 @@ func (m *providerWorkMeter) preflightWork(work candidateWorkVector) bool {
 // A scan window is a sublimit of the original cumulative observer; moving
 // records never resets actual/clock/upper. Non-group roles keep their checks.
 func (m *providerWorkMeter) fitsOwnedWindow(work candidateWorkVector) bool {
+	if m.historyFinal != nil {
+		return m.historyFinal.fitsReadWindowLocked(m, work)
+	}
 	if m.historyRecovery != nil {
 		return m.historyRecovery.activeLocked(m)
 	}
@@ -239,6 +249,9 @@ func (m *providerWorkMeter) hasOwner() bool {
 	// its ordinary role tag. Keep this check before every other role branch.
 	if m.historyInputGroup != m.historyGroup {
 		return false
+	}
+	if m.historyFinal != nil {
+		return m.historyFinal.activeLocked(m)
 	}
 	if m.historyRecovery != nil {
 		return m.historyRecovery.activeLocked(m)

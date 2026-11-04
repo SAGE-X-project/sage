@@ -145,6 +145,10 @@ func (r *providerHistoryRecoveryOwner) prepareMemberCompleteLocked(a *providerHi
 // bookkeeping valid again. It checks exact original consumed/sent/completed
 // facts and private object provenance before any actual recovery I/O.
 func (r *providerHistoryRecoveryOwner) memberSelectionLocked(g *providerHistoryGroupOwner) bool {
+	if r != nil && r.final != nil {
+		original := r.recordedOwnerLocked()
+		return original != nil && original.memberSelectionLocked(g)
+	}
 	if r == nil || g == nil || g != r.originalGroup || r.completed < 0 || r.completed > providerHistoryGroupMembers {
 		return false
 	}

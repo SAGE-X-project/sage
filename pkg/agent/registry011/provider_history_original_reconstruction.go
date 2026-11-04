@@ -30,8 +30,10 @@ func (p *providerHistoryProgramOwner) inspectFailedCollectionCandidate(ctx conte
 }
 
 // Reconstruct both models from their own actual original reads between the
-// two catalog observations. This owns no writer, network, execution or clock
-// role and does not accept a caller's object resolver or producer caches.
+// two catalog observations. This sequence performs no writes, network calls,
+// execution or clock samples and accepts no caller resolver or producer cache.
+// The successful-final caller separately owns its two original clock claims;
+// the failed-inspection caller cannot obtain that role through this decoder.
 // The selected read-only lane must already be active and separately funded.
 // A catalog result is still private DATA, never SourceReady or a page claim.
 func (r *providerHistoryRecoveryOwner) reconstructOriginalsCandidate(ctx context.Context) (*providerHistoryRecoveryCatalogResult, error) {

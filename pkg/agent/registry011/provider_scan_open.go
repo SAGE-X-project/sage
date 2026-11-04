@@ -49,6 +49,9 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 			if s.history != nil {
 				s.history.failLocked()
 				s.history.recovery.revokeForCloseLocked()
+				if s.history.final != nil {
+					s.history.final.stopLocked(true)
+				}
 			}
 			if s.evidence != nil {
 				_ = s.evidence.close()
@@ -87,7 +90,8 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 	if err != nil || os.SameFile(s.custody.directoryInfo, s.evidence.directoryInfo) || os.SameFile(s.custody.lockInfo, s.evidence.lockInfo) {
 		return nil, errProviderIntegration
 	}
-	if s.history != nil && !s.history.recovery.bindOriginalRootsBeforeReadLocked() {
+	if s.history != nil && (!s.history.recovery.bindOriginalRootsBeforeReadLocked() ||
+		s.history.final != nil && !s.history.final.bindOriginalRootsBeforeReadLocked()) {
 		return nil, errProviderIntegration
 	}
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {

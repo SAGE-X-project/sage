@@ -49,6 +49,8 @@ type providerScanFixtureSelection struct {
 	historyCollectionFirstP      bool
 	historyCollectionFullPack    bool
 	historyCollectionRecordedRun bool
+	historyFinalRead             bool
+	historyFinalReadUnits        uint64
 	historyFirstPDecoded         uint64
 	historyNativeInputCounts     bool
 	historyRecoveryNamespace     bool
@@ -291,6 +293,23 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 		b.history.derivation.snapshot = *b.history
 		if !b.valid() {
 			t.Fatal("fresh collection UNIT profile")
+		}
+	}
+	if selected != nil && selected.historyFinalRead {
+		if b.history == nil || !selected.historyCollectionRecordedRun {
+			t.Fatal("separate recorded successful-final UNIT profile required before H0")
+		}
+		h := b.history
+		h.final = providerHistoryFinalBounds{
+			read:      providerHistoryRecoveryBounds{work: candidateWorkVector{2: 128 << 20, 10: 1 << 56}, maximumFiles: 4096, maximumBytes: 64 << 20},
+			elapsedMS: 300000,
+		}
+		if selected.historyFinalReadUnits != 0 {
+			h.final.read.work[10] = selected.historyFinalReadUnits
+		}
+		h.derivation.snapshot = *h
+		if !b.valid() {
+			t.Fatal("fresh disjoint successful-final UNIT profile")
 		}
 	}
 	profile := providerIntegrationProfile(b, capture)

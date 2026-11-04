@@ -5,16 +5,18 @@ import (
 	"os"
 )
 
-// The inspection observer is a distinct, disjoint pre-H0 reservation, never a
-// replacement for a failed execution observer. It cannot hold a network, write,
-// clock or ACK role. Actual retained semantic reconstruction is connected by a
-// dedicated read-only reader; this reservation alone yields no recovery result.
+// The failed-inspection observer is a disjoint pre-H0 reservation, never a
+// replacement for execution; it has no network, write, clock or ACK role.
+// Successful final verification reuses this decoder state only on a separate
+// pre-H0 owner/meter, with explicit sealed-provenance and clock-role checks.
+// A reservation alone yields no reconstruction or protected result.
 type providerHistoryRecoveryOwner struct {
 	custody, evidence            *retentionDisk
 	custodyRoot, evidenceRoot    *os.Root
 	custodyLock, evidenceLock    *os.File
 	owner                        *providerHistoryRecoveryOwner
 	parent                       *providerHistoryProgramOwner
+	final                        *providerHistoryFinalOwner
 	store                        *providerCustodyStore
 	config                       providerCustodyConfig
 	bounds                       providerHistoryRecoveryBounds
@@ -81,6 +83,9 @@ func (r *providerHistoryRecoveryOwner) bindOriginalRootsBeforeReadLocked() bool 
 }
 
 func (r *providerHistoryRecoveryOwner) observerShapeLocked(m *providerWorkMeter) bool {
+	if r != nil && r.final != nil {
+		return r.final.reader == r && r.final.shapeLocked(m)
+	}
 	return r != nil && r.owner == r && r.parent != nil && r.parent.owner == r.parent && r.parent.recovery == r &&
 		r.store != nil && r.store.owner == r.store && r.store.history == r.parent && r.parent.store == r.store &&
 		r.store.config == r.config && r.parent.config == r.config && r.config.bounds.history != nil &&
@@ -97,7 +102,7 @@ func (r *providerHistoryRecoveryOwner) observerShapeLocked(m *providerWorkMeter)
 			r.store.firstAdmissionOwner == r.parent.firstAdmission && r.parent.firstOwner.first == r.parent.firstAdmission && r.parent.firstAdmission.meter == r.parent.firstMeter) &&
 		(r.originalGroup == nil && r.originalMeter == nil && r.parent.group == nil ||
 			r.originalGroup != nil && r.originalGroup == r.parent.group && r.originalGroup.meter == r.originalMeter) &&
-		r.meter == m && m != nil && m.owner == m && m.historyRecovery == r && m.historyGroup == nil && m.integration == nil && m.scan == nil &&
+		r.meter == m && m != nil && m.owner == m && m.historyRecovery == r && m.historyFinal == nil && m.historyGroup == nil && m.integration == nil && m.scan == nil &&
 		m.scanBody == nil && m.firstAdmission == nil && m.firstOperation == nil && m.guardian == nil && m.continuing == nil && m.parent == nil &&
 		!m.authority && m.upper == r.bounds.work && m.reservation == r.bounds.work && m.remaining == (candidateWorkVector{}) &&
 		m.maximumClocks == 0 && m.clocks == 0 && m.historyClockClaims == 0 && m.ticket == "" && !m.claimed && m.end == (ClockSample{})
@@ -105,7 +110,7 @@ func (r *providerHistoryRecoveryOwner) observerShapeLocked(m *providerWorkMeter)
 
 // This is scalar-only and may run under the inspection observer mutex.
 func (r *providerHistoryRecoveryOwner) unspentLocked() bool {
-	return r != nil && !r.used && !r.active && !r.closed && !r.failed && r.group == nil && r.inputFiles == 0 && r.inputBytes == 0 &&
+	return r != nil && r.final == nil && !r.used && !r.active && !r.closed && !r.failed && r.group == nil && r.inputFiles == 0 && r.inputBytes == 0 &&
 		r.inventoryWalks == ([2]*providerHistoryRecoveryInventoryWalk{}) &&
 		r.scanWalks == ([2]*providerHistoryRecoveryScanWalk{}) &&
 		r.legacyPrefixes == ([2]*providerHistoryRecoveryLegacyPrefix{}) &&
@@ -137,6 +142,9 @@ func (r *providerHistoryRecoveryOwner) terminalOriginalLocked(g *providerHistory
 }
 
 func (r *providerHistoryRecoveryOwner) activeLocked(m *providerWorkMeter) bool {
+	if r != nil && r.final != nil {
+		return r.final.reader == r && r.final.activeLocked(m)
+	}
 	return r != nil && r.used && r.active && !r.closed && !r.failed && r.observerShapeLocked(m) && r.terminalOriginalLocked(r.group)
 }
 
@@ -167,6 +175,12 @@ func (r *providerHistoryRecoveryOwner) beginInspectionCandidate(ctx context.Cont
 // Caller holds store.mu and must not hold meter.mu. Closing this lane never
 // changes the old execution meter, native-clock binding, hold or order prefix.
 func (r *providerHistoryRecoveryOwner) stopLocked(failed bool) {
+	if r != nil && r.final != nil {
+		if r.final.reader == r {
+			r.final.stopLocked(failed)
+		}
+		return
+	}
 	if r == nil || r.owner != r || !r.used || !r.active || r.meter == nil || r.meter.owner != r.meter {
 		return
 	}
