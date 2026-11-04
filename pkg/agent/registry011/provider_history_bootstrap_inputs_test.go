@@ -1,6 +1,65 @@
 package registry011
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
+
+func TestProviderHistoryFirstOperationFundsItsPreselectedReadOwners(t *testing.T) {
+	b, capture := historyBootstrapInputBounds(t)
+	args, argsOK := providerHistoryBootstrapInputsFromBounds(b)
+	history, historyOK := providerBootstrapCostingInputFromBounds(b)
+	if !argsOK || !historyOK || history.kind != providerBootstrapCostingHistory {
+		t.Fatal("fresh unminted memory-only UNIT input")
+	}
+	// A separate numeric kind comparison, never an opened/changed profile.
+	ordinary := history
+	ordinary.kind = providerBootstrapCostingOrdinary
+	base, baseOK := ordinary.firstOperationPlanUpper(capture, args.ordinal, args.records, args.retained, args.output)
+	got, gotOK := history.firstOperationPlanUpper(capture, args.ordinal, args.records, args.retained, args.output)
+	// Seven concrete preselected structs and one allocation pointer each:
+	// parent, start, two independent reader/meter pairs and final owner.
+	wantExtra := uint64(reflect.TypeFor[providerHistoryProgramOwner]().Size()) +
+		uint64(reflect.TypeFor[providerHistoryProgramStart]().Size()) +
+		2*uint64(reflect.TypeFor[providerHistoryRecoveryOwner]().Size()) +
+		2*uint64(reflect.TypeFor[providerWorkMeter]().Size()) +
+		uint64(reflect.TypeFor[providerHistoryFinalOwner]().Size()) +
+		7*uint64(reflect.TypeFor[*byte]().Size())
+	if !baseOK || !gotOK || got.memory != base.memory+wantExtra || got.storage != base.storage || got.capture != base.capture {
+		t.Fatal("first-operation live set omitted independent preselected owner pointees", baseOK, gotOK)
+	}
+	compiled, ok := providerHistoryCompileBootstrapSource(b, capture)
+	if !ok || compiled.source.firstOperationResident != got.memory || b.valid() || b.history.derivation != nil {
+		t.Fatal("source compiler lost complete fixed owner layout or granted execution", ok)
+	}
+}
+
+func TestProviderHistoryFirstOperationRefusesRoomForOnlyTheParentPointers(t *testing.T) {
+	b, capture := historyBootstrapInputBounds(t)
+	args, argsOK := providerHistoryBootstrapInputsFromBounds(b)
+	history, historyOK := providerBootstrapCostingInputFromBounds(b)
+	if !argsOK || !historyOK {
+		t.Fatal("fresh unminted memory-only UNIT input")
+	}
+	ordinary := history
+	ordinary.kind = providerBootstrapCostingOrdinary
+	base, ok := ordinary.firstOperationPlanUpper(capture, args.ordinal, args.records, args.retained, args.output)
+	if !ok {
+		t.Fatal("ordinary numeric precursor before selecting insufficient history RAM")
+	}
+	// Select only the old parent/start allowance on fresh scalar inputs.
+	// No live owner, root, clock or meter is modified or opened with it.
+	oldExtra := uint64(reflect.TypeFor[providerHistoryProgramOwner]().Size()) +
+		uint64(reflect.TypeFor[providerHistoryProgramStart]().Size()) +
+		2*uint64(reflect.TypeFor[*byte]().Size())
+	history.scan.maximumResidentBytes = base.memory + oldExtra
+	if !history.valid() {
+		t.Fatal("insufficient live-set selection lost its scalar domain")
+	}
+	if got, ok := history.firstOperationPlanUpper(capture, args.ordinal, args.records, args.retained, args.output); ok || got != (providerFirstOperationPlan{}) {
+		t.Fatal("parent-only memory room admitted two uncounted readers and meters", ok)
+	}
+}
 
 func TestProviderScanBodyOutputPreservesLiteralOriginalEnvelopes(t *testing.T) {
 	legacy, legacyOK := providerScanBodyOutputUpper(4, 3, 8, false)

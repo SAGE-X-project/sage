@@ -193,10 +193,21 @@ func (b providerBootstrapCostingInput) firstOperationMemoryUpper(capture Provide
 	}
 	if b.kind == providerBootstrapCostingHistory {
 		// The original parent remains reachable while the first operation
-		// preserves its scalar handoff. Count both concrete structs and their
-		// allocation pointers; this is static layout, not allocator or host
-		// qualification and not a complete future-program memory certificate.
-		for _, size := range []uint64{uint64(reflect.TypeFor[providerHistoryProgramOwner]().Size()), uint64(reflect.TypeFor[providerHistoryProgramStart]().Size())} {
+		// preserves its scalar handoff. It already retains the failed-reader
+		// owner/meter and, when selected, a separate final owner/reader/meter.
+		// Conservatively fund both readers even for a selection without final
+		// verification. Parent pointers do not include their pointee layouts.
+		// This is fixed layout only, not allocator, decoder/model backing or
+		// peak/lifetime host qualification for the complete future program.
+		for _, size := range []uint64{
+			uint64(reflect.TypeFor[providerHistoryProgramOwner]().Size()),
+			uint64(reflect.TypeFor[providerHistoryProgramStart]().Size()),
+			uint64(reflect.TypeFor[providerHistoryRecoveryOwner]().Size()),
+			uint64(reflect.TypeFor[providerWorkMeter]().Size()),
+			uint64(reflect.TypeFor[providerHistoryFinalOwner]().Size()),
+			uint64(reflect.TypeFor[providerHistoryRecoveryOwner]().Size()),
+			uint64(reflect.TypeFor[providerWorkMeter]().Size()),
+		} {
 			allocation, fits := providerUpperSum(size, uint64(reflect.TypeFor[*byte]().Size()))
 			var totalOK bool
 			native, totalOK = providerUpperSum(native, allocation)
