@@ -52,7 +52,7 @@ jobs:
           registry_fixture_dir="$RUNNER_TEMP/registry-fixture-check"
           reference_status=0
           # Owned UNIT checks only; full partitions and coverage remain required.
-          go test -mod=readonly -race -count=1 -timeout=8m -json -run '^(TestProviderHistoryCheckpointPreparationRejectsIncompletePhaseAndCapacityData|TestProviderHistoryFailedSettlementRechecksItsActualCompletedPrefix|TestProviderHistoryFailedSettlementShapesRequireOriginalFailureAndPrefixMetadata|TestProviderHistoryFirstOriginalClosureRejectsMissingAndChangedPrivateReferences|TestProviderHistoryInitialCheckpointRejectsMissingPrivateHeadWithoutPublishingData|TestProviderHistoryRecoveryGroupReadRefusesAbsentContextBeforeOriginalInput|TestProviderHistoryRecoveryGroupRejectsInconsistentInitialAndWholeChainData|TestProviderHistoryRecoveryLegacyReferencesCannotReplaceCompleteOriginalFrames|TestProviderHistoryRecoveryLegacyRejectsUnplannedSetupAndDifferentFinalRoots|TestProviderHistorySettlementRejectsChangedConsumedOriginalBeforePublication)$' ./pkg/agent/registry011 > "$registry_fixture_dir/reference-tests.jsonl" || reference_status=$?
+          go test -mod=readonly -race -count=1 -timeout=8m -json -run '^(TestProviderHistoryCheckpointPreparationRejectsIncompletePhaseAndCapacityData|TestProviderHistoryFailedSettlementRechecksItsActualCompletedPrefix|TestProviderHistoryFailedSettlementShapesRequireOriginalFailureAndPrefixMetadata|TestProviderHistoryFirstOriginalClosureRejectsMissingAndChangedPrivateReferences|TestProviderHistoryInitialCheckpointRejectsMissingPrivateHeadWithoutPublishingData|TestProviderHistoryMemberContextUpperMatchesIndependentLiterals|TestProviderHistoryMemberContextTypeCeilingsMatchActualWalks|TestProviderHistoryMemberContextBoundCoversGenuineClaimsAndArchivedFacts|TestProviderHistoryMemberContextShortageKeepsOriginalWalkPrefix|TestProviderHistoryRecoveryGroupReadRefusesAbsentContextBeforeOriginalInput|TestProviderHistoryRecoveryGroupRejectsInconsistentInitialAndWholeChainData|TestProviderHistoryRecoveryLegacyReferencesCannotReplaceCompleteOriginalFrames|TestProviderHistoryRecoveryLegacyRejectsUnplannedSetupAndDifferentFinalRoots|TestProviderHistorySettlementRejectsChangedConsumedOriginalBeforePublication)$' ./pkg/agent/registry011 > "$registry_fixture_dir/reference-tests.jsonl" || reference_status=$?
           printf '%s\n' "$reference_status" > "$registry_fixture_dir/reference-tests.exit"
           git diff --exit-code
           exit "$reference_status"
@@ -381,6 +381,7 @@ jobs:
               'pkg/agent/registry011/provider_history_final_bounds.go': [0, 0],
               'pkg/agent/registry011/provider_history_final_owner.go': [0, 0],
               'pkg/agent/registry011/provider_history_final_read.go': [0, 0],
+              'pkg/agent/registry011/provider_history_uniform_storage_bound.go': [0, 0],
               'pkg/agent/registry011/provider_history_original_reconstruction.go': [0, 0],
               'pkg/agent/registry011/provider_first_admission_operation_diagnostic.go': [0, 0],
               'pkg/agent/registry011/source_reconfiguration.go': [0, 0],

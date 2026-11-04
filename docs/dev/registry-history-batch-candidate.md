@@ -4369,3 +4369,30 @@ readiness or an operating policy. New owned-TLS tests use the existing benign
 recorded deployment and an explicit UNIT-only profile selected before H0; they
 are not deployment-to-current or production acceptance. Native execution and
 file-level coverage must still be established by CI for this exact source.
+
+
+### Uniform admitted storage compilation
+
+The current original admission narrows RPC and wire work to the table count;
+all storage coordinates retain the complete 32-member maximum. The new storage
+compiler therefore sums the successful T/C/member/S allocations and the active
+terminal failure allocation for each original admission, then repeats that full
+row for every prospective group. It does not replace that sum with the grammar
+request count or refund unused failure room after a successful S.
+
+The six physical/raw/payload/metadata/object/file domains remain separate. The
+compiler checks overflow before returning any row, retains the source components
+and compares only this component with the unchanged selected future limits.
+Finite numeric storage can still exceed the existing absolute payload ceiling.
+Initial/pre-I storage, unassigned uncertain failures, native filesystem overhead,
+CPU, backing/peak/lifetime RAM, complete work/clock/time composition and the
+production derivation/factory remain open. This component grants no reservation,
+Source or operating authority.
+
+Four authored UNIT roots cover independent full-stage/future literals, agreement
+with the existing source role graph, inactive failure classes, each separate
+capacity, a finite infeasible quote and late overflow. They are NOT_RUN. Both
+strict file lists include the new production file with the same90% threshold.
+The existing four typed-context cost regressions also run in both bounded early
+checks before the complete race partitions, under the unchanged8m timeout. No
+native result or coverage improvement is inferred from these source changes.
