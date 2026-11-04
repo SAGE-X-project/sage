@@ -122,7 +122,7 @@ class EvidenceFixture(unittest.TestCase):
         cases = {
             "TestProviderHistoryNormal": 3,
             "TestProviderHistoryOther": 2,
-            "TestProviderHistoryFinalOrdinary": 2,
+            "TestProviderHistoryFinalOrdinary": 3,
             "TestProviderHistoryUniformSourceUsesOriginalUniformRoleMaxima": 3,
             "TestProviderHistoryΕ": 2,
             "TestProviderHistoryCollectionNormal": 0,
@@ -135,6 +135,35 @@ class EvidenceFixture(unittest.TestCase):
         for name, expected in cases.items():
             with self.subTest(name=name):
                 self.assertEqual(m.shard_number(name), expected)
+
+    def test_final_read_roots_keep_whole_named_scenarios_across_four_workers(self):
+        cases = {
+            "TestProviderHistoryFinalVerificationAutomaticallyClosesEnteredReadAndLateCancellation": 0,
+            "TestProviderHistoryFinalFinishRejectsMissingModel": 1,
+            "TestProviderHistoryFinalVerificationClosesAtCatalogEnd": 2,
+            "TestProviderHistoryFinalReaderConnectsCollectionAndTwoFreshOriginalModels": 3,
+        }
+        for name, expected in cases.items():
+            with self.subTest(name=name):
+                self.assertEqual(m.shard_number(name), expected)
+        for role in ("source", "provider"):
+            with self.subTest(role=role):
+                raw = discovery(ROOTS + list(cases))
+                seen = []
+                for index in range(m.SHARDS):
+                    value = m.plan(raw, role, index)
+                    seen.extend(value["selected_roots"])
+                    self.assertEqual(m.validate_tests(results(value["selected_roots"], "/original-case"),
+                                                      value["selected_roots"]),
+                                     2 * len(value["selected_roots"]))
+                    for name, expected in cases.items():
+                        self.assertEqual(name in value["selected_roots"], index == expected)
+                expected = sorted(ROOTS + list(cases))
+                if role == "provider":
+                    expected.remove("ExampleNormal")
+                self.assertEqual(sorted(seen), expected)
+                self.assertEqual(len(seen), len(set(seen)))
+                self.assertEqual(m.plan(raw, role, 4)["selected_roots"], [m.RECOVERY_ROOT])
 
     def test_history_balance_keeps_complete_disjoint_plans_in_any_discovery_order(self):
         roots = ROOTS + ["TestProviderHistoryFinalOrdinary", "TestProviderHistoryΕ"]

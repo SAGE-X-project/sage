@@ -129,6 +129,11 @@ def shard_number(name):
         return 0
     if name.startswith("TestProviderHistoryRecovery"):
         return 1
+    if name.startswith("TestProviderHistoryFinal"):
+        # Keep each original-read scenario whole, and leave the isolated
+        # maximum-recovery process on worker 4. Full-hash modulo four is
+        # the low two bits of its final byte, independent of discovery order.
+        return hashlib.sha256(name.encode("utf-8")).digest()[-1] % (SHARDS - 1)
     if name.startswith("TestProviderHistory"):
         # Spread the remaining history roots without depending on discovery
         # order, Python's randomized hash seed or timing from an earlier run.

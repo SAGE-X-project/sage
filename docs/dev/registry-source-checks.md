@@ -1565,12 +1565,29 @@ partitions cannot supply the successful Source or Provider evidence.
 Remaining `TestProviderHistory` roots are divided between partitions 2 and 3
 using the low bit of the first SHA-256 byte of each complete UTF-8 root name.
 The collection/recovery/exact maximum-recovery exceptions retain precedence.
+Successful-final read roots are a separate exception: the full UTF-8 SHA-256
+value modulo four selects partitions 0 through 3, leaving partition 4 isolated.
+The low two bits of the digest's last byte compute that same modulo.
 The assignment is independent of discovery order and Python hash randomization;
 every root and all its children still run in exactly one complete partition.
 Current source identities bind the assignment, and assembly still validates the
 exact five-way union before any coverage or downstream consumer can use it.
 This reduces concentration in one worker; it does not guarantee a future runtime
 or change any test timeout, native bound, race mode or coverage requirement.
+
+The three successful-final cancellation phases and nine final-DATA refusal
+cases retain fresh owned collections, two independent original models, the
+same assertions and terminal cleanup. Each scenario now has its own compiled
+root, preserving all child labels and avoiding a single nine-case process root.
+No owner, collection or meter is shared or restored between scenarios. A failed
+read logs only scalar progress, selected limits and counters after the caller
+returns; it reads no original payload and changes no execution state.
+
+The preceding complete CI recorded five failed named results in each role's
+second partition before its two-hour package timeout. These final readback
+errors were generic and do not independently identify a clock, quota or original
+comparison as the exclusive cause. The revised diagnostics and distribution
+remain unrun; neither fixes that error by assumption or changes operating policy.
 
 This separates one expensive fixture from accumulated process instrumentation;
 it does not establish the cause of an earlier native-duration refusal or ensure
