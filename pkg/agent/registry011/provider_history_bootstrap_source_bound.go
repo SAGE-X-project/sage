@@ -33,7 +33,7 @@ func providerHistoryBootstrapSourceUpper(b providerIntegrationBounds, capture Pr
 	if !openingOK || !enrollmentOK || !setupOK || !providerHistoryUpperWithin(setupNeed, setup) {
 		return empty, false
 	}
-	preparation, preparationOK := providerScanPreparationCostUpper(in.maximumMetadataPerCommit, in.fileOverheadBytes, ordinal, in.scan.maximumAttempts)
+	preparation, preparationOK := providerScanSelectedPreparationCostUpper(in.maximumMetadataPerCommit, in.fileOverheadBytes, ordinal, in.scan.maximumAttempts, in.historyCollection)
 	inspection, inspectionOK := providerScanInspectionCostUpper(in.scan, in.maximumMetadataPerCommit, in.fileOverheadBytes, true, setup)
 	firstPlan, firstOK := in.firstAdmissionPlanUpper(ordinal, records, retained, output)
 	operation, operationOK := in.firstOperationPlanUpper(capture, ordinal, records, retained, output)

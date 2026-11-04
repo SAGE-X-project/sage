@@ -15,6 +15,7 @@ const (
 // history=nil execution profile. These numbers grant no execution authority.
 type providerBootstrapCostingInput struct {
 	kind                     providerBootstrapCostingKind
+	historyCollection        bool
 	continuation             providerLedgerBounds
 	methods                  providerMethodBounds
 	tls                      providerTLSBounds
@@ -39,7 +40,8 @@ func providerBootstrapCostingInputFromBounds(b providerIntegrationBounds) (provi
 		kind = providerBootstrapCostingGuardian
 	}
 	in := providerBootstrapCostingInput{
-		kind: kind, continuation: *b.continuation, methods: *b.methods, tls: *b.tls, scan: *b.scan,
+		kind: kind, historyCollection: b.history != nil && b.history.collection != nil,
+		continuation: *b.continuation, methods: *b.methods, tls: *b.tls, scan: *b.scan,
 		maximumObjects: b.maximumObjects, maximumEntries: b.maximumEntries,
 		maximumObjectBytes: b.maximumObjectBytes, maximumStoredBytes: b.maximumStoredBytes,
 		maximumMetadataPerCommit: b.maximumMetadataPerCommit, fileOverheadBytes: b.fileOverheadBytes,
@@ -56,6 +58,7 @@ func providerBootstrapCostingInputFromBounds(b providerIntegrationBounds) (provi
 // result cannot replace either those checks or the execution witness check.
 func (b providerBootstrapCostingInput) valid() bool {
 	return b.kind >= providerBootstrapCostingOrdinary && b.kind <= providerBootstrapCostingHistory &&
+		(!b.historyCollection || b.kind == providerBootstrapCostingHistory) &&
 		b.continuation.valid() && b.methods.valid() && b.tls.valid() &&
 		b.maximumObjects > 0 && uint64(b.maximumObjects) == b.continuation.maximumObjects &&
 		b.maximumEntries > 0 && b.maximumEntries <= 256 &&

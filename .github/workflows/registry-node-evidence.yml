@@ -280,6 +280,7 @@ jobs:
               'provider_scan_costing.go', 'provider_history_bootstrap_source_bound.go',
               'provider_history_bootstrap_inputs.go',
               'provider_history_selected_source.go',
+              'provider_history_run.go',
               'provider_replay_paths.go', 'provider_first_admission_operation_capture.go',
               'provider_first_admission_operation_change.go', 'provider_first_admission_operation_commit.go',
               'provider_first_admission_operation_execute.go', 'provider_first_admission_operation_models.go',

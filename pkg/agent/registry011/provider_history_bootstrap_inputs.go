@@ -23,7 +23,7 @@ func providerHistoryBootstrapInputsFromBounds(b providerIntegrationBounds) (prov
 	const ordinal, records uint64 = 1, 2
 	opening, openOK := providerScanOpenCostUpper(in.maximumMetadataPerCommit, in.fileOverheadBytes)
 	_, enrollmentPhysical, enrollOK := in.bootstrapUpper()
-	preparation, prepareOK := providerScanPreparationCostUpper(in.maximumMetadataPerCommit, in.fileOverheadBytes, ordinal, in.scan.maximumAttempts)
+	preparation, prepareOK := providerScanSelectedPreparationCostUpper(in.maximumMetadataPerCommit, in.fileOverheadBytes, ordinal, in.scan.maximumAttempts, in.historyCollection)
 	output, outputOK := providerScanBodyOutputUpper(in.maximumMetadataPerCommit, in.scan.maximumChunks, in.scan.filenameEntryOverhead, true)
 	if !openOK || !enrollOK || !prepareOK || !outputOK {
 		return empty, false

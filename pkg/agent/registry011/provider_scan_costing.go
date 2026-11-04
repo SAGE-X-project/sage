@@ -57,6 +57,43 @@ func providerScanPreparationCostUpper(metadata, overhead, ordinal, attempts uint
 	return providerScanUpper{work: candidateWorkVector{2: decoded, 9: written, 10: units}, retained: physical, clocks: 4}, true
 }
 
+// Additional observed preparation for the first history-collection claim:
+// profile, target and Q0 each encode once and hash once, then the original
+// policy is copied and decoded. All three encode preflights retain metadata
+// squared even when the eventual target/Q0 outputs are smaller. The policy
+// length must be checked before copying. This row creates no native resource
+// proof, durable storage, clock sample or permission to open an execution.
+func providerHistoryInitialScanInputUpper(metadata uint64) (providerScanUpper, bool) {
+	if metadata == 0 || metadata > 1<<20 {
+		return providerScanUpper{}, false
+	}
+	policy := min(metadata, uint64(candidateLedgerMetadataLimit))
+	var a providerHistoryReadArithmetic
+	units := a.sum(a.product(3, a.product(metadata, metadata)), a.product(policy, policy), metadata, a.product(3, policy), 108)
+	if a.failed {
+		return providerScanUpper{}, false
+	}
+	return providerScanUpper{work: candidateWorkVector{2: policy, 10: units}}, true
+}
+
+// The old P remains whole. Only the fresh collection route additionally funds
+// its new observed input preparation; ordinary/guardian and later ordinals
+// keep their original row. Replay and the pure compiler use this same choice.
+func providerScanSelectedPreparationCostUpper(metadata, overhead, ordinal, attempts uint64, historyCollection bool) (providerScanUpper, bool) {
+	original, ok := providerScanPreparationCostUpper(metadata, overhead, ordinal, attempts)
+	if !ok {
+		return providerScanUpper{}, false
+	}
+	if !historyCollection || ordinal != 1 {
+		return original, true
+	}
+	extra, ok := providerHistoryInitialScanInputUpper(metadata)
+	if !ok {
+		return providerScanUpper{}, false
+	}
+	return providerScanUpperSum(original, extra)
+}
+
 // Only domains consumed by the scan arithmetic are checked here. The original
 // constructor's complete structural validation remains required before a
 // compiler can bind these DATA to an immutable selected profile.

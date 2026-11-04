@@ -1664,3 +1664,36 @@ remains required. Their test timeout does not change the original native T
 window, counters, reservations, Registry policy or production readiness. A failed
 entered inspection may close its read-only lane without reading any input; the
 UNIT expectation preserves that fail-closed behavior.
+
+## Owning candidate invocation
+
+The private history caller owns the fresh store from opening through enrollment,
+initial inspection, the first exchange, collection, final verification and
+cleanup. Its production entry uses the original fixed dial and accepts no
+connection bundle or callback. The separate package-owned TLS companion refuses
+a missing bundle or slot before opening. Only detached verified DATA may leave
+the owning lifetime.
+
+Initial target, highwater and deadline preparation runs after the one P+B claim,
+under the same original P meter. The original P remains fully funded. A separate
+checked input row uses N=maximumMetadataPerCommit and
+K=min(N,candidateLedgerMetadataLimit): work[2]=K and
+work[10]=3*N*N+K*K+N+3*K+108, with zero other coordinates, storage or samples.
+The policy byte length is checked before copying. Runtime, retained attempt
+replay and pure bootstrap compilation select the same additional first-row
+component only for a history collection. Ordinary and later paths retain their
+original preparation row. This logical quote does not qualify native memory,
+CPU, filesystem cost or the complete operating profile.
+
+Terminal cleanup checks the actual closed state after child locks unwind. It
+does not close an original twice after successful final publication, and it
+preserves child, cleanup and cancellation errors while withholding DATA on
+error. Partial-open cleanup remains the opener's responsibility; the outer
+caller cannot reconstruct a lost cleanup error or revive that execution.
+
+The complete production derivation factory and full resource proof remain
+unfinished. The new caller cannot mint their witness. Short synthetic UNIT
+prefixes and ordinary owned connection failures test this composition; they do
+not qualify a production derivation or deployment-to-current history. A complete
+normal operating invocation still requires the same immutable compiler/native
+selection and fresh actual validation.

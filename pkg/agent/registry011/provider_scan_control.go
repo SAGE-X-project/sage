@@ -146,7 +146,7 @@ func providerScanPreparationUpper(config providerCustodyConfig, ordinal uint64) 
 		return providerScanUpper{}, errProviderIntegration
 	}
 	b := config.bounds
-	upper, ok := providerScanPreparationCostUpper(b.maximumMetadataPerCommit, b.fileOverheadBytes, ordinal, b.scan.maximumAttempts)
+	upper, ok := providerScanSelectedPreparationCostUpper(b.maximumMetadataPerCommit, b.fileOverheadBytes, ordinal, b.scan.maximumAttempts, b.history != nil && b.history.collection != nil)
 	if !ok {
 		return providerScanUpper{}, errProviderIntegration
 	}
@@ -158,35 +158,61 @@ func providerScanPreparationUpper(config providerCustodyConfig, ordinal uint64) 
 // process loss still need the separately selected actual retaining boundary.
 // The result is metadata; it does not grant an operation or a dispatch permit.
 func (c *providerScanControl) claim(a providerScanAttempt) error {
+	_, err := c.claimWithInitialTargetCandidate(a, false)
+	return err
+}
+
+// Derive only this fresh collection's original target/attempt under the SAME
+// irrevocable P meter. No caller target, callback or nil-meter preparation is
+// accepted. Returning target DATA grants no operation or final publication.
+func (c *providerScanControl) claimInitialTargetCandidate() ([]byte, error) {
+	return c.claimWithInitialTargetCandidate(providerScanAttempt{}, true)
+}
+
+func (c *providerScanControl) claimWithInitialTargetCandidate(a providerScanAttempt, initial bool) ([]byte, error) {
 	if c == nil || c.store == nil {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	s := c.store
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !c.valid() || c.prepared != nil || s.activeMeter.Load() != nil || s.config.bounds.firstAdmission != nil && (s.bootstrapOwner == nil || !s.bootstrapOwner.done || s.bootstrapOwner.failed) {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
-	preparation, err := providerScanPreparationUpper(s.config, a.ordinal)
+	ordinal := a.ordinal
+	if initial {
+		if s.history == nil || s.history.bounds.collection == nil || s.history.startupClaimed ||
+			s.sequence != 1 || s.frontierFiles == nil || c.pin != (providerScanHighwater{}) || c.held != (providerScanUpper{}) ||
+			s.config.policy == nil || len(s.config.policy.raw) == 0 ||
+			uint64(len(s.config.policy.raw)) > min(s.config.bounds.maximumMetadataPerCommit, uint64(candidateLedgerMetadataLimit)) {
+			return nil, errProviderIntegration
+		}
+		ordinal = 1
+	}
+	preparation, err := providerScanPreparationUpper(s.config, ordinal)
 	body, bodyErr := providerScanBodyUpper(s.config)
+	if initial {
+		a = providerScanAttempt{ordinal: ordinal, setup: s.setupTip, custody: s.tip, purpose: "initial-inspection",
+			clock: providerClockDiagnostic(s.setupOrigin), preparation: preparation, body: body}
+	}
 	// Only bounded scalar/vector checks precede the irreversible claim. No
 	// policy parse, profile encoding, successor hash or target read occurs here.
 	if err != nil || bodyErr != nil || a.preparation != preparation || a.body != body || a.ordinal != c.pin.ordinal+1 || a.setup != s.setupTip || a.custody != s.tip || a.clock != providerClockDiagnostic(s.setupOrigin) || a.purpose != "initial-inspection" {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	held, ok := providerScanUpperSum(c.held, preparation, body)
 	addition, addOK := providerScanUpperSum(preparation, body)
 	total, totalOK := providerScanUpperSum(providerScanOpenUpper(s.config), held)
 	if !ok || !addOK || !totalOK || c.held != c.pin.held || !s.config.bounds.scan.fits(providerScanOpenUpper(s.config), held) || !providerFirstAdmissionCapacity(s, total) {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	if s.config.bounds.history != nil {
 		if s.history == nil || !s.history.claimInspectionLocked(c.held, preparation, body) {
-			return errProviderIntegration
+			return nil, errProviderIntegration
 		}
 	} else {
 		if !candidateCapacity(0, s.stored, addition.retained, s.config.bounds.maximumStoredBytes) {
-			return errProviderIntegration
+			return nil, errProviderIntegration
 		}
 		s.stored += addition.retained
 	}
@@ -196,7 +222,7 @@ func (c *providerScanControl) claim(a providerScanAttempt) error {
 	if s.history != nil && !s.history.bindInspectionMeterLocked(m, false) {
 		s.history.failLocked()
 		s.failed = true
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	s.activeMeter.Store(m)
 	defer s.activeMeter.Store(nil)
@@ -206,58 +232,84 @@ func (c *providerScanControl) claim(a providerScanAttempt) error {
 			s.failed = true
 		}
 	}()
+	var target []byte
+	if initial {
+		extra, extraOK := providerHistoryInitialScanInputUpper(s.config.bounds.maximumMetadataPerCommit)
+		original, originalOK := providerScanPreparationCostUpper(s.config.bounds.maximumMetadataPerCommit, s.config.bounds.fileOverheadBytes, ordinal, s.config.bounds.scan.maximumAttempts)
+		if !extraOK || !originalOK || !m.preflightWork(extra.work) {
+			return nil, errProviderIntegration
+		}
+		incoming, incomingErr := newProviderScanCodec(s.config, m)
+		if incomingErr != nil {
+			return nil, errProviderIntegration
+		}
+		target, incomingErr = incoming.target(providerScanTarget{setup: s.setupTip, custody: s.tip,
+			frontier: s.frontierFiles.pin.frontier, objects: s.objectsRoot, enrollment: s.enrollment})
+		previous, previousErr := incoming.highwater(c.pin)
+		if incomingErr != nil || previousErr != nil {
+			return nil, errProviderIntegration
+		}
+		a.target = incoming.hash("sage-provider-scan-target-v1", target)
+		a.previousHighwater = incoming.hash(providerScanHighwaterDomain, previous)
+		deadline, _, deadlineOK := incoming.deadline(a.clock)
+		a.deadline = deadline
+		if !lowerHash(a.target) || !lowerHash(a.previousHighwater) || !deadlineOK || m.failed ||
+			!providerHistoryUpperWithin(providerScanUpper{work: m.actual, clocks: m.clocks}, extra) || !m.preflightWork(original.work) {
+			return nil, errProviderIntegration
+		}
+	}
 	codec, err := newProviderScanCodec(s.config, m)
 	if err != nil {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	deadline, duration, deadlineOK := codec.deadline(a.clock)
 	if !deadlineOK || a.deadline != deadline || s.config.bounds.scan.totalDurationMS > duration {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	after, commit, err := codec.successor(c.pin, a)
 	intent, intentErr := codec.attempt(a)
 	if err != nil || intentErr != nil || after.held != held {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	start, err := s.sample()
 	if err != nil || !candidateLedgerClockAdvance(a.clock, providerClockDiagnostic(start)) || candidateLedgerExpired(providerClockDiagnostic(start), a.deadline) || !c.readPrefix() || !c.checkMainPin() {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	raw, rawErr := codec.highwater(after)
 	head, headErr := codec.head(after)
 	if rawErr != nil || headErr != nil || s.write(s.custody, s.name("scan-intent", a.ordinal), intent) != nil || s.write(s.evidence, s.name("scan-claim", a.ordinal), intent) != nil || s.write(s.custody, s.name("scan-commit", a.ordinal), commit) != nil {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {
 		if s.write(disk, s.name("scan-highwater", a.ordinal), raw) != nil {
-			return errProviderIntegration
+			return nil, errProviderIntegration
 		}
 	}
 	if !c.readHighwater(c.pin) {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {
 		pending := s.name("SCAN-HEAD.pending", a.ordinal)
 		if s.write(disk, pending, head) != nil || !s.event(providerRenameEvent, 0) || disk.checkIdentity() != nil || disk.root.Rename(pending, "SCAN-HEAD") != nil || !s.event(providerSyncEvent, 0) || disk.sync() != nil || disk.checkIdentity() != nil {
-			return errProviderIntegration
+			return nil, errProviderIntegration
 		}
 	}
 	if !c.readExact(s.custody, s.name("scan-intent", a.ordinal), intent) || !c.readExact(s.evidence, s.name("scan-claim", a.ordinal), intent) || !c.readExact(s.custody, s.name("scan-commit", a.ordinal), commit) || !c.readHighwater(after) || !c.checkMainPin() {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	end, err := s.sample()
 	if err != nil || !candidateLedgerClockAdvance(providerClockDiagnostic(start), providerClockDiagnostic(end)) || candidateLedgerExpired(providerClockDiagnostic(end), a.deadline) || uint64(end.MonotonicMS-start.MonotonicMS) > s.config.bounds.setupMaximumDurationMS || m.failed {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	// Successful write diagnostics are distinct from the already-held upper.
 	actualRaw, actualOK := providerUpperSum(s.retainedRaw, uint64(2*len(intent)+len(commit)+2*len(raw)+2*len(head)))
 	if !actualOK || actualRaw > s.stored {
-		return errProviderIntegration
+		return nil, errProviderIntegration
 	}
 	s.retainedRaw = actualRaw
 	c.pin, c.prepared, c.failed = after, &a, false
 	succeeded = true
-	return nil
+	return target, nil
 }
 
 func providerScanDeadline(config providerCustodyConfig, clock CandidateClockDiagnostic) (uint64, uint64, bool) {
