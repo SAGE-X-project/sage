@@ -267,6 +267,30 @@ func historyFinalObservationRouting(t *testing.T, f *providerHistoryFinalOwner) 
 // changes no meter, failure flag, cancellation decision or test expectation.
 func historyFinalFailureDiagnostics(t *testing.T, f *providerHistoryFinalOwner) {
 	t.Helper()
+	if f != nil && f.parent != nil && f.parent.store != nil {
+		p, s := f.parent, f.parent.store
+		s.mu.Lock()
+		if c := p.clock; c != nil {
+			c.mu.Lock()
+			last, reads, refusal := c.last, c.read, c.nativeRefusal
+			c.mu.Unlock()
+			t.Logf("collection retained clock: original=%+v last=%+v durationMS=%d reads=%d nativeRefusal=%d", p.original, last, p.bounds.durationMS, reads, refusal)
+		}
+		if g := p.group; g != nil {
+			t.Logf("collection retained group: phase=%s failed=%t", g.phase, g.failed)
+			if d := g.dispatch; d != nil {
+				t.Logf("collection retained dispatch: ticket=%+v retained=%d", d.ticketClock, d.retained)
+			}
+			if m := g.meter; m != nil {
+				t.Logf("collection retained meter: actual=%v upper=%v clocks=%d/%d failed=%t closed=%t", m.actual, m.upper, m.clocks, m.maximumClocks, m.failed, m.closed)
+			}
+		}
+		if files := s.frontierFiles; files != nil && files.historyPending != nil && files.historyPending.frame != nil {
+			claim := files.historyPending
+			t.Logf("collection retained pending write: stage=%d phase=%s begin=%+v renamed=%t used=%t", claim.frame.stage, claim.frame.phase, claim.frame.clock, claim.renamed, claim.used)
+		}
+		s.mu.Unlock()
+	}
 	if f == nil || f.reader == nil || f.reader.meter == nil {
 		t.Log("final reader diagnostic: no selected reader")
 		return

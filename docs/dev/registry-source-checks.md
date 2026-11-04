@@ -1715,3 +1715,15 @@ no returned DATA and both locks released. Neither subject supplies a new
 derivation constructor or substitutes for actual deployment-to-current,
 same-profile source/native qualification. Test source alone is not an executed
 result; each subject needs the next remote CI's own original evidence.
+
+When a complete recorded collection fails before final inspection, its UNIT
+diagnostic reports only already retained scalar state: the original and last
+clock samples, original lifetime, native refusal code, current dispatch ticket,
+work counters and any pending settlement frame. It takes the original store
+and clock locks without sampling a clock, reading an original or re-entering an
+owner predicate. The final-entry refusal scenarios use this same diagnostic.
+These values distinguish a collection prerequisite failure from the intended
+final assertion; a generic integration error or total test duration alone
+does not establish which native-clock or time-window condition failed. The
+diagnostic does not extend a window, change an allowance or turn a failed
+prerequisite into a successful test.

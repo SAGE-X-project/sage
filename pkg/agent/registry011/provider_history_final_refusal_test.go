@@ -144,6 +144,7 @@ func historyFinalFinishRefusalCase(t *testing.T, mode string) {
 		p, f := s.history, s.history.final
 		settled, err := p.runCollectionWithConnectionsCandidate(context.Background(), historyCollectionRecordedRunConnections(t, in, recorded))
 		if err != nil || settled == nil || f.beginCandidate(context.Background(), settled) != nil {
+			historyFinalFailureDiagnostics(t, f)
 			t.Fatal("genuine final entry", err)
 		}
 		r, g := f.reader, p.group
