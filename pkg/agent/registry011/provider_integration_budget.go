@@ -111,6 +111,13 @@ type providerIntegrationBounds struct {
 }
 
 func (b providerIntegrationBounds) valid() bool {
+	return b.validStructure() && (b.history == nil || b.history.valid(b))
+}
+
+// Structural DATA validation is separate from the completed history source
+// derivation. Cost compilation must precede that derivation; execution must
+// continue to use valid(), which also checks its original private witness.
+func (b providerIntegrationBounds) validStructure() bool {
 	commits, objects, entries := uint64(65536), uint64(65536), 64
 	if b.continuation != nil {
 		c := b.continuation
@@ -128,9 +135,6 @@ func (b providerIntegrationBounds) valid() bool {
 		return false
 	}
 	if b.guardian != nil && (b.firstAdmission == nil || !b.guardian.valid(b)) {
-		return false
-	}
-	if b.history != nil && !b.history.valid(b) {
 		return false
 	}
 	return candidateLedgerBoundsValid(b.ledger) && b.maximumCommits > 0 && uint64(b.maximumCommits) <= commits && b.maximumObjects > 0 && uint64(b.maximumObjects) <= objects && b.maximumEntries > 0 && b.maximumEntries <= entries &&

@@ -276,6 +276,7 @@ jobs:
               'provider_first_admission_plan.go', 'provider_first_admission_write.go',
               'provider_scan_admission_binding.go', 'provider_scan_receipt_replay.go',
               'provider_ledger_initial_charge.go', 'provider_bootstrap_owner.go',
+              'provider_bootstrap_costing.go',
               'provider_replay_paths.go', 'provider_first_admission_operation_capture.go',
               'provider_first_admission_operation_change.go', 'provider_first_admission_operation_commit.go',
               'provider_first_admission_operation_execute.go', 'provider_first_admission_operation_models.go',
