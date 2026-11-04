@@ -380,6 +380,7 @@ jobs:
               'pkg/agent/registry011/provider_bootstrap_costing.go': [0, 0],
               'pkg/agent/registry011/provider_scan_costing.go': [0, 0],
               'pkg/agent/registry011/provider_history_bootstrap_source_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_bootstrap_inputs.go': [0, 0],
               'pkg/agent/registry011/provider_history_collection_run.go': [0, 0],
               'pkg/agent/registry011/provider_history_recovery_bounds.go': [0, 0],
               'pkg/agent/registry011/provider_history_final_bounds.go': [0, 0],

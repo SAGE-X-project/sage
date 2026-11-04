@@ -1,5 +1,24 @@
 package registry011
 
+// Preserve the complete selected diagnostic-output envelope used by the
+// original scanner and first finisher. This is an input to their RAM checks,
+// not a smaller observed result, a reservation refund or a native RAM proof.
+func providerScanBodyOutputUpper(metadata, chunks, filenameOverhead uint64, receipts bool) (uint64, bool) {
+	if metadata == 0 || metadata > 1<<20 || chunks == 0 || chunks > (2<<20)+65 || filenameOverhead == 0 || filenameOverhead > 1<<20 {
+		return 0, false
+	}
+	var a providerHistoryReadArithmetic
+	output := a.product(a.product(2, metadata), chunks)
+	if receipts {
+		receiptRAM := a.product(a.product(2, chunks), a.sum(66, filenameOverhead))
+		output = a.sum(output, receiptRAM, metadata, 2048)
+	}
+	if a.failed {
+		return 0, false
+	}
+	return output, true
+}
+
 // Pure costs for the original open and scan preparation/inspection. These
 // functions accept bounded scalar DATA, not a profile with an execution
 // witness. Existing runtime wrappers must still validate the whole profile.
