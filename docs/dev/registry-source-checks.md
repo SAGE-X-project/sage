@@ -1697,3 +1697,15 @@ prefixes and ordinary owned connection failures test this composition; they do
 not qualify a production derivation or deployment-to-current history. A complete
 normal operating invocation still requires the same immutable compiler/native
 selection and fresh actual validation.
+
+The owning-caller UNIT suite also includes a complete recorded one-block
+invocation through the same private caller and its final detached-DATA return.
+It checks the selected identities, all four collection stages, both final clock
+observations, revocation and reacquisition of both original directory locks.
+A separate subject closes only its own first normal member connection before
+entry. It requires the first operation to have completed, the group's original
+consumption and first attempt to remain irrevocably recorded, zero HTTP bytes,
+no returned DATA and both locks released. Neither subject supplies a new
+derivation constructor or substitutes for actual deployment-to-current,
+same-profile source/native qualification. Test source alone is not an executed
+result; each subject needs the next remote CI's own original evidence.
