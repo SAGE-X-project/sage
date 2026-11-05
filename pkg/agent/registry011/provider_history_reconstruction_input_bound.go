@@ -442,8 +442,8 @@ func providerHistoryReconstructionOuterUpper(manifest *providerHistoryCollection
 	return out, true
 }
 
-// One selected source graph, still missing member/result custody
-// control and compiler-own/cleanup/native resource rows. A successful result
+// One selected source graph, still missing compiler-own/cleanup/native
+// resource rows and the complete derivation/factory/caller connection. A successful result
 // must not be installed as a complete R/F bound or production derivation.
 type providerHistoryReconstructionSourceCost struct {
 	ledger                     providerHistoryReconstructionLedgerCost
@@ -460,13 +460,14 @@ type providerHistoryReconstructionSourceCost struct {
 	initialIndex               providerHistoryReconstructionIndexCost
 	initialMessages            providerHistoryReconstructionMessageCost
 	initialModel               providerHistoryReconstructionInitialCost
+	members                    providerHistoryReconstructionMemberCost
 	normal, incoming, envelope candidateWorkVector
 }
 
 func providerHistoryCompileReconstructionSource(config providerCustodyConfig, failedInspection bool) (providerHistoryReconstructionSourceCost, bool) {
 	var empty providerHistoryReconstructionSourceCost
 	io, ioOK := providerHistoryCompileReconstructionIO(config, failedInspection)
-	if !ioOK || config.policy == nil {
+	if !ioOK || config.policy == nil || config.bounds.methods == nil || config.bounds.tls == nil {
 		return empty, false
 	}
 	scan, scanOK := providerHistoryReconstructionScanUpper(io.limits.legacy, uint64(len(config.policy.raw)))
@@ -476,20 +477,22 @@ func providerHistoryCompileReconstructionSource(config providerCustodyConfig, fa
 	initialIndex := providerHistoryReconstructionIndexUpper()
 	initialMessages, initialMessagesOK := providerHistoryReconstructionMessageUpper(io.limits.legacy, config.capture, uint64(len(config.policy.raw)))
 	initialModel, initialModelOK := providerHistoryReconstructionInitialUpper(io.limits.legacy, io.limits.setupRecoveries, uint64(len(config.policy.raw)))
+	members, membersOK := providerHistoryReconstructionMembersUpper(config.bounds.history.collection.counts.groups, config.bounds.history.collection.counts.requests,
+		io.limits.legacy.metadata, io.limits.legacy.objectBytes, uint64(len(config.policy.raw)), config.capture, *config.bounds.methods, *config.bounds.tls, failedInspection)
 	content, contentOK := providerHistoryReconstructionContentUpper(config.bounds.history.collection)
 	ledger, ledgerOK := providerHistoryReconstructionLedgerUpper(config.bounds.history.collection)
 	cursor, cursorOK := providerHistoryReconstructionCursorUpper(config.bounds.history.collection)
 	requests, requestsOK := providerHistoryReconstructionRequestUpper(config.bounds.history.collection, config.bounds.maximumObjectBytes)
 	boundary, boundaryOK := providerHistoryReconstructionBoundaryUpper(config.bounds.history.collection, *config.bounds.methods)
 	outer, outerOK := providerHistoryReconstructionOuterUpper(config.bounds.history.collection, io.limits.legacy.metadata, io.limits.legacy.objectBytes, failedInspection)
-	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK || !outerOK || !scanOK || !inventoryOK || !legacyOK || !finalizedOK || !initialMessagesOK || !initialModelOK {
+	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK || !outerOK || !scanOK || !inventoryOK || !legacyOK || !finalizedOK || !initialMessagesOK || !initialModelOK || !membersOK {
 		return empty, false
 	}
-	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary, outer: outer, scan: scan, inventory: inventory, legacy: legacy, finalized: finalized, initialIndex: initialIndex, initialMessages: initialMessages, initialModel: initialModel}
+	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary, outer: outer, scan: scan, inventory: inventory, legacy: legacy, finalized: finalized, initialIndex: initialIndex, initialMessages: initialMessages, initialModel: initialModel, members: members}
 	var a providerHistoryReadArithmetic
 	for coordinate := range out.normal {
-		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate], outer.normal[coordinate], scan.normal[coordinate], inventory.normal[coordinate], legacy.normal[coordinate], finalized.normal[coordinate], initialIndex.normal[coordinate], initialMessages.normal[coordinate], initialModel.normal[coordinate])
-		out.incoming[coordinate] = max(io.incoming[coordinate], content.incoming[coordinate], ledger.incoming[coordinate], cursor.incoming[coordinate], requests.incoming[coordinate], boundary.incoming[coordinate], outer.incoming[coordinate], scan.incoming[coordinate], inventory.incoming[coordinate], legacy.incoming[coordinate], finalized.incoming[coordinate], initialIndex.incoming[coordinate], initialMessages.incoming[coordinate], initialModel.incoming[coordinate])
+		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate], outer.normal[coordinate], scan.normal[coordinate], inventory.normal[coordinate], legacy.normal[coordinate], finalized.normal[coordinate], initialIndex.normal[coordinate], initialMessages.normal[coordinate], initialModel.normal[coordinate], members.normal[coordinate])
+		out.incoming[coordinate] = max(io.incoming[coordinate], content.incoming[coordinate], ledger.incoming[coordinate], cursor.incoming[coordinate], requests.incoming[coordinate], boundary.incoming[coordinate], outer.incoming[coordinate], scan.incoming[coordinate], inventory.incoming[coordinate], legacy.incoming[coordinate], finalized.incoming[coordinate], initialIndex.incoming[coordinate], initialMessages.incoming[coordinate], initialModel.incoming[coordinate], members.incoming[coordinate])
 		out.envelope[coordinate] = a.sum(out.normal[coordinate], out.incoming[coordinate])
 	}
 	if a.failed {
