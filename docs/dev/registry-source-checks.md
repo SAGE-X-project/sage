@@ -1727,3 +1727,34 @@ final assertion; a generic integration error or total test duration alone
 does not establish which native-clock or time-window condition failed. The
 diagnostic does not extend a window, change an allowance or turn a failed
 prerequisite into a successful test.
+
+
+## Collection and reconstruction cost checks
+
+The selected source-cost calculation now combines the unchanged initialization,
+full admitted collection, failed original reconstruction and successful final
+read with one explicit policy-matching clock snapshot. The full admitted
+32-member stage remains held for every prospective stage; an actual shorter
+request transcript does not reduce it. Failed and successful inspections retain
+separate complete allowances. Historical key-proof work remains counted in both
+read graphs, including when the current live read domain cannot accept it.
+
+The calculation also retains original-file, namespace, inventory, scan, legacy,
+initial-model, request/result, TLS, unfinished-tail and final-copy components.
+Normal work is summed; only alternative outstanding operations use a maximum.
+The final reader reserves its two clock observations separately and exactly once.
+A child refusal or arithmetic overflow returns no partial selected result.
+
+The source and provider coverage inventories include all twelve added production
+files, requiring at least 90% statements in every listed file. Complete test-root
+partitions, race detection, safe owned-runtime tests and consumer gates remain
+required. Draft CI validation can run while the implementation is incomplete;
+it does not authorize merging, qualify a host or activate an operating policy.
+Authored tests and source review are not executed test or coverage evidence.
+
+These calculations still do not supply the complete compiler-own and cleanup
+costs, native CPU/backing/peak/lifetime memory and time qualification, same-profile
+feasibility or a genuine production derivation factory. The clock snapshot is
+value data, not a native backend or an execution credential. Actual Agent
+selection and deployment-to-current history remain subject to those unchanged
+gates; the original strict node verification is not replaced or relaxed.
