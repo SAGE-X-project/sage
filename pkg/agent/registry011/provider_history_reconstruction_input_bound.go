@@ -378,7 +378,70 @@ func providerHistoryReconstructionBoundaryUpper(manifest *providerHistoryCollect
 	return out, true
 }
 
-// One selected source graph, still missing model/custody
+// Group checkpoint control rebuilt from EACH model's own files. One group
+// has T/C/S frames, inventories and highwaters, plus five direct stored
+// objects. A terminal failed S can add ONE failure object. Retain the complete
+// original eight-object inventory row for every parser, including partial or
+// refusing originals; no reported inventory length narrows that envelope.
+// Initial legacy/frontier interpretation and member/result custody remain
+// separate. These numeric rows authorize no file read or checkpoint ACK.
+type providerHistoryReconstructionOuterCost struct {
+	checkpoints, objects    uint64
+	primitives, comparisons candidateWorkVector
+
+	normal, incoming, envelope candidateWorkVector
+}
+
+func providerHistoryReconstructionOuterUpper(manifest *providerHistoryCollectionManifest, metadata, maximum uint64, failedInspection bool) (providerHistoryReconstructionOuterCost, bool) {
+	var empty providerHistoryReconstructionOuterCost
+	if !manifest.validSnapshot() || manifest.counts.groups == 0 {
+		return empty, false
+	}
+	one, oneOK := providerHistoryOuterControlUpper(metadata, maximum, 8)
+	if !oneOK {
+		return empty, false
+	}
+	var a providerHistoryReadArithmetic
+	groups := manifest.counts.groups
+	objects := a.product(5, groups)
+	if failedInspection {
+		objects = a.sum(objects, 1)
+	}
+	out := providerHistoryReconstructionOuterCost{checkpoints: a.product(6, groups), objects: a.product(2, objects)}
+	for coordinate := range out.primitives {
+		// These complete old primitive rows already include their original
+		// preflights/refusal siblings, so no additional incoming delta is added.
+		out.primitives[coordinate] = a.sum(a.product(out.checkpoints, a.sum(one.frameParsed[coordinate], one.inventoryParsed[coordinate], one.highwaterParsed[coordinate])),
+			a.product(out.objects, one.storedObject[coordinate]))
+	}
+	// Each checkpoint compares the raw highwater to its retained head (with
+	// one phase copy), intent to pending, and three original model hashes.
+	// Direct object text copies and digest comparisons are OUTSIDE the object
+	// constructor. T's requests/ticket bindings and the T/C/S operation hashes
+	// add five digest comparisons per group in each independent pass.
+	checkpoint := a.sum(a.product(5, metadata), 3, 3*133)
+	object := a.sum(maximum, 1, 133)
+	// Before replay, HEAD is compared with confirmed and, only on mismatch,
+	// pending. The last HEAD is read/compared again. Each pass separately
+	// compares/clones its confirmed model and builds/walks its checkpoint chain.
+	head := a.sum(a.product(7, metadata), 5)
+	if failedInspection {
+		head = a.sum(a.product(10, metadata), 7)
+	}
+	chain := a.sum(a.product(15, groups), 1)
+	out.comparisons[10] = a.sum(a.product(out.checkpoints, checkpoint), a.product(out.objects, object),
+		a.product(2, a.sum(a.product(5*133, groups), head, 200, chain)))
+	for coordinate := range out.normal {
+		out.normal[coordinate] = a.sum(out.primitives[coordinate], out.comparisons[coordinate])
+		out.envelope[coordinate] = out.normal[coordinate]
+	}
+	if a.failed || !providerHistoryReadWorkDomain(out.envelope) {
+		return empty, false
+	}
+	return out, true
+}
+
+// One selected source graph, still missing initial model/member custody
 // control and compiler-own/cleanup/native resource rows. A successful result
 // must not be installed as a complete R/F bound or production derivation.
 type providerHistoryReconstructionSourceCost struct {
@@ -388,6 +451,7 @@ type providerHistoryReconstructionSourceCost struct {
 	cursor                     providerHistoryReconstructionCursorCost
 	requests                   providerHistoryReconstructionRequestCost
 	boundary                   providerHistoryReconstructionBoundaryCost
+	outer                      providerHistoryReconstructionOuterCost
 	normal, incoming, envelope candidateWorkVector
 }
 
@@ -402,14 +466,15 @@ func providerHistoryCompileReconstructionSource(config providerCustodyConfig, fa
 	cursor, cursorOK := providerHistoryReconstructionCursorUpper(config.bounds.history.collection)
 	requests, requestsOK := providerHistoryReconstructionRequestUpper(config.bounds.history.collection, config.bounds.maximumObjectBytes)
 	boundary, boundaryOK := providerHistoryReconstructionBoundaryUpper(config.bounds.history.collection, *config.bounds.methods)
-	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK {
+	outer, outerOK := providerHistoryReconstructionOuterUpper(config.bounds.history.collection, io.limits.legacy.metadata, io.limits.legacy.objectBytes, failedInspection)
+	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK || !outerOK {
 		return empty, false
 	}
-	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary}
+	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary, outer: outer}
 	var a providerHistoryReadArithmetic
 	for coordinate := range out.normal {
-		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate])
-		out.incoming[coordinate] = max(io.incoming[coordinate], content.incoming[coordinate], ledger.incoming[coordinate], cursor.incoming[coordinate], requests.incoming[coordinate], boundary.incoming[coordinate])
+		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate], outer.normal[coordinate])
+		out.incoming[coordinate] = max(io.incoming[coordinate], content.incoming[coordinate], ledger.incoming[coordinate], cursor.incoming[coordinate], requests.incoming[coordinate], boundary.incoming[coordinate], outer.incoming[coordinate])
 		out.envelope[coordinate] = a.sum(out.normal[coordinate], out.incoming[coordinate])
 	}
 	if a.failed {

@@ -56,8 +56,8 @@ func TestProviderHistoryReconstructionSourceComposesTheSameSelectedReadGraph(t *
 			t.Fatal("read graph changed or lost its original source selection", failed)
 		}
 		for coordinate := range got.normal {
-			if got.normal[coordinate] != got.io.normal[coordinate]+got.content.normal[coordinate]+got.ledger.normal[coordinate]+got.cursor.normal[coordinate]+got.requests.normal[coordinate]+got.boundary.normal[coordinate] ||
-				got.incoming[coordinate] != max(got.io.incoming[coordinate], got.content.incoming[coordinate], got.ledger.incoming[coordinate], got.cursor.incoming[coordinate], got.requests.incoming[coordinate], got.boundary.incoming[coordinate]) ||
+			if got.normal[coordinate] != got.io.normal[coordinate]+got.content.normal[coordinate]+got.ledger.normal[coordinate]+got.cursor.normal[coordinate]+got.requests.normal[coordinate]+got.boundary.normal[coordinate]+got.outer.normal[coordinate] ||
+				got.incoming[coordinate] != max(got.io.incoming[coordinate], got.content.incoming[coordinate], got.ledger.incoming[coordinate], got.cursor.incoming[coordinate], got.requests.incoming[coordinate], got.boundary.incoming[coordinate], got.outer.incoming[coordinate]) ||
 				got.envelope[coordinate] != got.normal[coordinate]+got.incoming[coordinate] {
 				t.Fatal("source graph lost an actual child or summed mutually outstanding guards", coordinate)
 			}
@@ -223,6 +223,60 @@ func TestProviderHistoryReconstructionBoundaryReplaysWholeJourneyOnlyTwice(t *te
 	}
 	if zero, valid := providerHistoryReconstructionBoundaryUpper(nil, *config.bounds.methods); valid || zero != (providerHistoryReconstructionBoundaryCost{}) {
 		t.Fatal("missing original returned partial boundary work")
+	}
+}
+
+func TestProviderHistoryReconstructionOuterKeepsBothFullCheckpointPasses(t *testing.T) {
+	config := historySelectedSourceConfig(t)
+	manifest, metadata, maximum := config.bounds.history.collection, config.bounds.maximumMetadataPerCommit, config.bounds.maximumObjectBytes
+	before := *manifest
+	full, fullOK := providerHistoryOuterControlUpper(metadata, maximum, 8)
+	final, finalOK := providerHistoryReconstructionOuterUpper(manifest, metadata, maximum, false)
+	failed, failedOK := providerHistoryReconstructionOuterUpper(manifest, metadata, maximum, true)
+	if !fullOK || !finalOK || !failedOK || manifest.counts.groups != 40 || *manifest != before ||
+		final.checkpoints != 240 || failed.checkpoints != 240 || final.objects != 400 || failed.objects != 402 {
+		t.Fatal("each T/C/S checkpoint or the separate failed-S original was lost", final, failed)
+	}
+	for _, cost := range []providerHistoryReconstructionOuterCost{final, failed} {
+		for coordinate := range cost.normal {
+			primitive := 240*(full.frameParsed[coordinate]+full.inventoryParsed[coordinate]+full.highwaterParsed[coordinate]) + cost.objects*full.storedObject[coordinate]
+			if cost.primitives[coordinate] != primitive || cost.normal[coordinate] != primitive+cost.comparisons[coordinate] ||
+				cost.envelope[coordinate] != cost.normal[coordinate] || cost.incoming[coordinate] != 0 {
+				t.Fatal("complete raw outer envelopes were narrowed or reserved twice", coordinate)
+			}
+			if coordinate != 2 && coordinate != 10 && cost.envelope[coordinate] != 0 {
+				t.Fatal("checkpoint DATA acquired another execution permission", coordinate)
+			}
+		}
+	}
+	// Relative to final provenance, failed inspection permits the pending
+	// HEAD alternative in BOTH fresh passes and ONE extra object per pass.
+	// Its complete parser rows keep the same original eight-object envelope.
+	for coordinate := range final.envelope {
+		extra := 2 * full.storedObject[coordinate]
+		if coordinate == 10 {
+			extra += 2*(maximum+134) + 2*(3*metadata+2)
+		}
+		if failed.envelope[coordinate] != final.envelope[coordinate]+extra {
+			t.Fatal("failed inspection omitted an original or reset the selected HEAD allowance", coordinate)
+		}
+	}
+}
+
+func TestProviderHistoryReconstructionOuterRefusesInvalidOriginalLimits(t *testing.T) {
+	manifest := historySelectedSourceConfig(t).bounds.history.collection
+	for _, limits := range [][2]uint64{{0, 1}, {1<<20 + 1, 1}, {1, 0}, {1, 32<<20 + 1}} {
+		if zero, ok := providerHistoryReconstructionOuterUpper(manifest, limits[0], limits[1], true); ok || zero != (providerHistoryReconstructionOuterCost{}) {
+			t.Fatal("invalid original checkpoint limits returned partial work", limits)
+		}
+	}
+	if zero, ok := providerHistoryReconstructionOuterUpper(nil, 16384, 524288, true); ok || zero != (providerHistoryReconstructionOuterCost{}) {
+		t.Fatal("missing original returned partial checkpoint work")
+	}
+	changed := *manifest
+	changed.input.blocks++
+	if zero, ok := providerHistoryReconstructionOuterUpper(&changed, 16384, 524288, true); ok || zero != (providerHistoryReconstructionOuterCost{}) {
+		t.Fatal("changed original retained its sealed checkpoint quote")
 	}
 }
 
