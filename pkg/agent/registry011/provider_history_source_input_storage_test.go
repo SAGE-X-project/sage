@@ -22,7 +22,7 @@ func historyAssertDetachedText(t *testing.T, before, after reflect.Value, seen m
 		t.Fatal("input type changed while detaching text")
 	}
 	switch before.Kind() {
-	case reflect.Ptr:
+	case reflect.Pointer:
 		if before.IsNil() || after.IsNil() {
 			if before.IsNil() != after.IsNil() {
 				t.Fatal("input pointer shape changed")
