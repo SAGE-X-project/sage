@@ -428,7 +428,8 @@ func providerHistoryReconstructionOuterUpper(manifest *providerHistoryCollection
 	if failedInspection {
 		head = a.sum(a.product(10, metadata), 7)
 	}
-	chain := a.sum(a.product(15, groups), 1)
+	// The chain allocation copies count+1 slots; its event adds one more unit.
+	chain := a.sum(a.product(15, groups), 2)
 	out.comparisons[10] = a.sum(a.product(out.checkpoints, checkpoint), a.product(out.objects, object),
 		a.product(2, a.sum(a.product(5*133, groups), head, 200, chain)))
 	for coordinate := range out.normal {

@@ -575,3 +575,73 @@ func TestProviderHistoryReconstructionFullIntervalQuoteDoesNotQualifySmallCatalo
 		}
 	}
 }
+
+func TestProviderHistoryReconstructionOuterKeepsBothChainAllocationCharges(t *testing.T) {
+	var selectedChain uint64
+	for _, row := range []struct {
+		name            string
+		groups, perPass uint64
+	}{
+		{"one-group", 1, 17},
+		{"forty-groups", 40, 602},
+	} {
+		t.Run(row.name, func(t *testing.T) {
+			// Handwritten original primitive sequence, not the quote's15G
+			// coefficient. Each group has three original T/C/S checkpoints.
+			charge := func(meter *providerWorkMeter) bool {
+				for pass := 0; pass < 2; pass++ {
+					var count uint64
+					for group := uint64(0); group < row.groups; group++ {
+						for range []string{"admit", "consume", "settle"} {
+							if !meter.event(providerCompareEvent, 1) {
+								return false
+							}
+							count++
+						}
+					}
+					// Original slots=count+1; providerCopyEvent ALSO adds1.
+					if !meter.event(providerCopyEvent, count+1) {
+						return false
+					}
+					for index := uint64(0); index < count; index++ {
+						if !meter.event(providerCopyEvent, 1) {
+							return false
+						}
+					}
+				}
+				return true
+			}
+			meter := providerHistoryContentUnitMeter(candidateWorkVector{10: 2 * row.perPass})
+			if !charge(meter) || meter.failed || meter.actual != (candidateWorkVector{10: 2 * row.perPass}) || meter.authority || meter.clocks != 0 {
+				t.Fatal("independent chain allocation/fill charges lost the primitive overhead", row, meter.actual)
+			}
+			short := providerHistoryContentUnitMeter(candidateWorkVector{10: 2*row.perPass - 1})
+			if charge(short) || !short.failed || short.actual[10] >= 2*row.perPass || short.authority || short.clocks != 0 {
+				t.Fatal("short original chain row was renewed or silently borrowed another component", row)
+			}
+			if row.groups == 40 {
+				selectedChain = meter.actual[10]
+			}
+		})
+	}
+	config := historySelectedSourceConfig(t)
+	manifest, metadata, maximum := config.bounds.history.collection, config.bounds.maximumMetadataPerCommit, config.bounds.maximumObjectBytes
+	if manifest.counts.groups != 40 || selectedChain != 1204 {
+		t.Fatal("independent literal does not match the selected original group domain")
+	}
+	for _, failed := range []bool{false, true} {
+		got, ok := providerHistoryReconstructionOuterUpper(manifest, metadata, maximum, failed)
+		objects, head := uint64(400), 7*metadata+5
+		if failed {
+			objects, head = 402, 10*metadata+7
+		}
+		// The other original caller rows:240 checkpoint joins, direct object
+		// copies/digests,200 model units/pass and five hash checks/group/pass.
+		other := 240*(5*metadata+402) + objects*(maximum+134) + 2*(26600+head+200)
+		want := other + selectedChain
+		if !ok || got.comparisons != (candidateWorkVector{10: want}) ||
+			got.normal[10] != got.primitives[10]+want || got.envelope != got.normal || got.incoming != (candidateWorkVector{}) {
+			t.Fatal("joined normal/envelope omitted one chain event per fresh pass", failed, got.comparisons, want)
+		}
+	}
+}
