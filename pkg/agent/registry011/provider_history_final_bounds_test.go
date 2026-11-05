@@ -132,14 +132,12 @@ func TestProviderHistoryFinalReservationRejectsInvalidDomainsAndOverflow(t *test
 			}
 		})
 	}
-	for _, coordinate := range []int{7, 8} {
-		b := base
-		b.read.work[coordinate] = 1
-		if out, ok := b.upper(); ok || out != (providerScanUpper{}) {
-			t.Fatal("foreign final resource domain", coordinate)
-		}
+	segment := base
+	segment.read.work[8] = 1
+	if out, ok := segment.upper(); ok || out != (providerScanUpper{}) {
+		t.Fatal("final read acquired a segment allowance")
 	}
-	for _, coordinate := range []int{3, 4, 5, 6} {
+	for _, coordinate := range []int{3, 4, 5, 6, 7} {
 		b := base
 		b.read.work[coordinate] = 1
 		upper, ok := b.upper()

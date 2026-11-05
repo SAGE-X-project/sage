@@ -196,8 +196,8 @@ func TestProviderHistorySelectedSourceKeepsBothInspectionRolesAndTheirProofs(t *
 	const perReadProofs, bothReadProofs = 1024, 2048
 	priorProofs := got.bootstrap.source.selectedPreI.work[7] + got.bootstrap.source.startup.work[7] + got.collection.future.work[7]
 	if got.recovery.envelope[7] != perReadProofs || got.finalWork[7] != perReadProofs || got.assigned.work[7] != priorProofs+bothReadProofs ||
-		providerHistoryReadWorkDomain(got.recovery.envelope) || providerHistoryReadWorkDomain(got.finalWork) {
-		t.Fatal("historical proof work was dropped, MAXed across held roles or converted to the old live read domain")
+		!providerHistoryReadWorkDomain(got.recovery.envelope) || !providerHistoryReadWorkDomain(got.finalWork) {
+		t.Fatal("historical proof work was dropped, MAXed across held roles or excluded from its read domain")
 	}
 	// Forty whole32-member T windows plus the separate initial E1. The actual
 	// grammar's242 requests must not shrink that prospective admitted SUM.

@@ -105,8 +105,9 @@ func providerHistoryCompileSelectedSource(config providerCustodyConfig, clock pr
 		return empty, false
 	}
 	// Preserve ALL eleven dimensions, including historical proofs in R/F.
-	// Their current live read domain still refuses proofs: do not erase that
-	// mismatch or install these source DATA as an executable recovery bound.
+	// The live read domain permits separately funded historical verification,
+	// but these source DATA still cannot install an executable recovery bound
+	// without the complete production derivation and native qualification.
 	return out, true
 }
 

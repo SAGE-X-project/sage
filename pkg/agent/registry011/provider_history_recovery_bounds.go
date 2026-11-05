@@ -5,7 +5,8 @@ import "strconv"
 // This separate read-only row is held once before H0. It cannot be spent by
 // group execution and cannot be recreated after that execution has failed.
 // Original reconstruction also interprets retained blocks/transactions/frames/
-// logs. Their observations are read work, not network or write permission.
+// logs and verifies historical key proofs. These are read work, not network or
+// write permission; proof attempts must fit this separately pre-held allowance.
 // Positive numbers alone are not a sufficient production cost derivation.
 type providerHistoryRecoveryBounds struct {
 	work                       candidateWorkVector
@@ -24,11 +25,12 @@ func (b providerHistoryRecoveryBounds) valid(store providerIntegrationBounds, ca
 }
 
 // The original byte/codec observations and historical semantic counts share
-// this read-only vector. Requests, wire capture, proofs, segment acquisition
-// and disk writes remain excluded. Primitive kind checks remain separate:
+// this read-only vector. Historical proof verification is a counted local read
+// operation. Requests, wire capture, segment acquisition and disk writes remain
+// excluded. Primitive kind checks remain separate:
 // positive logical units cannot authorize TLS, sync, rename or clock events.
 func providerHistoryReadWorkDomain(work candidateWorkVector) bool {
-	return work[0] == 0 && work[1] == 0 && work[7] == 0 && work[8] == 0 && work[9] == 0
+	return work[0] == 0 && work[1] == 0 && work[8] == 0 && work[9] == 0
 }
 
 // Structural DATA for TWO fresh original reconstruction passes. Each group's

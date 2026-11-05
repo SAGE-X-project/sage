@@ -52,6 +52,8 @@ type providerScanFixtureSelection struct {
 	historyFinalRead              bool
 	historyFinalReadUnits         uint64
 	historyFinalReadWithoutBlocks bool
+	historyRecoveryProofs         uint64
+	historyFinalReadProofs        uint64
 	historyFirstPDecoded          uint64
 	historyNativeInputCounts      bool
 	historyRecoveryNamespace      bool
@@ -333,6 +335,20 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 		h.derivation.snapshot = *h
 		if !b.valid() {
 			t.Fatal("fresh disjoint successful-final UNIT profile")
+		}
+	}
+	if selected != nil && (selected.historyRecoveryProofs != 0 || selected.historyFinalReadProofs != 0) {
+		// Separate historical-proof UNIT quotas fixed before profile/anchor/H0.
+		// The default subjects keep zero and no live owner is altered.
+		if b.history == nil || selected.historyFinalReadProofs != 0 && !selected.historyFinalRead {
+			t.Fatal("historical proof quota requires its original selected read role")
+		}
+		h := b.history
+		h.recovery.work[7] = selected.historyRecoveryProofs
+		h.final.read.work[7] = selected.historyFinalReadProofs
+		h.derivation.snapshot = *h
+		if !b.valid() {
+			t.Fatal("fresh historical proof read quotas")
 		}
 	}
 	if selected != nil && selected.historyCallerRefusal != "" {

@@ -38,14 +38,14 @@ func TestProviderHistoryRecoveryBoundsSeparateReadOnlyResources(t *testing.T) {
 			}
 		})
 	}
-	for _, i := range []int{0, 1, 7, 8, 9} {
+	for _, i := range []int{0, 1, 8, 9} {
 		row := b
 		row.work[i] = 1
 		if row.valid(s.config.bounds, catalog) {
 			t.Fatal("read-only lane accepted an effect coordinate", i)
 		}
 	}
-	for _, coordinate := range []int{3, 4, 5, 6} {
+	for _, coordinate := range []int{3, 4, 5, 6, 7} {
 		row := b
 		row.work[coordinate] = 1
 		if !row.valid(s.config.bounds, catalog) {

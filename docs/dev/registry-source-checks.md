@@ -1737,7 +1737,10 @@ read with one explicit policy-matching clock snapshot. The full admitted
 32-member stage remains held for every prospective stage; an actual shorter
 request transcript does not reduce it. Failed and successful inspections retain
 separate complete allowances. Historical key-proof work remains counted in both
-read graphs, including when the current live read domain cannot accept it.
+read graphs. Read-only reservations can fund historical proof verification;
+requests, wire capture, segment acquisition and writes remain excluded. A missing
+or exhausted proof allowance refuses atomically and cannot borrow from execution
+or the other reader. The original strict verifier and key roles are unchanged.
 
 The calculation also retains original-file, namespace, inventory, scan, legacy,
 initial-model, request/result, TLS, unfinished-tail and final-copy components.
