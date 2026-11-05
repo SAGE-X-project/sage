@@ -88,13 +88,10 @@ func TestProviderHistoryRecoveryInventoryReplaysActualClosureTwiceWithoutProduce
 	s := o.store
 	old, reads, held, pin, ack := o.meter.actual, s.clock.read, s.stored, o.pin, o.last
 	originals := providerHistoryProvisionedOriginalBytes(t, s.config)
-	manifest, bounds := s.config.bounds.history.collection, s.config.bounds
-	quote, quoteOK := providerHistoryReconstructionInventoryUpper(providerHistoryLegacyControlLimits{
-		bounds.maximumMetadataPerCommit, bounds.maximumObjectBytes, manifest.input.firstRead.objects, manifest.input.firstRead.raw,
-		uint64(bounds.maximumEntries), bounds.scan.maximumAttempts, bounds.scan.maximumChunks,
-	})
-	if !quoteOK {
-		t.Fatal("original immutable inventory limits")
+	// This original recovery fixture intentionally has no collection manifest.
+	// Attribute its observed stream exactly without inventing firstRead bounds.
+	if s.config.bounds.history.collection != nil {
+		t.Fatal("ordinary recovery fixture unexpectedly selected a collection")
 	}
 	readBefore := r.meter.actual
 	var files, bytes, decoded uint64
@@ -130,13 +127,72 @@ func TestProviderHistoryRecoveryInventoryReplaysActualClosureTwiceWithoutProduce
 			t.Fatal("full original reference closure or cumulative shared row was not preserved", err)
 		}
 	}
-	if r.meter.actual[2] < readBefore[2] || decoded == 0 || r.meter.actual[2]-readBefore[2] != decoded || decoded > quote.normal[2] {
-		t.Fatal("two fresh original decode streams exceeded their same-source row or borrowed logical I/O slack", decoded)
+	if r.meter.actual[2] < readBefore[2] || decoded == 0 || r.meter.actual[2]-readBefore[2] != decoded {
+		t.Fatal("two fresh original decode streams differed from their actual frames or borrowed logical I/O slack", decoded)
 	}
 	if r.inputFiles != 2*(4+uint64(len(want))) || r.inputBytes == 0 || r.meter.actual[2] == 0 || o.meter.actual != old || s.clock.read != reads || s.stored != held ||
 		o.pin != pin || o.last != ack || !o.failed || !o.meter.closed || s.activeMeter.Load() != nil || !r.active || r.closed || r.failed || s.objects != nil ||
 		!reflect.DeepEqual(originals, providerHistoryProvisionedOriginalBytes(t, s.config)) {
 		t.Fatal("inventory replay renewed execution, read its producer cache, changed originals or reset its row")
+	}
+}
+
+func TestProviderHistoryRecoveryInventoryContainsBothOriginalCollectionDecodeStreams(t *testing.T) {
+	s, in, _ := historyCollectionRecordedRunStore(t)
+	bounds, manifest := s.config.bounds, s.config.bounds.history.collection
+	o, err := newProviderHistoryGroupOwnerCandidate(s)
+	if err != nil || o == nil {
+		t.Fatal("original collection group after its bounded initializer", err)
+	}
+	r, want := historyRecoveryGroupStart(t, o)
+	if manifest == nil || !manifest.validSnapshot() || manifest.input.firstRead != in.firstRead || s.objects != nil {
+		t.Fatal("genuine pre-H0 collection selection without the failed producer cache")
+	}
+	quote, ok := providerHistoryReconstructionInventoryUpper(providerHistoryLegacyControlLimits{
+		bounds.maximumMetadataPerCommit, bounds.maximumObjectBytes, manifest.input.firstRead.objects, manifest.input.firstRead.raw,
+		uint64(bounds.maximumEntries), bounds.scan.maximumAttempts, bounds.scan.maximumChunks,
+	})
+	if !ok {
+		t.Fatal("same original collection inventory limits")
+	}
+	work, old, reads, held, pin, ack := r.meter.actual, o.meter.actual, s.clock.read, s.stored, o.pin, o.last
+	originals := providerHistoryProvisionedOriginalBytes(t, s.config)
+	var decoded, files, rawBytes uint64
+	for pass := range 2 {
+		w, err := r.newInventoryWalkCandidate(context.Background(), pass)
+		if err != nil || w == nil || w.descriptor != r.initialDescriptor || w.remaining != 4 {
+			t.Fatal("fresh collection inventory pass", pass, err)
+		}
+		f, b := historyRecoveryInventoryDrain(t, w, want)
+		files, rawBytes = files+f, rawBytes+b
+		// No scan/model work is allowed between these snapshots. Each fresh
+		// inventory is decoded outside and inside its parser, then each
+		// domain-bearing object is independently decoded once.
+		for _, frame := range w.frames {
+			decoded += 2 * uint64(len(frame.inventory.raw))
+			for _, object := range frame.objects {
+				domain, known := providerIntegrationDomain(object.kind)
+				if !known {
+					t.Fatal("unknown original collection object kind")
+				}
+				if domain != "" {
+					decoded += uint64(len(object.raw))
+				}
+			}
+		}
+		summary, err := w.finishCandidate(context.Background())
+		if err != nil || summary == nil || summary.root != r.initialDescriptor.objects || summary.inventories != 4 ||
+			summary.objects != uint64(len(want)) || !w.complete || r.inputFiles != files || r.inputBytes != rawBytes {
+			t.Fatal("complete original collection reference closure", pass, err)
+		}
+	}
+	if r.meter.actual[2] < work[2] || decoded == 0 || r.meter.actual[2]-work[2] != decoded || decoded > quote.normal[2] {
+		t.Fatal("same-collection decode stream exceeded its quote or borrowed another coordinate", decoded, quote.normal[2])
+	}
+	if r.inputFiles != 2*(4+uint64(len(want))) || rawBytes == 0 || o.meter.actual != old || s.clock.read != reads || s.stored != held ||
+		o.pin != pin || o.last != ack || !o.failed || !o.meter.closed || s.activeMeter.Load() != nil || s.objects != nil ||
+		!r.active || r.closed || r.failed || !reflect.DeepEqual(originals, providerHistoryProvisionedOriginalBytes(t, s.config)) {
+		t.Fatal("collection quote comparison changed original execution, resources, bytes or recovery ownership")
 	}
 }
 
