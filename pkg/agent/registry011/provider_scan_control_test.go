@@ -35,6 +35,7 @@ type providerScanFixtureSelection struct {
 	pin                           bool
 	pinResidentGiB                bool
 	pinLargeObject                bool
+	pinRPCHeader                  bool
 	historyProgram                bool
 	historyShortStartup           bool
 	historyGroupInit              bool
@@ -70,6 +71,17 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 	t.Helper()
 	model, policy := providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
 	b, capture := providerFrontierBoundsFixture()
+	if selected != nil && selected.pinRPCHeader {
+		if !selected.pin || !operation || first == nil || selected.historyProgram {
+			t.Fatal("official header test selection requires its separate pin profile")
+		}
+		// Fresh test input before profile/H0/clock, not a retry or mutation of
+		// an existing16KiB class. Keep the old global128/256KiB envelope and
+		// 256KiB object ceiling;192KiB leaves space for retained framing.
+		methods := *b.methods
+		methods.header = providerMethodLimit{128 << 10, 192 << 10}
+		b.methods = &methods
+	}
 	if selected != nil && selected.historyCollectionRecordedRun {
 		// A separate normal recorded-block UNIT selection before profile/H0.
 		// Existing fixture classes and every operating limit stay unchanged.
@@ -163,6 +175,12 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 				}
 				if selected.historyGroupDispatch {
 					wire = "16777216"
+				}
+				if selected.pinRPCHeader && level == "bootstrap" {
+					// First header+three scalars and the later four pin reads
+					// are distinct:2*(192+3*16)KiB fits this fresh1MiB hold.
+					// Operation/segment remain256KiB; no live counter resets.
+					wire = "1048576"
 				}
 				m["limits"].(map[string]any)[level].(map[string]any)["wire_bytes"] = wire
 			}

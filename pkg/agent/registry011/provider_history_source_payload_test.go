@@ -73,7 +73,9 @@ func TestProviderHistorySourcePayloadDomainIncludesTheExactAbsoluteBoundary(t *t
 				config.bounds.maximumObjectBytes, config.bounds.maximumMetadataPerCommit, config.bounds.fileOverheadBytes)
 			// Independent literal vectors exercise the actual storage component
 			// on both sides of the shared validator's unchanged16GiB boundary.
-			// This UNIT invokes no group enumeration, store, RPC or native clock.
+			// The arithmetic below invokes no group enumeration, store open,
+			// RPC or budget-clock sample. Shared fixture preparation above
+			// creates temporary originals and an unused native clock.
 			if !ok || manifest.counts.groups != 512 || storage.future.payload != test.payload ||
 				providerHistorySourcePayloadDomainFits(config) != test.fits {
 				t.Fatal("payload-domain boundary differs from the independent literal", ok, manifest.counts.groups, storage.future.payload)
