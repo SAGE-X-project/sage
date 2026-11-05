@@ -88,7 +88,16 @@ func TestProviderHistoryRecoveryInventoryReplaysActualClosureTwiceWithoutProduce
 	s := o.store
 	old, reads, held, pin, ack := o.meter.actual, s.clock.read, s.stored, o.pin, o.last
 	originals := providerHistoryProvisionedOriginalBytes(t, s.config)
-	var files, bytes uint64
+	manifest, bounds := s.config.bounds.history.collection, s.config.bounds
+	quote, quoteOK := providerHistoryReconstructionInventoryUpper(providerHistoryLegacyControlLimits{
+		bounds.maximumMetadataPerCommit, bounds.maximumObjectBytes, manifest.input.firstRead.objects, manifest.input.firstRead.raw,
+		uint64(bounds.maximumEntries), bounds.scan.maximumAttempts, bounds.scan.maximumChunks,
+	})
+	if !quoteOK {
+		t.Fatal("original immutable inventory limits")
+	}
+	readBefore := r.meter.actual
+	var files, bytes, decoded uint64
 	for pass := range 2 {
 		work := r.meter.actual
 		w, err := r.newInventoryWalkCandidate(context.Background(), pass)
@@ -100,11 +109,29 @@ func TestProviderHistoryRecoveryInventoryReplaysActualClosureTwiceWithoutProduce
 		}
 		f, b := historyRecoveryInventoryDrain(t, w, want)
 		files, bytes = files+f, bytes+b
+		// Only inventory/object codecs debit coordinate2 in this subgraph;
+		// file/name/catalog I/O is coordinate10 and is deliberately excluded
+		// from this runtime attribution. Use each pass's actual fresh frames.
+		for _, frame := range w.frames {
+			decoded += 2 * uint64(len(frame.inventory.raw))
+			for _, object := range frame.objects {
+				domain, known := providerIntegrationDomain(object.kind)
+				if !known {
+					t.Fatal("actual original had an unknown closed object kind")
+				}
+				if domain != "" {
+					decoded += uint64(len(object.raw))
+				}
+			}
+		}
 		summary, err := w.finishCandidate(context.Background())
 		if err != nil || summary == nil || summary.root != r.initialDescriptor.objects || summary.inventories != 4 || summary.objects != uint64(len(want)) ||
 			summary.bytes != w.bytes || !w.complete || r.inputFiles != files || r.inputBytes != bytes || r.meter.actual[10] <= work[10] {
 			t.Fatal("full original reference closure or cumulative shared row was not preserved", err)
 		}
+	}
+	if r.meter.actual[2] < readBefore[2] || decoded == 0 || r.meter.actual[2]-readBefore[2] != decoded || decoded > quote.normal[2] {
+		t.Fatal("two fresh original decode streams exceeded their same-source row or borrowed logical I/O slack", decoded)
 	}
 	if r.inputFiles != 2*(4+uint64(len(want))) || r.inputBytes == 0 || r.meter.actual[2] == 0 || o.meter.actual != old || s.clock.read != reads || s.stored != held ||
 		o.pin != pin || o.last != ack || !o.failed || !o.meter.closed || s.activeMeter.Load() != nil || !r.active || r.closed || r.failed || s.objects != nil ||
