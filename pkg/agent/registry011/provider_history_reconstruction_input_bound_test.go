@@ -23,7 +23,7 @@ func historyReconstructionSourceConfig(t *testing.T) providerCustodyConfig {
 	// Establish the complete joined positive BEFORE any targeted negative
 	// copies, in both original read modes. This is not execution authority.
 	for _, failed := range []bool{false, true} {
-		if quote, ok := providerHistoryCompileReconstructionSource(config, failed); !ok || quote.scan.normal[2] == 0 || quote.inventory.normal[2] == 0 || quote.legacy.normal[2] == 0 || quote.finalized.normal[2] == 0 || quote.initialIndex.normal[2] == 0 || quote.initialMessages.normal[2] == 0 {
+		if quote, ok := providerHistoryCompileReconstructionSource(config, failed); !ok || quote.scan.normal[2] == 0 || quote.inventory.normal[2] == 0 || quote.legacy.normal[2] == 0 || quote.finalized.normal[2] == 0 || quote.initialIndex.normal[2] == 0 || quote.initialMessages.normal[2] == 0 || quote.initialModel.body[2] == 0 || quote.initialModel.boundary[10] == 0 {
 			t.Fatal("complete positive reconstruction graph precursor", failed, ok)
 		}
 	}
@@ -81,8 +81,8 @@ func TestProviderHistoryReconstructionSourceComposesTheSameSelectedReadGraph(t *
 			t.Fatal("read graph changed or lost its original source selection", failed)
 		}
 		for coordinate := range got.normal {
-			if got.normal[coordinate] != got.io.normal[coordinate]+got.content.normal[coordinate]+got.ledger.normal[coordinate]+got.cursor.normal[coordinate]+got.requests.normal[coordinate]+got.boundary.normal[coordinate]+got.outer.normal[coordinate]+got.scan.normal[coordinate]+got.inventory.normal[coordinate]+got.legacy.normal[coordinate]+got.finalized.normal[coordinate]+got.initialIndex.normal[coordinate]+got.initialMessages.normal[coordinate] ||
-				got.incoming[coordinate] != max(got.io.incoming[coordinate], got.content.incoming[coordinate], got.ledger.incoming[coordinate], got.cursor.incoming[coordinate], got.requests.incoming[coordinate], got.boundary.incoming[coordinate], got.outer.incoming[coordinate], got.scan.incoming[coordinate], got.inventory.incoming[coordinate], got.legacy.incoming[coordinate], got.finalized.incoming[coordinate], got.initialIndex.incoming[coordinate], got.initialMessages.incoming[coordinate]) ||
+			if got.normal[coordinate] != got.io.normal[coordinate]+got.content.normal[coordinate]+got.ledger.normal[coordinate]+got.cursor.normal[coordinate]+got.requests.normal[coordinate]+got.boundary.normal[coordinate]+got.outer.normal[coordinate]+got.scan.normal[coordinate]+got.inventory.normal[coordinate]+got.legacy.normal[coordinate]+got.finalized.normal[coordinate]+got.initialIndex.normal[coordinate]+got.initialMessages.normal[coordinate]+got.initialModel.normal[coordinate] ||
+				got.incoming[coordinate] != max(got.io.incoming[coordinate], got.content.incoming[coordinate], got.ledger.incoming[coordinate], got.cursor.incoming[coordinate], got.requests.incoming[coordinate], got.boundary.incoming[coordinate], got.outer.incoming[coordinate], got.scan.incoming[coordinate], got.inventory.incoming[coordinate], got.legacy.incoming[coordinate], got.finalized.incoming[coordinate], got.initialIndex.incoming[coordinate], got.initialMessages.incoming[coordinate], got.initialModel.incoming[coordinate]) ||
 				got.envelope[coordinate] != got.normal[coordinate]+got.incoming[coordinate] {
 				t.Fatal("source graph lost an actual child or summed mutually outstanding guards", coordinate)
 			}
