@@ -585,6 +585,13 @@ func TestProviderHistoryReconstructionFullIntervalQuoteDoesNotQualifySmallCatalo
 	in := config.bounds.history.collection.input
 	in.maximumSelected, in.blocks, in.native = in.journal.Deployment.Number+38419, 38420, 38420
 	in.windowBlocks, in.contentBlocks, in.effects, in.versions, in.presentStops = 4096, 10, 4096, 4096, 10
+	// The shared small UNIT permits only10,000 ancestors. Preserve that
+	// refusal, then select this inert full-interval input before its manifest;
+	// no live or operating limit, block count or insufficient catalog changes.
+	if manifest, err := newProviderHistoryCollectionManifestCandidate(in); err == nil || manifest != nil {
+		t.Fatal("undersized ancestry selection admitted the full interval")
+	}
+	in.journal.Observation.MaxAncestryHeaders = in.blocks - 1
 	manifest := historyCollectionManifest(t, in)
 	config.bounds.history.collection, config.bounds.history.stages = manifest, manifest.counts.groups
 	limits, ok := providerHistorySourceLimitsFromConfig(config)
