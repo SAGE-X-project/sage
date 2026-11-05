@@ -2,6 +2,7 @@ package registry011
 
 import (
 	"bytes"
+	"os"
 	"testing"
 )
 
@@ -17,6 +18,22 @@ func TestProviderScanFinalClockRefusalKeepsWrittenOriginalsAndTheWholeHold(t *te
 	if !heldOK || afterErr != nil || headErr != nil {
 		t.Fatal("ordinary scan records must be valid before the refusal", afterErr, headErr)
 	}
+	var observed *providerWorkMeter
+	changedMeter := false
+	originalSync := s.evidence.syncFile
+	s.evidence.syncFile = func(file *os.File) error {
+		// Observe this owned disk's existing preparation only. Preserve the
+		// exact original synchronization and its error; never sample a clock
+		// or copy, retarget, finish or revive the original meter.
+		if meter := s.activeMeter.Load(); meter != nil {
+			if observed != nil && observed != meter {
+				changedMeter = true
+			}
+			observed = meter
+		}
+		return originalSync(file)
+	}
+	t.Cleanup(func() { s.evidence.syncFile = originalSync })
 
 	// Spend all but the last read in this isolated UNIT. The original ceiling,
 	// origin, policy and deadlines stay unchanged. The first sample is still
@@ -35,6 +52,18 @@ func TestProviderScanFinalClockRefusalKeepsWrittenOriginalsAndTheWholeHold(t *te
 		s.retainedRaw != beforeRaw || s.tip != beforeTip || s.setupTip != beforeSetup ||
 		s.sequence != beforeSequence || s.activeMeter.Load() != nil || s.last != nil || s.enrollment != "" {
 		t.Fatal("final clock refusal refunded the hold, advanced a pin or returned usable metadata", err)
+	}
+	if observed == nil || changedMeter {
+		t.Fatal("the original preparation meter was not retained for observation")
+	}
+	observed.mu.Lock()
+	healthyFinalSample := observed.owner == observed && observed.scan == c &&
+		observed.upper == a.preparation.work && observed.maximumClocks == a.preparation.clocks &&
+		observed.clocks == 2 && !observed.failed && !observed.closed && !observed.authority
+	beforeRetryWork, beforeRetryClocks := observed.actual, observed.clocks
+	observed.mu.Unlock()
+	if !healthyFinalSample {
+		t.Fatal("an earlier readback or work refusal was mistaken for the original final clock call")
 	}
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {
 		got, err := disk.read("SCAN-HEAD", candidateLedgerMetadataLimit)
@@ -56,5 +85,11 @@ func TestProviderScanFinalClockRefusalKeepsWrittenOriginalsAndTheWholeHold(t *te
 	s.clock.mu.Unlock()
 	if readsAfterRetry != reads || s.activeMeter.Load() != nil {
 		t.Fatal("retry observed another clock sample or retained a meter")
+	}
+	observed.mu.Lock()
+	unchangedWork := observed.actual == beforeRetryWork && observed.clocks == beforeRetryClocks
+	observed.mu.Unlock()
+	if !unchangedWork {
+		t.Fatal("retry changed the original failed preparation's observations")
 	}
 }
