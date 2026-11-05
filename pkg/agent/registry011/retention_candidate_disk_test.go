@@ -5,11 +5,131 @@ package registry011
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 )
+
+// Only creator-owned temporary handles are used. This checks the finite
+// acquisition/unwind table, not host rollback, operating storage or native
+// latency/release qualification. No test callback enters production cleanup.
+func TestCandidateRetentionCleanupClosesOnlyItsAcquiredPrefix(t *testing.T) {
+	for _, mode := range []string{"empty", "root", "unlocked-file", "locked-file"} {
+		t.Run(mode, func(t *testing.T) {
+			var root *os.Root
+			var lock *os.File
+			locked := mode == "locked-file"
+			if mode != "empty" {
+				var err error
+				root, err = os.OpenRoot(t.TempDir())
+				if err != nil {
+					t.Fatal("owned temporary root", err)
+				}
+			}
+			if mode == "unlocked-file" || locked {
+				var err error
+				lock, err = root.OpenFile("owned.lock", os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
+				if err != nil {
+					t.Fatal("owned temporary lock file", err)
+				}
+				if locked && retentionLock(lock) != nil {
+					t.Fatal("ordinary temporary lock")
+				}
+			}
+			cleanup := closeRetentionResources(root, lock, locked)
+			original := errors.New("original opening failure")
+			if cleanup != nil || retentionCleanupResult(original, cleanup) != original || retentionCleanupResult(nil, cleanup) != nil {
+				t.Fatal("successful cleanup replaced the original failure or closed an absent resource", cleanup)
+			}
+			if lock != nil {
+				if _, err := lock.Stat(); err == nil {
+					t.Fatal("acquired file remained open")
+				}
+			}
+			if root != nil {
+				if _, err := root.Stat("."); err == nil {
+					t.Fatal("acquired root remained usable")
+				}
+			}
+		})
+	}
+}
+
+func TestCandidateRetentionCleanupRetainsReportedErrorsAndContinues(t *testing.T) {
+	for _, mode := range []string{"closed-lock", "closed-lock-and-root"} {
+		t.Run(mode, func(t *testing.T) {
+			root, err := os.OpenRoot(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			lock, err := root.OpenFile("owned.lock", os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
+			if err != nil || retentionLock(lock) != nil {
+				t.Fatal("owned temporary acquisition precursor", err)
+			}
+			// Finite UNIT fault state, confined to these temporary handles.
+			if lock.Close() != nil || mode == "closed-lock-and-root" && root.Close() != nil {
+				t.Fatal("owned closed-handle fault precursor")
+			}
+			cleanup := closeRetentionResources(root, lock, true)
+			original := errors.New("original opening failure")
+			joined := retentionCleanupResult(original, cleanup)
+			if cleanup == nil || !errors.Is(cleanup, os.ErrClosed) || !errors.Is(joined, original) || !errors.Is(joined, os.ErrClosed) ||
+				!errors.Is(retentionCleanupResult(nil, cleanup), os.ErrClosed) {
+				t.Fatal("native cleanup failure replaced or lost the original error", joined)
+			}
+			if _, err := root.Stat("."); err == nil {
+				t.Fatal("earlier unlock/file error skipped root cleanup")
+			}
+		})
+	}
+}
+
+// Normal exclusive-lock contention exercises failure at either original open.
+// The held fixture's lock must remain owned, and any earlier acquired root must
+// be released. No operating path, uncooperative writer or hostile peer is used.
+func TestProviderScanOpenRetainsNativeFailureAndUnwindsItsOriginalRoots(t *testing.T) {
+	for _, mode := range []string{"custody", "evidence"} {
+		t.Run(mode, func(t *testing.T) {
+			config, clock := providerScanProvisionedFixture(t)
+			heldDirectory, freeDirectory := config.custodyDirectory, config.evidenceDirectory
+			if mode == "evidence" {
+				heldDirectory, freeDirectory = freeDirectory, heldDirectory
+			}
+			held, err := openRetentionDisk(heldDirectory)
+			if err != nil {
+				t.Fatal("ordinary pre-existing fixture lock", err)
+			}
+			t.Cleanup(func() { _ = held.close() })
+			before := providerHistoryProvisionedOriginalBytes(t, config)
+			if store, err := openProviderScanCandidate(config, clock); store != nil || !errors.Is(err, errProviderIntegration) ||
+				!errors.Is(err, syscall.EWOULDBLOCK) || clock.read != 1 {
+				t.Fatal("failed opening hid the native cause, returned a store or restarted the clock", err)
+			}
+			after := providerHistoryProvisionedOriginalBytes(t, config)
+			if len(after) != len(before) {
+				t.Fatal("lock refusal changed the original file set")
+			}
+			for name, raw := range before {
+				if !bytes.Equal(after[name], raw) {
+					t.Fatal("lock refusal changed an original", name)
+				}
+			}
+			probe, err := openRetentionDisk(freeDirectory)
+			if err != nil {
+				t.Fatal("failed opener retained its earlier root lock", err)
+			}
+			if probe.close() != nil {
+				t.Fatal("normal owned cleanup-check handle")
+			}
+			if probe, err := openRetentionDisk(heldDirectory); probe != nil || !errors.Is(err, syscall.EWOULDBLOCK) {
+				t.Fatal("failed opener released a different acquisition owner's lock", err)
+			}
+		})
+	}
+}
 
 // Refusal scenarios are finite test-only store bytes and private-field states.
 // There is no hostile runtime, exploit, rollback tool or operating-store access.

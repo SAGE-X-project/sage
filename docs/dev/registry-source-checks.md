@@ -1761,3 +1761,11 @@ feasibility or a genuine production derivation factory. The clock snapshot is
 value data, not a native backend or an execution credential. Actual Agent
 selection and deployment-to-current history remain subject to those unchanged
 gates; the original strict node verification is not replaced or relaxed.
+
+Partial opening now has one acquisition-state unwind: an opened root, an opened
+lock file and a successfully acquired lock are released only by their original
+owner. Reported cleanup errors are joined with the original refusal, and later
+releases are still attempted after an earlier error. A successful open transfers
+the same handles to the existing store lifetime. Ordinary lock-contention and
+temporary-handle unit scenarios verify these finite paths; they do not qualify
+native latency, unobservable release failures, host storage or operating policy.
