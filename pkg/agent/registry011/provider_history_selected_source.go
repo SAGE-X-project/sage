@@ -87,6 +87,13 @@ func providerHistoryCompileSourcePlan(config providerCustodyConfig, clock provid
 	if !ok {
 		return nil, false
 	}
+	// A complete plan cannot fit ANY supported ledger when this already
+	// assigned component alone exceeds its absolute payload ceiling. Refuse
+	// before enumerating all prior cuts, rather than spending that compiler
+	// work on a selection that no later native qualification could admit.
+	if !providerHistorySourcePayloadDomainFits(frozen) {
+		return nil, false
+	}
 	// Preserve the exact native origin/selection values, while retaining no
 	// caller-owned string backing through this numeric clock DATA snapshot.
 	clock.id, clock.epoch, clock.policy = strings.Clone(clock.id), strings.Clone(clock.epoch), strings.Clone(clock.policy)
@@ -95,6 +102,22 @@ func providerHistoryCompileSourcePlan(config providerCustodyConfig, clock provid
 		return nil, false
 	}
 	return &providerHistorySourcePlan{config: frozen, source: source}, true
+}
+
+// This constant-size necessary check uses the existing full32-per-stage SUM,
+// not measured occupancy or the smaller request-count realization. The limit
+// is shared with the actual ledger validator; no selected cap is increased.
+// Passing qualifies neither this selection's other capacities nor any native
+// resources, compiler-own funding, D or execution. The component's own numeric
+// diagnostic remains available independently of this enclosing plan guard.
+func providerHistorySourcePayloadDomainFits(config providerCustodyConfig) bool {
+	b := config.bounds
+	if b.history == nil || b.methods == nil || b.tls == nil {
+		return false
+	}
+	storage, ok := providerHistoryCollectionUniformStorageUpper(b.history.collection, *b.methods, *b.tls,
+		b.maximumObjectBytes, b.maximumMetadataPerCommit, b.fileOverheadBytes)
+	return ok && storage.future.payload <= providerLedgerMaximumPayloadBytes
 }
 
 // Only the plan constructor passes its own detached selection here. Keep all
