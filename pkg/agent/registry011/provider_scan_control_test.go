@@ -77,9 +77,11 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 		}
 		// Fresh test input before profile/H0/clock, not a retry or mutation of
 		// an existing16KiB class. Keep the old global128/256KiB envelope and
-		// 256KiB object ceiling;192KiB leaves space for retained framing.
+		// 256KiB object ceiling. The96KiB body also keeps the independent
+		// first and local-bootstrap decoded quotes within256MiB;160KiB wire
+		// leaves room for HTTP framing without enlarging those policy limits.
 		methods := *b.methods
-		methods.header = providerMethodLimit{128 << 10, 192 << 10}
+		methods.header = providerMethodLimit{96 << 10, 160 << 10}
 		b.methods = &methods
 	}
 	if selected != nil && selected.historyCollectionRecordedRun {
@@ -177,8 +179,9 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 					wire = "16777216"
 				}
 				if selected.pinRPCHeader && level == "bootstrap" {
-					// First header+three scalars and the later four pin reads
-					// are distinct:2*(192+3*16)KiB fits this fresh1MiB hold.
+					// Five distinct RPCs: first header160KiB, then the pin's
+					// scalar16/header160/scalar16/state128KiB. Their480KiB
+					// wire sum fits this fresh1MiB hold.
 					// Operation/segment remain256KiB; no live counter resets.
 					wire = "1048576"
 				}
