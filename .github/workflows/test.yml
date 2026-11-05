@@ -19,6 +19,38 @@ env:
   GOFLAGS: -mod=readonly
 
 jobs:
+  native_resource_primitives:
+    name: Native Resource Primitives
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Observe disposable child resource limits
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          mkdir -p "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source"
+          git rev-parse HEAD > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/tree.txt"
+          cp internal/qualification/nativelimits/*.go internal/qualification/nativelimits/README.md internal/qualification/nativelimits/testdata/resource_limits.c "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/"
+          cp .github/workflows/test.yml "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/test-workflow.yml"
+          go test -mod=readonly -count=1 -timeout=3m -tags=registry_native_limits -json ./internal/qualification/nativelimits > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/tests.jsonl"
+          git diff --exit-code
+      - name: Retain native resource observations
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-resource-primitives
+          path: ${{ runner.temp }}/native-resource-primitives/
+          if-no-files-found: error
+          retention-days: 14
+
   # Keep finite runner headroom for race-enabled Registry evidence.
   # The required Go Tests job explicitly gates on this job's success.
   registry_fixture_check:
