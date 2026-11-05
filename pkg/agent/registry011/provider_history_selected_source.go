@@ -1,5 +1,7 @@
 package registry011
 
+import "strings"
+
 // Value DATA for the original source components selected by ONE config. This
 // does not contain a derivation, owner or executable callback. The assigned
 // prefix, full admitted future, failed reconstruction and successful final
@@ -76,10 +78,18 @@ type providerHistorySourcePlan struct {
 func (*providerHistorySourcePlan) UnmarshalJSON([]byte) error { return ErrConfiguration }
 
 func providerHistoryCompileSourcePlan(config providerCustodyConfig, clock providerHistoryClockSelection) (*providerHistorySourcePlan, bool) {
+	for _, text := range [...]string{clock.id, clock.epoch, clock.policy} {
+		if len(text) > providerHistorySourceFixedTextLimit {
+			return nil, false
+		}
+	}
 	frozen, ok := providerHistoryFreezeSourceConfig(config)
 	if !ok {
 		return nil, false
 	}
+	// Preserve the exact native origin/selection values, while retaining no
+	// caller-owned string backing through this numeric clock DATA snapshot.
+	clock.id, clock.epoch, clock.policy = strings.Clone(clock.id), strings.Clone(clock.epoch), strings.Clone(clock.policy)
 	source, ok := providerHistoryCompileSourceSnapshot(frozen, clock)
 	if !ok {
 		return nil, false
@@ -157,7 +167,7 @@ func providerHistoryCompileSourceSnapshot(config providerCustodyConfig, clock pr
 // a production factory can use the same immutable selection.
 func providerHistoryFreezeSourceConfig(config providerCustodyConfig) (providerCustodyConfig, bool) {
 	var empty providerCustodyConfig
-	if config.policy == nil || config.policy.raw == "" || len(config.policy.raw) > 64<<10 {
+	if !providerHistorySourceInputTextFits(config) {
 		return empty, false
 	}
 	if _, ok := providerHistorySourceLimitsFromConfig(config); !ok {
@@ -165,15 +175,26 @@ func providerHistoryFreezeSourceConfig(config providerCustodyConfig) (providerCu
 	}
 	b := config.bounds
 	original := b.history.collection
-	manifest, err := newProviderHistoryCollectionManifestCandidate(original.input)
+	manifest, err := newProviderHistoryCollectionManifestCandidate(providerHistoryCloneCollectionText(original.input))
 	if err != nil || manifest == nil || manifest.raw != original.raw || manifest.digest != original.digest ||
 		manifest.input != original.input || manifest.counts != original.counts {
 		return empty, false
 	}
 	policy, ledger := *config.policy, *b.continuation
+	policy.raw, policy.policy = strings.Clone(policy.raw), strings.Clone(policy.policy)
+	policy.instance, policy.provider = strings.Clone(policy.instance), strings.Clone(policy.provider)
 	methods, certificates := *b.methods, *b.tls
 	scan, first, history := *b.scan, *b.firstAdmission, *b.history
+	history.program, history.costs = strings.Clone(history.program), strings.Clone(history.costs)
 	history.collection = manifest
+	config.custodyDirectory, config.evidenceDirectory = strings.Clone(config.custodyDirectory), strings.Clone(config.evidenceDirectory)
+	config.anchor, config.expectedTip = strings.Clone(config.anchor), strings.Clone(config.expectedTip)
+	config.expectedSetupTip, config.profile = strings.Clone(config.expectedSetupTip), strings.Clone(config.profile)
+	config.expectedScanHead = strings.Clone(config.expectedScanHead)
+	id := config.identity
+	id.Policy, id.Instance, id.Provider = strings.Clone(id.Policy), strings.Clone(id.Instance), strings.Clone(id.Provider)
+	id.Namespace, id.SourceID = strings.Clone(id.Namespace), strings.Clone(id.SourceID)
+	config.identity = id
 	config.policy = &policy
 	b.continuation, b.methods, b.tls = &ledger, &methods, &certificates
 	b.scan, b.firstAdmission, b.history = &scan, &first, &history
