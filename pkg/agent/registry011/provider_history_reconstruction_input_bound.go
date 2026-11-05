@@ -442,7 +442,7 @@ func providerHistoryReconstructionOuterUpper(manifest *providerHistoryCollection
 	return out, true
 }
 
-// One selected source graph, still missing initial model/member custody
+// One selected source graph, still missing initial semantic model/member custody
 // control and compiler-own/cleanup/native resource rows. A successful result
 // must not be installed as a complete R/F bound or production derivation.
 type providerHistoryReconstructionSourceCost struct {
@@ -455,6 +455,7 @@ type providerHistoryReconstructionSourceCost struct {
 	outer                      providerHistoryReconstructionOuterCost
 	scan                       providerHistoryReconstructionScanCost
 	inventory                  providerHistoryReconstructionInventoryCost
+	legacy                     providerHistoryReconstructionLegacyCost
 	normal, incoming, envelope candidateWorkVector
 }
 
@@ -466,20 +467,21 @@ func providerHistoryCompileReconstructionSource(config providerCustodyConfig, fa
 	}
 	scan, scanOK := providerHistoryReconstructionScanUpper(io.limits.legacy, uint64(len(config.policy.raw)))
 	inventory, inventoryOK := providerHistoryReconstructionInventoryUpper(io.limits.legacy)
+	legacy, legacyOK := providerHistoryReconstructionLegacyUpper(io.limits.legacy, io.limits.setupRecoveries)
 	content, contentOK := providerHistoryReconstructionContentUpper(config.bounds.history.collection)
 	ledger, ledgerOK := providerHistoryReconstructionLedgerUpper(config.bounds.history.collection)
 	cursor, cursorOK := providerHistoryReconstructionCursorUpper(config.bounds.history.collection)
 	requests, requestsOK := providerHistoryReconstructionRequestUpper(config.bounds.history.collection, config.bounds.maximumObjectBytes)
 	boundary, boundaryOK := providerHistoryReconstructionBoundaryUpper(config.bounds.history.collection, *config.bounds.methods)
 	outer, outerOK := providerHistoryReconstructionOuterUpper(config.bounds.history.collection, io.limits.legacy.metadata, io.limits.legacy.objectBytes, failedInspection)
-	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK || !outerOK || !scanOK || !inventoryOK {
+	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK || !outerOK || !scanOK || !inventoryOK || !legacyOK {
 		return empty, false
 	}
-	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary, outer: outer, scan: scan, inventory: inventory}
+	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary, outer: outer, scan: scan, inventory: inventory, legacy: legacy}
 	var a providerHistoryReadArithmetic
 	for coordinate := range out.normal {
-		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate], outer.normal[coordinate], scan.normal[coordinate], inventory.normal[coordinate])
-		out.incoming[coordinate] = max(io.incoming[coordinate], content.incoming[coordinate], ledger.incoming[coordinate], cursor.incoming[coordinate], requests.incoming[coordinate], boundary.incoming[coordinate], outer.incoming[coordinate], scan.incoming[coordinate], inventory.incoming[coordinate])
+		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate], outer.normal[coordinate], scan.normal[coordinate], inventory.normal[coordinate], legacy.normal[coordinate])
+		out.incoming[coordinate] = max(io.incoming[coordinate], content.incoming[coordinate], ledger.incoming[coordinate], cursor.incoming[coordinate], requests.incoming[coordinate], boundary.incoming[coordinate], outer.incoming[coordinate], scan.incoming[coordinate], inventory.incoming[coordinate], legacy.incoming[coordinate])
 		out.envelope[coordinate] = a.sum(out.normal[coordinate], out.incoming[coordinate])
 	}
 	if a.failed {

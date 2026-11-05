@@ -35,21 +35,44 @@ func TestProviderHistoryRecoveryLegacyReconstructsIndependentControlAndEnrollmen
 	var bytes uint64
 	for pass := range 2 {
 		bytes += historyRecoveryLegacySource(t, r, pass, want)
+		work := r.meter.actual
 		prefix, err := r.replayLegacyPrefixCandidate(context.Background(), pass)
 		if err != nil || prefix == nil || !prefix.selectedLocked(r) || prefix.pin != r.initialDescriptor.main || len(prefix.setups) != int(r.initialDescriptor.setups) {
 			t.Fatal("genuine fresh typed legacy prefix", pass, err)
+		}
+		// Attribute only this fresh control prefix. Its prior inventory/scan
+		// walks and file I/O remain outside decoded coordinate2.
+		var decoded uint64
+		for _, n := range prefix.highwaterOriginalBytes {
+			decoded += n
+		}
+		for i := range prefix.setups {
+			raw, err := os.ReadFile(filepath.Join(r.config.evidenceDirectory, providerCustodyName("setup-claim", uint64(i))))
+			if err != nil || len(raw) == 0 {
+				t.Fatal("actual retained setup claim for independent decode attribution", err)
+			}
+			calls := uint64(4)
+			if i == 0 {
+				calls = 2
+			}
+			decoded += calls * uint64(len(raw))
 		}
 		for i, record := range prefix.records {
 			if record.root == nil || record.after.sequence != uint64(i+1) || record.before.sequence != uint64(i) || record.kind != [4]string{"enroll", "admit", "consume", "settle"}[i] ||
 				record.frontier.enrollment != record.root.digest || record.frontier.objects != prefix.source.frames[i].inventory.digest {
 				t.Fatal("typed initial enrollment/control sequence was skipped or rebound", i)
 			}
+			decoded += 4*uint64(len(record.intent)) + 2*uint64(len(record.rawFrontier)) +
+				2*uint64(len(record.root.raw)) + uint64(len(prefix.source.frames[i].inventory.raw))
 			for _, item := range []struct{ name, raw string }{{"intent", record.intent}, {"commit", record.commit}, {"frontier", record.rawFrontier}} {
 				actual, err := os.ReadFile(filepath.Join(r.config.custodyDirectory, providerCustodyName(item.name, uint64(i+1))))
 				if err != nil || string(actual) != item.raw {
 					t.Fatal("record differs from actual original", err)
 				}
 			}
+		}
+		if decoded == 0 || r.meter.actual[2] < work[2] || r.meter.actual[2]-work[2] != decoded {
+			t.Fatal("fresh legacy controls lost an original decode or borrowed another pass", pass, decoded)
 		}
 		if pass == 1 && (prefix == r.legacyPrefixes[0] || prefix.records[0].root == r.legacyPrefixes[0].records[0].root || prefix.source.frames[0] == r.legacyPrefixes[0].source.frames[0]) {
 			t.Fatal("independent prefixes share mutable typed roots or actual-frame state")
