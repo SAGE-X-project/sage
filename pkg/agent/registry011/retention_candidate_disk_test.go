@@ -113,7 +113,7 @@ func TestProviderScanOpenRetainsNativeFailureAndUnwindsItsOriginalRoots(t *testi
 				t.Fatal("lock refusal changed the original file set")
 			}
 			for name, raw := range before {
-				if !bytes.Equal(after[name], raw) {
+				if got, exists := after[name]; !exists || got != raw {
 					t.Fatal("lock refusal changed an original", name)
 				}
 			}
