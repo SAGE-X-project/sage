@@ -40,6 +40,110 @@ func historySelectedSourceClock(config providerCustodyConfig) providerHistoryClo
 	}
 }
 
+func TestProviderHistorySourceSnapshotDetachesSelectedPointers(t *testing.T) {
+	config := historySelectedSourceConfig(t)
+	got, ok := providerHistoryFreezeSourceConfig(config)
+	if !ok || got.policy == config.policy || got.bounds.continuation == config.bounds.continuation ||
+		got.bounds.methods == config.bounds.methods || got.bounds.tls == config.bounds.tls ||
+		got.bounds.scan == config.bounds.scan || got.bounds.firstAdmission == config.bounds.firstAdmission ||
+		got.bounds.history == config.bounds.history || got.bounds.history.collection == config.bounds.history.collection {
+		t.Fatal("source snapshot did not detach every selected pointer", ok)
+	}
+	policy, ledger := *got.policy, *got.bounds.continuation
+	methods, certificates := *got.bounds.methods, *got.bounds.tls
+	scan, first, history, manifest := *got.bounds.scan, *got.bounds.firstAdmission, *got.bounds.history, *got.bounds.history.collection
+	before := got
+	if policy != *config.policy || ledger != *config.bounds.continuation || methods != *config.bounds.methods ||
+		certificates != *config.bounds.tls || scan != *config.bounds.scan || first != *config.bounds.firstAdmission ||
+		!got.bounds.history.collection.validSnapshot() || manifest.owner != got.bounds.history.collection ||
+		manifest.input != config.bounds.history.collection.input || manifest.raw != config.bounds.history.collection.raw ||
+		manifest.digest != config.bounds.history.collection.digest || manifest.counts != config.bounds.history.collection.counts {
+		t.Fatal("detached source snapshot changed original values or its own manifest seal")
+	}
+	history.collection = config.bounds.history.collection
+	if history != *config.bounds.history {
+		t.Fatal("snapshot changed a selected history value")
+	}
+	history = *got.bounds.history
+	config.policy.raw = "changed"
+	config.bounds.continuation.maximumRecords--
+	config.bounds.methods.scalar.body++
+	config.bounds.tls.chains++
+	config.bounds.scan.maximumAttempts++
+	config.bounds.firstAdmission.work[2]++
+	config.bounds.history.program = "changed"
+	config.bounds.history.collection.input.maximumSelected++
+	config.bounds.history.collection.raw = "changed"
+	config.capture.HeaderBytes++
+	config.identity.Generation++
+	config.custodyDirectory = "changed"
+	if got != before || *got.policy != policy || *got.bounds.continuation != ledger || *got.bounds.methods != methods ||
+		*got.bounds.tls != certificates || *got.bounds.scan != scan || *got.bounds.firstAdmission != first ||
+		*got.bounds.history != history || *got.bounds.history.collection != manifest || !got.bounds.history.collection.validSnapshot() {
+		t.Fatal("later caller changes altered the detached source snapshot")
+	}
+	if got.bounds.history.derivation != nil || got.bounds.valid() {
+		t.Fatal("source snapshot created execution authority")
+	}
+}
+
+func TestProviderHistorySourceSnapshotRefusesIncompleteSelection(t *testing.T) {
+	cases := []struct {
+		name   string
+		change func(*providerCustodyConfig)
+	}{
+		{"policy", func(c *providerCustodyConfig) { c.policy = nil }},
+		{"empty-policy", func(c *providerCustodyConfig) { c.policy.raw = "" }},
+		{"large-policy", func(c *providerCustodyConfig) { c.policy.raw = strings.Repeat("x", (64<<10)+1) }},
+		{"ledger", func(c *providerCustodyConfig) { c.bounds.continuation = nil }},
+		{"methods", func(c *providerCustodyConfig) { c.bounds.methods = nil }},
+		{"certificates", func(c *providerCustodyConfig) { c.bounds.tls = nil }},
+		{"scan", func(c *providerCustodyConfig) { c.bounds.scan = nil }},
+		{"first", func(c *providerCustodyConfig) { c.bounds.firstAdmission = nil }},
+		{"history", func(c *providerCustodyConfig) { c.bounds.history = nil }},
+		{"manifest", func(c *providerCustodyConfig) { c.bounds.history.collection = nil }},
+		{"derivation", func(c *providerCustodyConfig) { c.bounds.history.derivation = &providerHistoryProgramDerivation{} }},
+		{"guardian", func(c *providerCustodyConfig) { c.bounds.guardian = &providerGuardianBounds{} }},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			config := historySelectedSourceConfig(t)
+			tc.change(&config)
+			if got, ok := providerHistoryFreezeSourceConfig(config); ok || got != (providerCustodyConfig{}) {
+				t.Fatal("incomplete source selection returned a partial snapshot", ok)
+			}
+		})
+	}
+}
+
+func TestProviderHistorySourceSnapshotReconstructsManifestInsteadOfTrustingSeal(t *testing.T) {
+	for _, kind := range []string{"raw", "digest", "counts", "input"} {
+		t.Run(kind, func(t *testing.T) {
+			config := historySelectedSourceConfig(t)
+			m := config.bounds.history.collection
+			switch kind {
+			case "raw":
+				m.raw, m.sealedRaw = "changed", "changed"
+			case "digest":
+				m.digest, m.sealedDigest = admissionTestDigest("e"), admissionTestDigest("e")
+			case "counts":
+				m.counts.groups++
+				m.sealedCounts = m.counts
+				config.bounds.history.stages = m.counts.groups
+			case "input":
+				m.input.maximumSelected++
+				m.sealed = m.input
+			}
+			if !m.validSnapshot() {
+				t.Fatal("unit must reach genuine reconstruction beyond its equal-field seal")
+			}
+			if got, ok := providerHistoryFreezeSourceConfig(config); ok || got != (providerCustodyConfig{}) {
+				t.Fatal("equal-field seal replaced genuine manifest reconstruction", ok)
+			}
+		})
+	}
+}
+
 func TestProviderHistorySourceLimitsBindOneOriginalConfig(t *testing.T) {
 	config := historySelectedSourceConfig(t)
 	b := config.bounds

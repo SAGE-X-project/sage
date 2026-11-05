@@ -57,6 +57,10 @@ func providerHistorySourceLimitsFromConfig(config providerCustodyConfig) (provid
 // result, profile or meter is changed to make a later role fit.
 func providerHistoryCompileSelectedSource(config providerCustodyConfig, clock providerHistoryClockSelection) (providerHistorySelectedSourceCost, bool) {
 	var empty providerHistorySelectedSourceCost
+	config, snapshotOK := providerHistoryFreezeSourceConfig(config)
+	if !snapshotOK {
+		return empty, false
+	}
 	limits, limitsOK := providerHistorySourceLimitsFromConfig(config)
 	if !limitsOK || !providerHistorySourceClockMatchesPolicy(config.policy, clock) {
 		return empty, false
@@ -109,6 +113,41 @@ func providerHistoryCompileSelectedSource(config providerCustodyConfig, clock pr
 	// but these source DATA still cannot install an executable recovery bound
 	// without the complete production derivation and native qualification.
 	return out, true
+}
+
+// Detach every selected pointer before compiling its costs. Reconstruct the
+// collection through its original DATA constructor; copying its owner pointer
+// would neither preserve its own seal nor detach it from the caller. All other
+// selected pointees contain only value fields. Callers must not concurrently
+// mutate input while this snapshot is taken.
+//
+// This is not an execution grant or a native qualification. The enclosing
+// compiler must separately fund construction, copies and its own work before
+// a production factory can use the same immutable selection.
+func providerHistoryFreezeSourceConfig(config providerCustodyConfig) (providerCustodyConfig, bool) {
+	var empty providerCustodyConfig
+	if config.policy == nil || config.policy.raw == "" || len(config.policy.raw) > 64<<10 {
+		return empty, false
+	}
+	if _, ok := providerHistorySourceLimitsFromConfig(config); !ok {
+		return empty, false
+	}
+	b := config.bounds
+	original := b.history.collection
+	manifest, err := newProviderHistoryCollectionManifestCandidate(original.input)
+	if err != nil || manifest == nil || manifest.raw != original.raw || manifest.digest != original.digest ||
+		manifest.input != original.input || manifest.counts != original.counts {
+		return empty, false
+	}
+	policy, ledger := *config.policy, *b.continuation
+	methods, certificates := *b.methods, *b.tls
+	scan, first, history := *b.scan, *b.firstAdmission, *b.history
+	history.collection = manifest
+	config.policy = &policy
+	b.continuation, b.methods, b.tls = &ledger, &methods, &certificates
+	b.scan, b.firstAdmission, b.history = &scan, &first, &history
+	config.bounds = b
+	return config, true
 }
 
 // Bounded policy DATA matching only. No native sample or clock construction
