@@ -1,6 +1,7 @@
 package registry011
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -37,6 +38,77 @@ func historySelectedSourceClock(config providerCustodyConfig) providerHistoryClo
 	return providerHistoryClockSelection{
 		id: "fixture-clock", epoch: admissionTestDigest("d"), policy: config.policy.policy,
 		origin: time.Unix(100, 0), window: time.Millisecond, uncertainty: 2, maximum: 1 << 20,
+	}
+}
+
+func TestProviderHistorySourcePlanKeepsItsSelectionAfterCallerUpdates(t *testing.T) {
+	config := historySelectedSourceConfig(t)
+	clock := historySelectedSourceClock(config)
+	plan, ok := providerHistoryCompileSourcePlan(config, clock)
+	if !ok || plan == nil {
+		t.Fatal("complete source plan", ok)
+	}
+	before, source := plan.config, plan.source
+	policy := *plan.config.policy
+	manifest := *plan.config.bounds.history.collection
+	if plan.config.policy == config.policy || plan.config.bounds.history.collection == config.bounds.history.collection ||
+		!plan.config.bounds.history.collection.validSnapshot() || source.clock != clock || source.clock.policy != policy.policy ||
+		source.limits.directoryBytes != 15 || source.collection.groups != plan.config.bounds.history.collection.counts.groups ||
+		source.recovery.envelope[7] == 0 || source.finalRead.envelope[7] == 0 || source.assigned.clocks == 0 {
+		t.Fatal("plan did not retain the same detached selection and its complete assigned rows")
+	}
+	config.policy.raw = "changed"
+	config.bounds.history.collection.input.maximumSelected++
+	config.bounds.history.collection.raw = "changed"
+	config.custodyDirectory = "changed"
+	clock.maximum = 0
+	if plan.config != before || *plan.config.policy != policy || *plan.config.bounds.history.collection != manifest ||
+		plan.source != source || !plan.config.bounds.history.collection.validSnapshot() {
+		t.Fatal("caller updates changed the retained plan or its computed source rows")
+	}
+	if plan.config.bounds.history.derivation != nil || plan.config.bounds.valid() {
+		t.Fatal("retaining a source plan minted execution authority")
+	}
+}
+
+func TestProviderHistorySourcePlanWithholdsPartialResultOnRefusal(t *testing.T) {
+	for _, kind := range []string{"selection", "clock", "late-overflow"} {
+		t.Run(kind, func(t *testing.T) {
+			config := historySelectedSourceConfig(t)
+			clock := historySelectedSourceClock(config)
+			switch kind {
+			case "selection":
+				config.policy = nil
+			case "clock":
+				clock.maximum = 0
+			case "late-overflow":
+				config.bounds.history.catalogNameBytes = ^uint64(0)
+			}
+			before := config
+			manifest := *config.bounds.history.collection
+			if plan, ok := providerHistoryCompileSourcePlan(config, clock); ok || plan != nil {
+				t.Fatal("refused calculation returned a partially usable plan", ok)
+			}
+			if config != before || *config.bounds.history.collection != manifest || config.bounds.history.derivation != nil {
+				t.Fatal("refused plan altered the original selection or its authority")
+			}
+		})
+	}
+}
+
+func TestProviderHistorySourcePlanCannotBeRestoredFromJSON(t *testing.T) {
+	config := historySelectedSourceConfig(t)
+	plan, ok := providerHistoryCompileSourcePlan(config, historySelectedSourceClock(config))
+	if !ok || plan == nil {
+		t.Fatal("original source plan", ok)
+	}
+	before := *plan
+	if err := json.Unmarshal([]byte(`{"config":{},"source":{}}`), plan); err != ErrConfiguration || *plan != before {
+		t.Fatal("JSON changed or restored a retained source plan", err)
+	}
+	var empty providerHistorySourcePlan
+	if err := json.Unmarshal([]byte(`{}`), &empty); err != ErrConfiguration || empty != (providerHistorySourcePlan{}) {
+		t.Fatal("JSON created a plan without its original construction", err)
 	}
 }
 

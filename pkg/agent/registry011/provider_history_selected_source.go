@@ -56,11 +56,42 @@ func providerHistorySourceLimitsFromConfig(config providerCustodyConfig) (provid
 // Every refusal returns zero, including any earlier positive child. No child
 // result, profile or meter is changed to make a later role fit.
 func providerHistoryCompileSelectedSource(config providerCustodyConfig, clock providerHistoryClockSelection) (providerHistorySelectedSourceCost, bool) {
-	var empty providerHistorySelectedSourceCost
-	config, snapshotOK := providerHistoryFreezeSourceConfig(config)
-	if !snapshotOK {
-		return empty, false
+	plan, ok := providerHistoryCompileSourcePlan(config, clock)
+	if !ok {
+		return providerHistorySelectedSourceCost{}, false
 	}
+	return plan.source, true
+}
+
+// Own the exact detached config and its computed source rows together. This
+// private pre-H0 plan is not a D, native/backend qualification or execution
+// permit. The eventual factory must retain this selection instead of returning
+// to the caller's config, and must separately close compiler-own resources.
+// No mutable config or selected pointer is exposed by the numeric wrapper.
+type providerHistorySourcePlan struct {
+	config providerCustodyConfig
+	source providerHistorySelectedSourceCost
+}
+
+func (*providerHistorySourcePlan) UnmarshalJSON([]byte) error { return ErrConfiguration }
+
+func providerHistoryCompileSourcePlan(config providerCustodyConfig, clock providerHistoryClockSelection) (*providerHistorySourcePlan, bool) {
+	frozen, ok := providerHistoryFreezeSourceConfig(config)
+	if !ok {
+		return nil, false
+	}
+	source, ok := providerHistoryCompileSourceSnapshot(frozen, clock)
+	if !ok {
+		return nil, false
+	}
+	return &providerHistorySourcePlan{config: frozen, source: source}, true
+}
+
+// Only the plan constructor passes its own detached selection here. Keep all
+// original source-role joins and refusals; no second snapshot or construction
+// can change the manifest identity between this calculation and the plan.
+func providerHistoryCompileSourceSnapshot(config providerCustodyConfig, clock providerHistoryClockSelection) (providerHistorySelectedSourceCost, bool) {
+	var empty providerHistorySelectedSourceCost
 	limits, limitsOK := providerHistorySourceLimitsFromConfig(config)
 	if !limitsOK || !providerHistorySourceClockMatchesPolicy(config.policy, clock) {
 		return empty, false
