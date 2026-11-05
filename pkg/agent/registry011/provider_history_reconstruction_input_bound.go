@@ -442,6 +442,22 @@ func providerHistoryReconstructionOuterUpper(manifest *providerHistoryCollection
 	return out, true
 }
 
+// Per-pass enclosing DATA copies outside the old outer parser/chain rows.
+// applyCheckpoint copies one record slot with event(copy,1) after each whole
+// T/C/S (2 units), then each whole C preserves three fresh pointers (4 units).
+// The healthy writer seals only T->C->S at one stage: nextStageLocked and
+// advanceStageCandidate refuse a stage above G; one pending phase is still
+// inside that same final cycle. Thus both fresh readers have <=6G records and
+// <=2G C contexts, even when the looser configured record ceiling exceeds3G.
+// The chain's old15G+2 and all parser/member/I/O/native rows stay separate.
+func providerHistoryReconstructionModelSlotsUpper(groups uint64) (candidateWorkVector, bool) {
+	if groups == 0 || groups > (1<<20)/3 {
+		return candidateWorkVector{}, false
+	}
+	// 2*(3G*2+G*4) <=6990500; no unchecked wide-domain multiplication.
+	return candidateWorkVector{10: 20 * groups}, true
+}
+
 // One selected source graph, still missing compiler-own/cleanup/native
 // resource rows and the complete derivation/factory/caller connection. A successful result
 // must not be installed as a complete R/F bound or production derivation.
@@ -461,6 +477,7 @@ type providerHistoryReconstructionSourceCost struct {
 	initialMessages            providerHistoryReconstructionMessageCost
 	initialModel               providerHistoryReconstructionInitialCost
 	members                    providerHistoryReconstructionMemberCost
+	modelSlots                 candidateWorkVector
 	normal, incoming, envelope candidateWorkVector
 }
 
@@ -485,13 +502,14 @@ func providerHistoryCompileReconstructionSource(config providerCustodyConfig, fa
 	requests, requestsOK := providerHistoryReconstructionRequestUpper(config.bounds.history.collection, config.bounds.maximumObjectBytes)
 	boundary, boundaryOK := providerHistoryReconstructionBoundaryUpper(config.bounds.history.collection, *config.bounds.methods)
 	outer, outerOK := providerHistoryReconstructionOuterUpper(config.bounds.history.collection, io.limits.legacy.metadata, io.limits.legacy.objectBytes, failedInspection)
-	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK || !outerOK || !scanOK || !inventoryOK || !legacyOK || !finalizedOK || !initialMessagesOK || !initialModelOK || !membersOK {
+	modelSlots, modelSlotsOK := providerHistoryReconstructionModelSlotsUpper(config.bounds.history.collection.counts.groups)
+	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK || !outerOK || !scanOK || !inventoryOK || !legacyOK || !finalizedOK || !initialMessagesOK || !initialModelOK || !membersOK || !modelSlotsOK {
 		return empty, false
 	}
-	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary, outer: outer, scan: scan, inventory: inventory, legacy: legacy, finalized: finalized, initialIndex: initialIndex, initialMessages: initialMessages, initialModel: initialModel, members: members}
+	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary, outer: outer, scan: scan, inventory: inventory, legacy: legacy, finalized: finalized, initialIndex: initialIndex, initialMessages: initialMessages, initialModel: initialModel, members: members, modelSlots: modelSlots}
 	var a providerHistoryReadArithmetic
 	for coordinate := range out.normal {
-		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate], outer.normal[coordinate], scan.normal[coordinate], inventory.normal[coordinate], legacy.normal[coordinate], finalized.normal[coordinate], initialIndex.normal[coordinate], initialMessages.normal[coordinate], initialModel.normal[coordinate], members.normal[coordinate])
+		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate], outer.normal[coordinate], scan.normal[coordinate], inventory.normal[coordinate], legacy.normal[coordinate], finalized.normal[coordinate], initialIndex.normal[coordinate], initialMessages.normal[coordinate], initialModel.normal[coordinate], members.normal[coordinate], modelSlots[coordinate])
 		out.incoming[coordinate] = max(io.incoming[coordinate], content.incoming[coordinate], ledger.incoming[coordinate], cursor.incoming[coordinate], requests.incoming[coordinate], boundary.incoming[coordinate], outer.incoming[coordinate], scan.incoming[coordinate], inventory.incoming[coordinate], legacy.incoming[coordinate], finalized.incoming[coordinate], initialIndex.incoming[coordinate], initialMessages.incoming[coordinate], initialModel.incoming[coordinate], members.incoming[coordinate])
 		out.envelope[coordinate] = a.sum(out.normal[coordinate], out.incoming[coordinate])
 	}
