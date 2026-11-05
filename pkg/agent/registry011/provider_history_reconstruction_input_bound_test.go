@@ -56,8 +56,8 @@ func TestProviderHistoryReconstructionSourceComposesTheSameSelectedReadGraph(t *
 			t.Fatal("read graph changed or lost its original source selection", failed)
 		}
 		for coordinate := range got.normal {
-			if got.normal[coordinate] != got.io.normal[coordinate]+got.content.normal[coordinate]+got.ledger.normal[coordinate]+got.cursor.normal[coordinate]+got.requests.normal[coordinate]+got.boundary.normal[coordinate]+got.outer.normal[coordinate] ||
-				got.incoming[coordinate] != max(got.io.incoming[coordinate], got.content.incoming[coordinate], got.ledger.incoming[coordinate], got.cursor.incoming[coordinate], got.requests.incoming[coordinate], got.boundary.incoming[coordinate], got.outer.incoming[coordinate]) ||
+			if got.normal[coordinate] != got.io.normal[coordinate]+got.content.normal[coordinate]+got.ledger.normal[coordinate]+got.cursor.normal[coordinate]+got.requests.normal[coordinate]+got.boundary.normal[coordinate]+got.outer.normal[coordinate]+got.scan.normal[coordinate] ||
+				got.incoming[coordinate] != max(got.io.incoming[coordinate], got.content.incoming[coordinate], got.ledger.incoming[coordinate], got.cursor.incoming[coordinate], got.requests.incoming[coordinate], got.boundary.incoming[coordinate], got.outer.incoming[coordinate], got.scan.incoming[coordinate]) ||
 				got.envelope[coordinate] != got.normal[coordinate]+got.incoming[coordinate] {
 				t.Fatal("source graph lost an actual child or summed mutually outstanding guards", coordinate)
 			}
