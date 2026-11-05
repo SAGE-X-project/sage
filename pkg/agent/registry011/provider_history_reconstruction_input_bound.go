@@ -238,13 +238,156 @@ func providerHistoryReconstructionLedgerUpper(manifest *providerHistoryCollectio
 	return out, true
 }
 
-// One selected source graph, still missing cursor/model/boundary/custody
+// Each fresh group model constructs its own cursor, copies it into a new
+// ledger, then replays one retained T/C/S sequence. The constructor's copy
+// commits once and the initial ledger root commits again. Each complete group
+// adds two T roots, two C roots, three S ledger roots, one boundary copy and
+// its explicit closing commitment. Recovery does not run the extra final
+// validObserved call made by a live prefix reader. A failed/pending last group
+// consumes a subset; it cannot acquire a further group after the selected G.
+type providerHistoryReconstructionCursorCost struct {
+	limits         providerHistoryCollectionCursorLimits
+	calls          providerHistoryCollectionStateRootCalls
+	initialization candidateWorkVector
+
+	normal, incoming, envelope candidateWorkVector
+}
+
+func providerHistoryReconstructionCursorUpper(manifest *providerHistoryCollectionManifest) (providerHistoryReconstructionCursorCost, bool) {
+	var empty providerHistoryReconstructionCursorCost
+	if !manifest.validSnapshot() || manifest.counts.groups == 0 {
+		return empty, false
+	}
+	in := manifest.input
+	limits := providerHistoryCollectionCursorLimits{
+		Spine: in.blocks, Effects: min(in.effects, in.contentBlocks*uint64(in.journal.Replay.MaxTransactions)),
+		PendingBlocks: in.contentBlocks, Transactions: uint64(in.journal.Replay.MaxTransactions),
+		EvidenceBytes: uint64(in.journal.Replay.MaxEvidenceBytes), BodyBytes: uint64(in.capture.BodyBytes),
+		Semantic: providerHistorySemanticCommitmentLimits{
+			ConfirmedClaims: uint64(in.journal.MaxClaims), ConfirmedCreated: uint64(in.journal.MaxIdentities),
+			WorkingClaims: uint64(in.journal.MaxClaims), WorkingCreated: uint64(in.journal.MaxIdentities),
+			Queue: min(in.versions, in.journal.Replay.History.MaxItems), Window: true, Pending: true,
+		},
+	}
+	var a providerHistoryReadArithmetic
+	calls := providerHistoryCollectionStateRootCalls{
+		roots:  a.product(2, a.sum(2, a.product(9, manifest.counts.groups))),
+		copies: a.product(2, a.sum(1, manifest.counts.groups)),
+	}
+	// Full selected cardinalities cover every intermediate state, with neither
+	// stream assumed empty. Copies already include their initial commitment.
+	parts, partsOK := calls.pointwisePartsUpper(limits, uint64(in.journal.Replay.History.MaxBytes), providerHistoryAppliedStateKinds{})
+	if !partsOK {
+		return empty, false
+	}
+	initialization := providerHistoryCursorInitializationUpper().cursor
+	out := providerHistoryReconstructionCursorCost{limits: limits, calls: calls}
+	for coordinate := range out.normal {
+		// The original constructor row keeps its full encode preflight. It is
+		// reserved twice even when either constructor refuses before the copy.
+		out.initialization[coordinate] = a.product(2, initialization[coordinate])
+		out.normal[coordinate] = a.sum(out.initialization[coordinate], parts.normal[coordinate])
+		out.incoming[coordinate] = parts.headroom[coordinate]
+		out.envelope[coordinate] = a.sum(out.normal[coordinate], out.incoming[coordinate])
+	}
+	if a.failed || !providerHistoryReadWorkDomain(out.envelope) {
+		return empty, false
+	}
+	return out, true
+}
+
+// Original T packs are parsed once per group in EACH fresh model. Each T
+// admission and each complete S boundary independently regenerates/compares
+// its next table. These are not producer planning or repeated prefix reads.
+// Raw request-pack inputs keep their COMPLETE old row; only the generated
+// closed-template subgraph uses the existing conditional normal/envelope.
+type providerHistoryReconstructionRequestCost struct {
+	packParses, nextTables uint64
+	packs, planning        candidateWorkVector
+
+	normal, incoming, envelope candidateWorkVector
+}
+
+func providerHistoryReconstructionRequestUpper(manifest *providerHistoryCollectionManifest, maximum uint64) (providerHistoryReconstructionRequestCost, bool) {
+	var empty providerHistoryReconstructionRequestCost
+	if !manifest.validSnapshot() || manifest.counts.groups == 0 {
+		return empty, false
+	}
+	requests, requestsOK := providerHistoryRequestControlUpper(providerHistoryGroupMembers, maximum)
+	effects := min(manifest.input.effects, manifest.input.contentBlocks*uint64(manifest.input.journal.Replay.MaxTransactions))
+	planning, planningOK := providerHistoryPlannedNextTableControlUpper(providerHistoryGroupMembers, effects, maximum)
+	if !requestsOK || !planningOK {
+		return empty, false
+	}
+	var a providerHistoryReadArithmetic
+	out := providerHistoryReconstructionRequestCost{
+		packParses: a.product(2, manifest.counts.groups),
+		nextTables: a.product(4, manifest.counts.groups),
+	}
+	for coordinate := range out.normal {
+		out.packs[coordinate] = a.product(out.packParses, requests.packParsed[coordinate])
+		out.planning[coordinate] = a.product(out.nextTables, a.sum(planning.generated.normal[coordinate], planning.equality.normal[coordinate]))
+		out.normal[coordinate] = a.sum(out.packs[coordinate], out.planning[coordinate])
+		out.incoming[coordinate] = max(a.difference(planning.generated.envelope[coordinate], planning.generated.normal[coordinate]),
+			a.difference(planning.equality.envelope[coordinate], planning.equality.normal[coordinate]))
+		out.envelope[coordinate] = a.sum(out.normal[coordinate], out.incoming[coordinate])
+	}
+	if a.failed || !providerHistoryReadWorkDomain(out.envelope) {
+		return empty, false
+	}
+	return out, true
+}
+
+// Both fresh models advance through one monotone collection journey. Reuse
+// the assigned RPC and semantic boundary leaves at their ORIGINAL phase cuts,
+// not the execution program's many prefix readers or triangular role sums.
+// Mechanical content/callback interpretation, cursor roots/copies, nextTable
+// work and result custody have separate rows and are not counted here.
+type providerHistoryReconstructionBoundaryCost struct {
+	rpc, semantic candidateWorkVector
+
+	normal, incoming, envelope candidateWorkVector
+}
+
+func providerHistoryReconstructionBoundaryUpper(manifest *providerHistoryCollectionManifest, methods providerMethodBounds) (providerHistoryReconstructionBoundaryCost, bool) {
+	var empty providerHistoryReconstructionBoundaryCost
+	rpc, rpcOK := providerHistoryCollectionBoundaryRoleModelUpper(manifest, methods)
+	semantic, semanticOK := providerHistoryCollectionSemanticBoundaryRoleModelUpper(manifest)
+	if !rpcOK || !semanticOK || rpc.groups != semantic.groups {
+		return empty, false
+	}
+	rpcNormal, _, rpcOK := rpc.rankedUpper(rpc.groups, false)
+	semanticNormal, _, semanticOK := semantic.rankedUpper(semantic.groups, false)
+	if !rpcOK || !semanticOK {
+		return empty, false
+	}
+	var a providerHistoryReadArithmetic
+	var out providerHistoryReconstructionBoundaryCost
+	for coordinate := range out.normal {
+		out.rpc[coordinate], out.semantic[coordinate] = a.product(2, rpcNormal[coordinate]), a.product(2, semanticNormal[coordinate])
+		out.normal[coordinate] = a.sum(out.rpc[coordinate], out.semantic[coordinate])
+		// Each original leaf already funds its siblings through first refusal.
+		// The enclosing boundary/recovery stops, so the other fresh pass does
+		// not execute a second outstanding failed leaf after that refusal.
+		out.incoming[coordinate] = max(rpc.delta[coordinate], semantic.delta[coordinate])
+		out.envelope[coordinate] = a.sum(out.normal[coordinate], out.incoming[coordinate])
+	}
+	if a.failed || !providerHistoryReadWorkDomain(out.envelope) {
+		return empty, false
+	}
+	return out, true
+}
+
+// One selected source graph, still missing model/custody
 // control and compiler-own/cleanup/native resource rows. A successful result
 // must not be installed as a complete R/F bound or production derivation.
 type providerHistoryReconstructionSourceCost struct {
 	ledger                     providerHistoryReconstructionLedgerCost
 	io                         providerHistoryReconstructionIOCost
 	content                    providerHistoryReconstructionContentCost
+	cursor                     providerHistoryReconstructionCursorCost
+	requests                   providerHistoryReconstructionRequestCost
+	boundary                   providerHistoryReconstructionBoundaryCost
 	normal, incoming, envelope candidateWorkVector
 }
 
@@ -256,14 +399,17 @@ func providerHistoryCompileReconstructionSource(config providerCustodyConfig, fa
 	}
 	content, contentOK := providerHistoryReconstructionContentUpper(config.bounds.history.collection)
 	ledger, ledgerOK := providerHistoryReconstructionLedgerUpper(config.bounds.history.collection)
-	if !contentOK || !ledgerOK {
+	cursor, cursorOK := providerHistoryReconstructionCursorUpper(config.bounds.history.collection)
+	requests, requestsOK := providerHistoryReconstructionRequestUpper(config.bounds.history.collection, config.bounds.maximumObjectBytes)
+	boundary, boundaryOK := providerHistoryReconstructionBoundaryUpper(config.bounds.history.collection, *config.bounds.methods)
+	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK {
 		return empty, false
 	}
-	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger}
+	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary}
 	var a providerHistoryReadArithmetic
 	for coordinate := range out.normal {
-		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate])
-		out.incoming[coordinate] = max(io.incoming[coordinate], content.incoming[coordinate], ledger.incoming[coordinate])
+		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate])
+		out.incoming[coordinate] = max(io.incoming[coordinate], content.incoming[coordinate], ledger.incoming[coordinate], cursor.incoming[coordinate], requests.incoming[coordinate], boundary.incoming[coordinate])
 		out.envelope[coordinate] = a.sum(out.normal[coordinate], out.incoming[coordinate])
 	}
 	if a.failed {

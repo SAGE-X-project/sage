@@ -56,12 +56,173 @@ func TestProviderHistoryReconstructionSourceComposesTheSameSelectedReadGraph(t *
 			t.Fatal("read graph changed or lost its original source selection", failed)
 		}
 		for coordinate := range got.normal {
-			if got.normal[coordinate] != got.io.normal[coordinate]+got.content.normal[coordinate]+got.ledger.normal[coordinate] ||
-				got.incoming[coordinate] != max(got.io.incoming[coordinate], got.content.incoming[coordinate], got.ledger.incoming[coordinate]) ||
+			if got.normal[coordinate] != got.io.normal[coordinate]+got.content.normal[coordinate]+got.ledger.normal[coordinate]+got.cursor.normal[coordinate]+got.requests.normal[coordinate]+got.boundary.normal[coordinate] ||
+				got.incoming[coordinate] != max(got.io.incoming[coordinate], got.content.incoming[coordinate], got.ledger.incoming[coordinate], got.cursor.incoming[coordinate], got.requests.incoming[coordinate], got.boundary.incoming[coordinate]) ||
 				got.envelope[coordinate] != got.normal[coordinate]+got.incoming[coordinate] {
 				t.Fatal("source graph lost an actual child or summed mutually outstanding guards", coordinate)
 			}
 		}
+	}
+}
+
+func TestProviderHistoryReconstructionCursorKeepsOriginalRecoveryRootSequence(t *testing.T) {
+	manifest := historySelectedSourceConfig(t).bounds.history.collection
+	before := *manifest
+	got, ok := providerHistoryReconstructionCursorUpper(manifest)
+	// Two independent original group models: initial ledger copy/root,
+	// then each T valid/advance, C valid/advance and S valid/copy/boundary/
+	// advance/post-valid. selectedLocked does not validate the ledger again.
+	var roots, copies uint64
+	for pass := 0; pass < 2; pass++ {
+		roots++ // Initial copy's commitment.
+		copies++
+		roots++ // Initial ledger's root.
+		for group := uint64(0); group < manifest.counts.groups; group++ {
+			for _, phase := range []string{"T", "C", "S"} {
+				roots++ // Original ledger validation.
+				if phase == "S" {
+					roots++ // Boundary copy's commitment.
+					copies++
+					roots++ // Boundary's explicit final commitment.
+				}
+				roots++ // Original ledger advance.
+				if phase == "S" {
+					roots++ // Original settlement's post-validation.
+				}
+			}
+		}
+	}
+	if !ok || manifest.counts.groups != 40 || roots != 724 || copies != 82 ||
+		got.calls != (providerHistoryCollectionStateRootCalls{724, 82}) || *manifest != before {
+		t.Fatal("recovery cursor borrowed repeated producer prefixes or lost an original root/copy", got, ok, roots, copies)
+	}
+	one, valid := providerHistoryAppliedCursorUpper(got.limits, uint64(manifest.input.journal.Replay.History.MaxBytes), providerHistoryAppliedStateKinds{})
+	if !valid {
+		t.Fatal("same original cursor component")
+	}
+	initial := providerHistoryCursorInitializationUpper().cursor
+	for coordinate := range got.envelope {
+		want := 2*initial[coordinate] + 642*one.normalCommitment[coordinate] + 82*one.normalCopy[coordinate]
+		extra := max(one.envelopeCommitment[coordinate]-one.normalCommitment[coordinate], one.envelopeCopy[coordinate]-one.normalCopy[coordinate])
+		if got.initialization[coordinate] != 2*initial[coordinate] || got.normal[coordinate] != want ||
+			got.incoming[coordinate] != extra || got.envelope[coordinate] != want+extra {
+			t.Fatal("cursor copy counted its root twice or lost original incoming work", coordinate)
+		}
+		if coordinate != 2 && coordinate != 10 && got.envelope[coordinate] != 0 {
+			t.Fatal("cursor DATA acquired a network, proof, storage or semantic execution permission", coordinate)
+		}
+	}
+	if zero, valid := providerHistoryReconstructionCursorUpper(nil); valid || zero != (providerHistoryReconstructionCursorCost{}) {
+		t.Fatal("missing original returned a partial cursor quote")
+	}
+	changed := before
+	changed.input.blocks++
+	if zero, valid := providerHistoryReconstructionCursorUpper(&changed); valid || zero != (providerHistoryReconstructionCursorCost{}) {
+		t.Fatal("changed original retained the sealed cursor quote")
+	}
+}
+
+func TestProviderHistoryReconstructionCursorFundsBothFreshInitialLedgerCopies(t *testing.T) {
+	manifest := historySelectedSourceConfig(t).bounds.history.collection
+	quote, ok := providerHistoryReconstructionCursorUpper(manifest)
+	if !ok {
+		t.Fatal("original two-model cursor quote")
+	}
+	// Original constructors under one inert UNIT meter. This tests only the
+	// initial group-model subgraph, not full reconstruction or live authority.
+	meter := providerHistoryContentUnitMeter(quote.envelope)
+	var previous *providerHistoryCollectionCursor
+	for pass := 0; pass < 2; pass++ {
+		cursor, err := newProviderHistoryCollectionCursorObserved(admissionTestDigest("a"), manifest, manifest.input.journal.Deployment, meter)
+		if err != nil || cursor == nil || !cursor.initial() {
+			t.Fatal("fresh original cursor construction", pass, err)
+		}
+		ledger, err := newProviderHistoryCollectionLedgerObserved(admissionTestDigest("a"), admissionTestDigest("b"), admissionTestDigest("c"),
+			admissionTestDigest("e"), manifest.counts.groups, historyLedgerMaximum(), cursor, meter)
+		if err != nil || ledger == nil || ledger.collection == nil || ledger.collection == cursor || ledger.collection == previous ||
+			ledger.collection.semantic == cursor.semantic || ledger.collection.semantic.observer != meter || ledger.collection.semantic.sealedObserver != meter {
+			t.Fatal("original ledger copy lost independent DATA or replaced its observer", pass, err)
+		}
+		previous = ledger.collection
+	}
+	if meter.failed || meter.authority || meter.clocks != 0 || meter.upper != quote.envelope {
+		t.Fatal("two fresh constructors changed the original allowance or gained authority")
+	}
+	for coordinate, actual := range meter.actual {
+		if actual > quote.normal[coordinate] {
+			t.Fatal("initial subgraph exceeds its reserved cursor normal work", coordinate, actual, quote.normal[coordinate])
+		}
+	}
+}
+
+func TestProviderHistoryReconstructionRequestsKeepFreshTablesOutsideRecordValidation(t *testing.T) {
+	config := historySelectedSourceConfig(t)
+	manifest := config.bounds.history.collection
+	before := *manifest
+	got, ok := providerHistoryReconstructionRequestUpper(manifest, config.bounds.maximumObjectBytes)
+	if !ok || manifest.counts.groups != 40 || got.packParses != 80 || got.nextTables != 160 || *manifest != before {
+		t.Fatal("each fresh T pack or independently generated admit/S table was lost", got, ok)
+	}
+	pack, packOK := providerHistoryRequestControlUpper(32, config.bounds.maximumObjectBytes)
+	next, nextOK := providerHistoryPlannedNextTableControlUpper(32,
+		min(manifest.input.effects, manifest.input.contentBlocks*uint64(manifest.input.journal.Replay.MaxTransactions)), config.bounds.maximumObjectBytes)
+	if !packOK || !nextOK {
+		t.Fatal("original raw pack and generated-table children")
+	}
+	for coordinate := range got.normal {
+		// T parses its pack once per pass; next-table selection occurs in T
+		// AND S. Their record constructors/validators have a separate owner.
+		wantPack := 80 * pack.packParsed[coordinate]
+		wantPlan := 160 * (next.generated.normal[coordinate] + next.equality.normal[coordinate])
+		extra := max(next.generated.envelope[coordinate]-next.generated.normal[coordinate], next.equality.envelope[coordinate]-next.equality.normal[coordinate])
+		if got.packs[coordinate] != wantPack || got.planning[coordinate] != wantPlan || got.normal[coordinate] != wantPack+wantPlan ||
+			got.incoming[coordinate] != extra || got.envelope[coordinate] != wantPack+wantPlan+extra {
+			t.Fatal("raw request inputs were narrowed or generated-table guards were summed", coordinate)
+		}
+	}
+	for _, maximum := range []uint64{0, 1 << 40} {
+		if zero, valid := providerHistoryReconstructionRequestUpper(manifest, maximum); valid || zero != (providerHistoryReconstructionRequestCost{}) {
+			t.Fatal("invalid original object limit returned a partial request quote", maximum)
+		}
+	}
+	if zero, valid := providerHistoryReconstructionRequestUpper(nil, config.bounds.maximumObjectBytes); valid || zero != (providerHistoryReconstructionRequestCost{}) {
+		t.Fatal("missing original manifest retained request work")
+	}
+}
+
+func TestProviderHistoryReconstructionBoundaryReplaysWholeJourneyOnlyTwice(t *testing.T) {
+	config := historySelectedSourceConfig(t)
+	manifest := config.bounds.history.collection
+	before := *manifest
+	got, ok := providerHistoryReconstructionBoundaryUpper(manifest, *config.bounds.methods)
+	rpc, rpcOK := providerHistoryCollectionBoundaryRoleModelUpper(manifest, *config.bounds.methods)
+	semantic, semanticOK := providerHistoryCollectionSemanticBoundaryRoleModelUpper(manifest)
+	if !ok || !rpcOK || !semanticOK || *manifest != before {
+		t.Fatal("same selected boundary journey", ok, rpcOK, semanticOK)
+	}
+	for coordinate := range got.normal {
+		// Independently enumerate all prospective phase/item capacities. The
+		// reconstruction has two fresh journeys, not live prefix triangular
+		// repeats or a new32-item allowance for every historical item.
+		var rpcWork, semanticWork uint64
+		for _, tier := range rpc.tiers {
+			rpcWork += tier.count * tier.work[coordinate]
+		}
+		for _, tier := range semantic.tiers {
+			semanticWork += tier.count * tier.work[coordinate]
+		}
+		extra := max(rpc.delta[coordinate], semantic.delta[coordinate])
+		if got.rpc[coordinate] != 2*rpcWork || got.semantic[coordinate] != 2*semanticWork ||
+			got.normal[coordinate] != 2*(rpcWork+semanticWork) || got.incoming[coordinate] != extra ||
+			got.envelope[coordinate] != 2*(rpcWork+semanticWork)+extra {
+			t.Fatal("boundary phases lost one fresh model or borrowed producer replays", coordinate)
+		}
+	}
+	if zero, valid := providerHistoryReconstructionBoundaryUpper(manifest, providerMethodBounds{}); valid || zero != (providerHistoryReconstructionBoundaryCost{}) {
+		t.Fatal("missing original method bounds returned partial boundary work")
+	}
+	if zero, valid := providerHistoryReconstructionBoundaryUpper(nil, *config.bounds.methods); valid || zero != (providerHistoryReconstructionBoundaryCost{}) {
+		t.Fatal("missing original returned partial boundary work")
 	}
 }
 
