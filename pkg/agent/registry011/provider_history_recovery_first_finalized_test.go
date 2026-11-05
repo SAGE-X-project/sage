@@ -74,10 +74,11 @@ func TestProviderHistoryFirstFinalizedReconstructsBothOriginalPassesWithoutProdu
 		if err != nil || m == nil {
 			t.Fatal("fresh full original model", pass, err)
 		}
+		decoded := historyReconstructionFinalizedDecodedBytes(t, m)
 		work, files, rawBytes := r.meter.actual, r.inputFiles, r.inputBytes
 		out, err := m.selectFirstFinalizedCandidate(context.Background())
 		if err != nil || out != historyFirstFinalizedHeader() || m.firstFinalized != out || !m.finalizedSelected ||
-			r.meter.actual[2] <= work[2] || r.meter.actual[10] <= work[10] || r.inputFiles != files || r.inputBytes != rawBytes {
+			r.meter.actual[2] < work[2] || r.meter.actual[2]-work[2] != decoded || decoded == 0 || r.meter.actual[10] <= work[10] || r.inputFiles != files || r.inputBytes != rawBytes {
 			t.Fatal("selection borrowed cached DATA or was not observed", pass, err)
 		}
 		out.Hash = "inert returned DATA"
