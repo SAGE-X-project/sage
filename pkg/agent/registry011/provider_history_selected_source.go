@@ -1,13 +1,19 @@
 package registry011
 
 // Value DATA for the original source components selected by ONE config. This
-// does not contain a derivation, owner or executable callback. Missing incoming,
-// failure/recovery/final/cleanup and compiler/native/backing/lifetime RAM costs
-// must still be closed before a production factory can grant execution.
+// does not contain a derivation, owner or executable callback. The assigned
+// prefix, full admitted future, failed reconstruction and successful final
+// reader stay distinct. Compiler-own/cleanup/native/backing/lifetime RAM costs
+// and whole-profile feasibility must still close before execution is granted.
 type providerHistorySelectedSourceCost struct {
-	limits     providerHistoryRoleSourceLimits
-	bootstrap  providerHistoryCompiledBootstrapCost
-	collection providerHistoryUniformSourceCost
+	limits              providerHistoryRoleSourceLimits
+	clock               providerHistoryClockSelection
+	bootstrap           providerHistoryCompiledBootstrapCost
+	collection          providerHistoryUniformSourceCost
+	recovery, finalRead providerHistoryReconstructionSourceCost
+	finalization        providerHistoryFinalizationCost
+	finalWork           candidateWorkVector
+	assigned            providerHistoryStageWorkCost
 }
 
 // Bind the role inputs to their original store, sealed manifest and two path
@@ -44,16 +50,15 @@ func providerHistorySourceLimitsFromConfig(config providerCustodyConfig) (provid
 	}, true
 }
 
-// Compile the fresh prefix and FULL admitted future source components from
-// the same selection. Every failure returns the entire zero result, including
-// previously derived limits or a successful prefix. The unchanged whole-stage
-// SUM, selected initializer guard, first-read rows and storage remain inside
-// their original children. A positive result is not a complete/sufficient or
-// feasible program, cannot open H0, and does not install a reservation.
-func providerHistoryCompileSelectedSource(config providerCustodyConfig) (providerHistorySelectedSourceCost, bool) {
+// Compile every assigned source role from one unminted config and explicit
+// clock snapshot. The eventual factory must freeze that SAME native backend;
+// matching value DATA here cannot prove that a backend exists or qualify it.
+// Every refusal returns zero, including any earlier positive child. No child
+// result, profile or meter is changed to make a later role fit.
+func providerHistoryCompileSelectedSource(config providerCustodyConfig, clock providerHistoryClockSelection) (providerHistorySelectedSourceCost, bool) {
 	var empty providerHistorySelectedSourceCost
 	limits, limitsOK := providerHistorySourceLimitsFromConfig(config)
-	if !limitsOK {
+	if !limitsOK || !providerHistorySourceClockMatchesPolicy(config.policy, clock) {
 		return empty, false
 	}
 	bootstrap, bootstrapOK := providerHistoryCompileBootstrapSource(config.bounds, config.capture)
@@ -65,5 +70,59 @@ func providerHistoryCompileSelectedSource(config providerCustodyConfig) (provide
 	if !collectionOK {
 		return empty, false
 	}
-	return providerHistorySelectedSourceCost{limits, bootstrap, collection}, true
+	recovery, recoveryOK := providerHistoryCompileReconstructionSource(config, true)
+	finalRead, finalOK := providerHistoryCompileReconstructionSource(config, false)
+	finalization, closingOK := providerHistoryFinalizationUpper(b.history.collection, uint64(len(clock.id)))
+	if !recoveryOK || !finalOK || !closingOK {
+		return empty, false
+	}
+	out := providerHistorySelectedSourceCost{
+		limits: limits, clock: clock, bootstrap: bootstrap, collection: collection,
+		recovery: recovery, finalRead: finalRead, finalization: finalization,
+	}
+	var a providerHistoryReadArithmetic
+	for coordinate := range out.assigned.work {
+		// Reconstruction stops at its first refusal. Closing is entered only
+		// after reconstruction succeeds; its paired late-commit extras have
+		// already SUMmed inside finalization. Only one phase can leave a new
+		// outstanding incoming envelope in this successful-final invocation.
+		out.finalWork[coordinate] = a.sum(finalRead.normal[coordinate], finalization.normal[coordinate],
+			max(finalRead.incoming[coordinate], finalization.incoming[coordinate]))
+		if coordinate == 10 {
+			// The two clock events are not in either nonclock child above.
+			out.finalWork[coordinate] = a.sum(out.finalWork[coordinate], finalization.clocks)
+		}
+		// These are distinct PRE-HELD roles. Failed inspection and successful
+		// final inspection must SUM here, even though execution chooses one.
+		// Keep the whole selected pre-I upper, its separate first P, and the
+		// complete I+G*FULLstage future; no initial or future guard is refunded.
+		out.assigned.work[coordinate] = a.sum(bootstrap.source.selectedPreI.work[coordinate], bootstrap.source.startup.work[coordinate],
+			collection.future.work[coordinate], recovery.envelope[coordinate], out.finalWork[coordinate])
+	}
+	out.assigned.clocks = a.sum(bootstrap.source.selectedPreI.clocks, bootstrap.source.startup.clocks,
+		collection.future.clocks, finalization.clocks)
+	if a.failed {
+		return empty, false
+	}
+	// Preserve ALL eleven dimensions, including historical proofs in R/F.
+	// Their current live read domain still refuses proofs: do not erase that
+	// mismatch or install these source DATA as an executable recovery bound.
+	return out, true
+}
+
+// Bounded policy DATA matching only. No native sample or clock construction
+// occurs. Parsing and transient copies here belong to the still-open compiler
+// cost row, rather than being borrowed from an execution or final-read budget.
+func providerHistorySourceClockMatchesPolicy(policy *ProviderPolicyCandidate, clock providerHistoryClockSelection) bool {
+	if policy == nil || policy.raw == "" || len(policy.raw) > 64<<10 || clock.id == "" || len(clock.id) > 256 ||
+		clock.policy != policy.policy || !lowerHash(clock.policy) || !lowerHash(clock.epoch) || clock.origin.IsZero() ||
+		clock.window <= 0 || clock.uncertainty <= 0 || clock.maximum == 0 || clock.maximum > 1<<20 {
+		return false
+	}
+	root, ok := contentJSON([]byte(policy.raw)).(map[string]any)
+	if !ok {
+		return false
+	}
+	selected, ok := root["clock"].(map[string]any)
+	return ok && selected["id"] == clock.id
 }
