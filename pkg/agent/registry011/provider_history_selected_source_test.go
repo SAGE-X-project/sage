@@ -48,99 +48,120 @@ func TestProviderHistorySourcePlanReportsFullSpanCostsWithoutAuthority(t *testin
 	// other inputs are prospective numeric selections, never an opened Source
 	// or an observed whole-history transcript. Keep operating profiles intact.
 	const selected = uint64(12067934)
-	for _, native := range []uint64{0, 1, 16, 93265} {
-		for _, catalog := range []uint64{4096, 1 << 20} {
-			name := "native-" + strconv.FormatUint(native, 10) + "/catalog-" + strconv.FormatUint(catalog, 10)
-			t.Run(name, func(t *testing.T) {
-				config := historySelectedSourceConfig(t)
-				in := config.bounds.history.collection.input
-				in.maximumSelected = selected
-				in.blocks = selected - in.journal.Deployment.Number + 1
-				if in.blocks != 93265 {
-					t.Fatal("fixed deployment-to-observation span changed", in.blocks)
-				}
-				in.native, in.effects, in.versions = native, 4096, 4096
-				in.windowBlocks, in.contentBlocks = 4096, 10
-				in.presentStops = 1 + (in.blocks-1)/in.windowBlocks
-				in.journal.Observation.MaxAncestryHeaders = in.blocks - 1
-				manifest := historyCollectionManifest(t, in)
-				if manifest.counts != (providerHistoryCollectionCounts{23, 23, 9336, 289182 + native, 16657, 744934 + 2*native}) {
-					t.Fatal("full-span prospective grammar differs from independent literals", manifest.counts)
-				}
-				config.bounds.history.collection, config.bounds.history.stages = manifest, manifest.counts.groups
-				config.bounds.history.catalogEntries, config.bounds.history.catalogNameBytes = catalog, catalog*255
-				clock := historySelectedSourceClock(config)
-				before, historyBefore, manifestBefore := config, *config.bounds.history, *manifest
+	for _, candidate := range []struct {
+		effectsVersions, groups, requests, clocks uint64
+	}{{16, 12443, 281022, 686474}, {4096, 16657, 289182, 744934}} {
+		for _, native := range []uint64{0, 1, 16, 93265} {
+			for _, catalog := range []uint64{4096, 1 << 20} {
+				name := "effects-versions-" + strconv.FormatUint(candidate.effectsVersions, 10) + "/native-" + strconv.FormatUint(native, 10) + "/catalog-" + strconv.FormatUint(catalog, 10)
+				t.Run(name, func(t *testing.T) {
+					config := historySelectedSourceConfig(t)
+					in := config.bounds.history.collection.input
+					in.maximumSelected = selected
+					in.blocks = selected - in.journal.Deployment.Number + 1
+					if in.blocks != 93265 {
+						t.Fatal("fixed deployment-to-observation span changed", in.blocks)
+					}
+					in.native, in.effects, in.versions = native, candidate.effectsVersions, candidate.effectsVersions
+					in.windowBlocks, in.contentBlocks = 4096, 10
+					in.presentStops = 1 + (in.blocks-1)/in.windowBlocks
+					in.journal.Observation.MaxAncestryHeaders = in.blocks - 1
+					manifest := historyCollectionManifest(t, in)
+					if manifest.counts != (providerHistoryCollectionCounts{23, 23, 9336, candidate.requests + native, candidate.groups, candidate.clocks + 2*native}) {
+						t.Fatal("full-span prospective grammar differs from independent literals", manifest.counts)
+					}
+					config.bounds.history.collection, config.bounds.history.stages = manifest, manifest.counts.groups
+					config.bounds.history.catalogEntries, config.bounds.history.catalogNameBytes = catalog, catalog*255
+					if !config.bounds.validStructure() {
+						t.Fatal("prospective profile lost its positive structural prerequisite")
+					}
+					clock := historySelectedSourceClock(config)
+					before, historyBefore, manifestBefore := config, *config.bounds.history, *manifest
 
-				// Remote CI observations only. These process-wide counters and
-				// endpoint heap sizes are NOT peak memory, attribution to this
-				// compiler, worst-case bounds or native/backend qualification.
-				var memoryBefore, memoryAfter runtime.MemStats
-				runtime.ReadMemStats(&memoryBefore)
-				start := time.Now()
-				plan, ok := providerHistoryCompileSourcePlan(config, clock)
-				elapsed := time.Since(start)
-				runtime.ReadMemStats(&memoryAfter)
-				if ok != (plan != nil) || config != before || *config.bounds.history != historyBefore || *manifest != manifestBefore ||
-					config.bounds.history.derivation != nil || config.bounds.valid() {
-					t.Fatal("measurement changed selected input or returned partial execution authority", ok)
-				}
-				row := map[string]any{
-					"format": "sage-history-compiler-profile-measurement-v1", "runtime": runtime.Version(),
-					"os": runtime.GOOS, "arch": runtime.GOARCH, "qualification": false, "derivation": false,
-					"scope":    "fixed historical height and prospective caps; other numeric fixture bounds unchanged",
-					"manifest": manifest.digest, "deployment_height": in.journal.Deployment.Number,
-					"selected_height": selected, "inclusive_blocks": in.blocks, "native_block_cap": native,
-					"effect_cap": in.effects, "version_cap": in.versions, "present_stop_cap": in.presentStops,
-					"window_blocks": in.windowBlocks, "content_blocks": in.contentBlocks,
-					"groups": manifest.counts.groups, "requests": manifest.counts.requests,
-					"catalog_entries": catalog, "catalog_name_bytes": catalog * 255,
-					"source_plan_available": ok, "compile_elapsed_ns": elapsed.Nanoseconds(),
-					"process_total_alloc_delta": memoryAfter.TotalAlloc - memoryBefore.TotalAlloc,
-					"process_heap_inuse_before": memoryBefore.HeapInuse, "process_heap_inuse_after": memoryAfter.HeapInuse,
-					"measurement_scope": "plan construction elapsed and process counters; not peaks, hard bounds or exclusive attribution",
-					"absolute_resource_ceilings": map[string]uint64{
-						"physical": 1 << 40, "payload": 16 << 30, "metadata": 64 << 30, "objects": 16 << 20, "combined_catalog_files": 2 << 20,
-					},
-				}
-				if ok {
-					if plan.config.bounds.history.derivation != nil || plan.config.bounds.valid() ||
-						plan.source.clock != clock || plan.source.collection.groups != manifest.counts.groups {
-						t.Fatal("positive numeric quote changed its selection or minted authority")
+					// Remote CI observations only. These process-wide counters and
+					// endpoint heap sizes are NOT peak memory, attribution to this
+					// compiler, worst-case bounds or native/backend qualification.
+					var memoryBefore, memoryAfter runtime.MemStats
+					runtime.ReadMemStats(&memoryBefore)
+					start := time.Now()
+					plan, ok := providerHistoryCompileSourcePlan(config, clock)
+					elapsed := time.Since(start)
+					runtime.ReadMemStats(&memoryAfter)
+					if ok != (plan != nil) || config != before || *config.bounds.history != historyBefore || *manifest != manifestBefore ||
+						config.bounds.history.derivation != nil || config.bounds.valid() {
+						t.Fatal("measurement changed selected input or returned partial execution authority", ok)
 					}
-					row["assigned_work"], row["assigned_clocks"] = candidateLedgerWorkObject(plan.source.assigned.work), plan.source.assigned.clocks
-				}
-				// Report the existing storage component even if another source
-				// component refuses the complete quote. Passing these subset
-				// comparisons cannot establish whole-profile sufficiency.
-				storage, storageOK := providerHistoryCollectionUniformStorageUpper(manifest, *config.bounds.methods, *config.bounds.tls,
-					config.bounds.maximumObjectBytes, config.bounds.maximumMetadataPerCommit, config.bounds.fileOverheadBytes)
-				if !storageOK {
-					t.Fatal("valid full-span input lost its finite collection storage component")
-				}
-				row["collection_storage_available"] = storageOK
-				if storageOK {
-					future, ledger := storage.future, config.bounds.continuation
-					row["known_collection_storage"] = map[string]uint64{
-						"physical": future.physical, "raw": future.raw, "payload": future.payload,
-						"metadata": future.metadata, "objects": future.objects, "files": future.files,
+					row := map[string]any{
+						"format": "sage-history-compiler-profile-measurement-v1", "runtime": runtime.Version(),
+						"os": runtime.GOOS, "arch": runtime.GOARCH, "qualification": false, "derivation": false,
+						"scope":    "fixed historical height and prospective caps; other numeric fixture bounds unchanged",
+						"manifest": manifest.digest, "deployment_height": in.journal.Deployment.Number,
+						"selected_height": selected, "inclusive_blocks": in.blocks, "native_block_cap": native,
+						"effect_cap": in.effects, "version_cap": in.versions, "present_stop_cap": in.presentStops,
+						"window_blocks": in.windowBlocks, "content_blocks": in.contentBlocks,
+						"groups": manifest.counts.groups, "requests": manifest.counts.requests,
+						"catalog_entries": catalog, "catalog_name_bytes": catalog * 255,
+						"source_plan_available": ok, "compile_elapsed_ns": elapsed.Nanoseconds(),
+						// Full32 original members reserve two clocks each. This
+						// necessary lower bound is available even on quote refusal;
+						// fitting it never proves that all remaining roles fit.
+						"admitted_member_clock_lower_bound":       manifest.counts.groups * providerHistoryGroupMembers * 2,
+						"selected_clock_maximum":                  clock.maximum,
+						"member_clock_lower_bound_within_ceiling": manifest.counts.groups*providerHistoryGroupMembers*2 <= clock.maximum,
+						"process_total_alloc_delta":               memoryAfter.TotalAlloc - memoryBefore.TotalAlloc,
+						"process_heap_inuse_before":               memoryBefore.HeapInuse, "process_heap_inuse_after": memoryAfter.HeapInuse,
+						"measurement_scope": "plan construction elapsed and process counters; not peaks, hard bounds or exclusive attribution",
+						"absolute_resource_ceilings": map[string]uint64{
+							"physical": 1 << 40, "payload": 16 << 30, "metadata": 64 << 30, "store_objects": 16 << 20,
+							"history_group_objects": 1 << 20, "combined_catalog_files": 2 << 20, "clocks": 1 << 20,
+						},
+						"catalog_comparison_scope": "combined two-directory necessary ceiling only; not per-directory fit",
 					}
-					row["selected_numeric_caps"] = map[string]uint64{
-						"physical": config.bounds.maximumStoredBytes, "payload": ledger.maximumPayloadBytes,
-						"metadata": ledger.maximumMetadataBytes, "objects": uint64(config.bounds.maximumObjects), "combined_catalog_file_ceiling": 2 * catalog,
+					if ok {
+						if plan.config.bounds.history.derivation != nil || plan.config.bounds.valid() ||
+							plan.source.clock != clock || plan.source.collection.groups != manifest.counts.groups {
+							t.Fatal("positive numeric quote changed its selection or minted authority")
+						}
+						row["assigned_work"], row["assigned_clocks"] = candidateLedgerWorkObject(plan.source.assigned.work), plan.source.assigned.clocks
+						row["assigned_clocks_within_selected_maximum"] = plan.source.assigned.clocks <= clock.maximum
 					}
-					row["known_component_within_selected_caps"] = map[string]bool{
-						"physical": future.physical <= config.bounds.maximumStoredBytes, "payload": future.payload <= ledger.maximumPayloadBytes,
-						"metadata": future.metadata <= ledger.maximumMetadataBytes, "objects": future.objects <= uint64(config.bounds.maximumObjects),
-						"combined_catalog_files": future.files <= 2*catalog,
+					// Report the existing storage component even if another source
+					// component refuses the complete quote. Passing these subset
+					// comparisons cannot establish whole-profile sufficiency.
+					storage, storageOK := providerHistoryCollectionUniformStorageUpper(manifest, *config.bounds.methods, *config.bounds.tls,
+						config.bounds.maximumObjectBytes, config.bounds.maximumMetadataPerCommit, config.bounds.fileOverheadBytes)
+					if !storageOK {
+						t.Fatal("valid full-span input lost its finite collection storage component")
 					}
-				}
-				raw, err := json.Marshal(row)
-				if err != nil {
-					t.Fatal("encode bounded measurement", err)
-				}
-				t.Logf("HISTORY_COMPILER_PROFILE_MEASUREMENT %s", raw)
-			})
+					row["collection_storage_available"] = storageOK
+					if storageOK {
+						future, ledger := storage.future, config.bounds.continuation
+						row["known_collection_storage"] = map[string]uint64{
+							"physical": future.physical, "raw": future.raw, "payload": future.payload,
+							"metadata": future.metadata, "objects": future.objects, "files": future.files,
+						}
+						row["selected_numeric_caps"] = map[string]uint64{
+							"physical": config.bounds.maximumStoredBytes, "payload": ledger.maximumPayloadBytes,
+							"metadata": ledger.maximumMetadataBytes, "objects": uint64(config.bounds.maximumObjects), "combined_catalog_file_ceiling": 2 * catalog,
+						}
+						row["known_component_within_selected_caps"] = map[string]bool{
+							"physical": future.physical <= config.bounds.maximumStoredBytes, "payload": future.payload <= ledger.maximumPayloadBytes,
+							"metadata": future.metadata <= ledger.maximumMetadataBytes, "objects": future.objects <= uint64(config.bounds.maximumObjects),
+							"combined_catalog_files": future.files <= 2*catalog,
+						}
+						row["known_component_within_absolute_ceilings"] = map[string]bool{
+							"physical": future.physical <= 1<<40, "payload": future.payload <= 16<<30, "metadata": future.metadata <= 64<<30,
+							"store_objects": future.objects <= 16<<20, "history_group_objects": future.objects <= 1<<20,
+							"combined_catalog_files": future.files <= 2<<20,
+						}
+					}
+					raw, err := json.Marshal(row)
+					if err != nil {
+						t.Fatal("encode bounded measurement", err)
+					}
+					t.Logf("HISTORY_COMPILER_PROFILE_MEASUREMENT %s", raw)
+				})
+			}
 		}
 	}
 }
