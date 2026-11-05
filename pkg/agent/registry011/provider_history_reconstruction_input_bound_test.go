@@ -24,7 +24,7 @@ func historyReconstructionSourceConfig(t *testing.T) providerCustodyConfig {
 	// Establish the complete joined positive BEFORE any targeted negative
 	// copies, in both original read modes. This is not execution authority.
 	for _, failed := range []bool{false, true} {
-		if quote, ok := providerHistoryCompileReconstructionSource(config, failed); !ok || quote.scan.normal[2] == 0 || quote.inventory.normal[2] == 0 || quote.legacy.normal[2] == 0 || quote.finalized.normal[2] == 0 || quote.initialIndex.normal[2] == 0 || quote.initialMessages.normal[2] == 0 || quote.initialModel.body[2] == 0 || quote.initialModel.boundary[10] == 0 || quote.members.context[2] == 0 || quote.members.tls[2] == 0 || quote.modelSlots[10] == 0 {
+		if quote, ok := providerHistoryCompileReconstructionSource(config, failed); !ok || quote.scan.normal[2] == 0 || quote.inventory.normal[2] == 0 || quote.legacy.normal[2] == 0 || quote.finalized.normal[2] == 0 || quote.initialIndex.normal[2] == 0 || quote.initialMessages.normal[2] == 0 || quote.initialModel.body[2] == 0 || quote.initialModel.boundary[10] == 0 || quote.members.context[2] == 0 || quote.members.tls[2] == 0 || quote.modelSlots[10] == 0 || quote.transitionBindings[10] == 0 {
 			t.Fatal("complete positive reconstruction graph precursor", failed, ok)
 		}
 	}
@@ -82,7 +82,7 @@ func TestProviderHistoryReconstructionSourceComposesTheSameSelectedReadGraph(t *
 			t.Fatal("read graph changed or lost its original source selection", failed)
 		}
 		for coordinate := range got.normal {
-			if got.normal[coordinate] != got.io.normal[coordinate]+got.content.normal[coordinate]+got.ledger.normal[coordinate]+got.cursor.normal[coordinate]+got.requests.normal[coordinate]+got.boundary.normal[coordinate]+got.outer.normal[coordinate]+got.scan.normal[coordinate]+got.inventory.normal[coordinate]+got.legacy.normal[coordinate]+got.finalized.normal[coordinate]+got.initialIndex.normal[coordinate]+got.initialMessages.normal[coordinate]+got.initialModel.normal[coordinate]+got.members.normal[coordinate]+got.modelSlots[coordinate] ||
+			if got.normal[coordinate] != got.io.normal[coordinate]+got.content.normal[coordinate]+got.ledger.normal[coordinate]+got.cursor.normal[coordinate]+got.requests.normal[coordinate]+got.boundary.normal[coordinate]+got.outer.normal[coordinate]+got.scan.normal[coordinate]+got.inventory.normal[coordinate]+got.legacy.normal[coordinate]+got.finalized.normal[coordinate]+got.initialIndex.normal[coordinate]+got.initialMessages.normal[coordinate]+got.initialModel.normal[coordinate]+got.members.normal[coordinate]+got.modelSlots[coordinate]+got.transitionBindings[coordinate] ||
 				got.incoming[coordinate] != max(got.io.incoming[coordinate], got.content.incoming[coordinate], got.ledger.incoming[coordinate], got.cursor.incoming[coordinate], got.requests.incoming[coordinate], got.boundary.incoming[coordinate], got.outer.incoming[coordinate], got.scan.incoming[coordinate], got.inventory.incoming[coordinate], got.legacy.incoming[coordinate], got.finalized.incoming[coordinate], got.initialIndex.incoming[coordinate], got.initialMessages.incoming[coordinate], got.initialModel.incoming[coordinate], got.members.incoming[coordinate]) ||
 				got.envelope[coordinate] != got.normal[coordinate]+got.incoming[coordinate] {
 				t.Fatal("source graph lost an actual child or summed mutually outstanding guards", coordinate)
@@ -706,6 +706,43 @@ func TestProviderHistoryReconstructionModelSlotsRefuseMissingOrUnboundedStages(t
 	for _, groups := range []uint64{0, 349526, ^uint64(0)} {
 		if got, ok := providerHistoryReconstructionModelSlotsUpper(groups); ok || got != (candidateWorkVector{}) {
 			t.Fatal("unselected stage domain returned a partial model slot row", groups, got, ok)
+		}
+	}
+}
+
+func TestProviderHistoryReconstructionTransitionBindingsKeepDistinctStateAndResultComparisons(t *testing.T) {
+	for _, row := range []struct{ groups, requests, comparisons, units uint64 }{
+		{1, 1, 8, 1064}, {1, 32, 70, 9310}, {40, 1280, 2800, 372400}, {349525, 11184800, 24466750, 3254077750},
+	} {
+		t.Run(strconv.FormatUint(row.requests, 10), func(t *testing.T) {
+			got, ok := providerHistoryReconstructionTransitionBindingsUpper(row.groups, row.requests)
+			if !ok || got != (candidateWorkVector{10: row.units}) || got[10] != row.comparisons*133 {
+				t.Fatal("separate original state/result binding events were lost", row, got, ok)
+			}
+			if row.groups <= 40 {
+				var calls uint64
+				for pass := 0; pass < 2; pass++ {
+					for group := uint64(0); group < row.groups; group++ {
+						for range []string{"admit-previous", "consume-previous", "settle-previous"} {
+							calls++
+						}
+					}
+					for member := uint64(0); member < row.requests; member++ {
+						calls++
+					}
+				}
+				if calls != row.comparisons {
+					t.Fatal("same-source two-pass binding topology", calls, row.comparisons)
+				}
+			}
+		})
+	}
+}
+
+func TestProviderHistoryReconstructionTransitionBindingsRefuseUnselectedStagesAndRequests(t *testing.T) {
+	for _, row := range [][2]uint64{{0, 1}, {1, 0}, {2, 1}, {1, 33}, {349526, 349526}, {^uint64(0), 1}, {1, ^uint64(0)}} {
+		if got, ok := providerHistoryReconstructionTransitionBindingsUpper(row[0], row[1]); ok || got != (candidateWorkVector{}) {
+			t.Fatal("unselected original request/stage domain returned partial bindings", row, got, ok)
 		}
 	}
 }

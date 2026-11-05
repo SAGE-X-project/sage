@@ -458,27 +458,42 @@ func providerHistoryReconstructionModelSlotsUpper(groups uint64) (candidateWorkV
 	return candidateWorkVector{10: 20 * groups}, true
 }
 
+// Enclosing ledger transition bindings, not record parsing or ledger roots.
+// T/C/S each compare their previous digest against the fresh ledger head.
+// A successful collection S additionally compares every decoded result digest
+// to its independently parsed S slot BEFORE the content/RPC boundary. The
+// failed-S branch skips that loop and fits the same prospective R allowance.
+// Every compared value is an original validated/computed66-byte digest.
+func providerHistoryReconstructionTransitionBindingsUpper(groups, requests uint64) (candidateWorkVector, bool) {
+	if _, ok := providerHistoryCollectionRootCallsBound(groups, requests); !ok {
+		return candidateWorkVector{}, false
+	}
+	// G<=349525 and R<=32G: at most3254077750 logical units. No encoder
+	// preflight, extra file read or other incoming component is introduced.
+	return candidateWorkVector{10: 266 * (3*groups + requests)}, true
+}
+
 // One selected source graph, still missing compiler-own/cleanup/native
 // resource rows and the complete derivation/factory/caller connection. A successful result
 // must not be installed as a complete R/F bound or production derivation.
 type providerHistoryReconstructionSourceCost struct {
-	ledger                     providerHistoryReconstructionLedgerCost
-	io                         providerHistoryReconstructionIOCost
-	content                    providerHistoryReconstructionContentCost
-	cursor                     providerHistoryReconstructionCursorCost
-	requests                   providerHistoryReconstructionRequestCost
-	boundary                   providerHistoryReconstructionBoundaryCost
-	outer                      providerHistoryReconstructionOuterCost
-	scan                       providerHistoryReconstructionScanCost
-	inventory                  providerHistoryReconstructionInventoryCost
-	legacy                     providerHistoryReconstructionLegacyCost
-	finalized                  providerHistoryReconstructionFinalizedCost
-	initialIndex               providerHistoryReconstructionIndexCost
-	initialMessages            providerHistoryReconstructionMessageCost
-	initialModel               providerHistoryReconstructionInitialCost
-	members                    providerHistoryReconstructionMemberCost
-	modelSlots                 candidateWorkVector
-	normal, incoming, envelope candidateWorkVector
+	ledger                         providerHistoryReconstructionLedgerCost
+	io                             providerHistoryReconstructionIOCost
+	content                        providerHistoryReconstructionContentCost
+	cursor                         providerHistoryReconstructionCursorCost
+	requests                       providerHistoryReconstructionRequestCost
+	boundary                       providerHistoryReconstructionBoundaryCost
+	outer                          providerHistoryReconstructionOuterCost
+	scan                           providerHistoryReconstructionScanCost
+	inventory                      providerHistoryReconstructionInventoryCost
+	legacy                         providerHistoryReconstructionLegacyCost
+	finalized                      providerHistoryReconstructionFinalizedCost
+	initialIndex                   providerHistoryReconstructionIndexCost
+	initialMessages                providerHistoryReconstructionMessageCost
+	initialModel                   providerHistoryReconstructionInitialCost
+	members                        providerHistoryReconstructionMemberCost
+	modelSlots, transitionBindings candidateWorkVector
+	normal, incoming, envelope     candidateWorkVector
 }
 
 func providerHistoryCompileReconstructionSource(config providerCustodyConfig, failedInspection bool) (providerHistoryReconstructionSourceCost, bool) {
@@ -503,13 +518,14 @@ func providerHistoryCompileReconstructionSource(config providerCustodyConfig, fa
 	boundary, boundaryOK := providerHistoryReconstructionBoundaryUpper(config.bounds.history.collection, *config.bounds.methods)
 	outer, outerOK := providerHistoryReconstructionOuterUpper(config.bounds.history.collection, io.limits.legacy.metadata, io.limits.legacy.objectBytes, failedInspection)
 	modelSlots, modelSlotsOK := providerHistoryReconstructionModelSlotsUpper(config.bounds.history.collection.counts.groups)
-	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK || !outerOK || !scanOK || !inventoryOK || !legacyOK || !finalizedOK || !initialMessagesOK || !initialModelOK || !membersOK || !modelSlotsOK {
+	transitionBindings, transitionBindingsOK := providerHistoryReconstructionTransitionBindingsUpper(config.bounds.history.collection.counts.groups, config.bounds.history.collection.counts.requests)
+	if !contentOK || !ledgerOK || !cursorOK || !requestsOK || !boundaryOK || !outerOK || !scanOK || !inventoryOK || !legacyOK || !finalizedOK || !initialMessagesOK || !initialModelOK || !membersOK || !modelSlotsOK || !transitionBindingsOK {
 		return empty, false
 	}
-	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary, outer: outer, scan: scan, inventory: inventory, legacy: legacy, finalized: finalized, initialIndex: initialIndex, initialMessages: initialMessages, initialModel: initialModel, members: members, modelSlots: modelSlots}
+	out := providerHistoryReconstructionSourceCost{io: io, content: content, ledger: ledger, cursor: cursor, requests: requests, boundary: boundary, outer: outer, scan: scan, inventory: inventory, legacy: legacy, finalized: finalized, initialIndex: initialIndex, initialMessages: initialMessages, initialModel: initialModel, members: members, modelSlots: modelSlots, transitionBindings: transitionBindings}
 	var a providerHistoryReadArithmetic
 	for coordinate := range out.normal {
-		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate], outer.normal[coordinate], scan.normal[coordinate], inventory.normal[coordinate], legacy.normal[coordinate], finalized.normal[coordinate], initialIndex.normal[coordinate], initialMessages.normal[coordinate], initialModel.normal[coordinate], members.normal[coordinate], modelSlots[coordinate])
+		out.normal[coordinate] = a.sum(io.normal[coordinate], content.normal[coordinate], ledger.normal[coordinate], cursor.normal[coordinate], requests.normal[coordinate], boundary.normal[coordinate], outer.normal[coordinate], scan.normal[coordinate], inventory.normal[coordinate], legacy.normal[coordinate], finalized.normal[coordinate], initialIndex.normal[coordinate], initialMessages.normal[coordinate], initialModel.normal[coordinate], members.normal[coordinate], modelSlots[coordinate], transitionBindings[coordinate])
 		out.incoming[coordinate] = max(io.incoming[coordinate], content.incoming[coordinate], ledger.incoming[coordinate], cursor.incoming[coordinate], requests.incoming[coordinate], boundary.incoming[coordinate], outer.incoming[coordinate], scan.incoming[coordinate], inventory.incoming[coordinate], legacy.incoming[coordinate], finalized.incoming[coordinate], initialIndex.incoming[coordinate], initialMessages.incoming[coordinate], initialModel.incoming[coordinate], members.incoming[coordinate])
 		out.envelope[coordinate] = a.sum(out.normal[coordinate], out.incoming[coordinate])
 	}
