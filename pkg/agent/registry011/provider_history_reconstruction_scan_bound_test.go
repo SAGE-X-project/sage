@@ -111,7 +111,7 @@ func TestProviderHistoryReconstructionScanFundsFreshOriginalBindingCodecsWithout
 }
 
 func TestProviderHistoryReconstructionScanRejectsMissingOrUnboundedSelectedPolicy(t *testing.T) {
-	config := historySelectedSourceConfig(t)
+	config := historyReconstructionSourceConfig(t)
 	original := *config.policy
 	for _, mode := range []string{"missing", "empty", "oversized"} {
 		t.Run(mode, func(t *testing.T) {

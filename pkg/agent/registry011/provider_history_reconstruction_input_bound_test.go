@@ -5,6 +5,31 @@ import (
 	"testing"
 )
 
+// This extends only the unminted reconstruction numeric UNIT selection.
+// The policy is existing closed valid fixture DATA for the newly quoted copy/
+// decode input. No original store/profile/owner is changed or opened with it.
+func historyReconstructionSourceConfig(t *testing.T) providerCustodyConfig {
+	t.Helper()
+	config := historySelectedSourceConfig(t)
+	raw := providerPolicyTestBytes(t, providerPolicyTestObject())
+	policy, err := ParseProviderPolicyCandidate(raw, 64<<10)
+	if err != nil || policy == nil || policy.raw == "" || len(policy.raw) > 64<<10 {
+		t.Fatal("bounded valid policy precursor for original reconstruction DATA", err)
+	}
+	config.policy = policy
+	if config.bounds.history.derivation != nil || config.bounds.valid() || !config.bounds.validStructure() {
+		t.Fatal("numeric policy selection acquired a derivation or lost its original structural bounds")
+	}
+	// Establish the complete joined positive BEFORE any targeted negative
+	// copies, in both original read modes. This is not execution authority.
+	for _, failed := range []bool{false, true} {
+		if quote, ok := providerHistoryCompileReconstructionSource(config, failed); !ok || quote.scan.normal[2] == 0 || quote.inventory.normal[2] == 0 {
+			t.Fatal("complete positive reconstruction graph precursor", failed, ok)
+		}
+	}
+	return config
+}
+
 func TestProviderHistoryReconstructionContentKeepsHistoricalProofAttemptsForBothFreshModels(t *testing.T) {
 	base := historySelectedSourceConfig(t).bounds.history.collection
 	for _, versions := range []uint64{0, 1, 3, 128} {
@@ -48,7 +73,7 @@ func TestProviderHistoryReconstructionContentKeepsHistoricalProofAttemptsForBoth
 }
 
 func TestProviderHistoryReconstructionSourceComposesTheSameSelectedReadGraph(t *testing.T) {
-	config := historySelectedSourceConfig(t)
+	config := historyReconstructionSourceConfig(t)
 	before, history, manifest := config, *config.bounds.history, *config.bounds.history.collection
 	for _, failed := range []bool{false, true} {
 		got, ok := providerHistoryCompileReconstructionSource(config, failed)
