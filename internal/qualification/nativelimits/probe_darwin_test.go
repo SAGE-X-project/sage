@@ -249,7 +249,7 @@ func TestDarwinResourcePrimitives(t *testing.T) {
 	}{
 		{"os_version", "/usr/bin/sw_vers", nil},
 		{"kernel_release", "/usr/bin/uname", []string{"-r"}},
-		{"compiler_path", "/usr/bin/xcrun", []string{"--find", "clang"}},
+		{"compiler_path", "/usr/bin/xcrun", []string{"--sdk", "macosx", "--find", "clang"}},
 	} {
 		r := invoke(operations, spec.name, spec.binary, 20*time.Second, spec.args...)
 		if err := retainAttempt(r); err != nil {
@@ -275,6 +275,22 @@ func TestDarwinResourcePrimitives(t *testing.T) {
 	if version.Error != "" || version.Overflow || version.Deadline || version.Canceled {
 		t.Fatalf("compiler version: %+v", version)
 	}
+	sdk := invoke(operations, "sdk_path", "/usr/bin/xcrun", 20*time.Second, "--sdk", "macosx", "--show-sdk-path")
+	if err := retainAttempt(sdk); err != nil {
+		t.Fatal(err)
+	}
+	if sdk.Error != "" || sdk.Overflow || sdk.Deadline || sdk.Canceled {
+		t.Fatalf("SDK selection: %+v", sdk)
+	}
+	sdkPath, err := filepath.EvalSymlinks(strings.TrimSpace(sdk.Output))
+	if err != nil || !filepath.IsAbs(sdkPath) {
+		t.Fatalf("absolute SDK path: %q: %v", sdkPath, err)
+	}
+	sdkInfo, err := os.Stat(sdkPath)
+	if err != nil || !sdkInfo.IsDir() {
+		t.Fatalf("SDK directory: %q: %v", sdkPath, err)
+	}
+	record["sdk_path"] = sdkPath
 	source := filepath.Join("testdata", "resource_limits.c")
 	sourceHash, err := fileHash(operations, source)
 	if err != nil {
@@ -282,7 +298,9 @@ func TestDarwinResourcePrimitives(t *testing.T) {
 	}
 	record["probe_source_sha256"] = sourceHash
 	binary := filepath.Join(dir, "resource-limits")
-	build := invoke(operations, "compile_probe", compiler, time.Minute, "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "-pedantic", source, "-o", binary)
+	compileArgs := []string{"-isysroot", sdkPath, "-std=c11", "-O2", "-Wall", "-Wextra", "-Werror", "-pedantic", source, "-o", binary}
+	record["compile_args"] = compileArgs
+	build := invoke(operations, "compile_probe", compiler, time.Minute, compileArgs...)
 	if err := retainAttempt(build); err != nil {
 		t.Fatal(err)
 	}

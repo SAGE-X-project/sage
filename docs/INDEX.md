@@ -85,6 +85,7 @@ Package-level READMEs under pkg/ and internal/.
 | [`docs/crypto/crypto-ko.md`](crypto/crypto-ko.md) | SAGE Crypto Package (암호화 패키지 및 sage-crypto CLI) | MIXED |
 | [`docs/did/did-en.md`](did/did-en.md) | SAGE DID Package (DID package and sage-did CLI) | MIXED |
 | [`docs/did/did-ko.md`](did/did-ko.md) | SAGE DID Package (DID 패키지 및 sage-did CLI) | MIXED |
+| [`internal/qualification/nativelimits/README.md`](../internal/qualification/nativelimits/README.md) | Native resource primitive observations |  |
 | [`internal/sessioninit/README.md`](../internal/sessioninit/README.md) | SessionInit Package (handshake-to-session Creator adapter) | MIXED |
 | [`pkg/agent/crypto/README.md`](../pkg/agent/crypto/README.md) | SAGE Cryptographic Operations (Crypto key management package) | MIXED |
 | [`pkg/agent/did/README.md`](../pkg/agent/did/README.md) | SAGE Decentralized Identity (DID) Management (DID management package) | STALE |
