@@ -133,6 +133,15 @@ static int cpu_time(void) {
     for (;;) counter++;
 }
 
+static int owner_cancellation(void) {
+    if (signal(SIGALRM, SIG_DFL) == SIG_ERR) return fail("cancellation fallback disposition");
+    (void)alarm(10);
+    if (puts("ready:owner-cancellation") == EOF || fflush(stdout) != 0) {
+        return fail("cancellation readiness marker");
+    }
+    for (;;) pause();
+}
+
 int main(int argc, char **argv) {
     if (argc != 3) {
         errno = EINVAL;
@@ -143,6 +152,7 @@ int main(int argc, char **argv) {
     if (strcmp(argv[1], "open-files") == 0) return open_files();
     if (strcmp(argv[1], "file-size") == 0) return file_size(argv[2]);
     if (strcmp(argv[1], "cpu-time") == 0) return cpu_time();
+    if (strcmp(argv[1], "owner-cancellation") == 0) return owner_cancellation();
     errno = EINVAL;
     return fail("unknown primitive");
 }

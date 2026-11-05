@@ -23,9 +23,13 @@ import (
 
 const outputLimit = 64 << 10
 
+const ownerCancellationMarker = "ready:owner-cancellation\n"
+
 type boundedOutput struct {
 	data     bytes.Buffer
 	overflow bool
+	ready    chan<- struct{}
+	notified bool
 }
 
 func (b *boundedOutput) Write(p []byte) (int, error) {
@@ -36,6 +40,13 @@ func (b *boundedOutput) Write(p []byte) (int, error) {
 		p = p[:left]
 	}
 	_, _ = b.data.Write(p)
+	if b.ready != nil && !b.notified && bytes.Equal(b.data.Bytes(), []byte(ownerCancellationMarker)) {
+		select {
+		case b.ready <- struct{}{}:
+			b.notified = true
+		default:
+		}
+	}
 	return n, nil
 }
 
@@ -57,6 +68,12 @@ type attempt struct {
 // Every command uses fixed authored arguments and an owning deadline. Only
 // the disposable C child lowers its own limits; the Go process is unchanged.
 func invoke(owner context.Context, name, binary string, timeout time.Duration, args ...string) attempt {
+	return invokeWithReadiness(owner, name, binary, timeout, nil, args...)
+}
+
+// The fixed child marker is only a test notification. It grants no resource
+// reservation or execution authority and never waits for its receiver.
+func invokeWithReadiness(owner context.Context, name, binary string, timeout time.Duration, ready chan<- struct{}, args ...string) attempt {
 	if err := owner.Err(); err != nil {
 		return attempt{Name: name, Error: err.Error(), Deadline: errors.Is(err, context.DeadlineExceeded), Canceled: errors.Is(err, context.Canceled), ExitCode: -1}
 	}
@@ -72,7 +89,7 @@ func invoke(owner context.Context, name, binary string, timeout time.Duration, a
 		return err
 	}
 	cmd.WaitDelay = time.Second
-	var output boundedOutput
+	output := boundedOutput{ready: ready}
 	cmd.Stdout, cmd.Stderr = &output, &output
 	started := time.Now()
 	err := cmd.Run()
@@ -391,6 +408,67 @@ func TestDarwinResourcePrimitives(t *testing.T) {
 			break
 		}
 	}
+	t.Run("owner-cancellation", func(t *testing.T) {
+		if err := operations.Err(); err != nil {
+			t.Fatalf("original operation owner expired before cancellation control: %v", err)
+		}
+		childOwner, cancelChild := context.WithCancel(operations)
+		defer cancelChild()
+		ready := make(chan struct{}, 1)
+		returned := make(chan attempt, 1)
+		go func() {
+			returned <- invokeWithReadiness(childOwner, "owner-cancellation", binary, 20*time.Second, ready, "owner-cancellation", boundaryPath)
+		}()
+		var r attempt
+		readyObserved := false
+		select {
+		case <-ready:
+			readyObserved = true
+			cancelChild()
+			r = <-returned
+		case r = <-returned:
+			cancelChild()
+		case <-operations.Done():
+			cancelChild()
+			r = <-returned
+		}
+		record["active_cancellation"] = map[string]any{
+			"ready_observed": readyObserved, "child_returned": true,
+			"original_owner_valid": owner.Err() == nil, "operation_owner_valid": operations.Err() == nil,
+			"journal_readback_complete": false,
+		}
+		if err := retainAttempt(r); err != nil {
+			t.Fatal(err)
+		}
+		if !readyObserved || !r.Started || !r.Canceled || r.Deadline || r.Overflow || r.Error == "" ||
+			r.Signal != int(syscall.SIGKILL) || r.Output != ownerCancellationMarker || owner.Err() != nil || operations.Err() != nil {
+			t.Fatalf("active owned cancellation did not preserve its parent: %+v ready=%v owner=%v operations=%v", r, readyObserved, owner.Err(), operations.Err())
+		}
+		f, err := os.OpenFile(filepath.Join(evidence, "observations.json"), os.O_RDONLY|syscall.O_NOFOLLOW, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, readErr := io.ReadAll(io.LimitReader(ownedReader{owner: owner, reader: f}, (1<<20)+1))
+		closeErr := f.Close()
+		if readErr != nil || closeErr != nil || len(data) > 1<<20 {
+			t.Fatalf("cancellation journal readback: read=%v close=%v bytes=%d", readErr, closeErr, len(data))
+		}
+		var actual struct {
+			Attempts []attempt `json:"attempts"`
+		}
+		if err := json.Unmarshal(data, &actual); err != nil || len(actual.Attempts) != len(attempts) {
+			t.Fatalf("cancellation journal did not retain every completed attempt: %v", err)
+		}
+		for i, expected := range attempts {
+			if actual.Attempts[i] != expected {
+				t.Fatalf("cancellation journal changed completed attempt %d: got=%+v want=%+v", i, actual.Attempts[i], expected)
+			}
+		}
+		record["active_cancellation"].(map[string]any)["journal_readback_complete"] = true
+		if err := persist(); err != nil {
+			t.Fatal(err)
+		}
+	})
 }
 
 func TestCommandRefusesExpiredOwnerBeforeStart(t *testing.T) {
