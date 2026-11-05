@@ -131,6 +131,69 @@ func TestProviderScanOpenRetainsNativeFailureAndUnwindsItsOriginalRoots(t *testi
 	}
 }
 
+// A preselected final reader must close even when ordinary lock contention
+// stops setup before either reader has observed an original. Every handle and
+// directory belongs to this UNIT; no external peer or operating store is used.
+func TestProviderScanOpenClosesPreselectedReadersAfterRootLockRefusal(t *testing.T) {
+	for _, mode := range []string{"custody", "evidence"} {
+		t.Run(mode, func(t *testing.T) {
+			config, clock := historyCallerFreshConfiguration(t)
+			heldUpper, ok := providerHistoryWholeHold(config.bounds)
+			if !ok || clock.read != 0 || clock.history != nil {
+				t.Fatal("complete reader selection must precede observation")
+			}
+			heldDirectory, freeDirectory := config.custodyDirectory, config.evidenceDirectory
+			if mode == "evidence" {
+				heldDirectory, freeDirectory = freeDirectory, heldDirectory
+			}
+			held, err := openRetentionDisk(heldDirectory)
+			if err != nil {
+				t.Fatal("ordinary pre-existing fixture lock", err)
+			}
+			t.Cleanup(func() { _ = held.close() })
+			before := providerHistoryProvisionedOriginalBytes(t, config)
+			store, err := openProviderScanCandidate(config, clock)
+			if store != nil || !errors.Is(err, errProviderIntegration) || !errors.Is(err, syscall.EWOULDBLOCK) {
+				t.Fatal("lock refusal returned a store or lost its native cause", err)
+			}
+			p := clock.history
+			if p == nil || p.final == nil || p.recovery == nil || !p.failed || !p.store.failed ||
+				!clock.historyRevoked || clock.read != 1 || p.held != heldUpper || p.store.stored != heldUpper.retained ||
+				p.store.activeMeter.Load() != nil || !p.recovery.closed || !p.recovery.failed || p.recovery.used ||
+				!p.recovery.meter.closed || !p.recovery.meter.failed {
+				t.Fatal("failed setup revived its clock, refunded the hold or left recovery available")
+			}
+			f := p.final
+			r := f.reader
+			if r == nil || r.meter == nil || f.used || !f.closed || !f.failed || f.result != nil ||
+				f.preparedData != (providerHistoryFinalData{}) || r.used || r.active || !r.closed || !r.failed ||
+				!r.meter.closed || !r.meter.failed || r.meter.actual != (candidateWorkVector{}) || r.meter.clocks != 0 ||
+				r.custody != nil || r.evidence != nil || r.inputFiles != 0 || r.inputBytes != 0 {
+				t.Fatal("failed setup left its unused final reader available or consumed read work")
+			}
+			after := providerHistoryProvisionedOriginalBytes(t, config)
+			if len(after) != len(before) {
+				t.Fatal("lock refusal changed the original file set")
+			}
+			for name, raw := range before {
+				if got, exists := after[name]; !exists || got != raw {
+					t.Fatal("lock refusal changed an original", name)
+				}
+			}
+			probe, err := openRetentionDisk(freeDirectory)
+			if err != nil {
+				t.Fatal("failed setup retained an earlier acquired root", err)
+			}
+			if err := probe.close(); err != nil {
+				t.Fatal("normal cleanup-check handle", err)
+			}
+			if probe, err := openRetentionDisk(heldDirectory); probe != nil || !errors.Is(err, syscall.EWOULDBLOCK) {
+				t.Fatal("failed setup released the independent fixture owner's lock", err)
+			}
+		})
+	}
+}
+
 // Refusal scenarios are finite test-only store bytes and private-field states.
 // There is no hostile runtime, exploit, rollback tool or operating-store access.
 func TestCandidateRetentionClosedPrefixRefusals(t *testing.T) {
