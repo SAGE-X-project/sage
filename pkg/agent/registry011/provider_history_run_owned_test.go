@@ -42,6 +42,7 @@ func TestProviderHistoryOwnedCallerReturnsVerifiedDataAfterClosingBothRoots(t *t
 	// Acquiring both original locks proves cleanup completed before DATA left
 	// the owning invocation. This observation must not re-enter its clock/work.
 	before, reads, actual, held := got, clock.read, f.reader.meter.actual, s.stored
+	historyAssertFinalInputSourceCost(t, config, got)
 	historyFinalDataRootsReleased(t, s)
 	if err := closeProviderHistoryCallCandidate(s, context.Background(), nil); err != nil ||
 		got != before || clock.read != reads || f.reader.meter.actual != actual || s.stored != held {

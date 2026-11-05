@@ -63,6 +63,17 @@ func (b providerHistoryProgramBounds) valid(store providerIntegrationBounds) boo
 }
 
 func (b providerHistoryProgramBounds) object() map[string]any {
+	var maximum *providerHistoryGroupUpper
+	if b.derivation != nil && b.derivation.admission != (providerHistoryCollectionAdmissionBounds{}) {
+		maximum = &b.derivation.admission.maximum
+	}
+	return b.objectWithAdmissionMaximum(maximum)
+}
+
+// Pure final-schema projection. The ordinary path supplies its existing
+// private admission value; cost compilation can supply the same value before
+// any derivation exists. This serializer neither validates nor creates one.
+func (b providerHistoryProgramBounds) objectWithAdmissionMaximum(maximum *providerHistoryGroupUpper) map[string]any {
 	out := map[string]any{
 		"format": providerHistoryProgramBoundsDomain, "program": b.program, "cost_revision": b.costs,
 		"future": b.future.object(), "startup": b.startup.object(), "recovery_inspection": b.recovery.object(),
@@ -73,8 +84,8 @@ func (b providerHistoryProgramBounds) object() map[string]any {
 	}
 	if b.collection != nil {
 		out["collection_manifest"] = map[string]string{"digest": b.collection.digest, "raw": b.collection.raw}
-		if b.derivation != nil && b.derivation.admission != (providerHistoryCollectionAdmissionBounds{}) {
-			out["collection_admission_maximum"] = b.derivation.admission.maximum.object()
+		if maximum != nil {
+			out["collection_admission_maximum"] = maximum.object()
 		}
 	}
 	if b.final != (providerHistoryFinalBounds{}) {

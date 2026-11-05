@@ -7,6 +7,13 @@ import (
 )
 
 func providerIntegrationProfileBytes(b providerIntegrationBounds, capture ProviderCaptureLimits) ([]byte, string) {
+	return providerIntegrationProfileBytesForStore(b, capture, b.profileObject())
+}
+
+// Both the ordinary serializer and the pre-derivation history projection use
+// this exact envelope. An object supplied here is DATA, not store validity or
+// a replacement for the original private history derivation.
+func providerIntegrationProfileBytesForStore(b providerIntegrationBounds, capture ProviderCaptureLimits, store map[string]any) ([]byte, string) {
 	format, domain := "sage-provider-owned-profile-v1", "sage-provider-store-profile-v1"
 	if b.continuation != nil {
 		format, domain = "sage-provider-owned-profile-v2", "sage-provider-store-profile-v2"
@@ -23,7 +30,7 @@ func providerIntegrationProfileBytes(b providerIntegrationBounds, capture Provid
 	if b.history != nil {
 		format, domain = "sage-provider-owned-profile-v6", "sage-provider-store-profile-v6"
 	}
-	raw := providerIntegrationJSON(map[string]any{"format": format, "store": b.profileObject(), "capture": map[string]string{"timeout_ns": strconv.FormatInt(int64(capture.Timeout), 10), "header_bytes": strconv.Itoa(capture.HeaderBytes), "body_bytes": strconv.Itoa(capture.BodyBytes), "wire_bytes": strconv.Itoa(capture.WireBytes), "json_depth": strconv.Itoa(capture.JSONDepth)}})
+	raw := providerIntegrationJSON(map[string]any{"format": format, "store": store, "capture": map[string]string{"timeout_ns": strconv.FormatInt(int64(capture.Timeout), 10), "header_bytes": strconv.Itoa(capture.HeaderBytes), "body_bytes": strconv.Itoa(capture.BodyBytes), "wire_bytes": strconv.Itoa(capture.WireBytes), "json_depth": strconv.Itoa(capture.JSONDepth)}})
 	return raw, domain
 }
 
@@ -49,6 +56,10 @@ func providerIntegrationProfileObserved(b providerIntegrationBounds, capture Pro
 }
 
 func (b providerIntegrationBounds) profileObject() map[string]any {
+	return b.profileObjectWithHistoryAdmission(nil)
+}
+
+func (b providerIntegrationBounds) profileObjectWithHistoryAdmission(maximum *providerHistoryGroupUpper) map[string]any {
 	values := map[string]uint64{"maximum_records": uint64(b.ledger.MaximumRecords), "maximum_payload_bytes": b.ledger.MaximumPayloadBytes, "maximum_metadata_bytes": b.ledger.MaximumMetadataBytes, "maximum_commits": uint64(b.maximumCommits), "maximum_objects": uint64(b.maximumObjects), "maximum_entries": uint64(b.maximumEntries), "maximum_object_bytes": b.maximumObjectBytes, "maximum_stored_bytes": b.maximumStoredBytes, "maximum_metadata_per_commit": b.maximumMetadataPerCommit, "file_overhead_bytes": b.fileOverheadBytes, "maximum_setup_recoveries": uint64(b.maximumSetupRecoveries), "setup_live": b.setupLive, "setup_retained": b.setupRetained, "setup_maximum_clock_reads": b.setupMaximumClockReads, "setup_maximum_duration_ms": b.setupMaximumDurationMS}
 	out := map[string]any{"format": "sage-provider-store-profile-v1", "setup_work": candidateLedgerWorkObject(b.setupWork)}
 	if b.continuation != nil {
@@ -74,7 +85,13 @@ func (b providerIntegrationBounds) profileObject() map[string]any {
 		out["continuation_accounting"] = "pre-h0-guardian-hold-same-live-original-models-v1"
 	}
 	if b.history != nil {
-		out["format"], out["history"] = "sage-provider-store-profile-v6", b.history.object()
+		var history map[string]any
+		if maximum == nil {
+			history = b.history.object()
+		} else {
+			history = b.history.objectWithAdmissionMaximum(maximum)
+		}
+		out["format"], out["history"] = "sage-provider-store-profile-v6", history
 		out["continuation_accounting"] = "pre-h0-whole-program-independent-parent-v1"
 	}
 	for name, value := range values {

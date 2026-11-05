@@ -92,10 +92,12 @@ func TestProviderHistoryRecoveryClosesWholeCatalogAroundBothActualModelPasses(t 
 			o, r, want := historyRecoveryCatalogFixture(t, mode)
 			old, reads, held, ack, pin := o.meter.actual, o.store.clock.read, o.store.stored, o.last, o.pin
 			original := providerHistoryProvisionedOriginalBytes(t, r.config)
+			catalogStart := r.meter.actual
 			c0, err := r.beginCatalogCandidate(context.Background())
 			if err != nil || c0 == nil || !c0.selectedLocked(r) || r.inputFiles != 0 || r.inputBytes != 0 || len(c0.entries) != len(original) {
 				t.Fatal("actual two-root C0 must precede every payload input", err)
 			}
+			historyAssertObservedCatalogSourceUpper(t, r, catalogStart)
 			historyRecoveryCatalogModels(t, r, want)
 			files, bytes := r.inputFiles, r.inputBytes
 			out, err := r.finishCatalogCandidate(context.Background())

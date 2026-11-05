@@ -27,6 +27,7 @@ func TestProviderHistoryFinalReaderConnectsCollectionAndTwoFreshOriginalModels(t
 		t.Fatal("normal collection and independent successful readback", err)
 	}
 	r, g := f.reader, p.group
+	historyAssertFinalClosingSourceCost(t, f, out)
 	if r.meter.actual[3] == 0 || r.meter.actual[4] == 0 || r.meter.actual[6] == 0 ||
 		r.meter.actual[3] > f.bounds.read.work[3] || r.meter.actual[4] > f.bounds.read.work[4] || r.meter.actual[6] > f.bounds.read.work[6] ||
 		f.bounds.read.work[0] != 0 || f.bounds.read.work[1] != 0 || f.bounds.read.work[7] != 0 || f.bounds.read.work[8] != 0 || f.bounds.read.work[9] != 0 {
