@@ -54,6 +54,14 @@ func TestProviderHistoryReconstructionIndexFundsFreshTypedPrefixes(t *testing.T)
 				if err != nil || s == nil || len(anchors) != 3 {
 					t.Fatal("fresh observed candidate index constructor", err)
 				}
+				if s.meter != nil || m.meter != meter || meter.owner != meter || meter.failed || meter.closed ||
+					meter.authority || meter.clocks != 0 || meter.integration == nil || meter.integration.store != nil ||
+					meter.scan != nil || meter.scanBody != nil || meter.firstAdmission != nil || meter.firstOperation != nil ||
+					meter.guardian != nil || meter.continuing != nil || meter.historyGroup != nil || meter.historyInputGroup != nil ||
+					meter.historyRecovery != nil || meter.historyFinal != nil || meter.replayReads != nil || meter.parent != nil {
+					t.Fatal("fresh candidate index and ledger must share an inert observer without a live role")
+				}
+				s.meter = meter // Connect this new DATA index once, preserving constructor observations.
 				var decoded uint64
 				for _, anchor := range anchors {
 					decoded += uint64(len(anchor.raw))
