@@ -272,7 +272,7 @@ func TestProviderHistorySourceCompilerAllowsOneConcurrentAttempt(t *testing.T) {
 	for range 2 {
 		got := <-results
 		switch {
-		case got.err == nil && got.plan != nil && got.plan.clock.origin == compiler.origin:
+		case got.err == nil && got.plan != nil && got.plan.clock.origin.Equal(compiler.origin):
 			accepted++
 		case got.plan == nil && errors.Is(got.err, ErrConfiguration):
 			refused++
