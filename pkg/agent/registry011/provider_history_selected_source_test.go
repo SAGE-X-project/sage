@@ -109,6 +109,182 @@ func (c *providerHistoryCompilerCancellationContext) Err() error {
 	return c.Context.Err()
 }
 
+func TestProviderHistorySourceCompilerRetainsLifetimeBeforeInputPreparation(t *testing.T) {
+	deadline := time.Now().Add(time.Minute)
+	ctx, cancel := context.WithDeadline(context.Background(), deadline)
+	defer cancel()
+	before := time.Now()
+	compiler, err := newProviderHistorySourceCompiler(ctx)
+	after := time.Now()
+	if err != nil || compiler == nil || compiler.ctx != ctx || compiler.deadline != deadline ||
+		compiler.origin.Before(before) || compiler.origin.After(after) {
+		t.Fatal("compiler did not retain the original finite lifetime", err)
+	}
+	// Build the ordinary selection only after capturing the original origin.
+	config := historySelectedSourceConfig(t)
+	plan, err := compiler.compile(config, 1<<20, 1, 1)
+	if err != nil || plan == nil || plan.clock == nil || plan.clock.owner != plan.clock ||
+		plan.clock.origin != compiler.origin || plan.source.clock.origin != compiler.origin ||
+		plan.compilerDeadline != deadline || !compiler.used.Load() {
+		t.Fatal("input preparation or compilation replaced the original lifetime", err)
+	}
+	if plan.config.bounds.history.derivation != nil || plan.config.bounds.valid() {
+		t.Fatal("compiler construction granted execution authority")
+	}
+	if repeat, err := compiler.compile(config, 1<<20, 1, 1); repeat != nil || !errors.Is(err, ErrConfiguration) {
+		t.Fatal("a successful compiler attempt could be reused", err)
+	}
+}
+
+func TestProviderHistorySourceCompilerRefusesCopiesAndDecodedState(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	compiler, err := newProviderHistorySourceCompiler(ctx)
+	if err != nil {
+		t.Fatal("original compiler", err)
+	}
+	copied := *compiler
+	var absent *providerHistorySourceCompiler
+	var empty providerHistorySourceCompiler
+	for _, candidate := range []*providerHistorySourceCompiler{absent, &empty, &copied} {
+		if plan, err := candidate.compile(providerCustodyConfig{}, 1<<20, 1, 1); plan != nil || !errors.Is(err, ErrConfiguration) {
+			t.Fatal("a missing or copied compiler was accepted", err)
+		}
+	}
+	for _, candidate := range []*providerHistorySourceCompiler{compiler, &empty} {
+		if err := json.Unmarshal([]byte(`{}`), candidate); !errors.Is(err, ErrConfiguration) {
+			t.Fatal("decoded DATA acquired a compiler", err)
+		}
+	}
+	if compiler.owner != compiler || compiler.used.Load() || compiler.ctx != ctx {
+		t.Fatal("copy refusal or decoding changed the original unused compiler")
+	}
+	if plan, err := compiler.compile(historySelectedSourceConfig(t), 1<<20, 1, 1); err != nil || plan == nil {
+		t.Fatal("refusing a copy consumed the original compiler", err)
+	}
+}
+
+func TestProviderHistorySourceCompilerConsumesRefusedAndCanceledAttempts(t *testing.T) {
+	for _, name := range []string{"invalid-config", "invalid-clock", "canceled-during-preparation", "canceled-during-compilation"} {
+		t.Run(name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			selected := ctx
+			if name == "canceled-during-compilation" {
+				selected = &providerHistoryCompilerContextCancellation{Context: ctx, cancel: cancel, cancelAt: 16}
+			}
+			compiler, err := newProviderHistorySourceCompiler(selected)
+			if err != nil {
+				t.Fatal("original compiler", err)
+			}
+			config := historySelectedSourceConfig(t)
+			maximum, want := uint64(1<<20), ErrConfiguration
+			switch name {
+			case "invalid-config":
+				config.bounds.history = nil
+			case "invalid-clock":
+				maximum = 0
+			case "canceled-during-preparation":
+				cancel()
+				want = context.Canceled
+			case "canceled-during-compilation":
+				want = context.Canceled
+			}
+			plan, err := compiler.compile(config, maximum, 1, 1)
+			if plan != nil || !errors.Is(err, want) || !compiler.used.Load() {
+				t.Fatal("failed attempt leaked a plan, changed its error or remained reusable", err)
+			}
+			if repeat, err := compiler.compile(config, 1<<20, 1, 1); repeat != nil || !errors.Is(err, ErrConfiguration) {
+				t.Fatal("refused or canceled compilation acquired another attempt", err)
+			}
+		})
+	}
+}
+
+// The real backing context remains finite and cancelable. This unit wrapper
+// simulates a caller changing its reported deadline; it supplies no clock or
+// operating authority and is never selected by production code.
+type providerHistoryCompilerDeadlineContext struct {
+	context.Context
+	reads, changeAt int
+	replacement     time.Time
+	finite          bool
+}
+
+func (c *providerHistoryCompilerDeadlineContext) Deadline() (time.Time, bool) {
+	c.reads++
+	if c.reads >= c.changeAt {
+		return c.replacement, c.finite
+	}
+	return c.Context.Deadline()
+}
+
+func TestProviderHistorySourceCompilerRefusesChangedOriginalDeadline(t *testing.T) {
+	for _, name := range []string{"changed-before-compilation", "missing-before-compilation", "changed-before-delivery", "missing-before-delivery"} {
+		t.Run(name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			deadline, _ := ctx.Deadline()
+			selected := &providerHistoryCompilerDeadlineContext{
+				Context: ctx, changeAt: 2, replacement: deadline.Add(time.Second), finite: true,
+			}
+			if strings.Contains(name, "delivery") {
+				selected.changeAt = 3
+			}
+			if strings.HasPrefix(name, "missing") {
+				selected.replacement, selected.finite = time.Time{}, false
+			}
+			compiler, err := newProviderHistorySourceCompiler(selected)
+			if err != nil || compiler.deadline != deadline {
+				t.Fatal("original compiler deadline", err)
+			}
+			plan, err := compiler.compile(historySelectedSourceConfig(t), 1<<20, 1, 1)
+			if plan != nil || !errors.Is(err, ErrConfiguration) || !compiler.used.Load() || compiler.deadline != deadline {
+				t.Fatal("a changed deadline replaced the original lifetime or delivered a plan", err)
+			}
+		})
+	}
+}
+
+func TestProviderHistorySourceCompilerAllowsOneConcurrentAttempt(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	compiler, err := newProviderHistorySourceCompiler(ctx)
+	if err != nil {
+		t.Fatal("original compiler", err)
+	}
+	config := historySelectedSourceConfig(t)
+	type result struct {
+		plan *providerHistorySourcePlan
+		err  error
+	}
+	start := make(chan struct{})
+	results := make(chan result, 2)
+	for range 2 {
+		go func() {
+			<-start
+			plan, err := compiler.compile(config, 1<<20, 1, 1)
+			results <- result{plan, err}
+		}()
+	}
+	close(start)
+	accepted, refused := 0, 0
+	for range 2 {
+		got := <-results
+		switch {
+		case got.err == nil && got.plan != nil && got.plan.clock.origin == compiler.origin:
+			accepted++
+		case got.plan == nil && errors.Is(got.err, ErrConfiguration):
+			refused++
+		default:
+			t.Fatal("concurrent compiler returned an unexpected result", got.err)
+		}
+	}
+	if accepted != 1 || refused != 1 || !compiler.used.Load() {
+		t.Fatal("concurrent callers did not consume exactly one attempt", accepted, refused)
+	}
+}
+
 // Unminted numeric UNIT input only. The fixture's provisioned originals keep
 // their unchanged ordinary profile; this copied config is never opened.
 func historySelectedSourceConfig(t *testing.T) providerCustodyConfig {

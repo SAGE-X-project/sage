@@ -3,6 +3,7 @@ package registry011
 import (
 	"context"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -99,12 +100,22 @@ func providerHistoryCompileSourcePlan(config providerCustodyConfig, clock provid
 	return providerHistoryCompileFrozenSourcePlan(frozen, clock)
 }
 
-// Keep ONE original native clock and ONE detached input selection through
-// compilation. This is a pre-H0 source plan, not a derivation factory: native
-// compiler/cleanup costs, sufficient whole-profile resources and the private
-// execution issuer remain separate prerequisites. The enclosing worker must
-// enforce its original lifetime even while the synchronous compiler runs.
-func providerHistoryCompileOwnedSourcePlan(ctx context.Context, config providerCustodyConfig, maximum uint64, baseUncertaintyMS, readWindowMS int64) (*providerHistorySourcePlan, error) {
+// Capture the original lifetime BEFORE preparing the config. The compiler is
+// private, one-use and process-owned; neither a copy nor decoded DATA can start
+// another attempt. The original worker must still fund and enforce compiler,
+// input preparation and cleanup resources. This object grants no native lease,
+// derivation or permission to open a store.
+type providerHistorySourceCompiler struct {
+	owner    *providerHistorySourceCompiler
+	used     *atomic.Bool
+	ctx      context.Context
+	origin   time.Time
+	deadline time.Time
+}
+
+func (*providerHistorySourceCompiler) UnmarshalJSON([]byte) error { return ErrConfiguration }
+
+func newProviderHistorySourceCompiler(ctx context.Context) (*providerHistorySourceCompiler, error) {
 	origin := time.Now()
 	if ctx == nil {
 		return nil, ErrConfiguration
@@ -116,23 +127,59 @@ func providerHistoryCompileOwnedSourcePlan(ctx context.Context, config providerC
 	if !finite || !deadline.After(origin) {
 		return nil, ErrConfiguration
 	}
+	c := &providerHistorySourceCompiler{used: new(atomic.Bool), ctx: ctx, origin: origin, deadline: deadline}
+	c.owner = c
+	return c, nil
+}
+
+func (c *providerHistorySourceCompiler) contextError() error {
+	if err := c.ctx.Err(); err != nil {
+		return err
+	}
+	deadline, finite := c.ctx.Deadline()
+	if !finite || deadline != c.deadline {
+		return ErrConfiguration
+	}
+	return nil
+}
+
+func (c *providerHistorySourceCompiler) compile(config providerCustodyConfig, maximum uint64, baseUncertaintyMS, readWindowMS int64) (*providerHistorySourcePlan, error) {
+	if c == nil || c.owner != c || c.used == nil || !c.used.CompareAndSwap(false, true) {
+		return nil, ErrConfiguration
+	}
+	// Consume the attempt before validation or input copying. Failure and
+	// cancellation never refund it or replace its original native origin.
+	if err := c.contextError(); err != nil {
+		return nil, err
+	}
 	frozen, ok := providerHistoryFreezeSourceConfig(config)
 	if !ok {
 		return nil, ErrConfiguration
 	}
-	clock, err := newProviderOwnedClockAtOrigin(frozen.policy, maximum, baseUncertaintyMS, readWindowMS, origin)
+	clock, err := newProviderOwnedClockAtOrigin(frozen.policy, maximum, baseUncertaintyMS, readWindowMS, c.origin)
 	if err != nil {
 		return nil, err
 	}
-	plan, ok := providerHistoryCompileFrozenSourcePlanContext(ctx, frozen, providerHistoryClockSelectionOf(clock))
-	if err := ctx.Err(); err != nil {
+	plan, ok := providerHistoryCompileFrozenSourcePlanContext(c.ctx, frozen, providerHistoryClockSelectionOf(clock))
+	if err := c.contextError(); err != nil {
 		return nil, err
 	}
 	if !ok {
 		return nil, ErrConfiguration
 	}
-	plan.clock, plan.compilerDeadline = clock, deadline
+	plan.clock, plan.compilerDeadline = clock, c.deadline
 	return plan, nil
+}
+
+// Existing callers already hold a config. The enclosing Agent preparation
+// path must instead create and retain its compiler before decoding that input,
+// then call compile on the same object without restarting its lifetime.
+func providerHistoryCompileOwnedSourcePlan(ctx context.Context, config providerCustodyConfig, maximum uint64, baseUncertaintyMS, readWindowMS int64) (*providerHistorySourcePlan, error) {
+	c, err := newProviderHistorySourceCompiler(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return c.compile(config, maximum, baseUncertaintyMS, readWindowMS)
 }
 
 // Both constructors pass their own single frozen selection. This helper does
