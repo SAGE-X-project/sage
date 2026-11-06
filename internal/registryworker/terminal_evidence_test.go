@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 )
 
@@ -135,6 +136,92 @@ func TestTerminalEvidenceCannotCertifyExpiredOrUnavailableReadback(t *testing.T)
 				t.Fatal("failed readback removed the existing bytes", err)
 			}
 		})
+	}
+}
+
+func TestTerminalEvidenceRefusesUnreadableAndNonRegularHandles(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		open func(*testing.T, string) *os.File
+	}{
+		{"write-only-file", func(t *testing.T, path string) *os.File {
+			file, err := os.OpenFile(path, os.O_WRONLY, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return file
+		}},
+		{"directory-instead-of-file", func(t *testing.T, path string) *os.File {
+			file, err := os.Open(filepath.Dir(path))
+			if err != nil {
+				t.Fatal(err)
+			}
+			return file
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			e := terminalRecord(t, "retained-before-readback", 4096)
+			if err := e.file.Close(); err != nil {
+				t.Fatal(err)
+			}
+			e.file = test.open(t, e.path)
+			result, err := e.finish(context.Background())
+			if !errors.Is(err, ErrUnavailable) || result.ReadbackComplete || result.Path != e.path || len(result.Prefix) != 0 {
+				t.Fatal("unreadable terminal handle certified a completed readback", result, err)
+			}
+			if data, err := os.ReadFile(e.path); err != nil || string(data) != "retained-before-readback" {
+				t.Fatal("refused readback changed the retained original", err)
+			}
+			for _, handle := range []*os.File{e.file, e.directory} {
+				if _, err := handle.Stat(); !errors.Is(err, os.ErrClosed) {
+					t.Fatal("refused readback left an owned handle open", err)
+				}
+			}
+			if _, err := e.root.Stat("."); !errors.Is(err, os.ErrClosed) {
+				t.Fatal("refused readback left its root open", err)
+			}
+			if _, err := e.finish(context.Background()); !errors.Is(err, ErrSpent) {
+				t.Fatal("refused readback could be repeated", err)
+			}
+		})
+	}
+}
+
+// Cancellation follows the first observation of a live cleanup lifetime.
+// The retained result must not claim completion after that observation expires.
+type terminalExpiryAfterObservation struct {
+	context.Context
+	cancel context.CancelFunc
+	once   sync.Once
+}
+
+func (c *terminalExpiryAfterObservation) Err() error {
+	observed := c.Context.Err()
+	c.once.Do(c.cancel)
+	return observed
+}
+
+func TestTerminalEvidenceRefusesCleanupThatExpiresAfterItStarts(t *testing.T) {
+	e := terminalRecord(t, "retained-before-expiry", 4096)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	result, err := e.finish(&terminalExpiryAfterObservation{Context: ctx, cancel: cancel})
+	if !errors.Is(err, context.Canceled) || result.ReadbackComplete || result.Path != e.path || len(result.Prefix) != 0 {
+		t.Fatal("expired cleanup certified a completed readback", result, err)
+	}
+	if data, err := os.ReadFile(e.path); err != nil || string(data) != "retained-before-expiry" {
+		t.Fatal("cleanup expiry changed the retained original", err)
+	}
+	for _, handle := range []*os.File{e.file, e.directory} {
+		if _, err := handle.Stat(); !errors.Is(err, os.ErrClosed) {
+			t.Fatal("expired cleanup left an owned handle open", err)
+		}
+	}
+	if _, err := e.root.Stat("."); !errors.Is(err, os.ErrClosed) {
+		t.Fatal("expired cleanup left its root open", err)
+	}
+	if _, err := e.finish(context.Background()); !errors.Is(err, ErrSpent) {
+		t.Fatal("expired cleanup could be repeated", err)
 	}
 }
 
