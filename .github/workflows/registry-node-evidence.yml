@@ -205,13 +205,14 @@ jobs:
           go test -tags=provider_capture_live -mod=readonly -race -count=1 -cover -covermode=atomic -list . -json ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/test-discovery.jsonl"
           python3 .github/scripts/registry_test_shards.py plan provider "$SAGE_PROVIDER_CAPTURE_DIR" --index '${{ matrix.shard }}'
           registry_profile_args=()
-          if [ "${{ matrix.shard }}" = "8" ]; then
+          # Measure slow complete partitions as well as the recovery partition.
+          if [[ "${{ matrix.shard }}" =~ ^(5|7|8)$ ]]; then
             registry_profile_args=(-cpuprofile="$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" -o "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test")
           fi
           registry_shard_status=0
           go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=120m -json -run "$(cat "$SAGE_PROVIDER_CAPTURE_DIR/run-pattern.txt")" "${registry_profile_args[@]}" -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl" || registry_shard_status=$?
           printf '%s\n' "$registry_shard_status" > "$SAGE_PROVIDER_CAPTURE_DIR/partition.exit"
-          if [ "${{ matrix.shard }}" = "8" ] && [ -s "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test" ] && [ -s "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" ]; then
+          if [ "${#registry_profile_args[@]}" -ne 0 ] && [ -s "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test" ] && [ -s "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" ]; then
             go tool pprof -top -nodecount=50 -sample_index=cpu "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test" "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile-flat.txt"
             go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test" "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile-cumulative.txt"
             sha256sum "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test" "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.sha256"

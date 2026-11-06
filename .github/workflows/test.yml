@@ -302,13 +302,14 @@ jobs:
           go test -mod=readonly -race -count=1 -cover -covermode=atomic -list . -json ./pkg/agent/registry011 > "$registry_shard_dir/test-discovery.jsonl"
           python3 .github/scripts/registry_test_shards.py plan source "$registry_shard_dir" --index '${{ matrix.shard }}'
           registry_profile_args=()
-          if [ "${{ matrix.shard }}" = "8" ]; then
+          # Measure slow complete partitions as well as the recovery partition.
+          if [[ "${{ matrix.shard }}" =~ ^(5|7|8)$ ]]; then
             registry_profile_args=(-cpuprofile="$registry_shard_dir/recovery-profile.pprof" -o "$registry_shard_dir/registry-recovery.test")
           fi
           registry_shard_status=0
           go test -mod=readonly -race -count=1 -timeout=120m -json -run "$(cat "$registry_shard_dir/run-pattern.txt")" "${registry_profile_args[@]}" -coverprofile="$registry_shard_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$registry_shard_dir/tests.jsonl" || registry_shard_status=$?
           printf '%s\n' "$registry_shard_status" > "$registry_shard_dir/partition.exit"
-          if [ "${{ matrix.shard }}" = "8" ] && [ -s "$registry_shard_dir/registry-recovery.test" ] && [ -s "$registry_shard_dir/recovery-profile.pprof" ]; then
+          if [ "${#registry_profile_args[@]}" -ne 0 ] && [ -s "$registry_shard_dir/registry-recovery.test" ] && [ -s "$registry_shard_dir/recovery-profile.pprof" ]; then
             go tool pprof -top -nodecount=50 -sample_index=cpu "$registry_shard_dir/registry-recovery.test" "$registry_shard_dir/recovery-profile.pprof" > "$registry_shard_dir/recovery-profile-flat.txt"
             go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$registry_shard_dir/registry-recovery.test" "$registry_shard_dir/recovery-profile.pprof" > "$registry_shard_dir/recovery-profile-cumulative.txt"
             sha256sum "$registry_shard_dir/registry-recovery.test" "$registry_shard_dir/recovery-profile.pprof" > "$registry_shard_dir/recovery-profile.sha256"
