@@ -18,7 +18,12 @@ import (
 // This opt-in test makes bounded read-only requests to the sole approved RPC.
 // It accesses no keys and cannot submit transactions or use another provider.
 func TestSepoliaNodeEvidenceLive(t *testing.T) {
-	t.Run("passive-capture-read-limits", checkLiveCaptureReadLimits)
+	if !t.Run("passive-capture-read-limits", checkLiveCaptureReadLimits) {
+		t.Fatal("owned capture-read controls failed")
+	}
+	if !t.Run("retry-after-headers", checkLiveCaptureRetryAfter) {
+		t.Fatal("owned response-header controls failed")
+	}
 	if !t.Run("request-spacing", checkLiveReadPacing) {
 		t.Fatal("owned request-spacing controls failed")
 	}
