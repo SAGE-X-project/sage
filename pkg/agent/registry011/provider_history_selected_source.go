@@ -138,7 +138,7 @@ func providerHistoryCompileOwnedSourcePlan(ctx context.Context, config providerC
 // Both constructors pass their own single frozen selection. This helper does
 // not copy it again, construct another clock or replace a failed child role.
 func providerHistoryCompileFrozenSourcePlan(frozen providerCustodyConfig, clock providerHistoryClockSelection) (*providerHistorySourcePlan, bool) {
-	return providerHistoryCompileFrozenSourcePlanContext(nil, frozen, clock)
+	return providerHistoryCompileFrozenSourcePlanContext(context.Background(), frozen, clock)
 }
 
 // Cancellation observations belong to this compiler invocation, not to a

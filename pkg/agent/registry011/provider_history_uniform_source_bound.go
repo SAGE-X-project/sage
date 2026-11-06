@@ -25,7 +25,7 @@ type providerHistoryUniformSourceCost struct {
 // that all child formulae are monotone or that endpoints dominate intermediate
 // cuts. No original input, owner, meter, reservation or source is changed.
 func providerHistoryCollectionUniformSourceUpper(manifest *providerHistoryCollectionManifest, methods providerMethodBounds, certificates providerTLSBounds, maximum uint64, limits providerHistoryRoleSourceLimits) (providerHistoryUniformSourceCost, bool) {
-	return providerHistoryCollectionUniformSourceUpperContext(nil, manifest, methods, certificates, maximum, limits)
+	return providerHistoryCollectionUniformSourceUpperContext(context.Background(), manifest, methods, certificates, maximum, limits)
 }
 
 // Inspect the original invocation between prospective cuts. Refusal discards
