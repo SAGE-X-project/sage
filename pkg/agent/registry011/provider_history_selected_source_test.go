@@ -54,7 +54,7 @@ func TestProviderHistoryOwnedSourcePlanRefusesWithoutPublishingPartialState(t *t
 			config := historySelectedSourceConfig(t)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 			defer cancel()
-			var selected context.Context = ctx
+			selected := ctx
 			maximum, uncertainty, window := uint64(1<<20), int64(1), int64(1)
 			want := ErrConfiguration
 			switch name {
