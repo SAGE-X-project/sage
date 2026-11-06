@@ -20,6 +20,7 @@ var (
 	ErrSpent         = errors.New("registry worker: attempt already spent")
 	ErrUnsupported   = errors.New("registry worker: unsupported platform")
 	ErrOutputLimit   = errors.New("registry worker: output limit exceeded")
+	ErrEvidenceLimit = errors.New("registry worker: terminal evidence readback limit exceeded")
 )
 
 // Asset identifies a previously built executable. Copies live in this owner's
@@ -48,6 +49,7 @@ type Configuration struct {
 	Launcher, Worker Asset
 	Directory        string
 	Limits           Limits
+	TerminalEvidence EvidenceConfiguration
 }
 
 // Result is detached completed-attempt DATA. Success here never certifies the
@@ -62,6 +64,9 @@ type Result struct {
 	// CleanupComplete covers the parent's private executable copies only.
 	// It never certifies a child journal, Registry custody or child Go defers.
 	CleanupComplete bool
+	// TerminalEvidence retains bounded child bytes even when Output is withheld.
+	// Its readback flag is not a child terminal-state or custody certificate.
+	TerminalEvidence EvidenceResult
 }
 
 type Owner struct {
@@ -109,6 +114,7 @@ func New(ctx context.Context, c Configuration) (*Owner, error) {
 		hardStop, cancelHardStop = context.WithDeadline(context.WithoutCancel(ctx), actionDeadline.Add(c.Limits.ChildCleanupReserve))
 	}
 	c.Directory = strings.Clone(c.Directory)
+	c.TerminalEvidence.Directory = strings.Clone(c.TerminalEvidence.Directory)
 	c.Launcher.Path, c.Launcher.SHA256 = strings.Clone(c.Launcher.Path), strings.Clone(c.Launcher.SHA256)
 	c.Worker.Path, c.Worker.SHA256 = strings.Clone(c.Worker.Path), strings.Clone(c.Worker.SHA256)
 	o := &Owner{configuration: c, parent: ctx, whole: whole, action: action, hardStop: hardStop,
@@ -126,7 +132,8 @@ func validConfiguration(c Configuration) bool {
 		l.InputBytes > 0 && l.InputBytes <= 64<<20 && l.ResultBytes > 0 && l.ResultBytes <= 64<<20 &&
 		l.ErrorBytes > 0 && l.ErrorBytes <= 64<<10 && l.CleanupReserve > 0 &&
 		l.ChildCleanupReserve >= 0 && l.ChildCleanupReserve < l.CleanupReserve &&
-		l.Duration > l.CleanupReserve && l.Duration <= 31*24*time.Hour
+		l.Duration > l.CleanupReserve && l.Duration <= 31*24*time.Hour &&
+		validEvidenceConfiguration(c.TerminalEvidence, l)
 }
 
 func validAsset(a Asset) bool {
@@ -182,11 +189,20 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 	// Capture the action's outcome before entering the separately held cleanup
 	// phase. An action deadline that expires DURING valid cleanup does not
 	// retroactively invalidate an action that already completed in time.
-	defer func() { err = errors.Join(err, o.action.Err()) }()
+	var evidence *terminalEvidence
+	defer func() {
+		var finishErr error
+		result.TerminalEvidence, finishErr = finishWorkerAction(o.action, o.whole, evidence)
+		err = errors.Join(err, finishErr)
+	}()
 	if err = copyAsset(o.action, c.Launcher, launcher); err != nil {
 		return result, err
 	}
 	if err = copyAsset(o.action, c.Worker, worker); err != nil {
+		return result, err
+	}
+	evidence, err = openTerminalEvidence(o.action, c.TerminalEvidence)
+	if err != nil {
 		return result, err
 	}
 	readyRead, readyWrite, err := os.Pipe()
@@ -209,6 +225,11 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 	cmd.Dir, cmd.Env = directory, []string{"LANG=C", "LC_ALL=C"}
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = bytes.NewReader(ownedInput), &stdout, &stderr
 	cmd.ExtraFiles = []*os.File{readyWrite}
+	if evidence != nil {
+		// Descriptor 3 belongs to launcher readiness. Descriptor 4 survives
+		// exec and addresses this parent's separate retained terminal file.
+		cmd.ExtraFiles = append(cmd.ExtraFiles, evidence.file)
+	}
 	cmd.WaitDelay = time.Second
 	if c.Limits.ChildCleanupReserve > 0 {
 		cmd.WaitDelay = c.Limits.ChildCleanupReserve

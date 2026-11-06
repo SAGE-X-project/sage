@@ -50,6 +50,10 @@ func main() {
 			os.Exit(5)
 		}
 	default:
+		if strings.HasPrefix(input, "evidence-") {
+			terminalEvidence(input)
+			return
+		}
 		if strings.HasPrefix(input, "stop ") {
 			cooperativeStop(input)
 			return
@@ -70,6 +74,66 @@ func main() {
 		<-time.After(5 * time.Second)
 		os.Exit(9)
 	}
+}
+
+// The inherited descriptor addresses a separate parent-owned test file. Only
+// fixed finite marker strings are written; these are not Registry journals.
+func terminalEvidence(input string) {
+	f := os.NewFile(4, "parent-terminal-evidence")
+	if f == nil {
+		os.Exit(10)
+	}
+	defer func() {
+		if f.Close() != nil {
+			os.Exit(11)
+		}
+	}()
+	write := func(value string) {
+		if _, err := io.WriteString(f, value); err != nil || f.Sync() != nil {
+			os.Exit(11)
+		}
+	}
+	write("started\n")
+	switch input {
+	case "evidence-complete":
+		write("completed\n")
+		if _, err := io.WriteString(os.Stdout, "completed"); err != nil {
+			os.Exit(5)
+		}
+		return
+	case "evidence-failure":
+		os.Exit(12)
+	case "evidence-cleanup-failure":
+		if !writeMarker("unexpected", "preserved") {
+			os.Exit(7)
+		}
+		return
+	}
+	fields := strings.Fields(input)
+	if len(fields) != 2 || !filepath.IsAbs(fields[1]) ||
+		fields[0] != "evidence-wait" && fields[0] != "evidence-stop" {
+		os.Exit(6)
+	}
+	if fields[0] == "evidence-wait" {
+		if !writeMarker(fields[1], "ready") {
+			os.Exit(7)
+		}
+		<-time.After(5 * time.Second)
+		os.Exit(9)
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
+	defer stop()
+	if !writeMarker(fields[1], "ready") {
+		os.Exit(7)
+	}
+	fallback := time.NewTimer(5 * time.Second)
+	defer fallback.Stop()
+	select {
+	case <-ctx.Done():
+	case <-fallback.C:
+		os.Exit(9)
+	}
+	write("stopped\n")
 }
 
 // This finite test fixture writes its terminal marker only after an ordinary

@@ -63,6 +63,26 @@ func TestConfigurationRequiresFiniteDistinctResourceScopes(t *testing.T) {
 		{"no-parent-cleanup", func(c *Configuration) { c.Limits.ChildCleanupReserve = c.Limits.CleanupReserve }},
 		{"no-action-window", func(c *Configuration) { c.Limits.Duration = c.Limits.CleanupReserve }},
 		{"large-duration", func(c *Configuration) { c.Limits.Duration = 31*24*time.Hour + 1 }},
+		{"evidence-without-directory", func(c *Configuration) { c.TerminalEvidence.MaximumBytes = 1 }},
+		{"evidence-without-bound", func(c *Configuration) { c.TerminalEvidence.Directory = c.Directory }},
+		{"relative-evidence-directory", func(c *Configuration) {
+			c.TerminalEvidence = EvidenceConfiguration{Directory: "relative", MaximumBytes: 1}
+		}},
+		{"evidence-directory-nul", func(c *Configuration) {
+			c.TerminalEvidence = EvidenceConfiguration{Directory: c.Directory + "\x00", MaximumBytes: 1}
+		}},
+		{"evidence-directory-size", func(c *Configuration) {
+			c.TerminalEvidence = EvidenceConfiguration{Directory: "/" + strings.Repeat("x", 4096), MaximumBytes: 1}
+		}},
+		{"negative-evidence-bound", func(c *Configuration) {
+			c.TerminalEvidence = EvidenceConfiguration{Directory: c.Directory, MaximumBytes: -1}
+		}},
+		{"large-evidence-bound", func(c *Configuration) {
+			c.TerminalEvidence = EvidenceConfiguration{Directory: c.Directory, MaximumBytes: 64<<20 + 1}
+		}},
+		{"evidence-exceeds-file-bound", func(c *Configuration) {
+			c.TerminalEvidence = EvidenceConfiguration{Directory: c.Directory, MaximumBytes: int(c.Limits.FileBytes) + 1}
+		}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			changed := base

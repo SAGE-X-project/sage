@@ -60,7 +60,7 @@ jobs:
           from pathlib import Path
           prefix = "github.com/sage-x-project/sage/internal/registryworker/"
           def read_coverage(rows):
-              files = {name: {"covered": 0, "statements": 0} for name in ("owner.go", "owner_darwin.go")}
+              files = {name: {"covered": 0, "statements": 0} for name in ("owner.go", "owner_darwin.go", "terminal_evidence.go")}
               if not rows or rows[0] != "mode: atomic":
                   raise ValueError("Owning worker atomic coverage is missing")
               seen = set()
@@ -82,7 +82,8 @@ jobs:
           # Exercise this same reader and exact integer threshold, not a copy.
           row = lambda name, block, n, count: f"{prefix}{name}:{block} {n} {count}"
           positive = ["mode: atomic", row("owner.go", "1.1,2.1", 9, 1),
-              row("owner.go", "3.1,4.1", 1, 0), row("owner_darwin.go", "1.1,2.1", 1, 1)]
+              row("owner.go", "3.1,4.1", 1, 0), row("owner_darwin.go", "1.1,2.1", 1, 1),
+              row("terminal_evidence.go", "1.1,2.1", 1, 1)]
           cases = [
               ("zero-statement-covered", positive + [row("owner.go", "5.1,6.1", 0, 1)], True),
               ("zero-statement-uncovered", positive + [row("owner.go", "5.1,6.1", 0, 0)], True),
@@ -92,7 +93,7 @@ jobs:
               ("unexpected-file", positive + [row("other.go", "1.1,2.1", 1, 1)], False),
               ("missing-file", positive[:-1], False),
               ("missing-mode", positive[1:], False),
-              ("zero-total-file", positive[:-1] + [row("owner_darwin.go", "1.1,2.1", 0, 1)], False),
+              ("zero-total-file", positive[:-1] + [row("terminal_evidence.go", "1.1,2.1", 0, 1)], False),
               ("below-threshold", positive + [row("owner.go", "5.1,6.1", 1, 0)], False),
           ]
           format_results = []

@@ -136,6 +136,9 @@ func TestNativeOwnerWithholdsOutputAfterEveryTerminalRefusal(t *testing.T) {
 		{"wrong-launcher-hash", "echo", func(c *Configuration) { c.Launcher.SHA256 = string(bytes.Repeat([]byte("0"), 64)) }},
 		{"wrong-worker-hash", "echo", func(c *Configuration) { c.Worker.SHA256 = string(bytes.Repeat([]byte("0"), 64)) }},
 		{"missing-directory", "echo", func(c *Configuration) { c.Directory = filepath.Join(c.Directory, "absent") }},
+		{"missing-terminal-store", "echo", func(c *Configuration) {
+			c.TerminalEvidence = EvidenceConfiguration{Directory: filepath.Join(c.Directory, "absent"), MaximumBytes: 4096}
+		}},
 		{"output-overflow", "overflow", func(c *Configuration) { c.Limits.ResultBytes = 4 }},
 		{"worker-refusal", "unknown", func(*Configuration) {}},
 		{"missing-authentic-readback", "echo", func(c *Configuration) { c.Launcher = c.Worker }},
@@ -210,6 +213,91 @@ func TestNativeOwnerLetsTheChildRecordItsCooperativeStop(t *testing.T) {
 	}
 	if data, err := os.ReadFile(terminal); err != nil || string(data) != "closed" {
 		t.Fatal("child terminal marker was not completed", err)
+	}
+}
+
+func TestNativeOwnerRetainsTerminalEvidenceAfterSuccessAndFailure(t *testing.T) {
+	base := nativeConfiguration(t)
+	for _, test := range []struct {
+		name, input, prefix string
+		maximum             int
+		wantError, cleanup  bool
+	}{
+		{"completed", "evidence-complete", "started\ncompleted\n", 4096, false, true},
+		{"refused", "evidence-failure", "started\n", 4096, true, true},
+		{"readback-overflow", "evidence-complete", "star", 4, true, true},
+		{"empty-is-only-data", "echo", "", 4096, false, true},
+		{"cleanup-failure", "evidence-cleanup-failure", "started\n", 4096, true, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			c := base
+			c.Directory = t.TempDir()
+			c.TerminalEvidence = EvidenceConfiguration{Directory: t.TempDir(), MaximumBytes: test.maximum}
+			o, err := New(context.Background(), c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := o.Run([]byte(test.input))
+			if (err != nil) != test.wantError || !result.Started || !result.LimitsApplied || result.CleanupComplete != test.cleanup {
+				t.Fatal("worker terminal status changed", result, err)
+			}
+			overflow := test.maximum == 4
+			if result.TerminalEvidence.LimitExceeded != overflow || overflow && !errors.Is(err, ErrEvidenceLimit) {
+				t.Fatal("terminal evidence overflow did not refuse publication", result, err)
+			}
+			assertTerminalPrefix(t, result.TerminalEvidence, test.prefix, !overflow)
+			if test.wantError && len(result.Output) != 0 {
+				t.Fatal("failure evidence allowed ordinary result publication", result)
+			}
+			if test.cleanup {
+				assertNoPrivateCopies(t, c.Directory)
+			}
+			if _, err := o.Run([]byte("echo")); !errors.Is(err, ErrSpent) {
+				t.Fatal("retained evidence restored a consumed attempt", err)
+			}
+		})
+	}
+}
+
+func TestNativeOwnerRetainsTerminalEvidenceAcrossBothCancellationPaths(t *testing.T) {
+	base := nativeConfiguration(t)
+	for _, cooperative := range []bool{false, true} {
+		name, input, expected := "immediate", "evidence-wait ", "started\n"
+		c := base
+		c.Directory = t.TempDir()
+		c.TerminalEvidence = EvidenceConfiguration{Directory: t.TempDir(), MaximumBytes: 4096}
+		if cooperative {
+			name, input, expected = "cooperative", "evidence-stop ", "started\nstopped\n"
+			c.Limits.CleanupReserve, c.Limits.ChildCleanupReserve = 3*time.Second, time.Second
+		}
+		t.Run(name, func(t *testing.T) {
+			ready := filepath.Join(c.Directory, "ready")
+			result := cancelReadyWorker(t, c, input+ready, ready)
+			assertTerminalPrefix(t, result.TerminalEvidence, expected, true)
+			if cooperative && (result.Signal != 0 || result.ExitCode != 0) ||
+				!cooperative && result.Signal != int(syscall.SIGKILL) {
+				t.Fatal("cancellation changed its owned termination scope", result)
+			}
+		})
+	}
+}
+
+func TestNativeOwnerPreservesEmptyEvidenceWhenStartupFails(t *testing.T) {
+	c := nativeConfiguration(t)
+	c.Launcher = fileAsset(t, filepath.Join(c.Directory, "invalid-launcher"), []byte("not an executable"))
+	c.TerminalEvidence = EvidenceConfiguration{Directory: t.TempDir(), MaximumBytes: 4096}
+	o, err := New(context.Background(), c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := o.Run([]byte("echo"))
+	if err == nil || result.Started || result.LimitsApplied || !result.CleanupComplete || len(result.Output) != 0 {
+		t.Fatal("failed startup published completed work", result, err)
+	}
+	assertTerminalPrefix(t, result.TerminalEvidence, "", true)
+	assertNoPrivateCopies(t, c.Directory)
+	if _, err := o.Run([]byte("echo")); !errors.Is(err, ErrSpent) {
+		t.Fatal("failed startup restored the terminal attempt", err)
 	}
 }
 

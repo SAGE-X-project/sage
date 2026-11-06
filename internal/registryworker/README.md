@@ -26,8 +26,36 @@ Zero retains immediate termination. Grace never extends the original lifetime.
 `CleanupComplete` reports only removal of the parent's executable copies. A
 normal child exit or that flag does not authenticate a child journal, make
 incomplete Registry custody complete, or certify that Go defers ran after a
-forced stop or host loss. Production terminal custody still needs its own
-funded connection, including a retained incomplete prefix on forced termination.
+forced stop or host loss.
+
+An explicit `TerminalEvidence` configuration adds a separate inherited file
+descriptor (4) to this same invocation. The parent creates a fresh private file
+relative to an already opened private retention root before startup. Creation
+and directory-entry sync refer to that same root even if its name moves. A
+changed original parent/file name is refused at readback rather than reported
+as a usable retained path. The launcher uses
+descriptor 3 only for readiness and leaves descriptor 4 open for the child.
+After Wait or failed startup, the parent first fixes the action's outcome,
+then syncs, reads a bounded prefix, syncs
+the directory entry, and closes both handles within the original cleanup
+lifetime. It never deletes that file when removing executable copies. An
+ordinary output refusal, cancellation, overflow or later executable cleanup
+failure keeps the existing terminal bytes; a failed readback leaves its path
+and reports incomplete status. Empty bytes are empty DATA, not a terminal
+journal. No previous attempt is restored or retried.
+
+`EvidenceResult.ReadbackComplete` describes only this raw-file readback. It
+does not mean that the child's journal has a valid terminal record, that a
+Registry result can be published, or that custody is complete. The independent
+store selection, journal interpretation, complete compiler/native resource
+funding, retention ownership, authenticated build and original Agent caller
+still need their full joined qualification. `MaximumBytes` bounds parent
+readback memory/I/O; the actual child file can grow to the separate native
+per-file ceiling. That ceiling is not a total-storage reservation. Sync and
+close depend on the selected trusted operating system and storage semantics;
+no readback completion is reported if those operations fail or exceed the
+original cleanup lifetime. A hostile host or host loss is not repaired by
+this file mechanism. Adding the option selects no operating retention policy.
 
 The Darwin launcher lowers and reads back the child process's CPU-time,
 per-file-size, descriptor and core-dump limits before executing the selected
