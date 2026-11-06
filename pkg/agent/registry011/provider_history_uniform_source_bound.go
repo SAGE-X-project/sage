@@ -1,5 +1,7 @@
 package registry011
 
+import "context"
+
 // Compilation of the currently assigned source components, not the complete
 // production program or its nonserializable derivation. Missing incoming,
 // uncertain-failure, initializer/native/backing/RAM/recovery/final obligations
@@ -23,8 +25,15 @@ type providerHistoryUniformSourceCost struct {
 // that all child formulae are monotone or that endpoints dominate intermediate
 // cuts. No original input, owner, meter, reservation or source is changed.
 func providerHistoryCollectionUniformSourceUpper(manifest *providerHistoryCollectionManifest, methods providerMethodBounds, certificates providerTLSBounds, maximum uint64, limits providerHistoryRoleSourceLimits) (providerHistoryUniformSourceCost, bool) {
+	return providerHistoryCollectionUniformSourceUpperContext(nil, manifest, methods, certificates, maximum, limits)
+}
+
+// Inspect the original invocation between prospective cuts. Refusal discards
+// every earlier maximum; it never shortens G, returns a partial row, or renews
+// a clock/deadline. Native compiler and cleanup funding remain separate.
+func providerHistoryCollectionUniformSourceUpperContext(ctx context.Context, manifest *providerHistoryCollectionManifest, methods providerMethodBounds, certificates providerTLSBounds, maximum uint64, limits providerHistoryRoleSourceLimits) (providerHistoryUniformSourceCost, bool) {
 	var empty providerHistoryUniformSourceCost
-	if !manifest.validSnapshot() || manifest.counts.groups == 0 || manifest.counts.groups > (1<<20)/3 {
+	if providerHistoryCompilerCanceled(ctx) || !manifest.validSnapshot() || manifest.counts.groups == 0 || manifest.counts.groups > (1<<20)/3 {
 		return empty, false
 	}
 	// Select the real initializer's unchanged incoming guard before compiling
@@ -45,6 +54,9 @@ func providerHistoryCollectionUniformSourceUpper(manifest *providerHistoryCollec
 	var selected [6]providerHistoryStageWorkCost
 	var first candidateWorkVector
 	for prior := uint64(0); prior < manifest.counts.groups; prior++ {
+		if providerHistoryCompilerCanceled(ctx) {
+			return empty, false
+		}
 		source, ok := providerHistoryCollectionTransportSourceUpper(manifest, methods, certificates, maximum, limits, prior, providerHistoryGroupMembers, prior+1 < manifest.counts.groups)
 		if !ok {
 			return empty, false
@@ -78,7 +90,7 @@ func providerHistoryCollectionUniformSourceUpper(manifest *providerHistoryCollec
 	initial, initialOK := providerHistoryAssignedInitializationUpper(roles.initial, first, guard)
 	stage, stageOK := providerHistoryAssignedStageWorkUpper(roles, providerHistoryGroupMembers)
 	future, futureOK := providerHistoryAssignedFutureWorkUpper(initial, candidateWorkVector{}, stage, manifest.counts.groups)
-	if !initialOK || !stageOK || !futureOK {
+	if !initialOK || !stageOK || !futureOK || providerHistoryCompilerCanceled(ctx) {
 		return empty, false
 	}
 	return providerHistoryUniformSourceCost{
@@ -154,4 +166,10 @@ func providerHistoryAssignedFutureWorkUpper(initial providerHistoryStageWorkCost
 		return providerHistoryStageWorkCost{}, false
 	}
 	return out, true
+}
+
+// The ordinary context contract makes cancellation sticky. A nil context is
+// reserved for unchanged numeric diagnostics, never the owned compiler entry.
+func providerHistoryCompilerCanceled(ctx context.Context) bool {
+	return ctx != nil && ctx.Err() != nil
 }

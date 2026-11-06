@@ -124,7 +124,7 @@ func providerHistoryCompileOwnedSourcePlan(ctx context.Context, config providerC
 	if err != nil {
 		return nil, err
 	}
-	plan, ok := providerHistoryCompileFrozenSourcePlan(frozen, providerHistoryClockSelectionOf(clock))
+	plan, ok := providerHistoryCompileFrozenSourcePlanContext(ctx, frozen, providerHistoryClockSelectionOf(clock))
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -138,6 +138,15 @@ func providerHistoryCompileOwnedSourcePlan(ctx context.Context, config providerC
 // Both constructors pass their own single frozen selection. This helper does
 // not copy it again, construct another clock or replace a failed child role.
 func providerHistoryCompileFrozenSourcePlan(frozen providerCustodyConfig, clock providerHistoryClockSelection) (*providerHistorySourcePlan, bool) {
+	return providerHistoryCompileFrozenSourcePlanContext(nil, frozen, clock)
+}
+
+// Cancellation observations belong to this compiler invocation, not to a
+// history clock or a new budget. Nil preserves the numeric diagnostic path.
+func providerHistoryCompileFrozenSourcePlanContext(ctx context.Context, frozen providerCustodyConfig, clock providerHistoryClockSelection) (*providerHistorySourcePlan, bool) {
+	if providerHistoryCompilerCanceled(ctx) {
+		return nil, false
+	}
 	// A complete plan cannot fit ANY supported ledger when this already
 	// assigned component alone exceeds its absolute payload ceiling. Refuse
 	// before enumerating all prior cuts, rather than spending that compiler
@@ -148,7 +157,7 @@ func providerHistoryCompileFrozenSourcePlan(frozen providerCustodyConfig, clock 
 	// Preserve the exact native origin/selection values, while retaining no
 	// caller-owned string backing through this numeric clock DATA snapshot.
 	clock.id, clock.epoch, clock.policy = strings.Clone(clock.id), strings.Clone(clock.epoch), strings.Clone(clock.policy)
-	source, ok := providerHistoryCompileSourceSnapshot(frozen, clock)
+	source, ok := providerHistoryCompileSourceSnapshot(ctx, frozen, clock)
 	if !ok {
 		return nil, false
 	}
@@ -174,10 +183,10 @@ func providerHistorySourcePayloadDomainFits(config providerCustodyConfig) bool {
 // Only the plan constructor passes its own detached selection here. Keep all
 // original source-role joins and refusals; no second snapshot or construction
 // can change the manifest identity between this calculation and the plan.
-func providerHistoryCompileSourceSnapshot(config providerCustodyConfig, clock providerHistoryClockSelection) (providerHistorySelectedSourceCost, bool) {
+func providerHistoryCompileSourceSnapshot(ctx context.Context, config providerCustodyConfig, clock providerHistoryClockSelection) (providerHistorySelectedSourceCost, bool) {
 	var empty providerHistorySelectedSourceCost
 	limits, limitsOK := providerHistorySourceLimitsFromConfig(config)
-	if !limitsOK || !providerHistorySourceClockMatchesPolicy(config.policy, clock) {
+	if providerHistoryCompilerCanceled(ctx) || !limitsOK || !providerHistorySourceClockMatchesPolicy(config.policy, clock) {
 		return empty, false
 	}
 	bootstrap, bootstrapOK := providerHistoryCompileBootstrapSource(config.bounds, config.capture)
@@ -185,14 +194,14 @@ func providerHistoryCompileSourceSnapshot(config providerCustodyConfig, clock pr
 		return empty, false
 	}
 	b := config.bounds
-	collection, collectionOK := providerHistoryCollectionUniformSourceUpper(b.history.collection, *b.methods, *b.tls, b.maximumObjectBytes, limits)
-	if !collectionOK {
+	collection, collectionOK := providerHistoryCollectionUniformSourceUpperContext(ctx, b.history.collection, *b.methods, *b.tls, b.maximumObjectBytes, limits)
+	if !collectionOK || providerHistoryCompilerCanceled(ctx) {
 		return empty, false
 	}
 	recovery, recoveryOK := providerHistoryCompileReconstructionSource(config, true)
 	finalRead, finalOK := providerHistoryCompileReconstructionSource(config, false)
 	finalization, closingOK := providerHistoryFinalizationUpper(b.history.collection, uint64(len(clock.id)))
-	if !recoveryOK || !finalOK || !closingOK {
+	if !recoveryOK || !finalOK || !closingOK || providerHistoryCompilerCanceled(ctx) {
 		return empty, false
 	}
 	out := providerHistorySelectedSourceCost{
@@ -220,7 +229,7 @@ func providerHistoryCompileSourceSnapshot(config providerCustodyConfig, clock pr
 	}
 	out.assigned.clocks = a.sum(bootstrap.source.selectedPreI.clocks, bootstrap.source.startup.clocks,
 		collection.future.clocks, finalization.clocks)
-	if a.failed {
+	if a.failed || providerHistoryCompilerCanceled(ctx) {
 		return empty, false
 	}
 	// Preserve ALL eleven dimensions, including historical proofs in R/F.

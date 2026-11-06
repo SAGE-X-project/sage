@@ -93,8 +93,8 @@ func TestProviderHistoryOwnedSourcePlanRefusesWithoutPublishingPartialState(t *t
 	}
 }
 
-// Cancel the real finite context at the second observation, after synchronous
-// compilation. This unit scenario does not select a production clock/backend.
+// Cancel the real finite context at the second compiler observation.
+// This unit scenario does not select a production clock/backend.
 type providerHistoryCompilerCancellationContext struct {
 	context.Context
 	cancel context.CancelFunc
