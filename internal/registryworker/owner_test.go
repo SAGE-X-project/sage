@@ -243,7 +243,7 @@ func TestCleanupRemovesOnlyExplicitCreatedPaths(t *testing.T) {
 	if data, err := os.ReadFile(unexpected); err != nil || string(data) != "preserved" {
 		t.Fatal("unexpected path deleted", err)
 	}
-	if err := removeCreated(canceledContext(), unexpected); err != context.Canceled {
+	if err := removeCreated(canceledContext(), unexpected); !errors.Is(err, context.Canceled) {
 		t.Fatal("expired cleanup owner performed I/O", err)
 	}
 	if data, err := os.ReadFile(unexpected); err != nil || string(data) != "preserved" {
