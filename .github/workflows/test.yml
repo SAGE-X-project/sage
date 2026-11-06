@@ -38,7 +38,7 @@ jobs:
           mkdir -p "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source"
           git rev-parse HEAD > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/tree.txt"
-          cp internal/qualification/nativelimits/*.go internal/qualification/nativelimits/README.md internal/qualification/nativelimits/testdata/resource_limits.c "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/"
+          cp internal/qualification/nativelimits/*.go internal/qualification/nativelimits/README.md internal/qualification/nativelimits/testdata/resource_limits.c internal/qualification/nativelimits/testdata/resource_capabilities.c "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/"
           cp .github/workflows/test.yml "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/test-workflow.yml"
           go test -mod=readonly -count=1 -timeout=3m -tags=registry_native_limits -json ./internal/qualification/nativelimits > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/tests.jsonl"
           git diff --exit-code
