@@ -57,6 +57,30 @@ no readback completion is reported if those operations fail or exceed the
 original cleanup lifetime. A hostile host or host loss is not repaired by
 this file mechanism. Adding the option selects no operating retention policy.
 
+An explicit `RequireJournal` option also checks the contents of this same
+retained channel before publishing ordinary output. It requires a retention
+readback allowance of at least 512 bytes. A fresh attempt nonce, the exact input
+digest and the selected worker digest are passed only to this child. The child
+uses `OpenJournal` to compare its actual input, sync one start record, and then
+write at most one completion or fixed nonsensitive failure record. Completion
+contains a digest of the exact ordinary output. The parent refuses absent,
+partial, duplicate, mismatched or trailing records, an explicit failure, and
+output whose digest differs. The raw retained bytes survive that refusal.
+The first `OpenJournal` consumes a process-lifetime atomic claim before it
+wraps descriptor 4. No later call wraps or closes that descriptor, including
+after the first call failed or the original writer closed. A repeated call
+cannot invalidate the first writer or create a stale second file wrapper.
+
+This is a private execution journal, not another network protocol or a
+requirement to sign Agent messages. Its digests bind the records within the
+existing trusted OS and selected-build boundary; they do not make a malicious
+worker or compromised host truthful. `JournalResult` describes the child's
+claim. Even a syntactically complete child record cannot overcome nonzero
+exit, cancellation, native readback failure or parent cleanup failure, and
+cannot create a Registry derivation or prove full source/native resources or
+custody. The real compiler, private issuer and Agent caller remain separate
+unfinished connections.
+
 The Darwin launcher lowers and reads back the child process's CPU-time,
 per-file-size, descriptor and core-dump limits before executing the selected
 worker. The parent owns cancellation and bounded input, result, diagnostic and

@@ -6,6 +6,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"io"
 	"os"
 	"os/signal"
@@ -13,6 +14,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/sage-x-project/sage/internal/registryworker"
 )
 
 func main() {
@@ -33,6 +36,10 @@ func main() {
 		os.Exit(4)
 	}
 	input := string(raw)
+	if strings.HasPrefix(input, "journal-") {
+		journalFixture(input)
+		return
+	}
 	switch input {
 	case "echo":
 		if _, err := io.WriteString(os.Stdout, "completed"); err != nil {
@@ -73,6 +80,100 @@ func main() {
 		// fallback also bounds fixture lifetime if its parent disappears.
 		<-time.After(5 * time.Second)
 		os.Exit(9)
+	}
+}
+
+// Safe finite owned-worker scenarios. These records describe fixture actions,
+// not a Registry derivation or a complete operating-resource qualification.
+func journalFixture(input string) {
+	ctx, stop := context.WithTimeout(context.Background(), 5*time.Second)
+	defer stop()
+	actual := []byte(input)
+	if input == "journal-wrong-input" {
+		actual = []byte("another input")
+	}
+	initialContext := ctx
+	if input == "journal-unavailable" {
+		canceled, cancel := context.WithCancel(ctx)
+		cancel()
+		initialContext = canceled
+	}
+	w, err := registryworker.OpenJournal(initialContext, actual)
+	if input == "journal-unavailable" {
+		if w != nil || err == nil {
+			os.Exit(12)
+		}
+		if again, err := registryworker.OpenJournal(ctx, actual); again != nil || !errors.Is(err, registryworker.ErrSpent) {
+			os.Exit(15)
+		}
+		return
+	}
+	if err != nil {
+		os.Exit(12)
+	}
+	closed := false
+	defer func() {
+		if !closed && w.Close() != nil {
+			os.Exit(13)
+		}
+	}()
+	if input == "journal-repeat" {
+		if again, err := registryworker.OpenJournal(ctx, actual); again != nil || !errors.Is(err, registryworker.ErrSpent) {
+			os.Exit(15)
+		}
+	}
+	switch input {
+	case "journal-incomplete":
+		return
+	case "journal-failure":
+		if w.Fail("execution") != nil {
+			os.Exit(14)
+		}
+		return
+	case "journal-empty":
+		if w.Complete(nil) != nil {
+			os.Exit(14)
+		}
+		return
+	case "journal-cleanup-failure":
+		if !writeMarker("unexpected", "preserved") {
+			os.Exit(7)
+		}
+	case "journal-complete", "journal-wrong-output", "journal-repeat", "journal-after-close":
+	default:
+		fields := strings.Fields(input)
+		if len(fields) != 2 || !filepath.IsAbs(fields[1]) || fields[0] != "journal-wait" && fields[0] != "journal-stop" {
+			os.Exit(6)
+		}
+		signalContext, cancel := signal.NotifyContext(ctx, syscall.SIGTERM)
+		defer cancel()
+		if !writeMarker(fields[1], "ready") {
+			os.Exit(7)
+		}
+		<-signalContext.Done()
+		if fields[0] != "journal-stop" || ctx.Err() != nil || w.Fail("canceled") != nil {
+			os.Exit(9)
+		}
+		return
+	}
+	if _, err := io.WriteString(os.Stdout, "completed"); err != nil {
+		os.Exit(5)
+	}
+	output := []byte("completed")
+	if input == "journal-wrong-output" {
+		output = []byte("different")
+	}
+	if w.Complete(output) != nil {
+		os.Exit(14)
+	}
+	if input == "journal-after-close" {
+		if w.Close() != nil {
+			os.Exit(13)
+		}
+		closed = true
+		if again, err := registryworker.OpenJournal(ctx, actual); again != nil || !errors.Is(err, registryworker.ErrSpent) {
+			os.Exit(15)
+		}
 	}
 }
 

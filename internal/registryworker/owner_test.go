@@ -83,6 +83,11 @@ func TestConfigurationRequiresFiniteDistinctResourceScopes(t *testing.T) {
 		{"evidence-exceeds-file-bound", func(c *Configuration) {
 			c.TerminalEvidence = EvidenceConfiguration{Directory: c.Directory, MaximumBytes: int(c.Limits.FileBytes) + 1}
 		}},
+		{"journal-without-retention", func(c *Configuration) { c.RequireJournal = true }},
+		{"journal-readback-too-small", func(c *Configuration) {
+			c.RequireJournal = true
+			c.TerminalEvidence = EvidenceConfiguration{Directory: c.Directory, MaximumBytes: journalMaximumBytes - 1}
+		}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			changed := base
@@ -99,6 +104,20 @@ func TestConfigurationRequiresFiniteDistinctResourceScopes(t *testing.T) {
 		if o, err := New(ctx, base); o != nil || !errors.Is(err, ErrConfiguration) {
 			t.Fatal("missing original lifetime admitted", err)
 		}
+	}
+}
+
+func TestJournalConfigurationKeepsRawRetentionOptional(t *testing.T) {
+	c := candidateConfiguration(t.TempDir())
+	c.TerminalEvidence = EvidenceConfiguration{Directory: c.Directory, MaximumBytes: journalMaximumBytes}
+	c.RequireJournal = true
+	if !validConfiguration(c) {
+		t.Fatal("bounded journal readback refused")
+	}
+	c.RequireJournal = false
+	c.TerminalEvidence.MaximumBytes = 1
+	if !validConfiguration(c) {
+		t.Fatal("optional journal changed the raw retention contract")
 	}
 }
 

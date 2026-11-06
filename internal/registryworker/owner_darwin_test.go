@@ -232,7 +232,7 @@ func TestNativeOwnerRetainsTerminalEvidenceAfterSuccessAndFailure(t *testing.T) 
 		t.Run(test.name, func(t *testing.T) {
 			c := base
 			c.Directory = t.TempDir()
-			c.TerminalEvidence = EvidenceConfiguration{Directory: t.TempDir(), MaximumBytes: test.maximum}
+			c.TerminalEvidence = EvidenceConfiguration{Directory: privateTerminalDirectory(t), MaximumBytes: test.maximum}
 			o, err := New(context.Background(), c)
 			if err != nil {
 				t.Fatal(err)
@@ -265,7 +265,7 @@ func TestNativeOwnerRetainsTerminalEvidenceAcrossBothCancellationPaths(t *testin
 		name, input, expected := "immediate", "evidence-wait ", "started\n"
 		c := base
 		c.Directory = t.TempDir()
-		c.TerminalEvidence = EvidenceConfiguration{Directory: t.TempDir(), MaximumBytes: 4096}
+		c.TerminalEvidence = EvidenceConfiguration{Directory: privateTerminalDirectory(t), MaximumBytes: 4096}
 		if cooperative {
 			name, input, expected = "cooperative", "evidence-stop ", "started\nstopped\n"
 			c.Limits.CleanupReserve, c.Limits.ChildCleanupReserve = 3*time.Second, time.Second
@@ -285,7 +285,7 @@ func TestNativeOwnerRetainsTerminalEvidenceAcrossBothCancellationPaths(t *testin
 func TestNativeOwnerPreservesEmptyEvidenceWhenStartupFails(t *testing.T) {
 	c := nativeConfiguration(t)
 	c.Launcher = fileAsset(t, filepath.Join(c.Directory, "invalid-launcher"), []byte("not an executable"))
-	c.TerminalEvidence = EvidenceConfiguration{Directory: t.TempDir(), MaximumBytes: 4096}
+	c.TerminalEvidence = EvidenceConfiguration{Directory: privateTerminalDirectory(t), MaximumBytes: 4096}
 	o, err := New(context.Background(), c)
 	if err != nil {
 		t.Fatal(err)
@@ -298,6 +298,96 @@ func TestNativeOwnerPreservesEmptyEvidenceWhenStartupFails(t *testing.T) {
 	assertNoPrivateCopies(t, c.Directory)
 	if _, err := o.Run([]byte("echo")); !errors.Is(err, ErrSpent) {
 		t.Fatal("failed startup restored the terminal attempt", err)
+	}
+}
+
+func TestNativeOwnerRequiresMatchingJournalBeforePublishingOutput(t *testing.T) {
+	base := nativeConfiguration(t)
+	for _, tc := range []struct {
+		name, input, output string
+		bound, terminal, ok bool
+		cleanup             bool
+	}{
+		{"complete", "journal-complete", "completed", true, true, true, true},
+		{"repeat-keeps-original-writer", "journal-repeat", "completed", true, true, true, true},
+		{"closed-descriptor-cannot-reopen", "journal-after-close", "completed", true, true, true, true},
+		{"failed-open-cannot-retry", "journal-unavailable", "", false, false, false, true},
+		{"empty-result", "journal-empty", "", true, true, true, true},
+		{"incomplete", "journal-incomplete", "", true, false, false, true},
+		{"explicit-failure", "journal-failure", "", true, true, false, true},
+		{"wrong-input", "journal-wrong-input", "", false, false, false, true},
+		{"wrong-output", "journal-wrong-output", "", true, true, false, true},
+		{"raw-marker", "evidence-complete", "", false, false, false, true},
+		{"cleanup-failure", "journal-cleanup-failure", "", true, true, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			c := base
+			c.Directory = t.TempDir()
+			c.TerminalEvidence = EvidenceConfiguration{Directory: privateTerminalDirectory(t), MaximumBytes: 4096}
+			c.RequireJournal = true
+			o, err := New(context.Background(), c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := o.Run([]byte(tc.input))
+			expectedExit := 0
+			if tc.input == "journal-wrong-input" {
+				expectedExit = 12
+			}
+			if (err == nil) != tc.ok || string(result.Output) != tc.output ||
+				result.Journal.Bound != tc.bound || result.Journal.Terminal != tc.terminal ||
+				result.CleanupComplete != tc.cleanup || !result.TerminalEvidence.ReadbackComplete ||
+				!result.Started || !result.LimitsApplied || result.ExitCode != expectedExit {
+				t.Fatal("publication ignored a journal or parent failure", result, err)
+			}
+			if !tc.ok && tc.cleanup && !errors.Is(err, ErrJournal) {
+				t.Fatal("journal refusal was lost", err)
+			}
+			retained, readErr := os.ReadFile(result.TerminalEvidence.Path)
+			if readErr != nil || !bytes.Equal(retained, result.TerminalEvidence.Prefix) {
+				t.Fatal("refused journal's original bytes were lost", readErr)
+			}
+			if tc.cleanup {
+				assertNoPrivateCopies(t, c.Directory)
+			}
+			if _, err := o.Run([]byte(tc.input)); !errors.Is(err, ErrSpent) {
+				t.Fatal("terminal record restored a spent invocation", err)
+			}
+		})
+	}
+}
+
+func TestNativeOwnerRetainsJournalAcrossBothCancellationPaths(t *testing.T) {
+	base := nativeConfiguration(t)
+	for _, cooperative := range []bool{false, true} {
+		name, input := "immediate", "journal-wait "
+		c := base
+		c.Directory = t.TempDir()
+		c.TerminalEvidence = EvidenceConfiguration{Directory: privateTerminalDirectory(t), MaximumBytes: 4096}
+		c.RequireJournal = true
+		if cooperative {
+			name, input = "cooperative", "journal-stop "
+			c.Limits.CleanupReserve, c.Limits.ChildCleanupReserve = 3*time.Second, time.Second
+		}
+		t.Run(name, func(t *testing.T) {
+			ready := filepath.Join(c.Directory, "ready")
+			result := cancelReadyWorker(t, c, input+ready, ready)
+			if !result.Journal.Bound || !result.Journal.Started || result.Journal.Terminal != cooperative ||
+				!result.TerminalEvidence.ReadbackComplete || len(result.TerminalEvidence.Prefix) == 0 {
+				t.Fatal("canceled invocation lost its start or terminal records", result)
+			}
+			if cooperative && (result.Journal.Outcome != "failed" || result.Journal.Failure != "canceled") {
+				t.Fatal("cooperative refusal became a completed result", result)
+			}
+			if cooperative && (result.ExitCode != 0 || result.Signal != 0) ||
+				!cooperative && result.Signal != int(syscall.SIGKILL) {
+				t.Fatal("journal cancellation did not use the selected owned stop", result)
+			}
+			retained, err := os.ReadFile(result.TerminalEvidence.Path)
+			if err != nil || !bytes.Equal(retained, result.TerminalEvidence.Prefix) {
+				t.Fatal("canceled journal was not retained", err)
+			}
+		})
 	}
 }
 

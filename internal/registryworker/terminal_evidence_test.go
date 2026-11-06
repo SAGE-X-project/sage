@@ -12,9 +12,25 @@ import (
 	"testing"
 )
 
+// Positive retention scenarios own an explicit private child directory.
+// testing.TempDir alone does not establish the production mode0700 premise.
+func privateTerminalDirectory(t *testing.T) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "retained")
+	if err := os.Mkdir(path, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	info, err := os.Lstat(path)
+	if err != nil || !info.IsDir() || info.Mode().Perm() != 0o700 {
+		t.Fatal("retention fixture did not establish its private-store premise", info, err)
+	}
+	t.Logf("owned retention directory mode=%#o", info.Mode().Perm())
+	return path
+}
+
 func terminalRecord(t *testing.T, value string, maximum int) *terminalEvidence {
 	t.Helper()
-	e, err := openTerminalEvidence(context.Background(), EvidenceConfiguration{Directory: t.TempDir(), MaximumBytes: maximum})
+	e, err := openTerminalEvidence(context.Background(), EvidenceConfiguration{Directory: privateTerminalDirectory(t), MaximumBytes: maximum})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +140,7 @@ func TestTerminalEvidenceCannotCertifyExpiredOrUnavailableReadback(t *testing.T)
 
 func TestTerminalEvidenceCreationRefusesExpiredActionAndUnavailableRoot(t *testing.T) {
 	for _, unavailableRoot := range []bool{false, true} {
-		path := t.TempDir()
+		path := privateTerminalDirectory(t)
 		root, err := os.OpenRoot(path)
 		if err != nil {
 			t.Fatal(err)
@@ -285,7 +301,7 @@ func TestTerminalEvidenceRequiresAnExistingPrivateStore(t *testing.T) {
 			}
 		})
 	}
-	c := EvidenceConfiguration{Directory: t.TempDir(), MaximumBytes: 4096}
+	c := EvidenceConfiguration{Directory: privateTerminalDirectory(t), MaximumBytes: 4096}
 	for _, ctx := range []context.Context{nil, canceledContext()} {
 		if record, err := openTerminalEvidence(ctx, c); record != nil || !errors.Is(err, ErrUnavailable) {
 			t.Fatal("terminal store opened outside its original action", err)

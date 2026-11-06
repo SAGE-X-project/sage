@@ -50,6 +50,9 @@ type Configuration struct {
 	Directory        string
 	Limits           Limits
 	TerminalEvidence EvidenceConfiguration
+	// RequireJournal binds the retained child's start and terminal records to
+	// this input, executable and fresh attempt before publishing ordinary output.
+	RequireJournal bool
 }
 
 // Result is detached completed-attempt DATA. Success here never certifies the
@@ -67,6 +70,9 @@ type Result struct {
 	// TerminalEvidence retains bounded child bytes even when Output is withheld.
 	// Its readback flag is not a child terminal-state or custody certificate.
 	TerminalEvidence EvidenceResult
+	// Journal interprets the child's records only. Even a completed record is
+	// no Registry custody, derivation or complete resource qualification.
+	Journal JournalResult
 }
 
 type Owner struct {
@@ -133,7 +139,8 @@ func validConfiguration(c Configuration) bool {
 		l.ErrorBytes > 0 && l.ErrorBytes <= 64<<10 && l.CleanupReserve > 0 &&
 		l.ChildCleanupReserve >= 0 && l.ChildCleanupReserve < l.CleanupReserve &&
 		l.Duration > l.CleanupReserve && l.Duration <= 31*24*time.Hour &&
-		validEvidenceConfiguration(c.TerminalEvidence, l)
+		validEvidenceConfiguration(c.TerminalEvidence, l) &&
+		(!c.RequireJournal || c.TerminalEvidence.MaximumBytes >= journalMaximumBytes)
 }
 
 func validAsset(a Asset) bool {
@@ -173,6 +180,10 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 	// No caller slice survives this boundary. Input mutation during this copy
 	// is forbidden, just as it is for the original config snapshot constructor.
 	ownedInput := bytes.Clone(input)
+	var binding journalBinding
+	if c.RequireJournal {
+		binding = newJournalBinding(ownedInput, c.Worker.SHA256)
+	}
 	directory, err := os.MkdirTemp(c.Directory, ".sage-registry-worker-")
 	if err != nil {
 		return result, errors.Join(ErrUnavailable, o.action.Err())
@@ -194,6 +205,11 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 		var finishErr error
 		result.TerminalEvidence, finishErr = finishWorkerAction(o.action, o.whole, evidence)
 		err = errors.Join(err, finishErr)
+		if c.RequireJournal {
+			var journalErr error
+			result.Journal, journalErr = readWorkerJournal(result.TerminalEvidence, binding, result.Output)
+			err = errors.Join(err, journalErr, o.whole.Err())
+		}
 	}()
 	if err = copyAsset(o.action, c.Launcher, launcher); err != nil {
 		return result, err
@@ -223,6 +239,9 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 	stderr := limitedOutput{limit: c.Limits.ErrorBytes, cancel: o.cancelAction}
 	readiness := limitedOutput{limit: 256, cancel: o.cancelAction}
 	cmd.Dir, cmd.Env = directory, []string{"LANG=C", "LC_ALL=C"}
+	if c.RequireJournal {
+		cmd.Env = append(cmd.Env, journalEnvironment+"="+binding.environment())
+	}
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = bytes.NewReader(ownedInput), &stdout, &stderr
 	cmd.ExtraFiles = []*os.File{readyWrite}
 	if evidence != nil {
