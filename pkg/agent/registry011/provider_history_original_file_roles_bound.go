@@ -29,7 +29,7 @@ type providerHistoryOriginalFileRoleCounts struct {
 func providerHistoryCollectionOriginalFileRoleUpper(manifest *providerHistoryCollectionManifest, limits providerHistoryLegacyControlLimits, catalogEntries, nameBytes, overhead, prior uint64, advancing bool) (providerHistoryOriginalFileRoleCost, bool) {
 	var empty providerHistoryOriginalFileRoleCost
 	if !manifest.validSnapshot() || prior >= manifest.counts.groups || advancing && prior+1 >= manifest.counts.groups ||
-		catalogEntries == 0 || catalogEntries > 1<<20 || nameBytes == 0 || overhead == 0 ||
+		!providerHistoryCatalogEntriesSupported(catalogEntries) || nameBytes == 0 || overhead == 0 ||
 		limits.firstObjects != manifest.input.firstRead.objects || limits.firstRaw != manifest.input.firstRead.raw {
 		return empty, false
 	}

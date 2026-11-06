@@ -48,7 +48,7 @@ func (b providerHistoryProgramBounds) valid(store providerIntegrationBounds) boo
 		!lowerHash(b.program) || !lowerHash(b.costs) || !b.future.valid() || !b.recovery.valid(store, b.catalogEntries) ||
 		b.stages == 0 || b.stages > (1<<20)/3 || b.records < 3*b.stages || b.records > store.continuation.maximumRecords ||
 		b.commits < 3*b.stages || b.commits > uint64(store.maximumCommits) || b.future.objects > uint64(store.maximumObjects) ||
-		b.catalogEntries < b.future.files || b.catalogEntries == 0 || b.resident == 0 || b.resident > store.continuation.maximumResidentBytes ||
+		b.catalogEntries < b.future.files || !providerHistoryCatalogEntriesSupported(b.catalogEntries) || b.resident == 0 || b.resident > store.continuation.maximumResidentBytes ||
 		b.durationMS == 0 || b.durationMS > 1<<53 || b.startup.retained == 0 || b.startup.clocks < 11 || b.startup.work[0] != 1 || b.startup.work[1] == 0 || b.startup.work[10] == 0 {
 		return false
 	}

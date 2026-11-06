@@ -16,7 +16,7 @@ type providerHistoryReconstructionCatalogCost struct {
 // catalog multiplicity and do not acquire network, write or clock permission.
 func providerHistoryReconstructionCatalogUpper(entries, filenameEntryOverhead uint64) (providerHistoryReconstructionCatalogCost, bool) {
 	var empty providerHistoryReconstructionCatalogCost
-	if entries == 0 || entries > 1<<20 || filenameEntryOverhead == 0 || filenameEntryOverhead > 1<<20 {
+	if !providerHistoryCatalogEntriesSupported(entries) || filenameEntryOverhead == 0 || filenameEntryOverhead > 1<<20 {
 		return empty, false
 	}
 	var a providerHistoryReadArithmetic

@@ -273,7 +273,7 @@ func (o *providerHistoryGroupOwner) claimActiveLocked(c *providerHistoryWriteCla
 
 func (o *providerHistoryGroupOwner) admissionCatalogFitsLocked(c *providerHistoryWriteClaim) bool {
 	b := o.parent.bounds
-	if b.catalogEntries == 0 || b.catalogEntries > 1<<20 {
+	if !providerHistoryCatalogEntriesSupported(b.catalogEntries) {
 		return false
 	}
 	var count, names uint64

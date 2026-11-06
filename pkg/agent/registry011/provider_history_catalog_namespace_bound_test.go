@@ -271,7 +271,7 @@ func TestProviderHistoryCatalogNamespaceUpperRejectsInvalidSourceLimits(t *testi
 		{0, 1, 0, 1, 1}, {^uint64(0), 1, 0, 1, 1}, {(1<<20)/3 + 1, (1<<20)/3 + 1, 0, 1, 1},
 		{1, 0, 0, 1, 1}, {2, 1, 0, 1, 1}, {1, 33, 0, 1, 1}, {1, ^uint64(0), 0, 1, 1},
 		{1, 1, 65, 1, 1}, {1, 1, ^uint64(0), 1, 1}, {1, 1, 0, 0, 1}, {1, 1, 0, 65, 1},
-		{1, 1, 0, 1, 0}, {1, 1, 0, 1, (1 << 20) + 1},
+		{1, 1, 0, 1, 0}, {1, 1, 0, 1, providerHistoryCatalogEntriesMaximum + 1},
 	} {
 		if got, ok := providerHistoryCatalogNamespaceUpper(in); ok || got != (providerHistoryCatalogNamespaceCost{}) {
 			t.Fatal("invalid original limits returned a partial quote", in, got, ok)

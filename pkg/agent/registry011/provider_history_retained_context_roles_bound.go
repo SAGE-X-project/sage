@@ -24,7 +24,7 @@ type providerHistoryRetainedContextRoleCost struct {
 func providerHistoryCollectionRetainedContextRoleUpper(manifest *providerHistoryCollectionManifest, limits providerHistoryLegacyControlLimits, catalogEntries, directoryBytes, prior uint64) (providerHistoryRetainedContextRoleCost, bool) {
 	var empty providerHistoryRetainedContextRoleCost
 	if !manifest.validSnapshot() || prior >= manifest.counts.groups || manifest.counts.requests == 0 ||
-		catalogEntries == 0 || catalogEntries > 1<<20 || directoryBytes < 2 || directoryBytes > 2<<20 ||
+		!providerHistoryCatalogEntriesSupported(catalogEntries) || directoryBytes < 2 || directoryBytes > 2<<20 ||
 		limits.firstObjects != manifest.input.firstRead.objects || limits.firstRaw != manifest.input.firstRead.raw {
 		return empty, false
 	}

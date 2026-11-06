@@ -25,7 +25,7 @@ func providerHistoryCatalogNamespaceUpper(in providerHistoryCatalogNamespaceInpu
 	var empty providerHistoryCatalogNamespaceCost
 	maximum, ok := providerUpperProduct(in.groups, providerHistoryGroupMembers)
 	if !ok || in.groups == 0 || in.groups > (1<<20)/3 || in.requests < in.groups || in.requests > maximum ||
-		in.setupRecoveries > 64 || in.attempts == 0 || in.attempts > 64 || in.entries == 0 || in.entries > 1<<20 {
+		in.setupRecoveries > 64 || in.attempts == 0 || in.attempts > 64 || !providerHistoryCatalogEntriesSupported(in.entries) {
 		return empty, false
 	}
 	var a providerHistoryReadArithmetic

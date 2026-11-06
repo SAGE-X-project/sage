@@ -84,7 +84,7 @@ func TestProviderHistoryRetainedContextRolesRefuseWrongLocalSelectionAndCapacity
 		{manifest, badObjects, 4096, 1024, 0},
 		{manifest, badChunks, 4096, 1024, 0},
 		{manifest, limits, 0, 1024, 0},
-		{manifest, limits, 1<<20 + 1, 1024, 0},
+		{manifest, limits, providerHistoryCatalogEntriesMaximum + 1, 1024, 0},
 		{manifest, limits, 1024, 1024, 0}, // A later original prefix cannot fit capacity1216.
 		{manifest, limits, 4096, 1, 0},
 		{manifest, limits, 4096, 2<<20 + 1, 0},

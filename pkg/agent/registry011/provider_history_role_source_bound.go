@@ -30,7 +30,7 @@ func providerHistoryCollectionRoleSourceUpper(manifest *providerHistoryCollectio
 	var empty providerHistoryRoleSourceCost
 	minimumNames, namesOK := providerUpperProduct(limits.catalogEntries, 255)
 	if !manifest.validSnapshot() || !namesOK || maximum == 0 || maximum != limits.legacy.objectBytes ||
-		limits.catalogEntries == 0 || limits.catalogEntries > 1<<20 || limits.catalogNameBytes < minimumNames {
+		!providerHistoryCatalogEntriesSupported(limits.catalogEntries) || limits.catalogNameBytes < minimumNames {
 		return empty, false
 	}
 	// Every child keeps its own domain, exact original firstRead binding and

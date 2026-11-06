@@ -159,7 +159,7 @@ func TestProviderHistoryCollectionMetadataBoundsRefuseInvalidOrOverflowedRows(t 
 	}{
 		{"zero-groups", 0, 1, 1, 1}, {"few-requests", 2, 1, 1, 1}, {"many-requests", 1, 33, 1, 1},
 		{"group-overflow", ^uint64(0), 1, 1, 1}, {"group-domain", (1<<20)/3 + 1, (1<<20)/3 + 1, 1, 1},
-		{"zero-entries", 1, 1, 0, 1}, {"entry-domain", 1, 1, 1<<20 + 1, 1}, {"zero-names", 1, 1, 1, 0},
+		{"zero-entries", 1, 1, 0, 1}, {"entry-domain", 1, 1, providerHistoryCatalogEntriesMaximum + 1, 1}, {"zero-names", 1, 1, 1, 0},
 		{"one-sweep-overflow", 1, 1, 1, ^uint64(0)}, {"repeated-sweep-overflow", 1, 1, 1, ^uint64(0)/2 - 1024},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

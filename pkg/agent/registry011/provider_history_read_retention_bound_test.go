@@ -189,7 +189,7 @@ func TestProviderHistoryReadRetentionRejectsInvalidProspectiveDomains(t *testing
 			case "catalog":
 				in.catalogEntries = 0
 			case "wide-catalog":
-				in.catalogEntries = 1<<20 + 1
+				in.catalogEntries = providerHistoryCatalogEntriesMaximum + 1
 			case "raw":
 				in.firstRaw = 0
 			case "wide-raw":

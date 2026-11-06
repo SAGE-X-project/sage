@@ -21,7 +21,7 @@ type providerHistoryNameNamespaceRoleCost struct {
 func providerHistoryCollectionNameNamespaceRoleUpper(manifest *providerHistoryCollectionManifest, limits providerHistoryLegacyControlLimits, setupRecoveries, catalogEntries, prior uint64, advancing bool) (providerHistoryNameNamespaceRoleCost, bool) {
 	var empty providerHistoryNameNamespaceRoleCost
 	if !manifest.validSnapshot() || prior >= manifest.counts.groups || advancing && prior+1 >= manifest.counts.groups ||
-		setupRecoveries > 64 || catalogEntries == 0 || catalogEntries > 1<<20 ||
+		setupRecoveries > 64 || !providerHistoryCatalogEntriesSupported(catalogEntries) ||
 		limits.firstObjects != manifest.input.firstRead.objects || limits.firstRaw != manifest.input.firstRead.raw {
 		return empty, false
 	}

@@ -125,7 +125,7 @@ func TestProviderHistoryReconstructionCatalogUpperRetainsEOFRoomAndSeparateDomai
 }
 
 func TestProviderHistoryReconstructionCatalogUpperRefusesUnselectedLimitsWithoutPartialRows(t *testing.T) {
-	for _, pair := range [][2]uint64{{0, 1}, {1, 0}, {1<<20 + 1, 64}, {1, 1<<20 + 1}, {^uint64(0), 1}, {1, ^uint64(0)}} {
+	for _, pair := range [][2]uint64{{0, 1}, {1, 0}, {providerHistoryCatalogEntriesMaximum + 1, 64}, {1, 1<<20 + 1}, {^uint64(0), 1}, {1, ^uint64(0)}} {
 		if got, ok := providerHistoryReconstructionCatalogUpper(pair[0], pair[1]); ok || got != (providerHistoryReconstructionCatalogCost{}) {
 			t.Fatal("unselected catalog input leaked a partial cost row", pair, ok)
 		}

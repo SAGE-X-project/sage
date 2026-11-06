@@ -14,7 +14,7 @@ func providerHistoryCollectionSuccessfulMetadataUpper(groups, requests, entries,
 	var empty providerHistoryCollectionMetadataCost
 	maximumRequests, ok := providerUpperProduct(groups, providerHistoryGroupMembers)
 	if !ok || groups == 0 || groups > (1<<20)/3 || requests < groups || requests > maximumRequests ||
-		entries == 0 || entries > 1<<20 || nameBytes == 0 {
+		!providerHistoryCatalogEntriesSupported(entries) || nameBytes == 0 {
 		return empty, false
 	}
 	var a providerHistoryReadArithmetic

@@ -105,7 +105,7 @@ func TestProviderHistoryOriginalFileRolesRefuseMismatchedSublimitsAndLateOverflo
 		{manifest, badObjects, 4096, 4096 * 255, 4096, 0, false},
 		{manifest, badChunks, 4096, 4096 * 255, 4096, 0, false},
 		{manifest, limits, 0, 4096 * 255, 4096, 0, false},
-		{manifest, limits, 1<<20 + 1, 4096 * 255, 4096, 0, false},
+		{manifest, limits, providerHistoryCatalogEntriesMaximum + 1, 4096 * 255, 4096, 0, false},
 		{manifest, limits, 4096, 0, 4096, 0, false},
 		{manifest, limits, 4096, ^uint64(0), 4096, 0, false},
 		{manifest, limits, 4096, 4096 * 255, 0, 0, false},

@@ -17,7 +17,7 @@ type providerHistoryReconstructionFileCost struct {
 // limit to its original manifest/config before selecting either R or F.
 func providerHistoryReconstructionFilesUpper(manifest *providerHistoryCollectionManifest, limits providerHistoryRoleSourceLimits, failedInspection bool) (providerHistoryReconstructionFileCost, bool) {
 	var empty providerHistoryReconstructionFileCost
-	if !manifest.validSnapshot() || limits.setupRecoveries > 64 || limits.catalogEntries == 0 || limits.catalogEntries > 1<<20 ||
+	if !manifest.validSnapshot() || limits.setupRecoveries > 64 || !providerHistoryCatalogEntriesSupported(limits.catalogEntries) ||
 		limits.legacy.firstObjects != manifest.input.firstRead.objects || limits.legacy.firstRaw != manifest.input.firstRead.raw {
 		return empty, false
 	}

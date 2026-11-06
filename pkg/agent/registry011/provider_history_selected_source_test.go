@@ -695,7 +695,7 @@ func TestProviderHistorySourceBindingRefusesCrossSelectionAndPartialResults(t *t
 			case "entries-zero":
 				history.catalogEntries = 0
 			case "entries-high":
-				history.catalogEntries = (1 << 20) + 1
+				history.catalogEntries = providerHistoryCatalogEntriesMaximum + 1
 			case "names":
 				history.catalogNameBytes--
 			case "directories":

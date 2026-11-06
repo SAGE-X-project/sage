@@ -91,7 +91,7 @@ func TestProviderHistoryNameNamespaceRolesRefuseWrongOriginalSelection(t *testin
 		{manifest, badAttempts, 0, 4096, 0, false},
 		{manifest, limits, 65, 4096, 0, false},
 		{manifest, limits, 0, 0, 0, false},
-		{manifest, limits, 0, 1<<20 + 1, 0, false},
+		{manifest, limits, 0, providerHistoryCatalogEntriesMaximum + 1, 0, false},
 		{manifest, limits, 0, 4096, manifest.counts.groups, false},
 		{manifest, limits, 0, 4096, ^uint64(0), false},
 		{manifest, limits, 0, 4096, manifest.counts.groups - 1, true},

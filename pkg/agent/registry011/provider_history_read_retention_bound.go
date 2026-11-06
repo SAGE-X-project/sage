@@ -25,7 +25,7 @@ type providerHistoryReadRetentionCost struct {
 func providerHistoryReadRetentionUpper(in providerHistoryReadRetentionInput) (providerHistoryReadRetentionCost, bool) {
 	var empty providerHistoryReadRetentionCost
 	reads, ok := providerHistoryCollectionPrefixReadBound(in.groups, in.requests, in.firstObjects)
-	if !ok || in.catalogEntries == 0 || in.catalogEntries > 1<<20 || in.firstRaw == 0 || in.firstRaw > 64<<20 ||
+	if !ok || !providerHistoryCatalogEntriesSupported(in.catalogEntries) || in.firstRaw == 0 || in.firstRaw > 64<<20 ||
 		in.metadata == 0 || in.metadata > 1<<20 || in.object == 0 || in.object > 32<<20 || in.wire == 0 || in.wire > 16<<20 {
 		return empty, false
 	}

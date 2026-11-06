@@ -536,7 +536,7 @@ func TestProviderHistoryReconstructionFilesUpperRefusesInvalidOrOverflowingOrigi
 			case "catalog-zero":
 				limits.catalogEntries = 0
 			case "catalog-large":
-				limits.catalogEntries = 1<<20 + 1
+				limits.catalogEntries = providerHistoryCatalogEntriesMaximum + 1
 			case "metadata":
 				limits.legacy.metadata = 0
 			case "object":

@@ -17,6 +17,7 @@ type providerHistorySelectedSourceCost struct {
 	clock               providerHistoryClockSelection
 	bootstrap           providerHistoryCompiledBootstrapCost
 	collection          providerHistoryUniformSourceCost
+	catalog             providerHistoryCatalogRequirement
 	recovery, finalRead providerHistoryReconstructionSourceCost
 	finalization        providerHistoryFinalizationCost
 	finalWork           candidateWorkVector
@@ -38,7 +39,7 @@ func providerHistorySourceLimitsFromConfig(config providerCustodyConfig) (provid
 	h, manifest := b.history, b.history.collection
 	if !manifest.validSnapshot() || config.capture != manifest.input.capture ||
 		h.stages != manifest.counts.groups || h.stages == 0 || h.stages > (1<<20)/3 ||
-		h.catalogEntries == 0 || h.catalogEntries > 1<<20 {
+		!providerHistoryCatalogEntriesSupported(h.catalogEntries) {
 		return empty, false
 	}
 	names, namesOK := providerUpperProduct(h.catalogEntries, 255)
@@ -245,6 +246,10 @@ func providerHistoryCompileSourceSnapshot(ctx context.Context, config providerCu
 	if !collectionOK || providerHistoryCompilerCanceled(ctx) {
 		return empty, false
 	}
+	catalog, catalogOK := providerHistoryFreshCatalogUpper(collection.storage, b.history.catalogEntries)
+	if !catalogOK {
+		return empty, false
+	}
 	recovery, recoveryOK := providerHistoryCompileReconstructionSource(config, true)
 	finalRead, finalOK := providerHistoryCompileReconstructionSource(config, false)
 	finalization, closingOK := providerHistoryFinalizationUpper(b.history.collection, uint64(len(clock.id)))
@@ -252,7 +257,7 @@ func providerHistoryCompileSourceSnapshot(ctx context.Context, config providerCu
 		return empty, false
 	}
 	out := providerHistorySelectedSourceCost{
-		limits: limits, clock: clock, bootstrap: bootstrap, collection: collection,
+		limits: limits, clock: clock, bootstrap: bootstrap, collection: collection, catalog: catalog,
 		recovery: recovery, finalRead: finalRead, finalization: finalization,
 	}
 	var a providerHistoryReadArithmetic
