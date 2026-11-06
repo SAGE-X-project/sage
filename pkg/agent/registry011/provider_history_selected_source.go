@@ -1,6 +1,10 @@
 package registry011
 
-import "strings"
+import (
+	"context"
+	"strings"
+	"time"
+)
 
 // Value DATA for the original source components selected by ONE config. This
 // does not contain a derivation, owner or executable callback. The assigned
@@ -73,6 +77,11 @@ func providerHistoryCompileSelectedSource(config providerCustodyConfig, clock pr
 type providerHistorySourcePlan struct {
 	config providerCustodyConfig
 	source providerHistorySelectedSourceCost
+	// Only the owned compiler installs these. The numeric constructor keeps
+	// them zero. A finite caller context is a cancellation boundary, not a
+	// qualified native lease, resource budget or permission to open a store.
+	clock            *providerOwnedClock
+	compilerDeadline time.Time
 }
 
 func (*providerHistorySourcePlan) UnmarshalJSON([]byte) error { return ErrConfiguration }
@@ -87,6 +96,48 @@ func providerHistoryCompileSourcePlan(config providerCustodyConfig, clock provid
 	if !ok {
 		return nil, false
 	}
+	return providerHistoryCompileFrozenSourcePlan(frozen, clock)
+}
+
+// Keep ONE original native clock and ONE detached input selection through
+// compilation. This is a pre-H0 source plan, not a derivation factory: native
+// compiler/cleanup costs, sufficient whole-profile resources and the private
+// execution issuer remain separate prerequisites. The enclosing worker must
+// enforce its original lifetime even while the synchronous compiler runs.
+func providerHistoryCompileOwnedSourcePlan(ctx context.Context, config providerCustodyConfig, maximum uint64, baseUncertaintyMS, readWindowMS int64) (*providerHistorySourcePlan, error) {
+	origin := time.Now()
+	if ctx == nil {
+		return nil, ErrConfiguration
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	deadline, finite := ctx.Deadline()
+	if !finite || !deadline.After(origin) {
+		return nil, ErrConfiguration
+	}
+	frozen, ok := providerHistoryFreezeSourceConfig(config)
+	if !ok {
+		return nil, ErrConfiguration
+	}
+	clock, err := newProviderOwnedClockAtOrigin(frozen.policy, maximum, baseUncertaintyMS, readWindowMS, origin)
+	if err != nil {
+		return nil, err
+	}
+	plan, ok := providerHistoryCompileFrozenSourcePlan(frozen, providerHistoryClockSelectionOf(clock))
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, ErrConfiguration
+	}
+	plan.clock, plan.compilerDeadline = clock, deadline
+	return plan, nil
+}
+
+// Both constructors pass their own single frozen selection. This helper does
+// not copy it again, construct another clock or replace a failed child role.
+func providerHistoryCompileFrozenSourcePlan(frozen providerCustodyConfig, clock providerHistoryClockSelection) (*providerHistorySourcePlan, bool) {
 	// A complete plan cannot fit ANY supported ledger when this already
 	// assigned component alone exceeds its absolute payload ceiling. Refuse
 	// before enumerating all prior cuts, rather than spending that compiler

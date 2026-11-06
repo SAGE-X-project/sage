@@ -3,9 +3,41 @@ package registry011
 import (
 	"encoding/json"
 	"math"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestProviderIntegrationClockRejectsMalformedPolicyAndKeepsTheSelectedOrigin(t *testing.T) {
+	policy, err := ParseProviderPolicyCandidate(providerPolicyTestBytes(t, providerPolicyTestObject()), 64<<10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	origin := time.Now()
+	clock, err := newProviderOwnedClockAtOrigin(policy, 2, 1, 1, origin)
+	if err != nil || clock == nil || clock.origin != origin || clock.read != 0 {
+		t.Fatal("original pre-construction clock origin changed", err)
+	}
+	if clock, err := newProviderOwnedClockAtOrigin(policy, 2, 1, 1, time.Time{}); err == nil || clock != nil {
+		t.Fatal("zero origin created a native clock")
+	}
+	for name, raw := range map[string]string{
+		"invalid-json": "{", "root-array": "[]", "absent-clock": `{}`,
+		"clock-array": `{"clock":[]}`, "absent-uncertainty": `{"clock":{"id":"fixture-clock","max_read_window_ms":"1000"}}`,
+		"absent-window": `{"clock":{"id":"fixture-clock","max_uncertainty_ms":"1000"}}`,
+		"absent-id":     `{"clock":{"max_read_window_ms":"1000","max_uncertainty_ms":"1000"}}`,
+		"large-id":      `{"clock":{"id":"` + strings.Repeat("x", 257) + `","max_read_window_ms":"1000","max_uncertainty_ms":"1000"}}`,
+		"large-policy":  strings.Repeat("x", (64<<10)+1),
+	} {
+		t.Run(name, func(t *testing.T) {
+			changed := *policy
+			changed.raw = raw
+			if clock, err := newProviderOwnedClockAtOrigin(&changed, 2, 1, 1, origin); err == nil || clock != nil {
+				t.Fatal("malformed policy created a partial native backend")
+			}
+		})
+	}
+}
 
 func TestProviderIntegrationOwnedClockIsFiniteAndNonserializable(t *testing.T) {
 	policy, err := ParseProviderPolicyCandidate(providerPolicyTestBytes(t, providerPolicyTestObject()), 64<<10)

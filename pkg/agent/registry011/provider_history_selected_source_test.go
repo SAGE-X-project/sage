@@ -1,13 +1,113 @@
 package registry011
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"runtime"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestProviderHistoryOwnedSourcePlanKeepsItsOriginalClockAndDetachedSelection(t *testing.T) {
+	config := historySelectedSourceConfig(t)
+	deadline := time.Now().Add(time.Minute)
+	ctx, cancel := context.WithDeadline(context.Background(), deadline)
+	defer cancel()
+	before := time.Now()
+	plan, err := providerHistoryCompileOwnedSourcePlan(ctx, config, 1<<20, 1, 1)
+	after := time.Now()
+	if err != nil || plan == nil || plan.clock == nil {
+		t.Fatal("owned source selection", err)
+	}
+	clock := plan.clock
+	if clock.owner != clock || clock.origin.Before(before) || clock.origin.After(after) ||
+		plan.compilerDeadline != deadline || providerHistoryClockSelectionOf(clock) != plan.source.clock ||
+		clock.read != 0 || clock.history != nil || clock.legacyClaims != 0 {
+		t.Fatal("compiler replaced the original native clock, deadline or selection")
+	}
+	if plan.config.bounds.history.derivation != nil || plan.config.bounds.valid() {
+		t.Fatal("pre-H0 source planning created execution authority")
+	}
+	originalPolicy, originalHistory := *plan.config.policy, *plan.config.bounds.history
+	originalClock := plan.source.clock
+	config.policy.raw, config.policy.policy = "changed", "changed"
+	config.bounds.history.catalogEntries++
+	if *plan.config.policy != originalPolicy || *plan.config.bounds.history != originalHistory ||
+		plan.source.clock != originalClock || providerHistoryClockSelectionOf(clock) != originalClock {
+		t.Fatal("caller changes altered the retained compiled selection")
+	}
+	if _, err := providerHistoryCompileOwnedSourcePlan(ctx, config, 1<<20, 1, 1); err == nil {
+		t.Fatal("a second compilation accepted the changed invalid caller policy")
+	}
+	numeric, ok := providerHistoryCompileSourcePlan(plan.config, plan.source.clock)
+	if !ok || numeric.clock != nil || !numeric.compilerDeadline.IsZero() || numeric.source != plan.source {
+		t.Fatal("the numeric diagnostic acquired a native clock or changed source DATA")
+	}
+}
+
+func TestProviderHistoryOwnedSourcePlanRefusesWithoutPublishingPartialState(t *testing.T) {
+	for _, name := range []string{"nil-context", "no-deadline", "canceled", "expired", "missing-selection", "zero-clock-capacity", "large-clock-capacity", "zero-uncertainty", "zero-window", "invalid-clock-policy", "late-cancellation"} {
+		t.Run(name, func(t *testing.T) {
+			config := historySelectedSourceConfig(t)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+			defer cancel()
+			var selected context.Context = ctx
+			maximum, uncertainty, window := uint64(1<<20), int64(1), int64(1)
+			want := ErrConfiguration
+			switch name {
+			case "nil-context":
+				selected = nil
+			case "no-deadline":
+				selected = context.Background()
+			case "canceled":
+				cancel()
+				want = context.Canceled
+			case "expired":
+				expired, stop := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+				defer stop()
+				selected, want = expired, context.DeadlineExceeded
+			case "missing-selection":
+				config.bounds.history = nil
+			case "zero-clock-capacity":
+				maximum = 0
+			case "large-clock-capacity":
+				maximum++
+			case "zero-uncertainty":
+				uncertainty = 0
+			case "zero-window":
+				window = 0
+			case "invalid-clock-policy":
+				config.policy.raw = `{"clock":[]}`
+			case "late-cancellation":
+				selected = &providerHistoryCompilerCancellationContext{Context: ctx, cancel: cancel}
+				want = context.Canceled
+			}
+			plan, err := providerHistoryCompileOwnedSourcePlan(selected, config, maximum, uncertainty, window)
+			if plan != nil || !errors.Is(err, want) {
+				t.Fatal("refused compilation leaked a plan or changed the original error", plan, err)
+			}
+		})
+	}
+}
+
+// Cancel the real finite context at the second observation, after synchronous
+// compilation. This unit scenario does not select a production clock/backend.
+type providerHistoryCompilerCancellationContext struct {
+	context.Context
+	cancel context.CancelFunc
+	checks int
+}
+
+func (c *providerHistoryCompilerCancellationContext) Err() error {
+	c.checks++
+	if c.checks == 2 {
+		c.cancel()
+	}
+	return c.Context.Err()
+}
 
 // Unminted numeric UNIT input only. The fixture's provisioned originals keep
 // their unchanged ordinary profile; this copied config is never opened.

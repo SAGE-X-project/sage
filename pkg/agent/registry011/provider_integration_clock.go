@@ -44,13 +44,29 @@ type providerOwnedClock struct {
 // The finite setup envelope must cover construction and every permitted read.
 // This factory is private and is not a Source/selection/activation constructor.
 func newProviderOwnedClock(policy *ProviderPolicyCandidate, maximum uint64, baseUncertaintyMS, readWindowMS int64) (*providerOwnedClock, error) {
-	if policy == nil || policy.raw == "" || maximum == 0 || maximum > 1<<20 || baseUncertaintyMS <= 0 || readWindowMS <= 0 || readWindowMS > math.MaxInt64/int64(time.Millisecond) || baseUncertaintyMS > math.MaxInt64-readWindowMS {
+	return newProviderOwnedClockAtOrigin(policy, maximum, baseUncertaintyMS, readWindowMS, time.Now())
+}
+
+// Only a package-owned constructor supplies this origin. In particular, the
+// source-plan compiler keeps its first native origin through input copying,
+// policy parsing and epoch creation instead of restarting time afterwards.
+func newProviderOwnedClockAtOrigin(policy *ProviderPolicyCandidate, maximum uint64, baseUncertaintyMS, readWindowMS int64, origin time.Time) (*providerOwnedClock, error) {
+	if origin.IsZero() || policy == nil || policy.raw == "" || len(policy.raw) > providerHistorySourceRawTextLimit || maximum == 0 || maximum > 1<<20 || baseUncertaintyMS <= 0 || readWindowMS <= 0 || readWindowMS > math.MaxInt64/int64(time.Millisecond) || baseUncertaintyMS > math.MaxInt64-readWindowMS {
 		return nil, ErrConfiguration
 	}
-	p := contentJSON([]byte(policy.raw)).(map[string]any)["clock"].(map[string]any)
-	maximumUncertainty, _ := providerCandidateUint(p["max_uncertainty_ms"], true)
-	maximumWindow, _ := providerCandidateUint(p["max_read_window_ms"], true)
-	if uint64(baseUncertaintyMS+readWindowMS) > maximumUncertainty || uint64(readWindowMS) > maximumWindow {
+	root, ok := contentJSON([]byte(policy.raw)).(map[string]any)
+	if !ok {
+		return nil, ErrConfiguration
+	}
+	p, ok := root["clock"].(map[string]any)
+	if !ok {
+		return nil, ErrConfiguration
+	}
+	maximumUncertainty, uncertaintyOK := providerCandidateUint(p["max_uncertainty_ms"], true)
+	maximumWindow, windowOK := providerCandidateUint(p["max_read_window_ms"], true)
+	id := contentString(p["id"])
+	if !uncertaintyOK || !windowOK || id == "" || len(id) > providerHistorySourceFixedTextLimit ||
+		uint64(baseUncertaintyMS+readWindowMS) > maximumUncertainty || uint64(readWindowMS) > maximumWindow {
 		return nil, ErrConfiguration
 	}
 	// This random epoch label is not a key, secret or authority. A new process
@@ -59,7 +75,7 @@ func newProviderOwnedClock(policy *ProviderPolicyCandidate, maximum uint64, base
 	if _, err := rand.Read(nonce[:]); err != nil {
 		return nil, errProviderOwnedClock
 	}
-	c := &providerOwnedClock{origin: time.Now(), id: contentString(p["id"]), policy: policy.policy, epoch: "0x" + hex.EncodeToString(nonce[:]), uncertainty: baseUncertaintyMS + readWindowMS, readWindow: time.Duration(readWindowMS) * time.Millisecond, maximum: maximum}
+	c := &providerOwnedClock{origin: origin, id: id, policy: policy.policy, epoch: "0x" + hex.EncodeToString(nonce[:]), uncertainty: baseUncertaintyMS + readWindowMS, readWindow: time.Duration(readWindowMS) * time.Millisecond, maximum: maximum}
 	c.owner = c
 	return c, nil
 }
