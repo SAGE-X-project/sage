@@ -4,7 +4,7 @@ The opt-in Darwin test runs five fixed controls in disposable C children. It
 checks address-space admission and refusal, open-file exhaustion and cleanup,
 file-size termination, cumulative CPU-time termination, and cancellation after
 an actual child readiness marker. The cancellation control has a ten-second
-alarm fallback and uses the existing owned process-group termination. Its
+alarm fallback and uses lifecycle-protected cancellation of its single child. Its
 returned attempt must be read back exactly from the parent's journal while
 the original parent owner remains valid. This is a finite single-child
 observation, not a claim about arbitrary descendant processes. The parent keeps

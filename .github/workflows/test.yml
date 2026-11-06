@@ -42,6 +42,82 @@ jobs:
           cp .github/workflows/test.yml "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/test-workflow.yml"
           go test -mod=readonly -count=1 -timeout=3m -tags=registry_native_limits -json ./internal/qualification/nativelimits > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/tests.jsonl"
           git diff --exit-code
+      - name: Check the owning worker with the stock Go runtime
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          registry_worker_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/worker"
+          mkdir -p "$registry_worker_dir/source"
+          cp -R internal/registryworker "$registry_worker_dir/source/"
+          go version > "$registry_worker_dir/compiler.txt"
+          git ls-files -z internal/registryworker | xargs -0 shasum -a 256 > "$registry_worker_dir/source.sha256"
+          worker_status=0
+          go test -mod=readonly -race -count=1 -timeout=4m -tags=registry_native_limits -json -coverprofile="$registry_worker_dir/coverage.out" -covermode=atomic ./internal/registryworker > "$registry_worker_dir/tests.jsonl" || worker_status=$?
+          printf '%s\n' "$worker_status" > "$registry_worker_dir/tests.exit"
+          worker_coverage_status=0
+          python3 - "$registry_worker_dir/coverage.out" "$registry_worker_dir/coverage-gate.json" <<'PYWORKERCOVERAGE' || worker_coverage_status=$?
+          import json, sys
+          from pathlib import Path
+          prefix = "github.com/sage-x-project/sage/internal/registryworker/"
+          def read_coverage(rows):
+              files = {name: {"covered": 0, "statements": 0} for name in ("owner.go", "owner_darwin.go")}
+              if not rows or rows[0] != "mode: atomic":
+                  raise ValueError("Owning worker atomic coverage is missing")
+              seen = set()
+              for row in rows[1:]:
+                  location, statements, count = row.rsplit(" ", 2)
+                  name = location.split(":", 1)[0]
+                  if not name.startswith(prefix) or name[len(prefix):] not in files or location in seen:
+                      raise ValueError("Unexpected or duplicate owning worker coverage block")
+                  seen.add(location)
+                  statements, count = int(statements), int(count)
+                  if statements < 0 or count < 0:
+                      raise ValueError("Invalid owning worker coverage integers")
+                  value = files[name[len(prefix):]]
+                  value["statements"] += statements
+                  value["covered"] += statements if count else 0
+              return files
+          def passes(files):
+              return all(v["statements"] > 0 and v["covered"] * 100 >= v["statements"] * 90 for v in files.values())
+          # Exercise this same reader and exact integer threshold, not a copy.
+          row = lambda name, block, n, count: f"{prefix}{name}:{block} {n} {count}"
+          positive = ["mode: atomic", row("owner.go", "1.1,2.1", 9, 1),
+              row("owner.go", "3.1,4.1", 1, 0), row("owner_darwin.go", "1.1,2.1", 1, 1)]
+          cases = [
+              ("zero-statement-covered", positive + [row("owner.go", "5.1,6.1", 0, 1)], True),
+              ("zero-statement-uncovered", positive + [row("owner.go", "5.1,6.1", 0, 0)], True),
+              ("negative-statements", positive + [row("owner.go", "5.1,6.1", -1, 1)], False),
+              ("negative-count", positive + [row("owner.go", "5.1,6.1", 0, -1)], False),
+              ("duplicate", positive + [positive[1]], False),
+              ("unexpected-file", positive + [row("other.go", "1.1,2.1", 1, 1)], False),
+              ("missing-file", positive[:-1], False),
+              ("missing-mode", positive[1:], False),
+              ("zero-total-file", positive[:-1] + [row("owner_darwin.go", "1.1,2.1", 0, 1)], False),
+              ("below-threshold", positive + [row("owner.go", "5.1,6.1", 1, 0)], False),
+          ]
+          format_results = []
+          for name, rows, expected in cases:
+              try:
+                  accepted = passes(read_coverage(rows))
+              except ValueError:
+                  accepted = False
+              if accepted != expected:
+                  raise SystemExit(f"Owning worker coverage reader case failed: {name}")
+              format_results.append({"name": name, "expected_acceptance": expected, "passed": True})
+          Path(sys.argv[2]).with_name("coverage-format-cases.json").write_text(json.dumps(format_results, indent=2) + "\n")
+          files = read_coverage(Path(sys.argv[1]).read_text().splitlines())
+          passed = passes(files)
+          Path(sys.argv[2]).write_text(json.dumps({"files": files, "minimum_percent": 90, "passed": passed,
+              "scope": "Darwin owning worker production files; safe fixture and unsupported platforms are separate"}, indent=2) + "\n")
+          if not passed:
+              raise SystemExit("Owning worker requires 90 percent coverage in each production file")
+          PYWORKERCOVERAGE
+          printf '%s\n' "$worker_coverage_status" > "$registry_worker_dir/coverage-gate.exit"
+          git diff --exit-code
+          if [ "$worker_status" -ne 0 ]; then
+            exit "$worker_status"
+          fi
+          exit "$worker_coverage_status"
       - name: Retain native resource observations
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

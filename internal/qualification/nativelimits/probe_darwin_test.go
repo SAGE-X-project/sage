@@ -80,14 +80,8 @@ func invokeWithReadiness(owner context.Context, name, binary string, timeout tim
 	ctx, cancel := context.WithTimeout(owner, timeout)
 	defer cancel()
 	cmd := exec.CommandContext(ctx, binary, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
-	cmd.Cancel = func() error {
-		err := syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
-		if err == syscall.ESRCH {
-			return os.ErrProcessDone
-		}
-		return err
-	}
+	// CommandContext retains Process.Kill's lifetime protection for the one
+	// disposable child. It makes no arbitrary-descendant termination claim.
 	cmd.WaitDelay = time.Second
 	output := boundedOutput{ready: ready}
 	cmd.Stdout, cmd.Stderr = &output, &output
