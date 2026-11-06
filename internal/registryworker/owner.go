@@ -38,6 +38,10 @@ type Limits struct {
 	CPUSeconds, FileBytes, Descriptors  uint64
 	InputBytes, ResultBytes, ErrorBytes int
 	Duration, CleanupReserve            time.Duration
+	// ChildCleanupReserve is part of CleanupReserve, not an extension. Zero
+	// retains immediate cancellation; a positive value permits a cooperative
+	// child stop before the fixed hard-stop and parent cleanup boundaries.
+	ChildCleanupReserve time.Duration
 }
 
 type Configuration struct {
@@ -55,18 +59,22 @@ type Result struct {
 	UserCPU, SystemCPU     time.Duration
 	Output, Diagnostics    []byte
 	OutputExceeded         bool
-	CleanupComplete        bool
+	// CleanupComplete covers the parent's private executable copies only.
+	// It never certifies a child journal, Registry custody or child Go defers.
+	CleanupComplete bool
 }
 
 type Owner struct {
-	self          *Owner
-	mu            sync.Mutex
-	spent         bool
-	configuration Configuration
-	parent        context.Context
-	whole, action context.Context
-	cancelWhole   context.CancelFunc
-	cancelAction  context.CancelFunc
+	self           *Owner
+	mu             sync.Mutex
+	spent          bool
+	configuration  Configuration
+	parent         context.Context
+	whole, action  context.Context
+	hardStop       context.Context
+	cancelWhole    context.CancelFunc
+	cancelAction   context.CancelFunc
+	cancelHardStop context.CancelFunc
 }
 
 func (*Owner) UnmarshalJSON([]byte) error { return ErrUnavailable }
@@ -96,10 +104,15 @@ func New(ctx context.Context, c Configuration) (*Owner, error) {
 	// never extended after cancellation, native failure or a smaller actual run.
 	whole, cancelWhole := context.WithDeadline(context.WithoutCancel(ctx), deadline)
 	action, cancelAction := context.WithDeadline(ctx, actionDeadline)
+	hardStop, cancelHardStop := action, cancelAction
+	if c.Limits.ChildCleanupReserve > 0 {
+		hardStop, cancelHardStop = context.WithDeadline(context.WithoutCancel(ctx), actionDeadline.Add(c.Limits.ChildCleanupReserve))
+	}
 	c.Directory = strings.Clone(c.Directory)
 	c.Launcher.Path, c.Launcher.SHA256 = strings.Clone(c.Launcher.Path), strings.Clone(c.Launcher.SHA256)
 	c.Worker.Path, c.Worker.SHA256 = strings.Clone(c.Worker.Path), strings.Clone(c.Worker.SHA256)
-	o := &Owner{configuration: c, parent: ctx, whole: whole, action: action, cancelWhole: cancelWhole, cancelAction: cancelAction}
+	o := &Owner{configuration: c, parent: ctx, whole: whole, action: action, hardStop: hardStop,
+		cancelWhole: cancelWhole, cancelAction: cancelAction, cancelHardStop: cancelHardStop}
 	o.self = o
 	return o, nil
 }
@@ -112,6 +125,7 @@ func validConfiguration(c Configuration) bool {
 		l.Descriptors >= 16 && l.Descriptors <= 65536 &&
 		l.InputBytes > 0 && l.InputBytes <= 64<<20 && l.ResultBytes > 0 && l.ResultBytes <= 64<<20 &&
 		l.ErrorBytes > 0 && l.ErrorBytes <= 64<<10 && l.CleanupReserve > 0 &&
+		l.ChildCleanupReserve >= 0 && l.ChildCleanupReserve < l.CleanupReserve &&
 		l.Duration > l.CleanupReserve && l.Duration <= 31*24*time.Hour
 }
 
@@ -144,6 +158,7 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 	o.mu.Unlock()
 	defer o.cancelWhole()
 	defer o.cancelAction()
+	defer o.cancelHardStop()
 	c := o.configuration
 	if len(input) == 0 || len(input) > c.Limits.InputBytes || o.action.Err() != nil {
 		return result, errors.Join(ErrUnavailable, o.action.Err())
@@ -195,10 +210,19 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = bytes.NewReader(ownedInput), &stdout, &stderr
 	cmd.ExtraFiles = []*os.File{readyWrite}
 	cmd.WaitDelay = time.Second
+	if c.Limits.ChildCleanupReserve > 0 {
+		cmd.WaitDelay = c.Limits.ChildCleanupReserve
+	}
 	if err = cmd.Start(); err != nil {
 		return result, errors.Join(ErrUnavailable, readyWrite.Close())
 	}
 	result.Started = true
+	var processExited chan struct{}
+	var hardStopped <-chan error
+	if c.Limits.ChildCleanupReserve > 0 {
+		processExited = make(chan struct{})
+		hardStopped = watchHardStop(o.hardStop, cmd.Process, processExited)
+	}
 	closeWriteErr := readyWrite.Close()
 	readyDone := make(chan error, 1)
 	go func() {
@@ -206,6 +230,11 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 		readyDone <- readErr
 	}()
 	waitErr := cmd.Wait()
+	var hardStopErr error
+	if hardStopped != nil {
+		close(processExited)
+		hardStopErr = <-hardStopped
+	}
 	// The launcher closes the control descriptor on exec. If the worker dies
 	// before exec, process exit also closes it. The selected program is a single
 	// child; arbitrary descendant processes are outside this candidate contract.
@@ -225,11 +254,31 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 		result.UserCPU, result.SystemCPU = state.UserTime(), state.SystemTime()
 		result.Signal = platformSignal(state)
 	}
-	err = errors.Join(waitErr, closeWriteErr, closeReadErr, readyErr)
+	err = errors.Join(waitErr, hardStopErr, closeWriteErr, closeReadErr, readyErr)
 	if !result.LimitsApplied || result.OutputExceeded {
 		err = errors.Join(err, ErrUnavailable)
 	}
 	return result, err
+}
+
+// The fixed boundary is chosen before bootstrap. Even an early cooperative
+// cancellation cannot move it later. Use the owning Process handle throughout,
+// never a cached numeric PID or process-group identifier.
+func watchHardStop(ctx context.Context, process *os.Process, exited <-chan struct{}) <-chan error {
+	done := make(chan error, 1)
+	go func() {
+		select {
+		case <-ctx.Done():
+			err := process.Kill()
+			if errors.Is(err, os.ErrProcessDone) {
+				err = nil
+			}
+			done <- err
+		case <-exited:
+			done <- nil
+		}
+	}()
+	return done
 }
 
 func copyAsset(ctx context.Context, asset Asset, destination string) (err error) {

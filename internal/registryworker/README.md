@@ -16,6 +16,19 @@ keeps its original finite deadline, bounded also by the caller's original
 deadline. It is never renewed. An expired cleanup owner performs no further
 directory deletion and cannot report cleanup completion.
 
+An explicit positive `ChildCleanupReserve` uses part of that same reservation
+for a cooperative SIGTERM stop. It must leave a positive parent cleanup
+interval. A child that handles the request can finish its terminal writes;
+an early cancellation is still capped by this child interval, and the fixed
+hard-stop deadline is set before bootstrap. Both soft and hard termination use
+the owning Go Process handle, including after exit. No numeric PID is signaled.
+Zero retains immediate termination. Grace never extends the original lifetime.
+`CleanupComplete` reports only removal of the parent's executable copies. A
+normal child exit or that flag does not authenticate a child journal, make
+incomplete Registry custody complete, or certify that Go defers ran after a
+forced stop or host loss. Production terminal custody still needs its own
+funded connection, including a retained incomplete prefix on forced termination.
+
 The Darwin launcher lowers and reads back the child process's CPU-time,
 per-file-size, descriptor and core-dump limits before executing the selected
 worker. The parent owns cancellation and bounded input, result, diagnostic and
@@ -26,7 +39,8 @@ successful result publication. Already completed diagnostic data may remain.
 These controls have specific scopes. CPU time is cumulative process CPU time,
 not guaranteed scheduler service. A file-size limit is per file, not a total
 storage reservation. The parent deadline requires the selected operating
-system to schedule the parent and return its filesystem operations. Neither
+system to schedule the parent and return its native operations, including
+filesystem and process-control calls. Neither
 Go's heap target nor an address-space ceiling is represented as physical RAM.
 This candidate does not promise kernel memory, reserve physical backing,
 qualify an arbitrary descendant process tree or tolerate a hostile host that

@@ -5,8 +5,11 @@
 package main
 
 import (
+	"context"
 	"io"
 	"os"
+	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -47,6 +50,10 @@ func main() {
 			os.Exit(5)
 		}
 	default:
+		if strings.HasPrefix(input, "stop ") {
+			cooperativeStop(input)
+			return
+		}
 		if !strings.HasPrefix(input, "wait /") {
 			os.Exit(6)
 		}
@@ -63,4 +70,41 @@ func main() {
 		<-time.After(5 * time.Second)
 		os.Exit(9)
 	}
+}
+
+// This finite test fixture writes its terminal marker only after an ordinary
+// termination request. Neither marker is a Registry journal or qualification.
+func cooperativeStop(input string) {
+	fields := strings.Fields(input)
+	if len(fields) != 3 || !filepath.IsAbs(fields[1]) || !filepath.IsAbs(fields[2]) {
+		os.Exit(6)
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM)
+	defer stop()
+	if !writeMarker(fields[1], "ready") {
+		os.Exit(7)
+	}
+	fallback := time.NewTimer(5 * time.Second)
+	defer fallback.Stop()
+	select {
+	case <-ctx.Done():
+	case <-fallback.C:
+		os.Exit(9)
+	}
+	if !writeMarker(fields[2], "closed") {
+		os.Exit(8)
+	}
+	if _, err := io.WriteString(os.Stdout, "stopped"); err != nil {
+		os.Exit(5)
+	}
+}
+
+func writeMarker(path, value string) bool {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return false
+	}
+	_, writeErr := f.WriteString(value)
+	closeErr := f.Close()
+	return writeErr == nil && closeErr == nil
 }

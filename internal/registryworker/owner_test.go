@@ -59,6 +59,8 @@ func TestConfigurationRequiresFiniteDistinctResourceScopes(t *testing.T) {
 		{"zero-diagnostic", func(c *Configuration) { c.Limits.ErrorBytes = 0 }},
 		{"large-diagnostic", func(c *Configuration) { c.Limits.ErrorBytes = 64<<10 + 1 }},
 		{"no-cleanup-window", func(c *Configuration) { c.Limits.CleanupReserve = 0 }},
+		{"negative-child-cleanup", func(c *Configuration) { c.Limits.ChildCleanupReserve = -time.Nanosecond }},
+		{"no-parent-cleanup", func(c *Configuration) { c.Limits.ChildCleanupReserve = c.Limits.CleanupReserve }},
 		{"no-action-window", func(c *Configuration) { c.Limits.Duration = c.Limits.CleanupReserve }},
 		{"large-duration", func(c *Configuration) { c.Limits.Duration = 31*24*time.Hour + 1 }},
 	} {
@@ -77,6 +79,44 @@ func TestConfigurationRequiresFiniteDistinctResourceScopes(t *testing.T) {
 		if o, err := New(ctx, base); o != nil || !errors.Is(err, ErrConfiguration) {
 			t.Fatal("missing original lifetime admitted", err)
 		}
+	}
+}
+
+func TestChildCleanupKeepsTheOriginalWholeBoundary(t *testing.T) {
+	c := candidateConfiguration(t.TempDir())
+	c.Limits.CleanupReserve = 3 * time.Second
+	c.Limits.ChildCleanupReserve = time.Second
+	parent, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	o, err := New(parent, c)
+	if !platformSupported() {
+		if o != nil || !errors.Is(err, ErrUnsupported) {
+			t.Fatal("unsupported host admitted a cooperative owner", err)
+		}
+		return
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer o.cancelWhole()
+	defer o.cancelAction()
+	defer o.cancelHardStop()
+	whole, wholeOK := o.whole.Deadline()
+	action, actionOK := o.action.Deadline()
+	hard, hardOK := o.hardStop.Deadline()
+	if !wholeOK || !actionOK || !hardOK || hard.Sub(action) != c.Limits.ChildCleanupReserve ||
+		whole.Sub(hard) != c.Limits.CleanupReserve-c.Limits.ChildCleanupReserve {
+		t.Fatal("child grace consumed or extended the parent's cleanup boundary")
+	}
+	cancel()
+	if !errors.Is(o.action.Err(), context.Canceled) || o.hardStop.Err() != nil || o.whole.Err() != nil {
+		t.Fatal("caller cancellation consumed the held child/parent cleanup intervals")
+	}
+	if after, _ := o.hardStop.Deadline(); after != hard {
+		t.Fatal("cancellation reset the fixed hard boundary")
+	}
+	if _, err := o.Run([]byte("echo")); !errors.Is(err, context.Canceled) {
+		t.Fatal("already canceled action started a worker", err)
 	}
 }
 

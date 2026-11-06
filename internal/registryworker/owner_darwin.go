@@ -18,6 +18,11 @@ func platformCommand(ctx context.Context, launcher, worker string, l Limits) (*e
 		strconv.FormatUint(l.FileBytes, 10), strconv.FormatUint(l.Descriptors, 10))
 	// Keep CommandContext's lifecycle-protected Process.Kill cancellation.
 	// The selected launcher/worker is one process, with no descendants.
+	if l.ChildCleanupReserve > 0 {
+		// Exec calls Cancel only after Start. Signal uses the same protected
+		// Process handle; the original hard-stop owner separately bounds grace.
+		cmd.Cancel = func() error { return cmd.Process.Signal(syscall.SIGTERM) }
+	}
 	return cmd, nil
 }
 

@@ -60,15 +60,17 @@ func nativeConfiguration(t *testing.T) Configuration {
 }
 
 func TestNativeCommandCancellationAfterWaitKeepsProcessLifetime(t *testing.T) {
-	cmd, err := platformCommand(context.Background(), "/usr/bin/true", "/unused", Limits{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := cmd.Run(); err != nil {
-		t.Fatal(err)
-	}
-	if err := cmd.Cancel(); !errors.Is(err, os.ErrProcessDone) {
-		t.Fatal("completed child cancellation lost process lifetime protection", err)
+	for _, reserve := range []time.Duration{0, time.Second} {
+		cmd, err := platformCommand(context.Background(), "/usr/bin/true", "/unused", Limits{ChildCleanupReserve: reserve})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := cmd.Run(); err != nil {
+			t.Fatal(err)
+		}
+		if err := cmd.Cancel(); !errors.Is(err, os.ErrProcessDone) {
+			t.Fatal("completed child cancellation lost process lifetime protection", reserve, err)
+		}
 	}
 }
 
@@ -190,13 +192,35 @@ func TestNativeOwnerWithholdsDataWhenCleanupCannotComplete(t *testing.T) {
 
 func TestNativeOwnerCancelsAfterWorkerReadiness(t *testing.T) {
 	c := nativeConfiguration(t)
+	ready := filepath.Join(c.Directory, "readiness-"+strconv.Itoa(os.Getpid()))
+	result := cancelReadyWorker(t, c, "wait "+ready, ready)
+	if result.Signal != int(syscall.SIGKILL) {
+		t.Fatal("immediate cancellation did not retain direct-child termination", result)
+	}
+}
+
+func TestNativeOwnerLetsTheChildRecordItsCooperativeStop(t *testing.T) {
+	c := nativeConfiguration(t)
+	c.Limits.CleanupReserve = 3 * time.Second
+	c.Limits.ChildCleanupReserve = time.Second
+	ready, terminal := filepath.Join(c.Directory, "ready"), filepath.Join(c.Directory, "terminal")
+	result := cancelReadyWorker(t, c, "stop "+ready+" "+terminal, ready)
+	if result.ExitCode != 0 || result.Signal != 0 {
+		t.Fatal("cooperative stop did not reach normal child exit", result)
+	}
+	if data, err := os.ReadFile(terminal); err != nil || string(data) != "closed" {
+		t.Fatal("child terminal marker was not completed", err)
+	}
+}
+
+func cancelReadyWorker(t *testing.T, c Configuration, input, ready string) Result {
+	t.Helper()
 	parent, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	o, err := New(parent, c)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ready := filepath.Join(c.Directory, "readiness-"+strconv.Itoa(os.Getpid()))
 	type completed struct {
 		result Result
 		err    error
@@ -205,7 +229,7 @@ func TestNativeOwnerCancelsAfterWorkerReadiness(t *testing.T) {
 	finished := make(chan struct{})
 	go func() {
 		defer close(finished)
-		result, err := o.Run([]byte("wait " + ready))
+		result, err := o.Run([]byte(input))
 		done <- completed{result, err}
 	}()
 	defer func() {
@@ -238,11 +262,53 @@ func TestNativeOwnerCancelsAfterWorkerReadiness(t *testing.T) {
 	cancel()
 	select {
 	case returned := <-done:
-		if !errors.Is(returned.err, context.Canceled) || !returned.result.Started || !returned.result.LimitsApplied || !returned.result.CleanupComplete || returned.result.Signal != int(syscall.SIGKILL) || len(returned.result.Output) != 0 {
+		if !errors.Is(returned.err, context.Canceled) || !returned.result.Started || !returned.result.LimitsApplied || !returned.result.CleanupComplete || len(returned.result.Output) != 0 {
 			t.Fatalf("active cancellation lost terminal custody: %+v %v", returned.result, returned.err)
 		}
+		assertNoPrivateCopies(t, c.Directory)
+		return returned.result
 	case <-time.After(5 * time.Second):
 		t.Fatal("canceled worker did not return")
 	}
-	assertNoPrivateCopies(t, c.Directory)
+	return Result{}
+}
+
+func TestNativeHardStopUsesTheOwnedProcessLifetime(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	// One fixed, ordinary five-second wait. No group signaling, PID reuse,
+	// hostile-host scenario or unrelated process is involved.
+	cmd := exec.Command("/bin/sleep", "5")
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if cmd.ProcessState == nil {
+			_ = cmd.Process.Kill()
+			_ = cmd.Wait()
+		}
+	}()
+	stopped := watchHardStop(ctx, cmd.Process, make(chan struct{}))
+	cancel()
+	select {
+	case err := <-stopped:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("fixed hard-stop boundary did not terminate its child")
+	}
+	if err := cmd.Wait(); err == nil || platformSignal(cmd.ProcessState) != int(syscall.SIGKILL) {
+		t.Fatal("owned wait did not record forced termination", err)
+	}
+	// The same protected handle is safe after Wait; no stored PID is reused.
+	stopped = watchHardStop(ctx, cmd.Process, make(chan struct{}))
+	select {
+	case err := <-stopped:
+		if err != nil {
+			t.Fatal("completed child was not recognized", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("completed child cancellation did not return")
+	}
 }
