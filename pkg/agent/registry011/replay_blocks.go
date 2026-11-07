@@ -1,7 +1,6 @@
 package registry011
 
 import (
-	"bytes"
 	"context"
 	"errors"
 
@@ -36,6 +35,7 @@ type ReplayBlock struct {
 type replayBudget struct {
 	limits                                      ReplayLimits
 	bytes, txs, frames, logs, traceLogs, proofs int
+	observer                                    *providerWorkMeter
 }
 
 func (b *replayBudget) charge(n int) bool {
@@ -80,21 +80,34 @@ func replayDecodeContent(ctx context.Context, block ReplayBlock, budget *replayB
 	if err := ctx.Err(); err != nil {
 		return result, err
 	}
+	bound, eligible := providerHistoryNativeInputBoundObserved(budget.observer)
+	if !eligible {
+		return result, ErrReplayUnavailable
+	}
 	if !budget.charge(len(block.HeaderRLP)) || len(block.HeaderRLP) > 65536 || len(block.Transactions) != len(block.Receipts) || len(block.Transactions) > budget.limits.MaxTransactions-budget.txs {
 		return result, ErrReplayUnavailable
 	}
 	budget.txs += len(block.Transactions)
 	for i, raw := range block.Transactions {
+		// Every retained reconstruction rechecks actual original byte lengths
+		// before any native transaction decode; a cursor/hash is not a size proof.
+		if bound.collection && uint64(len(raw)) > bound.body {
+			budget.observer.refuse()
+			return result, ErrReplayUnavailable
+		}
 		if !budget.charge(len(raw)) || !budget.charge(len(block.Receipts[i])) {
 			return result, ErrReplayUnavailable
 		}
 	}
 	var header types.Header
-	if rlp.DecodeBytes(block.HeaderRLP, &header) != nil || header.Number == nil || !header.Number.IsUint64() || header.Time > 1<<53-1 {
+	if !budget.blockObserved() || !budget.decodeObserved(block.HeaderRLP) || rlp.DecodeBytes(block.HeaderRLP, &header) != nil || header.Number == nil || !header.Number.IsUint64() || header.Time > 1<<53-1 {
+		return result, ErrReplayUnavailable
+	}
+	if !budget.encodePreflight(len(block.HeaderRLP)) {
 		return result, ErrReplayUnavailable
 	}
 	encoded, e := rlp.EncodeToBytes(&header)
-	if e != nil || !bytes.Equal(encoded, block.HeaderRLP) {
+	if e != nil || !budget.encodedObserved(encoded, len(block.HeaderRLP)) || !budget.equalObserved(encoded, block.HeaderRLP) {
 		return result, ErrReplay
 	}
 	result.header = &header
@@ -106,19 +119,19 @@ func replayDecodeContent(ctx context.Context, block ReplayBlock, budget *replayB
 			return result, err
 		}
 		tx := new(types.Transaction)
-		if tx.UnmarshalBinary(raw) != nil {
+		if !budget.transactionObserved() || !budget.decodeObserved(raw) || tx.UnmarshalBinary(raw) != nil || !budget.encodePreflight(len(raw)) {
 			return result, ErrReplayUnavailable
 		}
 		canonical, e := tx.MarshalBinary()
-		if e != nil || !bytes.Equal(canonical, raw) {
+		if e != nil || !budget.encodedObserved(canonical, len(raw)) || !budget.equalObserved(canonical, raw) {
 			return result, ErrReplay
 		}
 		receipt := new(types.Receipt)
-		if receipt.UnmarshalBinary(block.Receipts[i]) != nil {
+		if !budget.decodeObserved(block.Receipts[i]) || receipt.UnmarshalBinary(block.Receipts[i]) != nil || !budget.encodePreflight(len(block.Receipts[i])) {
 			return result, ErrReplayUnavailable
 		}
 		canonical, e = receipt.MarshalBinary()
-		if e != nil || !bytes.Equal(canonical, block.Receipts[i]) || receipt.Type != tx.Type() {
+		if e != nil || !budget.encodedObserved(canonical, len(block.Receipts[i])) || !budget.equalObserved(canonical, block.Receipts[i]) || receipt.Type != tx.Type() {
 			return result, ErrReplay
 		}
 		// The enrolled Sepolia deployment is post-Byzantium; no post-state/status
@@ -127,14 +140,23 @@ func replayDecodeContent(ctx context.Context, block ReplayBlock, budget *replayB
 			return result, ErrReplay
 		}
 		gas = receipt.CumulativeGasUsed
-		if len(receipt.Logs) > budget.limits.MaxLogs-budget.logs {
+		if len(receipt.Logs) > budget.limits.MaxLogs-budget.logs || !budget.logsObserved(len(receipt.Logs)) {
 			return result, ErrReplayUnavailable
 		}
 		budget.logs += len(receipt.Logs)
 		result.txs[i] = tx
 		result.receipts[i] = receipt
 	}
-	if types.DeriveSha(result.txs, trie.NewStackTrie(nil)) != header.TxHash || types.DeriveSha(result.receipts, trie.NewStackTrie(nil)) != header.ReceiptHash {
+	if budget.observer != nil {
+		txRoot, txErr := providerHistoryContentRootObserved(ctx, block.Transactions, budget.observer)
+		if txErr != nil || !budget.equalObserved(txRoot[:], header.TxHash[:]) {
+			return result, ErrReplay
+		}
+		receiptRoot, receiptErr := providerHistoryContentRootObserved(ctx, block.Receipts, budget.observer)
+		if receiptErr != nil || !budget.equalObserved(receiptRoot[:], header.ReceiptHash[:]) {
+			return result, ErrReplay
+		}
+	} else if types.DeriveSha(result.txs, trie.NewStackTrie(nil)) != header.TxHash || types.DeriveSha(result.receipts, trie.NewStackTrie(nil)) != header.ReceiptHash {
 		return result, ErrReplay
 	}
 	return result, nil

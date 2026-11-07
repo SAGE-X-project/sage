@@ -8,10 +8,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
+	"unicode/utf8"
 )
 
 func checkLiveCaptureReadLimits(t *testing.T) {
@@ -34,6 +40,136 @@ func checkLiveCaptureReadLimits(t *testing.T) {
 			t.Fatal("mislabelled diagnostic limit", meta)
 		}
 	}
+}
+
+// Retain only this public scheduling hint, never authentication headers or
+// cookies. These are bounded parsed header values, not a raw HTTP transcript
+// or permission to retry, extend a deadline, or accept the failed response.
+// Each decoded value is valid UTF-8 within the byte cap; JSON escaping has a
+// separate encoded length. Invalid bytes in the bounded prefix are omitted
+// and explicitly marked sanitized and incomplete.
+type liveRetryAfterDiagnostic struct {
+	Present   bool     `json:"present"`
+	Complete  bool     `json:"complete"`
+	Sanitized bool     `json:"sanitized"`
+	Values    []string `json:"values"`
+}
+
+func liveCaptureRetryAfter(header http.Header) liveRetryAfterDiagnostic {
+	const maximumValues, maximumValueBytes = 4, 1024
+	values := header.Values("Retry-After")
+	result := liveRetryAfterDiagnostic{
+		Present: len(values) != 0, Complete: len(values) <= maximumValues,
+		Values: make([]string, 0, min(len(values), maximumValues)),
+	}
+	for _, value := range values[:min(len(values), maximumValues)] {
+		if len(value) > maximumValueBytes {
+			value = value[:maximumValueBytes]
+			result.Complete = false
+		}
+		// Bound BEFORE normalization, including a rune cut at the byte limit.
+		// Removing invalid bytes cannot expand the retained decoded value.
+		if !utf8.ValidString(value) {
+			value = strings.ToValidUTF8(value, "")
+			result.Sanitized = true
+			result.Complete = false
+		}
+		// A short diagnostic must not retain a much larger header backing.
+		result.Values = append(result.Values, strings.Clone(value))
+	}
+	return result
+}
+
+func checkLiveCaptureRetryAfter(t *testing.T) {
+	t.Helper()
+	for _, tc := range []struct {
+		name      string
+		values    []string
+		want      []string
+		complete  bool
+		sanitized bool
+	}{
+		{"absent", nil, nil, true, false},
+		{"empty-value", []string{""}, []string{""}, true, false},
+		{"seconds", []string{"60"}, []string{"60"}, true, false},
+		{"date", []string{"Fri, 06 Nov 2026 00:00:00 GMT"}, []string{"Fri, 06 Nov 2026 00:00:00 GMT"}, true, false},
+		{"value-limit", []string{"1", "2", "3", "4", "5"}, []string{"1", "2", "3", "4"}, false, false},
+		{"byte-limit", []string{strings.Repeat("7", 1025)}, []string{strings.Repeat("7", 1024)}, false, false},
+		{"valid-multibyte-limit", []string{strings.Repeat("é", 512)}, []string{strings.Repeat("é", 512)}, true, false},
+		{"invalid-prefix-limit", []string{strings.Repeat(string([]byte{0xff}), 1024)}, []string{""}, false, true},
+		{"invalid-prefix-byte", []string{string([]byte{'6', 0xff, '0'})}, []string{"60"}, false, true},
+		{"multibyte-cut", []string{strings.Repeat("a", 1023) + "é"}, []string{strings.Repeat("a", 1023)}, false, true},
+		{"json-escaping", []string{strings.Repeat("<", 1024)}, []string{strings.Repeat("<", 1024)}, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			header := http.Header{"Retry-After": tc.values, "Set-Cookie": []string{"unrelated-owned-cookie"}}
+			got := liveCaptureRetryAfter(header)
+			if got.Present != (len(tc.values) != 0) || got.Complete != tc.complete || got.Sanitized != tc.sanitized || !slices.Equal(got.Values, tc.want) {
+				t.Fatal("incorrect bounded Retry-After diagnostic", got)
+			}
+			raw, err := json.Marshal(got)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var stored liveRetryAfterDiagnostic
+			if err = json.Unmarshal(raw, &stored); err != nil {
+				t.Fatal(err)
+			}
+			if stored.Present != got.Present || stored.Complete != got.Complete || stored.Sanitized != got.Sanitized || !slices.Equal(stored.Values, tc.want) {
+				t.Fatal("persisted diagnostic changed its values or scope", stored)
+			}
+			for _, value := range stored.Values {
+				if len(value) > 1024 || !utf8.ValidString(value) {
+					t.Fatal("persisted decoded diagnostic escaped its byte or UTF-8 bound")
+				}
+			}
+			if len(tc.values) != 0 {
+				header.Values("Retry-After")[0] = "changed owned header"
+				if !slices.Equal(got.Values, tc.want) {
+					t.Fatal("diagnostic retained mutable header slice")
+				}
+			}
+		})
+	}
+	t.Run("failed-response-keeps-status-without-reading-body", func(t *testing.T) {
+		var calls atomic.Int32
+		server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			calls.Add(1)
+			w.Header().Set("Retry-After", "60")
+			w.Header().Set("Set-Cookie", "unrelated-owned-cookie")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = io.WriteString(w, "owned rate-limit response")
+		}))
+		defer server.Close()
+		dir := t.TempDir()
+		capture := &liveCaptureTransport{base: server.Client().Transport.(*http.Transport), dir: dir, t: t, remaining: 1024}
+		client := &http.Client{Transport: capture, Timeout: 3 * time.Second}
+		defer client.CloseIdleConnections()
+		response, err := client.Get(server.URL)
+		if err != nil {
+			t.Fatal(err)
+		}
+		closeErr := response.Body.Close() // Match the real caller's unread refusal.
+		if closeErr != nil || response.StatusCode != http.StatusTooManyRequests || response.Header.Get("Retry-After") != "60" || calls.Load() != 1 {
+			t.Fatal("capture changed the original failed response or retried", response.StatusCode, closeErr, calls.Load())
+		}
+		raw, err := os.ReadFile(filepath.Join(dir, "diagnostic-001.json"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var record struct {
+			Status   int                      `json:"accepted_http_status_not_asserted"`
+			Hint     liveRetryAfterDiagnostic `json:"retry_after_header_diagnostic"`
+			Bytes    int                      `json:"response_bytes"`
+			Complete bool                     `json:"capture_complete"`
+		}
+		if err = json.Unmarshal(raw, &record); err != nil {
+			t.Fatal(err)
+		}
+		if record.Status != http.StatusTooManyRequests || !record.Hint.Present || !record.Hint.Complete || record.Hint.Sanitized || !slices.Equal(record.Hint.Values, []string{"60"}) || record.Bytes != 0 || record.Complete || bytes.Contains(raw, []byte("unrelated-owned-cookie")) {
+			t.Fatal("failed response diagnostic lost its scope or retained unrelated headers", record)
+		}
+	})
 }
 
 // Test-only passive capture of the EXISTING transport's consumed bytes, even
@@ -87,6 +223,7 @@ func (c *liveCaptureTransport) RoundTrip(request *http.Request) (*http.Response,
 		return response, err
 	}
 	meta["accepted_http_status_not_asserted"] = response.StatusCode
+	meta["retry_after_header_diagnostic"] = liveCaptureRetryAfter(response.Header)
 	response.Body = &liveCaptureBody{ReadCloser: response.Body, owner: c, meta: meta, save: save, name: stem + ".bin"}
 	return response, nil
 }

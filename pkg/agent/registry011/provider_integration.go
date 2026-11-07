@@ -54,6 +54,9 @@ func (*providerIntegrationPermit) UnmarshalJSON([]byte) error { return errProvid
 // A complete retained prefix can be inspected by the store, but recovery of a
 // consumed operation never calls this initial-only live constructor.
 func newProviderIntegration(store *providerCustodyStore, policy *ProviderPolicyCandidate, candidate *ProviderCandidateContext, primitive providerPrimitiveBounds) (*providerIntegration, error) {
+	if store == nil || store.config.bounds.history != nil || store.history != nil {
+		return nil, ErrConfiguration
+	}
 	id, err := candidate.Identity()
 	if err != nil || policy == nil || policy.raw == "" || !store.valid() || store.enrollment != "" || store.sequence != 0 || store.config.identity != id || id.Policy != policy.policy || !primitive.capture.valid() || primitive.capture != store.config.capture || primitive.maximumCreatedObjects < 32 || primitive.maximumCreatedObjects > uint64(store.config.bounds.maximumEntries) {
 		return nil, ErrConfiguration
@@ -99,6 +102,9 @@ func newProviderIntegration(store *providerCustodyStore, policy *ProviderPolicyC
 }
 
 func (c *providerIntegration) makeIntent(authorityRoot string) error {
+	if c == nil || c.store == nil || c.store.config.bounds.history != nil || c.store.history != nil {
+		return errProviderIntegration
+	}
 	p := contentJSON([]byte(c.policy.raw)).(map[string]any)
 	limits := p["limits"].(map[string]any)
 	duration, _ := providerCandidateUint(limits["bootstrap"].(map[string]any)["deadline_ms"], true)
@@ -125,7 +131,7 @@ type providerIntegrationObjectInput struct {
 }
 
 func (c *providerIntegration) objects(inputs []providerIntegrationObjectInput) ([]providerIntegrationObject, error) {
-	if len(inputs) == 0 || len(inputs) > c.store.config.bounds.maximumEntries {
+	if c == nil || c.store == nil || c.store.config.bounds.history != nil || c.store.history != nil || len(inputs) == 0 || len(inputs) > c.store.config.bounds.maximumEntries {
 		return nil, errProviderIntegration
 	}
 	objects := make([]providerIntegrationObject, 0, len(inputs))
@@ -147,11 +153,18 @@ func (c *providerIntegration) valid() bool {
 	return c != nil && c.owner == c && !c.failed && c.store.valid() && c.policy != nil && c.intent != nil && c.root != nil && c.clock != nil
 }
 
+// First-operation observers still use valid/currentClock. Generic admission,
+// clients and local commands must refuse the whole-program profile before
+// touching a meter, nil generic cache, clock, serializer or retaining writer.
+func (c *providerIntegration) legacyAllowed() bool {
+	return c != nil && c.store != nil && c.store.config.bounds.history == nil && c.store.history == nil && c.valid()
+}
+
 // All preparation/validation is also bounded by a fully charged finite setup
 // envelope, even when a proposed ticket is refused before it can fund work.
 // A new handle cannot replenish it: initial enrollment has already been used.
 func (c *providerIntegration) prepare() error {
-	if !c.valid() || c.preparations >= c.store.config.bounds.maximumCommits {
+	if !c.legacyAllowed() || c.preparations >= c.store.config.bounds.maximumCommits {
 		return errProviderIntegration
 	}
 	c.preparations++
@@ -159,6 +172,15 @@ func (c *providerIntegration) prepare() error {
 }
 
 func (c *providerIntegration) currentClock() (ClockSample, error) {
+	if c == nil || c.store == nil {
+		return ClockSample{}, errProviderIntegration
+	}
+	if c.store.config.bounds.history != nil {
+		o, meter := c.store.firstOperation, c.store.activeMeter.Load()
+		if o == nil || o.integration != c || !o.selectedLocked() || meter == nil || meter.firstOperation != o || meter.integration != c {
+			return ClockSample{}, errProviderIntegration
+		}
+	}
 	clock, err := c.store.sample()
 	if err != nil || !candidateLedgerClockAdvance(c.intent.clock, providerClockDiagnostic(clock)) || candidateLedgerExpired(providerClockDiagnostic(clock), c.intent.deadline) {
 		return ClockSample{}, errProviderIntegration
@@ -169,7 +191,7 @@ func (c *providerIntegration) currentClock() (ClockSample, error) {
 // A gated clone never escapes its concrete adapter, and cannot be nested into
 // the older acquisition constructor. The existing nil-gate V1 path is intact.
 func (c *providerIntegration) readClient() (*ReadRPC, error) {
-	if !c.valid() || c.primitive.capture.BodyBytes <= 0 {
+	if !c.legacyAllowed() || c.primitive.capture.BodyBytes <= 0 {
 		return nil, errProviderIntegration
 	}
 	client, err := NewSepoliaReadRPC(RPCTransportLimits{c.primitive.capture.Timeout, c.primitive.capture.BodyBytes, c.primitive.capture.JSONDepth})

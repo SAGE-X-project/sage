@@ -10,7 +10,12 @@ func providerGuardianAddedWork(b providerIntegrationBounds, quadratic, linear, r
 	if b.guardian == nil || b.scan == nil || b.continuation == nil {
 		return work, false
 	}
-	n := max(b.maximumMetadataPerCommit, uint64(64<<10))
+	return providerGuardianWorkCost(b.maximumMetadataPerCommit, quadratic, linear, raw)
+}
+
+func providerGuardianWorkCost(metadata, quadratic, linear, raw uint64) (candidateWorkVector, bool) {
+	var work candidateWorkVector
+	n := max(metadata, uint64(64<<10))
 	q, a := providerUpperProduct(n, n)
 	q, c := providerUpperSum(q, 1)
 	l, d := providerUpperSum(n, n, 101)
@@ -32,10 +37,17 @@ func providerGuardianBootstrapExtraUpper(b providerIntegrationBounds) (candidate
 	if b.guardian == nil || b.firstAdmission == nil || b.maximumEntries < 8 || b.maximumObjects < 8 {
 		return empty, 0, false
 	}
+	if b.scan == nil || b.continuation == nil {
+		return empty, 0, false
+	}
+	return providerGuardianBootstrapExtraCost(b.maximumMetadataPerCommit, b.fileOverheadBytes)
+}
+
+func providerGuardianBootstrapExtraCost(metadata, overhead uint64) (candidateWorkVector, uint64, bool) {
 	raw, a := providerUpperProduct(3, candidateLedgerMetadataLimit)
-	files, c := providerUpperProduct(3, b.fileOverheadBytes)
+	files, c := providerUpperProduct(3, overhead)
 	physical, d := providerUpperSum(raw, files)
-	work, e := providerGuardianAddedWork(b, 39+3+12+273, 13+6+64+1252, raw)
+	work, e := providerGuardianWorkCost(metadata, 39+3+12+273, 13+6+64+1252, raw)
 	return work, physical, a && c && d && e
 }
 
@@ -45,7 +57,14 @@ func providerGuardianBootstrapExtraUpper(b providerIntegrationBounds) (candidate
 // Two additional complete genesis-lineage checks are 40Q/48L each. None of
 // these rows contains the exhausted O or a future operation's C/S work.
 func providerGuardianFirstExtraUpper(b providerIntegrationBounds) (candidateWorkVector, bool) {
-	return providerGuardianAddedWork(b, 102+14+48+18+2*273+2*40, 34+28+72+64+2*1252+2*48, 0)
+	if b.guardian == nil || b.scan == nil || b.continuation == nil {
+		return candidateWorkVector{}, false
+	}
+	return providerGuardianFirstExtraCost(b.maximumMetadataPerCommit)
+}
+
+func providerGuardianFirstExtraCost(metadata uint64) (candidateWorkVector, bool) {
+	return providerGuardianWorkCost(metadata, 102+14+48+18+2*273+2*40, 34+28+72+64+2*1252+2*48, 0)
 }
 
 // Peak additional candidates reachable at the same time: three closed
@@ -57,11 +76,15 @@ func providerGuardianMemoryExtra(b providerIntegrationBounds) (uint64, bool) {
 	if b.guardian == nil || b.scan == nil || b.continuation == nil {
 		return 0, false
 	}
-	n := max(b.maximumMetadataPerCommit, uint64(64<<10))
-	entries, a := providerUpperProduct(256, max(b.scan.filenameEntryOverhead, b.continuation.objectMemoryOverhead))
+	return providerGuardianMemoryCost(b.maximumMetadataPerCommit, max(b.scan.filenameEntryOverhead, b.continuation.objectMemoryOverhead), b.continuation.codecMemoryMultiplier)
+}
+
+func providerGuardianMemoryCost(metadata, entryOverhead, codecMultiplier uint64) (uint64, bool) {
+	n := max(metadata, uint64(64<<10))
+	entries, a := providerUpperProduct(256, entryOverhead)
 	scratch, c := providerUpperProduct(n, 3)
 	scratch, d := providerUpperSum(scratch, 6*candidateLedgerMetadataLimit)
-	scratch, e := providerUpperProduct(scratch, b.continuation.codecMemoryMultiplier)
+	scratch, e := providerUpperProduct(scratch, codecMultiplier)
 	native, f := providerUpperSum(uint64(reflect.TypeFor[providerGuardianOwner]().Size()), 2*uint64(reflect.TypeFor[providerGuardianBounds]().Size()), 3*uint64(reflect.TypeFor[providerGuardianHeadData]().Size()), 2*uint64(reflect.TypeFor[providerGuardianInitialData]().Size()), 2*uint64(reflect.TypeFor[providerGuardianReplay]().Size()))
 	total, g := providerUpperSum(entries, scratch, native)
 	return total, a && c && d && e && f && g

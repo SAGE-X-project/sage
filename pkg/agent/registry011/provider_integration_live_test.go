@@ -40,6 +40,13 @@ func TestProviderCaptureConnectedAdmissionAndRegistryPin(t *testing.T) {
 	}
 	defer client.Close()
 	if _, err := client.call(ctx, "eth_getBlockByNumber", []any{"finalized", false}); err != nil {
+		// Retain existing failure observations without taking another sample,
+		// changing a clock window, retrying the request or renewing admission.
+		c.clock.mu.Lock()
+		clockFailed, clockRefusal, clockReads, lastClock := c.clock.failed, c.clock.nativeRefusal, c.clock.read, c.clock.last
+		c.clock.mu.Unlock()
+		t.Logf("first finalized read refused: integration_failed=%t store_failed=%t store_sequence=%d clock_failed=%t clock_refusal=%d clock_reads=%d last_clock=%+v",
+			c.failed, store.failed, store.sequence, clockFailed, clockRefusal, clockReads, lastClock)
 		t.Fatal("admitted first finalized read", err)
 	}
 	if err := c.installBootstrap(); err != nil {

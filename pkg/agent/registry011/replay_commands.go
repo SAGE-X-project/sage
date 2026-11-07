@@ -152,26 +152,34 @@ func replayABIServices(services []replayService) []replayABIService {
 }
 
 // Decode then re-pack without repairing offsets, padding or trailing bytes.
-// Tuple conversion is data-only JSON between two pinned ABI field sets.
+// Legacy nil callers retain the JSON bridge between pinned ABI field sets.
 func replayDecodeCommand(registry, actor string, data []byte, contract abi.ABI) (replayCommand, bool) {
+	return replayDecodeCommandObserved(registry, actor, data, contract, nil)
+}
+
+// The optional original observer covers the actual selector/framing, ABI
+// round-trip, owned tuple conversion, canonical command generation and strict
+// consumer/parameter packing. ABI initialization, claims/proofs, semantic state
+// and native cost qualification remain separate; this private DATA result
+// cannot open collection admission or Source policy.
+func replayDecodeCommandObserved(registry, actor string, data []byte, contract abi.ABI, meter *providerWorkMeter) (replayCommand, bool) {
 	var empty replayCommand
 	if len(data) < 4 {
 		return empty, false
 	}
-	method, e := contract.MethodById(data[:4])
+	method, selected := replayABIMethodObserved(contract, data, meter)
+	if !selected {
+		return empty, false
+	}
+	if !replayCallFramingObserved(*method, data, meter) {
+		return empty, false
+	}
+	values, e := replayABICanonicalObserved(method.Inputs, data[4:], meter)
 	if e != nil {
 		return empty, false
 	}
-	if !replayCallFraming(*method, data) {
-		return empty, false
-	}
-	values, e := method.Inputs.Unpack(data[4:])
-	if e != nil {
-		return empty, false
-	}
-	packed, e := method.Inputs.Pack(values...)
-	if e != nil || !bytes.Equal(data[4:], packed) {
-		return empty, false
+	if meter != nil {
+		return replayDecodedCommandObserved(registry, actor, method.Name, values, data, contract, meter)
 	}
 	op := ""
 	for operation, name := range replayMethods {

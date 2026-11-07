@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -33,6 +34,63 @@ func TestProviderScanOpenKeepsExactSetupAndMainHighwaterBytes(t *testing.T) {
 	}
 	if next, err := openProviderFrontierCandidate(s.config, s.clock); err == nil || next != nil {
 		t.Fatal("normal closed prefix restored a fresh initial owner")
+	}
+}
+
+func TestProviderScanOpenClosesOriginalRootsAfterSetupWriteFailure(t *testing.T) {
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("requires an unprivileged owner with POSIX directory permissions")
+	}
+	for _, mode := range []string{"writable", "write-denied"} {
+		t.Run(mode, func(t *testing.T) {
+			config, clock := providerScanProvisionedFixture(t)
+			originals := providerHistoryProvisionedOriginalBytes(t, config)
+			if mode == "write-denied" {
+				info, err := os.Stat(config.custodyDirectory)
+				if err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() {
+					if err := os.Chmod(config.custodyDirectory, info.Mode().Perm()); err != nil {
+						t.Error(err)
+					}
+				})
+				if err := os.Chmod(config.custodyDirectory, 0500); err != nil {
+					t.Fatal(err)
+				}
+			}
+			store, err := openProviderScanCandidate(config, clock)
+			if mode == "writable" {
+				if err != nil || store == nil {
+					t.Fatal("ordinary writable original roots did not finish setup", err)
+				}
+				if err := store.close(); err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			if err != errProviderIntegration || store != nil || clock.read != 1 {
+				t.Fatal("unwritable setup returned a store or reset the original clock", err)
+			}
+			after := providerHistoryProvisionedOriginalBytes(t, config)
+			if len(after) != len(originals) {
+				t.Fatal("failed first setup write left new original files")
+			}
+			for name, want := range originals {
+				if after[name] != want {
+					t.Fatal("failed setup replaced an original", name)
+				}
+			}
+			for _, directory := range []string{config.custodyDirectory, config.evidenceDirectory} {
+				disk, err := openRetentionDisk(directory)
+				if err != nil {
+					t.Fatal("failed setup retained an original root lock", err)
+				}
+				if err := disk.close(); err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
 	}
 }
 

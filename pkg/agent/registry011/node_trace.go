@@ -19,13 +19,36 @@ import (
 // Unknown frame fields and unsupported opcodes fail closed. Supported dimensional
 // diagnostics are validated but do not establish execution or gas authority.
 func DecodeCallTracer(ctx context.Context, raw json.RawMessage, limits ReplayLimits) (ReplayFrame, error) {
-	if ctx == nil || !replayLimits(limits) {
+	return decodeCallTracerObserved(ctx, raw, limits, nil)
+}
+
+// This adds only JSON/frame-normalization observation. It does not turn a
+// parsed tree into a transaction-bound execution or an operating credential.
+func decodeCallTracerObserved(ctx context.Context, raw json.RawMessage, limits ReplayLimits, observer *providerWorkMeter) (ReplayFrame, error) {
+	b := replayBudget{limits: limits, observer: observer}
+	return decodeCallTracerBudgetObserved(ctx, raw, &b)
+}
+
+// A collector uses a separate normalization budget seeded from its ORIGINAL
+// semantic window, then carries these frame/log counts across all of one ready
+// block's roots. It never passes the semantic execution budget itself: walking
+// the normalized trees still consumes that original budget independently.
+// This private DATA decoder neither authenticates the raw source nor supplies
+// a collection capability. Standalone callers retain a fresh per-trace budget.
+func decodeCallTracerBudgetObserved(ctx context.Context, raw json.RawMessage, b *replayBudget) (ReplayFrame, error) {
+	if ctx == nil || b == nil || !replayLimits(b.limits) ||
+		b.frames < 0 || b.frames > b.limits.MaxFrames || b.traceLogs < 0 || b.traceLogs > b.limits.MaxLogs {
 		return ReplayFrame{}, ErrConfiguration
 	}
+	limits, observer := b.limits, b.observer
 	if err := ctx.Err(); err != nil {
 		return ReplayFrame{}, err
 	}
-	if len(raw) == 0 || len(raw) > limits.MaxEvidenceBytes || !utf8.Valid(raw) || !json.Valid(raw) || !validRPCUnicode(raw) {
+	if len(raw) == 0 || len(raw) > limits.MaxEvidenceBytes ||
+		observer != nil && !observer.event(providerCompareEvent, uint64(len(raw))) || !utf8.Valid(raw) ||
+		observer != nil && !observer.event(providerCodecEvent, uint64(len(raw))) || !json.Valid(raw) ||
+		observer != nil && !observer.event(providerCompareEvent, uint64(len(raw))) || !validRPCUnicode(raw) ||
+		observer != nil && !observer.event(providerCodecEvent, uint64(len(raw))) {
 		return ReplayFrame{}, ErrReplayUnavailable
 	}
 	// Check duplicates before unmarshalling can discard them. Each call adds an
@@ -38,8 +61,7 @@ func DecodeCallTracer(ctx context.Context, raw json.RawMessage, limits ReplayLim
 	if _, err := d.Token(); err != io.EOF {
 		return ReplayFrame{}, ErrReplayUnavailable
 	}
-	b := replayBudget{limits: limits}
-	f, err := nodeFrame(ctx, raw, 0, &b, false)
+	f, err := nodeFrame(ctx, raw, 0, b, false)
 	if err != nil {
 		return ReplayFrame{}, err
 	}
@@ -51,23 +73,24 @@ func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBud
 	if err := ctx.Err(); err != nil {
 		return f, err
 	}
-	if depth > 32 || b.frames >= b.limits.MaxFrames {
+	if depth > 32 || b.frames >= b.limits.MaxFrames || !b.frameObserved() {
 		return f, ErrReplayUnavailable
 	}
 	b.frames++
-	m, ok := nodeObject(raw, "type from to gas gasUsed input output error revertReason calls logs value executionGasUsed regularGasUsed stateGasUsed gasRefund stateGasReservoir")
+	observer := b.observer
+	m, ok := nodeJSONFieldsObserved(raw, "type from to gas gasUsed input output error revertReason calls logs value executionGasUsed regularGasUsed stateGasUsed gasRefund stateGasReservoir", "type from to gas gasUsed input", observer)
 	if !ok {
 		return f, ErrReplayUnavailable
 	}
-	f.Type, ok = nodeString(m["type"])
+	f.Type, ok = nodeStringObserved(m["type"], observer)
 	if !ok || (f.Type != "CALL" && f.Type != "STATICCALL" && f.Type != "DELEGATECALL" && f.Type != "CALLCODE" && f.Type != "CREATE" && f.Type != "CREATE2") {
 		return f, ErrReplayUnavailable
 	}
-	f.From, ok = nodeString(m["from"])
+	f.From, ok = nodeStringObserved(m["from"], observer)
 	if !ok || !contentAddress(f.From) {
 		return f, ErrReplayUnavailable
 	}
-	f.To, ok = nodeString(m["to"])
+	f.To, ok = nodeStringObserved(m["to"], observer)
 	if !ok || !contentAddress(f.To) {
 		// In particular, a failed CREATE without a destination cannot be
 		// represented by inventing a zero-address execution context.
@@ -97,29 +120,29 @@ func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBud
 			continue
 		}
 		if erigon && depth > 0 && k == "stateGasUsed" {
-			if !nodeSignedGas(v) {
+			if !nodeSignedGasObserved(v, observer) {
 				return f, ErrReplayUnavailable
 			}
 			continue
 		}
-		s, valid := nodeString(v)
-		if _, validQuantity := rpcQuantity(s); !valid || !validQuantity {
+		s, valid := nodeStringObserved(v, observer)
+		if _, validQuantity := rpcQuantityObserved(s, observer); !valid || !validQuantity {
 			return f, ErrReplayUnavailable
 		}
 	}
-	f.Input, ok = nodeData(m["input"])
+	f.Input, ok = nodeDataObserved(m["input"], observer)
 	if !ok {
 		return f, ErrReplayUnavailable
 	}
 	if output, present := m["output"]; present {
-		if _, ok := nodeData(output); !ok {
+		if _, ok := nodeDataObserved(output, observer); !ok {
 			return f, ErrReplayUnavailable
 		}
 	}
 	f.Value = "0x0"
 	if v, present := m["value"]; present {
-		f.Value, ok = nodeString(v)
-		if _, valid := replayValue(f.Value); !ok || !valid {
+		f.Value, ok = nodeStringObserved(v, observer)
+		if _, valid := nodeValueObserved(f.Value, observer); !ok || !valid {
 			return f, ErrReplayUnavailable
 		}
 	} else if f.Type != "STATICCALL" {
@@ -127,7 +150,7 @@ func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBud
 	}
 	for _, key := range []string{"error", "revertReason"} {
 		if v, present := m[key]; present {
-			s, valid := nodeString(v)
+			s, valid := nodeStringObserved(v, observer)
 			if !valid || len(s) > 4096 {
 				return f, ErrReplayUnavailable
 			}
@@ -137,23 +160,37 @@ func nodeFrame(ctx context.Context, raw json.RawMessage, depth int, b *replayBud
 		}
 	}
 	var calls, logs []json.RawMessage
-	if !nodeArray(m, "calls", &calls, b.limits.MaxFrames-b.frames) || !nodeArray(m, "logs", &logs, b.limits.MaxLogs-b.traceLogs) {
+	if !nodeArrayObserved(m, "calls", &calls, b.limits.MaxFrames-b.frames, observer) || !nodeArrayObserved(m, "logs", &logs, b.limits.MaxLogs-b.traceLogs, observer) {
 		return f, ErrReplayUnavailable
 	}
 	b.traceLogs += len(logs)
-	for _, call := range calls {
+	if observer != nil && !nodeFrameStorageObserved(&f, len(calls), len(logs), observer) {
+		return ReplayFrame{}, ErrReplayUnavailable
+	}
+	for index, call := range calls {
 		child, err := nodeFrame(ctx, call, depth+1, b, erigon)
 		if err != nil {
 			return ReplayFrame{}, err
 		}
-		f.Calls = append(f.Calls, child)
+		if observer == nil {
+			f.Calls = append(f.Calls, child)
+		} else if !nodeFrameCopyObserved(&f, index, child, observer) {
+			return ReplayFrame{}, ErrReplayUnavailable
+		}
 	}
-	for _, rawLog := range logs {
-		l, valid := nodeLog(rawLog, len(calls))
+	for index, rawLog := range logs {
+		if !b.logsObserved(1) {
+			return ReplayFrame{}, ErrReplayUnavailable
+		}
+		l, valid := nodeLogObserved(rawLog, len(calls), observer)
 		if !valid {
 			return ReplayFrame{}, ErrReplayUnavailable
 		}
-		f.Logs = append(f.Logs, l)
+		if observer == nil {
+			f.Logs = append(f.Logs, l)
+		} else if !nodeFrameLogCopyObserved(&f, index, l, observer) {
+			return ReplayFrame{}, ErrReplayUnavailable
+		}
 	}
 	return f, nil
 }
@@ -174,16 +211,20 @@ func nodeSignedGas(raw json.RawMessage) bool {
 }
 
 func nodeLog(raw json.RawMessage, children int) (ReplayFrameLog, bool) {
+	return nodeLogObserved(raw, children, nil)
+}
+
+func nodeLogObserved(raw json.RawMessage, children int, observer *providerWorkMeter) (ReplayFrameLog, bool) {
 	var l ReplayFrameLog
-	m, ok := nodeObject(raw, "address topics data position index")
+	m, ok := nodeObjectObserved(raw, "address topics data position index", observer)
 	if !ok {
 		return l, false
 	}
-	l.Address, ok = nodeString(m["address"])
+	l.Address, ok = nodeStringObserved(m["address"], observer)
 	if !ok || !contentAddress(l.Address) {
 		return l, false
 	}
-	position, ok := nodeIndex(m["position"])
+	position, ok := nodeIndexObserved(m["position"], observer)
 	// The acquisition permits at most 65,536 frames. Check this absolute
 	// bound before converting even on a 32-bit consumer.
 	if !ok || position > 65536 || position > uint64(children) {
@@ -191,24 +232,37 @@ func nodeLog(raw json.RawMessage, children int) (ReplayFrameLog, bool) {
 	}
 	l.AfterChildren = int(position)
 	if v, present := m["index"]; present {
-		if _, ok := nodeIndex(v); !ok {
+		if _, ok := nodeIndexObserved(v, observer); !ok {
 			return l, false
 		}
 	}
-	l.Data, ok = nodeData(m["data"])
+	l.Data, ok = nodeDataObserved(m["data"], observer)
 	if !ok {
 		return l, false
 	}
 	var topics []json.RawMessage
-	if !nodeArray(m, "topics", &topics, 4) || m["topics"] == nil {
+	if !nodeArrayObserved(m, "topics", &topics, 4, observer) || m["topics"] == nil {
 		return l, false
 	}
-	for _, v := range topics {
-		s, valid := nodeString(v)
+	if observer != nil && len(topics) != 0 {
+		if !observer.event(providerCopyEvent, uint64(len(topics))*32) {
+			return l, false
+		}
+		l.Topics = make([]common.Hash, len(topics))
+	}
+	for index, v := range topics {
+		s, valid := nodeStringObserved(v, observer)
 		if !valid || !lowerHash(s) {
 			return l, false
 		}
-		l.Topics = append(l.Topics, common.HexToHash(s))
+		if observer == nil {
+			l.Topics = append(l.Topics, common.HexToHash(s))
+		} else {
+			if !observer.event(providerCodecEvent, 64) || !observer.event(providerCopyEvent, 32) {
+				return l, false
+			}
+			l.Topics[index] = common.HexToHash(s)
+		}
 	}
 	return l, true
 }

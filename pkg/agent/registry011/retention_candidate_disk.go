@@ -33,7 +33,7 @@ type retentionState struct {
 	last       retentionRecord
 }
 
-func openCandidateRetentionLog(config CandidateRetentionConfig, recovery *ProviderCandidateIdentity, operation string) (*CandidateRetentionLog, *CandidateRetentionPending, error) {
+func openCandidateRetentionLog(config CandidateRetentionConfig, recovery *ProviderCandidateIdentity, operation string) (_ *CandidateRetentionLog, _ *CandidateRetentionPending, resultErr error) {
 	if config.Directory == "" || !lowerHash(config.Namespace) || !lowerHash(config.AnchorDigest) || !lowerHash(config.ExpectedTip) ||
 		config.MaxRecords <= 0 || config.MaxRecords > 65536 || config.MaxRecordBytes <= 0 || config.MaxRecordBytes > 128<<10 ||
 		config.MaxStoredBytes <= 0 || config.MaxStoredBytes > 256<<20 || config.MaxRecordBytes > config.MaxStoredBytes {
@@ -46,7 +46,7 @@ func openCandidateRetentionLog(config CandidateRetentionConfig, recovery *Provid
 	accepted := false
 	defer func() {
 		if !accepted {
-			_ = disk.close()
+			resultErr = retentionCleanupResult(resultErr, disk.close())
 		}
 	}()
 	state, err := loadCandidateRetentionLog(disk, config)
@@ -85,41 +85,68 @@ func openCandidateRetentionLog(config CandidateRetentionConfig, recovery *Provid
 	return a, nil, nil
 }
 
-func openRetentionDisk(directory string) (*retentionDisk, error) {
+func openRetentionDisk(directory string) (_ *retentionDisk, resultErr error) {
 	root, err := os.OpenRoot(directory)
 	if err != nil {
 		return nil, err
 	}
-	f, err := root.OpenFile("AUTHORITY.LOCK", os.O_RDWR, 0)
+	var f *os.File
+	locked, accepted := false, false
+	defer func() {
+		if !accepted {
+			resultErr = retentionCleanupResult(resultErr, closeRetentionResources(root, f, locked))
+		}
+	}()
+	f, err = root.OpenFile("AUTHORITY.LOCK", os.O_RDWR, 0)
 	if err != nil {
-		_ = root.Close()
 		return nil, err
 	}
 	stat, e := f.Stat()
 	path, p := root.Lstat("AUTHORITY.LOCK")
 	if e != nil || p != nil || !stat.Mode().IsRegular() || !path.Mode().IsRegular() || !os.SameFile(stat, path) {
-		_ = f.Close()
-		_ = root.Close()
 		return nil, ErrCandidateRetention
 	}
 	if err := retentionLock(f); err != nil {
-		_ = f.Close()
-		_ = root.Close()
 		return nil, err
 	}
+	locked = true
 	directoryInfo, err := root.Stat(".")
 	if err != nil {
-		_ = retentionUnlock(f)
-		_ = f.Close()
-		_ = root.Close()
 		return nil, ErrCandidateRetention
 	}
 	disk := &retentionDisk{root: root, lock: f, directory: directory, directoryInfo: directoryInfo, lockInfo: stat, syncFile: (*os.File).Sync}
 	if err := disk.checkIdentity(); err != nil {
-		_ = disk.close()
 		return nil, err
 	}
+	accepted = true
 	return disk, nil
+}
+
+// The acquisition owner calls this once for its actual prefix. Every acquired
+// resource is attempted even when an earlier native operation fails. Reported
+// failure is retained, not retried or treated as successful release. A nil
+// result does not certify unobservable filesystem or native-runtime behavior.
+func closeRetentionResources(root *os.Root, lock *os.File, locked bool) error {
+	var unlockErr, lockErr, rootErr error
+	if lock != nil {
+		if locked {
+			unlockErr = retentionUnlock(lock)
+		}
+		lockErr = lock.Close()
+	}
+	if root != nil {
+		rootErr = root.Close()
+	}
+	return errors.Join(unlockErr, lockErr, rootErr)
+}
+
+// Preserve the original error exactly when cleanup succeeds. A failed cleanup
+// retains both errors and cannot turn the failed constructor into success.
+func retentionCleanupResult(original, cleanup error) error {
+	if cleanup == nil {
+		return original
+	}
+	return errors.Join(original, cleanup)
 }
 
 func loadCandidateRetentionLog(disk *retentionDisk, config CandidateRetentionConfig) (retentionState, error) {
@@ -239,7 +266,7 @@ func (d *retentionDisk) sync() error {
 }
 
 func (d *retentionDisk) close() error {
-	return errors.Join(retentionUnlock(d.lock), d.lock.Close(), d.root.Close())
+	return closeRetentionResources(d.root, d.lock, true)
 }
 
 // checkIdentity detects drift within the selected local view; it does not

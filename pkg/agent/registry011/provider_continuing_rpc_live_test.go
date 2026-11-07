@@ -29,7 +29,7 @@ func TestProviderCaptureContinuingRPCUsesOriginalLifetimeAndOfficialOrigin(t *te
 	// in the original official-origin sample. It neither changes the old 1/4
 	// refusal subject nor treats a prior sample as this connection's identity.
 	tls := providerTLSBounds{2, 5, 8 << 10}
-	config, clock := providerGuardianConfigWithSelectionFixture(t, 64<<20, 6, &providerScanFixtureSelection{capture: &capture, tls: &tls, continuingWire: true})
+	config, clock := providerGuardianConfigWithSelectionFixture(t, 64<<20, 6, providerContinuingRPCHeaderSelectionFixture(&capture, &tls))
 	s, err := openProviderFrontierCandidate(config, clock)
 	if err != nil {
 		t.Fatal("fresh isolated retained pipeline", err)
@@ -60,6 +60,11 @@ func TestProviderCaptureContinuingRPCUsesOriginalLifetimeAndOfficialOrigin(t *te
 	defer cancel()
 	initial, err := first.executeCandidate(ctx)
 	if err != nil || initial == nil {
+		// Fixed integer/boolean diagnostics only; no peer bytes, key, address
+		// from native errors, second request or new clock sample is collected.
+		t.Logf("first operation failure diagnostic: %+v; selected capture: %+v; selected TLS bounds: %+v; consumption=%t settlement=%t sequence=%d state=%d",
+			first.diagnostic, first.plan.capture, first.tls, first.consumption, first.settlement, s.sequence, first.state)
+		t.Logf("post-cleanup execution counters (not an accepted measurement): actual=%v upper=%v clocks=%d", first.execution.actual, first.execution.upper, first.execution.clocks)
 		t.Fatal("official retained first finalized response", err)
 	}
 	bootstrap, err := newProviderContinuingBootstrapCandidate(s)

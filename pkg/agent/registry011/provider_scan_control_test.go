@@ -29,12 +29,38 @@ func providerScanProvisionedFixtureWithFirstPolicy(t *testing.T, first *provider
 
 // An optional separate test profile is fixed before its first anchor/H0/clock.
 type providerScanFixtureSelection struct {
-	capture        *ProviderCaptureLimits
-	tls            *providerTLSBounds
-	continuingWire bool
-	pin            bool
-	pinResidentGiB bool
-	pinLargeObject bool
+	capture                       *ProviderCaptureLimits
+	tls                           *providerTLSBounds
+	continuingWire                bool
+	pin                           bool
+	pinResidentGiB                bool
+	pinLargeObject                bool
+	pinRPCHeader                  bool
+	historyProgram                bool
+	historyShortStartup           bool
+	historyGroupInit              bool
+	historyGroupWrite             bool
+	historyGroupConsume           bool
+	historyGroupDispatch          bool
+	historyStages                 uint64
+	historyStageMembers           int
+	historyDispatchRows           *providerHistoryDispatchBounds
+	historyCollection             *providerHistoryCollectionManifest
+	historyCollectionAdmission    bool
+	historyCollectionFirstP       bool
+	historyCollectionFullPack     bool
+	historyCollectionRecordedRun  bool
+	historyFinalRead              bool
+	historyFinalReadUnits         uint64
+	historyFinalReadWithoutBlocks bool
+	historyRecoveryProofs         uint64
+	historyFinalReadProofs        uint64
+	historyFirstPDecoded          uint64
+	historyNativeInputCounts      bool
+	historyRecoveryNamespace      bool
+	historyRecoveryLegacy         bool
+	historyRecoveryGroup          bool
+	historyCallerRefusal          string
 }
 
 func providerScanProvisionedFixtureWithCapture(t *testing.T, first *providerFirstAdmissionBounds, operation bool, selected *ProviderCaptureLimits) (providerCustodyConfig, *providerOwnedClock) {
@@ -45,6 +71,28 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 	t.Helper()
 	model, policy := providerPrivateLedgerFixtureWithDeadline(t, 8, 32, 300000)
 	b, capture := providerFrontierBoundsFixture()
+	if selected != nil && selected.pinRPCHeader {
+		if !selected.pin || !operation || first == nil || selected.historyProgram {
+			t.Fatal("official header test selection requires its separate pin profile")
+		}
+		// Fresh test input before profile/H0/clock, not a retry or mutation of
+		// an existing16KiB class. Keep the old global128/256KiB envelope and
+		// 256KiB object ceiling. The96KiB body also keeps the independent
+		// first and local-bootstrap decoded quotes within256MiB;160KiB wire
+		// leaves room for HTTP framing without enlarging those policy limits.
+		methods := *b.methods
+		methods.header = providerMethodLimit{96 << 10, 160 << 10}
+		b.methods = &methods
+	}
+	if selected != nil && selected.historyCollectionRecordedRun {
+		// A separate normal recorded-block UNIT selection before profile/H0.
+		// Existing fixture classes and every operating limit stay unchanged.
+		methods := *b.methods
+		methods.block = providerMethodLimit{224 << 10, 256 << 10}
+		methods.receipts = providerMethodLimit{192 << 10, 224 << 10}
+		methods.gas = providerMethodLimit{32 << 10, 64 << 10}
+		b.methods = &methods
+	}
 	if selected != nil && selected.capture != nil {
 		if !selected.capture.valid() || !b.methods.fits(*selected.capture) {
 			t.Fatal("incomplete isolated capture profile")
@@ -95,12 +143,31 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 					b.maximumObjectBytes = 1 << 20
 				}
 			}
+			if selected != nil && selected.historyCollectionFirstP {
+				if selected.historyCollection == nil || !selected.historyProgram {
+					t.Fatal("explicit collection first-P UNIT input requires its original manifest/program")
+				}
+				// These collection-admission UNITs select their own smaller
+				// object envelope BEFORE the startup plan/profile/anchor/H0.
+				// The complete first-P quote must fit the unchanged256MiB
+				// operation/segment caps. Other fixture selections stay intact.
+				b.maximumObjectBytes = 128 << 10
+			}
 			for _, level := range []string{"operation", "segment"} {
 				values := m["limits"].(map[string]any)[level].(map[string]any)
-				values["decoded_bytes"], values["disk_bytes_written"], values["work_units"] = strconv.FormatUint(256<<20, 10), strconv.FormatUint(1<<34, 10), strconv.FormatUint(1<<62, 10)
+				decoded := uint64(256 << 20)
+				if selected != nil && selected.historyFirstPDecoded != 0 {
+					if !selected.historyProgram || selected.historyFirstPDecoded > 256<<20 {
+						t.Fatal("explicit history UNIT decoded limit must stay within the original policy ceiling")
+					}
+					// A separate finite policy input BEFORE profile/anchor/H0,
+					// never a patch to a current owner, limit or allowance.
+					decoded = selected.historyFirstPDecoded
+				}
+				values["decoded_bytes"], values["disk_bytes_written"], values["work_units"] = strconv.FormatUint(decoded, 10), strconv.FormatUint(1<<34, 10), strconv.FormatUint(1<<62, 10)
 			}
 		}
-		if operation && selected != nil && (selected.continuingWire || selected.pin) {
+		if operation && selected != nil && (selected.continuingWire || selected.pin || selected.historyGroupDispatch) {
 			// This fresh test input funds the header and three scalar reservations
 			// before profile/anchor/H0/clock. Existing 65536-byte subjects stay intact.
 			for _, level := range []string{"operation", "segment", "bootstrap"} {
@@ -108,13 +175,225 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 				if selected.pin {
 					wire = "262144"
 				}
+				if selected.historyGroupDispatch {
+					wire = "16777216"
+				}
+				if selected.pinRPCHeader && level == "bootstrap" {
+					// Five distinct RPCs: first header160KiB, then the pin's
+					// scalar16/header160/scalar16/state128KiB. Their480KiB
+					// wire sum fits this fresh1MiB hold.
+					// Operation/segment remain256KiB; no live counter resets.
+					wire = "1048576"
+				}
 				m["limits"].(map[string]any)[level].(map[string]any)["wire_bytes"] = wire
+			}
+		}
+		if selected != nil && selected.historyCollectionRecordedRun {
+			if !selected.historyCollectionFullPack || !selected.historyCollectionAdmission || !selected.historyGroupDispatch {
+				t.Fatal("recorded collection UNIT requires complete original roles before H0")
+			}
+			for _, level := range []string{"operation", "segment", "bootstrap"} {
+				values := m["limits"].(map[string]any)[level].(map[string]any)
+				for _, field := range []string{"blocks", "transactions", "frames", "logs"} {
+					values[field] = "16777216"
+				}
+				if level != "operation" {
+					values["deadline_ms"] = "1800000"
+				}
 			}
 		}
 		var err error
 		policy, err = ParseProviderPolicyCandidate(providerPolicyTestBytes(t, m), 64<<10)
 		if err != nil {
 			t.Fatal(err)
+		}
+	}
+	if selected != nil && selected.historyProgram {
+		providerHistoryProvisionedTestBounds(t, &b, capture, selected.historyShortStartup)
+		if selected.historyCollectionFullPack {
+			if !selected.historyCollectionFirstP || !selected.historyCollectionAdmission || !selected.historyGroupDispatch ||
+				selected.historyCollection == nil || selected.historyShortStartup || b.maximumObjectBytes != 128<<10 {
+				t.Fatal("separate complete collection-pack UNIT selection required before H0")
+			}
+			// Keep the already declared conservative closed first-P ceiling.
+			// Select this NEW UNIT's aggregate pack cap before profile/anchor/H0,
+			// then independently check the real typed history startup plan.
+			// Other fixtures and every operating/policy/live cap stay intact.
+			b.maximumObjectBytes = 4 << 20
+			plan, ok := providerFirstOperationPlanUpper(b, capture, 1, 2, 0, 1)
+			if !ok || !providerHistoryUpperWithin(providerScanUpper{work: plan.reservation.work, retained: plan.storage.physical}, b.history.startup) {
+				t.Fatal("full collection pack exceeds the unchanged first-P ceiling")
+			}
+		}
+		if selected.historyGroupInit {
+			h := b.history
+			// A synthetic, pre-anchor initialization TEST envelope only.
+			// This is not a whole-history cost or operating certificate.
+			h.future.work[2], h.future.work[10] = 4<<20, 1<<46
+			h.resident = 64 << 20
+			h.derivation.snapshot = *h
+			if !b.valid() {
+				t.Fatal("fresh group initialization test profile")
+			}
+		}
+		if selected.historyGroupWrite {
+			h := b.history
+			// A separate, inert writer TEST envelope selected before H0.
+			// No operating cap, source certificate or existing subject changes.
+			h.future.work[2], h.future.work[9], h.future.work[10] = 64<<20, 32<<20, 1<<55
+			h.future.physical, h.future.retainedRaw, h.future.payload, h.future.metadata = 8<<20, 4<<20, 128<<10, 2<<20
+			h.future.objects, h.future.files, h.future.clocks = 8, 64, 32
+			h.catalogEntries, h.catalogNameBytes, h.resident = 2048, 2048*255, 64<<20
+			if selected.historyGroupConsume {
+				// Synthetic maximum-member TEST input selected before H0.
+				h.future.work[0], h.future.work[1] = providerHistoryGroupMembers, providerHistoryGroupMembers
+			}
+			if selected.historyGroupDispatch {
+				// Separate synthetic source-row inputs BEFORE this fixture's
+				// H0. No production compiler/factory, host or policy is qualified.
+				h.future.work[0], h.future.work[1] = providerHistoryGroupMembers, providerHistoryGroupMembers*uint64(capture.WireBytes+1)
+				h.future.work[2], h.future.work[10] = 512<<20, 1<<60
+				h.future.payload, h.future.objects, h.future.files, h.future.clocks = 2<<20, 128, 256, 256
+				h.derivation.dispatch = providerHistoryDispatchBounds{
+					member:  candidateWorkVector{0: 1, 1: uint64(capture.WireBytes + 1), 2: 4 << 20, 9: 128 << 10, 10: 1 << 48},
+					closure: candidateWorkVector{2: 32 << 20, 9: 1 << 20, 10: 1 << 50}, memberClocks: 2, closureClocks: 2, tailMS: 100,
+				}
+				if selected.historyDispatchRows != nil {
+					h.derivation.dispatch = *selected.historyDispatchRows
+				}
+				if selected.historyStages != 0 {
+					providerHistoryMultistageTestBounds(t, &b, capture, selected.historyStages)
+					if selected.historyStageMembers != 0 {
+						providerHistoryMultistageMembersTestBounds(t, &b, capture, selected.historyStages, selected.historyStageMembers)
+					}
+				}
+			}
+			h.derivation.snapshot = *h
+			if !b.valid() {
+				t.Fatal("fresh admission-writer test profile")
+			}
+		}
+	}
+	if selected != nil && selected.historyProgram && selected.historyRecoveryNamespace {
+		// A separate namespace-input UNIT profile selected before H0. The
+		// original default recovery cap and all existing fixtures stay intact.
+		h := b.history
+		h.recovery.maximumFiles = 128
+		h.derivation.snapshot = *h
+		if !b.valid() {
+			t.Fatal("fresh owned namespace-input test profile")
+		}
+	}
+	if selected != nil && selected.historyProgram && selected.historyRecoveryLegacy {
+		// Separate full-initial-prefix UNIT inputs fixed before profile/anchor/H0.
+		// Existing namespace128/default20 subjects and operating values stay intact.
+		h := b.history
+		h.recovery.maximumFiles, h.recovery.maximumBytes = 256, 4<<20
+		h.recovery.work[2], h.recovery.work[10] = 8<<20, 1<<44
+		h.derivation.snapshot = *h
+		if !b.valid() {
+			t.Fatal("fresh owned legacy-prefix test profile")
+		}
+	}
+	if selected != nil && selected.historyProgram && selected.historyRecoveryGroup {
+		// A separate full-group UNIT row fixed before profile/anchor/H0.
+		// This does not revise the earlier legacy256/namespace128/default20
+		// subjects or supply a production work/RAM certificate.
+		h := b.history
+		h.recovery.maximumFiles, h.recovery.maximumBytes = 1024, 16<<20
+		h.recovery.work[2], h.recovery.work[10] = 128<<20, 1<<48
+		h.derivation.snapshot = *h
+		if !b.valid() {
+			t.Fatal("fresh owned full-group recovery test profile")
+		}
+	}
+	if selected != nil && selected.historyCollection != nil {
+		if b.history == nil || !selected.historyCollection.validSnapshot() || selected.historyCollection.input.capture != capture {
+			t.Fatal("incomplete pre-H0 collection UNIT selection")
+		}
+		b.history.collection = selected.historyCollection
+		if selected.historyCollectionAdmission {
+			providerHistoryCollectionAdmissionTestBounds(t, &b, capture, selected.historyNativeInputCounts, selected.historyCollectionFullPack, selected.historyCollectionRecordedRun)
+		}
+		// These source-derived structural rows belong to the TWO read-only
+		// reconstructions, not the live collector. Select them before profile,
+		// anchor, H0 or either original observer; never borrow execution work.
+		// Earlier transport/shape-only UNIT profiles keep their original rows.
+		if selected.historyCollectionRecordedRun {
+			semantic, ok := providerHistoryCollectionReadSemanticUpper(b.history.collection)
+			if !ok {
+				t.Fatal("finite original collection reconstruction component")
+			}
+			for coordinate := 3; coordinate <= 6; coordinate++ {
+				b.history.recovery.work[coordinate] = semantic[coordinate]
+			}
+		}
+		b.history.derivation.snapshot = *b.history
+		if !b.valid() {
+			t.Fatal("fresh collection UNIT profile")
+		}
+	}
+	if selected != nil && selected.historyFinalRead {
+		if b.history == nil || !selected.historyCollectionRecordedRun {
+			t.Fatal("separate recorded successful-final UNIT profile required before H0")
+		}
+		h := b.history
+		h.final = providerHistoryFinalBounds{
+			read:      providerHistoryRecoveryBounds{work: candidateWorkVector{2: 128 << 20, 10: 1 << 56}, maximumFiles: 4096, maximumBytes: 64 << 20},
+			elapsedMS: 300000,
+		}
+		for coordinate := 3; coordinate <= 6; coordinate++ {
+			h.final.read.work[coordinate] = h.recovery.work[coordinate]
+		}
+		if selected.historyFinalReadWithoutBlocks {
+			// A distinct insufficient UNIT selection BEFORE H0. Its actual
+			// decoder cannot fund block observations or borrow execution work.
+			h.final.read.work[3] = 0
+		}
+		if selected.historyFinalReadUnits != 0 {
+			h.final.read.work[10] = selected.historyFinalReadUnits
+		}
+		h.derivation.snapshot = *h
+		if !b.valid() {
+			t.Fatal("fresh disjoint successful-final UNIT profile")
+		}
+	}
+	if selected != nil && (selected.historyRecoveryProofs != 0 || selected.historyFinalReadProofs != 0) {
+		// Separate historical-proof UNIT quotas fixed before profile/anchor/H0.
+		// The default subjects keep zero and no live owner is altered.
+		if b.history == nil || selected.historyFinalReadProofs != 0 && !selected.historyFinalRead {
+			t.Fatal("historical proof quota requires its original selected read role")
+		}
+		h := b.history
+		h.recovery.work[7] = selected.historyRecoveryProofs
+		h.final.read.work[7] = selected.historyFinalReadProofs
+		h.derivation.snapshot = *h
+		if !b.valid() {
+			t.Fatal("fresh historical proof read quotas")
+		}
+	}
+	if selected != nil && selected.historyCallerRefusal != "" {
+		// These insufficient UNIT inputs are fixed before profile/anchor/H0
+		// or clock creation. No live owner, allowance or backend is changed.
+		if !selected.historyCollectionRecordedRun || !selected.historyFinalRead || b.history == nil || b.firstAdmission == nil {
+			t.Fatal("caller refusal requires the existing complete recorded UNIT selection")
+		}
+		scan := *b.scan
+		switch selected.historyCallerRefusal {
+		case "enrollment-entries":
+			b.maximumEntries = 6 // E0 requires seven original objects.
+		case "inspection-capacity":
+			// Open and the first-E1 hold each fit, but their combined
+			// inspection/preparation cannot fit this smaller fresh profile.
+			scan.maximumPreIRetainedBytes = max(b.setupRetained, b.firstAdmission.retained)
+		case "inspection-chunks":
+			scan.maximumChunks = 1 // The initial setup/main inspection needs two.
+		default:
+			t.Fatal("unknown isolated caller refusal selection")
+		}
+		b.scan = &scan
+		if !b.valid() {
+			t.Fatal("insufficient caller UNIT input must still have a valid numeric shape")
 		}
 	}
 	profile := providerIntegrationProfile(b, capture)
@@ -145,7 +424,11 @@ func providerScanProvisionedFixtureWithSelection(t *testing.T, first *providerFi
 			}
 		}
 	}
-	clock, err := newProviderOwnedClock(policy, 4096, 100, 100)
+	maximumClocks := uint64(4096)
+	if selected != nil && selected.historyProgram {
+		maximumClocks = 1 << 20
+	}
+	clock, err := newProviderOwnedClock(policy, maximumClocks, 100, 100)
 	if err != nil {
 		t.Fatal(err)
 	}

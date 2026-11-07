@@ -1550,3 +1550,222 @@ Subsequent RPC/pin/history commands, page seals, complete final original scans,
 operating host/profile qualification and Registry-backed selective Agent message
 exchange remain required. This local command does not select a Source, enable
 a public dispatch permit, or activate policy.
+
+
+## Complete CI test partitions
+
+The Source and Provider jobs each run nine disjoint partitions selected from the
+complete compiled root discovery. The maximum group-recovery root, including
+all of its successful and failed-prefix children, occupies partition 8 alone.
+All other roots use partitions 0 through 7. The evidence format is
+`sage-registry-test-partition-v4`; assembly requires all nine original runs,
+the same source identity and the exact complete root union. Missing or failed
+partitions cannot supply the successful Source or Provider evidence.
+
+The full SHA-256 value of each complete UTF-8 root name modulo eight selects
+its ordinary worker, apart from two exact reviewed placements. The last three
+digest bits compute that same value. The entered-scan cancellation root
+`TestProviderHistoryFinalVerificationAutomaticallyClosesEnteredReadAndLateCancellation`
+uses worker 1; the owned-cleanup-error root
+`TestProviderHistoryFinalDataWithholdsResultAfterOwnedCleanupError` uses worker 7.
+Both otherwise join worker 4. Their complete original fixtures, children and
+assertions move together. Neighbors with additional name characters keep the
+ordinary hash rule. Only the exact maximum-recovery root is isolated.
+The preceding Provider worker 0 reached its two-hour package limit after several
+final-read scenarios each took about 17 minutes. The nine-worker layout and
+explicit placements reduce concentration without extending timeouts or omitting
+tests. Observed timings guide this fixed source configuration but are not live
+planning inputs and do not guarantee the duration of a new execution.
+The assignment is independent of discovery order and Python hash randomization;
+every root and all its children still run in exactly one complete partition.
+Current source identities bind the assignment, and assembly still validates the
+exact nine-way union before any coverage or downstream consumer can use it.
+This reduces concentration in one worker; it does not guarantee a future runtime
+or change any test timeout, native bound, race mode or coverage requirement.
+
+The three successful-final cancellation phases and nine final-DATA refusal
+cases retain fresh owned collections, two independent original models, the
+same assertions and terminal cleanup. Each scenario now has its own compiled
+root, preserving all child labels and avoiding a single nine-case process root.
+No owner, collection or meter is shared or restored between scenarios. A failed
+read logs only scalar progress, selected limits and counters after the caller
+returns; it reads no original payload and changes no execution state.
+
+The preceding complete CI recorded five failed named results in each role's
+second partition before its two-hour package timeout. These final readback
+errors were generic and do not independently identify a clock, quota or original
+comparison as the exclusive cause. The revised diagnostics and distribution
+remain unrun; neither fixes that error by assumption or changes operating policy.
+
+This separates one expensive fixture from accumulated process instrumentation;
+it does not establish the cause of an earlier native-duration refusal or ensure
+a future pass. The native 300000 ms ceiling, race instrumentation, complete test
+selection, per-file 90% requirement and downstream consumers remain unchanged.
+
+Original readback also counts the blocks, transactions, frames and logs it
+interprets. A distinct pre-H0 structural read reservation now funds those four
+domains from the sealed collection's source counts for both fresh journeys.
+The recovery and final rows still exclude requests, wire capture, proofs,
+segment acquisition and writes; primitive permissions and two final clock
+claims are unchanged. New safe structural-literal, whole-hold separation,
+entered underfunded-read refusal and genuine-owner first-false primitive
+scenarios are authored but NOT_RUN. The end-to-end refusal does not identify its
+exact failing primitive; the separate primitive test is not a complete original
+block replay. The existing positive readback must observe its real historical
+counters. Both strict inventories include the changed bounds files: Source57,
+Provider323, each still requiring90%. Neither source review nor a partial
+partition result qualifies the complete current suite or coverage.
+Partition 4 also retains a CPU profile of that single complete-root invocation,
+including a nonzero exit result if it fails. This diagnostic is neither another
+attempt nor a replacement for the required successful test and coverage run.
+The existing maximum-dispatch profile and its controls remain separate. Neither
+profile establishes worst-case resources or production environment qualification.
+
+
+## Independent root-gas candidate trial
+
+`TestSepoliaRootGasCandidateEvidenceLive` is a separately selectable qualification
+trial of the existing `ReadReplayBlockWithRootGas` adapter. It selects the top-only
+`callTracer` contract before acquisition, uses the same sole approved endpoint,
+and keeps a separate context, finite limits and `root-gas-candidate` evidence directory.
+It neither reads the strict trial's outcome nor chooses a tracer as a fallback.
+
+The recorded combined trial passed the existing stateGasTracer check but refused
+the candidate: one of the 120 transaction-bound root rows lacked its required gas
+dimensions and refund. The candidate remains unqualified. Its failed diagnostics
+are retained; a partial list, receipt-derived replacement, or another tracer's
+result cannot complete its witness. No candidate policy was activated.
+
+The required Node workflow selects the existing stateGasTracer test. A failed
+strict check still fails that job; this trial does not replace it. The candidate
+test remains available for a separately selected qualification run after relevant
+provider capability or source changes. Its complete unit tests remain in the
+ordinary test partitions. A rejected optional candidate is not an additional
+requirement of the currently selected strict profile.
+
+The candidate retains passive diagnostics on refusal and, on successful checking,
+the complete block bundle and exact response files with byte lengths and SHA-256.
+The derived gas witness is identified separately from the original responses.
+A successful candidate trial covers only that existing deployment block and the
+explicit provider-trust profile. It does not qualify full history, host custody,
+independent consensus, Source readiness, an Agent exchange or policy activation.
+No keys or transaction-submission methods are used.
+
+
+## Early original-reference checks
+
+Before starting the complete Source and Provider partitions, the existing
+fixture jobs also run the ten new original-reference UNIT roots. They cover the
+first retained reference closure, successful and failed settlement inputs,
+checkpoint preparation, and independent group and legacy reconstruction. The
+Source job uses its ordinary build; the Provider job selects
+`provider_capture_live`, matching its complete partitions. Both keep race,
+count-one execution and separate JSON events and exit status in the existing
+fixture artifact. These checks use only owned test transport and directories.
+
+The original recovery-name fixture check remains unchanged. The new preliminary
+checks have no coverage profile and give no coverage credit; every complete
+partition, source inventory, strict file threshold and downstream consumer gate
+remains required. Their test timeout does not change the original native T
+window, counters, reservations, Registry policy or production readiness. A failed
+entered inspection may close its read-only lane without reading any input; the
+UNIT expectation preserves that fail-closed behavior.
+
+## Owning candidate invocation
+
+The private history caller owns the fresh store from opening through enrollment,
+initial inspection, the first exchange, collection, final verification and
+cleanup. Its production entry uses the original fixed dial and accepts no
+connection bundle or callback. The separate package-owned TLS companion refuses
+a missing bundle or slot before opening. Only detached verified DATA may leave
+the owning lifetime.
+
+Initial target, highwater and deadline preparation runs after the one P+B claim,
+under the same original P meter. The original P remains fully funded. A separate
+checked input row uses N=maximumMetadataPerCommit and
+K=min(N,candidateLedgerMetadataLimit): work[2]=K and
+work[10]=3*N*N+K*K+N+3*K+108, with zero other coordinates, storage or samples.
+The policy byte length is checked before copying. Runtime, retained attempt
+replay and pure bootstrap compilation select the same additional first-row
+component only for a history collection. Ordinary and later paths retain their
+original preparation row. This logical quote does not qualify native memory,
+CPU, filesystem cost or the complete operating profile.
+
+Terminal cleanup checks the actual closed state after child locks unwind. It
+does not close an original twice after successful final publication, and it
+preserves child, cleanup and cancellation errors while withholding DATA on
+error. Partial-open cleanup remains the opener's responsibility; the outer
+caller cannot reconstruct a lost cleanup error or revive that execution.
+
+The complete production derivation factory and full resource proof remain
+unfinished. The new caller cannot mint their witness. Short synthetic UNIT
+prefixes and ordinary owned connection failures test this composition; they do
+not qualify a production derivation or deployment-to-current history. A complete
+normal operating invocation still requires the same immutable compiler/native
+selection and fresh actual validation.
+
+The owning-caller UNIT suite also includes a complete recorded one-block
+invocation through the same private caller and its final detached-DATA return.
+It checks the selected identities, all four collection stages, both final clock
+observations, revocation and reacquisition of both original directory locks.
+A separate subject closes only its own first normal member connection before
+entry. It requires the first operation to have completed, the group's original
+consumption and first attempt to remain irrevocably recorded, zero HTTP bytes,
+no returned DATA and both locks released. Neither subject supplies a new
+derivation constructor or substitutes for actual deployment-to-current,
+same-profile source/native qualification. Test source alone is not an executed
+result; each subject needs the next remote CI's own original evidence.
+
+When a complete recorded collection fails before final inspection, its UNIT
+diagnostic reports only already retained scalar state: the original and last
+clock samples, original lifetime, native refusal code, current dispatch ticket,
+work counters and any pending settlement frame. It takes the original store
+and clock locks without sampling a clock, reading an original or re-entering an
+owner predicate. The final-entry refusal scenarios use this same diagnostic.
+These values distinguish a collection prerequisite failure from the intended
+final assertion; a generic integration error or total test duration alone
+does not establish which native-clock or time-window condition failed. The
+diagnostic does not extend a window, change an allowance or turn a failed
+prerequisite into a successful test.
+
+
+## Collection and reconstruction cost checks
+
+The selected source-cost calculation now combines the unchanged initialization,
+full admitted collection, failed original reconstruction and successful final
+read with one explicit policy-matching clock snapshot. The full admitted
+32-member stage remains held for every prospective stage; an actual shorter
+request transcript does not reduce it. Failed and successful inspections retain
+separate complete allowances. Historical key-proof work remains counted in both
+read graphs. Read-only reservations can fund historical proof verification;
+requests, wire capture, segment acquisition and writes remain excluded. A missing
+or exhausted proof allowance refuses atomically and cannot borrow from execution
+or the other reader. The original strict verifier and key roles are unchanged.
+
+The calculation also retains original-file, namespace, inventory, scan, legacy,
+initial-model, request/result, TLS, unfinished-tail and final-copy components.
+Normal work is summed; only alternative outstanding operations use a maximum.
+The final reader reserves its two clock observations separately and exactly once.
+A child refusal or arithmetic overflow returns no partial selected result.
+
+The source and provider coverage inventories include all twelve added production
+files, requiring at least 90% statements in every listed file. Complete test-root
+partitions, race detection, safe owned-runtime tests and consumer gates remain
+required. Draft CI validation can run while the implementation is incomplete;
+it does not authorize merging, qualify a host or activate an operating policy.
+Authored tests and source review are not executed test or coverage evidence.
+
+These calculations still do not supply the complete compiler-own and cleanup
+costs, native CPU/backing/peak/lifetime memory and time qualification, same-profile
+feasibility or a genuine production derivation factory. The clock snapshot is
+value data, not a native backend or an execution credential. Actual Agent
+selection and deployment-to-current history remain subject to those unchanged
+gates; the original strict node verification is not replaced or relaxed.
+
+Partial opening now has one acquisition-state unwind: an opened root, an opened
+lock file and a successfully acquired lock are released only by their original
+owner. Reported cleanup errors are joined with the original refusal, and later
+releases are still attempted after an earlier error. A successful open transfers
+the same handles to the existing store lifetime. Ordinary lock-contention and
+temporary-handle unit scenarios verify these finite paths; they do not qualify
+native latency, unobservable release failures, host storage or operating policy.

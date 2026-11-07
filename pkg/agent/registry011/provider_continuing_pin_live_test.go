@@ -29,7 +29,7 @@ func TestProviderCaptureContinuingPinRetainsSameBlockRegistryIdentity(t *testing
 	// in the original official-origin sample. It neither changes the old 1/4
 	// refusal subject nor treats a prior sample as this connection's identity.
 	tls := providerTLSBounds{2, 5, 8 << 10}
-	config, clock := providerGuardianConfigWithSelectionFixture(t, 64<<20, 6, &providerScanFixtureSelection{capture: &capture, tls: &tls, pin: true, pinResidentGiB: true})
+	config, clock := providerGuardianConfigWithSelectionFixture(t, 64<<20, 6, &providerScanFixtureSelection{capture: &capture, tls: &tls, pin: true, pinResidentGiB: true, pinRPCHeader: true})
 	s, err := openProviderFrontierCandidate(config, clock)
 	if err != nil {
 		t.Fatal("fresh isolated retained pipeline", err)
@@ -53,13 +53,17 @@ func TestProviderCaptureContinuingPinRetainsSameBlockRegistryIdentity(t *testing
 		t.Fatal("full initial original scan", err)
 	}
 	first, err := newProviderFirstOperationCandidate(s)
-	if err != nil {
+	if err != nil || first == nil {
 		t.Fatal("original first request", err)
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 	initial, err := first.executeCandidate(ctx)
 	if err != nil || initial == nil {
+		// The owner's first frozen scalar diagnostic survives cleanup. Do not
+		// replace it with peer bytes or infer a native cause from this error.
+		t.Logf("first operation failure diagnostic: %+v; selected capture: %+v; selected TLS bounds: %+v; consumption=%t settlement=%t sequence=%d state=%d",
+			first.diagnostic, first.plan.capture, first.tls, first.consumption, first.settlement, s.sequence, first.state)
 		t.Fatal("official retained first finalized response", err)
 	}
 	bootstrap, err := newProviderContinuingBootstrapCandidate(s)

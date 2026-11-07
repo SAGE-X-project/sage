@@ -41,7 +41,7 @@ func (c *providerIntegration) beginLocalObjects(input string, objects []provider
 // maxima would exhaust the shared lifetime quota before the second command.
 // Unsupported local input cannot borrow this narrower reservation.
 func (c *providerIntegration) localPrimitive(input string, objects []providerIntegrationObjectInput) (providerPrimitiveBounds, error) {
-	if !c.valid() || !lowerHash(input) {
+	if !c.legacyAllowed() || !lowerHash(input) {
 		return providerPrimitiveBounds{}, errProviderIntegration
 	}
 	bootstrap := c.bootstrap == "" && lowerHash(c.firstExchange) && input == c.firstExchange && c.firstResult != "" && len(objects) == 0
@@ -69,7 +69,7 @@ func (c *providerIntegration) installBootstrap() error {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if !c.valid() || c.bootstrap != "" || !lowerHash(c.firstExchange) || c.firstResult == "" || c.ledger.providerStart != "" {
+	if !c.legacyAllowed() || c.bootstrap != "" || !lowerHash(c.firstExchange) || c.firstResult == "" || c.ledger.providerStart != "" {
 		return errProviderIntegration
 	}
 	permit, err := c.beginLocal(c.firstExchange)
@@ -109,6 +109,9 @@ func (c *providerIntegration) installBootstrap() error {
 // bootstrapObject derives retained DATA after the owned header was validated.
 // It observes each codec/hash/copy invocation and returns no ACK or authority.
 func (c *providerIntegration) bootstrapObject(meter *providerWorkMeter, selected FinalizedHeader) (providerIntegrationObject, []byte, error) {
+	if !c.legacyAllowed() || meter == nil {
+		return providerIntegrationObject{}, nil, errProviderIntegration
+	}
 	// These are additional decoder invocations after the consumption permit,
 	// not work already observed by the earlier admission or result decoder.
 	if !meter.event(providerCodecEvent, uint64(len(c.policy.raw))) || !meter.event(providerCodecEvent, uint64(len(c.intent.raw))) {
@@ -137,6 +140,9 @@ func (c *providerIntegration) bootstrapObject(meter *providerWorkMeter, selected
 // Finalization remains private and follows the original consumed local work.
 // Any uncertain accounting, clock, settlement or readback disables this owner.
 func (c *providerIntegration) finishBootstrap(permit *providerIntegrationPermit, selected FinalizedHeader, start providerIntegrationObject, raw []byte) error {
+	if !c.legacyAllowed() || permit == nil || permit.meter == nil {
+		return errProviderIntegration
+	}
 	var blocks candidateWorkVector
 	blocks[3] = 1
 	if !permit.meter.add(blocks) {

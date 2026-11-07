@@ -19,12 +19,170 @@ env:
   GOFLAGS: -mod=readonly
 
 jobs:
-  # Retain the focused Registry evidence in its own unchanged15-minute window.
+  native_resource_primitives:
+    name: Native Resource Primitives
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Observe disposable child resource limits
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          mkdir -p "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source"
+          git rev-parse HEAD > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/tree.txt"
+          cp internal/qualification/nativelimits/*.go internal/qualification/nativelimits/README.md internal/qualification/nativelimits/testdata/resource_limits.c internal/qualification/nativelimits/testdata/resource_capabilities.c "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/"
+          cp .github/workflows/test.yml "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/test-workflow.yml"
+          go test -mod=readonly -count=1 -timeout=3m -tags=registry_native_limits -json ./internal/qualification/nativelimits > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/tests.jsonl"
+          git diff --exit-code
+      - name: Check the owning worker with the stock Go runtime
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          registry_worker_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/worker"
+          mkdir -p "$registry_worker_dir/source"
+          cp -R internal/registryworker "$registry_worker_dir/source/"
+          go version > "$registry_worker_dir/compiler.txt"
+          git ls-files -z internal/registryworker | xargs -0 shasum -a 256 > "$registry_worker_dir/source.sha256"
+          worker_status=0
+          go test -mod=readonly -race -count=1 -timeout=4m -tags=registry_native_limits -json -coverprofile="$registry_worker_dir/coverage.out" -covermode=atomic ./internal/registryworker > "$registry_worker_dir/tests.jsonl" || worker_status=$?
+          printf '%s\n' "$worker_status" > "$registry_worker_dir/tests.exit"
+          worker_coverage_status=0
+          python3 - "$registry_worker_dir/coverage.out" "$registry_worker_dir/coverage-gate.json" <<'PYWORKERCOVERAGE' || worker_coverage_status=$?
+          import json, sys
+          from pathlib import Path
+          prefix = "github.com/sage-x-project/sage/internal/registryworker/"
+          def read_coverage(rows):
+              files = {name: {"covered": 0, "statements": 0} for name in ("owner.go", "owner_darwin.go", "terminal_evidence.go", "journal.go")}
+              if not rows or rows[0] != "mode: atomic":
+                  raise ValueError("Owning worker atomic coverage is missing")
+              seen = set()
+              for row in rows[1:]:
+                  location, statements, count = row.rsplit(" ", 2)
+                  name = location.split(":", 1)[0]
+                  if not name.startswith(prefix) or name[len(prefix):] not in files or location in seen:
+                      raise ValueError("Unexpected or duplicate owning worker coverage block")
+                  seen.add(location)
+                  statements, count = int(statements), int(count)
+                  if statements < 0 or count < 0:
+                      raise ValueError("Invalid owning worker coverage integers")
+                  value = files[name[len(prefix):]]
+                  value["statements"] += statements
+                  value["covered"] += statements if count else 0
+              return files
+          def passes(files):
+              return all(v["statements"] > 0 and v["covered"] * 100 >= v["statements"] * 90 for v in files.values())
+          # Exercise this same reader and exact integer threshold, not a copy.
+          row = lambda name, block, n, count: f"{prefix}{name}:{block} {n} {count}"
+          positive = ["mode: atomic", row("owner.go", "1.1,2.1", 9, 1),
+              row("owner.go", "3.1,4.1", 1, 0), row("owner_darwin.go", "1.1,2.1", 1, 1),
+              row("terminal_evidence.go", "1.1,2.1", 1, 1), row("journal.go", "1.1,2.1", 1, 1)]
+          cases = [
+              ("zero-statement-covered", positive + [row("owner.go", "5.1,6.1", 0, 1)], True),
+              ("zero-statement-uncovered", positive + [row("owner.go", "5.1,6.1", 0, 0)], True),
+              ("negative-statements", positive + [row("owner.go", "5.1,6.1", -1, 1)], False),
+              ("negative-count", positive + [row("owner.go", "5.1,6.1", 0, -1)], False),
+              ("duplicate", positive + [positive[1]], False),
+              ("unexpected-file", positive + [row("other.go", "1.1,2.1", 1, 1)], False),
+              ("missing-file", positive[:-1], False),
+              ("missing-mode", positive[1:], False),
+              ("zero-total-file", positive[:-1] + [row("journal.go", "1.1,2.1", 0, 1)], False),
+              ("below-threshold", positive + [row("owner.go", "5.1,6.1", 1, 0)], False),
+          ]
+          format_results = []
+          for name, rows, expected in cases:
+              try:
+                  accepted = passes(read_coverage(rows))
+              except ValueError:
+                  accepted = False
+              if accepted != expected:
+                  raise SystemExit(f"Owning worker coverage reader case failed: {name}")
+              format_results.append({"name": name, "expected_acceptance": expected, "passed": True})
+          Path(sys.argv[2]).with_name("coverage-format-cases.json").write_text(json.dumps(format_results, indent=2) + "\n")
+          files = read_coverage(Path(sys.argv[1]).read_text().splitlines())
+          passed = passes(files)
+          Path(sys.argv[2]).write_text(json.dumps({"files": files, "minimum_percent": 90, "passed": passed,
+              "scope": "Darwin owning worker production files; safe fixture and unsupported platforms are separate"}, indent=2) + "\n")
+          if not passed:
+              raise SystemExit("Owning worker requires 90 percent coverage in each production file")
+          PYWORKERCOVERAGE
+          printf '%s\n' "$worker_coverage_status" > "$registry_worker_dir/coverage-gate.exit"
+          git diff --exit-code
+          if [ "$worker_status" -ne 0 ]; then
+            exit "$worker_status"
+          fi
+          exit "$worker_coverage_status"
+      - name: Retain native resource observations
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-resource-primitives
+          path: ${{ runner.temp }}/native-resource-primitives/
+          if-no-files-found: error
+          retention-days: 14
+
+  # Keep finite runner headroom for race-enabled Registry evidence.
   # The required Go Tests job explicitly gates on this job's success.
-  registry_source_checks:
-    name: Registry Source Checks
+  registry_fixture_check:
+    name: Registry Fixture Check
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 12
+    env:
+      GOFLAGS: -mod=readonly
+      GOTOOLCHAIN: auto
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Check bounded recovery fixture before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/registry-fixture-check"
+          mkdir -p "$registry_fixture_dir"
+          go version > "$registry_fixture_dir/compiler.txt"
+          git rev-parse HEAD > "$registry_fixture_dir/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$registry_fixture_dir/tree.txt"
+          git ls-files -z pkg/agent/registry011 go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml | xargs -0 sha256sum > "$registry_fixture_dir/source.sha256"
+          # This early unit result never replaces full partitions or their coverage.
+          go test -mod=readonly -race -count=1 -timeout=2m -json -run '^TestProviderHistoryRecoveryInitialNamesKeepEveryFiniteCapacityPrefix$' ./pkg/agent/registry011 > "$registry_fixture_dir/tests.jsonl"
+          git diff --exit-code
+      - name: Check original references before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/registry-fixture-check"
+          reference_status=0
+          # Owned UNIT checks only; full partitions and coverage remain required.
+          go test -mod=readonly -race -count=1 -timeout=8m -json -run '^(TestProviderHistoryCheckpointPreparationRejectsIncompletePhaseAndCapacityData|TestProviderHistoryFailedSettlementRechecksItsActualCompletedPrefix|TestProviderHistoryFailedSettlementShapesRequireOriginalFailureAndPrefixMetadata|TestProviderHistoryFirstOriginalClosureRejectsMissingAndChangedPrivateReferences|TestProviderHistoryInitialCheckpointRejectsMissingPrivateHeadWithoutPublishingData|TestProviderHistoryMemberContextUpperMatchesIndependentLiterals|TestProviderHistoryMemberContextTypeCeilingsMatchActualWalks|TestProviderHistoryMemberContextBoundCoversGenuineClaimsAndArchivedFacts|TestProviderHistoryMemberContextShortageKeepsOriginalWalkPrefix|TestProviderHistoryReconstructionFullIntervalQuoteDoesNotQualifySmallCatalog|TestProviderHistoryRecoveryGroupReadRefusesAbsentContextBeforeOriginalInput|TestProviderHistoryRecoveryGroupRejectsInconsistentInitialAndWholeChainData|TestProviderHistoryRecoveryLegacyReferencesCannotReplaceCompleteOriginalFrames|TestProviderHistoryRecoveryLegacyRejectsUnplannedSetupAndDifferentFinalRoots|TestProviderHistorySettlementRejectsChangedConsumedOriginalBeforePublication|TestProviderHistorySourcePlanReportsFullSpanCostsWithoutAuthority|TestProviderHistorySourcePlanKeepsItsSelectionAfterCallerUpdates|TestProviderHistorySourcePlanWithholdsPartialResultOnRefusal|TestProviderHistorySourcePlanCannotBeRestoredFromJSON|TestProviderHistorySourceSnapshotDetachesSelectedPointers|TestProviderHistorySourceSnapshotRefusesIncompleteSelection|TestProviderHistorySourceSnapshotReconstructsManifestInsteadOfTrustingSeal|TestProviderScanOpenClosesPreselectedReadersAfterRootLockRefusal|TestProviderHistorySourceInputCopyDoesNotKeepCallerStringBacking|TestProviderHistorySourcePlanRetainsDetachedClockTextAndExactOrigin|TestProviderHistorySourceInputPreflightRefusesUnboundedCopyInputs|TestProviderHistorySourcePlanRejectsImpossiblePayloadBeforeGroupEnumeration|TestProviderHistorySourcePayloadDomainRetainsSmallUnqualifiedPlan|TestProviderHistorySourcePayloadDomainIncludesTheExactAbsoluteBoundary|TestProviderHistorySourcePayloadDomainRejectsIncompleteStorageInputs|TestProviderContinuingPinHeaderSelectionFundsTheOriginalAdmission|TestProviderContinuingPinHeaderSelectionCompletesOwnedExchanges)$' ./pkg/agent/registry011 > "$registry_fixture_dir/reference-tests.jsonl" || reference_status=$?
+          printf '%s\n' "$reference_status" > "$registry_fixture_dir/reference-tests.exit"
+          git diff --exit-code
+          exit "$reference_status"
+      - name: Retain recovery fixture check
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: registry-fixture-check
+          path: ${{ runner.temp }}/registry-fixture-check/
+          if-no-files-found: error
+          retention-days: 14
+
+  registry_source_shard:
+    needs: registry_fixture_check
+    name: Registry Source Shard (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    timeout-minutes: 135
 
     steps:
       - name: Checkout code
@@ -45,7 +203,7 @@ jobs:
           go version > "$RUNNER_TEMP/registry-source-checks/compiler.txt"
           git rev-parse HEAD > "$RUNNER_TEMP/registry-source-checks/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/registry-source-checks/tree.txt"
-          git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md docs/dev/agent-embedding.md docs/INDEX.md go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml .gitleaks.toml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
+          git ls-files -z .github/scripts/registry_test_shards.py .github/scripts/test_registry_test_shards.py pkg/agent/registry011 docs/dev/registry-source-checks.md docs/dev/agent-embedding.md docs/INDEX.md go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml .gitleaks.toml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
           cp pkg/agent/registry011/*.go pkg/agent/registry011/*.json "$RUNNER_TEMP/registry-source-checks/source/"
           cp -R pkg/agent/registry011/testdata "$RUNNER_TEMP/registry-source-checks/source/"
           python3 - <<'PYSOURCE'
@@ -54,11 +212,151 @@ jobs:
           names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
           Path(os.environ['RUNNER_TEMP'], 'registry-source-checks', 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
           PYSOURCE
-          go test -mod=readonly -race -count=1 -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
-          go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
+          # Check the recent fixture and native-byte regressions before the full suite.
+          # This separate log neither supplies coverage nor replaces complete evidence.
+          if [ "${{ matrix.shard }}" = "0" ]; then
+            go test -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall|TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity|TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState)$' ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/regression-controls.jsonl"
+          fi
+
+      - name: Check Registry evidence partition scenarios
+        if: matrix.shard == 0
+        run: |
+          registry_unit_dir="$RUNNER_TEMP/registry-source-checks/partition-unit-coverage"
+          mkdir -p "$registry_unit_dir"
+          python3 - "$registry_unit_dir" > "$RUNNER_TEMP/registry-source-checks/partition-unit-tests.txt" 2>&1 <<'PYPARTITIONCOVER'
+          from pathlib import Path
+          import runpy, sys, trace
+          directory = Path(sys.argv[1])
+          script = Path('.github/scripts/test_registry_test_shards.py').resolve()
+          sys.path.insert(0, str(script.parent))
+          sys.argv = [str(script)]
+          tracer = trace.Trace(count=True, trace=False)
+          status = 0
+          try:
+              tracer.runfunc(runpy.run_path, str(script), run_name='__main__')
+          except SystemExit as exit:
+              status = exit.code if isinstance(exit.code, int) else int(exit.code is not None)
+          finally:
+              tracer.results().write_results(show_missing=True, coverdir=str(directory))
+          if status:
+              raise SystemExit(status)
+          from pathlib import Path
+          import re, sys
+          files = list(directory.rglob('registry_test_shards.cover'))
+          if len(files) != 1:
+              raise SystemExit('Missing unique Registry evidence helper coverage')
+          lines = files[0].read_text().splitlines()
+          covered = sum(bool(re.match(r'^\s*\d+:', line)) for line in lines)
+          missed = sum(line.startswith('>>>>>>') for line in lines)
+          if not covered or covered * 100 < (covered + missed) * 90:
+              raise SystemExit(f'Registry evidence helper: {covered}/{covered + missed}; requires 90%')
+          print(f'Registry evidence helper: {covered}/{covered + missed}; at least 90%')
+          PYPARTITIONCOVER
+
+      - name: Measure maximum Registry dispatch
+        if: matrix.shard == 0
+        run: |
+          # Profile one genuine maximum-member control separately from full-suite evidence.
+          # Preserve failed diagnostics and every native window and coverage gate.
+          registry_profile_status=0
+          go test -mod=readonly -race -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" -o "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" -coverprofile="$RUNNER_TEMP/registry-source-checks/cpu-profile-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/cpu-profile-tests.jsonl" || registry_profile_status=$?
+          printf '%s\n' "$registry_profile_status" > "$RUNNER_TEMP/registry-source-checks/cpu-profile.exit"
+          go tool pprof -top -nodecount=50 -sample_index=cpu "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" "$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-profile-flat.txt"
+          go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" "$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-profile-cumulative.txt"
+          sha256sum "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" "$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-profile.sha256"
+          python3 - "$RUNNER_TEMP/registry-source-checks/cpu-profile-tests.jsonl" <<'PYPROFILE'
+          import json, sys
+          from pathlib import Path
+          target = 'TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals/32'
+          events = [json.loads(line) for line in Path(sys.argv[1]).read_text().splitlines() if line.strip()]
+          starts = [e for e in events if e.get('Test') == target and e.get('Action') == 'run']
+          ends = [e for e in events if e.get('Test') == target and e.get('Action') in ('pass', 'fail')]
+          if len(starts) != 1 or len(ends) != 1:
+              raise SystemExit('CPU diagnostic has no complete maximum-member test result')
+          PYPROFILE
+          # Compare instrumentation only after the original race diagnostic failed.
+          # A separate fresh invocation cannot restore that failed job or qualify full evidence.
+          if [ "$registry_profile_status" -ne 0 ]; then
+            registry_comparison_status=0
+            printf '%s\n' 'no-race; atomic coverage and CPU sampling retained; diagnostic only' > "$RUNNER_TEMP/registry-source-checks/cpu-comparison-mode.txt"
+            go test -mod=readonly -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$RUNNER_TEMP/registry-source-checks/cpu-comparison.pprof" -o "$RUNNER_TEMP/registry-source-checks/registry-cpu-comparison.test" -coverprofile="$RUNNER_TEMP/registry-source-checks/cpu-comparison-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/cpu-comparison-tests.jsonl" || registry_comparison_status=$?
+            printf '%s\n' "$registry_comparison_status" > "$RUNNER_TEMP/registry-source-checks/cpu-comparison.exit"
+            go tool pprof -top -nodecount=50 -sample_index=cpu "$RUNNER_TEMP/registry-source-checks/registry-cpu-comparison.test" "$RUNNER_TEMP/registry-source-checks/cpu-comparison.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-comparison-flat.txt"
+            go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$RUNNER_TEMP/registry-source-checks/registry-cpu-comparison.test" "$RUNNER_TEMP/registry-source-checks/cpu-comparison.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-comparison-cumulative.txt"
+            sha256sum "$RUNNER_TEMP/registry-source-checks/registry-cpu-comparison.test" "$RUNNER_TEMP/registry-source-checks/cpu-comparison.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-comparison.sha256"
+            python3 - "$RUNNER_TEMP/registry-source-checks/cpu-comparison-tests.jsonl" <<'PYCOMPARISON'
+          import json, sys
+          from pathlib import Path
+          target = 'TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals/32'
+          events = [json.loads(line) for line in Path(sys.argv[1]).read_text().splitlines() if line.strip()]
+          starts = [e for e in events if e.get('Test') == target and e.get('Action') == 'run']
+          ends = [e for e in events if e.get('Test') == target and e.get('Action') in ('pass', 'fail')]
+          if len(starts) != 1 or len(ends) != 1:
+              raise SystemExit('CPU comparison has no complete maximum-member test result')
+          PYCOMPARISON
+          fi
+          test "$registry_profile_status" -eq 0
+
+      - name: Run complete Registry test partition
+        run: |
+          registry_shard_dir="$RUNNER_TEMP/registry-source-checks"
+          go test -mod=readonly -race -count=1 -cover -covermode=atomic -list . -json ./pkg/agent/registry011 > "$registry_shard_dir/test-discovery.jsonl"
+          python3 .github/scripts/registry_test_shards.py plan source "$registry_shard_dir" --index '${{ matrix.shard }}'
+          registry_profile_args=()
+          # Measure slow complete partitions as well as the recovery partition.
+          if [[ "${{ matrix.shard }}" =~ ^(5|7|8)$ ]]; then
+            registry_profile_args=(-cpuprofile="$registry_shard_dir/recovery-profile.pprof" -o "$registry_shard_dir/registry-recovery.test")
+          fi
+          registry_shard_status=0
+          go test -mod=readonly -race -count=1 -timeout=120m -json -run "$(cat "$registry_shard_dir/run-pattern.txt")" "${registry_profile_args[@]}" -coverprofile="$registry_shard_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$registry_shard_dir/tests.jsonl" || registry_shard_status=$?
+          printf '%s\n' "$registry_shard_status" > "$registry_shard_dir/partition.exit"
+          if [ "${#registry_profile_args[@]}" -ne 0 ] && [ -s "$registry_shard_dir/registry-recovery.test" ] && [ -s "$registry_shard_dir/recovery-profile.pprof" ]; then
+            go tool pprof -top -nodecount=50 -sample_index=cpu "$registry_shard_dir/registry-recovery.test" "$registry_shard_dir/recovery-profile.pprof" > "$registry_shard_dir/recovery-profile-flat.txt"
+            go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$registry_shard_dir/registry-recovery.test" "$registry_shard_dir/recovery-profile.pprof" > "$registry_shard_dir/recovery-profile-cumulative.txt"
+            sha256sum "$registry_shard_dir/registry-recovery.test" "$registry_shard_dir/recovery-profile.pprof" > "$registry_shard_dir/recovery-profile.sha256"
+          fi
+          test "$registry_shard_status" -eq 0
           git diff --exit-code
 
       - name: Retain Registry Source clock and checkpoint evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: registry-source-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/registry-source-checks/
+          if-no-files-found: error
+          retention-days: 14
+
+  registry_source_checks:
+    name: Registry Source Checks
+    needs: registry_source_shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Require every Registry Source partition
+        env:
+          REGISTRY_SHARD_RESULT: ${{ needs.registry_source_shard.result }}
+        run: test "$REGISTRY_SHARD_RESULT" = "success"
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.10'
+          cache: true
+      - name: Download original Registry Source partitions
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: registry-source-shard-*
+          path: ${{ runner.temp }}/registry-source-partitions
+      - name: Verify complete Registry Source evidence and merge coverage
+        run: |
+          python3 .github/scripts/registry_test_shards.py assemble source "$RUNNER_TEMP/registry-source-partitions" --output "$RUNNER_TEMP/registry-source-checks" > "$RUNNER_TEMP/registry-source-partition-assembly.json"
+          python3 .github/scripts/registry_test_shards.py verify source "$RUNNER_TEMP/registry-source-checks"
+          go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
+          git diff --exit-code
+      - name: Retain complete Registry Source evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -74,7 +372,7 @@ jobs:
     needs: registry_source_checks
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 75
 
     steps:
       - name: Require successful Registry Source evidence
@@ -94,9 +392,89 @@ jobs:
       - name: Install dependencies
         run: go mod download && go mod verify
 
-      - name: Run tests with coverage and race detector
+      - name: Download successful Registry Source evidence
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: registry-source-checks
+          path: ${{ runner.temp }}/verified-registry-source
+
+      - name: Verify Registry evidence and partition the complete package set
         run: |
-          go test -race -coverprofile=coverage.out -covermode=atomic ./...
+          go list ./... > packages-all.txt
+          python3 .github/scripts/registry_test_shards.py verify source "$RUNNER_TEMP/verified-registry-source" > registry-partition-verified.json
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          source = Path(os.environ['RUNNER_TEMP'], 'verified-registry-source')
+          context = json.loads((source / 'context.json').read_text())
+          for name in ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_REF', 'GITHUB_REPOSITORY']:
+              if context.get(name) != os.environ[name]:
+                  raise SystemExit(f'Registry Source evidence context mismatch: {name}')
+          source_attempt = int(context['GITHUB_RUN_ATTEMPT'])
+          if context.get('GITHUB_JOB') != 'registry_source_checks' or not 1 <= source_attempt <= int(os.environ['GITHUB_RUN_ATTEMPT']):
+              raise SystemExit('Registry Source job or attempt mismatch')
+          for filename, args in [('revision.txt', ['git', 'rev-parse', 'HEAD']), ('tree.txt', ['git', 'rev-parse', 'HEAD^{tree}']), ('compiler.txt', ['go', 'version'])]:
+              if (source / filename).read_text() != subprocess.check_output(args, text=True):
+                  raise SystemExit(f'Registry Source evidence identity mismatch: {filename}')
+          paths = ['.github/scripts/registry_test_shards.py', '.github/scripts/test_registry_test_shards.py', 'pkg/agent/registry011', 'docs/dev/registry-source-checks.md', 'docs/dev/agent-embedding.md', 'docs/INDEX.md', 'go.mod', 'go.sum', '.github/workflows/test.yml', '.github/workflows/registry-node-evidence.yml', '.gitleaks.toml']
+          tracked = subprocess.check_output(['git', 'ls-files', '-z', *paths]).decode().split('\0')[:-1]
+          expected = {name: hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in tracked}
+          recorded = {}
+          for line in (source / 'source.sha256').read_text().splitlines():
+              digest, name = line.split('  ', 1)
+              if name in recorded:
+                  raise SystemExit('Duplicate Registry Source file identity')
+              recorded[name] = digest
+          if not expected or recorded != expected:
+              raise SystemExit('Registry Source evidence does not match this complete source selection')
+          registry = 'github.com/sage-x-project/sage/pkg/agent/registry011'
+          passed, ran = 0, 0
+          for line in (source / 'tests.jsonl').read_text().splitlines():
+              event = json.loads(line)
+              if event.get('Action') == 'fail':
+                  raise SystemExit('Registry Source evidence contains a failed test')
+              if event.get('Package') == registry:
+                  passed += event.get('Action') == 'pass' and not event.get('Test')
+                  ran += event.get('Action') == 'run' and bool(event.get('Test'))
+          partition = json.loads(Path('registry-partition-verified.json').read_text())
+          if partition['role'] != 'source' or partition['shards'] != 9 or passed != partition['package_passes'] or not ran:
+              raise SystemExit('Registry Source evidence has no complete successful package run')
+          packages = Path('packages-all.txt').read_text().splitlines()
+          if len(packages) != len(set(packages)) or packages.count(registry) != 1:
+              raise SystemExit('Complete package inventory must contain Registry exactly once')
+          remaining = [name for name in packages if name != registry]
+          if not remaining:
+              raise SystemExit('Remaining package inventory is empty')
+          Path('packages-other.txt').write_text('\n'.join(remaining) + '\n')
+          receipt = {'registry_package': registry, 'source_run': context['GITHUB_RUN_ID'], 'source_attempt': source_attempt, 'consumer_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']), 'revision': (source / 'revision.txt').read_text().strip(), 'registry_named_runs': ran, 'registry_partition': partition, 'all_packages': packages, 'remaining_packages': remaining}
+          Path('registry-source-reuse.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(f'Verified Registry Source package; running every other package: {len(remaining)} of {len(packages)}')
+          PY
+
+      - name: Run remaining tests with coverage and race detector
+        shell: bash
+        run: |
+          mapfile -t packages < packages-other.txt
+          go test -race -count=1 -timeout=60m -coverprofile=coverage-other.out -covermode=atomic "${packages[@]}"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/'
+          registry = Path(os.environ['RUNNER_TEMP'], 'verified-registry-source', 'coverage.out')
+          merged, seen = [], set()
+          for path, is_registry in [(registry, True), (Path('coverage-other.out'), False)]:
+              lines = path.read_text().splitlines()
+              if len(lines) < 2 or lines[0] != 'mode: atomic':
+                  raise SystemExit(f'Missing atomic coverage: {path}')
+              for line in lines[1:]:
+                  location, statements, count = line.split()
+                  filename = location.rsplit(':', 1)[0]
+                  if filename.startswith(prefix) != is_registry or location in seen or int(statements) < 0 or int(count) < 0:
+                      raise SystemExit(f'Coverage source overlap or invalid row: {location}')
+                  seen.add(location)
+                  merged.append(line)
+          Path('coverage.out').write_text('mode: atomic\n' + '\n'.join(merged) + '\n')
+          PY
           go tool cover -html=coverage.out -o coverage.html
 
       - name: Check Registry observation and adapter coverage
@@ -109,6 +487,37 @@ jobs:
               'pkg/agent/registry010/eip155_observer010.go': [0, 0],
               'pkg/agent/didsource010/eip155.go': [0, 0],
               'pkg/agent/registry011/source_checkpoint.go': [0, 0],
+              'pkg/agent/registry011/provider_bootstrap_costing.go': [0, 0],
+              'pkg/agent/registry011/provider_scan_costing.go': [0, 0],
+              'pkg/agent/registry011/provider_scan_control.go': [0, 0],
+              'pkg/agent/registry011/provider_history_bootstrap_source_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_bootstrap_inputs.go': [0, 0],
+              'pkg/agent/registry011/provider_history_selected_source.go': [0, 0],
+              'pkg/agent/registry011/provider_history_catalog_domain.go': [0, 0],
+              'pkg/agent/registry011/provider_history_source_input_storage.go': [0, 0],
+              'pkg/agent/registry011/provider_history_finalization_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_profile_projection.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_catalog_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_finalized_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_index_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_initial_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_input_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_inventory_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_legacy_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_member_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_message_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_scan_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_collection_run.go': [0, 0],
+              'pkg/agent/registry011/provider_history_recovery_bounds.go': [0, 0],
+              'pkg/agent/registry011/provider_history_final_bounds.go': [0, 0],
+              'pkg/agent/registry011/provider_history_final_owner.go': [0, 0],
+              'pkg/agent/registry011/provider_history_final_read.go': [0, 0],
+              'pkg/agent/registry011/provider_history_final_data.go': [0, 0],
+              'pkg/agent/registry011/provider_history_run.go': [0, 0],
+              'pkg/agent/registry011/provider_history_uniform_storage_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_uniform_source_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_original_reconstruction.go': [0, 0],
+              'pkg/agent/registry011/provider_first_admission_operation_diagnostic.go': [0, 0],
               'pkg/agent/registry011/source_reconfiguration.go': [0, 0],
               'pkg/agent/registry011/source_retained.go': [0, 0],
               'pkg/agent/registry011/source_acquisition.go': [0, 0],
@@ -151,6 +560,7 @@ jobs:
               'pkg/agent/registry011/admission_candidate_ledger.go': [0, 0],
               'pkg/agent/registry011/admission_candidate_ledger_replay.go': [0, 0],
               'pkg/agent/registry011/node_identity.go': [0, 0],
+              'pkg/agent/registry011/provider_history_typed_spine.go': [0, 0],
           }
           for line in Path('coverage.out').read_text().splitlines()[1:]:
               location, statements, count = line.split()
@@ -293,7 +703,14 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-report
-          path: coverage.html
+          path: |
+            coverage.html
+            coverage.out
+            coverage-other.out
+            packages-all.txt
+            packages-other.txt
+            registry-source-reuse.json
+          if-no-files-found: error
           retention-days: 7
 
   # Go contract bindings must match the ABIs published by sage-contracts at
@@ -353,6 +770,23 @@ jobs:
 
       - name: Run go vet
         run: go vet ./...
+
+      - name: Test codegraph file boundaries
+        working-directory: tools/codegraph
+        run: |
+          go test -mod=readonly -race -count=1 -timeout=2m -json -coverprofile="$RUNNER_TEMP/codegraph-io.coverage" -covermode=atomic ./...
+          go tool cover -func="$RUNNER_TEMP/codegraph-io.coverage" > "$RUNNER_TEMP/codegraph-functions.txt"
+          python3 - "$RUNNER_TEMP/codegraph-functions.txt" <<'PY'
+          import json
+          import sys
+          from decimal import Decimal
+          from pathlib import Path
+          rows = [line.split() for line in Path(sys.argv[1]).read_text().splitlines()]
+          measured = [Decimal(row[2].removesuffix('%')) for row in rows if len(row) == 3 and row[1] == 'readSelectedFile']
+          if len(measured) != 1 or measured[0] < Decimal('90'):
+              raise SystemExit('readSelectedFile requires one measured coverage result of at least 90%')
+          print(json.dumps({'coverage_subject': 'readSelectedFile', 'measured_percent': str(measured[0]), 'required_percent': '90'}))
+          PY
 
       - name: Check layer boundaries (codegraph)
         working-directory: tools/codegraph
