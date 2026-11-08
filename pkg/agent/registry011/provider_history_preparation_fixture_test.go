@@ -170,7 +170,9 @@ func TestProviderHistoryPreparationCompilesOriginalUnmintedSelection(t *testing.
 	summary, err := DecodeHistoryPreparationSummary(ctx, output, raw, 64<<10)
 	if err != nil || summary.SourceReady || summary.Identity != expectedIdentity || summary.ManifestSHA256 != expectedManifest || summary.OriginUnixNano != origin.UnixNano() ||
 		summary.DeadlineUnixNano != origin.Add(time.Minute).UnixNano() || summary.AssignedWork == [11]uint64{} {
-		t.Fatalf("preparation DATA or original window missing: err=%v", err)
+		t.Fatalf("preparation DATA or original window missing: err=%v source_ready=%t identity_match=%t manifest_match=%t origin_match=%t deadline_match=%t work_assigned=%t",
+			err, summary.SourceReady, summary.Identity == expectedIdentity, summary.ManifestSHA256 == expectedManifest,
+			summary.OriginUnixNano == origin.UnixNano(), summary.DeadlineUnixNano == origin.Add(time.Minute).UnixNano(), summary.AssignedWork != [11]uint64{})
 	}
 	if output, err := session.Prepare(raw); err == nil || output != nil {
 		t.Fatal("successful attempt was reused")
