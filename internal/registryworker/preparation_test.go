@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -72,6 +73,25 @@ func TestPreparationHeaderRejectsMalformedData(t *testing.T) {
 	}
 	if _, err := parsePreparationHeader(record, journalBinding{}); !errors.Is(err, ErrConfiguration) {
 		t.Fatalf("unbound record accepted: %v", err)
+	}
+}
+
+func TestPreparationHeaderSizeLimits(t *testing.T) {
+	for _, field := range []int{8, 9} {
+		for _, value := range []string{"1", "67108864", "0", "-1", "+1", "01", "67108865", "2147483648", "9223372036854775807", "9223372036854775808", "18446744073709551615"} {
+			t.Run(strconv.Itoa(field)+"/"+value, func(t *testing.T) {
+				fields := strings.Split(strings.TrimSuffix(preparationTestRecord(), "\n"), " ")
+				fields[field] = value
+				got, err := parsePreparationHeader(strings.Join(fields, " ")+"\n", preparationTestBinding())
+				if value == "1" || value == "67108864" {
+					if err != nil || strconv.Itoa(got.MaximumInputBytes) != fields[8] || strconv.Itoa(got.MaximumResultBytes) != fields[9] {
+						t.Fatalf("valid size limit changed: %+v %v", got, err)
+					}
+				} else if !errors.Is(err, ErrConfiguration) || got != (PreparationSnapshot{}) {
+					t.Fatalf("invalid size limit accepted: %+v %v", got, err)
+				}
+			})
+		}
 	}
 }
 

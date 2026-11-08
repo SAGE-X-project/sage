@@ -107,7 +107,7 @@ func parsePreparationHeader(raw string, binding journalBinding) (PreparationSnap
 	if len(fields) != 10 || fields[0] != preparationMagic || fields[1] != binding.nonce || fields[2] != binding.input || fields[3] != binding.worker {
 		return empty, ErrConfiguration
 	}
-	var values [6]int64
+	var values [4]int64
 	for i := range values {
 		n, err := strconv.ParseInt(fields[i+4], 10, 64)
 		if err != nil || n <= 0 || strconv.FormatInt(n, 10) != fields[i+4] {
@@ -115,13 +115,18 @@ func parsePreparationHeader(raw string, binding journalBinding) (PreparationSnap
 		}
 		values[i] = n
 	}
-	if values[4] <= 0 || values[4] > 64<<20 || values[5] <= 0 || values[5] > 64<<20 {
-		return empty, ErrConfiguration
+	var limits [2]int
+	for i := range limits {
+		n, err := strconv.Atoi(fields[i+8])
+		if err != nil || n <= 0 || n > 64<<20 || strconv.Itoa(n) != fields[i+8] {
+			return empty, ErrConfiguration
+		}
+		limits[i] = n
 	}
 	snapshot := PreparationSnapshot{
 		Origin: time.Unix(0, values[0]), ActionDeadline: time.Unix(0, values[1]),
 		HardStopDeadline: time.Unix(0, values[2]), WholeDeadline: time.Unix(0, values[3]),
-		MaximumInputBytes: int(values[4]), MaximumResultBytes: int(values[5]),
+		MaximumInputBytes: limits[0], MaximumResultBytes: limits[1],
 	}
 	if !snapshot.valid() {
 		return empty, ErrConfiguration

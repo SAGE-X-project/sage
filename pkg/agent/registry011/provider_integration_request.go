@@ -27,10 +27,13 @@ func newProviderIntegrationRequestObserved(method string, params any, meter *pro
 		Method  string `json:"method"`
 		Params  any    `json:"params"`
 	}{"2.0", 1, method, params}, 16<<10, meter)
-	if len(body) == 0 || meter != nil && !meter.preflight(providerEncodeEvent, 512) {
+	if len(body) == 0 || len(body) > 16<<10 || meter != nil && !meter.preflight(providerEncodeEvent, 512) {
 		return nil, errProviderIntegration
 	}
 	head := providerRequestHead(len(body))
+	if len(head) > 512 {
+		return nil, errProviderIntegration
+	}
 	if meter != nil && (!meter.event(providerEncodeEvent, uint64(len(head))) || !meter.event(providerCopyEvent, uint64(len(head)))) {
 		return nil, errProviderIntegration
 	}
