@@ -68,7 +68,7 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 			Journal: v.journal, Encoding: v.encoding, Gas: v.gas, MaximumSelected: v.maximumSelected,
 			Blocks: v.blocks, Native: v.native, Effects: v.effects, Versions: v.versions, PresentStops: v.presentStops,
 			WindowBlocks: v.windowBlocks, ContentBlocks: v.contentBlocks,
-			FirstRead: historyPreparationFirstRead{Objects: v.firstRead.objects, Raw: v.firstRead.raw}, TraceTimeout: v.traceTimeout,
+			FirstRead: historyPreparationFirstRead{Objects: v.firstRead.objects, Raw: v.firstRead.raw, Work: v.firstRead.work.diagnostic()}, TraceTimeout: v.traceTimeout,
 		},
 		Bounds: historyPreparationBounds{
 			Ledger: b.ledger,
@@ -176,8 +176,8 @@ func TestProviderHistoryPreparationCompilesOriginalUnmintedSelection(t *testing.
 		t.Fatal(err)
 	}
 	decoded, err := decodeHistoryPreparationInput(ctx, raw)
-	if err != nil || decoded.Policy != in.Policy {
-		t.Fatalf("original policy bytes changed during transport: err=%v", err)
+	if err != nil || decoded.Policy != in.Policy || decoded.Collection.FirstRead.Work != in.Collection.FirstRead.Work {
+		t.Fatalf("original policy or first-read work changed during transport: err=%v", err)
 	}
 	output, err := session.Prepare(raw)
 	if err != nil {
@@ -229,6 +229,7 @@ func TestProviderHistoryPreparationRejectsInvalidSelectedInputs(t *testing.T) {
 		"generation": func(in *historyPreparationInput) { in.Generation = "01" },
 		"entries":    func(in *historyPreparationInput) { in.Bounds.MaximumEntries = 0 },
 		"first-read": func(in *historyPreparationInput) { in.Collection.FirstRead.Raw = 0 },
+		"first-work": func(in *historyPreparationInput) { in.Collection.FirstRead.Work = CandidateWork{} },
 		"code":       func(in *historyPreparationInput) { in.Collection.Codes[0].SHA256 = "missing" },
 		"stages":     func(in *historyPreparationInput) { in.Bounds.History.Stages = 0 },
 		"structure":  func(in *historyPreparationInput) { in.Bounds.MaximumMetadataPerCommit = 0 },

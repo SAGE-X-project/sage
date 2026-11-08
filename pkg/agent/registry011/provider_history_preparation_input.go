@@ -61,8 +61,9 @@ type historyPreparationCollection struct {
 }
 
 type historyPreparationFirstRead struct {
-	Objects uint64 `json:"objects"`
-	Raw     uint64 `json:"raw"`
+	Objects uint64        `json:"objects"`
+	Raw     uint64        `json:"raw"`
+	Work    CandidateWork `json:"work"`
 }
 
 type historyPreparationBounds struct {

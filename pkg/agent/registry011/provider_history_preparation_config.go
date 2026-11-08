@@ -26,8 +26,9 @@ func buildHistoryPreparationConfig(in historyPreparationInput) (providerCustodyC
 	if b.maximumEntries <= 0 {
 		return empty, ErrConfiguration
 	}
-	// The caller's original read bounds remain explicit. Only their work is
-	// derived by the existing source constructor from this same selection.
+	// Preserve the caller's complete proposed read bounds. The existing source
+	// constructor supplies an upper bound that the proposed work must cover.
+	// This numeric check does not reserve resources or establish provenance.
 	legacy := providerHistoryLegacyControlLimits{
 		metadata: b.maximumMetadataPerCommit, objectBytes: b.maximumObjectBytes,
 		firstObjects: in.Collection.FirstRead.Objects, firstRaw: in.Collection.FirstRead.Raw,
@@ -37,6 +38,11 @@ func buildHistoryPreparationConfig(in historyPreparationInput) (providerCustodyC
 	if !ok || firstRead.objects != in.Collection.FirstRead.Objects || firstRead.raw != in.Collection.FirstRead.Raw {
 		return empty, ErrConfiguration
 	}
+	proposedWork := in.Collection.FirstRead.Work.vector()
+	if !candidateFits(candidateBudgetTotals{}, firstRead.work, proposedWork) {
+		return empty, ErrConfiguration
+	}
+	firstRead.work = proposedWork
 	collection := in.Collection
 	var codes [13]nodeCodeIdentity
 	for i, code := range collection.Codes {
