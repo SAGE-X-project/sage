@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -141,6 +142,21 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 	if err != nil || identity != expectedIdentity {
 		t.Fatalf("public test policy identity differs before transport: err=%v", err)
 	}
+	rebuilt, err := buildHistoryPreparationConfig(in)
+	if err != nil {
+		t.Fatalf("public test selection rebuild rejected before transport: %v", err)
+	}
+	rebuiltInput := rebuilt.bounds.history.collection.input
+	t.Logf("collection mapping: manifest_match=%t journal_match=%t codes_match=%t capture_match=%t config_capture_match=%t first_work_match=%t original_work_covers_rebuild=%t first_objects_match=%t first_raw_match=%t scalar_fields_match=%t",
+		rebuilt.bounds.history.collection.digest == h.collection.digest,
+		reflect.DeepEqual(rebuiltInput.journal, v.journal), reflect.DeepEqual(rebuiltInput.codes, v.codes),
+		rebuiltInput.capture == v.capture, c.capture == v.capture, reflect.DeepEqual(rebuiltInput.firstRead.work, v.firstRead.work),
+		candidateFits(candidateBudgetTotals{}, rebuiltInput.firstRead.work, v.firstRead.work),
+		rebuiltInput.firstRead.objects == v.firstRead.objects, rebuiltInput.firstRead.raw == v.firstRead.raw,
+		rebuiltInput.encoding == v.encoding && rebuiltInput.gas == v.gas && rebuiltInput.maximumSelected == v.maximumSelected &&
+			rebuiltInput.blocks == v.blocks && rebuiltInput.native == v.native && rebuiltInput.effects == v.effects &&
+			rebuiltInput.versions == v.versions && rebuiltInput.presentStops == v.presentStops && rebuiltInput.windowBlocks == v.windowBlocks &&
+			rebuiltInput.contentBlocks == v.contentBlocks && rebuiltInput.traceTimeout == v.traceTimeout)
 	return in, expectedIdentity, h.collection.digest
 }
 
