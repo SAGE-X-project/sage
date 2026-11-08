@@ -1,17 +1,15 @@
 package registry011
 
-import (
-	"encoding/json"
-	"time"
-)
+import "time"
 
 // This is local preparation DATA, not a protocol credential or selected
 // operating profile. Every member is required by the bounded decoder. Integer
 // tokens are checked and decoded directly into integer types without float64.
-// Policy retains its original canonical bytes for the existing policy parser.
+// Policy is a JSON string carrying the original canonical bytes unchanged.
+// Nesting them as RawMessage would let outer JSON encoding alter their escaping.
 type historyPreparationInput struct {
 	Format             string                       `json:"format"`
-	Policy             json.RawMessage              `json:"policy"`
+	Policy             string                       `json:"policy"`
 	MaximumPolicyBytes int                          `json:"maximum_policy_bytes"`
 	Namespace          string                       `json:"namespace"`
 	SourceID           string                       `json:"source_id"`

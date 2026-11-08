@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"sync/atomic"
 	"time"
@@ -74,15 +75,15 @@ func (s *HistoryPreparationSession) Prepare(input []byte) ([]byte, error) {
 	owned := bytes.Clone(input)
 	decoded, err := decodeHistoryPreparationInput(s.compiler.ctx, owned)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("registry history preparation input: %w", err)
 	}
 	config, err := buildHistoryPreparationConfig(decoded)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("registry history preparation configuration: %w", err)
 	}
 	plan, err := s.compiler.compile(config, decoded.Clock.Maximum, decoded.Clock.BaseUncertaintyMS, decoded.Clock.ReadWindowMS)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("registry history preparation compilation: %w", err)
 	}
 	digest := sha256.Sum256(owned)
 	summary := HistoryPreparationSummary{

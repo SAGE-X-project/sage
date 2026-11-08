@@ -25,6 +25,11 @@ func decodeHistoryPreparationInput(ctx context.Context, raw []byte) (historyPrep
 	if err := decoder.Decode(&out); err != nil {
 		return historyPreparationInput{}, ErrConfiguration
 	}
+	// Decode the transport string first, then validate its original JSON bytes.
+	// The existing policy parser still checks canonical form and supported values.
+	if err := validateHistoryPreparationJSON(ctx, []byte(out.Policy), reflect.TypeFor[json.RawMessage]()); err != nil {
+		return historyPreparationInput{}, err
+	}
 	if err := ctx.Err(); err != nil {
 		return historyPreparationInput{}, err
 	}

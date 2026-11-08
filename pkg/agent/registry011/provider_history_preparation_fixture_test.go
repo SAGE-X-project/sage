@@ -3,6 +3,7 @@ package registry011
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"strconv"
 	"testing"
@@ -31,7 +32,7 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 	v := h.collection.input
 	policy := c.policy.CanonicalBytes()
 	in := historyPreparationInput{
-		Format: historyPreparationInputFormat, Policy: policy, MaximumPolicyBytes: len(policy),
+		Format: historyPreparationInputFormat, Policy: string(policy), MaximumPolicyBytes: len(policy),
 		Namespace: c.identity.Namespace, SourceID: c.identity.SourceID, Generation: strconv.FormatUint(c.identity.Generation, 10),
 		Store: historyPreparationStore{
 			CustodyDirectory: c.custodyDirectory, EvidenceDirectory: c.evidenceDirectory,
@@ -102,6 +103,20 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 	for i, code := range v.codes {
 		in.Collection.Codes[i] = historyPreparationCode(code)
 	}
+	// Check the original proposal before transport or negative-case mutation.
+	// A non-nil private test value is not evidence of valid canonical policy.
+	parsed, err := ParseProviderPolicyCandidate(policy, in.MaximumPolicyBytes)
+	if err != nil {
+		t.Fatalf("original test policy rejected before transport: %v", err)
+	}
+	bound, err := parsed.BindCandidate(in.Namespace, in.SourceID, in.Generation)
+	if err != nil {
+		t.Fatalf("original test policy binding rejected before transport: %v", err)
+	}
+	identity, err := bound.Identity()
+	if err != nil || identity != c.identity {
+		t.Fatalf("original test policy identity differs before transport: err=%v", err)
+	}
 	return in, c.identity, h.collection.digest
 }
 
@@ -119,6 +134,10 @@ func TestProviderHistoryPreparationCompilesOriginalUnmintedSelection(t *testing.
 	raw, err := json.Marshal(in)
 	if err != nil {
 		t.Fatal(err)
+	}
+	decoded, err := decodeHistoryPreparationInput(ctx, raw)
+	if err != nil || decoded.Policy != in.Policy {
+		t.Fatalf("original policy bytes changed during transport: err=%v", err)
 	}
 	output, err := session.Prepare(raw)
 	if err != nil {
@@ -163,7 +182,7 @@ func TestProviderHistoryPreparationRejectsInvalidSelectedInputs(t *testing.T) {
 	for name, change := range map[string]func(*historyPreparationInput){
 		"format":     func(in *historyPreparationInput) { in.Format = "unknown" },
 		"capture":    func(in *historyPreparationInput) { in.Capture.Timeout = 0 },
-		"policy":     func(in *historyPreparationInput) { in.Policy = json.RawMessage(`{}`) },
+		"policy":     func(in *historyPreparationInput) { in.Policy = `{}` },
 		"namespace":  func(in *historyPreparationInput) { in.Namespace = "missing" },
 		"generation": func(in *historyPreparationInput) { in.Generation = "01" },
 		"entries":    func(in *historyPreparationInput) { in.Bounds.MaximumEntries = 0 },
@@ -190,6 +209,8 @@ func TestProviderHistoryPreparationRejectsInvalidSelectedInputs(t *testing.T) {
 			}
 			if output, err := session.Prepare(raw); err == nil || output != nil {
 				t.Fatal("invalid original selection produced a result")
+			} else if (name == "policy" || name == "namespace" || name == "generation") && !errors.Is(err, ErrProviderPolicyCandidate) {
+				t.Fatalf("policy error identity lost: %v", err)
 			}
 			if output, err := session.Prepare(raw); err == nil || output != nil {
 				t.Fatal("failed selection refunded its attempt")

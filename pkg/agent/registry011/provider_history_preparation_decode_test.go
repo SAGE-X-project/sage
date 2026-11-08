@@ -1,7 +1,6 @@
 package registry011
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -15,7 +14,7 @@ func TestProviderHistoryPreparationDecodePreservesIntegerAndPolicyBytes(t *testi
 	// This tests the DATA decoder, not a qualified collection configuration.
 	in := historyPreparationInput{
 		Format: historyPreparationInputFormat,
-		Policy: json.RawMessage(`{"original":"policy","value":"18446744073709551615"}`),
+		Policy: `{"html":"<>&","original":"policy","value":"18446744073709551615"}`,
 		Clock:  historyPreparationClock{Maximum: math.MaxUint64, BaseUncertaintyMS: math.MaxInt64},
 	}
 	in.Bounds.SetupWork[10] = math.MaxUint64
@@ -26,13 +25,13 @@ func TestProviderHistoryPreparationDecodePreservesIntegerAndPolicyBytes(t *testi
 	}
 	out, err := decodeHistoryPreparationInput(context.Background(), raw)
 	if err != nil || out.Clock != in.Clock || out.Bounds.SetupWork != in.Bounds.SetupWork ||
-		out.Collection.Codes != in.Collection.Codes || !bytes.Equal(out.Policy, in.Policy) {
+		out.Collection.Codes != in.Collection.Codes || out.Policy != in.Policy {
 		t.Fatalf("lossless DATA decode: err=%v", err)
 	}
 }
 
 func TestProviderHistoryPreparationDecodeRejectsAmbiguousInput(t *testing.T) {
-	raw, err := json.Marshal(historyPreparationInput{Format: historyPreparationInputFormat, Policy: json.RawMessage(`{}`)})
+	raw, err := json.Marshal(historyPreparationInput{Format: historyPreparationInputFormat, Policy: `{}`})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +60,9 @@ func TestProviderHistoryPreparationDecodeRejectsAmbiguousInput(t *testing.T) {
 		"null-array":     replace(`"setup_work":[0,0,0,0,0,0,0,0,0,0,0]`, `"setup_work":null`),
 		"short-codes":    replace(`"codes":[`, `"codes":[],"unused":[`),
 		"nested-missing": replace(`"custody_directory":"",`, ""),
-		"policy-dup":     replace(`"policy":{}`, `"policy":{"x":1,"x":2}`),
+		"policy-dup":     replace(`"policy":"{}"`, `"policy":"{\"x\":1,\"x\":2}"`),
+		"policy-object":  replace(`"policy":"{}"`, `"policy":{}`),
+		"policy-null":    replace(`"policy":"{}"`, `"policy":null`),
 		"trailing":       base + ` {}`,
 		"truncated":      base[:len(base)-1],
 		"root-array":     `[]`,
@@ -76,7 +77,11 @@ func TestProviderHistoryPreparationDecodeRejectsAmbiguousInput(t *testing.T) {
 		})
 	}
 	deep := strings.Repeat(`[`, 65) + `0` + strings.Repeat(`]`, 65)
-	if _, err := decodeHistoryPreparationInput(context.Background(), []byte(replace(`"policy":{}`, `"policy":`+deep))); err == nil {
+	encodedDepth, err := json.Marshal(deep)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := decodeHistoryPreparationInput(context.Background(), []byte(replace(`"policy":"{}"`, `"policy":`+string(encodedDepth)))); err == nil {
 		t.Fatal("excessive policy depth accepted")
 	}
 }

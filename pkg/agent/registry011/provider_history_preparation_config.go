@@ -10,7 +10,7 @@ func buildHistoryPreparationConfig(in historyPreparationInput) (providerCustodyC
 	if in.Format != historyPreparationInputFormat || !in.Capture.valid() {
 		return empty, ErrConfiguration
 	}
-	policy, err := ParseProviderPolicyCandidate(in.Policy, in.MaximumPolicyBytes)
+	policy, err := ParseProviderPolicyCandidate([]byte(in.Policy), in.MaximumPolicyBytes)
 	if err != nil {
 		return empty, err
 	}
