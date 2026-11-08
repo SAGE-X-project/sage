@@ -847,10 +847,33 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Install verified golangci-lint
+        timeout-minutes: 5
+        run: |
+          if [[ "$RUNNER_OS" != Linux || "$RUNNER_ARCH" != X64 ]]; then
+            printf 'Unsupported linter platform: %s/%s\n' "$RUNNER_OS" "$RUNNER_ARCH" >&2
+            exit 1
+          fi
+          lint_archive="$RUNNER_TEMP/golangci-lint-2.13.2-linux-amd64.tar.gz"
+          lint_directory="$RUNNER_TEMP/golangci-lint-2.13.2-linux-amd64"
+          mkdir -p "$lint_directory"
+          # Both download paths identify the same pinned official release asset.
+          if ! curl --proto '=https' --proto-redir '=https' --fail --location --silent --show-error --retry 1 --retry-all-errors --retry-delay 2 --connect-timeout 10 --max-time 45 --output "$lint_archive" 'https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-linux-amd64.tar.gz'; then
+            curl --proto '=https' --proto-redir '=https' --fail --location --silent --show-error --retry 2 --retry-all-errors --retry-delay 2 --connect-timeout 10 --max-time 45 --header 'Accept: application/octet-stream' --header 'X-GitHub-Api-Version: 2022-11-28' --output "$lint_archive" 'https://api.github.com/repos/golangci/golangci-lint/releases/assets/532995333'
+          fi
+          printf '%s  %s\n' '2277d43b98ec0054280f2ac26b53268bae97682444678a59a657dd565da021d6' "$lint_archive" | sha256sum --check --strict -
+          tar --extract --gzip --file "$lint_archive" --directory "$lint_directory" --strip-components=1 --no-same-owner --no-same-permissions 'golangci-lint-2.13.2-linux-amd64/golangci-lint'
+          test -f "$lint_directory/golangci-lint"
+          test ! -L "$lint_directory/golangci-lint"
+          chmod u+x "$lint_directory/golangci-lint"
+          "$lint_directory/golangci-lint" version
+          printf '%s\n' "$lint_directory" >> "$GITHUB_PATH"
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.13.2
+          install-mode: none
           args: --timeout=5m
           skip-cache: true
 
