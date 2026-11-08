@@ -101,6 +101,15 @@ jobs:
           printf '%s\n' "$reference_status" > "$registry_fixture_dir/reference-tests.exit"
           git diff --exit-code
           exit "$reference_status"
+      - name: Check original preparation input before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/provider-fixture-check"
+          preparation_status=0
+          # A refusal is a failed prerequisite, never a substitute for full tests.
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=2m -json -run '^TestProviderHistoryPreparationCompilesOriginalUnmintedSelection$' ./pkg/agent/registry011 > "$registry_fixture_dir/preparation-tests.jsonl" || preparation_status=$?
+          printf '%s\n' "$preparation_status" > "$registry_fixture_dir/preparation-tests.exit"
+          git diff --exit-code
+          exit "$preparation_status"
       - name: Retain recovery fixture check
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
