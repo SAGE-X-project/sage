@@ -31,6 +31,20 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+      - name: Download and verify module dependencies
+        timeout-minutes: 3
+        run: |
+          for attempt in 1 2 3; do
+            if go mod download; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            sleep 5
+          done
+          go mod verify
+          git diff --exit-code -- go.mod go.sum
       - name: Observe disposable child resource limits
         env:
           SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
