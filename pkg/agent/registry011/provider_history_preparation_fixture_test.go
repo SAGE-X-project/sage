@@ -111,7 +111,9 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 	}
 	bound, err := parsed.BindCandidate(in.Namespace, in.SourceID, in.Generation)
 	if err != nil {
-		t.Fatalf("original test policy binding rejected before transport: %v", err)
+		_, generationValid := providerCandidateUint(in.Generation, false)
+		t.Fatalf("original test policy binding rejected before transport (namespace_digest=%t source_id_digest=%t generation_canonical=%t): %v",
+			providerCandidateDigest(in.Namespace), providerCandidateDigest(in.SourceID), generationValid, err)
 	}
 	identity, err := bound.Identity()
 	if err != nil || identity != c.identity {
