@@ -53,6 +53,10 @@ type Configuration struct {
 	// RequireJournal binds the retained child's start and terminal records to
 	// this input, executable and fresh attempt before publishing ordinary output.
 	RequireJournal bool
+	// RequirePreparation passes a one-use live preparation control descriptor.
+	// The original parent lifetime still owns process termination. This option
+	// does not qualify resources or enable Registry collection.
+	RequirePreparation bool
 }
 
 // Result is detached completed-attempt DATA. Success here never certifies the
@@ -73,6 +77,9 @@ type Result struct {
 	// Journal interprets the child's records only. Even a completed record is
 	// no Registry custody, derivation or complete resource qualification.
 	Journal JournalResult
+	// PreparationWindow is the parent's original diagnostic snapshot, not an
+	// execution grant. The runner compares the child compiler's echoed window.
+	PreparationWindow PreparationSnapshot
 }
 
 type Owner struct {
@@ -83,6 +90,7 @@ type Owner struct {
 	parent         context.Context
 	whole, action  context.Context
 	hardStop       context.Context
+	origin         time.Time
 	cancelWhole    context.CancelFunc
 	cancelAction   context.CancelFunc
 	cancelHardStop context.CancelFunc
@@ -123,7 +131,7 @@ func New(ctx context.Context, c Configuration) (*Owner, error) {
 	c.TerminalEvidence.Directory = strings.Clone(c.TerminalEvidence.Directory)
 	c.Launcher.Path, c.Launcher.SHA256 = strings.Clone(c.Launcher.Path), strings.Clone(c.Launcher.SHA256)
 	c.Worker.Path, c.Worker.SHA256 = strings.Clone(c.Worker.Path), strings.Clone(c.Worker.SHA256)
-	o := &Owner{configuration: c, parent: ctx, whole: whole, action: action, hardStop: hardStop,
+	o := &Owner{configuration: c, parent: ctx, whole: whole, action: action, hardStop: hardStop, origin: now,
 		cancelWhole: cancelWhole, cancelAction: cancelAction, cancelHardStop: cancelHardStop}
 	o.self = o
 	return o, nil
@@ -140,7 +148,8 @@ func validConfiguration(c Configuration) bool {
 		l.ChildCleanupReserve >= 0 && l.ChildCleanupReserve < l.CleanupReserve &&
 		l.Duration > l.CleanupReserve && l.Duration <= 31*24*time.Hour &&
 		validEvidenceConfiguration(c.TerminalEvidence, l) &&
-		(!c.RequireJournal || c.TerminalEvidence.MaximumBytes >= journalMaximumBytes)
+		(!c.RequireJournal || c.TerminalEvidence.MaximumBytes >= journalMaximumBytes) &&
+		(!c.RequirePreparation || c.RequireJournal)
 }
 
 func validAsset(a Asset) bool {
@@ -249,6 +258,16 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 		// exec and addresses this parent's separate retained terminal file.
 		cmd.ExtraFiles = append(cmd.ExtraFiles, evidence.file)
 	}
+	var preparation *preparationControl
+	if c.RequirePreparation {
+		preparation, err = newPreparationControl(o, binding)
+		if err != nil {
+			return result, errors.Join(err, readyWrite.Close())
+		}
+		result.PreparationWindow = preparation.snapshot
+		defer func() { err = errors.Join(err, preparation.close()) }()
+		cmd.ExtraFiles = append(cmd.ExtraFiles, preparation.read)
+	}
 	cmd.WaitDelay = time.Second
 	if c.Limits.ChildCleanupReserve > 0 {
 		cmd.WaitDelay = c.Limits.ChildCleanupReserve
@@ -257,6 +276,9 @@ func (o *Owner) Run(input []byte) (result Result, err error) {
 		return result, errors.Join(ErrUnavailable, readyWrite.Close())
 	}
 	result.Started = true
+	if preparation != nil {
+		preparation.releaseRead()
+	}
 	var processExited chan struct{}
 	var hardStopped <-chan error
 	if c.Limits.ChildCleanupReserve > 0 {

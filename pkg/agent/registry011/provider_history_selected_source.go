@@ -117,7 +117,14 @@ type providerHistorySourceCompiler struct {
 func (*providerHistorySourceCompiler) UnmarshalJSON([]byte) error { return ErrConfiguration }
 
 func newProviderHistorySourceCompiler(ctx context.Context) (*providerHistorySourceCompiler, error) {
-	origin := time.Now()
+	return newProviderHistorySourceCompilerAtOrigin(ctx, time.Now())
+}
+
+// The fixed preparation child can retain its parent's original origin rather
+// than restarting the input/compile window after process bootstrap. This is
+// still DATA: the live parent must enforce the actual process lifetime and
+// separately fund preparation before any complete execution is permitted.
+func newProviderHistorySourceCompilerAtOrigin(ctx context.Context, origin time.Time) (*providerHistorySourceCompiler, error) {
 	if ctx == nil {
 		return nil, ErrConfiguration
 	}
@@ -125,7 +132,7 @@ func newProviderHistorySourceCompiler(ctx context.Context) (*providerHistorySour
 		return nil, err
 	}
 	deadline, finite := ctx.Deadline()
-	if !finite || !deadline.After(origin) {
+	if !finite || origin.IsZero() || !deadline.After(origin) {
 		return nil, ErrConfiguration
 	}
 	c := &providerHistorySourceCompiler{used: new(atomic.Bool), ctx: ctx, origin: origin, deadline: deadline}

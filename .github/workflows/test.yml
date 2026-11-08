@@ -42,6 +42,17 @@ jobs:
           cp .github/workflows/test.yml "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/test-workflow.yml"
           go test -mod=readonly -count=1 -timeout=3m -tags=registry_native_limits -json ./internal/qualification/nativelimits > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/tests.jsonl"
           git diff --exit-code
+      - name: Build the fixed preparation child
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          registry_worker_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/worker"
+          mkdir -p "$registry_worker_dir/source"
+          go build -mod=readonly -o "$registry_worker_dir/preparation-worker" ./cmd/sage-registry-worker
+          shasum -a 256 "$registry_worker_dir/preparation-worker" > "$registry_worker_dir/preparation-worker.sha256"
+          SAGE_HISTORY_PREPARATION_FIXTURE_PATH="$registry_worker_dir/preparation-input.json" go test -mod=readonly -count=1 -timeout=2m -json -run '^TestProviderHistoryPreparationCompilesOriginalUnmintedSelection$' ./pkg/agent/registry011 > "$registry_worker_dir/preparation-fixture-tests.jsonl"
+          shasum -a 256 "$registry_worker_dir/preparation-input.json" > "$registry_worker_dir/preparation-input.sha256"
+          git diff --exit-code
       - name: Check the owning worker with the stock Go runtime
         env:
           SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
@@ -49,18 +60,77 @@ jobs:
           registry_worker_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/worker"
           mkdir -p "$registry_worker_dir/source"
           cp -R internal/registryworker "$registry_worker_dir/source/"
+          cp -R cmd/sage-registry-worker "$registry_worker_dir/source/"
           go version > "$registry_worker_dir/compiler.txt"
           git ls-files -z internal/registryworker | xargs -0 shasum -a 256 > "$registry_worker_dir/source.sha256"
+          export SAGE_REGISTRY_PREPARATION_WORKER="$registry_worker_dir/preparation-worker"
+          export SAGE_HISTORY_PREPARATION_INPUT="$registry_worker_dir/preparation-input.json"
+          # Preserve a formatting diagnostic without modifying checked-out code.
+          gofmt -d internal/registryworker/preparation*.go internal/registryrunner/*.go internal/app/registry_history*.go cmd/sage-registry-worker/*.go pkg/agent/registry011/provider_history_preparation*.go > "$registry_worker_dir/preparation-format.patch"
           worker_status=0
-          go test -mod=readonly -race -count=1 -timeout=4m -tags=registry_native_limits -json -coverprofile="$registry_worker_dir/coverage.out" -covermode=atomic ./internal/registryworker > "$registry_worker_dir/tests.jsonl" || worker_status=$?
+          go test -mod=readonly -race -count=1 -timeout=4m -tags=registry_native_limits -json -coverprofile="$registry_worker_dir/coverage-parent.out" -covermode=atomic ./internal/registryworker > "$registry_worker_dir/tests.jsonl" || worker_status=$?
           printf '%s\n' "$worker_status" > "$registry_worker_dir/tests.exit"
+          worker_union_status=0
+          python3 - "$registry_worker_dir" <<'PYWORKERUNION' || worker_union_status=$?
+          import hashlib, json, sys
+          from pathlib import Path
+          root = Path(sys.argv[1])
+          prefix = "github.com/sage-x-project/sage/internal/registryworker/"
+          original_files = {"owner.go", "owner_darwin.go", "terminal_evidence.go", "journal.go"}
+          scenarios = {"close-live-parent", "parent-cancel", "nil-context", "bad-environment", "bad-header",
+              "empty-header", "expired-action", "regular-file", "missing-descriptor", "closed-descriptor"}
+          def read_profile(path):
+              raw = path.read_bytes()
+              lines = raw.decode().splitlines()
+              if not lines or lines[0] != "mode: atomic":
+                  raise ValueError("Missing atomic source measurement")
+              blocks = {}
+              for line in lines[1:]:
+                  location, statements, count = line.rsplit(" ", 2)
+                  statements, count = int(statements), int(count)
+                  if location in blocks or statements < 0 or count < 0:
+                      raise ValueError("Duplicate or invalid source measurement")
+                  blocks[location] = (statements, count)
+              if not blocks:
+                  raise ValueError("Empty source measurement")
+              return blocks, {"path": str(path), "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+          parent, parent_pin = read_profile(root / "coverage-parent.out")
+          # Preserve the existing four-file gate on its ORIGINAL parent measure.
+          original = {name: {"covered": 0, "statements": 0} for name in original_files}
+          for location, (statements, count) in parent.items():
+              name = location.split(":", 1)[0]
+              if name.startswith(prefix) and name[len(prefix):] in original:
+                  value = original[name[len(prefix):]]
+                  value["statements"] += statements
+                  value["covered"] += statements if count else 0
+          original_passed = all(v["statements"] > 0 and v["covered"] * 100 >= v["statements"] * 90 for v in original.values())
+          union = {location: (statements, int(count > 0)) for location, (statements, count) in parent.items()}
+          child_pins = []
+          for scenario in sorted(scenarios):
+              child, child_pin = read_profile(root / "child-profiles" / scenario / "coverage.out")
+              if child.keys() != parent.keys() or any(child[k][0] != parent[k][0] for k in parent):
+                  raise ValueError("Child source blocks differ from the same parent test binary")
+              child_pins.append({"scenario": scenario, **child_pin})
+              for location, (statements, count) in child.items():
+                  union[location] = (statements, int(union[location][1] > 0 or count > 0))
+          rows = ["mode: atomic"] + [f"{location} {n} {covered}" for location, (n, covered) in sorted(union.items())]
+          (root / "coverage.out").write_text("\n".join(rows) + "\n")
+          (root / "coverage-measurements.json").write_text(json.dumps({
+              "parent": parent_pin, "original_parent_files": original, "original_parent_gate_passed": original_passed,
+              "children": child_pins, "aggregate": "coverage.out", "minimum_percent_per_file": 90,
+              "scope": "Separate same-binary library unit source-coverage union; covered flags, never summed execution counts. Fixed production child runtime and whole-profile qualification are separate."
+          }, indent=2) + "\n")
+          if not original_passed:
+              raise SystemExit("The original parent-only worker coverage gate failed")
+          PYWORKERUNION
+          printf '%s\n' "$worker_union_status" > "$registry_worker_dir/coverage-union.exit"
           worker_coverage_status=0
           python3 - "$registry_worker_dir/coverage.out" "$registry_worker_dir/coverage-gate.json" <<'PYWORKERCOVERAGE' || worker_coverage_status=$?
           import json, sys
           from pathlib import Path
           prefix = "github.com/sage-x-project/sage/internal/registryworker/"
           def read_coverage(rows):
-              files = {name: {"covered": 0, "statements": 0} for name in ("owner.go", "owner_darwin.go", "terminal_evidence.go", "journal.go")}
+              files = {name: {"covered": 0, "statements": 0} for name in ("owner.go", "owner_darwin.go", "terminal_evidence.go", "journal.go", "preparation.go", "preparation_darwin.go")}
               if not rows or rows[0] != "mode: atomic":
                   raise ValueError("Owning worker atomic coverage is missing")
               seen = set()
@@ -83,7 +153,8 @@ jobs:
           row = lambda name, block, n, count: f"{prefix}{name}:{block} {n} {count}"
           positive = ["mode: atomic", row("owner.go", "1.1,2.1", 9, 1),
               row("owner.go", "3.1,4.1", 1, 0), row("owner_darwin.go", "1.1,2.1", 1, 1),
-              row("terminal_evidence.go", "1.1,2.1", 1, 1), row("journal.go", "1.1,2.1", 1, 1)]
+              row("terminal_evidence.go", "1.1,2.1", 1, 1), row("journal.go", "1.1,2.1", 1, 1),
+              row("preparation.go", "1.1,2.1", 1, 1), row("preparation_darwin.go", "1.1,2.1", 1, 1)]
           cases = [
               ("zero-statement-covered", positive + [row("owner.go", "5.1,6.1", 0, 1)], True),
               ("zero-statement-uncovered", positive + [row("owner.go", "5.1,6.1", 0, 0)], True),
@@ -117,6 +188,9 @@ jobs:
           git diff --exit-code
           if [ "$worker_status" -ne 0 ]; then
             exit "$worker_status"
+          fi
+          if [ "$worker_union_status" -ne 0 ]; then
+            exit "$worker_union_status"
           fi
           exit "$worker_coverage_status"
       - name: Retain native resource observations
@@ -493,6 +567,9 @@ jobs:
               'pkg/agent/registry011/provider_history_bootstrap_source_bound.go': [0, 0],
               'pkg/agent/registry011/provider_history_bootstrap_inputs.go': [0, 0],
               'pkg/agent/registry011/provider_history_selected_source.go': [0, 0],
+              'pkg/agent/registry011/provider_history_preparation.go': [0, 0],
+              'pkg/agent/registry011/provider_history_preparation_config.go': [0, 0],
+              'pkg/agent/registry011/provider_history_preparation_decode.go': [0, 0],
               'pkg/agent/registry011/provider_history_catalog_domain.go': [0, 0],
               'pkg/agent/registry011/provider_history_source_input_storage.go': [0, 0],
               'pkg/agent/registry011/provider_history_finalization_bound.go': [0, 0],
