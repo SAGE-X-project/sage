@@ -100,6 +100,8 @@ func (p *ProviderPolicyCandidate) CanonicalBytes() []byte {
 }
 
 // BindCandidate records proposed local identities without selecting them.
+// Namespace and Source ID must be 0x-prefixed, lowercase 32-byte hex digests.
+// They are validated as supplied; this method does not normalize identifiers.
 // In particular generation zero is not authenticated first enrollment; a new
 // namespace, Source ID or generation cannot reset any retained instance root.
 func (p *ProviderPolicyCandidate) BindCandidate(namespace, sourceID, generation string) (*ProviderCandidateContext, error) {

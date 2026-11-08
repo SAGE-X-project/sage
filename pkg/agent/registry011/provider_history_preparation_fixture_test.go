@@ -45,7 +45,7 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 	// establish enrollment, authenticated absence or permission to send messages.
 	namespace := sha256.Sum256([]byte("test:sage:registry011:history-preparation:namespace"))
 	sourceID := sha256.Sum256([]byte("test:sage:registry011:history-preparation:source"))
-	proposed, err := proposal.BindCandidate(hex.EncodeToString(namespace[:]), hex.EncodeToString(sourceID[:]), "0")
+	proposed, err := proposal.BindCandidate("0x"+hex.EncodeToString(namespace[:]), "0x"+hex.EncodeToString(sourceID[:]), "0")
 	if err != nil {
 		t.Fatalf("public test proposal rejected before transport: %v", err)
 	}
