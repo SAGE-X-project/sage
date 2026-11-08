@@ -233,6 +233,14 @@ jobs:
         with:
           go-version: '1.26.10'
           cache: true
+      - name: Check declaration-only coverage inventory
+        run: |
+          format_diff="$(gofmt -d tools/registrycoverage)"
+          if [ -n "$format_diff" ]; then
+            printf '%s\n' "$format_diff"
+            exit 1
+          fi
+          go test -mod=readonly -count=1 -json ./tools/registrycoverage
       - name: Check bounded recovery fixture before complete partitions
         run: |
           registry_fixture_dir="$RUNNER_TEMP/registry-fixture-check"

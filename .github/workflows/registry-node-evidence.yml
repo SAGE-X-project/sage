@@ -77,6 +77,14 @@ jobs:
         with:
           go-version: '1.26.10'
           cache: true
+      - name: Check declaration-only coverage inventory
+        run: |
+          format_diff="$(gofmt -d tools/registrycoverage)"
+          if [ -n "$format_diff" ]; then
+            printf '%s\n' "$format_diff"
+            exit 1
+          fi
+          go test -mod=readonly -count=1 -json ./tools/registrycoverage
       - name: Check bounded recovery fixture before complete partitions
         run: |
           registry_fixture_dir="$RUNNER_TEMP/provider-fixture-check"
@@ -270,7 +278,7 @@ jobs:
           python3 .github/scripts/registry_test_shards.py verify provider "$SAGE_PROVIDER_CAPTURE_DIR"
           go tool cover -func="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" > "$SAGE_PROVIDER_CAPTURE_DIR/functions.txt"
           python3 - <<'PYCOVERAGE'
-          import os
+          import hashlib, json, os, subprocess
           from pathlib import Path
           targets = {'provider_capture.go': [0, 0], 'provider_http.go': [0, 0]}
           connected = [
@@ -579,10 +587,37 @@ jobs:
               for item in Path('pkg/agent/registry011').glob(pattern)
               if not item.name.endswith('_test.go')
           }
-          assert set(connected) == discovered, ('coverage inventory mismatch', sorted(discovered - set(connected)), sorted(set(connected) - discovered))
+          # Account for every discovered file. Only new import/type-only files
+          # can be statement-free; executable additions still fail this gate.
+          unmapped = discovered - set(connected)
+          declarations = {}
+          if unmapped:
+              result = subprocess.run(
+                  ['go', 'run', '-mod=readonly', './tools/registrycoverage', '--', 'pkg/agent/registry011', *sorted(unmapped)],
+                  check=True, stdout=subprocess.PIPE, text=True)
+              records = json.loads(result.stdout)
+              assert isinstance(records, list)
+              for record in records:
+                  assert isinstance(record, dict) and set(record) == {'name', 'sha256', 'package', 'types', 'kind'}
+                  name = record['name']
+                  assert name in unmapped and name not in declarations
+                  assert record['kind'] == 'IMPORT_TYPE_DECLARATIONS_ONLY' and record['package'] == 'registry011'
+                  assert type(record['types']) is int and record['types'] > 0
+                  assert record['sha256'] == hashlib.sha256(Path('pkg/agent/registry011', name).read_bytes()).hexdigest()
+                  declarations[name] = record
+          assert set(connected) | set(declarations) == discovered, ('coverage inventory mismatch', sorted(discovered - set(connected) - set(declarations)), sorted(set(connected) - discovered))
+          assert not set(connected) & set(declarations)
+          declaration_report = {
+              'scope': 'File statement coverage only, not imported initialization, type checking, native resources or SourceReady',
+              'minimum_percent_per_executable_file': 90,
+              'files': [dict(record, status='NOT_APPLICABLE', statements=0, covered=0) for _, record in sorted(declarations.items())],
+          }
+          Path(os.environ['SAGE_PROVIDER_CAPTURE_DIR'], 'declaration-only-inventory.json').write_text(json.dumps(declaration_report, indent=2) + '\n')
           for line in Path(os.environ['SAGE_PROVIDER_CAPTURE_DIR'], 'coverage.out').read_text().splitlines()[1:]:
               location, statements, count = line.split()
               name = location.rsplit(':', 1)[0].rsplit('/', 1)[-1]
+              if name in declarations:
+                  assert int(statements) == 0, ('declaration-only source has executable coverage', name)
               if name in targets:
                   targets[name][0] += int(statements)
                   targets[name][1] += int(statements) if int(count) else 0
