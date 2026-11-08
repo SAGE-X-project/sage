@@ -182,10 +182,11 @@ func (s *providerCustodyStore) loadInventory(digest string, names map[string]boo
 	delete(names, name)
 	for _, ref := range inventory.entries {
 		key, filename := providerIntegrationRefKey(ref), providerObjectName(ref.kind, ref.digest)
-		if _, duplicate := s.objects[key]; duplicate || !names[filename] || ref.bytes > math.MaxInt64 {
+		objectBytes := ref.bytes
+		if _, duplicate := s.objects[key]; duplicate || !names[filename] || objectBytes > math.MaxInt64 {
 			return errProviderIntegration
 		}
-		object, err := s.read(s.evidence, filename, int64(ref.bytes))
+		object, err := s.read(s.evidence, filename, int64(objectBytes))
 		domain, _ := providerIntegrationDomain(ref.kind)
 		if !s.event(providerHashEvent, uint64(len(object)+len(domain))) {
 			return errProviderIntegration
