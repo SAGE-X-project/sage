@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -104,5 +105,57 @@ func TestDeclarationInventoryCommandIsCompleteAndRejectsPartialResults(t *testin
 		if err := run([]string{directory, name}, &result); err == nil || result.Len() != 0 {
 			t.Fatal("nonregular source emitted a classification")
 		}
+	}
+}
+
+func TestDeclarationOnlyRejectsNonProductionNames(t *testing.T) {
+	for _, name := range []string{"types.txt", "types_test.go"} {
+		t.Run(name, func(t *testing.T) {
+			got, err := declarationOnly(name, []byte("package fixture\ntype Entry int\n"))
+			if err == nil || got != (declarationFile{}) {
+				t.Fatalf("non-production name accepted: %+v %v", got, err)
+			}
+		})
+	}
+}
+
+func TestCommandMainPrintsBoundDeclarationInventory(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "entry.go"), []byte("package fixture\n\ntype Entry struct{ Value int }\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	reader, writer, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	oldArgs, oldStdout := os.Args, os.Stdout
+	t.Cleanup(func() {
+		os.Args, os.Stdout = oldArgs, oldStdout
+		_ = reader.Close()
+		_ = writer.Close()
+	})
+	os.Args = []string{"registrycoverage", "--", root, "entry.go"}
+	os.Stdout = writer
+	main()
+	os.Args, os.Stdout = oldArgs, oldStdout
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []declarationFile
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	if err := decoder.Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+	want := declarationFile{Name: "entry.go", SHA256: "d5fc3614224dec99519c68c7b54d98cb60f540ab500d8c01574da1f623cf4dee", Package: "fixture", Types: 1, Kind: declarationOnlyKind}
+	if len(got) != 1 || got[0] != want {
+		t.Fatalf("CLI output lost its source binding: %+v", got)
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		t.Fatalf("unexpected trailing CLI output: %v", err)
 	}
 }
