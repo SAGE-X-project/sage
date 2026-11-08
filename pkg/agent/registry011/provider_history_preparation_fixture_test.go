@@ -2,6 +2,8 @@ package registry011
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
@@ -10,13 +12,17 @@ import (
 	"time"
 )
 
-// Reuse the existing source-selection test API without weakening its limits,
-// clearing a derivation or installing fake authority. If that API does not
-// supply a supported unminted selection, this new integration test must fail.
+// Reuse the original selection without weakening its limits, clearing a
+// derivation or installing authority. Its helper supplies bounds and policy,
+// not a bound public identity. Bind a separate test-only proposal before
+// constructing the input; never overwrite an existing private identity.
 // This is a small preparation fixture, never the full-history operating profile.
 func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparationInput, ProviderCandidateIdentity, string) {
 	t.Helper()
 	c := historySelectedSourceConfig(t)
+	if c.identity != (ProviderCandidateIdentity{}) {
+		t.Fatal("original selection already has an identity; refusing to rebind it")
+	}
 	b := c.bounds
 	if c.attempt != 0 || c.policy == nil || b.guardian != nil || b.history == nil || b.history.derivation != nil ||
 		b.continuation == nil || b.methods == nil || b.tls == nil || b.scan == nil || b.firstAdmission == nil ||
@@ -31,9 +37,25 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 	l, m, s, a, h := b.continuation, b.methods, b.scan, b.firstAdmission, b.history
 	v := h.collection.input
 	policy := c.policy.CanonicalBytes()
+	proposal, err := ParseProviderPolicyCandidate(policy, len(policy))
+	if err != nil {
+		t.Fatalf("original test policy rejected before binding: %v", err)
+	}
+	// These digests identify only this test proposal. Generation zero does not
+	// establish enrollment, authenticated absence or permission to send messages.
+	namespace := sha256.Sum256([]byte("test:sage:registry011:history-preparation:namespace"))
+	sourceID := sha256.Sum256([]byte("test:sage:registry011:history-preparation:source"))
+	proposed, err := proposal.BindCandidate(hex.EncodeToString(namespace[:]), hex.EncodeToString(sourceID[:]), "0")
+	if err != nil {
+		t.Fatalf("public test proposal rejected before transport: %v", err)
+	}
+	expectedIdentity, err := proposed.Identity()
+	if err != nil {
+		t.Fatal(err)
+	}
 	in := historyPreparationInput{
 		Format: historyPreparationInputFormat, Policy: string(policy), MaximumPolicyBytes: len(policy),
-		Namespace: c.identity.Namespace, SourceID: c.identity.SourceID, Generation: strconv.FormatUint(c.identity.Generation, 10),
+		Namespace: expectedIdentity.Namespace, SourceID: expectedIdentity.SourceID, Generation: strconv.FormatUint(expectedIdentity.Generation, 10),
 		Store: historyPreparationStore{
 			CustodyDirectory: c.custodyDirectory, EvidenceDirectory: c.evidenceDirectory,
 			Anchor: c.anchor, ExpectedTip: c.expectedTip, ExpectedSetupTip: c.expectedSetupTip,
@@ -116,10 +138,10 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 			providerCandidateDigest(in.Namespace), providerCandidateDigest(in.SourceID), generationValid, err)
 	}
 	identity, err := bound.Identity()
-	if err != nil || identity != c.identity {
-		t.Fatalf("original test policy identity differs before transport: err=%v", err)
+	if err != nil || identity != expectedIdentity {
+		t.Fatalf("public test policy identity differs before transport: err=%v", err)
 	}
-	return in, c.identity, h.collection.digest
+	return in, expectedIdentity, h.collection.digest
 }
 
 func TestProviderHistoryPreparationCompilesOriginalUnmintedSelection(t *testing.T) {
