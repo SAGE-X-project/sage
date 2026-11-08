@@ -73,13 +73,13 @@ func TestPreparationFixedChildCompilesBoundedOriginalInput(t *testing.T) {
 	if err != nil || len(input) == 0 || len(input) > 64<<20 {
 		t.Fatalf("bounded preparation input missing: %v", err)
 	}
-	reference, err := os.ReadFile(path+".expected.json")
+	reference, err := os.ReadFile(path + ".expected.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	var expected struct {
-		Identity registry011.ProviderCandidateIdentity `json:"identity"`
-		ManifestSHA256 string `json:"manifest_sha256"`
+		Identity       registry011.ProviderCandidateIdentity `json:"identity"`
+		ManifestSHA256 string                                `json:"manifest_sha256"`
 	}
 	if err := json.Unmarshal(reference, &expected); err != nil {
 		t.Fatal(err)

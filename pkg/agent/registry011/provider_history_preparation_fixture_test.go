@@ -39,7 +39,7 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 			ExpectedScanHead: c.expectedScanHead, Profile: c.profile,
 		},
 		Capture: c.capture,
-		Clock: historyPreparationClock{Maximum: clock.maximum, BaseUncertaintyMS: clock.uncertainty - window, ReadWindowMS: window},
+		Clock:   historyPreparationClock{Maximum: clock.maximum, BaseUncertaintyMS: clock.uncertainty - window, ReadWindowMS: window},
 		Collection: historyPreparationCollection{
 			Journal: v.journal, Encoding: v.encoding, Gas: v.gas, MaximumSelected: v.maximumSelected,
 			Blocks: v.blocks, Native: v.native, Effects: v.effects, Versions: v.versions, PresentStops: v.presentStops,
@@ -58,13 +58,13 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 				MaximumCommits: l.maximumCommits, MaximumObjects: l.maximumObjects,
 			},
 			Methods: historyPreparationMethods{
-				Scalar: historyPreparationMethod{Body: m.scalar.body, Wire: m.scalar.wire},
-				Header: historyPreparationMethod{Body: m.header.body, Wire: m.header.wire},
-				Code: historyPreparationMethod{Body: m.code.body, Wire: m.code.wire},
-				State: historyPreparationMethod{Body: m.state.body, Wire: m.state.wire},
-				Block: historyPreparationMethod{Body: m.block.body, Wire: m.block.wire},
-				Receipts: historyPreparationMethod{Body: m.receipts.body, Wire: m.receipts.wire},
-				Gas: historyPreparationMethod{Body: m.gas.body, Wire: m.gas.wire},
+				Scalar:    historyPreparationMethod{Body: m.scalar.body, Wire: m.scalar.wire},
+				Header:    historyPreparationMethod{Body: m.header.body, Wire: m.header.wire},
+				Code:      historyPreparationMethod{Body: m.code.body, Wire: m.code.wire},
+				State:     historyPreparationMethod{Body: m.state.body, Wire: m.state.wire},
+				Block:     historyPreparationMethod{Body: m.block.body, Wire: m.block.wire},
+				Receipts:  historyPreparationMethod{Body: m.receipts.body, Wire: m.receipts.wire},
+				Gas:       historyPreparationMethod{Body: m.gas.body, Wire: m.gas.wire},
 				Execution: historyPreparationMethod{Body: m.execution.body, Wire: m.execution.wire},
 			},
 			TLS: historyPreparationTLS{Chains: b.tls.chains, Certificates: b.tls.certificates, CertificateBytes: b.tls.certificateBytes},
@@ -84,7 +84,7 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 				Program: h.program, Costs: h.costs,
 				Future: historyPreparationTotals{Work: h.future.work, Physical: h.future.physical, RetainedRaw: h.future.retainedRaw,
 					Payload: h.future.payload, Metadata: h.future.metadata, Objects: h.future.objects, Files: h.future.files, Clocks: h.future.clocks},
-				Startup: historyPreparationStartup{Work: h.startup.work, Retained: h.startup.retained, Clocks: h.startup.clocks},
+				Startup:  historyPreparationStartup{Work: h.startup.work, Retained: h.startup.retained, Clocks: h.startup.clocks},
 				Recovery: historyPreparationRecovery{Work: h.recovery.work, MaximumFiles: h.recovery.maximumFiles, MaximumBytes: h.recovery.maximumBytes},
 				Final: historyPreparationFinal{Read: historyPreparationRecovery{Work: h.final.read.work, MaximumFiles: h.final.read.maximumFiles,
 					MaximumBytes: h.final.read.maximumBytes}, ElapsedMS: h.final.elapsedMS},
@@ -100,7 +100,7 @@ func historyPreparationInputFromOriginalTestAPI(t *testing.T) (historyPreparatio
 		},
 	}
 	for i, code := range v.codes {
-		in.Collection.Codes[i] = historyPreparationCode{Name: code.Name, Address: code.Address, SHA256: code.SHA256}
+		in.Collection.Codes[i] = historyPreparationCode(code)
 	}
 	return in, c.identity, h.collection.digest
 }
@@ -135,8 +135,8 @@ func TestProviderHistoryPreparationCompilesOriginalUnmintedSelection(t *testing.
 	if path, export := os.LookupEnv("SAGE_HISTORY_PREPARATION_FIXTURE_PATH"); export {
 		writeHistoryPreparationTestData(t, path, raw)
 		reference, err := json.Marshal(struct {
-			Identity ProviderCandidateIdentity `json:"identity"`
-			ManifestSHA256 string `json:"manifest_sha256"`
+			Identity       ProviderCandidateIdentity `json:"identity"`
+			ManifestSHA256 string                    `json:"manifest_sha256"`
 		}{expectedIdentity, expectedManifest})
 		if err != nil {
 			t.Fatal(err)
@@ -161,18 +161,18 @@ func writeHistoryPreparationTestData(t *testing.T, path string, raw []byte) {
 
 func TestProviderHistoryPreparationRejectsInvalidSelectedInputs(t *testing.T) {
 	for name, change := range map[string]func(*historyPreparationInput){
-		"format": func(in *historyPreparationInput) { in.Format = "unknown" },
-		"capture": func(in *historyPreparationInput) { in.Capture.Timeout = 0 },
-		"policy": func(in *historyPreparationInput) { in.Policy = json.RawMessage(`{}`) },
-		"namespace": func(in *historyPreparationInput) { in.Namespace = "missing" },
+		"format":     func(in *historyPreparationInput) { in.Format = "unknown" },
+		"capture":    func(in *historyPreparationInput) { in.Capture.Timeout = 0 },
+		"policy":     func(in *historyPreparationInput) { in.Policy = json.RawMessage(`{}`) },
+		"namespace":  func(in *historyPreparationInput) { in.Namespace = "missing" },
 		"generation": func(in *historyPreparationInput) { in.Generation = "01" },
-		"entries": func(in *historyPreparationInput) { in.Bounds.MaximumEntries = 0 },
+		"entries":    func(in *historyPreparationInput) { in.Bounds.MaximumEntries = 0 },
 		"first-read": func(in *historyPreparationInput) { in.Collection.FirstRead.Raw = 0 },
-		"code": func(in *historyPreparationInput) { in.Collection.Codes[0].SHA256 = "missing" },
-		"stages": func(in *historyPreparationInput) { in.Bounds.History.Stages = 0 },
-		"structure": func(in *historyPreparationInput) { in.Bounds.MaximumMetadataPerCommit = 0 },
-		"directory": func(in *historyPreparationInput) { in.Store.CustodyDirectory = "" },
-		"clock": func(in *historyPreparationInput) { in.Clock.Maximum = 0 },
+		"code":       func(in *historyPreparationInput) { in.Collection.Codes[0].SHA256 = "missing" },
+		"stages":     func(in *historyPreparationInput) { in.Bounds.History.Stages = 0 },
+		"structure":  func(in *historyPreparationInput) { in.Bounds.MaximumMetadataPerCommit = 0 },
+		"directory":  func(in *historyPreparationInput) { in.Store.CustodyDirectory = "" },
+		"clock":      func(in *historyPreparationInput) { in.Clock.Maximum = 0 },
 	} {
 		t.Run(name, func(t *testing.T) {
 			origin := time.Now()

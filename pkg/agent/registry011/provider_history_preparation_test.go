@@ -57,7 +57,7 @@ func TestProviderHistoryPreparationSessionRequiresOriginalFiniteWindow(t *testin
 		}
 	}
 	for _, c := range []struct {
-		ctx context.Context
+		ctx    context.Context
 		origin time.Time
 	}{{nil, origin}, {context.Background(), origin}, {ctx, time.Time{}}, {ctx, origin.Add(2 * time.Minute)}} {
 		if session, err := NewHistoryPreparationSession(c.ctx, c.origin, 1, 1); err == nil || session != nil {
@@ -101,17 +101,17 @@ func TestProviderHistoryPreparationSummaryRemainsNonAuthorityData(t *testing.T) 
 		t.Fatalf("diagnostic DATA rejected: %v", err)
 	}
 	for name, change := range map[string]func(*HistoryPreparationSummary){
-		"format": func(s *HistoryPreparationSummary) { s.Format = "unknown" },
-		"input": func(s *HistoryPreparationSummary) { s.InputSHA256 = strings.Repeat("b", 64) },
+		"format":    func(s *HistoryPreparationSummary) { s.Format = "unknown" },
+		"input":     func(s *HistoryPreparationSummary) { s.InputSHA256 = strings.Repeat("b", 64) },
 		"readiness": func(s *HistoryPreparationSummary) { s.SourceReady = true },
-		"origin": func(s *HistoryPreparationSummary) { s.OriginUnixNano = 0 },
-		"deadline": func(s *HistoryPreparationSummary) { s.DeadlineUnixNano = s.OriginUnixNano },
-		"manifest": func(s *HistoryPreparationSummary) { s.ManifestSHA256 = "missing" },
-		"policy": func(s *HistoryPreparationSummary) { s.Identity.Policy = "missing" },
-		"instance": func(s *HistoryPreparationSummary) { s.Identity.Instance = "missing" },
-		"provider": func(s *HistoryPreparationSummary) { s.Identity.Provider = "missing" },
+		"origin":    func(s *HistoryPreparationSummary) { s.OriginUnixNano = 0 },
+		"deadline":  func(s *HistoryPreparationSummary) { s.DeadlineUnixNano = s.OriginUnixNano },
+		"manifest":  func(s *HistoryPreparationSummary) { s.ManifestSHA256 = "missing" },
+		"policy":    func(s *HistoryPreparationSummary) { s.Identity.Policy = "missing" },
+		"instance":  func(s *HistoryPreparationSummary) { s.Identity.Instance = "missing" },
+		"provider":  func(s *HistoryPreparationSummary) { s.Identity.Provider = "missing" },
 		"namespace": func(s *HistoryPreparationSummary) { s.Identity.Namespace = "missing" },
-		"source": func(s *HistoryPreparationSummary) { s.Identity.SourceID = "missing" },
+		"source":    func(s *HistoryPreparationSummary) { s.Identity.SourceID = "missing" },
 	} {
 		t.Run(name, func(t *testing.T) {
 			changed := summary
@@ -121,7 +121,7 @@ func TestProviderHistoryPreparationSummaryRemainsNonAuthorityData(t *testing.T) 
 			}
 		})
 	}
-	for _, maximum := range []int{0, len(raw)-1, 64<<20 + 1} {
+	for _, maximum := range []int{0, len(raw) - 1, 64<<20 + 1} {
 		if _, err := DecodeHistoryPreparationSummary(context.Background(), raw, input, maximum); err == nil {
 			t.Fatal("invalid output bound accepted")
 		}

@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	preparationMagic = "sage-worker-preparation-v1"
+	preparationMagic         = "sage-worker-preparation-v1"
 	preparationHeaderMaximum = 512
 )
 
@@ -25,7 +25,7 @@ var preparationDescriptorClaimed atomic.Bool
 // Registry derivation. The live parent still owns the actual process stop.
 type PreparationSnapshot struct {
 	Origin, ActionDeadline, HardStopDeadline, WholeDeadline time.Time
-	MaximumInputBytes, MaximumResultBytes int
+	MaximumInputBytes, MaximumResultBytes                   int
 }
 
 func (s PreparationSnapshot) valid() bool {
@@ -37,11 +37,11 @@ func (s PreparationSnapshot) valid() bool {
 }
 
 type preparationControl struct {
-	read, write *os.File
-	snapshot PreparationSnapshot
-	cancel context.CancelFunc
-	done chan struct{}
-	readOnce sync.Once
+	read, write       *os.File
+	snapshot          PreparationSnapshot
+	cancel            context.CancelFunc
+	done              chan struct{}
+	readOnce          sync.Once
 	readErr, writeErr error
 }
 
@@ -134,15 +134,15 @@ func parsePreparationHeader(raw string, binding journalBinding) (PreparationSnap
 // alone cannot create it. It still supplies no physical-memory/backing promise,
 // compiler funding, private issuer, protected-use permission or custody proof.
 type PreparationLifetime struct {
-	self *PreparationLifetime
-	snapshot PreparationSnapshot
-	action, cleanup context.Context
+	self                        *PreparationLifetime
+	snapshot                    PreparationSnapshot
+	action, cleanup             context.Context
 	cancelAction, cancelCleanup context.CancelFunc
-	file *os.File
-	readerDone, parentDone chan struct{}
-	closing atomic.Bool
-	releaseOnce sync.Once
-	closeErr error
+	file                        *os.File
+	readerDone, parentDone      chan struct{}
+	closing                     atomic.Bool
+	releaseOnce                 sync.Once
+	closeErr                    error
 }
 
 func (*PreparationLifetime) UnmarshalJSON([]byte) error { return ErrUnavailable }

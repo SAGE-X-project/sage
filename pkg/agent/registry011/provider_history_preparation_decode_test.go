@@ -16,7 +16,7 @@ func TestProviderHistoryPreparationDecodePreservesIntegerAndPolicyBytes(t *testi
 	in := historyPreparationInput{
 		Format: historyPreparationInputFormat,
 		Policy: json.RawMessage(`{"original":"policy","value":"18446744073709551615"}`),
-		Clock: historyPreparationClock{Maximum: math.MaxUint64, BaseUncertaintyMS: math.MaxInt64},
+		Clock:  historyPreparationClock{Maximum: math.MaxUint64, BaseUncertaintyMS: math.MaxInt64},
 	}
 	in.Bounds.SetupWork[10] = math.MaxUint64
 	in.Collection.Codes[12].Name = "last-required-code"
@@ -83,14 +83,14 @@ func TestProviderHistoryPreparationDecodeRejectsAmbiguousInput(t *testing.T) {
 
 func TestProviderHistoryPreparationTokenSchemaChecks(t *testing.T) {
 	type sample struct {
-		Text    string          `json:"text"`
-		Flag    bool            `json:"flag"`
-		Signed  int8            `json:"signed"`
-		Unsigned uint8          `json:"unsigned"`
-		Pair    [2]uint64       `json:"pair"`
-		Raw     json.RawMessage `json:"raw"`
-		Ignored string          `json:"-"`
-		private string
+		Text     string          `json:"text"`
+		Flag     bool            `json:"flag"`
+		Signed   int8            `json:"signed"`
+		Unsigned uint8           `json:"unsigned"`
+		Pair     [2]uint64       `json:"pair"`
+		Raw      json.RawMessage `json:"raw"`
+		Ignored  string          `json:"-"`
+		private  string
 	}
 	schema := reflect.TypeFor[sample]()
 	valid := `{"text":"x","flag":true,"signed":-128,"unsigned":255,"pair":[0,18446744073709551615],"raw":{"values":[null,false,1.5,"x"]}}`

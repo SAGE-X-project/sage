@@ -104,13 +104,13 @@ func TestPreparationInheritedPipeLifecycle(t *testing.T) {
 	for _, scenario := range []string{"close-live-parent", "parent-cancel", "nil-context", "bad-environment", "bad-header", "empty-header", "expired-action", "regular-file", "missing-descriptor", "closed-descriptor"} {
 		t.Run(scenario, func(t *testing.T) {
 			origin := time.Now()
-			snapshot := PreparationSnapshot{Origin: origin, ActionDeadline: origin.Add(5*time.Second),
-				HardStopDeadline: origin.Add(6*time.Second), WholeDeadline: origin.Add(7*time.Second),
+			snapshot := PreparationSnapshot{Origin: origin, ActionDeadline: origin.Add(5 * time.Second),
+				HardStopDeadline: origin.Add(6 * time.Second), WholeDeadline: origin.Add(7 * time.Second),
 				MaximumInputBytes: 1024, MaximumResultBytes: 2048}
 			binding := preparationTestBinding()
 			if scenario == "expired-action" {
-				snapshot.Origin = origin.Add(-3*time.Second)
-				snapshot.ActionDeadline = origin.Add(-2*time.Second)
+				snapshot.Origin = origin.Add(-3 * time.Second)
+				snapshot.ActionDeadline = origin.Add(-2 * time.Second)
 			}
 			read, write, err := os.Pipe()
 			if err != nil {
@@ -152,7 +152,7 @@ func TestPreparationInheritedPipeLifecycle(t *testing.T) {
 			if scenario == "bad-environment" {
 				environment = "invalid"
 			}
-			cmd.Env = []string{"LANG=C", "LC_ALL=C", "SAGE_PREPARATION_PROCESS_TEST="+scenario, journalEnvironment+"="+environment}
+			cmd.Env = []string{"LANG=C", "LC_ALL=C", "SAGE_PREPARATION_PROCESS_TEST=" + scenario, journalEnvironment + "=" + environment}
 			cmd.ExtraFiles = []*os.File{regular, regular, read}
 			if scenario == "regular-file" {
 				cmd.ExtraFiles[2] = regular

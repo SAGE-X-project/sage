@@ -40,7 +40,7 @@ func buildHistoryPreparationConfig(in historyPreparationInput) (providerCustodyC
 	collection := in.Collection
 	var codes [13]nodeCodeIdentity
 	for i, code := range collection.Codes {
-		codes[i] = nodeCodeIdentity{Name: code.Name, Address: code.Address, SHA256: code.SHA256}
+		codes[i] = nodeCodeIdentity(code)
 	}
 	manifest, err := newProviderHistoryCollectionManifestCandidate(providerHistoryCollectionInput{
 		journal: collection.Journal, codes: codes, capture: in.Capture,
@@ -108,17 +108,17 @@ func historyPreparationStoreBounds(in historyPreparationBounds) providerIntegrat
 			payload: h.Future.Payload, metadata: h.Future.Metadata, objects: h.Future.Objects,
 			files: h.Future.Files, clocks: h.Future.Clocks,
 		},
-		startup: providerScanUpper{work: h.Startup.Work, retained: h.Startup.Retained, clocks: h.Startup.Clocks},
+		startup:  providerScanUpper{work: h.Startup.Work, retained: h.Startup.Retained, clocks: h.Startup.Clocks},
 		recovery: historyPreparationRecoveryBound(h.Recovery),
-		final: providerHistoryFinalBounds{read: historyPreparationRecoveryBound(h.Final.Read), elapsedMS: h.Final.ElapsedMS},
-		stages: h.Stages, records: h.Records, commits: h.Commits, catalogEntries: h.CatalogEntries,
+		final:    providerHistoryFinalBounds{read: historyPreparationRecoveryBound(h.Final.Read), elapsedMS: h.Final.ElapsedMS},
+		stages:   h.Stages, records: h.Records, commits: h.Commits, catalogEntries: h.CatalogEntries,
 		catalogNameBytes: h.CatalogNameBytes, resident: h.Resident, durationMS: h.DurationMS,
 		// collection is installed only by its original constructor above;
 		// derivation stays nil. Neither field can be restored from JSON.
 	}
 	return providerIntegrationBounds{
 		ledger: in.Ledger, continuation: continuation, methods: methods,
-		tls: &providerTLSBounds{chains: in.TLS.Chains, certificates: in.TLS.Certificates, certificateBytes: in.TLS.CertificateBytes},
+		tls:  &providerTLSBounds{chains: in.TLS.Chains, certificates: in.TLS.Certificates, certificateBytes: in.TLS.CertificateBytes},
 		scan: scan, firstAdmission: admission, history: history,
 		maximumCommits: in.MaximumCommits, maximumObjects: in.MaximumObjects, maximumEntries: in.MaximumEntries,
 		maximumObjectBytes: in.MaximumObjectBytes, maximumStoredBytes: in.MaximumStoredBytes,
