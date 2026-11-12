@@ -60,7 +60,9 @@ func TestSepoliaRootGasCandidateEvidenceLive(t *testing.T) {
 	if !ok {
 		t.Fatal("owned transport required for passive diagnostics")
 	}
-	client.client.Transport = &liveCaptureTransport{base: transport, dir: dir, t: t, remaining: 32 << 20}
+	// Use the same original-request spacing as the strict trial. Waiting uses
+	// the existing request deadline; neither a refusal nor a timeout is retried.
+	client.client.Transport = newLiveReadPacer(&liveCaptureTransport{base: transport, dir: dir, t: t, remaining: 32 << 20})
 	reads, err := client.PinAgentReads(ctx, SepoliaRegistryAddress, "sage-deployment-check")
 	if err != nil {
 		report["candidate_error"] = err.Error()
