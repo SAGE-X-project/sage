@@ -627,6 +627,15 @@ jobs:
           import os
           from pathlib import Path
           prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/'
+          def owns_registry_file(filename):
+              return filename.rsplit('/', 1)[0] == prefix[:-1]
+          ownership_cases = {
+              prefix + 'provider.go': True,
+              prefix + 'internal/compilermemory/integer.go': False,
+              prefix[:-1] + 'x/provider.go': False,
+          }
+          if any(owns_registry_file(name) != expected for name, expected in ownership_cases.items()):
+              raise SystemExit('Coverage package ownership boundary check failed')
           registry = Path(os.environ['RUNNER_TEMP'], 'verified-registry-source', 'coverage.out')
           merged, seen = [], set()
           for path, is_registry in [(registry, True), (Path('coverage-other.out'), False)]:
@@ -636,7 +645,7 @@ jobs:
               for line in lines[1:]:
                   location, statements, count = line.split()
                   filename = location.rsplit(':', 1)[0]
-                  if filename.startswith(prefix) != is_registry or location in seen or int(statements) < 0 or int(count) < 0:
+                  if owns_registry_file(filename) != is_registry or location in seen or int(statements) < 0 or int(count) < 0:
                       raise SystemExit(f'Coverage source overlap or invalid row: {location}')
                   seen.add(location)
                   merged.append(line)
