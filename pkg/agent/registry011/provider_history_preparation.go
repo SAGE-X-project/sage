@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -14,6 +15,19 @@ import (
 )
 
 const historyPreparationResultFormat = "sage-registry-history-prepared-data-v1"
+
+// ErrHistoryPreparationCleanup preserves native cleanup refusal independently
+// of parsing/compilation errors. A diagnostic result must not survive it.
+var ErrHistoryPreparationCleanup = errors.New("registry history preparation: native cleanup refused")
+
+// This private seam permits lifecycle fault units without exposing a backend
+// selector. Public native construction fixes the actual platform implementation.
+type nativeHistoryImplementation interface {
+	compileLocked(*HistoryPreparationSession, []byte) error
+	readResultLocked(*HistoryPreparationSession) (HistoryPreparationSummary, error)
+	closeTemporary() error
+	closeAll() error
+}
 
 // HistoryPreparationSummary is detached diagnostic DATA. Even a successful
 // compile grants no native resources, private derivation, store access, source
@@ -42,6 +56,8 @@ type HistoryPreparationSession struct {
 	maximumInput, maximumResult int
 	used                        atomic.Bool
 	closed                      bool
+	native                      nativeHistoryImplementation
+	cleanupErr                  error
 }
 
 func (*HistoryPreparationSession) UnmarshalJSON([]byte) error { return ErrConfiguration }
@@ -85,8 +101,19 @@ func (s *HistoryPreparationSession) CompileOwned(input []byte) (err error) {
 		return ErrConfiguration
 	}
 	defer func() {
-		if err != nil {
-			s.discardLocked()
+		var temporaryErr error
+		if s.native != nil {
+			temporaryErr = s.native.closeTemporary()
+		}
+		if err != nil || temporaryErr != nil {
+			cleanupErr := s.discardLocked()
+			if temporaryErr != nil && cleanupErr == nil {
+				cleanupErr = errors.Join(ErrHistoryPreparationCleanup, temporaryErr)
+				s.cleanupErr = cleanupErr
+			}
+			if cleanupErr != nil {
+				err = errors.Join(err, cleanupErr)
+			}
 		}
 	}()
 	if err := s.compiler.contextError(); err != nil {
@@ -94,6 +121,15 @@ func (s *HistoryPreparationSession) CompileOwned(input []byte) (err error) {
 	}
 	if len(input) == 0 || len(input) > s.maximumInput {
 		return ErrConfiguration
+	}
+	if s.native != nil {
+		if err := s.native.compileLocked(s, input); err != nil {
+			return err
+		}
+		if s.plan == nil || s.compiler == nil {
+			return ErrConfiguration
+		}
+		return nil
 	}
 	owned := bytes.Clone(input)
 	decoded, err := decodeHistoryPreparationInput(s.compiler.ctx, owned)
@@ -116,7 +152,7 @@ func (s *HistoryPreparationSession) CompileOwned(input []byte) (err error) {
 // FinishDiagnostic consumes the retained plan once, under its original context
 // and deadline. A failure discards it without retry or a fresh clock. The output
 // remains detached DATA and cannot reconstruct the private plan or permission.
-func (s *HistoryPreparationSession) FinishDiagnostic() ([]byte, error) {
+func (s *HistoryPreparationSession) FinishDiagnostic() (output []byte, err error) {
 	if s == nil || s.self != s {
 		return nil, ErrConfiguration
 	}
@@ -124,25 +160,45 @@ func (s *HistoryPreparationSession) FinishDiagnostic() ([]byte, error) {
 	defer s.mu.Unlock()
 	if !s.used.Load() {
 		s.used.Store(true)
-		s.discardLocked()
+		if cleanupErr := s.discardLocked(); cleanupErr != nil {
+			return nil, errors.Join(ErrConfiguration, cleanupErr)
+		}
 		return nil, ErrConfiguration
 	}
 	if s.closed || s.compiler == nil || s.plan == nil {
+		if cleanupErr := s.discardLocked(); cleanupErr != nil {
+			return nil, errors.Join(ErrConfiguration, cleanupErr)
+		}
 		return nil, ErrConfiguration
 	}
-	defer s.discardLocked()
+	defer func() {
+		if cleanupErr := s.discardLocked(); cleanupErr != nil {
+			output, err = nil, errors.Join(err, cleanupErr)
+		}
+	}()
 	if err := s.compiler.contextError(); err != nil {
 		return nil, err
 	}
-	plan := s.plan
-	summary := HistoryPreparationSummary{
-		Format: historyPreparationResultFormat, InputSHA256: s.inputSHA256,
-		Identity: plan.config.identity, ManifestSHA256: plan.config.bounds.history.collection.digest,
-		AssignedWork: plan.source.assigned.work, AssignedClockReads: plan.source.assigned.clocks,
-		OriginUnixNano: s.compiler.origin.UnixNano(), DeadlineUnixNano: plan.compilerDeadline.UnixNano(),
-		SourceReady: false,
+	var summary HistoryPreparationSummary
+	if s.native != nil {
+		summary, err = s.native.readResultLocked(s)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		plan := s.plan
+		summary = HistoryPreparationSummary{
+			Format: historyPreparationResultFormat, InputSHA256: s.inputSHA256,
+			Identity: plan.config.identity, ManifestSHA256: plan.config.bounds.history.collection.digest,
+			AssignedWork: plan.source.assigned.work, AssignedClockReads: plan.source.assigned.clocks,
+			OriginUnixNano: s.compiler.origin.UnixNano(), DeadlineUnixNano: plan.compilerDeadline.UnixNano(),
+			SourceReady: false,
+		}
 	}
-	output, err := json.Marshal(summary)
+	if summary.SourceReady {
+		return nil, ErrConfiguration
+	}
+	output, err = json.Marshal(summary)
 	if err != nil || len(output) > s.maximumResult {
 		return nil, ErrConfiguration
 	}
@@ -163,13 +219,19 @@ func (s *HistoryPreparationSession) Close() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.used.Store(true)
-	s.discardLocked()
-	return nil
+	return s.discardLocked()
 }
 
-func (s *HistoryPreparationSession) discardLocked() {
+func (s *HistoryPreparationSession) discardLocked() error {
+	if s.closed {
+		return s.cleanupErr
+	}
 	s.closed = true
+	if s.native != nil {
+		s.cleanupErr = s.native.closeAll()
+	}
 	s.compiler, s.plan, s.inputSHA256 = nil, nil, ""
+	return s.cleanupErr
 }
 
 // DecodeHistoryPreparationSummary checks a bounded diagnostic result. Matching

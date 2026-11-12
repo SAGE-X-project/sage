@@ -238,7 +238,7 @@ jobs:
           from pathlib import Path
           root = Path(os.environ['SAGE_COMPILER_MEMORY_EVIDENCE_DIR'])
           prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/internal/compilermemory/'
-          expected = {'integer.go', 'json.go', 'json_parse.go', 'json_string.go', 'json_value.go', 'region.go', 'region_darwin.go'}
+          expected = {'integer.go', 'json.go', 'json_parse.go', 'json_string.go', 'json_value.go', 'json_decoded_string.go', 'region.go', 'region_darwin.go'}
           totals = {}
           lines = (root / 'coverage.out').read_text().splitlines()
           if not lines or lines[0] != 'mode: atomic':
@@ -269,6 +269,73 @@ jobs:
           if [ "$compiler_memory_coverage_status" -ne 0 ]; then exit "$compiler_memory_coverage_status"; fi
           if [ "$compiler_memory_format_status" -ne 0 ]; then exit "$compiler_memory_format_status"; fi
           if [ -s "$compiler_memory_dir/format.patch" ]; then exit 1; fi
+          git diff --exit-code
+      - name: Check the native preparation session and actual result reader
+        if: ${{ !cancelled() }}
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          native_preparation_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/native-preparation"
+          mkdir -p "$native_preparation_dir/source"
+          git rev-parse HEAD > "$native_preparation_dir/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$native_preparation_dir/tree.txt"
+          go version > "$native_preparation_dir/compiler.txt"
+          cp pkg/agent/registry011/provider_history_preparation*.go "$native_preparation_dir/source/"
+          git ls-files -z cmd/sage-registry-worker internal/registryworker pkg/agent/registry011 go.mod go.sum .github/workflows/test.yml | xargs -0 shasum -a 256 > "$native_preparation_dir/source.sha256"
+          export SAGE_NATIVE_PREPARATION_EVIDENCE_DIR="$native_preparation_dir"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          names = ('GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY')
+          Path(os.environ['SAGE_NATIVE_PREPARATION_EVIDENCE_DIR'], 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
+          PY
+          native_preparation_format_status=0
+          gofmt -d pkg/agent/registry011/provider_history_preparation*.go cmd/sage-registry-worker/*.go > "$native_preparation_dir/format.patch" || native_preparation_format_status=$?
+          printf '%s\n' "$native_preparation_format_status" > "$native_preparation_dir/format-exit.txt"
+          native_preparation_status=0
+          go test -mod=readonly -race -count=1 -timeout=30s -tags=registry_native_limits -json -run '^TestProviderHistoryPreparationNative' -coverprofile="$native_preparation_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$native_preparation_dir/tests.jsonl" || native_preparation_status=$?
+          printf '%s\n' "$native_preparation_status" > "$native_preparation_dir/test-exit.txt"
+          native_preparation_coverage_status=0
+          python3 - <<'PY' || native_preparation_coverage_status=$?
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['SAGE_NATIVE_PREPARATION_EVIDENCE_DIR'])
+          prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/'
+          expected = {
+              'provider_history_preparation_native_darwin.go',
+              'provider_history_preparation_native_decode_darwin.go',
+              'provider_history_preparation_native_result_darwin.go',
+          }
+          totals, seen = {}, set()
+          lines = (root / 'coverage.out').read_text().splitlines()
+          if not lines or lines[0] != 'mode: atomic':
+              raise SystemExit('native preparation atomic coverage required')
+          for line in lines[1:]:
+              location, statements, count = line.rsplit(' ', 2)
+              path, _ = location.rsplit(':', 1)
+              statements, count = int(statements), int(count)
+              if path.rsplit('/', 1)[0] != prefix[:-1] or location in seen or statements < 0 or count < 0:
+                  raise SystemExit('unexpected native preparation coverage row')
+              seen.add(location)
+              name = path[len(prefix):]
+              if name in expected:
+                  covered, total = totals.setdefault(name, [0, 0])
+                  totals[name] = [covered + (statements if count else 0), total + statements]
+          passed = set(totals) == expected and all(total > 0 and 100 * covered >= 90 * total for covered, total in totals.values())
+          report = {
+              'scope': 'Actual native DATA preparation path and result consumption only; not full Go config/freeze/bootstrap resources, private derivation, custody or Source readiness',
+              'files': {name: {'covered': covered, 'total': total} for name, (covered, total) in sorted(totals.items())},
+              'inactive_file': {'provider_history_preparation_native_other.go': 'Not compiled on this Darwin target; no coverage PASS'},
+              'file90': passed,
+          }
+          (root / 'coverage-summary.json').write_text(json.dumps(report, indent=2) + '\n')
+          if not passed:
+              raise SystemExit('each native preparation production file requires positive statements and at least 90 percent')
+          PY
+          if [ "$native_preparation_status" -ne 0 ]; then exit "$native_preparation_status"; fi
+          if [ "$native_preparation_coverage_status" -ne 0 ]; then exit "$native_preparation_coverage_status"; fi
+          if [ "$native_preparation_format_status" -ne 0 ]; then exit "$native_preparation_format_status"; fi
+          if [ -s "$native_preparation_dir/format.patch" ]; then exit 1; fi
           git diff --exit-code
       - name: Retain native resource observations
         if: always()
@@ -672,6 +739,7 @@ jobs:
               'pkg/agent/registry011/provider_history_preparation.go': [0, 0],
               'pkg/agent/registry011/provider_history_preparation_config.go': [0, 0],
               'pkg/agent/registry011/provider_history_preparation_decode.go': [0, 0],
+              'pkg/agent/registry011/provider_history_preparation_native_other.go': [0, 0],
               'pkg/agent/registry011/provider_history_catalog_domain.go': [0, 0],
               'pkg/agent/registry011/provider_history_source_input_storage.go': [0, 0],
               'pkg/agent/registry011/provider_history_finalization_bound.go': [0, 0],

@@ -14,15 +14,17 @@ const (
 )
 
 type jsonBuilder struct {
-	region   *Region
-	input    []byte
-	table    []byte
-	frames   []byte
-	position int
-	count    int
-	depth    int
-	nodeCap  int
-	depthCap int
+	region            *Region
+	input             []byte
+	table             []byte
+	frames            []byte
+	position          int
+	count             int
+	depth             int
+	nodeCap           int
+	depthCap          int
+	valueDepthLimit   int
+	enforceValueDepth bool
 }
 
 func (p *jsonBuilder) whitespace() error {
@@ -174,6 +176,14 @@ func (p *jsonBuilder) parse() error {
 }
 
 func (p *jsonBuilder) value(parent int) error {
+	if p.enforceValueDepth {
+		if err := p.region.actionError(); err != nil {
+			return err
+		}
+		if p.depth > p.valueDepthLimit {
+			return ErrJSON
+		}
+	}
 	if err := p.whitespace(); err != nil {
 		return err
 	}

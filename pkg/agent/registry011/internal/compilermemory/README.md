@@ -50,3 +50,17 @@ compiler or issue a private derivation:
 The existing Go diagnostic path remains unchanged while this connection is
 incomplete. No Source readiness, resource qualification, derivation or execution
 permission is produced by this package.
+
+## Decoded strings and preparation value depth
+
+`JSONValue.DecodedStringLength` and `CopyString` read the original native tree
+using its existing Unicode escape decoder. Copying requires an exact-sized
+detached Go destination and clears that destination on error. Neither method
+exposes a mapping alias; Go string materialization remains separate Go storage.
+
+`JSONValueDepthLimits` and `ParseJSONAtValueDepth` preserve the preparation
+validator's root-zero value-depth convention. At value depth 64 an empty
+container is allowed, while a child value at depth 65 is refused. The separate
+entry can reserve 65 frames. Existing `ParseJSON` retains its 1..64 container
+stack contract. `JSONCapacity` and `JSONValueCapacity` check representation
+arithmetic before acquisition; a calculated size grants no resources.

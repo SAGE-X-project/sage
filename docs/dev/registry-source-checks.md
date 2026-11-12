@@ -1769,3 +1769,57 @@ releases are still attempted after an earlier error. A successful open transfers
 the same handles to the existing store lifetime. Ordinary lock-contention and
 temporary-handle unit scenarios verify these finite paths; they do not qualify
 native latency, unobservable release failures, host storage or operating policy.
+
+## Explicit native preparation inside the Agent
+
+The fixed Agent preparation child selects
+`NewNativeHistoryPreparationSession(action, cleanup, origin, maximumInput, maximumResult)`
+with its original action and cleanup contexts. The separate
+`NewHistoryPreparationSession` remains the explicit Go diagnostic entry. An
+unsupported or failed native path never falls back to that entry. These APIs
+do not add a service, administrator key, operating policy or execution grant.
+
+The native mode copies its input into actual owned storage and reads the exact
+existing DTO schema directly from its native JSON tree. The record bound follows
+the required reflected struct and fixed-array declarations, not a wire-provided
+node count. Policy remains a transport string: its existing caller byte limit
+and public 64 KiB ceiling are checked before materialization and independent
+policy-tree sizing. The original policy constructors, identity binding, numeric
+guards, manifest and one-use compiler remain in the same path. The full raw Go
+clone and ordinary Go JSON decoder are not used in native mode.
+
+A separate native owner stores only the compiled diagnostic fields actually
+consumed by `FinishDiagnostic`, including the full candidate identity/generation,
+input/manifest hashes, all eleven work coordinates and original diagnostic time
+values. It seals before readback. The same original private plan, compiler and
+clock remain attached to the session; the record is neither their complete
+native representation nor serialized permission. Native read failure refuses
+the result even when the duplicate Go fields still exist.
+
+Temporary parser owners close after compilation, and the last result consumer
+closes retained storage. `ErrHistoryPreparationCleanup` preserves cleanup
+refusal and its underlying cause. The fixed child checks all native/input/control
+cleanup before journal success and stdout. Its original process supervisor,
+limits, contexts and hard stop remain in force.
+
+New generic mock units are separate from the small public-Acquire Darwin tests.
+The native CI retains source/context, original test events, formatting status and
+positive per-file 90 percent measurements for each active native implementation.
+Unsupported-platform code has a separate default-target refusal test and gate;
+an inactive platform file is not reported as covered. Earlier component results
+do not establish execution or coverage of the new preparation connection.
+
+The Linux provider gate accounts for the active unsupported-platform source.
+It records the three Darwin sources separately, using the exact current
+`go list` target with the same provider tag and retained source hashes. An
+unexpected ignored source fails the inventory check. Those three files require
+the separate Darwin native gate; an inactive-file record is not a coverage pass
+or a declaration-only exemption.
+
+Go DTO/string/policy materializations, original constructors and freeze copies,
+compiler work, wrappers/runtime/bootstrap and transient overlap remain explicit
+unqualified obligations. This bounded path creates diagnostic DATA with
+`source_ready=false`; it does not qualify complete compiler funding, issue a
+private derivation, activate a candidate policy or complete actual Agent/history
+admission. SAGE message protection still belongs to the embedding Agent's
+selected RFC 9421 components and message exchanges.

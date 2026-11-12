@@ -34,6 +34,40 @@ type JSONLimits struct {
 	MaximumNodes int
 }
 
+// JSONValueDepthLimits uses the preparation validator's value-depth convention:
+// the root has depth zero, and an empty container at the last value depth is
+// valid. This separate contract does not change JSONLimits' container bound.
+type JSONValueDepthLimits struct {
+	MaximumValueDepth int
+	MaximumNodes      int
+}
+
+// JSONCapacity calculates storage for the raw input, records and bounded stack.
+// The checked byte count describes a representation; it reserves no resources.
+func JSONCapacity(inputBytes int, limits JSONLimits) (int, error) {
+	return jsonCapacity(inputBytes, limits.MaximumNodes, limits.MaximumDepth, false)
+}
+
+// JSONValueCapacity uses the same root-zero depth contract as
+// ParseJSONAtValueDepth, including its possible last empty container frame.
+func JSONValueCapacity(inputBytes int, limits JSONValueDepthLimits) (int, error) {
+	return jsonCapacity(inputBytes, limits.MaximumNodes, limits.MaximumValueDepth, true)
+}
+
+func jsonCapacity(inputBytes, nodes, depth int, valueDepth bool) (int, error) {
+	if inputBytes <= 0 || nodes <= 0 || depth < 0 || depth > 64 || (!valueDepth && depth == 0) {
+		return 0, ErrConfiguration
+	}
+	if valueDepth {
+		depth++
+	}
+	frames := depth * jsonFrameBytes
+	if inputBytes > math.MaxInt-frames || nodes > (math.MaxInt-frames-inputBytes)/jsonNodeBytes {
+		return 0, ErrRange
+	}
+	return inputBytes + nodes*jsonNodeBytes + frames, nil
+}
+
 // JSONDocument retains only original-owner spans and a bounded record count.
 // Variable-sized records and parsing frames occupy the actual Region. The Go
 // wrappers/runtime and the rest of the preparation compiler remain separate.
@@ -102,6 +136,16 @@ func (d JSONDocument) tokenSpan(node jsonRecord) (Span, error) {
 // Once parsing enters its reserved table, failure makes this Region unusable;
 // the caller must still Close it under the original cleanup lifetime.
 func (r *Region) ParseJSON(input Span, limits JSONLimits) (JSONDocument, error) {
+	return r.parseJSON(input, limits.MaximumDepth, limits.MaximumNodes, false)
+}
+
+// ParseJSONAtValueDepth preserves the existing preparation policy's root-zero
+// value-depth limit. It uses the same grammar, record table and lifetime rules.
+func (r *Region) ParseJSONAtValueDepth(input Span, limits JSONValueDepthLimits) (JSONDocument, error) {
+	return r.parseJSON(input, limits.MaximumValueDepth, limits.MaximumNodes, true)
+}
+
+func (r *Region) parseJSON(input Span, depth, maximumNodes int, valueDepth bool) (JSONDocument, error) {
 	if r == nil || r.self != r {
 		return JSONDocument{}, ErrConfiguration
 	}
@@ -113,22 +157,27 @@ func (r *Region) ParseJSON(input Span, limits JSONLimits) (JSONDocument, error) 
 	if !r.contains(input) || r.sealed {
 		return JSONDocument{}, ErrRange
 	}
-	if limits.MaximumDepth <= 0 || limits.MaximumDepth > 64 || limits.MaximumNodes <= 0 {
+	if depth < 0 || depth > 64 || (!valueDepth && depth == 0) || maximumNodes <= 0 {
 		return JSONDocument{}, ErrConfiguration
 	}
-	frames := limits.MaximumDepth * jsonFrameBytes
+	frameCount := depth
+	if valueDepth {
+		frameCount++
+	}
+	frames := frameCount * jsonFrameBytes
 	remaining := r.capacity - r.used
-	if frames > remaining || limits.MaximumNodes > (remaining-frames)/jsonNodeBytes {
+	if frames > remaining || maximumNodes > (remaining-frames)/jsonNodeBytes {
 		return JSONDocument{}, ErrRange
 	}
-	tableBytes := limits.MaximumNodes * jsonNodeBytes
+	tableBytes := maximumNodes * jsonNodeBytes
 	table := Span{owner: r, offset: r.used, length: tableBytes}
 	frameStart := r.used + tableBytes
 	r.used, r.sealed = frameStart+frames, true
 	p := jsonBuilder{
 		region: r, input: r.data[input.offset : input.offset+input.length],
 		table: r.data[table.offset:frameStart], frames: r.data[frameStart:r.used],
-		nodeCap: limits.MaximumNodes, depthCap: limits.MaximumDepth,
+		nodeCap: maximumNodes, depthCap: frameCount,
+		valueDepthLimit: depth, enforceValueDepth: valueDepth,
 	}
 	err := p.parse()
 	if contextErr := r.actionError(); contextErr != nil {

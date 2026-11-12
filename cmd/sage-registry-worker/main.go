@@ -56,7 +56,7 @@ func run() int {
 	}()
 	// Create and retain the compiler BEFORE standard-input consumption. Its
 	// action context is canceled by the live parent's original control pipe.
-	session, err := registry011.NewHistoryPreparationSession(action, snapshot.Origin, snapshot.MaximumInputBytes, snapshot.MaximumResultBytes)
+	session, err := registry011.NewNativeHistoryPreparationSession(action, cleanup, snapshot.Origin, snapshot.MaximumInputBytes, snapshot.MaximumResultBytes)
 	if err != nil {
 		return 65
 	}
@@ -94,7 +94,7 @@ func run() int {
 	releaseErr := lifetime.ReleaseControl()
 	if prepareErr != nil || releaseErr != nil {
 		code := "compilation"
-		if releaseErr != nil || errors.Is(prepareErr, registryworker.ErrInputCleanup) {
+		if releaseErr != nil || errors.Is(prepareErr, registryworker.ErrInputCleanup) || errors.Is(prepareErr, registry011.ErrHistoryPreparationCleanup) {
 			code = "cleanup"
 		} else if errors.Is(prepareErr, context.Canceled) || errors.Is(prepareErr, context.DeadlineExceeded) {
 			code = "canceled"

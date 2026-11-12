@@ -306,6 +306,7 @@ jobs:
               'provider_history_preparation.go',
               'provider_history_preparation_config.go',
               'provider_history_preparation_decode.go',
+              'provider_history_preparation_native_other.go',
               'provider_history_catalog_domain.go',
               'provider_history_source_input_storage.go',
               'provider_history_finalization_bound.go',
@@ -588,6 +589,40 @@ jobs:
               for item in Path('pkg/agent/registry011').glob(pattern)
               if not item.name.endswith('_test.go')
           }
+          # Keep every executable source accounted for on its actual Go target.
+          # These three Darwin files have a separate native positive-90 gate;
+          # they are not declaration-only files or Linux runtime evidence.
+          native_darwin = {
+              'provider_history_preparation_native_darwin.go',
+              'provider_history_preparation_native_decode_darwin.go',
+              'provider_history_preparation_native_result_darwin.go',
+          }
+          package = json.loads(subprocess.check_output([
+              'go', 'list', '-mod=readonly', '-tags=provider_capture_live',
+              '-json', './pkg/agent/registry011',
+          ], text=True))
+          goos, goarch = subprocess.check_output(['go', 'env', 'GOOS', 'GOARCH'], text=True).splitlines()
+          assert goos == 'linux' and goarch
+          assert package['ImportPath'] == 'github.com/sage-x-project/sage/pkg/agent/registry011'
+          active = set(package.get('GoFiles', [])) | set(package.get('CgoFiles', []))
+          ignored = set(package.get('IgnoredGoFiles', []))
+          assert not active & ignored
+          assert discovered & ignored == native_darwin, ('unexpected inactive source', sorted(discovered & ignored))
+          assert not native_darwin & active
+          assert 'provider_history_preparation_native_other.go' in active
+          platform_inventory = {
+              'scope': 'Exact current Go target selection; inactive files receive no runtime or statement coverage credit',
+              'goos': goos, 'goarch': goarch, 'tags': ['provider_capture_live'],
+              'active_native_source': 'provider_history_preparation_native_other.go',
+              'inactive_files': [
+                  {'name': name, 'sha256': hashlib.sha256(Path('pkg/agent/registry011', name).read_bytes()).hexdigest(),
+                   'status': 'INACTIVE_FOR_CURRENT_GO_TARGET',
+                   'required_gate': 'Darwin native preparation positive statement coverage per file'}
+                  for name in sorted(native_darwin)
+              ],
+          }
+          Path(os.environ['SAGE_PROVIDER_CAPTURE_DIR'], 'platform-source-inventory.json').write_text(json.dumps(platform_inventory, indent=2) + '\n')
+          discovered -= native_darwin
           # Account for every discovered file. Only new import/type-only files
           # can be statement-free; executable additions still fail this gate.
           unmapped = discovered - set(connected)
