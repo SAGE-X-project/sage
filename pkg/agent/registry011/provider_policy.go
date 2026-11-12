@@ -65,14 +65,13 @@ func parseProviderPolicyCandidateObserved(raw []byte, maximumBytes int, meter *p
 	if len(raw) == 0 || len(raw) > maximumBytes {
 		return nil, ErrProviderPolicyCandidate
 	}
-	m := contentObject(providerReplayJSON(raw, meter), "format", "spec_revision", "implementation_artifact", "instance", "provider", "finality", "trace_format", "carrier_formats", "fork_artifact", "limits", "clock", "retention", "assumptions", "claims")
-	if m == nil || m["format"] != "sage-provider-registry-observation-v1" ||
-		m["spec_revision"] != "a22a275b4d88f1d415b53cdffc5bed41231b77a0" ||
-		!providerCandidateDigest(m["implementation_artifact"]) || !providerCandidateDigest(m["fork_artifact"]) ||
-		!providerCandidateInstance(m["instance"]) || !providerCandidateOrigin(m["provider"]) ||
-		!providerCandidateFormats(m) || !providerCandidateLimits(m["limits"]) || !providerCandidateClock(m["clock"]) {
+	value := providerReplayJSON(raw, meter)
+	if !providerPolicyFieldsValid(legacyProviderPolicyValue{value}) {
 		return nil, ErrProviderPolicyCandidate
 	}
+	// The shared validator established the exact root object. Only the legacy
+	// DATA parser projects its already parsed Go tree here.
+	m := value.(map[string]any)
 	// The input is JCS. Marshal only already-checked ASCII string objects; their
 	// lexical member order and JSON escaping are identical to these JCS subtrees.
 	instance := providerReplayMarshal(m["instance"], uint64(maximumBytes), meter)
