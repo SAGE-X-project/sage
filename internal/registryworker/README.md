@@ -118,3 +118,18 @@ remote CI results before any execution or qualification claim is made.
 The native test's compiler preparation uses trusted remote CI tools. Its
 cancellation covers the compiler driver only; failed preparation relies on
 runner teardown for descendants. It is not production compiler-family cleanup.
+
+The fixed preparation child receives raw stdin directly into a private Darwin
+mapping and locks those pages before reading. The existing accepted byte limit
+is unchanged: one extra byte only detects overflow, and the native allocation
+rounds that space to OS pages. Acquisition failures preserve native errors and
+do not retry, lower a limit, or fall back to heap input. The original lifetime
+owns one synchronous consumer and explicit release before journal completion.
+Cleanup errors prevent ordinary output even after successful compilation.
+
+This backs only the original input mapping. `HistoryPreparationSession.Prepare`
+still makes its existing detached heap copy; JSON objects, the frozen plan,
+runtime metadata, stacks, all other compiler memory and the two Registry stores
+remain separate, unqualified obligations. An expired cleanup window or forced
+process exit is not recorded as successful explicit memory release. This input
+mechanism neither creates the missing private derivation nor enables collection.

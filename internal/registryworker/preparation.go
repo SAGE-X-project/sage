@@ -146,6 +146,7 @@ type PreparationLifetime struct {
 	file                        *os.File
 	readerDone, parentDone      chan struct{}
 	closing                     atomic.Bool
+	inputClaimed                atomic.Bool
 	releaseOnce                 sync.Once
 	closeErr                    error
 }

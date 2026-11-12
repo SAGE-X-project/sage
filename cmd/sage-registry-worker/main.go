@@ -65,22 +65,31 @@ func run() int {
 	if _, err := io.WriteString(os.Stderr, "sage-registry-preparation-input-ready\n"); err != nil {
 		return 65
 	}
-	input, err := io.ReadAll(io.LimitReader(os.Stdin, int64(snapshot.MaximumInputBytes)+1))
-	if err != nil || len(input) == 0 || len(input) > snapshot.MaximumInputBytes || action.Err() != nil {
-		return 65
+	var journal *registryworker.JournalWriter
+	var output []byte
+	phase := 65
+	prepareErr := lifetime.ConsumeInput(func(input []byte) error {
+		phase = 66
+		var err error
+		journal, err = registryworker.OpenJournal(cleanup, input)
+		if err != nil {
+			return err
+		}
+		phase = 67
+		output, err = session.Prepare(input)
+		return err
+	})
+	if journal == nil {
+		return phase
 	}
-	journal, err := registryworker.OpenJournal(cleanup, input)
-	if err != nil {
-		return 66
-	}
-	output, prepareErr := session.Prepare(input)
 	// Prepare retains no plan or owned file. Release the control descriptor
-	// before the terminal record; journal and its final Close remain separately
-	// checked. Neither that record nor normal stdout proves resource admission.
+	// after its borrowed raw input has been released. Both native release and
+	// journal Close must pass before stdout publication. The compiler's heap
+	// clone and complete resource qualification remain separate obligations.
 	releaseErr := lifetime.ReleaseControl()
 	if prepareErr != nil || releaseErr != nil {
 		code := "compilation"
-		if releaseErr != nil {
+		if releaseErr != nil || errors.Is(prepareErr, registryworker.ErrInputCleanup) {
 			code = "cleanup"
 		} else if errors.Is(prepareErr, context.Canceled) || errors.Is(prepareErr, context.DeadlineExceeded) {
 			code = "canceled"
