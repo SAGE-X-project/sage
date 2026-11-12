@@ -208,6 +208,65 @@ jobs:
             exit "$worker_union_status"
           fi
           exit "$worker_coverage_status"
+      - name: Check directly used compiler storage
+        timeout-minutes: 1
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          compiler_memory_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/compiler-memory"
+          mkdir -p "$compiler_memory_dir/source"
+          git rev-parse HEAD > "$compiler_memory_dir/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$compiler_memory_dir/tree.txt"
+          go version > "$compiler_memory_dir/compiler.txt"
+          cp pkg/agent/registry011/internal/compilermemory/*.go "$compiler_memory_dir/source/"
+          export SAGE_COMPILER_MEMORY_EVIDENCE_DIR="$compiler_memory_dir"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          names = ('GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY')
+          Path(os.environ['SAGE_COMPILER_MEMORY_EVIDENCE_DIR'], 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
+          PY
+          gofmt -d pkg/agent/registry011/internal/compilermemory/*.go > "$compiler_memory_dir/format.patch"
+          compiler_memory_status=0
+          go test -mod=readonly -race -count=1 -timeout=30s -tags=registry_native_limits -json -coverprofile="$compiler_memory_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011/internal/compilermemory > "$compiler_memory_dir/tests.jsonl" || compiler_memory_status=$?
+          printf '%s\n' "$compiler_memory_status" > "$compiler_memory_dir/test-exit.txt"
+          compiler_memory_coverage_status=0
+          python3 - <<'PY' || compiler_memory_coverage_status=$?
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['SAGE_COMPILER_MEMORY_EVIDENCE_DIR'])
+          prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/internal/compilermemory/'
+          expected = {'region.go', 'region_darwin.go'}
+          totals = {}
+          lines = (root / 'coverage.out').read_text().splitlines()
+          if not lines or lines[0] != 'mode: atomic':
+              raise SystemExit('compiler storage atomic coverage required')
+          for line in lines[1:]:
+              location, statements, count = line.rsplit(' ', 2)
+              path, _ = location.rsplit(':', 1)
+              if not path.startswith(prefix):
+                  raise SystemExit('unexpected compiler storage coverage package')
+              name = path[len(prefix):]
+              covered, total = totals.setdefault(name, [0, 0])
+              statements, count = int(statements), int(count)
+              if statements < 0 or count < 0:
+                  raise SystemExit('invalid compiler storage coverage count')
+              totals[name] = [covered + (statements if count else 0), total + statements]
+          passed = set(totals) == expected and all(total > 0 and 100 * covered >= 90 * total for covered, total in totals.values())
+          report = {
+              'scope': 'Compiler storage component statement coverage only; not complete compiler resources, physical backing of other Go allocations, derivation or Source readiness',
+              'files': {name: {'covered': covered, 'total': total} for name, (covered, total) in sorted(totals.items())},
+              'inactive_file': {'region_other.go': 'Not compiled on this Darwin target; not a coverage PASS'},
+              'file90': passed,
+          }
+          (root / 'coverage-summary.json').write_text(json.dumps(report, indent=2) + '\n')
+          if not passed:
+              raise SystemExit('each active compiler storage file requires positive statements and at least 90 percent')
+          PY
+          if [ "$compiler_memory_status" -ne 0 ]; then exit "$compiler_memory_status"; fi
+          if [ "$compiler_memory_coverage_status" -ne 0 ]; then exit "$compiler_memory_coverage_status"; fi
+          if [ -s "$compiler_memory_dir/format.patch" ]; then exit 1; fi
+          git diff --exit-code
       - name: Retain native resource observations
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
