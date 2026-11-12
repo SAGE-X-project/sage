@@ -202,9 +202,10 @@ func (p *jsonBuilder) value(parent int) error {
 		return err
 	case 't', 'f', 'n':
 		word, kind := "true", JSONBoolean
-		if b == 'f' {
+		switch b {
+		case 'f':
 			word = "false"
-		} else if b == 'n' {
+		case 'n':
 			word, kind = "null", JSONNull
 		}
 		if len(word) > len(p.input)-p.position {
