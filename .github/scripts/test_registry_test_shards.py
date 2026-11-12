@@ -415,5 +415,131 @@ class EvidenceFixture(unittest.TestCase):
                 m.identity("other")
 
 
+class SourceSnapshotFixture(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.repository = self.root / "repository"
+        self.base = self.repository / m.SOURCE_PREFIX
+        self.base.mkdir(parents=True)
+        self.evidence = self.root / "evidence"
+        self.evidence.mkdir()
+        self.files = {
+            "unit.go": b"package registry011\n",
+            "internal/child/types.go": b"package child\n",
+            "internal/child/schema.json": b'{"type":"object"}\n',
+            "testdata/opaque.bin": b"bounded fixture\x00",
+            "internal/child/README.md": b"# Child package\n",
+        }
+        for name, raw in self.files.items():
+            path = self.base / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(raw)
+        self.source = "".join(f"{m.digest(raw)}  {m.SOURCE_PREFIX}{name}\n"
+                              for name, raw in sorted(self.files.items())).encode()
+        (self.evidence / "source.sha256").write_bytes(self.source)
+
+    def test_nested_sources_follow_the_same_inventory_as_verification(self):
+        count = m.capture_source_copy(self.evidence, self.source, self.repository)
+        expected = set(self.files) - {"internal/child/README.md"}
+        root = self.evidence / "source"
+        actual = {str(p.relative_to(root)) for p in root.rglob("*") if p.is_file()}
+        self.assertEqual(count, len(expected))
+        self.assertEqual(actual, expected)
+        for name in expected:
+            self.assertEqual((root / name).read_bytes(), self.files[name])
+        m.check_source_copy(self.evidence, self.source)
+
+    def test_nested_omission_extra_and_changed_bytes_remain_refusals(self):
+        for outcome in ("missing", "extra", "changed"):
+            with self.subTest(outcome=outcome):
+                folder = self.root / outcome
+                folder.mkdir()
+                m.capture_source_copy(folder, self.source, self.repository)
+                target = folder / "source/internal/child/types.go"
+                if outcome == "missing":
+                    target.unlink()
+                elif outcome == "extra":
+                    (folder / "source/internal/child/extra.go").write_bytes(b"extra\n")
+                else:
+                    target.write_bytes(b"changed\n")
+                with self.assertRaises(ValueError):
+                    m.check_source_copy(folder, self.source)
+
+    def test_repository_bytes_are_checked_before_copying(self):
+        (self.base / "internal/child/types.go").write_bytes(b"changed\n")
+        with self.assertRaisesRegex(ValueError, "source repository bytes mismatch"):
+            m.capture_source_copy(self.evidence, self.source, self.repository)
+
+    def test_missing_repository_file_and_existing_snapshot_refuse(self):
+        (self.base / "internal/child/types.go").unlink()
+        with self.assertRaisesRegex(ValueError, "missing source repository file"):
+            m.capture_source_copy(self.evidence, self.source, self.repository)
+        with self.assertRaisesRegex(ValueError, "source snapshot already exists"):
+            m.capture_source_copy(self.evidence, self.source, self.repository)
+
+    def test_snapshot_rejects_links_and_outside_relative_names(self):
+        target = self.base / "internal/child/types.go"
+        target.unlink()
+        outside = self.root / "owned-fixture.go"
+        outside.write_bytes(self.files["internal/child/types.go"])
+        target.symlink_to(outside)
+        with self.assertRaisesRegex(ValueError, "source repository contains a link"):
+            m.capture_source_copy(self.evidence, self.source, self.repository)
+        folder = self.root / "path-refusal"
+        folder.mkdir()
+        source = (m.digest(b"fixture") + "  " + m.SOURCE_PREFIX + "../owned-fixture.go\n").encode()
+        with self.assertRaisesRegex(ValueError, "invalid source snapshot path"):
+            m.capture_source_copy(folder, source, self.repository)
+        self.assertFalse((folder / "owned-fixture.go").exists())
+
+    def test_snapshot_cli_uses_recorded_manifest_without_restarting_identity(self):
+        with patch.object(m, "identity", side_effect=AssertionError("unexpected identity restart")), \
+                patch.object(m, "capture_source_copy", return_value=4) as capture, \
+                redirect_stdout(io.StringIO()) as output:
+            result = m.main(["snapshot", "provider", str(self.evidence)])
+        capture.assert_called_once_with(self.evidence, self.source)
+        self.assertEqual(result, {"role": "provider", "source_files": 4})
+        self.assertEqual(json.loads(output.getvalue()), result)
+        with self.assertRaises(ValueError):
+            m.main(["snapshot", "source", str(self.evidence), "--index", "0"])
+        with self.assertRaises(ValueError):
+            m.main(["snapshot", "source", str(self.evidence), "--output", str(self.root / "other")])
+
+    def test_source_prefix_ancestor_links_refuse_identical_owned_bytes(self):
+        for prefix in ("pkg", "pkg/agent"):
+            with self.subTest(prefix=prefix):
+                original = self.repository / prefix
+                owned = self.root / ("owned-" + prefix.replace("/", "-"))
+                original.rename(owned)
+                original.symlink_to(owned, target_is_directory=True)
+                folder = self.root / ("prefix-" + prefix.replace("/", "-"))
+                folder.mkdir()
+                try:
+                    self.assertEqual((self.base / "internal/child/types.go").read_bytes(),
+                                     self.files["internal/child/types.go"])
+                    with self.assertRaisesRegex(ValueError, "source repository contains a link"):
+                        m.capture_source_copy(folder, self.source, self.repository)
+                    self.assertFalse((folder / "source").exists())
+                finally:
+                    original.unlink()
+                    owned.rename(original)
+
+    def test_repository_anchor_link_refuses_identical_owned_bytes(self):
+        owned = self.root / "owned-repository"
+        self.repository.rename(owned)
+        self.repository.symlink_to(owned, target_is_directory=True)
+        try:
+            self.assertEqual((self.base / "internal/child/types.go").read_bytes(),
+                             self.files["internal/child/types.go"])
+            with self.assertRaisesRegex(ValueError, "invalid source repository directory"):
+                m.capture_source_copy(self.evidence, self.source, self.repository)
+            self.assertFalse((self.evidence / "source").exists())
+        finally:
+            self.repository.unlink()
+            owned.rename(self.repository)
+
+
 if __name__ == "__main__":
     unittest.main()

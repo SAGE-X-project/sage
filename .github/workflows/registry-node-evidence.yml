@@ -152,13 +152,12 @@ jobs:
       - name: Check provider candidates with owned TLS and the selected RPC
         run: |
           export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
-          mkdir -p "$SAGE_PROVIDER_CAPTURE_DIR/source"
+          mkdir -p "$SAGE_PROVIDER_CAPTURE_DIR"
           go version > "$SAGE_PROVIDER_CAPTURE_DIR/compiler.txt"
           git rev-parse HEAD > "$SAGE_PROVIDER_CAPTURE_DIR/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$SAGE_PROVIDER_CAPTURE_DIR/tree.txt"
           git ls-files -z .github/scripts/registry_test_shards.py .github/scripts/test_registry_test_shards.py pkg/agent/registry011 go.mod go.sum .github/workflows/registry-node-evidence.yml .github/workflows/test.yml docs/dev/registry-source-checks.md | xargs -0 sha256sum > "$SAGE_PROVIDER_CAPTURE_DIR/source.sha256"
-          cp pkg/agent/registry011/*.go pkg/agent/registry011/*.json "$SAGE_PROVIDER_CAPTURE_DIR/source/"
-          cp -R pkg/agent/registry011/testdata "$SAGE_PROVIDER_CAPTURE_DIR/source/"
+          python3 .github/scripts/registry_test_shards.py snapshot provider "$SAGE_PROVIDER_CAPTURE_DIR"
           python3 - <<'PYCONTEXT'
           import json, os
           from pathlib import Path

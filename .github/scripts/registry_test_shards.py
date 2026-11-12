@@ -206,7 +206,7 @@ def check_controls(folder):
     require(seen == expected, "incomplete CPU diagnostic identity")
 
 
-def check_source_copy(folder, source):
+def source_copy_inventory(source):
     expected = {}
     for line in source.decode().splitlines():
         want, name = line.split("  ", 1)
@@ -214,6 +214,40 @@ def check_source_copy(folder, source):
             relative = name[len(SOURCE_PREFIX):]
             if relative.endswith((".go", ".json")) or relative.startswith("testdata/"):
                 expected[relative] = want
+    return expected
+
+
+def capture_source_copy(folder, source, repository=Path(".")):
+    expected = source_copy_inventory(source)
+    root = folder / "source"
+    require(expected and folder.is_dir() and not folder.is_symlink(), "invalid snapshot destination")
+    require(not root.exists() and not root.is_symlink(), "source snapshot already exists")
+    require(repository.is_dir() and not repository.is_symlink(), "invalid source repository directory")
+    base = repository
+    for part in Path(SOURCE_PREFIX).parts:
+        base = base / part
+        require(not base.is_symlink(), "source repository contains a link")
+        require(base.is_dir(), "invalid source repository directory")
+    root.mkdir()
+    for relative, want in expected.items():
+        name = Path(relative)
+        require(not name.is_absolute() and ".." not in name.parts and str(name) == relative,
+                "invalid source snapshot path")
+        require(not any((base / Path(*name.parts[:index])).is_symlink()
+                        for index in range(1, len(name.parts) + 1)), "source repository contains a link")
+        original = base / name
+        require(original.is_file(), "missing source repository file")
+        raw = original.read_bytes()
+        require(digest(raw) == want, "source repository bytes mismatch")
+        destination = root / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(raw)
+    check_source_copy(folder, source)
+    return len(expected)
+
+
+def check_source_copy(folder, source):
+    expected = source_copy_inventory(source)
     root = folder / "source"
     require(root.is_dir() and not root.is_symlink(), "invalid source snapshot directory")
     files = [p for p in root.rglob("*") if p.is_file()]
@@ -310,12 +344,18 @@ def verify(output, role, current):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("plan", "assemble", "verify"))
+    parser.add_argument("command", choices=("plan", "snapshot", "assemble", "verify"))
     parser.add_argument("role", choices=("source", "provider"))
     parser.add_argument("directory", type=Path)
     parser.add_argument("--index", type=int)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
+    if args.command == "snapshot":
+        require(args.index is None and args.output is None, "snapshot cannot select or replace evidence")
+        count = capture_source_copy(args.directory, (args.directory / "source.sha256").read_bytes())
+        value = {"role": args.role, "source_files": count}
+        print(json.dumps(value, sort_keys=True))
+        return value
     if args.command == "plan":
         require(args.index is not None and args.output is None, "plan needs only a shard index")
         value = plan((args.directory / "test-discovery.jsonl").read_bytes(), args.role, args.index)
