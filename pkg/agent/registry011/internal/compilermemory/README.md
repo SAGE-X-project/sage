@@ -25,6 +25,15 @@ Public acquisition always selects the native implementation. Simulated results
 do not establish physical backing; the separate Darwin runtime tests use the
 public acquisition path and actual native operations.
 
+`ParseJSON` now uses the actual region for its input, node records and bounded
+nonrecursive parser stack. It seals the region and exposes checked object,
+array, string-comparison and scalar readers. Integer readers consume the same
+original spans without a temporary string or floating-point representation.
+Decoded duplicate keys, malformed UTF-8, trailing data and exhausted limits
+refuse the parse. An entered parse failure leaves the region unusable until
+cleanup. These library components are not yet the preparation envelope's exact
+schema or the configuration, frozen plan and issuer connection below.
+
 The complete connection must include these changes before it can qualify a
 compiler or issue a private derivation:
 

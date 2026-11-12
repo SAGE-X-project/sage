@@ -238,7 +238,7 @@ jobs:
           from pathlib import Path
           root = Path(os.environ['SAGE_COMPILER_MEMORY_EVIDENCE_DIR'])
           prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/internal/compilermemory/'
-          expected = {'integer.go', 'region.go', 'region_darwin.go'}
+          expected = {'integer.go', 'json.go', 'json_parse.go', 'json_string.go', 'json_value.go', 'region.go', 'region_darwin.go'}
           totals = {}
           lines = (root / 'coverage.out').read_text().splitlines()
           if not lines or lines[0] != 'mode: atomic':
