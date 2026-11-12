@@ -293,47 +293,226 @@ jobs:
           gofmt -d pkg/agent/registry011/provider_history_preparation*.go cmd/sage-registry-worker/*.go > "$native_preparation_dir/format.patch" || native_preparation_format_status=$?
           printf '%s\n' "$native_preparation_format_status" > "$native_preparation_dir/format-exit.txt"
           native_preparation_status=0
-          go test -mod=readonly -race -count=1 -timeout=30s -tags=registry_native_limits -json -run '^TestProviderHistoryPreparationNative' -coverprofile="$native_preparation_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$native_preparation_dir/tests.jsonl" || native_preparation_status=$?
-          printf '%s\n' "$native_preparation_status" > "$native_preparation_dir/test-exit.txt"
-          native_preparation_coverage_status=0
-          python3 - <<'PY' || native_preparation_coverage_status=$?
-          import json, os
+          python3 - <<'PY' || native_preparation_status=$?
+          import datetime, hashlib, json, os, re, stat, subprocess, time
           from pathlib import Path
-          root = Path(os.environ['SAGE_NATIVE_PREPARATION_EVIDENCE_DIR'])
-          prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/'
-          expected = {
+          root = Path(os.environ['SAGE_NATIVE_PREPARATION_EVIDENCE_DIR']).resolve(strict=True)
+          repository = Path.cwd().resolve(strict=True)
+          package = 'github.com/sage-x-project/sage/pkg/agent/registry011'
+          package_directory = repository / 'pkg/agent/registry011'
+          prefix = package + '/'
+          expected_roots = [
+              'TestProviderHistoryPreparationNativeUsesOriginalPlanAndRetainedResult',
+              'TestProviderHistoryPreparationNativeResultRefusalNeverReadsGoFallback',
+              'TestProviderHistoryPreparationNativeResultPreservesBothDigestContracts',
+              'TestProviderHistoryPreparationNativeCloseDropsPrivateReferences',
+              'TestProviderHistoryPreparationNativeDecoderPreservesEveryRequiredField',
+              'TestProviderHistoryPreparationNativeDecoderRefusesChangedWireShapes',
+              'TestProviderHistoryPreparationNativeDecoderMatchesOriginalPolicySyntax',
+              'TestProviderHistoryPreparationNativeSimulatedAcquisitionFailuresRemainTerminal',
+              'TestProviderHistoryPreparationNativeTypedValuesRemainExact',
+              'TestProviderHistoryPreparationNativeSchemaMetadataRemainsClosed',
+              'TestProviderHistoryPreparationNativeOriginalCleanupCannotBeExtended',
+              'TestProviderHistoryPreparationNativeStringAdapterDiscardsCanceledValues',
+          ]
+          expected_files = {
               'provider_history_preparation_native_darwin.go',
               'provider_history_preparation_native_decode_darwin.go',
               'provider_history_preparation_native_result_darwin.go',
           }
-          totals, seen = {}, set()
-          lines = (root / 'coverage.out').read_text().splitlines()
-          if not lines or lines[0] != 'mode: atomic':
-              raise SystemExit('native preparation atomic coverage required')
-          for line in lines[1:]:
-              location, statements, count = line.rsplit(' ', 2)
-              path, _ = location.rsplit(':', 1)
-              statements, count = int(statements), int(count)
-              if path.rsplit('/', 1)[0] != prefix[:-1] or location in seen or statements < 0 or count < 0:
-                  raise SystemExit('unexpected native preparation coverage row')
-              seen.add(location)
-              name = path[len(prefix):]
-              if name in expected:
-                  covered, total = totals.setdefault(name, [0, 0])
-                  totals[name] = [covered + (statements if count else 0), total + statements]
-          passed = set(totals) == expected and all(total > 0 and 100 * covered >= 90 * total for covered, total in totals.values())
-          report = {
-              'scope': 'Actual native DATA preparation path and result consumption only; not full Go config/freeze/bootstrap resources, private derivation, custody or Source readiness',
-              'files': {name: {'covered': covered, 'total': total} for name, (covered, total) in sorted(totals.items())},
-              'inactive_file': {'provider_history_preparation_native_other.go': 'Not compiled on this Darwin target; no coverage PASS'},
-              'file90': passed,
+          manifest = {
+              'format': 'sage-native-preparation-invocation-set-v1',
+              'package': package, 'expected_roots': expected_roots,
+              'tags': ['registry_native_limits'], 'race': True,
+              'each_binary_timeout_seconds': 30, 'existing_job_timeout_minutes': 10,
+              'previous_single_aggregate_30_second_scheduling_changed': True,
+              'source_manifest_sha256': hashlib.sha256((root / 'source.sha256').read_bytes()).hexdigest(),
+              'invocations': [], 'errors': [], 'execution_complete': False,
+              'profiles_complete': False, 'complete': False,
           }
-          (root / 'coverage-summary.json').write_text(json.dumps(report, indent=2) + '\n')
-          if not passed:
-              raise SystemExit('each native preparation production file requires positive statements and at least 90 percent')
+          totals = {}
+
+          def save(path, value):
+              path.write_text(json.dumps(value, indent=2) + '\n')
+
+          def binary_identity(path):
+              metadata = path.lstat()
+              if not stat.S_ISREG(metadata.st_mode) or metadata.st_size == 0:
+                  raise ValueError('a regular nonempty test binary is required')
+              return {'bytes': metadata.st_size, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+
+          def run(directory, arguments, cwd, environment):
+              directory.mkdir()
+              started = time.monotonic()
+              record = {'arguments': arguments, 'cwd': str(cwd),
+                        'GOCOVERDIR': environment.get('GOCOVERDIR'),
+                        'started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}
+              save(directory / 'command.json', record)
+              with (directory / 'stdout').open('wb') as output, (directory / 'stderr').open('wb') as error:
+                  result = subprocess.run(arguments, cwd=cwd, env=environment, stdout=output, stderr=error)
+              record.update({'wrapper_exit': result.returncode, 'elapsed_seconds': time.monotonic() - started,
+                             'finished_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()})
+              record['streams'] = {name: {'bytes': (directory / name).stat().st_size,
+                                         'sha256': hashlib.sha256((directory / name).read_bytes()).hexdigest()}
+                                   for name in ('stdout', 'stderr')}
+              # test2json maps child failure to 1; this is not a child numeric exit.
+              save(directory / 'command.json', record)
+              (directory / 'wrapper-exit.txt').write_text(str(result.returncode) + '\n')
+              return record
+
+          def check_events(path, selected):
+              events = [json.loads(line) for line in path.read_text().splitlines() if line]
+              names, packages, package_starts = {}, [], 0
+              allowed = {'start', 'run', 'pause', 'cont', 'output', 'pass', 'fail', 'skip'}
+              for index, event in enumerate(events):
+                  if event.get('Package') != package or event.get('Action') not in allowed:
+                      raise ValueError('unexpected native test event')
+                  name = event.get('Test')
+                  if name:
+                      if not isinstance(name, str) or (name != selected and not name.startswith(selected + '/')):
+                          raise ValueError('a different root or child was executed')
+                      names.setdefault(name, []).append((index, event['Action']))
+                  elif event['Action'] in {'pass', 'fail', 'skip'}:
+                      packages.append(event['Action'])
+                  elif event['Action'] == 'start':
+                      package_starts += 1
+              if (selected not in names or packages != ['pass'] or package_starts != 1
+                      or events[0].get('Action') != 'start'
+                      or events[-1].get('Action') != 'pass' or events[-1].get('Test')):
+                  raise ValueError('selected root and package PASS are required')
+              for name, actions in names.items():
+                  starts = [index for index, action in actions if action == 'run']
+                  terminals = [(index, action) for index, action in actions if action in {'pass', 'fail', 'skip'}]
+                  if len(starts) != 1 or len(terminals) != 1 or starts[0] >= terminals[0][0] or terminals[0][1] != 'pass':
+                      raise ValueError('native testcase missing, repeated, unfinished, failed or skipped: ' + name)
+              return {'events': len(events), 'named_pass': len(names), 'package_pass': True}
+
+          def read_profile(path):
+              lines = path.read_text().splitlines()
+              if not lines or lines[0] != 'mode: atomic':
+                  raise ValueError('native preparation atomic coverage required')
+              rows = {}
+              for line in lines[1:]:
+                  location, statements, count = line.split()
+                  filename, coordinates = location.rsplit(':', 1)
+                  if (filename.rsplit('/', 1)[0] != prefix[:-1] or location in rows
+                          or filename == prefix + 'provider_history_preparation_native_other.go'
+                          or not re.fullmatch(r'[0-9]+\.[0-9]+,[0-9]+\.[0-9]+', coordinates)
+                          or not statements.isascii() or not statements.isdecimal()
+                          or not count.isascii() or not count.isdecimal()):
+                      raise ValueError('unexpected native preparation coverage row')
+                  rows[location] = (int(statements), int(count) > 0)
+              if not rows:
+                  raise ValueError('empty native preparation profile')
+              return rows
+
+          try:
+              if len(expected_roots) != 12 or len(set(expected_roots)) != 12:
+                  raise ValueError('twelve unique original native root declarations are required')
+              binary = root / 'native-preparation.test'
+              environment = dict(os.environ)
+              target = run(root / 'target', ['go', 'env', '-json', 'GOOS', 'GOARCH', 'GOVERSION'], repository, environment)
+              manifest['target'] = target
+              if target['wrapper_exit']:
+                  raise ValueError('actual Go target metadata is required')
+              manifest['go_target'] = json.loads((root / 'target/stdout').read_text())
+              if (manifest['go_target'].get('GOOS') != 'darwin' or not manifest['go_target'].get('GOARCH')
+                      or manifest['go_target'].get('GOVERSION') != 'go' + environment['GO_VERSION']):
+                  raise ValueError('the native Darwin target is required')
+              build = run(root / 'build', ['go', 'test', '-c', '-mod=readonly', '-race',
+                          '-tags=registry_native_limits', '-cover', '-covermode=atomic',
+                          '-o', str(binary), './pkg/agent/registry011'], repository, environment)
+              manifest['build'] = build
+              if build['wrapper_exit']:
+                  raise ValueError('native preparation test build failed')
+              identity = binary_identity(binary)
+              manifest['binary'] = {'path': str(binary), **identity}
+              discovery_cover = root / 'discovery-gocover'
+              discovery_cover.mkdir()
+              discovery_environment = {**environment, 'GOCOVERDIR': str(discovery_cover)}
+              listing = run(root / 'discovery', [str(binary), '-test.list=^TestProviderHistoryPreparationNative',
+                            '-test.paniconexit0', '-test.gocoverdir=' + str(discovery_cover)],
+                            package_directory, discovery_environment)
+              manifest['discovery'] = listing
+              discovered = (root / 'discovery/stdout').read_text().splitlines()
+              if (listing['wrapper_exit'] or len(discovered) != len(set(discovered))
+                      or set(discovered) != set(expected_roots) or binary_identity(binary) != identity):
+                  raise ValueError('compiled native root discovery must match all twelve declarations')
+              manifest['compiled_roots'] = discovered
+              # All original children run. A slash filter or retries would change that scope.
+              for ordinal, selected in enumerate(expected_roots):
+                  part = root / ('invocation-' + str(ordinal).zfill(2))
+                  cover_directory = root / ('gocover-' + str(ordinal).zfill(2))
+                  cover_directory.mkdir()
+                  invocation = {'ordinal': ordinal, 'selected_root': selected,
+                                'binary': identity, 'profile': str(part / 'coverage.out'), 'complete': False}
+                  manifest['invocations'].append(invocation)
+                  try:
+                      if binary_identity(binary) != identity:
+                          raise ValueError('test binary identity changed before invocation')
+                      arguments = ['go', 'tool', 'test2json', '-t', '-p', package, str(binary),
+                                   '-test.v=test2json', '-test.paniconexit0', '-test.run=^' + selected + '$',
+                                   '-test.count=1', '-test.timeout=30s',
+                                   '-test.gocoverdir=' + str(cover_directory),
+                                   '-test.coverprofile=' + str(part / 'coverage.out')]
+                      invocation['command'] = run(part, arguments, package_directory,
+                                                  {**environment, 'GOCOVERDIR': str(cover_directory)})
+                      if binary_identity(binary) != identity or invocation['command']['wrapper_exit']:
+                          raise ValueError('native test invocation refused or changed its binary')
+                      invocation['events'] = check_events(part / 'stdout', selected)
+                      invocation['profile_sha256'] = hashlib.sha256((part / 'coverage.out').read_bytes()).hexdigest()
+                      invocation['complete'] = True
+                  except (OSError, ValueError, KeyError, TypeError) as error:
+                      invocation['error'] = str(error)
+                      manifest['errors'].append(selected + ': ' + str(error))
+                  save(root / 'invocations.json', manifest)
+              if (len(manifest['invocations']) != len(expected_roots)
+                      or [entry['selected_root'] for entry in manifest['invocations']] != expected_roots
+                      or not all(entry['complete'] for entry in manifest['invocations'])):
+                  raise ValueError('every original native root must complete exactly once')
+              manifest['execution_complete'] = True
+              combined = None
+              for invocation in manifest['invocations']:
+                  profile_path = Path(invocation['profile'])
+                  if hashlib.sha256(profile_path.read_bytes()).hexdigest() != invocation['profile_sha256']:
+                      raise ValueError('original coverage profile changed')
+                  rows = read_profile(profile_path)
+                  if combined is None:
+                      combined = rows
+                  else:
+                      if set(combined) != set(rows) or any(combined[name][0] != rows[name][0] for name in rows):
+                          raise ValueError('coverage block identities or statements differ')
+                      combined = {name: (rows[name][0], combined[name][1] or rows[name][1]) for name in rows}
+              manifest['profiles_complete'] = True
+              # Derived covered flags are not raw execution counters; retain every original profile.
+              for location, (statements, covered) in combined.items():
+                  filename = location.rsplit(':', 1)[0][len(prefix):]
+                  if filename in expected_files:
+                      entry = totals.setdefault(filename, [0, 0])
+                      entry[0] += statements if covered else 0
+                      entry[1] += statements
+              passed = set(totals) == expected_files and all(total > 0 and 100 * covered >= 90 * total for covered, total in totals.values())
+              if not passed or binary_identity(binary) != identity:
+                  raise ValueError('each native preparation production file requires positive statements and at least 90 percent')
+              manifest['complete'] = True
+          except (OSError, ValueError, KeyError, TypeError) as error:
+              manifest['errors'].append(str(error))
+          finally:
+              save(root / 'invocations.json', manifest)
+              save(root / 'coverage-summary.json', {
+                  'scope': 'Complete exact-root union of original native DATA preparation invocations; not compiler resource, private derivation, custody or Source readiness qualification',
+                  'counter_basis': 'Derived OR of covered flags, not raw summed execution counts',
+                  'files': {name: {'covered': covered, 'total': total} for name, (covered, total) in sorted(totals.items())},
+                  'inactive_file': {'provider_history_preparation_native_other.go': 'Not compiled on Darwin; no coverage PASS'},
+                  'execution_complete': manifest['execution_complete'],
+                  'profiles_complete': manifest['profiles_complete'],
+                  'complete': manifest['complete'], 'file90': manifest['complete'] and not manifest['errors'],
+              })
+          if manifest['errors'] or not manifest['complete']:
+              raise SystemExit('native preparation invocation set incomplete or refused: ' + '; '.join(manifest['errors']))
           PY
+          printf '%s\n' "$native_preparation_status" > "$native_preparation_dir/test-exit.txt"
           if [ "$native_preparation_status" -ne 0 ]; then exit "$native_preparation_status"; fi
-          if [ "$native_preparation_coverage_status" -ne 0 ]; then exit "$native_preparation_coverage_status"; fi
           if [ "$native_preparation_format_status" -ne 0 ]; then exit "$native_preparation_format_status"; fi
           if [ -s "$native_preparation_dir/format.patch" ]; then exit 1; fi
           git diff --exit-code

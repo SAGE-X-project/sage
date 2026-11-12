@@ -376,7 +376,9 @@ func TestProviderHistoryPreparationNativeDecoderRefusesChangedWireShapes(t *test
 		{"null-clock", func(tree map[string]any) { tree["clock"] = nil }},
 		{"wrong-clock", func(tree map[string]any) { tree["clock"] = []any{} }},
 		{"unsigned-negative", func(tree map[string]any) { tree["clock"].(map[string]any)["maximum"] = json.Number("-1") }},
-		{"unsigned-overflow", func(tree map[string]any) { tree["clock"].(map[string]any)["maximum"] = json.Number("18446744073709551616") }},
+		{"unsigned-overflow", func(tree map[string]any) {
+			tree["clock"].(map[string]any)["maximum"] = json.Number("18446744073709551616")
+		}},
 		{"integer-exponent", func(tree map[string]any) { tree["clock"].(map[string]any)["maximum"] = json.Number("1e0") }},
 	}
 	for _, changed := range mutations {

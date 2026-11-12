@@ -35,7 +35,7 @@ func TestRegionJSONValueDepthPreservesRootZeroBoundaries(t *testing.T) {
 			{64, "null", true}, {65, "null", false},
 			{64, "{ }", true}, {64, "{\"x\":0}", false},
 		} {
-			name := kind+"/"+strconv.Itoa(tc.depth)+"/"+tc.leaf
+			name := kind + "/" + strconv.Itoa(tc.depth) + "/" + tc.leaf
 			t.Run(name, func(t *testing.T) {
 				action, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 				t.Cleanup(cancel)
