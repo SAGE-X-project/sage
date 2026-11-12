@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -34,9 +35,13 @@ type HistoryPreparationSummary struct {
 // lifetime and fund preparation. This constructor is not resource admission.
 type HistoryPreparationSession struct {
 	self                        *HistoryPreparationSession
+	mu                          sync.Mutex
 	compiler                    *providerHistorySourceCompiler
+	plan                        *providerHistorySourcePlan
+	inputSHA256                 string
 	maximumInput, maximumResult int
 	used                        atomic.Bool
+	closed                      bool
 }
 
 func (*HistoryPreparationSession) UnmarshalJSON([]byte) error { return ErrConfiguration }
@@ -57,37 +62,81 @@ func NewHistoryPreparationSession(ctx context.Context, origin time.Time, maximum
 	return session, nil
 }
 
-// Prepare consumes the session before copying, parsing or validating input.
-// Refusal and cancellation cannot retry with new limits or a renewed lifetime.
-// The original compiler freezes and compiles the config built from these exact
-// bytes. No candidate store, private issuer or protected-use path is opened.
+// Prepare preserves the one-call diagnostic API. It compiles and consumes the
+// same session's private selection without exposing a plan or execution grant.
 func (s *HistoryPreparationSession) Prepare(input []byte) ([]byte, error) {
-	if s == nil || s.self != s || !s.used.CompareAndSwap(false, true) || s.compiler == nil {
-		return nil, ErrConfiguration
-	}
-	if err := s.compiler.contextError(); err != nil {
+	if err := s.CompileOwned(input); err != nil {
 		return nil, err
 	}
-	if len(input) == 0 || len(input) > s.maximumInput {
-		return nil, ErrConfiguration
+	return s.FinishDiagnostic()
+}
+
+// CompileOwned consumes the original attempt before copying or parsing input.
+// Its detached, unqualified plan stays private to this same session until
+// FinishDiagnostic or Close. The caller may release its input after return.
+// This does not reserve compiler memory, open a store or issue a derivation.
+func (s *HistoryPreparationSession) CompileOwned(input []byte) (err error) {
+	if s == nil || s.self != s {
+		return ErrConfiguration
 	}
-	defer func() { s.compiler = nil }()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.used.CompareAndSwap(false, true) || s.closed || s.compiler == nil {
+		return ErrConfiguration
+	}
+	defer func() {
+		if err != nil {
+			s.discardLocked()
+		}
+	}()
+	if err := s.compiler.contextError(); err != nil {
+		return err
+	}
+	if len(input) == 0 || len(input) > s.maximumInput {
+		return ErrConfiguration
+	}
 	owned := bytes.Clone(input)
 	decoded, err := decodeHistoryPreparationInput(s.compiler.ctx, owned)
 	if err != nil {
-		return nil, fmt.Errorf("registry history preparation input: %w", err)
+		return fmt.Errorf("registry history preparation input: %w", err)
 	}
 	config, err := buildHistoryPreparationConfig(decoded)
 	if err != nil {
-		return nil, fmt.Errorf("registry history preparation configuration: %w", err)
+		return fmt.Errorf("registry history preparation configuration: %w", err)
 	}
 	plan, err := s.compiler.compile(config, decoded.Clock.Maximum, decoded.Clock.BaseUncertaintyMS, decoded.Clock.ReadWindowMS)
 	if err != nil {
-		return nil, fmt.Errorf("registry history preparation compilation: %w", err)
+		return fmt.Errorf("registry history preparation compilation: %w", err)
 	}
 	digest := sha256.Sum256(owned)
+	s.plan, s.inputSHA256 = plan, hex.EncodeToString(digest[:])
+	return nil
+}
+
+// FinishDiagnostic consumes the retained plan once, under its original context
+// and deadline. A failure discards it without retry or a fresh clock. The output
+// remains detached DATA and cannot reconstruct the private plan or permission.
+func (s *HistoryPreparationSession) FinishDiagnostic() ([]byte, error) {
+	if s == nil || s.self != s {
+		return nil, ErrConfiguration
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.used.Load() {
+		s.used.Store(true)
+		s.discardLocked()
+		return nil, ErrConfiguration
+	}
+	if s.closed || s.compiler == nil || s.plan == nil {
+		return nil, ErrConfiguration
+	}
+	defer s.discardLocked()
+	if err := s.compiler.contextError(); err != nil {
+		return nil, err
+	}
+	plan := s.plan
 	summary := HistoryPreparationSummary{
-		Format: historyPreparationResultFormat, InputSHA256: hex.EncodeToString(digest[:]),
+		Format: historyPreparationResultFormat, InputSHA256: s.inputSHA256,
 		Identity: plan.config.identity, ManifestSHA256: plan.config.bounds.history.collection.digest,
 		AssignedWork: plan.source.assigned.work, AssignedClockReads: plan.source.assigned.clocks,
 		OriginUnixNano: s.compiler.origin.UnixNano(), DeadlineUnixNano: plan.compilerDeadline.UnixNano(),
@@ -101,6 +150,26 @@ func (s *HistoryPreparationSession) Prepare(input []byte) ([]byte, error) {
 		return nil, err
 	}
 	return output, nil
+}
+
+// Close permanently discards this session's references. It waits for an active
+// CompileOwned or FinishDiagnostic call; cancellation still uses the original
+// context and the fixed parent's process stop. Dropping Go references does not
+// certify immediate physical memory release. Close is idempotent.
+func (s *HistoryPreparationSession) Close() error {
+	if s == nil || s.self != s {
+		return ErrConfiguration
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.used.Store(true)
+	s.discardLocked()
+	return nil
+}
+
+func (s *HistoryPreparationSession) discardLocked() {
+	s.closed = true
+	s.compiler, s.plan, s.inputSHA256 = nil, nil, ""
 }
 
 // DecodeHistoryPreparationSummary checks a bounded diagnostic result. Matching

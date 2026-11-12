@@ -60,6 +60,7 @@ func run() int {
 	if err != nil {
 		return 65
 	}
+	defer func() { _ = session.Close() }()
 	// A fixed nonsensitive phase marker lets runtime tests synchronize with
 	// the real compiler-before-input boundary. It grants no readiness authority.
 	if _, err := io.WriteString(os.Stderr, "sage-registry-preparation-input-ready\n"); err != nil {
@@ -76,16 +77,20 @@ func run() int {
 			return err
 		}
 		phase = 67
-		output, err = session.Prepare(input)
-		return err
+		return session.CompileOwned(input)
 	})
 	if journal == nil {
 		return phase
 	}
-	// Prepare retains no plan or owned file. Release the control descriptor
-	// after its borrowed raw input has been released. Both native release and
-	// journal Close must pass before stdout publication. The compiler's heap
-	// clone and complete resource qualification remain separate obligations.
+	// The raw mapping has been released. The SAME session still owns the
+	// detached plan, original compiler, clock and input digest. Finish before
+	// releasing the live control channel, which cancels the action context.
+	if prepareErr == nil {
+		output, prepareErr = session.FinishDiagnostic()
+	}
+	prepareErr = errors.Join(prepareErr, session.Close())
+	// Native input release, logical plan disposal, control release and journal
+	// Close must all precede stdout. Compiler heap/capacity remains unqualified.
 	releaseErr := lifetime.ReleaseControl()
 	if prepareErr != nil || releaseErr != nil {
 		code := "compilation"

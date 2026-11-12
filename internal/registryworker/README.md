@@ -133,3 +133,18 @@ runtime metadata, stacks, all other compiler memory and the two Registry stores
 remain separate, unqualified obligations. An expired cleanup window or forced
 process exit is not recorded as successful explicit memory release. This input
 mechanism neither creates the missing private derivation nor enables collection.
+
+The same preparation session now retains its private compiled selection and
+original compiler/clock between input consumption and diagnostic completion.
+The fixed child compiles inside the input borrow, releases the native input,
+then consumes that same plan before releasing the live control channel. The
+one-call `Prepare` API uses the same two operations. Failure, cancellation or
+explicit session close discards the selection; another call cannot restore it.
+No plan, execution callback or derivation crosses the diagnostic output.
+
+This extends the plan's Go reference lifetime across that synchronous handoff.
+The overlap with compiler scratch, summary output and cleanup still needs its
+compiler-own resource qualification. Session close waits for an active method
+and discards references; it does not cancel the original context or prove that
+the runtime physically returned those pages. The existing parent and child
+supervisors retain their original cancellation and hard-stop responsibilities.
