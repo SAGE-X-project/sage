@@ -93,6 +93,7 @@ Package-level READMEs under pkg/ and internal/.
 | [`pkg/agent/execution010/README.md`](../pkg/agent/execution010/README.md) | Durable execution storage for 0.10.0 |  |
 | [`pkg/agent/guard010/README.md`](../pkg/agent/guard010/README.md) | Execution Guard primitives |  |
 | [`pkg/agent/registry010/README.md`](../pkg/agent/registry010/README.md) | Operation-scoped registry observations |  |
+| [`pkg/agent/registry011/internal/compilermemory/README.md`](../pkg/agent/registry011/internal/compilermemory/README.md) | Compiler storage under the original lifetime |  |
 | [`pkg/agent/session/README.md`](../pkg/agent/session/README.md) | SAGE Session Management (Session management package) | MIXED |
 | [`pkg/agent/transport/README.md`](../pkg/agent/transport/README.md) | SAGE Transport Layer (Transport abstraction layer) | MIXED |
 | [`pkg/agent/transport/http/README.md`](../pkg/agent/transport/http/README.md) | HTTP Transport for SAGE (HTTP transport) | MIXED |

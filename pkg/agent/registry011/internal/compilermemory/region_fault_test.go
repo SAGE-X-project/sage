@@ -13,12 +13,12 @@ import (
 )
 
 type simulatedRegionOperations struct {
-	mu                                sync.Mutex
-	calls                             []string
+	mu                                   sync.Mutex
+	calls                                []string
 	mapErr, lockErr, unlockErr, unmapErr error
-	returnBytesOnMapError              bool
-	wrongMapLength                    bool
-	onMap, onLock, onUnlock, onUnmap    func()
+	returnBytesOnMapError                bool
+	wrongMapLength                       bool
+	onMap, onLock, onUnlock, onUnmap     func()
 }
 
 func (s *simulatedRegionOperations) record(name string, hook func()) {
@@ -64,13 +64,13 @@ func (s *simulatedRegionOperations) recorded() []string {
 
 type controlledRegionContext struct {
 	context.Context
-	mu           sync.Mutex
-	deadline     time.Time
-	calls        int
-	failAt       int
-	blockAt      int
-	entered      chan struct{}
-	release      chan struct{}
+	mu       sync.Mutex
+	deadline time.Time
+	calls    int
+	failAt   int
+	blockAt  int
+	entered  chan struct{}
+	release  chan struct{}
 }
 
 func (c *controlledRegionContext) Deadline() (time.Time, bool) {
@@ -183,11 +183,11 @@ func TestSimulatedRegionAcquisitionFailuresKeepOwnership(t *testing.T) {
 func TestSimulatedRegionCleanupFailuresAreTerminal(t *testing.T) {
 	unlockError, unmapError := errors.New("simulated unlock"), errors.New("simulated unmap")
 	for _, tc := range []struct {
-		name, transition       string
-		unlockErr, unmapErr     error
-		want                   []error
-		calls                  []string
-		mapped, stillLocked    bool
+		name, transition    string
+		unlockErr, unmapErr error
+		want                []error
+		calls               []string
+		mapped, stillLocked bool
 	}{
 		{"expired-before-close", "cancel-before", nil, nil, []error{context.Canceled}, nil, true, true},
 		{"changed-before-close", "deadline-before", nil, nil, []error{ErrConfiguration}, nil, true, true},

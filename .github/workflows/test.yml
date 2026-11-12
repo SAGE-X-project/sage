@@ -226,7 +226,9 @@ jobs:
           names = ('GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY')
           Path(os.environ['SAGE_COMPILER_MEMORY_EVIDENCE_DIR'], 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
           PY
-          gofmt -d pkg/agent/registry011/internal/compilermemory/*.go > "$compiler_memory_dir/format.patch"
+          compiler_memory_format_status=0
+          gofmt -d pkg/agent/registry011/internal/compilermemory/*.go > "$compiler_memory_dir/format.patch" || compiler_memory_format_status=$?
+          printf '%s\n' "$compiler_memory_format_status" > "$compiler_memory_dir/format-exit.txt"
           compiler_memory_status=0
           go test -mod=readonly -race -count=1 -timeout=30s -tags=registry_native_limits -json -coverprofile="$compiler_memory_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011/internal/compilermemory > "$compiler_memory_dir/tests.jsonl" || compiler_memory_status=$?
           printf '%s\n' "$compiler_memory_status" > "$compiler_memory_dir/test-exit.txt"
@@ -265,6 +267,7 @@ jobs:
           PY
           if [ "$compiler_memory_status" -ne 0 ]; then exit "$compiler_memory_status"; fi
           if [ "$compiler_memory_coverage_status" -ne 0 ]; then exit "$compiler_memory_coverage_status"; fi
+          if [ "$compiler_memory_format_status" -ne 0 ]; then exit "$compiler_memory_format_status"; fi
           if [ -s "$compiler_memory_dir/format.patch" ]; then exit 1; fi
           git diff --exit-code
       - name: Retain native resource observations

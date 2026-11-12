@@ -22,7 +22,7 @@ var (
 // Span is checked DATA referring to committed bytes of one original region.
 // Copying a valid span does not extend that region's lifetime.
 type Span struct {
-	owner         *Region
+	owner          *Region
 	offset, length int
 }
 
