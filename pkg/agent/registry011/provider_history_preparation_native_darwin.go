@@ -41,6 +41,7 @@ type nativeHistoryPreparation struct {
 	result          nativeHistoryOwner
 	resultSpan      compilermemory.Span
 	resultPlan      *providerHistorySourcePlan
+	selection       *nativeHistoryOwnedSelection
 }
 
 // NewNativeHistoryPreparationSession selects the actual native DATA path. It
@@ -93,15 +94,30 @@ func (n *nativeHistoryPreparation) acquireOwner(s *HistoryPreparationSession, ow
 }
 
 func (n *nativeHistoryPreparation) closeTemporary() error {
-	return errors.Join(n.root.close(), n.policy.close())
+	rootErr, policyErr := n.root.close(), n.policy.close()
+	var numbersErr error
+	if n.selection != nil {
+		numbersErr = n.selection.numbers.close()
+	}
+	return errors.Join(rootErr, policyErr, numbersErr)
 }
 
 func (n *nativeHistoryPreparation) closeAll() error {
-	err := errors.Join(n.root.close(), n.policy.close(), n.result.close())
+	rootErr, policyErr := n.root.close(), n.policy.close()
+	var numbersErr error
+	if n.selection != nil {
+		numbersErr = n.selection.numbers.close()
+		n.selection.closed = true
+		n.selection.session, n.selection.preparer, n.selection.compiler, n.selection.policy = nil, nil, nil, nil
+		n.selection.document = compilermemory.JSONDocument{}
+		n.selection.input, n.selection.inputHash = compilermemory.Span{}, ""
+	}
+	err := errors.Join(rootErr, policyErr, numbersErr, n.result.close())
 	// Keep each owner's closed state and cached error, but drop the original
 	// Go plan/compiler/context only after every required Close was attempted.
 	n.resultPlan, n.compiler, n.owner, n.cleanup, n.acquire = nil, nil, nil, nil, nil
 	n.resultSpan = compilermemory.Span{}
+	n.selection = nil
 	if err == nil {
 		return nil
 	}
