@@ -516,6 +516,42 @@ func TestProviderHistoryPreparationNativeDecoderMatchesOriginalPolicySyntax(t *t
 
 func TestProviderHistoryPreparationNativeSimulatedAcquisitionFailuresRemainTerminal(t *testing.T) {
 	raw, _, _ := nativeHistoryTestRaw(t)
+	t.Run("owner-admission-refusals", func(t *testing.T) {
+		session, state, _ := nativeHistoryTestSession(t, len(raw))
+		otherSession, _, _ := nativeHistoryTestSession(t, len(raw))
+		calls := 0
+		state.acquire = func(context.Context, context.Context, int) (*compilermemory.Region, error) {
+			calls++
+			return nil, errors.New("unexpected native acquisition")
+		}
+		closedError := errors.New("retained close outcome")
+		for _, tc := range []struct {
+			name     string
+			session  *HistoryPreparationSession
+			owner    *nativeHistoryOwner
+			capacity int
+		}{
+			{"foreign-session", otherSession, &nativeHistoryOwner{}, 1},
+			{"missing-owner", session, nil, 1},
+			{"retained-owner", session, &nativeHistoryOwner{region: &compilermemory.Region{}}, 1},
+			{"closed-owner", session, &nativeHistoryOwner{closed: true, closeErr: closedError}, 1},
+			{"zero-capacity", session, &nativeHistoryOwner{}, 0},
+			{"negative-capacity", session, &nativeHistoryOwner{}, -1},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				var before nativeHistoryOwner
+				if tc.owner != nil {
+					before = *tc.owner
+				}
+				if err := state.acquireOwner(tc.session, tc.owner, tc.capacity); !errors.Is(err, ErrConfiguration) || calls != 0 {
+					t.Fatalf("invalid owner admission reached native acquisition: %v, calls=%d", err, calls)
+				}
+				if tc.owner != nil && (tc.owner.region != before.region || tc.owner.closed != before.closed || tc.owner.closeErr != before.closeErr) {
+					t.Fatal("refused acquisition changed the retained owner or close outcome")
+				}
+			})
+		}
+	})
 	for _, partial := range []bool{false, true} {
 		origin := time.Now()
 		action, cancel := context.WithDeadline(context.Background(), origin.Add(time.Minute))
