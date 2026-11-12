@@ -3,6 +3,7 @@ package registry011
 import (
 	"encoding/binary"
 	"encoding/json"
+	"math"
 	"strconv"
 	"strings"
 	"testing"
@@ -139,7 +140,7 @@ func historyOriginalHeaderForTest(p *providerHistoryOriginalPack, change func(ma
 
 func TestProviderHistoryOriginalPackRejectsChangedDescriptorsAndPayloads(t *testing.T) {
 	p, _ := historyOriginalPackFixture(t, "requests", 0, 1)
-	for _, mode := range []string{"magic", "header-zero", "header-large", "header-outside", "payload", "trailing", "truncated", "format", "stage", "table", "purpose", "first", "count", "entries-type", "entries-count", "ordinal", "kind", "digest", "bytes-zero", "bytes-overflow", "bytes-outside", "row-extra", "header-extra", "expected-digest", "header-whitespace"} {
+	for _, mode := range []string{"magic", "header-zero", "header-large", "header-outside", "payload", "trailing", "truncated", "format", "stage", "table", "purpose", "first", "count", "entries-type", "entries-count", "ordinal", "kind", "digest", "bytes-zero", "bytes-overflow", "bytes-int-overflow", "bytes-outside", "row-extra", "header-extra", "expected-digest", "header-whitespace"} {
 		t.Run(mode, func(t *testing.T) {
 			raw := []byte(p.raw)
 			switch mode {
@@ -194,6 +195,8 @@ func TestProviderHistoryOriginalPackRejectsChangedDescriptorsAndPayloads(t *test
 						row["bytes"] = "0"
 					case "bytes-overflow":
 						row["bytes"] = "18446744073709551616"
+					case "bytes-int-overflow":
+						row["bytes"] = strconv.FormatUint(uint64(math.MaxInt)+1, 10)
 					case "bytes-outside":
 						row["bytes"] = "16384"
 					case "row-extra":

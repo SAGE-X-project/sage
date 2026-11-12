@@ -12,7 +12,7 @@ import (
 
 func TestPreparationInputMappingKeepsSentinelAndPageRoundingSeparate(t *testing.T) {
 	for _, c := range []struct {
-		name                 string
+		name                  string
 		maximum, page, wanted int
 	}{
 		{"one-byte", 1, 4096, 4096},
@@ -50,8 +50,8 @@ func TestPreparationInputRefusalsPreserveConsumptionAndCleanup(t *testing.T) {
 			cleanup, cancelCleanup := context.WithCancel(context.Background())
 			defer cancel()
 			defer cancelCleanup()
-			var actionContext context.Context = action
-			var cleanupContext context.Context = cleanup
+			actionContext := action
+			cleanupContext := cleanup
 			var reader io.Reader = strings.NewReader("raw")
 			maximum := 8
 			data := make([]byte, maximum+1)
@@ -207,7 +207,8 @@ func TestPreparationInputMemoryCloseIsOneUseEvenAfterFailure(t *testing.T) {
 	if err := absent.release(context.Background()); !errors.Is(err, ErrUnavailable) {
 		t.Fatal("absent memory was released", err)
 	}
-	if err := (&preparationInputMemory{}).release(nil); !errors.Is(err, ErrConfiguration) {
+	var missingContext context.Context
+	if err := (&preparationInputMemory{}).release(missingContext); !errors.Is(err, ErrConfiguration) {
 		t.Fatal("missing cleanup context accepted", err)
 	}
 }

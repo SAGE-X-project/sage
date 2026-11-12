@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"math"
 	"strconv"
 )
 
@@ -167,7 +168,7 @@ func parseProviderHistoryOriginalPackObserved(raw []byte, expected string, stage
 		size, sizeOK := providerCandidateUint(row["bytes"], true)
 		kind, digest := contentString(row["kind"]), contentString(row["digest"])
 		if row == nil || row["ordinal"] != strconv.Itoa(first+i/stride) || kind != providerHistoryOriginalKind(purpose, i) ||
-			!sizeOK || !providerHistoryPackOriginalSize(kind, size) || !lowerHash(digest) || size > uint64(len(raw)-start) {
+			!sizeOK || size > math.MaxInt || !providerHistoryPackOriginalSize(kind, size) || !lowerHash(digest) || size > uint64(len(raw)-start) {
 			return nil, errProviderIntegration
 		}
 		end := start + int(size)

@@ -33,7 +33,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: true
       - name: Record source and bounded read-only execution
         run: |
@@ -75,7 +75,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: true
       - name: Check declaration-only coverage inventory
         run: |
@@ -145,7 +145,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: true
       - name: Check provider candidates with owned TLS and the selected RPC
         run: |
@@ -264,7 +264,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: true
       - name: Download original provider transport partitions
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7

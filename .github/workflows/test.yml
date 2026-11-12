@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: '1.26.10'
+  GO_VERSION: '1.26.11'
   GOTOOLCHAIN: auto
   GOFLAGS: -mod=readonly
 
@@ -63,7 +63,7 @@ jobs:
           registry_worker_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/worker"
           mkdir -p "$registry_worker_dir/source"
           # Preserve a formatting diagnostic without modifying checked-out code.
-          gofmt -d internal/registryworker/preparation*.go internal/registryrunner/*.go internal/app/registry_history*.go cmd/sage-registry-worker/*.go pkg/agent/registry011/provider_history_preparation*.go > "$registry_worker_dir/preparation-format.patch"
+          gofmt -d internal/registryworker/preparation*.go internal/registryworker/input*.go internal/registryrunner/*.go internal/app/registry_history*.go cmd/sage-registry-worker/*.go pkg/agent/registry011/provider_history_preparation*.go > "$registry_worker_dir/preparation-format.patch"
           go build -mod=readonly -o "$registry_worker_dir/preparation-worker" ./cmd/sage-registry-worker
           shasum -a 256 "$registry_worker_dir/preparation-worker" > "$registry_worker_dir/preparation-worker.sha256"
           SAGE_HISTORY_PREPARATION_FIXTURE_PATH="$registry_worker_dir/preparation-input.json" go test -mod=readonly -count=1 -timeout=2m -json -run '^TestProviderHistoryPreparationCompilesOriginalUnmintedSelection$' ./pkg/agent/registry011 > "$registry_worker_dir/preparation-fixture-tests.jsonl"
@@ -232,7 +232,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: true
       - name: Check declaration-only coverage inventory
         run: |
@@ -449,7 +449,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: true
       - name: Download original Registry Source partitions
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
