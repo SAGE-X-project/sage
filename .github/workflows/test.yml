@@ -238,7 +238,7 @@ jobs:
           from pathlib import Path
           root = Path(os.environ['SAGE_COMPILER_MEMORY_EVIDENCE_DIR'])
           prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/internal/compilermemory/'
-          expected = {'integer.go', 'json.go', 'json_parse.go', 'json_string.go', 'json_value.go', 'json_decoded_string.go', 'region.go', 'region_darwin.go'}
+          expected = {'integer.go', 'json.go', 'json_parse.go', 'json_string.go', 'json_value.go', 'json_decoded_string.go', 'json_decoded_string_store.go', 'region.go', 'region_darwin.go', 'region_order.go', 'region_snapshot.go'}
           totals = {}
           lines = (root / 'coverage.out').read_text().splitlines()
           if not lines or lines[0] != 'mode: atomic':
@@ -280,7 +280,7 @@ jobs:
           git rev-parse HEAD > "$native_preparation_dir/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$native_preparation_dir/tree.txt"
           go version > "$native_preparation_dir/compiler.txt"
-          cp pkg/agent/registry011/provider_history_preparation*.go "$native_preparation_dir/source/"
+          cp pkg/agent/registry011/provider_history_preparation*.go pkg/agent/registry011/provider_history_selection*.go pkg/agent/registry011/provider_policy*.go "$native_preparation_dir/source/"
           git ls-files -z cmd/sage-registry-worker internal/registryworker pkg/agent/registry011 go.mod go.sum .github/workflows/test.yml | xargs -0 shasum -a 256 > "$native_preparation_dir/source.sha256"
           export SAGE_NATIVE_PREPARATION_EVIDENCE_DIR="$native_preparation_dir"
           python3 - <<'PY'
@@ -290,7 +290,7 @@ jobs:
           Path(os.environ['SAGE_NATIVE_PREPARATION_EVIDENCE_DIR'], 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
           PY
           native_preparation_format_status=0
-          gofmt -d pkg/agent/registry011/provider_history_preparation*.go cmd/sage-registry-worker/*.go > "$native_preparation_dir/format.patch" || native_preparation_format_status=$?
+          gofmt -d pkg/agent/registry011/provider_history_preparation*.go pkg/agent/registry011/provider_history_selection*.go pkg/agent/registry011/provider_policy*.go cmd/sage-registry-worker/*.go > "$native_preparation_dir/format.patch" || native_preparation_format_status=$?
           printf '%s\n' "$native_preparation_format_status" > "$native_preparation_dir/format-exit.txt"
           native_preparation_status=0
           python3 - <<'PY' || native_preparation_status=$?
@@ -314,11 +314,23 @@ jobs:
               'TestProviderHistoryPreparationNativeSchemaMetadataRemainsClosed',
               'TestProviderHistoryPreparationNativeOriginalCleanupCannotBeExtended',
               'TestProviderHistoryPreparationNativeStringAdapterDiscardsCanceledValues',
+              'TestProviderHistoryNativeOwnedSelectionPreservesAllInputData',
+              'TestProviderHistoryNativeOwnedSelectionRefusesUnvalidatedAndLostOwners',
+              'TestProviderHistoryNativeOwnedSelectionHashesOuterWhitespaceExactly',
+              'TestProviderHistoryNativeOwnedSelectionKeepsScalarErrorContract',
+              'TestProviderHistoryNativeOwnedSelectionTypedWidthBoundaries',
+              'TestProviderHistoryNativeOwnedSelectionTypedReadsKeepLifetimeCauses',
+              'TestProviderPolicyNativeSharesExactSemanticContract',
+              'TestProviderPolicyNativeRejectsNoncanonicalOriginalBytes',
+              'TestProviderPolicyNativeUsesOwnedDecodedNumbersAndOneAttempt',
+              'TestProviderPolicyNativeRefusesLostLifetimeAndCapacity',
           ]
           expected_files = {
               'provider_history_preparation_native_darwin.go',
               'provider_history_preparation_native_decode_darwin.go',
               'provider_history_preparation_native_result_darwin.go',
+              'provider_history_selection_native_darwin.go',
+              'provider_policy_native_darwin.go',
           }
           manifest = {
               'format': 'sage-native-preparation-invocation-set-v1',
@@ -407,8 +419,8 @@ jobs:
               return rows
 
           try:
-              if len(expected_roots) != 12 or len(set(expected_roots)) != 12:
-                  raise ValueError('twelve unique original native root declarations are required')
+              if len(expected_roots) != 22 or len(set(expected_roots)) != 22:
+                  raise ValueError('twenty-two unique native preparation, selection and policy roots are required')
               binary = root / 'native-preparation.test'
               environment = dict(os.environ)
               target = run(root / 'target', ['go', 'env', '-json', 'GOOS', 'GOARCH', 'GOVERSION'], repository, environment)
@@ -430,14 +442,14 @@ jobs:
               discovery_cover = root / 'discovery-gocover'
               discovery_cover.mkdir()
               discovery_environment = {**environment, 'GOCOVERDIR': str(discovery_cover)}
-              listing = run(root / 'discovery', [str(binary), '-test.list=^TestProviderHistoryPreparationNative',
+              listing = run(root / 'discovery', [str(binary), '-test.list=^TestProvider(HistoryPreparationNative|HistoryNativeOwnedSelection|PolicyNative)',
                             '-test.paniconexit0', '-test.gocoverdir=' + str(discovery_cover)],
                             package_directory, discovery_environment)
               manifest['discovery'] = listing
               discovered = (root / 'discovery/stdout').read_text().splitlines()
               if (listing['wrapper_exit'] or len(discovered) != len(set(discovered))
                       or set(discovered) != set(expected_roots) or binary_identity(binary) != identity):
-                  raise ValueError('compiled native root discovery must match all twelve declarations')
+                  raise ValueError('compiled native root discovery must match every declared preparation, selection and policy root')
               manifest['compiled_roots'] = discovered
               # All original children run. A slash filter or retries would change that scope.
               for ordinal, selected in enumerate(expected_roots):
@@ -909,6 +921,7 @@ jobs:
               'pkg/agent/registry010/eip155_observer010.go': [0, 0],
               'pkg/agent/didsource010/eip155.go': [0, 0],
               'pkg/agent/registry011/source_checkpoint.go': [0, 0],
+              'pkg/agent/registry011/provider_policy_value.go': [0, 0],
               'pkg/agent/registry011/provider_bootstrap_costing.go': [0, 0],
               'pkg/agent/registry011/provider_scan_costing.go': [0, 0],
               'pkg/agent/registry011/provider_scan_control.go': [0, 0],

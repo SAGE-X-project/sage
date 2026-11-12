@@ -580,22 +580,27 @@ jobs:
               'provider_continuing_records.go',
               'provider_guardian_admission_binding.go',
               'provider_guardian_replay.go',
+              'provider_policy.go',
+              'provider_policy_schema.go',
+              'provider_policy_value.go',
           ]
           for name in connected:
               targets[name] = [0, 0]
           discovered = {
               item.name
-              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go', 'provider_scan*.go', 'provider_replay*.go', 'provider_first_admission*.go', 'provider_bootstrap*.go', 'provider_guardian*.go', 'provider_continuing*.go', 'provider_history*.go', 'provider_page_seal*.go', 'replay_blocks.go', 'replay_observation.go', 'node_trace.go', 'node_root_gas.go', 'replay_gas.go', 'node_json.go', 'replay_execution.go', 'replay.go', 'replay_commands.go')
+              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go', 'provider_scan*.go', 'provider_replay*.go', 'provider_first_admission*.go', 'provider_bootstrap*.go', 'provider_guardian*.go', 'provider_continuing*.go', 'provider_history*.go', 'provider_page_seal*.go', 'provider_policy.go', 'provider_policy_schema.go', 'provider_policy_value.go', 'provider_policy_native_darwin.go', 'replay_blocks.go', 'replay_observation.go', 'node_trace.go', 'node_root_gas.go', 'replay_gas.go', 'node_json.go', 'replay_execution.go', 'replay.go', 'replay_commands.go')
               for item in Path('pkg/agent/registry011').glob(pattern)
               if not item.name.endswith('_test.go')
           }
           # Keep every executable source accounted for on its actual Go target.
-          # These three Darwin files have a separate native positive-90 gate;
+          # These Darwin files have a separate native positive-90 gate;
           # they are not declaration-only files or Linux runtime evidence.
           native_darwin = {
               'provider_history_preparation_native_darwin.go',
               'provider_history_preparation_native_decode_darwin.go',
               'provider_history_preparation_native_result_darwin.go',
+              'provider_history_selection_native_darwin.go',
+              'provider_policy_native_darwin.go',
           }
           package = json.loads(subprocess.check_output([
               'go', 'list', '-mod=readonly', '-tags=provider_capture_live',
