@@ -14,7 +14,23 @@ func buildHistoryPreparationConfig(in historyPreparationInput) (providerCustodyC
 	if err != nil {
 		return empty, err
 	}
-	candidate, err := policy.BindCandidate(in.Namespace, in.SourceID, in.Generation)
+	return buildHistoryPreparationConfigParts(policy, in.Namespace, in.SourceID, in.Generation, in.Store, in.Capture, in.Collection, in.Bounds)
+}
+
+// Both DATA readers use these same semantic constructors and guards. Native
+// preparation supplies temporary Go sections only for the existing numeric
+// compiler. Those allocations still need separate resource funding; they are
+// not the native plan's retained representation.
+func buildHistoryPreparationConfigParts(
+	policy *ProviderPolicyCandidate, namespace, sourceID, generation string,
+	store historyPreparationStore, capture ProviderCaptureLimits,
+	collection historyPreparationCollection, bounds historyPreparationBounds,
+) (providerCustodyConfig, error) {
+	var empty providerCustodyConfig
+	if policy == nil || !capture.valid() {
+		return empty, ErrConfiguration
+	}
+	candidate, err := policy.BindCandidate(namespace, sourceID, generation)
 	if err != nil {
 		return empty, err
 	}
@@ -22,7 +38,7 @@ func buildHistoryPreparationConfig(in historyPreparationInput) (providerCustodyC
 	if err != nil {
 		return empty, err
 	}
-	b := historyPreparationStoreBounds(in.Bounds)
+	b := historyPreparationStoreBounds(bounds)
 	if b.maximumEntries <= 0 {
 		return empty, ErrConfiguration
 	}
@@ -31,40 +47,39 @@ func buildHistoryPreparationConfig(in historyPreparationInput) (providerCustodyC
 	// This numeric check does not reserve resources or establish provenance.
 	legacy := providerHistoryLegacyControlLimits{
 		metadata: b.maximumMetadataPerCommit, objectBytes: b.maximumObjectBytes,
-		firstObjects: in.Collection.FirstRead.Objects, firstRaw: in.Collection.FirstRead.Raw,
+		firstObjects: collection.FirstRead.Objects, firstRaw: collection.FirstRead.Raw,
 		entries: uint64(b.maximumEntries), attempts: b.scan.maximumAttempts, chunks: b.scan.maximumChunks,
 	}
-	firstRead, ok := providerHistoryFirstPReadUpper(legacy, in.Capture)
-	if !ok || firstRead.objects != in.Collection.FirstRead.Objects || firstRead.raw != in.Collection.FirstRead.Raw {
+	firstRead, ok := providerHistoryFirstPReadUpper(legacy, capture)
+	if !ok || firstRead.objects != collection.FirstRead.Objects || firstRead.raw != collection.FirstRead.Raw {
 		return empty, ErrConfiguration
 	}
-	proposedWork := in.Collection.FirstRead.Work.vector()
+	proposedWork := collection.FirstRead.Work.vector()
 	if !candidateFits(candidateBudgetTotals{}, firstRead.work, proposedWork) {
 		return empty, ErrConfiguration
 	}
 	firstRead.work = proposedWork
-	collection := in.Collection
 	var codes [13]nodeCodeIdentity
 	for i, code := range collection.Codes {
 		codes[i] = nodeCodeIdentity(code)
 	}
 	manifest, err := newProviderHistoryCollectionManifestCandidate(providerHistoryCollectionInput{
-		journal: collection.Journal, codes: codes, capture: in.Capture,
+		journal: collection.Journal, codes: codes, capture: capture,
 		encoding: collection.Encoding, gas: collection.Gas,
 		maximumSelected: collection.MaximumSelected, blocks: collection.Blocks,
 		native: collection.Native, effects: collection.Effects, versions: collection.Versions,
 		presentStops: collection.PresentStops, windowBlocks: collection.WindowBlocks,
 		contentBlocks: collection.ContentBlocks, firstRead: firstRead, traceTimeout: collection.TraceTimeout,
 	})
-	if err != nil || manifest == nil || in.Bounds.History.Stages != manifest.counts.groups {
+	if err != nil || manifest == nil || bounds.History.Stages != manifest.counts.groups {
 		return empty, ErrConfiguration
 	}
 	b.history.collection, b.history.stages = manifest, manifest.counts.groups
 	config := providerCustodyConfig{
-		custodyDirectory: in.Store.CustodyDirectory, evidenceDirectory: in.Store.EvidenceDirectory,
-		anchor: in.Store.Anchor, expectedTip: in.Store.ExpectedTip, expectedSetupTip: in.Store.ExpectedSetupTip,
-		profile: in.Store.Profile, identity: identity, policy: policy, capture: in.Capture,
-		bounds: b, attempt: 0, expectedScanHead: in.Store.ExpectedScanHead,
+		custodyDirectory: store.CustodyDirectory, evidenceDirectory: store.EvidenceDirectory,
+		anchor: store.Anchor, expectedTip: store.ExpectedTip, expectedSetupTip: store.ExpectedSetupTip,
+		profile: store.Profile, identity: identity, policy: policy, capture: capture,
+		bounds: b, attempt: 0, expectedScanHead: store.ExpectedScanHead,
 	}
 	if !b.validStructure() {
 		return empty, ErrConfiguration

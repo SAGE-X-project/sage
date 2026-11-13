@@ -38,6 +38,7 @@ type nativeHistoryPreparation struct {
 	schemaNodes     int
 	root            nativeHistoryOwner
 	policy          nativeHistoryOwner
+	manifest        nativeHistoryOwner
 	result          nativeHistoryOwner
 	resultSpan      compilermemory.Span
 	resultPlan      *providerHistorySourcePlan
@@ -46,8 +47,9 @@ type nativeHistoryPreparation struct {
 
 // NewNativeHistoryPreparationSession selects the actual native DATA path. It
 // retains the original cleanup context and compiler before input is consumed.
-// Go DTOs, policy constructors and frozen config remain unqualified allocations;
-// neither this session nor its diagnostic output grants execution authority.
+// Its retained input/policy/manifest DATA stays native. Temporary Go sections,
+// the original numeric compiler, clock and bootstrap remain separate resource
+// obligations. Neither this session nor diagnostics grant execution authority.
 func NewNativeHistoryPreparationSession(action, cleanup context.Context, origin time.Time, maximumInput, maximumResult int) (*HistoryPreparationSession, error) {
 	return newNativeHistoryPreparationSession(action, cleanup, origin, maximumInput, maximumResult, compilermemory.Acquire)
 }
@@ -94,25 +96,44 @@ func (n *nativeHistoryPreparation) acquireOwner(s *HistoryPreparationSession, ow
 }
 
 func (n *nativeHistoryPreparation) closeTemporary() error {
-	rootErr, policyErr := n.root.close(), n.policy.close()
+	if n.selection != nil && n.selection.plan != nil {
+		bindingErr := n.selection.checkRetainedPlan(n.selection.plan)
+		numbersErr := n.selection.numbers.close()
+		if bindingErr == nil {
+			return numbersErr
+		}
+		// A failed exact-plan binding cannot preserve retained owners.
+		rootErr, policyErr, manifestErr := n.root.close(), n.policy.close(), n.manifest.close()
+		return errors.Join(bindingErr, numbersErr, rootErr, policyErr, manifestErr)
+	}
+	rootErr, policyErr, manifestErr := n.root.close(), n.policy.close(), n.manifest.close()
 	var numbersErr error
 	if n.selection != nil {
 		numbersErr = n.selection.numbers.close()
 	}
-	return errors.Join(rootErr, policyErr, numbersErr)
+	return errors.Join(rootErr, policyErr, manifestErr, numbersErr)
 }
 
 func (n *nativeHistoryPreparation) closeAll() error {
-	rootErr, policyErr := n.root.close(), n.policy.close()
+	rootErr, policyErr, manifestErr := n.root.close(), n.policy.close(), n.manifest.close()
 	var numbersErr error
 	if n.selection != nil {
 		numbersErr = n.selection.numbers.close()
+	}
+	resultErr := n.result.close()
+	err := errors.Join(rootErr, policyErr, manifestErr, numbersErr, resultErr)
+	if n.selection != nil {
+		if n.selection.plan != nil && n.selection.plan.retained == n.selection {
+			n.selection.plan.retained = nil
+		}
 		n.selection.closed = true
 		n.selection.session, n.selection.preparer, n.selection.compiler, n.selection.policy = nil, nil, nil, nil
 		n.selection.document = compilermemory.JSONDocument{}
 		n.selection.input, n.selection.inputHash = compilermemory.Span{}, ""
+		n.selection.plan, n.selection.rootOwner, n.selection.policyOwner = nil, nil, nil
+		n.selection.manifestOwner, n.selection.resultOwner = nil, nil
+		n.selection.manifestSpan, n.selection.resultSpan = compilermemory.Span{}, compilermemory.Span{}
 	}
-	err := errors.Join(rootErr, policyErr, numbersErr, n.result.close())
 	// Keep each owner's closed state and cached error, but drop the original
 	// Go plan/compiler/context only after every required Close was attempted.
 	n.resultPlan, n.compiler, n.owner, n.cleanup, n.acquire = nil, nil, nil, nil, nil
@@ -125,21 +146,14 @@ func (n *nativeHistoryPreparation) closeAll() error {
 }
 
 func (n *nativeHistoryPreparation) compileLocked(s *HistoryPreparationSession, input []byte) error {
-	decoded, inputDigest, err := n.decodeInput(s, input)
+	selection, err := n.decodeOwnedSelection(s, input)
 	if err != nil {
 		return err
 	}
-	config, err := buildHistoryPreparationConfig(decoded)
+	plan, err := s.compiler.compileSelection(selection)
 	if err != nil {
 		return err
 	}
-	plan, err := s.compiler.compile(config, decoded.Clock.Maximum, decoded.Clock.BaseUncertaintyMS, decoded.Clock.ReadWindowMS)
-	if err != nil {
-		return err
-	}
-	if err := n.storeResult(s, plan, inputDigest); err != nil {
-		return err
-	}
-	s.plan, s.inputSHA256 = plan, inputDigest
+	s.plan, s.inputSHA256 = plan, selection.inputHash
 	return nil
 }

@@ -71,14 +71,21 @@ func providerHistoryCompileSelectedSource(config providerCustodyConfig, clock pr
 	return plan.source, true
 }
 
-// Own the exact detached config and its computed source rows together. This
-// private pre-H0 plan is not a D, native/backend qualification or execution
-// permit. The eventual factory must retain this selection instead of returning
-// to the caller's config, and must separately close compiler-own resources.
-// No mutable config or selected pointer is exposed by the numeric wrapper.
+// The native implementation retains checked DATA through its original session.
+// This private interface grants no execution authority and cannot be restored
+// from a serialized plan or supplied through a public constructor.
+type providerHistoryRetainedSelection interface {
+	checkRetainedPlan(*providerHistorySourcePlan) error
+}
+
+// Own one exact detached Go config or the original retained native selection
+// together with its source rows. Native mode leaves config zero. This private
+// pre-H0 plan is not a D, backend qualification or execution permit; the eventual
+// factory must separately close resource and authority prerequisites.
 type providerHistorySourcePlan struct {
-	config providerCustodyConfig
-	source providerHistorySelectedSourceCost
+	config   providerCustodyConfig
+	source   providerHistorySelectedSourceCost
+	retained providerHistoryRetainedSelection
 	// Only the owned compiler installs these. The numeric constructor keeps
 	// them zero. A finite caller context is a cancellation boundary, not a
 	// qualified native lease, resource budget or permission to open a store.

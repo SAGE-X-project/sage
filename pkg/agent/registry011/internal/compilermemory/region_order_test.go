@@ -71,3 +71,48 @@ func TestRegionCommittedRangeOrderKeepsOriginalContext(t *testing.T) {
 		t.Fatalf("canceled order=%v, error=%v", actual, err)
 	}
 }
+
+func TestRegionCommittedSpanLengthKeepsOwnerAndLifetime(t *testing.T) {
+	action, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	region := decodedStoreRegion(t, action)
+	span, err := region.Store([]byte("committed"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if size, err := region.SpanLength(span); err != nil || size != len("committed") {
+		t.Fatalf("committed size=%d, error=%v", size, err)
+	}
+	empty, err := region.Slice(span, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if size, err := region.SpanLength(empty); err != nil || size != 0 {
+		t.Fatalf("committed empty size=%d, error=%v", size, err)
+	}
+	foreign := decodedStoreRegion(t, nil)
+	other, err := foreign.Store([]byte("foreign"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, invalid := range []Span{{}, other, {owner: region, length: region.used + 1}} {
+		if size, err := region.SpanLength(invalid); size != 0 || err != ErrRange {
+			t.Fatalf("invalid size=%d, error=%v", size, err)
+		}
+	}
+	for _, invalid := range []*Region{nil, {self: region}} {
+		if size, err := invalid.SpanLength(span); size != 0 || err != ErrConfiguration {
+			t.Fatalf("invalid owner size=%d, error=%v", size, err)
+		}
+	}
+	cancel()
+	if size, err := region.SpanLength(span); size != 0 || !errors.Is(err, context.Canceled) {
+		t.Fatalf("canceled size=%d, error=%v", size, err)
+	}
+	if err := region.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if size, err := region.SpanLength(span); size != 0 || err != ErrClosed {
+		t.Fatalf("closed size=%d, error=%v", size, err)
+	}
+}

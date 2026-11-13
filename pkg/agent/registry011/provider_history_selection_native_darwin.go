@@ -13,20 +13,28 @@ import (
 
 // This is the original session's owned, typed input selection. Its JSON nodes
 // and bytes stay native; no historyPreparationInput or full Go config is built.
-// It is still DATA. Compiler consumption, derived manifest, promotion and full
-// resource qualification must be connected before it can support execution.
+// The original compiler consumes this DATA and retains these exact owners in
+// its plan. Native retention does not fund the complete compiler/runtime or
+// grant a derivation, Source readiness or execution authority.
 type nativeHistoryOwnedSelection struct {
-	self      *nativeHistoryOwnedSelection
-	session   *HistoryPreparationSession
-	preparer  *nativeHistoryPreparation
-	compiler  *providerHistorySourceCompiler
-	document  compilermemory.JSONDocument
-	input     compilermemory.Span
-	inputHash string
-	policy    *nativeProviderPolicyReader
-	numbers   nativeHistoryOwner
-	validated bool
-	closed    bool
+	self          *nativeHistoryOwnedSelection
+	session       *HistoryPreparationSession
+	preparer      *nativeHistoryPreparation
+	compiler      *providerHistorySourceCompiler
+	document      compilermemory.JSONDocument
+	input         compilermemory.Span
+	inputHash     string
+	policy        *nativeProviderPolicyReader
+	numbers       nativeHistoryOwner
+	plan          *providerHistorySourcePlan
+	rootOwner     *compilermemory.Region
+	policyOwner   *compilermemory.Region
+	manifestOwner *compilermemory.Region
+	manifestSpan  compilermemory.Span
+	resultOwner   *compilermemory.Region
+	resultSpan    compilermemory.Span
+	validated     bool
+	closed        bool
 }
 
 func (*nativeHistoryOwnedSelection) UnmarshalJSON([]byte) error { return ErrConfiguration }
@@ -103,6 +111,9 @@ func (n *nativeHistoryPreparation) decodeOwnedSelection(s *HistoryPreparationSes
 	policyDocument, err := n.policy.region.ParseJSONAtValueDepth(policyInput, policyLimits)
 	if err != nil {
 		return selection, nativeHistoryDataError(err)
+	}
+	if err := nativeHistorySelectionHeader(root); err != nil {
+		return selection, err
 	}
 	// One semantic pass visits each numeric policy string once. Their decoded
 	// bytes are bounded by the unchanged original policy byte length. This is

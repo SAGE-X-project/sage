@@ -92,11 +92,18 @@ func TestProviderHistoryPreparationNativeUsesOriginalPlanAndRetainedResult(t *te
 	if native.compiler != compiler || state.compiler != compiler || state.resultPlan != plan || plan == nil || plan.clock == nil {
 		t.Fatal("native path replaced the original compiler, clock or plan")
 	}
-	if !state.root.closed || !state.policy.closed || state.result.closed {
+	if state.root.closed || state.policy.closed || state.manifest.closed || state.result.closed ||
+		state.selection == nil || !state.selection.numbers.closed {
 		t.Fatal("temporary and retained owner lifetimes were not separated")
 	}
-	if _, err := state.root.region.Store(nil); !errors.Is(err, compilermemory.ErrClosed) {
-		t.Fatalf("temporary parser owner remained usable: %v", err)
+	if plan.retained != state.selection || state.selection.plan != plan || plan.config != (providerCustodyConfig{}) {
+		t.Fatal("native plan did not retain its exact native selection exclusively")
+	}
+	if _, err := state.root.region.Store(nil); err != compilermemory.ErrConfiguration {
+		t.Fatalf("retained input was not sealed: %v", err)
+	}
+	if err := state.selection.checkRetainedPlan(plan); err != nil {
+		t.Fatalf("same original plan could not consume its retained input: %v", err)
 	}
 	if err := native.CompileOwned(raw); !errors.Is(err, ErrConfiguration) || native.plan != plan || state.result.closed {
 		t.Fatal("losing duplicate destroyed the original retained selection")
@@ -118,7 +125,8 @@ func TestProviderHistoryPreparationNativeUsesOriginalPlanAndRetainedResult(t *te
 		summary.InputSHA256 != hex.EncodeToString(digest[:]) || summary.SourceReady {
 		t.Fatalf("native diagnostic lost original assertions: %+v, %v", summary, err)
 	}
-	if !state.result.closed || native.plan != nil || native.compiler != nil {
+	if !state.result.closed || !state.manifest.closed || !state.root.closed || !state.policy.closed ||
+		native.plan != nil || native.compiler != nil || plan.retained != nil {
 		t.Fatal("last native consumer retained its original resources")
 	}
 	checkNativeHistoryReleased(t, native, state)
@@ -196,7 +204,7 @@ func TestProviderHistoryPreparationNativeResultRefusalNeverReadsGoFallback(t *te
 }
 
 func TestProviderHistoryPreparationNativeResultPreservesBothDigestContracts(t *testing.T) {
-	raw, _, _ := nativeHistoryTestRaw(t)
+	raw, identity, expectedManifest := nativeHistoryTestRaw(t)
 	session, state, _ := nativeHistoryTestSession(t, len(raw))
 	if err := session.CompileOwned(raw); err != nil {
 		t.Fatal(err)
@@ -211,8 +219,7 @@ func TestProviderHistoryPreparationNativeResultPreservesBothDigestContracts(t *t
 		t.Fatal("plain input SHA changed length, prefix or trailing digits")
 	}
 	plan := session.plan
-	identity := plan.config.identity
-	expected := [6]string{identity.Policy, identity.Instance, identity.Provider, identity.Namespace, identity.SourceID, plan.config.bounds.history.collection.digest}
+	expected := [6]string{identity.Policy, identity.Instance, identity.Provider, identity.Namespace, identity.SourceID, expectedManifest}
 	offset := 8 + nativeHistoryInputDigestBytes
 	for _, value := range expected {
 		if len(value) != 66 || string(record[offset:offset+nativeHistoryRegistryDigestBytes]) != value {
@@ -225,6 +232,15 @@ func TestProviderHistoryPreparationNativeResultPreservesBothDigestContracts(t *t
 	// failure; the callback cannot create a physical Region or a result.
 	acquisitions := 0
 	stopped := errors.New("simulated acquisition boundary")
+	config, _, err := state.selection.transientConfig()
+	if err != nil || config.identity != identity || config.bounds.history.collection.digest != expectedManifest {
+		t.Fatalf("writer DATA precondition differs from the original fixture: %v", err)
+	}
+	// The encoder's refusal units use a detached DATA input. They never mutate
+	// the live native plan or reattach a complete Go config to its selection.
+	writerPlan := &providerHistorySourcePlan{
+		config: config, source: plan.source, clock: plan.clock, compilerDeadline: plan.compilerDeadline,
+	}
 	probe := &nativeHistoryPreparation{
 		owner: session, compiler: session.compiler, cleanup: state.cleanup,
 		cleanupDeadline: state.cleanupDeadline,
@@ -239,19 +255,19 @@ func TestProviderHistoryPreparationNativeResultPreservesBothDigestContracts(t *t
 		}
 	})
 	for _, invalid := range []string{"", inputHash[:63], inputHash + "0", "0x" + inputHash, "G" + inputHash[1:], inputHash[:63] + "G"} {
-		if err := probe.storeResult(session, plan, invalid); !errors.Is(err, ErrConfiguration) || acquisitions != 0 {
+		if err := probe.storeResult(session, writerPlan, invalid); !errors.Is(err, ErrConfiguration) || acquisitions != 0 {
 			t.Fatal("writer accepted an invalid plain input digest", err)
 		}
 	}
 	for _, invalid := range []string{identity.Policy[:64], identity.Policy[2:], "0X" + identity.Policy[2:], identity.Policy[:65] + "G"} {
-		plan.config.identity.Policy = invalid
-		err := probe.storeResult(session, plan, inputHash)
-		plan.config.identity.Policy = identity.Policy
+		writerPlan.config.identity.Policy = invalid
+		err := probe.storeResult(session, writerPlan, inputHash)
+		writerPlan.config.identity.Policy = identity.Policy
 		if !errors.Is(err, ErrConfiguration) || acquisitions != 0 {
 			t.Fatal("writer accepted an invalid original Registry digest", err)
 		}
 	}
-	if err := probe.storeResult(session, plan, inputHash); !errors.Is(err, stopped) || acquisitions != 1 {
+	if err := probe.storeResult(session, writerPlan, inputHash); !errors.Is(err, stopped) || acquisitions != 1 {
 		t.Fatal("valid original digests did not reach the acquisition boundary", err)
 	}
 	output, err := session.FinishDiagnostic()

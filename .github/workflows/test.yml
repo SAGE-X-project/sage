@@ -324,12 +324,20 @@ jobs:
               'TestProviderPolicyNativeRejectsNoncanonicalOriginalBytes',
               'TestProviderPolicyNativeUsesOwnedDecodedNumbersAndOneAttempt',
               'TestProviderPolicyNativeRefusesLostLifetimeAndCapacity',
+              'TestProviderHistoryNativeOwnedSelectionConsumesCompiledNativeManifest',
+              'TestProviderHistoryNativeOwnedSelectionRetainedPlanRejectsLostOwners',
+              'TestProviderHistoryNativeOwnedSelectionManifestAcquisitionFailuresRemainTerminal',
+              'TestProviderHistoryNativeOwnedSelectionResultAcquisitionFailuresRemainTerminal',
+              'TestProviderHistoryNativeOwnedSelectionCleanupFailureDiscardsPlan',
+              'TestProviderHistoryNativeOwnedSelectionHeaderKeepsOriginalRefusalOrder',
           ]
           expected_files = {
               'provider_history_preparation_native_darwin.go',
               'provider_history_preparation_native_decode_darwin.go',
               'provider_history_preparation_native_result_darwin.go',
               'provider_history_selection_native_darwin.go',
+              'provider_history_selection_config_darwin.go',
+              'provider_history_selection_plan_darwin.go',
               'provider_policy_native_darwin.go',
           }
           manifest = {
@@ -419,8 +427,8 @@ jobs:
               return rows
 
           try:
-              if len(expected_roots) != 22 or len(set(expected_roots)) != 22:
-                  raise ValueError('twenty-two unique native preparation, selection and policy roots are required')
+              if len(expected_roots) != 28 or len(set(expected_roots)) != 28:
+                  raise ValueError('twenty-eight unique native preparation, selection and policy roots are required')
               binary = root / 'native-preparation.test'
               environment = dict(os.environ)
               target = run(root / 'target', ['go', 'env', '-json', 'GOOS', 'GOARCH', 'GOVERSION'], repository, environment)

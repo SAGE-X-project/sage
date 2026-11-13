@@ -61,6 +61,9 @@ func (n *nativeHistoryPreparation) readResultLocked(s *HistoryPreparationSession
 	if n == nil || s == nil || s.compiler == nil || s.plan == nil || n.owner != s || n.compiler != s.compiler || n.resultPlan != s.plan || n.result.region == nil {
 		return empty, ErrConfiguration
 	}
+	if n.selection == nil && s.plan.retained == nil && s.plan.config.bounds.history == nil {
+		return empty, ErrConfiguration
+	}
 	var record [nativeHistoryResultBytes]byte
 	if err := n.result.region.Read(n.resultSpan, record[:]); err != nil {
 		return empty, err
@@ -92,5 +95,17 @@ func (n *nativeHistoryPreparation) readResultLocked(s *HistoryPreparationSession
 	output.AssignedClockReads = binary.LittleEndian.Uint64(record[offset:])
 	output.OriginUnixNano = int64(binary.LittleEndian.Uint64(record[offset+8:]))
 	output.DeadlineUnixNano = int64(binary.LittleEndian.Uint64(record[offset+16:]))
+	if n.selection != nil || s.plan.retained != nil {
+		if n.selection == nil || s.plan.retained != n.selection {
+			return empty, ErrConfiguration
+		}
+		digest, err := n.selection.checkedRetainedManifest(s.plan)
+		if err != nil {
+			return empty, err
+		}
+		if output.InputSHA256 != n.selection.inputHash || output.ManifestSHA256 != digest {
+			return empty, ErrConfiguration
+		}
+	}
 	return output, nil
 }
