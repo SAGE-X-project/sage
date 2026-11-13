@@ -115,15 +115,17 @@ func (v *nativeHistoryOwnedSelection) transientPolicy() (*ProviderPolicyCandidat
 		if err != nil {
 			return nil, err
 		}
-		data, err := nativeHistorySpanBytes(v.policy.source, span, providerHistorySourceRawTextLimit)
-		if err != nil {
-			return nil, err
-		}
 		domain := "sage-registry-instance-v1"
 		if name == "provider" {
 			domain = "sage-provider-origin-v1"
 		}
-		digests[index] = providerCandidateHash(domain, data)
+		// Consume the original native subtree in bounded read chunks. The
+		// candidate's full raw Go projection and its funding remain separate.
+		digest, err := nativeHistorySpanDigest(v.policy.source, span, domain)
+		if err != nil {
+			return nil, err
+		}
+		digests[index] = digest
 	}
 	if err := v.check(); err != nil {
 		return nil, err
