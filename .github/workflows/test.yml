@@ -330,6 +330,10 @@ jobs:
               'TestProviderHistoryNativeOwnedSelectionResultAcquisitionFailuresRemainTerminal',
               'TestProviderHistoryNativeOwnedSelectionCleanupFailureDiscardsPlan',
               'TestProviderHistoryNativeOwnedSelectionHeaderKeepsOriginalRefusalOrder',
+              'TestProviderHistoryNativeSelectionRejectsInvalidTypedBoundaries',
+              'TestProviderHistoryNativeSelectionConfigKeepsRefusalCauses',
+              'TestProviderHistoryNativeSelectionRetainedDataBoundaries',
+              'TestProviderPolicyNativeBoundariesKeepOriginalRefusals',
           ]
           expected_files = {
               'provider_history_preparation_native_darwin.go',
@@ -427,8 +431,8 @@ jobs:
               return rows
 
           try:
-              if len(expected_roots) != 28 or len(set(expected_roots)) != 28:
-                  raise ValueError('twenty-eight unique native preparation, selection and policy roots are required')
+              if len(expected_roots) != 32 or len(set(expected_roots)) != 32:
+                  raise ValueError('thirty-two unique native preparation, selection and policy roots are required')
               binary = root / 'native-preparation.test'
               environment = dict(os.environ)
               target = run(root / 'target', ['go', 'env', '-json', 'GOOS', 'GOARCH', 'GOVERSION'], repository, environment)
@@ -450,7 +454,7 @@ jobs:
               discovery_cover = root / 'discovery-gocover'
               discovery_cover.mkdir()
               discovery_environment = {**environment, 'GOCOVERDIR': str(discovery_cover)}
-              listing = run(root / 'discovery', [str(binary), '-test.list=^TestProvider(HistoryPreparationNative|HistoryNativeOwnedSelection|PolicyNative)',
+              listing = run(root / 'discovery', [str(binary), '-test.list=^TestProvider(HistoryPreparationNative|HistoryNativeOwnedSelection|HistoryNativeSelection|PolicyNative)',
                             '-test.paniconexit0', '-test.gocoverdir=' + str(discovery_cover)],
                             package_directory, discovery_environment)
               manifest['discovery'] = listing
