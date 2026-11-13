@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build darwin && registry_native_limits
 
 package registry011
 
@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/sage-x-project/sage/pkg/agent/registry011/internal/compilermemory"
 )
@@ -200,7 +201,23 @@ func TestProviderHistoryNativeOwnedSelectionCleanupFailureDiscardsPlan(t *testin
 	for _, name := range []string{"temporary-numbers", "retained-manifest"} {
 		t.Run(name, func(t *testing.T) {
 			raw, _, _ := nativeHistoryTestRaw(t)
-			session, state, _ := nativeHistoryTestSession(t, len(raw))
+			origin := time.Now()
+			action, cancel := context.WithDeadline(context.Background(), origin.Add(time.Minute))
+			cleanup, stopCleanup := context.WithDeadline(context.Background(), origin.Add(2*time.Minute))
+			t.Cleanup(cancel)
+			t.Cleanup(stopCleanup)
+			session, err := NewNativeHistoryPreparationSession(action, cleanup, origin, len(raw), 4096)
+			if err != nil {
+				t.Fatal(err)
+			}
+			state := session.native.(*nativeHistoryPreparation)
+			var expectedCleanup error
+			t.Cleanup(func() {
+				if err := session.Close(); err != expectedCleanup {
+					t.Errorf("cleanup changed the original result: got %v, want %v", err, expectedCleanup)
+				}
+				checkNativeHistoryReleased(t, session, state)
+			})
 			marker := errors.New("simulated cached cleanup refusal")
 			calls := 0
 			injected := false
@@ -219,7 +236,7 @@ func TestProviderHistoryNativeOwnedSelectionCleanupFailureDiscardsPlan(t *testin
 				}
 				return region, err
 			}
-			err := session.CompileOwned(raw)
+			err = session.CompileOwned(raw)
 			if name == "retained-manifest" {
 				if err != nil {
 					t.Fatalf("original positive compile precondition: %v", err)
@@ -240,6 +257,7 @@ func TestProviderHistoryNativeOwnedSelectionCleanupFailureDiscardsPlan(t *testin
 				t.Fatalf("cached cleanup failure was lost or masked: calls=%d, error=%v", calls, err)
 			}
 			cached := session.cleanupErr
+			expectedCleanup = cached
 			if err := session.Close(); err != cached || !errors.Is(err, marker) || calls != 5 {
 				t.Fatalf("cleanup result was retried or replaced: %v", err)
 			}

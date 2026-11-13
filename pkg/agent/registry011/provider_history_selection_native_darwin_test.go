@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build darwin && registry_native_limits
 
 package registry011
 

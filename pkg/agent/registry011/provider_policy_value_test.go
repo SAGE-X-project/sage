@@ -69,7 +69,9 @@ func TestProviderPolicyValueSharedContractRetainsRefusals(t *testing.T) {
 		{"clock-control-byte", func(m map[string]any) { m["clock"].(map[string]any)["id"] = "clock\n" }},
 		{"clock-too-long", func(m map[string]any) { m["clock"].(map[string]any)["id"] = strings.Repeat("x", 257) }},
 		{"zero-positive-limit", func(m map[string]any) { m["limits"].(map[string]any)["retained_bytes"] = "0" }},
-		{"operation-request-ceiling", func(m map[string]any) { m["limits"].(map[string]any)["operation"].(map[string]any)["requests"] = "65537" }},
+		{"operation-request-ceiling", func(m map[string]any) {
+			m["limits"].(map[string]any)["operation"].(map[string]any)["requests"] = "65537"
+		}},
 		{"decreasing-segment", func(m map[string]any) {
 			limits := m["limits"].(map[string]any)
 			limits["operation"].(map[string]any)["wire_bytes"] = "2"

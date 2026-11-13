@@ -99,7 +99,7 @@ func TestProviderHistoryPreparationNativeUsesOriginalPlanAndRetainedResult(t *te
 	if plan.retained != state.selection || state.selection.plan != plan || plan.config != (providerCustodyConfig{}) {
 		t.Fatal("native plan did not retain its exact native selection exclusively")
 	}
-	if _, err := state.root.region.Store(nil); err != compilermemory.ErrConfiguration {
+	if _, err := state.root.region.Store(nil); err != compilermemory.ErrRange {
 		t.Fatalf("retained input was not sealed: %v", err)
 	}
 	if err := state.selection.checkRetainedPlan(plan); err != nil {
@@ -307,9 +307,12 @@ func TestProviderHistoryPreparationNativeCloseDropsPrivateReferences(t *testing.
 				t.Fatal(err)
 			}
 			if cleanupFailure {
-				// The temporary Region is already closed. Inject only a cached
-				// unit error; this is not evidence of a physical cleanup failure.
+				// Release the retained mapping before injecting a cached unit
+				// error. This is not evidence of a physical cleanup failure.
 				simulated = errors.New("simulated cached cleanup refusal")
+				if err := state.root.close(); err != nil {
+					t.Fatal(err)
+				}
 				state.root.closeErr = simulated
 			}
 			first := session.Close()

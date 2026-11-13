@@ -137,7 +137,7 @@ func TestRegionJSONDecodedStringStoreSpendsAndClearsOnCancellation(t *testing.T)
 					action, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 					t.Cleanup(cancel)
 					controlled := &integerReadContext{Context: action}
-					var sourceAction, destinationAction context.Context = action, action
+					sourceAction, destinationAction := action, action
 					if side == "source" {
 						sourceAction = controlled
 					} else {

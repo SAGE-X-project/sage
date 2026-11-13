@@ -140,12 +140,12 @@ func TestProviderPolicyNativeRejectsNoncanonicalOriginalBytes(t *testing.T) {
 	}
 	reordered.WriteByte('}')
 	for name, changed := range map[string][]byte{
-		"leading-space": append([]byte(" "), raw...),
-		"trailing-newline": append(bytes.Clone(raw), '\n'),
-		"interior-space": bytes.Replace(raw, []byte(":"), []byte(": "), 1),
-		"escaped-key": bytes.Replace(raw, []byte(`"format"`), []byte(`"\u0066ormat"`), 1),
-		"escaped-clock": bytes.Replace(raw, []byte(`"id":"a"`), []byte(`"id":"\u0061"`), 1),
-		"escaped-slash": bytes.Replace(raw, []byte("https://"), []byte(`https:\/\/`), 1),
+		"leading-space":     append([]byte(" "), raw...),
+		"trailing-newline":  append(bytes.Clone(raw), '\n'),
+		"interior-space":    bytes.Replace(raw, []byte(":"), []byte(": "), 1),
+		"escaped-key":       bytes.Replace(raw, []byte(`"format"`), []byte(`"\u0066ormat"`), 1),
+		"escaped-clock":     bytes.Replace(raw, []byte(`"id":"a"`), []byte(`"id":"\u0061"`), 1),
+		"escaped-slash":     bytes.Replace(raw, []byte("https://"), []byte(`https:\/\/`), 1),
 		"reordered-members": reordered.Bytes(),
 	} {
 		t.Run(name, func(t *testing.T) {
