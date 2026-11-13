@@ -173,7 +173,9 @@ func checkLiveCaptureRetryAfter(t *testing.T) {
 		if record.Status != http.StatusTooManyRequests || !record.Hint.Present || !record.Hint.Complete || record.Hint.Sanitized || !slices.Equal(record.Hint.Values, []string{"60"}) || record.Bytes != 0 || record.Complete || bytes.Contains(raw, []byte("unrelated-owned-cookie")) {
 			t.Fatal("failed response diagnostic lost its scope or retained unrelated headers", record)
 		}
-		if record.Context.DeadlineUTC == "" || record.Context.StateBefore != "none" || record.Context.StateAfter != "none" ||
+		// The deadline can expire after transport return, before the local
+		// after-state sample. Classify this call by its returned error flags.
+		if record.Context.DeadlineUTC == "" || record.Context.StateBefore != "none" ||
 			record.Context.TransportDeadlineExceeded || record.Context.TransportCanceled || record.Context.TransportTimeout || record.Context.ElapsedNS < 0 {
 			t.Fatal("received HTTP refusal was mislabelled as transport cancellation", record.Context)
 		}
