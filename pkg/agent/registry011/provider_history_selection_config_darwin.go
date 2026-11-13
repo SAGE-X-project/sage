@@ -5,6 +5,7 @@ package registry011
 import (
 	"errors"
 	"reflect"
+	"strings"
 
 	"github.com/sage-x-project/sage/pkg/agent/registry011/internal/compilermemory"
 )
@@ -91,6 +92,34 @@ func nativeHistorySpanBytes(region *compilermemory.Region, span compilermemory.S
 	return data, nil
 }
 
+// Retain one Go-owned text projection without a second whole-span byte copy.
+// The builder and scratch still belong to the compiler's open Go funding row.
+func nativeHistorySpanText(region *compilermemory.Region, span compilermemory.Span, maximum int) (string, error) {
+	length, err := region.SpanLength(span)
+	if err != nil {
+		return "", err
+	}
+	if length <= 0 || length > maximum {
+		return "", ErrConfiguration
+	}
+	var text strings.Builder
+	text.Grow(length)
+	var scratch [4096]byte
+	for offset := 0; offset < length; {
+		size := min(len(scratch), length-offset)
+		part, err := region.Slice(span, offset, size)
+		if err != nil {
+			return "", err
+		}
+		if err := region.Read(part, scratch[:size]); err != nil {
+			return "", err
+		}
+		_, _ = text.Write(scratch[:size])
+		offset += size
+	}
+	return text.String(), nil
+}
+
 // The strict shared native validator already accepted the original policy
 // bytes. Hash the actual canonical native subtrees, without reparsing a Go
 // object tree or reserializing any signed/digested input.
@@ -101,7 +130,7 @@ func (v *nativeHistoryOwnedSelection) transientPolicy() (*ProviderPolicyCandidat
 	if v.policy == nil || v.policy.source != v.preparer.policy.region {
 		return nil, ErrConfiguration
 	}
-	raw, err := nativeHistorySpanBytes(v.policy.source, v.policy.input, providerHistorySourceRawTextLimit)
+	raw, err := nativeHistorySpanText(v.policy.source, v.policy.input, providerHistorySourceRawTextLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -127,11 +156,15 @@ func (v *nativeHistoryOwnedSelection) transientPolicy() (*ProviderPolicyCandidat
 		}
 		digests[index] = digest
 	}
+	policyDigest, err := nativeHistorySpanDigest(v.policy.source, v.policy.input, "sage-provider-policy-v1")
+	if err != nil {
+		return nil, err
+	}
 	if err := v.check(); err != nil {
 		return nil, err
 	}
 	return &ProviderPolicyCandidate{
-		raw: string(raw), policy: providerCandidateHash("sage-provider-policy-v1", raw),
+		raw: raw, policy: policyDigest,
 		instance: digests[0], provider: digests[1],
 	}, nil
 }

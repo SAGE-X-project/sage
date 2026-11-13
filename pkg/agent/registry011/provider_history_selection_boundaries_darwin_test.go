@@ -236,6 +236,65 @@ func TestProviderHistoryNativeSelectionConfigKeepsRefusalCauses(t *testing.T) {
 			t.Fatal("span lost its original lifetime refusal", err)
 		}
 	})
+	for _, expected := range []string{
+		strings.Repeat("a", 4095),
+		strings.Repeat("b", 4096),
+		strings.Repeat("c", 4097),
+		"x" + strings.Repeat("\u00e9", 4097),
+	} {
+		t.Run("text-span-round-trip/"+strconv.Itoa(len(expected)), func(t *testing.T) {
+			input := []byte(expected)
+			buffer := nativeBoundaryStorage(t, input, len(input))
+			clear(input)
+			text, err := nativeHistorySpanText(buffer.region, buffer.span, len(expected))
+			if err != nil || text != expected {
+				t.Fatal("native text changed its original bytes", err)
+			}
+			if err := buffer.region.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if text != expected {
+				t.Fatal("Go text retained the closed native storage")
+			}
+		})
+	}
+	t.Run("text-span-boundaries", func(t *testing.T) {
+		if text, err := nativeHistorySpanText(nil, compilermemory.Span{}, 1); !errors.Is(err, compilermemory.ErrConfiguration) || text != "" {
+			t.Fatal("absent owner supplied text", err)
+		}
+		buffer := nativeBoundaryStorage(t, []byte("data"), 4)
+		for _, maximum := range []int{-1, 0, 3} {
+			if text, err := nativeHistorySpanText(buffer.region, buffer.span, maximum); !errors.Is(err, ErrConfiguration) || text != "" {
+				t.Fatal("out-of-bound span supplied text", err)
+			}
+		}
+		foreign := nativeBoundaryStorage(t, []byte("else"), 4)
+		if text, err := nativeHistorySpanText(foreign.region, buffer.span, 4); err == nil || text != "" {
+			t.Fatal("foreign owner supplied text", err)
+		}
+		if err := buffer.region.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if text, err := nativeHistorySpanText(buffer.region, buffer.span, 4); !errors.Is(err, compilermemory.ErrClosed) || text != "" {
+			t.Fatal("closed owner supplied text or lost its cause", err)
+		}
+	})
+	textInput := strings.Repeat("bounded original policy ", 400)
+	for boundary := int64(1); boundary <= 32; boundary++ {
+		t.Run("text-span-cancel/"+strconv.FormatInt(boundary, 10), func(t *testing.T) {
+			buffer := nativeBoundaryStorage(t, []byte(textInput), len(textInput))
+			buffer.action.calls.Store(0)
+			buffer.action.at.Store(boundary)
+			text, err := nativeHistorySpanText(buffer.region, buffer.span, len(textInput))
+			if buffer.action.Context.Err() != nil {
+				if !errors.Is(err, context.Canceled) || text != "" {
+					t.Fatal("canceled read supplied partial native text", err)
+				}
+			} else if err != nil || text != textInput {
+				t.Fatal("live native text changed before cancellation", err)
+			}
+		})
+	}
 	raw, _, _ := nativeHistoryTestRaw(t)
 	for _, field := range []string{"namespace", "source_id", "generation", "store", "capture", "collection", "bounds", "clock"} {
 		t.Run("invalid-section/"+field, func(t *testing.T) {
