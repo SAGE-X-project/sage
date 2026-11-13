@@ -159,6 +159,12 @@ func (c *providerHistorySourceCompiler) contextError() error {
 }
 
 func (c *providerHistorySourceCompiler) compile(config providerCustodyConfig, maximum uint64, baseUncertaintyMS, readWindowMS int64) (*providerHistorySourcePlan, error) {
+	return c.compileWithClockPolicy(config, nil, maximum, baseUncertaintyMS, readWindowMS)
+}
+
+// The representation adapter never owns the attempt or changes its lifetime.
+// Temporary Go freeze/config and runtime backing remain separate obligations.
+func (c *providerHistorySourceCompiler) compileWithClockPolicy(config providerCustodyConfig, reader providerOwnedClockPolicyReader, maximum uint64, baseUncertaintyMS, readWindowMS int64) (*providerHistorySourcePlan, error) {
 	if c == nil || c.owner != c || c.used == nil || !c.used.CompareAndSwap(false, true) {
 		return nil, ErrConfiguration
 	}
@@ -171,7 +177,10 @@ func (c *providerHistorySourceCompiler) compile(config providerCustodyConfig, ma
 	if !ok {
 		return nil, ErrConfiguration
 	}
-	clock, err := newProviderOwnedClockAtOrigin(frozen.policy, maximum, baseUncertaintyMS, readWindowMS, c.origin)
+	if reader == nil {
+		reader = providerOwnedClockGoPolicyReader{}
+	}
+	clock, err := newProviderOwnedClockFromPolicyReader(frozen.policy, reader, maximum, baseUncertaintyMS, readWindowMS, c.origin)
 	if err != nil {
 		return nil, err
 	}

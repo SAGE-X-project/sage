@@ -31,7 +31,7 @@ func (c *providerHistorySourceCompiler) compileSelection(selection *nativeHistor
 	}
 	// Preserve all existing freeze/cost/clock guards on this same one-use
 	// compiler. Its temporary allocation and overlap obligations remain open.
-	plan, err := c.compile(config, clock.Maximum, clock.BaseUncertaintyMS, clock.ReadWindowMS)
+	plan, err := c.compileWithClockPolicy(config, selection, clock.Maximum, clock.BaseUncertaintyMS, clock.ReadWindowMS)
 	if err != nil {
 		return nil, err
 	}

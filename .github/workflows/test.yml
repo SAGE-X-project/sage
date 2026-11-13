@@ -334,6 +334,9 @@ jobs:
               'TestProviderHistoryNativeSelectionConfigKeepsRefusalCauses',
               'TestProviderHistoryNativeSelectionRetainedDataBoundaries',
               'TestProviderPolicyNativeBoundariesKeepOriginalRefusals',
+              'TestProviderHistoryNativeSelectionClockReadsOriginalOwnedPolicy',
+              'TestProviderHistoryNativeSelectionClockRefusesChangedAndLostOwners',
+              'TestProviderHistoryNativeSelectionClockCancellationDiscardsPartialFields',
           ]
           expected_files = {
               'provider_history_preparation_native_darwin.go',
@@ -342,6 +345,7 @@ jobs:
               'provider_history_selection_native_darwin.go',
               'provider_history_selection_config_darwin.go',
               'provider_history_selection_plan_darwin.go',
+              'provider_history_selection_clock_darwin.go',
               'provider_policy_native_darwin.go',
           }
           manifest = {
@@ -431,8 +435,8 @@ jobs:
               return rows
 
           try:
-              if len(expected_roots) != 32 or len(set(expected_roots)) != 32:
-                  raise ValueError('thirty-two unique native preparation, selection and policy roots are required')
+              if len(expected_roots) != 35 or len(set(expected_roots)) != 35:
+                  raise ValueError('thirty-five unique native preparation, selection and policy roots are required')
               binary = root / 'native-preparation.test'
               environment = dict(os.environ)
               target = run(root / 'target', ['go', 'env', '-json', 'GOOS', 'GOARCH', 'GOVERSION'], repository, environment)

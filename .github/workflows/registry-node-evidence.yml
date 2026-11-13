@@ -602,6 +602,7 @@ jobs:
               'provider_history_selection_native_darwin.go',
               'provider_history_selection_config_darwin.go',
               'provider_history_selection_plan_darwin.go',
+              'provider_history_selection_clock_darwin.go',
               'provider_policy_native_darwin.go',
           }
           package = json.loads(subprocess.check_output([

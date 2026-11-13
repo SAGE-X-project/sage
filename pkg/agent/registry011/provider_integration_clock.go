@@ -51,22 +51,51 @@ func newProviderOwnedClock(policy *ProviderPolicyCandidate, maximum uint64, base
 // source-plan compiler keeps its first native origin through input copying,
 // policy parsing and epoch creation instead of restarting time afterwards.
 func newProviderOwnedClockAtOrigin(policy *ProviderPolicyCandidate, maximum uint64, baseUncertaintyMS, readWindowMS int64, origin time.Time) (*providerOwnedClock, error) {
-	if origin.IsZero() || policy == nil || policy.raw == "" || len(policy.raw) > providerHistorySourceRawTextLimit || maximum == 0 || maximum > 1<<20 || baseUncertaintyMS <= 0 || readWindowMS <= 0 || readWindowMS > math.MaxInt64/int64(time.Millisecond) || baseUncertaintyMS > math.MaxInt64-readWindowMS {
-		return nil, ErrConfiguration
-	}
+	return newProviderOwnedClockFromPolicyReader(policy, providerOwnedClockGoPolicyReader{}, maximum, baseUncertaintyMS, readWindowMS, origin)
+}
+
+// These are policy DATA, not a sample, resource grant or execution authority.
+// Both policy representations reach the same original clock checks and epoch.
+type providerOwnedClockPolicyFields struct {
+	id                 string
+	maximumUncertainty uint64
+	maximumWindow      uint64
+}
+
+type providerOwnedClockPolicyReader interface {
+	readOwnedClockPolicy(*ProviderPolicyCandidate) (providerOwnedClockPolicyFields, error)
+}
+
+type providerOwnedClockGoPolicyReader struct{}
+
+func (providerOwnedClockGoPolicyReader) readOwnedClockPolicy(policy *ProviderPolicyCandidate) (providerOwnedClockPolicyFields, error) {
+	var empty providerOwnedClockPolicyFields
 	root, ok := contentJSON([]byte(policy.raw)).(map[string]any)
 	if !ok {
-		return nil, ErrConfiguration
+		return empty, ErrConfiguration
 	}
 	p, ok := root["clock"].(map[string]any)
 	if !ok {
-		return nil, ErrConfiguration
+		return empty, ErrConfiguration
 	}
 	maximumUncertainty, uncertaintyOK := providerCandidateUint(p["max_uncertainty_ms"], true)
 	maximumWindow, windowOK := providerCandidateUint(p["max_read_window_ms"], true)
-	id := contentString(p["id"])
-	if !uncertaintyOK || !windowOK || id == "" || len(id) > providerHistorySourceFixedTextLimit ||
-		uint64(baseUncertaintyMS+readWindowMS) > maximumUncertainty || uint64(readWindowMS) > maximumWindow {
+	if !uncertaintyOK || !windowOK {
+		return empty, ErrConfiguration
+	}
+	return providerOwnedClockPolicyFields{contentString(p["id"]), maximumUncertainty, maximumWindow}, nil
+}
+
+func newProviderOwnedClockFromPolicyReader(policy *ProviderPolicyCandidate, reader providerOwnedClockPolicyReader, maximum uint64, baseUncertaintyMS, readWindowMS int64, origin time.Time) (*providerOwnedClock, error) {
+	if origin.IsZero() || policy == nil || policy.raw == "" || len(policy.raw) > providerHistorySourceRawTextLimit || reader == nil || maximum == 0 || maximum > 1<<20 || baseUncertaintyMS <= 0 || readWindowMS <= 0 || readWindowMS > math.MaxInt64/int64(time.Millisecond) || baseUncertaintyMS > math.MaxInt64-readWindowMS {
+		return nil, ErrConfiguration
+	}
+	fields, err := reader.readOwnedClockPolicy(policy)
+	if err != nil {
+		return nil, err
+	}
+	if fields.id == "" || len(fields.id) > providerHistorySourceFixedTextLimit || fields.maximumUncertainty == 0 || fields.maximumWindow == 0 ||
+		uint64(baseUncertaintyMS+readWindowMS) > fields.maximumUncertainty || uint64(readWindowMS) > fields.maximumWindow {
 		return nil, ErrConfiguration
 	}
 	// This random epoch label is not a key, secret or authority. A new process
@@ -75,7 +104,7 @@ func newProviderOwnedClockAtOrigin(policy *ProviderPolicyCandidate, maximum uint
 	if _, err := rand.Read(nonce[:]); err != nil {
 		return nil, errProviderOwnedClock
 	}
-	c := &providerOwnedClock{origin: origin, id: id, policy: policy.policy, epoch: "0x" + hex.EncodeToString(nonce[:]), uncertainty: baseUncertaintyMS + readWindowMS, readWindow: time.Duration(readWindowMS) * time.Millisecond, maximum: maximum}
+	c := &providerOwnedClock{origin: origin, id: fields.id, policy: policy.policy, epoch: "0x" + hex.EncodeToString(nonce[:]), uncertainty: baseUncertaintyMS + readWindowMS, readWindow: time.Duration(readWindowMS) * time.Millisecond, maximum: maximum}
 	c.owner = c
 	return c, nil
 }
