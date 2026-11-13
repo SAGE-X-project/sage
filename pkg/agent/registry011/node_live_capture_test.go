@@ -189,9 +189,9 @@ func checkLiveCaptureContextDiagnostics(t *testing.T) {
 	t.Helper()
 	refusal := errors.New("owned transport refusal")
 	for _, tc := range []struct {
-		name, mode                           string
-		transportErr                         error
-		state                                string
+		name, mode                            string
+		transportErr                          error
+		state                                 string
 		deadline, exceeded, canceled, timeout bool
 	}{
 		{"live-transport-refusal", "live", refusal, "none", false, false, false, false},
