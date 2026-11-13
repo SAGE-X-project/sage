@@ -30,6 +30,9 @@ func (v JSONValue) StoreDecodedString(destination *Region) (span Span, err error
 	destination.mu.Lock()
 	defer destination.mu.Unlock()
 
+	if err := source.accessError(); err != nil {
+		return Span{}, err
+	}
 	raw, err := v.decodedStringLocked()
 	if err != nil {
 		return Span{}, err
