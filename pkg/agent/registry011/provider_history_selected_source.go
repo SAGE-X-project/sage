@@ -177,6 +177,7 @@ func (c *providerHistorySourceCompiler) compileWithClockPolicy(config providerCu
 	if !ok {
 		return nil, ErrConfiguration
 	}
+	selectedReader := reader
 	if reader == nil {
 		reader = providerOwnedClockGoPolicyReader{}
 	}
@@ -184,7 +185,7 @@ func (c *providerHistorySourceCompiler) compileWithClockPolicy(config providerCu
 	if err != nil {
 		return nil, err
 	}
-	plan, ok := providerHistoryCompileFrozenSourcePlanContext(c.ctx, frozen, providerHistoryClockSelectionOf(clock))
+	plan, ok := providerHistoryCompileFrozenSourcePlanWithPolicyReader(c.ctx, frozen, providerHistoryClockSelectionOf(clock), selectedReader)
 	if err := c.contextError(); err != nil {
 		return nil, err
 	}
@@ -215,6 +216,12 @@ func providerHistoryCompileFrozenSourcePlan(frozen providerCustodyConfig, clock 
 // Cancellation observations belong to this compiler invocation, not to a
 // history clock or a new budget. Nil preserves the numeric diagnostic path.
 func providerHistoryCompileFrozenSourcePlanContext(ctx context.Context, frozen providerCustodyConfig, clock providerHistoryClockSelection) (*providerHistorySourcePlan, bool) {
+	return providerHistoryCompileFrozenSourcePlanWithPolicyReader(ctx, frozen, clock, nil)
+}
+
+// Use the same owned policy for clock construction and source selection. The
+// nil adapter preserves the original Go diagnostic policy matching semantics.
+func providerHistoryCompileFrozenSourcePlanWithPolicyReader(ctx context.Context, frozen providerCustodyConfig, clock providerHistoryClockSelection, reader providerOwnedClockPolicyReader) (*providerHistorySourcePlan, bool) {
 	if providerHistoryCompilerCanceled(ctx) {
 		return nil, false
 	}
@@ -228,7 +235,7 @@ func providerHistoryCompileFrozenSourcePlanContext(ctx context.Context, frozen p
 	// Preserve the exact native origin/selection values, while retaining no
 	// caller-owned string backing through this numeric clock DATA snapshot.
 	clock.id, clock.epoch, clock.policy = strings.Clone(clock.id), strings.Clone(clock.epoch), strings.Clone(clock.policy)
-	source, ok := providerHistoryCompileSourceSnapshot(ctx, frozen, clock)
+	source, ok := providerHistoryCompileSourceSnapshot(ctx, frozen, clock, reader)
 	if !ok {
 		return nil, false
 	}
@@ -254,10 +261,10 @@ func providerHistorySourcePayloadDomainFits(config providerCustodyConfig) bool {
 // Only the plan constructor passes its own detached selection here. Keep all
 // original source-role joins and refusals; no second snapshot or construction
 // can change the manifest identity between this calculation and the plan.
-func providerHistoryCompileSourceSnapshot(ctx context.Context, config providerCustodyConfig, clock providerHistoryClockSelection) (providerHistorySelectedSourceCost, bool) {
+func providerHistoryCompileSourceSnapshot(ctx context.Context, config providerCustodyConfig, clock providerHistoryClockSelection, reader providerOwnedClockPolicyReader) (providerHistorySelectedSourceCost, bool) {
 	var empty providerHistorySelectedSourceCost
 	limits, limitsOK := providerHistorySourceLimitsFromConfig(config)
-	if providerHistoryCompilerCanceled(ctx) || !limitsOK || !providerHistorySourceClockMatchesPolicy(config.policy, clock) {
+	if providerHistoryCompilerCanceled(ctx) || !limitsOK || !providerHistorySourceClockMatchesPolicy(config.policy, clock, reader) {
 		return empty, false
 	}
 	bootstrap, bootstrapOK := providerHistoryCompileBootstrapSource(config.bounds, config.capture)
@@ -363,11 +370,15 @@ func providerHistoryFreezeSourceConfig(config providerCustodyConfig) (providerCu
 // Bounded policy DATA matching only. No native sample or clock construction
 // occurs. Parsing and transient copies here belong to the still-open compiler
 // cost row, rather than being borrowed from an execution or final-read budget.
-func providerHistorySourceClockMatchesPolicy(policy *ProviderPolicyCandidate, clock providerHistoryClockSelection) bool {
+func providerHistorySourceClockMatchesPolicy(policy *ProviderPolicyCandidate, clock providerHistoryClockSelection, reader providerOwnedClockPolicyReader) bool {
 	if policy == nil || policy.raw == "" || len(policy.raw) > 64<<10 || clock.id == "" || len(clock.id) > 256 ||
 		clock.policy != policy.policy || !lowerHash(clock.policy) || !lowerHash(clock.epoch) || clock.origin.IsZero() ||
 		clock.window <= 0 || clock.uncertainty <= 0 || clock.maximum == 0 || clock.maximum > 1<<20 {
 		return false
+	}
+	if reader != nil {
+		fields, err := reader.readOwnedClockPolicy(policy)
+		return err == nil && fields.id == clock.id
 	}
 	root, ok := contentJSON([]byte(policy.raw)).(map[string]any)
 	if !ok {

@@ -59,6 +59,14 @@ func TestProviderHistoryNativeSelectionClockReadsOriginalOwnedPolicy(t *testing.
 		t.Fatal("native policy did not reach the same compiler and clock")
 	}
 	clock := plan.clock
+	if !providerHistorySourceClockMatchesPolicy(policy, plan.source.clock, selection) {
+		t.Fatal("source selection did not consume its original owned policy")
+	}
+	changed := plan.source.clock
+	changed.id += "-changed"
+	if providerHistorySourceClockMatchesPolicy(policy, changed, selection) {
+		t.Fatal("native policy accepted a different selected clock")
+	}
 	if _, err := compiler.compileSelection(selection); !errors.Is(err, ErrConfiguration) {
 		t.Fatal("clock reader restarted the compiler attempt", err)
 	}
@@ -70,6 +78,9 @@ func TestProviderHistoryNativeSelectionClockReadsOriginalOwnedPolicy(t *testing.
 	}
 	if fields, err := selection.readOwnedClockPolicy(policy); err == nil || fields != (providerOwnedClockPolicyFields{}) {
 		t.Fatal("closed selection produced clock fields", err)
+	}
+	if providerHistorySourceClockMatchesPolicy(policy, plan.source.clock, selection) {
+		t.Fatal("closed native policy fell back to Go source selection")
 	}
 }
 
@@ -161,9 +172,9 @@ func TestProviderHistoryNativeSelectionClockRefusesChangedAndLostOwners(t *testi
 }
 
 func TestProviderHistoryNativeSelectionClockCancellationDiscardsPartialFields(t *testing.T) {
+	raw, _, _ := nativeHistoryTestRaw(t)
 	for boundary := range 128 {
 		t.Run(strconv.Itoa(boundary), func(t *testing.T) {
-			raw, _, _ := nativeHistoryTestRaw(t)
 			origin := time.Now()
 			action, cancel := context.WithDeadline(context.Background(), origin.Add(time.Minute))
 			t.Cleanup(cancel)
