@@ -24,6 +24,9 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 	if !t.Run("retry-after-headers", checkLiveCaptureRetryAfter) {
 		t.Fatal("owned response-header controls failed")
 	}
+	if !t.Run("request-context-diagnostics", checkLiveCaptureContextDiagnostics) {
+		t.Fatal("owned request-context diagnostics failed")
+	}
 	if !t.Run("request-spacing", checkLiveReadPacing) {
 		t.Fatal("owned request-spacing controls failed")
 	}

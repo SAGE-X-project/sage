@@ -4,9 +4,12 @@ package registry011
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -158,10 +161,11 @@ func checkLiveCaptureRetryAfter(t *testing.T) {
 			t.Fatal(err)
 		}
 		var record struct {
-			Status   int                      `json:"accepted_http_status_not_asserted"`
-			Hint     liveRetryAfterDiagnostic `json:"retry_after_header_diagnostic"`
-			Bytes    int                      `json:"response_bytes"`
-			Complete bool                     `json:"capture_complete"`
+			Status   int                          `json:"accepted_http_status_not_asserted"`
+			Hint     liveRetryAfterDiagnostic     `json:"retry_after_header_diagnostic"`
+			Bytes    int                          `json:"response_bytes"`
+			Complete bool                         `json:"capture_complete"`
+			Context  liveRequestContextDiagnostic `json:"request_context_diagnostic"`
 		}
 		if err = json.Unmarshal(raw, &record); err != nil {
 			t.Fatal(err)
@@ -169,7 +173,93 @@ func checkLiveCaptureRetryAfter(t *testing.T) {
 		if record.Status != http.StatusTooManyRequests || !record.Hint.Present || !record.Hint.Complete || record.Hint.Sanitized || !slices.Equal(record.Hint.Values, []string{"60"}) || record.Bytes != 0 || record.Complete || bytes.Contains(raw, []byte("unrelated-owned-cookie")) {
 			t.Fatal("failed response diagnostic lost its scope or retained unrelated headers", record)
 		}
+		if record.Context.DeadlineUTC == "" || record.Context.StateBefore != "none" || record.Context.StateAfter != "none" ||
+			record.Context.TransportDeadlineExceeded || record.Context.TransportCanceled || record.Context.TransportTimeout || record.Context.ElapsedNS < 0 {
+			t.Fatal("received HTTP refusal was mislabelled as transport cancellation", record.Context)
+		}
 	})
+}
+
+// A failed local transport and a canceled request are separate observations.
+// The private dial stub returns an owned error without opening any connection;
+// these scenarios cannot submit an RPC request or establish live evidence.
+func checkLiveCaptureContextDiagnostics(t *testing.T) {
+	t.Helper()
+	refusal := errors.New("owned transport refusal")
+	for _, tc := range []struct {
+		name, mode                           string
+		transportErr                         error
+		state                                string
+		deadline, exceeded, canceled, timeout bool
+	}{
+		{"live-transport-refusal", "live", refusal, "none", false, false, false, false},
+		{"canceled-request", "canceled", refusal, "canceled", false, false, true, false},
+		{"expired-deadline", "expired", refusal, "deadline_exceeded", true, true, false, true},
+		{"live-request-transport-deadline", "live", context.DeadlineExceeded, "none", false, true, false, true},
+		{"live-deadline-transport-refusal", "deadline", refusal, "none", true, false, false, false},
+		{"canceled-with-deadline", "canceled-deadline", refusal, "canceled", true, false, true, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			cancel := func() {}
+			switch tc.mode {
+			case "canceled":
+				ctx, cancel = context.WithCancel(ctx)
+				cancel()
+			case "expired":
+				ctx, cancel = context.WithDeadline(ctx, time.Now().Add(-time.Hour))
+			case "deadline", "canceled-deadline":
+				ctx, cancel = context.WithDeadline(ctx, time.Now().Add(time.Hour))
+				if tc.mode == "canceled-deadline" {
+					cancel()
+				}
+			}
+			defer cancel()
+			base := &http.Transport{DialContext: func(context.Context, string, string) (net.Conn, error) {
+				return nil, tc.transportErr
+			}}
+			defer base.CloseIdleConnections()
+			dir := t.TempDir()
+			capture := &liveCaptureTransport{base: base, dir: dir, t: t, remaining: 1024}
+			request, err := http.NewRequestWithContext(ctx, http.MethodPost, SepoliaRPCURL, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantErr := tc.transportErr
+			if ctx.Err() != nil {
+				wantErr = ctx.Err()
+			}
+			response, err := capture.RoundTrip(request)
+			if response != nil || !errors.Is(err, wantErr) || capture.sequence != 1 || capture.remaining != 1024 {
+				t.Fatal("passive context capture changed the original refusal or body budget", response, err)
+			}
+			raw, err := os.ReadFile(filepath.Join(dir, "diagnostic-001.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var record struct {
+				Context    liveRequestContextDiagnostic `json:"request_context_diagnostic"`
+				Diagnostic bool                         `json:"diagnostic_only"`
+				Complete   bool                         `json:"capture_complete"`
+			}
+			if err := json.Unmarshal(raw, &record); err != nil {
+				t.Fatal(err)
+			}
+			got := record.Context
+			if !record.Diagnostic || record.Complete || got.StateBefore != tc.state || got.StateAfter != tc.state || got.ElapsedNS < 0 ||
+				got.TransportDeadlineExceeded != tc.exceeded || got.TransportCanceled != tc.canceled || got.TransportTimeout != tc.timeout {
+				t.Fatal("context and transport observations were conflated or accepted", record)
+			}
+			deadline, hasDeadline := ctx.Deadline()
+			if hasDeadline != tc.deadline || (got.DeadlineUTC != "") != tc.deadline ||
+				tc.deadline && got.DeadlineUTC != deadline.UTC().Format(time.RFC3339Nano) {
+				t.Fatal("diagnostic changed or invented the original request deadline", got.DeadlineUTC)
+			}
+			if bytes.Contains(raw, []byte("accepted_http_status_not_asserted")) || bytes.Contains(raw, []byte("response_file")) {
+				t.Fatal("unreceived response was presented as an HTTP observation")
+			}
+		})
+	}
 }
 
 // Test-only passive capture of the EXISTING transport's consumed bytes, even
@@ -184,6 +274,31 @@ type liveCaptureTransport struct {
 	sequence, remaining int
 }
 
+// These are local observations of the same request and transport call. They
+// cannot identify a remote tracer failure when no response was received.
+type liveRequestContextDiagnostic struct {
+	DeadlineUTC               string `json:"deadline_utc,omitempty"`
+	StateBefore               string `json:"state_before"`
+	StateAfter                string `json:"state_after"`
+	ElapsedNS                 int64  `json:"elapsed_ns"`
+	TransportDeadlineExceeded bool   `json:"transport_deadline_exceeded"`
+	TransportCanceled         bool   `json:"transport_canceled"`
+	TransportTimeout          bool   `json:"transport_timeout"`
+}
+
+func liveCaptureContextErrorState(err error) string {
+	switch {
+	case err == nil:
+		return "none"
+	case errors.Is(err, context.DeadlineExceeded):
+		return "deadline_exceeded"
+	case errors.Is(err, context.Canceled):
+		return "canceled"
+	default:
+		return "other"
+	}
+}
+
 func (c *liveCaptureTransport) CloseIdleConnections() { c.base.CloseIdleConnections() }
 
 func (c *liveCaptureTransport) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -191,11 +306,25 @@ func (c *liveCaptureTransport) RoundTrip(request *http.Request) (*http.Response,
 	c.sequence++
 	number := c.sequence
 	c.mu.Unlock()
+	contextDiagnostic := liveRequestContextDiagnostic{
+		StateBefore: liveCaptureContextErrorState(request.Context().Err()),
+	}
+	if deadline, ok := request.Context().Deadline(); ok {
+		contextDiagnostic.DeadlineUTC = deadline.UTC().Format(time.RFC3339Nano)
+	}
+	started := time.Now()
 	response, err := c.base.RoundTrip(request)
+	contextDiagnostic.ElapsedNS = time.Since(started).Nanoseconds()
+	contextDiagnostic.StateAfter = liveCaptureContextErrorState(request.Context().Err())
+	contextDiagnostic.TransportDeadlineExceeded = errors.Is(err, context.DeadlineExceeded)
+	contextDiagnostic.TransportCanceled = errors.Is(err, context.Canceled)
+	var timeout net.Error
+	contextDiagnostic.TransportTimeout = errors.As(err, &timeout) && timeout.Timeout()
 	if number > 256 {
 		return response, err
 	}
 	meta := map[string]any{"url": request.URL.String(), "diagnostic_only": true, "sequence": number, "capture_complete": false}
+	meta["request_context_diagnostic"] = contextDiagnostic
 	if request.GetBody != nil {
 		body, e := request.GetBody()
 		if e == nil {
