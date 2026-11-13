@@ -40,6 +40,7 @@ type ReplayGasEvidence struct {
 
 func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlock, budget *replayBudget) error {
 	h := block.header
+	observer := budget.observer
 	if h.GasUsed > h.GasLimit {
 		return ErrReplay
 	}
@@ -64,10 +65,14 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 	} else if g.Profile != SepoliaAmsterdamGasProfile && g.Profile != SepoliaAmsterdamRootExecutionGasProfile {
 		return ErrReplayUnavailable
 	}
-	if g.BlockHash != replayHeader(h).Hash {
+	headerHash, hashOK := nodeHeaderHashObserved(h, observer)
+	headerText, textOK := nodeHashTextObserved(headerHash, observer)
+	if !hashOK || !textOK || !providerReplayTextEqual(g.BlockHash, headerText, observer) {
 		return ErrReplay
 	}
-	if !budget.charge(len(g.Profile)+len(g.BlockHash)+len(g.Trace)) || len(g.Trace) == 0 || !utf8.Valid(g.Trace) || !validRPCUnicode(g.Trace) {
+	if !budget.charge(len(g.Profile)+len(g.BlockHash)+len(g.Trace)) || len(g.Trace) == 0 ||
+		observer != nil && !observer.event(providerCompareEvent, uint64(len(g.Trace))) || !utf8.Valid(g.Trace) ||
+		observer != nil && !observer.event(providerCompareEvent, uint64(len(g.Trace))) || !validRPCUnicode(g.Trace) || !budget.decodeObserved(g.Trace) {
 		return ErrReplayUnavailable
 	}
 	d := json.NewDecoder(bytes.NewReader(g.Trace))
@@ -78,7 +83,7 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 	if _, err := d.Token(); err != io.EOF {
 		return ErrReplayUnavailable
 	}
-	entries, ok := nodeRawArray(g.Trace, budget.limits.MaxTransactions)
+	entries, ok := nodeRawArrayObserved(g.Trace, budget.limits.MaxTransactions, observer)
 	if !ok || len(entries) != len(block.txs) {
 		return ErrReplay
 	}
@@ -87,28 +92,30 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		m, ok := nodeObject(entry, "txHash result")
+		m, ok := nodeJSONFieldsObserved(entry, "txHash result", "txHash result", observer)
 		if !ok || len(m) != 2 {
 			return ErrReplayUnavailable
 		}
-		hash, ok := nodeString(m["txHash"])
-		if !ok || hash != block.txs[i].Hash().Hex() {
+		hash, ok := nodeStringObserved(m["txHash"], observer)
+		txHash, hashOK := nodeTransactionHashObserved(block.txs[i], observer)
+		txText, textOK := nodeHashTextObserved(txHash, observer)
+		if !ok || !hashOK || !textOK || !providerReplayTextEqual(hash, txText, observer) {
 			return ErrReplay
 		}
-		v, ok := nodeObject(m["result"], "gasUsed "+field+" stateGasUsed gasRefund")
+		v, ok := nodeJSONFieldsObserved(m["result"], "gasUsed "+field+" stateGasUsed gasRefund", "gasUsed "+field+" stateGasUsed gasRefund", observer)
 		if !ok || len(v) != 4 {
 			return ErrReplayUnavailable
 		}
 		var amounts [4]uint64
 		for j, name := range []string{"gasUsed", field, "stateGasUsed", "gasRefund"} {
-			s, valid := nodeString(v[name])
-			amounts[j], ok = rpcQuantity(s)
+			s, valid := nodeStringObserved(v[name], observer)
+			amounts[j], ok = rpcQuantityObserved(s, observer)
 			if !valid || !ok {
 				return ErrReplayUnavailable
 			}
 		}
 		tx := block.txs[i]
-		floor, err := replayGasFloor(tx)
+		floor, err := replayGasFloorObserved(tx, budget.observer)
 		if err != nil {
 			return err
 		}
@@ -141,18 +148,22 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 // profile is attempted if validation fails. Empty results retain the old empty
 // representation; complete block checks still require zero transactions/gas.
 func replayGasProfile(trace json.RawMessage, maximum int) (string, error) {
-	rows, ok := nodeRawArray(trace, maximum)
+	return replayGasProfileObserved(trace, maximum, nil)
+}
+
+func replayGasProfileObserved(trace json.RawMessage, maximum int, observer *providerWorkMeter) (string, error) {
+	rows, ok := nodeRawArrayObserved(trace, maximum, observer)
 	if !ok {
 		return "", ErrReplayUnavailable
 	}
 	if len(rows) == 0 {
 		return SepoliaAmsterdamGasProfile, nil
 	}
-	m, ok := nodeObject(rows[0], "txHash result")
+	m, ok := nodeObjectObserved(rows[0], "txHash result", observer)
 	if !ok || len(m) != 2 {
 		return "", ErrReplayUnavailable
 	}
-	v, ok := nodeObject(m["result"], "gasUsed executionGasUsed regularGasUsed stateGasUsed gasRefund")
+	v, ok := nodeObjectObserved(m["result"], "gasUsed executionGasUsed regularGasUsed stateGasUsed gasRefund", observer)
 	if !ok || len(v) != 4 {
 		return "", ErrReplayUnavailable
 	}

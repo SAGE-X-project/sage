@@ -2,6 +2,7 @@ package registry011
 
 import (
 	"bytes"
+	"math"
 	"strconv"
 )
 
@@ -103,7 +104,7 @@ func (s *providerCustodyStore) checkSetup(raw []byte, attempt int, now ClockSamp
 	wall, a := providerCandidateUint(c["wall_ms"], false)
 	mono, b := providerCandidateUint(c["monotonic_ms"], false)
 	unc, d := providerCandidateUint(c["uncertainty_ms"], false)
-	if c == nil || !a || !b || !d || wall > uint64(now.WallMS) || mono > uint64(now.MonotonicMS) || unc != uint64(now.UncertaintyMS) || c["id"] != now.ClockID || c["epoch"] != now.Epoch {
+	if c == nil || !a || !b || !d || wall > math.MaxInt64 || mono > math.MaxInt64 || unc > math.MaxInt64 || now.WallMS < 0 || now.MonotonicMS < 0 || now.UncertaintyMS < 0 || wall > uint64(now.WallMS) || mono > uint64(now.MonotonicMS) || unc != uint64(now.UncertaintyMS) || c["id"] != now.ClockID || c["epoch"] != now.Epoch {
 		return false
 	}
 	copy := s.config
@@ -181,10 +182,11 @@ func (s *providerCustodyStore) loadInventory(digest string, names map[string]boo
 	delete(names, name)
 	for _, ref := range inventory.entries {
 		key, filename := providerIntegrationRefKey(ref), providerObjectName(ref.kind, ref.digest)
-		if _, duplicate := s.objects[key]; duplicate || !names[filename] {
+		objectBytes := ref.bytes
+		if _, duplicate := s.objects[key]; duplicate || !names[filename] || objectBytes > math.MaxInt64 {
 			return errProviderIntegration
 		}
-		object, err := s.read(s.evidence, filename, int64(ref.bytes))
+		object, err := s.read(s.evidence, filename, int64(objectBytes))
 		domain, _ := providerIntegrationDomain(ref.kind)
 		if !s.event(providerHashEvent, uint64(len(object)+len(domain))) {
 			return errProviderIntegration

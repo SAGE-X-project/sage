@@ -33,7 +33,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: true
       - name: Record source and bounded read-only execution
         run: |
@@ -51,7 +51,9 @@ jobs:
           PY
           GODEBUG=http2client=0 go mod download -json > "$SAGE_NODE_EVIDENCE_DIR/modules.json" 2> "$SAGE_NODE_EVIDENCE_DIR/modules.stderr"
           go mod verify > "$SAGE_NODE_EVIDENCE_DIR/modules-verify.txt"
-          go test -tags=registry_live -mod=readonly -count=1 -json -run '^TestSepoliaNodeEvidenceLive$' ./pkg/agent/registry011 > "$SAGE_NODE_EVIDENCE_DIR/tests.jsonl"
+          # Keep the strict trial and the explicitly selected candidate independent.
+          # A failed strict trial remains a failure even when the candidate passes.
+          go test -tags=registry_live -mod=readonly -count=1 -json -run '^(TestSepoliaNodeEvidenceLive|TestSepoliaRootGasCandidateEvidenceLive)$' ./pkg/agent/registry011 > "$SAGE_NODE_EVIDENCE_DIR/tests.jsonl"
           git diff --exit-code
       - name: Retain original node responses
         if: always()
@@ -62,8 +64,8 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  provider-capture:
-    name: Capture candidate provider transport evidence
+  provider-fixture-check:
+    name: Provider Fixture Check
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
@@ -75,18 +77,87 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
+          cache: true
+      - name: Check declaration-only coverage inventory
+        run: |
+          format_diff="$(gofmt -d tools/registrycoverage)"
+          if [ -n "$format_diff" ]; then
+            printf '%s\n' "$format_diff"
+            exit 1
+          fi
+          go test -mod=readonly -count=1 -json ./tools/registrycoverage
+      - name: Check bounded recovery fixture before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/provider-fixture-check"
+          mkdir -p "$registry_fixture_dir"
+          go version > "$registry_fixture_dir/compiler.txt"
+          git rev-parse HEAD > "$registry_fixture_dir/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$registry_fixture_dir/tree.txt"
+          git ls-files -z pkg/agent/registry011 go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml | xargs -0 sha256sum > "$registry_fixture_dir/source.sha256"
+          # This early unit result never replaces full partitions or their coverage.
+          go test -mod=readonly -race -count=1 -timeout=2m -json -run '^TestProviderHistoryRecoveryInitialNamesKeepEveryFiniteCapacityPrefix$' ./pkg/agent/registry011 > "$registry_fixture_dir/tests.jsonl"
+          git diff --exit-code
+      - name: Check original references before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/provider-fixture-check"
+          # The existing official-read test retains its own isolated originals.
+          # Its early result never replaces the complete provider partition.
+          export SAGE_PROVIDER_CAPTURE_DIR="$registry_fixture_dir"
+          reference_status=0
+          # Includes isolated unit cases and the existing official RPC lookup.
+          # Full partitions and coverage remain required.
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=8m -json -run '^(TestProviderHistoryCheckpointPreparationRejectsIncompletePhaseAndCapacityData|TestProviderHistoryFailedSettlementRechecksItsActualCompletedPrefix|TestProviderHistoryFailedSettlementShapesRequireOriginalFailureAndPrefixMetadata|TestProviderHistoryFirstOriginalClosureRejectsMissingAndChangedPrivateReferences|TestProviderHistoryInitialCheckpointRejectsMissingPrivateHeadWithoutPublishingData|TestProviderHistoryMemberContextUpperMatchesIndependentLiterals|TestProviderHistoryMemberContextTypeCeilingsMatchActualWalks|TestProviderHistoryMemberContextBoundCoversGenuineClaimsAndArchivedFacts|TestProviderHistoryMemberContextShortageKeepsOriginalWalkPrefix|TestProviderHistoryReconstructionFullIntervalQuoteDoesNotQualifySmallCatalog|TestProviderHistoryRecoveryGroupReadRefusesAbsentContextBeforeOriginalInput|TestProviderHistoryRecoveryGroupRejectsInconsistentInitialAndWholeChainData|TestProviderHistoryRecoveryLegacyReferencesCannotReplaceCompleteOriginalFrames|TestProviderHistoryRecoveryLegacyRejectsUnplannedSetupAndDifferentFinalRoots|TestProviderHistorySettlementRejectsChangedConsumedOriginalBeforePublication|TestProviderHistorySourcePlanReportsFullSpanCostsWithoutAuthority|TestProviderHistorySourcePlanKeepsItsSelectionAfterCallerUpdates|TestProviderHistorySourcePlanWithholdsPartialResultOnRefusal|TestProviderHistorySourcePlanCannotBeRestoredFromJSON|TestProviderHistorySourceSnapshotDetachesSelectedPointers|TestProviderHistorySourceSnapshotRefusesIncompleteSelection|TestProviderHistorySourceSnapshotReconstructsManifestInsteadOfTrustingSeal|TestProviderCaptureContinuingPinRetainsSameBlockRegistryIdentity|TestProviderScanOpenClosesPreselectedReadersAfterRootLockRefusal|TestProviderHistorySourceInputCopyDoesNotKeepCallerStringBacking|TestProviderHistorySourcePlanRetainsDetachedClockTextAndExactOrigin|TestProviderHistorySourceInputPreflightRefusesUnboundedCopyInputs|TestProviderHistorySourcePlanRejectsImpossiblePayloadBeforeGroupEnumeration|TestProviderHistorySourcePayloadDomainRetainsSmallUnqualifiedPlan|TestProviderHistorySourcePayloadDomainIncludesTheExactAbsoluteBoundary|TestProviderHistorySourcePayloadDomainRejectsIncompleteStorageInputs|TestProviderContinuingPinHeaderSelectionFundsTheOriginalAdmission|TestProviderContinuingPinHeaderSelectionCompletesOwnedExchanges)$' ./pkg/agent/registry011 > "$registry_fixture_dir/reference-tests.jsonl" || reference_status=$?
+          printf '%s\n' "$reference_status" > "$registry_fixture_dir/reference-tests.exit"
+          git diff --exit-code
+          exit "$reference_status"
+      - name: Check original preparation input before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/provider-fixture-check"
+          preparation_status=0
+          # A refusal is a failed prerequisite, never a substitute for full tests.
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=2m -json -run '^TestProviderHistoryPreparationCompilesOriginalUnmintedSelection$' ./pkg/agent/registry011 > "$registry_fixture_dir/preparation-tests.jsonl" || preparation_status=$?
+          printf '%s\n' "$preparation_status" > "$registry_fixture_dir/preparation-tests.exit"
+          git diff --exit-code
+          exit "$preparation_status"
+      - name: Retain recovery fixture check
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: provider-fixture-check
+          path: ${{ runner.temp }}/provider-fixture-check/
+          if-no-files-found: error
+          retention-days: 14
+
+  provider-capture-shard:
+    needs: provider-fixture-check
+    name: Provider Transport Shard (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    timeout-minutes: 135
+    env:
+      GOFLAGS: -mod=readonly
+      GOTOOLCHAIN: auto
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.11'
           cache: true
       - name: Check provider candidates with owned TLS and the selected RPC
         run: |
           export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
-          mkdir -p "$SAGE_PROVIDER_CAPTURE_DIR/source"
+          mkdir -p "$SAGE_PROVIDER_CAPTURE_DIR"
           go version > "$SAGE_PROVIDER_CAPTURE_DIR/compiler.txt"
           git rev-parse HEAD > "$SAGE_PROVIDER_CAPTURE_DIR/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$SAGE_PROVIDER_CAPTURE_DIR/tree.txt"
-          git ls-files -z pkg/agent/registry011 go.mod go.sum .github/workflows/registry-node-evidence.yml .github/workflows/test.yml docs/dev/registry-source-checks.md | xargs -0 sha256sum > "$SAGE_PROVIDER_CAPTURE_DIR/source.sha256"
-          cp pkg/agent/registry011/*.go pkg/agent/registry011/*.json "$SAGE_PROVIDER_CAPTURE_DIR/source/"
-          cp -R pkg/agent/registry011/testdata "$SAGE_PROVIDER_CAPTURE_DIR/source/"
+          git ls-files -z .github/scripts/registry_test_shards.py .github/scripts/test_registry_test_shards.py pkg/agent/registry011 go.mod go.sum .github/workflows/registry-node-evidence.yml .github/workflows/test.yml docs/dev/registry-source-checks.md | xargs -0 sha256sum > "$SAGE_PROVIDER_CAPTURE_DIR/source.sha256"
+          python3 .github/scripts/registry_test_shards.py snapshot provider "$SAGE_PROVIDER_CAPTURE_DIR"
           python3 - <<'PYCONTEXT'
           import json, os
           from pathlib import Path
@@ -95,10 +166,120 @@ jobs:
           PYCONTEXT
           GODEBUG=http2client=0 go mod download -json > "$SAGE_PROVIDER_CAPTURE_DIR/modules.json" 2> "$SAGE_PROVIDER_CAPTURE_DIR/modules.stderr"
           go mod verify > "$SAGE_PROVIDER_CAPTURE_DIR/modules-verify.txt"
-          go test -tags=provider_capture_live -mod=readonly -race -count=1 -json -run '^TestProvider' -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl"
+          # Check the recent fixture and native-byte regressions before the full suite.
+          # This separate log neither supplies coverage nor replaces complete evidence.
+          if [ "${{ matrix.shard }}" = "0" ]; then
+            go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall|TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity|TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState)$' ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/regression-controls.jsonl"
+          fi
+
+      - name: Measure maximum Registry dispatch
+        if: matrix.shard == 0
+        run: |
+          export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
+          # Profile one genuine maximum-member control separately from full-suite evidence.
+          # Preserve failed diagnostics and every native window and coverage gate.
+          registry_profile_status=0
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.pprof" -o "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu.test" -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-tests.jsonl" || registry_profile_status=$?
+          printf '%s\n' "$registry_profile_status" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.exit"
+          go tool pprof -top -nodecount=50 -sample_index=cpu "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu.test" "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-flat.txt"
+          go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu.test" "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-cumulative.txt"
+          sha256sum "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu.test" "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile.sha256"
+          python3 - "$SAGE_PROVIDER_CAPTURE_DIR/cpu-profile-tests.jsonl" <<'PYPROFILE'
+          import json, sys
+          from pathlib import Path
+          target = 'TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals/32'
+          events = [json.loads(line) for line in Path(sys.argv[1]).read_text().splitlines() if line.strip()]
+          starts = [e for e in events if e.get('Test') == target and e.get('Action') == 'run']
+          ends = [e for e in events if e.get('Test') == target and e.get('Action') in ('pass', 'fail')]
+          if len(starts) != 1 or len(ends) != 1:
+              raise SystemExit('CPU diagnostic has no complete maximum-member test result')
+          PYPROFILE
+          # Compare instrumentation only after the original race diagnostic failed.
+          # A separate fresh invocation cannot restore that failed job or qualify full evidence.
+          if [ "$registry_profile_status" -ne 0 ]; then
+            registry_comparison_status=0
+            printf '%s\n' 'no-race; atomic coverage and CPU sampling retained; diagnostic only' > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison-mode.txt"
+            go test -tags=provider_capture_live -mod=readonly -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison.pprof" -o "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu-comparison.test" -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison-tests.jsonl" || registry_comparison_status=$?
+            printf '%s\n' "$registry_comparison_status" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison.exit"
+            go tool pprof -top -nodecount=50 -sample_index=cpu "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu-comparison.test" "$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison-flat.txt"
+            go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu-comparison.test" "$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison-cumulative.txt"
+            sha256sum "$SAGE_PROVIDER_CAPTURE_DIR/registry-cpu-comparison.test" "$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison.sha256"
+            python3 - "$SAGE_PROVIDER_CAPTURE_DIR/cpu-comparison-tests.jsonl" <<'PYCOMPARISON'
+          import json, sys
+          from pathlib import Path
+          target = 'TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals/32'
+          events = [json.loads(line) for line in Path(sys.argv[1]).read_text().splitlines() if line.strip()]
+          starts = [e for e in events if e.get('Test') == target and e.get('Action') == 'run']
+          ends = [e for e in events if e.get('Test') == target and e.get('Action') in ('pass', 'fail')]
+          if len(starts) != 1 or len(ends) != 1:
+              raise SystemExit('CPU comparison has no complete maximum-member test result')
+          PYCOMPARISON
+          fi
+          test "$registry_profile_status" -eq 0
+
+      - name: Run complete provider test partition
+        run: |
+          export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -cover -covermode=atomic -list . -json ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/test-discovery.jsonl"
+          python3 .github/scripts/registry_test_shards.py plan provider "$SAGE_PROVIDER_CAPTURE_DIR" --index '${{ matrix.shard }}'
+          registry_profile_args=()
+          # Measure slow complete partitions as well as the recovery partition.
+          if [[ "${{ matrix.shard }}" =~ ^(5|7|8)$ ]]; then
+            registry_profile_args=(-cpuprofile="$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" -o "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test")
+          fi
+          registry_shard_status=0
+          go test -tags=provider_capture_live -mod=readonly -race -count=1 -timeout=120m -json -run "$(cat "$SAGE_PROVIDER_CAPTURE_DIR/run-pattern.txt")" "${registry_profile_args[@]}" -coverprofile="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$SAGE_PROVIDER_CAPTURE_DIR/tests.jsonl" || registry_shard_status=$?
+          printf '%s\n' "$registry_shard_status" > "$SAGE_PROVIDER_CAPTURE_DIR/partition.exit"
+          if [ "${#registry_profile_args[@]}" -ne 0 ] && [ -s "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test" ] && [ -s "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" ]; then
+            go tool pprof -top -nodecount=50 -sample_index=cpu "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test" "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile-flat.txt"
+            go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test" "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile-cumulative.txt"
+            sha256sum "$SAGE_PROVIDER_CAPTURE_DIR/registry-recovery.test" "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.pprof" > "$SAGE_PROVIDER_CAPTURE_DIR/recovery-profile.sha256"
+          fi
+          test "$registry_shard_status" -eq 0
+          git diff --exit-code
+      - name: Retain original candidate capture evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: provider-transport-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/provider-transport-capture/
+          if-no-files-found: error
+          retention-days: 14
+
+  provider-capture:
+    name: Capture candidate provider transport evidence
+    needs: provider-capture-shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOFLAGS: -mod=readonly
+      GOTOOLCHAIN: auto
+    steps:
+      - name: Require every provider transport partition
+        env:
+          REGISTRY_SHARD_RESULT: ${{ needs.provider-capture-shard.result }}
+        run: test "$REGISTRY_SHARD_RESULT" = "success"
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.11'
+          cache: true
+      - name: Download original provider transport partitions
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: provider-transport-shard-*
+          path: ${{ runner.temp }}/provider-transport-partitions
+      - name: Verify complete provider evidence and strict file coverage
+        run: |
+          export SAGE_PROVIDER_CAPTURE_DIR="$RUNNER_TEMP/provider-transport-capture"
+          python3 .github/scripts/registry_test_shards.py assemble provider "$RUNNER_TEMP/provider-transport-partitions" --output "$SAGE_PROVIDER_CAPTURE_DIR" > "$RUNNER_TEMP/provider-partition-assembly.json"
+          python3 .github/scripts/registry_test_shards.py verify provider "$SAGE_PROVIDER_CAPTURE_DIR"
           go tool cover -func="$SAGE_PROVIDER_CAPTURE_DIR/coverage.out" > "$SAGE_PROVIDER_CAPTURE_DIR/functions.txt"
           python3 - <<'PYCOVERAGE'
-          import os
+          import hashlib, json, os, subprocess
           from pathlib import Path
           targets = {'provider_capture.go': [0, 0], 'provider_http.go': [0, 0]}
           connected = [
@@ -118,10 +299,34 @@ jobs:
               'provider_first_admission_plan.go', 'provider_first_admission_write.go',
               'provider_scan_admission_binding.go', 'provider_scan_receipt_replay.go',
               'provider_ledger_initial_charge.go', 'provider_bootstrap_owner.go',
+              'provider_bootstrap_costing.go',
+              'provider_scan_costing.go', 'provider_history_bootstrap_source_bound.go',
+              'provider_history_bootstrap_inputs.go',
+              'provider_history_selected_source.go',
+              'provider_history_preparation.go',
+              'provider_history_preparation_config.go',
+              'provider_history_preparation_decode.go',
+              'provider_history_preparation_native_other.go',
+              'provider_history_catalog_domain.go',
+              'provider_history_source_input_storage.go',
+              'provider_history_finalization_bound.go',
+              'provider_history_profile_projection.go',
+              'provider_history_reconstruction_catalog_bound.go',
+              'provider_history_reconstruction_finalized_bound.go',
+              'provider_history_reconstruction_index_bound.go',
+              'provider_history_reconstruction_initial_bound.go',
+              'provider_history_reconstruction_input_bound.go',
+              'provider_history_reconstruction_inventory_bound.go',
+              'provider_history_reconstruction_legacy_bound.go',
+              'provider_history_reconstruction_member_bound.go',
+              'provider_history_reconstruction_message_bound.go',
+              'provider_history_reconstruction_scan_bound.go',
+              'provider_history_run.go',
               'provider_replay_paths.go', 'provider_first_admission_operation_capture.go',
               'provider_first_admission_operation_change.go', 'provider_first_admission_operation_commit.go',
               'provider_first_admission_operation_execute.go', 'provider_first_admission_operation_models.go',
               'provider_first_admission_operation_open.go', 'provider_first_admission_operation_owner.go',
+              'provider_first_admission_operation_diagnostic.go',
               'provider_first_admission_operation_plan.go', 'provider_replay_codec.go',
               'provider_integration.go', 'provider_integration_admission.go',
               'provider_integration_bootstrap.go', 'provider_integration_budget.go',
@@ -169,23 +374,294 @@ jobs:
               'provider_continuing_plan.go',
               'provider_continuing_history_plan.go',
               'provider_continuing_original_stream.go',
+              'provider_continuing_input_budget.go',
+              'provider_continuing_original_budget.go',
+              'provider_continuing_group_members.go',
+              'provider_continuing_group_order.go',
+              'provider_history_group_records.go',
+              'provider_history_group_ledger.go',
+              'provider_history_custody_frame.go',
+              'provider_history_group_owner.go',
+              'provider_history_semantic_fold.go',
+              'provider_history_semantic_expected.go',
+              'provider_history_semantic_state.go',
+              'provider_history_group_prefix.go',
+              'provider_history_group_prefix_settlement.go',
+              'provider_history_group_advance.go',
+              'provider_history_original_pack.go',
+              'provider_history_group_storage.go',
+              'provider_history_group_writer.go',
+              'provider_history_group_catalog.go', 'provider_history_group_consumption.go',
+              'provider_history_group_replay.go',
+              'provider_history_group_results.go',
+              'provider_history_group_deadline.go',
+              'provider_history_group_capture.go',
+              'provider_history_group_attempt.go',
+              'provider_history_group_spool.go',
+              'provider_history_group_settlement.go',
+              'provider_history_group_failure_original.go',
+              'provider_history_group_failed_settlement.go',
+              'provider_history_recovery_bounds.go',
+              'provider_history_recovery_checkpoint.go',
+              'provider_history_recovery_archive.go',
+              'provider_history_recovery_members.go',
+              'provider_history_recovery_initial.go',
+              'provider_history_recovery_input.go',
+              'provider_history_recovery_namespace.go',
+              'provider_history_recovery_inventory.go',
+              'provider_history_recovery_scan.go',
+              'provider_history_recovery_legacy.go',
+              'provider_history_recovery_model.go',
+              'provider_history_recovery_first_finalized.go',
+              'provider_history_collection_manifest.go',
+              'provider_history_collection_admission.go',
+              'provider_history_collection_admission_count.go',
+              'provider_history_collection_read_bound.go',
+              'provider_history_collection_catalog_bound.go',
+              'provider_history_collection_write_bound.go',
+              'provider_history_collection_read_bytes.go',
+              'provider_history_collection_metadata_bound.go',
+              'provider_history_collection_capture_bound.go',
+              'provider_history_semantic_index_bound.go',
+              'provider_history_semantic_clone_bound.go',
+              'provider_history_semantic_snapshot_bound.go',
+              'provider_history_state_serialization_bound.go',
+              'provider_history_state_entry_bound.go',
+              'provider_history_newkey_proof_bound.go',
+              'provider_history_state_apply_bound.go',
+              'provider_history_semantic_commitment_bound.go',
+              'provider_history_collection_cursor_bound.go',
+              'provider_history_collection_root_bound.go',
+              'provider_history_collection_semantic_bound.go',
+              'provider_history_ledger_control_bound.go',
+              'provider_history_record_control_bound.go',
+              'provider_history_result_bytes_bound.go',
+              'provider_history_request_control_bound.go',
+              'provider_history_request_generation_bound.go',
+              'provider_history_outer_control_bound.go',
+              'provider_history_legacy_control_bound.go',
+              'provider_history_first_interpretation_bound.go',
+              'provider_history_semantic_boundary_bound.go',
+              'provider_history_journal_configuration.go',
+              'provider_history_cursor_initialization_bound.go',
+              'provider_history_read_retention_bound.go',
+              'provider_history_member_context_bound.go',
+              'provider_history_catalog_namespace_bound.go',
+              'provider_history_direct_filename_bound.go',
+              'provider_history_caller_request_bound.go',
+              'provider_history_direct_raw_bound.go',
+              'provider_history_abi_bound.go',
+              'provider_history_command_bound.go',
+              'provider_history_event_queue_bound.go',
+              'provider_history_trie_bound.go',
+              'provider_history_binary_core_bound.go',
+              'provider_history_binary_wrapper_bound.go',
+              'provider_history_json_shape_bound.go',
+              'provider_history_node_binding_bound.go',
+              'provider_history_json_branch_bound.go',
+              'provider_history_gas_branch_bound.go',
+              'provider_history_effect_branch_bound.go',
+              'provider_history_trace_normalization_bound.go',
+              'provider_history_root_context_bound.go',
+              'provider_history_root_gas_normalization_bound.go',
+              'provider_history_gas_check_bound.go',
+              'provider_history_execution_bound.go',
+              'provider_history_content_decode_bound.go',
+              'provider_history_content_decode_pool_bound.go',
+              'provider_history_gas_journey_bound.go',
+              'provider_history_trace_journey_bound.go',
+              'provider_history_block_projection_bound.go',
+              'provider_history_effect_ready_bound.go',
+              'provider_history_content_journey_bound.go',
+              'provider_history_callback_journey_bound.go',
+              'provider_history_role_components_bound.go',
+              'provider_history_original_file_roles_bound.go',
+              'provider_history_retained_context_roles_bound.go',
+              'provider_history_name_namespace_roles_bound.go',
+              'provider_history_direct_raw_roles_bound.go',
+              'provider_history_outer_roles_bound.go',
+              'provider_history_role_source_bound.go',
+              'provider_history_failure_body_bound.go',
+              'provider_history_failed_settlement_extra_bound.go',
+              'provider_history_transport_roles_bound.go',
+              'provider_history_native_input_bound.go',
+              'provider_history_collection_plan.go',
+              'provider_history_collection_calls.go',
+              'provider_history_collection_state.go',
+              'provider_history_typed_spine.go',
+              'provider_history_collection_boundaries.go',
+              'provider_history_collection_content.go',
+              'provider_history_collection_transitions.go',
+              'provider_history_collection_run.go',
+              'provider_history_collection_pending.go',
+              'provider_history_native_block.go',
+              'provider_history_native_abi.go',
+              'provider_history_replay_reads.go',
+              'provider_history_member_replay.go',
+              'provider_history_member_compare.go',
+              'provider_history_member_ancestors.go',
+              'provider_history_member_claims.go',
+              'replay_blocks.go',
+              'replay_observation.go',
+              'provider_history_content_trie.go',
+              'provider_history_content_rlp.go',
+              'provider_history_node_codec.go',
+              'provider_history_node_arrays.go',
+              'provider_history_node_fields.go',
+              'provider_history_node_storage.go',
+              'provider_history_node_hash.go',
+              'provider_history_node_json_canonical.go',
+              'provider_history_node_json_equal.go',
+              'provider_history_node_json_encoding.go',
+              'provider_history_node_sender.go',
+              'provider_history_node_signing_hash.go',
+              'provider_history_node_gas_floor.go',
+              'provider_history_execution_observation.go',
+              'provider_history_frame_observation.go',
+              'provider_history_log_observation.go',
+              'provider_history_abi_framing.go',
+              'provider_history_abi_dynamic.go',
+              'provider_history_abi_codec.go',
+              'provider_history_command_json.go',
+              'provider_history_command_scalars.go',
+              'provider_history_command_schema.go',
+              'provider_history_command_pack.go',
+              'provider_history_command_parse.go',
+              'provider_history_command_tuples.go',
+              'provider_history_command_build.go',
+              'provider_history_command_generation.go',
+              'provider_history_event_digest.go',
+              'provider_history_commit_observation.go',
+              'provider_history_state_storage.go',
+              'provider_history_state_collections.go',
+              'provider_history_state_json.go',
+              'provider_history_state_apply.go',
+              'provider_history_proof_observation.go',
+              'provider_history_shared_indexes.go',
+              'provider_history_expected_observation.go',
+              'provider_history_semantic_observation.go',
+              'provider_history_semantic_snapshot.go',
+              'provider_history_semantic_index_root.go',
+              'provider_history_semantic_commitment.go',
+              'replay.go',
+              'replay_commands.go',
+              'replay_execution.go',
+              'node_json.go',
+              'node_trace.go',
+              'node_root_gas.go',
+              'replay_gas.go',
+              'provider_history_first_original.go',
+              'provider_history_first_original_bounds.go',
+              'provider_history_recovery_counts.go',
+              'provider_history_recovery_catalog.go',
+              'provider_history_recovery_catalog_closure.go',
+              'provider_history_recovery_names.go',
+              'provider_history_recovery_admission.go',
+              'provider_history_recovery_group.go',
+              'provider_history_recovery_completed_members.go',
+              'provider_history_recovery_tail.go',
+              'provider_history_recovery_tail_input.go',
+              'provider_history_recovery_settlement.go',
+              'provider_history_recovery_budget.go',
+              'provider_history_recovery_messages.go',
+              'provider_history_recovery_owner.go',
+              'provider_history_program_bounds.go',
+              'provider_history_final_bounds.go',
+              'provider_history_final_owner.go',
+              'provider_history_final_read.go',
+              'provider_history_final_data.go',
+              'provider_history_uniform_storage_bound.go',
+              'provider_history_uniform_source_bound.go',
+              'provider_history_original_reconstruction.go',
+              'provider_history_program_owner.go',
+              'provider_history_program_clock.go',
+              'provider_history_program_start.go',
               'provider_continuing_prefix.go',
               'provider_continuing_records.go',
               'provider_guardian_admission_binding.go',
               'provider_guardian_replay.go',
+              'provider_policy.go',
+              'provider_policy_schema.go',
+              'provider_policy_value.go',
           ]
           for name in connected:
               targets[name] = [0, 0]
           discovered = {
               item.name
-              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go', 'provider_scan*.go', 'provider_replay*.go', 'provider_first_admission*.go', 'provider_bootstrap*.go', 'provider_guardian*.go', 'provider_continuing*.go', 'provider_page_seal*.go')
+              for pattern in ('provider_frontier*.go', 'provider_integration*.go', 'provider_ledger*.go', 'provider_scan*.go', 'provider_replay*.go', 'provider_first_admission*.go', 'provider_bootstrap*.go', 'provider_guardian*.go', 'provider_continuing*.go', 'provider_history*.go', 'provider_page_seal*.go', 'provider_policy.go', 'provider_policy_schema.go', 'provider_policy_value.go', 'provider_policy_native_darwin.go', 'replay_blocks.go', 'replay_observation.go', 'node_trace.go', 'node_root_gas.go', 'replay_gas.go', 'node_json.go', 'replay_execution.go', 'replay.go', 'replay_commands.go')
               for item in Path('pkg/agent/registry011').glob(pattern)
               if not item.name.endswith('_test.go')
           }
-          assert set(connected) == discovered, ('coverage inventory mismatch', sorted(discovered - set(connected)), sorted(set(connected) - discovered))
+          # Keep every executable source accounted for on its actual Go target.
+          # These Darwin files have a separate native positive-90 gate;
+          # they are not declaration-only files or Linux runtime evidence.
+          native_darwin = {
+              'provider_history_preparation_native_darwin.go',
+              'provider_history_preparation_native_decode_darwin.go',
+              'provider_history_preparation_native_result_darwin.go',
+              'provider_history_selection_native_darwin.go',
+              'provider_history_selection_config_darwin.go',
+              'provider_history_selection_plan_darwin.go',
+              'provider_history_selection_clock_darwin.go',
+              'provider_policy_native_darwin.go',
+          }
+          package = json.loads(subprocess.check_output([
+              'go', 'list', '-mod=readonly', '-tags=provider_capture_live',
+              '-json', './pkg/agent/registry011',
+          ], text=True))
+          goos, goarch = subprocess.check_output(['go', 'env', 'GOOS', 'GOARCH'], text=True).splitlines()
+          assert goos == 'linux' and goarch
+          assert package['ImportPath'] == 'github.com/sage-x-project/sage/pkg/agent/registry011'
+          active = set(package.get('GoFiles', [])) | set(package.get('CgoFiles', []))
+          ignored = set(package.get('IgnoredGoFiles', []))
+          assert not active & ignored
+          assert discovered & ignored == native_darwin, ('unexpected inactive source', sorted(discovered & ignored))
+          assert not native_darwin & active
+          assert 'provider_history_preparation_native_other.go' in active
+          platform_inventory = {
+              'scope': 'Exact current Go target selection; inactive files receive no runtime or statement coverage credit',
+              'goos': goos, 'goarch': goarch, 'tags': ['provider_capture_live'],
+              'active_native_source': 'provider_history_preparation_native_other.go',
+              'inactive_files': [
+                  {'name': name, 'sha256': hashlib.sha256(Path('pkg/agent/registry011', name).read_bytes()).hexdigest(),
+                   'status': 'INACTIVE_FOR_CURRENT_GO_TARGET',
+                   'required_gate': 'Darwin native preparation positive statement coverage per file'}
+                  for name in sorted(native_darwin)
+              ],
+          }
+          Path(os.environ['SAGE_PROVIDER_CAPTURE_DIR'], 'platform-source-inventory.json').write_text(json.dumps(platform_inventory, indent=2) + '\n')
+          discovered -= native_darwin
+          # Account for every discovered file. Only new import/type-only files
+          # can be statement-free; executable additions still fail this gate.
+          unmapped = discovered - set(connected)
+          declarations = {}
+          if unmapped:
+              result = subprocess.run(
+                  ['go', 'run', '-mod=readonly', './tools/registrycoverage', '--', 'pkg/agent/registry011', *sorted(unmapped)],
+                  check=True, stdout=subprocess.PIPE, text=True)
+              records = json.loads(result.stdout)
+              assert isinstance(records, list)
+              for record in records:
+                  assert isinstance(record, dict) and set(record) == {'name', 'sha256', 'package', 'types', 'kind'}
+                  name = record['name']
+                  assert name in unmapped and name not in declarations
+                  assert record['kind'] == 'IMPORT_TYPE_DECLARATIONS_ONLY' and record['package'] == 'registry011'
+                  assert type(record['types']) is int and record['types'] > 0
+                  assert record['sha256'] == hashlib.sha256(Path('pkg/agent/registry011', name).read_bytes()).hexdigest()
+                  declarations[name] = record
+          assert set(connected) | set(declarations) == discovered, ('coverage inventory mismatch', sorted(discovered - set(connected) - set(declarations)), sorted(set(connected) - discovered))
+          assert not set(connected) & set(declarations)
+          declaration_report = {
+              'scope': 'File statement coverage only, not imported initialization, type checking, native resources or SourceReady',
+              'minimum_percent_per_executable_file': 90,
+              'files': [dict(record, status='NOT_APPLICABLE', statements=0, covered=0) for _, record in sorted(declarations.items())],
+          }
+          Path(os.environ['SAGE_PROVIDER_CAPTURE_DIR'], 'declaration-only-inventory.json').write_text(json.dumps(declaration_report, indent=2) + '\n')
           for line in Path(os.environ['SAGE_PROVIDER_CAPTURE_DIR'], 'coverage.out').read_text().splitlines()[1:]:
               location, statements, count = line.split()
               name = location.rsplit(':', 1)[0].rsplit('/', 1)[-1]
+              if name in declarations:
+                  assert int(statements) == 0, ('declaration-only source has executable coverage', name)
               if name in targets:
                   targets[name][0] += int(statements)
                   targets[name][1] += int(statements) if int(count) else 0

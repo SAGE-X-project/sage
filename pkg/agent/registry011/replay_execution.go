@@ -60,6 +60,9 @@ func replayValue(s string) (*big.Int, bool) {
 func replayAddress(a common.Address) string { return strings.ToLower(a.Hex()) }
 
 func replayExecution(ctx context.Context, e *ReplayExecution, block replayDecodedBlock, index int, b *replayBudget) ([]replayLog, error) {
+	if b != nil && b.observer != nil {
+		return replayExecutionObserved(ctx, e, block, index, b)
+	}
 	tx := block.txs[index]
 	receipt := block.receipts[index]
 	if e.TransactionIndex != uint64(index) || e.BlockHash != strings.ToLower(block.header.Hash().Hex()) || e.TransactionHash != strings.ToLower(tx.Hash().Hex()) || receipt.Status != 1 {
@@ -68,7 +71,7 @@ func replayExecution(ctx context.Context, e *ReplayExecution, block replayDecode
 	if tx.Type() > types.DynamicFeeTxType || !tx.Protected() || tx.ChainId().Cmp(big.NewInt(11155111)) != 0 {
 		return nil, ErrReplayUnavailable
 	}
-	sender, err := types.Sender(types.LatestSignerForChainID(big.NewInt(11155111)), tx)
+	sender, err := nodeSenderObserved(tx, b.observer)
 	if err != nil {
 		return nil, ErrReplay
 	}
@@ -108,6 +111,9 @@ func replayExecution(ctx context.Context, e *ReplayExecution, block replayDecode
 }
 
 func replayFrame(ctx context.Context, f *ReplayFrame, parent string, static, committed bool, depth int, b *replayBudget) ([]replayLog, error) {
+	if b != nil && b.observer != nil {
+		return replayFrameObserved(ctx, f, parent, static, committed, depth, b)
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}

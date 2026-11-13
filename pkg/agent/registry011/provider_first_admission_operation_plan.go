@@ -40,11 +40,22 @@ func providerFirstOperationPhaseUpper(n, q, linear, clocks, syncs, raw, headroom
 }
 
 func providerFirstOperationPlanUpper(b providerIntegrationBounds, global ProviderCaptureLimits, ordinal, records, retained, output uint64) (providerFirstOperationPlan, bool) {
+	if !b.valid() {
+		return providerFirstOperationPlan{}, false
+	}
+	in, ok := providerBootstrapCostingInputFromBounds(b)
+	if !ok {
+		return providerFirstOperationPlan{}, false
+	}
+	return in.firstOperationPlanUpper(global, ordinal, records, retained, output)
+}
+
+func (b providerBootstrapCostingInput) firstOperationPlanUpper(global ProviderCaptureLimits, ordinal, records, retained, output uint64) (providerFirstOperationPlan, bool) {
 	var p providerFirstOperationPlan
-	if !b.valid() || b.firstAdmission == nil || b.maximumObjects < providerInitialObjectCount(b)+31 || b.maximumEntries < 14 {
+	if !b.valid() || b.maximumObjects < b.initialObjectCount()+31 || b.maximumEntries < 14 {
 		return p, false
 	}
-	storage, ok := providerFirstOperationStorageUpper(b, global, uint64(len(providerFirstOperationRequestWire)))
+	storage, ok := b.firstOperationStorageUpper(global, uint64(len(providerFirstOperationRequestWire)))
 	if !ok {
 		return p, false
 	}
@@ -56,11 +67,14 @@ func providerFirstOperationPlanUpper(b providerIntegrationBounds, global Provide
 	headroom, a := providerUpperProduct(maximum, maximum)
 	headroom, c := providerUpperSum(headroom, 1, b.maximumObjectBytes, 1)
 	n := max(b.maximumMetadataPerCommit, uint64(64<<10), b.maximumObjectBytes, uint64(capture.WireBytes))
-	if b.guardian != nil {
+	if b.kind == providerBootstrapCostingGuardian || b.kind == providerBootstrapCostingHistory {
 		// This first closed graph accepts only its typed E0/E1/C/X/S
 		// schemas and the method-specific header transport/exchange sizes.
 		// A larger global object ceiling belongs to later methods. Every
 		// actual decoder still preflights its own length and fails closed.
+		// History adds scalar ownership/handoff checks to this same graph;
+		// it does not supply a later group's arbitrary object or result pack.
+		// Keep the wider original serializer/global-object headroom above.
 		n = max(b.maximumMetadataPerCommit, uint64(64<<10), storage.transport, storage.exchange, uint64(capture.WireBytes))
 	}
 	// C/X:452Q/2824L, additional coordinator100Q/250L, and32 bounded
@@ -69,7 +83,7 @@ func providerFirstOperationPlanUpper(b providerIntegrationBounds, global Provide
 	// The retained binding index adds two original decodes and five linear
 	// events: reference/path copies, read, domain hash and exchange comparison.
 	remaining, f := providerFirstOperationPhaseUpper(n, 571, 3284, 5, 37, storage.settlement, headroom)
-	captureUpper, g := providerFirstOperationCaptureUpper(uint64(len(providerFirstOperationRequestWire)), capture, *b.tls)
+	captureUpper, g := providerFirstOperationCaptureUpper(uint64(len(providerFirstOperationRequestWire)), capture, b.tls)
 	if !a || !c || !e || !f || !g {
 		return p, false
 	}
@@ -84,7 +98,7 @@ func providerFirstOperationPlanUpper(b providerIntegrationBounds, global Provide
 	head, h := providerUpperProduct(uint64(global.HeaderBytes), 13)
 	body, i := providerUpperProduct(uint64(global.BodyBytes), 4)
 	remaining[10], ok = providerUpperSum(remaining[10], head, body, 5)
-	if b.guardian != nil {
+	if b.kind == providerBootstrapCostingGuardian {
 		// The V5 retained result derives its request's selected method class.
 		// Fund that additional independent small reconstruction before I.
 		class, classOK := providerRPCClassExtraUpper(n)
@@ -106,7 +120,7 @@ func providerFirstOperationPlanUpper(b providerIntegrationBounds, global Provide
 	// This closed32-file quote already includes every temporary copy. The
 	// legacy frontier estimator's additional doubling is a different metric.
 	reservation := providerOperationReservation{work: total, execution: execution, remaining: remaining, live: storage.physical, retained: storage.physical}
-	first, firstOK := providerFirstAdmissionPlanUpper(b, ordinal, records, retained, output)
+	first, firstOK := b.firstAdmissionPlanUpper(ordinal, records, retained, output)
 	// Separate provisional apply44Q/39L, conservatively100/250; four
 	// newly observed segment encodes/hashes and32 bounded model comparisons.
 	extraN := max(b.maximumMetadataPerCommit, uint64(64<<10))
@@ -117,7 +131,7 @@ func providerFirstOperationPlanUpper(b providerIntegrationBounds, global Provide
 		return p, false
 	}
 	extra[10] -= 84999
-	memory, memoryOK := providerFirstOperationMemoryUpper(b, capture, storage, first, retained, output, maximum)
+	memory, memoryOK := b.firstOperationMemoryUpper(capture, storage, first, retained, output, maximum)
 	if !memoryOK {
 		return p, false
 	}
@@ -125,8 +139,8 @@ func providerFirstOperationPlanUpper(b providerIntegrationBounds, global Provide
 	return p, true
 }
 
-func providerFirstOperationMemoryUpper(b providerIntegrationBounds, capture ProviderCaptureLimits, storage providerFirstOperationStorage, first providerFirstAdmissionPlan, retained, output, maximum uint64) (uint64, bool) {
-	if b.continuation == nil || b.scan == nil || b.tls == nil || !capture.valid() {
+func (b providerBootstrapCostingInput) firstOperationMemoryUpper(capture ProviderCaptureLimits, storage providerFirstOperationStorage, first providerFirstAdmissionPlan, retained, output, maximum uint64) (uint64, bool) {
+	if !b.valid() || !capture.valid() {
 		return 0, false
 	}
 	schemas, a := providerUpperSum(retained, first.raw, storage.raw, output)
@@ -148,11 +162,11 @@ func providerFirstOperationMemoryUpper(b providerIntegrationBounds, capture Prov
 	der, j := providerUpperProduct(certificates, uint64(b.tls.certificateBytes))
 	digests, k := providerUpperProduct(certificates, 2*69)
 	var classScratch uint64
-	if b.guardian != nil {
+	if b.kind == providerBootstrapCostingGuardian {
 		classScratch = 2*(16<<10) + 8<<10 + 2*uint64(reflect.TypeFor[providerIntegrationRequest]().Size())
 	}
 	scratch, l := providerUpperSum(raw, metadata, bindingScratch, wire, head, body, request, der, digests, maximum, classScratch)
-	models, m := b.continuation.residentUpper(1, 6, 1, uint64(providerInitialObjectCount(b)+31), schemas, scratch)
+	models, m := b.continuation.residentUpper(1, 6, 1, uint64(b.initialObjectCount()+31), schemas, scratch)
 	entries, n := providerUpperSum(3*14, 4*11, 128, certificates, 1)
 	collections, o := providerUpperProduct(entries, max(b.continuation.objectMemoryOverhead, b.scan.filenameEntryOverhead))
 	// Static layout only; allocator and host upper qualification are separate.
@@ -175,6 +189,31 @@ func providerFirstOperationMemoryUpper(b providerIntegrationBounds, capture Prov
 		native, totalOK = providerUpperSum(native, bytes)
 		if !fits || !productOK || !totalOK {
 			return 0, false
+		}
+	}
+	if b.kind == providerBootstrapCostingHistory {
+		// The original parent remains reachable while the first operation
+		// preserves its scalar handoff. It already retains the failed-reader
+		// owner/meter and, when selected, a separate final owner/reader/meter.
+		// Conservatively fund both readers even for a selection without final
+		// verification. Parent pointers do not include their pointee layouts.
+		// This is fixed layout only, not allocator, decoder/model backing or
+		// peak/lifetime host qualification for the complete future program.
+		for _, size := range []uint64{
+			uint64(reflect.TypeFor[providerHistoryProgramOwner]().Size()),
+			uint64(reflect.TypeFor[providerHistoryProgramStart]().Size()),
+			uint64(reflect.TypeFor[providerHistoryRecoveryOwner]().Size()),
+			uint64(reflect.TypeFor[providerWorkMeter]().Size()),
+			uint64(reflect.TypeFor[providerHistoryFinalOwner]().Size()),
+			uint64(reflect.TypeFor[providerHistoryRecoveryOwner]().Size()),
+			uint64(reflect.TypeFor[providerWorkMeter]().Size()),
+		} {
+			allocation, fits := providerUpperSum(size, uint64(reflect.TypeFor[*byte]().Size()))
+			var totalOK bool
+			native, totalOK = providerUpperSum(native, allocation)
+			if !fits || !totalOK {
+				return 0, false
+			}
 		}
 	}
 	memory, p := providerUpperSum(first.memory, models, collections, native)

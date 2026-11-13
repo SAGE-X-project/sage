@@ -131,7 +131,7 @@ func (limit providerMethodLimit) capture(global ProviderCaptureLimits, requestBy
 }
 
 func (c *providerIntegration) operationPrimitive(request *providerIntegrationRequest) (providerPrimitiveBounds, error) {
-	if !c.valid() || request == nil {
+	if !c.legacyAllowed() || request == nil {
 		return providerPrimitiveBounds{}, errProviderIntegration
 	}
 	return c.store.config.bounds.operationPrimitive(request, c.primitive)

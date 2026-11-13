@@ -20,8 +20,19 @@ func (*providerBootstrapOwner) UnmarshalJSON([]byte) error { return errProviderI
 // The upper includes a HEAD.pending file even when its outcome is unknown.
 // It is compared with the old O; no increased envelope is installed here.
 func providerBootstrapUpper(b providerIntegrationBounds) (candidateWorkVector, uint64, bool) {
+	if !b.valid() {
+		return candidateWorkVector{}, 0, false
+	}
+	in, ok := providerBootstrapCostingInputFromBounds(b)
+	if !ok {
+		return candidateWorkVector{}, 0, false
+	}
+	return in.bootstrapUpper()
+}
+
+func (b providerBootstrapCostingInput) bootstrapUpper() (candidateWorkVector, uint64, bool) {
 	var work candidateWorkVector
-	if b.firstAdmission == nil || !b.valid() || b.maximumEntries < 7 || b.maximumObjects < 7 {
+	if !b.valid() || b.maximumEntries < 7 || b.maximumObjects < 7 {
 		return work, 0, false
 	}
 	metadata, a := providerUpperProduct(b.maximumMetadataPerCommit, 5)
@@ -39,8 +50,8 @@ func providerBootstrapUpper(b providerIntegrationBounds) (candidateWorkVector, u
 	units, i := providerUpperProduct(units, 512)
 	decoded, j := providerUpperProduct(n, 512)
 	work[2], work[9], work[10] = decoded, bytes, units
-	if b.guardian != nil {
-		extra, extraPhysical, extraOK := providerGuardianBootstrapExtraUpper(b)
+	if b.kind == providerBootstrapCostingGuardian {
+		extra, extraPhysical, extraOK := providerGuardianBootstrapExtraCost(b.maximumMetadataPerCommit, b.fileOverheadBytes)
 		if !extraOK || b.maximumEntries < 8 || b.maximumObjects < 8 {
 			return candidateWorkVector{}, 0, false
 		}
@@ -57,7 +68,10 @@ func providerBootstrapUpper(b providerIntegrationBounds) (candidateWorkVector, u
 			return candidateWorkVector{}, 0, false
 		}
 	}
-	return work, physical, a && c && d && e && f && g && h && i && j
+	if !a || !c || !d || !e || !f || !g || !h || !i || !j {
+		return candidateWorkVector{}, 0, false
+	}
+	return work, physical, true
 }
 
 func (o *providerBootstrapOwner) writing(s *providerCustodyStore) bool {

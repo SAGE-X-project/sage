@@ -13,16 +13,25 @@ import (
 // This is the only production dial for the new gated path. There is no
 // configurable endpoint, TLS root override, proxy, redirect or retry loop.
 func providerIntegrationDial(ctx context.Context, limits ProviderCaptureLimits) (*tls.Conn, error) {
+	return providerIntegrationDialDiagnosed(ctx, limits, nil)
+}
+
+func providerIntegrationDialDiagnosed(ctx context.Context, limits ProviderCaptureLimits, diagnostic *providerFirstOperationDiagnostic) (*tls.Conn, error) {
 	if ctx == nil || !limits.valid() || ctx.Err() != nil {
+		diagnostic.reject(providerFirstFailureDial, providerFirstReasonRefused, 0)
 		return nil, errProviderIntegration
 	}
 	dialer := tls.Dialer{NetDialer: &net.Dialer{Timeout: limits.Timeout}, Config: &tls.Config{MinVersion: tls.VersionTLS12, ServerName: "rpc.sepolia.ethpandaops.io", NextProtos: []string{"http/1.1"}}}
 	connection, err := dialer.DialContext(ctx, "tcp", "rpc.sepolia.ethpandaops.io:443")
 	if err != nil {
+		if diagnostic != nil {
+			diagnostic.reject(providerFirstFailureDial, providerFirstNativeFailureReason(err), 0)
+		}
 		return nil, errProviderIntegration
 	}
 	conn, ok := connection.(*tls.Conn)
 	if !ok {
+		diagnostic.reject(providerFirstFailureDial, providerFirstReasonRefused, 0)
 		_ = connection.Close()
 		return nil, errProviderIntegration
 	}

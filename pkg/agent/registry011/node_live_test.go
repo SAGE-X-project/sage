@@ -18,7 +18,18 @@ import (
 // This opt-in test makes bounded read-only requests to the sole approved RPC.
 // It accesses no keys and cannot submit transactions or use another provider.
 func TestSepoliaNodeEvidenceLive(t *testing.T) {
-	t.Run("passive-capture-read-limits", checkLiveCaptureReadLimits)
+	if !t.Run("passive-capture-read-limits", checkLiveCaptureReadLimits) {
+		t.Fatal("owned capture-read controls failed")
+	}
+	if !t.Run("retry-after-headers", checkLiveCaptureRetryAfter) {
+		t.Fatal("owned response-header controls failed")
+	}
+	if !t.Run("request-context-diagnostics", checkLiveCaptureContextDiagnostics) {
+		t.Fatal("owned request-context diagnostics failed")
+	}
+	if !t.Run("request-spacing", checkLiveReadPacing) {
+		t.Fatal("owned request-spacing controls failed")
+	}
 	dir := os.Getenv("SAGE_NODE_EVIDENCE_DIR")
 	if dir == "" {
 		t.Fatal("explicit evidence directory required")
@@ -27,6 +38,8 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 		t.Fatal(err)
 	}
 	report := map[string]any{"scope": "thirteen runtime identities, one existing Registry creation, and provider-observed gas consistency for its complete block; no independent EVM/consensus validation, complete history, mutation lifecycle or Source qualification", "rpc": SepoliaRPCURL, "started_utc": time.Now().UTC().Format(time.RFC3339Nano), "paid_transactions": 0, "source_ready": false, "gas_acquisition": "stateGasTracer transaction result, selected before acquisition"}
+	report["request_minimum_spacing_milliseconds"] = int64(liveReadMinimumSpacing / time.Millisecond)
+	report["request_pacing_scope"] = "test client only; original requests, unchanged timeouts, no retries or status override; no guarantee of provider quota availability"
 	defer func() {
 		report["finished_utc"] = time.Now().UTC().Format(time.RFC3339Nano)
 		b, e := json.MarshalIndent(report, "", "  ")
@@ -49,7 +62,7 @@ func TestSepoliaNodeEvidenceLive(t *testing.T) {
 	if !ok {
 		t.Fatal("owned transport required for passive diagnostics")
 	}
-	c.client.Transport = &liveCaptureTransport{base: transport, dir: dir, t: t, remaining: 32 << 20}
+	c.client.Transport = newLiveReadPacer(&liveCaptureTransport{base: transport, dir: dir, t: t, remaining: 32 << 20})
 	r, err := c.PinAgentReads(ctx, SepoliaRegistryAddress, "sage-deployment-check")
 	if err != nil {
 		report["error"] = err.Error()

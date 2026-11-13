@@ -49,15 +49,8 @@ func providerScanSetupFits(config providerCustodyConfig) bool {
 	if b.scan == nil || !b.valid() {
 		return false
 	}
-	n := max(b.maximumMetadataPerCommit, uint64(64<<10))
-	square, a := providerUpperProduct(n, n)
-	units, c := providerUpperSum(square, n, 16)
-	units, d := providerUpperProduct(units, 128)
-	decoded, e := providerUpperProduct(n, 128)
-	files, f := providerUpperProduct(b.fileOverheadBytes, 13)
-	raw, g := providerUpperProduct(n, 9)
-	retained, h := providerUpperSum(raw, files)
-	return a && c && d && e && f && g && h && decoded <= b.setupWork[2] && units <= b.setupWork[10] && raw <= b.setupWork[9] && retained <= b.setupRetained && b.setupMaximumClockReads >= 16
+	open, ok := providerScanOpenCostUpper(b.maximumMetadataPerCommit, b.fileOverheadBytes)
+	return ok && open.work[2] <= b.setupWork[2] && open.work[10] <= b.setupWork[10] && open.work[9] <= b.setupWork[9] && open.retained <= b.setupRetained && b.setupMaximumClockReads >= open.clocks
 }
 
 func (b providerScanBounds) object() map[string]any {
@@ -134,15 +127,16 @@ func (b providerScanBounds) fits(open, held providerScanUpper) bool {
 // of a small reservation. Chunk snapshots exclude their later encoding, so a
 // separate finite output/retention upper is included for EVERY possible chunk.
 func providerScanBodyUpper(config providerCustodyConfig) (providerScanUpper, error) {
-	body, err := providerScanInspectionUpper(config)
+	inspection, err := providerScanInspectionUpper(config)
 	if err != nil {
 		return providerScanUpper{}, err
 	}
-	ok := true
+	var held providerScanUpper
 	if first := config.bounds.firstAdmission; first != nil {
-		body, ok = providerScanUpperSum(body, providerScanUpper{first.work, first.retained, first.clocks})
+		held = providerScanUpper{first.work, first.retained, first.clocks}
 	}
-	if !ok || !config.bounds.scan.fits(providerScanOpenUpper(config), body) {
+	body, ok := providerScanBodyCostUpper(*config.bounds.scan, providerScanOpenUpper(config), inspection, held)
+	if !ok {
 		return providerScanUpper{}, errProviderIntegration
 	}
 	return body, nil
@@ -154,39 +148,9 @@ func providerScanInspectionUpper(config providerCustodyConfig) (providerScanUppe
 	if config.bounds.scan == nil || !config.bounds.valid() {
 		return providerScanUpper{}, errProviderIntegration
 	}
-	b := config.bounds.scan
-	n := config.bounds.maximumMetadataPerCommit
-	square, a := providerUpperProduct(n, n)
-	units, c := providerUpperSum(square, n, 16)
-	units, d := providerUpperProduct(units, 32)
-	bytes, e := providerUpperProduct(n, 4)
-	allocation, f := providerUpperProduct(config.bounds.fileOverheadBytes, 4)
-	retained, g := providerUpperSum(bytes, allocation)
-	if !a || !c || !d || !e || !f || !g {
-		return providerScanUpper{}, errProviderIntegration
-	}
-	output := providerScanUpper{candidateWorkVector{0, 0, bytes, 0, 0, 0, 0, 0, 0, bytes, units}, retained, 0}
-	if config.bounds.firstAdmission != nil {
-		decoded, ok := providerUpperProduct(n, 6)
-		if !ok {
-			return providerScanUpper{}, errProviderIntegration
-		}
-		output.work[2] = decoded
-	}
-	one, ok := providerScanUpperSum(providerScanUpper{work: b.chunkWork}, output)
+	b := config.bounds
+	body, ok := providerScanInspectionCostUpper(*b.scan, b.maximumMetadataPerCommit, b.fileOverheadBytes, b.firstAdmission != nil, providerScanOpenUpper(config))
 	if !ok {
-		return providerScanUpper{}, errProviderIntegration
-	}
-	var body providerScanUpper
-	for i, n := range one.work {
-		body.work[i], ok = providerUpperProduct(n, b.maximumChunks)
-		if !ok {
-			return providerScanUpper{}, errProviderIntegration
-		}
-	}
-	body.retained, ok = providerUpperProduct(one.retained, b.maximumChunks)
-	body.clocks = b.maximumClockReads
-	if !ok || !b.fits(providerScanOpenUpper(config), body) {
 		return providerScanUpper{}, errProviderIntegration
 	}
 	return body, nil

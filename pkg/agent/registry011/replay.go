@@ -3,7 +3,6 @@ package registry011
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"math/big"
 	"strings"
 
@@ -113,6 +112,15 @@ type replayRun struct {
 }
 
 func (r *replayRun) block(ctx context.Context, raw ReplayBlock, b replayDecodedBlock) error {
+	return r.blockDeriving(ctx, raw, b, nil)
+}
+
+// A nonnil original expected window is an explicit private DATA derivation.
+// All existing strict APIs select nil and keep their required history input.
+func (r *replayRun) blockDeriving(ctx context.Context, raw ReplayBlock, b replayDecodedBlock, expected *providerHistoryExpectedWindow) error {
+	if expected != nil && !expected.selected(r) {
+		return ErrReplay
+	}
 	traces := map[uint64]*ReplayExecution{}
 	if len(raw.Executions) > len(b.txs) {
 		return ErrReplay
@@ -155,7 +163,7 @@ func (r *replayRun) block(ctx context.Context, raw ReplayBlock, b replayDecodedB
 				return ErrReplay
 			}
 			seen[l.frame] = true
-			if err := r.event(ctx, l, b.header); err != nil {
+			if err := r.eventDeriving(ctx, l, b.header, expected); err != nil {
 				return err
 			}
 		}
@@ -164,6 +172,13 @@ func (r *replayRun) block(ctx context.Context, raw ReplayBlock, b replayDecodedB
 }
 
 func (r *replayRun) event(ctx context.Context, l replayLog, h *types.Header) error {
+	return r.eventDeriving(ctx, l, h, nil)
+}
+
+func (r *replayRun) eventDeriving(ctx context.Context, l replayLog, h *types.Header, expected *providerHistoryExpectedWindow) error {
+	if expected != nil && !expected.selected(r) {
+		return ErrReplay
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -179,65 +194,118 @@ func (r *replayRun) event(ctx context.Context, l replayLog, h *types.Header) err
 	if log.Topics[0] != changed.ID {
 		return ErrReplayUnavailable
 	}
-	c, ok := replayDecodeCommand(r.registry, l.frame.From, l.frame.Input, r.contract)
+	var observer *providerWorkMeter
+	if r.budget != nil {
+		observer = r.budget.observer
+	}
+	c, ok := replayDecodeCommandObserved(r.registry, l.frame.From, l.frame.Input, r.contract, observer)
 	if !ok {
 		return ErrReplay
 	}
-	did := "did:sage:" + r.registry + ":" + c.agent
-	didHash := sha256.Sum256([]byte(did))
-	actor := common.BytesToHash(common.HexToAddress(c.actor).Bytes())
-	if log.Topics[1] != common.Hash(didHash) || log.Topics[2] != actor {
+	did := providerReplayJoin([]string{"did:sage:", r.registry, ":", c.agent}, observer)
+	didHash, hashed := replayTextSHA256Observed(did, observer)
+	actor, indexed := replayAddressTopicObserved(c.actor, observer)
+	if !hashed || !indexed || !providerReplayEqual(log.Topics[1][:], didHash[:], observer) || !providerReplayEqual(log.Topics[2][:], actor[:], observer) {
 		return ErrReplay
 	}
-	eventFields := changed.Inputs.NonIndexed()
-	n, framed := replayABIFields(log.Data, eventFields)
+	eventFields, selected := replayABINonIndexedObserved(changed.Inputs, observer)
+	if !selected {
+		return ErrReplayUnavailable
+	}
+	n, framed := replayABIFieldsObserved(log.Data, eventFields, observer)
 	if !framed || n != len(log.Data) {
 		return ErrReplay
 	}
-	values, e := eventFields.Unpack(log.Data)
+	values, e := replayABICanonicalObserved(eventFields, log.Data, observer)
 	if e != nil {
 		return ErrReplay
 	}
-	canonical, e := changed.Inputs.NonIndexed().Pack(values...)
-	if e != nil || !bytes.Equal(canonical, log.Data) || values[0].(string) != did || values[1].(uint64) != c.expected || c.expected == ^uint64(0) || values[2].(uint64) != c.expected+1 || values[3].(string) != c.op || values[4].([32]byte) != sha256.Sum256(c.raw) || values[7].(uint64) != h.Time {
+	if !providerReplayTextEqual(values[0].(string), did, observer) || values[1].(uint64) != c.expected || c.expected == ^uint64(0) || values[2].(uint64) != c.expected+1 || !providerReplayTextEqual(values[3].(string), c.op, observer) {
+		return ErrReplay
+	}
+	commandHash, hashed := replaySHA256Observed(c.raw, observer)
+	eventCommandHash := values[4].([32]byte)
+	if !hashed || !providerReplayEqual(eventCommandHash[:], commandHash[:], observer) || values[7].(uint64) != h.Time {
 		return ErrReplay
 	}
 	if c.op == "create" {
-		id := replayClaimID{c.actor, replayClaim(r.registry, c)}
-		claim, present := r.claims[id]
-		if r.created[c.agent] || !present || claim.consumed || h.Number.Uint64() <= claim.block || h.Number.Uint64()-claim.block > 256 {
-			return ErrReplay
-		}
-		if r.createdLimit > 0 && len(r.created) >= r.createdLimit {
+		digest, hashed := replayClaimObserved(r.registry, c, observer)
+		if !hashed {
 			return ErrReplayUnavailable
 		}
-		claim.consumed = true
-		r.claims[id] = claim
-		r.created[c.agent] = true
+		if observer != nil {
+			if err := r.consumeCreateObserved(c, digest, h, observer); err != nil {
+				return err
+			}
+		} else {
+			id := replayClaimID{c.actor, digest}
+			claim, present := r.claims[id]
+			if r.created[c.agent] || !present || claim.consumed || h.Number.Uint64() <= claim.block || h.Number.Uint64()-claim.block > 256 {
+				return ErrReplay
+			}
+			if r.createdLimit > 0 && len(r.created) >= r.createdLimit {
+				return ErrReplayUnavailable
+			}
+			claim.consumed = true
+			r.claims[id] = claim
+			r.created[c.agent] = true
+		}
 	}
-	if c.agent != r.agent {
+	if !providerReplayTextEqual(c.agent, r.agent, observer) {
+		if observer != nil && !observer.preflightWork(candidateWorkVector{}) {
+			return ErrReplayUnavailable
+		}
 		return nil
 	}
 	i := len(r.steps)
-	if i >= len(r.history) || uint64(i) >= ^uint64(0)-r.baseVersion || r.history[i].Version != r.baseVersion+uint64(i)+1 || !bytes.Equal(r.history[i].Command, c.raw) {
-		return ErrReplay
+	if expected == nil {
+		if i >= len(r.history) || uint64(i) >= ^uint64(0)-r.baseVersion || r.history[i].Version != r.baseVersion+uint64(i)+1 || !providerReplayEqual(r.history[i].Command, c.raw, observer) {
+			return ErrReplay
+		}
+	} else if !expected.prepareSubject(r, c) {
+		return ErrReplayUnavailable
 	}
 	if len(c.keys) > r.budget.limits.MaxProofs-r.budget.proofs {
 		return ErrReplayUnavailable
 	}
 	r.budget.proofs += len(c.keys)
-	step, ok := r.state.apply(r.registry, c, h.Time)
-	if !ok || !bytes.Equal(step.History.Entry, r.history[i].Entry) || values[5].([32]byte) != sha256.Sum256(step.Record) || values[6].([32]byte) != sha256.Sum256(step.Grants) {
+	step, ok := r.state.applyObserved(r.registry, c, h.Time, observer)
+	if !ok || expected == nil && !providerReplayEqual(step.History.Entry, r.history[i].Entry, observer) {
 		return ErrReplay
+	}
+	recordHash, hashed := replaySHA256Observed(step.Record, observer)
+	eventRecordHash := values[5].([32]byte)
+	if !hashed || !providerReplayEqual(eventRecordHash[:], recordHash[:], observer) {
+		return ErrReplay
+	}
+	grantsHash, hashed := replaySHA256Observed(step.Grants, observer)
+	eventGrantsHash := values[6].([32]byte)
+	if !hashed || !providerReplayEqual(eventGrantsHash[:], grantsHash[:], observer) {
+		return ErrReplay
+	}
+	if expected != nil {
+		if !expected.retainExpected(r, step) {
+			return ErrReplayUnavailable
+		}
+		return nil
 	}
 	if !r.budget.charge(len(step.Record) + len(step.Grants)) {
 		return ErrReplayUnavailable
+	}
+	if observer != nil {
+		if !r.appendStepObserved(step, observer) {
+			return ErrReplayUnavailable
+		}
+		return nil
 	}
 	r.steps = append(r.steps, step)
 	return nil
 }
 
 func (r *replayRun) commit(l replayLog, h *types.Header, event abi.Event) error {
+	if r.budget != nil && r.budget.observer != nil {
+		return r.commitObserved(l, h, event)
+	}
 	method := r.contract.Methods["commitClaim"]
 	if len(l.frame.Input) != 36 || !bytes.Equal(l.frame.Input[:4], method.ID) || l.log.Topics[1] != common.BytesToHash(common.HexToAddress(l.frame.From).Bytes()) {
 		return ErrReplay

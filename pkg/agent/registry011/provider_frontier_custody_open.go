@@ -25,6 +25,9 @@ func openProviderFrontierCandidate(config providerCustodyConfig, clock *provider
 	clock.mu.Lock()
 	startRead := clock.read
 	clock.mu.Unlock()
+	if !clock.claimLegacy(id.Policy) {
+		return nil, ErrConfiguration
+	}
 	custody, err := openRetentionDisk(config.custodyDirectory)
 	if err != nil {
 		return nil, errProviderIntegration

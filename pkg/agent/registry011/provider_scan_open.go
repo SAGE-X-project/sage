@@ -1,6 +1,7 @@
 package registry011
 
 import (
+	"errors"
 	"os"
 	"strconv"
 )
@@ -9,10 +10,13 @@ import (
 // invokes unobserved V1/V2 setup serializers as a shortcut. Both roots and
 // provisioned scan H0/HEAD0 are external candidate inputs, not created here.
 // No returned private handle is a qualified root principal or execution ACK.
-func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwnedClock) (*providerCustodyStore, error) {
+func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwnedClock) (_ *providerCustodyStore, resultErr error) {
 	id, b := config.identity, config.bounds
 	stored, storedOK := providerGuardianInitialStored(b)
 	if b.scan == nil || !b.valid() || !storedOK || !config.capture.valid() || !b.methods.fits(config.capture) || !providerScanSetupFits(config) || !b.scan.fits(providerScanOpenUpper(config), providerScanUpper{}) || clock == nil || clock.policy != id.Policy || config.attempt != 0 || config.expectedTip != config.anchor || config.expectedSetupTip != config.anchor || !lowerHash(config.anchor) || !lowerHash(config.expectedScanHead) || config.custodyDirectory == "" || config.evidenceDirectory == "" {
+		return nil, ErrConfiguration
+	}
+	if b.history == nil && !clock.claimLegacy(id.Policy) {
 		return nil, ErrConfiguration
 	}
 	s := &providerCustodyStore{config: config, clock: clock, tip: config.anchor, stored: stored, objects: make(map[string]providerIntegrationObjectRef), operations: make(map[string]bool), bindings: make(map[string]string)}
@@ -34,13 +38,43 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 		}
 		s.guardian = g
 	}
+	if b.history != nil {
+		if _, err := newProviderHistoryProgramBeforeOpenCandidate(s); err != nil {
+			return nil, ErrConfiguration
+		}
+	}
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			s.failed = true
+			if s.history != nil {
+				s.history.failLocked()
+				s.history.recovery.revokeForCloseLocked()
+				if s.history.final != nil {
+					s.history.final.stopLocked(true)
+				}
+			}
+			if s.evidence != nil {
+				resultErr = retentionCleanupResult(resultErr, s.evidence.close())
+			}
+			if s.custody != nil {
+				resultErr = retentionCleanupResult(resultErr, s.custody.close())
+			}
+		}
+	}()
 	// The single O is held before any original-root observation. Actual
 	// durable root-operation admission remains a separate unqualified boundary.
 	initial, err := s.sample()
 	if err != nil {
 		return nil, errProviderIntegration
 	}
-	s.setupOrigin = initial
+	if s.history != nil {
+		if !s.history.bindOriginalLocked(initial) {
+			return nil, errProviderIntegration
+		}
+	} else {
+		s.setupOrigin = initial
+	}
 	if s.guardian != nil {
 		// One original sample, before any root observation. No subsequent
 		// process, claim, recovered DATA or later ticket may replace it.
@@ -49,24 +83,19 @@ func openProviderScanCandidate(config providerCustodyConfig, clock *providerOwne
 		}
 		s.guardian.original = initial
 	}
-	succeeded := false
-	defer func() {
-		if !succeeded {
-			s.failed = true
-			if s.evidence != nil {
-				_ = s.evidence.close()
-			}
-			if s.custody != nil {
-				_ = s.custody.close()
-			}
-		}
-	}()
 	s.custody, err = openRetentionDisk(config.custodyDirectory)
 	if err != nil {
-		return nil, errProviderIntegration
+		return nil, errors.Join(errProviderIntegration, err)
 	}
 	s.evidence, err = openRetentionDisk(config.evidenceDirectory)
-	if err != nil || os.SameFile(s.custody.directoryInfo, s.evidence.directoryInfo) || os.SameFile(s.custody.lockInfo, s.evidence.lockInfo) {
+	if err != nil {
+		return nil, errors.Join(errProviderIntegration, err)
+	}
+	if os.SameFile(s.custody.directoryInfo, s.evidence.directoryInfo) || os.SameFile(s.custody.lockInfo, s.evidence.lockInfo) {
+		return nil, errProviderIntegration
+	}
+	if s.history != nil && (!s.history.recovery.bindOriginalRootsBeforeReadLocked() ||
+		s.history.final != nil && !s.history.final.bindOriginalRootsBeforeReadLocked()) {
 		return nil, errProviderIntegration
 	}
 	for _, disk := range []*retentionDisk{s.custody, s.evidence} {

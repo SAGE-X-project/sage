@@ -140,7 +140,7 @@ func TestProviderIntegrationInventoryHasExactPreviousAndSortedClosure(t *testing
 	if json.Unmarshal([]byte(`{}`), &decoded) == nil {
 		t.Fatal("JSON reconstructed a private inventory")
 	}
-	for _, mutate := range []string{"extra", "previous", "missing-entries", "unknown-kind", "bad-digest", "zero-bytes", "entry-extra", "duplicate", "descending", "noncanonical"} {
+	for _, mutate := range []string{"extra", "previous", "missing-entries", "unknown-kind", "bad-digest", "zero-bytes", "signed-size-overflow", "unsigned-size-maximum", "entry-extra", "duplicate", "descending", "noncanonical"} {
 		t.Run(mutate, func(t *testing.T) {
 			m := contentJSON([]byte(inv.raw)).(map[string]any)
 			entries := m["entries"].([]any)
@@ -158,6 +158,10 @@ func TestProviderIntegrationInventoryHasExactPreviousAndSortedClosure(t *testing
 				e["digest"] = "invalid"
 			case "zero-bytes":
 				e["bytes"] = "0"
+			case "signed-size-overflow":
+				e["bytes"] = "9223372036854775808"
+			case "unsigned-size-maximum":
+				e["bytes"] = "18446744073709551615"
 			case "entry-extra":
 				e["extra"] = true
 			case "duplicate":

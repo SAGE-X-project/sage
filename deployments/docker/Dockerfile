@@ -3,7 +3,7 @@
 
 # Stage 1: Builder
 # Base images are pinned by digest (multi-arch index); Dependabot keeps the tag and digest in step.
-FROM golang:1.26.10-alpine@sha256:27f2d3b83cfc5803c8078f8e730af0f7c431bf067afaec8f60a36fb763187cba AS builder
+FROM golang:1.26.11-alpine@sha256:ae52b5bc6ed045a9ed26ab03dc19327a802a9cc9aa8b27ed57f5c6b60579b0bb AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \

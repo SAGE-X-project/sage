@@ -14,17 +14,617 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GO_VERSION: '1.26.10'
+  GO_VERSION: '1.26.11'
   GOTOOLCHAIN: auto
   GOFLAGS: -mod=readonly
 
 jobs:
-  # Retain the focused Registry evidence in its own unchanged15-minute window.
+  native_resource_primitives:
+    name: Native Resource Primitives
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Download and verify module dependencies
+        timeout-minutes: 3
+        run: |
+          for attempt in 1 2 3; do
+            if go mod download; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+            sleep 5
+          done
+          go mod verify
+          git diff --exit-code -- go.mod go.sum
+      - name: Observe disposable child resource limits
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          mkdir -p "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source"
+          git rev-parse HEAD > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/tree.txt"
+          cp internal/qualification/nativelimits/*.go internal/qualification/nativelimits/README.md internal/qualification/nativelimits/testdata/resource_limits.c internal/qualification/nativelimits/testdata/resource_capabilities.c "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/"
+          cp .github/workflows/test.yml "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/source/test-workflow.yml"
+          go test -mod=readonly -count=1 -timeout=3m -tags=registry_native_limits -json ./internal/qualification/nativelimits > "$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/tests.jsonl"
+          git diff --exit-code
+      - name: Build the fixed preparation child
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          registry_worker_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/worker"
+          mkdir -p "$registry_worker_dir/source"
+          # Preserve a formatting diagnostic without modifying checked-out code.
+          gofmt -d internal/registryworker/preparation*.go internal/registryworker/input*.go internal/registryrunner/*.go internal/app/registry_history*.go cmd/sage-registry-worker/*.go pkg/agent/registry011/provider_history_preparation*.go > "$registry_worker_dir/preparation-format.patch"
+          go build -mod=readonly -o "$registry_worker_dir/preparation-worker" ./cmd/sage-registry-worker
+          shasum -a 256 "$registry_worker_dir/preparation-worker" > "$registry_worker_dir/preparation-worker.sha256"
+          SAGE_HISTORY_PREPARATION_FIXTURE_PATH="$registry_worker_dir/preparation-input.json" go test -mod=readonly -count=1 -timeout=2m -json -run '^TestProviderHistoryPreparationCompilesOriginalUnmintedSelection$' ./pkg/agent/registry011 > "$registry_worker_dir/preparation-fixture-tests.jsonl"
+          shasum -a 256 "$registry_worker_dir/preparation-input.json" > "$registry_worker_dir/preparation-input.sha256"
+          git diff --exit-code
+      - name: Check the owning worker with the stock Go runtime
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          registry_worker_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/worker"
+          mkdir -p "$registry_worker_dir/source"
+          cp -R internal/registryworker "$registry_worker_dir/source/"
+          cp -R cmd/sage-registry-worker "$registry_worker_dir/source/"
+          go version > "$registry_worker_dir/compiler.txt"
+          git ls-files -z internal/registryworker | xargs -0 shasum -a 256 > "$registry_worker_dir/source.sha256"
+          export SAGE_REGISTRY_PREPARATION_WORKER="$registry_worker_dir/preparation-worker"
+          export SAGE_HISTORY_PREPARATION_INPUT="$registry_worker_dir/preparation-input.json"
+          worker_status=0
+          go test -mod=readonly -race -count=1 -timeout=4m -tags=registry_native_limits -json -coverprofile="$registry_worker_dir/coverage-parent.out" -covermode=atomic ./internal/registryworker > "$registry_worker_dir/tests.jsonl" || worker_status=$?
+          printf '%s\n' "$worker_status" > "$registry_worker_dir/tests.exit"
+          worker_union_status=0
+          python3 - "$registry_worker_dir" <<'PYWORKERUNION' || worker_union_status=$?
+          import hashlib, json, sys
+          from pathlib import Path
+          root = Path(sys.argv[1])
+          prefix = "github.com/sage-x-project/sage/internal/registryworker/"
+          original_files = {"owner.go", "owner_darwin.go", "terminal_evidence.go", "journal.go"}
+          scenarios = {"close-live-parent", "parent-cancel", "nil-context", "bad-environment", "bad-header",
+              "empty-header", "expired-action", "regular-file", "missing-descriptor", "closed-descriptor"}
+          def read_profile(path):
+              raw = path.read_bytes()
+              lines = raw.decode().splitlines()
+              if not lines or lines[0] != "mode: atomic":
+                  raise ValueError("Missing atomic source measurement")
+              blocks = {}
+              for line in lines[1:]:
+                  location, statements, count = line.rsplit(" ", 2)
+                  statements, count = int(statements), int(count)
+                  if location in blocks or statements < 0 or count < 0:
+                      raise ValueError("Duplicate or invalid source measurement")
+                  blocks[location] = (statements, count)
+              if not blocks:
+                  raise ValueError("Empty source measurement")
+              return blocks, {"path": str(path), "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest()}
+          parent, parent_pin = read_profile(root / "coverage-parent.out")
+          # Preserve the existing four-file gate on its ORIGINAL parent measure.
+          original = {name: {"covered": 0, "statements": 0} for name in original_files}
+          for location, (statements, count) in parent.items():
+              name = location.split(":", 1)[0]
+              if name.startswith(prefix) and name[len(prefix):] in original:
+                  value = original[name[len(prefix):]]
+                  value["statements"] += statements
+                  value["covered"] += statements if count else 0
+          original_passed = all(v["statements"] > 0 and v["covered"] * 100 >= v["statements"] * 90 for v in original.values())
+          union = {location: (statements, int(count > 0)) for location, (statements, count) in parent.items()}
+          child_pins = []
+          for scenario in sorted(scenarios):
+              child, child_pin = read_profile(root / "child-profiles" / scenario / "coverage.out")
+              if child.keys() != parent.keys() or any(child[k][0] != parent[k][0] for k in parent):
+                  raise ValueError("Child source blocks differ from the same parent test binary")
+              child_pins.append({"scenario": scenario, **child_pin})
+              for location, (statements, count) in child.items():
+                  union[location] = (statements, int(union[location][1] > 0 or count > 0))
+          rows = ["mode: atomic"] + [f"{location} {n} {covered}" for location, (n, covered) in sorted(union.items())]
+          (root / "coverage.out").write_text("\n".join(rows) + "\n")
+          (root / "coverage-measurements.json").write_text(json.dumps({
+              "parent": parent_pin, "original_parent_files": original, "original_parent_gate_passed": original_passed,
+              "children": child_pins, "aggregate": "coverage.out", "minimum_percent_per_file": 90,
+              "scope": "Separate same-binary library unit source-coverage union; covered flags, never summed execution counts. Fixed production child runtime and whole-profile qualification are separate."
+          }, indent=2) + "\n")
+          if not original_passed:
+              raise SystemExit("The original parent-only worker coverage gate failed")
+          PYWORKERUNION
+          printf '%s\n' "$worker_union_status" > "$registry_worker_dir/coverage-union.exit"
+          worker_coverage_status=0
+          python3 - "$registry_worker_dir/coverage.out" "$registry_worker_dir/coverage-gate.json" <<'PYWORKERCOVERAGE' || worker_coverage_status=$?
+          import json, sys
+          from pathlib import Path
+          prefix = "github.com/sage-x-project/sage/internal/registryworker/"
+          def read_coverage(rows):
+              files = {name: {"covered": 0, "statements": 0} for name in ("owner.go", "owner_darwin.go", "terminal_evidence.go", "journal.go", "preparation.go", "preparation_darwin.go", "input.go", "input_memory.go", "input_darwin.go")}
+              if not rows or rows[0] != "mode: atomic":
+                  raise ValueError("Owning worker atomic coverage is missing")
+              seen = set()
+              for row in rows[1:]:
+                  location, statements, count = row.rsplit(" ", 2)
+                  name = location.split(":", 1)[0]
+                  if not name.startswith(prefix) or name[len(prefix):] not in files or location in seen:
+                      raise ValueError("Unexpected or duplicate owning worker coverage block")
+                  seen.add(location)
+                  statements, count = int(statements), int(count)
+                  if statements < 0 or count < 0:
+                      raise ValueError("Invalid owning worker coverage integers")
+                  value = files[name[len(prefix):]]
+                  value["statements"] += statements
+                  value["covered"] += statements if count else 0
+              return files
+          def passes(files):
+              return all(v["statements"] > 0 and v["covered"] * 100 >= v["statements"] * 90 for v in files.values())
+          # Exercise this same reader and exact integer threshold, not a copy.
+          row = lambda name, block, n, count: f"{prefix}{name}:{block} {n} {count}"
+          positive = ["mode: atomic", row("owner.go", "1.1,2.1", 9, 1),
+              row("owner.go", "3.1,4.1", 1, 0), row("owner_darwin.go", "1.1,2.1", 1, 1),
+              row("terminal_evidence.go", "1.1,2.1", 1, 1), row("journal.go", "1.1,2.1", 1, 1),
+              row("preparation.go", "1.1,2.1", 1, 1), row("preparation_darwin.go", "1.1,2.1", 1, 1),
+              row("input.go", "1.1,2.1", 1, 1), row("input_memory.go", "1.1,2.1", 1, 1), row("input_darwin.go", "1.1,2.1", 1, 1)]
+          cases = [
+              ("zero-statement-covered", positive + [row("owner.go", "5.1,6.1", 0, 1)], True),
+              ("zero-statement-uncovered", positive + [row("owner.go", "5.1,6.1", 0, 0)], True),
+              ("negative-statements", positive + [row("owner.go", "5.1,6.1", -1, 1)], False),
+              ("negative-count", positive + [row("owner.go", "5.1,6.1", 0, -1)], False),
+              ("duplicate", positive + [positive[1]], False),
+              ("unexpected-file", positive + [row("other.go", "1.1,2.1", 1, 1)], False),
+              ("missing-file", positive[:-1], False),
+              ("missing-mode", positive[1:], False),
+              ("zero-total-file", [entry for entry in positive if not entry.startswith(prefix + "journal.go:")] + [row("journal.go", "1.1,2.1", 0, 1)], False),
+              ("below-threshold", positive + [row("owner.go", "5.1,6.1", 1, 0)], False),
+          ]
+          format_results = []
+          for name, rows, expected in cases:
+              try:
+                  accepted = passes(read_coverage(rows))
+              except ValueError:
+                  accepted = False
+              if accepted != expected:
+                  raise SystemExit(f"Owning worker coverage reader case failed: {name}")
+              format_results.append({"name": name, "expected_acceptance": expected, "passed": True})
+          Path(sys.argv[2]).with_name("coverage-format-cases.json").write_text(json.dumps(format_results, indent=2) + "\n")
+          files = read_coverage(Path(sys.argv[1]).read_text().splitlines())
+          passed = passes(files)
+          Path(sys.argv[2]).write_text(json.dumps({"files": files, "minimum_percent": 90, "passed": passed,
+              "scope": "Darwin owning worker production files; safe fixture and unsupported platforms are separate"}, indent=2) + "\n")
+          if not passed:
+              raise SystemExit("Owning worker requires 90 percent coverage in each production file")
+          PYWORKERCOVERAGE
+          printf '%s\n' "$worker_coverage_status" > "$registry_worker_dir/coverage-gate.exit"
+          git diff --exit-code
+          if [ "$worker_status" -ne 0 ]; then
+            exit "$worker_status"
+          fi
+          if [ "$worker_union_status" -ne 0 ]; then
+            exit "$worker_union_status"
+          fi
+          exit "$worker_coverage_status"
+      - name: Check directly used compiler storage
+        timeout-minutes: 1
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          compiler_memory_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/compiler-memory"
+          mkdir -p "$compiler_memory_dir/source"
+          git rev-parse HEAD > "$compiler_memory_dir/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$compiler_memory_dir/tree.txt"
+          go version > "$compiler_memory_dir/compiler.txt"
+          cp pkg/agent/registry011/internal/compilermemory/*.go "$compiler_memory_dir/source/"
+          export SAGE_COMPILER_MEMORY_EVIDENCE_DIR="$compiler_memory_dir"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          names = ('GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY')
+          Path(os.environ['SAGE_COMPILER_MEMORY_EVIDENCE_DIR'], 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
+          PY
+          compiler_memory_format_status=0
+          gofmt -d pkg/agent/registry011/internal/compilermemory/*.go > "$compiler_memory_dir/format.patch" || compiler_memory_format_status=$?
+          printf '%s\n' "$compiler_memory_format_status" > "$compiler_memory_dir/format-exit.txt"
+          compiler_memory_status=0
+          go test -mod=readonly -race -count=1 -timeout=30s -tags=registry_native_limits -json -coverprofile="$compiler_memory_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011/internal/compilermemory > "$compiler_memory_dir/tests.jsonl" || compiler_memory_status=$?
+          printf '%s\n' "$compiler_memory_status" > "$compiler_memory_dir/test-exit.txt"
+          compiler_memory_coverage_status=0
+          python3 - <<'PY' || compiler_memory_coverage_status=$?
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ['SAGE_COMPILER_MEMORY_EVIDENCE_DIR'])
+          prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/internal/compilermemory/'
+          expected = {'integer.go', 'json.go', 'json_parse.go', 'json_string.go', 'json_value.go', 'json_decoded_string.go', 'json_decoded_string_store.go', 'region.go', 'region_darwin.go', 'region_order.go', 'region_snapshot.go'}
+          totals = {}
+          lines = (root / 'coverage.out').read_text().splitlines()
+          if not lines or lines[0] != 'mode: atomic':
+              raise SystemExit('compiler storage atomic coverage required')
+          for line in lines[1:]:
+              location, statements, count = line.rsplit(' ', 2)
+              path, _ = location.rsplit(':', 1)
+              if not path.startswith(prefix):
+                  raise SystemExit('unexpected compiler storage coverage package')
+              name = path[len(prefix):]
+              covered, total = totals.setdefault(name, [0, 0])
+              statements, count = int(statements), int(count)
+              if statements < 0 or count < 0:
+                  raise SystemExit('invalid compiler storage coverage count')
+              totals[name] = [covered + (statements if count else 0), total + statements]
+          passed = set(totals) == expected and all(total > 0 and 100 * covered >= 90 * total for covered, total in totals.values())
+          report = {
+              'scope': 'Compiler storage component statement coverage only; not complete compiler resources, physical backing of other Go allocations, derivation or Source readiness',
+              'files': {name: {'covered': covered, 'total': total} for name, (covered, total) in sorted(totals.items())},
+              'inactive_file': {'region_other.go': 'Not compiled on this Darwin target; not a coverage PASS'},
+              'file90': passed,
+          }
+          (root / 'coverage-summary.json').write_text(json.dumps(report, indent=2) + '\n')
+          if not passed:
+              raise SystemExit('each active compiler storage file requires positive statements and at least 90 percent')
+          PY
+          if [ "$compiler_memory_status" -ne 0 ]; then exit "$compiler_memory_status"; fi
+          if [ "$compiler_memory_coverage_status" -ne 0 ]; then exit "$compiler_memory_coverage_status"; fi
+          if [ "$compiler_memory_format_status" -ne 0 ]; then exit "$compiler_memory_format_status"; fi
+          if [ -s "$compiler_memory_dir/format.patch" ]; then exit 1; fi
+          git diff --exit-code
+      - name: Check the native preparation session and actual result reader
+        if: ${{ !cancelled() }}
+        env:
+          SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR: ${{ runner.temp }}/native-resource-primitives
+        run: |
+          native_preparation_dir="$SAGE_NATIVE_PRIMITIVE_EVIDENCE_DIR/native-preparation"
+          mkdir -p "$native_preparation_dir/source"
+          git rev-parse HEAD > "$native_preparation_dir/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$native_preparation_dir/tree.txt"
+          go version > "$native_preparation_dir/compiler.txt"
+          cp pkg/agent/registry011/provider_history_preparation*.go pkg/agent/registry011/provider_history_selection*.go pkg/agent/registry011/provider_policy*.go "$native_preparation_dir/source/"
+          git ls-files -z cmd/sage-registry-worker internal/registryworker pkg/agent/registry011 go.mod go.sum .github/workflows/test.yml | xargs -0 shasum -a 256 > "$native_preparation_dir/source.sha256"
+          export SAGE_NATIVE_PREPARATION_EVIDENCE_DIR="$native_preparation_dir"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          names = ('GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY')
+          Path(os.environ['SAGE_NATIVE_PREPARATION_EVIDENCE_DIR'], 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
+          PY
+          native_preparation_format_status=0
+          gofmt -d pkg/agent/registry011/provider_history_preparation*.go pkg/agent/registry011/provider_history_selection*.go pkg/agent/registry011/provider_policy*.go cmd/sage-registry-worker/*.go > "$native_preparation_dir/format.patch" || native_preparation_format_status=$?
+          printf '%s\n' "$native_preparation_format_status" > "$native_preparation_dir/format-exit.txt"
+          native_preparation_status=0
+          python3 - <<'PY' || native_preparation_status=$?
+          import datetime, hashlib, json, os, re, stat, subprocess, time
+          from pathlib import Path
+          root = Path(os.environ['SAGE_NATIVE_PREPARATION_EVIDENCE_DIR']).resolve(strict=True)
+          repository = Path.cwd().resolve(strict=True)
+          package = 'github.com/sage-x-project/sage/pkg/agent/registry011'
+          package_directory = repository / 'pkg/agent/registry011'
+          prefix = package + '/'
+          expected_roots = [
+              'TestProviderHistoryPreparationNativeUsesOriginalPlanAndRetainedResult',
+              'TestProviderHistoryPreparationNativeResultRefusalNeverReadsGoFallback',
+              'TestProviderHistoryPreparationNativeResultPreservesBothDigestContracts',
+              'TestProviderHistoryPreparationNativeCloseDropsPrivateReferences',
+              'TestProviderHistoryPreparationNativeDecoderPreservesEveryRequiredField',
+              'TestProviderHistoryPreparationNativeDecoderRefusesChangedWireShapes',
+              'TestProviderHistoryPreparationNativeDecoderMatchesOriginalPolicySyntax',
+              'TestProviderHistoryPreparationNativeSimulatedAcquisitionFailuresRemainTerminal',
+              'TestProviderHistoryPreparationNativeTypedValuesRemainExact',
+              'TestProviderHistoryPreparationNativeSchemaMetadataRemainsClosed',
+              'TestProviderHistoryPreparationNativeOriginalCleanupCannotBeExtended',
+              'TestProviderHistoryPreparationNativeStringAdapterDiscardsCanceledValues',
+              'TestProviderHistoryNativeOwnedSelectionPreservesAllInputData',
+              'TestProviderHistoryNativeOwnedSelectionRefusesUnvalidatedAndLostOwners',
+              'TestProviderHistoryNativeOwnedSelectionHashesOuterWhitespaceExactly',
+              'TestProviderHistoryNativeOwnedSelectionKeepsScalarErrorContract',
+              'TestProviderHistoryNativeOwnedSelectionTypedWidthBoundaries',
+              'TestProviderHistoryNativeOwnedSelectionTypedReadsKeepLifetimeCauses',
+              'TestProviderPolicyNativeSharesExactSemanticContract',
+              'TestProviderPolicyNativeRejectsNoncanonicalOriginalBytes',
+              'TestProviderPolicyNativeUsesOwnedDecodedNumbersAndOneAttempt',
+              'TestProviderPolicyNativeRefusesLostLifetimeAndCapacity',
+              'TestProviderHistoryNativeOwnedSelectionConsumesCompiledNativeManifest',
+              'TestProviderHistoryNativeOwnedSelectionRetainedPlanRejectsLostOwners',
+              'TestProviderHistoryNativeOwnedSelectionManifestAcquisitionFailuresRemainTerminal',
+              'TestProviderHistoryNativeOwnedSelectionResultAcquisitionFailuresRemainTerminal',
+              'TestProviderHistoryNativeOwnedSelectionCleanupFailureDiscardsPlan',
+              'TestProviderHistoryNativeOwnedSelectionHeaderKeepsOriginalRefusalOrder',
+              'TestProviderHistoryNativeSelectionRejectsInvalidTypedBoundaries',
+              'TestProviderHistoryNativeSelectionConfigKeepsRefusalCauses',
+              'TestProviderHistoryNativeSelectionRetainedDataBoundaries',
+              'TestProviderPolicyNativeBoundariesKeepOriginalRefusals',
+              'TestProviderHistoryNativeSelectionClockReadsOriginalOwnedPolicy',
+              'TestProviderHistoryNativeSelectionClockRefusesChangedAndLostOwners',
+              'TestProviderHistoryNativeSelectionClockCancellationDiscardsPartialFields',
+          ]
+          expected_files = {
+              'provider_history_preparation_native_darwin.go',
+              'provider_history_preparation_native_decode_darwin.go',
+              'provider_history_preparation_native_result_darwin.go',
+              'provider_history_selection_native_darwin.go',
+              'provider_history_selection_config_darwin.go',
+              'provider_history_selection_plan_darwin.go',
+              'provider_history_selection_clock_darwin.go',
+              'provider_policy_native_darwin.go',
+          }
+          manifest = {
+              'format': 'sage-native-preparation-invocation-set-v1',
+              'package': package, 'expected_roots': expected_roots,
+              'tags': ['registry_native_limits'], 'race': True,
+              'each_binary_timeout_seconds': 30, 'existing_job_timeout_minutes': 10,
+              'previous_single_aggregate_30_second_scheduling_changed': True,
+              'source_manifest_sha256': hashlib.sha256((root / 'source.sha256').read_bytes()).hexdigest(),
+              'invocations': [], 'errors': [], 'execution_complete': False,
+              'profiles_complete': False, 'complete': False,
+          }
+          totals = {}
+
+          def save(path, value):
+              path.write_text(json.dumps(value, indent=2) + '\n')
+
+          def binary_identity(path):
+              metadata = path.lstat()
+              if not stat.S_ISREG(metadata.st_mode) or metadata.st_size == 0:
+                  raise ValueError('a regular nonempty test binary is required')
+              return {'bytes': metadata.st_size, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+
+          def run(directory, arguments, cwd, environment):
+              directory.mkdir()
+              started = time.monotonic()
+              record = {'arguments': arguments, 'cwd': str(cwd),
+                        'GOCOVERDIR': environment.get('GOCOVERDIR'),
+                        'started_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()}
+              save(directory / 'command.json', record)
+              with (directory / 'stdout').open('wb') as output, (directory / 'stderr').open('wb') as error:
+                  result = subprocess.run(arguments, cwd=cwd, env=environment, stdout=output, stderr=error)
+              record.update({'wrapper_exit': result.returncode, 'elapsed_seconds': time.monotonic() - started,
+                             'finished_utc': datetime.datetime.now(datetime.timezone.utc).isoformat()})
+              record['streams'] = {name: {'bytes': (directory / name).stat().st_size,
+                                         'sha256': hashlib.sha256((directory / name).read_bytes()).hexdigest()}
+                                   for name in ('stdout', 'stderr')}
+              # test2json maps child failure to 1; this is not a child numeric exit.
+              save(directory / 'command.json', record)
+              (directory / 'wrapper-exit.txt').write_text(str(result.returncode) + '\n')
+              return record
+
+          def check_events(path, selected):
+              events = [json.loads(line) for line in path.read_text().splitlines() if line]
+              names, packages, package_starts = {}, [], 0
+              allowed = {'start', 'run', 'pause', 'cont', 'output', 'pass', 'fail', 'skip'}
+              for index, event in enumerate(events):
+                  if event.get('Package') != package or event.get('Action') not in allowed:
+                      raise ValueError('unexpected native test event')
+                  name = event.get('Test')
+                  if name:
+                      if not isinstance(name, str) or (name != selected and not name.startswith(selected + '/')):
+                          raise ValueError('a different root or child was executed')
+                      names.setdefault(name, []).append((index, event['Action']))
+                  elif event['Action'] in {'pass', 'fail', 'skip'}:
+                      packages.append(event['Action'])
+                  elif event['Action'] == 'start':
+                      package_starts += 1
+              if (selected not in names or packages != ['pass'] or package_starts != 1
+                      or events[0].get('Action') != 'start'
+                      or events[-1].get('Action') != 'pass' or events[-1].get('Test')):
+                  raise ValueError('selected root and package PASS are required')
+              for name, actions in names.items():
+                  starts = [index for index, action in actions if action == 'run']
+                  terminals = [(index, action) for index, action in actions if action in {'pass', 'fail', 'skip'}]
+                  if len(starts) != 1 or len(terminals) != 1 or starts[0] >= terminals[0][0] or terminals[0][1] != 'pass':
+                      raise ValueError('native testcase missing, repeated, unfinished, failed or skipped: ' + name)
+              return {'events': len(events), 'named_pass': len(names), 'package_pass': True}
+
+          def read_profile(path):
+              lines = path.read_text().splitlines()
+              if not lines or lines[0] != 'mode: atomic':
+                  raise ValueError('native preparation atomic coverage required')
+              rows = {}
+              for line in lines[1:]:
+                  location, statements, count = line.split()
+                  filename, coordinates = location.rsplit(':', 1)
+                  if (filename.rsplit('/', 1)[0] != prefix[:-1] or location in rows
+                          or filename == prefix + 'provider_history_preparation_native_other.go'
+                          or not re.fullmatch(r'[0-9]+\.[0-9]+,[0-9]+\.[0-9]+', coordinates)
+                          or not statements.isascii() or not statements.isdecimal()
+                          or not count.isascii() or not count.isdecimal()):
+                      raise ValueError('unexpected native preparation coverage row')
+                  rows[location] = (int(statements), int(count) > 0)
+              if not rows:
+                  raise ValueError('empty native preparation profile')
+              return rows
+
+          try:
+              if len(expected_roots) != 35 or len(set(expected_roots)) != 35:
+                  raise ValueError('thirty-five unique native preparation, selection and policy roots are required')
+              binary = root / 'native-preparation.test'
+              environment = dict(os.environ)
+              target = run(root / 'target', ['go', 'env', '-json', 'GOOS', 'GOARCH', 'GOVERSION'], repository, environment)
+              manifest['target'] = target
+              if target['wrapper_exit']:
+                  raise ValueError('actual Go target metadata is required')
+              manifest['go_target'] = json.loads((root / 'target/stdout').read_text())
+              if (manifest['go_target'].get('GOOS') != 'darwin' or not manifest['go_target'].get('GOARCH')
+                      or manifest['go_target'].get('GOVERSION') != 'go' + environment['GO_VERSION']):
+                  raise ValueError('the native Darwin target is required')
+              build = run(root / 'build', ['go', 'test', '-c', '-mod=readonly', '-race',
+                          '-tags=registry_native_limits', '-cover', '-covermode=atomic',
+                          '-o', str(binary), './pkg/agent/registry011'], repository, environment)
+              manifest['build'] = build
+              if build['wrapper_exit']:
+                  raise ValueError('native preparation test build failed')
+              identity = binary_identity(binary)
+              manifest['binary'] = {'path': str(binary), **identity}
+              discovery_cover = root / 'discovery-gocover'
+              discovery_cover.mkdir()
+              discovery_environment = {**environment, 'GOCOVERDIR': str(discovery_cover)}
+              listing = run(root / 'discovery', [str(binary), '-test.list=^TestProvider(HistoryPreparationNative|HistoryNativeOwnedSelection|HistoryNativeSelection|PolicyNative)',
+                            '-test.paniconexit0', '-test.gocoverdir=' + str(discovery_cover)],
+                            package_directory, discovery_environment)
+              manifest['discovery'] = listing
+              discovered = (root / 'discovery/stdout').read_text().splitlines()
+              if (listing['wrapper_exit'] or len(discovered) != len(set(discovered))
+                      or set(discovered) != set(expected_roots) or binary_identity(binary) != identity):
+                  raise ValueError('compiled native root discovery must match every declared preparation, selection and policy root')
+              manifest['compiled_roots'] = discovered
+              # All original children run. A slash filter or retries would change that scope.
+              for ordinal, selected in enumerate(expected_roots):
+                  part = root / ('invocation-' + str(ordinal).zfill(2))
+                  cover_directory = root / ('gocover-' + str(ordinal).zfill(2))
+                  cover_directory.mkdir()
+                  invocation = {'ordinal': ordinal, 'selected_root': selected,
+                                'binary': identity, 'profile': str(part / 'coverage.out'), 'complete': False}
+                  manifest['invocations'].append(invocation)
+                  try:
+                      if binary_identity(binary) != identity:
+                          raise ValueError('test binary identity changed before invocation')
+                      arguments = ['go', 'tool', 'test2json', '-t', '-p', package, str(binary),
+                                   '-test.v=test2json', '-test.paniconexit0', '-test.run=^' + selected + '$',
+                                   '-test.count=1', '-test.timeout=30s',
+                                   '-test.gocoverdir=' + str(cover_directory),
+                                   '-test.coverprofile=' + str(part / 'coverage.out')]
+                      invocation['command'] = run(part, arguments, package_directory,
+                                                  {**environment, 'GOCOVERDIR': str(cover_directory)})
+                      if binary_identity(binary) != identity or invocation['command']['wrapper_exit']:
+                          raise ValueError('native test invocation refused or changed its binary')
+                      invocation['events'] = check_events(part / 'stdout', selected)
+                      invocation['profile_sha256'] = hashlib.sha256((part / 'coverage.out').read_bytes()).hexdigest()
+                      invocation['complete'] = True
+                  except (OSError, ValueError, KeyError, TypeError) as error:
+                      invocation['error'] = str(error)
+                      manifest['errors'].append(selected + ': ' + str(error))
+                  save(root / 'invocations.json', manifest)
+              if (len(manifest['invocations']) != len(expected_roots)
+                      or [entry['selected_root'] for entry in manifest['invocations']] != expected_roots
+                      or not all(entry['complete'] for entry in manifest['invocations'])):
+                  raise ValueError('every original native root must complete exactly once')
+              manifest['execution_complete'] = True
+              combined = None
+              for invocation in manifest['invocations']:
+                  profile_path = Path(invocation['profile'])
+                  if hashlib.sha256(profile_path.read_bytes()).hexdigest() != invocation['profile_sha256']:
+                      raise ValueError('original coverage profile changed')
+                  rows = read_profile(profile_path)
+                  if combined is None:
+                      combined = rows
+                  else:
+                      if set(combined) != set(rows) or any(combined[name][0] != rows[name][0] for name in rows):
+                          raise ValueError('coverage block identities or statements differ')
+                      combined = {name: (rows[name][0], combined[name][1] or rows[name][1]) for name in rows}
+              manifest['profiles_complete'] = True
+              # Derived covered flags are not raw execution counters; retain every original profile.
+              for location, (statements, covered) in combined.items():
+                  filename = location.rsplit(':', 1)[0][len(prefix):]
+                  if filename in expected_files:
+                      entry = totals.setdefault(filename, [0, 0])
+                      entry[0] += statements if covered else 0
+                      entry[1] += statements
+              passed = set(totals) == expected_files and all(total > 0 and 100 * covered >= 90 * total for covered, total in totals.values())
+              if not passed or binary_identity(binary) != identity:
+                  raise ValueError('each native preparation production file requires positive statements and at least 90 percent')
+              manifest['complete'] = True
+          except (OSError, ValueError, KeyError, TypeError) as error:
+              manifest['errors'].append(str(error))
+          finally:
+              save(root / 'invocations.json', manifest)
+              save(root / 'coverage-summary.json', {
+                  'scope': 'Complete exact-root union of original native DATA preparation invocations; not compiler resource, private derivation, custody or Source readiness qualification',
+                  'counter_basis': 'Derived OR of covered flags, not raw summed execution counts',
+                  'files': {name: {'covered': covered, 'total': total} for name, (covered, total) in sorted(totals.items())},
+                  'inactive_file': {'provider_history_preparation_native_other.go': 'Not compiled on Darwin; no coverage PASS'},
+                  'execution_complete': manifest['execution_complete'],
+                  'profiles_complete': manifest['profiles_complete'],
+                  'complete': manifest['complete'], 'file90': manifest['complete'] and not manifest['errors'],
+              })
+          if manifest['errors'] or not manifest['complete']:
+              raise SystemExit('native preparation invocation set incomplete or refused: ' + '; '.join(manifest['errors']))
+          PY
+          printf '%s\n' "$native_preparation_status" > "$native_preparation_dir/test-exit.txt"
+          if [ "$native_preparation_status" -ne 0 ]; then exit "$native_preparation_status"; fi
+          if [ "$native_preparation_format_status" -ne 0 ]; then exit "$native_preparation_format_status"; fi
+          if [ -s "$native_preparation_dir/format.patch" ]; then exit 1; fi
+          git diff --exit-code
+      - name: Retain native resource observations
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-resource-primitives
+          path: ${{ runner.temp }}/native-resource-primitives/
+          if-no-files-found: error
+          retention-days: 14
+
+  # Keep finite runner headroom for race-enabled Registry evidence.
   # The required Go Tests job explicitly gates on this job's success.
-  registry_source_checks:
-    name: Registry Source Checks
+  registry_fixture_check:
+    name: Registry Fixture Check
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 12
+    env:
+      GOFLAGS: -mod=readonly
+      GOTOOLCHAIN: auto
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.11'
+          cache: true
+      - name: Check declaration-only coverage inventory
+        run: |
+          format_diff="$(gofmt -d tools/registrycoverage)"
+          if [ -n "$format_diff" ]; then
+            printf '%s\n' "$format_diff"
+            exit 1
+          fi
+          go test -mod=readonly -count=1 -json ./tools/registrycoverage
+      - name: Check bounded recovery fixture before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/registry-fixture-check"
+          mkdir -p "$registry_fixture_dir"
+          go version > "$registry_fixture_dir/compiler.txt"
+          git rev-parse HEAD > "$registry_fixture_dir/revision.txt"
+          git rev-parse 'HEAD^{tree}' > "$registry_fixture_dir/tree.txt"
+          git ls-files -z pkg/agent/registry011 go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml | xargs -0 sha256sum > "$registry_fixture_dir/source.sha256"
+          # This early unit result never replaces full partitions or their coverage.
+          go test -mod=readonly -race -count=1 -timeout=2m -json -run '^TestProviderHistoryRecoveryInitialNamesKeepEveryFiniteCapacityPrefix$' ./pkg/agent/registry011 > "$registry_fixture_dir/tests.jsonl"
+          git diff --exit-code
+      - name: Check original references before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/registry-fixture-check"
+          reference_status=0
+          # Owned UNIT checks only; full partitions and coverage remain required.
+          go test -mod=readonly -race -count=1 -timeout=8m -json -run '^(TestProviderHistoryCheckpointPreparationRejectsIncompletePhaseAndCapacityData|TestProviderHistoryFailedSettlementRechecksItsActualCompletedPrefix|TestProviderHistoryFailedSettlementShapesRequireOriginalFailureAndPrefixMetadata|TestProviderHistoryFirstOriginalClosureRejectsMissingAndChangedPrivateReferences|TestProviderHistoryInitialCheckpointRejectsMissingPrivateHeadWithoutPublishingData|TestProviderHistoryMemberContextUpperMatchesIndependentLiterals|TestProviderHistoryMemberContextTypeCeilingsMatchActualWalks|TestProviderHistoryMemberContextBoundCoversGenuineClaimsAndArchivedFacts|TestProviderHistoryMemberContextShortageKeepsOriginalWalkPrefix|TestProviderHistoryReconstructionFullIntervalQuoteDoesNotQualifySmallCatalog|TestProviderHistoryRecoveryGroupReadRefusesAbsentContextBeforeOriginalInput|TestProviderHistoryRecoveryGroupRejectsInconsistentInitialAndWholeChainData|TestProviderHistoryRecoveryLegacyReferencesCannotReplaceCompleteOriginalFrames|TestProviderHistoryRecoveryLegacyRejectsUnplannedSetupAndDifferentFinalRoots|TestProviderHistorySettlementRejectsChangedConsumedOriginalBeforePublication|TestProviderHistorySourcePlanReportsFullSpanCostsWithoutAuthority|TestProviderHistorySourcePlanKeepsItsSelectionAfterCallerUpdates|TestProviderHistorySourcePlanWithholdsPartialResultOnRefusal|TestProviderHistorySourcePlanCannotBeRestoredFromJSON|TestProviderHistorySourceSnapshotDetachesSelectedPointers|TestProviderHistorySourceSnapshotRefusesIncompleteSelection|TestProviderHistorySourceSnapshotReconstructsManifestInsteadOfTrustingSeal|TestProviderScanOpenClosesPreselectedReadersAfterRootLockRefusal|TestProviderHistorySourceInputCopyDoesNotKeepCallerStringBacking|TestProviderHistorySourcePlanRetainsDetachedClockTextAndExactOrigin|TestProviderHistorySourceInputPreflightRefusesUnboundedCopyInputs|TestProviderHistorySourcePlanRejectsImpossiblePayloadBeforeGroupEnumeration|TestProviderHistorySourcePayloadDomainRetainsSmallUnqualifiedPlan|TestProviderHistorySourcePayloadDomainIncludesTheExactAbsoluteBoundary|TestProviderHistorySourcePayloadDomainRejectsIncompleteStorageInputs|TestProviderContinuingPinHeaderSelectionFundsTheOriginalAdmission|TestProviderContinuingPinHeaderSelectionCompletesOwnedExchanges)$' ./pkg/agent/registry011 > "$registry_fixture_dir/reference-tests.jsonl" || reference_status=$?
+          printf '%s\n' "$reference_status" > "$registry_fixture_dir/reference-tests.exit"
+          git diff --exit-code
+          exit "$reference_status"
+      - name: Check original preparation input before complete partitions
+        run: |
+          registry_fixture_dir="$RUNNER_TEMP/registry-fixture-check"
+          preparation_status=0
+          # A refusal is a failed prerequisite, never a substitute for full tests.
+          go test -mod=readonly -race -count=1 -timeout=2m -json -run '^TestProviderHistoryPreparationCompilesOriginalUnmintedSelection$' ./pkg/agent/registry011 > "$registry_fixture_dir/preparation-tests.jsonl" || preparation_status=$?
+          printf '%s\n' "$preparation_status" > "$registry_fixture_dir/preparation-tests.exit"
+          git diff --exit-code
+          exit "$preparation_status"
+      - name: Retain recovery fixture check
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: registry-fixture-check
+          path: ${{ runner.temp }}/registry-fixture-check/
+          if-no-files-found: error
+          retention-days: 14
+
+  registry_source_shard:
+    needs: registry_fixture_check
+    name: Registry Source Shard (${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    timeout-minutes: 135
 
     steps:
       - name: Checkout code
@@ -41,24 +641,163 @@ jobs:
 
       - name: Verify Registry Source clock and checkpoint checks
         run: |
-          mkdir -p "$RUNNER_TEMP/registry-source-checks/source"
+          mkdir -p "$RUNNER_TEMP/registry-source-checks"
           go version > "$RUNNER_TEMP/registry-source-checks/compiler.txt"
           git rev-parse HEAD > "$RUNNER_TEMP/registry-source-checks/revision.txt"
           git rev-parse 'HEAD^{tree}' > "$RUNNER_TEMP/registry-source-checks/tree.txt"
-          git ls-files -z pkg/agent/registry011 docs/dev/registry-source-checks.md docs/dev/agent-embedding.md docs/INDEX.md go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml .gitleaks.toml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
-          cp pkg/agent/registry011/*.go pkg/agent/registry011/*.json "$RUNNER_TEMP/registry-source-checks/source/"
-          cp -R pkg/agent/registry011/testdata "$RUNNER_TEMP/registry-source-checks/source/"
+          git ls-files -z .github/scripts/registry_test_shards.py .github/scripts/test_registry_test_shards.py pkg/agent/registry011 docs/dev/registry-source-checks.md docs/dev/agent-embedding.md docs/INDEX.md go.mod go.sum .github/workflows/test.yml .github/workflows/registry-node-evidence.yml .gitleaks.toml | xargs -0 sha256sum > "$RUNNER_TEMP/registry-source-checks/source.sha256"
+          python3 .github/scripts/registry_test_shards.py snapshot source "$RUNNER_TEMP/registry-source-checks"
           python3 - <<'PYSOURCE'
           import json, os
           from pathlib import Path
           names = ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_RUN_ATTEMPT', 'GITHUB_JOB', 'GITHUB_REF', 'GITHUB_REPOSITORY']
           Path(os.environ['RUNNER_TEMP'], 'registry-source-checks', 'context.json').write_text(json.dumps({name: os.environ[name] for name in names}, indent=2) + '\n')
           PYSOURCE
-          go test -mod=readonly -race -count=1 -json -coverprofile="$RUNNER_TEMP/registry-source-checks/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/tests.jsonl"
-          go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
+          # Check the recent fixture and native-byte regressions before the full suite.
+          # This separate log neither supplies coverage nor replaces complete evidence.
+          if [ "${{ matrix.shard }}" = "0" ]; then
+            go test -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall|TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity|TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState)$' ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/regression-controls.jsonl"
+          fi
+
+      - name: Check Registry evidence partition scenarios
+        if: matrix.shard == 0
+        run: |
+          registry_unit_dir="$RUNNER_TEMP/registry-source-checks/partition-unit-coverage"
+          mkdir -p "$registry_unit_dir"
+          python3 - "$registry_unit_dir" > "$RUNNER_TEMP/registry-source-checks/partition-unit-tests.txt" 2>&1 <<'PYPARTITIONCOVER'
+          from pathlib import Path
+          import runpy, sys, trace
+          directory = Path(sys.argv[1])
+          script = Path('.github/scripts/test_registry_test_shards.py').resolve()
+          sys.path.insert(0, str(script.parent))
+          sys.argv = [str(script)]
+          tracer = trace.Trace(count=True, trace=False)
+          status = 0
+          try:
+              tracer.runfunc(runpy.run_path, str(script), run_name='__main__')
+          except SystemExit as exit:
+              status = exit.code if isinstance(exit.code, int) else int(exit.code is not None)
+          finally:
+              tracer.results().write_results(show_missing=True, coverdir=str(directory))
+          if status:
+              raise SystemExit(status)
+          from pathlib import Path
+          import re, sys
+          files = list(directory.rglob('registry_test_shards.cover'))
+          if len(files) != 1:
+              raise SystemExit('Missing unique Registry evidence helper coverage')
+          lines = files[0].read_text().splitlines()
+          covered = sum(bool(re.match(r'^\s*\d+:', line)) for line in lines)
+          missed = sum(line.startswith('>>>>>>') for line in lines)
+          if not covered or covered * 100 < (covered + missed) * 90:
+              raise SystemExit(f'Registry evidence helper: {covered}/{covered + missed}; requires 90%')
+          print(f'Registry evidence helper: {covered}/{covered + missed}; at least 90%')
+          PYPARTITIONCOVER
+
+      - name: Measure maximum Registry dispatch
+        if: matrix.shard == 0
+        run: |
+          # Profile one genuine maximum-member control separately from full-suite evidence.
+          # Preserve failed diagnostics and every native window and coverage gate.
+          registry_profile_status=0
+          go test -mod=readonly -race -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" -o "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" -coverprofile="$RUNNER_TEMP/registry-source-checks/cpu-profile-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/cpu-profile-tests.jsonl" || registry_profile_status=$?
+          printf '%s\n' "$registry_profile_status" > "$RUNNER_TEMP/registry-source-checks/cpu-profile.exit"
+          go tool pprof -top -nodecount=50 -sample_index=cpu "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" "$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-profile-flat.txt"
+          go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" "$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-profile-cumulative.txt"
+          sha256sum "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" "$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-profile.sha256"
+          python3 - "$RUNNER_TEMP/registry-source-checks/cpu-profile-tests.jsonl" <<'PYPROFILE'
+          import json, sys
+          from pathlib import Path
+          target = 'TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals/32'
+          events = [json.loads(line) for line in Path(sys.argv[1]).read_text().splitlines() if line.strip()]
+          starts = [e for e in events if e.get('Test') == target and e.get('Action') == 'run']
+          ends = [e for e in events if e.get('Test') == target and e.get('Action') in ('pass', 'fail')]
+          if len(starts) != 1 or len(ends) != 1:
+              raise SystemExit('CPU diagnostic has no complete maximum-member test result')
+          PYPROFILE
+          # Compare instrumentation only after the original race diagnostic failed.
+          # A separate fresh invocation cannot restore that failed job or qualify full evidence.
+          if [ "$registry_profile_status" -ne 0 ]; then
+            registry_comparison_status=0
+            printf '%s\n' 'no-race; atomic coverage and CPU sampling retained; diagnostic only' > "$RUNNER_TEMP/registry-source-checks/cpu-comparison-mode.txt"
+            go test -mod=readonly -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$RUNNER_TEMP/registry-source-checks/cpu-comparison.pprof" -o "$RUNNER_TEMP/registry-source-checks/registry-cpu-comparison.test" -coverprofile="$RUNNER_TEMP/registry-source-checks/cpu-comparison-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/cpu-comparison-tests.jsonl" || registry_comparison_status=$?
+            printf '%s\n' "$registry_comparison_status" > "$RUNNER_TEMP/registry-source-checks/cpu-comparison.exit"
+            go tool pprof -top -nodecount=50 -sample_index=cpu "$RUNNER_TEMP/registry-source-checks/registry-cpu-comparison.test" "$RUNNER_TEMP/registry-source-checks/cpu-comparison.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-comparison-flat.txt"
+            go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$RUNNER_TEMP/registry-source-checks/registry-cpu-comparison.test" "$RUNNER_TEMP/registry-source-checks/cpu-comparison.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-comparison-cumulative.txt"
+            sha256sum "$RUNNER_TEMP/registry-source-checks/registry-cpu-comparison.test" "$RUNNER_TEMP/registry-source-checks/cpu-comparison.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-comparison.sha256"
+            python3 - "$RUNNER_TEMP/registry-source-checks/cpu-comparison-tests.jsonl" <<'PYCOMPARISON'
+          import json, sys
+          from pathlib import Path
+          target = 'TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals/32'
+          events = [json.loads(line) for line in Path(sys.argv[1]).read_text().splitlines() if line.strip()]
+          starts = [e for e in events if e.get('Test') == target and e.get('Action') == 'run']
+          ends = [e for e in events if e.get('Test') == target and e.get('Action') in ('pass', 'fail')]
+          if len(starts) != 1 or len(ends) != 1:
+              raise SystemExit('CPU comparison has no complete maximum-member test result')
+          PYCOMPARISON
+          fi
+          test "$registry_profile_status" -eq 0
+
+      - name: Run complete Registry test partition
+        run: |
+          registry_shard_dir="$RUNNER_TEMP/registry-source-checks"
+          go test -mod=readonly -race -count=1 -cover -covermode=atomic -list . -json ./pkg/agent/registry011 > "$registry_shard_dir/test-discovery.jsonl"
+          python3 .github/scripts/registry_test_shards.py plan source "$registry_shard_dir" --index '${{ matrix.shard }}'
+          registry_profile_args=()
+          # Measure slow complete partitions as well as the recovery partition.
+          if [[ "${{ matrix.shard }}" =~ ^(5|7|8)$ ]]; then
+            registry_profile_args=(-cpuprofile="$registry_shard_dir/recovery-profile.pprof" -o "$registry_shard_dir/registry-recovery.test")
+          fi
+          registry_shard_status=0
+          go test -mod=readonly -race -count=1 -timeout=120m -json -run "$(cat "$registry_shard_dir/run-pattern.txt")" "${registry_profile_args[@]}" -coverprofile="$registry_shard_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$registry_shard_dir/tests.jsonl" || registry_shard_status=$?
+          printf '%s\n' "$registry_shard_status" > "$registry_shard_dir/partition.exit"
+          if [ "${#registry_profile_args[@]}" -ne 0 ] && [ -s "$registry_shard_dir/registry-recovery.test" ] && [ -s "$registry_shard_dir/recovery-profile.pprof" ]; then
+            go tool pprof -top -nodecount=50 -sample_index=cpu "$registry_shard_dir/registry-recovery.test" "$registry_shard_dir/recovery-profile.pprof" > "$registry_shard_dir/recovery-profile-flat.txt"
+            go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$registry_shard_dir/registry-recovery.test" "$registry_shard_dir/recovery-profile.pprof" > "$registry_shard_dir/recovery-profile-cumulative.txt"
+            sha256sum "$registry_shard_dir/registry-recovery.test" "$registry_shard_dir/recovery-profile.pprof" > "$registry_shard_dir/recovery-profile.sha256"
+          fi
+          test "$registry_shard_status" -eq 0
           git diff --exit-code
 
       - name: Retain Registry Source clock and checkpoint evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: registry-source-shard-${{ matrix.shard }}
+          path: ${{ runner.temp }}/registry-source-checks/
+          if-no-files-found: error
+          retention-days: 14
+
+  registry_source_checks:
+    name: Registry Source Checks
+    needs: registry_source_shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Require every Registry Source partition
+        env:
+          REGISTRY_SHARD_RESULT: ${{ needs.registry_source_shard.result }}
+        run: test "$REGISTRY_SHARD_RESULT" = "success"
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.26.11'
+          cache: true
+      - name: Download original Registry Source partitions
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          pattern: registry-source-shard-*
+          path: ${{ runner.temp }}/registry-source-partitions
+      - name: Verify complete Registry Source evidence and merge coverage
+        run: |
+          python3 .github/scripts/registry_test_shards.py assemble source "$RUNNER_TEMP/registry-source-partitions" --output "$RUNNER_TEMP/registry-source-checks" > "$RUNNER_TEMP/registry-source-partition-assembly.json"
+          python3 .github/scripts/registry_test_shards.py verify source "$RUNNER_TEMP/registry-source-checks"
+          go tool cover -func="$RUNNER_TEMP/registry-source-checks/coverage.out" > "$RUNNER_TEMP/registry-source-checks/functions.txt"
+          git diff --exit-code
+      - name: Retain complete Registry Source evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -74,7 +813,7 @@ jobs:
     needs: registry_source_checks
     if: always()
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 75
 
     steps:
       - name: Require successful Registry Source evidence
@@ -94,9 +833,98 @@ jobs:
       - name: Install dependencies
         run: go mod download && go mod verify
 
-      - name: Run tests with coverage and race detector
+      - name: Download successful Registry Source evidence
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: registry-source-checks
+          path: ${{ runner.temp }}/verified-registry-source
+
+      - name: Verify Registry evidence and partition the complete package set
         run: |
-          go test -race -coverprofile=coverage.out -covermode=atomic ./...
+          go list ./... > packages-all.txt
+          python3 .github/scripts/registry_test_shards.py verify source "$RUNNER_TEMP/verified-registry-source" > registry-partition-verified.json
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          source = Path(os.environ['RUNNER_TEMP'], 'verified-registry-source')
+          context = json.loads((source / 'context.json').read_text())
+          for name in ['GITHUB_SHA', 'GITHUB_RUN_ID', 'GITHUB_REF', 'GITHUB_REPOSITORY']:
+              if context.get(name) != os.environ[name]:
+                  raise SystemExit(f'Registry Source evidence context mismatch: {name}')
+          source_attempt = int(context['GITHUB_RUN_ATTEMPT'])
+          if context.get('GITHUB_JOB') != 'registry_source_checks' or not 1 <= source_attempt <= int(os.environ['GITHUB_RUN_ATTEMPT']):
+              raise SystemExit('Registry Source job or attempt mismatch')
+          for filename, args in [('revision.txt', ['git', 'rev-parse', 'HEAD']), ('tree.txt', ['git', 'rev-parse', 'HEAD^{tree}']), ('compiler.txt', ['go', 'version'])]:
+              if (source / filename).read_text() != subprocess.check_output(args, text=True):
+                  raise SystemExit(f'Registry Source evidence identity mismatch: {filename}')
+          paths = ['.github/scripts/registry_test_shards.py', '.github/scripts/test_registry_test_shards.py', 'pkg/agent/registry011', 'docs/dev/registry-source-checks.md', 'docs/dev/agent-embedding.md', 'docs/INDEX.md', 'go.mod', 'go.sum', '.github/workflows/test.yml', '.github/workflows/registry-node-evidence.yml', '.gitleaks.toml']
+          tracked = subprocess.check_output(['git', 'ls-files', '-z', *paths]).decode().split('\0')[:-1]
+          expected = {name: hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in tracked}
+          recorded = {}
+          for line in (source / 'source.sha256').read_text().splitlines():
+              digest, name = line.split('  ', 1)
+              if name in recorded:
+                  raise SystemExit('Duplicate Registry Source file identity')
+              recorded[name] = digest
+          if not expected or recorded != expected:
+              raise SystemExit('Registry Source evidence does not match this complete source selection')
+          registry = 'github.com/sage-x-project/sage/pkg/agent/registry011'
+          passed, ran = 0, 0
+          for line in (source / 'tests.jsonl').read_text().splitlines():
+              event = json.loads(line)
+              if event.get('Action') == 'fail':
+                  raise SystemExit('Registry Source evidence contains a failed test')
+              if event.get('Package') == registry:
+                  passed += event.get('Action') == 'pass' and not event.get('Test')
+                  ran += event.get('Action') == 'run' and bool(event.get('Test'))
+          partition = json.loads(Path('registry-partition-verified.json').read_text())
+          if partition['role'] != 'source' or partition['shards'] != 9 or passed != partition['package_passes'] or not ran:
+              raise SystemExit('Registry Source evidence has no complete successful package run')
+          packages = Path('packages-all.txt').read_text().splitlines()
+          if len(packages) != len(set(packages)) or packages.count(registry) != 1:
+              raise SystemExit('Complete package inventory must contain Registry exactly once')
+          remaining = [name for name in packages if name != registry]
+          if not remaining:
+              raise SystemExit('Remaining package inventory is empty')
+          Path('packages-other.txt').write_text('\n'.join(remaining) + '\n')
+          receipt = {'registry_package': registry, 'source_run': context['GITHUB_RUN_ID'], 'source_attempt': source_attempt, 'consumer_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']), 'revision': (source / 'revision.txt').read_text().strip(), 'registry_named_runs': ran, 'registry_partition': partition, 'all_packages': packages, 'remaining_packages': remaining}
+          Path('registry-source-reuse.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(f'Verified Registry Source package; running every other package: {len(remaining)} of {len(packages)}')
+          PY
+
+      - name: Run remaining tests with coverage and race detector
+        shell: bash
+        run: |
+          mapfile -t packages < packages-other.txt
+          go test -race -count=1 -timeout=60m -coverprofile=coverage-other.out -covermode=atomic "${packages[@]}"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          prefix = 'github.com/sage-x-project/sage/pkg/agent/registry011/'
+          def owns_registry_file(filename):
+              return filename.rsplit('/', 1)[0] == prefix[:-1]
+          ownership_cases = {
+              prefix + 'provider.go': True,
+              prefix + 'internal/compilermemory/integer.go': False,
+              prefix[:-1] + 'x/provider.go': False,
+          }
+          if any(owns_registry_file(name) != expected for name, expected in ownership_cases.items()):
+              raise SystemExit('Coverage package ownership boundary check failed')
+          registry = Path(os.environ['RUNNER_TEMP'], 'verified-registry-source', 'coverage.out')
+          merged, seen = [], set()
+          for path, is_registry in [(registry, True), (Path('coverage-other.out'), False)]:
+              lines = path.read_text().splitlines()
+              if len(lines) < 2 or lines[0] != 'mode: atomic':
+                  raise SystemExit(f'Missing atomic coverage: {path}')
+              for line in lines[1:]:
+                  location, statements, count = line.split()
+                  filename = location.rsplit(':', 1)[0]
+                  if owns_registry_file(filename) != is_registry or location in seen or int(statements) < 0 or int(count) < 0:
+                      raise SystemExit(f'Coverage source overlap or invalid row: {location}')
+                  seen.add(location)
+                  merged.append(line)
+          Path('coverage.out').write_text('mode: atomic\n' + '\n'.join(merged) + '\n')
+          PY
           go tool cover -html=coverage.out -o coverage.html
 
       - name: Check Registry observation and adapter coverage
@@ -109,6 +937,42 @@ jobs:
               'pkg/agent/registry010/eip155_observer010.go': [0, 0],
               'pkg/agent/didsource010/eip155.go': [0, 0],
               'pkg/agent/registry011/source_checkpoint.go': [0, 0],
+              'pkg/agent/registry011/provider_policy_value.go': [0, 0],
+              'pkg/agent/registry011/provider_bootstrap_costing.go': [0, 0],
+              'pkg/agent/registry011/provider_scan_costing.go': [0, 0],
+              'pkg/agent/registry011/provider_scan_control.go': [0, 0],
+              'pkg/agent/registry011/provider_history_bootstrap_source_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_bootstrap_inputs.go': [0, 0],
+              'pkg/agent/registry011/provider_history_selected_source.go': [0, 0],
+              'pkg/agent/registry011/provider_history_preparation.go': [0, 0],
+              'pkg/agent/registry011/provider_history_preparation_config.go': [0, 0],
+              'pkg/agent/registry011/provider_history_preparation_decode.go': [0, 0],
+              'pkg/agent/registry011/provider_history_preparation_native_other.go': [0, 0],
+              'pkg/agent/registry011/provider_history_catalog_domain.go': [0, 0],
+              'pkg/agent/registry011/provider_history_source_input_storage.go': [0, 0],
+              'pkg/agent/registry011/provider_history_finalization_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_profile_projection.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_catalog_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_finalized_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_index_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_initial_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_input_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_inventory_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_legacy_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_member_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_message_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_reconstruction_scan_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_collection_run.go': [0, 0],
+              'pkg/agent/registry011/provider_history_recovery_bounds.go': [0, 0],
+              'pkg/agent/registry011/provider_history_final_bounds.go': [0, 0],
+              'pkg/agent/registry011/provider_history_final_owner.go': [0, 0],
+              'pkg/agent/registry011/provider_history_final_read.go': [0, 0],
+              'pkg/agent/registry011/provider_history_final_data.go': [0, 0],
+              'pkg/agent/registry011/provider_history_run.go': [0, 0],
+              'pkg/agent/registry011/provider_history_uniform_storage_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_uniform_source_bound.go': [0, 0],
+              'pkg/agent/registry011/provider_history_original_reconstruction.go': [0, 0],
+              'pkg/agent/registry011/provider_first_admission_operation_diagnostic.go': [0, 0],
               'pkg/agent/registry011/source_reconfiguration.go': [0, 0],
               'pkg/agent/registry011/source_retained.go': [0, 0],
               'pkg/agent/registry011/source_acquisition.go': [0, 0],
@@ -151,6 +1015,7 @@ jobs:
               'pkg/agent/registry011/admission_candidate_ledger.go': [0, 0],
               'pkg/agent/registry011/admission_candidate_ledger_replay.go': [0, 0],
               'pkg/agent/registry011/node_identity.go': [0, 0],
+              'pkg/agent/registry011/provider_history_typed_spine.go': [0, 0],
           }
           for line in Path('coverage.out').read_text().splitlines()[1:]:
               location, statements, count = line.split()
@@ -293,7 +1158,14 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-report
-          path: coverage.html
+          path: |
+            coverage.html
+            coverage.out
+            coverage-other.out
+            packages-all.txt
+            packages-other.txt
+            registry-source-reuse.json
+          if-no-files-found: error
           retention-days: 7
 
   # Go contract bindings must match the ABIs published by sage-contracts at
@@ -344,15 +1216,55 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
+      - name: Install verified golangci-lint
+        timeout-minutes: 5
+        run: |
+          if [[ "$RUNNER_OS" != Linux || "$RUNNER_ARCH" != X64 ]]; then
+            printf 'Unsupported linter platform: %s/%s\n' "$RUNNER_OS" "$RUNNER_ARCH" >&2
+            exit 1
+          fi
+          lint_archive="$RUNNER_TEMP/golangci-lint-2.13.2-linux-amd64.tar.gz"
+          lint_directory="$RUNNER_TEMP/golangci-lint-2.13.2-linux-amd64"
+          mkdir -p "$lint_directory"
+          # Both download paths identify the same pinned official release asset.
+          if ! curl --proto '=https' --proto-redir '=https' --fail --location --silent --show-error --retry 1 --retry-all-errors --retry-delay 2 --connect-timeout 10 --max-time 45 --output "$lint_archive" 'https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-linux-amd64.tar.gz'; then
+            curl --proto '=https' --proto-redir '=https' --fail --location --silent --show-error --retry 2 --retry-all-errors --retry-delay 2 --connect-timeout 10 --max-time 45 --header 'Accept: application/octet-stream' --header 'X-GitHub-Api-Version: 2022-11-28' --output "$lint_archive" 'https://api.github.com/repos/golangci/golangci-lint/releases/assets/532995333'
+          fi
+          printf '%s  %s\n' '2277d43b98ec0054280f2ac26b53268bae97682444678a59a657dd565da021d6' "$lint_archive" | sha256sum --check --strict -
+          tar --extract --gzip --file "$lint_archive" --directory "$lint_directory" --strip-components=1 --no-same-owner --no-same-permissions 'golangci-lint-2.13.2-linux-amd64/golangci-lint'
+          test -f "$lint_directory/golangci-lint"
+          test ! -L "$lint_directory/golangci-lint"
+          chmod u+x "$lint_directory/golangci-lint"
+          "$lint_directory/golangci-lint" version
+          printf '%s\n' "$lint_directory" >> "$GITHUB_PATH"
+
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: v2.13.2
+          install-mode: none
           args: --timeout=5m
           skip-cache: true
 
       - name: Run go vet
         run: go vet ./...
+
+      - name: Test codegraph file boundaries
+        working-directory: tools/codegraph
+        run: |
+          go test -mod=readonly -race -count=1 -timeout=2m -json -coverprofile="$RUNNER_TEMP/codegraph-io.coverage" -covermode=atomic ./...
+          go tool cover -func="$RUNNER_TEMP/codegraph-io.coverage" > "$RUNNER_TEMP/codegraph-functions.txt"
+          python3 - "$RUNNER_TEMP/codegraph-functions.txt" <<'PY'
+          import json
+          import sys
+          from decimal import Decimal
+          from pathlib import Path
+          rows = [line.split() for line in Path(sys.argv[1]).read_text().splitlines()]
+          measured = [Decimal(row[2].removesuffix('%')) for row in rows if len(row) == 3 and row[1] == 'readSelectedFile']
+          if len(measured) != 1 or measured[0] < Decimal('90'):
+              raise SystemExit('readSelectedFile requires one measured coverage result of at least 90%')
+          print(json.dumps({'coverage_subject': 'readSelectedFile', 'measured_percent': str(measured[0]), 'required_percent': '90'}))
+          PY
 
       - name: Check layer boundaries (codegraph)
         working-directory: tools/codegraph

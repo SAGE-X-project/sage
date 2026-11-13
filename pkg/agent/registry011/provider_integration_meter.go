@@ -31,7 +31,13 @@ type providerWorkMeter struct {
 	firstOperation                *providerFirstOperationOwner
 	guardian                      *providerGuardianOwner
 	continuing                    *providerContinuingOwner
+	historyGroup                  *providerHistoryGroupOwner
+	historyInputGroup             *providerHistoryGroupOwner
+	historyRecovery               *providerHistoryRecoveryOwner
+	historyFinal                  *providerHistoryFinalOwner
+	replayReads                   *providerHistoryReplayReads
 	clocks, maximumClocks         uint64
+	historyClockClaims            uint64
 	ticket                        string
 	upper, remaining, reservation candidateWorkVector
 	actual                        candidateWorkVector
@@ -61,7 +67,7 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 	if m.owner != m || !m.hasOwner() || m.failed || m.closed {
 		return false
 	}
-	if !m.fitsScanWindow(work) {
+	if !m.fitsOwnedWindow(work) {
 		m.failed = true
 		return false
 	}
@@ -89,7 +95,13 @@ func (m *providerWorkMeter) add(work candidateWorkVector) bool {
 // use n+1, and actual clock/sync calls use1. These logical units still need
 // independent worst-case CPU/profile qualification before operating selection.
 func (m *providerWorkMeter) event(kind providerWorkEvent, bytes uint64) bool {
-	if kind == providerClockEvent && m != nil && (m.scan != nil || m.firstOperation != nil || m.guardian != nil || m.continuing != nil) {
+	if m != nil && m.historyFinal != nil && kind != providerClockEvent && !providerHistoryRecoveryEventAllowed(kind) {
+		return m.refuse()
+	}
+	if m != nil && m.historyRecovery != nil && !providerHistoryRecoveryEventAllowed(kind) {
+		return m.refuse()
+	}
+	if kind == providerClockEvent && m != nil && (m.scan != nil || m.firstOperation != nil || m.guardian != nil || m.continuing != nil || m.historyGroup != nil || m.historyFinal != nil) {
 		m.mu.Lock()
 		if m.maximumClocks == 0 || m.clocks >= m.maximumClocks || m.closed || m.failed {
 			m.failed = true
@@ -123,6 +135,12 @@ func (m *providerWorkMeter) event(kind providerWorkEvent, bytes uint64) bool {
 }
 
 func (m *providerWorkMeter) preflight(kind providerWorkEvent, bytes uint64) bool {
+	if m != nil && m.historyFinal != nil && kind != providerClockEvent && !providerHistoryRecoveryEventAllowed(kind) {
+		return m.refuse()
+	}
+	if m != nil && m.historyRecovery != nil && !providerHistoryRecoveryEventAllowed(kind) {
+		return m.refuse()
+	}
 	if m == nil {
 		return false
 	}
@@ -145,7 +163,7 @@ func (m *providerWorkMeter) preflightWork(work candidateWorkVector) bool {
 	if m.owner != m || !m.hasOwner() || m.closed || m.failed {
 		return false
 	}
-	if !m.fitsScanWindow(work) {
+	if !m.fitsOwnedWindow(work) {
 		m.failed = true
 		return false
 	}
@@ -158,10 +176,23 @@ func (m *providerWorkMeter) preflightWork(work candidateWorkVector) bool {
 	return true
 }
 
-// A scan window is a sublimit of the original claimed body's one cumulative
-// meter. Moving to the next nonempty record never resets actual/clock/upper.
-// Ordinary integration/legacy meters have no scan body and retain their API.
-func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
+// Called only after hasOwner succeeds in the SAME add/preflight critical
+// section. The original group store lock and meter mutex remain held; no
+// callback, I/O, clock sample or state mutation separates the two checks.
+// Reuse that owner check only here, never across primitives. Every original
+// parent, window, clock and work limit is still checked for this invocation.
+// A scan window is a sublimit of the original cumulative observer; moving
+// records never resets actual/clock/upper. Non-group roles keep their checks.
+func (m *providerWorkMeter) fitsOwnedWindow(work candidateWorkVector) bool {
+	if m.historyFinal != nil {
+		return m.historyFinal.fitsReadWindowLocked(m, work)
+	}
+	if m.historyRecovery != nil {
+		return m.historyRecovery.activeLocked(m)
+	}
+	if m.historyGroup != nil {
+		return m.historyGroup.fitsWorkAfterOwnerCheck(m, work)
+	}
 	if m.guardian != nil {
 		return m.guardian.fits(m)
 	}
@@ -214,6 +245,20 @@ func (m *providerWorkMeter) fitsScanWindow(work candidateWorkVector) bool {
 }
 
 func (m *providerWorkMeter) hasOwner() bool {
+	// The original group route cannot become a wide legacy route by losing
+	// its ordinary role tag. Keep this check before every other role branch.
+	if m.historyInputGroup != m.historyGroup {
+		return false
+	}
+	if m.historyFinal != nil {
+		return m.historyFinal.activeLocked(m)
+	}
+	if m.historyRecovery != nil {
+		return m.historyRecovery.activeLocked(m)
+	}
+	if m.historyGroup != nil {
+		return m.integration == nil && m.scan == nil && m.firstAdmission == nil && m.firstOperation == nil && m.guardian == nil && m.continuing == nil && m.parent == nil && m.historyGroup.activeLocked(m)
+	}
 	if m.guardian != nil {
 		return m.integration == nil && m.scan == nil && m.guardian.owner == m.guardian
 	}
@@ -269,7 +314,7 @@ func (m *providerWorkMeter) finish(owner *providerIntegration, ticket *Candidate
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if m.owner != m || m.scan != nil || m.integration != owner || m.authority || m.failed || m.closed || m.ticket != ticket.digest || ticket.work != m.reservation || m.actual[8] != ticket.work[8] || m.actual[9] == 0 || m.actual[10] == 0 || !candidateLedgerClockAdvance(ticket.intent.clock, providerClockDiagnostic(clock)) || candidateLedgerExpired(providerClockDiagnostic(clock), ticket.deadline) {
+	if m.owner != m || m.historyRecovery != nil || m.scan != nil || m.integration != owner || m.authority || m.failed || m.closed || m.ticket != ticket.digest || ticket.work != m.reservation || m.actual[8] != ticket.work[8] || m.actual[9] == 0 || m.actual[10] == 0 || !candidateLedgerClockAdvance(ticket.intent.clock, providerClockDiagnostic(clock)) || candidateLedgerExpired(providerClockDiagnostic(clock), ticket.deadline) {
 		m.failed = true
 		return nil, errProviderIntegration
 	}
@@ -290,7 +335,7 @@ func (m *providerMeasuredWork) claim(owner *providerIntegration, ticket *Candida
 	v := m.meter
 	v.mu.Lock()
 	defer v.mu.Unlock()
-	if v.owner != v || v.scan != nil || v.integration != owner || v.failed || !v.closed || v.claimed || v.ticket != ticket.digest || v.end != clock {
+	if v.owner != v || v.historyRecovery != nil || v.scan != nil || v.integration != owner || v.failed || !v.closed || v.claimed || v.ticket != ticket.digest || v.end != clock {
 		return candidateWorkVector{}, false
 	}
 	v.claimed = true

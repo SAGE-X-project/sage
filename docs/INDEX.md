@@ -85,12 +85,15 @@ Package-level READMEs under pkg/ and internal/.
 | [`docs/crypto/crypto-ko.md`](crypto/crypto-ko.md) | SAGE Crypto Package (암호화 패키지 및 sage-crypto CLI) | MIXED |
 | [`docs/did/did-en.md`](did/did-en.md) | SAGE DID Package (DID package and sage-did CLI) | MIXED |
 | [`docs/did/did-ko.md`](did/did-ko.md) | SAGE DID Package (DID 패키지 및 sage-did CLI) | MIXED |
+| [`internal/qualification/nativelimits/README.md`](../internal/qualification/nativelimits/README.md) | Native resource primitive observations |  |
+| [`internal/registryworker/README.md`](../internal/registryworker/README.md) | Owning Registry worker candidate |  |
 | [`internal/sessioninit/README.md`](../internal/sessioninit/README.md) | SessionInit Package (handshake-to-session Creator adapter) | MIXED |
 | [`pkg/agent/crypto/README.md`](../pkg/agent/crypto/README.md) | SAGE Cryptographic Operations (Crypto key management package) | MIXED |
 | [`pkg/agent/did/README.md`](../pkg/agent/did/README.md) | SAGE Decentralized Identity (DID) Management (DID management package) | STALE |
 | [`pkg/agent/execution010/README.md`](../pkg/agent/execution010/README.md) | Durable execution storage for 0.10.0 |  |
 | [`pkg/agent/guard010/README.md`](../pkg/agent/guard010/README.md) | Execution Guard primitives |  |
 | [`pkg/agent/registry010/README.md`](../pkg/agent/registry010/README.md) | Operation-scoped registry observations |  |
+| [`pkg/agent/registry011/internal/compilermemory/README.md`](../pkg/agent/registry011/internal/compilermemory/README.md) | Compiler storage under the original lifetime |  |
 | [`pkg/agent/session/README.md`](../pkg/agent/session/README.md) | SAGE Session Management (Session management package) | MIXED |
 | [`pkg/agent/transport/README.md`](../pkg/agent/transport/README.md) | SAGE Transport Layer (Transport abstraction layer) | MIXED |
 | [`pkg/agent/transport/http/README.md`](../pkg/agent/transport/http/README.md) | HTTP Transport for SAGE (HTTP transport) | MIXED |

@@ -84,7 +84,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: true
 
       - name: Download dependencies
@@ -94,6 +94,31 @@ jobs:
         run: |
           export GOTOOLCHAIN=local
           go install github.com/securego/gosec/v2/cmd/gosec@v2.29.0
+          go env GOMODCACHE > "$RUNNER_TEMP/gosec-modcache.txt"
+          # Long explicit file lists split into incomplete packages in go/packages.
+          # Keep the pinned scanner and rules; load each complete directory.
+          python3 - <<'PYCODE'
+          import hashlib, os, shutil, stat
+          from pathlib import Path
+          temporary = Path(os.environ["RUNNER_TEMP"])
+          cache = Path((temporary / "gosec-modcache.txt").read_text().strip())
+          original = cache / "github.com/securego/gosec/v2@v2.29.0"
+          raw = (original / "analyzer.go").read_bytes()
+          old = b"packages.Load(conf, packageFiles...)"
+          new = b"packages.Load(conf, abspath)"
+          expected = "df3096c17b1e67b376375149036f69970aefaa182962600744b2ea492f1c0db8"
+          if hashlib.sha256(raw).hexdigest() != expected or raw.count(old) != 1:
+              raise SystemExit("Pinned gosec loader source does not match")
+          destination = temporary / "gosec-package-loader"
+          shutil.copytree(original, destination)
+          loader = destination / "analyzer.go"
+          loader.chmod(loader.stat().st_mode | stat.S_IWUSR)
+          loader.write_bytes(raw.replace(old, new, 1))
+          PYCODE
+          (
+            cd "$RUNNER_TEMP/gosec-package-loader"
+            go install -mod=readonly ./cmd/gosec
+          )
 
       - name: Run Gosec (reports for code scanning)
         # Non-blocking pass that always produces the JSON and SARIF reports.
@@ -186,7 +211,7 @@ jobs:
       - name: Run govulncheck
         uses: golang/govulncheck-action@032d45514ae346b1db93c04b0c90b841c370344f # v1.1.0
         with:
-          go-version-input: '1.26.10'
+          go-version-input: '1.26.11'
           go-package: ./...
 
   # Secret scanning
@@ -221,7 +246,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: true
 
       - name: Install go-licenses v2
