@@ -1489,6 +1489,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchAgentActivated(opts *b
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryAgentActivated)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "AgentActivated", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -1642,6 +1646,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchAgentDeactivated(opts 
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryAgentDeactivated)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "AgentDeactivated", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -1787,6 +1795,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchAgentDeactivatedByHash
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryAgentDeactivatedByHash)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "AgentDeactivatedByHash", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -1933,6 +1945,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchAgentEndpointUpdated(o
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryAgentEndpointUpdated)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "AgentEndpointUpdated", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -2096,6 +2112,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchAgentRegistered(opts *
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryAgentRegistered)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "AgentRegistered", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -2250,6 +2270,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchAgentRegistered0(opts 
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryAgentRegistered0)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "AgentRegistered0", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -2395,6 +2419,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchAgentUpdated(opts *bin
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryAgentUpdated)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "AgentUpdated", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -2558,6 +2586,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchApprovalForAgent(opts 
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryApprovalForAgent)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "ApprovalForAgent", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -2704,6 +2736,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchCommitmentRecorded(opt
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryCommitmentRecorded)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "CommitmentRecorded", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -2858,6 +2894,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchKEMKeyUpdated(opts *bi
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryKEMKeyUpdated)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "KEMKeyUpdated", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -3013,6 +3053,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchKeyAdded(opts *bind.Wa
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryKeyAdded)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "KeyAdded", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -3167,6 +3211,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchKeyRevoked(opts *bind.
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryKeyRevoked)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "KeyRevoked", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -3320,6 +3368,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchOwnershipTransferStart
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryOwnershipTransferStarted)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "OwnershipTransferStarted", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -3473,6 +3525,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchOwnershipTransferred(o
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryOwnershipTransferred)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "OwnershipTransferred", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -3607,6 +3663,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchPaused(opts *bind.Watc
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryPaused)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "Paused", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log
@@ -3741,6 +3801,10 @@ func (_AgentCardRegistry *AgentCardRegistryFilterer) WatchUnpaused(opts *bind.Wa
 				// New log arrived, parse the event and forward to the user
 				event := new(AgentCardRegistryUnpaused)
 				if err := _AgentCardRegistry.contract.UnpackLog(event, "Unpaused", log); err != nil {
+					// If the signature doesn't match, skip this log.
+					if errors.Is(err, bind.ErrEventSignatureMismatch) {
+						continue
+					}
 					return err
 				}
 				event.Raw = log

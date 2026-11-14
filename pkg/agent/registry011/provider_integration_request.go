@@ -31,6 +31,9 @@ func newProviderIntegrationRequestObserved(method string, params any, meter *pro
 		return nil, errProviderIntegration
 	}
 	head := providerRequestHead(len(body))
+	if len(body) > 16<<10 || len(head) > 512 {
+		return nil, errProviderIntegration
+	}
 	if meter != nil && (!meter.event(providerEncodeEvent, uint64(len(head))) || !meter.event(providerCopyEvent, uint64(len(head)))) {
 		return nil, errProviderIntegration
 	}
