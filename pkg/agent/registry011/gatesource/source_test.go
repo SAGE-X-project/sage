@@ -67,7 +67,7 @@ func (store) Advance(registry010.Scope, uint64, string, bool) error { return nil
 
 func newGate(t *testing.T, rd *reader, c *clock) (*registry010.Gate, *Source) {
 	t.Helper()
-	src, err := NewWithReader("anvil-dev", registryID, "dev", rd, c, limits)
+	src, err := newWithReader("anvil-dev", registryID, "dev", rd, c, limits)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,6 +171,8 @@ func TestReadFailuresAreRefused(t *testing.T) {
 		"zero hash":    {read: Read{Header: header(90, "0x"+strings.Repeat("0", 64)), Present: true, Record: raw}},
 		"stale header": {read: Read{Header: registry011.FinalizedHeader{Hash: blockHex, Number: 90, Timestamp: 1_800_000_000 - 601}, Present: true, Record: raw}},
 		"future block": {read: Read{Header: registry011.FinalizedHeader{Hash: blockHex, Number: 90, Timestamp: 1_800_000_000 + 60}, Present: true, Record: raw}},
+		"huge stamp":   {read: Read{Header: registry011.FinalizedHeader{Hash: blockHex, Number: 90, Timestamp: 1 << 63}, Present: true, Record: raw}},
+		"huge stamp+5": {read: Read{Header: registry011.FinalizedHeader{Hash: blockHex, Number: 90, Timestamp: 1<<63 + 5}, Present: true, Record: raw}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			g, _ := newGate(t, rd, &clock{mono: 1000})
@@ -232,10 +234,10 @@ func TestOtherRegistriesAndBadConfiguration(t *testing.T) {
 	if _, err := src.Read(context.Background(), did); err == nil {
 		t.Fatal("clock failure hidden")
 	}
-	if _, err := NewWithReader("", registryID, "dev", rd, c, limits); err == nil {
+	if _, err := newWithReader("", registryID, "dev", rd, c, limits); err == nil {
 		t.Fatal("incomplete configuration accepted")
 	}
-	if _, err := NewWithReader("anvil-dev", registryID, "dev", rd, c, Limits{}); err == nil {
+	if _, err := newWithReader("anvil-dev", registryID, "dev", rd, c, Limits{}); err == nil {
 		t.Fatal("missing finalized-age limit accepted")
 	}
 	if _, err := NewDevelopment("sepolia", nil, registry011.SepoliaNetwork(), c, limits); err == nil || !strings.Contains(err.Error(), "qualifying") {

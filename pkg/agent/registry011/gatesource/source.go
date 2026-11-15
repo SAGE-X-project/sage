@@ -84,11 +84,12 @@ func NewDevelopment(name string, rpc *registry011.ReadRPC, network registry011.N
 	if rpc == nil {
 		return nil, errors.New("gatesource: no RPC")
 	}
-	return NewWithReader(name, network.RegistryID(), network.Name(), rpcReader{rpc: rpc, registry: network.RegistryAddress()}, clock, limits)
+	return newWithReader(name, network.RegistryID(), network.Name(), rpcReader{rpc: rpc, registry: network.RegistryAddress()}, clock, limits)
 }
 
-// NewWithReader is NewDevelopment with an explicit reader, for tests.
-func NewWithReader(name, registryID, network string, reader Reader, clock registry010.Clock, limits Limits) (*Source, error) {
+// newWithReader is NewDevelopment with an explicit reader, for tests. It is
+// unexported so that no caller can bypass the refusal of qualifying profiles.
+func newWithReader(name, registryID, network string, reader Reader, clock registry010.Clock, limits Limits) (*Source, error) {
 	if name == "" || registryID == "" || network == "" || reader == nil || clock == nil || limits.MaxFinalizedAge <= 0 {
 		return nil, errors.New("gatesource: incomplete configuration")
 	}

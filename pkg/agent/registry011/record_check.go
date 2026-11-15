@@ -17,6 +17,10 @@ var ErrRecordContent = errors.New("registry011: invalid record content")
 // verified with the signing key it names in the same record, whatever that
 // key's current state (spec 09 §4: a retained historical signer).
 //
+// Whether that signer was accepted and unexpired when it endorsed is a history
+// property; the current record cannot show it. The Registry contract enforced
+// it when the key was added, so callers must also check the deployed code.
+//
 // It does not replay history, check the authorization of the mutations that
 // produced the record, or establish freshness or source authority.
 func CheckRecord(registryID, agentID string, raw []byte) error {
@@ -71,7 +75,23 @@ func (r *PinnedAgentReads) CheckCode(ctx context.Context) error {
 		return ErrConfiguration
 	}
 	var identity nodeIdentity
-	if json.Unmarshal(r.rpc.network.identity, &identity) != nil || len(identity.Contracts) != 13 {
+	if json.Unmarshal(r.rpc.network.identity, &identity) != nil || len(identity.Contracts) != 13 || identity.Registry != r.registry {
+		return ErrConfiguration
+	}
+	// The Registry that served the record must be among the checked contracts,
+	// exactly once, and no address may be listed twice.
+	seen, registry := map[string]bool{}, 0
+	for _, contract := range identity.Contracts {
+		address := strings.ToLower(contract.Address)
+		if seen[address] {
+			return ErrConfiguration
+		}
+		seen[address] = true
+		if address == r.registry {
+			registry++
+		}
+	}
+	if registry != 1 {
 		return ErrConfiguration
 	}
 	for _, contract := range identity.Contracts {
