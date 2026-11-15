@@ -304,7 +304,9 @@ func endpoint(target string) (string, string, error) {
 func token(s string) bool {
 	for i := 0; i < len(s); i++ {
 		c := s[i]
-		if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || strings.IndexByte("!#$%&'*+-.^_`|~", c) >= 0) {
+		letter := c >= 'a' && c <= 'z'
+		digit := c >= '0' && c <= '9'
+		if !letter && !digit && strings.IndexByte("!#$%&'*+-.^_`|~", c) < 0 {
 			return false
 		}
 	}
