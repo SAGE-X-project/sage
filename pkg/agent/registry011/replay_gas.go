@@ -44,7 +44,7 @@ func replayCheckGas(ctx context.Context, raw ReplayBlock, block replayDecodedBlo
 	if h.GasUsed > h.GasLimit {
 		return ErrReplay
 	}
-	if h.Time < sepoliaAmsterdamTime {
+	if h.Time < budget.amsterdamTime() {
 		var paid uint64
 		if len(block.receipts) > 0 {
 			paid = block.receipts[len(block.receipts)-1].CumulativeGasUsed

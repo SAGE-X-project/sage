@@ -78,7 +78,7 @@ func TestNodeCreationIdentityChecks(t *testing.T) {
 				receipt.Status = 0
 			}
 			b := replayDecodedBlock{txs: types.Transactions{tx}, receipts: types.Receipts{receipt}}
-			i, e := nodeCreation(id, contract, b)
+			i, e := nodeCreation(id, contract, b, 11155111)
 			if mode == "normal" {
 				if e != nil || i != 0 {
 					t.Fatal(i, e)

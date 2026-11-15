@@ -37,7 +37,7 @@ func (r *PinnedAgentReads) readReplayBlock(ctx context.Context, number uint64, l
 	if err != nil {
 		return nil, err
 	}
-	if decoded.header.Time >= sepoliaAmsterdamTime {
+	if decoded.header.Time >= r.rpc.network.amsterdamTime {
 		options := map[string]any{"tracer": "stateGasTracer", "timeout": a.limits.TraceTimeout.String(), "reexec": 0}
 		if roots {
 			options["tracer"] = "callTracer"
@@ -64,7 +64,7 @@ func (r *PinnedAgentReads) readReplayBlock(ctx context.Context, number uint64, l
 	for i, receipt := range decoded.receipts {
 		needed := false
 		for _, l := range receipt.Logs {
-			needed = needed || l.Address == common.HexToAddress(SepoliaRegistryAddress)
+			needed = needed || l.Address == common.HexToAddress(r.rpc.network.registryAddress)
 		}
 		if needed {
 			trace, err := a.execution(decoded, i)

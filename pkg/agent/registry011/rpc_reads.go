@@ -22,7 +22,7 @@ type PinnedAgentReads struct {
 }
 
 func (c *ReadRPC) PinAgentReads(ctx context.Context, registry, agent string) (*PinnedAgentReads, error) {
-	if c == nil || c.client == nil || ctx == nil || registry != SepoliaRegistryAddress || !rpcAgent(agent) {
+	if c == nil || c.client == nil || ctx == nil || registry != c.network.registryAddress || !rpcAgent(agent) {
 		return nil, ErrConfiguration
 	}
 	chain, err := c.call(ctx, "eth_chainId", []any{})
@@ -30,14 +30,14 @@ func (c *ReadRPC) PinAgentReads(ctx context.Context, registry, agent string) (*P
 		return nil, err
 	}
 	var chainID string
-	if json.Unmarshal(chain, &chainID) != nil || chainID != "0xaa36a7" {
+	if json.Unmarshal(chain, &chainID) != nil || chainID != c.network.chainIDHex() {
 		return nil, ErrRPCState
 	}
 	genesis, err := c.header(ctx, "0x0")
 	if err != nil {
 		return nil, err
 	}
-	if genesis.Number != 0 || genesis.Hash != sepoliaGenesis {
+	if genesis.Number != 0 || genesis.Hash != c.network.genesisHash {
 		return nil, ErrRPCState
 	}
 	header, err := c.header(ctx, "finalized")
@@ -50,7 +50,7 @@ func (c *ReadRPC) PinAgentReads(ctx context.Context, registry, agent string) (*P
 		return nil, err
 	}
 	values, _, err := rpcABI(result, false, 128)
-	if err != nil || string(values[0]) != "eip155:11155111:"+registry {
+	if err != nil || string(values[0]) != c.network.RegistryID() {
 		return nil, ErrRPCState
 	}
 	return reads, nil

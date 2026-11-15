@@ -68,10 +68,10 @@ func replayExecution(ctx context.Context, e *ReplayExecution, block replayDecode
 	if e.TransactionIndex != uint64(index) || e.BlockHash != strings.ToLower(block.header.Hash().Hex()) || e.TransactionHash != strings.ToLower(tx.Hash().Hex()) || receipt.Status != 1 {
 		return nil, ErrReplay
 	}
-	if tx.Type() > types.DynamicFeeTxType || !tx.Protected() || tx.ChainId().Cmp(big.NewInt(11155111)) != 0 {
+	if tx.Type() > types.DynamicFeeTxType || !tx.Protected() || tx.ChainId().Cmp(new(big.Int).SetUint64(b.chainID())) != 0 {
 		return nil, ErrReplayUnavailable
 	}
-	sender, err := nodeSenderObserved(tx, b.observer)
+	sender, err := nodeSenderForChain(tx, b.observer, b.chainID())
 	if err != nil {
 		return nil, ErrReplay
 	}
@@ -149,7 +149,7 @@ func replayFrame(ctx context.Context, f *ReplayFrame, parent string, static, com
 		return nil, ErrReplayUnavailable
 	}
 	committed = committed && f.Error == ""
-	eligible := committed && !static && f.Type == "CALL" && contextAddress == SepoliaRegistryAddress && value.Sign() == 0
+	eligible := committed && !static && f.Type == "CALL" && contextAddress == b.registryAddress() && value.Sign() == 0
 	out := []replayLog{}
 	previous := 0
 	child := 0

@@ -3,7 +3,6 @@ package registry011
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
@@ -37,16 +36,23 @@ type RPCTransportLimits struct {
 type ReadRPC struct {
 	client      *http.Client
 	limits      RPCTransportLimits
+	network     NetworkProfile
 	acquisition *rpcAcquisition
 }
 
+// NewSepoliaReadRPC reads the approved Sepolia deployment.
 func NewSepoliaReadRPC(limits RPCTransportLimits) (*ReadRPC, error) {
-	if limits.RequestTimeout <= 0 || limits.RequestTimeout > 5*time.Minute || limits.MaxBytes <= 0 || limits.MaxBytes > 8<<20 || limits.MaxDepth <= 0 || limits.MaxDepth > 128 {
+	return NewReadRPC(SepoliaNetwork(), limits)
+}
+
+// NewReadRPC reads only the endpoint and Registry of the given profile.
+func NewReadRPC(network NetworkProfile, limits RPCTransportLimits) (*ReadRPC, error) {
+	if !network.valid() || limits.RequestTimeout <= 0 || limits.RequestTimeout > 5*time.Minute || limits.MaxBytes <= 0 || limits.MaxBytes > 8<<20 || limits.MaxDepth <= 0 || limits.MaxDepth > 128 {
 		return nil, ErrConfiguration
 	}
 	transport := &http.Transport{
 		DialContext:            (&net.Dialer{Timeout: limits.RequestTimeout}).DialContext,
-		TLSClientConfig:        &tls.Config{MinVersion: tls.VersionTLS12},
+		TLSClientConfig:        network.tlsConfig(),
 		TLSHandshakeTimeout:    limits.RequestTimeout,
 		ResponseHeaderTimeout:  limits.RequestTimeout,
 		MaxResponseHeaderBytes: int64(limits.MaxBytes),
@@ -57,7 +63,7 @@ func NewSepoliaReadRPC(limits RPCTransportLimits) (*ReadRPC, error) {
 		Transport:     transport,
 		Timeout:       limits.RequestTimeout,
 		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
-	}, limits: limits}, nil
+	}, limits: limits, network: network}, nil
 }
 
 // Close releases idle connections; it does not invalidate retained observations.
@@ -104,7 +110,7 @@ func (c *ReadRPC) callEnvelope(ctx context.Context, method string, params any, m
 	if err != nil {
 		return nil, nil, ErrRPCTransport
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, SepoliaRPCURL, bytes.NewReader(request))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.network.endpoint, bytes.NewReader(request))
 	if err != nil {
 		return nil, nil, ErrRPCTransport
 	}
