@@ -30,8 +30,8 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/hpke"
 	"github.com/sage-x-project/sage/pkg/agent/session"
 	"github.com/sage-x-project/sage/pkg/agent/transport"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // TestPackageCompiles verifies that the integration test package compiles
