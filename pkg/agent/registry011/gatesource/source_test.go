@@ -124,6 +124,9 @@ func TestSnapshotCarriesBlockAndDigest(t *testing.T) {
 		t.Fatal(err)
 	}
 	sum := sha256.Sum256(raw)
+	if s.Profile != "0.11.0" || src.Config().Profile != "0.11.0" {
+		t.Fatalf("profile %q / %q", s.Profile, src.Config().Profile)
+	}
 	if s.Digest != hex.EncodeToString(sum[:]) || s.BlockHash != blockHex[2:] || s.KeysBlockHash != s.BlockHash ||
 		s.Version != "6" || s.State != "active" || !s.Ready || !s.Validated || !s.Finalized || s.AcquiredMS != 1000 {
 		t.Fatalf("snapshot %+v", s)

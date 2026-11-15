@@ -40,6 +40,10 @@ import (
 
 var blockHashPattern = regexp.MustCompile(`^0x[0-9a-f]{64}$`)
 
+// Profile is the SAGE version of the records this Source validates. Only
+// 0.11.0 HPKE endpoints accept a Gate built on it.
+const Profile = "0.11.0"
+
 // Read is one pinned read: the finalized header and the record at that block.
 // A Reader must have checked the deployed code at that block.
 type Read struct {
@@ -98,7 +102,7 @@ func newWithReader(name, registryID, network string, reader Reader, clock regist
 
 // Config is the Gate configuration that matches this Source.
 func (s *Source) Config() registry010.Config {
-	return registry010.Config{Source: s.name, Registry: s.registryID, Network: s.network, Blockchain: true}
+	return registry010.Config{Source: s.name, Registry: s.registryID, Network: s.network, Blockchain: true, Profile: Profile}
 }
 
 // Read implements registry010.Source.
@@ -141,6 +145,8 @@ func (s *Source) Read(ctx context.Context, did string) (registry010.Snapshot, er
 	snapshot.BlockHash, snapshot.KeysBlockHash = hash, hash
 	snapshot.AcquiredMS = acquired.MonoMS
 	snapshot.Ready, snapshot.Finalized, snapshot.Validated = true, true, true
+	// This Source validated a 0.11.0 record with 0.11.0 proofs (CheckRecord).
+	snapshot.Profile = Profile
 	return snapshot, nil
 }
 
