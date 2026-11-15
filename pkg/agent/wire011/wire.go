@@ -223,6 +223,9 @@ func (r *Receiver) verifyRequest(ctx context.Context, req HTTPRequest) (*Verifie
 		env.Encoding, env.Signature, env.ContextID, env.TaskID, env.Metadata); err != nil || env.Signature == "" {
 		return nil, "envelope: " + fmt.Sprint(err)
 	}
+	if env.Role != "" && env.Role != "initiator" {
+		return nil, "envelope: role"
+	}
 	payload, err := decodeB64(env.Payload, -1)
 	if err != nil {
 		return nil, "payload"
@@ -387,6 +390,9 @@ func (rv *ResponseVerifier) verifyResponse(ctx context.Context, sent *SentReques
 	if err := validCommon(env.Version, env.ID, env.DID, env.Recipient, env.KID, env.Created, env.Expires, env.Nonce,
 		env.Encoding, env.Signature, env.ContextID, env.TaskID, env.Metadata); err != nil || env.Signature == "" {
 		return nil, "envelope: " + fmt.Sprint(err)
+	}
+	if env.Role != "" && env.Role != "responder" {
+		return nil, "envelope: role"
 	}
 	req := sent.envelope
 	switch {

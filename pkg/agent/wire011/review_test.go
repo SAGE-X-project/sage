@@ -115,7 +115,7 @@ func TestStrictBodyMembers(t *testing.T) {
 		"null metadata value":    strings.Replace(base, `"encoding":"plain"`, `"encoding":"plain","metadata":{"a":null}`, 1),
 		"number metadata value":  strings.Replace(base, `"encoding":"plain"`, `"encoding":"plain","metadata":{"a":1}`, 1),
 		"invalid UTF-8":          strings.Replace(base, `"encoding":"plain"`, "\"encoding\":\"plain\",\"metadata\":{\"a\":\"\xff\"}", 1),
-		"role":                   strings.Replace(base, `"encoding":"plain"`, `"encoding":"plain","role":"initiator"`, 1),
+		"plain with session_id":  strings.Replace(base, `"encoding":"plain"`, `"encoding":"plain","session_id":"AAAAAAAAAAAAAAAAAAAAAA"`, 1),
 	}
 	for name, body := range cases {
 		if decodeClosed([]byte(body), requestMembers, &out) == nil {

@@ -45,49 +45,53 @@ var (
 	metaKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
 	responseErrors = map[string]bool{"authentication_failed": true, "policy_denied": true, "operation_failed": true, "unavailable": true}
 	// Optional members must be omitted, not present with an empty value.
-	optionalMembers = memberSet("context_id task_id error metadata")
-	requestMembers  = memberSet("version id did recipient kid created expires nonce encoding signature payload context_id task_id metadata")
-	responseMembers = memberSet("version id did recipient kid created expires nonce encoding signature message_id request_hash success data error context_id task_id metadata")
+	optionalMembers = memberSet("context_id task_id role error metadata")
+	requestMembers  = memberSet("version id did recipient kid created expires nonce encoding signature payload context_id task_id role metadata")
+	responseMembers = memberSet("version id did recipient kid created expires nonce encoding signature message_id request_hash success data error context_id task_id role metadata")
 )
 
 // Request is a chapter 08 request envelope with plain encoding.
 type Request struct {
-	Version   string            `json:"version"`
-	ID        string            `json:"id"`
-	DID       string            `json:"did"`
-	Recipient string            `json:"recipient"`
-	KID       string            `json:"kid"`
-	Created   int64             `json:"created"`
-	Expires   int64             `json:"expires"`
-	Nonce     string            `json:"nonce"`
-	Encoding  string            `json:"encoding"`
-	Signature string            `json:"signature,omitempty"`
-	Payload   string            `json:"payload"`
-	ContextID string            `json:"context_id,omitempty"`
-	TaskID    string            `json:"task_id,omitempty"`
-	Metadata  map[string]string `json:"metadata,omitempty"`
+	Version   string `json:"version"`
+	ID        string `json:"id"`
+	DID       string `json:"did"`
+	Recipient string `json:"recipient"`
+	KID       string `json:"kid"`
+	Created   int64  `json:"created"`
+	Expires   int64  `json:"expires"`
+	Nonce     string `json:"nonce"`
+	Encoding  string `json:"encoding"`
+	Signature string `json:"signature,omitempty"`
+	Payload   string `json:"payload"`
+	ContextID string `json:"context_id,omitempty"`
+	TaskID    string `json:"task_id,omitempty"`
+	// Role is optional; when present it must be "initiator" (chapter 08 §1).
+	Role     string            `json:"role,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 // Response is a chapter 08 response envelope with plain encoding.
 type Response struct {
-	Version     string            `json:"version"`
-	ID          string            `json:"id"`
-	DID         string            `json:"did"`
-	Recipient   string            `json:"recipient"`
-	KID         string            `json:"kid"`
-	Created     int64             `json:"created"`
-	Expires     int64             `json:"expires"`
-	Nonce       string            `json:"nonce"`
-	Encoding    string            `json:"encoding"`
-	Signature   string            `json:"signature,omitempty"`
-	MessageID   string            `json:"message_id"`
-	RequestHash string            `json:"request_hash"`
-	Success     bool              `json:"success"`
-	Data        string            `json:"data"`
-	Error       string            `json:"error,omitempty"`
-	ContextID   string            `json:"context_id,omitempty"`
-	TaskID      string            `json:"task_id,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	Version     string `json:"version"`
+	ID          string `json:"id"`
+	DID         string `json:"did"`
+	Recipient   string `json:"recipient"`
+	KID         string `json:"kid"`
+	Created     int64  `json:"created"`
+	Expires     int64  `json:"expires"`
+	Nonce       string `json:"nonce"`
+	Encoding    string `json:"encoding"`
+	Signature   string `json:"signature,omitempty"`
+	MessageID   string `json:"message_id"`
+	RequestHash string `json:"request_hash"`
+	Success     bool   `json:"success"`
+	Data        string `json:"data"`
+	Error       string `json:"error,omitempty"`
+	ContextID   string `json:"context_id,omitempty"`
+	TaskID      string `json:"task_id,omitempty"`
+	// Role is optional; when present it must be "responder" (chapter 08 §1).
+	Role     string            `json:"role,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 func memberSet(names string) map[string]bool {
