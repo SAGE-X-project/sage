@@ -1050,8 +1050,8 @@ jobs:
               assert module['Path'] not in modules and not module.get('Replace')
               modules[module['Path']] = (module['Version'], module['Sum'], module['GoModSum'])
           assert modules == {
-              'github.com/sage-x-project/did-go': ('v0.0.0-20261018080828-3b7a79c1c326', 'h1:Am4pVUAnGnhje6WZgO19ltbRV1NDCfvmEzQAuwHInM8=', 'h1:Xi8PmTFqnTT9F008Q4MvrZc6KFrtcrXBP/e1dH8mFaQ='),
-              'github.com/sage-x-project/did-go/advanced/sage': ('v0.0.0-20261018120945-5fac371e54db', 'h1:E4eJP14M8NrrlO/jafCfGTeWq8jexrs/+dSY6HJOdlI=', 'h1:gkcVUjeYqhRIRSD8YRErTbHy8lQ85ghzay/cs3hA7d8='),
+              'github.com/sage-x-project/did-go': ('v0.0.0-20261018163844-6cd2c9c6cbe8', 'h1:OBL/JTr90rlxGdw+D/Wgi5Ob06hXv/11FBavUruGYHo=', 'h1:Xi8PmTFqnTT9F008Q4MvrZc6KFrtcrXBP/e1dH8mFaQ='),
+              'github.com/sage-x-project/did-go/advanced/sage': ('v0.0.0-20261018163844-6cd2c9c6cbe8', 'h1:3zJzsoTmC/28v7zqwHZh1GJBhyuf4ltehXl+x+PLcE0=', 'h1:gkcVUjeYqhRIRSD8YRErTbHy8lQ85ghzay/cs3hA7d8='),
           }
           PYMODULES
           go mod verify > "$RUNNER_TEMP/did-consumer-adoption/modules-verified.txt"
