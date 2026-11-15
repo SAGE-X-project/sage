@@ -82,11 +82,12 @@ from the selected RPC, preserving its exact SHA-256 and header identity. This is
 historical parser evidence, not a fresh RPC or operating Source qualification.
 The envelope follows the [JSON-RPC 2.0 response rules](https://www.jsonrpc.org/specification#response_object)
 with the client-profile restrictions above. Duplicate and Unicode validation
-are explicit because the [Go JSON decoder](https://pkg.go.dev/encoding/json@go1.26.10)
+are explicit because the [Go JSON decoder](https://pkg.go.dev/encoding/json@go1.26.11)
 otherwise permits duplicate names and replacement of invalid Unicode.
 
-CI and container builders select Go 1.26.10, including the crypto/x509 fix for
-[GO-2026-6809](https://pkg.go.dev/vuln/GO-2026-6809). The language version and
+CI and container builders select Go 1.26.11, including the crypto/x509 fix for
+[GO-2026-6809](https://pkg.go.dev/vuln/GO-2026-6809) and the net/http fix for
+[GO-2026-6865](https://pkg.go.dev/vuln/GO-2026-6865). The language version and
 module dependency checksums are unchanged. This security patch is separate from
 the new Source checks; it does not change a SAGE version or acceptance policy.
 
