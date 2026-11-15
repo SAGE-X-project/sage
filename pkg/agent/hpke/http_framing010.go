@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func parseHTTPBytes010(raw []byte, target string, response bool) (HTTPMessage010, error) {
+func parseHTTPBytes010(p *profile, raw []byte, target string, response bool) (HTTPMessage010, error) {
 	fail := func() (HTTPMessage010, error) { return HTTPMessage010{}, errCompletion010 }
 	authority, x := httpEndpoint010(target)
 	if x != nil || len(raw) > 73728 {
@@ -77,13 +77,13 @@ func parseHTTPBytes010(raw []byte, target string, response bool) (HTTPMessage010
 	if length != strconv.Itoa(len(m.Body)) || (!response && host != authority) || (response && seen["host"]) {
 		return fail()
 	}
-	if _, x = httpHeaders010(m); x != nil {
+	if _, x = httpHeaders010(p, m); x != nil {
 		return fail()
 	}
 	return m, nil
 }
-func encodeHTTPBytes010(m HTTPMessage010, target string) ([]byte, error) {
-	if _, x := httpHeaders010(m); x != nil {
+func encodeHTTPBytes010(p *profile, m HTTPMessage010, target string) ([]byte, error) {
+	if _, x := httpHeaders010(p, m); x != nil {
 		return nil, x
 	}
 	authority, x := httpEndpoint010(target)
@@ -116,7 +116,7 @@ func encodeHTTPBytes010(m HTTPMessage010, target string) ([]byte, error) {
 	}
 	out.WriteString("Content-Length: " + strconv.Itoa(len(m.Body)) + "\r\nConnection: close\r\n\r\n")
 	out.Write(m.Body)
-	if _, x = parseHTTPBytes010(out.Bytes(), target, m.Status != 0); x != nil {
+	if _, x = parseHTTPBytes010(p, out.Bytes(), target, m.Status != 0); x != nil {
 		return nil, x
 	}
 	return out.Bytes(), nil

@@ -36,7 +36,7 @@ func NewCustodyCompletionEndpoint010(ctx context.Context, did, kid string, custo
 	if x != nil || len(public) != ed25519.PublicKeySize || ctx.Err() != nil {
 		return nil, errCompletion010
 	}
-	return &CompletionEndpoint010{registry: g, clock: c, replay: r, did: did, kid: kid, public: append(ed25519.PublicKey(nil), public...), custody: custody, kem: append([]byte(nil), kem...)}, nil
+	return &CompletionEndpoint010{p: profile010, registry: g, clock: c, replay: r, did: did, kid: kid, public: append(ed25519.PublicKey(nil), public...), custody: custody, kem: append([]byte(nil), kem...)}, nil
 }
 
 // NewProtectedCompletionEndpoint010 keeps both the Ed25519 signing key and the

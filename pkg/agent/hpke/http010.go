@@ -83,7 +83,7 @@ func httpDigest010(b []byte) string {
 	h := sha256.Sum256(b)
 	return "sha-256=:" + base64.StdEncoding.EncodeToString(h[:]) + ":"
 }
-func httpHeaders010(m HTTPMessage010) (map[string]string, error) {
+func httpHeaders010(p *profile, m HTTPMessage010) (map[string]string, error) {
 	if len(m.Body) > 32768 || len(m.Headers) > 256 {
 		return nil, errCompletion010
 	}
@@ -107,7 +107,7 @@ func httpHeaders010(m HTTPMessage010) (map[string]string, error) {
 		}
 		h[k] = v
 	}
-	if h["content-type"] != "application/json" || h["x-sage-version"] != "0.10.0" || h["x-sage-did"] == "" || h["content-digest"] != httpDigest010(m.Body) {
+	if h["content-type"] != "application/json" || h["x-sage-version"] != p.version || h["x-sage-did"] == "" || h["content-digest"] != httpDigest010(m.Body) {
 		return nil, errCompletion010
 	}
 	if v, ok := h["content-length"]; ok && v != strconv.Itoa(len(m.Body)) {
@@ -186,7 +186,7 @@ func canonicalHTTPInput010(v string, response bool) (string, error) {
 
 // The admitted Structured Fields subset is canonically serialized. Parameter
 // order may vary and is retained; duplicate/unknown parameters fail.
-func httpInput010(input string, response bool) (map[string]string, error) {
+func httpInput010(p *profile, input string, response bool) (map[string]string, error) {
 	var x error
 	input, x = canonicalHTTPInput010(input, response)
 	if x != nil {
@@ -248,19 +248,19 @@ func httpInput010(input string, response bool) (map[string]string, error) {
 		}
 		out[key] = value
 	}
-	if len(out) != 6 || out["alg"] != "ed25519" || out["tag"] != "sage-0.10.0" {
+	if len(out) != 6 || out["alg"] != "ed25519" || out["tag"] != p.httpTag {
 		return nil, errCompletion010
 	}
 	return out, nil
 }
 func (s *AuthenticatedCompletion010) prepareHTTP010(m HTTPMessage010, response bool, start registry010.Stamp) (*httpProof010, error) {
-	return prepareHTTP010(s.httpTarget, s.httpAuthority, m, response, start)
+	return prepareHTTP010(s.endpoint.p, s.httpTarget, s.httpAuthority, m, response, start)
 }
-func prepareHTTP010(target, authority string, m HTTPMessage010, response bool, start registry010.Stamp) (*httpProof010, error) {
+func prepareHTTP010(pr *profile, target, authority string, m HTTPMessage010, response bool, start registry010.Stamp) (*httpProof010, error) {
 	if target == "" || (!response && (m.Method != "POST" || m.Target != target || m.Authority != authority || m.Status != 0)) || (response && (m.Method != "" || m.Target != "" || m.Authority != "" || m.Status < 200 || m.Status > 599 || m.Status == 204)) {
 		return nil, errCompletion010
 	}
-	h, x := httpHeaders010(m)
+	h, x := httpHeaders010(pr, m)
 	if x != nil {
 		return nil, x
 	}
@@ -268,7 +268,7 @@ func prepareHTTP010(target, authority string, m HTTPMessage010, response bool, s
 	if x != nil {
 		return nil, x
 	}
-	p, x := httpInput010(normalized, response)
+	p, x := httpInput010(pr, normalized, response)
 	if x != nil {
 		return nil, x
 	}
@@ -365,8 +365,8 @@ func signHTTP010(ctx context.Context, e *CompletionEndpoint010, target, authorit
 		m.Authority = authority
 		components = httpRequestComponents010
 	}
-	input := "(" + components + ");keyid=" + strconv.Quote(str010(w, "kid")) + `;alg="ed25519";created=` + string(w["created"]) + ";expires=" + string(w["expires"]) + ";nonce=" + strconv.Quote(str010(w, "nonce")) + `;tag="sage-0.10.0"`
-	h := map[string]string{"content-type": "application/json", "content-digest": httpDigest010(body), "x-sage-did": str010(w, "did"), "x-sage-version": "0.10.0", "signature-input": "sig1=" + input}
+	input := "(" + components + ");keyid=" + strconv.Quote(str010(w, "kid")) + `;alg="ed25519";created=` + string(w["created"]) + ";expires=" + string(w["expires"]) + ";nonce=" + strconv.Quote(str010(w, "nonce")) + `;tag="` + e.p.httpTag + `"`
+	h := map[string]string{"content-type": "application/json", "content-digest": httpDigest010(body), "x-sage-did": str010(w, "did"), "x-sage-version": e.p.version, "signature-input": "sig1=" + input}
 	signature, x := e.sign(ctx, httpBase010(m, h, input, q))
 	if x != nil {
 		return HTTPMessage010{}, errCompletion010
@@ -410,7 +410,7 @@ func (s *AuthenticatedCompletion010) sealHTTPRequestMetadata010(ctx context.Cont
 	}
 	var w map[string]json.RawMessage
 	_ = json.Unmarshal(b, &w)
-	h, _ := httpHeaders010(m)
+	h, _ := httpHeaders010(e.p, m)
 	s.sent[str010(w, "id")].http = contextHTTP010(m, h)
 	return m, nil
 }

@@ -42,7 +42,7 @@ func (e *CompletionEndpoint010) StartHTTP(ctx context.Context, recipient, kid st
 		p.destroy()
 		return nil, HTTPMessage010{}, errCompletion010
 	}
-	h, x := httpHeaders010(m)
+	h, x := httpHeaders010(e.p, m)
 	if x != nil {
 		p.destroy()
 		return nil, HTTPMessage010{}, x
@@ -60,7 +60,7 @@ func (e *CompletionEndpoint010) RespondHTTP(ctx context.Context, m HTTPMessage01
 	if x != nil {
 		return nil, HTTPMessage010{}, errCompletion010
 	}
-	proof, x := prepareHTTP010(e.httpTarget, e.httpAuthority, m, false, start)
+	proof, x := prepareHTTP010(e.p, e.httpTarget, e.httpAuthority, m, false, start)
 	if x != nil {
 		return nil, HTTPMessage010{}, x
 	}
@@ -88,7 +88,7 @@ func (p *PendingCompletion010) CompleteHTTP(ctx context.Context, m HTTPMessage01
 		p.destroy()
 		return nil, errCompletion010
 	}
-	proof, x := prepareHTTP010(e.httpTarget, e.httpAuthority, m, true, start)
+	proof, x := prepareHTTP010(e.p, e.httpTarget, e.httpAuthority, m, true, start)
 	if x != nil {
 		p.destroy()
 		return nil, x
@@ -104,11 +104,21 @@ func (p *PendingCompletion010) CompleteHTTP(ctx context.Context, m HTTPMessage01
 // ParseHTTP010 parses exactly one bounded HTTP/1.1 message from authenticated TLS
 // content. It does not establish TLS itself. No pipelining, chunking or upgrade.
 func ParseHTTP010(raw []byte, target string, response bool) (HTTPMessage010, error) {
-	return parseHTTPBytes010(raw, target, response)
+	return parseHTTPBytes010(profile010, raw, target, response)
+}
+
+// ParseHTTP011 is ParseHTTP010 for SAGE 0.11.0 messages (X-Sage-Version 0.11.0).
+func ParseHTTP011(raw []byte, target string, response bool) (HTTPMessage010, error) {
+	return parseHTTPBytes010(profile011, raw, target, response)
 }
 
 // EncodeHTTP010 emits one close-delimited connection's Content-Length-framed
 // message without changing the content or signed field values.
 func EncodeHTTP010(m HTTPMessage010, target string) ([]byte, error) {
-	return encodeHTTPBytes010(m, target)
+	return encodeHTTPBytes010(profile010, m, target)
+}
+
+// EncodeHTTP011 is EncodeHTTP010 for SAGE 0.11.0 messages.
+func EncodeHTTP011(m HTTPMessage010, target string) ([]byte, error) {
+	return encodeHTTPBytes010(profile011, m, target)
 }

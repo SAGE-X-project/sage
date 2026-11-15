@@ -82,7 +82,7 @@ func (s *AuthenticatedCompletion010) sealResponseMetadata010(ctx context.Context
 	if !s.initiator {
 		role = "responder"
 	}
-	w, x := envelope010(e.did, str010(request, "did"), e.kid, s.tuple["ctx"], "responder", nil, start.Unix, start.Unix+ttl)
+	w, x := envelope010(e.p, e.did, str010(request, "did"), e.kid, s.tuple["ctx"], "responder", nil, start.Unix, start.Unix+ttl)
 	if x != nil {
 		return nil, errCompletion010
 	}
@@ -112,7 +112,7 @@ func (s *AuthenticatedCompletion010) sealResponseMetadata010(ctx context.Context
 		return nil, errCompletion010
 	}
 	w["data"] = base64.RawURLEncoding.EncodeToString(record)
-	result, x := sign010(ctx, w, "sage-wire-response|0.10.0\n", e)
+	result, x := sign010(ctx, w, e.p.wireResponse, e)
 	if x != nil {
 		s.destroy()
 		return nil, errCompletion010
@@ -154,7 +154,7 @@ func (s *AuthenticatedCompletion010) openResponse010(ctx context.Context, raw []
 	if proof != nil {
 		start = proof.start
 	}
-	w, record, x := sessionRecordMetadata010(raw, start.Unix, true, s.application)
+	w, record, x := sessionRecordMetadata010(s.endpoint.p, raw, start.Unix, true, s.application)
 	if x != nil {
 		return nil, errCompletion010
 	}

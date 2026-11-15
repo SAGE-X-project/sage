@@ -125,8 +125,8 @@ func hpkeOpenExport010(ctx context.Context, kem X25519Custody010, pkR, enc, info
 }
 
 // deriveResponderCustody010 is DeriveResponder010 with the KEM key in custody.
-func deriveResponderCustody010(ctx context.Context, raw []byte, kem X25519Custody010, pkR, e2ePrivate []byte, kid string) (*Derivation010, error) {
-	m, dom, e := initiation010(raw)
+func deriveResponderCustody010(ctx context.Context, p *profile, raw []byte, kem X25519Custody010, pkR, e2ePrivate []byte, kid string) (*Derivation010, error) {
+	m, dom, e := initiation010(p, raw)
 	if e != nil {
 		return nil, e
 	}
@@ -148,12 +148,12 @@ func deriveResponderCustody010(ctx context.Context, raw []byte, kem X25519Custod
 	defer zeroBytes(exporter)
 	m["ephS"] = base64.RawURLEncoding.EncodeToString(es.PublicKey().Bytes())
 	m["kid"] = kid
-	return finish010(m, exporter, e2ePrivate, "ephC")
+	return finish010(p, m, exporter, e2ePrivate, "ephC")
 }
 
 // respondFreshCustody010 is RespondFresh010 with the KEM key in custody.
-func respondFreshCustody010(ctx context.Context, raw []byte, kem X25519Custody010, pkR []byte) (*Derivation010, error) {
-	if _, _, e := initiation010(raw); e != nil {
+func respondFreshCustody010(ctx context.Context, p *profile, raw []byte, kem X25519Custody010, pkR []byte) (*Derivation010, error) {
+	if _, _, e := initiation010(p, raw); e != nil {
 		return nil, e
 	}
 	es, e := ecdh.X25519().GenerateKey(rand.Reader)
@@ -166,5 +166,5 @@ func respondFreshCustody010(ctx context.Context, raw []byte, kem X25519Custody01
 	if e != nil {
 		return nil, errDerivation010
 	}
-	return deriveResponderCustody010(ctx, raw, kem, pkR, private, kid.String())
+	return deriveResponderCustody010(ctx, p, raw, kem, pkR, private, kid.String())
 }

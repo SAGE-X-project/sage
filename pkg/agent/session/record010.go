@@ -17,12 +17,24 @@ const record010Limit = 1000
 const record010MaxAAD = 4033
 const record010MaxWire = 8 * 1024 * 1024
 
-// RecordSession010 owns the record keys and counters for SAGE 0.10.0.
+// recordLabels are the chapter 05 byte labels one SAGE version selects. The
+// constructions that use them are identical across versions.
+type recordLabels struct{ session, c2s, s2c, record string }
+
+var (
+	labels010 = &recordLabels{"sage-session|0.10.0", "sage-c2s-key|0.10.0", "sage-s2c-key|0.10.0", "sage-record|0.10.0"}
+	// SAGE 0.11.0 (sage-spec profiles/sage-0.11.0/selection.json domain_entries).
+	labels011 = &recordLabels{"sage-session|0.11.0", "sage-c2s-key|0.11.0", "sage-s2c-key|0.11.0", "sage-record|0.11.0"}
+)
+
+// RecordSession010 owns the record keys and counters of one SAGE 0.10.0 or
+// 0.11.0 session; the version is fixed by the constructor and never changes.
 // Construct only after an authenticated handshake. This low-level API does not
 // validate envelope tuples, registry status, HPKE confirmation or authorization.
 // Call Close when any of those external checks fail. Do not copy a session.
 type RecordSession010 struct {
 	mu        sync.Mutex
+	labels    *recordLabels
 	seed      [32]byte
 	th        [32]byte
 	initiator bool
@@ -38,15 +50,25 @@ type RecordSession010 struct {
 // hash. Reconstructing with the same inputs resets counters and is forbidden;
 // restart/recovery must perform a fresh authenticated handshake.
 func NewRecordSession010(seed, th []byte, initiator bool) (*RecordSession010, error) {
+	return newRecordSession(labels010, seed, th, initiator)
+}
+
+// NewRecordSession011 is NewRecordSession010 with the SAGE 0.11.0 labels. A
+// 0.11.0 session never opens a 0.10.0 record or the reverse.
+func NewRecordSession011(seed, th []byte, initiator bool) (*RecordSession010, error) {
+	return newRecordSession(labels011, seed, th, initiator)
+}
+
+func newRecordSession(labels *recordLabels, seed, th []byte, initiator bool) (*RecordSession010, error) {
 	if len(seed) != 32 || len(th) != 32 {
 		return nil, errors.New("seed and transcript must be 32 bytes")
 	}
 	now := time.Now()
-	s := &RecordSession010{initiator: initiator, created: now, active: now}
+	s := &RecordSession010{labels: labels, initiator: initiator, created: now, active: now}
 	copy(s.seed[:], seed)
 	copy(s.th[:], th)
 	h := sha256.New()
-	_, _ = h.Write([]byte("sage-session|0.10.0"))
+	_, _ = h.Write([]byte(labels.session))
 	_, _ = h.Write(th)
 	s.sid = base64.RawURLEncoding.EncodeToString(h.Sum(nil)[:16])
 	return s, nil
@@ -73,17 +95,17 @@ func (s *RecordSession010) direction(sending bool) byte {
 }
 func (s *RecordSession010) key(direction byte, seq uint64) ([32]byte, error) {
 	var key [32]byte
-	label := "c2s"
+	label := s.labels.c2s
 	if direction == 1 {
-		label = "s2c"
+		label = s.labels.s2c
 	}
-	info := append([]byte("sage-"+label+"-key|0.10.0"), s.th[:]...)
+	info := append([]byte(label), s.th[:]...)
 	info = binary.BigEndian.AppendUint64(info, seq/256)
 	_, err := io.ReadFull(hkdf.Expand(sha256.New, s.seed[:], info), key[:])
 	return key, err
 }
 func (s *RecordSession010) aad(direction byte, seq uint64, caller []byte) []byte {
-	a := append([]byte("sage-record|0.10.0"), s.th[:]...)
+	a := append([]byte(s.labels.record), s.th[:]...)
 	a = append(a, direction)
 	a = binary.BigEndian.AppendUint64(a, seq)
 	a = binary.BigEndian.AppendUint32(a, uint32(len(caller)))
