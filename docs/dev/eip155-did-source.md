@@ -73,10 +73,12 @@ or runtime observation of an actual blockchain Source.
 
 ## Public DID dependency adoption
 
-The core selects public did-go root
-`v0.0.0-20261018080828-3b7a79c1c326` and advanced/sage
-`v0.0.0-20261018120945-5fac371e54db`, with checksums and no local
-replacement. This includes the earlier date-consumer, recursive-fragment,
+The core selects public did-go root and advanced/sage at the same commit,
+`v0.0.0-20261018163844-6cd2c9c6cbe8`, with checksums and no local
+replacement. Until 2026-11-15 the root was pinned one commit range behind
+advanced/sage (`3b7a79c` and `5fac371`); the aligned pin adds the standalone
+core dependency update, the completed SAGE response metadata and diagnostics,
+paired observation of both SAGE DID views, and paired history fixtures. This includes the earlier date-consumer, recursive-fragment,
 relative-ID, URL-fragment and metadata-presence repairs. The SAGE envelope
 now retains explicit active/created `deactivated:false`; unsupported Accept
 negotiation retains the standard typed problem and SAGE diagnostic code.
