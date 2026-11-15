@@ -34,6 +34,9 @@ regexes = [
   # Exact RFC 8032 section 7.1 test-1 Ed25519 PUBLIC key in the
   # independent replay fixture; no seed/private key/API token is allowlisted.
   '''^"?key"\s*:\s*"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"$''',
+  # Exact PUBLIC keys of the Anvil lifecycle-scenario record fixture
+  # (registrykeys, gatesource, registry011 testdata); no private key is allowlisted.
+  '''^"?key"\s*:\s*"(?:D_3H7D6k_dk3s2XE6y7o4weaAHZ7JE1z2gYH18ThhGg|juRC07PR0mc7Tsnl3Ige2nf7JEL9yYdrR6shaKatFPc|_JAlNdP9OYU3vwGqjqe62_uf7JGoxW52mU4V0H-IUaQ|NJyxNB1YscqEjhKU02_ijkJpmkEnlQqHAuSDT3RY2pk)"$''',
   # Exact public block commitment in the original official Sepolia RPC fixture.
   # This blockAccessListHash is not an API key; other values remain scanned.
   '''^blockAccessListHash"\s*:\s*"0xccc2c86b0961a35967f13168707928255aceb87ea5bf96d5b81d7e1ed7a7fd7e"$''',
