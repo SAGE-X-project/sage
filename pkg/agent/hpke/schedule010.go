@@ -17,6 +17,15 @@ var errSchedule010 = errors.New("invalid 0.10.0 HPKE schedule input")
 // The caller must reject invalid HPKE KEM results before obtaining the exporter.
 // The caller owns and must erase the returned seed when no longer needed.
 func CombineSecrets010(exporter, shared, th []byte) ([]byte, error) {
+	return combineSecretsFor(profile010, exporter, shared, th)
+}
+
+// CombineSecrets011 is CombineSecrets010 with the SAGE 0.11.0 combiner label.
+func CombineSecrets011(exporter, shared, th []byte) ([]byte, error) {
+	return combineSecretsFor(profile011, exporter, shared, th)
+}
+
+func combineSecretsFor(p *profile, exporter, shared, th []byte) ([]byte, error) {
 	if len(exporter) != 32 || len(shared) != 32 || len(th) != 32 || isAllZero32(shared) {
 		return nil, errSchedule010
 	}
@@ -26,7 +35,7 @@ func CombineSecrets010(exporter, shared, th []byte) ([]byte, error) {
 	defer zeroBytes(ikm[:])
 	prk := hkdf.Extract(sha256.New, ikm[:], th)
 	defer zeroBytes(prk)
-	return expand010(prk, "sage-hpke-combiner|0.10.0", th)
+	return expand010(prk, p.combiner, th)
 }
 
 func expand010(key []byte, label string, th []byte) ([]byte, error) {
@@ -41,11 +50,16 @@ func expand010(key []byte, label string, th []byte) ([]byte, error) {
 
 // MakeAckTag010 derives the transcript-bound ACK without exposing the ACK key.
 // The seed must come from CombineSecrets010 for the same authenticated transcript.
-func MakeAckTag010(seed, th []byte) ([]byte, error) {
+func MakeAckTag010(seed, th []byte) ([]byte, error) { return makeAckTag(profile010, seed, th) }
+
+// MakeAckTag011 is MakeAckTag010 with the SAGE 0.11.0 ACK label.
+func MakeAckTag011(seed, th []byte) ([]byte, error) { return makeAckTag(profile011, seed, th) }
+
+func makeAckTag(p *profile, seed, th []byte) ([]byte, error) {
 	if len(seed) != 32 || len(th) != 32 {
 		return nil, errSchedule010
 	}
-	key, err := expand010(seed, "sage-hpke-ack|0.10.0", th)
+	key, err := expand010(seed, p.ack, th)
 	if err != nil {
 		return nil, err
 	}
@@ -57,11 +71,16 @@ func MakeAckTag010(seed, th []byte) ([]byte, error) {
 
 // VerifyAckTag010 compares a 32-byte ACK in constant time. Success proves only
 // agreement on this seed/transcript, not signatures, key status, or pending state.
-func VerifyAckTag010(seed, th, tag []byte) bool {
+func VerifyAckTag010(seed, th, tag []byte) bool { return verifyAckTagFor(profile010, seed, th, tag) }
+
+// VerifyAckTag011 is VerifyAckTag010 with the SAGE 0.11.0 ACK label.
+func VerifyAckTag011(seed, th, tag []byte) bool { return verifyAckTagFor(profile011, seed, th, tag) }
+
+func verifyAckTagFor(p *profile, seed, th, tag []byte) bool {
 	if len(tag) != 32 {
 		return false
 	}
-	expected, err := MakeAckTag010(seed, th)
+	expected, err := makeAckTag(p, seed, th)
 	if err != nil {
 		return false
 	}

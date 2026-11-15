@@ -754,7 +754,7 @@ func TestHTTPApplicationMetadataBindings010(t *testing.T) {
 					if response {
 						pinned = sender.session.b.Signing()
 					}
-					if kind != "inner-signature" && verifyWire010(signed, response, pinned) != nil {
+					if kind != "inner-signature" && verifyWire010(profile010, signed, response, pinned) != nil {
 						t.Fatal("valid inner proof control")
 					}
 					// The outer-only control keeps its original proof. The AEAD control has
@@ -770,7 +770,7 @@ func TestHTTPApplicationMetadataBindings010(t *testing.T) {
 						if err != nil {
 							t.Fatal(err)
 						}
-						h, err := httpHeaders010(mutated)
+						h, err := httpHeaders010(profile010, mutated)
 						if err != nil {
 							t.Fatal(err)
 						}
@@ -1193,10 +1193,10 @@ func TestHTTPApplicationLegacyResponseMetadataRefusal010(t *testing.T) {
 			}
 			var fields map[string]json.RawMessage
 			_ = json.Unmarshal(response.Body, &fields)
-			if err = verifyWire010(fields, true, owner.session.b.Signing()); err != nil {
+			if err = verifyWire010(profile010, fields, true, owner.session.b.Signing()); err != nil {
 				t.Fatal("valid signed response control", err)
 			}
-			if _, _, err = sessionRecord010(response.Body, 100, true); err == nil {
+			if _, _, err = sessionRecord010(profile010, response.Body, 100, true); err == nil {
 				t.Fatal("default response codec accepted metadata")
 			}
 			before := len(client.endpoint.replay.(*completionReplay).seen)

@@ -256,7 +256,7 @@ func TestHandshakeKeyAuthorityBoundary010(t *testing.T) {
 					t.Fatal("signed fixture")
 				}
 				snapshot, err := a.registry.Select(ctx, completionAlice, completionAlice+"#signing-1", false)
-				if err != nil || verifyWire010(raw, false, snapshot.Signing()) != nil {
+				if err != nil || verifyWire010(profile010, raw, false, snapshot.Signing()) != nil {
 					t.Fatal("signature calibration failed")
 				}
 				before := len(b.replay.(*completionReplay).seen)
@@ -288,7 +288,7 @@ func TestHandshakeKeyAuthorityBoundary010(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			init, _, err := initiation010(body)
+			init, _, err := initiation010(profile010, body)
 			if err != nil {
 				t.Fatal(err)
 			}

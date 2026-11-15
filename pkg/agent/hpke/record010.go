@@ -48,13 +48,13 @@ func requestAAD010(m map[string]json.RawMessage) []byte {
 	}
 	return canon010(a)
 }
-func sessionRequest010(raw []byte, now int64) (map[string]json.RawMessage, []byte, error) {
-	return sessionRecord010(raw, now, false)
+func sessionRequest010(p *profile, raw []byte, now int64) (map[string]json.RawMessage, []byte, error) {
+	return sessionRecord010(p, raw, now, false)
 }
-func sessionRecord010(raw []byte, now int64, response bool) (map[string]json.RawMessage, []byte, error) {
-	return sessionRecordMetadata010(raw, now, response, false)
+func sessionRecord010(p *profile, raw []byte, now int64, response bool) (map[string]json.RawMessage, []byte, error) {
+	return sessionRecordMetadata010(p, raw, now, response, false)
 }
-func sessionRecordMetadata010(raw []byte, now int64, response, application bool) (map[string]json.RawMessage, []byte, error) {
+func sessionRecordMetadata010(p *profile, raw []byte, now int64, response, application bool) (map[string]json.RawMessage, []byte, error) {
 	// This bounded subset deliberately shares the 32 KiB envelope admission cap.
 	if len(raw) > 32768 {
 		return nil, nil, errCompletion010
@@ -91,7 +91,7 @@ func sessionRecordMetadata010(raw []byte, now int64, response, application bool)
 	}
 	names = append(names, field)
 	m, x := rawObject010(raw, names)
-	if x != nil || str010(m, "encoding") != "session" || str010(m, "version") != "0.10.0" || !uuid010.MatchString(str010(m, "id")) {
+	if x != nil || str010(m, "encoding") != "session" || str010(m, "version") != p.version || !uuid010.MatchString(str010(m, "id")) {
 		return nil, nil, errCompletion010
 	}
 	created, x := int010(m, "created")
@@ -162,7 +162,7 @@ func (s *AuthenticatedCompletion010) sealRequestMetadata010(ctx context.Context,
 	if !s.initiator {
 		peer, role = s.tuple["initDid"], "responder"
 	}
-	w, x := envelope010(e.did, peer, e.kid, s.tuple["ctx"], "initiator", nil, start.Unix, start.Unix+ttl)
+	w, x := envelope010(e.p, e.did, peer, e.kid, s.tuple["ctx"], "initiator", nil, start.Unix, start.Unix+ttl)
 	if x != nil {
 		return nil, errCompletion010
 	}
@@ -184,7 +184,7 @@ func (s *AuthenticatedCompletion010) sealRequestMetadata010(ctx context.Context,
 		return nil, errCompletion010
 	}
 	w["payload"] = base64.RawURLEncoding.EncodeToString(wire)
-	result, x := sign010(ctx, w, "sage-wire-request|0.10.0\n", e)
+	result, x := sign010(ctx, w, e.p.wireRequest, e)
 	if x != nil {
 		s.destroy()
 		return nil, errCompletion010
@@ -229,9 +229,9 @@ func (s *AuthenticatedCompletion010) openRequest010(ctx context.Context, raw []b
 	var w map[string]json.RawMessage
 	var wire []byte
 	if s.application {
-		w, wire, x = sessionRecordMetadata010(raw, start.Unix, false, true)
+		w, wire, x = sessionRecordMetadata010(s.endpoint.p, raw, start.Unix, false, true)
 	} else {
-		w, wire, x = sessionRequest010(raw, start.Unix)
+		w, wire, x = sessionRequest010(s.endpoint.p, raw, start.Unix)
 	}
 	if x != nil {
 		return nil, errCompletion010
@@ -264,7 +264,7 @@ func (s *AuthenticatedCompletion010) acceptRecord010(ctx context.Context, start 
 		s.destroy()
 		return nil, errCompletion010
 	}
-	if verifyWire010(w, response, key) != nil {
+	if verifyWire010(e.p, w, response, key) != nil {
 		return nil, errCompletion010
 	}
 	store, ok := e.replay.(RecordReplayStore010)

@@ -130,12 +130,12 @@ func binary010(s string, n int) ([]byte, error) {
 	}
 	return b, nil
 }
-func binding010(m map[string]string) (map[string]string, error) {
+func binding010(p *profile, m map[string]string) (map[string]string, error) {
 	b := make(map[string]string)
 	for _, n := range bindingFields010 {
 		b[n] = m[n]
 	}
-	if b["v"] != "0.10.0" || b["suite"] != "hpke-base+x25519+hkdf-sha256" || b["combiner"] != "e2e-x25519-hkdf-v1" || !uuid010.MatchString(b["ctx"]) {
+	if b["v"] != p.version || b["suite"] != "hpke-base+x25519+hkdf-sha256" || b["combiner"] != "e2e-x25519-hkdf-v1" || !uuid010.MatchString(b["ctx"]) {
 		return nil, errDerivation010
 	}
 	if !did010(b["initDid"]) || !did010(b["respDid"]) || !key010(b["initKid"], b["initDid"]) || !key010(b["respKid"], b["respDid"]) || !key010(b["kemKid"], b["respDid"]) {
@@ -146,39 +146,44 @@ func binding010(m map[string]string) (map[string]string, error) {
 	}
 	return b, nil
 }
-func domains010(b map[string]string) (Domains010, error) {
+func domains010(p *profile, b map[string]string) (Domains010, error) {
 	raw, e := rfc8785.Marshal(b)
 	if e != nil {
 		return Domains010{}, errDerivation010
 	}
-	info := append([]byte("sage-hpke-info|0.10.0\n"), raw...)
+	info := append([]byte(p.hpkeInfo), raw...)
 	h := sha256.Sum256(info)
-	return Domains010{raw, info, append([]byte("sage-hpke-export|0.10.0\n"), h[:]...)}, nil
+	return Domains010{raw, info, append([]byte(p.hpkeExport), h[:]...)}, nil
 }
 
 // BuildDomains010 validates the closed B shape and derives info/exportCtx.
 // Syntax does not prove registration or authority; web origin policy is external.
-func BuildDomains010(raw []byte) (Domains010, error) {
+func BuildDomains010(raw []byte) (Domains010, error) { return buildDomains(profile010, raw) }
+
+// BuildDomains011 is BuildDomains010 for a SAGE 0.11.0 binding (v "0.11.0").
+func BuildDomains011(raw []byte) (Domains010, error) { return buildDomains(profile011, raw) }
+
+func buildDomains(p *profile, raw []byte) (Domains010, error) {
 	m, e := fields010(raw, bindingFields010)
 	if e != nil {
 		return Domains010{}, e
 	}
-	b, e := binding010(m)
+	b, e := binding010(p, m)
 	if e != nil {
 		return Domains010{}, e
 	}
-	return domains010(b)
+	return domains010(p, b)
 }
-func initiation010(raw []byte) (map[string]string, Domains010, error) {
+func initiation010(p *profile, raw []byte) (map[string]string, Domains010, error) {
 	m, e := fields010(raw, append(append([]string{}, bindingFields010...), "task", "enc", "ephC"))
 	if e != nil {
 		return nil, Domains010{}, e
 	}
-	b, e := binding010(m)
+	b, e := binding010(p, m)
 	if e != nil {
 		return nil, Domains010{}, e
 	}
-	if m["task"] != "hpke/init@0.10.0" {
+	if m["task"] != p.initTask {
 		return nil, Domains010{}, errDerivation010
 	}
 	for _, n := range []string{"enc", "ephC"} {
@@ -186,10 +191,10 @@ func initiation010(raw []byte) (map[string]string, Domains010, error) {
 			return nil, Domains010{}, e
 		}
 	}
-	dom, e := domains010(b)
+	dom, e := domains010(p, b)
 	return m, dom, e
 }
-func finish010(m map[string]string, exporter, private []byte, peerField string) (*Derivation010, error) {
+func finish010(p *profile, m map[string]string, exporter, private []byte, peerField string) (*Derivation010, error) {
 	peer, e := binary010(m[peerField], 32)
 	if e != nil {
 		return nil, e
@@ -212,16 +217,16 @@ func finish010(m map[string]string, exporter, private []byte, peerField string) 
 		return nil, errDerivation010
 	}
 	th := sha256.Sum256(t)
-	seed, e := CombineSecrets010(exporter, shared, th[:])
+	seed, e := combineSecretsFor(p, exporter, shared, th[:])
 	if e != nil {
 		return nil, errDerivation010
 	}
-	ack, e := MakeAckTag010(seed, th[:])
+	ack, e := makeAckTag(p, seed, th[:])
 	if e != nil {
 		zeroBytes(seed)
 		return nil, errDerivation010
 	}
-	sid := sha256.Sum256(append([]byte("sage-session|0.10.0"), th[:]...))
+	sid := sha256.Sum256(append([]byte(p.session), th[:]...))
 	return &Derivation010{t, th[:], seed, ack, base64.RawURLEncoding.EncodeToString(sid[:16])}, nil
 }
 
@@ -229,7 +234,16 @@ func finish010(m map[string]string, exporter, private []byte, peerField string) 
 // The caller must supply a fresh independent E2E private key and UUIDv4 kid;
 // RespondFresh010 provides those values automatically. Neither API authenticates.
 func DeriveResponder010(raw, kemPrivate, e2ePrivate []byte, kid string) (*Derivation010, error) {
-	m, dom, e := initiation010(raw)
+	return deriveResponder(profile010, raw, kemPrivate, e2ePrivate, kid)
+}
+
+// DeriveResponder011 is DeriveResponder010 for a SAGE 0.11.0 initiation.
+func DeriveResponder011(raw, kemPrivate, e2ePrivate []byte, kid string) (*Derivation010, error) {
+	return deriveResponder(profile011, raw, kemPrivate, e2ePrivate, kid)
+}
+
+func deriveResponder(p *profile, raw, kemPrivate, e2ePrivate []byte, kid string) (*Derivation010, error) {
+	m, dom, e := initiation010(p, raw)
 	if e != nil {
 		return nil, e
 	}
@@ -255,12 +269,21 @@ func DeriveResponder010(raw, kemPrivate, e2ePrivate []byte, kid string) (*Deriva
 	defer zeroBytes(exporter)
 	m["ephS"] = base64.RawURLEncoding.EncodeToString(es.PublicKey().Bytes())
 	m["kid"] = kid
-	return finish010(m, exporter, e2ePrivate, "ephC")
+	return finish010(p, m, exporter, e2ePrivate, "ephC")
 }
 
 // RespondFresh010 draws a fresh E2E key and handle using the system CSPRNG.
 func RespondFresh010(raw, kemPrivate []byte) (*Derivation010, error) {
-	if _, _, e := initiation010(raw); e != nil {
+	return respondFresh(profile010, raw, kemPrivate)
+}
+
+// RespondFresh011 is RespondFresh010 for a SAGE 0.11.0 initiation.
+func RespondFresh011(raw, kemPrivate []byte) (*Derivation010, error) {
+	return respondFresh(profile011, raw, kemPrivate)
+}
+
+func respondFresh(p *profile, raw, kemPrivate []byte) (*Derivation010, error) {
+	if _, _, e := initiation010(p, raw); e != nil {
 		return nil, e
 	}
 	es, e := ecdh.X25519().GenerateKey(rand.Reader)
@@ -273,13 +296,14 @@ func RespondFresh010(raw, kemPrivate []byte) (*Derivation010, error) {
 	if e != nil {
 		return nil, errDerivation010
 	}
-	return DeriveResponder010(raw, kemPrivate, private, kid.String())
+	return deriveResponder(p, raw, kemPrivate, private, kid.String())
 }
 
 // Initiator010 retains cryptographic material for one derivation. It is not the
 // authenticated HPKE pending-state machine. Do not copy; call Close on abandon.
 type Initiator010 struct {
 	mu                sync.Mutex
+	p                 *profile
 	init              map[string]string
 	exporter, private []byte
 	closed            bool
@@ -288,15 +312,24 @@ type Initiator010 struct {
 // StartInitiator010 generates independent HPKE and E2E ephemeral keys. The caller
 // supplies fresh authenticated context/nonce and the exact current kemKid bytes.
 func StartInitiator010(binding, kemPublic []byte) (*Initiator010, []byte, error) {
+	return startInitiator(profile010, binding, kemPublic)
+}
+
+// StartInitiator011 is StartInitiator010 for a SAGE 0.11.0 binding.
+func StartInitiator011(binding, kemPublic []byte) (*Initiator010, []byte, error) {
+	return startInitiator(profile011, binding, kemPublic)
+}
+
+func startInitiator(p *profile, binding, kemPublic []byte) (*Initiator010, []byte, error) {
 	m, e := fields010(binding, bindingFields010)
 	if e != nil {
 		return nil, nil, e
 	}
-	b, e := binding010(m)
+	b, e := binding010(p, m)
 	if e != nil {
 		return nil, nil, e
 	}
-	dom, e := domains010(b)
+	dom, e := domains010(p, b)
 	if e != nil {
 		return nil, nil, e
 	}
@@ -313,7 +346,7 @@ func StartInitiator010(binding, kemPublic []byte) (*Initiator010, []byte, error)
 		zeroBytes(exporter)
 		return nil, nil, errDerivation010
 	}
-	m["task"] = "hpke/init@0.10.0"
+	m["task"] = p.initTask
 	m["enc"] = base64.RawURLEncoding.EncodeToString(enc)
 	m["ephC"] = base64.RawURLEncoding.EncodeToString(c.PublicKey().Bytes())
 	raw, e := rfc8785.Marshal(m)
@@ -321,7 +354,7 @@ func StartInitiator010(binding, kemPublic []byte) (*Initiator010, []byte, error)
 		zeroBytes(exporter)
 		return nil, nil, errDerivation010
 	}
-	return &Initiator010{init: m, exporter: exporter, private: c.Bytes()}, raw, nil
+	return &Initiator010{p: p, init: m, exporter: exporter, private: c.Bytes()}, raw, nil
 }
 func (s *Initiator010) destroy() {
 	zeroBytes(s.exporter)
@@ -357,5 +390,5 @@ func (s *Initiator010) Derive(transcript []byte) (*Derivation010, error) {
 	if !uuid010.MatchString(m["kid"]) {
 		return nil, errDerivation010
 	}
-	return finish010(m, s.exporter, s.private, "ephS")
+	return finish010(s.p, m, s.exporter, s.private, "ephS")
 }

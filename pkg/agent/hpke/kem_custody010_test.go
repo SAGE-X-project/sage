@@ -85,7 +85,7 @@ func TestKEMCustodyMatchesIndependentDerivationVectors(t *testing.T) {
 				return
 			}
 			kem := &testKEM010{key: k}
-			v, err := deriveResponderCustody010(context.Background(), d("initiation_hex"), kem, k.PublicKey().Bytes(), d("e2e_private_hex"), c.Input["kid"])
+			v, err := deriveResponderCustody010(context.Background(), profile010, d("initiation_hex"), kem, k.PublicKey().Bytes(), d("e2e_private_hex"), c.Input["kid"])
 			var out map[string]string
 			if err == nil {
 				defer zeroBytes(v.Seed)
@@ -120,7 +120,7 @@ func TestKEMCustodyFreshExchangeMatchesLocalKey(t *testing.T) {
 		}
 		e2e, _ := ecdh.X25519().GenerateKey(rand.Reader)
 		const kid = "00000000-0000-4000-8000-000000000001"
-		custody, err := deriveResponderCustody010(context.Background(), init, kem, local.PublicKey().Bytes(), e2e.Bytes(), kid)
+		custody, err := deriveResponderCustody010(context.Background(), profile010, init, kem, local.PublicKey().Bytes(), e2e.Bytes(), kid)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -155,7 +155,7 @@ func TestKEMCustodyRefusals(t *testing.T) {
 	for _, mode := range []string{"error", "short", "zero", "other-key", "panic"} {
 		t.Run(mode, func(t *testing.T) {
 			kem := &testKEM010{key: local, mode: mode}
-			d, err := respondFreshCustody010(context.Background(), init, kem, local.PublicKey().Bytes())
+			d, err := respondFreshCustody010(context.Background(), profile010, init, kem, local.PublicKey().Bytes())
 			if mode == "other-key" {
 				// A wrong shared value derives different secrets; the initiator
 				// then refuses the completion.
@@ -174,10 +174,10 @@ func TestKEMCustodyRefusals(t *testing.T) {
 	kem := &testKEM010{key: local}
 	cancelled, cancel := context.WithCancel(context.Background())
 	cancel()
-	if d, err := respondFreshCustody010(cancelled, init, kem, local.PublicKey().Bytes()); err == nil || d != nil {
+	if d, err := respondFreshCustody010(cancelled, profile010, init, kem, local.PublicKey().Bytes()); err == nil || d != nil {
 		t.Fatal("cancelled custody derivation accepted")
 	}
-	if d, err := respondFreshCustody010(context.Background(), init, kem, make([]byte, 31)); err == nil || d != nil {
+	if d, err := respondFreshCustody010(context.Background(), profile010, init, kem, make([]byte, 31)); err == nil || d != nil {
 		t.Fatal("short recipient key accepted")
 	}
 }

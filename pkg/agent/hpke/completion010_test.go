@@ -122,7 +122,27 @@ func (r *completionReplay) Reserve(v Replay010) error {
 	}
 	return nil
 }
+
+// profiledSource labels the fixture's snapshots with the version it validates.
+type profiledSource struct {
+	registry010.Source
+	profile string
+}
+
+func (s profiledSource) Read(ctx context.Context, did string) (registry010.Snapshot, error) {
+	snap, err := s.Source.Read(ctx, did)
+	snap.Profile = s.profile
+	return snap, err
+}
+
 func completionPair(t *testing.T) (*CompletionEndpoint010, *CompletionEndpoint010, *completionControl) {
+	t.Helper()
+	return completionPairFor(t, "0.10.0", "0.10.0")
+}
+
+// completionPairFor builds Alice (initiator) and Bob (responder, with a KEM key)
+// for the given SAGE versions, each with a Gate of that version's profile.
+func completionPairFor(t *testing.T, alice, bob string) (*CompletionEndpoint010, *CompletionEndpoint010, *completionControl) {
 	t.Helper()
 	c := &completionControl{utc: 100}
 	makeEndpoint := func(did string, n byte) *CompletionEndpoint010 {
@@ -131,7 +151,15 @@ func completionPair(t *testing.T) (*CompletionEndpoint010, *CompletionEndpoint01
 			t.Fatal(x)
 		}
 		t.Cleanup(func() { _ = j.Close() })
-		g, x := registry010.NewGate(registry010.Config{Source: "fixture-authority", Registry: completionRegistry, Network: "local"}, c, c, j)
+		version := alice
+		if n == 2 {
+			version = bob
+		}
+		profile, construct := "", NewCompletionEndpoint010
+		if version == "0.11.0" {
+			profile, construct = "0.11.0", NewCompletionEndpoint011
+		}
+		g, x := registry010.NewGate(registry010.Config{Source: "fixture-authority", Registry: completionRegistry, Network: "local", Profile: profile}, profiledSource{c, profile}, c, j)
 		if x != nil {
 			t.Fatal(x)
 		}
@@ -139,7 +167,7 @@ func completionPair(t *testing.T) (*CompletionEndpoint010, *CompletionEndpoint01
 		if n == 2 {
 			kem = bytes.Repeat([]byte{3}, 32)
 		}
-		e, x := NewCompletionEndpoint010(did, did+"#signing-1", bytes.Repeat([]byte{n}, 32), kem, g, c, &completionReplay{c, map[string]bool{}})
+		e, x := construct(did, did+"#signing-1", bytes.Repeat([]byte{n}, 32), kem, g, c, &completionReplay{c, map[string]bool{}})
 		if x != nil {
 			t.Fatal(x)
 		}

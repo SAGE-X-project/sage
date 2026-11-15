@@ -59,15 +59,23 @@ type CompletionEndpoint010 struct {
 	kemCustody                X25519Custody010
 	kemPublic                 []byte
 	last                      *registry010.Stamp
+	p                         *profile // fixed at construction; see profile.go
 }
 
 // NewCompletionEndpoint010 copies a local Ed25519 seed and optional X25519 private
 // key. Exact correspondence with current registered public bytes is checked on use.
 func NewCompletionEndpoint010(did, kid string, signingSeed, kem []byte, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (*CompletionEndpoint010, error) {
+	if g.Profile() != "0.10.0" {
+		return nil, errCompletion010
+	}
+	return newCompletionEndpoint(did, kid, signingSeed, kem, g, c, r)
+}
+
+func newCompletionEndpoint(did, kid string, signingSeed, kem []byte, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (*CompletionEndpoint010, error) {
 	if !did010(did) || !key010(kid, did) || len(signingSeed) != 32 || (len(kem) != 0 && len(kem) != 32) || g == nil || c == nil || r == nil {
 		return nil, errCompletion010
 	}
-	return &CompletionEndpoint010{registry: g, clock: c, replay: r, did: did, kid: kid, signing: ed25519.NewKeyFromSeed(signingSeed), public: ed25519.NewKeyFromSeed(signingSeed).Public().(ed25519.PublicKey), kem: append([]byte(nil), kem...)}, nil
+	return &CompletionEndpoint010{p: profile010, registry: g, clock: c, replay: r, did: did, kid: kid, signing: ed25519.NewKeyFromSeed(signingSeed), public: ed25519.NewKeyFromSeed(signingSeed).Public().(ed25519.PublicKey), kem: append([]byte(nil), kem...)}, nil
 }
 func (e *CompletionEndpoint010) sample() (registry010.Stamp, error) {
 	if !e.signable() {
@@ -203,7 +211,7 @@ func sign010(ctx context.Context, m map[string]any, domain string, e *Completion
 	m["signature"] = base64.RawURLEncoding.EncodeToString(signature)
 	return canon010(m), nil
 }
-func wire010(raw []byte, response bool, now int64) (map[string]json.RawMessage, []byte, error) {
+func wire010(p *profile, raw []byte, response bool, now int64) (map[string]json.RawMessage, []byte, error) {
 	names := append([]string{}, wireFields010...)
 	field := "payload"
 	role := "initiator"
@@ -217,7 +225,7 @@ func wire010(raw []byte, response bool, now int64) (map[string]json.RawMessage, 
 	if x != nil {
 		return nil, nil, x
 	}
-	if str010(m, "version") != "0.10.0" || str010(m, "encoding") != "plain" || str010(m, "role") != role || !uuid010.MatchString(str010(m, "id")) || !uuid010.MatchString(str010(m, "context_id")) || !did010(str010(m, "did")) || !did010(str010(m, "recipient")) || !key010(str010(m, "kid"), str010(m, "did")) {
+	if str010(m, "version") != p.version || str010(m, "encoding") != "plain" || str010(m, "role") != role || !uuid010.MatchString(str010(m, "id")) || !uuid010.MatchString(str010(m, "context_id")) || !did010(str010(m, "did")) || !did010(str010(m, "recipient")) || !key010(str010(m, "kid"), str010(m, "did")) {
 		return nil, nil, errCompletion010
 	}
 	created, x := int010(m, "created")
@@ -244,7 +252,7 @@ func wire010(raw []byte, response bool, now int64) (map[string]json.RawMessage, 
 	}
 	return m, body, nil
 }
-func verifyWire010(m map[string]json.RawMessage, response bool, k registry010.Key) error {
+func verifyWire010(p *profile, m map[string]json.RawMessage, response bool, k registry010.Key) error {
 	sig, x := binary010(str010(m, "signature"), 64)
 	pub, y := hex.DecodeString(k.Material)
 	if x != nil || y != nil || len(pub) != 32 || k.Alg != "ed25519" {
@@ -256,16 +264,16 @@ func verifyWire010(m map[string]json.RawMessage, response bool, k registry010.Ke
 			unsigned[n] = v
 		}
 	}
-	domain := "sage-wire-request|0.10.0\n"
+	domain := p.wireRequest
 	if response {
-		domain = "sage-wire-response|0.10.0\n"
+		domain = p.wireResponse
 	}
 	if !ed25519.Verify(pub, append([]byte(domain), canon010(unsigned)...), sig) {
 		return errCompletion010
 	}
 	return nil
 }
-func envelope010(did, recipient, kid, ctx, role string, payload []byte, now, expires int64) (map[string]any, error) {
+func envelope010(p *profile, did, recipient, kid, ctx, role string, payload []byte, now, expires int64) (map[string]any, error) {
 	var nonce [16]byte
 	if _, x := rand.Read(nonce[:]); x != nil {
 		return nil, errCompletion010
@@ -278,7 +286,7 @@ func envelope010(did, recipient, kid, ctx, role string, payload []byte, now, exp
 	if role == "responder" {
 		field = "data"
 	}
-	return map[string]any{"version": "0.10.0", "id": id.String(), "did": did, "recipient": recipient, "kid": kid, "context_id": ctx, "role": role, "created": now, "expires": expires, "nonce": base64.RawURLEncoding.EncodeToString(nonce[:]), "encoding": "plain", field: base64.RawURLEncoding.EncodeToString(payload)}, nil
+	return map[string]any{"version": p.version, "id": id.String(), "did": did, "recipient": recipient, "kid": kid, "context_id": ctx, "role": role, "created": now, "expires": expires, "nonce": base64.RawURLEncoding.EncodeToString(nonce[:]), "encoding": "plain", field: base64.RawURLEncoding.EncodeToString(payload)}, nil
 }
 func reservation010(m map[string]json.RawMessage) Replay010 {
 	x, _ := int010(m, "expires")
@@ -340,9 +348,9 @@ func (e *CompletionEndpoint010) start010(ctx context.Context, recipient, respKid
 	if _, x = rand.Read(nonce[:]); x != nil {
 		return nil, nil, errCompletion010
 	}
-	m := map[string]string{"v": "0.10.0", "ctx": contextID.String(), "initDid": e.did, "respDid": recipient, "initKid": e.kid, "respKid": respKid, "kemKid": recipient + "#" + b.KEM().Name, "suite": "hpke-base+x25519+hkdf-sha256", "combiner": "e2e-x25519-hkdf-v1", "nonce": base64.RawURLEncoding.EncodeToString(nonce[:])}
+	m := map[string]string{"v": e.p.version, "ctx": contextID.String(), "initDid": e.did, "respDid": recipient, "initKid": e.kid, "respKid": respKid, "kemKid": recipient + "#" + b.KEM().Name, "suite": "hpke-base+x25519+hkdf-sha256", "combiner": "e2e-x25519-hkdf-v1", "nonce": base64.RawURLEncoding.EncodeToString(nonce[:])}
 	kem, _ := hex.DecodeString(b.KEM().Material)
-	state, init, x := StartInitiator010(canon010(m), kem)
+	state, init, x := startInitiator(e.p, canon010(m), kem)
 	if x != nil {
 		return nil, nil, errCompletion010
 	}
@@ -354,12 +362,12 @@ func (e *CompletionEndpoint010) start010(ctx context.Context, recipient, respKid
 			state.Close()
 		}
 	}()
-	wire, x := envelope010(e.did, recipient, e.kid, m["ctx"], "initiator", init, start.Unix, start.Unix+ttl)
+	wire, x := envelope010(e.p, e.did, recipient, e.kid, m["ctx"], "initiator", init, start.Unix, start.Unix+ttl)
 	if x != nil {
 		return nil, nil, x
 	}
 	wire["nonce"] = m["nonce"]
-	request, x := sign010(ctx, wire, "sage-wire-request|0.10.0\n", e)
+	request, x := sign010(ctx, wire, e.p.wireRequest, e)
 	if x != nil {
 		return nil, nil, errCompletion010
 	}
@@ -367,7 +375,7 @@ func (e *CompletionEndpoint010) start010(ctx context.Context, recipient, respKid
 	if x != nil || end.MonoMS-start.MonoMS > 5000 || !pinnedLive010(end.Unix, a, b) || end.Unix >= start.Unix+ttl {
 		return nil, nil, errCompletion010
 	}
-	original, _, _ := initiation010(init)
+	original, _, _ := initiation010(e.p, init)
 	p := &PendingCompletion010{endpoint: e, state: state, request: request, init: original, a: a, b: b, emitted: end, expires: start.Unix + ttl}
 	output := append([]byte(nil), request...)
 	transferred = true
@@ -489,7 +497,7 @@ func owned010(e *CompletionEndpoint010, d *Derivation010, a, b *registry010.Pinn
 	seed := d.Seed
 	d.Seed = nil
 	zeroBytes(d.AckTag)
-	records, _ := session.NewRecordSession010(seed, d.TH, initiator)
+	records, _ := e.p.records(seed, d.TH, initiator)
 	zeroBytes(seed)
 	return &AuthenticatedCompletion010{lifetime: newRecordLifetime010(now), endpoint: e, a: a, b: b, tuple: tuple, created: now, active: now, expires: expires, initiator: initiator, records: records}
 }
@@ -518,20 +526,20 @@ func (p *PendingCompletion010) complete010(ctx context.Context, response []byte,
 	if proof != nil {
 		start = proof.start
 	}
-	w, body, x := wire010(response, true, start.Unix)
+	w, body, x := wire010(e.p, response, true, start.Unix)
 	if x != nil {
 		return nil, errCompletion010
 	}
 	if proof != nil && verifyHTTPProof010(proof, w, p.b.Signing(), p.http) != nil {
 		return nil, errCompletion010
 	}
-	request, _, _ := wire010(p.request, false, p.emitted.Unix)
+	request, _, _ := wire010(e.p, p.request, false, p.emitted.Unix)
 	h := sha256.Sum256(canon010(request))
 	if str010(w, "message_id") != str010(request, "id") || str010(w, "request_hash") != base64.RawURLEncoding.EncodeToString(h[:]) || str010(w, "did") != p.init["respDid"] || str010(w, "recipient") != p.init["initDid"] || str010(w, "kid") != p.init["respKid"] || str010(w, "context_id") != p.init["ctx"] || str010(w, "id") == str010(request, "id") || str010(w, "nonce") == str010(request, "nonce") {
 		return nil, errCompletion010
 	}
 	c, x := rawObject010(body, []string{"v", "task", "transcript", "ackTagB64", "sigB64"})
-	if x != nil || str010(c, "v") != "0.10.0" || str010(c, "task") != "hpke/complete@0.10.0" {
+	if x != nil || str010(c, "v") != e.p.version || str010(c, "task") != e.p.completeTask {
 		return nil, errCompletion010
 	}
 	transcript, x := fields010(c["transcript"], append(append([]string{}, bindingFields010...), "task", "enc", "ephC", "ephS", "kid"))
@@ -552,11 +560,11 @@ func (p *PendingCompletion010) complete010(ctx context.Context, response []byte,
 		return nil, errCompletion010
 	}
 	delete(c, "sigB64")
-	if e.current(ctx, p.a, p.b) != nil || verifyWire010(w, true, p.b.Signing()) != nil {
+	if e.current(ctx, p.a, p.b) != nil || verifyWire010(e.p, w, true, p.b.Signing()) != nil {
 		return nil, errCompletion010
 	}
 	pub, _ := hex.DecodeString(p.b.Signing().Material)
-	if !ed25519.Verify(pub, append([]byte("sage-hpke-complete|0.10.0\n"), canon010(c)...), sig) {
+	if !ed25519.Verify(pub, append([]byte(e.p.hpkeComplete), canon010(c)...), sig) {
 		return nil, errCompletion010
 	}
 	d, x := p.state.Derive(c["transcript"])
@@ -564,7 +572,7 @@ func (p *PendingCompletion010) complete010(ctx context.Context, response []byte,
 		return nil, errCompletion010
 	}
 	defer func() { zeroBytes(d.Seed); zeroBytes(d.AckTag) }()
-	if !VerifyAckTag010(d.Seed, d.TH, ack) {
+	if !verifyAckTagFor(e.p, d.Seed, d.TH, ack) {
 		return nil, errCompletion010
 	}
 	end, x := e.sample()
@@ -604,16 +612,16 @@ func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, 
 	if proof != nil {
 		start = proof.start
 	}
-	w, body, x := wire010(request, false, start.Unix)
+	w, body, x := wire010(e.p, request, false, start.Unix)
 	if x != nil {
 		return nil, nil, errCompletion010
 	}
-	m, _, x := initiation010(body)
+	m, _, x := initiation010(e.p, body)
 	if x != nil || !bytes.Equal(body, canon010(m)) || m["respDid"] != e.did || m["respKid"] != e.kid || str010(w, "did") != m["initDid"] || str010(w, "kid") != m["initKid"] || str010(w, "recipient") != m["respDid"] || str010(w, "context_id") != m["ctx"] || str010(w, "nonce") != m["nonce"] {
 		return nil, nil, errCompletion010
 	}
 	a, b, x := e.selected(ctx, m)
-	if x != nil || verifyWire010(w, false, a.Signing()) != nil {
+	if x != nil || verifyWire010(e.p, w, false, a.Signing()) != nil {
 		return nil, nil, errCompletion010
 	}
 	if proof != nil && verifyHTTPProof010(proof, w, a.Signing(), nil) != nil {
@@ -625,20 +633,20 @@ func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, 
 		if !bytes.Equal(e.kemPublic, kem) {
 			return nil, nil, errCompletion010
 		}
-		d, x = respondFreshCustody010(ctx, body, e.kemCustody, e.kemPublic)
+		d, x = respondFreshCustody010(ctx, e.p, body, e.kemCustody, e.kemPublic)
 	} else {
 		sk, y := ecdh.X25519().NewPrivateKey(e.kem)
 		if y != nil || !bytes.Equal(sk.PublicKey().Bytes(), kem) {
 			return nil, nil, errCompletion010
 		}
-		d, x = RespondFresh010(body, e.kem)
+		d, x = respondFresh(e.p, body, e.kem)
 	}
 	if x != nil {
 		return nil, nil, errCompletion010
 	}
 	defer func() { zeroBytes(d.Seed); zeroBytes(d.AckTag) }()
-	completion := map[string]any{"v": "0.10.0", "task": "hpke/complete@0.10.0", "transcript": json.RawMessage(d.Transcript), "ackTagB64": base64.RawURLEncoding.EncodeToString(d.AckTag)}
-	completionSignature, x := e.sign(ctx, append([]byte("sage-hpke-complete|0.10.0\n"), canon010(completion)...))
+	completion := map[string]any{"v": e.p.version, "task": e.p.completeTask, "transcript": json.RawMessage(d.Transcript), "ackTagB64": base64.RawURLEncoding.EncodeToString(d.AckTag)}
+	completionSignature, x := e.sign(ctx, append([]byte(e.p.hpkeComplete), canon010(completion)...))
 	if x != nil {
 		return nil, nil, errCompletion010
 	}
@@ -648,7 +656,7 @@ func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, 
 	if start.Unix+ttl < expires {
 		expires = start.Unix + ttl
 	}
-	response, x := envelope010(e.did, m["initDid"], e.kid, m["ctx"], "responder", canon010(completion), start.Unix, expires)
+	response, x := envelope010(e.p, e.did, m["initDid"], e.kid, m["ctx"], "responder", canon010(completion), start.Unix, expires)
 	if x != nil {
 		return nil, nil, errCompletion010
 	}
@@ -659,7 +667,7 @@ func (e *CompletionEndpoint010) respond010(ctx context.Context, request []byte, 
 	response["message_id"] = str010(w, "id")
 	response["request_hash"] = base64.RawURLEncoding.EncodeToString(h[:])
 	response["success"] = true
-	raw, x := sign010(ctx, response, "sage-wire-response|0.10.0\n", e)
+	raw, x := sign010(ctx, response, e.p.wireResponse, e)
 	if x != nil {
 		return nil, nil, errCompletion010
 	}

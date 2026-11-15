@@ -32,6 +32,12 @@ type Clock interface{ Now() (Stamp, error) }
 type Config struct {
 	Source, Registry, Network string
 	Blockchain                bool
+	// Profile is the SAGE version of this Gate's authority: "" or "0.10.0"
+	// (the default) or "0.11.0". HPKE endpoints of one version refuse a Gate
+	// of another, and the Gate refuses snapshots its Source labels otherwise,
+	// so authority never crosses versions. Durable Store state is not split by
+	// version; use one Store per version.
+	Profile string
 }
 
 // Key is the public-key projection of a fully validated registry entry.
@@ -64,6 +70,10 @@ type Snapshot struct {
 	BlockHash     string `json:"block_hash"`
 	KeysBlockHash string `json:"keys_block_hash"`
 	Keys          []Key  `json:"keys"`
+	// Profile is the SAGE version whose record format and proofs the Source
+	// validated: "" or "0.10.0" for 0.10.0, or "0.11.0". The Source states it;
+	// the Gate refuses a snapshot whose profile differs from its own.
+	Profile string `json:"profile,omitempty"`
 }
 
 // Source must perform a new authoritative read for each call and establish
@@ -94,6 +104,9 @@ type Gate struct {
 }
 
 func checkConfig(c Config) error {
+	if c.Profile != "" && c.Profile != "0.10.0" && c.Profile != "0.11.0" {
+		return ErrRejected
+	}
 	for _, v := range []string{c.Source, c.Registry, c.Network} {
 		if v == "" || len(v) > 256 || strings.ContainsAny(v, "\x00\r\n") {
 			return ErrRejected
@@ -113,6 +126,21 @@ func NewGate(c Config, s Source, k Clock, p Store) (*Gate, error) {
 		return nil, ErrRejected
 	}
 	return &Gate{cfg: c, source: s, clock: k, store: p}, nil
+}
+
+// Profile reports the SAGE version of this Gate's authority.
+func (g *Gate) Profile() string {
+	if g == nil {
+		return ""
+	}
+	return normalProfile(g.cfg.Profile)
+}
+
+func normalProfile(p string) string {
+	if p == "" {
+		return "0.10.0"
+	}
+	return p
 }
 func (g *Gate) sample() (Stamp, error) {
 	t, e := g.clock.Now()
@@ -160,6 +188,11 @@ func (g *Gate) read(ctx context.Context, did string) (Snapshot, Stamp, error) {
 		return Snapshot{}, Stamp{}, ErrUnreachable
 	}
 	s = cloneSnapshot(s)
+	// Authority never crosses versions: the Source, not the configuration,
+	// says which version's records and proofs it validated.
+	if normalProfile(s.Profile) != g.Profile() {
+		return Snapshot{}, Stamp{}, ErrRejected
+	}
 	now, e := g.sample()
 	if e != nil {
 		return Snapshot{}, Stamp{}, e

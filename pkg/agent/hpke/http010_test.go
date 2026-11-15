@@ -217,7 +217,7 @@ func TestHTTPBinding010(t *testing.T) {
 						r.Headers[i][1] = v[:at+2] + strings.Join(fields, ";")
 					}
 				}
-				h, _ := httpHeaders010(r)
+				h, _ := httpHeaders010(profile010, r)
 				for i := range r.Headers {
 					if r.Headers[i][0] == "signature" {
 						r.Headers[i][1] = "sig1=:" + base64.StdEncoding.EncodeToString(ed25519.Sign(b.endpoint.signing, httpBase010(r, h, h["signature-input"][5:], b.received[id].http))) + ":"
@@ -312,11 +312,11 @@ func TestHTTPAdmission010(t *testing.T) {
 	}
 	padded := q
 	padded.Headers = append(append([][2]string{}, q.Headers...), [2]string{"padding", strings.Repeat("p", 32768-size-len("padding")-4)})
-	if _, x = httpHeaders010(padded); x != nil {
+	if _, x = httpHeaders010(profile010, padded); x != nil {
 		t.Fatal("exact field bound")
 	}
 	padded.Headers[len(padded.Headers)-1][1] += "p"
-	if _, x = httpHeaders010(padded); x == nil {
+	if _, x = httpHeaders010(profile010, padded); x == nil {
 		t.Fatal("field bound")
 	}
 	for _, k := range []string{"signature", "signature-input"} {
@@ -327,7 +327,7 @@ func TestHTTPAdmission010(t *testing.T) {
 				m.Headers[i][1] = strings.Repeat("a", 8192)
 			}
 		}
-		if _, x = httpHeaders010(m); x != nil {
+		if _, x = httpHeaders010(profile010, m); x != nil {
 			t.Fatal("field size admission")
 		}
 		for i := range m.Headers {
@@ -335,14 +335,14 @@ func TestHTTPAdmission010(t *testing.T) {
 				m.Headers[i][1] += "a"
 			}
 		}
-		if _, x = httpHeaders010(m); x == nil {
+		if _, x = httpHeaders010(profile010, m); x == nil {
 			t.Fatal("signature field bound")
 		}
 	}
-	h, _ := httpHeaders010(q)
+	h, _ := httpHeaders010(profile010, q)
 	input := h["signature-input"]
 	for _, v := range []string{input + ";created=100", input + ", sig2=()", strings.Replace(input, ";created=100", ";created=0100", 1), strings.Replace(input, ";created=100", ";created=-1", 1), strings.Replace(input, ";created=100", ";created=1.0", 1), strings.Replace(input, `;tag="sage-0.10.0"`, "", 1), strings.Replace(input, `;nonce="`, `;nonce="\`, 1), strings.Replace(input, ";alg=", ";\talg=", 1)} {
-		if _, x = httpInput010(v, false); x == nil {
+		if _, x = httpInput010(profile010, v, false); x == nil {
 			t.Fatal("non-profile structured fields accepted")
 		}
 	}
@@ -352,11 +352,11 @@ func TestHTTPAdmission010(t *testing.T) {
 			q.Headers[i][1] = httpDigest010(q.Body)
 		}
 	}
-	if _, x = httpHeaders010(q); x != nil {
+	if _, x = httpHeaders010(profile010, q); x != nil {
 		t.Fatal("body admission bound")
 	}
 	q.Body = append(q.Body, 'x')
-	if _, x = httpHeaders010(q); x == nil {
+	if _, x = httpHeaders010(profile010, q); x == nil {
 		t.Fatal("body limit")
 	}
 }
@@ -383,7 +383,7 @@ func TestHTTPSerialization010(t *testing.T) {
 	}
 	for _, c := range fixture.StructuredFields {
 		t.Run(c.ID, func(t *testing.T) {
-			_, err := httpInput010(c.Input, c.Response)
+			_, err := httpInput010(profile010, c.Input, c.Response)
 			if (err == nil) != c.Accept {
 				t.Fatalf("admission: %v", err)
 			}
