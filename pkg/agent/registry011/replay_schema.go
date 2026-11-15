@@ -57,7 +57,11 @@ func replayBinary(v any, size int) ([]byte, bool) {
 	b, e := base64.RawURLEncoding.Strict().DecodeString(s)
 	return b, e == nil && len(b) == size && base64.RawURLEncoding.EncodeToString(b) == s
 }
-func replayKeys(v any, did string) ([]replayKey, bool) {
+func replayKeys(v any, did string) ([]replayKey, bool) { return replayKeysWith(v, did, false) }
+
+// replayKeysWith also admits revoked tombstones when reading a current record;
+// command arguments (replayKeys) may only propose accepted keys.
+func replayKeysWith(v any, did string, allowRevoked bool) ([]replayKey, bool) {
 	a, ok := v.([]any)
 	if !ok || len(a) == 0 || len(a) > 128 {
 		return nil, false
@@ -79,7 +83,7 @@ func replayKeys(v any, did string) ([]replayKey, bool) {
 		}
 		k := replayKey{Name: contentString(m["name"]), Alg: contentString(m["alg"]), Key: contentString(m["key"]), State: contentString(m["state"])}
 		// Exactly the deployed required-suite capability, before binary decoding.
-		if (k.Alg != "ed25519" && k.Alg != "x25519") || !replayName(k.Name) || k.Name <= previous || k.State != "accepted" {
+		if (k.Alg != "ed25519" && k.Alg != "x25519") || !replayName(k.Name) || k.Name <= previous || (k.State != "accepted" && (!allowRevoked || k.State != "revoked")) {
 			return nil, false
 		}
 		material, ok := replayBinary(m["key"], 32)

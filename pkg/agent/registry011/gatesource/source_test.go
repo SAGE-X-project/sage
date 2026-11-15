@@ -67,7 +67,7 @@ func (store) Advance(registry010.Scope, uint64, string, bool) error { return nil
 
 func newGate(t *testing.T, rd *reader, c *clock) (*registry010.Gate, *Source) {
 	t.Helper()
-	src, err := NewWithReader("anvil-dev", registryID, "dev", rd, c)
+	src, err := NewWithReader("anvil-dev", registryID, "dev", rd, c, limits)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,8 +78,15 @@ func newGate(t *testing.T, rd *reader, c *clock) (*registry010.Gate, *Source) {
 	return g, src
 }
 
+var limits = Limits{MaxFinalizedAge: 600}
+
+// header is a finalized header 10 seconds older than the test clock's start.
+func header(number uint64, hash string) registry011.FinalizedHeader {
+	return registry011.FinalizedHeader{Hash: hash, Number: number, Timestamp: 1_800_000_000 - 10}
+}
+
 func present(raw []byte) *reader {
-	return &reader{read: Read{Header: registry011.FinalizedHeader{Hash: blockHex, Number: 90}, Present: true, Record: raw}}
+	return &reader{read: Read{Header: header(90, blockHex), Present: true, Record: raw}}
 }
 
 func TestGateSelectsKeysOfA011Record(t *testing.T) {
@@ -132,6 +139,12 @@ func TestMalformedRecordsAreRefused(t *testing.T) {
 		"key extra member": bytes.Replace(raw, []byte(`"name":"kem-1",`), []byte(`"name":"kem-1","note":"x",`), 1),
 		"bad key encoding": bytes.Replace(raw, []byte(`"key":"D_3H`), []byte(`"key":"D_3H=`), 1),
 		"another DID":      bytes.ReplaceAll(raw, []byte(":payment-agent-2"), []byte(":payment-agent-3")),
+		"duplicate member": bytes.Replace(raw, []byte(`"version":"6"}`), []byte(`"version":"6","version":"6"}`), 1),
+		"member case":      bytes.Replace(raw, []byte(`"id":`), []byte(`"ID":`), 1),
+		"proof tampered":   bytes.Replace(raw, []byte(`"value":"pbZT`), []byte(`"value":"qbZT`), 1),
+		"proof extra":      bytes.Replace(raw, []byte(`"proof":{"signer"`), []byte(`"proof":{"extra":1,"signer"`), 1),
+		"services null":    bytes.Replace(raw, []byte(`"services":[`), []byte(`"services":null,"x":[`), 1),
+		"controller":       bytes.Replace(raw, []byte(`"controller":"0x70997970c51812dc3a010c7d01b50e0d17dc79c8"`), []byte(`"controller":"ANY THING"`), 1),
 	}
 	for name, mutated := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -149,10 +162,15 @@ func TestMalformedRecordsAreRefused(t *testing.T) {
 func TestReadFailuresAreRefused(t *testing.T) {
 	raw := fixture(t)
 	for name, rd := range map[string]*reader{
-		"absent":     {read: Read{Header: registry011.FinalizedHeader{Hash: blockHex}}},
-		"rpc error":  {err: errors.New("connection refused")},
-		"no header":  {read: Read{Present: true, Record: raw}},
-		"short hash": {read: Read{Header: registry011.FinalizedHeader{Hash: "0x12"}, Present: true, Record: raw}},
+		"absent":       {read: Read{Header: header(90, blockHex)}},
+		"rpc error":    {err: errors.New("connection refused")},
+		"no header":    {read: Read{Present: true, Record: raw}},
+		"short hash":   {read: Read{Header: header(90, "0x12"), Present: true, Record: raw}},
+		"bare hash":    {read: Read{Header: header(90, blockHex[2:]+"00"), Present: true, Record: raw}},
+		"upper hash":   {read: Read{Header: header(90, strings.ToUpper(blockHex)), Present: true, Record: raw}},
+		"zero hash":    {read: Read{Header: header(90, "0x"+strings.Repeat("0", 64)), Present: true, Record: raw}},
+		"stale header": {read: Read{Header: registry011.FinalizedHeader{Hash: blockHex, Number: 90, Timestamp: 1_800_000_000 - 601}, Present: true, Record: raw}},
+		"future block": {read: Read{Header: registry011.FinalizedHeader{Hash: blockHex, Number: 90, Timestamp: 1_800_000_000 + 60}, Present: true, Record: raw}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			g, _ := newGate(t, rd, &clock{mono: 1000})
@@ -163,20 +181,41 @@ func TestReadFailuresAreRefused(t *testing.T) {
 	}
 }
 
+// The acquisition time is sampled before the read, so a read that takes
+// longer than the Gate's 5-second window is stale, however recent its block.
 func TestSlowReadIsStale(t *testing.T) {
 	c := &clock{mono: 1000}
 	rd := present(fixture(t))
 	g, _ := newGate(t, rd, c)
 	rd.delay = func() { c.advance(5001) }
-	if _, err := g.Select(context.Background(), did, did+"#sig-2", false); err != nil {
-		// The acquisition time is taken after the slow read, so the read itself is fresh.
-		t.Fatalf("read acquired after the delay refused: %v", err)
+	if _, err := g.Select(context.Background(), did, did+"#sig-2", false); !errors.Is(err, registry010.ErrStale) {
+		t.Fatalf("slow read accepted: %v", err)
 	}
-	rd.delay = nil
-	src, _ := NewWithReader("anvil-dev", registryID, "dev", rd, &clock{mono: 0})
-	g2, _ := registry010.NewGate(src.Config(), src, c, store{})
-	if _, err := g2.Select(context.Background(), did, did+"#sig-2", false); !errors.Is(err, registry010.ErrStale) {
-		t.Fatalf("acquisition older than the Gate's window accepted: %v", err)
+	rd.delay = func() { c.advance(4000) }
+	if _, err := g.Select(context.Background(), did, did+"#sig-2", false); err != nil {
+		t.Fatalf("read within the window refused: %v", err)
+	}
+}
+
+func TestFinalizedBlockNeverGoesBack(t *testing.T) {
+	c := &clock{mono: 1000}
+	rd := present(fixture(t))
+	g, _ := newGate(t, rd, c)
+	if _, err := g.Select(context.Background(), did, did+"#sig-2", false); err != nil {
+		t.Fatal(err)
+	}
+	for name, h := range map[string]registry011.FinalizedHeader{
+		"lower block":         header(89, blockHex),
+		"same height, forked": header(90, "0x"+strings.Repeat("cd", 32)),
+	} {
+		rd.read.Header = h
+		if _, err := g.Select(context.Background(), did, did+"#sig-2", false); err == nil {
+			t.Fatalf("%s accepted", name)
+		}
+	}
+	rd.read.Header = header(91, "0x"+strings.Repeat("ef", 32))
+	if _, err := g.Select(context.Background(), did, did+"#sig-2", false); err != nil {
+		t.Fatalf("next block refused: %v", err)
 	}
 }
 
@@ -193,10 +232,13 @@ func TestOtherRegistriesAndBadConfiguration(t *testing.T) {
 	if _, err := src.Read(context.Background(), did); err == nil {
 		t.Fatal("clock failure hidden")
 	}
-	if _, err := NewWithReader("", registryID, "dev", rd, c); err == nil {
+	if _, err := NewWithReader("", registryID, "dev", rd, c, limits); err == nil {
 		t.Fatal("incomplete configuration accepted")
 	}
-	if _, err := New("anvil-dev", nil, registry011.SepoliaNetwork(), c); err == nil {
-		t.Fatal("nil RPC accepted")
+	if _, err := NewWithReader("anvil-dev", registryID, "dev", rd, c, Limits{}); err == nil {
+		t.Fatal("missing finalized-age limit accepted")
+	}
+	if _, err := NewDevelopment("sepolia", nil, registry011.SepoliaNetwork(), c, limits); err == nil || !strings.Contains(err.Error(), "qualifying") {
+		t.Fatalf("qualifying profile accepted: %v", err)
 	}
 }

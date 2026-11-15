@@ -52,7 +52,8 @@ func TestGateOnLocalChain(t *testing.T) {
 	}
 	defer rpc.Close()
 	clock := monoClock{start: time.Now().Add(-time.Second)}
-	src, err := New("anvil-dev", rpc, network, clock)
+	// An idle Anvil mines no blocks, so its finalized block can be old.
+	src, err := NewDevelopment("anvil-dev", rpc, network, clock, Limits{MaxFinalizedAge: 24 * 3600})
 	if err != nil {
 		t.Fatal(err)
 	}

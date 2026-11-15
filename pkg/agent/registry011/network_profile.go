@@ -28,7 +28,9 @@ var (
 // chain, genesis, Registry instance and runtime identities, RPC endpoint and
 // TLS trust, deployment block and fork rules. A profile is immutable after
 // construction. Only SepoliaNetwork is qualifying; a development profile can
-// exercise the same code paths but never makes a Source ready.
+// exercise the same code paths but never makes a registry011 replay Source
+// ready (CollectReplayBatch refuses it). The separate gatesource package may
+// feed development records to a registry010.Gate for local testing only.
 type NetworkProfile struct {
 	name            string
 	chainID         uint64
