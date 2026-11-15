@@ -133,7 +133,7 @@ func nodeJSONCanonical(m map[string]json.RawMessage, value any, extras string) b
 // all 23 header fields must exist, including BAL hash and slot number. It never
 // fills a missing header field from zero/defaults or guesses a future fork.
 func nodeJSONBlock(ctx context.Context, raw json.RawMessage, selected FinalizedHeader, budget *replayBudget) ([]byte, error) {
-	if !nodeJSONPreflight(ctx, raw, budget) || selected.Timestamp < sepoliaAmsterdamTime {
+	if !nodeJSONPreflight(ctx, raw, budget) || selected.Timestamp < budget.amsterdamTime() {
 		return nil, ErrReplayUnavailable
 	}
 	m, ok := nodeJSONFieldsObserved(raw, nodeJSONHeaderFields+" hash size totalDifficulty transactions uncles withdrawals", nodeJSONHeaderFields+" hash transactions uncles withdrawals", budget.observer)

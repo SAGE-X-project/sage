@@ -36,6 +36,33 @@ type replayBudget struct {
 	limits                                      ReplayLimits
 	bytes, txs, frames, logs, traceLogs, proofs int
 	observer                                    *providerWorkMeter
+	// network selects fork rules; nil keeps the historical Sepolia rules for
+	// callers that do not carry a profile yet.
+	network *NetworkProfile
+}
+
+// chainID is the profile's chain, or Sepolia when no profile is carried.
+func (b *replayBudget) chainID() uint64 {
+	if b == nil || b.network == nil {
+		return sepoliaChainID
+	}
+	return b.network.chainID
+}
+
+// registryAddress is the profile's Registry, or Sepolia's when no profile is carried.
+func (b *replayBudget) registryAddress() string {
+	if b == nil || b.network == nil {
+		return SepoliaRegistryAddress
+	}
+	return b.network.registryAddress
+}
+
+// amsterdamTime is the profile's activation time, or Sepolia's when no profile is carried.
+func (b *replayBudget) amsterdamTime() uint64 {
+	if b == nil || b.network == nil {
+		return sepoliaAmsterdamTime
+	}
+	return b.network.amsterdamTime
 }
 
 func (b *replayBudget) charge(n int) bool {

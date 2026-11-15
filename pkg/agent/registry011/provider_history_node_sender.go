@@ -1,6 +1,7 @@
 package registry011
 
 import (
+	"math"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -14,11 +15,16 @@ import (
 // to the original observer. The fixed native recovery primitive still needs
 // full source-cost, CPU and backing-memory qualification before admission.
 func nodeSenderObserved(tx *types.Transaction, meter *providerWorkMeter) (common.Address, error) {
+	return nodeSenderForChain(tx, meter, 11155111)
+}
+
+// nodeSenderForChain recovers the sender of a transaction signed for chainID.
+func nodeSenderForChain(tx *types.Transaction, meter *providerWorkMeter, chainID uint64) (common.Address, error) {
 	if tx == nil {
 		return common.Address{}, ErrReplayUnavailable
 	}
 	if meter == nil {
-		return types.Sender(types.LatestSignerForChainID(big.NewInt(11155111)), tx)
+		return types.Sender(types.LatestSignerForChainID(new(big.Int).SetUint64(chainID)), tx)
 	}
 	if tx.Type() > types.SetCodeTxType || !meter.preflight(providerCompareEvent, 65) {
 		return common.Address{}, ErrReplayUnavailable
@@ -38,15 +44,15 @@ func nodeSenderObserved(tx *types.Transaction, meter *providerWorkMeter) (common
 		recovery = byte(v.Uint64() - 27)
 	} else {
 		chain := tx.ChainId()
-		if chain == nil || !chain.IsUint64() || chain.Uint64() != 11155111 || !v.IsUint64() {
+		if chain == nil || !chain.IsUint64() || chain.Uint64() != chainID || !v.IsUint64() {
 			return common.Address{}, ErrReplayUnavailable
 		}
 		n := v.Uint64()
 		if tx.Type() == types.LegacyTxType {
-			if n < 2*11155111+35 || n > 2*11155111+36 {
+			if chainID > (math.MaxUint64-36)/2 || n < 2*chainID+35 || n > 2*chainID+36 {
 				return common.Address{}, ErrReplay
 			}
-			n -= 2*11155111 + 35
+			n -= 2*chainID + 35
 		}
 		if n > 1 {
 			return common.Address{}, ErrReplay

@@ -56,9 +56,17 @@ type DeploymentEvidence struct {
 }
 
 func nodeIdentityManifest(rawIdentity, rawABI []byte) (nodeIdentity, abi.ABI, error) {
+	network := SepoliaNetwork()
+	network.identity = rawIdentity
+	return nodeIdentityManifestFor(network, rawABI)
+}
+
+// nodeIdentityManifestFor checks the profile's identity against its Registry
+// address and deployment block, and the ABI against the pinned public ABI.
+func nodeIdentityManifestFor(network NetworkProfile, rawABI []byte) (nodeIdentity, abi.ABI, error) {
 	var identity nodeIdentity
 	var parsed abi.ABI
-	if json.Unmarshal(rawIdentity, &identity) != nil || len(identity.Contracts) != 13 || identity.Registry != SepoliaRegistryAddress || identity.Deployment.BlockNumber != sepoliaDeploymentBlock || hex.EncodeToString(sha256Digest(rawABI)) != "7000f92bdcd26d84c63d2b71a12c0db12c61e9909b7f4bedb76774381339678e" {
+	if json.Unmarshal(network.identity, &identity) != nil || len(identity.Contracts) != 13 || identity.Registry != network.registryAddress || identity.Deployment.BlockNumber != network.deploymentBlock || hex.EncodeToString(sha256Digest(rawABI)) != "7000f92bdcd26d84c63d2b71a12c0db12c61e9909b7f4bedb76774381339678e" {
 		return identity, parsed, ErrConfiguration
 	}
 	parsed, err := abi.JSON(bytes.NewReader(rawABI))
@@ -82,7 +90,8 @@ func (r *PinnedAgentReads) ObserveDeployment(ctx context.Context, limits NodeLim
 	if err := a.network(); err != nil {
 		return nil, err
 	}
-	identity, contract, err := nodeIdentityManifest(nodeIdentityJSON, nodeABIJSON)
+	network := r.rpc.network
+	identity, contract, err := nodeIdentityManifestFor(network, nodeABIJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -98,14 +107,14 @@ func (r *PinnedAgentReads) ObserveDeployment(ctx context.Context, limits NodeLim
 		}
 		out.CodeHashes[expected.Address] = expected.SHA256
 	}
-	e, b, err := a.block(sepoliaDeploymentBlock)
+	e, b, err := a.block(network.deploymentBlock)
 	if err != nil {
 		return nil, err
 	}
 	if e.Header.Hash != identity.Deployment.BlockHash {
 		return nil, ErrAncestry
 	}
-	index, err := nodeCreation(identity, contract, b)
+	index, err := nodeCreation(identity, contract, b, network.chainID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +134,7 @@ func (r *PinnedAgentReads) ObserveDeployment(ctx context.Context, limits NodeLim
 	return out, nil
 }
 
-func nodeCreation(identity nodeIdentity, contract abi.ABI, b replayDecodedBlock) (int, error) {
+func nodeCreation(identity nodeIdentity, contract abi.ABI, b replayDecodedBlock, chainID uint64) (int, error) {
 	index := -1
 	for i, tx := range b.txs {
 		if strings.EqualFold(tx.Hash().Hex(), identity.Deployment.Hash) {
@@ -137,10 +146,10 @@ func nodeCreation(identity nodeIdentity, contract abi.ABI, b replayDecodedBlock)
 		return -1, ErrReplayUnavailable
 	}
 	tx := b.txs[index]
-	if tx.To() != nil || tx.Nonce() != 8 || tx.Value().Sign() != 0 || tx.Type() != types.DynamicFeeTxType || tx.ChainId().Cmp(big.NewInt(11155111)) != 0 || b.receipts[index].Status != 1 {
+	if tx.To() != nil || tx.Nonce() != 8 || tx.Value().Sign() != 0 || tx.Type() != types.DynamicFeeTxType || tx.ChainId().Cmp(new(big.Int).SetUint64(chainID)) != 0 || b.receipts[index].Status != 1 {
 		return -1, ErrReplay
 	}
-	sender, err := types.Sender(types.LatestSignerForChainID(big.NewInt(11155111)), tx)
+	sender, err := types.Sender(types.LatestSignerForChainID(new(big.Int).SetUint64(chainID)), tx)
 	if err != nil || replayAddress(sender) != identity.Deployer || replayAddress(crypto.CreateAddress(sender, tx.Nonce())) != identity.Registry {
 		return -1, ErrReplay
 	}

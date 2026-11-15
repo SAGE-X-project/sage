@@ -65,7 +65,7 @@ type nodeAcquisition struct {
 }
 
 func (r *PinnedAgentReads) nodeStart(ctx context.Context, limits NodeLimits) (*nodeAcquisition, context.CancelFunc, error) {
-	if r == nil || r.rpc == nil || r.rpc.client == nil || ctx == nil || r.registry != SepoliaRegistryAddress || !validHeader(r.header) || !replayLimits(limits.Replay) || limits.MaxRequests < 1 || limits.MaxRequests > 256 || limits.MaxWireBytes < 1 || limits.MaxWireBytes > 64<<20 || limits.AcquisitionTimeout <= 0 || limits.AcquisitionTimeout > 5*time.Minute || limits.TraceTimeout <= 0 || limits.TraceTimeout > 5*time.Second || limits.TraceTimeout > limits.AcquisitionTimeout || limits.TraceTimeout > r.rpc.limits.RequestTimeout {
+	if r == nil || r.rpc == nil || r.rpc.client == nil || ctx == nil || r.registry != r.rpc.network.registryAddress || !validHeader(r.header) || !replayLimits(limits.Replay) || limits.MaxRequests < 1 || limits.MaxRequests > 256 || limits.MaxWireBytes < 1 || limits.MaxWireBytes > 64<<20 || limits.AcquisitionTimeout <= 0 || limits.AcquisitionTimeout > 5*time.Minute || limits.TraceTimeout <= 0 || limits.TraceTimeout > 5*time.Second || limits.TraceTimeout > limits.AcquisitionTimeout || limits.TraceTimeout > r.rpc.limits.RequestTimeout {
 		return nil, nil, ErrConfiguration
 	}
 	child, cancel := context.WithTimeout(ctx, limits.AcquisitionTimeout)
@@ -73,7 +73,8 @@ func (r *PinnedAgentReads) nodeStart(ctx context.Context, limits NodeLimits) (*n
 		cancel()
 		return nil, nil, ErrConfiguration
 	}
-	return &nodeAcquisition{reads: r, limits: limits, ctx: child, remaining: limits.MaxWireBytes, work: replayBudget{limits: limits.Replay}}, cancel, nil
+	network := r.rpc.network
+	return &nodeAcquisition{reads: r, limits: limits, ctx: child, remaining: limits.MaxWireBytes, work: replayBudget{limits: limits.Replay, network: &network}}, cancel, nil
 }
 
 func (a *nodeAcquisition) call(method string, params any) (json.RawMessage, error) {
@@ -102,22 +103,23 @@ func (a *nodeAcquisition) network() error {
 	if err != nil {
 		return err
 	}
-	if chain, ok := nodeString(raw); !ok || chain != "0xaa36a7" {
+	network := a.reads.rpc.network
+	if chain, ok := nodeString(raw); !ok || chain != network.chainIDHex() {
 		return ErrRPCState
 	}
 	genesis, err := a.header("0x0")
 	if err != nil {
 		return err
 	}
-	if genesis.Number != 0 || genesis.Hash != sepoliaGenesis {
+	if genesis.Number != 0 || genesis.Hash != network.genesisHash {
 		return ErrRPCState
 	}
-	raw, err = a.call("eth_call", []any{map[string]string{"to": SepoliaRegistryAddress, "data": "0x04ef898d"}, a.reads.block()})
+	raw, err = a.call("eth_call", []any{map[string]string{"to": network.registryAddress, "data": "0x04ef898d"}, a.reads.block()})
 	if err != nil {
 		return err
 	}
 	values, _, err := rpcABI(raw, false, 128)
-	if err != nil || string(values[0]) != "eip155:11155111:"+SepoliaRegistryAddress {
+	if err != nil || string(values[0]) != network.RegistryID() {
 		return ErrRPCState
 	}
 	raw, err = a.call("web3_clientVersion", []any{})
@@ -171,7 +173,7 @@ func (r *PinnedAgentReads) ReadNodeBlock(ctx context.Context, number uint64, lim
 	for i, receipt := range decoded.receipts {
 		needed := false
 		for _, l := range receipt.Logs {
-			needed = needed || l.Address == common.HexToAddress(SepoliaRegistryAddress)
+			needed = needed || l.Address == common.HexToAddress(a.reads.rpc.network.registryAddress)
 		}
 		if needed {
 			trace, err := a.execution(decoded, i)
@@ -191,7 +193,7 @@ func (r *PinnedAgentReads) ReadNodeBlock(ctx context.Context, number uint64, lim
 
 func (a *nodeAcquisition) block(number uint64) (*NodeBlockEvidence, replayDecodedBlock, error) {
 	var zero replayDecodedBlock
-	if number < sepoliaDeploymentBlock || number > a.reads.header.Number {
+	if number < a.reads.rpc.network.deploymentBlock || number > a.reads.header.Number {
 		return nil, zero, ErrRPCState
 	}
 	h, err := a.header("0x" + strconv.FormatUint(number, 16))

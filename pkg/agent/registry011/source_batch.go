@@ -36,7 +36,8 @@ func SepoliaEvidenceDigests() (codeIdentity, abiIdentity string) {
 // generation or authorize messages. A large initial gap may exceed the limits;
 // failure returns no partial batch and never expands the supplied budgets.
 func (c *ReadRPC) CollectReplayBatch(ctx context.Context, config JournalConfig, expected JournalCheckpoint, limits SourceReadLimits, clock SourceClock) (*SourceBatchEvidence, error) {
-	if ctx == nil || clock == nil {
+	// Batches feed Source readiness, so only a qualifying profile may collect one.
+	if c == nil || ctx == nil || clock == nil || !c.network.Qualifying() {
 		return nil, ErrConfiguration
 	}
 	raw, checks, err := journalConfiguration(config)
