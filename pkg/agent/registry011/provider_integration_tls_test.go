@@ -14,15 +14,29 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 )
+
+// Each owned exchange gets its own fixed-width Date. The store is content
+// addressed and refuses a fresh "response" object whose exact wire bytes are
+// already retained. net/http's Date has one-second resolution, so two equal
+// fixture responses served in the same second would collide; a real provider
+// response also carries per-request headers. http.TimeFormat keeps the wire
+// length identical to the server-generated Date, so no byte quote changes.
+var providerOwnedTLSExchanges atomic.Int64
+
+func providerOwnedTLSDate() string {
+	return time.Unix(1_700_000_000+providerOwnedTLSExchanges.Add(1), 0).UTC().Format(http.TimeFormat)
+}
 
 // Only a normal owned TLS server is used at runtime. Its test certificate and
 // connection never enter a production constructor or operating selection.
 // Invalid/fault cases are finite unit data, not network attack producers.
 func providerIntegrationOwnedTLS(t *testing.T, request, response string) *tls.Conn {
 	t.Helper()
+	date := providerOwnedTLSDate()
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -49,6 +63,7 @@ func providerIntegrationOwnedTLS(t *testing.T, request, response string) *tls.Co
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Add("X-Trace", "a")
 		w.Header().Add("X-Trace", "b")
+		w.Header().Set("Date", date)
 		_, _ = io.WriteString(w, response)
 	}))
 	server.TLS = &tls.Config{Certificates: []tls.Certificate{certificate}, MinVersion: tls.VersionTLS12, NextProtos: []string{"http/1.1"}}
