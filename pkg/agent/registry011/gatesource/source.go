@@ -148,8 +148,9 @@ func (s *Source) checkHeader(h registry011.FinalizedHeader, now int64) error {
 	if !blockHashPattern.MatchString(h.Hash) || h.Hash == "0x"+strings.Repeat("0", 64) {
 		return errors.New("gatesource: malformed block hash")
 	}
-	if int64(h.Timestamp) > now || now-int64(h.Timestamp) > s.limits.MaxFinalizedAge {
-		return fmt.Errorf("gatesource: finalized block %d is %ds old", h.Number, now-int64(h.Timestamp))
+	// Compare in uint64: the header timestamp is untrusted input of that width.
+	if now < 0 || h.Timestamp > uint64(now) || uint64(now)-h.Timestamp > uint64(s.limits.MaxFinalizedAge) {
+		return fmt.Errorf("gatesource: finalized block %d at %d is outside %ds of now %d", h.Number, h.Timestamp, s.limits.MaxFinalizedAge, now)
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
