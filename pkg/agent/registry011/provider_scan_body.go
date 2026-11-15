@@ -248,7 +248,7 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 	}
 	limits := s.config.bounds.scan
 	records, ok := providerUpperSum(s.frontierFiles.pin.ordinal, 1)
-	outputUpper, outputOK := providerUpperProduct(2*s.config.bounds.maximumMetadataPerCommit, limits.maximumChunks)
+	outputUpper, outputOK := providerScanBodyOutputUpper(s.config.bounds.maximumMetadataPerCommit, limits.maximumChunks, limits.filenameEntryOverhead, s.config.bounds.firstAdmission != nil)
 	catalogUpper, catalogOK := providerScanCatalogWork(s.config)
 	var beforeFirst *providerScanUpper
 	if s.config.bounds.firstAdmission != nil {
@@ -257,11 +257,6 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 			return nil, errProviderIntegration
 		}
 		beforeFirst = &base
-		receiptRAM, ramOK := providerUpperProduct(2*limits.maximumChunks, 66+limits.filenameEntryOverhead)
-		outputUpper, outputOK = providerUpperSum(outputUpper, receiptRAM, s.config.bounds.maximumMetadataPerCommit, 2048)
-		if !ramOK {
-			return nil, errProviderIntegration
-		}
 	}
 	if !ok || !outputOK || !catalogOK || !providerScanBodyResident(s.config, outputUpper) || records > limits.maximumRecords || records > limits.maximumChunks || limits.chunkRecords == 0 {
 		return nil, errProviderIntegration
@@ -271,6 +266,11 @@ func (c *providerScanControl) inspectBeforeAdmission(rawTarget []byte) (*provide
 	meter := &providerWorkMeter{scan: c, scanBody: b, upper: c.prepared.body.work, maximumClocks: c.prepared.body.clocks}
 	meter.owner, b.meter = meter, meter
 	s.scanBody = b
+	if s.history != nil && !s.history.bindInspectionMeterLocked(meter, true) {
+		s.history.failLocked()
+		s.failed = true
+		return nil, errProviderIntegration
+	}
 	s.activeMeter.Store(meter)
 	defer s.activeMeter.Store(nil)
 	defer func() { b.active = false }()

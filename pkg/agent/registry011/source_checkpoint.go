@@ -2,7 +2,10 @@
 // do not enroll a Source, authenticate RPC results, or grant message authority.
 package registry011
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 var (
 	ErrConfiguration = errors.New("registry011: explicit Source configuration required")
@@ -162,13 +165,8 @@ func validHeader(header FinalizedHeader) bool {
 }
 
 func lowerHash(value string) bool {
-	if len(value) != 66 || value[:2] != "0x" {
-		return false
-	}
-	for _, b := range value[2:] {
-		if (b < '0' || b > '9') && (b < 'a' || b > 'f') {
-			return false
-		}
-	}
-	return true
+	// This fixed ASCII alphabet needs no UTF-8 decoding. Trim returns a
+	// substring, so validating an existing digest neither copies nor rewrites
+	// it. A disallowed byte anywhere leaves a nonempty remainder.
+	return len(value) == 66 && value[:2] == "0x" && strings.Trim(value[2:], "0123456789abcdef") == ""
 }

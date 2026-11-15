@@ -39,6 +39,10 @@ type providerGuardianOwner struct {
 func (*providerGuardianOwner) UnmarshalJSON([]byte) error { return errProviderIntegration }
 
 func providerGuardianInitialStored(b providerIntegrationBounds) (uint64, bool) {
+	if b.history != nil {
+		held, ok := providerHistoryWholeHold(b)
+		return held.retained, ok && held.retained <= b.maximumStoredBytes
+	}
 	if b.guardian == nil {
 		return b.setupRetained, true
 	}

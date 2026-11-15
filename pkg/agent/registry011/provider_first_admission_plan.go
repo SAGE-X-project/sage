@@ -19,8 +19,19 @@ func (*providerFirstAdmissionPlan) UnmarshalJSON([]byte) error { return errProvi
 // reserve BOTH quadratic and linear cost for each event, rather than claiming
 // those event counts are measured work. Every arithmetic step is checked.
 func providerFirstAdmissionPlanUpper(b providerIntegrationBounds, ordinal, records, retained, output uint64) (providerFirstAdmissionPlan, bool) {
+	if !b.valid() {
+		return providerFirstAdmissionPlan{}, false
+	}
+	in, ok := providerBootstrapCostingInputFromBounds(b)
+	if !ok {
+		return providerFirstAdmissionPlan{}, false
+	}
+	return in.firstAdmissionPlanUpper(ordinal, records, retained, output)
+}
+
+func (b providerBootstrapCostingInput) firstAdmissionPlanUpper(ordinal, records, retained, output uint64) (providerFirstAdmissionPlan, bool) {
 	var p providerFirstAdmissionPlan
-	if !b.valid() || b.firstAdmission == nil || ordinal == 0 || ordinal > b.scan.maximumAttempts || records != 2 || retained > b.maximumStoredBytes || output == 0 {
+	if !b.valid() || ordinal == 0 || ordinal > b.scan.maximumAttempts || records != 2 || retained > b.maximumStoredBytes || output == 0 {
 		return p, false
 	}
 	n := max(b.maximumMetadataPerCommit, uint64(64<<10))
@@ -52,7 +63,7 @@ func providerFirstAdmissionPlanUpper(b providerIntegrationBounds, ordinal, recor
 	// headroom to the end, without recording it as actual codec/read work.
 	headroom, z := providerUpperSum((1<<20)*(1<<20)+1, b.maximumObjectBytes, 1)
 	units, unitsOK := providerUpperSum(units, headroom)
-	raw, physical, storageOK := providerFirstAdmissionStorageUpper(b)
+	raw, physical, storageOK := b.firstAdmissionStorageUpper()
 	if !a || !c || !d || !e || !f || !g || !h || !i || !j || !k || !l || !o || !u || !v || !w || !x || !y || !z || !unitsOK || !storageOK {
 		return p, false
 	}
@@ -61,7 +72,7 @@ func providerFirstAdmissionPlanUpper(b providerIntegrationBounds, ordinal, recor
 	// both ledger/schema copies, three inventories and maximum codec scratch.
 	schemas, schemaOK := providerUpperSum(retained, output, raw)
 	scratch, scratchOK := providerUpperSum(raw, raw, raw, 8*b.maximumMetadataPerCommit, 1<<20)
-	initialObjects := uint64(providerInitialObjectCount(b))
+	initialObjects := uint64(b.initialObjectCount())
 	model, modelOK := b.continuation.residentUpper(1, 3, 1, initialObjects+14, schemas, scratch)
 	old, oldOK := b.continuation.residentUpper(1, 2, 1, initialObjects, retained, 0)
 	// Use the reader's maximum incoming-entry reservation, not just the
@@ -82,9 +93,9 @@ func providerFirstAdmissionPlanUpper(b providerIntegrationBounds, ordinal, recor
 	}
 	p.work[2], p.work[9], p.work[10] = decoded, raw, units
 	p.clocks, p.raw, p.physical, p.memory = clocks, raw, physical, memory
-	if b.guardian != nil {
-		extra, fits := providerGuardianFirstExtraUpper(b)
-		ram, ramOK := providerGuardianMemoryExtra(b)
+	if b.kind == providerBootstrapCostingGuardian {
+		extra, fits := providerGuardianFirstExtraCost(b.maximumMetadataPerCommit)
+		ram, ramOK := providerGuardianMemoryCost(b.maximumMetadataPerCommit, max(b.scan.filenameEntryOverhead, b.continuation.objectMemoryOverhead), b.continuation.codecMemoryMultiplier)
 		if !fits || !ramOK {
 			return providerFirstAdmissionPlan{}, false
 		}

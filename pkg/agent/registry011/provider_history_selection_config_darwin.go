@@ -1,0 +1,216 @@
+//go:build darwin
+
+package registry011
+
+import (
+	"errors"
+	"reflect"
+	"strings"
+
+	"github.com/sage-x-project/sage/pkg/agent/registry011/internal/compilermemory"
+)
+
+// Preserve the original builder's format/capture rejection before policy
+// semantic validation. Native policy grammar is checked before this boundary,
+// just as it was by the original native input decoder.
+func nativeHistorySelectionHeader(root compilermemory.JSONValue) error {
+	format, found, err := root.Member("format")
+	if err != nil || !found {
+		return nativeHistoryDataError(err)
+	}
+	valid, err := format.StringEqual(historyPreparationInputFormat)
+	if err != nil || !valid {
+		return nativeHistoryDataError(err)
+	}
+	value, found, err := root.Member("capture")
+	if err != nil || !found {
+		return nativeHistoryDataError(err)
+	}
+	var capture ProviderCaptureLimits
+	if err := decodeNativeHistoryValue(value, reflect.ValueOf(&capture).Elem(), 0); err != nil {
+		if errors.Is(err, ErrConfiguration) {
+			return err
+		}
+		return nativeHistoryDataError(err)
+	}
+	if !capture.valid() {
+		return ErrConfiguration
+	}
+	return nil
+}
+
+// A section is a temporary input to the existing semantic/numeric constructors.
+// No complete historyPreparationInput is built and no section is retained by
+// the native plan. These Go working copies still require resource funding.
+func nativeHistorySelectionPart[T any](selection *nativeHistoryOwnedSelection, name string) (T, error) {
+	var output T
+	value, err := selection.field(name)
+	if err != nil {
+		return output, err
+	}
+	if err := decodeNativeHistoryValue(value, reflect.ValueOf(&output).Elem(), 0); err != nil {
+		var empty T
+		if !errors.Is(err, ErrConfiguration) {
+			err = nativeHistoryDataError(err)
+		}
+		return empty, err
+	}
+	return output, nil
+}
+
+func (v *nativeHistoryOwnedSelection) bindingText(name string, maximum int) (string, error) {
+	value, err := v.field(name)
+	if err != nil {
+		return "", err
+	}
+	length, err := value.DecodedStringLength()
+	if err != nil {
+		return "", err
+	}
+	if length == 0 || length > maximum {
+		return "", ErrProviderPolicyCandidate
+	}
+	data := make([]byte, length)
+	if err := value.CopyString(data); err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func nativeHistorySpanBytes(region *compilermemory.Region, span compilermemory.Span, maximum int) ([]byte, error) {
+	length, err := region.SpanLength(span)
+	if err != nil {
+		return nil, err
+	}
+	if length <= 0 || length > maximum {
+		return nil, ErrConfiguration
+	}
+	data := make([]byte, length)
+	if err := region.Read(span, data); err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+// Retain one Go-owned text projection without a second whole-span byte copy.
+// The builder and scratch still belong to the compiler's open Go funding row.
+func nativeHistorySpanText(region *compilermemory.Region, span compilermemory.Span, maximum int) (string, error) {
+	length, err := region.SpanLength(span)
+	if err != nil {
+		return "", err
+	}
+	if length <= 0 || length > maximum {
+		return "", ErrConfiguration
+	}
+	var text strings.Builder
+	text.Grow(length)
+	var scratch [4096]byte
+	for offset := 0; offset < length; {
+		size := min(len(scratch), length-offset)
+		part, err := region.Slice(span, offset, size)
+		if err != nil {
+			return "", err
+		}
+		if err := region.Read(part, scratch[:size]); err != nil {
+			return "", err
+		}
+		_, _ = text.Write(scratch[:size])
+		offset += size
+	}
+	return text.String(), nil
+}
+
+// The strict shared native validator already accepted the original policy
+// bytes. Hash the actual canonical native subtrees, without reparsing a Go
+// object tree or reserializing any signed/digested input.
+func (v *nativeHistoryOwnedSelection) transientPolicy() (*ProviderPolicyCandidate, error) {
+	if err := v.check(); err != nil {
+		return nil, err
+	}
+	if v.policy == nil || v.policy.source != v.preparer.policy.region {
+		return nil, ErrConfiguration
+	}
+	raw, err := nativeHistorySpanText(v.policy.source, v.policy.input, providerHistorySourceRawTextLimit)
+	if err != nil {
+		return nil, err
+	}
+	var digests [2]string
+	for index, name := range [...]string{"instance", "provider"} {
+		value, found, err := v.policy.root.Member(name)
+		if err != nil || !found {
+			return nil, nativeHistoryDataError(err)
+		}
+		span, err := value.Raw()
+		if err != nil {
+			return nil, err
+		}
+		domain := "sage-registry-instance-v1"
+		if name == "provider" {
+			domain = "sage-provider-origin-v1"
+		}
+		// Consume the original native subtree in bounded read chunks. The
+		// candidate's full raw Go projection and its funding remain separate.
+		digest, err := nativeHistorySpanDigest(v.policy.source, span, domain)
+		if err != nil {
+			return nil, err
+		}
+		digests[index] = digest
+	}
+	policyDigest, err := nativeHistorySpanDigest(v.policy.source, v.policy.input, "sage-provider-policy-v1")
+	if err != nil {
+		return nil, err
+	}
+	if err := v.check(); err != nil {
+		return nil, err
+	}
+	return &ProviderPolicyCandidate{
+		raw: raw, policy: policyDigest,
+		instance: digests[0], provider: digests[1],
+	}, nil
+}
+
+func (v *nativeHistoryOwnedSelection) transientConfig() (providerCustodyConfig, historyPreparationClock, error) {
+	var empty providerCustodyConfig
+	var noClock historyPreparationClock
+	policy, err := v.transientPolicy()
+	if err != nil {
+		return empty, noClock, err
+	}
+	namespace, err := v.bindingText("namespace", nativeHistoryRegistryDigestBytes)
+	if err != nil {
+		return empty, noClock, err
+	}
+	sourceID, err := v.bindingText("source_id", nativeHistoryRegistryDigestBytes)
+	if err != nil {
+		return empty, noClock, err
+	}
+	generation, err := v.bindingText("generation", 20)
+	if err != nil {
+		return empty, noClock, err
+	}
+	store, err := nativeHistorySelectionPart[historyPreparationStore](v, "store")
+	if err != nil {
+		return empty, noClock, err
+	}
+	capture, err := nativeHistorySelectionPart[ProviderCaptureLimits](v, "capture")
+	if err != nil {
+		return empty, noClock, err
+	}
+	collection, err := nativeHistorySelectionPart[historyPreparationCollection](v, "collection")
+	if err != nil {
+		return empty, noClock, err
+	}
+	bounds, err := nativeHistorySelectionPart[historyPreparationBounds](v, "bounds")
+	if err != nil {
+		return empty, noClock, err
+	}
+	clock, err := nativeHistorySelectionPart[historyPreparationClock](v, "clock")
+	if err != nil {
+		return empty, noClock, err
+	}
+	config, err := buildHistoryPreparationConfigParts(policy, namespace, sourceID, generation, store, capture, collection, bounds)
+	if err != nil {
+		return empty, noClock, err
+	}
+	return config, clock, nil
+}

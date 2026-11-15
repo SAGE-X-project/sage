@@ -11,34 +11,91 @@ import (
 
 var errProviderOwnedClock = errors.New("registry011: owned integration clock unavailable")
 
+// Native refusal diagnostics are recorded only at an existing terminal branch.
+// They never select authority, change an error, trigger a sample or resume use.
+const (
+	providerOwnedClockReadBracketRefusal uint8 = iota + 1
+	providerOwnedClockSampleOrderRefusal
+	providerOwnedClockProgramDurationRefusal
+)
+
 // providerOwnedClock is a private process-lifetime clock backend. Constructing
 // it does not qualify a profile or select a policy. The eventual trusted Agent
 // selection must independently qualify the clock artifact and uncertainty.
 // Candidate JSON never supplies a sample or an operating callback here.
 type providerOwnedClock struct {
-	mu          sync.Mutex
-	owner       *providerOwnedClock
-	origin      time.Time
-	id, epoch   string
-	policy      string
-	uncertainty int64
-	readWindow  time.Duration
-	maximum     uint64
-	read        uint64
-	last        ClockSample
-	failed      bool
+	mu             sync.Mutex
+	owner          *providerOwnedClock
+	origin         time.Time
+	id, epoch      string
+	policy         string
+	uncertainty    int64
+	readWindow     time.Duration
+	maximum        uint64
+	read           uint64
+	last           ClockSample
+	failed         bool
+	nativeRefusal  uint8
+	legacyClaims   uint64
+	history        *providerHistoryProgramOwner
+	historyRevoked bool
 }
 
 // The finite setup envelope must cover construction and every permitted read.
 // This factory is private and is not a Source/selection/activation constructor.
 func newProviderOwnedClock(policy *ProviderPolicyCandidate, maximum uint64, baseUncertaintyMS, readWindowMS int64) (*providerOwnedClock, error) {
-	if policy == nil || policy.raw == "" || maximum == 0 || maximum > 1<<20 || baseUncertaintyMS <= 0 || readWindowMS <= 0 || readWindowMS > math.MaxInt64/int64(time.Millisecond) || baseUncertaintyMS > math.MaxInt64-readWindowMS {
+	return newProviderOwnedClockAtOrigin(policy, maximum, baseUncertaintyMS, readWindowMS, time.Now())
+}
+
+// Only a package-owned constructor supplies this origin. In particular, the
+// source-plan compiler keeps its first native origin through input copying,
+// policy parsing and epoch creation instead of restarting time afterwards.
+func newProviderOwnedClockAtOrigin(policy *ProviderPolicyCandidate, maximum uint64, baseUncertaintyMS, readWindowMS int64, origin time.Time) (*providerOwnedClock, error) {
+	return newProviderOwnedClockFromPolicyReader(policy, providerOwnedClockGoPolicyReader{}, maximum, baseUncertaintyMS, readWindowMS, origin)
+}
+
+// These are policy DATA, not a sample, resource grant or execution authority.
+// Both policy representations reach the same original clock checks and epoch.
+type providerOwnedClockPolicyFields struct {
+	id                 string
+	maximumUncertainty uint64
+	maximumWindow      uint64
+}
+
+type providerOwnedClockPolicyReader interface {
+	readOwnedClockPolicy(*ProviderPolicyCandidate) (providerOwnedClockPolicyFields, error)
+}
+
+type providerOwnedClockGoPolicyReader struct{}
+
+func (providerOwnedClockGoPolicyReader) readOwnedClockPolicy(policy *ProviderPolicyCandidate) (providerOwnedClockPolicyFields, error) {
+	var empty providerOwnedClockPolicyFields
+	root, ok := contentJSON([]byte(policy.raw)).(map[string]any)
+	if !ok {
+		return empty, ErrConfiguration
+	}
+	p, ok := root["clock"].(map[string]any)
+	if !ok {
+		return empty, ErrConfiguration
+	}
+	maximumUncertainty, uncertaintyOK := providerCandidateUint(p["max_uncertainty_ms"], true)
+	maximumWindow, windowOK := providerCandidateUint(p["max_read_window_ms"], true)
+	if !uncertaintyOK || !windowOK {
+		return empty, ErrConfiguration
+	}
+	return providerOwnedClockPolicyFields{contentString(p["id"]), maximumUncertainty, maximumWindow}, nil
+}
+
+func newProviderOwnedClockFromPolicyReader(policy *ProviderPolicyCandidate, reader providerOwnedClockPolicyReader, maximum uint64, baseUncertaintyMS, readWindowMS int64, origin time.Time) (*providerOwnedClock, error) {
+	if origin.IsZero() || policy == nil || policy.raw == "" || len(policy.raw) > providerHistorySourceRawTextLimit || reader == nil || maximum == 0 || maximum > 1<<20 || baseUncertaintyMS <= 0 || readWindowMS <= 0 || readWindowMS > math.MaxInt64/int64(time.Millisecond) || baseUncertaintyMS > math.MaxInt64-readWindowMS {
 		return nil, ErrConfiguration
 	}
-	p := contentJSON([]byte(policy.raw)).(map[string]any)["clock"].(map[string]any)
-	maximumUncertainty, _ := providerCandidateUint(p["max_uncertainty_ms"], true)
-	maximumWindow, _ := providerCandidateUint(p["max_read_window_ms"], true)
-	if uint64(baseUncertaintyMS+readWindowMS) > maximumUncertainty || uint64(readWindowMS) > maximumWindow {
+	fields, err := reader.readOwnedClockPolicy(policy)
+	if err != nil {
+		return nil, err
+	}
+	if fields.id == "" || len(fields.id) > providerHistorySourceFixedTextLimit || fields.maximumUncertainty == 0 || fields.maximumWindow == 0 ||
+		uint64(baseUncertaintyMS+readWindowMS) > fields.maximumUncertainty || uint64(readWindowMS) > fields.maximumWindow {
 		return nil, ErrConfiguration
 	}
 	// This random epoch label is not a key, secret or authority. A new process
@@ -47,7 +104,7 @@ func newProviderOwnedClock(policy *ProviderPolicyCandidate, maximum uint64, base
 	if _, err := rand.Read(nonce[:]); err != nil {
 		return nil, errProviderOwnedClock
 	}
-	c := &providerOwnedClock{origin: time.Now(), id: contentString(p["id"]), policy: policy.policy, epoch: "0x" + hex.EncodeToString(nonce[:]), uncertainty: baseUncertaintyMS + readWindowMS, readWindow: time.Duration(readWindowMS) * time.Millisecond, maximum: maximum}
+	c := &providerOwnedClock{origin: origin, id: fields.id, policy: policy.policy, epoch: "0x" + hex.EncodeToString(nonce[:]), uncertainty: baseUncertaintyMS + readWindowMS, readWindow: time.Duration(readWindowMS) * time.Millisecond, maximum: maximum}
 	c.owner = c
 	return c, nil
 }
@@ -55,11 +112,40 @@ func newProviderOwnedClock(policy *ProviderPolicyCandidate, maximum uint64, base
 func (*providerOwnedClock) UnmarshalJSON([]byte) error { return errProviderOwnedClock }
 
 func (c *providerOwnedClock) sample() (ClockSample, error) {
+	return c.sampleForHistory(nil, nil)
+}
+
+// Legacy stores record their use before opening either root. A future whole
+// program cannot reserve a backend already handed to one of those stores,
+// even if that store has not taken its first sample or its open later fails.
+func (c *providerOwnedClock) claimLegacy(policy string) bool {
+	if c == nil {
+		return false
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.owner != c || c.failed || c.history != nil || c.policy != policy || c.maximum == 0 || c.read >= c.maximum || c.legacyClaims >= 1<<20 {
+		return false
+	}
+	c.legacyClaims++
+	return true
+}
+
+// The original backend admits only the one pre-H0 parent after reservation.
+// No diagnostic, second store, direct legacy call or copied parent can spend
+// its samples. Refusal occurs before the counter or native clock is touched.
+func (c *providerOwnedClock) sampleForHistory(parent *providerHistoryProgramOwner, claim *providerHistoryClockClaim) (ClockSample, error) {
 	if c == nil {
 		return ClockSample{}, errProviderOwnedClock
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.history != parent || parent == nil && claim != nil || parent != nil && (c.historyRevoked || parent.owner != parent || parent.clock != c || parent.store == nil || parent.store.history != parent || !parent.clockSelectionMatches(c) || c.read >= parent.clockCeiling || parent.original == (ClockSample{}) && c.read != parent.initialRead || claim == nil || claim.owner != claim || claim.parent != parent || parent.clockClaim != claim || claim.used || claim.expectedRead != c.read || claim.meter == nil || parent.store.activeMeter.Load() != claim.meter) {
+		return ClockSample{}, errProviderOwnedClock
+	}
+	if claim != nil {
+		claim.used = true // Burn even when the following native read fails.
+	}
 	if c.owner != c || c.failed || c.maximum == 0 || c.read >= c.maximum || c.origin.IsZero() || !lowerHash(c.epoch) || c.id == "" || c.uncertainty <= 0 || c.readWindow <= 0 {
 		return ClockSample{}, errProviderOwnedClock
 	}
@@ -69,12 +155,16 @@ func (c *providerOwnedClock) sample() (ClockSample, error) {
 	now := time.Now()
 	after := time.Now()
 	if after.Sub(before) < 0 || after.Sub(before) > c.readWindow || now.Before(c.origin) {
-		c.failed = true
+		c.failed, c.nativeRefusal = true, providerOwnedClockReadBracketRefusal
 		return ClockSample{}, errProviderOwnedClock
 	}
 	sample := ClockSample{ClockID: c.id, Epoch: c.epoch, WallMS: now.UnixMilli(), MonotonicMS: now.Sub(c.origin).Milliseconds(), UncertaintyMS: c.uncertainty}
 	if sample.WallMS < sample.UncertaintyMS || sample.MonotonicMS < 0 || c.read > 1 && !candidateLedgerClockAdvance(providerClockDiagnostic(c.last), providerClockDiagnostic(sample)) {
-		c.failed = true
+		c.failed, c.nativeRefusal = true, providerOwnedClockSampleOrderRefusal
+		return ClockSample{}, errProviderOwnedClock
+	}
+	if parent != nil && parent.original != (ClockSample{}) && (sample.MonotonicMS < parent.original.MonotonicMS || uint64(sample.MonotonicMS-parent.original.MonotonicMS) > parent.bounds.durationMS) {
+		c.failed, c.historyRevoked, c.nativeRefusal = true, true, providerOwnedClockProgramDurationRefusal
 		return ClockSample{}, errProviderOwnedClock
 	}
 	c.last = sample

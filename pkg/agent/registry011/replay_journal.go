@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"unicode/utf8"
 )
 
 var ErrJournal = errors.New("registry011: journal unavailable or quarantined")
@@ -65,21 +64,7 @@ type ReplayJournal struct {
 }
 
 func journalConfiguration(c JournalConfig) ([]byte, *ObservationChecks, error) {
-	checks, err := NewObservationChecks(c.Observation)
-	if err != nil || c.Registry != "eip155:11155111:"+SepoliaRegistryAddress || !rpcAgent(c.Agent) || c.GenesisHash != sepoliaGenesis || !lowerHash(c.CodeIdentity) || !lowerHash(c.ABIIdentity) ||
-		len(c.SourceID) == 0 || len(c.SourceID) > 256 || len(c.PolicyGeneration) == 0 || len(c.PolicyGeneration) > 256 || c.PolicyGeneration != c.Observation.PolicyGeneration || len(c.Observation.ClockID) > 256 || !validHeader(c.Deployment) || !replayLimits(c.Replay) ||
-		!utf8.ValidString(c.SourceID) || !utf8.ValidString(c.PolicyGeneration) || !utf8.ValidString(c.Observation.ClockID) ||
-		c.Observation.MaxAncestryHeaders > 1<<20 || c.MaxBatches <= 0 || c.MaxBatches > 1<<20 || c.MaxClaims <= 0 || c.MaxClaims > 1<<20 || c.MaxIdentities <= 0 || c.MaxIdentities > 1<<20 || c.MaxStoredBytes <= 0 || c.MaxStoredBytes > 1<<40 {
-		return nil, nil, ErrConfiguration
-	}
-	b, err := json.Marshal(struct {
-		Format string
-		Config JournalConfig
-	}{"sage-replay-journal-v1", c})
-	if err != nil || int64(len(b)) > c.MaxStoredBytes {
-		return nil, nil, ErrConfiguration
-	}
-	return b, checks, nil
+	return journalConfigurationObserved(c, nil)
 }
 
 // CreateReplayJournal requires an existing EMPTY directory. Creation is an

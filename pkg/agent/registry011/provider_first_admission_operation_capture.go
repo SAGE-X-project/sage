@@ -44,57 +44,84 @@ func providerFirstOperationCaptureUpper(requestBytes uint64, limits ProviderCapt
 // Its only connected caller must already have burned the private one-use C
 // permit. Calling this byte primitive does not supply that permit or an ACK.
 func providerFirstOperationCapture(ctx context.Context, conn *tls.Conn, limits ProviderCaptureLimits, request *providerIntegrationRequest, meter *providerWorkMeter, certificates providerTLSBounds) (*ProviderTransportSample, error) {
+	return providerFirstOperationCaptureDiagnosed(ctx, conn, limits, request, meter, certificates, nil)
+}
+
+func providerFirstOperationCaptureDiagnosed(ctx context.Context, conn *tls.Conn, limits ProviderCaptureLimits, request *providerIntegrationRequest, meter *providerWorkMeter, certificates providerTLSBounds, diagnostic *providerFirstOperationDiagnostic) (*ProviderTransportSample, error) {
 	complete := false
 	defer func() {
 		if !complete {
+			diagnostic.freeze(meter)
 			meter.refuse() // No error path can reuse this execution observer.
 		}
 	}()
 	if ctx == nil || ctx.Err() != nil || conn == nil || request == nil || meter == nil || meter.integration == nil || meter.integration.store == nil || meter.integration.store.config.bounds.firstAdmission == nil || meter.integration.store.activeMeter.Load() != meter || meter.scan != nil || meter.authority || meter.closed || meter.failed || !limits.valid() || !certificates.valid() || len(request.wire) >= limits.WireBytes || len(request.wire) > 16<<10 || len(request.head) > 512 || len(request.body) > 16<<10 || len(request.wire) != len(request.head)+len(request.body) {
+		diagnostic.reject(providerFirstFailureCaptureEntry, providerFirstReasonRefused, 0)
 		return nil, errProviderIntegration
 	}
 	upper, ok := providerFirstOperationCaptureUpper(uint64(len(request.wire)), limits, certificates)
 	if !ok || !meter.preflightWork(upper) || !providerReplayTextEqual(request.wire[:len(request.head)], request.head, meter) || !providerReplayTextEqual(request.wire[len(request.head):], request.body, meter) {
+		diagnostic.reject(providerFirstFailureCapturePreflight, providerFirstReasonRefused, 0)
 		return nil, errProviderIntegration
 	}
 	state := conn.ConnectionState()
 	chains, err := providerFirstOperationTLSIdentity(state, certificates, meter)
 	if err != nil {
+		diagnostic.reject(providerFirstFailureTLS, providerFirstReasonRefused, 0)
 		return nil, errProviderIntegration
 	}
 	deadline, hasDeadline := ctx.Deadline()
 	remaining := uint64(limits.WireBytes - len(request.wire))
 	if !hasDeadline || conn.SetDeadline(deadline) != nil {
+		diagnostic.reject(providerFirstFailureDeadline, providerFirstReasonRefused, 0)
 		return nil, errProviderIntegration
 	}
 	wire := providerReplayPhaseBytes(request.wire, meter)
 	if len(wire) != len(request.wire) {
+		diagnostic.reject(providerFirstFailureRequestCopy, providerFirstReasonRefused, 0)
 		return nil, errProviderIntegration
 	}
 	stop := context.AfterFunc(ctx, func() { _ = conn.Close() })
 	defer stop()
 	started := time.Now()
-	if n, err := conn.Write(wire); err != nil || n != len(wire) {
+	written, writeErr := conn.Write(wire)
+	if diagnostic != nil && !diagnostic.Frozen {
+		diagnostic.RequestWritten = written
+	}
+	if writeErr != nil || written != len(wire) {
+		if diagnostic != nil {
+			diagnostic.reject(providerFirstFailureWrite, providerFirstNativeFailureReason(writeErr), 0)
+		}
+		diagnostic.freeze(meter)
 		meter.refuse()
 		return nil, errProviderIntegration
 	}
 	limited := &io.LimitedReader{R: conn, N: int64(remaining) + 1}
 	var raw bytes.Buffer
 	reader := bufio.NewReaderSize(io.TeeReader(limited, &raw), min(limits.HeaderBytes+1, 4096))
-	head, headers, body, result, readErr := readProviderHTTP(reader, limits)
+	head, headers, body, result, readErr := readProviderHTTPDiagnosed(reader, limits, nil, 0, diagnostic)
 	consumed := int(remaining) + 1 - int(limited.N)
+	if diagnostic != nil && !diagnostic.Frozen {
+		diagnostic.ResponseRead = consumed
+	}
 	if readErr != nil || ctx.Err() != nil || consumed <= 0 || consumed > int(remaining) {
+		if diagnostic != nil {
+			diagnostic.reject(providerFirstFailureRead, providerFirstNativeFailureReason(readErr), 0)
+		}
+		diagnostic.freeze(meter)
 		meter.refuse()
 		return nil, errProviderIntegration
 	}
 	var work candidateWorkVector
 	work[1] = uint64(len(wire) + consumed)
 	if !meter.add(work) || !meter.event(providerCodecEvent, uint64(consumed)) || !meter.event(providerReadEvent, uint64(consumed)) {
+		diagnostic.reject(providerFirstFailureCaptureWork, providerFirstReasonRefused, 0)
 		return nil, errProviderIntegration
 	}
 	requestHead := providerReplayPhaseBytes(request.head, meter)
 	requestBody := providerReplayPhaseBytes(request.body, meter)
 	if meter.failed || len(requestHead) != len(request.head) || len(requestBody) != len(request.body) {
+		diagnostic.reject(providerFirstFailureCaptureCopies, providerFirstReasonRefused, 0)
 		return nil, errProviderIntegration
 	}
 	complete = true

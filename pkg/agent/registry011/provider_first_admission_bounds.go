@@ -65,6 +65,19 @@ func providerFirstAdmissionCapacity(s *providerCustodyStore, held providerScanUp
 	if s.config.bounds.firstAdmission == nil {
 		return true // Preserve the existing V3 DATA-only contract byte-for-byte.
 	}
+	if b := s.config.bounds.history; b != nil {
+		if !b.valid(s.config.bounds) || !providerHistoryUpperWithin(held, providerHistoryPreIUpper(s.config.bounds)) {
+			return false
+		}
+		// Inspection readers can check capacity from selected DATA without
+		// recreating the live parent. Always charge its complete disjoint hold,
+		// not a smaller observed prefix or another copy of O/P/future work.
+		var ok bool
+		held, ok = providerHistoryWholeHold(s.config.bounds)
+		if !ok {
+			return false
+		}
+	}
 	if b := s.config.bounds.guardian; b != nil {
 		var ok bool
 		held, ok = providerScanUpperSum(held, providerScanUpper{work: b.lifetime.work, retained: b.lifetime.retained, clocks: b.lifetime.clocks})
@@ -91,7 +104,18 @@ func providerFirstAdmissionCapacity(s *providerCustodyStore, held providerScanUp
 // Binding is capped by min(metadata cap,8192). This quote deliberately uses
 // the metadata cap alone as a conservative overestimate of that one file.
 func providerFirstAdmissionStorageUpper(b providerIntegrationBounds) (uint64, uint64, bool) {
-	if b.firstAdmission == nil || !b.valid() || b.maximumEntries < 14 || b.maximumObjects < 21 {
+	if !b.valid() {
+		return 0, 0, false
+	}
+	in, ok := providerBootstrapCostingInputFromBounds(b)
+	if !ok {
+		return 0, 0, false
+	}
+	return in.firstAdmissionStorageUpper()
+}
+
+func (b providerBootstrapCostingInput) firstAdmissionStorageUpper() (uint64, uint64, bool) {
+	if !b.valid() || b.maximumEntries < 14 || b.maximumObjects < 21 {
 		return 0, 0, false
 	}
 	// Conservative binding + intent/pending/commit:4m. I/ticket/enrollment + inventory/
@@ -100,7 +124,10 @@ func providerFirstAdmissionStorageUpper(b providerIntegrationBounds) (uint64, ui
 	raw, c := providerUpperSum(metadata, 5*(64<<10), 10*candidateLedgerMetadataLimit, 16<<10, 8<<10)
 	allocation, d := providerUpperProduct(b.fileOverheadBytes, 21)
 	physical, e := providerUpperSum(raw, allocation)
-	return raw, physical, a && c && d && e && physical <= b.maximumStoredBytes
+	if !a || !c || !d || !e || physical > b.maximumStoredBytes {
+		return 0, 0, false
+	}
+	return raw, physical, true
 }
 
 // One proposed-I construction only: policy copy/decode twice, limits encode/
@@ -136,12 +163,23 @@ type providerFirstOperationStorage struct {
 }
 
 func providerFirstOperationStorageUpper(b providerIntegrationBounds, global ProviderCaptureLimits, requestBytes uint64) (providerFirstOperationStorage, bool) {
-	if b.firstAdmission == nil || !b.valid() || !b.methods.fits(global) || requestBytes == 0 || requestBytes > 16<<10 {
+	if !b.valid() {
+		return providerFirstOperationStorage{}, false
+	}
+	in, ok := providerBootstrapCostingInputFromBounds(b)
+	if !ok {
+		return providerFirstOperationStorage{}, false
+	}
+	return in.firstOperationStorageUpper(global, requestBytes)
+}
+
+func (b providerBootstrapCostingInput) firstOperationStorageUpper(global ProviderCaptureLimits, requestBytes uint64) (providerFirstOperationStorage, bool) {
+	if !b.valid() || !b.methods.fits(global) || requestBytes == 0 || requestBytes > 16<<10 {
 		return providerFirstOperationStorage{}, false
 	}
 	capture, err := b.methods.header.capture(global, int(requestBytes))
 	if err != nil {
 		return providerFirstOperationStorage{}, false
 	}
-	return providerOperationStorageUpper(b, capture, requestBytes)
+	return b.operationStorageUpper(capture, requestBytes)
 }

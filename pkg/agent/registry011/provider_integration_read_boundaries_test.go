@@ -27,7 +27,7 @@ func TestProviderIntegrationSetupDataRequiresTheOriginalClockAndEnvelope(t *test
 	if !providerReadDataView(t, s).checkSetup(raw, 0, now) {
 		t.Fatal("normal original setup did not parse")
 	}
-	for _, mode := range []string{"shape", "digest", "clock-id", "epoch", "future-wall", "future-mono", "uncertainty", "work", "attempt", "noninteger"} {
+	for _, mode := range []string{"shape", "digest", "clock-id", "epoch", "future-wall", "future-mono", "uncertainty", "work", "attempt", "noninteger", "overflow-wall", "overflow-mono", "overflow-uncertainty", "negative-wall", "negative-mono", "negative-uncertainty"} {
 		t.Run(mode, func(t *testing.T) {
 			now := s.setupOrigin
 			m := contentJSON(raw).(map[string]any)
@@ -53,6 +53,18 @@ func TestProviderIntegrationSetupDataRequiresTheOriginalClockAndEnvelope(t *test
 				m["attempt"] = "1"
 			case "noninteger":
 				c["wall_ms"] = "bad"
+			case "overflow-wall":
+				c["wall_ms"] = "9223372036854775808"
+			case "overflow-mono":
+				c["monotonic_ms"] = "9223372036854775808"
+			case "overflow-uncertainty":
+				c["uncertainty_ms"] = "9223372036854775808"
+			case "negative-wall":
+				now.WallMS = -1
+			case "negative-mono":
+				now.MonotonicMS = -1
+			case "negative-uncertainty":
+				now.UncertaintyMS = -1
 			}
 			if providerReadDataView(t, s).checkSetup(providerIntegrationJSON(m), 0, now) {
 				t.Fatal("changed setup data passed", mode)

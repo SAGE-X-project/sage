@@ -3,7 +3,7 @@ package registry011
 // Only closed internal commands call this after constructing their exact
 // measured result. No caller may provide a measurement or work callback.
 func (c *providerIntegration) finishLocalResult(permit *providerIntegrationPermit, kind string, raw []byte) (string, error) {
-	if !c.valid() || permit == nil || permit.owner != c || !permit.used || permit.request != nil || c.store.activeMeter.Load() != permit.meter {
+	if !c.legacyAllowed() || permit == nil || permit.owner != c || !permit.used || permit.request != nil || c.store.activeMeter.Load() != permit.meter {
 		return "", errProviderIntegration
 	}
 	switch kind {
@@ -42,6 +42,9 @@ func (c *providerIntegration) finishLocalResult(permit *providerIntegrationPermi
 }
 
 func (c *providerIntegration) failLocal(permit *providerIntegrationPermit) {
+	if c == nil || c.store == nil || c.store.config.bounds.history != nil || c.store.history != nil {
+		return
+	}
 	if c.valid() && permit != nil && permit.owner == c && permit.used && c.store.activeMeter.Load() == permit.meter {
 		clock, err := c.store.sample()
 		if err == nil && c.beginRemaining(permit) == nil {

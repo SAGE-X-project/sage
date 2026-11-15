@@ -4,7 +4,18 @@ package registry011
 // from its own immutable request and original method profile before holding P.
 // This arithmetic cannot authorize, reserve, consume or dispatch an operation.
 func providerOperationStorageUpper(b providerIntegrationBounds, capture ProviderCaptureLimits, requestBytes uint64) (providerFirstOperationStorage, bool) {
-	if b.firstAdmission == nil || !b.valid() || b.tls == nil || !b.tls.valid() || !capture.valid() || requestBytes == 0 || requestBytes > 16<<10 || requestBytes >= uint64(capture.WireBytes) {
+	if !b.valid() {
+		return providerFirstOperationStorage{}, false
+	}
+	in, ok := providerBootstrapCostingInputFromBounds(b)
+	if !ok {
+		return providerFirstOperationStorage{}, false
+	}
+	return in.operationStorageUpper(capture, requestBytes)
+}
+
+func (b providerBootstrapCostingInput) operationStorageUpper(capture ProviderCaptureLimits, requestBytes uint64) (providerFirstOperationStorage, bool) {
+	if !b.valid() || !capture.valid() || requestBytes == 0 || requestBytes > 16<<10 || requestBytes >= uint64(capture.WireBytes) {
 		return providerFirstOperationStorage{}, false
 	}
 	// Capture's wire cap includes the already fixed request. Its remaining
