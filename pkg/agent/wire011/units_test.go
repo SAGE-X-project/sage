@@ -176,7 +176,7 @@ func TestSlogTracerAndUnconfiguredParts(t *testing.T) {
 	if (&MemoryReplay{}).Reserve(context.Background(), "a", "b", "n", "i", time.Now()) == nil {
 		t.Fatal("unconfigured replay store accepted")
 	}
-	if (&MemoryReplay{Capacity: 4, Clock: failingClock{}}).Reserve(context.Background(), "a", "b", "n", "i", time.Now()) == nil {
+	if (&MemoryReplay{Capacity: 4, Clock: failingClock{}, Started: time.Unix(1, 0)}).Reserve(context.Background(), "a", "b", "n", "i", time.Now()) == nil {
 		t.Fatal("replay store without time accepted")
 	}
 	var nilReceiver *Receiver
@@ -202,7 +202,7 @@ func TestSlogTracerAndUnconfiguredParts(t *testing.T) {
 
 func TestReplayEntriesExpire(t *testing.T) {
 	clock := &fixedClock{t: time.Unix(1000, 0)}
-	m := &MemoryReplay{Capacity: 2, Clock: clock}
+	m := &MemoryReplay{Capacity: 2, Clock: clock, Started: time.Unix(0, 0)}
 	if err := m.Reserve(context.Background(), "a", "b", "n1", "i1", time.Unix(1010, 0)); err != nil {
 		t.Fatal(err)
 	}

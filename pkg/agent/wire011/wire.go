@@ -127,7 +127,7 @@ func (s *Signer) SignRequest(recipient, target string, payload []byte, opts Requ
 		return nil, nil, err
 	}
 	env := Request{Version: Version, ID: id, DID: s.DID, Recipient: recipient, KID: s.KID, Created: created, Expires: expires,
-		Nonce: nonce, Encoding: "plain", Payload: b64(payload), ContextID: opts.ContextID, TaskID: opts.TaskID, Metadata: opts.Metadata}
+		Nonce: nonce, Encoding: "plain", Payload: b64(payload), ContextID: opts.ContextID, TaskID: opts.TaskID, Metadata: copyMap(opts.Metadata)}
 	if err := validCommon(env.Version, env.ID, env.DID, env.Recipient, env.KID, env.Created, env.Expires, env.Nonce, env.Encoding,
 		"", env.ContextID, env.TaskID, env.Metadata); err != nil {
 		return nil, nil, fmt.Errorf("wire011: request: %w", err)
@@ -284,7 +284,8 @@ func checkTime(clock Clock, created, expires int64) string {
 // checkProjections enforces TRANSPORT-05: optional id headers must match the body.
 func checkProjections(h map[string]string, id, contextID, taskID string) string {
 	for name, want := range map[string]string{"x-sage-message-id": id, "x-sage-context-id": contextID, "x-sage-task-id": taskID} {
-		if got, ok := h[name]; ok && got != want {
+		// A projection without a body counterpart is a mismatch, even if empty.
+		if got, ok := h[name]; ok && (want == "" || got != want) {
 			return name + " does not match the envelope"
 		}
 	}
@@ -294,7 +295,7 @@ func checkProjections(h map[string]string, id, contextID, taskID string) string 
 // SignResponse answers an accepted request. success=false needs an errCode
 // from TRANSPORT-03; success=true must not have one.
 func (s *Signer) SignResponse(v *VerifiedRequest, status int, success bool, data []byte, errCode string) (*HTTPResponse, error) {
-	if v == nil || v.Envelope.Recipient != s.DID {
+	if s == nil || v == nil || v.Envelope.Recipient != s.DID {
 		return nil, fmt.Errorf("wire011: response signer is not the request recipient")
 	}
 	if status < 200 || status > 599 || status == 204 || success == (errCode != "") || errCode != "" && !responseErrors[errCode] {
@@ -431,19 +432,28 @@ func (rv *ResponseVerifier) verifyResponse(ctx context.Context, sent *SentReques
 	return &VerifiedResponse{Envelope: env, Data: data}, ""
 }
 
+// Quarantine is how long an endpoint without durable replay state refuses
+// protected messages after it starts: the 300-second lifetime plus both
+// 30-second allowances (MSG-05).
+const Quarantine = 360 * time.Second
+
 // MemoryReplay is a bounded in-memory ReplayStore. It refuses new entries
-// when full instead of evicting live ones. State is lost on restart, so a
-// restarted endpoint must refuse protected traffic for 360 seconds (MSG-05).
+// when full instead of evicting live ones. Its state is lost on restart, so
+// it refuses every reservation until Started+Quarantine, and it fails closed
+// if its clock moves backwards. Give it the same Clock as the Receiver.
 type MemoryReplay struct {
 	Capacity int
 	Clock    Clock
+	// Started is when this process began accepting traffic. The zero value refuses.
+	Started time.Time
 
 	mu      sync.Mutex
 	entries map[string]time.Time
+	highest time.Time
 }
 
 func (m *MemoryReplay) Reserve(_ context.Context, sender, recipient, nonce, id string, until time.Time) error {
-	if m == nil || m.Capacity <= 0 || m.Clock == nil {
+	if m == nil || m.Capacity <= 0 || m.Clock == nil || m.Started.IsZero() {
 		return errors.New("wire011: replay store not configured")
 	}
 	now, err := m.Clock.Now()
@@ -452,6 +462,13 @@ func (m *MemoryReplay) Reserve(_ context.Context, sender, recipient, nonce, id s
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if now.Before(m.highest) {
+		return errors.New("wire011: clock moved backwards")
+	}
+	m.highest = now
+	if now.Before(m.Started.Add(Quarantine)) {
+		return errors.New("wire011: replay state quarantine")
+	}
 	if m.entries == nil {
 		m.entries = map[string]time.Time{}
 	}
@@ -473,6 +490,17 @@ func (m *MemoryReplay) Reserve(_ context.Context, sender, recipient, nonce, id s
 	}
 	m.entries[nonceKey], m.entries[idKey] = until, until
 	return nil
+}
+
+func copyMap(m map[string]string) map[string]string {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]string, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
 }
 
 func fieldsOf(h map[string]string) []Field {

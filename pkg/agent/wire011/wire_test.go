@@ -78,8 +78,8 @@ func newFixture(t *testing.T) *fixture {
 		server: &Signer{DID: serverDID, KID: serverDID + "#sig-1", Key: spriv, Clock: clock, TTL: 120},
 		keys:   keys,
 		receiver: &Receiver{DID: serverDID, Endpoint: serverURL, Keys: keys, Clock: clock, Trace: rec,
-			Replay: &MemoryReplay{Capacity: 64, Clock: clock}},
-		responses: &ResponseVerifier{Keys: keys, Clock: clock, Trace: rec, Replay: &MemoryReplay{Capacity: 64, Clock: clock}},
+			Replay: &MemoryReplay{Capacity: 64, Clock: clock, Started: clock.t.Add(-Quarantine)}},
+		responses: &ResponseVerifier{Keys: keys, Clock: clock, Trace: rec, Replay: &MemoryReplay{Capacity: 64, Clock: clock, Started: clock.t.Add(-Quarantine)}},
 		trace:     rec,
 	}
 }
@@ -228,7 +228,7 @@ func TestReplayIsRefused(t *testing.T) {
 
 func TestReplayStoreFailsClosedWhenFull(t *testing.T) {
 	f := newFixture(t)
-	f.receiver.Replay = &MemoryReplay{Capacity: 2, Clock: f.clock}
+	f.receiver.Replay = &MemoryReplay{Capacity: 2, Clock: f.clock, Started: f.clock.t.Add(-Quarantine)}
 	first, _ := f.request(t)
 	if _, err := f.receiver.VerifyRequest(context.Background(), *first); err != nil {
 		t.Fatal(f.trace.lastReason())

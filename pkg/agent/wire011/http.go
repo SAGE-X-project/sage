@@ -286,8 +286,16 @@ func finishBase(lines []string, h map[string]string, input string) []byte {
 // anything that would need URI normalization.
 func endpoint(target string) (string, string, error) {
 	u, err := url.Parse(target)
-	if err != nil || u.Scheme != "https" || u.User != nil || u.Host == "" || u.RawQuery != "" || u.Fragment != "" ||
-		u.Path == "" || u.String() != target || strings.ToLower(u.Host) != u.Host || u.Port() == "443" {
+	bad := err != nil || !ascii(target) || strings.ContainsAny(target, "\"\\ %") || u.Scheme != "https" || u.Opaque != "" ||
+		u.User != nil || u.Host == "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" || u.Path == "" ||
+		u.RawPath != "" || u.String() != target || strings.ToLower(u.Host) != u.Host ||
+		strings.HasSuffix(u.Hostname(), ".") || strings.HasSuffix(u.Host, ":") ||
+		strings.Contains(u.Path, "/./") || strings.Contains(u.Path, "/../") || strings.HasSuffix(u.Path, "/.") || strings.HasSuffix(u.Path, "/..")
+	if !bad && u.Port() != "" {
+		port, perr := strconv.Atoi(u.Port())
+		bad = perr != nil || port < 1 || port > 65535 || port == 443 || strconv.Itoa(port) != u.Port()
+	}
+	if bad {
 		return "", "", fmt.Errorf("endpoint %q is not canonical", target)
 	}
 	return target, u.Host, nil

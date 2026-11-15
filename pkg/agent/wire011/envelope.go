@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/sage-x-project/sage/pkg/agent/internal/rfc8785"
 )
@@ -40,9 +41,11 @@ const (
 var ErrAuthentication = errors.New("wire011: authentication failed")
 
 var (
-	uuidPattern     = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
-	metaKeyPattern  = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
-	responseErrors  = map[string]bool{"authentication_failed": true, "policy_denied": true, "operation_failed": true, "unavailable": true}
+	uuidPattern    = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+	metaKeyPattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
+	responseErrors = map[string]bool{"authentication_failed": true, "policy_denied": true, "operation_failed": true, "unavailable": true}
+	// Optional members must be omitted, not present with an empty value.
+	optionalMembers = memberSet("context_id task_id error metadata")
 	requestMembers  = memberSet("version id did recipient kid created expires nonce encoding signature payload context_id task_id metadata")
 	responseMembers = memberSet("version id did recipient kid created expires nonce encoding signature message_id request_hash success data error context_id task_id metadata")
 )
@@ -98,6 +101,9 @@ func memberSet(names string) map[string]bool {
 // decodeClosed parses a closed JSON object: unknown or duplicate members and
 // trailing data are refused before the typed decode.
 func decodeClosed(raw []byte, allowed map[string]bool, out any) error {
+	if !utf8.Valid(raw) {
+		return fmt.Errorf("invalid UTF-8")
+	}
 	dec := json.NewDecoder(strings.NewReader(string(raw)))
 	tok, err := dec.Token()
 	if err != nil || tok != json.Delim('{') {
@@ -114,9 +120,17 @@ func decodeClosed(raw []byte, allowed map[string]bool, out any) error {
 			return fmt.Errorf("member %q not allowed", tok)
 		}
 		seen[name] = true
-		var skip json.RawMessage
-		if err := dec.Decode(&skip); err != nil || string(skip) == "null" {
+		var value json.RawMessage
+		if err := dec.Decode(&value); err != nil || string(value) == "null" {
 			return fmt.Errorf("member %q invalid", name)
+		}
+		if optionalMembers[name] && (string(value) == `""` || string(value) == "{}") {
+			return fmt.Errorf("member %q present but empty", name)
+		}
+		if name == "metadata" {
+			if err := closedStringMap(value); err != nil {
+				return fmt.Errorf("metadata: %w", err)
+			}
 		}
 	}
 	if _, err := dec.Token(); err != nil {
@@ -127,6 +141,31 @@ func decodeClosed(raw []byte, allowed map[string]bool, out any) error {
 	}
 	if err := json.Unmarshal(raw, out); err != nil {
 		return err
+	}
+	return nil
+}
+
+// closedStringMap requires a JSON object of string values without duplicates.
+func closedStringMap(raw []byte) error {
+	dec := json.NewDecoder(strings.NewReader(string(raw)))
+	if tok, err := dec.Token(); err != nil || tok != json.Delim('{') {
+		return fmt.Errorf("not an object")
+	}
+	seen := map[string]bool{}
+	for dec.More() {
+		tok, err := dec.Token()
+		if err != nil {
+			return err
+		}
+		name, _ := tok.(string)
+		if seen[name] {
+			return fmt.Errorf("duplicate key %q", name)
+		}
+		seen[name] = true
+		tok, err = dec.Token()
+		if _, isString := tok.(string); err != nil || !isString {
+			return fmt.Errorf("value of %q is not a string", name)
+		}
 	}
 	return nil
 }
