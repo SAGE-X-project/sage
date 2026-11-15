@@ -31,7 +31,7 @@ import (
 	"github.com/sage-x-project/sage/pkg/agent/session"
 	"github.com/sage-x-project/sage/pkg/agent/transport"
 	"github.com/stretchr/testify/require"
-	"github.com/test-go/testify/mock"
+	"github.com/stretchr/testify/mock"
 )
 
 // TestPackageCompiles verifies that the integration test package compiles
