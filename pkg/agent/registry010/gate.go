@@ -32,6 +32,10 @@ type Clock interface{ Now() (Stamp, error) }
 type Config struct {
 	Source, Registry, Network string
 	Blockchain                bool
+	// Profile is the SAGE version whose records and proofs the Source
+	// validates: "" (0.10.0, the default) or "0.11.0". HPKE endpoints of one
+	// version refuse a Gate of another, so authority never crosses versions.
+	Profile string
 }
 
 // Key is the public-key projection of a fully validated registry entry.
@@ -94,6 +98,9 @@ type Gate struct {
 }
 
 func checkConfig(c Config) error {
+	if c.Profile != "" && c.Profile != "0.11.0" {
+		return ErrRejected
+	}
 	for _, v := range []string{c.Source, c.Registry, c.Network} {
 		if v == "" || len(v) > 256 || strings.ContainsAny(v, "\x00\r\n") {
 			return ErrRejected
@@ -113,6 +120,17 @@ func NewGate(c Config, s Source, k Clock, p Store) (*Gate, error) {
 		return nil, ErrRejected
 	}
 	return &Gate{cfg: c, source: s, clock: k, store: p}, nil
+}
+
+// Profile reports the SAGE version of this Gate's authority.
+func (g *Gate) Profile() string {
+	if g == nil {
+		return ""
+	}
+	if g.cfg.Profile == "" {
+		return "0.10.0"
+	}
+	return g.cfg.Profile
 }
 func (g *Gate) sample() (Stamp, error) {
 	t, e := g.clock.Now()

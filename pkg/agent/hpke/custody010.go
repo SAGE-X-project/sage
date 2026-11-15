@@ -23,7 +23,14 @@ type Ed25519Custody010 interface {
 // key held by external custody. The optional X25519 KEM private key is still a
 // local copy. Exact correspondence with current registered public bytes is
 // checked on use, as with the seed constructor.
-func NewCustodyCompletionEndpoint010(ctx context.Context, did, kid string, custody Ed25519Custody010, kem []byte, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (endpoint *CompletionEndpoint010, err error) {
+func NewCustodyCompletionEndpoint010(ctx context.Context, did, kid string, custody Ed25519Custody010, kem []byte, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (*CompletionEndpoint010, error) {
+	if g.Profile() != "0.10.0" {
+		return nil, errCompletion010
+	}
+	return newCustodyCompletionEndpoint(ctx, did, kid, custody, kem, g, c, r)
+}
+
+func newCustodyCompletionEndpoint(ctx context.Context, did, kid string, custody Ed25519Custody010, kem []byte, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (endpoint *CompletionEndpoint010, err error) {
 	defer func() {
 		if recover() != nil {
 			endpoint, err = nil, errCompletion010
@@ -44,13 +51,20 @@ func NewCustodyCompletionEndpoint010(ctx context.Context, did, kid string, custo
 // only initiates. Both public keys are read once at construction; the KEM
 // public key must match the current registered KEM key on every response, and
 // custody performs only the X25519 operation of HPKE decapsulation.
-func NewProtectedCompletionEndpoint010(ctx context.Context, did, kid string, custody Ed25519Custody010, kem X25519Custody010, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (endpoint *CompletionEndpoint010, err error) {
+func NewProtectedCompletionEndpoint010(ctx context.Context, did, kid string, custody Ed25519Custody010, kem X25519Custody010, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (*CompletionEndpoint010, error) {
+	if g.Profile() != "0.10.0" {
+		return nil, errCompletion010
+	}
+	return newProtectedCompletionEndpoint(ctx, did, kid, custody, kem, g, c, r)
+}
+
+func newProtectedCompletionEndpoint(ctx context.Context, did, kid string, custody Ed25519Custody010, kem X25519Custody010, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (endpoint *CompletionEndpoint010, err error) {
 	defer func() {
 		if recover() != nil {
 			endpoint, err = nil, errCompletion010
 		}
 	}()
-	e, err := NewCustodyCompletionEndpoint010(ctx, did, kid, custody, nil, g, c, r)
+	e, err := newCustodyCompletionEndpoint(ctx, did, kid, custody, nil, g, c, r)
 	if err != nil {
 		return nil, err
 	}

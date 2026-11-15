@@ -123,16 +123,14 @@ func (r *completionReplay) Reserve(v Replay010) error {
 	return nil
 }
 
-type endpointConstructor func(did, kid string, signingSeed, kem []byte, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (*CompletionEndpoint010, error)
-
 func completionPair(t *testing.T) (*CompletionEndpoint010, *CompletionEndpoint010, *completionControl) {
 	t.Helper()
-	return completionPairFor(t, NewCompletionEndpoint010, NewCompletionEndpoint010)
+	return completionPairFor(t, "0.10.0", "0.10.0")
 }
 
 // completionPairFor builds Alice (initiator) and Bob (responder, with a KEM key)
-// with the given constructors, sharing one controlled clock and Registry.
-func completionPairFor(t *testing.T, alice, bob endpointConstructor) (*CompletionEndpoint010, *CompletionEndpoint010, *completionControl) {
+// for the given SAGE versions, each with a Gate of that version's profile.
+func completionPairFor(t *testing.T, alice, bob string) (*CompletionEndpoint010, *CompletionEndpoint010, *completionControl) {
 	t.Helper()
 	c := &completionControl{utc: 100}
 	makeEndpoint := func(did string, n byte) *CompletionEndpoint010 {
@@ -141,17 +139,21 @@ func completionPairFor(t *testing.T, alice, bob endpointConstructor) (*Completio
 			t.Fatal(x)
 		}
 		t.Cleanup(func() { _ = j.Close() })
-		g, x := registry010.NewGate(registry010.Config{Source: "fixture-authority", Registry: completionRegistry, Network: "local"}, c, c, j)
+		version := alice
+		if n == 2 {
+			version = bob
+		}
+		profile, construct := "", NewCompletionEndpoint010
+		if version == "0.11.0" {
+			profile, construct = "0.11.0", NewCompletionEndpoint011
+		}
+		g, x := registry010.NewGate(registry010.Config{Source: "fixture-authority", Registry: completionRegistry, Network: "local", Profile: profile}, c, c, j)
 		if x != nil {
 			t.Fatal(x)
 		}
 		kem := []byte{}
 		if n == 2 {
 			kem = bytes.Repeat([]byte{3}, 32)
-		}
-		construct := alice
-		if n == 2 {
-			construct = bob
 		}
 		e, x := construct(did, did+"#signing-1", bytes.Repeat([]byte{n}, 32), kem, g, c, &completionReplay{c, map[string]bool{}})
 		if x != nil {

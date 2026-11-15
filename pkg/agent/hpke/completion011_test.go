@@ -10,10 +10,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"golang.org/x/crypto/hkdf"
+
+	"github.com/sage-x-project/sage/pkg/agent/registry010"
 )
 
 // The 0.11.0 selection manifest (sage-spec a22a275,
@@ -54,7 +57,7 @@ func decodeWire(t *testing.T, raw []byte) map[string]json.RawMessage {
 
 // A complete 0.11.0 exchange: handshake, records both ways and a response.
 func TestCompletion011RoundTrip(t *testing.T) {
-	a, b, _ := completionPairFor(t, NewCompletionEndpoint011, NewCompletionEndpoint011)
+	a, b, _ := completionPairFor(t, "0.11.0", "0.11.0")
 	if a.Version() != "0.11.0" || b.Version() != "0.11.0" {
 		t.Fatalf("versions %q %q", a.Version(), b.Version())
 	}
@@ -110,9 +113,9 @@ func TestCompletion011RoundTrip(t *testing.T) {
 // no fallback in either direction.
 func TestProfilesNeverMix(t *testing.T) {
 	ctx := context.Background()
-	for name, pair := range map[string][2]endpointConstructor{
-		"0.10.0 initiator to 0.11.0 responder": {NewCompletionEndpoint010, NewCompletionEndpoint011},
-		"0.11.0 initiator to 0.10.0 responder": {NewCompletionEndpoint011, NewCompletionEndpoint010},
+	for name, pair := range map[string][2]string{
+		"0.10.0 initiator to 0.11.0 responder": {"0.10.0", "0.11.0"},
+		"0.11.0 initiator to 0.10.0 responder": {"0.11.0", "0.10.0"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			a, b, _ := completionPairFor(t, pair[0], pair[1])
@@ -127,8 +130,8 @@ func TestProfilesNeverMix(t *testing.T) {
 		})
 	}
 	// A response produced by a 0.11.0 responder cannot complete a 0.10.0 pending.
-	a10, b10, _ := completionPairFor(t, NewCompletionEndpoint010, NewCompletionEndpoint010)
-	a11, b11, _ := completionPairFor(t, NewCompletionEndpoint011, NewCompletionEndpoint011)
+	a10, b10, _ := completionPairFor(t, "0.10.0", "0.10.0")
+	a11, b11, _ := completionPairFor(t, "0.11.0", "0.11.0")
 	p10, _, err := a10.Start(ctx, completionBob, completionBob+"#signing-1", 300)
 	if err != nil {
 		t.Fatal(err)
@@ -216,7 +219,7 @@ func TestDerivation011UsesTheSelectedLabels(t *testing.T) {
 // The HTTP binding carries X-Sage-Version 0.11.0 and tag sage-0.11.0, and the
 // framing of one version refuses messages of the other.
 func TestHTTPHandshake011(t *testing.T) {
-	a, b, _ := completionPairFor(t, NewCompletionEndpoint011, NewCompletionEndpoint011)
+	a, b, _ := completionPairFor(t, "0.11.0", "0.11.0")
 	ctx := context.Background()
 	if a.BindHTTP(handshakeTarget010) != nil || b.BindHTTP(handshakeTarget010) != nil {
 		t.Fatal("bind")
@@ -259,6 +262,52 @@ func TestHTTPHandshake011(t *testing.T) {
 	}
 	if got, err := s.OpenHTTPRequest(ctx, m); err != nil || string(got) != "over HTTP" {
 		t.Fatalf("open HTTP request: %v", err)
+	}
+}
+
+// Authority never crosses versions: each constructor refuses a Gate of the
+// other version's profile.
+func TestEndpointsRefuseAGateOfAnotherVersion(t *testing.T) {
+	c := &completionControl{utc: 100}
+	gate := func(profile string) *registry010.Gate {
+		j, err := registry010.OpenJournal(filepath.Join(t.TempDir(), "state"), true)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = j.Close() })
+		g, err := registry010.NewGate(registry010.Config{Source: "fixture-authority", Registry: completionRegistry, Network: "local", Profile: profile}, c, c, j)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return g
+	}
+	g10, g11 := gate(""), gate("0.11.0")
+	if g10.Profile() != "0.10.0" || g11.Profile() != "0.11.0" {
+		t.Fatalf("profiles %q %q", g10.Profile(), g11.Profile())
+	}
+	seed, replay := bytes.Repeat([]byte{1}, 32), &completionReplay{c, map[string]bool{}}
+	kid := completionAlice + "#signing-1"
+	if _, err := NewCompletionEndpoint011(completionAlice, kid, seed, nil, g10, c, replay); err == nil {
+		t.Fatal("0.11.0 endpoint accepted a 0.10.0 Gate")
+	}
+	if _, err := NewCompletionEndpoint010(completionAlice, kid, seed, nil, g11, c, replay); err == nil {
+		t.Fatal("0.10.0 endpoint accepted a 0.11.0 Gate")
+	}
+	ctx := context.Background()
+	if _, err := NewCustodyCompletionEndpoint011(ctx, completionAlice, kid, nil, nil, g10, c, replay); err == nil {
+		t.Fatal("0.11.0 custody endpoint accepted a 0.10.0 Gate")
+	}
+	if _, err := NewProtectedCompletionEndpoint011(ctx, completionAlice, kid, nil, nil, g10, c, replay); err == nil {
+		t.Fatal("0.11.0 protected endpoint accepted a 0.10.0 Gate")
+	}
+	if _, err := NewCustodyCompletionEndpoint010(ctx, completionAlice, kid, nil, nil, g11, c, replay); err == nil {
+		t.Fatal("0.10.0 custody endpoint accepted a 0.11.0 Gate")
+	}
+	if _, err := NewProtectedCompletionEndpoint010(ctx, completionAlice, kid, nil, nil, g11, c, replay); err == nil {
+		t.Fatal("0.10.0 protected endpoint accepted a 0.11.0 Gate")
+	}
+	if _, err := registry010.NewGate(registry010.Config{Source: "a", Registry: completionRegistry, Network: "local", Profile: "0.9.0"}, c, c, nil); err == nil {
+		t.Fatal("unknown Gate profile accepted")
 	}
 }
 

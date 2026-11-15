@@ -13,21 +13,35 @@ import (
 // A 0.11.0 endpoint signs and accepts only 0.11.0 messages. It never falls
 // back to 0.10.0, and a 0.10.0 endpoint never accepts 0.11.0 messages. The
 // replay store may be shared between the two: a denial recorded by either
-// only ever refuses more.
+// only ever refuses more, but both then share its capacity, so dual support
+// should size it accordingly or use one store per version.
+//
+// Authority does not cross versions either: a 0.11.0 endpoint requires a Gate
+// configured with Profile "0.11.0", whose Source validates 0.11.0 records and
+// proofs, and a 0.10.0 endpoint refuses such a Gate.
 
 // NewCompletionEndpoint011 is NewCompletionEndpoint010 for SAGE 0.11.0.
 func NewCompletionEndpoint011(did, kid string, signingSeed, kem []byte, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (*CompletionEndpoint010, error) {
-	return as011(NewCompletionEndpoint010(did, kid, signingSeed, kem, g, c, r))
+	if g.Profile() != "0.11.0" {
+		return nil, errCompletion010
+	}
+	return as011(newCompletionEndpoint(did, kid, signingSeed, kem, g, c, r))
 }
 
 // NewCustodyCompletionEndpoint011 is NewCustodyCompletionEndpoint010 for SAGE 0.11.0.
 func NewCustodyCompletionEndpoint011(ctx context.Context, did, kid string, custody Ed25519Custody010, kem []byte, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (*CompletionEndpoint010, error) {
-	return as011(NewCustodyCompletionEndpoint010(ctx, did, kid, custody, kem, g, c, r))
+	if g.Profile() != "0.11.0" {
+		return nil, errCompletion010
+	}
+	return as011(newCustodyCompletionEndpoint(ctx, did, kid, custody, kem, g, c, r))
 }
 
 // NewProtectedCompletionEndpoint011 is NewProtectedCompletionEndpoint010 for SAGE 0.11.0.
 func NewProtectedCompletionEndpoint011(ctx context.Context, did, kid string, custody Ed25519Custody010, kem X25519Custody010, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (*CompletionEndpoint010, error) {
-	return as011(NewProtectedCompletionEndpoint010(ctx, did, kid, custody, kem, g, c, r))
+	if g.Profile() != "0.11.0" {
+		return nil, errCompletion010
+	}
+	return as011(newProtectedCompletionEndpoint(ctx, did, kid, custody, kem, g, c, r))
 }
 
 // as011 switches a just-constructed, never-used endpoint to the 0.11.0 profile.

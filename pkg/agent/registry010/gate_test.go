@@ -83,7 +83,7 @@ func TestGateIndependentScenarios(t *testing.T) {
 	if len(f.Cases) != 39 {
 		t.Fatal("missing scenarios")
 	}
-	cfg := Config{f.Config.Source, f.Config.Registry, f.Config.Network, f.Config.Blockchain}
+	cfg := Config{Source: f.Config.Source, Registry: f.Config.Registry, Network: f.Config.Network, Blockchain: f.Config.Blockchain}
 	for _, c := range f.Cases {
 		t.Run(c.ID, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "state")
@@ -211,7 +211,7 @@ func TestJournalRejectsSecondWriterAndIncompleteState(t *testing.T) {
 func TestClosedStoreAndPinnedOwnership(t *testing.T) {
 	f := loadFixture(t)
 	q := f.Cases[0].Steps[0].Request
-	cfg := Config{f.Config.Source, f.Config.Registry, f.Config.Network, true}
+	cfg := Config{Source: f.Config.Source, Registry: f.Config.Registry, Network: f.Config.Network, Blockchain: true}
 	// Use a valid active snapshot from the freshness scenario.
 	for _, c := range f.Cases {
 		if c.ID == "registry-freshness" {
@@ -249,7 +249,7 @@ func TestClosedStoreAndPinnedOwnership(t *testing.T) {
 
 func TestGateRejectsNoncanonicalIdentityBeforeSourceRead(t *testing.T) {
 	f := loadFixture(t)
-	cfg := Config{f.Config.Source, f.Config.Registry, f.Config.Network, f.Config.Blockchain}
+	cfg := Config{Source: f.Config.Source, Registry: f.Config.Registry, Network: f.Config.Network, Blockchain: f.Config.Blockchain}
 	validDID := "did:sage:eip155:1:0xabababababababababababababababababababab:alice"
 	for _, tc := range []struct {
 		name, did, signingURL string

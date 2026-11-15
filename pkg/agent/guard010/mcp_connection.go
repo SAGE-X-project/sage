@@ -150,6 +150,11 @@ func establishMCPConnection(ctx context.Context, stream *mcpStream, cfg mcpConne
 			authenticated = nil
 		}
 	}()
+	// Guard framing here is 0.10.0. A 0.11.0 HPKE session under 0.10.0 intents
+	// and results would be an implicit mixed profile, so it is refused.
+	if cfg.endpoint.Version() != "0.10.0" {
+		return nil, ErrInvalid
+	}
 	if cfg.initiator {
 		pending, request, e := cfg.endpoint.Start(ctx, cfg.recipient, cfg.recipientKey, cfg.ttl)
 		if e != nil {

@@ -65,6 +65,13 @@ type CompletionEndpoint010 struct {
 // NewCompletionEndpoint010 copies a local Ed25519 seed and optional X25519 private
 // key. Exact correspondence with current registered public bytes is checked on use.
 func NewCompletionEndpoint010(did, kid string, signingSeed, kem []byte, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (*CompletionEndpoint010, error) {
+	if g.Profile() != "0.10.0" {
+		return nil, errCompletion010
+	}
+	return newCompletionEndpoint(did, kid, signingSeed, kem, g, c, r)
+}
+
+func newCompletionEndpoint(did, kid string, signingSeed, kem []byte, g *registry010.Gate, c registry010.Clock, r ReplayStore010) (*CompletionEndpoint010, error) {
 	if !did010(did) || !key010(kid, did) || len(signingSeed) != 32 || (len(kem) != 0 && len(kem) != 32) || g == nil || c == nil || r == nil {
 		return nil, errCompletion010
 	}
