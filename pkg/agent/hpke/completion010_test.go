@@ -123,6 +123,18 @@ func (r *completionReplay) Reserve(v Replay010) error {
 	return nil
 }
 
+// profiledSource labels the fixture's snapshots with the version it validates.
+type profiledSource struct {
+	registry010.Source
+	profile string
+}
+
+func (s profiledSource) Read(ctx context.Context, did string) (registry010.Snapshot, error) {
+	snap, err := s.Source.Read(ctx, did)
+	snap.Profile = s.profile
+	return snap, err
+}
+
 func completionPair(t *testing.T) (*CompletionEndpoint010, *CompletionEndpoint010, *completionControl) {
 	t.Helper()
 	return completionPairFor(t, "0.10.0", "0.10.0")
@@ -147,7 +159,7 @@ func completionPairFor(t *testing.T, alice, bob string) (*CompletionEndpoint010,
 		if version == "0.11.0" {
 			profile, construct = "0.11.0", NewCompletionEndpoint011
 		}
-		g, x := registry010.NewGate(registry010.Config{Source: "fixture-authority", Registry: completionRegistry, Network: "local", Profile: profile}, c, c, j)
+		g, x := registry010.NewGate(registry010.Config{Source: "fixture-authority", Registry: completionRegistry, Network: "local", Profile: profile}, profiledSource{c, profile}, c, j)
 		if x != nil {
 			t.Fatal(x)
 		}

@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"io"
 	"path/filepath"
 	"strings"
@@ -275,39 +276,84 @@ func TestEndpointsRefuseAGateOfAnotherVersion(t *testing.T) {
 			t.Fatal(err)
 		}
 		t.Cleanup(func() { _ = j.Close() })
-		g, err := registry010.NewGate(registry010.Config{Source: "fixture-authority", Registry: completionRegistry, Network: "local", Profile: profile}, c, c, j)
+		g, err := registry010.NewGate(registry010.Config{Source: "fixture-authority", Registry: completionRegistry, Network: "local", Profile: profile}, profiledSource{c, profile}, c, j)
 		if err != nil {
 			t.Fatal(err)
 		}
 		return g
 	}
 	g10, g11 := gate(""), gate("0.11.0")
-	if g10.Profile() != "0.10.0" || g11.Profile() != "0.11.0" {
+	if g10.Profile() != "0.10.0" || g11.Profile() != "0.11.0" || gate("0.10.0").Profile() != "0.10.0" {
 		t.Fatalf("profiles %q %q", g10.Profile(), g11.Profile())
 	}
+	// Every other argument is valid, so the Gate's profile is the only reason to refuse.
 	seed, replay := bytes.Repeat([]byte{1}, 32), &completionReplay{c, map[string]bool{}}
 	kid := completionAlice + "#signing-1"
-	if _, err := NewCompletionEndpoint011(completionAlice, kid, seed, nil, g10, c, replay); err == nil {
-		t.Fatal("0.11.0 endpoint accepted a 0.10.0 Gate")
-	}
-	if _, err := NewCompletionEndpoint010(completionAlice, kid, seed, nil, g11, c, replay); err == nil {
-		t.Fatal("0.10.0 endpoint accepted a 0.11.0 Gate")
-	}
 	ctx := context.Background()
-	if _, err := NewCustodyCompletionEndpoint011(ctx, completionAlice, kid, nil, nil, g10, c, replay); err == nil {
-		t.Fatal("0.11.0 custody endpoint accepted a 0.10.0 Gate")
+	custody := func() *testCustody010 { return &testCustody010{key: custodyKey010(1)} }
+	kem := newTestKEM010(t, bytes.Repeat([]byte{3}, 32))
+	for name, tc := range map[string]struct {
+		build func(*registry010.Gate) (*CompletionEndpoint010, error)
+		own   *registry010.Gate
+	}{
+		"seed 0.10.0": {func(g *registry010.Gate) (*CompletionEndpoint010, error) {
+			return NewCompletionEndpoint010(completionAlice, kid, seed, nil, g, c, replay)
+		}, g10},
+		"seed 0.11.0": {func(g *registry010.Gate) (*CompletionEndpoint010, error) {
+			return NewCompletionEndpoint011(completionAlice, kid, seed, nil, g, c, replay)
+		}, g11},
+		"custody 0.10.0": {func(g *registry010.Gate) (*CompletionEndpoint010, error) {
+			return NewCustodyCompletionEndpoint010(ctx, completionAlice, kid, custody(), nil, g, c, replay)
+		}, g10},
+		"custody 0.11.0": {func(g *registry010.Gate) (*CompletionEndpoint010, error) {
+			return NewCustodyCompletionEndpoint011(ctx, completionAlice, kid, custody(), nil, g, c, replay)
+		}, g11},
+		"protected 0.10.0": {func(g *registry010.Gate) (*CompletionEndpoint010, error) {
+			return NewProtectedCompletionEndpoint010(ctx, completionAlice, kid, custody(), kem, g, c, replay)
+		}, g10},
+		"protected 0.11.0": {func(g *registry010.Gate) (*CompletionEndpoint010, error) {
+			return NewProtectedCompletionEndpoint011(ctx, completionAlice, kid, custody(), kem, g, c, replay)
+		}, g11},
+	} {
+		other := g10
+		if tc.own == g10 {
+			other = g11
+		}
+		e, err := tc.build(tc.own)
+		if err != nil {
+			t.Fatalf("%s refused its own Gate: %v", name, err)
+		}
+		e.Close()
+		if _, err := tc.build(other); err == nil {
+			t.Fatalf("%s accepted a Gate of another version", name)
+		}
 	}
-	if _, err := NewProtectedCompletionEndpoint011(ctx, completionAlice, kid, nil, nil, g10, c, replay); err == nil {
-		t.Fatal("0.11.0 protected endpoint accepted a 0.10.0 Gate")
+	j, err := registry010.OpenJournal(filepath.Join(t.TempDir(), "bad"), true)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if _, err := NewCustodyCompletionEndpoint010(ctx, completionAlice, kid, nil, nil, g11, c, replay); err == nil {
-		t.Fatal("0.10.0 custody endpoint accepted a 0.11.0 Gate")
-	}
-	if _, err := NewProtectedCompletionEndpoint010(ctx, completionAlice, kid, nil, nil, g11, c, replay); err == nil {
-		t.Fatal("0.10.0 protected endpoint accepted a 0.11.0 Gate")
-	}
-	if _, err := registry010.NewGate(registry010.Config{Source: "a", Registry: completionRegistry, Network: "local", Profile: "0.9.0"}, c, c, nil); err == nil {
+	t.Cleanup(func() { _ = j.Close() })
+	if _, err := registry010.NewGate(registry010.Config{Source: "a", Registry: completionRegistry, Network: "local", Profile: "0.9.0"}, c, c, j); err == nil {
 		t.Fatal("unknown Gate profile accepted")
+	}
+}
+
+// A Gate refuses a snapshot whose Source validated another version, whatever
+// the configuration claims.
+func TestGateRefusesSnapshotsOfAnotherVersion(t *testing.T) {
+	c := &completionControl{utc: 100}
+	j, err := registry010.OpenJournal(filepath.Join(t.TempDir(), "state"), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = j.Close() })
+	// Configured as 0.11.0 but fed by a 0.10.0 Source (no profile label).
+	g, err := registry010.NewGate(registry010.Config{Source: "fixture-authority", Registry: completionRegistry, Network: "local", Profile: "0.11.0"}, c, c, j)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := g.Observe(context.Background(), completionAlice); !errors.Is(err, registry010.ErrRejected) {
+		t.Fatalf("0.10.0 snapshot accepted by a 0.11.0 Gate: %v", err)
 	}
 }
 
