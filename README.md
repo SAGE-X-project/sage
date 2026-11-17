@@ -310,7 +310,7 @@ at the commit pinned in `.contracts-version`:
 
 ```bash
 make contracts-checkout  # clone sage-contracts into .sage-contracts at the pinned commit
-make bindings-check      # regenerate bindings from .sage-contracts/abi and diff
+make bindings-check      # regenerate bindings from .sage-contracts/v1/abi and diff
 make bindings            # rewrite the bindings after bumping .contracts-version
 ```
 

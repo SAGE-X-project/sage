@@ -7,14 +7,14 @@
 #   tools/scripts/gen-bindings.sh [OUT_DIR]
 #
 # OUT_DIR defaults to pkg/blockchain/ethereum/contracts/agentcardregistry.
-# The ABIs are read from $CONTRACTS_DIR/abi (default: .sage-contracts, a
+# The ABIs are read from $CONTRACTS_DIR/v1/abi (default: .sage-contracts, a
 # checkout of SAGE-X-project/sage-contracts at the commit in
 # .contracts-version; `make contracts-checkout` creates it).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 CONTRACTS_DIR="${CONTRACTS_DIR:-$ROOT/.sage-contracts}"
-ABI_DIR="$CONTRACTS_DIR/abi"
+ABI_DIR="$CONTRACTS_DIR/v1/abi"
 OUT="${1:-$ROOT/pkg/blockchain/ethereum/contracts/agentcardregistry}"
 PKG=agentcardregistry
 

@@ -18,8 +18,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # Files to update
 VERSION_FILE="$PROJECT_ROOT/VERSION"
 README_FILE="$PROJECT_ROOT/README.md"
-PACKAGE_JSON="$PROJECT_ROOT/.sage-.sage-contracts/ethereum/package.json (if checked out)"  # contracts live in sage-contracts; only touched when checked out
-PACKAGE_LOCK="$PROJECT_ROOT/.sage-.sage-contracts/ethereum/package-lock.json (if checked out)"
+PACKAGE_JSON="$PROJECT_ROOT/.sage-contracts/v1/ethereum/package.json"  # contracts live in sage-contracts; only touched when checked out
+PACKAGE_LOCK="$PROJECT_ROOT/.sage-contracts/v1/ethereum/package-lock.json"
 VERSION_GO="$PROJECT_ROOT/pkg/version/version.go"
 EXPORT_GO="$PROJECT_ROOT/lib/export.go"
 
@@ -34,8 +34,8 @@ usage() {
     echo "This script updates version in the following files:"
     echo "  1. VERSION"
     echo "  2. README.md"
-    echo "  3. .sage-contracts/ethereum/package.json (if checked out)"
-    echo "  4. .sage-contracts/ethereum/package-lock.json (if checked out)"
+    echo "  3. .sage-contracts/v1/ethereum/package.json (if checked out)"
+    echo "  4. .sage-contracts/v1/ethereum/package-lock.json (if checked out)"
     echo "  5. pkg/version/version.go"
     echo "  6. lib/export.go"
     exit 1
