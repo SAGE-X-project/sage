@@ -589,7 +589,7 @@ contracts-checkout:
 # Regenerate the Go contract bindings from the sage-contracts ABIs
 .PHONY: bindings
 bindings:
-	@echo "Generating Go bindings from $(CONTRACTS_DIR)/abi..."
+	@echo "Generating Go bindings from $(CONTRACTS_DIR)/v1/abi..."
 	@CONTRACTS_DIR="$(CONTRACTS_DIR)" GOTOOLCHAIN=$(GOTOOLCHAIN) tools/scripts/gen-bindings.sh
 
 # Fail when the committed bindings differ from freshly generated ones
