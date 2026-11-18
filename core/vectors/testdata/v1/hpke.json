@@ -1,0 +1,115 @@
+{
+  "suite": "hpke",
+  "spec_version": "0.9.0-draft.1.1",
+  "generator": "sage-vectors 1.5.2",
+  "description": "HPKE profile (RFC 9180 base mode, X25519-HKDF-SHA256, HKDF-SHA256, ChaCha20-Poly1305, export only): info and export-context strings, the E2E secret combiner, traffic-key derivation and the acknowledgement tag. HPKE encapsulation is randomised and is covered only by `hpke-export-roundtrip`. No vector links the exporter to a session; see the `session` suite for the handshake-path seed.",
+  "vectors": [
+    {
+      "name": "info-and-export-context",
+      "mode": "deterministic",
+      "description": "DefaultInfo(ctx, initDID, respDID) and DefaultExportContext(ctx) byte strings.",
+      "input": {
+        "context_id": "ctx-7d2f0c1e-4b8a-4f5e-9c3d-1a2b3c4d5e6f",
+        "init_did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+        "resp_did": "did:sage:ethereum:0x2222222222222222222222222222222222222222"
+      },
+      "output": {
+        "export_context": "sage/hpke-export|v1|suite=hpke-base+x25519+hkdf-sha256|combiner=e2e-x25519-hkdf-v1|ctx=ctx-7d2f0c1e-4b8a-4f5e-9c3d-1a2b3c4d5e6f",
+        "export_context_hex": "736167652f68706b652d6578706f72747c76317c73756974653d68706b652d626173652b7832353531392b686b64662d7368613235367c636f6d62696e65723d6532652d7832353531392d686b64662d76317c6374783d6374782d37643266306331652d346238612d346635652d396333642d316132623363346435653666",
+        "export_context_sha256": "c72d4d3f9587d6c252fafc35c9891004077eb7d6f92a702d3e4af4b6ff03e372",
+        "info": "sage/hpke-info|v1|suite=hpke-base+x25519+hkdf-sha256|combiner=e2e-x25519-hkdf-v1|ctx=ctx-7d2f0c1e-4b8a-4f5e-9c3d-1a2b3c4d5e6f|init=did:sage:ethereum:0x1111111111111111111111111111111111111111|resp=did:sage:ethereum:0x2222222222222222222222222222222222222222",
+        "info_hex": "736167652f68706b652d696e666f7c76317c73756974653d68706b652d626173652b7832353531392b686b64662d7368613235367c636f6d62696e65723d6532652d7832353531392d686b64662d76317c6374783d6374782d37643266306331652d346238612d346635652d396333642d3161326233633464356536667c696e69743d6469643a736167653a657468657265756d3a3078313131313131313131313131313131313131313131313131313131313131313131313131313131317c726573703d6469643a736167653a657468657265756d3a307832323232323232323232323232323232323232323232323232323232323232323232323232323232",
+        "info_sha256": "cf75cb9b94e64292590903d292340081d159818229ea2ddbdd8d0dac80593130"
+      }
+    },
+    {
+      "name": "x25519-e2e-shared-secret",
+      "mode": "deterministic",
+      "description": "Raw X25519 Diffie-Hellman between the two ephemeral keys (ssE2E). Both private keys are derived from their labels.",
+      "input": {
+        "init_label": "sage-spec/vectors/x25519/agent-a",
+        "resp_label": "sage-spec/vectors/x25519/agent-b"
+      },
+      "output": {
+        "init_private": "2acf41beddb529a6e0dc572f2917eb2c42b182772a6db42ac7afb6cf4eefefdf",
+        "init_public": "62ac31dab9eb6e038a35f60229023d02851059def47cc90cc2a8c085136f1d5b",
+        "resp_private": "6c66efd266dfa97234be6d837fd3ad67324ecfe3bf24a6b341e0200b11b65d1c",
+        "resp_public": "16b0bdfa44da20778e90ceb3e6361be3f77bbbc627bef2b467e97df28b426418",
+        "shared_secret": "72adaa22c3dfcd1be0f0671c833aab310a603c93aeb8aece6d3bce738718c47f"
+      }
+    },
+    {
+      "name": "combine-secrets",
+      "mode": "deterministic",
+      "description": "seed = HKDF-Expand(HKDF-Extract(SHA-256, ikm = exporterHPKE || ssE2E, salt = exportCtx), \"SAGE-HPKE+E2E-Combiner\", 32).",
+      "input": {
+        "context_id": "ctx-7d2f0c1e-4b8a-4f5e-9c3d-1a2b3c4d5e6f",
+        "exporter_hpke": "3cc24f49ae4b1a1d8d88e731c94b2b0a16219e18d768340e3ed70763d24a3117",
+        "ss_e2e": "3b387ad1d1a804baeaf2ed5befc0700b658f3b1ef5e2cdea154d8394b46ab2fe"
+      },
+      "output": {
+        "export_context_hex": "736167652f68706b652d6578706f72747c76317c73756974653d68706b652d626173652b7832353531392b686b64662d7368613235367c636f6d62696e65723d6532652d7832353531392d686b64662d76317c6374783d6374782d37643266306331652d346238612d346635652d396333642d316132623363346435653666",
+        "seed": "9cd088d0a498d8b4273ce5b9dfa10f7f5e7ba39a57a9020b5aa601b02e4fe939"
+      }
+    },
+    {
+      "name": "traffic-keys",
+      "mode": "deterministic",
+      "description": "DeriveTrafficKeys(seed): HMAC-SHA256 counter expansion with labels SAGE-c2s:key, SAGE-c2s:iv, SAGE-s2c:key, SAGE-s2c:iv, SAGE-cb-v1.",
+      "input": {
+        "seed": "784880f4acaf46576d3b1d7adbe5d5da5d4993216e21756f70915912511b94cc"
+      },
+      "output": {
+        "c2s_iv": "2c5137ea7b8929e68f796ff9",
+        "c2s_key": "79e8e3e207a92cb313aebc567fd041440c4d14c744e338bbc93fffda1dbe9463",
+        "channel_binding": "11a4062b7930da3a4e70360c797db0cc52b8604ed0a8d68d5d875230f3b64c78",
+        "s2c_iv": "fe1252ad7365ef34b5c6f2d7",
+        "s2c_key": "1fa235e42cefbc361cbd9c386c61cdfc040b58efa40884c2817ccf31065735a1"
+      }
+    },
+    {
+      "name": "ack-tag",
+      "mode": "deterministic",
+      "description": "MakeAckTag(seed, ctxID, nonce, kid, info, exportCtx, enc, ephC, ephS, initDID, respDID): ackKey = expand(seed, \"SAGE-ack-key-v1\", 32); tag = HMAC-SHA256(ackKey, \"SAGE-ack-msg|v1|\" || len16(ctx)||ctx || len16(nonce)||nonce || len16(kid)||kid || SHA256(0x00||b_1 || 0x00||b_2 ...)).",
+      "input": {
+        "context_id": "ctx-7d2f0c1e-4b8a-4f5e-9c3d-1a2b3c4d5e6f",
+        "enc": "b8e75e3e80224dd6a1370ef691220dc03aa6d7b52ddb6a32073c2bf01226bef9",
+        "eph_c": "b67c7379762339770c47a6abc4a338770983f9a26dd574bcc911ad3e20a8f201",
+        "eph_s": "a675eb6930a8e115e288a19caec4b390f624bbc56430d58bfa490e41b497defa",
+        "init_did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+        "kid": "kid-3f6a9c12-8b7e-4d21-a5c4-0e1f2a3b4c5d",
+        "nonce": "9c1d2e3f-4a5b-6c7d-8e9f-0a1b2c3d4e5f",
+        "resp_did": "did:sage:ethereum:0x2222222222222222222222222222222222222222",
+        "seed": "784880f4acaf46576d3b1d7adbe5d5da5d4993216e21756f70915912511b94cc"
+      },
+      "output": {
+        "ack_tag": "8aa4fcf3df49d77fc516551dc0d7cfcb8103898ad2312a957b0842cc21438e57",
+        "binds_order": [
+          "info",
+          "export_context",
+          "enc",
+          "eph_c",
+          "eph_s",
+          "init_did",
+          "resp_did"
+        ]
+      }
+    },
+    {
+      "name": "hpke-export-roundtrip",
+      "mode": "verify",
+      "description": "HPKE base-mode encapsulation to the responder's X25519 key with Export(exportCtx, 32). enc is random, so the vector stores enc and the exporter secret and the check re-derives the exporter on the receiving side.",
+      "input": {
+        "context_id": "ctx-7d2f0c1e-4b8a-4f5e-9c3d-1a2b3c4d5e6f",
+        "init_did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+        "resp_did": "did:sage:ethereum:0x2222222222222222222222222222222222222222",
+        "resp_label": "sage-spec/vectors/x25519/agent-b"
+      },
+      "output": {
+        "enc": "3fecd71cebce44186e2ee152a4ff6d364f30b824b16ac9cc7175bea38d718145",
+        "exporter": "a153a4de3ebbe28506cf6adf080346ba6564e394905b187d5f7bc5e982c5f173",
+        "resp_public": "16b0bdfa44da20778e90ceb3e6361be3f77bbbc627bef2b467e97df28b426418"
+      }
+    }
+  ]
+}
