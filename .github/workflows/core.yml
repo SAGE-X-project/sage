@@ -51,6 +51,10 @@ jobs:
         run: go test -race -count=1 ./...
       - name: Fuzz the log detail escaping
         run: go test -run='^$' -fuzz=FuzzUnverified -fuzztime=30s ./obs
+      - name: Fuzz the vector file reader
+        run: go test -run='^$' -fuzz=FuzzReadFile -fuzztime=30s ./vectors
+      - name: Fuzz the vector check
+        run: go test -run='^$' -fuzz=FuzzCheck -fuzztime=30s ./vectors
 
   lint:
     name: Core lint

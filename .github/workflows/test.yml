@@ -2,9 +2,9 @@ name: Test
 
 on:
   push:
-    branches: [main, dev]
+    branches: [main, dev, 'spec/**']
   pull_request:
-    branches: [main, dev]
+    branches: [main, dev, 'spec/**']
 
 permissions:
   contents: read
@@ -1351,3 +1351,6 @@ jobs:
 
       - name: Check vectors
         run: go run ./cmd/sage-vectors check -dir .sage-spec/vectors
+
+      - name: Check v1 vectors (spec 0.9.0-draft.1.1)
+        run: go run ./cmd/sage-vectors check -dir .sage-spec/v1/vectors -spec 0.9.0-draft.1.1
