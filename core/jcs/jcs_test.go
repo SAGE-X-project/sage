@@ -343,7 +343,9 @@ func mustIndex(t *testing.T, v Value, i int) Value {
 // FuzzParse checks that the parser never panics, accepts only text that
 // encoding/json also accepts, and that canonical output is a fixed point.
 func FuzzParse(f *testing.F) {
-	for _, s := range []string{`{"a":[1,2.5e3,"\u00e9"]}`, `[]`, `"\ud83d\ude02"`, `{"a":"x","a":"y"}`, "\ufeff{}", `{"v":"1","V":"2"}`, `-0.0e-0`} {
+	for _, s := range []string{`{"a":[1,2.5e3,"\u00e9"]}`, `[]`, `"\ud83d\ude02"`, `{"a":"x","a":"y"}`, "\ufeff{}", `{"v":"1","V":"2"}`, `-0.0e-0`,
+		// Found by fuzzing: objects inside arrays once shared a stack base.
+		`[0,0,{"":[]}`, `[{"":""},{"":""}]`} {
 		f.Add([]byte(s))
 	}
 	f.Fuzz(func(t *testing.T, data []byte) {
