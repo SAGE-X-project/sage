@@ -55,6 +55,8 @@ jobs:
         run: go test -run='^$' -fuzz=FuzzReadFile -fuzztime=30s ./vectors
       - name: Fuzz the vector check
         run: go test -run='^$' -fuzz=FuzzCheck -fuzztime=30s ./vectors
+      - name: Fuzz the strict JSON parser
+        run: go test -run='^$' -fuzz=FuzzParse -fuzztime=30s ./jcs
 
   lint:
     name: Core lint
