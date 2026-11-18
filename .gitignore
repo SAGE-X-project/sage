@@ -639,8 +639,8 @@ docs/Todo.md
 **/testdata/verification/
 **/testdata/fuzz/
 testdata/
-# Pinned copy of the sage-spec v1 vectors (core/vectors/testdata/README.md)
-!core/vectors/testdata/
+# Test inputs of the core module (pinned vectors, API checker fixtures)
+!core/**/testdata/
 gosec-check.json
 
 # Regenerated code-graph artifacts (see docs/refactoring/README.md)
