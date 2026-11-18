@@ -54,8 +54,9 @@ type File struct {
 	Vectors     []Vector `json:"vectors"`
 }
 
-// SpecVersion is the version of sage-spec these vectors are generated for.
-const SpecVersion = "1.0.0-draft.1"
+// SpecVersion is the version of sage-spec these vectors are generated for
+// (sage-spec v1/vectors).
+const SpecVersion = "0.9.0-draft.1.1"
 
 // Case defines one vector: fixed inputs, a producer and (for verify mode)
 // a verifier. Produce must be deterministic for ModeDeterministic cases.
@@ -157,8 +158,14 @@ func Generate(dir string) error {
 }
 
 // Check reads every suite from dir and verifies each vector. It reports
-// every failure, not just the first.
-func Check(dir string) error {
+// every failure, not just the first. It does not compare spec_version, so
+// it also checks the older files of the sage-spec root vectors/ folder.
+func Check(dir string) error { return CheckSpec(dir, "") }
+
+// CheckSpec is Check that, when spec is not empty, also requires every
+// file's spec_version to equal spec exactly. A file holding two vectors with
+// the same name fails.
+func CheckSpec(dir, spec string) error {
 	var failures []string
 	for _, s := range Suites() {
 		f, err := readFile(fileName(dir, s.Name))
@@ -169,8 +176,14 @@ func Check(dir string) error {
 		if f.Suite != s.Name {
 			failures = append(failures, fmt.Sprintf("%s: suite field is %q", s.Name, f.Suite))
 		}
+		if spec != "" && f.SpecVersion != spec {
+			failures = append(failures, fmt.Sprintf("%s: spec_version is %q, want %q", s.Name, f.SpecVersion, spec))
+		}
 		stored := map[string]Vector{}
 		for _, v := range f.Vectors {
+			if _, dup := stored[v.Name]; dup {
+				failures = append(failures, fmt.Sprintf("%s/%s: duplicate vector name", s.Name, v.Name))
+			}
 			stored[v.Name] = v
 		}
 		for _, c := range s.Cases {

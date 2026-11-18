@@ -118,7 +118,7 @@ $(BIN_DIR)/$(CRYPTO_BINARY):
 	@echo "Build complete: $(BIN_DIR)/$(CRYPTO_BINARY)"
 
 # Protocol test vectors (published in the sage-spec repository)
-VECTORS_DIR ?= ../sage-spec/vectors
+VECTORS_DIR ?= ../sage-spec/v1/vectors
 
 .PHONY: vectors vectors-check
 vectors:

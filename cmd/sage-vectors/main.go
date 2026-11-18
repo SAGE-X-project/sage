@@ -22,6 +22,7 @@ func main() {
 	}
 	fs := flag.NewFlagSet(os.Args[1], flag.ExitOnError)
 	dir := fs.String("dir", "vectors", "directory holding one JSON file per suite")
+	spec := fs.String("spec", "", "check: require this exact spec_version in every file")
 	_ = fs.Parse(os.Args[2:])
 
 	var err error
@@ -32,7 +33,7 @@ func main() {
 			fmt.Printf("wrote %d suites to %s (spec %s, sage %s)\n", len(vectors.Suites()), *dir, vectors.SpecVersion, version.Version)
 		}
 	case "check", "verify":
-		err = vectors.Check(*dir)
+		err = vectors.CheckSpec(*dir, *spec)
 		if err == nil {
 			n := 0
 			for _, s := range vectors.Suites() {
@@ -60,5 +61,5 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: sage-vectors <gen|check|list|version> [-dir DIR]")
+	fmt.Fprintln(os.Stderr, "usage: sage-vectors <gen|check|list|version> [-dir DIR] [-spec VERSION]")
 }

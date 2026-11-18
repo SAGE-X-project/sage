@@ -1,0 +1,177 @@
+{
+  "suite": "rfc9421",
+  "spec_version": "0.9.0-draft.1.1",
+  "generator": "sage-vectors 1.5.2",
+  "description": "HTTP Message Signatures profile: covered components, signature base, Signature-Input/Signature headers, Content-Digest (sha-256), keyid = DID#fragment, and response signatures bound to the request with ;req.",
+  "vectors": [
+    {
+      "name": "request-ed25519",
+      "mode": "deterministic",
+      "description": "Signed POST request with alg=ed25519. Verify at the fixed clock now = created, nonce required, ExpectedDID bound to keyid.",
+      "input": {
+        "alg": "ed25519",
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "covered": [
+          "\"@method\"",
+          "\"@target-uri\"",
+          "\"@authority\"",
+          "\"content-type\"",
+          "\"content-digest\"",
+          "\"x-sage-did\"",
+          "\"date\""
+        ],
+        "created": 1788609600,
+        "headers": {
+          "content-type": "application/json",
+          "date": "Tue, 01 Sep 2026 12:00:00 GMT",
+          "x-sage-did": "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+        },
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "keyid": "did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1",
+        "method": "POST",
+        "nonce": "8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10",
+        "signature_name": "sig1",
+        "url": "https://agent-b.example/mcp/tools/call"
+      },
+      "output": {
+        "content_digest": "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:",
+        "signature": "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:",
+        "signature_base": "\"@method\": POST\n\"@target-uri\": https://agent-b.example/mcp/tools/call\n\"@authority\": agent-b.example\n\"content-type\": application/json\n\"content-digest\": sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:\n\"x-sage-did\": did:sage:ethereum:0x1111111111111111111111111111111111111111\n\"date\": Tue, 01 Sep 2026 12:00:00 GMT\n\"@signature-params\": (\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\"",
+        "signature_input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+      }
+    },
+    {
+      "name": "request-es256k",
+      "mode": "deterministic",
+      "description": "Signed POST request with alg=es256k. Verify at the fixed clock now = created, nonce required, ExpectedDID bound to keyid.",
+      "input": {
+        "alg": "es256k",
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "covered": [
+          "\"@method\"",
+          "\"@target-uri\"",
+          "\"@authority\"",
+          "\"content-type\"",
+          "\"content-digest\"",
+          "\"x-sage-did\"",
+          "\"date\""
+        ],
+        "created": 1788609600,
+        "headers": {
+          "content-type": "application/json",
+          "date": "Tue, 01 Sep 2026 12:00:00 GMT",
+          "x-sage-did": "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+        },
+        "key_label": "sage-spec/vectors/secp256k1/agent-a",
+        "keyid": "did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1",
+        "method": "POST",
+        "nonce": "8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10",
+        "signature_name": "sig1",
+        "url": "https://agent-b.example/mcp/tools/call"
+      },
+      "output": {
+        "content_digest": "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:",
+        "signature": "sig1=:rZthbrTozRBvu8FVn/Dd1LRM1jpdvAzN8wRnslT+XbA1229t+ISKMnGm9Fupt+DhRmdP03oZyodv/iVAJ56bwQE=:",
+        "signature_base": "\"@method\": POST\n\"@target-uri\": https://agent-b.example/mcp/tools/call\n\"@authority\": agent-b.example\n\"content-type\": application/json\n\"content-digest\": sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:\n\"x-sage-did\": did:sage:ethereum:0x1111111111111111111111111111111111111111\n\"date\": Tue, 01 Sep 2026 12:00:00 GMT\n\"@signature-params\": (\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"es256k\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\"",
+        "signature_input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"es256k\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+      }
+    },
+    {
+      "name": "request-ecdsa-p256-sha256",
+      "mode": "verify",
+      "description": "Signed POST request with alg=ecdsa-p256-sha256. Verify at the fixed clock now = created, nonce required, ExpectedDID bound to keyid.",
+      "input": {
+        "alg": "ecdsa-p256-sha256",
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "covered": [
+          "\"@method\"",
+          "\"@target-uri\"",
+          "\"@authority\"",
+          "\"content-type\"",
+          "\"content-digest\"",
+          "\"x-sage-did\"",
+          "\"date\""
+        ],
+        "created": 1788609600,
+        "headers": {
+          "content-type": "application/json",
+          "date": "Tue, 01 Sep 2026 12:00:00 GMT",
+          "x-sage-did": "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+        },
+        "key_label": "sage-spec/vectors/p256/agent-a",
+        "keyid": "did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1",
+        "method": "POST",
+        "nonce": "8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10",
+        "signature_name": "sig1",
+        "url": "https://agent-b.example/mcp/tools/call"
+      },
+      "output": {
+        "content_digest": "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:",
+        "signature": "sig1=:Xru6MUOwABe3A9po5vvLFqfu++u5GP/I03H9LvdcasxGMYqrP/m7HCsjdVc8Dq5PTWTNCMy+Z+2qCNRel/6zwg==:",
+        "signature_base": "\"@method\": POST\n\"@target-uri\": https://agent-b.example/mcp/tools/call\n\"@authority\": agent-b.example\n\"content-type\": application/json\n\"content-digest\": sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:\n\"x-sage-did\": did:sage:ethereum:0x1111111111111111111111111111111111111111\n\"date\": Tue, 01 Sep 2026 12:00:00 GMT\n\"@signature-params\": (\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ecdsa-p256-sha256\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\"",
+        "signature_input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ecdsa-p256-sha256\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+      }
+    },
+    {
+      "name": "response-ed25519",
+      "mode": "deterministic",
+      "description": "Response signed by agent B over @status plus the request's @method/@target-uri/@authority/content-digest/signature with ;req, and the response content-type/content-digest. The request carries the ed25519 request signature vector.",
+      "input": {
+        "alg": "ed25519",
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}}",
+        "covered": [
+          "\"@status\"",
+          "\"@method\";req",
+          "\"@target-uri\";req",
+          "\"@authority\";req",
+          "\"content-digest\";req",
+          "\"signature\";req",
+          "\"content-type\"",
+          "\"content-digest\""
+        ],
+        "created": 1788609601,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "key_label": "sage-spec/vectors/ed25519/agent-b",
+        "keyid": "did:sage:ethereum:0x2222222222222222222222222222222222222222#key-1",
+        "nonce": "8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10-resp",
+        "request": {
+          "alg": "ed25519",
+          "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+          "covered": [
+            "\"@method\"",
+            "\"@target-uri\"",
+            "\"@authority\"",
+            "\"content-type\"",
+            "\"content-digest\"",
+            "\"x-sage-did\"",
+            "\"date\""
+          ],
+          "created": 1788609600,
+          "headers": {
+            "content-type": "application/json",
+            "date": "Tue, 01 Sep 2026 12:00:00 GMT",
+            "x-sage-did": "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          },
+          "key_label": "sage-spec/vectors/ed25519/agent-a",
+          "keyid": "did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1",
+          "method": "POST",
+          "nonce": "8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10",
+          "signature_name": "sig1",
+          "url": "https://agent-b.example/mcp/tools/call"
+        },
+        "signature_name": "sig1",
+        "status": 200
+      },
+      "output": {
+        "content_digest": "sha-256=:RYDXwjjrCO/NMhfknKXVnCd+5BTGUptdGDRgWfgFWVc=:",
+        "request_signature": "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:",
+        "request_signature_input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\"",
+        "signature": "sig1=:9RhFjsLFirHiVYgTKvF3k3rAzD3j//L1Ev6LuFtzQd0WdrOUr5661LAliAkIU/7R+loapmepfaYQPMp8l+/IDA==:",
+        "signature_base": "\"@status\": 200\n\"@method\";req: POST\n\"@target-uri\";req: https://agent-b.example/mcp/tools/call\n\"@authority\";req: agent-b.example\n\"content-digest\";req: sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:\n\"signature\";req: sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:\n\"content-type\": application/json\n\"content-digest\": sha-256=:RYDXwjjrCO/NMhfknKXVnCd+5BTGUptdGDRgWfgFWVc=:\n\"@signature-params\": (\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"content-type\" \"content-digest\");keyid=\"did:sage:ethereum:0x2222222222222222222222222222222222222222#key-1\";alg=\"ed25519\";created=1788609601;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10-resp\"",
+        "signature_input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"content-type\" \"content-digest\");keyid=\"did:sage:ethereum:0x2222222222222222222222222222222222222222#key-1\";alg=\"ed25519\";created=1788609601;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10-resp\""
+      }
+    }
+  ]
+}

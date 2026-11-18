@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"errors"
-	"fmt"
 
 	"github.com/sage-x-project/sage/pkg/agent/crypto/jcs"
 	"github.com/sage-x-project/sage/pkg/agent/crypto/keys"
@@ -112,10 +111,10 @@ func cryptoSuite() Suite {
 					if err != nil {
 						return err
 					}
-					if err := keys.VerifySecp256k1Keccak(pub, msg, sig); err != nil {
-						return fmt.Errorf("65-byte: %w", err)
-					}
-					return keys.VerifySecp256k1Keccak(pub, msg, sig[:64])
+					// Only the 65-byte r||s||v encoding is a signature (spec
+					// 0.9.0-draft.1.1, 01-crypto.md). signature_rs is an
+					// informative output and is not verified.
+					return keys.VerifySecp256k1Keccak(pub, msg, sig)
 				},
 			},
 			{

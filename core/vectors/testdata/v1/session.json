@@ -1,0 +1,63 @@
+{
+  "suite": "session",
+  "spec_version": "0.9.0-draft.1.1",
+  "generator": "sage-vectors 1.5.2",
+  "description": "Session layer: seed and id derivation, ChaCha20-Poly1305 with the wire format seq(8, big-endian) || nonce(12) || ciphertext, AAD = seq || caller AAD, 1024-entry replay window, key rotation every RekeyInterval messages (HKDF info \"sage-session-rekey-v1\" || direction || be64(generation)). Nonces are random, so ciphertext vectors are verify-only: the check decrypts them with a fresh session built from the same seed.",
+  "vectors": [
+    {
+      "name": "seed-and-id",
+      "mode": "deterministic",
+      "description": "seed = HKDF-Extract(SHA-256, sharedSecret, salt = SHA256(label || ctx || lo || hi)) with (lo, hi) the byte-sorted ephemeral keys; id = base64url-raw(SHA256(label || seed)[:16]).",
+      "input": {
+        "context_id": "ctx-7d2f0c1e-4b8a-4f5e-9c3d-1a2b3c4d5e6f",
+        "eph_a": "af050e4773e1617586f1e07f7556c769863e14531c1948c3b55ee64a575d7c98",
+        "eph_b": "89a26d9b344558ee06fde0efa430ffefc961980cbd547234df1a7d95fdb99a0e",
+        "label": "sage/hpke+e2e v1",
+        "shared_secret": "d64d6cac9a6ff4de309891d78f08135531917fecb4fbc84e5dd5a630b2f95aa5"
+      },
+      "output": {
+        "seed": "d2e14f1d46fe6caee00e70f816f0607ff617920ba987374fff4738f7d7241887",
+        "session_id": "GelgDHw0KS4rTteOoVwsNg"
+      }
+    },
+    {
+      "name": "encrypt-decrypt",
+      "mode": "verify",
+      "description": "Encrypt/Decrypt with the shared (non-directional) key at seq 0 and, after 256 messages, at seq 256 (generation 1, rotated key). The check builds a receiver from the same seed and id and decrypts both records in order.",
+      "input": {
+        "context_id": "ctx-7d2f0c1e-4b8a-4f5e-9c3d-1a2b3c4d5e6f",
+        "eph_a": "af050e4773e1617586f1e07f7556c769863e14531c1948c3b55ee64a575d7c98",
+        "eph_b": "89a26d9b344558ee06fde0efa430ffefc961980cbd547234df1a7d95fdb99a0e",
+        "label": "sage/hpke+e2e v1",
+        "plaintext": "hello from agent A",
+        "rekey_interval": 256,
+        "shared_secret": "d64d6cac9a6ff4de309891d78f08135531917fecb4fbc84e5dd5a630b2f95aa5"
+      },
+      "output": {
+        "seq0": "0000000000000000cf531e6185e18849006070e86f25ac5fd1723a2a2987172e554ac37736a225aba1d0790ed47068174843226f6a59",
+        "seq0_header": "0000000000000000cf531e6185e18849006070e8",
+        "seq256": "0000000000000100524679f06f463f6a1fdeac15b9b2acf18ab2687619ea1ff52574d46ee77b2a0311fa8e6406b23feefabf4c4abbea",
+        "seq256_seq": 256
+      }
+    },
+    {
+      "name": "directional-with-aad",
+      "mode": "verify",
+      "description": "EncryptOutbound/DecryptInbound with directional keys (initiator sends on c2s) and EncryptWithAAD/DecryptWithAAD binding caller AAD after the seq header.",
+      "input": {
+        "context_id": "ctx-7d2f0c1e-4b8a-4f5e-9c3d-1a2b3c4d5e6f",
+        "eph_a": "af050e4773e1617586f1e07f7556c769863e14531c1948c3b55ee64a575d7c98",
+        "eph_b": "89a26d9b344558ee06fde0efa430ffefc961980cbd547234df1a7d95fdb99a0e",
+        "label": "sage/hpke+e2e v1",
+        "plaintext": "hello from agent B",
+        "rekey_interval": 0,
+        "shared_secret": "d64d6cac9a6ff4de309891d78f08135531917fecb4fbc84e5dd5a630b2f95aa5"
+      },
+      "output": {
+        "aad": "aad:message-1",
+        "c2s": "0000000000000000582f16f7135ce49952ac28062ca4425cce2233b9924bfc7b279187ba314ebb1fdec998af63e3913e07178c76d992",
+        "with_aad": "00000000000000017ffc53565a0da022edee719be09e5244558fb4d8dd67ad031fc23ad81499972301987233e84709cfaf609f0f4d38"
+      }
+    }
+  ]
+}

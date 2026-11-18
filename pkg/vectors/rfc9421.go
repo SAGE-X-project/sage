@@ -151,8 +151,11 @@ func verifyRequestVector(in, out map[string]any) error {
 	req.Header.Set("Signature-Input", out["signature_input"].(string))
 	req.Header.Set("Signature", out["signature"].(string))
 	opts := &rfc9421.HTTPVerificationOptions{
-		SignatureName:        vecSigName,
-		MaxAge:               0, // vectors carry a fixed created timestamp
+		SignatureName: vecSigName,
+		// This legacy verifier reads time.Now and has no clock option, so it
+		// cannot verify at now = created; it disables the age check instead.
+		// The core verifier checks at the fixed clock (W-012).
+		MaxAge:               0,
 		RequiredComponents:   []string{"@method", "@target-uri", "@authority", "content-digest"},
 		RequireContentDigest: true,
 		RequireNonce:         true,
@@ -178,7 +181,7 @@ func rfc9421Suite() Suite {
 	} {
 		s.Cases = append(s.Cases, Case{
 			Name: "request-" + c.alg, Mode: c.mode,
-			Description: "Signed POST request with alg=" + c.alg + ". Verify with MaxAge disabled (fixed created), nonce required, ExpectedDID bound to keyid.",
+			Description: "Signed POST request with alg=" + c.alg + ". Verify at the fixed clock now = created, nonce required, ExpectedDID bound to keyid.",
 			Input:       requestInput(c.alg, c.label),
 			Produce:     signRequestVector,
 			Verify:      verifyRequestVector,

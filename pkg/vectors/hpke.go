@@ -27,7 +27,8 @@ func hpkeSuite() Suite {
 		Name: "hpke",
 		Description: "HPKE profile (RFC 9180 base mode, X25519-HKDF-SHA256, HKDF-SHA256, ChaCha20-Poly1305, export only): " +
 			"info and export-context strings, the E2E secret combiner, traffic-key derivation and the acknowledgement tag. " +
-			"HPKE encapsulation itself is randomised and is covered by the session vectors through the exporter secret.",
+			"HPKE encapsulation is randomised and is covered only by `hpke-export-roundtrip`. " +
+			"No vector links the exporter to a session; see the `session` suite for the handshake-path seed.",
 		Cases: []Case{
 			{
 				Name: "info-and-export-context", Mode: ModeDeterministic,

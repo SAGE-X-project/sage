@@ -1,0 +1,135 @@
+{
+  "suite": "did",
+  "spec_version": "0.9.0-draft.1.1",
+  "generator": "sage-vectors 1.5.2",
+  "description": "did:sage method: did:sage:\u003cchain\u003e:\u003cidentifier\u003e with chain in {ethereum, solana} (aliases eth, sol, case-insensitive), key proof-of-possession over SHA-256(\"SAGE-PoP:\" || DID || \":\" || hex(key)), and the A2A agent-card proof (JCS + Ed25519/secp256k1, base58 proofValue).",
+  "vectors": [
+    {
+      "name": "parse",
+      "mode": "deterministic",
+      "description": "ParseDID splits chain and identifier; the identifier keeps any further colons. Invalid inputs fail.",
+      "input": {
+        "invalid": [
+          "",
+          "did:sage",
+          "did:sage:ethereum",
+          "did:web:example.com",
+          "did:sage:polkadot:abc",
+          "sage:ethereum:0xabc",
+          "did:sage::0xabc"
+        ],
+        "valid": [
+          "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "did:sage:ethereum:0x1111111111111111111111111111111111111111:42",
+          "did:sage:solana:7Zn3QwXk9vQ2yP1sJ4cR8tL6mN5bV3xA2dF9gH1kJ8Lm",
+          "did:sage:ETHEREUM:agent-one",
+          "did:sage:eth:0xabc"
+        ]
+      },
+      "output": {
+        "parsed": [
+          {
+            "chain": "ethereum",
+            "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+            "identifier": "0x1111111111111111111111111111111111111111"
+          },
+          {
+            "chain": "ethereum",
+            "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111:42",
+            "identifier": "0x1111111111111111111111111111111111111111:42"
+          },
+          {
+            "chain": "solana",
+            "did": "did:sage:solana:7Zn3QwXk9vQ2yP1sJ4cR8tL6mN5bV3xA2dF9gH1kJ8Lm",
+            "identifier": "7Zn3QwXk9vQ2yP1sJ4cR8tL6mN5bV3xA2dF9gH1kJ8Lm"
+          },
+          {
+            "chain": "ethereum",
+            "did": "did:sage:ETHEREUM:agent-one",
+            "identifier": "agent-one"
+          },
+          {
+            "chain": "ethereum",
+            "did": "did:sage:eth:0xabc",
+            "identifier": "0xabc"
+          }
+        ],
+        "rejected": [
+          "",
+          "did:sage",
+          "did:sage:ethereum",
+          "did:web:example.com",
+          "did:sage:polkadot:abc",
+          "sage:ethereum:0xabc",
+          "did:sage::0xabc"
+        ]
+      }
+    },
+    {
+      "name": "chain-aliases",
+      "mode": "deterministic",
+      "description": "ParseChain normalises case and whitespace and accepts the eth/sol aliases.",
+      "input": {
+        "names": [
+          "ethereum",
+          "ETH",
+          " Solana ",
+          "sol"
+        ]
+      },
+      "output": {
+        "chains": {
+          " Solana ": "solana",
+          "ETH": "ethereum",
+          "ethereum": "ethereum",
+          "sol": "solana"
+        },
+        "generated": "did:sage:ethereum:0xabc"
+      }
+    },
+    {
+      "name": "pop-ed25519",
+      "mode": "deterministic",
+      "description": "Key proof-of-possession: Ed25519 signature over SHA-256 of the challenge string.",
+      "input": {
+        "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+        "seed_label": "sage-spec/vectors/ed25519/agent-a"
+      },
+      "output": {
+        "challenge": "SAGE-PoP:did:sage:ethereum:0x1111111111111111111111111111111111111111:123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+        "key_data": "123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+        "proof": "04dbd9601516dfa4d930e14e286170dc13f580e72ce3f1c8d6d2dd47e15d54eb97cfb7a03ad0d05c7359050d598bbebe7194275e276c92e5d3930d2b136aa800"
+      }
+    },
+    {
+      "name": "pop-secp256k1",
+      "mode": "deterministic",
+      "description": "Key proof-of-possession: secp256k1 RFC 6979 signature (65 bytes r||s||v) over SHA-256 of the challenge string. Note: SHA-256, not Keccak, for this path.",
+      "input": {
+        "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+        "scalar_label": "sage-spec/vectors/secp256k1/agent-a"
+      },
+      "output": {
+        "challenge": "SAGE-PoP:did:sage:ethereum:0x1111111111111111111111111111111111111111:04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "key_data": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "proof": "2ef383803e18e1fe74d390cc650d82e87ad2fd0b4815f75ec3f6cba76603e51e6ea3715557e7fe7a772ce92cb13d41a79be5104025c9f338f864c86a5a9bcf4200"
+      }
+    },
+    {
+      "name": "a2a-card-proof-ed25519",
+      "mode": "verify",
+      "description": "A2A agent card generated from AgentMetadataV4 and signed with the Ed25519 key: proof.created is the signing time, so the vector is verify-only; the check parses the stored card and verifies the proof over the JCS form without \"proof\".",
+      "input": {
+        "created": "2026-09-01T12:00:00Z",
+        "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+        "endpoint": "https://agent-a.example/a2a",
+        "kem_label": "sage-spec/vectors/x25519/agent-a",
+        "name": "vector-agent",
+        "seed_label": "sage-spec/vectors/ed25519/agent-a"
+      },
+      "output": {
+        "card_json": "{\"@context\":[\"https://www.w3.org/ns/did/v1\",\"https://w3id.org/security/suites/ed25519-2020/v1\",\"https://w3id.org/security/suites/secp256k1-2019/v1\"],\"id\":\"did:sage:ethereum:0x1111111111111111111111111111111111111111\",\"type\":[\"Agent\",\"AIAgent\"],\"name\":\"vector-agent\",\"description\":\"SAGE test vector agent\",\"publicKey\":[{\"id\":\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\",\"type\":\"Ed25519VerificationKey2020\",\"controller\":\"did:sage:ethereum:0x1111111111111111111111111111111111111111\",\"publicKeyBase58\":\"2EDSduzb2PKnQxsNW9XUsPceLEPrrvTAkeahqz3hU6AT\",\"publicKeyHex\":\"123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610\"},{\"id\":\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-2\",\"type\":\"X25519KeyAgreementKey2019\",\"controller\":\"did:sage:ethereum:0x1111111111111111111111111111111111111111\",\"publicKeyBase58\":\"7eBFAmv25C3CaeLFb6oNLbbXNZDw9YpNpdnrRaE9gxan\",\"publicKeyHex\":\"62ac31dab9eb6e038a35f60229023d02851059def47cc90cc2a8c085136f1d5b\"}],\"service\":[{\"type\":\"MessageService\",\"uri\":\"https://agent-a.example/a2a\"}],\"capabilities\":[\"message-signing\",\"message-verification\"],\"created\":\"2026-09-01T12:00:00Z\",\"updated\":\"2026-09-01T12:00:00Z\",\"proof\":{\"type\":\"Ed25519Signature2020\",\"created\":\"2026-09-12T03:12:02.671951Z\",\"verificationMethod\":\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\",\"proofPurpose\":\"assertionMethod\",\"proofValue\":\"wzAuk4JvFv38WbafT9dw3SNsBfN9Q7eFbx5c8WCgaArnjQ3t4EdMNDByZJSsjtLdnzQVh8GG7FxixKNH8cACzme\"}}"
+      }
+    }
+  ]
+}
