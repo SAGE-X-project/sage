@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	sagecrypto "github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,6 +73,25 @@ func TestVerifySignature_Secp256k1AcceptsHighS(t *testing.T) {
 			require.NoError(t, VerifySignature(kp.PublicKey(), msg, raw), "raw r||s")
 			require.NoError(t, VerifySignature(kp.PublicKey(), msg, derEncode(t, raw)), "DER")
 			require.NoError(t, VerifySecp256k1Keccak(priv.Public().(*ecdsa.PublicKey), msg, raw))
+		}
+	}
+}
+
+// TestVerifySignature_OversizedDERDoesNotPanic is the H3 regression: a DER
+// signature whose r or s does not fit the curve size used to panic in
+// big.Int.FillBytes. It must return an error instead.
+func TestVerifySignature_OversizedDERDoesNotPanic(t *testing.T) {
+	big300 := new(big.Int).Lsh(big.NewInt(1), 300)
+	one := big.NewInt(1)
+	for _, gen := range []func() (sagecrypto.KeyPair, error){GenerateSecp256k1KeyPair, GenerateP256KeyPair} {
+		kp, err := gen()
+		require.NoError(t, err)
+		for _, rs := range [][2]*big.Int{{big300, one}, {one, big300}, {big300, big300}} {
+			der, err := asn1.Marshal(struct{ R, S *big.Int }{rs[0], rs[1]})
+			require.NoError(t, err)
+			require.NotPanics(t, func() {
+				require.Error(t, VerifySignature(kp.PublicKey(), []byte("m"), der))
+			})
 		}
 	}
 }
