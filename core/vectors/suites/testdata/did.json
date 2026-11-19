@@ -1,0 +1,261 @@
+{
+  "suite": "did",
+  "spec_version": "0.9.0-draft.1.1",
+  "generator": "sage-core-vectors 0.9.0-draft.1.1",
+  "description": "did:sage method: did:sage:\u003cchain\u003e:\u003cidentifier\u003e with chain in {ethereum, solana} (aliases eth, sol, case-insensitive), key proof-of-possession over SHA-256(\"SAGE-PoP:\" || DID || \":\" || hex(key)), and the A2A agent-card proof (JCS + Ed25519/secp256k1, base58 proofValue).",
+  "vectors": [
+    {
+      "name": "parse",
+      "mode": "deterministic",
+      "description": "ParseDID splits chain and identifier; the identifier keeps any further colons. Invalid inputs fail.",
+      "input": {
+        "invalid": [
+          "",
+          "did:sage",
+          "did:sage:ethereum",
+          "did:web:example.com",
+          "did:sage:polkadot:abc",
+          "sage:ethereum:0xabc",
+          "did:sage::0xabc"
+        ],
+        "valid": [
+          "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "did:sage:ethereum:0x1111111111111111111111111111111111111111:42",
+          "did:sage:solana:7Zn3QwXk9vQ2yP1sJ4cR8tL6mN5bV3xA2dF9gH1kJ8Lm",
+          "did:sage:ETHEREUM:agent-one",
+          "did:sage:eth:0xabc"
+        ]
+      },
+      "output": {
+        "parsed": [
+          {
+            "chain": "ethereum",
+            "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+            "identifier": "0x1111111111111111111111111111111111111111"
+          },
+          {
+            "chain": "ethereum",
+            "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111:42",
+            "identifier": "0x1111111111111111111111111111111111111111:42"
+          },
+          {
+            "chain": "solana",
+            "did": "did:sage:solana:7Zn3QwXk9vQ2yP1sJ4cR8tL6mN5bV3xA2dF9gH1kJ8Lm",
+            "identifier": "7Zn3QwXk9vQ2yP1sJ4cR8tL6mN5bV3xA2dF9gH1kJ8Lm"
+          },
+          {
+            "chain": "ethereum",
+            "did": "did:sage:ETHEREUM:agent-one",
+            "identifier": "agent-one"
+          },
+          {
+            "chain": "ethereum",
+            "did": "did:sage:eth:0xabc",
+            "identifier": "0xabc"
+          }
+        ],
+        "rejected": [
+          "",
+          "did:sage",
+          "did:sage:ethereum",
+          "did:web:example.com",
+          "did:sage:polkadot:abc",
+          "sage:ethereum:0xabc",
+          "did:sage::0xabc"
+        ]
+      }
+    },
+    {
+      "name": "chain-aliases",
+      "mode": "deterministic",
+      "description": "ParseChain normalises case and whitespace and accepts the eth/sol aliases.",
+      "input": {
+        "names": [
+          "ethereum",
+          "ETH",
+          " Solana ",
+          "sol"
+        ]
+      },
+      "output": {
+        "chains": {
+          " Solana ": "solana",
+          "ETH": "ethereum",
+          "ethereum": "ethereum",
+          "sol": "solana"
+        },
+        "generated": "did:sage:ethereum:0xabc"
+      }
+    },
+    {
+      "name": "canonical-compare",
+      "mode": "deterministic",
+      "description": "E06-04: DIDs are compared in canonical form; did:sage:eth:0xabc equals did:sage:ethereum:0xabc (for ExpectedDID and every other comparison), while the as-sent forms differ.",
+      "input": {
+        "a": "did:sage:eth:0xabc",
+        "b": "did:sage:ethereum:0xabc"
+      },
+      "output": {
+        "canonical_a": "did:sage:ethereum:0xabc",
+        "canonical_b": "did:sage:ethereum:0xabc",
+        "equal": true
+      }
+    },
+    {
+      "name": "parse-reject-percent",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects a percent-encoded byte.",
+      "input": {
+        "did": "did:sage:ethereum:0x11%20"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-fragment",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects a DID URL with a fragment.",
+      "input": {
+        "did": "did:sage:ethereum:a#b"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-query",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects a query.",
+      "input": {
+        "did": "did:sage:ethereum:a?b"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-slash",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects a path.",
+      "input": {
+        "did": "did:sage:ethereum:a/b"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-pipe",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects a pipe.",
+      "input": {
+        "did": "did:sage:ethereum:a|b"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-space",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects a space.",
+      "input": {
+        "did": "did:sage:ethereum:a b"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-non-ascii",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects a non-ASCII letter.",
+      "input": {
+        "did": "did:sage:ethereum:ä"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-empty-identifier",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects an identifier of two empty segments.",
+      "input": {
+        "did": "did:sage:ethereum::"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-empty-segment",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects an empty segment between colons.",
+      "input": {
+        "did": "did:sage:ethereum:a::b"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-trailing-colon",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects an empty last segment.",
+      "input": {
+        "did": "did:sage:ethereum:a:"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-257-bytes",
+      "mode": "reject",
+      "description": "E06-03: the DID parser rejects a DID of 257 bytes.",
+      "input": {
+        "did": "did:sage:ethereum:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-method-upper",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects an upper-case \"DID\" scheme.",
+      "input": {
+        "did": "DID:sage:ethereum:a"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    },
+    {
+      "name": "parse-reject-method-name-upper",
+      "mode": "reject",
+      "description": "E06-02: the DID parser rejects an upper-case method name.",
+      "input": {
+        "did": "did:SAGE:ethereum:a"
+      },
+      "output": {
+        "code": "identifier",
+        "reject": true
+      }
+    }
+  ]
+}

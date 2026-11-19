@@ -56,11 +56,13 @@ jobs:
       - name: Fuzz the vector check
         run: go test -run='^$' -fuzz=FuzzCheck -fuzztime=30s ./vectors
       - name: Fuzz the strict JSON parser
-        run: go test -run='^$' -fuzz=FuzzParse -fuzztime=30s ./jcs
+        run: go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=30s ./jcs
       - name: Fuzz the signature parser
         run: go test -run='^$' -fuzz=FuzzParseSignature -fuzztime=30s ./crypto
       - name: Fuzz the public key parser
         run: go test -run='^$' -fuzz=FuzzParsePublicKey -fuzztime=30s ./crypto
+      - name: Fuzz the DID and keyid parser
+        run: go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=30s ./did
 
   lint:
     name: Core lint
