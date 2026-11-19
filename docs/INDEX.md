@@ -49,6 +49,7 @@ System design, decisions and rationale.
 | [`docs/dev/identity-payload-authority.md`](dev/identity-payload-authority.md) | Informational identity data in protected session payloads |  |
 | [`docs/dev/registry-history-batch-candidate.md`](dev/registry-history-batch-candidate.md) | Registry history batch candidate: schedule diagnostics |  |
 | [`docs/dev/registry-source-checks.md`](dev/registry-source-checks.md) | Registry Source clock and checkpoint checks |  |
+| [`docs/dev/ci-version-suites.md`](dev/ci-version-suites.md) | CI suites per spec version and how a pull request selects them |  |
 | [`docs/dev/security-design.md`](dev/security-design.md) | SAGE 보안 설계서 (Security design (threat model, DID auth, session, RFC 9421)) | MIXED |
 
 ## Protocols: handshake, HPKE, RFC 9421

@@ -5,6 +5,7 @@ on:
     branches: [main, dev, 'spec/**']
   pull_request:
     branches: [main, dev, 'spec/**']
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -19,11 +20,93 @@ env:
   GOFLAGS: -mod=readonly
 
 jobs:
+  # Spec-version suites (D27, docs/dev/ci-version-suites.md): a pull request
+  # into a version branch always runs the draft.1 suite and runs the 0.10 and
+  # 0.11 jobs only when the selector finds them affected. Pushes, pull
+  # requests into main and manual runs run every suite. If the selection
+  # fails, every gated job runs and fails at its first step, so a required
+  # check is never skipped silently.
+  select:
+    name: Select version suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      draft1: ${{ steps.select.outputs.draft1 }}
+      v010: ${{ steps.select.outputs.v010 }}
+      v011: ${{ steps.select.outputs.v011 }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Test the suite selector
+        run: python3 .github/scripts/test_ci_versions.py
+      - name: Check that every package has a spec version
+        run: python3 .github/scripts/ci_versions.py check
+      - name: Select suites
+        id: select
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" = "pull_request" ]; then
+            git diff --no-renames --name-only -z "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/changed.txt"
+          else
+            : > "$RUNNER_TEMP/changed.txt"
+          fi
+          python3 .github/scripts/ci_versions.py select --event "$EVENT" --base "$BASE_REF" --changed "$RUNNER_TEMP/changed.txt" --output "$GITHUB_OUTPUT"
+
+  # draft.1 suite: the draft.1 packages of the root module (the deployed
+  # draft.1 implementation until W-079) and the packages no version owns.
+  # The core module (draft.1.1) is tested by core.yml.
+  draft1-go:
+    name: draft.1 Go Tests
+    needs: select
+    if: always() && (needs.select.result != 'success' || needs.select.outputs.draft1 == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Require the suite selection
+        env:
+          SELECT_RESULT: ${{ needs.select.result }}
+        run: test "$SELECT_RESULT" = "success"
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Install dependencies
+        run: go mod download && go mod verify
+      - name: Run the draft.1 packages with the race detector
+        run: |
+          mapfile -t packages < <(python3 .github/scripts/ci_versions.py packages --version draft.1)
+          test "${#packages[@]}" -gt 0
+          go test -race -count=1 -timeout=40m "${packages[@]}"
+
+  # 0.10 and 0.11 suites: the jobs below through Go Tests. Go Tests runs
+  # every package except registry011 (which the shards run) and holds the
+  # 0.10 coverage gates and evidence, so the chain runs when either version
+  # is affected.
   native_resource_primitives:
     name: Native Resource Primitives
+    needs: select
+    if: always() && (needs.select.result != 'success' || needs.select.outputs.v010 == 'true' || needs.select.outputs.v011 == 'true')
     runs-on: macos-15
     timeout-minutes: 10
     steps:
+      - name: Require the suite selection
+        env:
+          SELECT_RESULT: ${{ needs.select.result }}
+        run: test "$SELECT_RESULT" = "success"
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Go
@@ -557,12 +640,18 @@ jobs:
   # The required Go Tests job explicitly gates on this job's success.
   registry_fixture_check:
     name: Registry Fixture Check
+    needs: select
+    if: always() && (needs.select.result != 'success' || needs.select.outputs.v010 == 'true' || needs.select.outputs.v011 == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
       GOFLAGS: -mod=readonly
       GOTOOLCHAIN: auto
     steps:
+      - name: Require the suite selection
+        env:
+          SELECT_RESULT: ${{ needs.select.result }}
+        run: test "$SELECT_RESULT" = "success"
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up Go
@@ -617,7 +706,8 @@ jobs:
           retention-days: 14
 
   registry_source_shard:
-    needs: registry_fixture_check
+    needs: [select, registry_fixture_check]
+    if: needs.select.outputs.v010 == 'true' || needs.select.outputs.v011 == 'true'
     name: Registry Source Shard (${{ matrix.shard }})
     runs-on: ubuntu-latest
     strategy:
@@ -770,11 +860,15 @@ jobs:
 
   registry_source_checks:
     name: Registry Source Checks
-    needs: registry_source_shard
-    if: always()
+    needs: [select, registry_source_shard]
+    if: always() && (needs.select.result != 'success' || needs.select.outputs.v010 == 'true' || needs.select.outputs.v011 == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Require the suite selection
+        env:
+          SELECT_RESULT: ${{ needs.select.result }}
+        run: test "$SELECT_RESULT" = "success"
       - name: Require every Registry Source partition
         env:
           REGISTRY_SHARD_RESULT: ${{ needs.registry_source_shard.result }}
@@ -810,12 +904,16 @@ jobs:
   # the branch ruleset that requires it does not go stale on a toolchain bump.
   test-go:
     name: Go Tests
-    needs: registry_source_checks
-    if: always()
+    needs: [select, registry_source_checks]
+    if: always() && (needs.select.result != 'success' || needs.select.outputs.v010 == 'true' || needs.select.outputs.v011 == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 75
 
     steps:
+      - name: Require the suite selection
+        env:
+          SELECT_RESULT: ${{ needs.select.result }}
+        run: test "$SELECT_RESULT" = "success"
       - name: Require successful Registry Source evidence
         env:
           REGISTRY_SOURCE_RESULT: ${{ needs.registry_source_checks.result }}
@@ -1340,7 +1438,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: SAGE-X-project/sage-spec
-          ref: main
+          # Pinned: the vectors this commit is checked against (v1 =
+          # 0.9.0-draft.1.1, published in sage-spec a69e901). Move the pin
+          # in the same pull request that adopts new vectors.
+          ref: a69e9016d30835ee91fa3f7e1c12ebb8e50e0614
           path: .sage-spec
 
       - name: Set up Go

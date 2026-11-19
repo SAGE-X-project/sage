@@ -1,16 +1,13 @@
 name: Core module
 
+# The core module is the draft.1.1 implementation; it runs on every push and
+# pull request so the draft.1.1 suite is complete for each change (D27).
 on:
   push:
     branches: [main, dev, 'spec/**']
-    paths:
-      - 'core/**'
-      - '.github/workflows/core.yml'
   pull_request:
     branches: [main, dev, 'spec/**']
-    paths:
-      - 'core/**'
-      - '.github/workflows/core.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read

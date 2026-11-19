@@ -1,0 +1,57 @@
+{
+  "comment": "Spec version of every package of the root module. A package belongs to the first version whose pattern matches; draft.1 takes the rest. no_root_effect lists files that change no root package (the core module has its own workflow); any other file outside a package directory selects every suite. graph_configs are the build configurations whose package graphs are merged. See .github/scripts/ci_versions.py and docs/dev/ci-version-suites.md.",
+  "versions": {
+    "0.11": [
+      "pkg/agent/registry011",
+      "pkg/agent/registry011/...",
+      "pkg/agent/wire011",
+      "pkg/agent/wire011/...",
+      "internal/registryworker",
+      "internal/registryrunner",
+      "internal/qualification/...",
+      "tools/registrycoverage",
+      "cmd/sage-registry-worker"
+    ],
+    "0.10": [
+      "pkg/agent/didsource010",
+      "pkg/agent/execution010",
+      "pkg/agent/guard010",
+      "pkg/agent/registry010",
+      "examples/registry-*010"
+    ],
+    "draft.1": [
+      "..."
+    ]
+  },
+  "all_suites_when_changed": [
+    "go.mod",
+    "go.sum",
+    ".github/ci/versions.json",
+    ".github/scripts/ci_versions.py",
+    ".github/workflows/test.yml"
+  ],
+  "no_root_effect": [
+    "core/...",
+    "docs/...",
+    ".github/workflows/core.yml",
+    "*.md"
+  ],
+  "graph_configs": [
+    {
+      "GOOS": "linux",
+      "tags": ""
+    },
+    {
+      "GOOS": "linux",
+      "tags": "registry_native_limits,e2e"
+    },
+    {
+      "GOOS": "darwin",
+      "tags": "registry_native_limits,e2e"
+    },
+    {
+      "GOOS": "windows",
+      "tags": "registry_native_limits,e2e"
+    }
+  ]
+}

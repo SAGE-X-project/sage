@@ -1484,6 +1484,12 @@ coverage run, coverage requirements and DID, handshake, identity and HTTP
 checks keep their existing commands and artifacts. Each job has its original
 finite time limit; the complete workflow must succeed at the current revision.
 
+These jobs form the 0.11 suite of the version suites described in
+[ci-version-suites.md](ci-version-suites.md). They run on every push, on
+every pull request into main and on manual runs; a pull request into a
+version branch runs them only when the selector finds 0.10 or 0.11 affected,
+because Go Tests also holds the 0.10 coverage gates and evidence.
+
 The separate initial-only connected candidate binds its future execution and
 remaining envelopes before I/T0. It keeps the original first-E1 F observer and
 its physical hold, adds a distinct once-held C/S allocation, and compares a
