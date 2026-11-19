@@ -1,0 +1,274 @@
+{
+  "suite": "crypto",
+  "spec_version": "0.9.0-draft.1.1",
+  "generator": "sage-core-vectors 0.9.0-draft.1.1",
+  "description": "Signature primitives as used on every SAGE wire path: Ed25519 (pure, no pre-hash), secp256k1 over Keccak-256 with RFC 6979 and the Ethereum r||s||v encoding, P-256 over SHA-256 with raw r||s low-S encoding, and the key identifier helper. Reject vectors hold alg, public_key, message and signature; the input is rejected when alg, the key or the signature is not accepted or the signature does not verify (01-crypto.md §1 to §3).",
+  "vectors": [
+    {
+      "name": "ed25519-sign",
+      "mode": "deterministic",
+      "description": "Ed25519 signature over the raw message (RFC 8032, no pre-hash).",
+      "input": {
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "seed_label": "sage-spec/vectors/ed25519/agent-a"
+      },
+      "output": {
+        "key_id": "0ea249d59a0394ed",
+        "public_key": "123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+        "seed": "e016532bd9f7581d3cfbefceba57cf5985dab1eb56900998635ef509fb880d92",
+        "signature": "0fe02454adb2f05b096a148b3b1972c658a6efc397b39f1eb542b0e6c42b69656406778ceee62ee607620698fa4215936cc7902702660b102398f8e07a50e00b"
+      }
+    },
+    {
+      "name": "secp256k1-keccak-sign",
+      "mode": "deterministic",
+      "description": "secp256k1: Keccak-256(message), RFC 6979 deterministic ECDSA, 65-byte r||s||v, low-S. Identical to an Ethereum signature without the EIP-191 prefix.",
+      "input": {
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "scalar_label": "sage-spec/vectors/secp256k1/agent-a"
+      },
+      "output": {
+        "ethereum_address": "0x7016158acbaa8d06c5dc661498bb6ff76381c82f",
+        "key_id": "4809980dad831b92",
+        "private_scalar": "656be1cc5eb7eb37dce865bbb792a77d18aeb433381b6517eaf8f81a3c7ec065",
+        "public_key": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "public_key_compressed": "02e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e3",
+        "recovery_id": 1,
+        "signature": "ae2ab47818f0ca3c1367e629709133bc10e3e9fb32bcc5adc15c8fd22c2619be0084cd8f085896fc080f1ecb716c8a8c15ae77d1f98ead7b520053c5b58f533d01",
+        "signature_rs": "ae2ab47818f0ca3c1367e629709133bc10e3e9fb32bcc5adc15c8fd22c2619be0084cd8f085896fc080f1ecb716c8a8c15ae77d1f98ead7b520053c5b58f533d"
+      }
+    },
+    {
+      "name": "p256-sha256-sign",
+      "mode": "verify",
+      "description": "P-256: SHA-256(message), ECDSA, raw r||s (64 bytes) with low-S normalisation. Go's ecdsa.Sign is randomised, so this vector is verify-only until deterministic signing lands (B-11b).",
+      "input": {
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "scalar_label": "sage-spec/vectors/p256/agent-a"
+      },
+      "output": {
+        "private_scalar": "7c649ce5cd8c9095927300f36dd9afc22c027e2e078d9a74d5c574ad76da3db2",
+        "public_key": "04a8b98f6ec0083554828dffc9876d3b00e39f79c4fc3f559d0de2fde4718a774639f25cf19fb0935ee621da503a4f65128415d90e078ec01267726538b0e94d55",
+        "signature": "de826013c62f41c0b65a2a7313dfa95954ed9564e6ef8700fef5c56407d72394630efeef7fb6276651ace68880c0235d99ea200e6f1c6459efbde0a53d134902"
+      }
+    },
+    {
+      "name": "key-id",
+      "mode": "deterministic",
+      "description": "keys.KeyID: the key identifier derived from raw public key bytes.",
+      "input": {
+        "public_key": "37af5b79b1d08725d007175621b267e6892e1ce6cab3cb5a39cb75cee280db08"
+      },
+      "output": {
+        "key_id": "31df14d7d9fcb731"
+      }
+    },
+    {
+      "name": "ed25519-s-not-reduced",
+      "mode": "reject",
+      "description": "E01-04: ed25519-sign with S replaced by S + L.",
+      "input": {
+        "alg": "ed25519",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+        "signature": "0fe02454adb2f05b096a148b3b1972c658a6efc397b39f1eb542b0e6c42b696551da6ce9084a413edefefd3ad93cf4a76cc7902702660b102398f8e07a50e01b"
+      },
+      "output": {
+        "code": "non_canonical",
+        "reject": true
+      }
+    },
+    {
+      "name": "ed25519-small-order-key",
+      "mode": "reject",
+      "description": "E01-04: an order-8 public key with R = 32 zero bytes and S = 0; both the cofactorless and the cofactored equation accept it, so only the small-order key check rejects it.",
+      "input": {
+        "alg": "ed25519",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "c7176a703d4dd84fba3c0b760d10670f2a2053fa2c39ccc64ec7fd7792ac037a",
+        "signature": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "output": {
+        "code": "malformed",
+        "reject": true
+      }
+    },
+    {
+      "name": "ed25519-noncanonical-key",
+      "mode": "reject",
+      "description": "E01-04: ed25519-sign with a public key encoded with y \u003e= p (a point that is not of small order). Nobody knows a key for that point, so a lax verifier fails it as signature; the code tells the two apart.",
+      "input": {
+        "alg": "ed25519",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "f0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+        "signature": "0fe02454adb2f05b096a148b3b1972c658a6efc397b39f1eb542b0e6c42b69656406778ceee62ee607620698fa4215936cc7902702660b102398f8e07a50e00b"
+      },
+      "output": {
+        "code": "non_canonical",
+        "reject": true
+      }
+    },
+    {
+      "name": "secp256k1-high-s",
+      "mode": "reject",
+      "description": "E01-05: secp256k1-keccak-sign with s replaced by n - s and v flipped.",
+      "input": {
+        "alg": "es256k",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "signature": "ae2ab47818f0ca3c1367e629709133bc10e3e9fb32bcc5adc15c8fd22c2619beff7b3270f7a76903f7f0e1348e937572a5006514b5b9f2c06dd20ac71aa6ee0400"
+      },
+      "output": {
+        "code": "non_canonical",
+        "reject": true
+      }
+    },
+    {
+      "name": "secp256k1-64-byte",
+      "mode": "reject",
+      "description": "E01-05: the published signature_rs (64 bytes) presented alone.",
+      "input": {
+        "alg": "es256k",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "signature": "ae2ab47818f0ca3c1367e629709133bc10e3e9fb32bcc5adc15c8fd22c2619be0084cd8f085896fc080f1ecb716c8a8c15ae77d1f98ead7b520053c5b58f533d"
+      },
+      "output": {
+        "code": "malformed",
+        "reject": true
+      }
+    },
+    {
+      "name": "secp256k1-der",
+      "mode": "reject",
+      "description": "E01-05: DER of the (r, s) of secp256k1-keccak-sign.",
+      "input": {
+        "alg": "es256k",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "signature": "3045022100ae2ab47818f0ca3c1367e629709133bc10e3e9fb32bcc5adc15c8fd22c2619be02200084cd8f085896fc080f1ecb716c8a8c15ae77d1f98ead7b520053c5b58f533d"
+      },
+      "output": {
+        "code": "malformed",
+        "reject": true
+      }
+    },
+    {
+      "name": "secp256k1-wrong-v",
+      "mode": "reject",
+      "description": "E01-05: secp256k1-keccak-sign with v flipped, which recovers a different key.",
+      "input": {
+        "alg": "es256k",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "signature": "ae2ab47818f0ca3c1367e629709133bc10e3e9fb32bcc5adc15c8fd22c2619be0084cd8f085896fc080f1ecb716c8a8c15ae77d1f98ead7b520053c5b58f533d00"
+      },
+      "output": {
+        "code": "signature",
+        "reject": true
+      }
+    },
+    {
+      "name": "secp256k1-v-27",
+      "mode": "reject",
+      "description": "E01-05: secp256k1-keccak-sign with v + 27.",
+      "input": {
+        "alg": "es256k",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "signature": "ae2ab47818f0ca3c1367e629709133bc10e3e9fb32bcc5adc15c8fd22c2619be0084cd8f085896fc080f1ecb716c8a8c15ae77d1f98ead7b520053c5b58f533d1c"
+      },
+      "output": {
+        "code": "non_canonical",
+        "reject": true
+      }
+    },
+    {
+      "name": "p256-high-s",
+      "mode": "reject",
+      "description": "E01-06: p256-sha256-sign with s replaced by n - s.",
+      "input": {
+        "alg": "ecdsa-p256-sha256",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "04a8b98f6ec0083554828dffc9876d3b00e39f79c4fc3f559d0de2fde4718a774639f25cf19fb0935ee621da503a4f65128415d90e078ec01267726538b0e94d55",
+        "signature": "de826013c62f41c0b65a2a7313dfa95954ed9564e6ef8700fef5c56407d723949cf1010f8049d89aae5319777f3fdca222fcda9f37fb3a2b03fbea1dbf4fdc4f"
+      },
+      "output": {
+        "code": "non_canonical",
+        "reject": true
+      }
+    },
+    {
+      "name": "p256-der",
+      "mode": "reject",
+      "description": "E01-06: DER of the (r, s) of p256-sha256-sign.",
+      "input": {
+        "alg": "ecdsa-p256-sha256",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "04a8b98f6ec0083554828dffc9876d3b00e39f79c4fc3f559d0de2fde4718a774639f25cf19fb0935ee621da503a4f65128415d90e078ec01267726538b0e94d55",
+        "signature": "3045022100de826013c62f41c0b65a2a7313dfa95954ed9564e6ef8700fef5c56407d723940220630efeef7fb6276651ace68880c0235d99ea200e6f1c6459efbde0a53d134902"
+      },
+      "output": {
+        "code": "malformed",
+        "reject": true
+      }
+    },
+    {
+      "name": "pubkey-off-curve-secp256k1",
+      "mode": "reject",
+      "description": "E01-14: secp256k1-keccak-sign with the last byte of Y flipped (not on the curve).",
+      "input": {
+        "alg": "es256k",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f79",
+        "signature": "ae2ab47818f0ca3c1367e629709133bc10e3e9fb32bcc5adc15c8fd22c2619be0084cd8f085896fc080f1ecb716c8a8c15ae77d1f98ead7b520053c5b58f533d01"
+      },
+      "output": {
+        "code": "malformed",
+        "reject": true
+      }
+    },
+    {
+      "name": "pubkey-off-curve-p256",
+      "mode": "reject",
+      "description": "E01-14: p256-sha256-sign with the last byte of Y flipped (not on the curve).",
+      "input": {
+        "alg": "ecdsa-p256-sha256",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "04a8b98f6ec0083554828dffc9876d3b00e39f79c4fc3f559d0de2fde4718a774639f25cf19fb0935ee621da503a4f65128415d90e078ec01267726538b0e94d54",
+        "signature": "de826013c62f41c0b65a2a7313dfa95954ed9564e6ef8700fef5c56407d72394630efeef7fb6276651ace68880c0235d99ea200e6f1c6459efbde0a53d134902"
+      },
+      "output": {
+        "code": "malformed",
+        "reject": true
+      }
+    },
+    {
+      "name": "rsa-rejected",
+      "mode": "reject",
+      "description": "E01-02: ed25519-sign presented with alg = rsa-pss-sha256.",
+      "input": {
+        "alg": "rsa-pss-sha256",
+        "message": "53414745207465737420766563746f72206d6573736167653a2054686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f672e",
+        "public_key": "123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+        "signature": "0fe02454adb2f05b096a148b3b1972c658a6efc397b39f1eb542b0e6c42b69656406778ceee62ee607620698fa4215936cc7902702660b102398f8e07a50e00b"
+      },
+      "output": {
+        "code": "algorithm",
+        "reject": true
+      }
+    },
+    {
+      "name": "key-id-secp256k1-from-compressed",
+      "mode": "deterministic",
+      "description": "E01-03, E01-12: the 33-byte compressed key of secp256k1-keccak-sign decodes to the 65-byte key, and its KeyID is computed over the 65 bytes.",
+      "input": {
+        "public_key_compressed": "02e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e3"
+      },
+      "output": {
+        "key_id": "4809980dad831b92",
+        "public_key": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78"
+      }
+    }
+  ]
+}
