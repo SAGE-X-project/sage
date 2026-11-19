@@ -85,5 +85,12 @@ func derToRaw(curve elliptic.Curve, sig []byte) ([]byte, bool) {
 	if err != nil || len(rest) != 0 || der.R == nil || der.S == nil {
 		return nil, false
 	}
+	// A value wider than the curve size does not fit r || s and made
+	// EncodeRawECDSASignature panic (H3). Leaving the input unconverted makes
+	// the caller fail it as a signature of the wrong length.
+	bits := curve.Params().BitSize
+	if der.R.BitLen() > bits || der.S.BitLen() > bits {
+		return nil, false
+	}
 	return EncodeRawECDSASignature(curve, der.R, der.S), true
 }
