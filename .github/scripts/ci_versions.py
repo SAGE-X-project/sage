@@ -118,6 +118,28 @@ def select(config, packages, module, files, event, base):
     return out
 
 
+def path_of_test(path):
+    """The package an external test package belongs to."""
+    return path[: -len("_test")] if path.endswith("_test") else path
+
+
+def parse_list(lines, module, merged, root=ROOT):
+    """Merge `go list -test -f` lines into merged, keyed by import path."""
+    for line in lines:
+        path, directory, deps = (line.split("\t") + ["", ""])[:3]
+        path = path.split(" ", 1)[0]  # "p [p.test]" is p with its test imports
+        if path.endswith(".test"):
+            continue  # the generated test main
+        # An external test package (package p_test, import path
+        # "p_test [p.test]") is part of p: its imports count as p's.
+        path = path_of_test(path)
+        rel = os.path.relpath(directory, root).replace(os.sep, "/")
+        p = merged.setdefault(path, Package(path, rel, []))
+        found = {path_of_test(d.split(" ", 1)[0]) for d in deps.split() if d.startswith(module)}
+        p.deps = sorted(set(p.deps) | found - {path})
+    return merged
+
+
 def load_packages(module, configs):
     """The union of the package graphs of every build configuration."""
     fmt = "{{.ImportPath}}\t{{.Dir}}\t{{join .Deps \" \"}}"
@@ -128,14 +150,7 @@ def load_packages(module, configs):
         if cfg.get("tags"):
             cmd += ["-tags", cfg["tags"]]
         lines = subprocess.check_output(cmd + ["./..."], cwd=ROOT, text=True, env=env).splitlines()
-        for line in lines:
-            path, directory, deps = (line.split("\t") + ["", ""])[:3]
-            path = path.split(" ", 1)[0]  # "p [p.test]" is p with its test imports
-            if path.endswith(".test"):
-                continue
-            rel = os.path.relpath(directory, ROOT).replace(os.sep, "/")
-            p = merged.setdefault(path, Package(path, rel, []))
-            p.deps = sorted(set(p.deps) | {d.split(" ", 1)[0] for d in deps.split() if d.startswith(module)} - {path})
+        parse_list(lines, module, merged)
     return list(merged.values())
 
 

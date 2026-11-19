@@ -51,6 +51,21 @@ class ClassifyTest(unittest.TestCase):
             ci_versions.classify(cfg, [pkg("pkg/agent/crypto")], M)
 
 
+class ParseListTest(unittest.TestCase):
+    def test_external_test_packages_merge_into_their_package(self):
+        lines = [
+            f"{M}/pkg/agent/crypto\t/r/pkg/agent/crypto\t",
+            f"{M}/pkg/agent/crypto [{M}/pkg/agent/crypto.test]\t/r/pkg/agent/crypto\t{M}/pkg/agent/did",
+            f"{M}/pkg/agent/crypto_test [{M}/pkg/agent/crypto.test]\t/r/pkg/agent/crypto\t{M}/pkg/agent/registry010 [{M}/pkg/agent/crypto.test]",
+            f"{M}/pkg/agent/crypto.test\t/r/pkg/agent/crypto\t{M}/pkg/agent/crypto_test [{M}/pkg/agent/crypto.test]",
+        ]
+        got = ci_versions.parse_list(lines, M, {}, root="/r")
+        self.assertEqual(sorted(got), [f"{M}/pkg/agent/crypto"])
+        p = got[f"{M}/pkg/agent/crypto"]
+        self.assertEqual(p.dir, "pkg/agent/crypto")
+        self.assertEqual(p.deps, [f"{M}/pkg/agent/did", f"{M}/pkg/agent/registry010"])
+
+
 class SelectTest(unittest.TestCase):
     def suites(self, files, event="pull_request", base="spec/0.9.0-draft.1.1"):
         return ci_versions.select(CONFIG, GRAPH, M, files, event, base)
