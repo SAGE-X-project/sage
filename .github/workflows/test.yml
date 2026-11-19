@@ -5,16 +5,26 @@ on:
     branches: [main, dev]
   pull_request:
     branches: [main, dev]
+  # The Registry Source partitions run with the race detector on pushes and on
+  # this daily schedule; pull requests run the same partitions without it.
+  schedule:
+    - cron: '0 18 * * *'
 
 permissions:
   contents: read
 
 concurrency:
-  group: test-${{ github.ref }}
+  # Per event, so a scheduled race run and a push to the same branch never cancel each other.
+  group: test-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   GO_VERSION: '1.26.11'
+  # The race detector makes the Registry Source partitions about 19x slower
+  # (most of their CPU time is race runtime), so pull requests skip it there.
+  # Pushes to main/dev and the daily schedule keep it; see
+  # docs/dev/registry-source-checks.md.
+  REGISTRY_RACE_FLAG: ${{ github.event_name != 'pull_request' && '-race' || '' }}
   GOTOOLCHAIN: auto
   GOFLAGS: -mod=readonly
 
@@ -656,7 +666,7 @@ jobs:
           # Check the recent fixture and native-byte regressions before the full suite.
           # This separate log neither supplies coverage nor replaces complete evidence.
           if [ "${{ matrix.shard }}" = "0" ]; then
-            go test -mod=readonly -race -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall|TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity|TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState)$' ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/regression-controls.jsonl"
+            go test -mod=readonly $REGISTRY_RACE_FLAG -count=1 -timeout=2m -json -run '^(TestProviderHistoryMemberReplayCopyOwnsBehaviorOutsideSemanticRoot|TestProviderHistoryNativeBlockEncodingPreservesCompleteRecordedBytes|TestProviderHistoryNativeBlockEncodingKeepsFailedOriginalAllowance|TestProviderHistoryResultsBindExactOriginalsToEveryOrdinal|TestProviderHistoryResultPackRevalidatesContextOnEveryCall|TestProviderHistoryResultPackKeepsLastMemberBindings|TestProviderHistoryProgramKeepsRecoveryAndSelectionBindings|TestProviderHistoryProgramRefusesReplacementOriginalAndSelectedInputs|TestProviderBufferedHeadKeepsBytesEventsAndReaderPosition|TestProviderBufferedHeadKeepsExactInsufficientWorkPrefix|TestProviderBufferedHeadRechecksOwnerOnEveryCall|TestProviderHistoryCollectionRecordedManifestKeepsJournalIdentity|TestProviderHistoryRecoveryUnusedSealsRejectUnexpectedState)$' ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/regression-controls.jsonl"
           fi
 
       - name: Check Registry evidence partition scenarios
@@ -700,7 +710,7 @@ jobs:
           # Profile one genuine maximum-member control separately from full-suite evidence.
           # Preserve failed diagnostics and every native window and coverage gate.
           registry_profile_status=0
-          go test -mod=readonly -race -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" -o "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" -coverprofile="$RUNNER_TEMP/registry-source-checks/cpu-profile-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/cpu-profile-tests.jsonl" || registry_profile_status=$?
+          go test -mod=readonly $REGISTRY_RACE_FLAG -count=1 -timeout=8m -json -run '^TestProviderHistoryMemberDispatchRetainsOneSeveralAndMaximumOrdinals$/^32$' -cpuprofile="$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" -o "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" -coverprofile="$RUNNER_TEMP/registry-source-checks/cpu-profile-coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$RUNNER_TEMP/registry-source-checks/cpu-profile-tests.jsonl" || registry_profile_status=$?
           printf '%s\n' "$registry_profile_status" > "$RUNNER_TEMP/registry-source-checks/cpu-profile.exit"
           go tool pprof -top -nodecount=50 -sample_index=cpu "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" "$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-profile-flat.txt"
           go tool pprof -top -cum -nodecount=50 -sample_index=cpu "$RUNNER_TEMP/registry-source-checks/registry-cpu.test" "$RUNNER_TEMP/registry-source-checks/cpu-profile.pprof" > "$RUNNER_TEMP/registry-source-checks/cpu-profile-cumulative.txt"
@@ -741,7 +751,7 @@ jobs:
       - name: Run complete Registry test partition
         run: |
           registry_shard_dir="$RUNNER_TEMP/registry-source-checks"
-          go test -mod=readonly -race -count=1 -cover -covermode=atomic -list . -json ./pkg/agent/registry011 > "$registry_shard_dir/test-discovery.jsonl"
+          go test -mod=readonly $REGISTRY_RACE_FLAG -count=1 -cover -covermode=atomic -list . -json ./pkg/agent/registry011 > "$registry_shard_dir/test-discovery.jsonl"
           python3 .github/scripts/registry_test_shards.py plan source "$registry_shard_dir" --index '${{ matrix.shard }}'
           registry_profile_args=()
           # Measure slow complete partitions as well as the recovery partition.
@@ -749,7 +759,8 @@ jobs:
             registry_profile_args=(-cpuprofile="$registry_shard_dir/recovery-profile.pprof" -o "$registry_shard_dir/registry-recovery.test")
           fi
           registry_shard_status=0
-          go test -mod=readonly -race -count=1 -timeout=120m -json -run "$(cat "$registry_shard_dir/run-pattern.txt")" "${registry_profile_args[@]}" -coverprofile="$registry_shard_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$registry_shard_dir/tests.jsonl" || registry_shard_status=$?
+          printf '%s\n' "${REGISTRY_RACE_FLAG:-no-race}" > "$registry_shard_dir/race-mode.txt"
+          go test -mod=readonly $REGISTRY_RACE_FLAG -count=1 -timeout=120m -json -run "$(cat "$registry_shard_dir/run-pattern.txt")" "${registry_profile_args[@]}" -coverprofile="$registry_shard_dir/coverage.out" -covermode=atomic ./pkg/agent/registry011 > "$registry_shard_dir/tests.jsonl" || registry_shard_status=$?
           printf '%s\n' "$registry_shard_status" > "$registry_shard_dir/partition.exit"
           if [ "${#registry_profile_args[@]}" -ne 0 ] && [ -s "$registry_shard_dir/registry-recovery.test" ] && [ -s "$registry_shard_dir/recovery-profile.pprof" ]; then
             go tool pprof -top -nodecount=50 -sample_index=cpu "$registry_shard_dir/registry-recovery.test" "$registry_shard_dir/recovery-profile.pprof" > "$registry_shard_dir/recovery-profile-flat.txt"

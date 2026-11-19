@@ -11,6 +11,23 @@ checks needed by the SAGE 0.11.0 Source. The governing requirements are CM-09 in
 `a22a275b4d88f1d415b53cdffc5bed41231b77a0`. This package is separate from the
 existing 0.10.0 observer and does not change its five-second freshness rule.
 
+### When CI runs the race detector
+
+The nine Registry Source partitions in `.github/workflows/test.yml` run the
+complete `pkg/agent/registry011` suite. The race detector makes that suite
+about 19 times slower: most of the partitions' CPU time is race runtime, and
+one partition took up to an hour. So the partitions run with `-race` on pushes
+to `main` and `dev` and on a daily schedule, and without it on pull requests.
+Every other condition stays the same in both modes: the same partitions, atomic
+coverage and its 90% gates, and the same retained evidence. Each partition
+records its mode in `race-mode.txt` (`-race` or `no-race`).
+
+A data race introduced by a pull request is therefore found by the push run of
+the merge or by the next scheduled run, not before the merge. Other packages,
+and the short named runs elsewhere in the workflow, keep the race detector on
+pull requests. "CI applies the race detector" below means these push and
+scheduled runs.
+
 Construct `ObservationChecks` with explicit clock identity, policy generation
 and time/work limits. There are no operating defaults. A nil or zero-value
 checker refuses. Configuration is copied; changing the input struct later does
@@ -53,7 +70,7 @@ Finite fixed-data tests and the import example exercise clock boundaries,
 restart epochs, publication after the freshness limit, integer overflow,
 bounded complete ancestry and fork conflicts. They do not produce network
 attacks or claim a live Source/host qualification. CI runs these tests with the
-race detector, requires at least 90% statement coverage for the new source file,
+race detector on pushes and the daily schedule, requires at least 90% statement coverage for the new source file,
 and retains source, compiler, revision, test events and coverage evidence.
 The four-header historical fixture was captured from the selected official-only
 RPC. Its linkage test runs offline and does not claim fresh live qualification.
