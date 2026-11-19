@@ -74,10 +74,21 @@ func TestJCSReproducesPublished(t *testing.T) {
 // that regeneration reproduces it byte for byte. Run with -update to
 // rewrite the files after a deliberate change.
 func TestSuiteFiles(t *testing.T) {
-	for _, s := range []vectors.Suite{JCS()} {
+	crypto, err := Crypto()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []vectors.Suite{JCS(), crypto} {
 		r := runner(t, s, generator)
 		name := vectors.FileName(s.Name)
-		files, err := r.Generate(os.DirFS("testdata"))
+		// Verify-mode outputs come from the previous file: this suite's own
+		// file once it exists, the published one before that, so a new file
+		// keeps the published randomised signatures.
+		prev := os.DirFS("testdata")
+		if _, err := os.Stat("testdata/" + name); errors.Is(err, os.ErrNotExist) {
+			prev = os.DirFS(published)
+		}
+		files, err := r.Generate(prev)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -121,4 +132,9 @@ func TestRejectInputsAreStrict(t *testing.T) {
 	if err := rejectSigned(map[string]any{"json": hpkeResponseJSON}); err != nil {
 		t.Fatalf("the base HPKE response must be accepted: %v", err)
 	}
+}
+
+func isRejection(err error) bool {
+	var r *core.Rejection
+	return errors.As(err, &r)
 }
