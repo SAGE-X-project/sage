@@ -71,6 +71,7 @@ var ErrAuthentication = errors.New(AuthenticationFailedText)
 type Settings struct {
 	spec   SpecVersion
 	tracer obs.Tracer
+	limits Limits
 }
 
 // Option sets one field of Settings. Options are applied only by
@@ -103,9 +104,9 @@ func WithTracer(t obs.Tracer) Option {
 }
 
 // NewSettings applies opts in order. It fails when no spec version was set or
-// when an option fails.
+// when an option fails. Without WithLimits the limits are DefaultLimits.
 func NewSettings(opts ...Option) (Settings, error) {
-	var s Settings
+	s := Settings{limits: DefaultLimits()}
 	for _, opt := range opts {
 		if opt.apply == nil {
 			continue
@@ -119,6 +120,22 @@ func NewSettings(opts ...Option) (Settings, error) {
 	}
 	return s, nil
 }
+
+// WithLimits sets the limits. Each value must be within its spec range
+// (Limits.Validate); a limit can be lowered but never raised.
+func WithLimits(l Limits) Option {
+	return Option{apply: func(s *Settings) error {
+		if err := l.Validate(); err != nil {
+			return err
+		}
+		s.limits = l
+		return nil
+	}}
+}
+
+// Limits returns the limits, or the zero Limits for a zero Settings, which
+// every component rejects through Validate.
+func (s Settings) Limits() Limits { return s.limits }
 
 // Spec returns the selected spec version, or "" for a zero Settings.
 func (s Settings) Spec() SpecVersion { return s.spec }
