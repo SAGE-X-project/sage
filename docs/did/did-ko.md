@@ -1,5 +1,7 @@
 # SAGE DID Package
 
+> **제거된 동작 (SAGE 0.9.0-draft.1.1):** SAGE "Message" 서명 형식은 받아들이지 않습니다. `VerifySignature`, `VerifyWithMetadata`, `VerifyAgentMessage`, `VerifyMessageFromHeaders`, `QuickVerify`는 모든 메시지를 `rfc9421.ErrMessageFormatRemoved`로 거절합니다(errata E03-19, 보안 리뷰 C1). 아래에서 이 메서드를 쓰는 예시는 참고용으로만 남겨 둡니다. 요청 인증에는 RFC 9421 HTTP 메시지 서명(`SignHTTPRequest`, 그리고 `StrictHTTPVerificationOptions()`를 넘긴 `VerifyHTTPRequest`)을 쓰십시오. nil 옵션은 엄격하지 않습니다.
+
 SAGE (Secure Agent Guarantee Engine) 프로젝트에서 AI 에이전트를 위한 탈중앙화 식별자(DID) 기능을 제공하는 Go 패키지입니다.
 
 ## 주요 기능

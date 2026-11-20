@@ -23,12 +23,14 @@ import (
 	"time"
 )
 
-// MessageBuilder helps construct RFC-9421 compliant messages
+// MessageBuilder constructs messages in the legacy SAGE "Message" format, not RFC 9421 (SAGE 0.9.0-draft.1.1 does not accept
+// it, E03-19; its verifiers refuse with ErrMessageFormatRemoved).
 type MessageBuilder struct {
 	message *Message
 }
 
-// NewMessageBuilder creates a new message builder
+// NewMessageBuilder creates a builder of legacy SAGE "Message" values (not
+// RFC 9421; see MessageBuilder).
 func NewMessageBuilder() *MessageBuilder {
 	return &MessageBuilder{
 		message: &Message{
@@ -116,7 +118,8 @@ func (b *MessageBuilder) Build() *Message {
 	return b.message
 }
 
-// ParseMessageFromHeaders creates a Message from HTTP-style headers
+// ParseMessageFromHeaders creates a legacy SAGE "Message" from HTTP-style
+// headers. No verifier accepts the result (E03-19).
 func ParseMessageFromHeaders(headers map[string]string, body []byte) (*Message, error) {
 	builder := NewMessageBuilder()
 
