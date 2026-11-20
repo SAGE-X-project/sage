@@ -199,9 +199,9 @@ run_test "메시지 재구성" \
     "/tmp/sage-test-logs/rfc9421_reconstruct.log"
 TEST_NUM=$((TEST_NUM + 1))
 
-print_test $TEST_NUM 5 "서명 검증 알고리즘 실행"
-run_test "서명 검증" \
-    "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestVerifier/VerifySignature_with_valid'" \
+print_test $TEST_NUM 5 "Message 형식 검증 거절 (E03-19, C1)"
+run_test "Message 형식 거절" \
+    "go test -v github.com/sage-x-project/sage/pkg/agent/core/rfc9421 -run 'TestMessageFormatIsRefused|TestC1ForgeryIsRefused'" \
     "/tmp/sage-test-logs/rfc9421_verify.log"
 TEST_NUM=$((TEST_NUM + 1))
 

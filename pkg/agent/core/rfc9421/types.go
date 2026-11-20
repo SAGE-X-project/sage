@@ -25,7 +25,8 @@ import (
 	_ "github.com/sage-x-project/sage/pkg/agent/crypto/keys" // Import to register algorithms
 )
 
-// Message represents a message with RFC-9421 metadata for signature verification
+// Message is the legacy SAGE "Message" format, not RFC 9421 (SAGE 0.9.0-draft.1.1 does not accept
+// it, E03-19; its verifiers refuse with ErrMessageFormatRemoved).
 type Message struct {
 	// Message metadata
 	AgentDID  string    `json:"agent_did"`

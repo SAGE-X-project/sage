@@ -19,12 +19,14 @@
 package core
 
 import (
+	"context"
 	"testing"
 
 	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
 	"github.com/sage-x-project/sage/pkg/agent/crypto"
 	"github.com/sage-x-project/sage/pkg/agent/did"
 	"github.com/sage-x-project/sage/pkg/version"
@@ -330,4 +332,24 @@ func TestCore(t *testing.T) {
 		"validation":     "버전_검증_통과",
 	}
 	testutil.SaveTestData(t, "core/core_version.json", testData)
+}
+
+// TestCoreRefusesMessageFormat: the Core wrappers of the removed SAGE
+// Message verifiers refuse too (W-010, E03-19).
+func TestCoreRefusesMessageFormat(t *testing.T) {
+	c := New()
+	ctx := context.Background()
+	msg := &rfc9421.Message{AgentDID: "did:sage:ethereum:0xa11ce", Body: []byte("x"), Signature: make([]byte, 64)}
+
+	result, err := c.VerifyAgentMessage(ctx, msg, nil)
+	assert.ErrorIs(t, err, rfc9421.ErrMessageFormatRemoved)
+	require.NotNil(t, result)
+	assert.False(t, result.Valid)
+
+	result, err = c.VerifyMessageFromHeaders(ctx, map[string]string{}, []byte("x"), make([]byte, 64))
+	assert.ErrorIs(t, err, rfc9421.ErrMessageFormatRemoved)
+	require.NotNil(t, result)
+	assert.False(t, result.Valid)
+
+	assert.ErrorIs(t, c.QuickVerify(ctx, msg.AgentDID, []byte("x"), make([]byte, 64)), rfc9421.ErrMessageFormatRemoved)
 }

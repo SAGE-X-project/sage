@@ -22,11 +22,9 @@ import (
 	"context"
 	"crypto/ed25519"
 	"crypto/rand"
-	"encoding/hex"
 	"testing"
 	"time"
 
-	"github.com/sage-x-project/sage/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -113,303 +111,41 @@ func (m *MockDIDManager) IsChainConfigured(chain did.Chain) bool {
 	return args.Bool(0)
 }
 
-func TestVerificationService(t *testing.T) {
-	// Specification Requirement: Agent message verification with RFC9421
-	testutil.LogTestSection(t, "11.1.1", "Verification Service - Active Agent")
-
+// TestVerificationServiceRefusesMessages: every entry of the service
+// verifies the SAGE Message format, which is not part of SAGE
+// 0.9.0-draft.1.1 (E03-19) and was forgeable (C1); QuickVerify also chose
+// the algorithm from the DID's chain (E01-11). They refuse every input,
+// before resolving anything, until removal (W-010, W-079).
+func TestVerificationServiceRefusesMessages(t *testing.T) {
 	ctx := context.Background()
+	resolver := new(MockDIDManager) // no expectations: nothing may be resolved
+	service := NewVerificationService(resolver)
 
-	// Specification Requirement: Generate Ed25519 key pair for signing and verification
-	testutil.LogDetail(t, "Generating Ed25519 key pair for test")
-	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	_, priv, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
-	testutil.LogSuccess(t, "Key pair generated")
-	testutil.LogDetail(t, "  Public key (hex): %s", hex.EncodeToString(publicKey))
-	testutil.LogDetail(t, "  Private key size: %d bytes", len(privateKey))
+	msg := &rfc9421.Message{
+		AgentDID: "did:sage:ethereum:0xa11ce", MessageID: "m-1", Timestamp: time.Now(), Nonce: "nonce-0123456789",
+		Body: []byte("hello"), Algorithm: string(rfc9421.AlgorithmEdDSA), KeyID: "k1",
+		SignedFields: []string{"agent_did", "message_id", "timestamp", "nonce", "body"},
+	}
+	msg.Signature = ed25519.Sign(priv, []byte(rfc9421.NewVerifier().ConstructSignatureBase(msg)))
 
-	mockDIDManager := new(MockDIDManager)
-	service := NewVerificationService(mockDIDManager)
-	testutil.LogDetail(t, "Verification service initialized with mock DID manager")
+	result, err := service.VerifyAgentMessage(ctx, msg, rfc9421.DefaultVerificationOptions())
+	assert.ErrorIs(t, err, rfc9421.ErrMessageFormatRemoved)
+	require.NotNil(t, result)
+	assert.False(t, result.Valid)
 
-	t.Run("VerifyAgentMessage_with_active_agent", func(t *testing.T) {
-		// Specification Requirement: Verify message from active agent with valid signature
-		agentDID := "did:sage:ethereum:agent001"
-		testutil.LogDetail(t, "Agent DID: %s", agentDID)
+	result, err = service.VerifyMessageFromHeaders(ctx, map[string]string{"X-Agent-DID": msg.AgentDID}, msg.Body, msg.Signature)
+	assert.ErrorIs(t, err, rfc9421.ErrMessageFormatRemoved)
+	require.NotNil(t, result)
+	assert.False(t, result.Valid)
 
-		// Specification Requirement: Create RFC9421 message with metadata
-		testutil.LogDetail(t, "Creating RFC9421 message")
-		message := &rfc9421.Message{
-			AgentDID:     agentDID,
-			MessageID:    "msg-001",
-			Timestamp:    time.Now(),
-			Nonce:        "nonce123",
-			Body:         []byte("test message"),
-			Algorithm:    string(rfc9421.AlgorithmEdDSA),
-			SignedFields: []string{"body"},
-			Metadata: map[string]interface{}{
-				"endpoint": "https://api.example.com",
-				"name":     "Test Agent",
-			},
-		}
-		testutil.LogDetail(t, "  Message ID: %s", message.MessageID)
-		testutil.LogDetail(t, "  Nonce: %s", message.Nonce)
-		testutil.LogDetail(t, "  Body: %s", string(message.Body))
-		testutil.LogDetail(t, "  Algorithm: %s", message.Algorithm)
+	assert.ErrorIs(t, service.QuickVerify(ctx, msg.AgentDID, msg.Body, ed25519.Sign(priv, msg.Body)), rfc9421.ErrMessageFormatRemoved)
 
-		// Specification Requirement: Sign message using Ed25519 private key
-		testutil.LogDetail(t, "Signing message with Ed25519")
-		verifier := rfc9421.NewVerifier()
-		signatureBase := verifier.ConstructSignatureBase(message)
-		message.Signature = ed25519.Sign(privateKey, []byte(signatureBase))
-		testutil.LogSuccess(t, "Message signed")
-		testutil.LogDetail(t, "  Signature size: %d bytes", len(message.Signature))
-		testutil.LogDetail(t, "  Signature (hex): %s", hex.EncodeToString(message.Signature))
+	result, err = service.VerifyAgentMessage(ctx, nil, nil)
+	assert.ErrorIs(t, err, rfc9421.ErrMessageFormatRemoved)
+	assert.False(t, result.Valid)
 
-		// Specification Requirement: Mock agent metadata from DID registry
-		agentMetadata := &did.AgentMetadata{
-			DID:       did.AgentDID(agentDID),
-			Name:      "Test Agent",
-			IsActive:  true,
-			PublicKey: publicKey,
-			Endpoint:  "https://api.example.com",
-			Owner:     "0x1234567890abcdef",
-			Capabilities: map[string]interface{}{
-				"chat": true,
-				"code": true,
-			},
-		}
-		testutil.LogDetail(t, "Agent metadata configured:")
-		testutil.LogDetail(t, "  Name: %s", agentMetadata.Name)
-		testutil.LogDetail(t, "  Active: %v", agentMetadata.IsActive)
-		testutil.LogDetail(t, "  Owner: %s", agentMetadata.Owner)
-		testutil.LogDetail(t, "  Endpoint: %s", agentMetadata.Endpoint)
-
-		mockDIDManager.On("ResolveAgent", ctx, did.AgentDID(agentDID)).Return(agentMetadata, nil).Once()
-
-		// Specification Requirement: Verify agent message with default options
-		testutil.LogDetail(t, "Verifying agent message")
-		opts := rfc9421.DefaultVerificationOptions()
-		result, err := service.VerifyAgentMessage(ctx, message, opts)
-
-		require.NoError(t, err)
-		assert.True(t, result.Valid)
-		assert.Empty(t, result.Error)
-		assert.Equal(t, agentDID, result.AgentID)
-		assert.Equal(t, "Test Agent", result.AgentName)
-		assert.Equal(t, "0x1234567890abcdef", result.AgentOwner)
-		assert.NotNil(t, result.Capabilities)
-		testutil.LogSuccess(t, "Message verification succeeded")
-		testutil.LogDetail(t, "  Valid: %v", result.Valid)
-		testutil.LogDetail(t, "  Agent ID: %s", result.AgentID)
-		testutil.LogDetail(t, "  Agent name: %s", result.AgentName)
-		testutil.LogDetail(t, "  Agent owner: %s", result.AgentOwner)
-
-		mockDIDManager.AssertExpectations(t)
-
-		// Pass criteria checklist
-		testutil.LogPassCriteria(t, []string{
-			"Ed25519 key pair generated successfully",
-			"Verification service initialized",
-			"RFC9421 message created with metadata",
-			"Message signed with Ed25519 private key",
-			"Agent metadata configured in mock",
-			"DID resolver called for agent lookup",
-			"Message verification succeeded",
-			"Agent ID, name, and owner verified",
-			"Capabilities returned correctly",
-		})
-
-		// Save test data for CLI verification
-		testData := map[string]interface{}{
-			"test_case": "11.1.1_Verification_Active_Agent",
-			"agent_did": agentDID,
-			"message": map[string]interface{}{
-				"id":             message.MessageID,
-				"nonce":          message.Nonce,
-				"body":           string(message.Body),
-				"algorithm":      message.Algorithm,
-				"signature_size": len(message.Signature),
-			},
-			"agent_metadata": map[string]interface{}{
-				"name":      agentMetadata.Name,
-				"is_active": agentMetadata.IsActive,
-				"owner":     agentMetadata.Owner,
-				"endpoint":  agentMetadata.Endpoint,
-			},
-			"verification_result": map[string]interface{}{
-				"valid":       result.Valid,
-				"error":       result.Error,
-				"agent_id":    result.AgentID,
-				"agent_name":  result.AgentName,
-				"agent_owner": result.AgentOwner,
-			},
-		}
-		testutil.SaveTestData(t, "verification/active_agent.json", testData)
-	})
-
-	t.Run("VerifyAgentMessage_with_inactive_agent", func(t *testing.T) {
-		// Specification Requirement: Reject messages from inactive/deactivated agents
-		testutil.LogTestSection(t, "11.1.2", "Verification Service - Inactive Agent")
-
-		agentDID := "did:sage:ethereum:agent002"
-		testutil.LogDetail(t, "Testing inactive agent: %s", agentDID)
-
-		// Specification Requirement: Create message from inactive agent
-		message := &rfc9421.Message{
-			AgentDID:  agentDID,
-			MessageID: "msg-002",
-			Timestamp: time.Now(),
-		}
-		testutil.LogDetail(t, "Message ID: %s", message.MessageID)
-
-		// Specification Requirement: Mock inactive agent metadata
-		agentMetadata := &did.AgentMetadata{
-			DID:       did.AgentDID(agentDID),
-			Name:      "Inactive Agent",
-			IsActive:  false,
-			PublicKey: publicKey,
-		}
-		testutil.LogDetail(t, "Agent metadata:")
-		testutil.LogDetail(t, "  Name: %s", agentMetadata.Name)
-		testutil.LogDetail(t, "  Active: %v", agentMetadata.IsActive)
-
-		mockDIDManager.On("ResolveAgent", ctx, did.AgentDID(agentDID)).Return(agentMetadata, nil).Once()
-
-		// Specification Requirement: Verification options requiring active agent
-		opts := &rfc9421.VerificationOptions{
-			RequireActiveAgent: true,
-		}
-		testutil.LogDetail(t, "Verification options: RequireActiveAgent=true")
-
-		// Specification Requirement: Verification should fail for inactive agent
-		testutil.LogDetail(t, "Attempting to verify message from inactive agent")
-		result, err := service.VerifyAgentMessage(ctx, message, opts)
-
-		require.NoError(t, err)
-		assert.False(t, result.Valid)
-		assert.Equal(t, "agent is deactivated", result.Error)
-		testutil.LogSuccess(t, "Verification correctly failed for inactive agent")
-		testutil.LogDetail(t, "  Valid: %v", result.Valid)
-		testutil.LogDetail(t, "  Error: %s", result.Error)
-
-		mockDIDManager.AssertExpectations(t)
-
-		// Pass criteria checklist
-		testutil.LogPassCriteria(t, []string{
-			"Message created from inactive agent",
-			"Inactive agent metadata configured",
-			"Verification options set to require active agent",
-			"Verification failed as expected",
-			"Error message: agent is deactivated",
-			"Inactive agent protection working correctly",
-		})
-
-		// Save test data for CLI verification
-		testData := map[string]interface{}{
-			"test_case": "11.1.2_Verification_Inactive_Agent",
-			"agent_did": agentDID,
-			"message": map[string]interface{}{
-				"id": message.MessageID,
-			},
-			"agent_metadata": map[string]interface{}{
-				"name":      agentMetadata.Name,
-				"is_active": agentMetadata.IsActive,
-			},
-			"verification_result": map[string]interface{}{
-				"valid": result.Valid,
-				"error": result.Error,
-			},
-		}
-		testutil.SaveTestData(t, "verification/inactive_agent.json", testData)
-	})
-
-	t.Run("VerifyMessageFromHeaders", func(t *testing.T) {
-		agentDID := "did:sage:ethereum:agent003"
-
-		headers := map[string]string{
-			"X-Agent-DID":           agentDID,
-			"X-Message-ID":          "msg-003",
-			"X-Timestamp":           time.Now().Format(time.RFC3339),
-			"X-Nonce":               "nonce456", // Use unique nonce for this test
-			"X-Signature-Algorithm": "EdDSA",
-			"X-Signed-Fields":       "body",
-			"X-Metadata-Endpoint":   "https://api.example.com",
-			"X-Metadata-Name":       "Test Agent",
-		}
-
-		body := []byte("test message")
-
-		// Create expected message and sign it
-		message, _ := rfc9421.ParseMessageFromHeaders(headers, body)
-		message.Metadata = map[string]interface{}{
-			"endpoint": "https://api.example.com",
-			"name":     "Test Agent",
-		}
-		verifier := rfc9421.NewVerifier()
-		signatureBase := verifier.ConstructSignatureBase(message)
-		signature := ed25519.Sign(privateKey, []byte(signatureBase))
-
-		// Mock agent metadata
-		agentMetadata := &did.AgentMetadata{
-			DID:       did.AgentDID(agentDID),
-			Name:      "Test Agent",
-			IsActive:  true,
-			PublicKey: publicKey,
-			Endpoint:  "https://api.example.com",
-		}
-
-		mockDIDManager.On("ResolveAgent", ctx, did.AgentDID(agentDID)).Return(agentMetadata, nil).Once()
-
-		result, err := service.VerifyMessageFromHeaders(ctx, headers, body, signature)
-
-		require.NoError(t, err)
-		assert.True(t, result.Valid)
-		assert.Empty(t, result.Error)
-
-		mockDIDManager.AssertExpectations(t)
-	})
-
-	t.Run("QuickVerify", func(t *testing.T) {
-		agentDID := "did:sage:solana:agent004"
-		message := []byte("test message")
-
-		// Create minimal RFC9421 message for signing
-		msg := &rfc9421.Message{
-			Body:         message,
-			Algorithm:    string(rfc9421.AlgorithmEdDSA),
-			SignedFields: []string{"body"},
-		}
-
-		verifier := rfc9421.NewVerifier()
-		signatureBase := verifier.ConstructSignatureBase(msg)
-		signature := ed25519.Sign(privateKey, []byte(signatureBase))
-
-		mockDIDManager.On("ResolvePublicKey", ctx, did.AgentDID(agentDID)).Return(publicKey, nil).Once()
-
-		err := service.QuickVerify(ctx, agentDID, message, signature)
-		assert.NoError(t, err)
-
-		mockDIDManager.AssertExpectations(t)
-	})
-}
-
-// A nil options pointer must select the defaults instead of panicking, and a
-// nil message must be rejected.
-func TestVerifyAgentMessage_NilOptionsAndMessage(t *testing.T) {
-	mockDIDManager := new(MockDIDManager)
-	service := NewVerificationService(mockDIDManager)
-
-	_, err := service.VerifyAgentMessage(context.Background(), nil, nil)
-	require.Error(t, err)
-
-	agentDID := "did:sage:ethereum:0xnilopts"
-	mockDIDManager.On("ResolveAgent", mock.Anything, did.AgentDID(agentDID)).
-		Return(&did.AgentMetadata{DID: did.AgentDID(agentDID), IsActive: false}, nil)
-
-	require.NotPanics(t, func() {
-		result, err := service.VerifyAgentMessage(context.Background(), &rfc9421.Message{AgentDID: agentDID}, nil)
-		require.NoError(t, err)
-		// Defaults require an active agent, so a deactivated agent is reported invalid.
-		assert.False(t, result.Valid)
-	})
+	resolver.AssertNotCalled(t, "ResolveAgent", mock.Anything, mock.Anything)
+	resolver.AssertNotCalled(t, "ResolvePublicKey", mock.Anything, mock.Anything)
 }

@@ -73,17 +73,28 @@ func (c *Core) ResolveAgent(ctx context.Context, agentDID string) (*did.AgentMet
 	return c.didManager.ResolveAgent(ctx, did.AgentDID(agentDID))
 }
 
-// VerifyAgentMessage verifies a message from an AI agent
+// VerifyAgentMessage always refuses: it returns an invalid result and
+// rfc9421.ErrMessageFormatRemoved.
+//
+// Deprecated: refuses every message with rfc9421.ErrMessageFormatRemoved;
+// the SAGE Message format is not part of SAGE 0.9.0-draft.1.1 (E03-19).
 func (c *Core) VerifyAgentMessage(ctx context.Context, message *rfc9421.Message, opts *rfc9421.VerificationOptions) (*VerificationResult, error) {
 	return c.verificationService.VerifyAgentMessage(ctx, message, opts)
 }
 
-// VerifyMessageFromHeaders verifies a message constructed from headers
+// VerifyMessageFromHeaders always refuses: it returns an invalid result and
+// rfc9421.ErrMessageFormatRemoved.
+//
+// Deprecated: refuses every message with rfc9421.ErrMessageFormatRemoved;
+// the SAGE Message format is not part of SAGE 0.9.0-draft.1.1 (E03-19).
 func (c *Core) VerifyMessageFromHeaders(ctx context.Context, headers map[string]string, body []byte, signature []byte) (*VerificationResult, error) {
 	return c.verificationService.VerifyMessageFromHeaders(ctx, headers, body, signature)
 }
 
-// QuickVerify performs a quick signature verification
+// QuickVerify always refuses with rfc9421.ErrMessageFormatRemoved.
+//
+// Deprecated: refuses every message with rfc9421.ErrMessageFormatRemoved;
+// the SAGE Message format is not part of SAGE 0.9.0-draft.1.1 (E03-19).
 func (c *Core) QuickVerify(ctx context.Context, agentDID string, message []byte, signature []byte) error {
 	return c.verificationService.QuickVerify(ctx, agentDID, message, signature)
 }
@@ -93,7 +104,8 @@ func (c *Core) SignMessage(keyPair crypto.KeyPair, message []byte) ([]byte, erro
 	return keyPair.Sign(message)
 }
 
-// CreateRFC9421Message creates a new RFC-9421 compliant message
+// CreateRFC9421Message creates a legacy SAGE "Message" value. Despite the
+// name it is not RFC 9421, and no verifier accepts it (E03-19).
 func (c *Core) CreateRFC9421Message(agentDID string, body []byte) *rfc9421.MessageBuilder {
 	return rfc9421.NewMessageBuilder().
 		WithAgentDID(agentDID).

@@ -1,5 +1,7 @@
 # RFC-9421 HTTP Message Signatures
 
+> **Removed behaviour (SAGE 0.9.0-draft.1.1):** the SAGE "Message" signature format is not accepted. `VerifySignature`, `VerifyWithMetadata`, `VerifyAgentMessage`, `VerifyMessageFromHeaders` and `QuickVerify` refuse every message with `rfc9421.ErrMessageFormatRemoved` (errata E03-19, security review C1). The examples that use them below are kept for reference only; authenticate requests with RFC 9421 HTTP message signatures (`SignHTTPRequest`, and `VerifyHTTPRequest` with `StrictHTTPVerificationOptions()`; nil options are not strict).
+
 Implementation of RFC-9421 HTTP Message Signatures for the SAGE (Secure Agent Guarantee Engine) project, providing secure HTTP request signing and verification for AI agent communications.
 
 ## Overview

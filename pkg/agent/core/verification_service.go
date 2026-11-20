@@ -20,7 +20,6 @@ package core
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/sage-x-project/sage/pkg/agent/core/rfc9421"
@@ -33,7 +32,10 @@ type DIDResolver interface {
 	ResolvePublicKey(ctx context.Context, agentDID did.AgentDID) (interface{}, error)
 }
 
-// VerificationService provides signature verification with DID integration
+// VerificationService provides signature verification with DID integration.
+//
+// Deprecated: every method refuses (W-010); the type is removed with the
+// legacy draft.1 code (W-079).
 type VerificationService struct {
 	didResolver DIDResolver
 	verifier    *rfc9421.Verifier
@@ -47,146 +49,49 @@ func NewVerificationService(didResolver DIDResolver) *VerificationService {
 	}
 }
 
-// VerifyAgentMessage verifies a message from an AI agent using DID
+// VerifyAgentMessage always reports an invalid result and returns
+// rfc9421.ErrMessageFormatRemoved, without resolving anything.
+//
+// Deprecated: the SAGE Message format is not part of SAGE 0.9.0-draft.1.1
+// (errata E03-19) and its verifier was forgeable (security review C1);
+// authenticate agents with RFC 9421 HTTP message signatures.
 func (s *VerificationService) VerifyAgentMessage(
 	ctx context.Context,
 	message *rfc9421.Message,
 	opts *rfc9421.VerificationOptions,
 ) (*VerificationResult, error) {
-	if message == nil {
-		return nil, fmt.Errorf("message cannot be nil")
-	}
-	if opts == nil {
-		opts = rfc9421.DefaultVerificationOptions()
-	}
-
-	// Resolve agent metadata from DID
-	agentMetadata, err := s.didResolver.ResolveAgent(ctx, did.AgentDID(message.AgentDID))
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve agent DID: %w", err)
-	}
-
-	// Check if agent is active
-	if opts.RequireActiveAgent && !agentMetadata.IsActive {
-		return &VerificationResult{
-			Valid:   false,
-			Error:   "agent is deactivated",
-			AgentID: message.AgentDID,
-		}, nil
-	}
-
-	// Prepare metadata for verification
-	expectedMetadata := map[string]interface{}{
-		"endpoint": agentMetadata.Endpoint,
-		"name":     agentMetadata.Name,
-	}
-
-	// Add agent capabilities to message metadata if not present
-	if message.Metadata == nil {
-		message.Metadata = make(map[string]interface{})
-	}
-	message.Metadata["capabilities"] = agentMetadata.Capabilities
-
-	// Verify signature with metadata
-	verifyResult, err := s.verifier.VerifyWithMetadata(
-		agentMetadata.PublicKey,
-		message,
-		expectedMetadata,
-		opts.RequiredCapabilities,
-		opts,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("verification failed: %w", err)
-	}
-
-	return &VerificationResult{
-		Valid:        verifyResult.Valid,
-		Error:        verifyResult.Error,
-		AgentID:      message.AgentDID,
-		AgentName:    agentMetadata.Name,
-		VerifiedAt:   verifyResult.VerifiedAt,
-		AgentOwner:   agentMetadata.Owner,
-		Capabilities: agentMetadata.Capabilities,
-	}, nil
+	return refused(), rfc9421.ErrMessageFormatRemoved
 }
 
-// VerifyMessageFromHeaders verifies a message constructed from headers
+// VerifyMessageFromHeaders always reports an invalid result and returns
+// rfc9421.ErrMessageFormatRemoved.
+//
+// Deprecated: see VerifyAgentMessage.
 func (s *VerificationService) VerifyMessageFromHeaders(
 	ctx context.Context,
 	headers map[string]string,
 	body []byte,
 	signature []byte,
 ) (*VerificationResult, error) {
-	// Parse message from headers
-	message, err := rfc9421.ParseMessageFromHeaders(headers, body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse message: %w", err)
-	}
-
-	// Set signature
-	message.Signature = signature
-
-	// Parse metadata from headers
-	if message.Metadata == nil {
-		message.Metadata = make(map[string]interface{})
-	}
-	if endpoint, ok := headers["X-Metadata-Endpoint"]; ok {
-		message.Metadata["endpoint"] = endpoint
-	}
-	if name, ok := headers["X-Metadata-Name"]; ok {
-		message.Metadata["name"] = name
-	}
-
-	// Use default options
-	opts := rfc9421.DefaultVerificationOptions()
-
-	return s.VerifyAgentMessage(ctx, message, opts)
+	return refused(), rfc9421.ErrMessageFormatRemoved
 }
 
-// QuickVerify performs a quick signature verification without full metadata checks
+// QuickVerify always returns rfc9421.ErrMessageFormatRemoved. It verified
+// arbitrary bytes, with no freshness check, under an algorithm chosen from
+// the DID's chain, which E01-11 forbids.
+//
+// Deprecated: see VerifyAgentMessage.
 func (s *VerificationService) QuickVerify(
 	ctx context.Context,
 	agentDID string,
 	message []byte,
 	signature []byte,
 ) error {
-	// Resolve public key only
-	publicKey, err := s.didResolver.ResolvePublicKey(ctx, did.AgentDID(agentDID))
-	if err != nil {
-		return fmt.Errorf("failed to resolve public key: %w", err)
-	}
+	return rfc9421.ErrMessageFormatRemoved
+}
 
-	// Determine algorithm based on DID chain
-	chain, _, err := did.ParseDID(did.AgentDID(agentDID)) //nolint:staticcheck // legacy chain-based key algorithm selection
-	if err != nil {
-		return fmt.Errorf("failed to parse DID: %w", err)
-	}
-
-	var algorithm string
-	switch chain {
-	case did.ChainEthereum:
-		algorithm = string(rfc9421.AlgorithmECDSASecp256k1)
-	case did.ChainSolana:
-		algorithm = string(rfc9421.AlgorithmEdDSA)
-	default:
-		algorithm = string(rfc9421.AlgorithmEdDSA)
-	}
-
-	// Create a minimal message for verification
-	msg := &rfc9421.Message{
-		Body:         message,
-		Signature:    signature,
-		Algorithm:    algorithm,
-		SignedFields: []string{"body"},
-		Timestamp:    time.Now(), // Set current time to avoid zero value
-	}
-
-	// Use options that skip timestamp verification
-	opts := &rfc9421.VerificationOptions{
-		MaxClockSkew: 0, // Disable timestamp verification
-	}
-
-	return s.verifier.VerifySignature(publicKey, msg, opts)
+func refused() *VerificationResult {
+	return &VerificationResult{Valid: false, Error: rfc9421.ErrMessageFormatRemoved.Error(), VerifiedAt: time.Now()}
 }
 
 // VerificationResult contains the result of agent message verification
