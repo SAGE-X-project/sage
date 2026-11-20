@@ -46,22 +46,27 @@ jobs:
         run: go vet ./...
       - name: Run tests with the race detector
         run: go test -race -count=1 ./...
+      # Each fuzz step is bounded by a count of executions, not by time: with
+      # -fuzztime=<duration> Go 1.26 can report the end of its own deadline
+      # as a failure (internal/fuzz: the deadline context and the worker
+      # context race in stop). A count sets no deadline. The counts are the
+      # fewest executions seen in 30 s on ubuntu-latest.
       - name: Fuzz the log detail escaping
-        run: go test -run='^$' -fuzz=FuzzUnverified -fuzztime=30s ./obs
+        run: go test -run='^$' -fuzz=FuzzUnverified -fuzztime=2000000x ./obs
       - name: Fuzz the vector file reader
-        run: go test -run='^$' -fuzz=FuzzReadFile -fuzztime=30s ./vectors
+        run: go test -run='^$' -fuzz=FuzzReadFile -fuzztime=450000x ./vectors
       - name: Fuzz the vector check
-        run: go test -run='^$' -fuzz=FuzzCheck -fuzztime=30s ./vectors
+        run: go test -run='^$' -fuzz=FuzzCheck -fuzztime=250000x ./vectors
       - name: Fuzz the strict JSON parser
-        run: go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=30s ./jcs
+        run: go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=60000x ./jcs
       - name: Fuzz the signature parser
-        run: go test -run='^$' -fuzz=FuzzParseSignature -fuzztime=30s ./crypto
+        run: go test -run='^$' -fuzz=FuzzParseSignature -fuzztime=1300000x ./crypto
       - name: Fuzz the public key parser
-        run: go test -run='^$' -fuzz=FuzzParsePublicKey -fuzztime=30s ./crypto
+        run: go test -run='^$' -fuzz=FuzzParsePublicKey -fuzztime=1250000x ./crypto
       - name: Fuzz the DID and keyid parser
-        run: go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=30s ./did
+        run: go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=2000000x ./did
       - name: Fuzz the HTTP signature field parser
-        run: go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=30s ./httpsig
+        run: go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=1000000x ./httpsig
 
   lint:
     name: Core lint
