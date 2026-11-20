@@ -60,6 +60,8 @@ jobs:
         run: go test -run='^$' -fuzz=FuzzParsePublicKey -fuzztime=30s ./crypto
       - name: Fuzz the DID and keyid parser
         run: go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=30s ./did
+      - name: Fuzz the HTTP signature field parser
+        run: go test -run='^$' -fuzz='^FuzzParse$' -fuzztime=30s ./httpsig
 
   lint:
     name: Core lint
