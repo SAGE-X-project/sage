@@ -141,7 +141,7 @@ func TestRejects(t *testing.T) {
 		reason obs.Reason
 	}{
 		"tag-present":                    {header(vecSignatureInput+`;tag="x"`, vecSignature), obs.ReasonParameters},
-		"unknown-param":                  {header(vecSignatureInput+`;foo=1`, vecSignature), obs.ReasonUnknownMember},
+		"unknown-param":                  {header(vecSignatureInput+`;foo=1`, vecSignature), obs.ReasonParameters},
 		"noncanonical-params":            {header(strings.Replace(vecSignatureInput, `"@method" "@target-uri"`, `"@method"  "@target-uri"`, 1), vecSignature), obs.ReasonNonCanonical},
 		"two-labels":                     {header(vecSignatureInput+`, sig2=("@method");keyid="k";created=1`, vecSignature+`, sig2=:AAAA:`), obs.ReasonDuplicate},
 		"label-sets-differ":              {header(vecSignatureInput, strings.Replace(vecSignature, "sig1=", "sig2=", 1)), obs.ReasonMalformed},
@@ -281,6 +281,23 @@ func TestLinear(t *testing.T) {
 	t.Logf("8x input, %.1fx time", ratio)
 	if ratio > 24 { // linear is about 8; quadratic about 64
 		t.Fatalf("parsing time grew %.1fx for 8x input", ratio)
+	}
+	// Allocated bytes per input byte stay flat too (design §9.2): a
+	// string built up per rune would grow them with the input.
+	allocated := func(s string) float64 {
+		return float64(testing.Benchmark(func(b *testing.B) {
+			b.ReportAllocs()
+			for range b.N {
+				if _, err := parseDictionary(s); err != nil {
+					b.Fatal(err)
+				}
+			}
+		}).AllocedBytesPerOp()) / float64(len(s))
+	}
+	perSmall, perLarge := allocated(small), allocated(large)
+	t.Logf("allocated bytes per input byte: %.1f at 8 KiB, %.1f at 64 KiB", perSmall, perLarge)
+	if perLarge > 2*perSmall {
+		t.Fatalf("allocation per byte grew from %.1f to %.1f", perSmall, perLarge)
 	}
 }
 

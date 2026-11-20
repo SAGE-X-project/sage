@@ -301,7 +301,8 @@ func (p *Parsed) setParam(prm param) error {
 	case "tag":
 		return reject(obs.ReasonParameters, "tag is not allowed")
 	default:
-		return reject(obs.ReasonUnknownMember, "unknown signature parameter")
+		// Checked with the parameters, 03 §5 step 2 (E03-03), as is tag.
+		return reject(obs.ReasonParameters, "unknown signature parameter")
 	}
 }
 

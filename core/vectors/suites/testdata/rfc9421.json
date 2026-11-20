@@ -7,7 +7,7 @@
     {
       "name": "tag-present",
       "mode": "reject",
-      "description": "E03-03: request-ed25519 as received, with ;tag=\"x\" added to Signature-Input; rejected when Signature-Input and Signature are parsed (03 §5 step 1).",
+      "description": "E03-03: request-ed25519 as received, with ;tag=\"x\" added to Signature-Input; rejected when the signature parameters are checked (03 §5 step 2).",
       "input": {
         "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
         "fields": [
@@ -49,7 +49,7 @@
     {
       "name": "unknown-param",
       "mode": "reject",
-      "description": "E03-03: request-ed25519 as received, with the undefined parameter ;foo=1 added to Signature-Input; rejected when Signature-Input and Signature are parsed (03 §5 step 1).",
+      "description": "E03-03: request-ed25519 as received, with the undefined parameter ;foo=1 added to Signature-Input; rejected when the signature parameters are checked (03 §5 step 2).",
       "input": {
         "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
         "fields": [
@@ -84,7 +84,7 @@
         "verify_at": 1788609600
       },
       "output": {
-        "code": "unknown_member",
+        "code": "parameters",
         "reject": true
       }
     },
@@ -305,7 +305,7 @@
     {
       "name": "signature-input-too-large",
       "mode": "reject",
-      "description": "E03-21: request-ed25519 as received, with the nonce padded so that Signature-Input is 8 KiB + 1 bytes; rejected when Signature-Input and Signature are parsed (03 §5 step 1).",
+      "description": "E03-21: request-ed25519 as received, with the nonce padded so that Signature-Input is 8 KiB + 1 bytes; rejected by the field size limit before parsing (E03-21).",
       "input": {
         "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
         "fields": [
