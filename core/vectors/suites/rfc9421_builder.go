@@ -36,6 +36,11 @@ type sigSpec struct {
 	params            string // ";keyid=...;..." as sent
 	label             string
 	input, signature  string // set to send fixed signature fields
+	verifyAt          int64  // verification time; zero means reqCreated (E00-08)
+	// prior holds received requests verified first, at the same verify_at
+	// and with the same replay store, each of which must be accepted
+	// (replay vectors).
+	prior []map[string]any
 }
 
 func baseRequest() sigSpec {
@@ -181,10 +186,27 @@ func receivedWith(s sigSpec, input, signature string, extra ...[2]string) map[st
 	for _, f := range extra {
 		fields = append(fields, []any{f[0], f[1]})
 	}
-	return map[string]any{
-		"method": s.method, "url": s.url, "body": s.body, "fields": fields,
-		"key_label": s.label, "verify_at": reqCreated,
+	at := s.verifyAt
+	if at == 0 {
+		at = reqCreated
 	}
+	in := map[string]any{
+		"method": s.method, "url": s.url, "body": s.body, "fields": fields,
+		"key_label": s.label, "verify_at": at,
+	}
+	if len(s.prior) > 0 {
+		prior := make([]any, len(s.prior))
+		for i, p := range s.prior {
+			q := map[string]any{}
+			for k, v := range p {
+				q[k] = v
+			}
+			delete(q, "verify_at") // verified at the vector's verify_at
+			prior[i] = q
+		}
+		in["prior"] = prior
+	}
+	return in
 }
 
 // respSpec describes a received response for the reject vectors. signFor

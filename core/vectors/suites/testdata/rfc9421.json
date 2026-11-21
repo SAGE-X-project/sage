@@ -1024,6 +1024,250 @@
       }
     },
     {
+      "name": "too-old",
+      "mode": "reject",
+      "description": "E03-11: request-ed25519 as received, with the clock at created + 301 s, beyond any MaxAge (at most 300 s); the message is unchanged; rejected when the timing is checked (03 §5 step 5).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609901
+      },
+      "output": {
+        "code": "stale",
+        "reject": true
+      }
+    },
+    {
+      "name": "too-far-future",
+      "mode": "reject",
+      "description": "E03-11: request-ed25519 as received, with created = now + 301 s, beyond any MaxClockSkew (at most 300 s), re-signed; rejected when the timing is checked (03 §5 step 5).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609901;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:pgANIYFvjFldwAgi+4OHg7xWnEYR4UM+0pibSz2bRYjqIye2BCuG0qbHCYiFEj8IBvkKLv1g+p/Qr0hYl6bVBw==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "future",
+        "reject": true
+      }
+    },
+    {
+      "name": "expired",
+      "mode": "reject",
+      "description": "E03-11: request-ed25519 as received, with expires = created + 10 added and the clock at created + 11, so expires = now - 1, re-signed; rejected when the timing is checked (03 §5 step 5).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;expires=1788609610;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:RX+/kljHxV6kTJIHMla5aCckFgtWQkWRI769plcxbGflf/Zt7mpi3PQUGKKD8vRaCR1PCKolKm2XXTOCF+lmDg==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609611
+      },
+      "output": {
+        "code": "expired",
+        "reject": true
+      }
+    },
+    {
+      "name": "expires-before-created",
+      "mode": "reject",
+      "description": "E03-11: request-ed25519 as received, with expires = created added and the clock at created - 1, so with a MaxClockSkew of at least 1 s (the default is 60 s) only expires \u003c= created fails, re-signed; rejected when the timing is checked (03 §5 step 5).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;expires=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:o9SRFUnSibBWsxaDEJGwtJ/hZXEwsfa+te5G3DeLahs9HEkKSWc2uUSEvghSU4TIG3KOQfvkL911BNh1oEXRDg==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609599
+      },
+      "output": {
+        "code": "expired",
+        "reject": true
+      }
+    },
+    {
+      "name": "replay-other-fragment",
+      "mode": "reject",
+      "description": "E03-12: request-ed25519 as received, with keyid without the #key-1 fragment and the same nonce, re-signed, after request-ed25519 (in prior) was accepted by the same replay store; both name one signer DID; rejected when the nonce is reserved (03 §5 step 8).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:axsUjLmyO0Mspyde8n9+PrzG5rXLHs97rq4GKT/EuZ1MhrcmI/Ulp0vfFydIokYKAqByryDYV/0yP3XMjGCqAw==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "prior": [
+          {
+            "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+            "fields": [
+              [
+                "content-type",
+                "application/json"
+              ],
+              [
+                "date",
+                "Tue, 01 Sep 2026 12:00:00 GMT"
+              ],
+              [
+                "x-sage-did",
+                "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+              ],
+              [
+                "content-digest",
+                "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+              ],
+              [
+                "signature-input",
+                "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+              ],
+              [
+                "signature",
+                "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:"
+              ]
+            ],
+            "key_label": "sage-spec/vectors/ed25519/agent-a",
+            "method": "POST",
+            "url": "https://agent-b.example/mcp/tools/call"
+          }
+        ],
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "replay",
+        "reject": true
+      }
+    },
+    {
       "name": "response-other-request",
       "mode": "reject",
       "description": "E03-10: response-ed25519 as received, with the response re-signed with \"@target-uri\";req https://agent-b.example/mcp/tools/list, another request's value, and checked against request-ed25519; rejected when the signature is verified (03 §5 step 6).",

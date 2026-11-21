@@ -26,12 +26,15 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/sage-x-project/sage/core"
+	"github.com/sage-x-project/sage/core/clock"
 	"github.com/sage-x-project/sage/core/crypto"
 	"github.com/sage-x-project/sage/core/did"
 	"github.com/sage-x-project/sage/core/httpsig"
 	"github.com/sage-x-project/sage/core/obs"
+	"github.com/sage-x-project/sage/core/replay"
 	"github.com/sage-x-project/sage/core/secret"
 	"github.com/sage-x-project/sage/core/vectors"
 )
@@ -65,9 +68,11 @@ const (
 )
 
 // RFC9421 returns the rfc9421 suite: the four published vectors and the
-// errata §11 vectors for 03 that stages S1, S2, S3 (signature base) and
-// S6 (signature) reject, which are steps 1, 2 and 6 of 03 §5. The vectors of timing, replay, keyid,
-// X-SAGE-DID and Content-Digest join with W-013 and W-014.
+// errata §11 vectors for 03 that stages S0 to S4 (parse, parameters and
+// coverage, base, timing), S6 (signature) and S8 (replay) reject, which are
+// steps 1, 2, 5, 6 and 8 of 03 §5. The vectors of keyid, X-SAGE-DID and
+// Content-Digest, digest-mismatch-keeps-nonce among them (D30), join with
+// W-014.
 func RFC9421() vectors.Suite {
 	return vectors.Suite{Name: "rfc9421", Description: RFC9421Description,
 		Cases: append(rfc9421Published(), rfc9421Rejects()...)}
@@ -110,9 +115,10 @@ func rfc9421Published() []vectors.Case {
 }
 
 // The published vectors are signed by httpsig.Signer and checked by stages
-// S1, S2, S3 and S6 (03 §5 steps 1, 2 and 6) with the key derived from key_label. Their
-// verification time (now = created) applies with the freshness checks of
-// W-013.
+// S1 to S4, S6 and S8 (03 §5 steps 1, 2, 5, 6 and 8) with the
+// key derived from key_label, at the verification time now = created
+// (E00-08). For response-ed25519 that is its own created, the request's
+// created + 1. Steps 3, 4 and 7 join with W-014.
 
 func produceRequest(in map[string]any) (map[string]any, error) {
 	r, s, p, err := signedMessage(in)
@@ -150,7 +156,15 @@ func verifyRequest(in, out map[string]any) error {
 	if r.Header.Get(httpsig.FieldContentDigest) != httpsig.ContentDigest(r.Body) {
 		return errors.New("content_digest is not the digest of the body")
 	}
-	base, err := checkRequest(r, in)
+	created, err := integer(in["created"])
+	if err != nil {
+		return err
+	}
+	g, err := guardAt(created)
+	if err != nil {
+		return err
+	}
+	base, err := checkRequest(r, in, g)
 	if err != nil {
 		return err
 	}
@@ -222,7 +236,15 @@ func verifyResponse(in, out map[string]any) error {
 	if err := setOutputFields(resp.Header, out, "signature_input", "signature", "content_digest"); err != nil {
 		return err
 	}
-	base, err := checkResponse(resp, req, in)
+	created, err := integer(in["created"])
+	if err != nil {
+		return err
+	}
+	g, err := guardAt(created)
+	if err != nil {
+		return err
+	}
+	base, err := checkResponse(resp, req, in, g)
 	if err != nil {
 		return err
 	}
@@ -232,10 +254,24 @@ func verifyResponse(in, out map[string]any) error {
 	return nil
 }
 
-// checkRequest runs stages S1, S2, S3 (base) and S6 (signature) on a
-// received request with the key derived from in's key_label, and returns
-// the rebuilt base.
-func checkRequest(r httpsig.Request, in map[string]any) ([]byte, error) {
+// guardAt returns a timing and replay guard with the default limits, at
+// the verification time at (Unix seconds), whose replay store was restored
+// an hour earlier, so the restore rule of E03-12 does not apply.
+func guardAt(at int64) (*httpsig.Guard, error) {
+	now := time.Unix(at, 0)
+	c := clock.NewFixed(now.Add(-time.Hour))
+	store, err := replay.NewMemStore(c, replay.Capacity{PerOwner: 8, PerScope: 8, Total: 8})
+	if err != nil {
+		return nil, err
+	}
+	c.Set(now)
+	return httpsig.NewGuard(c, core.DefaultLimits(), store)
+}
+
+// checkRequest runs stages S1, S2, S3 (base), S4 (timing), S6 (signature)
+// and S8 (replay) on a received request with the key derived from in's
+// key_label, and returns the rebuilt base. A nil g skips S4 and S8.
+func checkRequest(r httpsig.Request, in map[string]any, g *httpsig.Guard) ([]byte, error) {
 	key, err := labelKey(in)
 	if err != nil {
 		return nil, err
@@ -248,10 +284,28 @@ func checkRequest(r httpsig.Request, in map[string]any) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return base.Bytes(), httpsig.VerifySignature(base, key)
+	if g != nil {
+		if err := g.CheckTime(p); err != nil {
+			return nil, err
+		}
+	}
+	signed, err := httpsig.VerifySignature(base, key)
+	if err != nil {
+		return nil, err
+	}
+	if g != nil {
+		if err := g.Reserve(context.Background(), signed); err != nil {
+			return nil, err
+		}
+	}
+	return base.Bytes(), nil
 }
 
-func checkResponse(resp httpsig.Response, req httpsig.Request, in map[string]any) ([]byte, error) {
+// checkResponse runs stages S1, S2, S3, S4 and S6 on a received response,
+// and S8, which reserves nothing for a response: its replay protection is
+// the binding by "signature";req (00-overview.md §7.4 DP-4). A nil g skips
+// S4 and S8.
+func checkResponse(resp httpsig.Response, req httpsig.Request, in map[string]any, g *httpsig.Guard) ([]byte, error) {
 	key, err := labelKey(in)
 	if err != nil {
 		return nil, err
@@ -264,7 +318,21 @@ func checkResponse(resp httpsig.Response, req httpsig.Request, in map[string]any
 	if err != nil {
 		return nil, err
 	}
-	return base.Bytes(), httpsig.VerifySignature(base, key)
+	if g != nil {
+		if err := g.CheckTime(p); err != nil {
+			return nil, err
+		}
+	}
+	signed, err := httpsig.VerifySignature(base, key)
+	if err != nil {
+		return nil, err
+	}
+	if g != nil {
+		if err := g.Reserve(context.Background(), signed); err != nil {
+			return nil, err
+		}
+	}
+	return base.Bytes(), nil
 }
 
 // signedMessage reads the request and the signer of a published input.
@@ -407,9 +475,10 @@ func integer(v any) (int64, error) {
 	return 0, fmt.Errorf("%v is not an integer", v)
 }
 
-// rfc9421Rejects returns the errata §11 vectors for 03 that stages S1, S2,
-// S3 and S6 (03 §5 steps 1, 2 and 6) reject. Each is request-ed25519 (or response-ed25519) as
-// received with one mutation, re-signed with the same key over the mutated
+// rfc9421Rejects returns the errata §11 vectors for 03 that stages S0 to
+// S4, S6 and S8 (03 §5 steps 1, 2, 5, 6 and 8) reject, at the fixed
+// verification time verify_at. Each is request-ed25519 (or
+// response-ed25519) as received with one mutation, re-signed with the same key over the mutated
 // message where the mutation changes the signed content, so the mutation
 // is the only reason to reject it.
 func rfc9421Rejects() []vectors.Case {
@@ -419,6 +488,8 @@ func rfc9421Rejects() []vectors.Case {
 		checked = "rejected when the signature parameters are checked (03 §5 step 2)"
 		covered = "rejected when the covered components are checked (03 §5 step 2)"
 		signed  = "rejected when the signature is verified (03 §5 step 6)"
+		timed   = "rejected when the timing is checked (03 §5 step 5)"
+		reused  = "rejected when the nonce is reserved (03 §5 step 8)"
 	)
 	req := func(name, item, desc, stage string, in map[string]any, reason obs.Reason) vectors.Case {
 		return vectors.Case{
@@ -501,25 +572,85 @@ func rfc9421Rejects() []vectors.Case {
 			withResp(func(s *respSpec) { s.drop(`"@status"`) }), obs.ReasonCoverage),
 		resp("response-no-signature-req", "E03-10", `"signature";req removed from the covered components, re-signed`, covered,
 			withResp(func(s *respSpec) { s.drop(`"signature";req`) }), obs.ReasonCoverage),
+		req("too-old", "E03-11", "the clock at created + 301 s, beyond any MaxAge (at most 300 s); the message is unchanged", timed,
+			with(func(s *sigSpec) { s.verifyAt = reqCreated + 301 }), obs.ReasonStale),
+		req("too-far-future", "E03-11", "created = now + 301 s, beyond any MaxClockSkew (at most 300 s), re-signed", timed,
+			with(func(s *sigSpec) { param(s, `;created=1788609600`, `;created=1788609901`) }), obs.ReasonFuture),
+		req("expired", "E03-11", "expires = created + 10 added and the clock at created + 11, so expires = now - 1, re-signed", timed,
+			with(func(s *sigSpec) {
+				param(s, `;created=1788609600`, `;created=1788609600;expires=1788609610`)
+				s.verifyAt = reqCreated + 11
+			}), obs.ReasonExpired),
+		req("expires-before-created", "E03-11", "expires = created added and the clock at created - 1, so with a MaxClockSkew of at least 1 s (the default is 60 s) only expires <= created fails, re-signed", timed,
+			with(func(s *sigSpec) {
+				param(s, `;created=1788609600`, `;created=1788609600;expires=1788609600`)
+				s.verifyAt = reqCreated - 1
+			}), obs.ReasonExpired),
+		req("replay-other-fragment", "E03-12", "keyid without the #key-1 fragment and the same nonce, re-signed, after request-ed25519 (in prior) was accepted by the same replay store; both name one signer DID", reused,
+			with(func(s *sigSpec) {
+				param(s, `;keyid="`+reqKeyID+`"`, `;keyid="`+reqDID+`"`)
+				s.prior = []map[string]any{baseRequest().received()}
+			}), obs.ReasonReplay),
 		resp("response-other-request", "E03-10", `the response re-signed with "@target-uri";req https://agent-b.example/mcp/tools/list, another request's value, and checked against request-ed25519`, signed,
 			withResp(func(s *respSpec) { s.signFor.url = strings.Replace(s.signFor.url, "/call", "/list", 1) }), obs.ReasonSignature),
 	}
 }
 
-// rejectHTTPRequest reads the received request of a vector and runs stages
-// S1, S2, S3 and S6 (03 §5 steps 1, 2 and 6) on it.
+// rejectHTTPRequest reads the received request of a vector and runs
+// checkRequest on it at verify_at, after the requests in prior, which share
+// its replay store and must each be accepted.
 func rejectHTTPRequest(in map[string]any) error {
 	r, err := receivedRequestOf(in)
 	if err != nil {
 		return err
 	}
-	_, err = checkRequest(r, in)
+	g, err := inputGuard(in)
+	if err != nil {
+		return err
+	}
+	if v, ok := in["prior"]; ok {
+		list, ok := v.([]any)
+		if !ok {
+			return errors.New("prior must be a list")
+		}
+		for i, x := range list {
+			p, ok := x.(map[string]any)
+			if !ok {
+				return errors.New("each prior request must be an object")
+			}
+			pr, err := receivedRequestOf(p)
+			if err != nil {
+				return err
+			}
+			if _, err := checkRequest(pr, p, g); err != nil {
+				return fmt.Errorf("prior request %d was not accepted: %s", i, detail(err))
+			}
+		}
+	}
+	_, err = checkRequest(r, in, g)
 	return err
 }
 
+func inputGuard(in map[string]any) (*httpsig.Guard, error) {
+	at, err := integer(in["verify_at"])
+	if err != nil {
+		return nil, errors.New("verify_at must be an integer")
+	}
+	return guardAt(at)
+}
+
+// detail keeps a rejection of a prior request from counting as the
+// vector's expected rejection.
+func detail(err error) string {
+	var r *core.Rejection
+	if errors.As(err, &r) {
+		return string(r.Reason())
+	}
+	return err.Error()
+}
+
 // rejectHTTPResponse reads the received response and request of a vector
-// and runs stages S1, S2, S3 and S6 (03 §5 steps 1, 2 and 6) on the
-// response.
+// and runs checkResponse on the response at verify_at.
 func rejectHTTPResponse(in map[string]any) error {
 	reqIn, ok := in["request"].(map[string]any)
 	if !ok {
@@ -538,7 +669,11 @@ func rejectHTTPResponse(in map[string]any) error {
 	if !ok || err != nil {
 		return errors.New("body must be a string and status an integer")
 	}
-	_, err = checkResponse(httpsig.Response{Status: int(status), Header: h, Body: []byte(body)}, req, in)
+	g, err := inputGuard(in)
+	if err != nil {
+		return err
+	}
+	_, err = checkResponse(httpsig.Response{Status: int(status), Header: h, Body: []byte(body)}, req, in, g)
 	return err
 }
 

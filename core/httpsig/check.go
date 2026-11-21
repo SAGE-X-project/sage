@@ -50,8 +50,9 @@ func requestDerived(name string) bool {
 }
 
 // CheckRequest is step 2 of 03 §5 for a request signature: the parameters
-// and covered components of §1 to §3. It requires keyid, created and nonce;
-// the coverage of @method, @target-uri and @authority, and of
+// and covered components of §1 to §3. It requires keyid, created and a
+// nonce of the syntax of §5 (Replay); the coverage of @method, @target-uri
+// and @authority, and of
 // content-digest when the request has a body; only the derived components
 // @method, @target-uri, @authority, @scheme and @query; no component
 // parameter (;req is for responses, ;sf and the others are not allowed);
@@ -62,6 +63,9 @@ func requestDerived(name string) bool {
 func CheckRequest(p Parsed, r Request) error {
 	if !p.keyid.ok || !p.created.ok || !p.nonce.ok {
 		return reject(obs.ReasonParameters, "request signature lacks keyid, created or nonce")
+	}
+	if !validNonce(p.nonce.v) {
+		return reject(obs.ReasonParameters, "nonce is not 16 to 64 characters of ALPHA, DIGIT, - and _")
 	}
 	if err := checkAlg(p); err != nil {
 		return err
@@ -93,8 +97,9 @@ func CheckRequest(p Parsed, r Request) error {
 }
 
 // CheckResponse is step 2 of 03 §5 for a response signature, given the
-// signed request it answers (E03-20). It requires keyid and created; the
-// coverage of @status, "@method";req, "@target-uri";req, "@authority";req
+// signed request it answers (E03-20). It requires keyid and created, and a
+// nonce, when present, of the syntax of §5 (Replay); the coverage of
+// @status, "@method";req, "@target-uri";req, "@authority";req
 // and "signature";req, of "content-digest";req when the request carried
 // Content-Digest, and of content-digest when the
 // response has a body (§4); derived components only as §2 allows them in a
@@ -105,6 +110,9 @@ func CheckRequest(p Parsed, r Request) error {
 func CheckResponse(p Parsed, resp Response, req Request) error {
 	if !p.keyid.ok || !p.created.ok {
 		return reject(obs.ReasonParameters, "response signature lacks keyid or created")
+	}
+	if p.nonce.ok && !validNonce(p.nonce.v) {
+		return reject(obs.ReasonParameters, "nonce is not 16 to 64 characters of ALPHA, DIGIT, - and _")
 	}
 	if err := checkAlg(p); err != nil {
 		return err
@@ -206,3 +214,17 @@ func checkAuthority(targetURI string) error {
 }
 
 const fieldContentDigestLower = "content-digest"
+
+// validNonce is the nonce syntax of 03 §5 (Replay): 16 to 64 characters of
+// ALPHA / DIGIT / "-" / "_". The signer and the verifier both apply it.
+func validNonce(n string) bool {
+	if len(n) < 16 || len(n) > 64 {
+		return false
+	}
+	for i := 0; i < len(n); i++ {
+		if c := n[i]; !isAlpha(c) && !isDigit(c) && c != '-' && c != '_' {
+			return false
+		}
+	}
+	return true
+}
