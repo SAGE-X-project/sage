@@ -295,7 +295,8 @@ func Emit(ctx context.Context, t Tracer, e Event) {
 }
 
 // SlogTracer writes events to a log/slog logger at debug level for accepted
-// inputs and at info level for rejections. A nil Logger discards events.
+// inputs, at info level for rejections and at warn level for diagnostics. A
+// nil Logger discards events.
 type SlogTracer struct {
 	Logger *slog.Logger
 }

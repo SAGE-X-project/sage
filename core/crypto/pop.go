@@ -51,8 +51,9 @@ func PoPChallenge(did string, keyData []byte) []byte {
 // for the key pub, stored as keyData, and the DID did. It is a separate
 // algorithm (E01-07): the signed message is SHA-256(challenge), and for
 // secp256k1 that digest is signed directly, without Keccak. It is valid only
-// as a proof of possession: only did.Evaluate calls it, and no other path of
-// the core accepts a proof or verifies a signature this way. An Ed25519
+// as a proof of possession: did.Evaluate is its only caller outside this
+// package (SignPoP checks its own output with it), and no other path of the
+// core accepts a proof or verifies a signature this way. An Ed25519
 // proof is, by the spec's construction, also an Ed25519 signature over the
 // 32-byte digest as a message; no message the core verifies with Verify is
 // such a digest, since every signed input there is structured text or JSON.

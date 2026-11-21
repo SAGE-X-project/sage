@@ -68,9 +68,13 @@ type Record struct {
 
 // Observation says where and when a record was read.
 type Observation struct {
-	At     time.Time // when the registry was read, not when a cache served the record
-	Block  uint64    // block the record was read at
-	Source string    // registry and network, for diagnostics
+	// At is when the registry was read, not when a cache served the record
+	// or a block was produced. It must come from the same clock that
+	// Evaluate's Policy reads: a time from another clock or process can be
+	// ahead of that clock and is then rejected as dated in the future.
+	At     time.Time
+	Block  uint64 // block the record was read at
+	Source string // registry and network, for diagnostics
 }
 
 // KeyResolver resolves a DID to its registry record. The host implements

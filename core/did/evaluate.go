@@ -21,6 +21,7 @@ package did
 import (
 	"context"
 	"errors"
+	"strconv"
 
 	"github.com/sage-x-project/sage/core"
 	"github.com/sage-x-project/sage/core/clock"
@@ -164,17 +165,25 @@ func checkFresh(o Observation, p Policy) error {
 	return nil
 }
 
+// diagnoseFlags reports, in one event per record, how many listed keys have
+// the verified flag false, so a record of up to 32 keys cannot turn one
+// evaluation into many log lines.
 func diagnoseFlags(ctx context.Context, rec Record, s core.Settings) {
+	n := 0
 	for _, k := range rec.Keys {
 		if !k.Verified {
-			s.Trace(ctx, obs.Event{
-				Outcome: obs.OutcomeDiagnostic,
-				Stage:   obs.StageResolve,
-				Subject: obs.Unverified(rec.DID.String()),
-				Detail:  obs.Known("listed key has verified=false: tampering or an old registry"),
-			})
+			n++
 		}
 	}
+	if n == 0 {
+		return
+	}
+	s.Trace(ctx, obs.Event{
+		Outcome: obs.OutcomeDiagnostic,
+		Stage:   obs.StageResolve,
+		Subject: obs.Unverified(rec.DID.String()),
+		Detail:  obs.Known(strconv.Itoa(n) + " listed key(s) with verified=false: tampering or an old registry"),
+	})
 }
 
 func selectSigningKey(rec Record) (TrustedKey, error) {

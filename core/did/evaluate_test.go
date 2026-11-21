@@ -424,6 +424,15 @@ func TestEvaluateIgnoresTheFlag(t *testing.T) {
 	if e.Outcome != obs.OutcomeDiagnostic || e.Stage != obs.StageResolve || !e.Subject.Unverified() || e.Spec != string(core.V0_9_0_Draft1_1) {
 		t.Fatalf("event %+v", e)
 	}
+	// Many unflagged keys still give one event.
+	tr.got = nil
+	many := []Key{unflagged}
+	for range MaxKeys - 1 {
+		many = append(many, Key{Type: KeyTypeX25519, KeyData: make([]byte, 32)})
+	}
+	if _, err := Evaluate(context.Background(), wantDID(t), activeRecord(t, many...), fresh(), p); err != nil || len(tr.got) != 1 || !strings.HasPrefix(tr.got[0].Detail.String(), "32 ") {
+		t.Fatalf("err %v, %d events %+v", err, len(tr.got), tr.got)
+	}
 	tr.got = nil
 	if _, err := Evaluate(context.Background(), wantDID(t), activeRecord(t, entry(t, k.k1, evalDID, nil)), fresh(), p); err != nil || len(tr.got) != 0 {
 		t.Fatalf("flag true: err %v, %d events", err, len(tr.got))

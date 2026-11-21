@@ -59,14 +59,14 @@ const (
 // popMaterial holds the keys and proofs the PoP and selection cases use.
 type popMaterial struct {
 	edA, edB, k1A, k1B []byte // key_data as stored
-	edProof, k1Proof    []byte // valid §4 proofs for popDID
-	k1BProof            []byte
-	k1OtherDID          []byte // k1A's proof for popOtherDID
-	edWrongKey          []byte // edB's signature over edA's digest
-	k1HighS             []byte // k1Proof with s := n - s and v flipped
-	edRawChallenge      []byte // edA's signature over the challenge itself
-	k1Registration      []byte // the deployed registry's EIP-191 value, owner = k1A, v in {27, 28}
-	k1RegistrationV01   []byte // the same with v - 27, so it passes the E01-05 v check
+	edProof, k1Proof   []byte // valid §4 proofs for popDID
+	k1BProof           []byte
+	k1OtherDID         []byte // k1A's proof for popOtherDID
+	edWrongKey         []byte // edB's signature over edA's digest
+	k1HighS            []byte // k1Proof with s := n - s and v flipped
+	edRawChallenge     []byte // edA's signature over the challenge itself
+	k1Registration     []byte // the deployed registry's EIP-191 value, owner = k1A, v in {27, 28}
+	k1RegistrationV01  []byte // the same with v - 27, so it passes the E01-05 v check
 }
 
 func newPoPMaterial() (*popMaterial, error) {

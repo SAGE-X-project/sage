@@ -213,7 +213,7 @@ func (s *p256Signer) Sign(ctx context.Context, p Purpose, msg []byte) (Signature
 }
 
 func ready(ctx context.Context, p Purpose, msg []byte) error {
-	if p == PurposeUnknown || p > PurposePoP || (p == PurposePoP && !bytes.HasPrefix(msg, []byte(popPrefix))) {
+	if p == PurposeUnknown || p >= purposeEnd || (p == PurposePoP && !bytes.HasPrefix(msg, []byte(popPrefix))) {
 		return ErrPurpose
 	}
 	return ctx.Err()
