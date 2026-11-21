@@ -150,7 +150,7 @@ func (s *Signer) SignRequest(ctx context.Context, r Request, p Params) (Fields, 
 	if err == nil {
 		var b Base
 		if b, err = RequestBase(parsed, signed); err == nil {
-			err = VerifySignature(b, s.signer.Public())
+			_, err = VerifySignature(b, s.signer.Public())
 		}
 	}
 	if err != nil {
@@ -206,7 +206,7 @@ func (s *Signer) SignResponse(ctx context.Context, resp Response, req Request, p
 	if err == nil {
 		var b Base
 		if b, err = ResponseBase(parsed, signed, req); err == nil {
-			err = VerifySignature(b, s.signer.Public())
+			_, err = VerifySignature(b, s.signer.Public())
 		}
 	}
 	if err != nil {
@@ -288,20 +288,6 @@ func reqField(name string) Component {
 
 // maxInteger is the largest RFC 8941 integer (15 digits).
 const maxInteger = 999_999_999_999_999
-
-// validNonce reports whether n is 16 to 64 characters of ALPHA, DIGIT, "-"
-// and "_" (03 §5 Replay); a canonical UUID qualifies.
-func validNonce(n string) bool {
-	if len(n) < 16 || len(n) > 64 {
-		return false
-	}
-	for i := 0; i < len(n); i++ {
-		if c := n[i]; !isAlpha(c) && !isDigit(c) && c != '-' && c != '_' {
-			return false
-		}
-	}
-	return true
-}
 
 func sameDID(v string, d did.DID) bool {
 	got, err := did.Parse(v)

@@ -20,6 +20,7 @@ package httpsig
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -27,7 +28,9 @@ import (
 	"time"
 
 	"github.com/sage-x-project/sage/core"
+	"github.com/sage-x-project/sage/core/clock"
 	"github.com/sage-x-project/sage/core/obs"
+	"github.com/sage-x-project/sage/core/replay"
 )
 
 // The signed request of the published vector rfc9421/request-ed25519.
@@ -323,10 +326,22 @@ func FuzzParse(f *testing.F) {
 		sb, serr := ResponseBase(p, Response{Status: 200, Header: h}, req)
 		raw, berr := rawBase(p, nil, req)
 		rawResp, rerr2 := rawBase(p, &Response{Status: 200, Header: h}, req)
+		now := time.Unix(1788609600, 0)
+		c := clock.NewFixed(now.Add(-time.Hour))
+		store, err := replay.NewMemStore(c, replay.Capacity{PerOwner: 1, PerScope: 1, Total: 1})
+		if err != nil {
+			t.Fatal(err)
+		}
+		c.Set(now)
+		g, err := NewGuard(c, core.DefaultLimits(), store)
+		if err != nil {
+			t.Fatal(err)
+		}
 		for _, err := range []error{
 			CheckRequest(p, req),
 			CheckResponse(p, Response{Status: 200, Header: h, Body: []byte("b")}, req),
 			rerr, serr, berr, rerr2,
+			g.CheckTime(p), g.Reserve(context.Background(), Signed{p: p}), g.Reserve(context.Background(), Signed{p: p, response: true}),
 		} {
 			var r *core.Rejection
 			if err != nil && !errors.As(err, &r) && !errors.Is(err, ErrUnsignedRequest) {
@@ -373,7 +388,7 @@ func TestAcceptedForms(t *testing.T) {
 	for name, in := range map[string]string{
 		"8 KiB Signature-Input":   exact,
 		"32 components":           comps,
-		"parameters out of order": `sig1=("@method");created=1;nonce="n";keyid="k"`,
+		"parameters out of order": `sig1=("@method");created=1;nonce="n-0123456789abcdef";keyid="k"`,
 		"expires, no alg":         `sig1=("@method");keyid="k";created=1;expires=2`,
 		"escaped keyid":           `sig1=("@method");keyid="a\"b\\c";created=1`,
 		"no components":           `sig1=();keyid="k";created=1`,

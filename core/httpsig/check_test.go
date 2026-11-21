@@ -37,7 +37,7 @@ func secretScalar(t *testing.T) secret.Bytes {
 	return secret.From([]byte(strings.Repeat("\x07", 32)))
 }
 
-const reqParams = `;keyid="k";created=1;nonce="n"`
+const reqParams = `;keyid="k";created=1;nonce="n-0123456789abcdef"`
 
 func parsedOf(t *testing.T, input string) Parsed {
 	t.Helper()
@@ -61,8 +61,8 @@ func TestCheckRequest(t *testing.T) {
 		r     Request
 		want  obs.Reason
 	}{
-		"no keyid":         {`sig1=(` + must + `);created=1;nonce="n"`, noBody, obs.ReasonParameters},
-		"no created":       {`sig1=(` + must + `);keyid="k";nonce="n"`, noBody, obs.ReasonParameters},
+		"no keyid":         {`sig1=(` + must + `);created=1;nonce="n-0123456789abcdef"`, noBody, obs.ReasonParameters},
+		"no created":       {`sig1=(` + must + `);keyid="k";nonce="n-0123456789abcdef"`, noBody, obs.ReasonParameters},
 		"no nonce":         {`sig1=(` + must + `);keyid="k";created=1`, noBody, obs.ReasonParameters},
 		"no @method":       {`sig1=("@target-uri" "@authority")` + reqParams, noBody, obs.ReasonCoverage},
 		"no @target-uri":   {`sig1=("@method" "@authority")` + reqParams, noBody, obs.ReasonCoverage},
@@ -239,20 +239,20 @@ func TestVerifySignature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := VerifySignature(base, cs.Public()); err != nil {
+	if _, err := VerifySignature(base, cs.Public()); err != nil {
 		t.Fatal(err)
 	}
-	wantReason(t, VerifySignature(base, nil), obs.ReasonKeyNotEligible)
-	wantReason(t, VerifySignature(Base{}, cs.Public()), obs.ReasonCanonicalize)
-	wantReason(t, VerifySignature(Base{p: p, b: append(base.Bytes(), 'x')}, cs.Public()), obs.ReasonSignature)
+	wantReason(t, errOf(VerifySignature(base, nil)), obs.ReasonKeyNotEligible)
+	wantReason(t, errOf(VerifySignature(Base{}, cs.Public())), obs.ReasonCanonicalize)
+	wantReason(t, errOf(VerifySignature(Base{p: p, b: append(base.Bytes(), 'x')}, cs.Public())), obs.ReasonSignature)
 	k1, err := crypto.NewSecp256k1Signer(secretScalar(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	// alg="ed25519" with a secp256k1 key (E01-11).
-	wantReason(t, VerifySignature(base, k1.Public()), obs.ReasonAlgorithm)
+	wantReason(t, errOf(VerifySignature(base, k1.Public())), obs.ReasonAlgorithm)
 	// An unknown alg is rejected at step 2.
-	unknown := parsedOf(t, `sig1=("@method" "@target-uri" "@authority");keyid="k";alg="rsa-v1_5-sha256";created=1;nonce="n"`)
+	unknown := parsedOf(t, `sig1=("@method" "@target-uri" "@authority");keyid="k";alg="rsa-v1_5-sha256";created=1;nonce="n-0123456789abcdef"`)
 	wantReason(t, CheckRequest(unknown, Request{Method: "GET", Target: testTarget}), obs.ReasonAlgorithm)
 	// A signature of the wrong length for the key is rejected.
 	short := parsedOf(t, `sig1=("@method" "@target-uri" "@authority")`+reqParams)
@@ -260,7 +260,7 @@ func TestVerifySignature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := VerifySignature(sb, cs.Public()); err == nil {
+	if _, err := VerifySignature(sb, cs.Public()); err == nil {
 		t.Fatal("3-byte signature accepted")
 	}
 }
@@ -312,3 +312,5 @@ func TestTargetBrackets(t *testing.T) {
 		}
 	}
 }
+
+func errOf(_ Signed, err error) error { return err }

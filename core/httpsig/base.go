@@ -30,8 +30,9 @@ import (
 // Only RequestBase and ResponseBase make one, so a signature cannot be
 // verified over a base that skipped the coverage checks (H4).
 type Base struct {
-	p Parsed
-	b []byte
+	p        Parsed
+	b        []byte
+	response bool
 }
 
 // Bytes returns a copy of the base.
@@ -63,7 +64,7 @@ func ResponseBase(p Parsed, resp Response, req Request) (Base, error) {
 	if err != nil {
 		return Base{}, err
 	}
-	return Base{p: p, b: b}, nil
+	return Base{p: p, b: b, response: true}, nil
 }
 
 func buildBase(comps []Component, params string, resp *Response, req Request) ([]byte, error) {
@@ -144,28 +145,44 @@ func componentValue(name string, isReq bool, resp *Response, req Request, reqTar
 	return v, nil
 }
 
+// Signed is a signature that passed step 2 of 03 §5 and verified at step 6
+// over its rebuilt base. Only VerifySignature makes one, so the replay
+// reservation (Guard.Reserve) cannot run for a signature that has not
+// verified, and an unauthenticated sender cannot consume another signer's
+// nonces or replay capacity.
+type Signed struct {
+	p        Parsed
+	response bool
+}
+
+// Parsed returns the parsed signature.
+func (s Signed) Parsed() Parsed { return s.p }
+
 // VerifySignature checks the signature the base was built for, over that
 // base, with key (03 §5 step 6 for the key the resolver chose). An alg
 // parameter must name the key's algorithm (E01-11). It verifies the
 // signature only: the message is verified when every step of 03 §5 has
 // passed.
-func VerifySignature(base Base, key crypto.PublicKey) error {
+func VerifySignature(base Base, key crypto.PublicKey) (Signed, error) {
 	p := base.p
 	if base.b == nil {
-		return canonicalize("no signature base")
+		return Signed{}, canonicalize("no signature base")
 	}
 	if key == nil {
-		return reject(obs.ReasonKeyNotEligible, "no verification key")
+		return Signed{}, reject(obs.ReasonKeyNotEligible, "no verification key")
 	}
 	if name, ok := p.Alg(); ok {
 		a, err := crypto.ParseAlg(name)
 		if err != nil || a != key.Alg() {
-			return reject(obs.ReasonAlgorithm, "alg does not name the key's algorithm")
+			return Signed{}, reject(obs.ReasonAlgorithm, "alg does not name the key's algorithm")
 		}
 	}
 	sig, err := crypto.ParseSignature(key.Alg(), p.signature)
 	if err != nil {
-		return err
+		return Signed{}, err
 	}
-	return crypto.Verify(key, sig, base.b)
+	if err := crypto.Verify(key, sig, base.b); err != nil {
+		return Signed{}, err
+	}
+	return Signed{p: p, response: base.response}, nil
 }

@@ -20,11 +20,14 @@ package suites
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
 
+	"github.com/sage-x-project/sage/core"
+	"github.com/sage-x-project/sage/core/obs"
 	"github.com/sage-x-project/sage/core/vectors"
 )
 
@@ -149,4 +152,69 @@ func TestRFC9421InputErrors(t *testing.T) {
 	if err := rejectHTTPResponse(map[string]any{}); err == nil || isRejection(err) {
 		t.Errorf("response without request: %v", err)
 	}
+}
+
+// TestRFC9421TimingAndReplayRejectsPassEarlierStages: each vector rejected
+// at timing (S4) or replay (S8) passes S1, S2, S3 and S6 unchanged, so the
+// timing or replay rule is the only reason it is rejected.
+func TestRFC9421TimingAndReplayRejectsPassEarlierStages(t *testing.T) {
+	n := 0
+	for _, c := range rfc9421Rejects() {
+		if st := obs.StageOf(c.Reason); st != obs.StageTiming && st != obs.StageReplay {
+			continue
+		}
+		n++
+		r, err := receivedRequestOf(c.Input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := checkRequest(r, c.Input, nil); err != nil {
+			t.Errorf("%s: %v", c.Name, err)
+		}
+		if err := rejectHTTPRequest(c.Input); !isReason(err, c.Reason) {
+			t.Errorf("%s: %v, want %s", c.Name, err, c.Reason)
+		}
+		if _, ok := c.Input["prior"]; ok {
+			// Without the prior request the same input is accepted, so
+			// the replay of prior is the reason, not the restore window.
+			alone := map[string]any{}
+			for k, v := range c.Input {
+				alone[k] = v
+			}
+			delete(alone, "prior")
+			if err := rejectHTTPRequest(alone); err != nil {
+				t.Errorf("%s without prior: %v", c.Name, err)
+			}
+		}
+	}
+	if n != 5 {
+		t.Fatalf("%d timing and replay vectors, want 5", n)
+	}
+}
+
+// TestRFC9421PriorMustBeAccepted: a prior request that is rejected fails
+// the vector with an error that is not a rejection.
+func TestRFC9421PriorMustBeAccepted(t *testing.T) {
+	in := baseRequest().received()
+	bad := baseRequest()
+	bad.input, bad.signature = bad.member(), bad.sign()
+	bad.method = "PUT" // the signature no longer verifies
+	in["prior"] = []any{bad.received()}
+	if err := rejectHTTPRequest(in); err == nil || isRejection(err) {
+		t.Fatalf("rejected prior: %v", err)
+	}
+	in["prior"] = "x"
+	if err := rejectHTTPRequest(in); err == nil || isRejection(err) {
+		t.Fatalf("prior not a list: %v", err)
+	}
+	delete(in, "prior")
+	in["verify_at"] = "now"
+	if err := rejectHTTPRequest(in); err == nil || isRejection(err) {
+		t.Fatalf("verify_at not an integer: %v", err)
+	}
+}
+
+func isReason(err error, want obs.Reason) bool {
+	var r *core.Rejection
+	return errors.As(err, &r) && r.Reason() == want
 }
