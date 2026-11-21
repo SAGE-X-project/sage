@@ -19,6 +19,7 @@
 package crypto
 
 import (
+	"bytes"
 	"context"
 	"crypto/ecdsa"
 	"crypto/ed25519"
@@ -47,15 +48,21 @@ type Signer interface {
 	// Public returns the key that verifies the signer's signatures.
 	Public() PublicKey
 	// Sign signs msg for purpose p. The purpose lets a key store refuse or
-	// audit a request; it is not mixed into msg.
+	// audit a request; it is not mixed into msg. For PurposePoP, msg is the
+	// 06-did-sage.md §4 challenge, which starts with "SAGE-PoP:"; the
+	// signer computes SHA-256(challenge) itself and signs that digest under
+	// the PoP rules (E01-07): an es256k signer signs it directly instead of
+	// a Keccak-256, an Ed25519 signer signs the 32 bytes as the message, and
+	// a P-256 signer refuses. Because the signer hashes, a PoP request
+	// cannot obtain a signature over a digest of the caller's choosing.
+	// SignPoP is the caller for that purpose.
 	Sign(ctx context.Context, p Purpose, msg []byte) (Signature, error)
 }
 
 // ErrPurpose is returned by the signers of this package for PurposeUnknown,
-// a value outside the defined purposes, and PurposePoP. The proof of
-// possession signs SHA-256(challenge) under its own rules (06-did-sage.md
-// §4, E01-07) and gets its own signing and verification path with the
-// registry work; Sign does not change its digest by purpose.
+// a value outside the defined purposes, PurposePoP with a message that is
+// not a challenge ("SAGE-PoP:" prefix), and PurposePoP on a P-256 signer
+// (06-did-sage.md §4 defines proofs for Ed25519 and secp256k1 only).
 var ErrPurpose = errors.New("crypto: signature purpose not supported")
 
 // ErrSigningKey is returned for private key bytes that are not a valid key.
@@ -95,8 +102,12 @@ type ed25519Signer struct {
 func (s *ed25519Signer) Public() PublicKey { return s.pub }
 
 func (s *ed25519Signer) Sign(ctx context.Context, p Purpose, msg []byte) (Signature, error) {
-	if err := ready(ctx, p); err != nil {
+	if err := ready(ctx, p, msg); err != nil {
 		return Signature{}, err
+	}
+	if p == PurposePoP {
+		digest := sha256.Sum256(msg)
+		msg = digest[:]
 	}
 	return ParseSignature(AlgEd25519, ed25519.Sign(*s.priv, msg))
 }
@@ -133,11 +144,16 @@ type secp256k1Signer struct {
 func (s *secp256k1Signer) Public() PublicKey { return s.pub }
 
 func (s *secp256k1Signer) Sign(ctx context.Context, p Purpose, msg []byte) (Signature, error) {
-	if err := ready(ctx, p); err != nil {
+	if err := ready(ctx, p, msg); err != nil {
 		return Signature{}, err
 	}
+	digest := keccak256(msg)
+	if p == PurposePoP {
+		sum := sha256.Sum256(msg)
+		digest = sum[:]
+	}
 	// SignCompact returns 27 + v, then r || s.
-	compact := secpecdsa.SignCompact(s.priv, keccak256(msg), false)
+	compact := secpecdsa.SignCompact(s.priv, digest, false)
 	out := make([]byte, 65)
 	copy(out, compact[1:])
 	out[64] = compact[0] - 27
@@ -175,7 +191,10 @@ type p256Signer struct {
 func (s *p256Signer) Public() PublicKey { return s.pub }
 
 func (s *p256Signer) Sign(ctx context.Context, p Purpose, msg []byte) (Signature, error) {
-	if err := ready(ctx, p); err != nil {
+	if p == PurposePoP {
+		return Signature{}, ErrPurpose
+	}
+	if err := ready(ctx, p, msg); err != nil {
 		return Signature{}, err
 	}
 	digest := sha256.Sum256(msg)
@@ -193,8 +212,8 @@ func (s *p256Signer) Sign(ctx context.Context, p Purpose, msg []byte) (Signature
 	return ParseSignature(AlgP256, out)
 }
 
-func ready(ctx context.Context, p Purpose) error {
-	if p == PurposeUnknown || p >= PurposePoP {
+func ready(ctx context.Context, p Purpose, msg []byte) error {
+	if p == PurposeUnknown || p >= purposeEnd || (p == PurposePoP && !bytes.HasPrefix(msg, []byte(popPrefix))) {
 		return ErrPurpose
 	}
 	return ctx.Err()

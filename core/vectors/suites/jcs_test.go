@@ -78,7 +78,11 @@ func TestSuiteFiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, s := range []vectors.Suite{JCS(), crypto, DID(), RFC9421()} {
+	didSuite, err := DID()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, s := range []vectors.Suite{JCS(), crypto, didSuite, RFC9421()} {
 		r := runner(t, s, generator)
 		name := vectors.FileName(s.Name)
 		// Verify-mode outputs come from the previous file: this suite's own

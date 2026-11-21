@@ -239,21 +239,30 @@ func (r Reason) String() string {
 	}
 }
 
-// Outcome says whether an event reports a rejection or an accepted input.
+// Outcome says whether an event reports a rejection, an accepted input or a
+// diagnostic.
 type Outcome uint8
 
 // Event outcomes.
 const (
 	OutcomeRejected Outcome = iota
 	OutcomeAccepted
+	// OutcomeDiagnostic reports a condition that changes no decision but
+	// that the host should see, such as a registry flag that contradicts the
+	// listing (06-did-sage.md §3).
+	OutcomeDiagnostic
 )
 
-// String returns "rejected" or "accepted".
+// String returns "rejected", "accepted" or "diagnostic".
 func (o Outcome) String() string {
-	if o == OutcomeAccepted {
+	switch o {
+	case OutcomeAccepted:
 		return "accepted"
+	case OutcomeDiagnostic:
+		return "diagnostic"
+	default:
+		return "rejected"
 	}
-	return "rejected"
 }
 
 // Event is one report from the core to its host. It holds no secret and no
@@ -286,7 +295,8 @@ func Emit(ctx context.Context, t Tracer, e Event) {
 }
 
 // SlogTracer writes events to a log/slog logger at debug level for accepted
-// inputs and at info level for rejections. A nil Logger discards events.
+// inputs, at info level for rejections and at warn level for diagnostics. A
+// nil Logger discards events.
 type SlogTracer struct {
 	Logger *slog.Logger
 }
@@ -297,8 +307,11 @@ func (t SlogTracer) Trace(ctx context.Context, e Event) {
 		return
 	}
 	level := slog.LevelInfo
-	if e.Outcome == OutcomeAccepted {
+	switch e.Outcome {
+	case OutcomeAccepted:
 		level = slog.LevelDebug
+	case OutcomeDiagnostic:
+		level = slog.LevelWarn
 	}
 	attrs := []slog.Attr{
 		slog.String("spec", Known(e.Spec).String()),

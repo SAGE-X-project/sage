@@ -28,19 +28,23 @@ import (
 )
 
 // TestDIDReproducesPublished regenerates the published did vectors this
-// suite covers (parse, chain-aliases) and requires values identical to the
-// published file. The other published vectors (pop-*, a2a-card-proof-*)
-// join the suite with W-030 and W-040; until then testdata/did.json holds
-// only the cases defined here.
+// suite covers (parse, chain-aliases, pop-ed25519, pop-secp256k1) and
+// requires values identical to the published file. The published
+// a2a-card-proof-* vectors join the suite with W-040; until then
+// testdata/did.json holds only the cases defined here.
 func TestDIDReproducesPublished(t *testing.T) {
-	s := DID()
+	s, err := DID()
+	if err != nil {
+		t.Fatal(err)
+	}
 	var draft1 []vectors.Case
 	for _, c := range s.Cases {
-		if c.Name == "parse" || c.Name == "chain-aliases" {
+		switch c.Name {
+		case "parse", "chain-aliases", "pop-ed25519", "pop-secp256k1":
 			draft1 = append(draft1, c)
 		}
 	}
-	if len(draft1) != 2 {
+	if len(draft1) != 4 {
 		t.Fatalf("found %d published cases", len(draft1))
 	}
 	s.Cases = draft1

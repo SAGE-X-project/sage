@@ -49,6 +49,8 @@ const (
 	PurposeHPKEResponse         // 04: the responder's signature over the response
 	PurposeCardProof            // 07: an agent card proof
 	PurposePoP                  // 06: a registry proof of possession
+
+	purposeEnd // sentinel, not a purpose
 )
 
 // String returns a stable name of the purpose.

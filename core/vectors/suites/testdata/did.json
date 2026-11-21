@@ -256,6 +256,294 @@
         "code": "identifier",
         "reject": true
       }
+    },
+    {
+      "name": "pop-ed25519",
+      "mode": "deterministic",
+      "description": "Key proof-of-possession: Ed25519 signature over SHA-256 of the challenge string.",
+      "input": {
+        "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+        "seed_label": "sage-spec/vectors/ed25519/agent-a"
+      },
+      "output": {
+        "challenge": "SAGE-PoP:did:sage:ethereum:0x1111111111111111111111111111111111111111:123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+        "key_data": "123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+        "proof": "04dbd9601516dfa4d930e14e286170dc13f580e72ce3f1c8d6d2dd47e15d54eb97cfb7a03ad0d05c7359050d598bbebe7194275e276c92e5d3930d2b136aa800"
+      }
+    },
+    {
+      "name": "pop-secp256k1",
+      "mode": "deterministic",
+      "description": "Key proof-of-possession: secp256k1 RFC 6979 signature (65 bytes r||s||v) over SHA-256 of the challenge string. Note: SHA-256, not Keccak, for this path.",
+      "input": {
+        "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+        "scalar_label": "sage-spec/vectors/secp256k1/agent-a"
+      },
+      "output": {
+        "challenge": "SAGE-PoP:did:sage:ethereum:0x1111111111111111111111111111111111111111:04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "key_data": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "proof": "2ef383803e18e1fe74d390cc650d82e87ad2fd0b4815f75ec3f6cba76603e51e6ea3715557e7fe7a772ce92cb13d41a79be5104025c9f338f864c86a5a9bcf4200"
+      }
+    },
+    {
+      "name": "select-secp256k1-first",
+      "mode": "deterministic",
+      "description": "E06-11: an Ed25519 key listed before a secp256k1 key, both with valid proofs: the secp256k1 key is the signing key (did.Evaluate, observed at the evaluation time).",
+      "input": {
+        "record": {
+          "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "is_active": true,
+          "keys": [
+            {
+              "key_data": "123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+              "signature": "04dbd9601516dfa4d930e14e286170dc13f580e72ce3f1c8d6d2dd47e15d54eb97cfb7a03ad0d05c7359050d598bbebe7194275e276c92e5d3930d2b136aa800",
+              "type": 1,
+              "verified": true
+            },
+            {
+              "key_data": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+              "signature": "2ef383803e18e1fe74d390cc650d82e87ad2fd0b4815f75ec3f6cba76603e51e6ea3715557e7fe7a772ce92cb13d41a79be5104025c9f338f864c86a5a9bcf4200",
+              "type": 0,
+              "verified": true
+            }
+          ]
+        }
+      },
+      "output": {
+        "signing_key": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+        "signing_key_type": 0
+      }
+    },
+    {
+      "name": "select-skips-bad-pop",
+      "mode": "deterministic",
+      "description": "E06-11: the first secp256k1 entry carries the deployed registry's EIP-191 registration signature by the same key (no §4 proof; its v is given as 0 or 1, so only the proof check rejects it), the second a valid proof: the second is the signing key (did.Evaluate, observed at the evaluation time).",
+      "input": {
+        "record": {
+          "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "is_active": true,
+          "keys": [
+            {
+              "key_data": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+              "signature": "7970dc09cba6b7dc4ddff4e75b000cf6577d900acb5aa79f69c7c0bdc76fed29178f5f8441040edbd8a14d0b7819e8ac23ef0dc45e2ef94a3e751c331264cb2f01",
+              "type": 0,
+              "verified": true
+            },
+            {
+              "key_data": "041e0efc5e9c8f4f27e1f02034f47f119fbb0797f4a4580a88731cb9ae9afbfd15bd63ccd03520defe433e6d420aabc20ebc7bf1b9da260dcfcd8e3ec31b01060e",
+              "signature": "c1cb0f4816c8967ee33cc110f8b850571f643ab50d80819a594e9453646ceda71085659b44ebbf61d9729e3441c254f4c8a4ad0a19384fe134c649363ef7b8b900",
+              "type": 0,
+              "verified": true
+            }
+          ]
+        }
+      },
+      "output": {
+        "signing_key": "041e0efc5e9c8f4f27e1f02034f47f119fbb0797f4a4580a88731cb9ae9afbfd15bd63ccd03520defe433e6d420aabc20ebc7bf1b9da260dcfcd8e3ec31b01060e",
+        "signing_key_type": 0
+      }
+    },
+    {
+      "name": "select-ignores-flag",
+      "mode": "deterministic",
+      "description": "E06-11: an entry with verified = true and no valid proof (the registry's EIP-191 value with v 27 or 28, as stored) is not eligible; a later entry with a valid proof and verified = false is the signing key (did.Evaluate, observed at the evaluation time).",
+      "input": {
+        "record": {
+          "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "is_active": true,
+          "keys": [
+            {
+              "key_data": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+              "signature": "7970dc09cba6b7dc4ddff4e75b000cf6577d900acb5aa79f69c7c0bdc76fed29178f5f8441040edbd8a14d0b7819e8ac23ef0dc45e2ef94a3e751c331264cb2f1c",
+              "type": 0,
+              "verified": true
+            },
+            {
+              "key_data": "041e0efc5e9c8f4f27e1f02034f47f119fbb0797f4a4580a88731cb9ae9afbfd15bd63ccd03520defe433e6d420aabc20ebc7bf1b9da260dcfcd8e3ec31b01060e",
+              "signature": "c1cb0f4816c8967ee33cc110f8b850571f643ab50d80819a594e9453646ceda71085659b44ebbf61d9729e3441c254f4c8a4ad0a19384fe134c649363ef7b8b900",
+              "type": 0,
+              "verified": false
+            }
+          ]
+        }
+      },
+      "output": {
+        "signing_key": "041e0efc5e9c8f4f27e1f02034f47f119fbb0797f4a4580a88731cb9ae9afbfd15bd63ccd03520defe433e6d420aabc20ebc7bf1b9da260dcfcd8e3ec31b01060e",
+        "signing_key_type": 0
+      }
+    },
+    {
+      "name": "pop-wrong-did",
+      "mode": "reject",
+      "description": "E06-10: the proof is the §4 signature over SHA-256(challenge) for the record's did and key_data as stored; a proof made for another DID (did.Evaluate, observed at the evaluation time).",
+      "input": {
+        "record": {
+          "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "is_active": true,
+          "keys": [
+            {
+              "key_data": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+              "signature": "bce7c737ac0c1f9f6f7356676a537829670190d5ced7bb46e5b8612a5f61b38c174f6f3f8d2806b164117be6b250d31c249007ad52a7a691cf0d724f8625642a00",
+              "type": 0,
+              "verified": true
+            }
+          ]
+        }
+      },
+      "output": {
+        "code": "key_not_eligible",
+        "reject": true
+      }
+    },
+    {
+      "name": "pop-wrong-key",
+      "mode": "reject",
+      "description": "E06-10: the proof is the §4 signature over SHA-256(challenge) for the record's did and key_data as stored; another key's signature over this key's digest (did.Evaluate, observed at the evaluation time).",
+      "input": {
+        "record": {
+          "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "is_active": true,
+          "keys": [
+            {
+              "key_data": "123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+              "signature": "94aab5fafa87d15d95f8893b145c39ae336ee801bdc66541edeedf7ef8306fa4f8b5f3d67af97c8c24ddfdb075dd8fb40f4eb0162fa3077e7972376f4a234707",
+              "type": 1,
+              "verified": true
+            }
+          ]
+        }
+      },
+      "output": {
+        "code": "key_not_eligible",
+        "reject": true
+      }
+    },
+    {
+      "name": "pop-secp256k1-high-s",
+      "mode": "reject",
+      "description": "E06-10: the proof is the §4 signature over SHA-256(challenge) for the record's did and key_data as stored; a valid secp256k1 proof re-encoded with high S (E01-05) (did.Evaluate, observed at the evaluation time).",
+      "input": {
+        "record": {
+          "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "is_active": true,
+          "keys": [
+            {
+              "key_data": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+              "signature": "2ef383803e18e1fe74d390cc650d82e87ad2fd0b4815f75ec3f6cba76603e51e915c8eaaa818018588d316d34ec2be571ec9cca6897ead02c76d9622759a71ff01",
+              "type": 0,
+              "verified": true
+            }
+          ]
+        }
+      },
+      "output": {
+        "code": "key_not_eligible",
+        "reject": true
+      }
+    },
+    {
+      "name": "pop-signed-raw-challenge",
+      "mode": "reject",
+      "description": "E06-10: the proof is the §4 signature over SHA-256(challenge) for the record's did and key_data as stored; an Ed25519 signature over the challenge itself instead of its SHA-256 (E01-07) (did.Evaluate, observed at the evaluation time).",
+      "input": {
+        "record": {
+          "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "is_active": true,
+          "keys": [
+            {
+              "key_data": "123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+              "signature": "22a2c0e3ebe8c3abe80ed98ebe5681eb80926bde1157f857b69b3abba16c4687f59d5f2137d78df982ed897e205caeb00afef7be5ed8a8d3cb63ff09c654bf01",
+              "type": 1,
+              "verified": true
+            }
+          ]
+        }
+      },
+      "output": {
+        "code": "key_not_eligible",
+        "reject": true
+      }
+    },
+    {
+      "name": "select-no-eligible-key",
+      "mode": "reject",
+      "description": "E06-11: every signing entry lacks a valid proof, so the record has no signing key (did.Evaluate, observed at the evaluation time).",
+      "input": {
+        "record": {
+          "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "is_active": true,
+          "keys": [
+            {
+              "key_data": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+              "signature": "7970dc09cba6b7dc4ddff4e75b000cf6577d900acb5aa79f69c7c0bdc76fed29178f5f8441040edbd8a14d0b7819e8ac23ef0dc45e2ef94a3e751c331264cb2f01",
+              "type": 0,
+              "verified": true
+            },
+            {
+              "key_data": "123e4e4034bebe7db6edcbb65d0f95bf10dab35729cd218da51a72abe7bc7610",
+              "signature": "22a2c0e3ebe8c3abe80ed98ebe5681eb80926bde1157f857b69b3abba16c4687f59d5f2137d78df982ed897e205caeb00afef7be5ed8a8d3cb63ff09c654bf01",
+              "type": 1,
+              "verified": true
+            }
+          ]
+        }
+      },
+      "output": {
+        "code": "key_not_eligible",
+        "reject": true
+      }
+    },
+    {
+      "name": "select-malformed-fails",
+      "mode": "reject",
+      "description": "E06-11: the first secp256k1 entry's key_data (40 bytes) does not decode; resolution fails and does not fall back to the second entry, which has a valid proof (did.Evaluate, observed at the evaluation time).",
+      "input": {
+        "record": {
+          "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "is_active": true,
+          "keys": [
+            {
+              "key_data": "04000000000000000000000000000000000000000000000000000000000000000000000000000000",
+              "signature": "2ef383803e18e1fe74d390cc650d82e87ad2fd0b4815f75ec3f6cba76603e51e6ea3715557e7fe7a772ce92cb13d41a79be5104025c9f338f864c86a5a9bcf4200",
+              "type": 0,
+              "verified": true
+            },
+            {
+              "key_data": "041e0efc5e9c8f4f27e1f02034f47f119fbb0797f4a4580a88731cb9ae9afbfd15bd63ccd03520defe433e6d420aabc20ebc7bf1b9da260dcfcd8e3ec31b01060e",
+              "signature": "c1cb0f4816c8967ee33cc110f8b850571f643ab50d80819a594e9453646ceda71085659b44ebbf61d9729e3441c254f4c8a4ad0a19384fe134c649363ef7b8b900",
+              "type": 0,
+              "verified": true
+            }
+          ]
+        }
+      },
+      "output": {
+        "code": "resolution",
+        "reject": true
+      }
+    },
+    {
+      "name": "inactive-agent",
+      "mode": "reject",
+      "description": "06 §3: an inactive agent (is_active false) has no usable keys, although its key has a valid proof (did.Evaluate, observed at the evaluation time).",
+      "input": {
+        "record": {
+          "did": "did:sage:ethereum:0x1111111111111111111111111111111111111111",
+          "is_active": false,
+          "keys": [
+            {
+              "key_data": "04e4ca58183538cf9b3ae81e0a2b9f77c1f32f2ad256025f856c2182bb548675e37390e2e0c047f94686a454de3937009dff7af4cb5a1e57409b31e0be35e73f78",
+              "signature": "2ef383803e18e1fe74d390cc650d82e87ad2fd0b4815f75ec3f6cba76603e51e6ea3715557e7fe7a772ce92cb13d41a79be5104025c9f338f864c86a5a9bcf4200",
+              "type": 0,
+              "verified": true
+            }
+          ]
+        }
+      },
+      "output": {
+        "code": "inactive",
+        "reject": true
+      }
     }
   ]
 }
