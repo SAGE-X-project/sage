@@ -28,13 +28,14 @@ import (
 )
 
 // DIDDescription is the description of the did suite file (unchanged from
-// draft.1; the proof-of-possession and card cases join with W-030, W-040).
+// draft.1; the card cases join with W-040).
 const DIDDescription = "did:sage method: did:sage:<chain>:<identifier> with chain in {ethereum, solana} (aliases eth, sol, case-insensitive), key proof-of-possession over SHA-256(\"SAGE-PoP:\" || DID || \":\" || hex(key)), and the A2A agent-card proof (JCS + Ed25519/secp256k1, base58 proofValue)."
 
-// DID returns the did suite cases of 06 §1 and §2: the published parse and
-// chain-aliases vectors, canonical-compare, and the errata §11 parse
-// additions as reject vectors (E06-02, E06-03).
-func DID() vectors.Suite {
+// DID returns the did suite cases of 06: the published parse,
+// chain-aliases and pop-* vectors, canonical-compare, the errata §11 parse
+// additions as reject vectors (E06-02, E06-03), and the errata §11 proof and
+// key-selection cases (E06-10, E06-11, §3).
+func DID() (vectors.Suite, error) {
 	valid := []any{
 		"did:sage:ethereum:0x1111111111111111111111111111111111111111",
 		"did:sage:ethereum:0x1111111111111111111111111111111111111111:42",
@@ -85,7 +86,11 @@ func DID() vectors.Suite {
 			Input:       map[string]any{"did": r.in}, Reject: rejectDID, Reason: obs.ReasonIdentifier,
 		})
 	}
-	return vectors.Suite{Name: "did", Description: DIDDescription, Cases: cases}
+	pop, err := didPoP()
+	if err != nil {
+		return vectors.Suite{}, err
+	}
+	return vectors.Suite{Name: "did", Description: DIDDescription, Cases: append(cases, pop...)}, nil
 }
 
 // rule names the errata item a parse reject vector tests.

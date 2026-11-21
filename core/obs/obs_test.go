@@ -159,3 +159,27 @@ func TestEmitNilAndPanic(t *testing.T) {
 type panicTracer struct{}
 
 func (panicTracer) Trace(context.Context, Event) { panic("boom") }
+
+// TestDiagnosticOutcome: a diagnostic is neither accepted nor rejected and
+// is logged at warn level without a reason.
+func TestDiagnosticOutcome(t *testing.T) {
+	names := map[Outcome]string{OutcomeRejected: "rejected", OutcomeAccepted: "accepted", OutcomeDiagnostic: "diagnostic"}
+	for o, want := range names {
+		if o.String() != want {
+			t.Fatalf("%d: %q", o, o.String())
+		}
+	}
+	var buf bytes.Buffer
+	tr := SlogTracer{Logger: slog.New(slog.NewJSONHandler(&buf, &slog.HandlerOptions{Level: slog.LevelDebug}))}
+	tr.Trace(context.Background(), Event{Outcome: OutcomeDiagnostic, Stage: StageResolve, Detail: Known("flag")})
+	var got map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got["level"] != "WARN" || got["outcome"] != "diagnostic" || got["stage"] != "S5" {
+		t.Fatalf("log = %v", got)
+	}
+	if _, ok := got["reason"]; ok {
+		t.Fatal("a diagnostic carries a reason")
+	}
+}

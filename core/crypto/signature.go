@@ -144,7 +144,11 @@ func Verify(pub PublicKey, sig Signature, msg []byte) error {
 }
 
 func verifyES256K(k *secp256k1Key, sig, msg []byte) bool {
-	digest := keccak256(msg)
+	return verifyES256KDigest(k, sig, keccak256(msg))
+}
+
+// verifyES256KDigest checks a 65-byte r || s || v over a 32-byte digest.
+func verifyES256KDigest(k *secp256k1Key, sig, digest []byte) bool {
 	// RecoverCompact takes 27 + v, then r || s, for an uncompressed key.
 	compact := make([]byte, 65)
 	compact[0] = 27 + sig[64]
