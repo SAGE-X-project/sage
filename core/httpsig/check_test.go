@@ -28,6 +28,7 @@ import (
 
 	"github.com/sage-x-project/sage/core"
 	"github.com/sage-x-project/sage/core/crypto"
+	"github.com/sage-x-project/sage/core/did"
 	"github.com/sage-x-project/sage/core/obs"
 	"github.com/sage-x-project/sage/core/secret"
 )
@@ -239,30 +240,34 @@ func TestVerifySignature(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := VerifySignature(base, cs.Public()); err != nil {
+	if _, err := VerifySignature(base, agentFor(t, cs, vecDID)); err != nil {
 		t.Fatal(err)
 	}
-	wantReason(t, errOf(VerifySignature(base, nil)), obs.ReasonKeyNotEligible)
-	wantReason(t, errOf(VerifySignature(Base{}, cs.Public())), obs.ReasonCanonicalize)
-	wantReason(t, errOf(VerifySignature(Base{p: p, b: append(base.Bytes(), 'x')}, cs.Public())), obs.ReasonSignature)
+	// The agent must be the one resolved for keyid's DID: the same key
+	// evaluated for another DID does not verify this signature.
+	wantReason(t, errOf(VerifySignature(base, agentFor(t, cs, "did:sage:ethereum:0xother"))), obs.ReasonKeyNotEligible)
+	wantReason(t, errOf(VerifySignature(base, did.Agent{})), obs.ReasonKeyNotEligible)
+	wantReason(t, errOf(VerifySignature(Base{}, agentFor(t, cs, vecDID))), obs.ReasonIdentifier)
+	wantReason(t, errOf(verifySignature(base, nil)), obs.ReasonKeyNotEligible)
+	wantReason(t, errOf(verifySignature(Base{}, cs.Public())), obs.ReasonCanonicalize)
+	wantReason(t, errOf(verifySignature(Base{p: p, b: append(base.Bytes(), 'x')}, cs.Public())), obs.ReasonSignature)
 	k1, err := crypto.NewSecp256k1Signer(secretScalar(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	// alg="ed25519" with a secp256k1 key (E01-11).
-	wantReason(t, errOf(VerifySignature(base, k1.Public())), obs.ReasonAlgorithm)
+	wantReason(t, errOf(VerifySignature(base, agentFor(t, k1, vecDID))), obs.ReasonAlgorithm)
 	// An unknown alg is rejected at step 2.
 	unknown := parsedOf(t, `sig1=("@method" "@target-uri" "@authority");keyid="k";alg="rsa-v1_5-sha256";created=1;nonce="n-0123456789abcdef"`)
 	wantReason(t, CheckRequest(unknown, Request{Method: "GET", Target: testTarget}), obs.ReasonAlgorithm)
-	// A signature of the wrong length for the key is rejected.
+	// A signature of the wrong length for the key is rejected at step 6
+	// (E03-23).
 	short := parsedOf(t, `sig1=("@method" "@target-uri" "@authority")`+reqParams)
 	sb, err := RequestBase(short, Request{Method: "GET", Target: testTarget})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := VerifySignature(sb, cs.Public()); err == nil {
-		t.Fatal("3-byte signature accepted")
-	}
+	wantReason(t, errOf(verifySignature(sb, cs.Public())), obs.ReasonSignature)
 }
 
 // TestH4 is the H4 probe: a signature that covers nothing, reused on

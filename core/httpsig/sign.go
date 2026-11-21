@@ -150,7 +150,7 @@ func (s *Signer) SignRequest(ctx context.Context, r Request, p Params) (Fields, 
 	if err == nil {
 		var b Base
 		if b, err = RequestBase(parsed, signed); err == nil {
-			_, err = VerifySignature(b, s.signer.Public())
+			_, err = verifySignature(b, s.signer.Public())
 		}
 	}
 	if err != nil {
@@ -206,7 +206,7 @@ func (s *Signer) SignResponse(ctx context.Context, resp Response, req Request, p
 	if err == nil {
 		var b Base
 		if b, err = ResponseBase(parsed, signed, req); err == nil {
-			_, err = VerifySignature(b, s.signer.Public())
+			_, err = verifySignature(b, s.signer.Public())
 		}
 	}
 	if err != nil {

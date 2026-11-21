@@ -178,7 +178,9 @@ func NewMemStore(c clock.Clock, capacity Capacity) (*MemStore, error) {
 	if c == nil || capacity.PerOwner <= 0 || capacity.PerOwner > capacity.PerScope || capacity.PerScope > capacity.Total {
 		return nil, ErrInvalid
 	}
-	now, err := c.Now()
+	// A zero time would make RestoredAt zero and disable the restore rule
+	// of E03-12, so clock.Read refuses it.
+	now, err := clock.Read(c)
 	if err != nil {
 		return nil, err
 	}
@@ -206,7 +208,7 @@ func (s *MemStore) Reserve(ctx context.Context, r Reservation) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	now, err := s.clock.Now()
+	now, err := clock.Read(s.clock)
 	if err != nil {
 		return err
 	}

@@ -20,9 +20,14 @@ package suites
 
 import (
 	"crypto/ed25519"
+	"crypto/sha512"
 	"encoding/base64"
 	"fmt"
+	"math/big"
 	"strings"
+
+	"github.com/decred/dcrd/dcrec/secp256k1/v4"
+	secpecdsa "github.com/decred/dcrd/dcrec/secp256k1/v4/ecdsa"
 )
 
 // sigSpec describes a received request for the reject vectors. The suite
@@ -37,6 +42,11 @@ type sigSpec struct {
 	label             string
 	input, signature  string // set to send fixed signature fields
 	verifyAt          int64  // verification time; zero means reqCreated (E00-08)
+	// es256k signs with the secp256k1 key of label (Keccak-256, 65-byte
+	// r || s || v) instead of Ed25519; reencode, when set, changes the
+	// signature bytes after signing.
+	es256k   bool
+	reencode func([]byte) []byte
 	// prior holds received requests verified first, at the same verify_at
 	// and with the same replay store, each of which must be accepted
 	// (replay vectors).
@@ -158,7 +168,17 @@ func (s sigSpec) value(id string, resp *respSpec) string {
 }
 
 func (s sigSpec) sign() string {
-	return edSign(s.label, s.base(nil))
+	if !s.es256k {
+		return edSign(s.label, s.base(nil))
+	}
+	var d secp256k1.ModNScalar
+	d.SetByteSlice(labelSeed(s.label))
+	compact := secpecdsa.SignCompact(secp256k1.NewPrivateKey(&d), keccak([]byte(s.base(nil))), false)
+	sig := append(append([]byte(nil), compact[1:]...), compact[0]-27)
+	if s.reencode != nil {
+		sig = s.reencode(sig)
+	}
+	return "sig1=:" + base64.StdEncoding.EncodeToString(sig) + ":"
 }
 
 func edSign(label, base string) string {
@@ -250,4 +270,44 @@ func (s respSpec) received() map[string]any {
 	delete(in, "verify_at")
 	return map[string]any{"status": s.status, "body": s.body, "fields": fields, "request": in,
 		"key_label": s.label, "verify_at": respCreated}
+}
+
+// respDID is the DID of respKeyID, another agent than the request's.
+const respDID = "did:sage:ethereum:0x2222222222222222222222222222222222222222"
+
+// setField replaces the value of the field line name.
+func (s *sigSpec) setField(name, value string) {
+	for i, f := range s.fields {
+		if f[0] == name {
+			s.fields[i][1] = value
+			return
+		}
+	}
+	s.fields = append(s.fields, [2]string{name, value})
+}
+
+// es256kRequest turns s into request-es256k (the secp256k1 key of
+// labelSecp256k1A, alg="es256k") whose signature reencode changes.
+func (s *sigSpec) es256kRequest(reencode func([]byte) []byte) {
+	s.es256k, s.label, s.reencode = true, labelSecp256k1A, reencode
+	s.params = strings.Replace(s.params, `;alg="ed25519"`, `;alg="es256k"`, 1)
+}
+
+func sha512Of(body string) string {
+	sum := sha512.Sum512([]byte(body))
+	return base64.StdEncoding.EncodeToString(sum[:])
+}
+
+// derOf re-encodes a 65-byte r || s || v signature as an ASN.1 DER
+// SEQUENCE of r and s, dropping v.
+func derOf(sig []byte) []byte {
+	integer := func(b []byte) []byte {
+		v := new(big.Int).SetBytes(b).Bytes()
+		if len(v) == 0 || v[0]&0x80 != 0 {
+			v = append([]byte{0}, v...)
+		}
+		return append([]byte{0x02, byte(len(v))}, v...)
+	}
+	body := append(integer(sig[:32]), integer(sig[32:64])...)
+	return append([]byte{0x30, byte(len(body))}, body...)
 }

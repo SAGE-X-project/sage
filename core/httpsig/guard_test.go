@@ -274,7 +274,7 @@ func verifyAt(g *Guard, r Request, key crypto.PublicKey) error {
 	if err := g.CheckTime(p); err != nil {
 		return err
 	}
-	signed, err := VerifySignature(base, key)
+	signed, err := verifySignature(base, key)
 	if err != nil {
 		return err
 	}
@@ -399,4 +399,14 @@ type steppingClock struct{ t time.Time }
 func (c *steppingClock) Now() (time.Time, error) {
 	c.t = c.t.Add(time.Nanosecond)
 	return c.t, nil
+}
+
+// TestZeroClockRejects: a clock that returns the zero time rejects with
+// reason clock at both steps, not as a future signature.
+func TestZeroClockRejects(t *testing.T) {
+	g, c := newGuard(t, core.DefaultLimits(), roomy())
+	p := timed(t, vecDID+"#key-1", `;created=`+at(0)+`;nonce="n-0123456789abcdef"`)
+	c.Set(time.Time{})
+	wantReason(t, g.CheckTime(p), obs.ReasonClock)
+	wantReason(t, reserve(g, context.Background(), p), obs.ReasonClock)
 }

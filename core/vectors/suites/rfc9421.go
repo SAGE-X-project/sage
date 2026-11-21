@@ -67,15 +67,17 @@ const (
 	respSignature     = `sig1=:9RhFjsLFirHiVYgTKvF3k3rAzD3j//L1Ev6LuFtzQd0WdrOUr5661LAliAkIU/7R+loapmepfaYQPMp8l+/IDA==:`
 )
 
-// RFC9421 returns the rfc9421 suite: the four published vectors and the
-// errata §11 vectors for 03 that stages S0 to S4 (parse, parameters and
-// coverage, base, timing), S6 (signature) and S8 (replay) reject, which are
-// steps 1, 2, 5, 6 and 8 of 03 §5. The vectors of keyid, X-SAGE-DID and
-// Content-Digest, digest-mismatch-keeps-nonce among them (D30), join with
-// W-014.
+// RFC9421 returns the rfc9421 suite: the four published vectors, the
+// errata §11 reject vectors for 03, each rejected at one step of 03 §5, and
+// digest-mismatch-keeps-nonce. Every message is verified with every step of
+// 03 §5 by httpsig.Verifier, whose registry (labelResolver) lists the
+// key_label key for keyid's DID, at the fixed time verify_at (E00-08);
+// request-ecdsa-p256-sha256, whose key type the registry cannot list, is
+// checked by steps 1, 2, 3, 5, 6 and 7.
 func RFC9421() vectors.Suite {
+	cases := append(rfc9421Published(), rfc9421Rejects()...)
 	return vectors.Suite{Name: "rfc9421", Description: RFC9421Description,
-		Cases: append(rfc9421Published(), rfc9421Rejects()...)}
+		Cases: append(cases, rfc9421KeepsNonce())}
 }
 
 func rfc9421Published() []vectors.Case {
@@ -114,11 +116,10 @@ func rfc9421Published() []vectors.Case {
 	}
 }
 
-// The published vectors are signed by httpsig.Signer and checked by stages
-// S1 to S4, S6 and S8 (03 §5 steps 1, 2, 5, 6 and 8) with the
-// key derived from key_label, at the verification time now = created
-// (E00-08). For response-ed25519 that is its own created, the request's
-// created + 1. Steps 3, 4 and 7 join with W-014.
+// The published vectors are signed by httpsig.Signer and verified by every
+// step of 03 §5, with ExpectedDID bound to keyid's DID and the key_label key
+// resolved for it, at the verification time now = created (E00-08). For
+// response-ed25519 that is its own created, the request's created + 1.
 
 func produceRequest(in map[string]any) (map[string]any, error) {
 	r, s, p, err := signedMessage(in)
@@ -160,11 +161,20 @@ func verifyRequest(in, out map[string]any) error {
 	if err != nil {
 		return err
 	}
-	g, err := guardAt(created)
-	if err != nil {
-		return err
+	var base []byte
+	if alg, _ := in["alg"].(string); alg == crypto.AlgP256.String() {
+		base, err = checkP256Request(r, in, created)
+	} else {
+		var v *httpsig.Verifier
+		var e httpsig.Expect
+		if v, err = verifierAt(created, in["key_label"].(string)); err != nil {
+			return err
+		}
+		if e, err = expectKeyID(in); err != nil {
+			return err
+		}
+		base, err = checkRequest(r, v, e)
 	}
-	base, err := checkRequest(r, in, g)
 	if err != nil {
 		return err
 	}
@@ -240,11 +250,16 @@ func verifyResponse(in, out map[string]any) error {
 	if err != nil {
 		return err
 	}
-	g, err := guardAt(created)
+	label, _ := in["key_label"].(string)
+	v, err := verifierAt(created, label)
 	if err != nil {
 		return err
 	}
-	base, err := checkResponse(resp, req, in, g)
+	e, err := expectKeyID(in)
+	if err != nil {
+		return err
+	}
+	base, err := checkResponse(resp, req, v, e)
 	if err != nil {
 		return err
 	}
@@ -254,10 +269,43 @@ func verifyResponse(in, out map[string]any) error {
 	return nil
 }
 
-// guardAt returns a timing and replay guard with the default limits, at
-// the verification time at (Unix seconds), whose replay store was restored
-// an hour earlier, so the restore rule of E03-12 does not apply.
-func guardAt(at int64) (*httpsig.Guard, error) {
+// labelResolver is the registry of the rfc9421 vectors: every DID resolves
+// to an active record that lists exactly the key of key_label, with its §4
+// proof of possession for that DID, observed at the verification time. So
+// steps 4 and 6 of 03 §5 verify with the key_label key resolved for keyid's
+// DID.
+type labelResolver struct {
+	signer crypto.Signer
+	clock  clock.Clock
+}
+
+func (r labelResolver) Resolve(ctx context.Context, d did.DID) (did.Record, did.Observation, error) {
+	data := r.signer.Public().Bytes()
+	proof, err := crypto.SignPoP(ctx, r.signer, d.AsSent(), data)
+	if err != nil {
+		return did.Record{}, did.Observation{}, err
+	}
+	typ := did.KeyTypeEd25519
+	if r.signer.Public().Alg() == crypto.AlgES256K {
+		typ = did.KeyTypeECDSA
+	}
+	now, err := r.clock.Now()
+	if err != nil {
+		return did.Record{}, did.Observation{}, err
+	}
+	rec := did.Record{DID: d, IsActive: true, Keys: []did.Key{{Type: typ, KeyData: data, Signature: proof.Bytes(), Verified: true}}}
+	return rec, did.Observation{At: now, Source: "vectors"}, nil
+}
+
+// verifierAt returns a verifier with the default limits at the
+// verification time at (Unix seconds), whose replay store was restored an
+// hour earlier, so the restore rule of E03-12 does not apply, and whose
+// registry is the labelResolver of key_label.
+func verifierAt(at int64, label string) (*httpsig.Verifier, error) {
+	cs, err := labelSigner(label)
+	if err != nil {
+		return nil, err
+	}
 	now := time.Unix(at, 0)
 	c := clock.NewFixed(now.Add(-time.Hour))
 	store, err := replay.NewMemStore(c, replay.Capacity{PerOwner: 8, PerScope: 8, Total: 8})
@@ -265,13 +313,53 @@ func guardAt(at int64) (*httpsig.Guard, error) {
 		return nil, err
 	}
 	c.Set(now)
-	return httpsig.NewGuard(c, core.DefaultLimits(), store)
+	s, err := core.NewSettings(core.WithSpecVersion(string(core.V0_9_0_Draft1_1)))
+	if err != nil {
+		return nil, err
+	}
+	return httpsig.NewVerifier(c, s, store, labelResolver{signer: cs, clock: c})
 }
 
-// checkRequest runs stages S1, S2, S3 (base), S4 (timing), S6 (signature)
-// and S8 (replay) on a received request with the key derived from in's
-// key_label, and returns the rebuilt base. A nil g skips S4 and S8.
-func checkRequest(r httpsig.Request, in map[string]any, g *httpsig.Guard) ([]byte, error) {
+// checkRequest runs every step of 03 §5 on a received request with v and
+// the expectation e, and returns the rebuilt base.
+func checkRequest(r httpsig.Request, v *httpsig.Verifier, e httpsig.Expect) ([]byte, error) {
+	p, err := httpsig.Parse(r.Header, "", core.DefaultLimits())
+	if err != nil {
+		return nil, err
+	}
+	base, err := httpsig.RequestBase(p, r)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := v.VerifyRequest(context.Background(), r, e); err != nil {
+		return nil, err
+	}
+	return base.Bytes(), nil
+}
+
+// checkResponse runs every step of 03 §5 on a received response for req,
+// which reserves no nonce for a response (00-overview.md §7.4 DP-4), and
+// returns the rebuilt base.
+func checkResponse(resp httpsig.Response, req httpsig.Request, v *httpsig.Verifier, e httpsig.Expect) ([]byte, error) {
+	p, err := httpsig.Parse(resp.Header, "", core.DefaultLimits())
+	if err != nil {
+		return nil, err
+	}
+	base, err := httpsig.ResponseBase(p, resp, req)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := v.VerifyResponse(context.Background(), resp, req, e); err != nil {
+		return nil, err
+	}
+	return base.Bytes(), nil
+}
+
+// checkP256Request checks request-ecdsa-p256-sha256, whose key type the
+// registry cannot list (06 §3: types 0, 1 and 2), so it cannot be resolved
+// and verified by the Verifier: steps 1, 2, 3, 5, 6 (with the key_label
+// key) and 7 of 03 §5.
+func checkP256Request(r httpsig.Request, in map[string]any, at int64) ([]byte, error) {
 	key, err := labelKey(in)
 	if err != nil {
 		return nil, err
@@ -284,55 +372,47 @@ func checkRequest(r httpsig.Request, in map[string]any, g *httpsig.Guard) ([]byt
 	if err != nil {
 		return nil, err
 	}
-	if g != nil {
-		if err := g.CheckTime(p); err != nil {
-			return nil, err
-		}
-	}
-	signed, err := httpsig.VerifySignature(base, key)
+	e, err := expectKeyID(in)
 	if err != nil {
 		return nil, err
 	}
-	if g != nil {
-		if err := g.Reserve(context.Background(), signed); err != nil {
-			return nil, err
-		}
+	if _, err := httpsig.CheckSigner(p, r.Header, e); err != nil {
+		return nil, err
+	}
+	c := clock.NewFixed(time.Unix(at, 0))
+	store, err := replay.NewMemStore(c, replay.Capacity{PerOwner: 1, PerScope: 1, Total: 1})
+	if err != nil {
+		return nil, err
+	}
+	g, err := httpsig.NewGuard(c, core.DefaultLimits(), store)
+	if err != nil {
+		return nil, err
+	}
+	if err := g.CheckTime(p); err != nil {
+		return nil, err
+	}
+	sig, err := crypto.ParseSignature(key.Alg(), p.Signature())
+	if err != nil {
+		return nil, err
+	}
+	if err := crypto.Verify(key, sig, base.Bytes()); err != nil {
+		return nil, err
+	}
+	if err := httpsig.CheckDigest(r.Header, r.Body, core.DefaultLimits()); err != nil {
+		return nil, err
 	}
 	return base.Bytes(), nil
 }
 
-// checkResponse runs stages S1, S2, S3, S4 and S6 on a received response,
-// and S8, which reserves nothing for a response: its replay protection is
-// the binding by "signature";req (00-overview.md §7.4 DP-4). A nil g skips
-// S4 and S8.
-func checkResponse(resp httpsig.Response, req httpsig.Request, in map[string]any, g *httpsig.Guard) ([]byte, error) {
-	key, err := labelKey(in)
+// expectKeyID returns the expectation of the published request vectors:
+// ExpectedDID bound to keyid's DID.
+func expectKeyID(in map[string]any) (httpsig.Expect, error) {
+	keyid, _ := in["keyid"].(string)
+	ref, err := did.ParseKeyRef(keyid)
 	if err != nil {
-		return nil, err
+		return httpsig.Expect{}, err
 	}
-	p, err := httpsig.Parse(resp.Header, "", core.DefaultLimits())
-	if err != nil {
-		return nil, err
-	}
-	base, err := httpsig.ResponseBase(p, resp, req)
-	if err != nil {
-		return nil, err
-	}
-	if g != nil {
-		if err := g.CheckTime(p); err != nil {
-			return nil, err
-		}
-	}
-	signed, err := httpsig.VerifySignature(base, key)
-	if err != nil {
-		return nil, err
-	}
-	if g != nil {
-		if err := g.Reserve(context.Background(), signed); err != nil {
-			return nil, err
-		}
-	}
-	return base.Bytes(), nil
+	return httpsig.Expect{DID: ref.DID()}, nil
 }
 
 // signedMessage reads the request and the signer of a published input.
@@ -488,6 +568,8 @@ func rfc9421Rejects() []vectors.Case {
 		checked = "rejected when the signature parameters are checked (03 §5 step 2)"
 		covered = "rejected when the covered components are checked (03 §5 step 2)"
 		signed  = "rejected when the signature is verified (03 §5 step 6)"
+		signer  = "rejected when keyid and the expected signer are checked (03 §5 step 3)"
+		digest  = "rejected when Content-Digest is checked against the body (03 §5 step 7)"
 		timed   = "rejected when the timing is checked (03 §5 step 5)"
 		reused  = "rejected when the nonce is reserved (03 §5 step 8)"
 	)
@@ -495,6 +577,13 @@ func rfc9421Rejects() []vectors.Case {
 		return vectors.Case{
 			Name: name, Mode: vectors.ModeReject,
 			Description: item + ": request-ed25519 as received, with " + desc + "; " + stage + ".",
+			Input:       in, Reject: rejectHTTPRequest, Reason: reason,
+		}
+	}
+	reqES := func(name, item, desc, stage string, in map[string]any, reason obs.Reason) vectors.Case {
+		return vectors.Case{
+			Name: name, Mode: vectors.ModeReject,
+			Description: item + ": request-es256k as received, with " + desc + "; " + stage + ".",
 			Input:       in, Reject: rejectHTTPRequest, Reason: reason,
 		}
 	}
@@ -591,9 +680,87 @@ func rfc9421Rejects() []vectors.Case {
 				param(s, `;keyid="`+reqKeyID+`"`, `;keyid="`+reqDID+`"`)
 				s.prior = []map[string]any{baseRequest().received()}
 			}), obs.ReasonReplay),
+		req("keyid-bad-did", "E03-14", "keyid did:sage:ethereum:a/b (a path character in the identifier), re-signed", signer,
+			with(func(s *sigSpec) { param(s, `;keyid="`+reqKeyID+`"`, `;keyid="did:sage:ethereum:a/b"`) }), obs.ReasonIdentifier),
+		req("keyid-bad-fragment", "E03-14", "keyid "+reqDID+"#1 (a fragment that is not key-<n>), re-signed", signer,
+			with(func(s *sigSpec) { param(s, `;keyid="`+reqKeyID+`"`, `;keyid="`+reqDID+`#1"`) }), obs.ReasonIdentifier),
+		req("x-sage-did-mismatch", "03 §3", "X-SAGE-DID naming another DID ("+respDID+"), re-signed", signer,
+			with(func(s *sigSpec) { s.setField("x-sage-did", respDID) }), obs.ReasonHeaderMismatch),
+		req("digest-mismatch", "E03-13", "the body replaced by another body of the same length; Content-Digest and the signature are unchanged (the signature covers Content-Digest, not the body)", digest,
+			with(func(s *sigSpec) {
+				s.input, s.signature = s.member(), s.sign()
+				s.body = strings.Replace(s.body, `"hello"`, `"HELLO"`, 1)
+			}), obs.ReasonDigest),
+		req("digest-two-members", "E03-13", "a sha-512 member added to Content-Digest after the correct sha-256 member, re-signed", digest,
+			with(func(s *sigSpec) { s.setField("content-digest", reqContentDigest+", sha-512=:"+sha512Of(reqBody)+":") }), obs.ReasonDigest),
+		req("digest-sha512-only", "E03-13", "Content-Digest holding only the correct sha-512 member, re-signed", digest,
+			with(func(s *sigSpec) { s.setField("content-digest", "sha-512=:"+sha512Of(reqBody)+":") }), obs.ReasonDigest),
+		reqES("es256k-64-byte", "E03-23", "its 65-byte signature re-encoded as the 64 bytes r || s", signed,
+			with(func(s *sigSpec) { s.es256kRequest(func(b []byte) []byte { return b[:64] }) }), obs.ReasonSignature),
+		reqES("es256k-der", "E03-23", "its signature re-encoded as ASN.1 DER", signed,
+			with(func(s *sigSpec) { s.es256kRequest(derOf) }), obs.ReasonSignature),
+		req("alg-key-mismatch", "E01-11", `alg="es256k" with the resolved Ed25519 key, re-signed with that key`, signed,
+			with(func(s *sigSpec) { param(s, `;alg="ed25519"`, `;alg="es256k"`) }), obs.ReasonAlgorithm),
 		resp("response-other-request", "E03-10", `the response re-signed with "@target-uri";req https://agent-b.example/mcp/tools/list, another request's value, and checked against request-ed25519`, signed,
 			withResp(func(s *respSpec) { s.signFor.url = strings.Replace(s.signFor.url, "/call", "/list", 1) }), obs.ReasonSignature),
 	}
+}
+
+// rfc9421KeepsNonce returns digest-mismatch-keeps-nonce (errata §11, SN-6,
+// E03-18): request-ed25519 with its body replaced is rejected at step 7, and
+// then request-ed25519 itself, with the same nonce, is accepted by the same
+// verifier, because a message that fails a step before 8 does not consume
+// its nonce.
+func rfc9421KeepsNonce() vectors.Case {
+	mutated := baseRequest()
+	mutated.input, mutated.signature = mutated.member(), mutated.sign()
+	mutated.body = strings.Replace(mutated.body, `"hello"`, `"HELLO"`, 1)
+	first := mutated.received()
+	delete(first, "verify_at")
+	in := baseRequest().received()
+	in["rejected_first"] = []any{first}
+	return vectors.Case{
+		Name: "digest-mismatch-keeps-nonce", Mode: vectors.ModeDeterministic,
+		Description: "E03-18 (SN-6): request-ed25519 with its body replaced (Content-Digest and signature unchanged), in rejected_first, " +
+			"is rejected when Content-Digest is checked (03 §5 step 7); request-ed25519 with the same nonce is then accepted by the same verifier at verify_at.",
+		Input: in, Produce: produceKeepsNonce,
+	}
+}
+
+func produceKeepsNonce(in map[string]any) (map[string]any, error) {
+	v, err := inputVerifier(in)
+	if err != nil {
+		return nil, err
+	}
+	list, ok := in["rejected_first"].([]any)
+	if !ok || len(list) == 0 {
+		return nil, errors.New("rejected_first must be a non-empty list")
+	}
+	codes := make([]any, len(list))
+	for i, x := range list {
+		m, ok := x.(map[string]any)
+		if !ok {
+			return nil, errors.New("each rejected_first request must be an object")
+		}
+		r, err := receivedRequestOf(m)
+		if err != nil {
+			return nil, err
+		}
+		_, err = checkRequest(r, v, httpsig.Expect{})
+		var rej *core.Rejection
+		if !errors.As(err, &rej) {
+			return nil, fmt.Errorf("rejected_first request %d was not rejected: %v", i, err)
+		}
+		codes[i] = rej.Reason().String()
+	}
+	r, err := receivedRequestOf(in)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := checkRequest(r, v, httpsig.Expect{}); err != nil {
+		return nil, fmt.Errorf("the request after rejected_first was not accepted: %s", detail(err))
+	}
+	return map[string]any{"rejected_first": codes, "accepted": true}, nil
 }
 
 // rejectHTTPRequest reads the received request of a vector and runs
@@ -604,12 +771,12 @@ func rejectHTTPRequest(in map[string]any) error {
 	if err != nil {
 		return err
 	}
-	g, err := inputGuard(in)
+	v, err := inputVerifier(in)
 	if err != nil {
 		return err
 	}
-	if v, ok := in["prior"]; ok {
-		list, ok := v.([]any)
+	if x, ok := in["prior"]; ok {
+		list, ok := x.([]any)
 		if !ok {
 			return errors.New("prior must be a list")
 		}
@@ -622,21 +789,27 @@ func rejectHTTPRequest(in map[string]any) error {
 			if err != nil {
 				return err
 			}
-			if _, err := checkRequest(pr, p, g); err != nil {
+			if _, err := checkRequest(pr, v, httpsig.Expect{}); err != nil {
 				return fmt.Errorf("prior request %d was not accepted: %s", i, detail(err))
 			}
 		}
 	}
-	_, err = checkRequest(r, in, g)
+	_, err = checkRequest(r, v, httpsig.Expect{})
 	return err
 }
 
-func inputGuard(in map[string]any) (*httpsig.Guard, error) {
+// inputVerifier returns the verifier of a received message at its
+// verify_at, with the registry of its key_label.
+func inputVerifier(in map[string]any) (*httpsig.Verifier, error) {
 	at, err := integer(in["verify_at"])
 	if err != nil {
 		return nil, errors.New("verify_at must be an integer")
 	}
-	return guardAt(at)
+	label, ok := in["key_label"].(string)
+	if !ok {
+		return nil, errors.New("key_label must be a string")
+	}
+	return verifierAt(at, label)
 }
 
 // detail keeps a rejection of a prior request from counting as the
@@ -644,7 +817,7 @@ func inputGuard(in map[string]any) (*httpsig.Guard, error) {
 func detail(err error) string {
 	var r *core.Rejection
 	if errors.As(err, &r) {
-		return string(r.Reason())
+		return r.Reason().String()
 	}
 	return err.Error()
 }
@@ -669,11 +842,11 @@ func rejectHTTPResponse(in map[string]any) error {
 	if !ok || err != nil {
 		return errors.New("body must be a string and status an integer")
 	}
-	g, err := inputGuard(in)
+	v, err := inputVerifier(in)
 	if err != nil {
 		return err
 	}
-	_, err = checkResponse(httpsig.Response{Status: int(status), Header: h, Body: []byte(body)}, req, in, g)
+	_, err = checkResponse(httpsig.Response{Status: int(status), Header: h, Body: []byte(body)}, req, v, httpsig.Expect{})
 	return err
 }
 

@@ -74,7 +74,7 @@ func (g *Guard) CheckTime(p Parsed) error {
 	if !g.ok() {
 		return ErrGuard
 	}
-	now, err := g.clock.Now()
+	now, err := clock.Read(g.clock)
 	if err != nil {
 		return reject(obs.ReasonClock, "the clock failed")
 	}
@@ -147,7 +147,7 @@ func (g *Guard) Reserve(ctx context.Context, s Signed) error {
 	if err != nil {
 		return reject(obs.ReasonIdentifier, "keyid is not a did:sage key reference")
 	}
-	now, err := g.clock.Now()
+	now, err := clock.Read(g.clock)
 	if err != nil {
 		return reject(obs.ReasonClock, "the clock failed")
 	}
@@ -171,7 +171,7 @@ func (g *Guard) Reserve(ctx context.Context, s Signed) error {
 	case errors.Is(err, replay.ErrInvalid):
 		// The store reads its clock after ours: at the MaxAge boundary the
 		// signature may have become stale in between.
-		if now, cerr := g.clock.Now(); cerr == nil {
+		if now, cerr := clock.Read(g.clock); cerr == nil {
 			if terr := checkTime(p, now, g.lim); terr != nil {
 				return terr
 			}

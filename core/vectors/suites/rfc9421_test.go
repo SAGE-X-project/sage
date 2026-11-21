@@ -19,14 +19,20 @@
 package suites
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"os"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/sage-x-project/sage/core"
+	"github.com/sage-x-project/sage/core/clock"
+	"github.com/sage-x-project/sage/core/did"
+	"github.com/sage-x-project/sage/core/httpsig"
 	"github.com/sage-x-project/sage/core/obs"
 	"github.com/sage-x-project/sage/core/vectors"
 )
@@ -155,8 +161,9 @@ func TestRFC9421InputErrors(t *testing.T) {
 }
 
 // TestRFC9421TimingAndReplayRejectsPassEarlierStages: each vector rejected
-// at timing (S4) or replay (S8) passes S1, S2, S3 and S6 unchanged, so the
-// timing or replay rule is the only reason it is rejected.
+// at timing (step 5) or replay (step 8) passes steps 1 to 4, 6 and 7
+// unchanged, so the timing or replay rule is the only reason it is
+// rejected.
 func TestRFC9421TimingAndReplayRejectsPassEarlierStages(t *testing.T) {
 	n := 0
 	for _, c := range rfc9421Rejects() {
@@ -168,7 +175,7 @@ func TestRFC9421TimingAndReplayRejectsPassEarlierStages(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err := checkRequest(r, c.Input, nil); err != nil {
+		if err := passesOtherSteps(r, c.Input); err != nil {
 			t.Errorf("%s: %v", c.Name, err)
 		}
 		if err := rejectHTTPRequest(c.Input); !isReason(err, c.Reason) {
@@ -217,4 +224,110 @@ func TestRFC9421PriorMustBeAccepted(t *testing.T) {
 func isReason(err error, want obs.Reason) bool {
 	var r *core.Rejection
 	return errors.As(err, &r) && r.Reason() == want
+}
+
+// passesOtherSteps runs steps 1, 2, 3, 4, 6 and 7 of 03 §5, without timing
+// and replay, on a received request.
+func passesOtherSteps(r httpsig.Request, in map[string]any) error {
+	p, err := httpsig.Parse(r.Header, "", core.DefaultLimits())
+	if err != nil {
+		return err
+	}
+	base, err := httpsig.RequestBase(p, r)
+	if err != nil {
+		return err
+	}
+	ref, err := httpsig.CheckSigner(p, r.Header, httpsig.Expect{})
+	if err != nil {
+		return err
+	}
+	label, _ := in["key_label"].(string)
+	cs, err := labelSigner(label)
+	if err != nil {
+		return err
+	}
+	at := time.Unix(reqCreated, 0)
+	c := clock.NewFixed(at)
+	s, err := core.NewSettings(core.WithSpecVersion(string(core.V0_9_0_Draft1_1)))
+	if err != nil {
+		return err
+	}
+	agent, err := did.ResolveAgent(context.Background(), labelResolver{signer: cs, clock: c}, ref.DID(), did.Policy{Clock: c, Settings: s})
+	if err != nil {
+		return err
+	}
+	if _, err := httpsig.VerifySignature(base, agent); err != nil {
+		return err
+	}
+	return httpsig.CheckDigest(r.Header, r.Body, core.DefaultLimits())
+}
+
+// TestRFC9421W014RejectsOnlyForTheirRule: each W-014 reject vector is its
+// base request with one mutation. The base requests are accepted, and the
+// es256k vectors carry exactly the r and s of the accepted request-es256k
+// signature, so the mutation is the only reason for each rejection.
+func TestRFC9421W014RejectsOnlyForTheirRule(t *testing.T) {
+	es := baseRequest()
+	es.es256kRequest(nil)
+	if err := rejectHTTPRequest(es.received()); err != nil {
+		t.Fatalf("request-es256k as built: %v", err)
+	}
+	if err := rejectHTTPRequest(baseRequest().received()); err != nil {
+		t.Fatalf("request-ed25519 as built: %v", err)
+	}
+	sigOf := func(in map[string]any) []byte {
+		t.Helper()
+		r, err := receivedRequestOf(in)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p, err := httpsig.Parse(r.Header, "", core.DefaultLimits())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p.Signature()
+	}
+	good := sigOf(es.received())
+	byName := map[string]map[string]any{}
+	for _, c := range rfc9421Rejects() {
+		byName[c.Name] = c.Input
+	}
+	if got := sigOf(byName["es256k-64-byte"]); !bytes.Equal(got, good[:64]) {
+		t.Fatal("es256k-64-byte is not the accepted signature without v")
+	}
+	if got := sigOf(byName["es256k-der"]); !bytes.Equal(got, derOf(good)) {
+		t.Fatal("es256k-der is not the accepted signature in DER")
+	}
+	for _, n := range []string{"keyid-bad-did", "keyid-bad-fragment", "x-sage-did-mismatch", "digest-mismatch",
+		"digest-two-members", "digest-sha512-only", "es256k-64-byte", "es256k-der", "alg-key-mismatch"} {
+		if byName[n] == nil {
+			t.Errorf("missing %s", n)
+		}
+	}
+	// digest-mismatch with the original body is the accepted base request.
+	in := map[string]any{}
+	for k, v := range byName["digest-mismatch"] {
+		in[k] = v
+	}
+	in["body"] = reqBody
+	if err := rejectHTTPRequest(in); err != nil {
+		t.Fatalf("digest-mismatch with its body restored: %v", err)
+	}
+}
+
+// TestRFC9421KeepsNonceNeedsARejection: digest-mismatch-keeps-nonce fails
+// when its first request is accepted (it would then consume the nonce).
+func TestRFC9421KeepsNonceNeedsARejection(t *testing.T) {
+	c := rfc9421KeepsNonce()
+	out, err := c.Produce(c.Input)
+	if err != nil || out["accepted"] != true {
+		t.Fatalf("%v %v", out, err)
+	}
+	in := baseRequest().received()
+	first := baseRequest().received()
+	delete(first, "verify_at")
+	in["rejected_first"] = []any{first}
+	if _, err := c.Produce(in); err == nil || isRejection(err) {
+		t.Fatalf("an accepted first request: %v", err)
+	}
 }

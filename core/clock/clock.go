@@ -22,13 +22,34 @@
 package clock
 
 import (
+	"errors"
 	"sync"
 	"time"
 )
 
+// ErrNoTime is returned by Read for a nil clock and for a clock that
+// returns the zero time, which dates nothing.
+var ErrNoTime = errors.New("clock: no time")
+
 // Clock returns the current time, or an error when it cannot.
 type Clock interface {
 	Now() (time.Time, error)
+}
+
+// Read returns c.Now() and fails for a nil clock, a clock error and the zero
+// time, so every check that reads the time fails closed the same way.
+func Read(c Clock) (time.Time, error) {
+	if c == nil {
+		return time.Time{}, ErrNoTime
+	}
+	t, err := c.Now()
+	if err != nil {
+		return time.Time{}, err
+	}
+	if t.IsZero() {
+		return time.Time{}, ErrNoTime
+	}
+	return t, nil
 }
 
 // System returns the system clock.

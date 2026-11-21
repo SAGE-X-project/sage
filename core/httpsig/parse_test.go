@@ -342,6 +342,8 @@ func FuzzParse(f *testing.F) {
 			CheckResponse(p, Response{Status: 200, Header: h, Body: []byte("b")}, req),
 			rerr, serr, berr, rerr2,
 			g.CheckTime(p), g.Reserve(context.Background(), Signed{p: p}), g.Reserve(context.Background(), Signed{p: p, response: true}),
+			errOf2(CheckSigner(p, http.Header{"X-Sage-Did": {sig}}, Expect{})),
+			CheckDigest(http.Header{"Content-Digest": {input}}, []byte("b"), core.DefaultLimits()),
 		} {
 			var r *core.Rejection
 			if err != nil && !errors.As(err, &r) && !errors.Is(err, ErrUnsignedRequest) {
@@ -448,3 +450,5 @@ func TestNonCanonicalHeaderKeys(t *testing.T) {
 	_, err = parse(h)
 	wantReason(t, err, obs.ReasonDuplicate)
 }
+
+func errOf2[T any](_ T, err error) error { return err }

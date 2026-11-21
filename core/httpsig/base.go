@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/sage-x-project/sage/core/crypto"
+	"github.com/sage-x-project/sage/core/did"
 	"github.com/sage-x-project/sage/core/obs"
 )
 
@@ -158,12 +159,30 @@ type Signed struct {
 // Parsed returns the parsed signature.
 func (s Signed) Parsed() Parsed { return s.p }
 
-// VerifySignature checks the signature the base was built for, over that
-// base, with key (03 §5 step 6 for the key the resolver chose). An alg
+// VerifySignature is step 6 of 03 §5: it checks the signature the base was
+// built for, over that base, with the signing key of agent, which must be
+// the agent of keyid's DID (did.ResolveAgent or did.Evaluate for that DID,
+// step 4). So a Signed, and with it a replay reservation, exists only for a
+// signature by the key resolved for the DID that keyid names. An alg
 // parameter must name the key's algorithm (E01-11). It verifies the
 // signature only: the message is verified when every step of 03 §5 has
-// passed.
-func VerifySignature(base Base, key crypto.PublicKey) (Signed, error) {
+// passed (Verifier).
+func VerifySignature(base Base, agent did.Agent) (Signed, error) {
+	keyid, _ := base.p.KeyID()
+	ref, err := did.ParseKeyRef(keyid)
+	if err != nil {
+		return Signed{}, reject(obs.ReasonIdentifier, "keyid is not a did:sage key reference")
+	}
+	if agent.IsZero() || !agent.DID().Equal(ref.DID()) {
+		return Signed{}, reject(obs.ReasonKeyNotEligible, "the key was not resolved for keyid's DID")
+	}
+	return verifySignature(base, agent.SigningKey().PublicKey())
+}
+
+// verifySignature checks the signature over base with key. A signature
+// that is not the one accepted encoding for the key's algorithm (E03-23,
+// E01-05) is rejected with reason signature, as a failure of step 6.
+func verifySignature(base Base, key crypto.PublicKey) (Signed, error) {
 	p := base.p
 	if base.b == nil {
 		return Signed{}, canonicalize("no signature base")
@@ -179,7 +198,7 @@ func VerifySignature(base Base, key crypto.PublicKey) (Signed, error) {
 	}
 	sig, err := crypto.ParseSignature(key.Alg(), p.signature)
 	if err != nil {
-		return Signed{}, err
+		return Signed{}, reject(obs.ReasonSignature, "signature is not the one encoding of the key's algorithm")
 	}
 	if err := crypto.Verify(key, sig, base.b); err != nil {
 		return Signed{}, err

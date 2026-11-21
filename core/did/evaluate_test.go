@@ -493,3 +493,42 @@ func TestVerifyPoPOnlyInEvaluate(t *testing.T) {
 		t.Fatal("found no reference at all; the scan is broken")
 	}
 }
+
+type stubResolver struct {
+	rec   Record
+	o     Observation
+	err   error
+	calls int
+}
+
+func (s *stubResolver) Resolve(context.Context, DID) (Record, Observation, error) {
+	s.calls++
+	return s.rec, s.o, s.err
+}
+
+func TestResolveAgent(t *testing.T) {
+	k := newEvalKeys(t)
+	ctx := context.Background()
+	rec := activeRecord(t, entry(t, k.k1, evalDID, nil))
+	r := &stubResolver{rec: rec, o: fresh()}
+	a, err := ResolveAgent(ctx, r, wantDID(t), policy(t))
+	wantKey(t, a, err, k.k1)
+	r.err = errors.New("rpc down")
+	_, err = ResolveAgent(ctx, r, wantDID(t), policy(t))
+	wantRejection(t, err, obs.ReasonResolution)
+	_, err = ResolveAgent(ctx, nil, wantDID(t), policy(t))
+	wantRejection(t, err, obs.ReasonResolution)
+	// A record of another DID is rejected by Evaluate.
+	r.err = nil
+	other, err := Parse("did:sage:ethereum:0x2222222222222222222222222222222222222222")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = ResolveAgent(ctx, r, other, policy(t))
+	wantRejection(t, err, obs.ReasonResolution)
+	// An invalid policy fails before any resolution.
+	calls := r.calls
+	if _, err := ResolveAgent(ctx, r, wantDID(t), Policy{}); !errors.Is(err, ErrPolicy) || r.calls != calls {
+		t.Fatalf("%v, %d calls", err, r.calls-calls)
+	}
+}
