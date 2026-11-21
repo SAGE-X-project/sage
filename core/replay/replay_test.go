@@ -516,3 +516,23 @@ func TestFailedReservationFixesNoWindows(t *testing.T) {
 		})
 	}
 }
+
+// TestZeroClock: a clock that returns the zero time makes no store, since a
+// zero RestoredAt would disable the restore rule (E03-12), and a store whose
+// clock later returns it refuses reservations.
+func TestZeroClock(t *testing.T) {
+	capacity := Capacity{PerOwner: 1, PerScope: 1, Total: 1}
+	if _, err := NewMemStore(clock.NewFixed(time.Time{}), capacity); !errors.Is(err, clock.ErrNoTime) {
+		t.Fatal(err)
+	}
+	c := clock.NewFixed(time.Unix(1788609600, 0))
+	s, err := NewMemStore(c, capacity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.Set(time.Time{})
+	r := httpRes(clock.NewFixed(time.Unix(1788609600, 0)), "did:sage:ethereum:0x1", "n-0123456789abcdef")
+	if err := s.Reserve(context.Background(), r); !errors.Is(err, clock.ErrNoTime) {
+		t.Fatal(err)
+	}
+}

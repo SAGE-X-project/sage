@@ -69,7 +69,7 @@ func verifyRequest(r Request, key crypto.PublicKey) error {
 	if err != nil {
 		return err
 	}
-	_, err = VerifySignature(base, key)
+	_, err = verifySignature(base, key)
 	return err
 }
 
@@ -219,7 +219,7 @@ func TestSignResponseRoundTrip(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		_, err = VerifySignature(base, cs.Public())
+		_, err = verifySignature(base, cs.Public())
 		return err
 	}
 	if err := verify(resp, req); err != nil {

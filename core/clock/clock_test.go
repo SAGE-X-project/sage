@@ -65,3 +65,25 @@ func TestFailing(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 }
+
+func TestRead(t *testing.T) {
+	now := time.Unix(1788609600, 0)
+	if got, err := Read(NewFixed(now)); err != nil || !got.Equal(now) {
+		t.Fatalf("%v %v", got, err)
+	}
+	boom := errors.New("boom")
+	for name, c := range map[string]Clock{"nil": nil, "zero": NewFixed(time.Time{}), "failing": Failing(boom)} {
+		if _, err := Read(c); err == nil {
+			t.Fatalf("%s: no error", name)
+		}
+	}
+	if _, err := Read(Failing(boom)); !errors.Is(err, boom) {
+		t.Fatal("the clock's error is not returned")
+	}
+	if _, err := Read(NewFixed(time.Time{})); !errors.Is(err, ErrNoTime) {
+		t.Fatal("zero time")
+	}
+	if _, err := Read(System()); err != nil {
+		t.Fatal(err)
+	}
+}

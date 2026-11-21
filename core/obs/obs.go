@@ -106,6 +106,7 @@ const (
 	ReasonCookie         // S2: denial-of-service cookie
 	ReasonHeaderMismatch // S2: a header differs from the signed body
 	ReasonRecipient      // S2: the message is not addressed to this agent
+	ReasonPeerMismatch   // S2: expected sender, key or authority differs (E03-18 step 3)
 
 	ReasonCanonicalize // S3: the signing input cannot be rebuilt
 
@@ -126,7 +127,6 @@ const (
 	ReasonReplay     // S8: the nonce was already used
 	ReasonReplayFull // S8: the replay store is full
 
-	ReasonPeerMismatch // S9: expected peer or authority differs
 	ReasonUnauthorized // S9: the host's authorizer denied
 
 	ReasonInspectorDenied // S10: the host's inspector denied delivery
@@ -152,7 +152,7 @@ func StageOf(r Reason) Stage {
 	case ReasonMalformed, ReasonNonCanonical, ReasonDuplicate, ReasonUnknownMember:
 		return StageParse
 	case ReasonIdentifier, ReasonParameters, ReasonCoverage, ReasonAlgorithm,
-		ReasonCookie, ReasonHeaderMismatch, ReasonRecipient:
+		ReasonCookie, ReasonHeaderMismatch, ReasonRecipient, ReasonPeerMismatch:
 		return StageCheck
 	case ReasonCanonicalize:
 		return StageCanonical
@@ -166,7 +166,7 @@ func StageOf(r Reason) Stage {
 		return StageBindBody
 	case ReasonReplay, ReasonReplayFull:
 		return StageReplay
-	case ReasonPeerMismatch, ReasonUnauthorized:
+	case ReasonUnauthorized:
 		return StageAuthorize
 	case ReasonInspectorDenied:
 		return StageDeliver

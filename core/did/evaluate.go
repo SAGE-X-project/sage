@@ -152,8 +152,8 @@ func checkLimits(rec Record) error {
 }
 
 func checkFresh(o Observation, p Policy) error {
-	now, err := p.Clock.Now()
-	if err != nil || now.IsZero() {
+	now, err := clock.Read(p.Clock)
+	if err != nil {
 		return core.Reject(obs.ReasonClock, obs.Known("the clock failed"))
 	}
 	switch {
@@ -206,4 +206,23 @@ func selectSigningKey(rec Record) (TrustedKey, error) {
 		}
 	}
 	return TrustedKey{}, core.Reject(obs.ReasonKeyNotEligible, obs.Known("no listed signing key with a valid proof of possession"))
+}
+
+// ResolveAgent resolves d with r and evaluates the record for d (06 §3,
+// §3.1): it is step 4 of 03 §5 and the resolution step of every other
+// verification path. Any resolver error, a nil resolver among them, is a
+// rejection with reason resolution, so every caller maps it the same way and
+// fails closed (E06-12); a rejection from Evaluate is returned unchanged.
+func ResolveAgent(ctx context.Context, r KeyResolver, d DID, p Policy) (Agent, error) {
+	if p.Clock == nil || p.Settings.Validate() != nil {
+		return Agent{}, ErrPolicy
+	}
+	if r == nil {
+		return Agent{}, core.Reject(obs.ReasonResolution, obs.Known("no resolver"))
+	}
+	rec, o, err := r.Resolve(ctx, d)
+	if err != nil {
+		return Agent{}, core.Reject(obs.ReasonResolution, obs.Known("the resolver failed"))
+	}
+	return Evaluate(ctx, d, rec, o, p)
 }
