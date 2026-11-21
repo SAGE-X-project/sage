@@ -5,9 +5,178 @@
   "description": "HTTP Message Signatures profile: covered components, signature base, Signature-Input/Signature headers, Content-Digest (sha-256), keyid = DID#fragment, and response signatures bound to the request with ;req.",
   "vectors": [
     {
+      "name": "request-ed25519",
+      "mode": "deterministic",
+      "description": "Signed POST request with alg=ed25519. Verify at the fixed clock now = created, nonce required, ExpectedDID bound to keyid.",
+      "input": {
+        "alg": "ed25519",
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "covered": [
+          "\"@method\"",
+          "\"@target-uri\"",
+          "\"@authority\"",
+          "\"content-type\"",
+          "\"content-digest\"",
+          "\"x-sage-did\"",
+          "\"date\""
+        ],
+        "created": 1788609600,
+        "headers": {
+          "content-type": "application/json",
+          "date": "Tue, 01 Sep 2026 12:00:00 GMT",
+          "x-sage-did": "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+        },
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "keyid": "did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1",
+        "method": "POST",
+        "nonce": "8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10",
+        "signature_name": "sig1",
+        "url": "https://agent-b.example/mcp/tools/call"
+      },
+      "output": {
+        "content_digest": "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:",
+        "signature": "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:",
+        "signature_base": "\"@method\": POST\n\"@target-uri\": https://agent-b.example/mcp/tools/call\n\"@authority\": agent-b.example\n\"content-type\": application/json\n\"content-digest\": sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:\n\"x-sage-did\": did:sage:ethereum:0x1111111111111111111111111111111111111111\n\"date\": Tue, 01 Sep 2026 12:00:00 GMT\n\"@signature-params\": (\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\"",
+        "signature_input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+      }
+    },
+    {
+      "name": "request-es256k",
+      "mode": "deterministic",
+      "description": "Signed POST request with alg=es256k. Verify at the fixed clock now = created, nonce required, ExpectedDID bound to keyid.",
+      "input": {
+        "alg": "es256k",
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "covered": [
+          "\"@method\"",
+          "\"@target-uri\"",
+          "\"@authority\"",
+          "\"content-type\"",
+          "\"content-digest\"",
+          "\"x-sage-did\"",
+          "\"date\""
+        ],
+        "created": 1788609600,
+        "headers": {
+          "content-type": "application/json",
+          "date": "Tue, 01 Sep 2026 12:00:00 GMT",
+          "x-sage-did": "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+        },
+        "key_label": "sage-spec/vectors/secp256k1/agent-a",
+        "keyid": "did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1",
+        "method": "POST",
+        "nonce": "8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10",
+        "signature_name": "sig1",
+        "url": "https://agent-b.example/mcp/tools/call"
+      },
+      "output": {
+        "content_digest": "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:",
+        "signature": "sig1=:rZthbrTozRBvu8FVn/Dd1LRM1jpdvAzN8wRnslT+XbA1229t+ISKMnGm9Fupt+DhRmdP03oZyodv/iVAJ56bwQE=:",
+        "signature_base": "\"@method\": POST\n\"@target-uri\": https://agent-b.example/mcp/tools/call\n\"@authority\": agent-b.example\n\"content-type\": application/json\n\"content-digest\": sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:\n\"x-sage-did\": did:sage:ethereum:0x1111111111111111111111111111111111111111\n\"date\": Tue, 01 Sep 2026 12:00:00 GMT\n\"@signature-params\": (\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"es256k\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\"",
+        "signature_input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"es256k\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+      }
+    },
+    {
+      "name": "request-ecdsa-p256-sha256",
+      "mode": "verify",
+      "description": "Signed POST request with alg=ecdsa-p256-sha256. Verify at the fixed clock now = created, nonce required, ExpectedDID bound to keyid.",
+      "input": {
+        "alg": "ecdsa-p256-sha256",
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "covered": [
+          "\"@method\"",
+          "\"@target-uri\"",
+          "\"@authority\"",
+          "\"content-type\"",
+          "\"content-digest\"",
+          "\"x-sage-did\"",
+          "\"date\""
+        ],
+        "created": 1788609600,
+        "headers": {
+          "content-type": "application/json",
+          "date": "Tue, 01 Sep 2026 12:00:00 GMT",
+          "x-sage-did": "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+        },
+        "key_label": "sage-spec/vectors/p256/agent-a",
+        "keyid": "did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1",
+        "method": "POST",
+        "nonce": "8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10",
+        "signature_name": "sig1",
+        "url": "https://agent-b.example/mcp/tools/call"
+      },
+      "output": {
+        "content_digest": "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:",
+        "signature": "sig1=:Xru6MUOwABe3A9po5vvLFqfu++u5GP/I03H9LvdcasxGMYqrP/m7HCsjdVc8Dq5PTWTNCMy+Z+2qCNRel/6zwg==:",
+        "signature_base": "\"@method\": POST\n\"@target-uri\": https://agent-b.example/mcp/tools/call\n\"@authority\": agent-b.example\n\"content-type\": application/json\n\"content-digest\": sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:\n\"x-sage-did\": did:sage:ethereum:0x1111111111111111111111111111111111111111\n\"date\": Tue, 01 Sep 2026 12:00:00 GMT\n\"@signature-params\": (\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ecdsa-p256-sha256\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\"",
+        "signature_input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ecdsa-p256-sha256\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+      }
+    },
+    {
+      "name": "response-ed25519",
+      "mode": "deterministic",
+      "description": "Response signed by agent B over @status plus the request's @method/@target-uri/@authority/content-digest/signature with ;req, and the response content-type/content-digest. The request carries the ed25519 request signature vector.",
+      "input": {
+        "alg": "ed25519",
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}}",
+        "covered": [
+          "\"@status\"",
+          "\"@method\";req",
+          "\"@target-uri\";req",
+          "\"@authority\";req",
+          "\"content-digest\";req",
+          "\"signature\";req",
+          "\"content-type\"",
+          "\"content-digest\""
+        ],
+        "created": 1788609601,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "key_label": "sage-spec/vectors/ed25519/agent-b",
+        "keyid": "did:sage:ethereum:0x2222222222222222222222222222222222222222#key-1",
+        "nonce": "8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10-resp",
+        "request": {
+          "alg": "ed25519",
+          "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+          "covered": [
+            "\"@method\"",
+            "\"@target-uri\"",
+            "\"@authority\"",
+            "\"content-type\"",
+            "\"content-digest\"",
+            "\"x-sage-did\"",
+            "\"date\""
+          ],
+          "created": 1788609600,
+          "headers": {
+            "content-type": "application/json",
+            "date": "Tue, 01 Sep 2026 12:00:00 GMT",
+            "x-sage-did": "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          },
+          "key_label": "sage-spec/vectors/ed25519/agent-a",
+          "keyid": "did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1",
+          "method": "POST",
+          "nonce": "8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10",
+          "signature_name": "sig1",
+          "url": "https://agent-b.example/mcp/tools/call"
+        },
+        "signature_name": "sig1",
+        "status": 200
+      },
+      "output": {
+        "content_digest": "sha-256=:RYDXwjjrCO/NMhfknKXVnCd+5BTGUptdGDRgWfgFWVc=:",
+        "request_signature": "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:",
+        "request_signature_input": "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\"",
+        "signature": "sig1=:9RhFjsLFirHiVYgTKvF3k3rAzD3j//L1Ev6LuFtzQd0WdrOUr5661LAliAkIU/7R+loapmepfaYQPMp8l+/IDA==:",
+        "signature_base": "\"@status\": 200\n\"@method\";req: POST\n\"@target-uri\";req: https://agent-b.example/mcp/tools/call\n\"@authority\";req: agent-b.example\n\"content-digest\";req: sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:\n\"signature\";req: sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:\n\"content-type\": application/json\n\"content-digest\": sha-256=:RYDXwjjrCO/NMhfknKXVnCd+5BTGUptdGDRgWfgFWVc=:\n\"@signature-params\": (\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"content-type\" \"content-digest\");keyid=\"did:sage:ethereum:0x2222222222222222222222222222222222222222#key-1\";alg=\"ed25519\";created=1788609601;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10-resp\"",
+        "signature_input": "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"content-type\" \"content-digest\");keyid=\"did:sage:ethereum:0x2222222222222222222222222222222222222222#key-1\";alg=\"ed25519\";created=1788609601;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10-resp\""
+      }
+    },
+    {
       "name": "tag-present",
       "mode": "reject",
-      "description": "E03-03: request-ed25519 as received, with ;tag=\"x\" added to Signature-Input; rejected when the signature parameters are checked (03 §5 step 2).",
+      "description": "E03-03: request-ed25519 as received, with ;tag=\"x\" added to Signature-Input, re-signed; rejected when the signature parameters are checked (03 §5 step 2).",
       "input": {
         "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
         "fields": [
@@ -33,7 +202,7 @@
           ],
           [
             "signature",
-            "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:"
+            "sig1=:PHmL8J3Za5kOahnVgTqRPFFVgsDcgcSNKDqGp8B56SHlnIEdNW7GrxP5YgYEBwANM+kpHsXYSVI5uXyK1RcVBA==:"
           ]
         ],
         "key_label": "sage-spec/vectors/ed25519/agent-a",
@@ -49,7 +218,7 @@
     {
       "name": "unknown-param",
       "mode": "reject",
-      "description": "E03-03: request-ed25519 as received, with the undefined parameter ;foo=1 added to Signature-Input; rejected when the signature parameters are checked (03 §5 step 2).",
+      "description": "E03-03: request-ed25519 as received, with the undefined parameter ;foo=1 added to Signature-Input, re-signed; rejected when the signature parameters are checked (03 §5 step 2).",
       "input": {
         "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
         "fields": [
@@ -75,7 +244,7 @@
           ],
           [
             "signature",
-            "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:"
+            "sig1=:AnEjBIJmGV2mWaTANCq1h4wTqz+JEw0/rniywDoIK6OEwwRRzUj8yxh2Lph6ELSZ9gbDg/RoNkexReA6DfSCCg==:"
           ]
         ],
         "key_label": "sage-spec/vectors/ed25519/agent-a",
@@ -91,7 +260,7 @@
     {
       "name": "noncanonical-params",
       "mode": "reject",
-      "description": "E03-05: request-ed25519 as received, with a second space between the first two covered components; rejected when Signature-Input and Signature are parsed (03 §5 step 1).",
+      "description": "E03-05: request-ed25519 as received, with a second space between the first two covered components; the signature is unchanged, as it is over the canonical serialisation (03 §2); rejected when Signature-Input and Signature are parsed (03 §5 step 1).",
       "input": {
         "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
         "fields": [
@@ -305,7 +474,53 @@
     {
       "name": "signature-input-too-large",
       "mode": "reject",
-      "description": "E03-21: request-ed25519 as received, with the nonce padded so that Signature-Input is 8 KiB + 1 bytes; rejected by the field size limit before parsing (E03-21).",
+      "description": "E03-21: request-ed25519 as received, with a covered field x-pad-aaa… (present in the request with the value 1) whose name makes Signature-Input 8 KiB + 1 bytes, re-signed; rejected by the field size limit before parsing (E03-21).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "x-pad-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "1"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\" \"x-pad-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:P1X395erXIwDGezBkpCZLoy5ssTY4Y4NgwWHY9aK2KLXD7T8kP1wFmog112cJEKEvKKQJELU+HxsWZ5Gswc2BQ==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "too_large",
+        "reject": true
+      }
+    },
+    {
+      "name": "no-created",
+      "mode": "reject",
+      "description": "E03-02: request-ed25519 as received, with created removed from Signature-Input, re-signed; rejected when the signature parameters are checked (03 §5 step 2).",
       "input": {
         "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
         "fields": [
@@ -327,11 +542,11 @@
           ],
           [
             "signature-input",
-            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000008f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
           ],
           [
             "signature",
-            "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:"
+            "sig1=:JOvYEZqWqDPwnFdA+grg0h1+syqgXE4ZkN7mBnFrteUgn8rAYryVBgOuT1CthpzCAmbXVRFRBY9xdDB6rFmwBg==:"
           ]
         ],
         "key_label": "sage-spec/vectors/ed25519/agent-a",
@@ -340,7 +555,535 @@
         "verify_at": 1788609600
       },
       "output": {
-        "code": "too_large",
+        "code": "parameters",
+        "reject": true
+      }
+    },
+    {
+      "name": "no-nonce",
+      "mode": "reject",
+      "description": "E03-10: request-ed25519 as received, with nonce removed from Signature-Input, re-signed; rejected when the signature parameters are checked (03 §5 step 2).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600"
+          ],
+          [
+            "signature",
+            "sig1=:i5/T7hJ65Gnb8+hlea09aKnm1qIMS04TfPawJa0pNeeFncP670R/ThQwziXo5LoViwrM6BW6v8S1yw7GR+vqDw==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "parameters",
+        "reject": true
+      }
+    },
+    {
+      "name": "body-without-digest-coverage",
+      "mode": "reject",
+      "description": "E03-10: request-ed25519 as received, with content-digest removed from the covered components, re-signed (the body and its Content-Digest kept); rejected when the covered components are checked (03 §5 step 2).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:y6Z5aFjLnR0G3z7Jygim+wUJnlEpSNudwAvJPFljnwmqcA/Ra3xQ86XwHsV+nL/GKdYlT/3S1tbSgMp4VsE3Dw==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "coverage",
+        "reject": true
+      }
+    },
+    {
+      "name": "covers-request-target",
+      "mode": "reject",
+      "description": "E03-08: request-ed25519 as received, with \"@request-target\" covered after \"@authority\", re-signed; rejected when the covered components are checked (03 §5 step 2).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"@request-target\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:7uiMTaOwDfczy1WgDGH0mSbcULcDOHKdreuItPgXeSSenB3zdElP9VMPqZyvwmK+N3jem4Ax+YEgQaJq4n0VCQ==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "coverage",
+        "reject": true
+      }
+    },
+    {
+      "name": "covers-path",
+      "mode": "reject",
+      "description": "E03-08: request-ed25519 as received, with \"@path\" covered after \"@authority\", re-signed; rejected when the covered components are checked (03 §5 step 2).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"@path\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:Sl0vOGyFiZ+3/IJRbat3zBFIW5wfWYET/4lBSjx/jIPDlMJa9BaE8BAXQ6DVW8mqcnxHiPooj+47qReA6tsPCw==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "coverage",
+        "reject": true
+      }
+    },
+    {
+      "name": "covers-query-param",
+      "mode": "reject",
+      "description": "E03-08: request-ed25519 as received, with the query ?q=1 added to the target URI and \"@query-param\";name=\"q\" covered after \"@authority\", re-signed; rejected when the covered components are checked (03 §5 step 2).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"@query-param\";name=\"q\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:a1WnCbZ0MahZqOmP0i4+f4m7G7l5SSPe3gBWJ3UDtF8acN3ArHGPbcVDiw17/3PmF0vXh9xCL6nQ0KVRQJAFDg==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call?q=1",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "coverage",
+        "reject": true
+      }
+    },
+    {
+      "name": "authority-not-normal",
+      "mode": "reject",
+      "description": "E03-08: request-ed25519 as received, with the default port in the target URI (https://agent-b.example:443/...), so @authority is agent-b.example:443, re-signed over that value (a verifier that normalised @authority instead of rejecting it would fail the signature); rejected when the covered components are checked (03 §5 step 2).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:0BAdPaDu2s64Wx4BBBiJUnazGD1HuBFaQ07kDysJi1q4tFT2CA1tLy3X760X8sfLlhx+/abvUXHFIAtaXTbmAw==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example:443/mcp/tools/call",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "coverage",
+        "reject": true
+      }
+    },
+    {
+      "name": "component-param-sf",
+      "mode": "reject",
+      "description": "E03-09: request-ed25519 as received, with \"content-type\";sf covered instead of \"content-type\", re-signed; rejected when the covered components are checked (03 §5 step 2).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\";sf \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:iof16JizZCMA86H9lpV1gbE7sSIPFVGKSnpsjhChSoDRmIeUpaN+CkvXoqhbMVJSa5jzOUkyBbcAWKuIEreTAg==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "coverage",
+        "reject": true
+      }
+    },
+    {
+      "name": "req-in-request",
+      "mode": "reject",
+      "description": "03 §4: request-ed25519 as received, with \"@method\";req covered instead of \"@method\", re-signed; rejected when the covered components are checked (03 §5 step 2).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "date",
+            "Tue, 01 Sep 2026 12:00:00 GMT"
+          ],
+          [
+            "x-sage-did",
+            "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+          ],
+          [
+            "content-digest",
+            "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\";req \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+          ],
+          [
+            "signature",
+            "sig1=:fqnVPm2MK7+QBnXPh2XmAwEIiR7i7M3DvazbJVpBClvxn2sEkPSZW60HUxuHQNw9tSHit7rZFgrsHCfJWa3zCQ==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-a",
+        "method": "POST",
+        "url": "https://agent-b.example/mcp/tools/call",
+        "verify_at": 1788609600
+      },
+      "output": {
+        "code": "coverage",
+        "reject": true
+      }
+    },
+    {
+      "name": "response-no-status",
+      "mode": "reject",
+      "description": "E03-10: response-ed25519 as received, with \"@status\" removed from the covered components, re-signed; rejected when the covered components are checked (03 §5 step 2).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "content-digest",
+            "sha-256=:RYDXwjjrCO/NMhfknKXVnCd+5BTGUptdGDRgWfgFWVc=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"content-type\" \"content-digest\");keyid=\"did:sage:ethereum:0x2222222222222222222222222222222222222222#key-1\";alg=\"ed25519\";created=1788609601;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10-resp\""
+          ],
+          [
+            "signature",
+            "sig1=:5T8j3zb9c0KCSjDD0+yPrBidBjhDtu3Ta/FydH60325xGZ79HATQqShMvJ45KsSTIR6ob+Fc/RkPMRtQsBYkBw==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-b",
+        "request": {
+          "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+          "fields": [
+            [
+              "content-type",
+              "application/json"
+            ],
+            [
+              "date",
+              "Tue, 01 Sep 2026 12:00:00 GMT"
+            ],
+            [
+              "x-sage-did",
+              "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+            ],
+            [
+              "content-digest",
+              "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+            ],
+            [
+              "signature-input",
+              "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+            ],
+            [
+              "signature",
+              "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:"
+            ]
+          ],
+          "method": "POST",
+          "url": "https://agent-b.example/mcp/tools/call"
+        },
+        "status": 200,
+        "verify_at": 1788609601
+      },
+      "output": {
+        "code": "coverage",
+        "reject": true
+      }
+    },
+    {
+      "name": "response-no-signature-req",
+      "mode": "reject",
+      "description": "E03-10: response-ed25519 as received, with \"signature\";req removed from the covered components, re-signed; rejected when the covered components are checked (03 §5 step 2).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "content-digest",
+            "sha-256=:RYDXwjjrCO/NMhfknKXVnCd+5BTGUptdGDRgWfgFWVc=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"content-type\" \"content-digest\");keyid=\"did:sage:ethereum:0x2222222222222222222222222222222222222222#key-1\";alg=\"ed25519\";created=1788609601;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10-resp\""
+          ],
+          [
+            "signature",
+            "sig1=:D0aOxhSn4L+NRZgwC0rmIguibWw8SK7JKKvTjjLzCnyDSXXso3o8c3nId6Rey998rgM/kOueGFwLIqJ3ZPT1CA==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-b",
+        "request": {
+          "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+          "fields": [
+            [
+              "content-type",
+              "application/json"
+            ],
+            [
+              "date",
+              "Tue, 01 Sep 2026 12:00:00 GMT"
+            ],
+            [
+              "x-sage-did",
+              "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+            ],
+            [
+              "content-digest",
+              "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+            ],
+            [
+              "signature-input",
+              "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+            ],
+            [
+              "signature",
+              "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:"
+            ]
+          ],
+          "method": "POST",
+          "url": "https://agent-b.example/mcp/tools/call"
+        },
+        "status": 200,
+        "verify_at": 1788609601
+      },
+      "output": {
+        "code": "coverage",
+        "reject": true
+      }
+    },
+    {
+      "name": "response-other-request",
+      "mode": "reject",
+      "description": "E03-10: response-ed25519 as received, with the response re-signed with \"@target-uri\";req https://agent-b.example/mcp/tools/list, another request's value, and checked against request-ed25519; rejected when the signature is verified (03 §5 step 6).",
+      "input": {
+        "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"result\":{\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}}",
+        "fields": [
+          [
+            "content-type",
+            "application/json"
+          ],
+          [
+            "content-digest",
+            "sha-256=:RYDXwjjrCO/NMhfknKXVnCd+5BTGUptdGDRgWfgFWVc=:"
+          ],
+          [
+            "signature-input",
+            "sig1=(\"@status\" \"@method\";req \"@target-uri\";req \"@authority\";req \"content-digest\";req \"signature\";req \"content-type\" \"content-digest\");keyid=\"did:sage:ethereum:0x2222222222222222222222222222222222222222#key-1\";alg=\"ed25519\";created=1788609601;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10-resp\""
+          ],
+          [
+            "signature",
+            "sig1=:OD3ASxNydGddiMpqj4YaWGTfBZdpA5qKztm+BjOZLEJehjZdzHwWUu9jATCepMFAzR2jyf55E5LnbA7I4Zd3BQ==:"
+          ]
+        ],
+        "key_label": "sage-spec/vectors/ed25519/agent-b",
+        "request": {
+          "body": "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"echo\",\"arguments\":{\"text\":\"hello\"}}}",
+          "fields": [
+            [
+              "content-type",
+              "application/json"
+            ],
+            [
+              "date",
+              "Tue, 01 Sep 2026 12:00:00 GMT"
+            ],
+            [
+              "x-sage-did",
+              "did:sage:ethereum:0x1111111111111111111111111111111111111111"
+            ],
+            [
+              "content-digest",
+              "sha-256=:8LVpz99pqw3Qk15ZR9KrTw7BNYt9yrfJQf92GvVs0X0=:"
+            ],
+            [
+              "signature-input",
+              "sig1=(\"@method\" \"@target-uri\" \"@authority\" \"content-type\" \"content-digest\" \"x-sage-did\" \"date\");keyid=\"did:sage:ethereum:0x1111111111111111111111111111111111111111#key-1\";alg=\"ed25519\";created=1788609600;nonce=\"8f0c5b1c-0d1a-4c8e-9a51-6d2e4b7f1a10\""
+            ],
+            [
+              "signature",
+              "sig1=:VO0yputjPcCYt/44t6UUG+tjhuZRPTG18gcSj9D+x42OFhGyt7pTc3hhMjqQKEvYsxl9KpD9nKEzoar80rGJAA==:"
+            ]
+          ],
+          "method": "POST",
+          "url": "https://agent-b.example/mcp/tools/call"
+        },
+        "status": 200,
+        "verify_at": 1788609601
+      },
+      "output": {
+        "code": "signature",
         "reject": true
       }
     }

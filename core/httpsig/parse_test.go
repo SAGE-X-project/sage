@@ -316,6 +316,36 @@ func FuzzParse(f *testing.F) {
 			}
 			return
 		}
+		// Steps 2 and 3 on an accepted signature return rejections, never
+		// panic.
+		req := Request{Method: "POST", Target: "https://a.example/p?q", Header: h, Body: []byte("b")}
+		rb, rerr := RequestBase(p, req)
+		sb, serr := ResponseBase(p, Response{Status: 200, Header: h}, req)
+		raw, berr := rawBase(p, nil, req)
+		rawResp, rerr2 := rawBase(p, &Response{Status: 200, Header: h}, req)
+		for _, err := range []error{
+			CheckRequest(p, req),
+			CheckResponse(p, Response{Status: 200, Header: h, Body: []byte("b")}, req),
+			rerr, serr, berr, rerr2,
+		} {
+			var r *core.Rejection
+			if err != nil && !errors.As(err, &r) && !errors.Is(err, ErrUnsignedRequest) {
+				t.Fatalf("non-rejection error %v", err)
+			}
+		}
+		// A base has one line per covered component and no other control
+		// byte: no value can add a line (RFC 9421 §2.5).
+		for _, b := range [][]byte{rb.b, sb.b, raw, rawResp} {
+			if b == nil {
+				continue
+			}
+			if n := bytes.Count(b, []byte("\n")); n != len(p.components) {
+				t.Fatalf("base has %d component lines for %d components: %q", n, len(p.components), b)
+			}
+			if unsafeValue(strings.ReplaceAll(string(b), "\n", "")) {
+				t.Fatalf("base has a control or non-ASCII byte: %q", b)
+			}
+		}
 		// Accepted input is canonical: the member re-serialises to itself.
 		// RFC 8941 discards leading SP and the OWS after the last member.
 		if got := p.Label() + "=" + p.SignatureParams(); got != strings.TrimRight(strings.TrimLeft(input, " "), " \t") {
